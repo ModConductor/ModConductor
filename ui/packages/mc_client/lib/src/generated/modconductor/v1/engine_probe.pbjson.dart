@@ -72,3 +72,19 @@ const Heartbeat$json = {
 final $typed_data.Uint8List heartbeatDescriptor = $convert.base64Decode(
     'CglIZWFydGJlYXQSHQoKcmVxdWVzdF9pZBgBIAEoCVIJcmVxdWVzdElkEhoKCHNlcXVlbmNlGA'
     'IgASgNUghzZXF1ZW5jZRIaCghjb21wbGV0ZRgDIAEoCFIIY29tcGxldGU=');
+
+@$core.Deprecated('Use engineReadyDescriptor instead')
+const EngineReady$json = {
+  '1': 'EngineReady',
+  '2': [
+    {'1': 'protocol_major', '3': 1, '4': 1, '5': 13, '10': 'protocolMajor'},
+    {'1': 'port', '3': 2, '4': 1, '5': 13, '10': 'port'},
+    {'1': 'certificate_pem', '3': 3, '4': 1, '5': 12, '10': 'certificatePem'},
+  ],
+};
+
+/// Descriptor for `EngineReady`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List engineReadyDescriptor = $convert.base64Decode(
+    'CgtFbmdpbmVSZWFkeRIlCg5wcm90b2NvbF9tYWpvchgBIAEoDVINcHJvdG9jb2xNYWpvchISCg'
+    'Rwb3J0GAIgASgNUgRwb3J0EicKD2NlcnRpZmljYXRlX3BlbRgDIAEoDFIOY2VydGlmaWNhdGVQ'
+    'ZW0=');

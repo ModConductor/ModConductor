@@ -23,9 +23,14 @@ final class DesktopFailure extends DesktopStatus {
 }
 
 class _FailurePage extends StatelessWidget {
-  const _FailurePage({required this.reason, required this.onPreferences});
+  const _FailurePage({
+    required this.reason,
+    required this.onPreferences,
+    this.onRetry,
+  });
   final String reason;
   final VoidCallback onPreferences;
+  final VoidCallback? onRetry;
   @override
   Widget build(BuildContext context) => McPage(
     title: 'Connection error',
@@ -39,7 +44,14 @@ class _FailurePage extends StatelessWidget {
             tone: McStatusTone.error,
           ),
           const SizedBox(height: McSpacing.large),
-          McAction(label: 'Preferences', onPressed: onPreferences),
+          Wrap(
+            spacing: McSpacing.medium,
+            runSpacing: McSpacing.small,
+            children: [
+              McAction(label: 'Retry', onPressed: onRetry),
+              McAction(label: 'Preferences', onPressed: onPreferences),
+            ],
+          ),
         ],
       ),
     ],

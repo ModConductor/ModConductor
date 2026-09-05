@@ -9,7 +9,7 @@ using grpc = global::Grpc.Core;
 
 namespace ModConductor.Protocol.V1 {
   /// <summary>
-  /// Read-only connection proof. Bootstrap authentication is not part of v1 yet.
+  /// All methods require the capability from the private child bootstrap.
   /// </summary>
   public static partial class EngineProbe
   {

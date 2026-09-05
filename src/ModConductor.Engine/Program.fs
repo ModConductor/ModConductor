@@ -12,8 +12,15 @@ open Microsoft.Extensions.DependencyInjection
 open Microsoft.Extensions.Hosting
 open Microsoft.Extensions.Logging
 
-[<EntryPoint>]
-let main _ =
+let run () =
+    use input = Console.OpenStandardInput()
+
+    let capability =
+        ModConductor.Engine.Bootstrap.readCapability input
+        |> fun pending -> pending.GetAwaiter().GetResult()
+
+    use certificate = ModConductor.Engine.Bootstrap.createCertificate ()
+
     let builder =
         WebApplication.CreateSlimBuilder(
             WebApplicationOptions(ContentRootPath = AppContext.BaseDirectory, Args = [||])
@@ -25,11 +32,19 @@ let main _ =
         options.Listen(
             IPAddress.Loopback,
             0,
-            fun endpoint -> endpoint.Protocols <- HttpProtocols.Http2
+            fun endpoint ->
+                endpoint.Protocols <- HttpProtocols.Http2
+                endpoint.UseHttps(certificate) |> ignore
         ))
     |> ignore
 
+    builder.Services.AddSingleton<ModConductor.Engine.SessionAuthentication>(
+        ModConductor.Engine.SessionAuthentication(capability)
+    )
+    |> ignore
+
     builder.Services.AddGrpc(fun options ->
+        options.Interceptors.Add<ModConductor.Engine.SessionAuthentication>()
         options.MaxReceiveMessageSize <- Nullable 4096
         options.MaxSendMessageSize <- Nullable 4096
         options.EnableDetailedErrors <- Nullable false)
@@ -42,15 +57,22 @@ let main _ =
     let address =
         app.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>().Addresses
         |> Seq.exactlyOne
-    // Only this owned stdout pipe announces the endpoint; it carries no secret.
-    Console.Out.WriteLine(address)
-    Console.Out.Flush()
+
+    ModConductor.Engine.Bootstrap.announce (Uri(address).Port) certificate
     let lifetime = app.Services.GetRequiredService<IHostApplicationLifetime>()
 
     Task.Run(fun () ->
-        Console.In.Read() |> ignore
+        input.ReadByte() |> ignore
         lifetime.StopApplication())
     |> ignore
 
     app.WaitForShutdownAsync().GetAwaiter().GetResult()
     0
+
+[<EntryPoint>]
+let main _ =
+    try
+        run ()
+    with _ ->
+        Console.Error.WriteLine("The engine could not start or stop.")
+        1

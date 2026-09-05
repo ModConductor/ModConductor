@@ -30,19 +30,22 @@ namespace ModConductor.Protocol.V1 {
             "GAEgASgNEhQKDGFyY2hpdGVjdHVyZRgCIAEoCRISCgpuYXRpdmVfYW90GAMg",
             "ASgIIjUKEEhlYXJ0YmVhdFJlcXVlc3QSEgoKcmVxdWVzdF9pZBgBIAEoCRIN",
             "CgVjb3VudBgCIAEoDSJDCglIZWFydGJlYXQSEgoKcmVxdWVzdF9pZBgBIAEo",
-            "CRIQCghzZXF1ZW5jZRgCIAEoDRIQCghjb21wbGV0ZRgDIAEoCDK4AQoLRW5n",
-            "aW5lUHJvYmUSVgoOSW5zcGVjdFJ1bnRpbWUSJi5tb2Rjb25kdWN0b3IudjEu",
-            "SW5zcGVjdFJ1bnRpbWVSZXF1ZXN0GhwubW9kY29uZHVjdG9yLnYxLlJ1bnRp",
-            "bWVJbmZvElEKDldhdGNoSGVhcnRiZWF0EiEubW9kY29uZHVjdG9yLnYxLkhl",
-            "YXJ0YmVhdFJlcXVlc3QaGi5tb2Rjb25kdWN0b3IudjEuSGVhcnRiZWF0MAFC",
-            "G6oCGE1vZENvbmR1Y3Rvci5Qcm90b2NvbC5WMWIGcHJvdG8z"));
+            "CRIQCghzZXF1ZW5jZRgCIAEoDRIQCghjb21wbGV0ZRgDIAEoCCJMCgtFbmdp",
+            "bmVSZWFkeRIWCg5wcm90b2NvbF9tYWpvchgBIAEoDRIMCgRwb3J0GAIgASgN",
+            "EhcKD2NlcnRpZmljYXRlX3BlbRgDIAEoDDK4AQoLRW5naW5lUHJvYmUSVgoO",
+            "SW5zcGVjdFJ1bnRpbWUSJi5tb2Rjb25kdWN0b3IudjEuSW5zcGVjdFJ1bnRp",
+            "bWVSZXF1ZXN0GhwubW9kY29uZHVjdG9yLnYxLlJ1bnRpbWVJbmZvElEKDldh",
+            "dGNoSGVhcnRiZWF0EiEubW9kY29uZHVjdG9yLnYxLkhlYXJ0YmVhdFJlcXVl",
+            "c3QaGi5tb2Rjb25kdWN0b3IudjEuSGVhcnRiZWF0MAFCG6oCGE1vZENvbmR1",
+            "Y3Rvci5Qcm90b2NvbC5WMWIGcHJvdG8z"));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { },
           new pbr::GeneratedClrTypeInfo(null, null, new pbr::GeneratedClrTypeInfo[] {
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.InspectRuntimeRequest), global::ModConductor.Protocol.V1.InspectRuntimeRequest.Parser, new[]{ "ProtocolMajor" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.RuntimeInfo), global::ModConductor.Protocol.V1.RuntimeInfo.Parser, new[]{ "ProtocolMajor", "Architecture", "NativeAot" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.HeartbeatRequest), global::ModConductor.Protocol.V1.HeartbeatRequest.Parser, new[]{ "RequestId", "Count" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.Heartbeat), global::ModConductor.Protocol.V1.Heartbeat.Parser, new[]{ "RequestId", "Sequence", "Complete" }, null, null, null, null)
+            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.Heartbeat), global::ModConductor.Protocol.V1.Heartbeat.Parser, new[]{ "RequestId", "Sequence", "Complete" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.EngineReady), global::ModConductor.Protocol.V1.EngineReady.Parser, new[]{ "ProtocolMajor", "Port", "CertificatePem" }, null, null, null, null)
           }));
     }
     #endregion
@@ -1032,6 +1035,281 @@ namespace ModConductor.Protocol.V1 {
           }
           case 24: {
             Complete = input.ReadBool();
+            break;
+          }
+        }
+      }
+    }
+    #endif
+
+  }
+
+  /// <summary>
+  /// Public descriptor on the owned stdout pipe, not a network RPC.
+  /// </summary>
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
+  public sealed partial class EngineReady : pb::IMessage<EngineReady>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
+    private static readonly pb::MessageParser<EngineReady> _parser = new pb::MessageParser<EngineReady>(() => new EngineReady());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pb::MessageParser<EngineReady> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::ModConductor.Protocol.V1.EngineProbeReflection.Descriptor.MessageTypes[4]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public EngineReady() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public EngineReady(EngineReady other) : this() {
+      protocolMajor_ = other.protocolMajor_;
+      port_ = other.port_;
+      certificatePem_ = other.certificatePem_;
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public EngineReady Clone() {
+      return new EngineReady(this);
+    }
+
+    /// <summary>Field number for the "protocol_major" field.</summary>
+    public const int ProtocolMajorFieldNumber = 1;
+    private uint protocolMajor_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public uint ProtocolMajor {
+      get { return protocolMajor_; }
+      set {
+        protocolMajor_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "port" field.</summary>
+    public const int PortFieldNumber = 2;
+    private uint port_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public uint Port {
+      get { return port_; }
+      set {
+        port_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "certificate_pem" field.</summary>
+    public const int CertificatePemFieldNumber = 3;
+    private pb::ByteString certificatePem_ = pb::ByteString.Empty;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public pb::ByteString CertificatePem {
+      get { return certificatePem_; }
+      set {
+        certificatePem_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override bool Equals(object other) {
+      return Equals(other as EngineReady);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool Equals(EngineReady other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (ProtocolMajor != other.ProtocolMajor) return false;
+      if (Port != other.Port) return false;
+      if (CertificatePem != other.CertificatePem) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (ProtocolMajor != 0) hash ^= ProtocolMajor.GetHashCode();
+      if (Port != 0) hash ^= Port.GetHashCode();
+      if (CertificatePem.Length != 0) hash ^= CertificatePem.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
+      if (ProtocolMajor != 0) {
+        output.WriteRawTag(8);
+        output.WriteUInt32(ProtocolMajor);
+      }
+      if (Port != 0) {
+        output.WriteRawTag(16);
+        output.WriteUInt32(Port);
+      }
+      if (CertificatePem.Length != 0) {
+        output.WriteRawTag(26);
+        output.WriteBytes(CertificatePem);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      if (ProtocolMajor != 0) {
+        output.WriteRawTag(8);
+        output.WriteUInt32(ProtocolMajor);
+      }
+      if (Port != 0) {
+        output.WriteRawTag(16);
+        output.WriteUInt32(Port);
+      }
+      if (CertificatePem.Length != 0) {
+        output.WriteRawTag(26);
+        output.WriteBytes(CertificatePem);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int CalculateSize() {
+      int size = 0;
+      if (ProtocolMajor != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeUInt32Size(ProtocolMajor);
+      }
+      if (Port != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeUInt32Size(Port);
+      }
+      if (CertificatePem.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeBytesSize(CertificatePem);
+      }
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(EngineReady other) {
+      if (other == null) {
+        return;
+      }
+      if (other.ProtocolMajor != 0) {
+        ProtocolMajor = other.ProtocolMajor;
+      }
+      if (other.Port != 0) {
+        Port = other.Port;
+      }
+      if (other.CertificatePem.Length != 0) {
+        CertificatePem = other.CertificatePem;
+      }
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 8: {
+            ProtocolMajor = input.ReadUInt32();
+            break;
+          }
+          case 16: {
+            Port = input.ReadUInt32();
+            break;
+          }
+          case 26: {
+            CertificatePem = input.ReadBytes();
+            break;
+          }
+        }
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 8: {
+            ProtocolMajor = input.ReadUInt32();
+            break;
+          }
+          case 16: {
+            Port = input.ReadUInt32();
+            break;
+          }
+          case 26: {
+            CertificatePem = input.ReadBytes();
             break;
           }
         }

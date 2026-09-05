@@ -76,7 +76,7 @@ From `ui/`, check all three workspace members with one dependency resolution:
 ```sh
 flutter pub get --enforce-lockfile
 flutter analyze --no-pub
-dart format --output=none --set-exit-if-changed apps/mod_conductor/lib apps/mod_conductor/test packages/mc_ui_foundation/lib apps/mod_conductor/integration_test packages/mc_client/lib/mc_client.dart packages/mc_client/lib/src/engine_session.dart packages/mc_client/test
+dart format --output=none --set-exit-if-changed apps/mod_conductor/lib apps/mod_conductor/test packages/mc_ui_foundation/lib apps/mod_conductor/integration_test packages/mc_client/lib/mc_client.dart packages/mc_client/lib/src/engine_session.dart packages/mc_client/lib/src/engine_owner.dart packages/mc_client/test
 cd apps/mod_conductor
 flutter test --no-pub test
 flutter build linux --release --no-pub

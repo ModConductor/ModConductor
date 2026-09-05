@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mc_client/mc_client.dart';
+import 'package:mc_client/src/engine_session.dart';
 
 void main() {
   final executable = Platform.environment['MC_ENGINE_PATH'];
@@ -13,7 +13,10 @@ void main() {
         : false,
     () {
       late EngineSession engine;
-      setUp(() async => engine = await EngineSession.start(executable!));
+      setUp(() async {
+        engine = EngineSession(await Process.start(executable!, const []));
+        await engine.connect();
+      });
       tearDown(() async => engine.close());
 
       test(

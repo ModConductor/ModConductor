@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:grpc/grpc.dart';
 
@@ -10,59 +11,66 @@ typedef RuntimeSummary = ({String architecture, bool nativeAot});
 typedef ProbeTick = ({int sequence, bool complete});
 typedef ConnectionReport = ({RuntimeSummary runtime, int heartbeats});
 
-/// An owned child and the small read-only wire proof. Not an authenticated session.
 class EngineSession {
-  EngineSession._(this._process, this._channel, this._errors)
-    : _client = wire.EngineProbeClient(
-        _channel,
-        options: CallOptions(timeout: const Duration(seconds: 5)),
-      );
+  EngineSession(this._process) : _errors = _process.stderr.listen((_) {});
 
   final Process _process;
-  final ClientChannel _channel;
   final StreamSubscription<List<int>> _errors;
-  final wire.EngineProbeClient _client;
+  ClientChannel? _channel;
+  wire.EngineProbeClient? _client;
   int _request = 0;
   Future<void>? _closing;
 
   Future<int> get exited => _process.exitCode;
 
-  static Future<EngineSession> start(String executable) async {
-    final process = await Process.start(executable, const []);
-    final errors = process.stderr.listen((_) {});
-    try {
-      final endpoint = await _readEndpoint(process.stdout)
-          .timeout(const Duration(seconds: 10));
-      final channel = ClientChannel(
-        endpoint.host,
-        port: endpoint.port,
-        options: const ChannelOptions(
-          // Loopback-only proof, not authentication or production security.
-          credentials: ChannelCredentials.insecure(),
-          connectTimeout: Duration(seconds: 2),
-        ),
-      );
-      return EngineSession._(process, channel, errors);
-    } catch (_) {
-      await _stop(process);
-      await errors.cancel();
-      rethrow;
+  Future<void> connect() async {
+    final random = Random.secure();
+    final capability = List.generate(
+      32,
+      (_) => random.nextInt(256),
+    ).map((byte) => byte.toRadixString(16).padLeft(2, '0')).join();
+    _process.stdin.writeln(capability);
+    await _process.stdin.flush();
+    final ready = await _readReady(_process.stdout)
+        .timeout(const Duration(seconds: 10));
+    if (ready.protocolMajor != 1) {
+      throw const EngineProtocolMismatch();
     }
+    if (ready.port < 1 || ready.port > 65535 || ready.certificatePem.isEmpty) {
+      throw const FormatException('Invalid engine descriptor.');
+    }
+    final channel = ClientChannel(
+      '127.0.0.1',
+      port: ready.port,
+      options: ChannelOptions(
+        credentials: ChannelCredentials.secure(
+          certificates: ready.certificatePem,
+          authority: 'localhost',
+        ),
+        connectTimeout: const Duration(seconds: 2),
+      ),
+    );
+    _channel = channel;
+    _client = wire.EngineProbeClient(
+      channel,
+      options: CallOptions(
+        timeout: const Duration(seconds: 5),
+        metadata: {'mc-session': capability},
+      ),
+    );
   }
 
   Future<RuntimeSummary> inspect() async {
-    final reply = await _client.inspectRuntime(
+    final reply = await _client!.inspectRuntime(
       wire.InspectRuntimeRequest(protocolMajor: 1),
     );
-    if (reply.protocolMajor != 1) {
-      throw const FormatException('Unsupported engine protocol.');
-    }
+    if (reply.protocolMajor != 1) throw const EngineProtocolMismatch();
     return (architecture: reply.architecture, nativeAot: reply.nativeAot);
   }
 
   Stream<ProbeTick> heartbeats({int count = 5}) async* {
     final id = 'probe-${++_request}';
-    final call = _client.watchHeartbeat(
+    final call = _client!.watchHeartbeat(
       wire.HeartbeatRequest(requestId: id, count: count),
     );
     var received = 0;
@@ -94,55 +102,39 @@ class EngineSession {
     return (runtime: runtime, heartbeats: received);
   }
 
-  Future<void> close() => _closing ??= _close();
+  Future<void> close() =>
+      _closing ??= _close().whenComplete(() => _closing = null);
 
   Future<void> _close() async {
-    await _channel.terminate();
-    await _stop(_process);
+    await _channel?.terminate();
+    try {
+      await _process.stdin.close();
+    } on IOException {
+      // An exited child can close its pipe before the owner does.
+    }
+    await _process.exitCode.timeout(const Duration(seconds: 3));
     await _errors.cancel();
   }
 }
 
-Future<Uri> _readEndpoint(Stream<List<int>> output) async {
+class EngineProtocolMismatch implements Exception {
+  const EngineProtocolMismatch();
+}
+
+Future<wire.EngineReady> _readReady(Stream<List<int>> output) async {
   final bytes = <int>[];
   await for (final chunk in output) {
     for (final byte in chunk) {
       if (byte == 10) {
-        final endpoint = Uri.parse(utf8.decode(bytes).trim());
-        if (endpoint.scheme != 'http' ||
-            endpoint.host != '127.0.0.1' ||
-            !endpoint.hasPort ||
-            endpoint.port < 1 ||
-            endpoint.port > 65535 ||
-            endpoint.userInfo.isNotEmpty ||
-            endpoint.path.isNotEmpty ||
-            endpoint.hasQuery ||
-            endpoint.hasFragment) {
-          throw const FormatException('Invalid engine endpoint.');
-        }
-        return endpoint;
+        return wire.EngineReady.fromBuffer(
+          base64.decode(ascii.decode(bytes).trim()),
+        );
       }
-      if (bytes.length == 512) {
-        throw const FormatException('Engine endpoint is too long.');
+      if (bytes.length == 4096) {
+        throw const FormatException('Engine descriptor is too long.');
       }
       bytes.add(byte);
     }
   }
-  throw const FormatException(
-    'Engine stopped before it announced an endpoint.',
-  );
-}
-
-Future<void> _stop(Process process) async {
-  try {
-    await process.stdin.close();
-  } on IOException {
-    // A child that already exited can close its pipe before this owner does.
-  }
-  try {
-    await process.exitCode.timeout(const Duration(seconds: 3));
-  } on TimeoutException {
-    process.kill(ProcessSignal.sigkill);
-    await process.exitCode.timeout(const Duration(seconds: 2));
-  }
+  throw const FormatException('The engine stopped before it was ready.');
 }

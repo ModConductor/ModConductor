@@ -2,7 +2,7 @@ syntax = "proto3";
 package modconductor.v1;
 option csharp_namespace = "ModConductor.Protocol.V1";
 
-// Read-only connection proof. Bootstrap authentication is not part of v1 yet.
+// All methods require the capability from the private child bootstrap.
 service EngineProbe {
   rpc InspectRuntime(InspectRuntimeRequest) returns (RuntimeInfo);
   rpc WatchHeartbeat(HeartbeatRequest) returns (stream Heartbeat);
@@ -31,3 +31,10 @@ message Heartbeat {
 }
 // Removed fields must be reserved, never reused. Additive fields keep their
 // proto3 default semantics. An incompatible change requires a new package major.
+
+// Public descriptor on the owned stdout pipe, not a network RPC.
+message EngineReady {
+  uint32 protocol_major = 1;
+  uint32 port = 2;
+  bytes certificate_pem = 3;
+}

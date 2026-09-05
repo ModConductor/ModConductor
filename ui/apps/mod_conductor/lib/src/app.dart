@@ -37,10 +37,12 @@ class ModConductorApp extends StatefulWidget {
   const ModConductorApp({
     super.key,
     this.onQuit,
+    this.onRetry,
     this.status = const DesktopDisconnected(),
   });
   final DesktopStatus status;
   final VoidCallback? onQuit;
+  final VoidCallback? onRetry;
   @override
   State<ModConductorApp> createState() => _ModConductorAppState();
 }
@@ -118,6 +120,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
                 child: switch (widget.status) {
                   DesktopFailure(:final reason) => _FailurePage(
                     reason: reason,
+                    onRetry: widget.onRetry,
                     onPreferences: () => _navigate(_Destination.preferences),
                   ),
                   DesktopDisconnected() ||

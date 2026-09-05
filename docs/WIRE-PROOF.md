@@ -20,16 +20,41 @@ the stream without a completion item. The Dart client rejects missing, reordered
 or inconsistent terminal items rather than treating partial data as complete.
 Messages are bounded to 4096 bytes by the server. Client calls have deadlines.
 
-The child binds HTTP/2 to IPv4 loopback on an OS-selected port. Its private stdout
-pipe announces that endpoint once. The endpoint parser has a size/startup bound.
-No credential appears in arguments, output or settings. **This is not authenticated
-bootstrap.** Loopback and process ownership are not a security boundary against
-other local processes. Authentication, executable identity and full lifecycle
-hardening belong to later work. Do not use this proof for sensitive operations.
+## Local session
 
-The parent owns the child and closes its stdin at shutdown. EOF stops the slim
-host. Client disposal cancels active calls and waits for the child, with a bounded
-kill fallback. There is no reconnect manager or durable operation framework.
+The child binds TLS HTTP/2 to IPv4 loopback on an OS-selected port. It creates
+an ephemeral RSA key and self-signed certificate in memory. The certificate names
+`localhost` and `127.0.0.1`. Neither the key nor the capability enters a file.
+
+The parent starts its selected installed engine with no arguments. It sends a
+random 256-bit capability through private inherited stdin. The engine reads a
+fixed 65-byte frame with a startup deadline. Its private stdout returns one
+base64 Protobuf `EngineReady` frame: protocol major, port, and public PEM
+certificate. The parent bounds the frame to 4096 bytes and ten seconds. It refuses
+an incompatible major before it sends an authenticated network request.
+
+Dart trusts only the supplied certificate and checks the `localhost` authority.
+It does not merge system trust roots or accept bad certificates. TLS checks the
+peer before gRPC sends the `mc-session` metadata. The registered server interceptor
+checks every RPC shape with a constant-time capability comparison. Missing,
+duplicate, or wrong capabilities return `UNAUTHENTICATED`.
+
+The installed child and its private inherited pipes form the bootstrap trust
+boundary. TLS protects against a substituted network endpoint. This does not
+identify a malicious replacement of the installed executable or create a
+same-user sandbox. MC-061 owns package identity. No network discovery, persistent
+endpoint, reusable credential, or certificate store is used.
+
+`EngineOwner` owns one child per desktop host. Concurrent starts share one attempt.
+A failed start or crash permits Retry. A late result cannot replace a newer
+attempt or a close state. MC-058 owns OS-level second-instance behavior.
+
+Close cancels client calls and closes stdin. EOF requests graceful engine shutdown.
+The parent waits up to three seconds for the child after its connection attempt
+finishes. Startup and RPC deadlines bound that attempt. A timeout retains the
+owned child and cancels app exit. The user can wait and quit again. The parent
+never kills an authenticated child to meet that timeout. MC-007 owns durable
+operation semantics. No game or mod mutation is available in this version.
 
 ## Generation and checks
 

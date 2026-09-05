@@ -9,6 +9,8 @@
     <ILLinkTreatWarningsAsErrors>true</ILLinkTreatWarningsAsErrors>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Bootstrap.fs" />
+    <Compile Include="SessionAuthentication.fs" />
     <Compile Include="Probe.fs" />
     <Compile Include="ProbeService.fs" />
     <Compile Include="Program.fs" />

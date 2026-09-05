@@ -20,7 +20,7 @@ import 'engine_probe.pb.dart' as $0;
 
 export 'engine_probe.pb.dart';
 
-/// Read-only connection proof. Bootstrap authentication is not part of v1 yet.
+/// All methods require the capability from the private child bootstrap.
 @$pb.GrpcServiceName('modconductor.v1.EngineProbe')
 class EngineProbeClient extends $grpc.Client {
   /// The hostname for this service.

@@ -163,3 +163,7 @@ The source-informed investigation is not claimed to be clean-room work.
 Future reuse must be recorded as reuse rather than inferred to be original merely
 because it is rewritten in another language. The initial absence of adoption is
 not a prediction about later implementation or a final GPL determination.
+
+## MC-006 local session
+
+The authored F# bootstrap and session interceptor use the existing .NET 10 and gRPC dependencies. The Dart owner uses the existing gRPC and Protobuf dependencies. No dependency or license changed. The public bootstrap descriptor comes from the shared schema. TLS certificates and session capabilities remain in memory.

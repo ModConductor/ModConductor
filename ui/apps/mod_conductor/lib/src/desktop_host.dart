@@ -9,78 +9,59 @@ class DesktopHost extends StatefulWidget {
 }
 
 class _DesktopHostState extends State<DesktopHost> with WidgetsBindingObserver {
-  DesktopStatus _status = const DesktopConnecting();
-  EngineSession? _engine;
-  late final Future<void> _startup;
-  bool _closing = false;
+  late final EngineOwner _owner;
+  late final StreamSubscription<EngineState> _changes;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _startup = _connect();
-  }
-
-  Future<void> _connect() async {
-    try {
-      final name = Platform.isWindows
-          ? 'ModConductor.Engine.exe'
-          : 'ModConductor.Engine';
-      final executable =
-          widget.engineExecutable ??
-          File.fromUri(
-            File(Platform.resolvedExecutable).parent.uri
-                .resolve('engine/$name'),
-          ).path;
-      final engine = await EngineSession.start(executable);
-      _engine = engine;
-      if (_closing) {
-        await engine.close();
-        return;
-      }
-      final report = await engine.check();
-      if (mounted && !_closing) {
-        setState(() => _status = DesktopConnected(report));
-      }
-      unawaited(
-        engine.exited.then((_) {
-          if (mounted && !_closing) {
-            setState(
-              () => _status = const DesktopFailure('The engine stopped.'),
-            );
-          }
-        }),
-      );
-    } on Exception {
-      await _engine?.close();
-      if (mounted && !_closing) {
-        setState(
-          () =>
-              _status = const DesktopFailure('Check the engine installation.'),
-        );
-      }
-    }
-  }
-
-  Future<void> _close() async {
-    _closing = true;
-    await _startup;
-    await _engine?.close();
+    final name = Platform.isWindows
+        ? 'ModConductor.Engine.exe'
+        : 'ModConductor.Engine';
+    final executable =
+        widget.engineExecutable ??
+        File.fromUri(
+          File(Platform.resolvedExecutable).parent.uri.resolve('engine/$name'),
+        ).path;
+    _owner = EngineOwner(executable);
+    _changes = _owner.changes.listen((_) {
+      if (mounted) setState(() {});
+    });
+    unawaited(_owner.connect());
   }
 
   @override
-  Future<AppExitResponse> didRequestAppExit() async {
-    await _close();
-    return AppExitResponse.exit;
-  }
+  Future<AppExitResponse> didRequestAppExit() async =>
+      await _owner.close() ? AppExitResponse.exit : AppExitResponse.cancel;
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    unawaited(_close());
+    unawaited(_changes.cancel());
+    unawaited(_owner.close());
     super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) => ModConductorApp(status: _status);
+  Widget build(BuildContext context) => ModConductorApp(
+    status: switch (_owner.state) {
+      EngineIdle() => const DesktopDisconnected(),
+      EngineConnecting() => const DesktopConnecting(),
+      EngineConnected(:final report) => DesktopConnected(report),
+      EngineFailure(:final reason) => DesktopFailure(switch (reason) {
+        EngineFailureReason.start =>
+          'The engine could not start. Check the installation.',
+        EngineFailureReason.protocol =>
+          'The app and engine versions do not match. Reinstall the app.',
+        EngineFailureReason.connection => 'The engine connection failed.',
+        EngineFailureReason.crash => 'The engine stopped.',
+        EngineFailureReason.shutdown => 'The engine did not stop. The app remains open. Wait, then quit again.',
+      }),
+    },
+    onRetry: switch (_owner.state) {
+      EngineFailure(canRetry: true) => () => unawaited(_owner.connect()),
+      _ => null,
+    },
+  );
 }
