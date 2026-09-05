@@ -104,6 +104,11 @@ files are not a project licence grant.
   in the design artifact. Font binaries are not vendored. Original MC design work
   remains unlicensed; no visual/performance approval or publication is inferred.
 
+The MC-D-006 revision adds original dual-pane composition, shared activation and
+order controls, invented plugin/file/archive fixtures, simulated LOOT proposals
+and temporary configuration forms. It introduces no dependency, LOOT code/data,
+real game material or new upstream notice. Existing design notices remain intact.
+
 ## Investigation references — not adopted material
 
 - MO2 feature/source investigation baseline:
