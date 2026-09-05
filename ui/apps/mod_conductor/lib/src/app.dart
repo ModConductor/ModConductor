@@ -10,7 +10,7 @@ part 'preferences.dart';
 part 'status.dart';
 
 void _quitDesktop() {
-  ServicesBinding.instance.exitApplication(AppExitType.required);
+  ServicesBinding.instance.exitApplication(AppExitType.cancelable);
 }
 
 void startDesktop() {
