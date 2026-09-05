@@ -86,7 +86,10 @@ jobs:
       - name: Check native Flutter wire path on private display
         if: runner.os == 'Linux'
         run: python tools/check-linux-wire.py
-      - name: Check Windows read-only wire and cancellation
+      - name: Check Windows session key cleanup
+        if: runner.os == 'Windows'
+        run: ./tools/check-windows-session-keys.ps1 -EnginePath "${{ github.workspace }}/.tools/publish/win-x64/ModConductor.Engine.exe"
+      - name: Check Windows authenticated wire and cancellation
         if: runner.os == 'Windows'
         working-directory: ui/packages/mc_client
         env:

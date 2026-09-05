@@ -27,8 +27,7 @@ module Bootstrap =
             return bytes[..63]
         }
 
-    let createCertificate () =
-        use key = RSA.Create(2048)
+    let createCertificate (key: RSA) =
 
         let request =
             CertificateRequest(

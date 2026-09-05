@@ -23,8 +23,10 @@ Messages are bounded to 4096 bytes by the server. Client calls have deadlines.
 ## Local session
 
 The child binds TLS HTTP/2 to IPv4 loopback on an OS-selected port. It creates
-an ephemeral RSA key and self-signed certificate in memory. The certificate names
-`localhost` and `127.0.0.1`. Neither the key nor the capability enters a file.
+a fresh RSA key and self-signed certificate for each session. The certificate names
+`localhost` and `127.0.0.1`. Linux keeps the private key in memory. Windows uses
+a user-scoped named CNG key because SChannel does not support ephemeral keys.
+The session capability remains memory-only on both platforms.
 
 The parent starts its selected installed engine with no arguments. It sends a
 random 256-bit capability through private inherited stdin. The engine reads a
@@ -39,11 +41,18 @@ peer before gRPC sends the `mc-session` metadata. The registered server intercep
 checks every RPC shape with a constant-time capability comparison. Missing,
 duplicate, or wrong capabilities return `UNAUTHENTICATED`.
 
+Windows reserves an ownership file under the user's local application data before
+it creates the named key. The engine holds a file lease while the session is live.
+Normal close deletes the key, then its ownership file. On the next start, cleanup
+acquires abandoned leases and removes their keys. It does not enumerate CNG keys
+or remove live sessions. If key deletion fails, the ownership file remains for
+a later attempt. No trusted root or TLS policy is installed.
+
 The installed child and its private inherited pipes form the bootstrap trust
 boundary. TLS protects against a substituted network endpoint. This does not
 identify a malicious replacement of the installed executable or create a
 same-user sandbox. MC-061 owns package identity. No network discovery, persistent
-endpoint, reusable credential, or certificate store is used.
+endpoint, reusable capability, or certificate store is used.
 
 `EngineOwner` owns one child per desktop host. Concurrent starts share one attempt.
 A failed start or crash permits Retry. A late result cannot replace a newer
@@ -112,6 +121,7 @@ From the repository root, run these commands in PowerShell:
 ```powershell
 dotnet publish src/ModConductor.Engine/ModConductor.Engine.fsproj -c Release -r win-x64 --self-contained true --no-restore -o .tools/publish/win-x64
 $env:MC_ENGINE_PATH = "$PWD/.tools/publish/win-x64/ModConductor.Engine.exe"
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/check-windows-session-keys.ps1 -EnginePath $env:MC_ENGINE_PATH
 Push-Location ui/packages/mc_client
 flutter test --no-pub
 Pop-Location

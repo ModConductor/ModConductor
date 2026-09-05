@@ -166,4 +166,4 @@ not a prediction about later implementation or a final GPL determination.
 
 ## MC-006 local session
 
-The authored F# bootstrap and session interceptor use the existing .NET 10 and gRPC dependencies. The Dart owner uses the existing gRPC and Protobuf dependencies. No dependency or license changed. The public bootstrap descriptor comes from the shared schema. TLS certificates and session capabilities remain in memory.
+The authored F# bootstrap and session interceptor use the existing .NET 10 and gRPC dependencies. The Dart owner uses the existing gRPC and Protobuf dependencies. No dependency or license changed. The public bootstrap descriptor comes from the shared schema. Session capabilities remain in memory. Linux keeps the private TLS key in memory. Windows uses a fresh user-scoped CNG key with normal-exit deletion and crash cleanup. No dependency was added for this Windows API.

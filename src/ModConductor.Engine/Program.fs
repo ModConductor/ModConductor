@@ -19,7 +19,8 @@ let run () =
         ModConductor.Engine.Bootstrap.readCapability input
         |> fun pending -> pending.GetAwaiter().GetResult()
 
-    use certificate = ModConductor.Engine.Bootstrap.createCertificate ()
+    use sessionKey = ModConductor.Engine.SessionKey.create ()
+    use certificate = ModConductor.Engine.Bootstrap.createCertificate sessionKey.Rsa
 
     let builder =
         WebApplication.CreateSlimBuilder(
