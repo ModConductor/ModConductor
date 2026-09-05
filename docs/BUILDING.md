@@ -1,10 +1,9 @@
 # Build the foundation
 
-This is a build scaffold, not a usable mod manager. The F# executable currently
-exits successfully without doing work; the desktop runner opens a blank surface.
-Product UI is deferred to MC-003, and generated contracts, gRPC and published
-NativeAOT interoperability proof are deferred to MC-005. There are no behavior
-tests because no product behavior has been introduced.
+The desktop bundle opens Welcome and Preferences. It does not connect to an
+engine or change game files. Preferences apply only until the app closes.
+The F# executable exits without work. Engine integration and NativeAOT publication
+remain separate work.
 
 The [development policy](DEVELOPMENT-POLICY.md) still applies: these commands are
 for local qualification, not publication or external distribution.
@@ -72,14 +71,21 @@ Fantomas is resolved from [the local tool manifest](../.config/dotnet-tools.json
 Its tool runtime may roll forward to the installed .NET 10 runtime; the formatter
 package version does not float. To apply formatting, omit `--check`.
 
-From `ui/apps/mod_conductor`:
+From `ui/`, check both workspace members with one dependency resolution:
 
 ```sh
 flutter pub get --enforce-lockfile
 flutter analyze --no-pub
-dart format --output=none --set-exit-if-changed lib
+dart format --output=none --set-exit-if-changed apps/mod_conductor/lib apps/mod_conductor/test packages/mc_ui_foundation/lib
+cd apps/mod_conductor
+flutter test --no-pub
 flutter build linux --release --no-pub
 ```
+
+Run the Linux bundle with `build/linux/x64/release/bundle/mod_conductor`.
+On Windows, run `build\windows\x64\runner\Release\mod_conductor.exe`.
+The app has a visible **Quit** button. No tray service is required.
+[The component catalog](UI-COMPONENTS.md) records the shared components and controls.
 
 Use `flutter build windows --release --no-pub` on native Windows instead.
 Release artifacts are under `src/ModConductor.Engine/bin/Release/net10.0/` and
@@ -87,10 +93,11 @@ Release artifacts are under `src/ModConductor.Engine/bin/Release/net10.0/` and
 `build/linux/x64/release/bundle/`; keep the bundle together when running locally.
 
 The two committed restore locks are the engine's `packages.lock.json` and the
-app's `pubspec.lock`. A deliberate dependency change may update them with
+UI workspace's `ui/pubspec.lock`. A deliberate dependency change may update them with
 `dotnet restore` / `flutter pub get`, but must also update the
 [actual-adoption inventory](PROVENANCE.md). Do not bypass locked restore in CI.
-No test framework, unused RPC generator or speculative shared library is included.
+The app uses `flutter_test` for interaction checks. No RPC generator or engine
+client is included. The design mockup remains separate from the production workspace.
 
 ## NixOS local qualification
 

@@ -1,5 +1,3 @@
-import 'package:flutter/widgets.dart';
+import 'src/app.dart';
 
-void main() {
-  runApp(const SizedBox.shrink());
-}
+void main() => startDesktop();

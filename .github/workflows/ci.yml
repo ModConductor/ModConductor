@@ -58,12 +58,15 @@ jobs:
       - name: Restore locked desktop dependencies
         working-directory: ui/apps/mod_conductor
         run: flutter pub get --enforce-lockfile
-      - name: Analyze desktop
-        working-directory: ui/apps/mod_conductor
+      - name: Analyze desktop and shared foundation
+        working-directory: ui
         run: flutter analyze --no-pub
       - name: Check Dart formatting
+        working-directory: ui
+        run: dart format --output=none --set-exit-if-changed apps/mod_conductor/lib apps/mod_conductor/test packages/mc_ui_foundation/lib
+      - name: Check desktop interactions
         working-directory: ui/apps/mod_conductor
-        run: dart format --output=none --set-exit-if-changed lib
+        run: flutter test --no-pub
       - name: Build Linux desktop
         if: runner.os == 'Linux'
         working-directory: ui/apps/mod_conductor

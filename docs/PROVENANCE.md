@@ -66,7 +66,7 @@ categories distinct, including when an existing component gains translated code.
   packages remain upstream distributions in local caches, not vendored MC code;
   their internal dependency manifests remain part of those distributions.
 - Restore authority: [engine lock](../src/ModConductor.Engine/packages.lock.json),
-  [app lock](../ui/apps/mod_conductor/pubspec.lock),
+  [UI workspace lock](../ui/pubspec.lock),
   [tool manifest](../.config/dotnet-tools.json) and [SDK pin](../.config/flutter-sdk.json).
   No gRPC, protobuf generator, test framework or unrelated application dependency
   is adopted by this scaffold.
@@ -108,6 +108,27 @@ The MC-D-006 revision adds original dual-pane composition, shared activation and
 order controls, invented plugin/file/archive fixtures, simulated LOOT proposals
 and temporary configuration forms. It introduces no dependency, LOOT code/data,
 real game material or new upstream notice. Existing design notices remain intact.
+
+## MC-004 desktop shell — 2026-09-05
+
+- The production app and `mc_ui_foundation` share one Dart pub workspace and
+  [lockfile](../ui/pubspec.lock). The app consumes the foundation package through
+  Welcome and Preferences. No production code imports the design mockup.
+- The original MC shell and foundation adapt the approved MC-003 color, component
+  and type choices. They remain unlicensed. Native runner changes only replace
+  the generated window title with the application name.
+- The production interaction checks now consume SDK `flutter_test`. Its resolved
+  external versions and hashes match the graph already adopted by MC-003. The
+  [test dependency inventory and retained notices](../design/mc-003-workbench/DEPENDENCIES.md)
+  continue to apply. Runtime and analyzer packages retain the notices above.
+- The foundation now bundles Roboto Regular, Medium and Bold from the pinned
+  Flutter 3.47.2 SDK's `material_fonts` archive. The files retain their
+  [Apache-2.0 notice](../ui/packages/mc_ui_foundation/notices/Roboto-LICENSE.txt).
+  These actual font assets make the approved typography available on both native
+  platforms without a system font requirement. SDK Material Icons are consumed
+  through `uses-material-design`; the existing
+  [Material Icons notice](../design/mc-003-workbench/notices/MaterialIcons-LICENSE.txt)
+  applies. No font terms grant a licence to original MC code.
 
 ## Investigation references — not adopted material
 
