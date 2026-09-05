@@ -1,0 +1,33 @@
+syntax = "proto3";
+package modconductor.v1;
+option csharp_namespace = "ModConductor.Protocol.V1";
+
+// Read-only connection proof. Bootstrap authentication is not part of v1 yet.
+service EngineProbe {
+  rpc InspectRuntime(InspectRuntimeRequest) returns (RuntimeInfo);
+  rpc WatchHeartbeat(HeartbeatRequest) returns (stream Heartbeat);
+}
+message InspectRuntimeRequest {
+  // Required: 1. Zero and unsupported majors fail with FAILED_PRECONDITION.
+  uint32 protocol_major = 1;
+}
+message RuntimeInfo {
+  uint32 protocol_major = 1;
+  string architecture = 2;
+  bool native_aot = 3;
+}
+message HeartbeatRequest {
+  // Non-secret correlation label, 1..64 characters. It is not an operation ID.
+  string request_id = 1;
+  // Required: 1..16. Zero is invalid, not an unbounded subscription.
+  uint32 count = 2;
+}
+message Heartbeat {
+  string request_id = 1;
+  // Starts at 1 and increases by 1 in this stream only.
+  uint32 sequence = 2;
+  // True only on the final requested heartbeat. Cancellation has no final item.
+  bool complete = 3;
+}
+// Removed fields must be reserved, never reused. Additive fields keep their
+// proto3 default semantics. An incompatible change requires a new package major.

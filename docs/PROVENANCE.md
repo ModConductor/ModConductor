@@ -133,6 +133,21 @@ real game material or new upstream notice. Existing design notices remain intact
   [Material Icons notice](../design/mc-003-workbench/notices/MaterialIcons-LICENSE.txt)
   applies. No font terms grant a licence to original MC code.
 
+## MC-005 read-only wire proof — 2026-09-05
+
+- Original schema, F# probe/domain adapter and slim host, Dart owned-process client,
+  startup status integration, generation/bundle tools and behavioral checks were
+  authored for MC. No game/mod data, legacy implementation or engine fork was adopted.
+- `contracts/modconductor/v1/engine_probe.proto` generates both language boundaries.
+  Generated files retain their generator headers. They are not handwritten domain models.
+- [Actual wire dependencies and notices](WIRE-DEPENDENCIES.md) record the new
+  gRPC/Protobuf, slim-host, local generator/formatter and SDK test dependencies.
+  `src/ModConductor.Protocol/packages.lock.json`, the engine lock and `ui/pubspec.lock`
+  contain the resolved dependency hashes. No version floats or warning suppressions apply.
+- Linux NativeAOT uses the existing clang/Nix native prerequisites. Windows engine
+  NativeAOT remains unqualified pending separate linker authority. No new dependency
+  or MSVC permission is inferred from the Flutter-only exception.
+
 ## Investigation references — not adopted material
 
 - MO2 feature/source investigation baseline:

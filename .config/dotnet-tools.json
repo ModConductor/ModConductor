@@ -8,6 +8,13 @@
         "fantomas"
       ],
       "rollForward": true
+    },
+    "csharpier": {
+      "version": "1.3.0",
+      "commands": [
+        "csharpier"
+      ],
+      "rollForward": true
     }
   }
 }

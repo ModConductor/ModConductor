@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/ModConductor.Engine/ModConductor.Engine.fsproj" />
+    <Project Path="src/ModConductor.Protocol/ModConductor.Protocol.csproj" />
   </Folder>
 </Solution>

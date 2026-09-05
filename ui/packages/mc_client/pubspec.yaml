@@ -1,0 +1,14 @@
+name: mc_client
+description: Mod Conductor typed engine connection.
+publish_to: none
+resolution: workspace
+version: 0.1.0
+environment:
+  sdk: 3.13.2
+dependencies:
+  grpc: 5.1.0
+  protobuf: 6.0.0
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: 6.0.0

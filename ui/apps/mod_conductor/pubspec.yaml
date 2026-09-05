@@ -12,10 +12,15 @@ dependencies:
   flutter:
     sdk: flutter
 
+  mc_client:
+    path: ../../packages/mc_client
+
   mc_ui_foundation:
     path: ../../packages/mc_ui_foundation
 
 dev_dependencies:
+  integration_test:
+    sdk: flutter
   flutter_test:
     sdk: flutter
   flutter_lints: 6.0.0

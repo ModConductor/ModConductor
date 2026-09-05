@@ -1,9 +1,9 @@
 # Build the foundation
 
-The desktop bundle opens Welcome and Preferences. It does not connect to an
-engine or change game files. Preferences apply only until the app closes.
-The F# executable exits without work. Engine integration and NativeAOT publication
-remain separate work.
+The desktop bundle opens Welcome and Preferences. It does not perform
+sensitive operations or change game files. Preferences apply only until the app
+closes. A bundled engine supplies a read-only typed connection check. Linux
+NativeAOT qualification is implemented; Windows engine NativeAOT remains gated.
 
 The [development policy](DEVELOPMENT-POLICY.md) still applies: these commands are
 for local qualification, not publication or external distribution.
@@ -71,16 +71,27 @@ Fantomas is resolved from [the local tool manifest](../.config/dotnet-tools.json
 Its tool runtime may roll forward to the installed .NET 10 runtime; the formatter
 package version does not float. To apply formatting, omit `--check`.
 
-From `ui/`, check both workspace members with one dependency resolution:
+From `ui/`, check all three workspace members with one dependency resolution:
 
 ```sh
 flutter pub get --enforce-lockfile
 flutter analyze --no-pub
-dart format --output=none --set-exit-if-changed apps/mod_conductor/lib apps/mod_conductor/test packages/mc_ui_foundation/lib
+dart format --output=none --set-exit-if-changed apps/mod_conductor/lib apps/mod_conductor/test packages/mc_ui_foundation/lib apps/mod_conductor/integration_test packages/mc_client/lib/mc_client.dart packages/mc_client/lib/src/engine_session.dart packages/mc_client/test
 cd apps/mod_conductor
-flutter test --no-pub
+flutter test --no-pub test
 flutter build linux --release --no-pub
 ```
+
+Before the desktop build, follow the [wire proof guide](WIRE-PROOF.md) to publish
+the engine and check generated contracts. After both builds, from the root:
+
+```sh
+python3 tools/assemble-development.py
+```
+
+This copies the already published engine into `engine/` beside the Flutter
+executable. It does not run dotnet from CMake or build the engine implicitly.
+Missing engine files produce a connection error rather than a false ready state.
 
 Run the Linux bundle with `build/linux/x64/release/bundle/mod_conductor`.
 On Windows, run `build\windows\x64\runner\Release\mod_conductor.exe`.
@@ -92,12 +103,11 @@ Release artifacts are under `src/ModConductor.Engine/bin/Release/net10.0/` and
 `ui/apps/mod_conductor/build/<platform>/x64/`. The Linux desktop bundle is
 `build/linux/x64/release/bundle/`; keep the bundle together when running locally.
 
-The two committed restore locks are the engine's `packages.lock.json` and the
-UI workspace's `ui/pubspec.lock`. A deliberate dependency change may update them with
+Committed restore locks belong to the engine, the protocol project and the UI
+workspace (`ui/pubspec.lock`). A deliberate dependency change may update them with
 `dotnet restore` / `flutter pub get`, but must also update the
 [actual-adoption inventory](PROVENANCE.md). Do not bypass locked restore in CI.
-The app uses `flutter_test` for interaction checks. No RPC generator or engine
-client is included. The design mockup remains separate from the production workspace.
+The app uses `flutter_test` for interaction checks. The schema-generated protocol and typed client are included. The design mockup remains separate from the production workspace.
 
 ## NixOS local qualification
 
@@ -113,7 +123,8 @@ nix develop --impure --expr '
     buildInputs = [ pkgs.atk pkgs.cairo pkgs.gdk-pixbuf pkgs.glib pkgs.gtk3
       pkgs.harfbuzz pkgs.libepoxy pkgs.pango pkgs.libx11 pkgs.libdeflate
       pkgs.xorgproto pkgs.zlib pkgs.libsysprof-capture pkgs.fontconfig
-      pkgs.pcre2 pkgs.libffi pkgs.util-linux pkgs.libselinux pkgs.libsepol ];
+      pkgs.pcre2 pkgs.libffi pkgs.util-linux pkgs.libselinux pkgs.libsepol
+      pkgs.libthai pkgs.libdatrie ];
     LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [ pkgs.libepoxy pkgs.fontconfig ];
   }'
 ```
@@ -156,7 +167,7 @@ and adds the installed SDK to PATH. The workflow keeps ASP.NET certificate
 generation disabled with `DOTNET_GENERATE_ASPNET_CERTIFICATE=false`. These local
 SDK/cache settings do not provide missing native OS prerequisites.
 
-A workflow definition is not a successful CI run: MC-002 still requires actual
-clean native Windows and Linux runner evidence. Neither this prerequisite
-correction nor local NixOS checks establish hosted-runner success, Windows support
-or the later NativeAOT cross-language acceptance gate.
+A workflow definition is not a successful hosted CI run. The Linux-only NativeAOT
+publish and private-display wire checks do not waive the Windows NativeAOT gate.
+The Windows engine linker exception remains unresolved. The recurring workflow
+does not provision OS prerequisites or run an unauthorized Windows engine publish.

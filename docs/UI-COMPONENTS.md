@@ -17,9 +17,10 @@ when a draft differs from the active values.
 
 The app's shell, pages and preference state are private to its Dart library.
 `DesktopStatus` is a presentation input consumed by shell composition. Production
-starts with `DesktopDisconnected`. Tests inject `DesktopFailure` to check that
-Preferences and Quit remain usable. This does not detect or recover from real
-startup or engine failures. There is no error selector in the production app.
+uses `DesktopHost` to launch the bundled engine and show connecting, connected or
+failed status. The host consumes the shared shell rather than adding a new page.
+Tests also inject `DesktopFailure` to check that Preferences and Quit remain usable.
+There is no error selector, reconnect manager or authenticated bootstrap in the app.
 
 ## Controls
 

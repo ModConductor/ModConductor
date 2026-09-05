@@ -1,13 +1,18 @@
-import 'dart:ui' show AppExitType;
+import 'dart:async';
+import 'dart:io';
+
+import 'dart:ui' show AppExitType, AppExitResponse;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:mc_client/mc_client.dart';
 import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 
 part 'shell.dart';
 part 'welcome.dart';
 part 'preferences.dart';
 part 'status.dart';
+part 'desktop_host.dart';
 
 void _quitDesktop() {
   ServicesBinding.instance.exitApplication(AppExitType.cancelable);
@@ -15,7 +20,7 @@ void _quitDesktop() {
 
 void startDesktop() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const ModConductorApp());
+  runApp(const DesktopHost());
 }
 
 enum _Destination { welcome, preferences }
@@ -98,6 +103,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
               widget.onQuit ?? _quitDesktop,
         },
         child: _DesktopShell(
+          connectionStatus: widget.status,
           destination: _destination,
           onNavigate: _navigate,
           onQuit: widget.onQuit ?? _quitDesktop,
@@ -114,7 +120,9 @@ class _ModConductorAppState extends State<ModConductorApp> {
                     reason: reason,
                     onPreferences: () => _navigate(_Destination.preferences),
                   ),
-                  DesktopDisconnected() => _WelcomePage(
+                  DesktopDisconnected() ||
+                  DesktopConnecting() ||
+                  DesktopConnected() => _WelcomePage(
                     theme: _applied.theme,
                     onTheme: _quickTheme,
                     onPreferences: () => _navigate(_Destination.preferences),

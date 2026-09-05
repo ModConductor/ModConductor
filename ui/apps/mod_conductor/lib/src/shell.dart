@@ -3,6 +3,7 @@ part of 'app.dart';
 class _DesktopShell extends StatelessWidget {
   const _DesktopShell({
     required this.destination,
+    required this.connectionStatus,
     required this.onNavigate,
     required this.onQuit,
     required this.welcomeFocus,
@@ -10,6 +11,7 @@ class _DesktopShell extends StatelessWidget {
     required this.quitFocus,
     required this.child,
   });
+  final DesktopStatus connectionStatus;
   final _Destination destination;
   final ValueChanged<_Destination> onNavigate;
   final VoidCallback onQuit;
@@ -117,10 +119,11 @@ class _DesktopShell extends StatelessWidget {
               top: BorderSide(color: Theme.of(context).dividerColor),
             ),
           ),
-          child: Text(
-            'Not connected',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
+          child: Text(switch (connectionStatus) {
+            DesktopConnected() => 'Connected',
+            DesktopConnecting() => 'Connecting',
+            DesktopDisconnected() || DesktopFailure() => 'Not connected',
+          }, style: Theme.of(context).textTheme.bodySmall),
         ),
       ],
     ),

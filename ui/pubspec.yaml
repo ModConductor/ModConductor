@@ -5,3 +5,6 @@ environment:
 workspace:
   - apps/mod_conductor
   - packages/mc_ui_foundation
+  - packages/mc_client
+dev_dependencies:
+  protoc_plugin: 25.0.0

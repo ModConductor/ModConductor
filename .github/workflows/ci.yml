@@ -53,20 +53,36 @@ jobs:
         run: dotnet tool restore
       - name: Check F# formatting
         run: dotnet tool run fantomas --check src
+      - name: Check protocol project formatting
+        run: dotnet tool run csharpier check src/ModConductor.Protocol/ModConductor.Protocol.csproj Directory.Packages.props ModConductor.slnx
       - name: Build engine
         run: dotnet build ModConductor.slnx --configuration Release --no-restore
       - name: Restore locked desktop dependencies
         working-directory: ui/apps/mod_conductor
         run: flutter pub get --enforce-lockfile
+      - name: Check generated protocol boundaries
+        run: python tools/generate-protocol.py --check
       - name: Analyze desktop and shared foundation
         working-directory: ui
         run: flutter analyze --no-pub
       - name: Check Dart formatting
         working-directory: ui
-        run: dart format --output=none --set-exit-if-changed apps/mod_conductor/lib apps/mod_conductor/test packages/mc_ui_foundation/lib
+        run: dart format --output=none --set-exit-if-changed apps/mod_conductor/lib apps/mod_conductor/test packages/mc_ui_foundation/lib apps/mod_conductor/integration_test packages/mc_client/lib/mc_client.dart packages/mc_client/lib/src/engine_session.dart packages/mc_client/test
       - name: Check desktop interactions
         working-directory: ui/apps/mod_conductor
+        run: flutter test --no-pub test
+      - name: Publish Linux NativeAOT engine
+        if: runner.os == 'Linux'
+        run: dotnet publish src/ModConductor.Engine/ModConductor.Engine.fsproj --configuration Release --runtime linux-x64 --self-contained true --no-restore --output .tools/publish/linux-x64
+      - name: Check read-only wire and cancellation
+        if: runner.os == 'Linux'
+        working-directory: ui/packages/mc_client
+        env:
+          MC_ENGINE_PATH: ${{ github.workspace }}/.tools/publish/linux-x64/ModConductor.Engine
         run: flutter test --no-pub
+      - name: Check native Flutter wire path on private display
+        if: runner.os == 'Linux'
+        run: python tools/check-linux-wire.py
       - name: Build Linux desktop
         if: runner.os == 'Linux'
         working-directory: ui/apps/mod_conductor
@@ -75,3 +91,7 @@ jobs:
         if: runner.os == 'Windows'
         working-directory: ui/apps/mod_conductor
         run: flutter build windows --release --no-pub
+      - name: Assemble Linux development bundle
+        if: runner.os == 'Linux'
+        run: python tools/assemble-development.py
+      # Windows NativeAOT remains a separate unpassed gate pending linker authority.

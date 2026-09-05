@@ -8,6 +8,15 @@ final class DesktopDisconnected extends DesktopStatus {
   const DesktopDisconnected();
 }
 
+final class DesktopConnecting extends DesktopStatus {
+  const DesktopConnecting();
+}
+
+final class DesktopConnected extends DesktopStatus {
+  const DesktopConnected(this.report);
+  final ConnectionReport report;
+}
+
 final class DesktopFailure extends DesktopStatus {
   const DesktopFailure(this.reason);
   final String reason;
@@ -19,13 +28,13 @@ class _FailurePage extends StatelessWidget {
   final VoidCallback onPreferences;
   @override
   Widget build(BuildContext context) => McPage(
-    title: 'Workspace error',
+    title: 'Connection error',
     children: [
       McSection(
-        title: 'Workspace',
+        title: 'Connection',
         children: [
           McStatus(
-            title: 'The app cannot open the workspace.',
+            title: 'Cannot connect to the engine.',
             detail: reason,
             tone: McStatusTone.error,
           ),
