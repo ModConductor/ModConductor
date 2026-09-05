@@ -20,7 +20,10 @@ let run args =
         match args with
         | [||] ->
             Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                Environment.GetFolderPath(
+                    Environment.SpecialFolder.LocalApplicationData,
+                    Environment.SpecialFolderOption.Create
+                ),
                 "ModConductor",
                 "state"
             )

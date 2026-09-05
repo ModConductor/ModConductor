@@ -11,6 +11,55 @@ void main() {
         ? 'Set MC_ENGINE_PATH to a published NativeAOT engine.'
         : false,
     () {
+      test(
+        'a fresh default data directory keeps results across restart without writing to the working directory',
+        () async {
+          final root = await Directory.systemTemp.createTemp(
+            'mc-default-state-',
+          );
+          final working = await Directory('${root.path}/working').create();
+          final home = await Directory('${root.path}/home').create();
+          final data = Directory('${root.path}/data');
+          final sessions = <EngineSession>[];
+          Future<EngineSession> start() async {
+            final session = EngineSession(
+              await Process.start(
+                executable!,
+                const [],
+                workingDirectory: working.path,
+                environment: {'HOME': home.path, 'XDG_DATA_HOME': data.path},
+              ),
+            );
+            sessions.add(session);
+            await session.connect();
+            return session;
+          }
+
+          try {
+            final first = await start();
+            await first.check();
+            final snapshot = (await first.operations.state()).snapshot!.single;
+            await first.close();
+            expect(await first.exited, 0);
+            final restarted = await start();
+            final recovered = await restarted.operations.get(snapshot.id);
+            expect(recovered.result, snapshot.result);
+            expect(recovered.resultRevision, 1);
+            expect(
+              await File('${data.path}/ModConductor/state/state.db').exists(),
+              isTrue,
+            );
+            expect(await working.list().isEmpty, isTrue);
+          } finally {
+            for (final session in sessions) {
+              await session.close();
+            }
+            await root.delete(recursive: true);
+          }
+        },
+        skip: !Platform.isLinux ? 'Linux XDG fresh-directory behavior.' : false,
+      );
+
       test('the real client consumes a durable runtime check and cleanly closes its child', () async {
         final state = await Directory.systemTemp.createTemp('mc-wire-');
         final engine = EngineSession(
