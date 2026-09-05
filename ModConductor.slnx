@@ -1,8 +1,13 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/ModConductor.Platform/ModConductor.Platform.fsproj" />
     <Project Path="src/ModConductor.Operations/ModConductor.Operations.fsproj" />
     <Project Path="src/ModConductor.Persistence/ModConductor.Persistence.fsproj" />
     <Project Path="src/ModConductor.Engine/ModConductor.Engine.fsproj" />
     <Project Path="src/ModConductor.Protocol/ModConductor.Protocol.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ModConductor.Platform.Fixtures/ModConductor.Platform.Fixtures.fsproj" />
+    <Project Path="tests/ModConductor.Platform.Tests/ModConductor.Platform.Tests.fsproj" />
   </Folder>
 </Solution>

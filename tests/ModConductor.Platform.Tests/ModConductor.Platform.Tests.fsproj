@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><IsTestProject>true</IsTestProject><IsPackable>false</IsPackable></PropertyGroup>
+  <ItemGroup>
+    <Compile Include="NativeTests.fs"/>
+    <PackageReference Include="FSharp.Core"/><PackageReference Include="FsUnit"/><PackageReference Include="NUnit"/>
+    <PackageReference Include="NUnit3TestAdapter" PrivateAssets="all"/><PackageReference Include="Microsoft.NET.Test.Sdk" PrivateAssets="all"/>
+  </ItemGroup>
+</Project>

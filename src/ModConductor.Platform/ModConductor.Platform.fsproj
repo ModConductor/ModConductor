@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><IsAotCompatible>true</IsAotCompatible></PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Paths.fs" />
+    <Compile Include="Facts.fs" />
+    <Compile Include="Native.fs" />
+    <Compile Include="Preflight.fs" />
+    <Compile Include="Capabilities.fs" />
+    <PackageReference Include="FSharp.Core" />
+  </ItemGroup>
+</Project>

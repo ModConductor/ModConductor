@@ -172,3 +172,9 @@ the NativeAOT engine and check the actual Flutter connection. Windows uses the
 existing MSVC linker, libraries and Windows SDK through `dotnet publish`. This
 requires no Visual Studio IDE or engine-side CMake. The workflow does not install
 OS prerequisites. See [native qualification commands](WIRE-PROOF.md#native-qualification).
+
+## Native path preflight
+
+The F# Platform library has a separate native fixture and managed assertion runner.
+See [Path preflight](PATH-PREFLIGHT.md) for the exact commands and owned cross-volume fixtures.
+Run `dotnet tool run fantomas --check src tests` when checking F# formatting.

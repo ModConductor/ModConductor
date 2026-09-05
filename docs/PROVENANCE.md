@@ -171,3 +171,10 @@ The authored F# bootstrap and session interceptor use the existing .NET 10 and g
 ## MC-007 operations and storage
 
 The authored F# Operations and Persistence libraries implement durable runtime checks. The SQLite dependency closure passed native probes on both platforms before adoption. [Dependency notices](WIRE-DEPENDENCIES.md) identify the exact packages and native assets. Dart fixnum 1.1.1 is now a direct dependency for 64-bit protocol fields. Its existing locked version and notice did not change. Original MC source remains unlicensed.
+
+## MC-008 path preflight — 2026-09-05
+
+Original F# path policy and filesystem adapters live in `ModConductor.Platform`.
+The native fixture is a test consumer, not an engine or UI feature. Native APIs,
+selected naming rules, test-only packages, and notices are recorded in
+[Path preflight](PATH-PREFLIGHT.md). No legacy implementation or game data was copied.

@@ -1,0 +1,191 @@
+[
+  {
+    "package": "FSharp.Core",
+    "version": "10.1.400",
+    "license": "MIT",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/dotnet/dotnet",
+      "commit": "14fbf8d5271c98133561eb55185fdb05b286f578"
+    },
+    "notices": [],
+    "contentHash": "H9wlZ/tWgNp+Q4WQ5aUSi3XOBXrL6z+UkR0PNeyDFyoZR3c3PbtA21B9FqlthrhEwQ6f5AtQV0JLhBBDqjjscw=="
+  },
+  {
+    "package": "FsUnit",
+    "version": "7.1.1",
+    "license": "https://raw.githubusercontent.com/fsprojects/FsUnit/master/license.txt",
+    "repository": {},
+    "notices": [],
+    "contentHash": "aiPmlbAduJoMMtwvkn/3jg4LSOadGyHcmocyHTct2RFNIhKphre97j+Qrtb6Pnlj5Ra0dopkt7DhQYtN06dqMg=="
+  },
+  {
+    "package": "Microsoft.NET.Test.Sdk",
+    "version": "18.9.0",
+    "license": "MIT",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/microsoft/vstest",
+      "branch": "18.9",
+      "commit": "2b12a89cee3798c4ab3fd301e384d1bd5532f9de"
+    },
+    "notices": [],
+    "contentHash": "xIzVXa/VpKXqDWzyC/5Hw8JbFY5u9k3Jc53CpcjBiOXvkQGio484LD9FNwOiGUSMDcYL3Rcw9sNgGi5WrswlPQ=="
+  },
+  {
+    "package": "NUnit",
+    "version": "4.6.1",
+    "license": "MIT",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/nunit/nunit"
+    },
+    "notices": [
+      "../nunit-LICENSE.txt",
+      "../nunit-NOTICES.md",
+      "../nunit-THIRD_PARTY_NOTICES.md"
+    ],
+    "contentHash": "xS4+YaBFUv1r8bcAbjitSfYaRZGfMwUiMdiaRziBXZpKgVxKDSHhjUn0mV5mObHGZRZq6eNa+WFWr3g8grj66A=="
+  },
+  {
+    "package": "NUnit3TestAdapter",
+    "version": "6.3.0",
+    "license": "MIT",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/nunit/nunit3-vs-adapter"
+    },
+    "notices": [],
+    "contentHash": "8ZD+0dIfDHsL4w4Gl/LPxWH0O4ky3hFXqTZjY+ry0ThI3cMVErr9Tjxal5O5wJxGXh50a9qkDEAWVca8KQYCEw=="
+  },
+  {
+    "package": "Microsoft.ApplicationInsights",
+    "version": "2.23.0",
+    "license": "MIT",
+    "repository": {
+      "type": "Git",
+      "url": "https://github.com/Microsoft/ApplicationInsights-dotnet",
+      "commit": "2faa7e8b157a431daa2e71785d68abd5fa817b53"
+    },
+    "notices": [],
+    "contentHash": "nWArUZTdU7iqZLycLKWe0TDms48KKGE6pONH2terYNa8REXiqixrMOkf1sk5DHGMaUTqONU2YkS4SAXBhLStgw=="
+  },
+  {
+    "package": "Microsoft.CodeCoverage",
+    "version": "18.9.0",
+    "license": "MIT",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/microsoft/vstest",
+      "branch": "18.9",
+      "commit": "2b12a89cee3798c4ab3fd301e384d1bd5532f9de"
+    },
+    "notices": [
+      "microsoft.codecoverage-ThirdPartyNotices.txt"
+    ],
+    "contentHash": "MtegCIKGuG0r/LCdIjoR1HgzCGIUBhR3aNdbtQpts5vMXQuqBDZ2Jsd2uFKoHFM2XrQV6ZrDf3F5oLi3SLTp8w=="
+  },
+  {
+    "package": "Microsoft.Extensions.DependencyModel",
+    "version": "8.0.2",
+    "license": "MIT",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/dotnet/runtime",
+      "commit": "81cabf2857a01351e5ab578947c7403a5b128ad1"
+    },
+    "notices": [
+      "microsoft.extensions.dependencymodel-LICENSE.TXT",
+      "microsoft.extensions.dependencymodel-THIRD-PARTY-NOTICES.TXT"
+    ],
+    "contentHash": "mUBDZZRgZrSyFOsJ2qJJ9fXfqd/kXJwf3AiDoqLD9m6TjY5OO/vLNOb9fb4juC0487eq4hcGN/M2Rh/CKS7QYw=="
+  },
+  {
+    "package": "Microsoft.Testing.Extensions.Telemetry",
+    "version": "2.3.3",
+    "license": "MIT",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/microsoft/testfx",
+      "commit": "44aa76e6a61d4908f06dfd77a51d4b7e3e7ce40f"
+    },
+    "notices": [],
+    "contentHash": "nY8ceQyPWB9TRE1WE5Oe/sks2e10SxgPv61vBHsFYpgCeDtNwhpMZwmL29GklO3/etTdOsLdrCmNr4zJWaR2fg=="
+  },
+  {
+    "package": "Microsoft.Testing.Extensions.TrxReport.Abstractions",
+    "version": "2.3.3",
+    "license": "MIT",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/microsoft/testfx",
+      "commit": "44aa76e6a61d4908f06dfd77a51d4b7e3e7ce40f"
+    },
+    "notices": [],
+    "contentHash": "dceVNxnfTEjKnrIreLcMfkgrzzBY8kgCCJX5NAv7Lq/6vPlTP4VB5zxKeuYy0yfCoBtWuPkLjUG6qtOBMfpypA=="
+  },
+  {
+    "package": "Microsoft.Testing.Extensions.VSTestBridge",
+    "version": "2.3.3",
+    "license": "MIT",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/microsoft/testfx",
+      "commit": "44aa76e6a61d4908f06dfd77a51d4b7e3e7ce40f"
+    },
+    "notices": [],
+    "contentHash": "JLovZjH6K10YiHO/BcidsaSHo/M2DfOe9FDjxjFdV6aoHO6VYTTYlLBNcyLJSo20q5gDTmNvmxYVH39A942aJA=="
+  },
+  {
+    "package": "Microsoft.Testing.Platform",
+    "version": "2.3.3",
+    "license": "MIT",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/microsoft/testfx",
+      "commit": "44aa76e6a61d4908f06dfd77a51d4b7e3e7ce40f"
+    },
+    "notices": [],
+    "contentHash": "ENbH4BQh9riXtOKc25KKITfiGGWhWMBJA7pZuNaF9zxzzSaVkp5AMeZxGQ6sXYaR6xb724NLz985Is6XIYqLSg=="
+  },
+  {
+    "package": "Microsoft.Testing.Platform.MSBuild",
+    "version": "2.3.3",
+    "license": "MIT",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/microsoft/testfx",
+      "commit": "44aa76e6a61d4908f06dfd77a51d4b7e3e7ce40f"
+    },
+    "notices": [],
+    "contentHash": "iVAvNbZ5JPDZSrTcIrCDoCsAkzjDxwDEt2mDuMd8ng1P6e2P2NCd0g0BsoBVG+nJLSmK//V+yeEvjCa3E2fxHw=="
+  },
+  {
+    "package": "Microsoft.TestPlatform.ObjectModel",
+    "version": "18.9.0",
+    "license": "MIT",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/microsoft/vstest",
+      "branch": "18.9",
+      "commit": "2b12a89cee3798c4ab3fd301e384d1bd5532f9de"
+    },
+    "notices": [],
+    "contentHash": "Fz/qXC52VXXopzHj7v2reCKcCqSxkTDCkEDfkNAH0vni/7qK/KLMiEYtRmnUanxO2F2g2zZZ60qCpxF0AF7URA=="
+  },
+  {
+    "package": "Microsoft.TestPlatform.TestHost",
+    "version": "18.9.0",
+    "license": "MIT",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/microsoft/vstest",
+      "branch": "18.9",
+      "commit": "2b12a89cee3798c4ab3fd301e384d1bd5532f9de"
+    },
+    "notices": [
+      "microsoft.testplatform.testhost-ThirdPartyNotices.txt"
+    ],
+    "contentHash": "Oq+Pma/J86aZL72t71bcESvDszDsTjUfl6PIsuDdPoKTHZfNMhKamCfLD5fKx51W/u0KozXtJo2/3fnt0sgPxg=="
+  }
+]
