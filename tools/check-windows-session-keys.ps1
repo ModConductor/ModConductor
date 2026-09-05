@@ -3,11 +3,13 @@ $ErrorActionPreference='Stop'
 $directory=Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'ModConductor\session-keys'
 $provider=[System.Security.Cryptography.CngProvider]::MicrosoftSoftwareKeyStorageProvider
 $owned=@()
+$state=Join-Path ([IO.Path]::GetTempPath()) ('mc-key-state-'+[Guid]::NewGuid().ToString('N'))
 function KeyExists($name) { [System.Security.Cryptography.CngKey]::Exists($name,$provider) }
 function StartEngine {
  $before=@(Get-ChildItem $directory -Filter '*.lease' -ErrorAction SilentlyContinue | ForEach-Object Name)
  $p=New-Object System.Diagnostics.Process
  $p.StartInfo.FileName=$EnginePath
+ $p.StartInfo.Arguments='--state-directory "'+$state+'"'
  $p.StartInfo.UseShellExecute=$false
  $p.StartInfo.RedirectStandardInput=$true
  $p.StartInfo.RedirectStandardOutput=$true
@@ -62,4 +64,5 @@ try {
  }
  $foreign.Delete()
  $foreign.Dispose()
+ Remove-Item $state -Recurse -Force
 }

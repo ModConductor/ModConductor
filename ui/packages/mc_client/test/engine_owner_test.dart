@@ -4,6 +4,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mc_client/mc_client.dart';
 
 void main() {
+  late Directory state;
+  setUp(() async {
+    state = await Directory.systemTemp.createTemp('mc-owner-');
+  });
+  tearDown(() async {
+    await state.delete(recursive: true);
+  });
   final executable = Platform.environment['MC_ENGINE_PATH'];
   final root = Directory.current.parent.parent.parent.path;
   final dart =
@@ -13,6 +20,7 @@ void main() {
     '$root/ui/packages/mc_client/test/fixtures/bootstrap_child.dart',
     engine,
     mode,
+    state.path,
   ]);
 
   group(
@@ -28,7 +36,10 @@ void main() {
           final owner = EngineOwner(
             executable!,
             launch: (path) async {
-              final child = await Process.start(path, const []);
+              final child = await Process.start(path, [
+                '--state-directory',
+                state.path,
+              ]);
               children.add(child);
               return child;
             },
@@ -44,7 +55,7 @@ void main() {
           final crashed = owner.changes.firstWhere(
             (state) => state is EngineFailure,
           );
-          children.single.kill();
+          children.single.kill(ProcessSignal.sigkill);
           await crashed.timeout(const Duration(seconds: 5));
           await owner.connect();
           expect(children, hasLength(2));
@@ -62,7 +73,7 @@ void main() {
             executable!,
             launch: (path) => Process.start(
               attempts++ == 0 ? '$path-missing' : path,
-              const [],
+              ['--state-directory', state.path],
             ),
           );
           addTearDown(owner.close);

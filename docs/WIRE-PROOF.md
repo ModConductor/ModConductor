@@ -1,4 +1,4 @@
-# Read-only engine connection
+# Engine connection
 
 The desktop starts the engine beside its executable and completes a typed runtime
 request and a bounded heartbeat stream. It then shows **Connected** in the footer.
@@ -6,19 +6,18 @@ No workspace, game or mod operation is available yet.
 
 ## Boundary
 
-The sole schema is `contracts/modconductor/v1/engine_probe.proto`. It generates
-C# DTOs/service contracts and Dart DTOs/client contracts. Immutable F# records own
-the small probe model. `ProbeService.fs` maps those values at the wire boundary.
+The schema is `contracts/modconductor/v2/engine_probe.proto`. It generates C#
+DTOs/service contracts and Dart DTOs/client contracts. F# records own operation
+policy and results. The engine maps them at the wire boundary.
 
-`InspectRuntime` checks protocol major 1 and reports process architecture and
-whether dynamic code is unavailable in the running binary. Qualification requires
-the actual published NativeAOT executable, not `dotnet run`.
+The real connection check is now a durable runtime-check operation. It reports
+architecture, NativeAOT status, loaded SQLite version, and completed heartbeats.
+Qualification requires the actual published native executable. Its operation ID,
+revision, cancellation, and reconnect behavior are specified in
+[Runtime-check operations](OPERATIONS.md).
 
-`WatchHeartbeat` accepts 1..16 items and a non-secret request label. Sequence starts
-at 1. Only the final requested item marks completion. RPC cancellation interrupts
-the stream without a completion item. The Dart client rejects missing, reordered
-or inconsistent terminal items rather than treating partial data as complete.
-Messages are bounded to 4096 bytes by the server. Client calls have deadlines.
+Client calls have deadlines. Requests are bounded to 4096 bytes and replies to
+65536 bytes. Feed snapshots and pages have separate item bounds.
 
 ## Local session
 
@@ -28,7 +27,8 @@ a fresh RSA key and self-signed certificate for each session. The certificate na
 a user-scoped named CNG key because SChannel does not support ephemeral keys.
 The session capability remains memory-only on both platforms.
 
-The parent starts its selected installed engine with no arguments. It sends a
+The parent starts its selected installed engine. Qualification can select an isolated
+state directory with `--state-directory <absolute-path>`. The parent sends a
 random 256-bit capability through private inherited stdin. The engine reads a
 fixed 65-byte frame with a startup deadline. Its private stdout returns one
 base64 Protobuf `EngineReady` frame: protocol major, port, and public PEM
@@ -62,8 +62,7 @@ Close cancels client calls and closes stdin. EOF requests graceful engine shutdo
 The parent waits up to three seconds for the child after its connection attempt
 finishes. Startup and RPC deadlines bound that attempt. A timeout retains the
 owned child and cancels app exit. The user can wait and quit again. The parent
-never kills an authenticated child to meet that timeout. MC-007 owns durable
-operation semantics. No game or mod mutation is available in this version.
+never kills an authenticated child to meet that timeout. The engine drains accepted runtime checks before it exits. No game or mod mutation is available in this version.
 
 ## Generation and checks
 

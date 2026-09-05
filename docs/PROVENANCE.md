@@ -138,7 +138,7 @@ real game material or new upstream notice. Existing design notices remain intact
 - Original schema, F# probe/domain adapter and slim host, Dart owned-process client,
   startup status integration, generation/bundle tools and behavioral checks were
   authored for MC. No game/mod data, legacy implementation or engine fork was adopted.
-- `contracts/modconductor/v1/engine_probe.proto` generates both language boundaries.
+- `contracts/modconductor/v2/engine_probe.proto` generates both language boundaries.
   Generated files retain their generator headers. They are not handwritten domain models.
 - [Actual wire dependencies and notices](WIRE-DEPENDENCIES.md) record the new
   gRPC/Protobuf, slim-host, local generator/formatter and SDK test dependencies.
@@ -167,3 +167,7 @@ not a prediction about later implementation or a final GPL determination.
 ## MC-006 local session
 
 The authored F# bootstrap and session interceptor use the existing .NET 10 and gRPC dependencies. The Dart owner uses the existing gRPC and Protobuf dependencies. No dependency or license changed. The public bootstrap descriptor comes from the shared schema. Session capabilities remain in memory. Linux keeps the private TLS key in memory. Windows uses a fresh user-scoped CNG key with normal-exit deletion and crash cleanup. No dependency was added for this Windows API.
+
+## MC-007 operations and storage
+
+The authored F# Operations and Persistence libraries implement durable runtime checks. The SQLite dependency closure passed native probes on both platforms before adoption. [Dependency notices](WIRE-DEPENDENCIES.md) identify the exact packages and native assets. Dart fixnum 1.1.1 is now a direct dependency for 64-bit protocol fields. Its existing locked version and notice did not change. Original MC source remains unlicensed.

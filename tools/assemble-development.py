@@ -13,5 +13,10 @@ bundle = root / 'ui/apps/mod_conductor/build' / platform / 'x64' / ('release/bun
 if not published.is_file() or not bundle.is_dir():
     raise SystemExit('Publish the engine and build the Flutter bundle first.')
 (bundle / 'engine').mkdir(exist_ok=True)
+native_sqlite = 'e_sqlite3.dll' if platform == 'windows' else 'libe_sqlite3.so'
+sqlite = published.parent / native_sqlite
+if not sqlite.is_file():
+    raise SystemExit('The published engine is missing its SQLite native library.')
 shutil.copy2(published, bundle / 'engine' / name)
+shutil.copy2(sqlite, bundle / 'engine' / native_sqlite)
 print(bundle / 'engine' / name)

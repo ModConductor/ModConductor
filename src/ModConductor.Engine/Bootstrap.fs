@@ -7,7 +7,7 @@ open System.Security.Cryptography
 open System.Security.Cryptography.X509Certificates
 open System.Threading
 open Google.Protobuf
-open ModConductor.Protocol.V1
+open ModConductor.Protocol.V2
 
 module Bootstrap =
     let readCapability (input: Stream) =
@@ -59,7 +59,7 @@ module Bootstrap =
     let announce port (certificate: X509Certificate2) =
         let ready =
             EngineReady(
-                ProtocolMajor = 1u,
+                ProtocolMajor = 2u,
                 Port = uint32 port,
                 CertificatePem = ByteString.CopyFromUtf8(certificate.ExportCertificatePem())
             )

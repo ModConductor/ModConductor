@@ -6,6 +6,7 @@ version: 0.1.0
 environment:
   sdk: 3.13.2
 dependencies:
+  fixnum: 1.1.1
   grpc: 5.1.0
   protobuf: 6.0.0
 dev_dependencies:

@@ -1,8 +1,9 @@
 part of 'app.dart';
 
 class DesktopHost extends StatefulWidget {
-  const DesktopHost({super.key, this.engineExecutable});
+  const DesktopHost({super.key, this.engineExecutable, this.stateDirectory});
   final String? engineExecutable;
+  final String? stateDirectory;
 
   @override
   State<DesktopHost> createState() => _DesktopHostState();
@@ -24,7 +25,15 @@ class _DesktopHostState extends State<DesktopHost> with WidgetsBindingObserver {
         File.fromUri(
           File(Platform.resolvedExecutable).parent.uri.resolve('engine/$name'),
         ).path;
-    _owner = EngineOwner(executable);
+    _owner = EngineOwner(
+      executable,
+      launch: (path) => Process.start(path, [
+        if (widget.stateDirectory != null) ...[
+          '--state-directory',
+          widget.stateDirectory!,
+        ],
+      ]),
+    );
     _changes = _owner.changes.listen((_) {
       if (mounted) setState(() {});
     });

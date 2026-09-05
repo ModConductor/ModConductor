@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><IsAotCompatible>true</IsAotCompatible></PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Contracts.fs" />
+    <Compile Include="Coordinator.fs" />
+    <PackageReference Include="FSharp.Core" />
+  </ItemGroup>
+</Project>

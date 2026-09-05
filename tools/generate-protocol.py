@@ -37,7 +37,7 @@ with tempfile.TemporaryDirectory(prefix='protocol-', dir=scratch) as temporary:
     dart_out = temporary / 'dart'
     cs.mkdir()
     dart_out.mkdir()
-    schema = 'modconductor/v1/engine_probe.proto'
+    schema = 'modconductor/v2/engine_probe.proto'
     subprocess.run([str(protoc), '--version'], check=True)
     subprocess.run([str(protoc), '-I', str(root / 'contracts'), '--csharp_out=' + str(cs), '--grpc_out=' + str(cs), '--plugin=protoc-gen-grpc=' + str(binaries / ('grpc_csharp_plugin' + suffix)), schema], check=True, cwd=root)
     subprocess.run([str(protoc), '-I', str(root / 'contracts'), '--dart_out=grpc:' + str(dart_out), '--plugin=protoc-gen-dart=' + str(plugin), schema], check=True, cwd=root)

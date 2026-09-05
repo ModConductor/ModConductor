@@ -64,3 +64,17 @@ for archive SHA-256 hashes.
 
 Notice line endings/trailing whitespace are normalized without changing terms.
 The final project-wide GPL assessment and publication decision remain separate.
+
+## Durable operation storage
+
+| Component | Version | Source | Notice |
+| --- | --- | --- | --- |
+| Microsoft.Data.Sqlite.Core | 10.0.11 | [NuGet](https://www.nuget.org/packages/Microsoft.Data.Sqlite.Core/10.0.11) | [MIT](third-party/microsoft-data-sqlite-LICENSE.txt) |
+| SQLitePCLRaw bundle/config/provider/core | 3.0.5 | [Upstream](https://github.com/ericsink/SQLitePCL.raw) | [Apache-2.0](third-party/sqlitepclraw-LICENSE.txt), [attribution](third-party/sqlitepclraw-NOTICE.txt) |
+| SQLite native library | 3.53.4 | [NuGet](https://www.nuget.org/packages/SQLite/3.53.4) | [Public-domain notice](third-party/sqlite-native-LICENSE.txt) |
+
+The Linux x64 native asset SHA-256 is `eddcd4aa561d5b8f252db77e8272e7d1aed96bcab9fda3f177ca542f916290bf`.
+The Windows x64 native asset SHA-256 is `6ad8e149f8ce3ed3716402b4b3a2268ebbdc7b64391b5fafed747e03bb1b9418`.
+Both loaded SQLite 3.53.4 in NativeAOT transaction/restart probes. No encryption
+extension, paid feed, or commercial service is adopted. NuGet locks retain the
+complete closure. These third-party notices do not license original MC source.

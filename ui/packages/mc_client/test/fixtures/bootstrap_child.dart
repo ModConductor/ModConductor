@@ -2,11 +2,11 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:mc_client/src/generated/modconductor/v1/engine_probe.pb.dart';
+import 'package:mc_client/src/generated/modconductor/v2/engine_probe.pb.dart';
 
 // A pipe relay for native fault injection. Session bytes never enter its output.
 Future<void> main(List<String> args) async {
-  final engine = await Process.start(args[0], const []);
+  final engine = await Process.start(args[0], ['--state-directory', args[2]]);
   final mode = args[1];
   engine.stderr.listen((_) {});
   stdin.listen(
@@ -27,7 +27,7 @@ Future<void> main(List<String> args) async {
   if (mode == 'delay-long') {
     await Future<void>.delayed(const Duration(seconds: 12));
   }
-  if (mode == 'version') ready.protocolMajor = 2;
+  if (mode == 'version') ready.protocolMajor = 3;
   if (mode == 'oversized') {
     stdout.writeln('A' * 4097);
   } else {

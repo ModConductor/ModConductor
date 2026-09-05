@@ -7,5 +7,6 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
     <DisableImplicitFSharpCoreReference>true</DisableImplicitFSharpCoreReference>
+    <OtherFlags Condition="'$(MSBuildProjectExtension)' == '.fsproj'">$(OtherFlags) --reflectionfree</OtherFlags>
   </PropertyGroup>
 </Project>

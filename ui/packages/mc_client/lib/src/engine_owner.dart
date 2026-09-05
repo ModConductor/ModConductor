@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'engine_session.dart';
+import 'operations_client.dart';
 
 sealed class EngineState {
   const EngineState();

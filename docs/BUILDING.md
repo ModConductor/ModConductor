@@ -2,7 +2,7 @@
 
 The desktop bundle opens Welcome and Preferences. It does not perform
 sensitive operations or change game files. Preferences apply only until the app
-closes. A bundled engine supplies a read-only typed connection check. Both native
+closes. A bundled engine persists a typed runtime-check result. Both native
 platforms require the published NativeAOT engine, not an ordinary .NET build.
 
 The [development policy](DEVELOPMENT-POLICY.md) still applies: these commands are
@@ -76,7 +76,7 @@ From `ui/`, check all three workspace members with one dependency resolution:
 ```sh
 flutter pub get --enforce-lockfile
 flutter analyze --no-pub
-dart format --output=none --set-exit-if-changed apps/mod_conductor/lib apps/mod_conductor/test packages/mc_ui_foundation/lib apps/mod_conductor/integration_test packages/mc_client/lib/mc_client.dart packages/mc_client/lib/src/engine_session.dart packages/mc_client/lib/src/engine_owner.dart packages/mc_client/test
+dart format --output=none --set-exit-if-changed apps/mod_conductor/lib apps/mod_conductor/test packages/mc_ui_foundation/lib apps/mod_conductor/integration_test packages/mc_client/lib/mc_client.dart packages/mc_client/lib/src/engine_session.dart packages/mc_client/lib/src/engine_owner.dart packages/mc_client/lib/src/operations_client.dart packages/mc_client/test
 cd apps/mod_conductor
 flutter test --no-pub test
 flutter build linux --release --no-pub
@@ -89,8 +89,8 @@ the engine and check generated contracts. After both builds, from the root:
 python3 tools/assemble-development.py
 ```
 
-This copies the already published engine into `engine/` beside the Flutter
-executable. It does not run dotnet from CMake or build the engine implicitly.
+This copies the published engine and its SQLite native library into `engine/`
+beside the Flutter executable. It does not run dotnet from CMake or build the engine implicitly.
 Missing engine files produce a connection error rather than a false ready state.
 
 Run the Linux bundle with `build/linux/x64/release/bundle/mod_conductor`.

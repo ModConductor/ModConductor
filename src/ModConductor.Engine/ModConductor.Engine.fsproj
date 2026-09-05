@@ -2,7 +2,6 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <PublishAot>true</PublishAot>
-    <OtherFlags>$(OtherFlags) --reflectionfree</OtherFlags>
     <TrimmerSingleWarn>false</TrimmerSingleWarn>
     <RuntimeIdentifiers>linux-x64;win-x64</RuntimeIdentifiers>
     <IlcTreatWarningsAsErrors>true</IlcTreatWarningsAsErrors>
@@ -13,8 +12,10 @@
     <Compile Include="Bootstrap.fs" />
     <Compile Include="SessionAuthentication.fs" />
     <Compile Include="Probe.fs" />
-    <Compile Include="ProbeService.fs" />
+    <Compile Include="OperationService.fs" />
     <Compile Include="Program.fs" />
+    <ProjectReference Include="../ModConductor.Persistence/ModConductor.Persistence.fsproj" />
+    <ProjectReference Include="../ModConductor.Operations/ModConductor.Operations.fsproj" />
     <ProjectReference Include="../ModConductor.Protocol/ModConductor.Protocol.csproj" />
     <PackageReference Include="FSharp.Core" />
     <PackageReference Include="Grpc.AspNetCore.Server" />

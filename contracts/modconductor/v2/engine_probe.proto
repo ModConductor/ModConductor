@@ -1,0 +1,70 @@
+syntax = "proto3";
+package modconductor.v2;
+option csharp_namespace = "ModConductor.Protocol.V2";
+
+// Every RPC requires the capability from the private child bootstrap.
+service EngineOperations {
+  rpc GetState(StateRequest) returns (OperationBatch);
+  rpc BeginRuntimeCheck(RuntimeCheckRequest) returns (OperationSnapshot);
+  rpc GetOperation(OperationIdentity) returns (OperationSnapshot);
+  rpc CancelOperation(OperationIdentity) returns (OperationSnapshot);
+  rpc WatchOperations(WatchRequest) returns (stream OperationBatch);
+}
+message StateRequest { uint32 protocol_major = 1; }
+message RuntimeCheckRequest {
+  // Canonical UUID without separators. It fixes the complete request across restarts.
+  string operation_id = 1;
+  // Version of committed runtime results, not the progress cursor. Initial version is zero.
+  uint64 expected_revision = 2;
+  // Required 1..16. This preserves the existing bounded heartbeat connection check.
+  uint32 heartbeat_count = 3;
+}
+message OperationIdentity { string operation_id = 1; }
+message WatchRequest {
+  // Omission asks for a current snapshot. An old/future cursor explicitly requests resync.
+  optional uint64 after_cursor = 1;
+}
+enum OperationPhase {
+  OPERATION_PHASE_UNSPECIFIED = 0;
+  OPERATION_PHASE_RUNNING = 1;
+  OPERATION_PHASE_COMPLETED = 2;
+  OPERATION_PHASE_CANCELLED = 3;
+  OPERATION_PHASE_INTERRUPTED = 4;
+  OPERATION_PHASE_STALE = 5;
+}
+message RuntimeInfo {
+  string architecture = 1;
+  bool native_aot = 2;
+  string sqlite_version = 3;
+}
+message OperationSnapshot {
+  string operation_id = 1;
+  uint64 expected_revision = 2;
+  uint32 heartbeat_count = 3;
+  OperationPhase phase = 4;
+  uint32 progress = 5;
+  RuntimeInfo result = 6;
+  // Nonzero only for a completed result. Replay and cancellation do not advance it.
+  uint64 result_revision = 7;
+}
+message OperationChange {
+  uint64 cursor = 1;
+  OperationSnapshot operation = 2;
+}
+message OperationBatch {
+  uint64 cursor = 1;
+  uint64 revision = 2;
+  bool resync_required = 3;
+  // Initial/reconnect or gap response. Latest 16 operations; older IDs remain queryable.
+  bool has_snapshot = 4;
+  repeated OperationSnapshot snapshot = 5;
+  // At most 16 ordered changes. The durable window retains the latest 128 changes.
+  repeated OperationChange changes = 6;
+}
+// Public descriptor on the owned stdout pipe, not a network RPC.
+message EngineReady {
+  uint32 protocol_major = 1;
+  uint32 port = 2;
+  bytes certificate_pem = 3;
+}
+// Removed fields must be reserved, never reused. Incompatible changes require a new major.

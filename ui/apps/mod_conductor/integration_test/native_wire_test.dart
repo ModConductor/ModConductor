@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
@@ -14,7 +16,17 @@ void main() {
           'Pass --dart-define=MC_ENGINE_PATH=<published engine>.',
         );
       }
-      await tester.pumpWidget(const DesktopHost(engineExecutable: executable));
+      final stateDirectory = await Directory.systemTemp.createTemp(
+        'mc-native-ui-',
+      );
+      await tester.pumpWidget(
+        DesktopHost(
+          engineExecutable: executable,
+          stateDirectory: stateDirectory.path,
+        ),
+      );
+      await tester.tap(find.byKey(const ValueKey('nav-preferences')));
+      await tester.pump();
       final deadline = DateTime.now().add(const Duration(seconds: 20));
       DesktopStatus? status;
       while (DateTime.now().isBefore(deadline)) {
@@ -33,6 +45,7 @@ void main() {
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pump(const Duration(seconds: 1));
+      await stateDirectory.delete(recursive: true);
     },
   );
 }
