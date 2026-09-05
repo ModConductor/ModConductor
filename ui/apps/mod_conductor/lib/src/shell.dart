@@ -121,7 +121,7 @@ class _DesktopShell extends StatelessWidget {
           ),
           child: Text(switch (connectionStatus) {
             DesktopConnected() => 'Connected',
-            DesktopConnecting() => 'Connecting',
+            DesktopConnecting() => 'Connection in progress',
             DesktopDisconnected() || DesktopFailure() => 'Not connected',
           }, style: Theme.of(context).textTheme.bodySmall),
         ),

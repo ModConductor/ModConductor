@@ -34,7 +34,7 @@ class _FailurePage extends StatelessWidget {
         title: 'Connection',
         children: [
           McStatus(
-            title: 'Cannot connect to the engine.',
+            title: 'Connection failed',
             detail: reason,
             tone: McStatusTone.error,
           ),
