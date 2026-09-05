@@ -2,8 +2,8 @@
 
 The desktop bundle opens Welcome and Preferences. It does not perform
 sensitive operations or change game files. Preferences apply only until the app
-closes. A bundled engine supplies a read-only typed connection check. Linux
-NativeAOT qualification is implemented; Windows engine NativeAOT remains gated.
+closes. A bundled engine supplies a read-only typed connection check. Both native
+platforms require the published NativeAOT engine, not an ordinary .NET build.
 
 The [development policy](DEVELOPMENT-POLICY.md) still applies: these commands are
 for local qualification, not publication or external distribution.
@@ -167,7 +167,8 @@ and adds the installed SDK to PATH. The workflow keeps ASP.NET certificate
 generation disabled with `DOTNET_GENERATE_ASPNET_CERTIFICATE=false`. These local
 SDK/cache settings do not provide missing native OS prerequisites.
 
-A workflow definition is not a successful hosted CI run. The Linux-only NativeAOT
-publish and private-display wire checks do not waive the Windows NativeAOT gate.
-The Windows engine linker exception remains unresolved. The recurring workflow
-does not provision OS prerequisites or run an unauthorized Windows engine publish.
+A workflow definition is not a successful hosted CI run. Both platforms publish
+the NativeAOT engine and check the actual Flutter connection. Windows uses the
+existing MSVC linker, libraries and Windows SDK through `dotnet publish`. This
+requires no Visual Studio IDE or engine-side CMake. The workflow does not install
+OS prerequisites. See [native qualification commands](WIRE-PROOF.md#native-qualification).

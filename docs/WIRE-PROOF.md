@@ -80,6 +80,20 @@ uses a fresh private display/auth file, no TCP listener, no Wayland display and 
 host input. A bounded timeout stops its owned check process group. It does not
 install prerequisites or prove physical GPU/Wayland behavior.
 
-The Windows engine NativeAOT gate is still pending explicit linker authority.
-Ordinary Windows .NET/Flutter builds are not a substitute. There is no Windows
-engine publish step in CI under the current Flutter-only MSVC exception.
+On Windows, use the existing MSVC linker, libraries and Windows SDK through
+`dotnet publish`. No Visual Studio IDE or engine-side CMake is required.
+From the repository root, run these commands in PowerShell:
+
+```powershell
+dotnet publish src/ModConductor.Engine/ModConductor.Engine.fsproj -c Release -r win-x64 --self-contained true --no-restore -o .tools/publish/win-x64
+$env:MC_ENGINE_PATH = "$PWD/.tools/publish/win-x64/ModConductor.Engine.exe"
+Push-Location ui/packages/mc_client
+flutter test --no-pub
+Pop-Location
+Push-Location ui/apps/mod_conductor
+flutter test integration_test/native_wire_test.dart -d windows --no-pub --dart-define=MC_ENGINE_PATH=$env:MC_ENGINE_PATH
+Pop-Location
+```
+
+Run native UI checks in an isolated Windows guest, not on the user's desktop.
+An ordinary Windows .NET/Flutter build does not prove NativeAOT qualification.

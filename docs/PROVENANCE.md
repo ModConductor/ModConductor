@@ -144,9 +144,10 @@ real game material or new upstream notice. Existing design notices remain intact
   gRPC/Protobuf, slim-host, local generator/formatter and SDK test dependencies.
   `src/ModConductor.Protocol/packages.lock.json`, the engine lock and `ui/pubspec.lock`
   contain the resolved dependency hashes. No version floats or warning suppressions apply.
-- Linux NativeAOT uses the existing clang/Nix native prerequisites. Windows engine
-  NativeAOT remains unqualified pending separate linker authority. No new dependency
-  or MSVC permission is inferred from the Flutter-only exception.
+- Linux NativeAOT uses the existing clang/Nix native prerequisites. Windows
+  NativeAOT uses the existing MSVC linker, libraries and Windows SDK through
+  `dotnet publish`, under separate explicit permission. No Visual Studio IDE,
+  engine-side CMake or additional application dependency is required.
 
 ## Investigation references — not adopted material
 

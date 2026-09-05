@@ -74,7 +74,10 @@ jobs:
       - name: Publish Linux NativeAOT engine
         if: runner.os == 'Linux'
         run: dotnet publish src/ModConductor.Engine/ModConductor.Engine.fsproj --configuration Release --runtime linux-x64 --self-contained true --no-restore --output .tools/publish/linux-x64
-      - name: Check read-only wire and cancellation
+      - name: Publish Windows NativeAOT engine
+        if: runner.os == 'Windows'
+        run: dotnet publish src/ModConductor.Engine/ModConductor.Engine.fsproj --configuration Release --runtime win-x64 --self-contained true --no-restore --output .tools/publish/win-x64
+      - name: Check Linux read-only wire and cancellation
         if: runner.os == 'Linux'
         working-directory: ui/packages/mc_client
         env:
@@ -83,6 +86,16 @@ jobs:
       - name: Check native Flutter wire path on private display
         if: runner.os == 'Linux'
         run: python tools/check-linux-wire.py
+      - name: Check Windows read-only wire and cancellation
+        if: runner.os == 'Windows'
+        working-directory: ui/packages/mc_client
+        env:
+          MC_ENGINE_PATH: ${{ github.workspace }}/.tools/publish/win-x64/ModConductor.Engine.exe
+        run: flutter test --no-pub
+      - name: Check native Windows Flutter wire path
+        if: runner.os == 'Windows'
+        working-directory: ui/apps/mod_conductor
+        run: flutter test integration_test/native_wire_test.dart -d windows --no-pub --dart-define=MC_ENGINE_PATH=${{ github.workspace }}/.tools/publish/win-x64/ModConductor.Engine.exe
       - name: Build Linux desktop
         if: runner.os == 'Linux'
         working-directory: ui/apps/mod_conductor
@@ -91,7 +104,5 @@ jobs:
         if: runner.os == 'Windows'
         working-directory: ui/apps/mod_conductor
         run: flutter build windows --release --no-pub
-      - name: Assemble Linux development bundle
-        if: runner.os == 'Linux'
+      - name: Assemble development bundle
         run: python tools/assemble-development.py
-      # Windows NativeAOT remains a separate unpassed gate pending linker authority.
