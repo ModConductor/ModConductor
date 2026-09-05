@@ -19,16 +19,29 @@ jobs:
       DOTNET_CLI_TELEMETRY_OPTOUT: 1
       DOTNET_NOLOGO: 1
       DOTNET_GENERATE_ASPNET_CERTIFICATE: 'false'
+      DOTNET_INSTALL_DIR: ${{ github.workspace }}/.tools/dotnet
+      DOTNET_CLI_HOME: ${{ github.workspace }}/.tools/dotnet-cli
       NUGET_PACKAGES: ${{ github.workspace }}/.tools/nuget/packages
       PUB_CACHE: ${{ github.workspace }}/.tools/pub-cache
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Check preinstalled Linux desktop prerequisites
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          for tool in clang cmake ninja pkg-config; do
+            if ! command -v "$tool" >/dev/null 2>&1; then
+              echo "::error::Missing preinstalled Linux build tool: $tool. This job does not install OS prerequisites."
+              exit 1
+            fi
+          done
+          if ! pkg-config --print-errors --cflags --libs gtk+-3.0; then
+            echo "::error::GTK 3 development metadata or its dependency closure is unavailable. Use a runner with these prerequisites already available; this job will not install them."
+            exit 1
+          fi
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           global-json-file: global.json
-      - name: Install Linux desktop build prerequisites
-        if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev libstdc++-12-dev
       - name: Install pinned Flutter SDK locally
         run: python tools/bootstrap-flutter.py
       - name: Add Flutter to PATH

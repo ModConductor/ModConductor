@@ -11,7 +11,10 @@ for local qualification, not publication or external distribution.
 
 ## Toolchain
 
-Install the exact .NET SDK specified in [`global.json`](../global.json).
+Use the exact .NET SDK specified in [`global.json`](../global.json). For a local
+SDK installation, use ignored `.tools/dotnet` rather than a system directory
+and add it to the current shell's PATH. CI installs there explicitly, as described
+below; it does not rely on setup-dotnet's shared default installation location.
 [`Directory.Build.props`](../Directory.Build.props) pins the runtime and enables
 warnings-as-errors and restore locks. Package versions belong in
 [`Directory.Packages.props`](../Directory.Packages.props), not individual projects.
@@ -41,7 +44,18 @@ Windows needs Visual Studio's **Desktop development with C++** workload, includi
 its Windows SDK and CMake tools. See the official [Linux](https://docs.flutter.dev/platform-integration/linux/setup)
 and [Windows](https://docs.flutter.dev/platform-integration/windows/setup) setup
 guides. OS native build prerequisites come from the host/runner image; this is
-not a promise of bit-for-bit reproducible OS toolchains.
+not a promise of bit-for-bit reproducible OS toolchains. CI checks the Linux tools
+with `command -v` and runs `pkg-config --print-errors --cflags --libs gtk+-3.0`
+to check GTK development metadata and its dependency closure. Missing tools or
+unusable metadata fail the job clearly; there is no installation fallback.
+A successful preflight is not a compiler/linker or clean-build proof.
+
+CMake is confined to Flutter's Linux/Windows native runners and required native
+plugin/asset integration, including the separate design preview. Keep it minimal
+and close to Flutter's scaffolding. It must not orchestrate the F#/.NET engine,
+domain logic, protocol generation or project-wide builds/releases. Do not add
+Makefiles or a replacement native build framework. Normal builds use the direct
+`dotnet` and `flutter` commands below; no runner CMake changes are needed here.
 
 ## Restore, format and build
 
@@ -112,14 +126,30 @@ using or repairing another project's cached tools or packages.
 
 The [CI skeleton](../.github/workflows/ci.yml) defines locked restore, formatting,
 analysis and native builds on Ubuntu 24.04 and Windows Server 2025. It neither
-uploads build artifacts nor publishes anything. Its Linux prerequisite step uses
-`apt-get` only on the disposable hosted runner; it is not a developer-host setup
-command. Windows relies on the runner's preinstalled C++ workload, and both images
-supply Python 3.12 or later. These OS-level prerequisites are distinct from the
-repository-local SDK/formatter setup, and the planned `apt-get` step does not
-establish MC-002's no-global-tool-install acceptance criterion.
+uploads build artifacts nor publishes anything. Its read-only Linux prerequisite
+check runs before SDK setup and **never provisions OS tools or libraries**.
+Windows relies on the runner's preinstalled C++ workload, and both images must
+supply Python 3.12 or later. GTK development readiness is checked on the actual
+Linux host, not inferred from its Ubuntu label or a tools inventory. A stock
+hosted image is not claimed to satisfy that check.
 
-A workflow definition is not a
-successful CI run: MC-002 still requires actual clean native Windows and Linux
-runner evidence. Local NixOS build evidence does not establish Windows support
+SDK setup and CLI/package state use these paths relative to the checkout:
+
+| Purpose | Workspace-local destination |
+| --- | --- |
+| .NET SDK, via `DOTNET_INSTALL_DIR` | `.tools/dotnet` |
+| .NET CLI state, via `DOTNET_CLI_HOME` | `.tools/dotnet-cli` |
+| NuGet packages, via `NUGET_PACKAGES` | `.tools/nuget/packages` |
+| Flutter SDK, via the existing pinned bootstrap | `.tools/flutter` |
+| Dart/pub packages, via `PUB_CACHE` | `.tools/pub-cache` |
+
+The pinned setup-dotnet action documents the
+[`DOTNET_INSTALL_DIR` override](https://github.com/actions/setup-dotnet/blob/a98b56852c35b8e3190ac28c8c2271da59106c68/README.md#environment-variables)
+and adds the installed SDK to PATH. The workflow keeps ASP.NET certificate
+generation disabled with `DOTNET_GENERATE_ASPNET_CERTIFICATE=false`. These local
+SDK/cache settings do not provide missing native OS prerequisites.
+
+A workflow definition is not a successful CI run: MC-002 still requires actual
+clean native Windows and Linux runner evidence. Neither this prerequisite
+correction nor local NixOS checks establish hosted-runner success, Windows support
 or the later NativeAOT cross-language acceptance gate.
