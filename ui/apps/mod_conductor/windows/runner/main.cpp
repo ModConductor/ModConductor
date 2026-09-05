@@ -38,6 +38,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
     ::DispatchMessage(&msg);
   }
 
+  // Teardown can send window messages; clear the controller while the window lives.
+  window.SetQuitOnClose(false);
+  window.Destroy();
+
   ::CoUninitialize();
   return EXIT_SUCCESS;
 }

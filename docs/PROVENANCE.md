@@ -115,8 +115,11 @@ real game material or new upstream notice. Existing design notices remain intact
   [lockfile](../ui/pubspec.lock). The app consumes the foundation package through
   Welcome and Preferences. No production code imports the design mockup.
 - The original MC shell and foundation adapt the approved MC-003 color, component
-  and type choices. They remain unlicensed. Native runner changes only replace
-  the generated window title with the application name.
+  and type choices. They remain unlicensed. Native runner changes replace the generated window title with the application
+  name. The Windows entry point also calls the existing window teardown before
+  COM cleanup, with quit-on-close disabled after the message loop. This original
+  repair prevents callbacks through a controller during implicit destruction.
+  The pinned Flutter engine and its upstream notices remain unchanged.
 - The production interaction checks now consume SDK `flutter_test`. Its resolved
   external versions and hashes match the graph already adopted by MC-003. The
   [test dependency inventory and retained notices](../design/mc-003-workbench/DEPENDENCIES.md)
