@@ -1,0 +1,12 @@
+.agent-workspace/
+.tools/
+**/bin/
+**/obj/
+**/.dart_tool/
+**/build/
+**/ephemeral/
+**/.flutter-plugins-dependencies
+**/flutter_export_environment.sh
+.idea/
+.vscode/
+*.user

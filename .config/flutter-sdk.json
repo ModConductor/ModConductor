@@ -1,0 +1,13 @@
+{
+  "version": "3.47.2",
+  "dartVersion": "3.13.2",
+  "revision": "d3b14c876900e553bc736ca19295fc09e3853e8e",
+  "linux": {
+    "url": "https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.47.2-stable.tar.xz",
+    "sha256": "447878859d01ca9bfdb99a85f245af07ed8a15fedcd9d189c4749e8e92d1f185"
+  },
+  "windows": {
+    "url": "https://storage.googleapis.com/flutter_infra_release/releases/stable/windows/flutter_windows_3.47.2-stable.zip",
+    "sha256": "37934f2128a55d77a38baba12fd611157ed23a47bf7d2b7d17e9e84da118409d"
+  }
+}
