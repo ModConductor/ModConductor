@@ -24,7 +24,7 @@ File I/O runs outside database transactions and the database queue. At most two 
 
 ## Recovery
 
-Owner-lease recovery marks only abandoned owners' unfinished receipts recoverable. It preserves another live owner's receipts and runtime checks. `Recoverable` returns up to 16 IDs after the supplied ID; callers continue with the last returned ID. No receipt is deleted automatically.
+Owner-lease recovery marks only abandoned owners' unfinished receipts recoverable. It preserves another live owner's receipts and runtime checks. `Recoverable` lists abandoned receipts and this owner's non-busy receipts. It returns up to 16 IDs after the supplied ID; callers continue with the last returned ID. The list is a snapshot, not a reservation. No receipt is deleted automatically.
 
 `Reconcile` can claim abandoned work, or retry this owner's finished file attempt after a failure. It cannot take another live owner's receipt or overlap a local active file check.
 

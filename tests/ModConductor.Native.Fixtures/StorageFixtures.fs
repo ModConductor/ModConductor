@@ -228,6 +228,7 @@ module StorageFixtures =
                 let parts = signal.Split(':')
                 writer.WriteNumber("progressWhileFileBlocked", Int64.Parse parts[0])
                 writer.WriteBoolean("closeRefused", Boolean.Parse parts[1])
+                writer.WriteBoolean("sameOwnerListed", Boolean.Parse parts[2])
                 let operation = StorageWorker.runtime store (Guid.NewGuid().ToString()) 1L
                 writer.WriteNumber("otherOwnerRuntimeRevision", operation.ResultRevision)
 

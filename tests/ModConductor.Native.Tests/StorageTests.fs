@@ -98,6 +98,7 @@ type StorageTests() =
         let slow = field "slow"
         number slow "progressWhileFileBlocked" |> should equal 1L
         flag slow "closeRefused" |> should equal true
+        flag slow "sameOwnerListed" |> should equal false
         number slow "otherOwnerRuntimeRevision" |> should equal 2L
         flag slow "recoveryRefused" |> should equal true
         flag slow "notAbandoned" |> should equal true

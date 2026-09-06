@@ -158,7 +158,7 @@ type OwnedWorkspaceRootStore internal (database: StateDatabase) =
                 Sqlite.command
                     database.Connection
                     null
-                    "SELECT id FROM root_creation_receipts WHERE phase<>3 AND (abandoned=1 OR owner=$owner) AND id>$after ORDER BY id LIMIT 16"
+                    "SELECT id FROM root_creation_receipts WHERE phase<>3 AND (abandoned=1 OR (owner=$owner AND busy=0)) AND id>$after ORDER BY id LIMIT 16"
                     [ "$owner", box database.OwnerId
                       "$after", box (afterId |> Option.map string |> Option.defaultValue "") ]
 

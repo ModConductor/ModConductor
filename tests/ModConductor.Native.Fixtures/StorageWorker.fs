@@ -95,7 +95,12 @@ module StorageWorker =
                     with :? InvalidOperationException ->
                         true
 
-                Console.WriteLine(string operation.ResultRevision + ":" + string refused)
+                let listed = workspace.Recoverable None |> wait |> List.contains (Guid.Parse id)
+
+                Console.WriteLine(
+                    string operation.ResultRevision + ":" + string refused + ":" + string listed
+                )
+
                 Console.Out.Flush()
                 Console.ReadLine() |> ignore
                 release.Set()
