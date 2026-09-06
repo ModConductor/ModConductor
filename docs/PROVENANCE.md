@@ -199,7 +199,7 @@ The native directory chooser uses Flutter's [file_selector 1.1.0](https://pub.de
 | file_selector_platform_interface | 2.7.0 | [BSD-3-Clause](third-party/file_selector_platform_interface-LICENSE.txt) |
 | cross_file | 0.3.5+5 | [BSD-3-Clause](third-party/cross_file-LICENSE.txt) |
 | plugin_platform_interface | 2.1.8 | [BSD-3-Clause](third-party/plugin_platform_interface-LICENSE.txt) |
-| file_selector_android | 0.5.2+10 | [BSD-3-Clause](third-party/file_selector_android-LICENSE.txt) |
+| file_selector_android | 0.5.2+10 | [BSD-3-Clause and included aFileChooser Apache-2.0 notice](third-party/file_selector_android-LICENSE.txt) |
 | file_selector_ios | 0.5.3+6 | [BSD-3-Clause](third-party/file_selector_ios-LICENSE.txt) |
 | file_selector_macos | 0.9.5+1 | [BSD-3-Clause](third-party/file_selector_macos-LICENSE.txt) |
 | file_selector_web | 0.9.5 | [BSD-3-Clause](third-party/file_selector_web-LICENSE.txt) |
