@@ -1,9 +1,10 @@
 # Build the foundation
 
-The desktop bundle opens Welcome and Preferences. It does not perform
-sensitive operations or change game files. Preferences apply only until the app
-closes. A bundled engine persists a typed runtime-check result. Both native
-platforms require the published NativeAOT engine, not an ordinary .NET build.
+The desktop bundle creates and opens workspaces and manages profiles. The bundled
+engine saves registered workspace roots, profile metadata, profile selection and
+runtime-check results. It does not install mods or change game files. Appearance
+preferences apply only until the app closes. Both native platforms require the
+published NativeAOT engine, not an ordinary .NET build.
 
 The [development policy](DEVELOPMENT-POLICY.md) still applies: these commands are
 for local qualification, not publication or external distribution.
@@ -39,8 +40,10 @@ Put `.tools/flutter/bin` on the current shell's PATH (on Windows it contains
 The app's exact SDK constraints must continue to agree with the SDK pin.
 
 Linux needs Clang, CMake, Ninja, pkg-config and GTK 3 development libraries.
-Windows needs Visual Studio's **Desktop development with C++** workload, including
-its Windows SDK and CMake tools. See the official [Linux](https://docs.flutter.dev/platform-integration/linux/setup)
+Windows builds use standalone Microsoft C++ Build Tools with the **Desktop
+development with C++** workload, Windows SDK and Flutter's CMake tools. The Visual
+Studio IDE is not required. The existing MSVC linker and libraries also support
+.NET NativeAOT publication. See the official [Linux](https://docs.flutter.dev/platform-integration/linux/setup)
 and [Windows](https://docs.flutter.dev/platform-integration/windows/setup) setup
 guides. OS native build prerequisites come from the host/runner image; this is
 not a promise of bit-for-bit reproducible OS toolchains. CI checks the Linux tools
@@ -63,7 +66,7 @@ From the repository root:
 ```sh
 dotnet tool restore
 dotnet restore ModConductor.slnx --locked-mode
-dotnet tool run fantomas --check src
+dotnet tool run fantomas --check src tests
 dotnet build ModConductor.slnx --configuration Release --no-restore
 ```
 
@@ -71,13 +74,15 @@ Fantomas is resolved from [the local tool manifest](../.config/dotnet-tools.json
 Its tool runtime may roll forward to the installed .NET 10 runtime; the formatter
 package version does not float. To apply formatting, omit `--check`.
 
-From `ui/`, check all three workspace members with one dependency resolution:
+From `ui/`, check the workspace members with one dependency resolution:
 
 ```sh
 flutter pub get --enforce-lockfile
 flutter analyze --no-pub
-dart format --output=none --set-exit-if-changed apps/mod_conductor/lib apps/mod_conductor/test packages/mc_ui_foundation/lib apps/mod_conductor/integration_test packages/mc_client/lib/mc_client.dart packages/mc_client/lib/src/engine_session.dart packages/mc_client/lib/src/engine_owner.dart packages/mc_client/lib/src/operations_client.dart packages/mc_client/test
-cd apps/mod_conductor
+dart format --output=none --set-exit-if-changed apps/mod_conductor/lib apps/mod_conductor/test packages/mc_ui_foundation/lib apps/mod_conductor/integration_test packages/mc_client/lib/mc_client.dart packages/mc_client/lib/src/engine_session.dart packages/mc_client/lib/src/engine_owner.dart packages/mc_client/lib/src/operations_client.dart packages/mc_client/lib/src/workspaces_client.dart packages/mc_client/test packages/mc_workspaces/lib packages/mc_workspaces/test
+cd packages/mc_workspaces
+flutter test --no-pub
+cd ../../apps/mod_conductor
 flutter test --no-pub test
 flutter build linux --release --no-pub
 ```
@@ -186,4 +191,5 @@ Run `dotnet tool run fantomas --check src tests` when checking F# formatting.
 
 [Workspaces and profiles](WORKSPACES.md) uses the same native fixture and client suites. Run presentation checks with `flutter test --no-pub` from `ui/packages/mc_workspaces`. Include that package and `mc_client/lib/src/workspaces_client.dart` in Dart formatting checks. The native folder-picker journey runs with `python3 tools/check-linux-wire.py --workspaces --output .agent-workspace/workspace-ui` on an isolated Linux display. See the workspace guide for its extra test-only desktop prerequisites.
 
-Flutter's Windows plugin build requires symbolic-link support. Enable [Windows Developer Mode](https://learn.microsoft.com/en-us/windows/advanced-settings/developer-mode) on the development/test machine, or use an already provisioned build machine with the required privilege. This is a build prerequisite, not a requirement to run ordinary workspace/profile commands. It does not qualify a future game-deployment method.
+In the Windows test guest, Flutter's plugin restore/build required Developer Mode
+for symbolic-link creation under the normal user account. Enable [Windows Developer Mode](https://learn.microsoft.com/en-us/windows/advanced-settings/developer-mode) on the development/test machine, or use an already provisioned build machine with the required privilege. This is a build prerequisite, not a requirement to run ordinary workspace/profile commands. It does not qualify a future game-deployment method.
