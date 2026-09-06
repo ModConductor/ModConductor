@@ -7,6 +7,7 @@ type OperationStore(directory: string) =
     let database = new StateDatabase(directory)
     let workspaceRoots = OwnedWorkspaceRootStore(database)
     let workspaces = WorkspaceStateStore(database, workspaceRoots)
+    let modLibrary = ModLibraryStore(database, workspaceRoots)
     let connection = database.Connection
 
     let state transaction =
@@ -81,6 +82,8 @@ type OperationStore(directory: string) =
     member _.WorkspaceRoots = workspaceRoots
 
     member _.Workspaces = workspaces
+
+    member _.ModLibrary = modLibrary
 
     member _.SqliteVersion = connection.ServerVersion
 
@@ -205,7 +208,9 @@ type OperationStore(directory: string) =
 
     interface IDisposable with
         member _.Dispose() =
-            if not (workspaces.TryClose(workspaceRoots.TryClose)) then
+            if
+                not (modLibrary.TryClose(fun () -> workspaces.TryClose(workspaceRoots.TryClose)))
+            then
                 invalidOp
                     "A workspace change or root file check is still active. Wait for it before closing the store."
 

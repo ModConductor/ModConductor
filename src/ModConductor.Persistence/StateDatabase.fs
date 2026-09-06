@@ -32,6 +32,12 @@ type internal StateDatabase(directory: string) =
             "UPDATE root_creation_receipts SET abandoned=1,busy=0 WHERE owner=$owner AND phase<>3"
             [ "$owner", box owner ]
 
+        Sqlite.execute
+            connection
+            null
+            "UPDATE mods SET status=4 WHERE id IN (SELECT mod_id FROM mod_versions WHERE owner=$owner AND phase IN (1,2)); UPDATE mod_versions SET phase=CASE WHEN phase=1 THEN 4 ELSE phase END,busy=0 WHERE owner=$owner AND phase IN (1,2)"
+            [ "$owner", box owner ]
+
     do
         try
             SQLitePCL.Batteries_V2.Init()

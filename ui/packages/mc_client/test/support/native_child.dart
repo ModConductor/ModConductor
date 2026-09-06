@@ -109,6 +109,17 @@ class NativeChild {
         ),
       );
 
+  ModLibraryClient modLibrary({bool authenticate = true, String? token}) =>
+      ModLibraryClient(
+        _localChannel(),
+        CallOptions(
+          timeout: const Duration(seconds: 30),
+          metadata: authenticate
+              ? {'mc-session': token ?? capability}
+              : const {},
+        ),
+      );
+
   Future<void> disconnect() async {
     for (final channel in channels) {
       await channel.terminate();

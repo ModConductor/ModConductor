@@ -73,6 +73,10 @@ let run args =
     builder.Services.AddSingleton<ModConductor.Workspaces.IWorkspaceState>(store.Workspaces)
     |> ignore
 
+    builder.Services.AddSingleton<ModConductor.ModLibrary.IModLibrary>(store.ModLibrary)
+    |> ignore
+
+    builder.Services.AddSingleton<ModConductor.Engine.ModLibraryService>() |> ignore
     builder.Services.AddSingleton<ModConductor.Engine.WorkspaceService>() |> ignore
     builder.Services.AddSingleton<Coordinator>(coordinator) |> ignore
     builder.Services.AddSingleton<ModConductor.Engine.OperationService>() |> ignore
@@ -83,6 +87,9 @@ let run args =
             options.MaxReceiveMessageSize <- Nullable 4096
             options.MaxSendMessageSize <- Nullable 65536
             options.EnableDetailedErrors <- Nullable false)
+        .AddServiceOptions<ModConductor.Engine.ModLibraryService>(fun options ->
+            options.MaxReceiveMessageSize <- Nullable 65536
+            options.MaxSendMessageSize <- Nullable(2 * 1024 * 1024))
         .AddServiceOptions<ModConductor.Engine.WorkspaceService>(fun options ->
             options.MaxReceiveMessageSize <- Nullable 65536
             options.MaxSendMessageSize <- Nullable(2 * 1024 * 1024))
@@ -91,6 +98,7 @@ let run args =
     use app = builder.Build()
     app.MapGrpcService<ModConductor.Engine.OperationService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.WorkspaceService>() |> ignore
+    app.MapGrpcService<ModConductor.Engine.ModLibraryService>() |> ignore
     app.StartAsync().GetAwaiter().GetResult()
 
     let address =
@@ -99,6 +107,9 @@ let run args =
 
     ModConductor.Engine.Bootstrap.announce (Uri(address).Port) certificate
     let lifetime = app.Services.GetRequiredService<IHostApplicationLifetime>()
+
+    store.ModLibrary.Failed.ContinueWith(fun (_: Task) -> lifetime.StopApplication())
+    |> ignore
 
     coordinator.Failed.ContinueWith(fun (_: Task) -> lifetime.StopApplication())
     |> ignore
@@ -110,6 +121,7 @@ let run args =
 
     app.WaitForShutdownAsync().GetAwaiter().GetResult()
     coordinator.Drain().GetAwaiter().GetResult()
+    store.ModLibrary.Drain().GetAwaiter().GetResult()
     store.Workspaces.Drain().GetAwaiter().GetResult()
     0
 

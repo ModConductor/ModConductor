@@ -79,7 +79,7 @@ From `ui/`, check the workspace members with one dependency resolution:
 ```sh
 flutter pub get --enforce-lockfile
 flutter analyze --no-pub
-dart format --output=none --set-exit-if-changed apps/mod_conductor/lib apps/mod_conductor/test packages/mc_ui_foundation/lib apps/mod_conductor/integration_test packages/mc_client/lib/mc_client.dart packages/mc_client/lib/src/engine_session.dart packages/mc_client/lib/src/engine_owner.dart packages/mc_client/lib/src/operations_client.dart packages/mc_client/lib/src/workspaces_client.dart packages/mc_client/test packages/mc_workspaces/lib packages/mc_workspaces/test
+dart format --output=none --set-exit-if-changed apps/mod_conductor/lib apps/mod_conductor/test packages/mc_ui_foundation/lib apps/mod_conductor/integration_test packages/mc_client/lib/mc_client.dart packages/mc_client/lib/src/engine_session.dart packages/mc_client/lib/src/engine_owner.dart packages/mc_client/lib/src/operations_client.dart packages/mc_client/lib/src/workspaces_client.dart packages/mc_client/lib/src/mod_library_client.dart packages/mc_client/lib/src/mod_library_models.dart packages/mc_client/lib/src/mod_library_wire.dart packages/mc_client/test packages/mc_workspaces/lib packages/mc_workspaces/test
 cd packages/mc_workspaces
 flutter test --no-pub
 cd ../../apps/mod_conductor
@@ -193,3 +193,7 @@ Run `dotnet tool run fantomas --check src tests` when checking F# formatting.
 
 In the Windows test guest, Flutter's plugin restore/build required Developer Mode
 for symbolic-link creation under the normal user account. Enable [Windows Developer Mode](https://learn.microsoft.com/en-us/windows/advanced-settings/developer-mode) on the development/test machine, or use an already provisioned build machine with the required privilege. This is a build prerequisite, not a requirement to run ordinary workspace/profile commands. It does not qualify a future game-deployment method.
+
+## Mod inventory and immutable versions
+
+[Mod library](MOD-LIBRARY.md) describes the directory-publication boundary and the native tests. The existing native fixture and authenticated client suites include this feature. There is no inventory UI yet.

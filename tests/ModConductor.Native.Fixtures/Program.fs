@@ -15,6 +15,9 @@ let main args =
         elif args.Length = 5 && args[0] = "--workspace-worker" then
             WorkspaceWorker.run args[1] args[2] args[3] args[4]
             0
+        elif args.Length = 5 && args[0] = "--library-worker" then
+            LibraryWorker.run args[1] args[2] args[3] args[4]
+            0
         else
             let primary, secondary =
                 match args with
@@ -40,6 +43,9 @@ let main args =
             Fixtures.observe writer primary secondary
             StorageFixtures.observe writer primary
             WorkspaceFixtures.observe writer primary
+            LibraryFixtures.observe writer primary
+            LibraryRecoveryFixtures.observe writer primary
+            LibraryIdentityFixtures.observe writer primary
             writer.WriteEndObject()
             writer.Flush()
             0

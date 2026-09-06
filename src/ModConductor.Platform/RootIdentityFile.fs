@@ -5,112 +5,8 @@ open System.IO
 open System.Runtime.InteropServices
 open Microsoft.Win32.SafeHandles
 
-[<Struct; StructLayout(LayoutKind.Sequential)>]
-type private UnicodeName =
-    val mutable Length: uint16
-    val mutable MaximumLength: uint16
-    val mutable Buffer: nativeint
-
-[<Struct; StructLayout(LayoutKind.Sequential)>]
-type private ObjectAttributes =
-    val mutable Length: uint32
-    val mutable Root: nativeint
-    val mutable Name: nativeint
-    val mutable Attributes: uint32
-    val mutable Security: nativeint
-    val mutable Quality: nativeint
-
-[<Struct; StructLayout(LayoutKind.Sequential)>]
-type private IoStatus =
-    val mutable Status: nativeint
-    val mutable Information: unativeint
-
 module RootIdentityFile =
     let name = ".mod-conductor-root"
-
-    [<DllImport("libc", EntryPoint = "openat", SetLastError = true)>]
-    extern int private openAt(
-        int directory,
-        [<MarshalAs(UnmanagedType.LPUTF8Str)>] string name,
-        int flags,
-        uint32 mode
-    )
-
-    [<DllImport("ntdll.dll", EntryPoint = "NtCreateFile")>]
-    extern int private createFile(
-        nativeint& handle,
-        uint32 access,
-        ObjectAttributes& attributes,
-        IoStatus& status,
-        nativeint allocation,
-        uint32 fileAttributes,
-        uint32 share,
-        uint32 disposition,
-        uint32 options,
-        nativeint ea,
-        uint32 eaLength
-    )
-
-    let private openFile (root: SafeFileHandle) create =
-        if OperatingSystem.IsLinux() then
-            let flags = 0xA0800 ||| (if create then 0xC1 else 0)
-            let descriptor = openAt (int (root.DangerousGetHandle()), name, flags, 0x180u)
-
-            if descriptor < 0 then
-                raise (
-                    IOException(
-                        "Opening the root identity file failed: "
-                        + Marshal.GetLastPInvokeError().ToString()
-                    )
-                )
-
-            new SafeFileHandle(nativeint descriptor, true)
-        elif OperatingSystem.IsWindows() then
-            let characters = Marshal.StringToHGlobalUni name
-            let unicode = Marshal.AllocHGlobal(Marshal.SizeOf<UnicodeName>())
-
-            try
-                let mutable text = Unchecked.defaultof<UnicodeName>
-                text.Length <- uint16 (name.Length * 2)
-                text.MaximumLength <- text.Length
-                text.Buffer <- characters
-                Marshal.StructureToPtr<UnicodeName>(text, unicode, false)
-                let mutable attributes = Unchecked.defaultof<ObjectAttributes>
-                attributes.Length <- uint32 (Marshal.SizeOf<ObjectAttributes>())
-                attributes.Root <- root.DangerousGetHandle()
-                attributes.Name <- unicode
-                attributes.Attributes <- 0x40u
-                let mutable status = Unchecked.defaultof<IoStatus>
-                let mutable handle = 0n
-
-                let result =
-                    createFile (
-                        &handle,
-                        (if create then 0x100082u else 0x100081u),
-                        &attributes,
-                        &status,
-                        0n,
-                        0x80u,
-                        1u,
-                        (if create then 2u else 1u),
-                        0x200060u,
-                        0n,
-                        0u
-                    )
-
-                if result < 0 then
-                    raise (
-                        IOException(
-                            "Opening the root identity file failed: " + result.ToString("X8")
-                        )
-                    )
-
-                new SafeFileHandle(handle, true)
-            finally
-                Marshal.FreeHGlobal unicode
-                Marshal.FreeHGlobal characters
-        else
-            raise (PlatformNotSupportedException())
 
     let private identity kind handle =
         match Native.handleFacts handle with
@@ -142,7 +38,7 @@ module RootIdentityFile =
     let create path rootIdentity (contents: byte array) =
         checkContents contents
         use directory = openRoot path rootIdentity
-        use handle = openFile directory true
+        use handle = RelativeFile.openChild directory name false true
         use file = new FileStream(handle, FileAccess.Write)
         file.Write contents
         file.Flush true
@@ -151,7 +47,7 @@ module RootIdentityFile =
     let matches path rootIdentity expectedIdentity (contents: byte array) =
         checkContents contents
         use directory = openRoot path rootIdentity
-        use handle = openFile directory false
+        use handle = RelativeFile.openChild directory name false false
 
         if identity EntryKind.RegularFile handle <> expectedIdentity then
             false

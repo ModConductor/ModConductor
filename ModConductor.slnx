@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/ModConductor.Platform/ModConductor.Platform.fsproj" />
+    <Project Path="src/ModConductor.ModLibrary/ModConductor.ModLibrary.fsproj" />
     <Project Path="src/ModConductor.Operations/ModConductor.Operations.fsproj" />
     <Project Path="src/ModConductor.Workspaces/ModConductor.Workspaces.fsproj" />
     <Project Path="src/ModConductor.Persistence/ModConductor.Persistence.fsproj" />

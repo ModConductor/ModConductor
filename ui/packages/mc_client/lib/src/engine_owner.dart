@@ -4,6 +4,7 @@ import 'dart:io';
 import 'engine_session.dart';
 import 'operations_client.dart';
 import 'workspaces_client.dart';
+import 'mod_library_client.dart';
 
 sealed class EngineState {
   const EngineState();
@@ -50,6 +51,8 @@ class EngineOwner {
   int _attempt = 0;
 
   EngineState get state => _state;
+  ModLibraryClient? get modLibrary =>
+      _state is EngineConnected ? _session?.modLibrary : null;
   WorkspacesClient? get workspaces =>
       _state is EngineConnected ? _session?.workspaces : null;
   Stream<EngineState> get changes => _changes.stream;

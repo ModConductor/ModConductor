@@ -65,8 +65,12 @@ module internal Sqlite =
             execute connection transaction workspaceSchema []
             execute connection transaction profileSchema []
         | 2L -> execute connection transaction profileSchema []
-        | 3L -> ()
+        | 3L
+        | 4L -> ()
         | _ -> raise (InvalidOperationException("The state database uses an unsupported version."))
+
+        if number connection transaction "PRAGMA user_version" [] = 3L then
+            execute connection transaction LibrarySchema.sql []
 
         beforeCommit ()
         transaction.Commit()

@@ -4,7 +4,10 @@
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="WorkspaceRoots.fs" />
     <Compile Include="OwnerLease.fs" />
+    <Compile Include="LibrarySchema.fs" />
     <Compile Include="Sqlite.fs" />
+    <Compile Include="LibraryEncoding.fs" />
+    <Compile Include="LibraryRows.fs" />
     <Compile Include="OperationRows.fs" />
     <Compile Include="OperationJournal.fs" />
     <Compile Include="WorkspaceRows.fs" />
@@ -12,7 +15,14 @@
     <Compile Include="StateDatabase.fs" />
     <Compile Include="OwnedWorkspaceRootStore.fs" />
     <Compile Include="WorkspaceStateStore.fs" />
+    <Compile Include="LibraryAccess.fs" />
+    <Compile Include="InventoryCommands.fs" />
+    <Compile Include="PublicationRows.fs" />
+    <Compile Include="LibraryPublication.fs" />
+    <Compile Include="InventoryScan.fs" />
+    <Compile Include="ModLibraryStore.fs" />
     <Compile Include="OperationStore.fs" />
+    <ProjectReference Include="../ModConductor.ModLibrary/ModConductor.ModLibrary.fsproj" />
     <ProjectReference Include="../ModConductor.Operations/ModConductor.Operations.fsproj" />
     <ProjectReference Include="../ModConductor.Platform/ModConductor.Platform.fsproj" />
     <ProjectReference Include="../ModConductor.Workspaces/ModConductor.Workspaces.fsproj" />

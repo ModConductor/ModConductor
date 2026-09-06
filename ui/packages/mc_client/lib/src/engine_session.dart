@@ -8,6 +8,7 @@ import 'package:grpc/grpc.dart';
 import 'generated/modconductor/v2/engine_probe.pbgrpc.dart' as wire;
 import 'operations_client.dart';
 import 'workspaces_client.dart';
+import 'mod_library_client.dart';
 
 class EngineSession {
   EngineSession(this._process) : _errors = _process.stderr.listen((_) {});
@@ -17,6 +18,8 @@ class EngineSession {
   ClientChannel? _channel;
   OperationsClient? _operations;
   OperationsClient get operations => _operations!;
+  ModLibraryClient? _modLibrary;
+  ModLibraryClient get modLibrary => _modLibrary!;
   WorkspacesClient? _workspaces;
   WorkspacesClient get workspaces => _workspaces!;
   Future<void>? _closing;
@@ -57,6 +60,7 @@ class EngineSession {
     );
     _operations = OperationsClient(channel, options);
     _workspaces = GrpcWorkspacesClient(channel, options);
+    _modLibrary = ModLibraryClient(channel, options);
   }
 
   Future<ConnectionReport> check() => operations.check();

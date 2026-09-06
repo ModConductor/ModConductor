@@ -311,6 +311,18 @@ module internal Native =
         else
             raise (PlatformNotSupportedException())
 
+    let readableDirectoryHandle path =
+        if OperatingSystem.IsWindows() then
+            let handle = createFile (windowsPath path, 0x100081u, 3u, 0n, 3u, 0x02200000u, 0n)
+
+            if handle.IsInvalid then
+                handle.Dispose()
+                raise (IOException("Opening the selected directory failed."))
+
+            handle
+        else
+            directoryHandle path
+
     let handleFacts (handle: SafeFileHandle) =
         if OperatingSystem.IsLinux() then
             let mutable result = Unchecked.defaultof<Statx>
