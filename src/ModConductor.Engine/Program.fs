@@ -69,18 +69,28 @@ let run args =
     |> ignore
 
     builder.Services.AddSingleton<IOperationStore>(store) |> ignore
+
+    builder.Services.AddSingleton<ModConductor.Workspaces.IWorkspaceState>(store.Workspaces)
+    |> ignore
+
+    builder.Services.AddSingleton<ModConductor.Engine.WorkspaceService>() |> ignore
     builder.Services.AddSingleton<Coordinator>(coordinator) |> ignore
     builder.Services.AddSingleton<ModConductor.Engine.OperationService>() |> ignore
 
-    builder.Services.AddGrpc(fun options ->
-        options.Interceptors.Add<ModConductor.Engine.SessionAuthentication>()
-        options.MaxReceiveMessageSize <- Nullable 4096
-        options.MaxSendMessageSize <- Nullable 65536
-        options.EnableDetailedErrors <- Nullable false)
+    builder.Services
+        .AddGrpc(fun options ->
+            options.Interceptors.Add<ModConductor.Engine.SessionAuthentication>()
+            options.MaxReceiveMessageSize <- Nullable 4096
+            options.MaxSendMessageSize <- Nullable 65536
+            options.EnableDetailedErrors <- Nullable false)
+        .AddServiceOptions<ModConductor.Engine.WorkspaceService>(fun options ->
+            options.MaxReceiveMessageSize <- Nullable 65536
+            options.MaxSendMessageSize <- Nullable(2 * 1024 * 1024))
     |> ignore
 
     use app = builder.Build()
     app.MapGrpcService<ModConductor.Engine.OperationService>() |> ignore
+    app.MapGrpcService<ModConductor.Engine.WorkspaceService>() |> ignore
     app.StartAsync().GetAwaiter().GetResult()
 
     let address =
@@ -100,6 +110,7 @@ let run args =
 
     app.WaitForShutdownAsync().GetAwaiter().GetResult()
     coordinator.Drain().GetAwaiter().GetResult()
+    store.Workspaces.Drain().GetAwaiter().GetResult()
     0
 
 [<EntryPoint>]

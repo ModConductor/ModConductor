@@ -127,6 +127,49 @@ type OwnedWorkspaceRootStore internal (database: StateDatabase) =
                     leave id
         }
 
+    member _.Validate(id: Guid) =
+        task {
+            if not (enter id) then
+                return Error WorkspaceFailure.Busy
+            else
+                try
+                    let! row =
+                        database.Enqueue(fun () -> WorkspaceRows.find database.Connection null id)
+
+                    match row with
+                    | None -> return Error WorkspaceFailure.NotFound
+                    | Some row when row.Receipt.Phase <> RootCreationPhase.Complete ->
+                        let! observed =
+                            fileAttempt (fun () ->
+                                RootIdentityFile.validateRoot
+                                    row.Receipt.Workspace.Path
+                                    row.Receipt.Workspace.Identity)
+
+                        match observed with
+                        | Ok() -> return Ok row.Receipt
+                        | Error _ -> return Error WorkspaceFailure.IdentityConflict
+                    | Some row ->
+                        match row.Receipt.MarkerIdentity with
+                        | None -> return Error WorkspaceFailure.IdentityConflict
+                        | Some identity ->
+                            let! observed =
+                                fileAttempt (fun () ->
+                                    let root = row.Receipt.Workspace
+
+                                    RootIdentityFile.matches
+                                        root.Path
+                                        root.Identity
+                                        identity
+                                        (contents row))
+
+                            match observed with
+                            | Ok true -> return Ok row.Receipt
+                            | Ok false -> return Error WorkspaceFailure.IdentityConflict
+                            | Error _ -> return Error WorkspaceFailure.InvalidRoot
+                finally
+                    leave id
+        }
+
     member _.Prepare(id: Guid, expectedWorkspaceRevision: int64, root: SelectedRoot) =
         database.Enqueue(fun () ->
             WorkspaceRows.prepare

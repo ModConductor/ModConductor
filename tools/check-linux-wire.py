@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """Run the Flutter-to-NativeAOT integration check on a private Linux display."""
+import argparse
+import json
 import os
 from pathlib import Path
+import resource
 import secrets
 import shutil
 import signal
@@ -10,10 +13,17 @@ import sys
 import tempfile
 import time
 
+parser = argparse.ArgumentParser()
+parser.add_argument('--workspaces', action='store_true')
+parser.add_argument('--output', type=Path)
+args = parser.parse_args()
+if args.output:
+    args.output.mkdir(parents=True, exist_ok=True)
 root = Path(__file__).resolve().parents[1]
+resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
 if sys.platform != 'linux':
     raise SystemExit('This check needs native Linux; it does not qualify Windows.')
-for tool in ('Xvfb', 'xauth'):
+for tool in ('Xvfb', 'xauth', *(['xdotool'] if args.workspaces else [])):
     if shutil.which(tool) is None:
         raise SystemExit(f'Missing preinstalled tool: {tool}. No installer is run.')
 engine = root / '.tools/publish/linux-x64/ModConductor.Engine'
@@ -28,6 +38,11 @@ with tempfile.TemporaryDirectory(prefix='wire-display-', dir=root / '.agent-work
     subprocess.run(['xauth', '-f', str(auth)], input=f'add :{display} . {secrets.token_hex(16)}\n', text=True, check=True)
     env = dict(os.environ, DISPLAY=f':{display}', XAUTHORITY=str(auth), GDK_BACKEND='x11', LIBGL_ALWAYS_SOFTWARE='true', FLUTTER_SUPPRESS_ANALYTICS='true', DART_SUPPRESS_ANALYTICS='true')
     env.pop('WAYLAND_DISPLAY', None)
+    env.update(GTK_USE_PORTAL='0', DBUS_SESSION_BUS_ADDRESS='unix:path=' + str(temporary / 'no-session-bus'), GSETTINGS_BACKEND='memory')
+    (temporary / 'runtime').mkdir(mode=0o700)
+    env['XDG_RUNTIME_DIR'] = str(temporary / 'runtime')
+    fixture = temporary / 'fixture'
+    fixture.mkdir()
     for variable, directory in [('HOME', 'home'), ('XDG_CONFIG_HOME', 'config'), ('XDG_CACHE_HOME', 'cache'), ('XDG_DATA_HOME', 'data')]:
         (temporary / directory).mkdir()
         env[variable] = str(temporary / directory)
@@ -39,10 +54,57 @@ with tempfile.TemporaryDirectory(prefix='wire-display-', dir=root / '.agent-work
                 if server.poll() is not None or time.monotonic() >= deadline:
                     raise SystemExit('Private Xvfb did not start.')
                 time.sleep(.05)
-            command = [str(root / '.tools/flutter/bin/flutter'), 'test', 'integration_test/native_wire_test.dart', '-d', 'linux', '--no-pub', '--dart-define=MC_ENGINE_PATH=' + str(engine), '--reporter', 'expanded']
+            command = [str(root / '.tools/flutter/bin/flutter'), 'test', 'integration_test/workspaces_native_test.dart' if args.workspaces else 'integration_test/native_wire_test.dart', '-d', 'linux', '--no-pub', '--dart-define=MC_ENGINE_PATH=' + str(engine), '--reporter', 'expanded', *(['--verbose'] if os.environ.get('MC_VERBOSE_NATIVE') == '1' else [])]
+            if args.workspaces:
+                command.append('--dart-define=MC_UI_FIXTURE=' + str(fixture))
             check = subprocess.Popen(command, cwd=root / 'ui/apps/mod_conductor', env=env, start_new_session=True)
             try:
-                code = check.wait(timeout=180)
+                deadline = time.monotonic() + 240
+                handled = set()
+                while check.poll() is None:
+                    if time.monotonic() >= deadline:
+                        raise subprocess.TimeoutExpired(command, 240)
+                    for request in fixture.glob('picker-*.json'):
+                        if request.name in handled:
+                            continue
+                        found = subprocess.run(['xdotool', 'search', '--onlyvisible', '--name', '^Choose Directory$'], env=env, text=True, capture_output=True)
+                        if found.returncode != 0:
+                            continue
+                        windows = found.stdout.split()
+                        if len(windows) != 1:
+                            raise RuntimeError('Expected one private directory dialog.')
+                        def key(*parts):
+                            subprocess.run(['xdotool', *parts], env=env, check=True)
+                        value = json.loads(request.read_text())
+                        subprocess.run(['xdotool', 'windowmove', windows[0], '20', '20', 'windowsize', windows[0], '1000', '760'], env=env, check=True)
+                        if args.output and shutil.which('import'):
+                            subprocess.run(['import', '-window', 'root', str(fixture / (request.stem + '.png'))], env=env, check=True)
+                        key('windowfocus', '--sync', windows[0])
+                        time.sleep(.3)
+                        if value['cancel']:
+                            key('key', 'Escape')
+                        else:
+                            key('key', 'alt+Home')
+                            time.sleep(.5)
+                            key('key', 'ctrl+l')
+                            time.sleep(.3)
+                            key('type', '--clearmodifiers', '--delay', '1', value['path'])
+                            key('key', 'Return')
+                            time.sleep(.5)
+                            still_open = subprocess.run(['xdotool', 'search', '--onlyvisible', '--name', '^Choose Directory$'], env=env, capture_output=True)
+                            if still_open.returncode == 0:
+                                key('key', 'Return')
+                        close_deadline = time.monotonic() + 10
+                        while subprocess.run(['xdotool', 'search', '--onlyvisible', '--name', '^Choose Directory$'], env=env, capture_output=True).returncode == 0:
+                            if time.monotonic() >= close_deadline:
+                                if args.output and shutil.which('import'):
+                                    subprocess.run(['import', '-window', 'root', str(fixture / (request.stem + '-after.png'))], env=env, check=True)
+                                raise RuntimeError('The private directory dialog did not close.')
+                            time.sleep(.1)
+                        handled.add(request.name)
+                        request.with_suffix('.done').touch()
+                    time.sleep(.1)
+                code = check.returncode
             except subprocess.TimeoutExpired:
                 os.killpg(check.pid, signal.SIGTERM)
                 try:
@@ -50,10 +112,18 @@ with tempfile.TemporaryDirectory(prefix='wire-display-', dir=root / '.agent-work
                 except subprocess.TimeoutExpired:
                     os.killpg(check.pid, signal.SIGKILL)
                     check.wait()
-                raise SystemExit('Native wire check exceeded 180 seconds.')
+                raise SystemExit('Native UI check exceeded 240 seconds.')
             if code != 0:
                 raise SystemExit(code)
         finally:
+            if 'check' in locals() and check.poll() is None:
+                os.killpg(check.pid, signal.SIGTERM)
+                check.wait(timeout=10)
+            if args.output:
+                for item in fixture.iterdir():
+                    if item.is_file():
+                        shutil.copy2(item, args.output / item.name)
+                shutil.copy2(temporary / 'xvfb.log', args.output / 'xvfb.log')
             server.terminate()
             try:
                 server.wait(timeout=3)

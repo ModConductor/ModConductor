@@ -6,6 +6,7 @@ open ModConductor.Operations
 type OperationStore(directory: string) =
     let database = new StateDatabase(directory)
     let workspaceRoots = OwnedWorkspaceRootStore(database)
+    let workspaces = WorkspaceStateStore(database, workspaceRoots)
     let connection = database.Connection
 
     let state transaction =
@@ -78,6 +79,8 @@ type OperationStore(directory: string) =
         result
 
     member _.WorkspaceRoots = workspaceRoots
+
+    member _.Workspaces = workspaces
 
     member _.SqliteVersion = connection.ServerVersion
 
@@ -202,7 +205,9 @@ type OperationStore(directory: string) =
 
     interface IDisposable with
         member _.Dispose() =
-            if not (workspaceRoots.TryClose()) then
-                invalidOp "A root file check is still active. Wait for it before closing the store."
+            if not (workspaces.TryClose(workspaceRoots.TryClose)) then
+                invalidOp
+                    "A workspace change or root file check is still active. Wait for it before closing the store."
+
 
             (database :> IDisposable).Dispose()

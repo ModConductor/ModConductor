@@ -6,18 +6,20 @@ class _DesktopShell extends StatelessWidget {
     required this.connectionStatus,
     required this.onNavigate,
     required this.onQuit,
-    required this.welcomeFocus,
+    required this.workspacesFocus,
     required this.preferencesFocus,
     required this.quitFocus,
+    required this.onToggleTheme,
     required this.child,
   });
   final DesktopStatus connectionStatus;
   final _Destination destination;
   final ValueChanged<_Destination> onNavigate;
   final VoidCallback onQuit;
-  final FocusNode welcomeFocus;
+  final FocusNode workspacesFocus;
   final FocusNode preferencesFocus;
   final FocusNode quitFocus;
+  final VoidCallback onToggleTheme;
   final Widget child;
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -56,6 +58,12 @@ class _DesktopShell extends StatelessWidget {
                           ?.copyWith(fontSize: 17),
                     ),
                   ),
+                  IconButton(
+                    key: const ValueKey('quick-theme'),
+                    tooltip: 'Change appearance',
+                    onPressed: onToggleTheme,
+                    icon: const Icon(Icons.brightness_6_outlined),
+                  ),
                   McAction(
                     key: const ValueKey('quit'),
                     label: 'Quit',
@@ -76,13 +84,13 @@ class _DesktopShell extends StatelessWidget {
                         selected: destination == item,
                         child: TextButton.icon(
                           key: ValueKey(
-                            item == _Destination.welcome
-                                ? 'nav-welcome'
+                            item == _Destination.workspaces
+                                ? 'nav-workspaces'
                                 : 'nav-preferences',
                           ),
-                          autofocus: item == _Destination.welcome,
-                          focusNode: item == _Destination.welcome
-                              ? welcomeFocus
+                          autofocus: item == _Destination.workspaces,
+                          focusNode: item == _Destination.workspaces
+                              ? workspacesFocus
                               : preferencesFocus,
                           style: TextButton.styleFrom(
                             backgroundColor: destination == item
@@ -92,14 +100,14 @@ class _DesktopShell extends StatelessWidget {
                           ),
                           onPressed: () => onNavigate(item),
                           icon: Icon(
-                            item == _Destination.welcome
+                            item == _Destination.workspaces
                                 ? Icons.home_outlined
                                 : Icons.tune,
                             size: 18,
                           ),
                           label: Text(
-                            item == _Destination.welcome
-                                ? 'Welcome'
+                            item == _Destination.workspaces
+                                ? 'Workspaces'
                                 : 'Preferences',
                           ),
                         ),

@@ -59,6 +59,7 @@
           "Microsoft.Data.Sqlite.Core": "[10.0.11, )",
           "ModConductor.Operations": "[1.0.0, )",
           "ModConductor.Platform": "[1.0.0, )",
+          "ModConductor.Workspaces": "[1.0.0, )",
           "SQLitePCLRaw.bundle_e_sqlite3": "[3.0.5, )"
         }
       },
@@ -66,6 +67,13 @@
         "type": "Project",
         "dependencies": {
           "FSharp.Core": "[10.1.400, )"
+        }
+      },
+      "modconductor.workspaces": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )",
+          "ModConductor.Platform": "[1.0.0, )"
         }
       },
       "Microsoft.Data.Sqlite.Core": {

@@ -7,6 +7,7 @@ import 'package:grpc/grpc.dart';
 
 import 'generated/modconductor/v2/engine_probe.pbgrpc.dart' as wire;
 import 'operations_client.dart';
+import 'workspaces_client.dart';
 
 class EngineSession {
   EngineSession(this._process) : _errors = _process.stderr.listen((_) {});
@@ -16,6 +17,8 @@ class EngineSession {
   ClientChannel? _channel;
   OperationsClient? _operations;
   OperationsClient get operations => _operations!;
+  WorkspacesClient? _workspaces;
+  WorkspacesClient get workspaces => _workspaces!;
   Future<void>? _closing;
 
   Future<int> get exited => _process.exitCode;
@@ -48,13 +51,12 @@ class EngineSession {
       ),
     );
     _channel = channel;
-    _operations = OperationsClient(
-      channel,
-      CallOptions(
-        timeout: const Duration(seconds: 5),
-        metadata: {'mc-session': capability},
-      ),
+    final options = CallOptions(
+      timeout: const Duration(seconds: 5),
+      metadata: {'mc-session': capability},
     );
+    _operations = OperationsClient(channel, options);
+    _workspaces = GrpcWorkspacesClient(channel, options);
   }
 
   Future<ConnectionReport> check() => operations.check();

@@ -125,7 +125,8 @@ nix develop --impure --expr '
       pkgs.xorgproto pkgs.zlib pkgs.libsysprof-capture pkgs.fontconfig
       pkgs.pcre2 pkgs.libffi pkgs.util-linux pkgs.libselinux pkgs.libsepol
       pkgs.libthai pkgs.libdatrie ];
-    LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [ pkgs.libepoxy pkgs.fontconfig ];
+    LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [ pkgs.libepoxy pkgs.fontconfig pkgs.openssl ];
+    GSETTINGS_SCHEMA_DIR = "${pkgs.gtk3}/share/gsettings-schemas/${pkgs.gtk3.name}/glib-2.0/schemas";
   }'
 ```
 
@@ -180,3 +181,9 @@ See [Path preflight](PATH-PREFLIGHT.md) for the exact commands and owned cross-v
 Run `dotnet tool run fantomas --check src tests` when checking F# formatting.
 
 [Owned-root storage](OWNED-ROOT-STORAGE.md) describes schema migration and native file-receipt checks. The shared native fixture tests both filesystem preflight and storage.
+
+## Workspace checks
+
+[Workspaces and profiles](WORKSPACES.md) uses the same native fixture and client suites. Run presentation checks with `flutter test --no-pub` from `ui/packages/mc_workspaces`. Include that package and `mc_client/lib/src/workspaces_client.dart` in Dart formatting checks. The native folder-picker journey runs with `python3 tools/check-linux-wire.py --workspaces --output .agent-workspace/workspace-ui` on an isolated Linux display. See the workspace guide for its extra test-only desktop prerequisites.
+
+Flutter's Windows plugin build requires symbolic-link support. Enable [Windows Developer Mode](https://learn.microsoft.com/en-us/windows/advanced-settings/developer-mode) on the development/test machine, or use an already provisioned build machine with the required privilege. This is a build prerequisite, not a requirement to run ordinary workspace/profile commands. It does not qualify a future game-deployment method.

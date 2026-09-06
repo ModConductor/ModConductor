@@ -1,41 +1,31 @@
 # Desktop components
 
-`ui/packages/mc_ui_foundation` contains the components that Welcome and Preferences
-share. The app owns navigation, preference drafts and status selection. The
-foundation does not import app features or engine policy.
+`ui/packages/mc_ui_foundation` owns the shared visual controls. `mc_workspaces` owns workspace presentation and forms. The app owns navigation and appearance drafts. The foundation does not import features or engine policy.
 
 | Contract | Actual consumers | Shared behavior |
 | --- | --- | --- |
-| `mcTheme`, `McSpacing` | Welcome; Preferences | Colors, Roboto fonts, spacing, control styles and light/dark themes |
-| `McPage`, `McSection` | Welcome; Preferences | Page headings, scrollable content and sections |
-| `McChoice<T>` | Welcome theme; Preferences theme/text size | Typed values, labels, keyboard selection and SDK field semantics |
-| `McAction` | Welcome actions; Preferences actions | SDK buttons, emphasis, focus and enabled state |
-| `McStatus` | Welcome connection/save state; Preferences save state | Text and icon status that does not rely on color |
+| `mcTheme`, `McSpacing` | Workspaces; Preferences; design preview | Colors, bundled Roboto, spacing and light/dark themes |
+| `McPage`, `McSection` | Workspace entry; profiles; Preferences | Headings, scrolling and sections |
+| `McChoice<T>` | Preferences theme and text size | Typed values, keyboard selection and SDK semantics |
+| `McAction` | Workspace actions; profile actions; Preferences; dialogs | SDK buttons, emphasis, focus and enabled state |
+| `McStatus` | Workspace failure/recovery; Preferences; connection error | Text and icon status without color-only meaning |
+| `McFormDialog` | Workspace create/open; profile create/clone/rename/delete; preview | Scrollable SDK dialog, cancel, submit and focus restoration |
+| `McNameField`, `McNameDialog` | Workspace name; profile create/clone/rename; preview | Display-name input, validation and submission |
+| `WorkspaceDialog` | Create workspace; Open workspace | Native directory chooser, cancel and full selected path |
+| Profile row | Every loaded profile, including selected profile outside the current page | Selection, scoped menu and selected indicator |
 
-The active-preferences comparison dialog is private to Preferences. It is available
-when a draft differs from the active values.
+The preview imports the production forms rather than retaining a second toolbox. Its folder list is a simulation only. Production uses the native directory chooser. [Workspace behavior](WORKSPACES.md) describes actual saved state and recovery.
 
-The app's shell, pages and preference state are private to its Dart library.
-`DesktopStatus` is a presentation input consumed by shell composition. Production
-uses `DesktopHost` to launch the bundled engine and show connecting, connected or
-failed status. The host consumes the shared shell rather than adding a new page.
-Tests also inject `DesktopFailure` to check that Preferences and Quit remain usable.
-There is no error selector, reconnect manager or authenticated bootstrap in the app.
+`DesktopHost` owns the process lifecycle through `mc_client`. `WorkspaceController` consumes its typed client and ignores stale completions from an old connection. Leaving a page does not cancel an accepted mutation. No widgets or page state live in the transport library.
 
 ## Controls
 
-- **Alt+1** opens Welcome.
+- **Alt+1** opens Workspaces.
 - **Alt+2** or **Ctrl+,** opens Preferences.
 - **Ctrl+Q** or **Quit** requests native application exit.
 - **Tab** and **Shift+Tab** move focus. **Enter** activates a focused control.
-- **Escape** closes a detail dialog and returns focus to its control.
+- **Escape** closes a dialog and returns focus to its control.
 
-Preference drafts remain when the user changes pages or resizes the window.
-**Apply** updates the current appearance and text size. **Cancel** restores the
-active values. Welcome's appearance control updates the active theme immediately.
-The app does not save preferences after exit. System appearance follows the
-platform until the user selects Light or Dark.
+Preference drafts remain when you change pages or resize the window. **Apply** updates the current appearance and text size. **Cancel** restores active values. The header's appearance control changes the theme immediately. Appearance preferences are not saved after exit.
 
-The [build guide](BUILDING.md) includes workspace checks and native bundle paths.
-The seven app interaction checks cover both consumers. Native platform checks
-remain necessary for window behavior and the actual Quit route.
+The active-preferences comparison dialog remains private to Preferences. Native window behavior and folder selection require actual platform checks, not only widget tests. [Build commands](BUILDING.md) include the shared packages.

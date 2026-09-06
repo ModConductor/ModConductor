@@ -296,5 +296,342 @@ namespace ModConductor.Protocol.V2 {
     }
 
   }
+  public static partial class WorkspaceOperations
+  {
+    static readonly string __ServiceName = "modconductor.v2.WorkspaceOperations";
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static void __Helper_SerializeMessage(global::Google.Protobuf.IMessage message, grpc::SerializationContext context)
+    {
+      #if !GRPC_DISABLE_PROTOBUF_BUFFER_SERIALIZATION
+      if (message is global::Google.Protobuf.IBufferMessage)
+      {
+        context.SetPayloadLength(message.CalculateSize());
+        global::Google.Protobuf.MessageExtensions.WriteTo(message, context.GetBufferWriter());
+        context.Complete();
+        return;
+      }
+      #endif
+      context.Complete(global::Google.Protobuf.MessageExtensions.ToByteArray(message));
+    }
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static class __Helper_MessageCache<T>
+    {
+      public static readonly bool IsBufferMessage = global::System.Reflection.IntrospectionExtensions.GetTypeInfo(typeof(global::Google.Protobuf.IBufferMessage)).IsAssignableFrom(typeof(T));
+    }
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static T __Helper_DeserializeMessage<T>(grpc::DeserializationContext context, global::Google.Protobuf.MessageParser<T> parser) where T : global::Google.Protobuf.IMessage<T>
+    {
+      #if !GRPC_DISABLE_PROTOBUF_BUFFER_SERIALIZATION
+      if (__Helper_MessageCache<T>.IsBufferMessage)
+      {
+        return parser.ParseFrom(context.PayloadAsReadOnlySequence());
+      }
+      #endif
+      return parser.ParseFrom(context.PayloadAsNewBuffer());
+    }
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::ModConductor.Protocol.V2.CreateWorkspaceRequest> __Marshaller_modconductor_v2_CreateWorkspaceRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V2.CreateWorkspaceRequest.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::ModConductor.Protocol.V2.WorkspaceReply> __Marshaller_modconductor_v2_WorkspaceReply = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V2.WorkspaceReply.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::ModConductor.Protocol.V2.OpenWorkspaceRequest> __Marshaller_modconductor_v2_OpenWorkspaceRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V2.OpenWorkspaceRequest.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::ModConductor.Protocol.V2.ReadWorkspaceRequest> __Marshaller_modconductor_v2_ReadWorkspaceRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V2.ReadWorkspaceRequest.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::ModConductor.Protocol.V2.EditProfileRequest> __Marshaller_modconductor_v2_EditProfileRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V2.EditProfileRequest.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::ModConductor.Protocol.V2.ProfileReply> __Marshaller_modconductor_v2_ProfileReply = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V2.ProfileReply.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::ModConductor.Protocol.V2.CheckWorkspaceRequest> __Marshaller_modconductor_v2_CheckWorkspaceRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V2.CheckWorkspaceRequest.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::ModConductor.Protocol.V2.RecentWorkspacesRequest> __Marshaller_modconductor_v2_RecentWorkspacesRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V2.RecentWorkspacesRequest.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::ModConductor.Protocol.V2.RecentWorkspacesReply> __Marshaller_modconductor_v2_RecentWorkspacesReply = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V2.RecentWorkspacesReply.Parser));
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::ModConductor.Protocol.V2.CreateWorkspaceRequest, global::ModConductor.Protocol.V2.WorkspaceReply> __Method_CreateWorkspace = new grpc::Method<global::ModConductor.Protocol.V2.CreateWorkspaceRequest, global::ModConductor.Protocol.V2.WorkspaceReply>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "CreateWorkspace",
+        __Marshaller_modconductor_v2_CreateWorkspaceRequest,
+        __Marshaller_modconductor_v2_WorkspaceReply);
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::ModConductor.Protocol.V2.OpenWorkspaceRequest, global::ModConductor.Protocol.V2.WorkspaceReply> __Method_OpenWorkspace = new grpc::Method<global::ModConductor.Protocol.V2.OpenWorkspaceRequest, global::ModConductor.Protocol.V2.WorkspaceReply>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "OpenWorkspace",
+        __Marshaller_modconductor_v2_OpenWorkspaceRequest,
+        __Marshaller_modconductor_v2_WorkspaceReply);
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::ModConductor.Protocol.V2.ReadWorkspaceRequest, global::ModConductor.Protocol.V2.WorkspaceReply> __Method_ReadWorkspace = new grpc::Method<global::ModConductor.Protocol.V2.ReadWorkspaceRequest, global::ModConductor.Protocol.V2.WorkspaceReply>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "ReadWorkspace",
+        __Marshaller_modconductor_v2_ReadWorkspaceRequest,
+        __Marshaller_modconductor_v2_WorkspaceReply);
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::ModConductor.Protocol.V2.EditProfileRequest, global::ModConductor.Protocol.V2.ProfileReply> __Method_EditProfile = new grpc::Method<global::ModConductor.Protocol.V2.EditProfileRequest, global::ModConductor.Protocol.V2.ProfileReply>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "EditProfile",
+        __Marshaller_modconductor_v2_EditProfileRequest,
+        __Marshaller_modconductor_v2_ProfileReply);
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::ModConductor.Protocol.V2.CheckWorkspaceRequest, global::ModConductor.Protocol.V2.WorkspaceReply> __Method_CheckWorkspace = new grpc::Method<global::ModConductor.Protocol.V2.CheckWorkspaceRequest, global::ModConductor.Protocol.V2.WorkspaceReply>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "CheckWorkspace",
+        __Marshaller_modconductor_v2_CheckWorkspaceRequest,
+        __Marshaller_modconductor_v2_WorkspaceReply);
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::ModConductor.Protocol.V2.RecentWorkspacesRequest, global::ModConductor.Protocol.V2.RecentWorkspacesReply> __Method_RecentWorkspaces = new grpc::Method<global::ModConductor.Protocol.V2.RecentWorkspacesRequest, global::ModConductor.Protocol.V2.RecentWorkspacesReply>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "RecentWorkspaces",
+        __Marshaller_modconductor_v2_RecentWorkspacesRequest,
+        __Marshaller_modconductor_v2_RecentWorkspacesReply);
+
+    /// <summary>Service descriptor</summary>
+    public static global::Google.Protobuf.Reflection.ServiceDescriptor Descriptor
+    {
+      get { return global::ModConductor.Protocol.V2.EngineProbeReflection.Descriptor.Services[1]; }
+    }
+
+    /// <summary>Base class for server-side implementations of WorkspaceOperations</summary>
+    [grpc::BindServiceMethod(typeof(WorkspaceOperations), "BindService")]
+    public abstract partial class WorkspaceOperationsBase
+    {
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V2.WorkspaceReply> CreateWorkspace(global::ModConductor.Protocol.V2.CreateWorkspaceRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V2.WorkspaceReply> OpenWorkspace(global::ModConductor.Protocol.V2.OpenWorkspaceRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V2.WorkspaceReply> ReadWorkspace(global::ModConductor.Protocol.V2.ReadWorkspaceRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V2.ProfileReply> EditProfile(global::ModConductor.Protocol.V2.EditProfileRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V2.WorkspaceReply> CheckWorkspace(global::ModConductor.Protocol.V2.CheckWorkspaceRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V2.RecentWorkspacesReply> RecentWorkspaces(global::ModConductor.Protocol.V2.RecentWorkspacesRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+    }
+
+    /// <summary>Client for WorkspaceOperations</summary>
+    public partial class WorkspaceOperationsClient : grpc::ClientBase<WorkspaceOperationsClient>
+    {
+      /// <summary>Creates a new client for WorkspaceOperations</summary>
+      /// <param name="channel">The channel to use to make remote calls.</param>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public WorkspaceOperationsClient(grpc::ChannelBase channel) : base(channel)
+      {
+      }
+      /// <summary>Creates a new client for WorkspaceOperations that uses a custom <c>CallInvoker</c>.</summary>
+      /// <param name="callInvoker">The callInvoker to use to make remote calls.</param>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public WorkspaceOperationsClient(grpc::CallInvoker callInvoker) : base(callInvoker)
+      {
+      }
+      /// <summary>Protected parameterless constructor to allow creation of test doubles.</summary>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      protected WorkspaceOperationsClient() : base()
+      {
+      }
+      /// <summary>Protected constructor to allow creation of configured clients.</summary>
+      /// <param name="configuration">The client configuration.</param>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      protected WorkspaceOperationsClient(ClientBaseConfiguration configuration) : base(configuration)
+      {
+      }
+
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V2.WorkspaceReply CreateWorkspace(global::ModConductor.Protocol.V2.CreateWorkspaceRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return CreateWorkspace(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V2.WorkspaceReply CreateWorkspace(global::ModConductor.Protocol.V2.CreateWorkspaceRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_CreateWorkspace, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V2.WorkspaceReply> CreateWorkspaceAsync(global::ModConductor.Protocol.V2.CreateWorkspaceRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return CreateWorkspaceAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V2.WorkspaceReply> CreateWorkspaceAsync(global::ModConductor.Protocol.V2.CreateWorkspaceRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_CreateWorkspace, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V2.WorkspaceReply OpenWorkspace(global::ModConductor.Protocol.V2.OpenWorkspaceRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return OpenWorkspace(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V2.WorkspaceReply OpenWorkspace(global::ModConductor.Protocol.V2.OpenWorkspaceRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_OpenWorkspace, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V2.WorkspaceReply> OpenWorkspaceAsync(global::ModConductor.Protocol.V2.OpenWorkspaceRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return OpenWorkspaceAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V2.WorkspaceReply> OpenWorkspaceAsync(global::ModConductor.Protocol.V2.OpenWorkspaceRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_OpenWorkspace, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V2.WorkspaceReply ReadWorkspace(global::ModConductor.Protocol.V2.ReadWorkspaceRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return ReadWorkspace(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V2.WorkspaceReply ReadWorkspace(global::ModConductor.Protocol.V2.ReadWorkspaceRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_ReadWorkspace, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V2.WorkspaceReply> ReadWorkspaceAsync(global::ModConductor.Protocol.V2.ReadWorkspaceRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return ReadWorkspaceAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V2.WorkspaceReply> ReadWorkspaceAsync(global::ModConductor.Protocol.V2.ReadWorkspaceRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_ReadWorkspace, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V2.ProfileReply EditProfile(global::ModConductor.Protocol.V2.EditProfileRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return EditProfile(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V2.ProfileReply EditProfile(global::ModConductor.Protocol.V2.EditProfileRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_EditProfile, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V2.ProfileReply> EditProfileAsync(global::ModConductor.Protocol.V2.EditProfileRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return EditProfileAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V2.ProfileReply> EditProfileAsync(global::ModConductor.Protocol.V2.EditProfileRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_EditProfile, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V2.WorkspaceReply CheckWorkspace(global::ModConductor.Protocol.V2.CheckWorkspaceRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return CheckWorkspace(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V2.WorkspaceReply CheckWorkspace(global::ModConductor.Protocol.V2.CheckWorkspaceRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_CheckWorkspace, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V2.WorkspaceReply> CheckWorkspaceAsync(global::ModConductor.Protocol.V2.CheckWorkspaceRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return CheckWorkspaceAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V2.WorkspaceReply> CheckWorkspaceAsync(global::ModConductor.Protocol.V2.CheckWorkspaceRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_CheckWorkspace, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V2.RecentWorkspacesReply RecentWorkspaces(global::ModConductor.Protocol.V2.RecentWorkspacesRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return RecentWorkspaces(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V2.RecentWorkspacesReply RecentWorkspaces(global::ModConductor.Protocol.V2.RecentWorkspacesRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_RecentWorkspaces, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V2.RecentWorkspacesReply> RecentWorkspacesAsync(global::ModConductor.Protocol.V2.RecentWorkspacesRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return RecentWorkspacesAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V2.RecentWorkspacesReply> RecentWorkspacesAsync(global::ModConductor.Protocol.V2.RecentWorkspacesRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_RecentWorkspaces, null, options, request);
+      }
+      /// <summary>Creates a new instance of client from given <c>ClientBaseConfiguration</c>.</summary>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      protected override WorkspaceOperationsClient NewInstance(ClientBaseConfiguration configuration)
+      {
+        return new WorkspaceOperationsClient(configuration);
+      }
+    }
+
+    /// <summary>Creates service definition that can be registered with a server</summary>
+    /// <param name="serviceImpl">An object implementing the server-side handling logic.</param>
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    public static grpc::ServerServiceDefinition BindService(WorkspaceOperationsBase serviceImpl)
+    {
+      return grpc::ServerServiceDefinition.CreateBuilder()
+          .AddMethod(__Method_CreateWorkspace, serviceImpl.CreateWorkspace)
+          .AddMethod(__Method_OpenWorkspace, serviceImpl.OpenWorkspace)
+          .AddMethod(__Method_ReadWorkspace, serviceImpl.ReadWorkspace)
+          .AddMethod(__Method_EditProfile, serviceImpl.EditProfile)
+          .AddMethod(__Method_CheckWorkspace, serviceImpl.CheckWorkspace)
+          .AddMethod(__Method_RecentWorkspaces, serviceImpl.RecentWorkspaces).Build();
+    }
+
+    /// <summary>Register service method with a service binder with or without implementation. Useful when customizing the service binding logic.
+    /// Note: this method is part of an experimental API that can change or be removed without any prior notice.</summary>
+    /// <param name="serviceBinder">Service methods will be bound by calling <c>AddMethod</c> on this object.</param>
+    /// <param name="serviceImpl">An object implementing the server-side handling logic.</param>
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    public static void BindService(grpc::ServiceBinderBase serviceBinder, WorkspaceOperationsBase serviceImpl)
+    {
+      serviceBinder.AddMethod(__Method_CreateWorkspace, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V2.CreateWorkspaceRequest, global::ModConductor.Protocol.V2.WorkspaceReply>(serviceImpl.CreateWorkspace));
+      serviceBinder.AddMethod(__Method_OpenWorkspace, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V2.OpenWorkspaceRequest, global::ModConductor.Protocol.V2.WorkspaceReply>(serviceImpl.OpenWorkspace));
+      serviceBinder.AddMethod(__Method_ReadWorkspace, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V2.ReadWorkspaceRequest, global::ModConductor.Protocol.V2.WorkspaceReply>(serviceImpl.ReadWorkspace));
+      serviceBinder.AddMethod(__Method_EditProfile, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V2.EditProfileRequest, global::ModConductor.Protocol.V2.ProfileReply>(serviceImpl.EditProfile));
+      serviceBinder.AddMethod(__Method_CheckWorkspace, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V2.CheckWorkspaceRequest, global::ModConductor.Protocol.V2.WorkspaceReply>(serviceImpl.CheckWorkspace));
+      serviceBinder.AddMethod(__Method_RecentWorkspaces, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V2.RecentWorkspacesRequest, global::ModConductor.Protocol.V2.RecentWorkspacesReply>(serviceImpl.RecentWorkspaces));
+    }
+
+  }
 }
 #endregion

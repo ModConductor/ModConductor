@@ -7,9 +7,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mc_client/mc_client.dart';
 import 'package:mc_ui_foundation/mc_ui_foundation.dart';
+import 'package:mc_workspaces/mc_workspaces.dart';
 
 part 'shell.dart';
-part 'welcome.dart';
 part 'preferences.dart';
 part 'status.dart';
 part 'desktop_host.dart';
@@ -23,7 +23,7 @@ void startDesktop() {
   runApp(const DesktopHost());
 }
 
-enum _Destination { welcome, preferences }
+enum _Destination { workspaces, preferences }
 
 typedef _Preferences = ({ThemeMode theme, double scale});
 
@@ -39,8 +39,12 @@ class ModConductorApp extends StatefulWidget {
     this.onQuit,
     this.onRetry,
     this.status = const DesktopDisconnected(),
+    this.workspaces,
+    this.chooseDirectory = chooseWorkspaceDirectory,
   });
   final DesktopStatus status;
+  final WorkspacesClient? workspaces;
+  final DirectoryChooser chooseDirectory;
   final VoidCallback? onQuit;
   final VoidCallback? onRetry;
   @override
@@ -48,18 +52,32 @@ class ModConductorApp extends StatefulWidget {
 }
 
 class _ModConductorAppState extends State<ModConductorApp> {
-  _Destination _destination = _Destination.welcome;
+  _Destination _destination = _Destination.workspaces;
   _Preferences _applied = (theme: ThemeMode.system, scale: 1);
   _Preferences _draft = (theme: ThemeMode.system, scale: 1);
-  final _welcomeFocus = FocusNode(debugLabel: 'Welcome navigation');
+  final _workspacesFocus = FocusNode(debugLabel: 'Workspaces navigation');
   final _preferencesFocus = FocusNode(debugLabel: 'Preferences navigation');
   final _detailsFocus = FocusNode(debugLabel: 'Active preferences');
   final _quitFocus = FocusNode(debugLabel: 'Quit');
+  final _workspaces = WorkspaceController();
+
+  @override
+  void initState() {
+    super.initState();
+    _workspaces.attach(widget.workspaces);
+  }
+
+  @override
+  void didUpdateWidget(ModConductorApp oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _workspaces.attach(widget.workspaces);
+  }
 
   @override
   void dispose() {
+    _workspaces.dispose();
     for (final node in [
-      _welcomeFocus,
+      _workspacesFocus,
       _preferencesFocus,
       _detailsFocus,
       _quitFocus,
@@ -71,7 +89,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
 
   void _navigate(_Destination value) {
     setState(() => _destination = value);
-    (value == _Destination.welcome ? _welcomeFocus : _preferencesFocus)
+    (value == _Destination.workspaces ? _workspacesFocus : _preferencesFocus)
         .requestFocus();
   }
 
@@ -98,7 +116,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
           const SingleActivator(LogicalKeyboardKey.comma, control: true): () =>
               _navigate(_Destination.preferences),
           const SingleActivator(LogicalKeyboardKey.digit1, alt: true): () =>
-              _navigate(_Destination.welcome),
+              _navigate(_Destination.workspaces),
           const SingleActivator(LogicalKeyboardKey.digit2, alt: true): () =>
               _navigate(_Destination.preferences),
           const SingleActivator(LogicalKeyboardKey.keyQ, control: true):
@@ -109,14 +127,19 @@ class _ModConductorAppState extends State<ModConductorApp> {
           destination: _destination,
           onNavigate: _navigate,
           onQuit: widget.onQuit ?? _quitDesktop,
-          welcomeFocus: _welcomeFocus,
+          workspacesFocus: _workspacesFocus,
           preferencesFocus: _preferencesFocus,
           quitFocus: _quitFocus,
+          onToggleTheme: () => _quickTheme(
+            Theme.of(context).brightness == Brightness.dark
+                ? ThemeMode.light
+                : ThemeMode.dark,
+          ),
           child: IndexedStack(
             index: _destination.index,
             children: [
               ExcludeFocus(
-                excluding: _destination != _Destination.welcome,
+                excluding: _destination != _Destination.workspaces,
                 child: switch (widget.status) {
                   DesktopFailure(:final reason) => _FailurePage(
                     reason: reason,
@@ -125,10 +148,9 @@ class _ModConductorAppState extends State<ModConductorApp> {
                   ),
                   DesktopDisconnected() ||
                   DesktopConnecting() ||
-                  DesktopConnected() => _WelcomePage(
-                    theme: _applied.theme,
-                    onTheme: _quickTheme,
-                    onPreferences: () => _navigate(_Destination.preferences),
+                  DesktopConnected() => WorkspaceBrowser(
+                    controller: _workspaces,
+                    chooseDirectory: widget.chooseDirectory,
                   ),
                 },
               ),

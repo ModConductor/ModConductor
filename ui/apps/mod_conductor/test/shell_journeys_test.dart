@@ -43,7 +43,9 @@ void main() {
     tester,
   ) async {
     await mount(tester);
-    final welcome = tester.widget<TextButton>(keyed('nav-welcome')).focusNode!;
+    final welcome = tester
+        .widget<TextButton>(keyed('nav-workspaces'))
+        .focusNode!;
     welcome.requestFocus();
     await tester.pump();
     await tester.sendKeyEvent(LogicalKeyboardKey.tab);
@@ -69,10 +71,10 @@ void main() {
     'drafts survive navigation and resize, apply shares theme, discard restores applied values',
     (tester) async {
       await mount(tester);
-      await activate(tester, 'open-preferences');
+      await activate(tester, 'nav-preferences');
       await choose(tester, 'preferences-theme', 'Dark');
       expect(brightness(tester), Brightness.light);
-      await activate(tester, 'nav-welcome');
+      await activate(tester, 'nav-workspaces');
       await activate(tester, 'nav-preferences');
       tester.view.physicalSize = const Size(680, 600);
       await tester.pumpAndSettle();
@@ -82,10 +84,10 @@ void main() {
       );
       await activate(tester, 'apply-preferences');
       expect(brightness(tester), Brightness.dark);
-      await activate(tester, 'nav-welcome');
+      await activate(tester, 'nav-workspaces');
       expect(
-        tester.widget<McChoice<ThemeMode>>(keyed('welcome-theme')).value,
-        ThemeMode.dark,
+        Theme.of(tester.element(keyed('create-workspace'))).brightness,
+        Brightness.dark,
       );
       await activate(tester, 'nav-preferences');
       await choose(tester, 'preferences-theme', 'Light');
@@ -151,7 +153,7 @@ void main() {
       await activate(tester, 'session-details');
       await tester.sendKeyEvent(LogicalKeyboardKey.escape);
       await tester.pumpAndSettle();
-      await activate(tester, 'nav-welcome');
+      await activate(tester, 'nav-workspaces');
       await activate(tester, 'quit');
       expect(quits, 1);
       expect(tester.takeException(), isNull);
@@ -182,7 +184,7 @@ void main() {
       await tester.sendKeyEvent(LogicalKeyboardKey.escape);
       await tester.pumpAndSettle();
       expect(focus.hasFocus, true);
-      await activate(tester, 'nav-welcome');
+      await activate(tester, 'nav-workspaces');
       expect(brightness(tester), Brightness.dark);
       await activate(tester, 'quit');
       expect(quits, 1);
@@ -196,7 +198,7 @@ void main() {
       tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
       await tester.pumpAndSettle();
       expect(brightness(tester), Brightness.dark);
-      await choose(tester, 'welcome-theme', 'Light');
+      await activate(tester, 'quick-theme');
       tester.platformDispatcher.platformBrightnessTestValue = Brightness.light;
       await tester.pumpAndSettle();
       tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;

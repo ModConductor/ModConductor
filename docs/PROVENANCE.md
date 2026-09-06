@@ -184,3 +184,24 @@ selected naming rules, test-only packages, and notices are recorded in
 The shared database queue, operation SQL, owned-root metadata and receipts, and fixed-name handle-relative file helper are new Mod Conductor F# code. No legacy C++ code was copied. The native conformance host now tests Platform and Persistence; it reuses the existing FsUnit/NUnit runner. No new package was selected.
 
 `tests/fixtures/state-v1.db` contains one synthetic runtime result created through the pre-MC-009 NativeAOT OperationStore at `0a003310badf7ceb8e5541b922adfff49c6ab0d9`. Its source and database hash are recorded beside the fixture. It contains no user data or credentials.
+
+## MC-011: workspaces and profiles
+
+The F# workspace domain, shared schema-3 adapter, typed service, Dart client and workspace presentation are original Mod Conductor code. The approved preview's form composition was moved into the shared UI foundation; the preview now imports it. No legacy implementation or game data was copied. Original source remains unlicensed.
+
+The native directory chooser uses Flutter's [file_selector 1.1.0](https://pub.dev/packages/file_selector/versions/1.1.0), under BSD-3-Clause. Its exact resolved closure is pinned in `ui/pubspec.lock`. Upstream pub.dev archive SHA-256 values and license contents were checked before adoption. Retained notices:
+
+| Package | Version | Notice |
+| --- | --- | --- |
+| file_selector | 1.1.0 | [BSD-3-Clause](third-party/file_selector-LICENSE.txt) |
+| file_selector_linux | 0.9.4+1 | [BSD-3-Clause](third-party/file_selector_linux-LICENSE.txt) |
+| file_selector_windows | 0.9.3+6 | [BSD-3-Clause](third-party/file_selector_windows-LICENSE.txt) |
+| file_selector_platform_interface | 2.7.0 | [BSD-3-Clause](third-party/file_selector_platform_interface-LICENSE.txt) |
+| cross_file | 0.3.5+5 | [BSD-3-Clause](third-party/cross_file-LICENSE.txt) |
+| plugin_platform_interface | 2.1.8 | [BSD-3-Clause](third-party/plugin_platform_interface-LICENSE.txt) |
+| file_selector_android | 0.5.2+10 | [BSD-3-Clause](third-party/file_selector_android-LICENSE.txt) |
+| file_selector_ios | 0.5.3+6 | [BSD-3-Clause](third-party/file_selector_ios-LICENSE.txt) |
+| file_selector_macos | 0.9.5+1 | [BSD-3-Clause](third-party/file_selector_macos-LICENSE.txt) |
+| file_selector_web | 0.9.5 | [BSD-3-Clause](third-party/file_selector_web-LICENSE.txt) |
+
+The umbrella package resolves non-desktop implementations too; this does not add Android, iOS, macOS or web support to Mod Conductor. `flutter_web_plugins` comes from the pinned SDK. Linux uses GTK's native chooser; Windows uses the platform shell dialog. No dual-license UI dependency or new .NET package was added.

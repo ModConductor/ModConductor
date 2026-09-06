@@ -135,6 +135,10 @@ module RootIdentityFile =
         if isNull contents || contents.Length = 0 || contents.Length > 256 then
             invalidArg "contents" "Use a root identity record of 1 to 256 bytes."
 
+    let validateRoot path expectedIdentity =
+        use directory = openRoot path expectedIdentity
+        ()
+
     let create path rootIdentity (contents: byte array) =
         checkContents contents
         use directory = openRoot path rootIdentity

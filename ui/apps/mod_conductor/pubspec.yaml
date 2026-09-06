@@ -1,5 +1,5 @@
 name: mod_conductor
-description: Mod Conductor desktop shell; engine integration is not yet available.
+description: Mod Conductor desktop application.
 publish_to: none
 resolution: workspace
 version: 0.1.0+1
@@ -14,6 +14,9 @@ dependencies:
 
   mc_client:
     path: ../../packages/mc_client
+
+  mc_workspaces:
+    path: ../../packages/mc_workspaces
 
   mc_ui_foundation:
     path: ../../packages/mc_ui_foundation

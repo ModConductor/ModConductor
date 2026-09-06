@@ -75,9 +75,14 @@ module internal WorkspaceRows =
                   Abandoned = reader.GetBoolean 16
                   Marker = Guid.Parse(reader.GetString 17) }
 
-    let prepare (connection: SqliteConnection) owner id expected (root: SelectedRoot) =
-        use transaction = connection.BeginTransaction(deferred = false)
-
+    let prepareIn
+        (connection: SqliteConnection)
+        transaction
+        owner
+        id
+        expected
+        (root: SelectedRoot)
+        =
         let result =
             match find connection transaction id, (RootSelection.facts root).File with
             | Some row, Known identity when
@@ -129,8 +134,33 @@ module internal WorkspaceRows =
 
                     Ok (find connection transaction id |> Option.get).Receipt
 
+        result
+
+    let prepare (connection: SqliteConnection) owner id expected root =
+        use transaction = connection.BeginTransaction(deferred = false)
+        let result = prepareIn connection transaction owner id expected root
         transaction.Commit()
         result
+
+    let findSelected connection transaction root =
+        match (RootSelection.facts root).File with
+        | Unknown _ -> None
+        | Known identity ->
+            let kind, value = device identity.Device
+
+            use statement =
+                Sqlite.command
+                    connection
+                    transaction
+                    "SELECT id FROM workspace_roots WHERE device_kind=$kind AND device=$device AND file_low=$low AND file_high=$high"
+                    [ "$kind", box kind
+                      "$device", box value
+                      "$low", box (string identity.Low)
+                      "$high", box (string identity.High) ]
+
+            match statement.ExecuteScalar() with
+            | :? string as id -> find connection transaction (Guid.Parse id)
+            | _ -> None
 
     let claim (connection: SqliteConnection) owner id expected recovery phase =
         use transaction = connection.BeginTransaction(deferred = false)

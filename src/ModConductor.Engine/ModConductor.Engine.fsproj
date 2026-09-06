@@ -13,8 +13,10 @@
     <Compile Include="SessionAuthentication.fs" />
     <Compile Include="Probe.fs" />
     <Compile Include="OperationService.fs" />
+    <Compile Include="WorkspaceService.fs" />
     <Compile Include="Program.fs" />
     <ProjectReference Include="../ModConductor.Persistence/ModConductor.Persistence.fsproj" />
+    <ProjectReference Include="../ModConductor.Workspaces/ModConductor.Workspaces.fsproj" />
     <ProjectReference Include="../ModConductor.Operations/ModConductor.Operations.fsproj" />
     <ProjectReference Include="../ModConductor.Protocol/ModConductor.Protocol.csproj" />
     <PackageReference Include="FSharp.Core" />

@@ -22,7 +22,7 @@ type StorageTests() =
         number migration "afterInterruption" |> should equal 1L
         number migration "partialTables" |> should equal 0L
         number migration "committedRows" |> should equal 1L
-        number migration "afterUpgrade" |> should equal 2L
+        number migration "afterUpgrade" |> should equal 3L
         number migration "replayRevision" |> should equal 1L
 
     [<Test>]
@@ -98,6 +98,7 @@ type StorageTests() =
         let slow = field "slow"
         number slow "progressWhileFileBlocked" |> should equal 1L
         flag slow "closeRefused" |> should equal true
+        flag slow "featureAvailableAfterRefusedClose" |> should equal true
         flag slow "sameOwnerListed" |> should equal false
         number slow "otherOwnerRuntimeRevision" |> should equal 2L
         flag slow "recoveryRefused" |> should equal true

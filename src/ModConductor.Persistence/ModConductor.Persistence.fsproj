@@ -8,11 +8,14 @@
     <Compile Include="OperationRows.fs" />
     <Compile Include="OperationJournal.fs" />
     <Compile Include="WorkspaceRows.fs" />
+    <Compile Include="WorkspaceProfiles.fs" />
     <Compile Include="StateDatabase.fs" />
     <Compile Include="OwnedWorkspaceRootStore.fs" />
+    <Compile Include="WorkspaceStateStore.fs" />
     <Compile Include="OperationStore.fs" />
     <ProjectReference Include="../ModConductor.Operations/ModConductor.Operations.fsproj" />
     <ProjectReference Include="../ModConductor.Platform/ModConductor.Platform.fsproj" />
+    <ProjectReference Include="../ModConductor.Workspaces/ModConductor.Workspaces.fsproj" />
     <PackageReference Include="FSharp.Core" />
     <PackageReference Include="Microsoft.Data.Sqlite.Core" />
     <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" />

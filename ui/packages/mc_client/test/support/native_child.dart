@@ -73,7 +73,7 @@ class NativeChild {
     );
   }
 
-  OperationsClient operations() {
+  ClientChannel _localChannel() {
     final channel = ClientChannel(
       '127.0.0.1',
       port: ready.port,
@@ -85,14 +85,29 @@ class NativeChild {
       ),
     );
     channels.add(channel);
+    return channel;
+  }
+
+  OperationsClient operations() {
     return OperationsClient(
-      channel,
+      _localChannel(),
       CallOptions(
         timeout: const Duration(seconds: 5),
         metadata: {'mc-session': capability},
       ),
     );
   }
+
+  WorkspacesClient workspaces({bool authenticate = true, String? token}) =>
+      GrpcWorkspacesClient(
+        _localChannel(),
+        CallOptions(
+          timeout: const Duration(seconds: 5),
+          metadata: authenticate
+              ? {'mc-session': token ?? capability}
+              : const {},
+        ),
+      );
 
   Future<void> disconnect() async {
     for (final channel in channels) {

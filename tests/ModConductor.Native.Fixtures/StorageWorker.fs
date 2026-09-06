@@ -7,6 +7,7 @@ open Microsoft.Data.Sqlite
 open ModConductor.Platform
 open ModConductor.Persistence
 open ModConductor.Operations
+open ModConductor.Workspaces
 
 module StorageWorker =
     let result value =
@@ -97,8 +98,18 @@ module StorageWorker =
 
                 let listed = workspace.Recoverable None |> wait |> List.contains (Guid.Parse id)
 
+                let featureAvailable =
+                    (store.Workspaces :> IWorkspaceState).Read(Guid.NewGuid(), None) |> wait = Error
+                        WorkspaceError.NotFound
+
                 Console.WriteLine(
-                    string operation.ResultRevision + ":" + string refused + ":" + string listed
+                    string operation.ResultRevision
+                    + ":"
+                    + string refused
+                    + ":"
+                    + string listed
+                    + ":"
+                    + string featureAvailable
                 )
 
                 Console.Out.Flush()

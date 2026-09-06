@@ -12,6 +12,9 @@ let main args =
         if args.Length = 5 && args[0] = "--storage-worker" then
             StorageWorker.run args[1] args[2] args[3] args[4]
             0
+        elif args.Length = 5 && args[0] = "--workspace-worker" then
+            WorkspaceWorker.run args[1] args[2] args[3] args[4]
+            0
         else
             let primary, secondary =
                 match args with
@@ -36,6 +39,7 @@ let main args =
 
             Fixtures.observe writer primary secondary
             StorageFixtures.observe writer primary
+            WorkspaceFixtures.observe writer primary
             writer.WriteEndObject()
             writer.Flush()
             0

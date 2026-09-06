@@ -1,0 +1,302 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
+import 'package:mc_client/mc_client.dart';
+
+class WorkspaceController extends ChangeNotifier {
+  WorkspacesClient? _client;
+  int _epoch = 0;
+  int _navigation = 0;
+  bool _disposed = false;
+  WorkspacePage? page;
+  bool showingWorkspace = false;
+  List<WorkspaceInfo> recent = const [];
+  String? nextWorkspace;
+  String? problem;
+  String? _problemWorkspace;
+  final Map<String, String> _activities = {};
+  ({String id, String name, String path})? _creation;
+
+  bool get connected => _client != null;
+  WorkspaceInfo? get workspace => showingWorkspace ? page?.workspace : null;
+  String? get activity => _activities[workspace?.id ?? ''];
+  String? get currentProblem =>
+      _problemWorkspace == workspace?.id ? problem : null;
+  bool get canEdit =>
+      connected &&
+      workspace != null &&
+      activity == null &&
+      workspace!.pendingRoot == null &&
+      _creation?.id != workspace!.id;
+  bool get needsCheck =>
+      workspace?.pendingRoot != null ||
+      (workspace != null && _creation?.id == workspace!.id);
+
+  void _notify() {
+    if (!_disposed) notifyListeners();
+  }
+
+  void attach(WorkspacesClient? client) {
+    if (identical(client, _client)) return;
+    _client = client;
+    ++_epoch;
+    _activities.clear();
+    if (client != null) {
+      unawaited(loadRecent());
+      if (showingWorkspace && page != null) unawaited(refresh());
+    }
+    _notify();
+  }
+
+  Future<void> _run<T>(
+    String? id,
+    String label,
+    Future<T> Function(WorkspacesClient) action,
+    void Function(T) apply,
+  ) async {
+    final client = _client;
+    if (client == null || _activities.containsKey(id ?? '')) return;
+    final epoch = _epoch;
+    _activities[id ?? ''] = label;
+    problem = null;
+    _problemWorkspace = id;
+    _notify();
+    try {
+      final result = await action(client);
+      if (!_disposed && epoch == _epoch) apply(result);
+    } on Exception catch (error) {
+      if (!_disposed && epoch == _epoch) {
+        problem = error is WorkspaceException
+            ? error.detail
+            : '$label did not return a result.';
+        _problemWorkspace = id;
+      }
+    } finally {
+      if (!_disposed && epoch == _epoch) {
+        _activities.remove(id ?? '');
+        _notify();
+      }
+    }
+  }
+
+  void _remember(WorkspaceInfo value) {
+    if (recent.any(
+      (item) => item.id == value.id && item.revision > value.revision,
+    )) {
+      return;
+    }
+    recent = [value, ...recent.where((item) => item.id != value.id)];
+  }
+
+  Future<void> loadRecent({bool more = false}) async {
+    final client = _client;
+    if (client == null) return;
+    final epoch = _epoch;
+    try {
+      final result = await client.recent(after: more ? nextWorkspace : null);
+      if (_disposed || epoch != _epoch) return;
+      final existing = more ? recent : <WorkspaceInfo>[];
+      recent = [
+        ...existing,
+        ...result.workspaces.where(
+          (item) => !existing.any((old) => old.id == item.id),
+        ),
+      ];
+      nextWorkspace = result.nextWorkspace;
+      if (_problemWorkspace == null) problem = null;
+      _notify();
+    } on Exception catch (error) {
+      if (!_disposed && epoch == _epoch && !showingWorkspace) {
+        problem = error is WorkspaceException
+            ? error.detail
+            : 'The workspace list is unavailable.';
+        _problemWorkspace = null;
+        _notify();
+      }
+    }
+  }
+
+  Future<void> create(String name, String path) async {
+    final id = newOperationId();
+    _creation = (id: id, name: name, path: path);
+    final navigation = ++_navigation;
+    showingWorkspace = true;
+    page = WorkspacePage(
+      WorkspaceInfo(id: id, name: name, path: path, revision: 0),
+      const [],
+      null,
+    );
+    await _run(
+      id,
+      'Workspace creation',
+      (client) => client.create(id, name, path),
+      (value) {
+        if (_creation?.id == id) _creation = null;
+        _remember(value.workspace);
+        if (_navigation == navigation) page = value;
+      },
+    );
+  }
+
+  Future<void> open(String path) async {
+    final navigation = ++_navigation;
+    await _run(null, 'Open workspace', (client) => client.open(path), (value) {
+      _remember(value.workspace);
+      if (_navigation == navigation) {
+        if (page?.workspace.id != value.workspace.id ||
+            page!.workspace.revision <= value.workspace.revision) {
+          page = value;
+        }
+        showingWorkspace = true;
+      }
+    });
+  }
+
+  void close() {
+    showingWorkspace = false;
+    ++_navigation;
+    _notify();
+    unawaited(loadRecent());
+  }
+
+  Future<void> refresh() async {
+    final id = workspace?.id;
+    if (id == null) return;
+    final navigation = _navigation;
+    await _run(id, 'Workspace refresh', (client) => client.read(id), (value) {
+      _remember(value.workspace);
+      if (_navigation == navigation) {
+        page = value;
+        if (_creation?.id == id) _creation = null;
+      }
+    });
+  }
+
+  Future<void> moreProfiles() async {
+    final current = page;
+    if (current == null || current.nextProfile == null) return;
+    final navigation = _navigation;
+    await _run(
+      current.workspace.id,
+      'Load profiles',
+      (client) => client.read(current.workspace.id, after: current.nextProfile),
+      (value) {
+        if (_navigation != navigation) return;
+        if (value.workspace.revision != current.workspace.revision) {
+          problem = 'The workspace changed. Refresh the profiles.';
+          _problemWorkspace = current.workspace.id;
+          return;
+        }
+        page = WorkspacePage(value.workspace, [
+          ...current.profiles,
+          ...value.profiles.where(
+            (item) => !current.profiles.any((old) => old.id == item.id),
+          ),
+        ], value.nextProfile);
+      },
+    );
+  }
+
+  Future<void> check() async {
+    final current = workspace;
+    if (current == null) return;
+    final pendingCreate = _creation?.id == current.id ? _creation : null;
+    final navigation = _navigation;
+    await _run<WorkspacePage>(
+      current.id,
+      'Workspace check',
+      (client) async {
+        WorkspacePage latest;
+        try {
+          latest = await client.read(current.id);
+        } on WorkspaceException catch (error) {
+          if (error.fault != WorkspaceFault.notFound || pendingCreate == null) {
+            rethrow;
+          }
+          return client.create(
+            pendingCreate.id,
+            pendingCreate.name,
+            pendingCreate.path,
+          );
+        }
+        final issue = latest.workspace.pendingRoot;
+        return issue == null
+            ? latest
+            : client.check(current.id, issue.revision);
+      },
+      (value) {
+        if (_creation?.id == current.id) _creation = null;
+        _remember(value.workspace);
+        if (_navigation == navigation) page = value;
+      },
+    );
+  }
+
+  Future<void> _edit(
+    String label,
+    Future<ProfileChange> Function(WorkspacesClient, WorkspaceInfo) action,
+  ) async {
+    final current = workspace;
+    if (current == null || !canEdit) return;
+    await _run(current.id, label, (client) => action(client, current), (value) {
+      _remember(value.workspace);
+      if (page?.workspace.id != current.id ||
+          page!.workspace.revision > value.workspace.revision) {
+        return;
+      }
+      final changed = value.changed;
+      final profiles = page!.profiles
+          .where(
+            (profile) =>
+                profile.id != value.deleted && profile.id != changed?.id,
+          )
+          .toList();
+      if (changed != null) profiles.add(changed);
+      profiles.sort((a, b) => a.id.compareTo(b.id));
+      page = WorkspacePage(value.workspace, profiles, page!.nextProfile);
+    });
+  }
+
+  Future<void> createProfile(String name) => _edit(
+    'Profile creation: $name',
+    (client, current) => client.createProfile(
+      current.id,
+      current.revision,
+      ProfileInfo(newOperationId(), name),
+    ),
+  );
+  Future<void> clone(ProfileInfo source, String name) => _edit(
+    'Profile clone: ${source.name}',
+    (client, current) => client.cloneProfile(
+      current.id,
+      current.revision,
+      source.id,
+      ProfileInfo(newOperationId(), name),
+    ),
+  );
+  Future<void> rename(ProfileInfo profile, String name) => _edit(
+    'Profile rename: ${profile.name}',
+    (client, current) => client.renameProfile(
+      current.id,
+      current.revision,
+      ProfileInfo(profile.id, name),
+    ),
+  );
+  Future<void> select(ProfileInfo profile) => _edit(
+    'Profile selection: ${profile.name}',
+    (client, current) =>
+        client.selectProfile(current.id, current.revision, profile.id),
+  );
+  Future<void> delete(ProfileInfo profile) => _edit(
+    'Profile deletion: ${profile.name}',
+    (client, current) =>
+        client.deleteProfile(current.id, current.revision, profile.id),
+  );
+
+  @override
+  void dispose() {
+    _disposed = true;
+    ++_epoch;
+    super.dispose();
+  }
+}

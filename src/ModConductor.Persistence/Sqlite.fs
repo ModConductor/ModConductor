@@ -39,16 +39,33 @@ module internal Sqlite =
     PRAGMA user_version=2;
     """
 
+    let private profileSchema =
+        """
+    CREATE TABLE workspaces (id TEXT PRIMARY KEY REFERENCES workspace_roots(id), name TEXT NOT NULL, revision INTEGER NOT NULL, selected_profile TEXT);
+    CREATE TABLE profiles (id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL REFERENCES workspaces(id), name TEXT NOT NULL);
+    CREATE INDEX profiles_by_workspace ON profiles(workspace_id,id);
+    PRAGMA user_version=3;
+    """
+
     let migrateAtCommit (connection: SqliteConnection) beforeCommit =
-        execute connection null "PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL;" []
+        execute
+            connection
+            null
+            "PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA foreign_keys=ON;"
+            []
+
         use transaction = connection.BeginTransaction(deferred = false)
 
         match number connection transaction "PRAGMA user_version" [] with
         | 0L ->
             execute connection transaction operationSchema []
             execute connection transaction workspaceSchema []
-        | 1L -> execute connection transaction workspaceSchema []
-        | 2L -> ()
+            execute connection transaction profileSchema []
+        | 1L ->
+            execute connection transaction workspaceSchema []
+            execute connection transaction profileSchema []
+        | 2L -> execute connection transaction profileSchema []
+        | 3L -> ()
         | _ -> raise (InvalidOperationException("The state database uses an unsupported version."))
 
         beforeCommit ()
