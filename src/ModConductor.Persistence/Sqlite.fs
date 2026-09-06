@@ -22,7 +22,7 @@ module internal Sqlite =
         use statement = command connection transaction sql parameters
         statement.ExecuteScalar() :?> int64
 
-    let private schema =
+    let internal operationSchema =
         """
     CREATE TABLE operation_state (id INTEGER PRIMARY KEY CHECK(id=1), revision INTEGER NOT NULL, cursor INTEGER NOT NULL);
     INSERT INTO operation_state VALUES(1,0,0);
@@ -31,13 +31,27 @@ module internal Sqlite =
     PRAGMA user_version=1;
     """
 
-    let migrate (connection: SqliteConnection) =
+    let private workspaceSchema =
+        """
+    CREATE TABLE workspace_roots (id TEXT PRIMARY KEY, path TEXT NOT NULL, device_kind INTEGER NOT NULL, device TEXT NOT NULL, file_low TEXT NOT NULL, file_high TEXT NOT NULL, revision INTEGER NOT NULL);
+    CREATE UNIQUE INDEX workspace_root_identity ON workspace_roots(device_kind,device,file_low,file_high);
+    CREATE TABLE root_creation_receipts (id TEXT PRIMARY KEY REFERENCES workspace_roots(id), owner TEXT NOT NULL, marker TEXT NOT NULL, revision INTEGER NOT NULL, phase INTEGER NOT NULL CHECK(phase BETWEEN 1 AND 4), busy INTEGER NOT NULL, abandoned INTEGER NOT NULL, marker_device_kind INTEGER, marker_device TEXT, marker_low TEXT, marker_high TEXT, detail TEXT NOT NULL);
+    PRAGMA user_version=2;
+    """
+
+    let migrateAtCommit (connection: SqliteConnection) beforeCommit =
         execute connection null "PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL;" []
         use transaction = connection.BeginTransaction(deferred = false)
 
         match number connection transaction "PRAGMA user_version" [] with
-        | 0L -> execute connection transaction schema []
-        | 1L -> ()
+        | 0L ->
+            execute connection transaction operationSchema []
+            execute connection transaction workspaceSchema []
+        | 1L -> execute connection transaction workspaceSchema []
+        | 2L -> ()
         | _ -> raise (InvalidOperationException("The state database uses an unsupported version."))
 
+        beforeCommit ()
         transaction.Commit()
+
+    let migrate connection = migrateAtCommit connection ignore

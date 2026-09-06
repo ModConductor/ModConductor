@@ -42,6 +42,11 @@ type private FileId =
     val mutable Low: uint64
     val mutable High: uint64
 
+[<Struct; StructLayout(LayoutKind.Sequential)>]
+type private AttributeTag =
+    val mutable Attributes: uint32
+    val mutable Tag: uint32
+
 module internal Native =
     [<DllImport("libc", EntryPoint = "statx", SetLastError = true)>]
     extern int private statx(
@@ -102,6 +107,17 @@ module internal Native =
                 CharSet = CharSet.Unicode,
                 SetLastError = true)>]
     extern int private hardLink(string target, string source, nativeint security)
+
+    [<DllImport("libc", EntryPoint = "open", SetLastError = true)>]
+    extern int private openDirectory([<MarshalAs(UnmanagedType.LPUTF8Str)>] string path, int flags)
+
+    [<DllImport("kernel32.dll", EntryPoint = "GetFileInformationByHandleEx", SetLastError = true)>]
+    extern int private attributeTag(
+        SafeFileHandle handle,
+        int informationClass,
+        AttributeTag& information,
+        uint32 size
+    )
 
     let private error operation =
         let code = Marshal.GetLastPInvokeError()
@@ -175,6 +191,32 @@ module internal Native =
         else
             Error UnsupportedEntry
 
+    let private linuxFacts (result: Statx) =
+        let identity =
+            if result.Mask &&& 0x100u <> 0u then
+                Known
+                    { Device = LinuxDevice(result.Major, result.Minor)
+                      Low = result.Inode
+                      High = 0UL }
+            else
+                Unknown "The filesystem did not return a file ID."
+
+        let kind =
+            match int result.Mode &&& 0xf000 with
+            | 0x8000 -> EntryKind.RegularFile
+            | 0x4000 -> EntryKind.Directory
+            | 0xa000 -> EntryKind.Link
+            | _ -> EntryKind.Other
+
+        Ok
+            { File = identity
+              Mount =
+                (if result.Mask &&& 0x1000u <> 0u then
+                     Known result.Mount
+                 else
+                     Unknown "The filesystem did not return a mount ID.")
+              Kind = kind }
+
     let facts path =
         try
             if OperatingSystem.IsLinux() then
@@ -185,30 +227,7 @@ module internal Native =
                 elif result.Mask &&& 1u = 0u then
                     Error UnsupportedEntry
                 else
-                    let identity =
-                        if result.Mask &&& 0x100u <> 0u then
-                            Known
-                                { Device = LinuxDevice(result.Major, result.Minor)
-                                  Low = result.Inode
-                                  High = 0UL }
-                        else
-                            Unknown "The filesystem did not return a file ID."
-
-                    let kind =
-                        match int result.Mode &&& 0xf000 with
-                        | 0x8000 -> EntryKind.RegularFile
-                        | 0x4000 -> EntryKind.Directory
-                        | 0xa000 -> EntryKind.Link
-                        | _ -> EntryKind.Other
-
-                    Ok
-                        { File = identity
-                          Mount =
-                            (if result.Mask &&& 0x1000u <> 0u then
-                                 Known result.Mount
-                             else
-                                 Unknown "The filesystem did not return a mount ID.")
-                          Kind = kind }
+                    linuxFacts result
             elif OperatingSystem.IsWindows() then
                 use handle = windowsHandle path false
 
@@ -261,3 +280,70 @@ module internal Native =
                 Refused("CreateHardLink failed: " + Marshal.GetLastPInvokeError().ToString())
         else
             NotTested "This platform has no hard-link adapter."
+
+    let directoryHandle path =
+        if OperatingSystem.IsLinux() then
+            let descriptor = openDirectory (path, 0xB0000)
+
+            if descriptor < 0 then
+                raise (
+                    IOException(
+                        "Opening the selected root failed: "
+                        + Marshal.GetLastPInvokeError().ToString()
+                    )
+                )
+
+            new SafeFileHandle(nativeint descriptor, true)
+        elif OperatingSystem.IsWindows() then
+            let handle = windowsHandle path false
+
+            if handle.IsInvalid then
+                handle.Dispose()
+
+                raise (
+                    IOException(
+                        "Opening the selected root failed: "
+                        + Marshal.GetLastPInvokeError().ToString()
+                    )
+                )
+
+            handle
+        else
+            raise (PlatformNotSupportedException())
+
+    let handleFacts (handle: SafeFileHandle) =
+        if OperatingSystem.IsLinux() then
+            let mutable result = Unchecked.defaultof<Statx>
+
+            if statx (int (handle.DangerousGetHandle()), "", 0x1000, 0x1101u, &result) <> 0 then
+                error "statx handle"
+            elif result.Mask &&& 1u = 0u then
+                Error UnsupportedEntry
+            else
+                linuxFacts result
+        elif OperatingSystem.IsWindows() then
+            let mutable id = Unchecked.defaultof<FileId>
+            let mutable attributes = Unchecked.defaultof<AttributeTag>
+
+            if
+                fileId (handle, 18, &id, 24u) = 0
+                || attributeTag (handle, 9, &attributes, 8u) = 0
+            then
+                error "File handle identity"
+            else
+                Ok
+                    { File =
+                        Known
+                            { Device = WindowsVolume id.Volume
+                              Low = id.Low
+                              High = id.High }
+                      Mount = Unknown "Mount identity is not available from this adapter."
+                      Kind =
+                        if attributes.Attributes &&& 0x400u <> 0u then
+                            EntryKind.Link
+                        elif attributes.Attributes &&& 0x10u <> 0u then
+                            EntryKind.Directory
+                        else
+                            EntryKind.RegularFile }
+        else
+            Error UnsupportedEntry

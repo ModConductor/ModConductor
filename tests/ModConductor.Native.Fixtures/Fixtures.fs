@@ -1,4 +1,4 @@
-namespace ModConductor.Platform.Fixtures
+namespace ModConductor.Native.Fixtures
 
 open System
 open System.Diagnostics

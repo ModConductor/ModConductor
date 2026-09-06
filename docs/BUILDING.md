@@ -178,3 +178,5 @@ OS prerequisites. See [native qualification commands](WIRE-PROOF.md#native-quali
 The F# Platform library has a separate native fixture and managed assertion runner.
 See [Path preflight](PATH-PREFLIGHT.md) for the exact commands and owned cross-volume fixtures.
 Run `dotnet tool run fantomas --check src tests` when checking F# formatting.
+
+[Owned-root storage](OWNED-ROOT-STORAGE.md) describes schema migration and native file-receipt checks. The shared native fixture tests both filesystem preflight and storage.

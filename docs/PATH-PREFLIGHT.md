@@ -34,7 +34,7 @@ The active checks exercise write/readback, distinct case variants, a case-only r
 
 ## Native conformance checks
 
-The Platform library and `ModConductor.Platform.Fixtures` publish with NativeAOT warnings as errors. Their only package reference is the existing FSharp.Core pin. The fixture executable emits bounded explicit JSON observations through `Utf8JsonWriter`; this is test output, not a product protocol or serializer framework.
+The Platform library and `ModConductor.Native.Fixtures` publish with NativeAOT warnings as errors. The Platform library uses only the existing FSharp.Core pin. The shared fixture also tests Persistence and includes its pinned SQLite dependency. The fixture executable emits bounded explicit JSON observations through `Utf8JsonWriter`; this is test output, not a product protocol or serializer framework.
 
 Managed F# tests use FsUnit 7.1.1 with NUnit 4.6.1, NUnit3TestAdapter 6.3.0, and Microsoft.NET.Test.Sdk 18.9.0. The supported `dotnet test` runner supplies test discovery, failure exit codes, and TRX results. A minimal FsUnit assertion failed NativeAOT trim analysis in NUnit's reflection-based comparison code, including with NUnit 4.6.1. No warning was suppressed and no production AOT setting was changed. Only the managed assertion runner uses these test packages. See the [NUnit adapter instructions](https://docs.nunit.org/articles/vs-test-adapter/Adapter-Installation.html).
 
@@ -42,15 +42,15 @@ After locked restore, build the solution, publish the native fixture, and run th
 
 ```sh
 dotnet build ModConductor.slnx -c Release --no-restore
-dotnet publish tests/ModConductor.Platform.Fixtures/ModConductor.Platform.Fixtures.fsproj -c Release -r linux-x64 --no-restore -o .tools/publish/platform/linux-x64
-export MC_PLATFORM_FIXTURE="$PWD/.tools/publish/platform/linux-x64/ModConductor.Platform.Fixtures"
+dotnet publish tests/ModConductor.Native.Fixtures/ModConductor.Native.Fixtures.fsproj -c Release -r linux-x64 --no-restore -o .tools/publish/native-fixtures/linux-x64
+export MC_NATIVE_FIXTURE="$PWD/.tools/publish/native-fixtures/linux-x64/ModConductor.Native.Fixtures"
 export MC_SECOND_FIXTURE_ROOT=/dev/shm
-dotnet test tests/ModConductor.Platform.Tests/ModConductor.Platform.Tests.fsproj -c Release --no-build --no-restore --logger "trx;LogFileName=platform-tests.trx" --results-directory .agent-workspace/test-results
+dotnet test tests/ModConductor.Native.Tests/ModConductor.Native.Tests.fsproj -c Release --no-build --no-restore --logger "trx;LogFileName=native-tests.trx" --results-directory .agent-workspace/test-results
 ```
 
 On Windows, publish `win-x64` and select the `.exe`. For cross-device qualification, set `MC_SECOND_FIXTURE_ROOT` to an explicitly owned separate virtual volume. Never select a physical game volume merely for a test. Without a second volume, the runner reports that test as skipped; this does not qualify cross-device behavior. CI does not create or format Windows volumes. The retained private Windows VM supplied a disposable NTFS virtual disk for full qualification. Linux uses owned ext4 and tmpfs fixtures.
 
-`MC_PLATFORM_REPORT` can select an output file for the native observations. The managed runner creates unique fixture directories under `.agent-workspace` and the selected second volume. It removes only those owned directories. There is no Flutter rebuild requirement for this library-only change.
+`MC_NATIVE_REPORT` can select an output file for the native observations. The managed runner creates unique fixture directories under `.agent-workspace` and the selected second volume. It removes only those owned directories. There is no Flutter rebuild requirement for this library-only change.
 
 ## Test dependency notices
 

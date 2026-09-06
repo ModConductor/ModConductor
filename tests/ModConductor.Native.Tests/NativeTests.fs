@@ -1,4 +1,4 @@
-namespace ModConductor.Platform.Tests
+namespace ModConductor.Native.Tests
 
 open System
 open System.Diagnostics
@@ -9,12 +9,8 @@ open NUnit.Framework
 
 [<TestFixture>]
 type NativeTests() =
-    let mutable report: JsonDocument = null
-    let mutable primary = ""
-    let mutable secondary = ""
-
     let field name =
-        report.RootElement.GetProperty(name: string)
+        NativeObservations.report.RootElement.GetProperty(name: string)
 
     let entries name =
         (field name).GetProperty("entries").EnumerateArray() |> Seq.toList
@@ -33,74 +29,6 @@ type NativeTests() =
         item.GetProperty("identity").GetProperty("device").GetString(),
         item.GetProperty("identity").GetProperty("low").GetUInt64(),
         item.GetProperty("identity").GetProperty("high").GetUInt64()
-
-    [<OneTimeSetUp>]
-    member _.LoadNativeObservations() =
-        let executable = Environment.GetEnvironmentVariable "MC_PLATFORM_FIXTURE"
-
-        if
-            String.IsNullOrWhiteSpace executable
-            || not (Path.IsPathFullyQualified executable)
-        then
-            invalidOp "Set MC_PLATFORM_FIXTURE to the published native fixture executable."
-
-        primary <-
-            Path.Combine(
-                Environment.CurrentDirectory,
-                ".agent-workspace",
-                "platform-fixtures-" + Guid.NewGuid().ToString("N")
-            )
-
-        Directory.CreateDirectory primary |> ignore
-
-        let info =
-            ProcessStartInfo(
-                executable,
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true
-            )
-
-        info.ArgumentList.Add primary
-        let secondParent = Environment.GetEnvironmentVariable "MC_SECOND_FIXTURE_ROOT"
-
-        if not (String.IsNullOrWhiteSpace secondParent) then
-            if not (Path.IsPathFullyQualified secondParent) then
-                invalidOp "The second fixture root must be absolute."
-
-            secondary <- Path.Combine(secondParent, "mc-platform-" + Guid.NewGuid().ToString("N"))
-            Directory.CreateDirectory secondary |> ignore
-            info.ArgumentList.Add secondary
-
-        use child = Process.Start info
-
-        let output, errors =
-            child.StandardOutput.ReadToEndAsync(), child.StandardError.ReadToEndAsync()
-
-        if not (child.WaitForExit 60000) then
-            child.Kill(true)
-            invalidOp "The native fixture timed out."
-
-        let text = output.GetAwaiter().GetResult()
-
-        if child.ExitCode <> 0 then
-            invalidOp (errors.GetAwaiter().GetResult() + Environment.NewLine + text)
-
-        let evidence = Environment.GetEnvironmentVariable "MC_PLATFORM_REPORT"
-
-        if not (String.IsNullOrWhiteSpace evidence) then
-            File.WriteAllText(evidence, text)
-
-        report <- JsonDocument.Parse text
-
-    [<OneTimeTearDown>]
-    member _.RemoveOwnedFixtures() =
-        if not (isNull report) then
-            report.Dispose()
-
-        for path in [ primary; secondary ] do
-            if path <> "" && Directory.Exists path then
-                Directory.Delete(path, true)
 
     [<Test>]
     member _.``the fixture should execute native code rather than a managed substitute``() =

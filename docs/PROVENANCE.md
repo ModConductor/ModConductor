@@ -178,3 +178,9 @@ Original F# path policy and filesystem adapters live in `ModConductor.Platform`.
 The native fixture is a test consumer, not an engine or UI feature. Native APIs,
 selected naming rules, test-only packages, and notices are recorded in
 [Path preflight](PATH-PREFLIGHT.md). No legacy implementation or game data was copied.
+
+## MC-009: owned-root storage
+
+The shared database queue, operation SQL, owned-root metadata and receipts, and fixed-name handle-relative file helper are new Mod Conductor F# code. No legacy C++ code was copied. The native conformance host now tests Platform and Persistence; it reuses the existing FsUnit/NUnit runner. No new package was selected.
+
+`tests/fixtures/state-v1.db` contains one synthetic runtime result created through the pre-MC-009 NativeAOT OperationStore at `0a003310badf7ceb8e5541b922adfff49c6ab0d9`. Its source and database hash are recorded beside the fixture. It contains no user data or credentials.

@@ -1,0 +1,8 @@
+{
+  "sourceCommit": "0a003310badf7ceb8e5541b922adfff49c6ab0d9",
+  "producer": "NativeAOT OperationStore; Begin and Advance count=1, then normal dispose",
+  "sqliteVersion": "3.53.4",
+  "operationId": "11111111-1111-1111-1111-111111111111",
+  "resultRevision": 1,
+  "databaseSha256": "4250ebd3cb3b29e99eac733fb67ff7442892035547f51025cdb36b83e0d2c0a5"
+}

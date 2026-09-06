@@ -6,6 +6,7 @@
     <Compile Include="Native.fs" />
     <Compile Include="Preflight.fs" />
     <Compile Include="Capabilities.fs" />
+    <Compile Include="RootIdentityFile.fs" />
     <PackageReference Include="FSharp.Core" />
   </ItemGroup>
 </Project>

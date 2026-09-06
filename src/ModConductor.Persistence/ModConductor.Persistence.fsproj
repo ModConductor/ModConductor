@@ -1,11 +1,18 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup><IsAotCompatible>true</IsAotCompatible></PropertyGroup>
   <ItemGroup>
+    <Compile Include="AssemblyInfo.fs" />
+    <Compile Include="WorkspaceRoots.fs" />
     <Compile Include="OwnerLease.fs" />
     <Compile Include="Sqlite.fs" />
     <Compile Include="OperationRows.fs" />
+    <Compile Include="OperationJournal.fs" />
+    <Compile Include="WorkspaceRows.fs" />
+    <Compile Include="StateDatabase.fs" />
+    <Compile Include="OwnedWorkspaceRootStore.fs" />
     <Compile Include="OperationStore.fs" />
     <ProjectReference Include="../ModConductor.Operations/ModConductor.Operations.fsproj" />
+    <ProjectReference Include="../ModConductor.Platform/ModConductor.Platform.fsproj" />
     <PackageReference Include="FSharp.Core" />
     <PackageReference Include="Microsoft.Data.Sqlite.Core" />
     <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" />

@@ -42,8 +42,8 @@ Graceful shutdown drains accepted checks. Abrupt termination leaves a recoverabl
 owner lease. Recovery does not repeat a committed result or invent success.
 
 These guarantees cover the runtime-check transaction. They do not prove atomic
-game-file transactions. Workspace metadata and file receipts extend the same
-persistence owner in later tickets.
+game-file transactions. [Workspace-root metadata and file receipts](OWNED-ROOT-STORAGE.md) extend the same
+persistence owner without changing this revision or cursor.
 
 ## Bounded delivery
 

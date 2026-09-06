@@ -1,0 +1,113 @@
+namespace ModConductor.Native.Fixtures
+
+open System
+open System.IO
+open System.Threading
+open Microsoft.Data.Sqlite
+open ModConductor.Platform
+open ModConductor.Persistence
+open ModConductor.Operations
+
+module StorageWorker =
+    let result value =
+        value
+        |> Result.defaultWith (fun _ -> invalidOp "The storage fixture request failed.")
+
+    let wait (value: System.Threading.Tasks.Task<'a>) = value.GetAwaiter().GetResult()
+
+    let select path =
+        HostPath.create path
+        |> Result.defaultWith invalidOp
+        |> RootSelection.select
+        |> Result.defaultWith (fun _ -> invalidOp "The fixture root could not be selected.")
+
+    let pause () =
+        Console.WriteLine "ready"
+        Console.Out.Flush()
+        Console.ReadLine() |> ignore
+
+    let runtime (store: OperationStore) id expected =
+        let operations = store :> IOperationStore
+
+        let request =
+            { Id = id
+              ExpectedRevision = expected
+              Count = 1 }
+
+        let begun, _ = operations.Begin request |> wait |> result
+
+        if begun.Phase = Running then
+            operations.Advance(
+                id,
+                1,
+                { Architecture = "fixture"
+                  NativeAot = true
+                  SqliteVersion = store.SqliteVersion }
+            )
+            |> wait
+        else
+            begun
+
+    let run mode state root (id: string) =
+        if mode = "migration" then
+            SQLitePCL.Batteries_V2.Init()
+
+            use connection =
+                new SqliteConnection(
+                    "Data Source=" + Path.Combine(state, "state.db") + ";Pooling=False"
+                )
+
+            connection.Open()
+            Sqlite.migrateAtCommit connection pause
+        else
+            use store = new OperationStore(state)
+            let workspace = store.WorkspaceRoots
+            let prepared = workspace.Prepare(Guid.Parse id, 0L, select root) |> wait |> result
+
+            if mode = "intent" then
+                pause ()
+            elif mode = "effect" then
+                workspace.ApplyAtCheckpoint(Guid.Parse id, prepared.Revision, pause)
+                |> wait
+                |> ignore
+            elif mode = "slow" then
+                use arrived = new ManualResetEventSlim(false)
+                use release = new ManualResetEventSlim(false)
+
+                let pending =
+                    workspace.ApplyAtCheckpoint(
+                        Guid.Parse id,
+                        prepared.Revision,
+                        fun () ->
+                            arrived.Set()
+                            release.Wait()
+                    )
+
+                if not (arrived.Wait 10000) then
+                    invalidOp "The file checkpoint was not reached."
+
+                let operation = runtime store (Guid.NewGuid().ToString()) 0L
+
+                let refused =
+                    try
+                        (store :> IDisposable).Dispose()
+                        false
+                    with :? InvalidOperationException ->
+                        true
+
+                Console.WriteLine(string operation.ResultRevision + ":" + string refused)
+                Console.Out.Flush()
+                Console.ReadLine() |> ignore
+                release.Set()
+                let applied = pending |> wait |> result
+                workspace.Complete(Guid.Parse id, applied.Revision) |> wait |> result |> ignore
+            else
+                let applied = workspace.Apply(Guid.Parse id, prepared.Revision) |> wait |> result
+
+                if mode = "observed" then
+                    pause ()
+                elif mode = "live" then
+                    pause ()
+                    workspace.Complete(Guid.Parse id, applied.Revision) |> wait |> result |> ignore
+                else
+                    invalidArg "mode" "Unknown storage fixture mode."

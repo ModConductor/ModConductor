@@ -7,7 +7,7 @@
     <Project Path="src/ModConductor.Protocol/ModConductor.Protocol.csproj" />
   </Folder>
   <Folder Name="/tests/">
-    <Project Path="tests/ModConductor.Platform.Fixtures/ModConductor.Platform.Fixtures.fsproj" />
-    <Project Path="tests/ModConductor.Platform.Tests/ModConductor.Platform.Tests.fsproj" />
+    <Project Path="tests/ModConductor.Native.Fixtures/ModConductor.Native.Fixtures.fsproj" />
+    <Project Path="tests/ModConductor.Native.Tests/ModConductor.Native.Tests.fsproj" />
   </Folder>
 </Solution>
