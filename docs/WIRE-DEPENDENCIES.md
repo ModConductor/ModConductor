@@ -65,6 +65,35 @@ for archive SHA-256 hashes.
 Notice line endings/trailing whitespace are normalized without changing terms.
 The final project-wide GPL assessment and publication decision remain separate.
 
+### Flutter tests
+
+The production widget and interaction tests use SDK `flutter_test`. The table
+records its adopted hosted dependencies. `ui/pubspec.lock` retains the exact
+versions and archive hashes. These dependencies do not require committed design
+previews.
+
+| Test dependency | Upstream terms |
+| --- | --- |
+| [stream_channel 2.1.4](https://pub.dev/packages/stream_channel/versions/2.1.4) | [Retained notice](third-party/stream_channel-LICENSE.txt) |
+| [async 2.13.1](https://pub.dev/packages/async/versions/2.13.1) | [Retained notice](third-party/async-LICENSE.txt) |
+| [leak_tracker_flutter_testing 3.0.10](https://pub.dev/packages/leak_tracker_flutter_testing/versions/3.0.10) | [Retained notice](third-party/leak_tracker_flutter_testing-LICENSE.txt) |
+| [matcher 0.12.20](https://pub.dev/packages/matcher/versions/0.12.20) | [Retained notice](third-party/matcher-LICENSE.txt) |
+| [test_api 0.7.12](https://pub.dev/packages/test_api/versions/0.7.12) | [Retained notice](third-party/test_api-LICENSE.txt) |
+| [term_glyph 1.2.2](https://pub.dev/packages/term_glyph/versions/1.2.2) | [Retained notice](third-party/term_glyph-LICENSE.txt) |
+| [string_scanner 1.4.1](https://pub.dev/packages/string_scanner/versions/1.4.1) | [Retained notice](third-party/string_scanner-LICENSE.txt) |
+| [source_span 1.10.2](https://pub.dev/packages/source_span/versions/1.10.2) | [Retained notice](third-party/source_span-LICENSE.txt) |
+| [path 1.9.1](https://pub.dev/packages/path/versions/1.9.1) | [Retained notice](third-party/path-LICENSE.txt) |
+| [stack_trace 1.12.2](https://pub.dev/packages/stack_trace/versions/1.12.2) | [Retained notice](third-party/stack_trace-LICENSE.txt) |
+| [boolean_selector 2.1.2](https://pub.dev/packages/boolean_selector/versions/2.1.2) | [Retained notice](third-party/boolean_selector-LICENSE.txt) |
+| [leak_tracker_testing 3.0.2](https://pub.dev/packages/leak_tracker_testing/versions/3.0.2) | [Retained notice](third-party/leak_tracker_testing-LICENSE.txt) |
+| [leak_tracker 11.0.2](https://pub.dev/packages/leak_tracker/versions/11.0.2) | [Retained notice](third-party/leak_tracker-LICENSE.txt) |
+| [vm_service 15.3.0](https://pub.dev/packages/vm_service/versions/15.3.0) | [Retained notice](third-party/vm_service-LICENSE.txt) |
+| [clock 1.1.3](https://pub.dev/packages/clock/versions/1.1.3) | [Retained notice](third-party/clock-LICENSE.txt) |
+| [fake_async 1.3.3](https://pub.dev/packages/fake_async/versions/1.3.3) | [Retained notice](third-party/fake_async-LICENSE.txt) |
+
+SDK Material Icons retain their [notice](third-party/MaterialIcons-LICENSE.txt).
+The foundation retains the [Roboto notice](../ui/packages/mc_ui_foundation/notices/Roboto-LICENSE.txt).
+
 ## Durable operation storage
 
 | Component | Version | Source | Notice |

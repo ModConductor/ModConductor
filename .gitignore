@@ -1,4 +1,5 @@
 .agent-workspace/
+design/
 .tools/
 **/bin/
 **/obj/

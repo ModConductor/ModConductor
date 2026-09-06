@@ -49,3 +49,11 @@ features does not settle the eventual GPL assessment, and neither a language
 change nor a gRPC boundary establishes that reused material is exempt. Do not
 reuse MO2 branding by default. MC-067, not this startup policy, owns the final
 assessment.
+
+## Temporary previews
+
+Keep design previews and captures under `.agent-workspace/<session-id>/`.
+Do not commit mockup apps, mockup fixtures, preview runners, or captures.
+Production component libraries and their behavioral tests belong in the source
+tree. Keep required upstream notices with the production dependency inventory,
+not inside a temporary preview.
