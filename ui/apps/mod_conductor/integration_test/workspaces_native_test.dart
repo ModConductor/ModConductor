@@ -25,8 +25,12 @@ void main() {
         );
       }
       final fixture = Directory(fixturePath);
-      final workspace = await Directory('$fixturePath/workspace').create();
-      final state = await Directory('$fixturePath/state').create();
+      final workspace = await Directory(
+        '$fixturePath${Platform.pathSeparator}workspace',
+      ).create();
+      final state = await Directory(
+        '$fixturePath${Platform.pathSeparator}state',
+      ).create();
       final sentinel = File('${workspace.path}/foreign.txt');
       await sentinel.writeAsString('Preserve this file.');
       EngineOwner makeOwner() => EngineOwner(
@@ -214,8 +218,9 @@ void main() {
         expect(getController().page!.profiles.single.name, 'Experiments');
         await capture('reopened-light');
         await tapKey('close-workspace');
-        final refusedRoot = await Directory('$fixturePath/refused-root')
-            .create();
+        final refusedRoot = await Directory(
+          '$fixturePath${Platform.pathSeparator}refused-root',
+        ).create();
         final foreignMarker = File('${refusedRoot.path}/.mod-conductor-root');
         await foreignMarker.writeAsString('Not owned by Mod Conductor.');
         await tapKey('create-workspace');
