@@ -49,6 +49,8 @@ void main() {
           )
           .controller;
       Future<void> tap(Finder finder) async {
+        await tester.ensureVisible(finder);
+        await tester.pumpAndSettle();
         await tester.tap(finder);
         await tester.pumpAndSettle();
       }
