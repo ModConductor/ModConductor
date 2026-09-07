@@ -58,6 +58,12 @@ type PlanningTests() =
         flag "sinkCannotHideCollision" |> should equal true
         flag "newSeedDoesNotAlterOldPlan" |> should equal true
         flag "writableDeclarationChangesInput" |> should equal true
+        flag "emptySiblingSpellingBlocked" |> should equal true
+        flag "sensitiveWritableDirectoriesRemainDistinct" |> should equal true
+        flag "subtreeSpellingParticipates" |> should equal true
+        flag "ordinaryDirectorySpellingRemainsAuthoritative" |> should equal true
+        flag "consistentEmptyDirectoryStructure" |> should equal true
+        flag "nestedWritableSpellingUsesCanonicalParents" |> should equal true
 
     [<Test>]
     member _.``incomplete or inconsistent pins should block retained plan validation``() =

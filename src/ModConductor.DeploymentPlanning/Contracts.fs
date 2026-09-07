@@ -128,6 +128,7 @@ type PlanningIssue =
     | PrecedenceTie of target: TargetFile * contributions: Contribution list
     | DirectorySpellingTie of target: TargetFile * contributions: Contribution list
     | FileDirectoryConflict of TargetFile
+    | WritableDirectorySpellingTie of target: TargetFile * declarations: (Guid * LogicalPath) list
     | DuplicateWritableId of Guid
     | OverlappingWritableTargets of Guid * Guid
     | WritableStructureConflict of Guid * TargetFile

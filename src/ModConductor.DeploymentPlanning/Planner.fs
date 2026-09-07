@@ -5,7 +5,7 @@ module Planner =
         let roots, contributions, issues = InputProjection.project input
         let files, directories = TargetResolution.resolve roots contributions issues
 
-        let readOnly, writable =
+        let readOnly, writable, directories =
             WritableResolution.project roots files directories issues input.Writable
 
         let view =

@@ -94,6 +94,71 @@ module internal WritableResolution =
             | None -> readOnly.Add file
             | Some(declaration, _, _) -> seeds[declaration.Id].Add file
 
+        let mergedDirectories = ResizeArray<TargetFile>()
+
+        for KeyValue(root, policy) in roots do
+            let spellings = PlanningPaths.table<LogicalPath> policy
+
+            for directory in directories |> List.filter (fun directory -> directory.Root = root) do
+                spellings.Add(PlanningPaths.key policy directory.Path, directory.Path)
+
+            let declared = PlanningPaths.table<ResizeArray<Guid * LogicalPath>> policy
+
+            for declaration, _, _ in valid do
+                if PlanningPaths.rootOf declaration.Target = root then
+                    let paths =
+                        match declaration.Target with
+                        | WritableTarget.File(_, path) -> PlanningPaths.prefixes path
+                        | WritableTarget.Subtree(_, PlanPath.At path) ->
+                            PlanningPaths.prefixes path @ [ path ]
+                        | WritableTarget.Subtree(_, PlanPath.Root) -> []
+
+                    for path in paths do
+                        let key = PlanningPaths.key policy path
+
+                        if not (declared.ContainsKey key) then
+                            declared.Add(key, ResizeArray())
+
+                        declared[key].Add(declaration.Id, path)
+
+            for KeyValue(key, declarations) in declared do
+                if not (spellings.ContainsKey key) then
+                    let candidates = declarations |> Seq.distinct |> Seq.sort |> Seq.toList
+                    let chosen = candidates.Head |> snd
+
+                    if
+                        candidates
+                        |> List.map (snd >> LogicalPath.components >> List.last)
+                        |> List.distinct
+                        |> List.length > 1
+                    then
+                        issues.Add(
+                            PlanningIssue.WritableDirectorySpellingTie(
+                                { Root = root; Path = chosen },
+                                candidates
+                            )
+                        )
+
+                    spellings.Add(key, chosen)
+
+            for KeyValue(_, path) in spellings do
+                let parents =
+                    PlanningPaths.prefixes path
+                    |> List.map (fun prefix ->
+                        spellings[PlanningPaths.key policy prefix]
+                        |> LogicalPath.components
+                        |> List.last)
+
+                mergedDirectories.Add
+                    { Root = root
+                      Path =
+                        PlanningPaths.logical (
+                            parents @ [ LogicalPath.components path |> List.last ]
+                        ) }
+
+        let mergedDirectories =
+            mergedDirectories |> Seq.sortBy PlanningPaths.targetOrder |> Seq.toList
+
         let canonical root policy value =
             let parts = PlanningPaths.components value
 
@@ -101,7 +166,7 @@ module internal WritableResolution =
             |> List.mapi (fun index name ->
                 let prefix = PlanningPaths.logical (List.take (index + 1) parts)
 
-                directories
+                mergedDirectories
                 |> List.tryFind (fun directory ->
                     directory.Root = root
                     && (TargetPolicy.comparer policy)
@@ -142,4 +207,4 @@ module internal WritableResolution =
                     ))
             |> Seq.toList
 
-        List.ofSeq readOnly, writable
+        List.ofSeq readOnly, writable, mergedDirectories

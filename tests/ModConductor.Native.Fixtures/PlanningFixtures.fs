@@ -565,6 +565,119 @@ module PlanningFixtures =
             "writableDeclarationChangesInput"
             (Planner.checkCurrent retained writableInput = Error CurrentInputProblem.ChangedInputs)
 
+        let emptySiblings =
+            { input [] with
+                Writable =
+                    [ { Id = id 70
+                        Target = WritableTarget.File(root, path "A/x") }
+                      { Id = id 71
+                        Target = WritableTarget.File(root, path "a/y") } ] }
+
+        flag
+            "emptySiblingSpellingBlocked"
+            (emptySiblings
+             |> hasIssue (function
+                 | PlanningIssue.WritableDirectorySpellingTie _ -> true
+                 | _ -> false))
+
+        let sensitiveSiblings =
+            view
+                { emptySiblings with
+                    Roots =
+                        [ { Id = root
+                            Policy = TargetPolicy.linux } ] }
+
+        flag
+            "sensitiveWritableDirectoriesRemainDistinct"
+            (sensitiveSiblings.Directories |> List.map _.Path |> Set.ofList = Set.ofList
+                [ path "A"; path "a" ]
+             && sensitiveSiblings.Writable
+                |> List.forall (function
+                    | WritableProjection.File(_, _, None) -> true
+                    | _ -> false))
+
+        let subtreeSibling =
+            { emptySiblings with
+                Writable =
+                    [ emptySiblings.Writable.Head
+                      { Id = id 71
+                        Target = WritableTarget.Subtree(root, PlanPath.At(path "a/y")) } ] }
+
+        flag
+            "subtreeSpellingParticipates"
+            (subtreeSibling
+             |> hasIssue (function
+                 | PlanningIssue.WritableDirectorySpellingTie _ -> true
+                 | _ -> false))
+
+        let ordinaryAuthority =
+            { emptySiblings with
+                Profile =
+                    { emptySiblings.Profile with
+                        Mods = [ layer 72 1 [ entry "a/original" shared ] ] } }
+
+        let authoritative = view ordinaryAuthority
+
+        flag
+            "ordinaryDirectorySpellingRemainsAuthoritative"
+            (authoritative.Directories |> List.map _.Path = [ path "a" ]
+             && authoritative.Writable
+                |> List.forall (function
+                    | WritableProjection.File(_, target, None) ->
+                        LogicalPath.components target.Path |> List.head = "a"
+                    | _ -> false)
+             && authoritative.ReadOnlyFiles.Head.Target.Path = path "a/original")
+
+        let nestedAuthority =
+            view
+                { ordinaryAuthority with
+                    Writable =
+                        [ { Id = id 70
+                            Target = WritableTarget.File(root, path "A/B/x") }
+                          { Id = id 71
+                            Target = WritableTarget.File(root, path "a/B/y") } ] }
+
+        flag
+            "nestedWritableSpellingUsesCanonicalParents"
+            (nestedAuthority.Directories |> List.map _.Path |> Set.ofList = Set.ofList
+                [ path "a"; path "a/B" ]
+             && nestedAuthority.Writable
+                |> List.forall (function
+                    | WritableProjection.File(_, target, None) ->
+                        LogicalPath.components target.Path |> List.take 2 = [ "a"; "B" ]
+                    | _ -> false))
+
+        let consistentEmpty =
+            view
+                { subtreeSibling with
+                    Writable =
+                        [ { Id = id 70
+                            Target = WritableTarget.File(root, path "A/x") }
+                          { Id = id 71
+                            Target = WritableTarget.Subtree(root, PlanPath.At(path "A/y")) } ] }
+
+        flag
+            "consistentEmptyDirectoryStructure"
+            (consistentEmpty.Directories |> List.map _.Path |> Set.ofList = Set.ofList
+                [ path "A"; path "A/y" ]
+             && consistentEmpty.ReadOnlyFiles.IsEmpty)
+
+        let emptyFingerprint =
+            match Planner.compute emptySiblings with
+            | PlanningResult.Blocked result -> result.Draft.Fingerprint
+            | PlanningResult.Ready plan -> (Planner.view plan).Fingerprint
+
+        writer.WriteString("emptySiblingFingerprint", emptyFingerprint)
+        writer.WriteStartArray("authoritativeWritablePaths")
+
+        for sink in authoritative.Writable do
+            match sink with
+            | WritableProjection.File(_, target, _) ->
+                writer.WriteStringValue(LogicalPath.display target.Path)
+            | WritableProjection.Subtree(_, _, _, _) -> invalidOp "Expected writable files."
+
+        writer.WriteEndArray()
+
         let incomplete =
             { initial with
                 Profile =
