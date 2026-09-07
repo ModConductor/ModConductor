@@ -108,6 +108,68 @@ module SteamDiscoveryFixtures =
 
         writer.WriteBoolean("deterministicSearch", (combined = reversed))
 
+        let emptyOld = Path.Combine(directory, "Empty metadata old")
+        let emptyNew = Path.Combine(directory, "Empty metadata new")
+
+        write
+            (Path.Combine(emptyOld, "steamapps", "libraryfolders.vdf"))
+            ("LibraryFolders { contentstatsid \"\" 0 " + quote library + " }")
+
+        write
+            (Path.Combine(emptyNew, "steamapps", "libraryfolders.vdf"))
+            ("libraryfolders { 0 { path "
+             + quote library
+             + " label \"\" apps { } } 1 { path "
+             + quote (Path.Combine(directory, "Absent empty-metadata library"))
+             + " label \"\" } }")
+
+        let emptyOldResult, emptyNewResult = scan [ emptyOld ], scan [ emptyNew ]
+
+        writer.WriteBoolean(
+            "emptyMetadataAccepted",
+            emptyOldResult.Candidates.Length = 1
+            && emptyNewResult.Candidates.Length = 1
+            && emptyNewResult.Diagnostics
+               |> List.exists (fun d -> d.Kind = DiagnosticKind.RootUnavailable)
+        )
+
+        let oversizedDefault =
+            { Path = Path.Combine(directory, String('x', 5000))
+              Origin = "Default Steam data folder" }
+
+        let independent =
+            Discovery.scan 489830u [ oversizedDefault; root steam ] CancellationToken.None
+
+        writer.WriteBoolean(
+            "oversizedDefaultIsolated",
+            independent.Candidates.Length = 1
+            && independent.Complete
+            && independent.Roots |> List.forall (fun r -> r.Path.Length <= 4096)
+            && independent.Diagnostics
+               |> List.exists (fun d ->
+                   d.RootPath.StartsWith(oversizedDefault.Path.Substring(0, 200))
+                   && d.RootPath.Length < 4096)
+        )
+
+        let invalidTokens = Path.Combine(directory, "Invalid token library")
+
+        let invalidMetadata =
+            [ "libraryfolders { \"\" \"value\" }"
+              "libraryfolders { path }"
+              "libraryfolders { path \"unterminated }" ]
+
+        let refusedTokens =
+            invalidMetadata
+            |> List.forall (fun text ->
+                write (Path.Combine(invalidTokens, "steamapps", "libraryfolders.vdf")) text
+                let result = scan [ invalidTokens; library ]
+
+                result.Candidates.Length = 1
+                && result.Diagnostics
+                   |> List.exists (fun d -> d.Kind = DiagnosticKind.LibrariesMalformed))
+
+        writer.WriteBoolean("invalidKeysAndMissingValuesRefused", refusedTokens)
+
         let bad = Path.Combine(directory, "Bad library")
         let stale = Path.Combine(directory, "Stale library")
         Directory.CreateDirectory stale |> ignore

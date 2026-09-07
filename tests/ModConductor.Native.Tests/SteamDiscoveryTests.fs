@@ -20,6 +20,7 @@ type SteamDiscoveryTests() =
         flag "originEvidenceRetained" |> should equal true
         flag "deterministicSearch" |> should equal true
         flag "readOnlySearch" |> should equal true
+        flag "emptyMetadataAccepted" |> should equal true
 
     [<Test>]
     member _.``broken library metadata should not hide valid games or escape declared installation roots``
@@ -30,6 +31,8 @@ type SteamDiscoveryTests() =
         flag "foreignAppRefused" |> should equal true
         flag "unsafeInstallDirectoriesRefused" |> should equal true
         flag "metadataDoesNotLoadIncludes" |> should equal true
+        flag "oversizedDefaultIsolated" |> should equal true
+        flag "invalidKeysAndMissingValuesRefused" |> should equal true
 
     [<Test>]
     member _.``bounded and cancelled searches should remain explicit without losing collected candidates``

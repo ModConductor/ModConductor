@@ -13,9 +13,11 @@ module Discovery =
         if
             appId = 0u
             || roots.Length > 24
-            || (roots |> List.exists (fun r -> r.Path.Length > 4096 || r.Origin.Length > 128))
+            || (roots |> List.exists (fun r -> r.Origin.Length > 128))
         then
             invalidArg (nameof roots) "The Steam search request exceeds its limits."
+
+        let oversized, roots = roots |> List.partition (fun r -> r.Path.Length > 4096)
 
         let roots =
             roots |> List.distinct |> List.sortBy (fun root -> root.Path, root.Origin)
@@ -52,6 +54,15 @@ module Discovery =
                           Path = path
                           Kind = kind
                           Detail = detail }
+
+        for root in oversized |> List.distinct |> List.sortBy (fun r -> r.Path, r.Origin) do
+            let shownPath = root.Path.Substring(0, 256) + "…"
+
+            diagnostic
+                shownPath
+                shownPath
+                DiagnosticKind.RootUnavailable
+                (root.Origin + ": The Steam folder path exceeds the search limit.")
 
         let scanLibrary (root: SearchRoot) steamRoot entry claimed libraryPath =
             cancellation.ThrowIfCancellationRequested()

@@ -130,7 +130,10 @@ void main() {
                 null,
           );
           final searchField = find.byType(TextField).last;
-          await tester.enterText(searchField, steamArea);
+          await tester.enterText(
+            searchField,
+            await Directory(steamArea).resolveSymbolicLinks(),
+          );
           await tester.pumpAndSettle();
           await tap(
             find.text(await Directory(game).resolveSymbolicLinks()).first,

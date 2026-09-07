@@ -53,7 +53,9 @@ module internal KeyValues =
 
                 let value = StringBuilder()
 
-                if text[at] = '"' then
+                let quoted = text[at] = '"'
+
+                if quoted then
                     at <- at + 1
 
                     while at < text.Length && text[at] <> '"' do
@@ -81,7 +83,7 @@ module internal KeyValues =
                         if value.Length > 65536 then
                             fail "A value is too long."
 
-                if value.Length = 0 then
+                if value.Length = 0 && not quoted then
                     fail "A value is missing."
 
                 value.ToString()
@@ -95,6 +97,9 @@ module internal KeyValues =
 
                 while at < text.Length && text[at] <> '}' do
                     let key = token ()
+
+                    if key.Length = 0 then
+                        fail "A key is missing."
 
                     if key.StartsWith('#') then
                         fail "Steam file includes are not supported."
