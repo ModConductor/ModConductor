@@ -43,6 +43,7 @@ type NativeObservationSetup() =
             )
 
         match Environment.GetEnvironmentVariable "MC_NATIVE_SCOPE" with
+        | "planner" -> info.ArgumentList.Add "--planner"
         | "organization" -> info.ArgumentList.Add "--organization"
         | "selection" -> info.ArgumentList.Add "--selection"
         | null

@@ -5,8 +5,9 @@
     <IlcTreatWarningsAsErrors>true</IlcTreatWarningsAsErrors><ILLinkTreatWarningsAsErrors>true</ILLinkTreatWarningsAsErrors>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="Report.fs"/><Compile Include="Fixtures.fs"/><Compile Include="NativeChild.fs"/><Compile Include="StorageWorker.fs"/><Compile Include="StorageFixtures.fs"/><Compile Include="WorkspaceWorker.fs"/><Compile Include="WorkspaceFixtures.fs"/><Compile Include="LibraryWorker.fs"/><Compile Include="InventoryObservations.fs"/><Compile Include="LibraryFixtures.fs"/><Compile Include="LibraryRecoveryFixtures.fs"/><Compile Include="LibraryIdentityFixtures.fs"/><Compile Include="SelectionFixtures.fs"/><Compile Include="OrganizationFixtures.fs"/><Compile Include="OrganizationMigration.fs"/><Compile Include="Program.fs"/>
+    <Compile Include="Report.fs"/><Compile Include="Fixtures.fs"/><Compile Include="NativeChild.fs"/><Compile Include="StorageWorker.fs"/><Compile Include="StorageFixtures.fs"/><Compile Include="WorkspaceWorker.fs"/><Compile Include="WorkspaceFixtures.fs"/><Compile Include="LibraryWorker.fs"/><Compile Include="InventoryObservations.fs"/><Compile Include="LibraryFixtures.fs"/><Compile Include="LibraryRecoveryFixtures.fs"/><Compile Include="LibraryIdentityFixtures.fs"/><Compile Include="SelectionFixtures.fs"/><Compile Include="OrganizationFixtures.fs"/><Compile Include="OrganizationMigration.fs"/><Compile Include="PlanningFixtures.fs"/><Compile Include="Program.fs"/>
     <ProjectReference Include="../../src/ModConductor.Platform/ModConductor.Platform.fsproj"/>
+    <ProjectReference Include="../../src/ModConductor.DeploymentPlanning/ModConductor.DeploymentPlanning.fsproj"/>
     <ProjectReference Include="../../src/ModConductor.Persistence/ModConductor.Persistence.fsproj"/>
     <PackageReference Include="FSharp.Core"/>
     <Content Include="../fixtures/state-v5.db" Link="fixtures/state-v5.db" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest"/>

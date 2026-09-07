@@ -103,7 +103,7 @@ module TargetPolicy =
                       yield TrailingDotOrSpace ])
         |> List.distinct
 
-    let internal key policy path =
+    let key policy path =
         LogicalPath.components path
         |> List.map (fun name ->
             match policy.Unicode with
@@ -111,7 +111,7 @@ module TargetPolicy =
             | CanonicalComposition -> name.Normalize(NormalizationForm.FormC))
         |> fun components -> String.Join("/", components)
 
-    let internal comparer policy =
+    let comparer policy =
         match policy.Case with
         | Sensitive -> StringComparer.Ordinal
         | Insensitive -> StringComparer.OrdinalIgnoreCase

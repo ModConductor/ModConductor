@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><IsAotCompatible>true</IsAotCompatible></PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Contracts.fs" />
+    <Compile Include="PlanningPaths.fs" />
+    <Compile Include="InputFingerprint.fs" />
+    <Compile Include="InputProjection.fs" />
+    <Compile Include="TargetResolution.fs" />
+    <Compile Include="WritableResolution.fs" />
+    <Compile Include="Planner.fs" />
+    <ProjectReference Include="../ModConductor.Platform/ModConductor.Platform.fsproj" />
+    <ProjectReference Include="../ModConductor.ModLibrary/ModConductor.ModLibrary.fsproj" />
+    <PackageReference Include="FSharp.Core" />
+  </ItemGroup>
+</Project>

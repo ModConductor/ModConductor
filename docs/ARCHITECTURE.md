@@ -155,3 +155,35 @@ Adjacent and trailing separators can form empty groups. A filter retains a group
 header when the header or a child matches, without revealing other children.
 Grouped name sorting orders children within each group. Moves require the flat
 priority view. Selecting a separator never selects or enables its children.
+
+## Deployment planning
+
+`ModConductor.DeploymentPlanning` computes a pure plan from declared complete
+profile, version-manifest, and read-only source snapshots. Callers must assemble
+all pages and verify source availability; the planner does not read files or
+resolve current/latest versions. Plans retain exact version and payload IDs.
+
+Base layers precede secondary layers, which precede enabled mods. Higher numeric
+priority wins within each tier. Each winner retains its alternatives and reason.
+Source-prefix mappings compare exact components; the longest match applies.
+Target roots use their declared case, Unicode, and naming policy. Root IDs are
+logical namespaces, not proof that physical directories are separate.
+
+Equivalent target names across ordered layers are ordinary overrides. Same-layer
+aliases, competing priority ties, invalid names, and file/directory conflicts
+block a plan. Shared directories use the highest-precedence spelling; an unresolved
+spelling tie also blocks. Archive annotations retain container and capability
+identity, but do not expand archive members or select an archive reader.
+
+Explicit writable file or subtree declarations consume matching targets into a
+separate initial-seed projection. Seeds retain immutable winners and alternatives;
+they are not also read-only file winners. Empty sinks have no seed. Overlapping
+sink ownership and structural conflicts block the plan. Directory entries describe
+structure, not writable-content ownership. The planner does not copy, reseed, or
+roll back mutable outputs.
+
+The SHA-256 fingerprint covers semantic input identities, revisions, content,
+precedence, mappings, policies, annotations, and sinks. Unordered input enumeration
+is canonicalized. Mod display names, categories, and UI filters are not planner inputs.
+`checkCurrent` rejects changed or unresolved supplied inputs without replacing a
+retained plan. It does not observe external changes or authorize activation.
