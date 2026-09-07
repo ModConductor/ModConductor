@@ -11,6 +11,7 @@ Future<void> manageCategories(
   String workspace,
 ) async {
   final controller = CategoryController(client, workspace);
+  final focus = FocusNode(debugLabel: 'Categories');
   try {
     await showDialog<void>(
       context: context,
@@ -33,14 +34,19 @@ Future<void> manageCategories(
                     label: 'New category',
                     icon: Icons.add,
                     onPressed: editable
-                        ? () => _edit(context, controller)
+                        ? () => _edit(context, controller, focusNode: focus)
                         : null,
                   ),
                   McIconAction(
                     label: 'Edit category',
                     icon: const Icon(Icons.edit_outlined),
                     onPressed: editable && selected != null && !selected.missing
-                        ? () => _edit(context, controller, original: selected)
+                        ? () => _edit(
+                            context,
+                            controller,
+                            original: selected,
+                            focusNode: focus,
+                          )
                         : null,
                   ),
                   McIconAction(
@@ -57,13 +63,14 @@ Future<void> manageCategories(
                 ],
               ),
               const SizedBox(height: 12),
-              CategoryPicker(controller: controller),
+              CategoryPicker(controller: controller, focusNode: focus),
             ],
           );
         },
       ),
     );
   } finally {
+    focus.dispose();
     controller.dispose();
   }
 }
@@ -72,10 +79,15 @@ Future<void> _edit(
   BuildContext context,
   CategoryController controller, {
   ModCategory? original,
-}) => showDialog<void>(
-  context: context,
-  builder: (_) => _CategoryEditor(controller: controller, original: original),
-);
+  required FocusNode focusNode,
+}) async {
+  final revealed = await showDialog<bool>(
+    context: context,
+    builder: (_) => _CategoryEditor(controller: controller, original: original),
+  );
+  if (context.mounted && revealed == true) focusNode.requestFocus();
+}
+
 Future<void> _delete(
   BuildContext context,
   CategoryController controller,
@@ -127,6 +139,7 @@ class _CategoryEditor extends StatefulWidget {
 
 class _CategoryEditorState extends State<_CategoryEditor> {
   final _form = GlobalKey<FormState>();
+  bool _committed = false;
   late final _name = TextEditingController(text: widget.original?.label ?? '');
   late final String _id = widget.original?.id ?? newOperationId();
   late String? _parentId = widget.original?.parentId;
@@ -139,30 +152,50 @@ class _CategoryEditorState extends State<_CategoryEditor> {
     super.dispose();
   }
 
-  Future<void> _save() async {
-    if (!_form.currentState!.validate()) return;
+  void _finishReveal() {
     final controller = widget.controller;
+    if (controller.problem == null &&
+        !controller.stale &&
+        controller.model[_id] != null) {
+      controller.model.select(_id);
+      Navigator.pop(context, true);
+    }
+  }
+
+  Future<void> _save() async {
+    final controller = widget.controller;
+    if (_committed) {
+      await controller.reload(revealId: _id);
+      if (mounted) _finishReveal();
+      return;
+    }
+    if (!_form.currentState!.validate()) return;
+    final name = _name.text, parent = _parentId;
     final saved = await controller.change(
       (revision) => widget.original == null
           ? controller.client.createCategory(
               controller.workspace,
               revision,
               _id,
-              _name.text,
-              parentId: _parentId,
+              name,
+              parentId: parent,
             )
           : controller.client.updateCategory(
               controller.workspace,
               revision,
               _id,
-              _name.text,
-              parentId: _parentId,
+              name,
+              parentId: parent,
             ),
+      revealId: _id,
     );
     if (mounted && saved) {
-      await controller.load(parent: _id);
-      controller.model.select(_id);
-      if (mounted) Navigator.pop(context);
+      setState(() {
+        _committed = true;
+        _name.text = name;
+        _parentId = parent;
+      });
+      _finishReveal();
     }
   }
 
@@ -174,19 +207,26 @@ class _CategoryEditorState extends State<_CategoryEditor> {
       return Form(
         key: _form,
         child: McFormDialog(
-          title: widget.original == null ? 'New category' : 'Edit category',
-          action: 'Save',
+          title: _committed
+              ? 'Show saved category'
+              : widget.original == null
+              ? 'New category'
+              : 'Edit category',
+          action: _committed ? 'Retry' : 'Save',
           onSubmit: controller.loading || controller.stale ? null : _save,
           children: [
-            McNameField(
-              controller: _name,
-              onSubmit: _save,
-              validator: (value) =>
-                  value == widget.original?.label ||
-                      (value != null && value.trim().isNotEmpty)
-                  ? null
-                  : 'Enter a name.',
-            ),
+            if (_committed)
+              Text(categoryLabel(_name.text))
+            else
+              McNameField(
+                controller: _name,
+                onSubmit: _save,
+                validator: (value) =>
+                    value == widget.original?.label ||
+                        (value != null && value.trim().isNotEmpty)
+                    ? null
+                    : 'Enter a name.',
+              ),
             const SizedBox(height: 16),
             Row(
               children: [
@@ -198,7 +238,7 @@ class _CategoryEditorState extends State<_CategoryEditor> {
                   ),
                 ),
                 TextButton(
-                  onPressed: controller.loading
+                  onPressed: controller.loading || _committed
                       ? null
                       : () async {
                           final values = await chooseCategories(
@@ -238,6 +278,10 @@ class _CategoryEditorState extends State<_CategoryEditor> {
             if (controller.stale)
               TextButton(
                 onPressed: () async {
+                  if (_committed) {
+                    await _save();
+                    return;
+                  }
                   await controller.reload();
                   if (widget.original != null) {
                     await controller.load(parent: _id);

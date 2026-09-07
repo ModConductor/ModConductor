@@ -87,13 +87,17 @@ class CategoryController extends ChangeNotifier {
     }
   }
 
-  Future<void> _initialize(List<CategoryReference> initial) {
+  Future<void> _initialize(
+    List<CategoryReference> initial, {
+    String? revealId,
+  }) {
     _initialPages
       ..clear()
       ..add(null)
       ..addAll(
         initial.where((value) => !value.missing).map((value) => value.id),
       );
+    if (revealId != null) _initialPages.add(revealId);
     return _loadInitialPages();
   }
 
@@ -202,7 +206,7 @@ class CategoryController extends ChangeNotifier {
     }
   }
 
-  Future<void> reload() async {
+  Future<void> reload({String? revealId}) async {
     final references = selected;
     ++_epoch;
     loading = false;
@@ -215,7 +219,7 @@ class CategoryController extends ChangeNotifier {
           .where((id) => !model.selectedIds.contains(id))
           .toList(),
     );
-    await _initialize(references);
+    await _initialize(references, revealId: revealId);
   }
 
   void cancel() {
@@ -228,6 +232,7 @@ class CategoryController extends ChangeNotifier {
   Future<bool> change(
     Future<int> Function(int) action, {
     String? removedId,
+    String? revealId,
   }) async {
     if (revision == null || loading || stale) return false;
     final epoch = _epoch;
@@ -239,7 +244,7 @@ class CategoryController extends ChangeNotifier {
       if (_disposed || epoch != _epoch) return false;
       loading = false;
       if (removedId != null) model.apply(removed: [removedId]);
-      await reload();
+      await reload(revealId: revealId);
       if (problem != null) {
         problem = 'The category change was saved. Could not reload categories.';
       }

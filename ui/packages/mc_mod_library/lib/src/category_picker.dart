@@ -6,8 +6,9 @@ import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 import 'category_controller.dart';
 
 class CategoryPicker extends StatelessWidget {
-  const CategoryPicker({super.key, required this.controller});
+  const CategoryPicker({super.key, required this.controller, this.focusNode});
   final CategoryController controller;
+  final FocusNode? focusNode;
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: controller,
@@ -17,6 +18,7 @@ class CategoryPicker extends StatelessWidget {
         height: 400,
         child: McCollection<String, ModCategory>(
           model: model,
+          focusNode: focusNode,
           title: 'Categories',
           showTitle: false,
           nodeLabel: (row) => categoryLabel(row.label),
