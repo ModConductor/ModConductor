@@ -263,7 +263,7 @@ class _ModLibraryBrowserState extends State<ModLibraryBrowser> {
                       controller.organization!,
                       controller.workspaceId!,
                     );
-                    if (mounted) await inventory.load(refresh: true);
+                    if (mounted) await inventory.refreshCatalogue();
                 }
               },
             ),

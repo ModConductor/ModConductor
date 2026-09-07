@@ -25,8 +25,12 @@ class ModQueryCache {
 
   int comparePriority(OrganizedMod a, OrganizedMod b) {
     final left = a.selection.priority, right = b.selection.priority;
-    if (left == null && right != null) return -1;
-    if (right == null && left != null) return 1;
+    if (left == null && right != null) {
+      return _view == OrganizationView.flat ? 1 : -1;
+    }
+    if (right == null && left != null) {
+      return _view == OrganizationView.flat ? -1 : 1;
+    }
     return left == null ? a.mod.id.compareTo(b.mod.id) : left.compareTo(right!);
   }
 

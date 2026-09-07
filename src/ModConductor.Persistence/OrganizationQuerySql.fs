@@ -69,6 +69,8 @@ WITH base AS (
             let rowSort =
                 if query.Sort = OrganizationSort.Name then
                     "name COLLATE MC_NAME,id"
+                elif query.View = OrganizationView.Flat then
+                    "priority IS NULL,priority,id"
                 else
                     "COALESCE(priority,-1),id"
 

@@ -335,6 +335,25 @@ module OrganizationFixtures =
         add "Unmanaged" ModKind.Unmanaged [] |> ignore
         let stalePage = organization.Query(profile, query, inventoryPage.Next, None) |> wait
 
+        let orderedFirst = read query
+
+        let orderedRest =
+            organization.Query(profile, query, orderedFirst.Next, None) |> wait |> result
+
+        let priorities =
+            orderedFirst.Entries @ orderedRest.Entries
+            |> List.map (fun row ->
+                match row.Entry.Selection with
+                | SelectionState.Managed(priority, _)
+                | SelectionState.Separator priority -> Some priority
+                | SelectionState.Locked _ -> None)
+
+        writer.WriteBoolean(
+            "lockedRowsFollowSavedOrder",
+            priorities |> List.take (priorities.Length - 1) |> List.forall Option.isSome
+            && (priorities |> List.last).IsNone
+        )
+
         writer.WriteBoolean(
             "queryAndInventoryInvalidate",
             wrongQuery = Error LibraryError.StaleRevision

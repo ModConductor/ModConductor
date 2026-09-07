@@ -17,7 +17,7 @@ class ProfileModsController extends ChangeNotifier {
   ModQuery query = const ModQuery();
   int _epoch = 0, _request = 0;
   Timer? _debounce;
-  bool _disposed = false, _publishing = false;
+  bool _disposed = false, _publishing = false, _catalogueRefresh = false;
   bool loading = false, changing = false, complete = false, stale = false;
   int? revision, catalogueRevision;
   int total = 0,
@@ -115,7 +115,7 @@ class ProfileModsController extends ChangeNotifier {
     ++_epoch;
     ++_request;
     _debounce?.cancel();
-    loading = changing = false;
+    loading = changing = _catalogueRefresh = false;
     if (newScope) {
       revision = catalogueRevision = null;
       total = enabledCount = matchingMods = matchingSeparators =
@@ -153,6 +153,19 @@ class ProfileModsController extends ChangeNotifier {
     if (connected) {
       stale = true;
       unawaited(load(refresh: true));
+    }
+  }
+
+  Future<void> refreshCatalogue() async {
+    _debounce?.cancel();
+    ++_request;
+    loading = false;
+    stale = true;
+    _catalogueRefresh = true;
+    _notify();
+    if (!changing) {
+      _catalogueRefresh = false;
+      await load(refresh: true);
     }
   }
 
@@ -309,14 +322,17 @@ class ProfileModsController extends ChangeNotifier {
       if (delta.revision != expected + 1) {
         throw const FormatException('The profile revision changed.');
       }
-      // Filtering and pagination depend on selection; publish one new query snapshot after the command.
-      if (!await load(
-            refresh: true,
-            expectedSelection: delta.revision,
-            delta: delta.changed,
-          ) &&
-          !_disposed &&
-          epoch == _epoch) {
+      // Repeat only when a category edit invalidated the in-flight projection, retaining the accepted delta.
+      bool refreshed;
+      do {
+        _catalogueRefresh = false;
+        refreshed = await load(
+          refresh: true,
+          expectedSelection: delta.revision,
+          delta: delta.changed,
+        );
+      } while (_catalogueRefresh && !_disposed && epoch == _epoch);
+      if (!refreshed && !_disposed && epoch == _epoch) {
         stale = true;
         problem = 'The profile change was saved. Could not reload its mods.';
         _notify();
@@ -331,9 +347,19 @@ class ProfileModsController extends ChangeNotifier {
             : 'Could not confirm the profile change. Reload its mods.';
       }
     } finally {
-      if (!_disposed && epoch == _epoch && changing) {
+      if (!_disposed && epoch == _epoch) {
+        final wasChanging = changing;
         changing = false;
-        _notify();
+        if (_catalogueRefresh) {
+          _catalogueRefresh = false;
+          final changeProblem = problem;
+          if (await load(refresh: true) && changeProblem != null) {
+            problem = changeProblem;
+            _notify();
+          }
+        } else if (wasChanging) {
+          _notify();
+        }
       }
     }
   }

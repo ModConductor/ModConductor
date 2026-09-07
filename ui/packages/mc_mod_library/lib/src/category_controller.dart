@@ -52,10 +52,11 @@ class CategoryController extends ChangeNotifier {
   );
   final Map<String?, String?> _pages = {};
   final Set<String> _draftIds = {};
+  final List<String?> _initialPages = [];
   ({String? parent, bool more})? _retry;
   int? revision;
   int _epoch = 0;
-  bool loading = false, stale = false, _disposed = false;
+  bool loading = false, stale = false, _disposed = false, _initializing = false;
   String? problem;
   List<CategoryReference> get selected => model.selectedIds
       .map((id) => model[id]?.reference)
@@ -68,7 +69,15 @@ class CategoryController extends ChangeNotifier {
 
   void _changed() {
     _notify();
-    if (!loading && !stale && problem == null) {
+    _loadExpanded();
+  }
+
+  void _loadExpanded() {
+    if (!_disposed && !_initializing && !loading && !stale && problem == null) {
+      if (_initialPages.isNotEmpty) {
+        unawaited(_loadInitialPages());
+        return;
+      }
       for (final id in model.ids) {
         if (model.expanded(id) && !_pages.containsKey(id)) {
           unawaited(load(parent: id));
@@ -78,11 +87,32 @@ class CategoryController extends ChangeNotifier {
     }
   }
 
-  Future<void> _initialize(List<CategoryReference> initial) async {
-    if (!await load()) return;
-    for (final value in initial) {
-      if (_disposed || stale) return;
-      if (!value.missing) await load(parent: value.id);
+  Future<void> _initialize(List<CategoryReference> initial) {
+    _initialPages
+      ..clear()
+      ..add(null)
+      ..addAll(
+        initial.where((value) => !value.missing).map((value) => value.id),
+      );
+    return _loadInitialPages();
+  }
+
+  Future<void> _loadInitialPages() async {
+    final epoch = _epoch;
+    _initializing = true;
+    try {
+      while (_initialPages.isNotEmpty) {
+        if (_disposed || stale || epoch != _epoch) return;
+        final parent = _initialPages.first;
+        if (!_pages.containsKey(parent) && !await load(parent: parent)) return;
+        if (_disposed || epoch != _epoch) return;
+        _initialPages.removeAt(0);
+      }
+    } finally {
+      if (!_disposed && epoch == _epoch) {
+        _initializing = false;
+        _loadExpanded();
+      }
     }
   }
 
@@ -153,6 +183,7 @@ class CategoryController extends ChangeNotifier {
       if (!_disposed && epoch == _epoch) {
         loading = false;
         _notify();
+        _loadExpanded();
       }
     }
   }
@@ -189,6 +220,7 @@ class CategoryController extends ChangeNotifier {
 
   void cancel() {
     ++_epoch;
+    _initializing = false;
     loading = false;
     _notify();
   }

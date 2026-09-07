@@ -72,4 +72,52 @@ void main() {
     expect(controller.problem, isNull);
     expect(controller.canLoad, isFalse);
   });
+  test('nested initial selection loads the first page of its expanded ancestors without expanding siblings', () async {
+    final client = PagedCategories();
+    final controller = CategoryController(
+      client,
+      'workspace',
+      initial: const [
+        CategoryReference('b', 'Birch'),
+        CategoryReference('e', 'Elm'),
+      ],
+      multiple: true,
+    );
+    addTearDown(controller.dispose);
+    const a = ModCategory('a', 'workspace', null, 'Trees', false, 0, true);
+    const b = ModCategory('b', 'workspace', 'a', 'Birch', false, 0, false);
+    const c = ModCategory('c', 'workspace', 'a', 'Cedar', false, 0, true);
+    const d = ModCategory('d', 'workspace', null, 'Woods', false, 0, true);
+    const e = ModCategory('e', 'workspace', 'd', 'Elm', false, 0, false);
+    const f = ModCategory('f', 'workspace', 'd', 'Fir', false, 0, false);
+    client.replies.first.complete(const CategoriesPage(7, [a, d], [], null));
+    await Future<void>.delayed(Duration.zero);
+    expect(client.requests.last.parent, 'b');
+    client.replies.last.completeError(Exception('child page unavailable'));
+    await Future<void>.delayed(Duration.zero);
+    expect(controller.problem, isNotNull);
+    final retry = controller.more();
+    expect(client.requests.last.parent, 'b');
+    client.replies.last.complete(const CategoriesPage(7, [], [a, b], null));
+    await retry;
+    await Future<void>.delayed(Duration.zero);
+    expect(client.requests.last.parent, 'e');
+    client.replies.last.complete(const CategoriesPage(7, [], [d, e], null));
+    await Future<void>.delayed(Duration.zero);
+    expect(client.requests.last.parent, 'a');
+    client.replies.last.complete(const CategoriesPage(7, [b, c], [a], 'c'));
+    await Future<void>.delayed(Duration.zero);
+    expect(client.requests.last.parent, 'd');
+    client.replies.last.complete(const CategoriesPage(7, [e, f], [d], null));
+    await Future<void>.delayed(Duration.zero);
+    expect(controller.model.expanded('a'), isTrue);
+    expect(controller.model.expanded('d'), isTrue);
+    expect(controller.model.visible, ['a', 'b', 'c', 'd', 'e', 'f']);
+    expect(
+      controller.selected.map((row) => row.id),
+      unorderedEquals(['b', 'e']),
+    );
+    expect(controller.canLoad, isTrue);
+    expect(client.requests.where((request) => request.parent == 'c'), isEmpty);
+  });
 }

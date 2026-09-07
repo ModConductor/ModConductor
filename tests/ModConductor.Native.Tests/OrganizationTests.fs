@@ -37,6 +37,7 @@ type OrganizationTests() =
 
         flag "organization" "profileCursorIsolated" |> should equal true
         flag "organization" "boundedContinuation" |> should equal true
+        flag "organization" "lockedRowsFollowSavedOrder" |> should equal true
         flag "organization" "queryAndInventoryInvalidate" |> should equal true
 
     [<Test>]
