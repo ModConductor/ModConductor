@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><IsAotCompatible>true</IsAotCompatible></PropertyGroup>
+  <ItemGroup>
+    <Compile Include="PrefixFiles.fs" />
+    <Compile Include="WineRegistry.fs" />
+    <Compile Include="PrefixPaths.fs" />
+    <Compile Include="Validation.fs" />
+    <Compile Include="Discovery.fs" />
+    <ProjectReference Include="../ModConductor.GameContexts/ModConductor.GameContexts.fsproj" />
+    <ProjectReference Include="../ModConductor.SteamDiscovery/ModConductor.SteamDiscovery.fsproj" />
+    <PackageReference Include="FSharp.Core" />
+  </ItemGroup>
+</Project>

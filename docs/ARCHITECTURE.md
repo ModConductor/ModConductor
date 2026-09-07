@@ -8,7 +8,8 @@
 | `ModConductor.Platform` | Native path identity, held-directory access, and filesystem preflight |
 | `ModConductor.Workspaces` | Workspace and profile lifecycle |
 | `ModConductor.GameContexts` | Game definitions, installation checks, and context evidence |
-| `ModConductor.SteamDiscovery` | Read-only Steam library search, manifest parsing, and candidate origins |
+| `ModConductor.SteamDiscovery` | Read-only Steam library, app and compatibility-tool metadata |
+| `ModConductor.ProtonContexts` | Chosen Proton installation, prefix and Windows user-path checks |
 | `ModConductor.ModLibrary` | Mod identity, metadata, and immutable file versions |
 | `ModConductor.ModSelection` | Per-profile enablement, saved precedence, and batch rules |
 | `ModConductor.ModOrganization` | Workspace categories, typed filters, and grouping contracts |
@@ -208,7 +209,8 @@ External changes do not form an atomic filesystem snapshot.
 
 The Skyrim Special Edition Steam definition declares Data and Windows target-name
 rules. Windows user locations use actual Known Folders without creation. Linux
-installation checks leave Proton and user locations unavailable. Prefix resolution, game launch, and deployment are not provided by these checks.
+path-only bindings remain partial until a Proton context is selected. Game launch
+and deployment are separate from these checks.
 
 `SteamDiscovery` reads bounded library and app manifests from platform-default or
 explicit Steam folders. It follows declared directory links, rejects unsafe
@@ -220,3 +222,23 @@ The Game form uses the shared installation table to choose a search result into
 its draft. Additional search folders last only for that form session. Choose does
 not save a binding; Save repeats the normal installation checks. Discovery facts
 are observations, not persisted Steam verification or entitlement evidence.
+
+Linux Proton selections belong to the same workspace binding. They retain the
+AppID, Steam or explicit manual association, existing compatdata folder, and
+installed runtime folder/tool ID. Save validates the game and context together.
+An identified conflicting AppID is refused, including a manually selected alias.
+Refresh checks only the saved choice; it does not choose a replacement or start
+Steam, Proton, Wine, or prefix setup.
+
+The runtime manifest owns its relative installation path. Runtime version and
+launcher identity are distinct from the prefix's last-use version. Steam per-game
+and global mappings are metadata, not active-runtime proof; a global mapping is
+only a suggestion. An installed tool can be selected directly when it is absent
+from the bounded Steam search. No process-environment scan is used.
+
+Prefix registry reads use only the declared Windows user-folder values. Path walks
+use held, no-follow directories and relative link reads. Internal redirects can be
+resolved; outside-prefix redirects, ambiguous names and unknown variables remain
+unavailable without a host-folder fallback. Missing leaves are not created. Windows
+native contexts do not use the Proton resolver. Schema migration preserves older
+path-only selections and their evidence; restarting still requires recheck.

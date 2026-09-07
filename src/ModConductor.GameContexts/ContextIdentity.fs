@@ -5,7 +5,7 @@ open System.IO
 open System.Security.Cryptography
 open ModConductor.Platform
 
-module internal ContextIdentity =
+module ContextIdentity =
     let fingerprint (evidence: InstallationEvidence) =
         use bytes = new MemoryStream()
         use writer = new BinaryWriter(bytes, System.Text.Encoding.UTF8, true)
@@ -68,6 +68,49 @@ module internal ContextIdentity =
         location evidence.Locations.Documents
         location evidence.Locations.Saves
         location evidence.Locations.LocalAppData
+
+        match evidence.Proton with
+        | None -> writer.Write false
+        | Some p ->
+            writer.Write true
+            writer.Write p.Selection.AppId
+
+            match p.Selection.Association with
+            | ProtonAssociation.Manual -> writer.Write 0
+            | ProtonAssociation.Steam(root, library) ->
+                writer.Write 1
+                text root
+                text library
+
+            text p.Selection.CompatData
+            text p.Selection.RuntimeDirectory
+            text p.Selection.ToolId
+            text p.PrefixPath
+            identity (Some p.PrefixIdentity)
+            identity (Some p.CompatDataIdentity)
+            identity (Some p.RuntimeIdentity)
+            text p.RuntimeName
+            text p.RuntimeVersion
+            text (Option.defaultValue "" p.PrefixVersion)
+            text (Option.defaultValue "" p.PerGameTool)
+            text (Option.defaultValue "" p.GlobalTool)
+            text (Option.defaultValue "" p.MappingProblem)
+
+            let file (f: ContextFileEvidence) =
+                text f.Path
+                identity (Some f.Identity)
+                text f.Sha256
+
+            file p.Launcher
+            writer.Write p.Metadata.Length
+            p.Metadata |> List.iter file
+            writer.Write p.Paths.Length
+
+            for path in p.Paths do
+                text path.Name
+                text (Option.defaultValue "" path.WindowsPath)
+                location path.HostLocation
+
         writer.Write evidence.Problems.Length
 
         for issue in evidence.Problems do

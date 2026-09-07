@@ -16,6 +16,7 @@ instruction. Preserve field identities and reserve removed fields.
 | `mod_organization.proto` | Workspace category edits and revision-pinned mod queries |
 | `game_contexts.proto` | Workspace installation selection and checked evidence |
 | `steam_discovery.proto` | Read-only Steam installation search and per-origin observations |
+| `proton_contexts.proto` | Existing prefix/runtime choices, mapping observations and Windows user paths |
 
 After locked restores, run `python3 tools/generate-protocol.py`. Use `--check` to
 compare both generated boundaries without changing source. The tool compiles all
@@ -50,7 +51,11 @@ provide a same-user sandbox.
 Game-context RPCs permit 64 KiB requests and 2 MiB replies. Save compares a workspace
 binding revision and returns either the committed state or a typed failure.
 Invalid candidates include check details. Declared Steam identity is not observed
-Steam evidence. Refresh retains the last successful evidence if its new check fails.
+Steam evidence. An optional Proton selection is saved atomically with the game
+folder, using the same revision. Its association is explicitly manual or Steam.
+Proton searches allow 80 KiB requests and 512 KiB replies; content budgets retain
+complete records and mark limited results. They do not initialize a prefix or
+execute runtime commands. Refresh retains the last successful evidence if its new check fails.
 
 Runtime RPCs permit 4 KiB requests and 64 KiB replies. Workspace and mod RPCs
 permit 64 KiB requests and 2 MiB replies. Item and content budgets further bound

@@ -43,6 +43,7 @@ type NativeObservationSetup() =
             )
 
         match Environment.GetEnvironmentVariable "MC_NATIVE_SCOPE" with
+        | "proton-contexts" -> info.ArgumentList.Add "--proton-contexts"
         | "steam-discovery" -> info.ArgumentList.Add "--steam-discovery"
         | "game-contexts" -> info.ArgumentList.Add "--game-contexts"
         | "planner" -> info.ArgumentList.Add "--planner"

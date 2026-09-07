@@ -16,7 +16,9 @@ presentation, category forms, and query state. Its profile controller applies
 revision-pinned queries after selection changes. The query cache keeps matching,
 context, and inspected rows separate. The library controller retains metadata
 actions and pinned file state. `mc_game_contexts` owns the installation form, context controller, and evidence
-view. The app
+view. Steam and Proton choosers edit the outer installation draft; only Save
+commits it. Their searches are cancelable session state, and late results cannot
+replace a newer choice. The app
 binds these libraries to `mc_client` and owns global navigation and appearance.
 
 Use the foundation's actions, menus, statuses, and name fields instead of

@@ -19,7 +19,7 @@ module internal GameContextRows =
                 Sqlite.command
                     connection
                     transaction
-                    "SELECT id,path,revision,evidence,checked_owner,failure FROM game_contexts WHERE workspace_id=$id"
+                    "SELECT id,path,revision,evidence,checked_owner,failure,proton_selection FROM game_contexts WHERE workspace_id=$id"
                     [ "$id", box (string workspace) ]
 
             use row = query.ExecuteReader()
@@ -32,6 +32,11 @@ module internal GameContextRows =
                         Some
                             { Id = Guid.Parse(row.GetString 0)
                               Path = row.GetString 1
+                              Proton =
+                                if row.IsDBNull 6 then
+                                    None
+                                else
+                                    Some(ProtonEncoding.decodeSelection (row.GetString 6))
                               Evidence = GameContextEncoding.decode (row.GetString 3)
                               NeedsCheck = row.GetString 4 <> owner || not (row.IsDBNull 5)
                               Failure = if row.IsDBNull 5 then None else Some(row.GetString 5) } }
@@ -45,13 +50,17 @@ module internal GameContextRows =
         Sqlite.execute
             connection
             transaction
-            "INSERT INTO game_contexts(workspace_id,id,path,revision,evidence,checked_owner,failure) VALUES($workspace,$id,$path,$revision,$evidence,$owner,$failure) ON CONFLICT(workspace_id) DO UPDATE SET path=excluded.path,revision=excluded.revision,evidence=excluded.evidence,checked_owner=excluded.checked_owner,failure=excluded.failure"
+            "INSERT INTO game_contexts(workspace_id,id,path,revision,evidence,checked_owner,failure,proton_selection) VALUES($workspace,$id,$path,$revision,$evidence,$owner,$failure,$proton) ON CONFLICT(workspace_id) DO UPDATE SET path=excluded.path,revision=excluded.revision,evidence=excluded.evidence,checked_owner=excluded.checked_owner,failure=excluded.failure,proton_selection=excluded.proton_selection"
             [ "$workspace", box (string workspace)
               "$id", box (string binding.Id)
               "$path", box binding.Path
               "$revision", box revision
               "$evidence", box (GameContextEncoding.encode binding.Evidence)
               "$owner", box owner
+              "$proton",
+              binding.Proton
+              |> Option.map (ProtonEncoding.encodeSelection >> box)
+              |> Option.defaultValue (box DBNull.Value)
               "$failure",
               binding.Failure |> Option.map box |> Option.defaultValue (box DBNull.Value) ]
 
@@ -86,7 +95,7 @@ type GameContextStore internal (database: StateDatabase, roots: OwnedWorkspaceRo
         database.Enqueue(fun () ->
             GameContextRows.read database.Connection null database.OwnerId workspace)
 
-    let change workspace expected candidate =
+    let change workspace expected (candidate: ContextSelection option) =
         run (fun () ->
             task {
                 let! before = read workspace
@@ -96,18 +105,30 @@ type GameContextStore internal (database: StateDatabase, roots: OwnedWorkspaceRo
                 | Ok before when before.Revision <> expected ->
                     return Error ContextError.StaleRevision
                 | Ok before ->
-                    let path =
+                    let selection =
                         candidate
-                        |> Option.orElseWith (fun () -> before.Binding |> Option.map _.Path)
+                        |> Option.orElseWith (fun () ->
+                            before.Binding
+                            |> Option.map (fun b -> { Path = b.Path; Proton = b.Proton }))
 
-                    match path with
+                    match selection with
                     | None -> return Error ContextError.NotFound
-                    | Some path ->
+                    | Some selection ->
+                        let path = selection.Path
                         let! owned = roots.Validate workspace
 
                         match owned with
                         | Ok receipt when receipt.Phase = RootCreationPhase.Complete ->
-                            let! evidence = Task.Run(fun () -> InstallationValidation.inspect path)
+                            let! evidence =
+                                Task.Run(fun () ->
+                                    let installation = InstallationValidation.inspect path
+
+                                    match selection.Proton with
+                                    | Some proton when installation.Valid ->
+                                        ModConductor.ProtonContexts.Validation.inspect
+                                            installation
+                                            proton
+                                    | _ -> installation)
 
                             if candidate.IsSome && not evidence.Valid then
                                 return Error(ContextError.Invalid evidence)
@@ -136,6 +157,9 @@ type GameContextStore internal (database: StateDatabase, roots: OwnedWorkspaceRo
                                                             |> Option.map _.Id
                                                             |> Option.defaultWith Guid.NewGuid
                                                           Path = path
+                                                          Proton =
+                                                            evidence.Proton
+                                                            |> Option.map _.Selection
                                                           Evidence = evidence
                                                           NeedsCheck = false
                                                           Failure = None }
@@ -178,5 +202,8 @@ type GameContextStore internal (database: StateDatabase, roots: OwnedWorkspaceRo
 
     interface IGameContexts with
         member _.Read workspace = run (fun () -> read workspace)
-        member _.Save(workspace, expected, path) = change workspace expected (Some path)
+
+        member _.Save(workspace, expected, selection) =
+            change workspace expected (Some selection)
+
         member _.Refresh(workspace, expected) = change workspace expected None

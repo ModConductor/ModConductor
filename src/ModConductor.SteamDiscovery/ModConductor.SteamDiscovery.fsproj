@@ -6,6 +6,7 @@
     <Compile Include="SteamFiles.fs" />
     <Compile Include="DefaultRoots.fs" />
     <Compile Include="Discovery.fs" />
+    <Compile Include="ContextSources.fs" />
     <ProjectReference Include="../ModConductor.Platform/ModConductor.Platform.fsproj" />
     <PackageReference Include="FSharp.Core" />
   </ItemGroup>

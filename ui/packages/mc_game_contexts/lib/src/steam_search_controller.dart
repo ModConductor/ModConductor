@@ -13,6 +13,7 @@ class SteamSearchController extends ChangeNotifier {
     labelOf: (row) => row.directory.canonicalPath,
   );
   final List<String> _roots = [];
+  List<String> get additionalRoots => List.unmodifiable(_roots);
   SteamSearchResult? report;
   bool loading = false, cancelled = false;
   String? problem;

@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/ModConductor.ProtonContexts/ModConductor.ProtonContexts.fsproj" />
     <Project Path="src/ModConductor.GameContexts/ModConductor.GameContexts.fsproj" />
     <Project Path="src/ModConductor.SteamDiscovery/ModConductor.SteamDiscovery.fsproj" />
     <Project Path="src/ModConductor.DeploymentPlanning/ModConductor.DeploymentPlanning.fsproj" />

@@ -1,3 +1,5 @@
+import 'proton_context_client.dart';
+
 import 'dart:async';
 import 'dart:io';
 
@@ -55,6 +57,8 @@ class EngineOwner {
   int _attempt = 0;
 
   EngineState get state => _state;
+  ProtonContextsClient? get protonContexts =>
+      _state is EngineConnected ? _session?.protonContexts : null;
   SteamDiscoveryClient? get steamDiscovery =>
       _state is EngineConnected ? _session?.steamDiscovery : null;
   GameContextsClient? get gameContexts =>

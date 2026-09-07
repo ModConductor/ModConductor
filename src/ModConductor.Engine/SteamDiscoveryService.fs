@@ -8,7 +8,7 @@ open ModConductor.GameContexts
 open ModConductor.SteamDiscovery
 open ModConductor.Protocol.V1
 
-module private SteamWire =
+module internal SteamWire =
     let root (r: SearchRoot) =
         SteamSearchRoot(Path = r.Path, Origin = r.Origin)
 

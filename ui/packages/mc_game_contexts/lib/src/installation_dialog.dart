@@ -1,9 +1,12 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:mc_client/mc_client.dart';
 import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 
 import 'steam_search_controller.dart';
 import 'steam_chooser.dart';
+import 'proton_dialog.dart';
 
 typedef GameDirectoryChooser = Future<String?> Function(String? initialPath);
 
@@ -16,10 +19,12 @@ class InstallationDialog extends StatefulWidget {
     required this.onSaved,
     required this.onUnknownSave,
     this.steamDiscovery,
+    this.protonContexts,
   });
   final GameContextState initial;
   final GameContextsClient client;
   final SteamDiscoveryClient? steamDiscovery;
+  final ProtonContextsClient? protonContexts;
   final GameDirectoryChooser chooseDirectory;
   final ValueChanged<GameContextState> onSaved;
   final VoidCallback onUnknownSave;
@@ -33,6 +38,7 @@ class _InstallationDialogState extends State<InstallationDialog> {
   );
   late GameContextState current = widget.initial;
   SteamSearchController? steamSearch;
+  late ProtonSelection? proton = widget.initial.binding?.proton;
   bool busy = false;
   bool submitting = false;
   bool needsReload = false;
@@ -68,6 +74,28 @@ class _InstallationDialogState extends State<InstallationDialog> {
     }
   }
 
+  Future<void> chooseProton() async {
+    final client = widget.protonContexts;
+    if (busy || client == null || folder.text.isEmpty) return;
+    final selected = await showDialog<ProtonSelection>(
+      context: context,
+      builder: (_) => ProtonDialog(
+        game: current.definition,
+        gamePath: folder.text,
+        client: client,
+        chooseDirectory: widget.chooseDirectory,
+        roots: steamSearch?.additionalRoots ?? const [],
+        initial: proton,
+      ),
+    );
+    if (mounted && selected != null) {
+      setState(() {
+        proton = selected;
+        error = null;
+      });
+    }
+  }
+
   Future<void> save() async {
     if (busy || needsReload) return;
     setState(() {
@@ -80,6 +108,7 @@ class _InstallationDialogState extends State<InstallationDialog> {
         current.workspaceId,
         current.revision,
         folder.text,
+        proton: proton,
       );
       widget.onSaved(result);
       if (mounted) Navigator.pop(context);
@@ -199,6 +228,33 @@ class _InstallationDialogState extends State<InstallationDialog> {
           ),
         ],
       ),
+      if (Platform.isLinux) ...[
+        const SizedBox(height: 20),
+        Text('Proton', style: Theme.of(context).textTheme.titleSmall),
+        const SizedBox(height: 4),
+        if (proton case final selection?) ...[
+          SelectableText(
+            current.binding?.proton == selection &&
+                    current.binding?.evidence.proton != null
+                ? current.binding!.evidence.proton!.runtimeName
+                : selection.runtimeDirectory,
+          ),
+          Text(
+            selection.compatData,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ] else
+          const Text('Not selected'),
+        const SizedBox(height: 8),
+        McAction(
+          key: const ValueKey('select-proton'),
+          label: proton == null ? 'Select Proton…' : 'Change Proton…',
+          icon: Icons.tune,
+          onPressed: busy || widget.protonContexts == null
+              ? null
+              : chooseProton,
+        ),
+      ],
       if (error != null) ...[
         const SizedBox(height: 16),
         McStatus(title: error!, tone: McStatusTone.error),

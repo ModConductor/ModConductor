@@ -27,6 +27,7 @@ module private GameContextWire =
                 Fingerprint = value.Fingerprint
             )
 
+        value.Proton |> Option.iter (fun p -> result.Proton <- ProtonWire.evidence p)
         value.DataPath |> Option.iter (fun path -> result.DataPath <- path)
         value.LauncherPath |> Option.iter (fun path -> result.LauncherPath <- path)
 
@@ -82,6 +83,7 @@ module private GameContextWire =
                         NeedsCheck = b.NeedsCheck
                     )
 
+                b.Proton |> Option.iter (fun p -> binding.Proton <- ProtonWire.selection p)
                 b.Failure |> Option.iter (fun failure -> binding.Failure <- failure)
                 state.Binding <- binding)
 
@@ -134,7 +136,8 @@ type GameContextService(contexts: IGameContexts) =
                 contexts.Save(
                     ModLibraryWire.id request.WorkspaceId,
                     ModLibraryWire.number request.ExpectedRevision,
-                    request.Path
+                    { Path = request.Path
+                      Proton = ProtonWire.readSelection request.Proton }
                 )
 
             return GameContextWire.reply result

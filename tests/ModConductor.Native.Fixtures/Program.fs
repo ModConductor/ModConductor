@@ -11,6 +11,13 @@ let main args =
     try
         if
             args.Length = 2
+            && args[0] = "--proton-files"
+            && Path.IsPathFullyQualified args[1]
+        then
+            ProtonFixtures.create args[1] |> ignore
+            0
+        elif
+            args.Length = 2
             && args[0] = "--steam-files"
             && Path.IsPathFullyQualified args[1]
         then
@@ -32,6 +39,7 @@ let main args =
             SelectionFixtures.worker args[1] args[2] args[3] args[4]
             0
         else
+            let protonOnly = args.Length = 2 && args[0] = "--proton-contexts"
             let steamOnly = args.Length = 2 && args[0] = "--steam-discovery"
             let contextsOnly = args.Length = 2 && args[0] = "--game-contexts"
             let plannerOnly = args.Length = 2 && args[0] = "--planner"
@@ -40,6 +48,7 @@ let main args =
 
             let primary, secondary =
                 match args with
+                | [| "--proton-contexts"; primary |]
                 | [| "--steam-discovery"; primary |]
                 | [| "--game-contexts"; primary |]
                 | [| "--planner"; primary |]
@@ -71,6 +80,7 @@ let main args =
                 && not plannerOnly
                 && not contextsOnly
                 && not steamOnly
+                && not protonOnly
             then
                 Fixtures.observe writer primary secondary
                 StorageFixtures.observe writer primary
@@ -79,15 +89,36 @@ let main args =
                 LibraryRecoveryFixtures.observe writer primary
                 LibraryIdentityFixtures.observe writer primary
 
-            if not organizationOnly && not plannerOnly && not contextsOnly && not steamOnly then
+            if
+                not organizationOnly
+                && not plannerOnly
+                && not contextsOnly
+                && not steamOnly
+                && not protonOnly
+            then
                 SelectionFixtures.observe writer primary
 
-            if not selectionOnly && not plannerOnly && not contextsOnly && not steamOnly then
+            if
+                not selectionOnly
+                && not plannerOnly
+                && not contextsOnly
+                && not steamOnly
+                && not protonOnly
+            then
                 OrganizationFixtures.observe writer primary
                 OrganizationMigration.observe writer primary
 
-            if not selectionOnly && not organizationOnly && not contextsOnly && not steamOnly then
+            if
+                not selectionOnly
+                && not organizationOnly
+                && not contextsOnly
+                && not steamOnly
+                && not protonOnly
+            then
                 PlanningFixtures.observe writer
+
+            if protonOnly then
+                ProtonFixtures.observe writer primary
 
             if steamOnly then
                 SteamDiscoveryFixtures.observe writer primary

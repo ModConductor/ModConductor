@@ -79,6 +79,14 @@ const SaveGameContextRequest$json = {
       '10': 'expectedRevision'
     },
     {'1': 'path', '3': 3, '4': 1, '5': 9, '10': 'path'},
+    {
+      '1': 'proton',
+      '3': 4,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.ProtonSelectionInfo',
+      '10': 'proton'
+    },
   ],
 };
 
@@ -86,7 +94,8 @@ const SaveGameContextRequest$json = {
 final $typed_data.Uint8List saveGameContextRequestDescriptor = $convert.base64Decode(
     'ChZTYXZlR2FtZUNvbnRleHRSZXF1ZXN0EiEKDHdvcmtzcGFjZV9pZBgBIAEoCVILd29ya3NwYW'
     'NlSWQSKwoRZXhwZWN0ZWRfcmV2aXNpb24YAiABKARSEGV4cGVjdGVkUmV2aXNpb24SEgoEcGF0'
-    'aBgDIAEoCVIEcGF0aA==');
+    'aBgDIAEoCVIEcGF0aBI8CgZwcm90b24YBCABKAsyJC5tb2Rjb25kdWN0b3IudjEuUHJvdG9uU2'
+    'VsZWN0aW9uSW5mb1IGcHJvdG9u');
 
 @$core.Deprecated('Use refreshGameContextRequestDescriptor instead')
 const RefreshGameContextRequest$json = {
@@ -326,6 +335,14 @@ const GameInstallationEvidence$json = {
       '5': 13,
       '10': 'definitionRevision'
     },
+    {
+      '1': 'proton',
+      '3': 14,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.ProtonContextEvidence',
+      '10': 'proton'
+    },
   ],
   '8': [
     {'1': '_data_path'},
@@ -347,7 +364,9 @@ final $typed_data.Uint8List gameInstallationEvidenceDescriptor = $convert.base64
     'F0aW9uUHJvYmxlbVIIcHJvYmxlbXMSKwoSY2hlY2tlZF9hdF91bml4X21zGAogASgDUg9jaGVj'
     'a2VkQXRVbml4TXMSIAoLZmluZ2VycHJpbnQYCyABKAlSC2ZpbmdlcnByaW50EiMKDWRlZmluaX'
     'Rpb25faWQYDCABKAlSDGRlZmluaXRpb25JZBIvChNkZWZpbml0aW9uX3JldmlzaW9uGA0gASgN'
-    'UhJkZWZpbml0aW9uUmV2aXNpb25CDAoKX2RhdGFfcGF0aEIQCg5fbGF1bmNoZXJfcGF0aA==');
+    'UhJkZWZpbml0aW9uUmV2aXNpb24SPgoGcHJvdG9uGA4gASgLMiYubW9kY29uZHVjdG9yLnYxLl'
+    'Byb3RvbkNvbnRleHRFdmlkZW5jZVIGcHJvdG9uQgwKCl9kYXRhX3BhdGhCEAoOX2xhdW5jaGVy'
+    'X3BhdGg=');
 
 @$core.Deprecated('Use gameBindingInfoDescriptor instead')
 const GameBindingInfo$json = {
@@ -373,6 +392,14 @@ const GameBindingInfo$json = {
       '10': 'failure',
       '17': true
     },
+    {
+      '1': 'proton',
+      '3': 6,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.ProtonSelectionInfo',
+      '10': 'proton'
+    },
   ],
   '8': [
     {'1': '_failure'},
@@ -384,7 +411,9 @@ final $typed_data.Uint8List gameBindingInfoDescriptor = $convert.base64Decode(
     'Cg9HYW1lQmluZGluZ0luZm8SHQoKYmluZGluZ19pZBgBIAEoCVIJYmluZGluZ0lkEhIKBHBhdG'
     'gYAiABKAlSBHBhdGgSRQoIZXZpZGVuY2UYAyABKAsyKS5tb2Rjb25kdWN0b3IudjEuR2FtZUlu'
     'c3RhbGxhdGlvbkV2aWRlbmNlUghldmlkZW5jZRIfCgtuZWVkc19jaGVjaxgEIAEoCFIKbmVlZH'
-    'NDaGVjaxIdCgdmYWlsdXJlGAUgASgJSABSB2ZhaWx1cmWIAQFCCgoIX2ZhaWx1cmU=');
+    'NDaGVjaxIdCgdmYWlsdXJlGAUgASgJSABSB2ZhaWx1cmWIAQESPAoGcHJvdG9uGAYgASgLMiQu'
+    'bW9kY29uZHVjdG9yLnYxLlByb3RvblNlbGVjdGlvbkluZm9SBnByb3RvbkIKCghfZmFpbHVyZQ'
+    '==');
 
 @$core.Deprecated('Use gameContextStateDescriptor instead')
 const GameContextState$json = {

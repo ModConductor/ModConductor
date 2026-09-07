@@ -193,6 +193,7 @@ module InstallationValidation =
               DataIdentity = dataIdentity
               Executable = executable
               LauncherPath = launcher
+              Proton = None
               Locations = locations Skyrim.definition
               Problems = List.ofSeq problems
               CheckedAt =

@@ -3,11 +3,18 @@ import 'package:grpc/grpc.dart';
 
 import 'generated/modconductor/v1/game_contexts.pbgrpc.dart' as wire;
 import 'game_context_models.dart';
+import 'proton_context_models.dart';
+import 'proton_context_wire.dart';
 export 'game_context_models.dart';
 
 abstract interface class GameContextsClient {
   Future<GameContextState> read(String workspaceId);
-  Future<GameContextState> save(String workspaceId, int revision, String path);
+  Future<GameContextState> save(
+    String workspaceId,
+    int revision,
+    String path, {
+    ProtonSelection? proton,
+  });
   Future<GameContextState> refresh(String workspaceId, int revision);
 }
 
@@ -25,13 +32,15 @@ class GrpcGameContextsClient implements GameContextsClient {
   Future<GameContextState> save(
     String workspaceId,
     int revision,
-    String path,
-  ) async => _reply(
+    String path, {
+    ProtonSelection? proton,
+  }) async => _reply(
     await _client.saveGameContext(
       wire.SaveGameContextRequest(
         workspaceId: workspaceId,
         expectedRevision: Int64(revision),
         path: path,
+        proton: proton == null ? null : encodeProtonSelection(proton),
       ),
       options: CallOptions(timeout: const Duration(seconds: 30)),
     ),
@@ -74,6 +83,7 @@ GameInstallationEvidence _evidence(wire.GameInstallationEvidence e) =>
         _ => throw const FormatException('Unknown game platform.'),
       },
       rootPath: e.rootPath,
+      proton: e.hasProton() ? decodeProtonEvidence(e.proton) : null,
       dataPath: e.hasDataPath() ? e.dataPath : null,
       executable: e.hasExecutable()
           ? GameExecutableEvidence(
@@ -121,6 +131,9 @@ GameContextState _reply(wire.GameContextReply reply) {
             ? GameBindingInfo(
                 id: s.binding.bindingId,
                 path: s.binding.path,
+                proton: s.binding.hasProton()
+                    ? decodeProtonSelection(s.binding.proton)
+                    : null,
                 evidence: _evidence(s.binding.evidence),
                 needsCheck: s.binding.needsCheck,
                 failure: s.binding.hasFailure() ? s.binding.failure : null,

@@ -66,8 +66,12 @@ class Client implements GameContextsClient {
   @override
   Future<GameContextState> read(String id) => onRead(id);
   @override
-  Future<GameContextState> save(String id, int revision, String path) =>
-      onSave(id, revision, path);
+  Future<GameContextState> save(
+    String id,
+    int revision,
+    String path, {
+    ProtonSelection? proton,
+  }) => onSave(id, revision, path);
   @override
   Future<GameContextState> refresh(String id, int revision) =>
       onRefresh?.call(id, revision) ?? onRead(id);
@@ -268,6 +272,10 @@ void main() {
         isNull,
       );
       client.onRead = (id) async => snapshot(id, 2, '/other');
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('reload-installation')),
+      );
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('reload-installation')));
       await tester.pumpAndSettle();
       expect(

@@ -16,6 +16,7 @@ import 'package:fixnum/fixnum.dart' as $fixnum;
 import 'package:protobuf/protobuf.dart' as $pb;
 
 import 'game_contexts.pbenum.dart';
+import 'proton_contexts.pb.dart' as $1;
 
 export 'package:protobuf/protobuf.dart' show GeneratedMessageGenericExtensions;
 
@@ -82,11 +83,13 @@ class SaveGameContextRequest extends $pb.GeneratedMessage {
     $core.String? workspaceId,
     $fixnum.Int64? expectedRevision,
     $core.String? path,
+    $1.ProtonSelectionInfo? proton,
   }) {
     final result = create();
     if (workspaceId != null) result.workspaceId = workspaceId;
     if (expectedRevision != null) result.expectedRevision = expectedRevision;
     if (path != null) result.path = path;
+    if (proton != null) result.proton = proton;
     return result;
   }
 
@@ -109,6 +112,8 @@ class SaveGameContextRequest extends $pb.GeneratedMessage {
         2, _omitFieldNames ? '' : 'expectedRevision', $pb.PbFieldType.OU6,
         defaultOrMaker: $fixnum.Int64.ZERO)
     ..aOS(3, _omitFieldNames ? '' : 'path')
+    ..aOM<$1.ProtonSelectionInfo>(4, _omitFieldNames ? '' : 'proton',
+        subBuilder: $1.ProtonSelectionInfo.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -157,6 +162,17 @@ class SaveGameContextRequest extends $pb.GeneratedMessage {
   $core.bool hasPath() => $_has(2);
   @$pb.TagNumber(3)
   void clearPath() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $1.ProtonSelectionInfo get proton => $_getN(3);
+  @$pb.TagNumber(4)
+  set proton($1.ProtonSelectionInfo value) => $_setField(4, value);
+  @$pb.TagNumber(4)
+  $core.bool hasProton() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearProton() => $_clearField(4);
+  @$pb.TagNumber(4)
+  $1.ProtonSelectionInfo ensureProton() => $_ensure(3);
 }
 
 class RefreshGameContextRequest extends $pb.GeneratedMessage {
@@ -754,6 +770,7 @@ class GameInstallationEvidence extends $pb.GeneratedMessage {
     $core.String? fingerprint,
     $core.String? definitionId,
     $core.int? definitionRevision,
+    $1.ProtonContextEvidence? proton,
   }) {
     final result = create();
     if (platform != null) result.platform = platform;
@@ -770,6 +787,7 @@ class GameInstallationEvidence extends $pb.GeneratedMessage {
     if (definitionId != null) result.definitionId = definitionId;
     if (definitionRevision != null)
       result.definitionRevision = definitionRevision;
+    if (proton != null) result.proton = proton;
     return result;
   }
 
@@ -807,6 +825,8 @@ class GameInstallationEvidence extends $pb.GeneratedMessage {
     ..aOS(12, _omitFieldNames ? '' : 'definitionId')
     ..aI(13, _omitFieldNames ? '' : 'definitionRevision',
         fieldType: $pb.PbFieldType.OU3)
+    ..aOM<$1.ProtonContextEvidence>(14, _omitFieldNames ? '' : 'proton',
+        subBuilder: $1.ProtonContextEvidence.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -947,6 +967,17 @@ class GameInstallationEvidence extends $pb.GeneratedMessage {
   $core.bool hasDefinitionRevision() => $_has(12);
   @$pb.TagNumber(13)
   void clearDefinitionRevision() => $_clearField(13);
+
+  @$pb.TagNumber(14)
+  $1.ProtonContextEvidence get proton => $_getN(13);
+  @$pb.TagNumber(14)
+  set proton($1.ProtonContextEvidence value) => $_setField(14, value);
+  @$pb.TagNumber(14)
+  $core.bool hasProton() => $_has(13);
+  @$pb.TagNumber(14)
+  void clearProton() => $_clearField(14);
+  @$pb.TagNumber(14)
+  $1.ProtonContextEvidence ensureProton() => $_ensure(13);
 }
 
 class GameBindingInfo extends $pb.GeneratedMessage {
@@ -956,6 +987,7 @@ class GameBindingInfo extends $pb.GeneratedMessage {
     GameInstallationEvidence? evidence,
     $core.bool? needsCheck,
     $core.String? failure,
+    $1.ProtonSelectionInfo? proton,
   }) {
     final result = create();
     if (bindingId != null) result.bindingId = bindingId;
@@ -963,6 +995,7 @@ class GameBindingInfo extends $pb.GeneratedMessage {
     if (evidence != null) result.evidence = evidence;
     if (needsCheck != null) result.needsCheck = needsCheck;
     if (failure != null) result.failure = failure;
+    if (proton != null) result.proton = proton;
     return result;
   }
 
@@ -986,6 +1019,8 @@ class GameBindingInfo extends $pb.GeneratedMessage {
         subBuilder: GameInstallationEvidence.create)
     ..aOB(4, _omitFieldNames ? '' : 'needsCheck')
     ..aOS(5, _omitFieldNames ? '' : 'failure')
+    ..aOM<$1.ProtonSelectionInfo>(6, _omitFieldNames ? '' : 'proton',
+        subBuilder: $1.ProtonSelectionInfo.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1053,6 +1088,17 @@ class GameBindingInfo extends $pb.GeneratedMessage {
   $core.bool hasFailure() => $_has(4);
   @$pb.TagNumber(5)
   void clearFailure() => $_clearField(5);
+
+  @$pb.TagNumber(6)
+  $1.ProtonSelectionInfo get proton => $_getN(5);
+  @$pb.TagNumber(6)
+  set proton($1.ProtonSelectionInfo value) => $_setField(6, value);
+  @$pb.TagNumber(6)
+  $core.bool hasProton() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearProton() => $_clearField(6);
+  @$pb.TagNumber(6)
+  $1.ProtonSelectionInfo ensureProton() => $_ensure(5);
 }
 
 class GameContextState extends $pb.GeneratedMessage {

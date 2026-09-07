@@ -23,6 +23,7 @@ type GameDefinition =
       Documents: string list
       Saves: string list
       LocalAppData: string list
+      IniFiles: string list
       TargetPolicy: TargetPolicy
       UnavailableCapabilities: UnavailableCapability list }
 
@@ -39,6 +40,7 @@ module Skyrim =
           Documents = [ "My Games"; "Skyrim Special Edition" ]
           Saves = [ "My Games"; "Skyrim Special Edition"; "Saves" ]
           LocalAppData = [ "Skyrim Special Edition" ]
+          IniFiles = [ "Skyrim.ini"; "SkyrimPrefs.ini"; "SkyrimCustom.ini" ]
           TargetPolicy = TargetPolicy.windows
           UnavailableCapabilities =
             [ { Name = "Launch"
@@ -72,6 +74,48 @@ type ExecutableEvidence =
 
 type ValidationProblem = { Path: string; Detail: string }
 
+[<RequireQualifiedAccess>]
+type ProtonAssociation =
+    | Manual
+    | Steam of steamRoot: string * library: string
+
+type ProtonSelection =
+    { AppId: uint32
+      Association: ProtonAssociation
+      CompatData: string
+      RuntimeDirectory: string
+      ToolId: string }
+
+type ContextSelection =
+    { Path: string
+      Proton: ProtonSelection option }
+
+type ContextFileEvidence =
+    { Path: string
+      Identity: FileIdentity
+      Sha256: string }
+
+type ProtonPath =
+    { Name: string
+      WindowsPath: string option
+      HostLocation: Location }
+
+type ProtonEvidence =
+    { Selection: ProtonSelection
+      PrefixPath: string
+      PrefixIdentity: FileIdentity
+      CompatDataIdentity: FileIdentity
+      RuntimeIdentity: FileIdentity
+      RuntimeName: string
+      RuntimeVersion: string
+      PrefixVersion: string option
+      Launcher: ContextFileEvidence
+      Metadata: ContextFileEvidence list
+      PerGameTool: string option
+      GlobalTool: string option
+      MappingProblem: string option
+      Paths: ProtonPath list }
+
 type InstallationEvidence =
     { DefinitionId: string
       DefinitionRevision: int
@@ -83,6 +127,7 @@ type InstallationEvidence =
       Executable: ExecutableEvidence option
       LauncherPath: string option
       Locations: UserLocations
+      Proton: ProtonEvidence option
       Problems: ValidationProblem list
       CheckedAt: DateTimeOffset
       Fingerprint: string }
@@ -96,6 +141,7 @@ type InstallationEvidence =
 type GameBinding =
     { Id: Guid
       Path: string
+      Proton: ProtonSelection option
       Evidence: InstallationEvidence
       NeedsCheck: bool
       Failure: string option }
@@ -117,7 +163,7 @@ type IGameContexts =
     abstract Read: workspace: Guid -> Task<Result<GameContextState, ContextError>>
 
     abstract Save:
-        workspace: Guid * expected: int64 * path: string ->
+        workspace: Guid * expected: int64 * selection: ContextSelection ->
             Task<Result<GameContextState, ContextError>>
 
     abstract Refresh:

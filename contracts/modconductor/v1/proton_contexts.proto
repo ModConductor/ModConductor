@@ -1,0 +1,69 @@
+syntax = "proto3";
+package modconductor.v1;
+option csharp_namespace = "ModConductor.Protocol.V1";
+import "modconductor/v1/steam_discovery.proto";
+
+service ProtonContextOperations {
+  rpc SearchProtonContexts(SearchProtonContextsRequest) returns (ProtonSearchResult);
+}
+message SearchProtonContextsRequest {
+  string definition_id = 1;
+  string game_path = 2;
+  repeated string additional_roots = 3;
+}
+message ProtonSteamAssociation { string steam_root = 1; string library = 2; }
+message ProtonSelectionInfo {
+  uint32 app_id = 1;
+  oneof association { bool manual = 2; ProtonSteamAssociation steam = 3; }
+  string compat_data = 4;
+  string runtime_directory = 5;
+  string tool_id = 6;
+}
+message ProtonContextFile { string path = 1; string native_identity = 2; string sha256 = 3; }
+message ProtonLocatedPath { string path = 1; bool exists = 2; }
+message ProtonUserPath {
+  string name = 1;
+  optional string windows_path = 2;
+  oneof result { ProtonLocatedPath located = 3; string unavailable_reason = 4; }
+}
+message ProtonContextEvidence {
+  ProtonSelectionInfo selection = 1;
+  string prefix_path = 2;
+  string prefix_identity = 3;
+  string compat_data_identity = 4;
+  string runtime_identity = 5;
+  string runtime_name = 6;
+  string runtime_version = 7;
+  optional string prefix_version = 8;
+  ProtonContextFile launcher = 9;
+  repeated ProtonContextFile metadata = 10;
+  optional string per_game_tool = 11;
+  optional string global_tool = 12;
+  repeated ProtonUserPath paths = 13;
+  optional string mapping_problem = 14;
+}
+message ProtonPrefixCandidate {
+  string candidate_id = 1;
+  string compat_data = 2;
+  string prefix_path = 3;
+  repeated SteamInstallationOrigin origins = 4;
+}
+message ProtonInstalledTool {
+  string tool_id = 1;
+  string name = 2;
+  string directory = 3;
+  ProtonContextFile source = 4;
+}
+message ProtonToolMapping {
+  optional string per_game = 1;
+  optional string global_default = 2;
+  ProtonContextFile source = 3;
+}
+message ProtonSearchProblem { string path = 1; string detail = 2; }
+message ProtonSearchResult {
+  repeated ProtonPrefixCandidate prefixes = 1;
+  repeated ProtonInstalledTool tools = 2;
+  repeated ProtonToolMapping mappings = 3;
+  repeated ProtonSearchProblem problems = 4;
+  bool limited = 5;
+}

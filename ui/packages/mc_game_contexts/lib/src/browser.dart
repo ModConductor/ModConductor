@@ -14,9 +14,11 @@ class GameContextBrowser extends StatefulWidget {
     required this.controller,
     required this.chooseDirectory,
     this.steamDiscovery,
+    this.protonContexts,
   });
   final GameContextController controller;
   final SteamDiscoveryClient? steamDiscovery;
+  final ProtonContextsClient? protonContexts;
   final GameDirectoryChooser chooseDirectory;
   @override
   State<GameContextBrowser> createState() => _GameContextBrowserState();
@@ -43,6 +45,7 @@ class _GameContextBrowserState extends State<GameContextBrowser> {
         client: client,
         chooseDirectory: widget.chooseDirectory,
         steamDiscovery: widget.steamDiscovery,
+        protonContexts: widget.protonContexts,
         onSaved: (result) => c.accept(result, client),
         onUnknownSave: () => c.unknownSave(client, initial.workspaceId),
       ),
@@ -63,7 +66,7 @@ class _GameContextBrowserState extends State<GameContextBrowser> {
   );
   String location(GameLocation value) => switch (value) {
     LocatedGameFolder(:final path, :final exists) =>
-      exists ? path : '$path\nFolder not found',
+      exists ? path : '$path\nNot found',
     UnavailableGameLocation(:final reason) => reason,
   };
   String checkedAt(DateTime time) =>
@@ -134,10 +137,13 @@ class _GameContextBrowserState extends State<GameContextBrowser> {
                     : binding.failure ??
                           (binding.needsCheck
                               ? 'Installation needs a check'
-                              : 'Installation files checked'),
+                              : evidence.proton == null
+                              ? 'Installation files checked'
+                              : 'Installation and Proton files checked'),
                 detail: binding.needsCheck || c.needsRead
                     ? 'Last checked: ${checkedAt(evidence.checkedAt)}'
-                    : evidence.platform == GameContextPlatform.proton
+                    : evidence.platform == GameContextPlatform.proton &&
+                          evidence.proton == null
                     ? 'Save and settings locations are unavailable.'
                     : 'Game version ${evidence.executable!.fileVersion}',
                 tone: binding.failure != null
@@ -194,14 +200,55 @@ class _GameContextBrowserState extends State<GameContextBrowser> {
                             'Launcher',
                             evidence.launcherPath ?? 'Not found or unavailable',
                           ),
-                          fact('Steam installation', 'Not verified'),
-                          fact('Steam build', 'Not available'),
-                          fact('Documents', location(evidence.documents)),
-                          fact('Saves', location(evidence.saves)),
                           fact(
-                            'Local AppData',
-                            location(evidence.localAppData),
+                            'Steam installation',
+                            evidence.proton?.selection.association
+                                    is SteamProtonAssociation
+                                ? 'AppID ${evidence.proton!.selection.appId} · Manifest checked'
+                                : 'Not verified',
                           ),
+                          fact('Steam build', 'Not available'),
+                          if (evidence.proton case final proton?) ...[
+                            fact('Proton', proton.runtimeName),
+                            fact('Proton version', proton.runtimeVersion),
+                            fact(
+                              'Proton data folder',
+                              proton.selection.compatData,
+                            ),
+                            fact('Prefix folder', proton.prefixPath),
+                            fact(
+                              'Proton folder',
+                              proton.selection.runtimeDirectory,
+                            ),
+                            fact(
+                              'Prefix version',
+                              proton.prefixVersion ?? 'Not available',
+                            ),
+                            if (proton.mappingProblem case final problem?)
+                              fact('Steam setting', problem)
+                            else ...[
+                              fact(
+                                'Steam game-specific setting',
+                                proton.perGameTool ?? 'Not set',
+                              ),
+                              fact(
+                                'Steam default',
+                                proton.globalTool ?? 'Not set',
+                              ),
+                            ],
+                            for (final path in proton.paths) ...[
+                              fact(path.name, location(path.location)),
+                              if (path.windowsPath case final windows?)
+                                fact('Windows path', windows),
+                            ],
+                          ] else ...[
+                            fact('Documents', location(evidence.documents)),
+                            fact('Saves', location(evidence.saves)),
+                            fact(
+                              'Local AppData',
+                              location(evidence.localAppData),
+                            ),
+                          ],
                           fact(
                             'Unavailable features',
                             state.definition.unavailableCapabilities

@@ -173,8 +173,14 @@ module GameContextFixtures =
                 |> ignore
 
             let empty = contexts.Read first |> wait |> result
-            let saved = contexts.Save(first, empty.Revision, game) |> wait |> result
-            let other = contexts.Save(second, 0L, game) |> wait |> result
+
+            let saved =
+                contexts.Save(first, empty.Revision, { Path = game; Proton = None })
+                |> wait
+                |> result
+
+            let other =
+                contexts.Save(second, 0L, { Path = game; Proton = None }) |> wait |> result
 
             writer.WriteBoolean(
                 "workspacesShareInstallation",
@@ -208,7 +214,7 @@ module GameContextFixtures =
                 contexts.Read first |> wait |> result = saved
             )
 
-            let stale = contexts.Save(first, 0L, game) |> wait
+            let stale = contexts.Save(first, 0L, { Path = game; Proton = None }) |> wait
 
             writer.WriteBoolean(
                 "staleSavePreservesBinding",
@@ -217,7 +223,13 @@ module GameContextFixtures =
             )
 
             let missing =
-                contexts.Save(first, saved.Revision, Path.Combine(game, "absent")) |> wait
+                contexts.Save(
+                    first,
+                    saved.Revision,
+                    { Path = Path.Combine(game, "absent")
+                      Proton = None }
+                )
+                |> wait
 
             writer.WriteBoolean(
                 "invalidReplacementPreservesBinding",

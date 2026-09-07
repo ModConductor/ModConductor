@@ -25,73 +25,77 @@ namespace ModConductor.Protocol.V1 {
       byte[] descriptorData = global::System.Convert.FromBase64String(
           string.Concat(
             "CiNtb2Rjb25kdWN0b3IvdjEvZ2FtZV9jb250ZXh0cy5wcm90bxIPbW9kY29u",
-            "ZHVjdG9yLnYxIi4KFlJlYWRHYW1lQ29udGV4dFJlcXVlc3QSFAoMd29ya3Nw",
-            "YWNlX2lkGAEgASgJIlcKFlNhdmVHYW1lQ29udGV4dFJlcXVlc3QSFAoMd29y",
-            "a3NwYWNlX2lkGAEgASgJEhkKEWV4cGVjdGVkX3JldmlzaW9uGAIgASgEEgwK",
-            "BHBhdGgYAyABKAkiTAoZUmVmcmVzaEdhbWVDb250ZXh0UmVxdWVzdBIUCgx3",
-            "b3Jrc3BhY2VfaWQYASABKAkSGQoRZXhwZWN0ZWRfcmV2aXNpb24YAiABKAQi",
-            "zAEKEkdhbWVEZWZpbml0aW9uSW5mbxIVCg1kZWZpbml0aW9uX2lkGAEgASgJ",
-            "EhAKCHJldmlzaW9uGAIgASgNEgwKBG5hbWUYAyABKAkSEgoKc3RvcmVmcm9u",
-            "dBgEIAEoCRIdChVkZWNsYXJlZF9zdGVhbV9hcHBfaWQYBSABKA0STAoYdW5h",
-            "dmFpbGFibGVfY2FwYWJpbGl0aWVzGAYgAygLMioubW9kY29uZHVjdG9yLnYx",
-            "LlVuYXZhaWxhYmxlR2FtZUNhcGFiaWxpdHkiOQoZVW5hdmFpbGFibGVHYW1l",
-            "Q2FwYWJpbGl0eRIMCgRuYW1lGAEgASgJEg4KBnJlYXNvbhgCIAEoCSJtCgxH",
-            "YW1lTG9jYXRpb24SNQoHbG9jYXRlZBgBIAEoCzIiLm1vZGNvbmR1Y3Rvci52",
-            "MS5Mb2NhdGVkR2FtZUZvbGRlckgAEhwKEnVuYXZhaWxhYmxlX3JlYXNvbhgC",
-            "IAEoCUgAQggKBnJlc3VsdCIxChFMb2NhdGVkR2FtZUZvbGRlchIMCgRwYXRo",
-            "GAEgASgJEg4KBmV4aXN0cxgCIAEoCCJ1ChZHYW1lRXhlY3V0YWJsZUV2aWRl",
-            "bmNlEgwKBHBhdGgYASABKAkSDgoGc2hhMjU2GAIgASgJEg4KBmxlbmd0aBgD",
-            "IAEoBBIUCgxmaWxlX3ZlcnNpb24YBCABKAkSFwoPcHJvZHVjdF92ZXJzaW9u",
-            "GAUgASgJIjUKFUdhbWVWYWxpZGF0aW9uUHJvYmxlbRIMCgRwYXRoGAEgASgJ",
-            "Eg4KBmRldGFpbBgCIAEoCSKsBAoYR2FtZUluc3RhbGxhdGlvbkV2aWRlbmNl",
-            "EjYKCHBsYXRmb3JtGAEgASgOMiQubW9kY29uZHVjdG9yLnYxLkdhbWVDb250",
-            "ZXh0UGxhdGZvcm0SEQoJcm9vdF9wYXRoGAIgASgJEhYKCWRhdGFfcGF0aBgD",
-            "IAEoCUgAiAEBEjsKCmV4ZWN1dGFibGUYBCABKAsyJy5tb2Rjb25kdWN0b3Iu",
-            "djEuR2FtZUV4ZWN1dGFibGVFdmlkZW5jZRIaCg1sYXVuY2hlcl9wYXRoGAUg",
-            "ASgJSAGIAQESMAoJZG9jdW1lbnRzGAYgASgLMh0ubW9kY29uZHVjdG9yLnYx",
-            "LkdhbWVMb2NhdGlvbhIsCgVzYXZlcxgHIAEoCzIdLm1vZGNvbmR1Y3Rvci52",
-            "MS5HYW1lTG9jYXRpb24SNQoObG9jYWxfYXBwX2RhdGEYCCABKAsyHS5tb2Rj",
-            "b25kdWN0b3IudjEuR2FtZUxvY2F0aW9uEjgKCHByb2JsZW1zGAkgAygLMiYu",
-            "bW9kY29uZHVjdG9yLnYxLkdhbWVWYWxpZGF0aW9uUHJvYmxlbRIaChJjaGVj",
-            "a2VkX2F0X3VuaXhfbXMYCiABKAMSEwoLZmluZ2VycHJpbnQYCyABKAkSFQoN",
-            "ZGVmaW5pdGlvbl9pZBgMIAEoCRIbChNkZWZpbml0aW9uX3JldmlzaW9uGA0g",
-            "ASgNQgwKCl9kYXRhX3BhdGhCEAoOX2xhdW5jaGVyX3BhdGgipwEKD0dhbWVC",
-            "aW5kaW5nSW5mbxISCgpiaW5kaW5nX2lkGAEgASgJEgwKBHBhdGgYAiABKAkS",
-            "OwoIZXZpZGVuY2UYAyABKAsyKS5tb2Rjb25kdWN0b3IudjEuR2FtZUluc3Rh",
-            "bGxhdGlvbkV2aWRlbmNlEhMKC25lZWRzX2NoZWNrGAQgASgIEhQKB2ZhaWx1",
-            "cmUYBSABKAlIAIgBAUIKCghfZmFpbHVyZSKmAQoQR2FtZUNvbnRleHRTdGF0",
-            "ZRIUCgx3b3Jrc3BhY2VfaWQYASABKAkSEAoIcmV2aXNpb24YAiABKAQSNwoK",
-            "ZGVmaW5pdGlvbhgDIAEoCzIjLm1vZGNvbmR1Y3Rvci52MS5HYW1lRGVmaW5p",
-            "dGlvbkluZm8SMQoHYmluZGluZxgEIAEoCzIgLm1vZGNvbmR1Y3Rvci52MS5H",
-            "YW1lQmluZGluZ0luZm8ilQEKEEdhbWVDb250ZXh0RmF1bHQSMwoEY29kZRgB",
-            "IAEoDjIlLm1vZGNvbmR1Y3Rvci52MS5HYW1lQ29udGV4dEZhdWx0Q29kZRIO",
-            "CgZkZXRhaWwYAiABKAkSPAoJY2FuZGlkYXRlGAMgASgLMikubW9kY29uZHVj",
-            "dG9yLnYxLkdhbWVJbnN0YWxsYXRpb25FdmlkZW5jZSKFAQoQR2FtZUNvbnRl",
-            "eHRSZXBseRIyCgVzdGF0ZRgBIAEoCzIhLm1vZGNvbmR1Y3Rvci52MS5HYW1l",
-            "Q29udGV4dFN0YXRlSAASMgoFZmF1bHQYAiABKAsyIS5tb2Rjb25kdWN0b3Iu",
-            "djEuR2FtZUNvbnRleHRGYXVsdEgAQgkKB291dGNvbWUqgQEKE0dhbWVDb250",
-            "ZXh0UGxhdGZvcm0SJQohR0FNRV9DT05URVhUX1BMQVRGT1JNX1VOU1BFQ0lG",
-            "SUVEEAASIQodR0FNRV9DT05URVhUX1BMQVRGT1JNX1dJTkRPV1MQARIgChxH",
-            "QU1FX0NPTlRFWFRfUExBVEZPUk1fUFJPVE9OEAIq+wEKFEdhbWVDb250ZXh0",
-            "RmF1bHRDb2RlEiIKHkdBTUVfQ09OVEVYVF9GQVVMVF9VTlNQRUNJRklFRBAA",
-            "EiAKHEdBTUVfQ09OVEVYVF9GQVVMVF9OT1RfRk9VTkQQARIlCiFHQU1FX0NP",
-            "TlRFWFRfRkFVTFRfU1RBTEVfUkVWSVNJT04QAhIsCihHQU1FX0NPTlRFWFRf",
-            "RkFVTFRfV09SS1NQQUNFX1VOQVZBSUxBQkxFEAMSKwonR0FNRV9DT05URVhU",
-            "X0ZBVUxUX0lOVkFMSURfSU5TVEFMTEFUSU9OEAQSGwoXR0FNRV9DT05URVhU",
-            "X0ZBVUxUX0JVU1kQBTK6AgoVR2FtZUNvbnRleHRPcGVyYXRpb25zEl0KD1Jl",
-            "YWRHYW1lQ29udGV4dBInLm1vZGNvbmR1Y3Rvci52MS5SZWFkR2FtZUNvbnRl",
-            "eHRSZXF1ZXN0GiEubW9kY29uZHVjdG9yLnYxLkdhbWVDb250ZXh0UmVwbHkS",
-            "XQoPU2F2ZUdhbWVDb250ZXh0EicubW9kY29uZHVjdG9yLnYxLlNhdmVHYW1l",
-            "Q29udGV4dFJlcXVlc3QaIS5tb2Rjb25kdWN0b3IudjEuR2FtZUNvbnRleHRS",
-            "ZXBseRJjChJSZWZyZXNoR2FtZUNvbnRleHQSKi5tb2Rjb25kdWN0b3IudjEu",
-            "UmVmcmVzaEdhbWVDb250ZXh0UmVxdWVzdBohLm1vZGNvbmR1Y3Rvci52MS5H",
-            "YW1lQ29udGV4dFJlcGx5QhuqAhhNb2RDb25kdWN0b3IuUHJvdG9jb2wuVjFi",
-            "BnByb3RvMw=="));
+            "ZHVjdG9yLnYxGiVtb2Rjb25kdWN0b3IvdjEvcHJvdG9uX2NvbnRleHRzLnBy",
+            "b3RvIi4KFlJlYWRHYW1lQ29udGV4dFJlcXVlc3QSFAoMd29ya3NwYWNlX2lk",
+            "GAEgASgJIo0BChZTYXZlR2FtZUNvbnRleHRSZXF1ZXN0EhQKDHdvcmtzcGFj",
+            "ZV9pZBgBIAEoCRIZChFleHBlY3RlZF9yZXZpc2lvbhgCIAEoBBIMCgRwYXRo",
+            "GAMgASgJEjQKBnByb3RvbhgEIAEoCzIkLm1vZGNvbmR1Y3Rvci52MS5Qcm90",
+            "b25TZWxlY3Rpb25JbmZvIkwKGVJlZnJlc2hHYW1lQ29udGV4dFJlcXVlc3QS",
+            "FAoMd29ya3NwYWNlX2lkGAEgASgJEhkKEWV4cGVjdGVkX3JldmlzaW9uGAIg",
+            "ASgEIswBChJHYW1lRGVmaW5pdGlvbkluZm8SFQoNZGVmaW5pdGlvbl9pZBgB",
+            "IAEoCRIQCghyZXZpc2lvbhgCIAEoDRIMCgRuYW1lGAMgASgJEhIKCnN0b3Jl",
+            "ZnJvbnQYBCABKAkSHQoVZGVjbGFyZWRfc3RlYW1fYXBwX2lkGAUgASgNEkwK",
+            "GHVuYXZhaWxhYmxlX2NhcGFiaWxpdGllcxgGIAMoCzIqLm1vZGNvbmR1Y3Rv",
+            "ci52MS5VbmF2YWlsYWJsZUdhbWVDYXBhYmlsaXR5IjkKGVVuYXZhaWxhYmxl",
+            "R2FtZUNhcGFiaWxpdHkSDAoEbmFtZRgBIAEoCRIOCgZyZWFzb24YAiABKAki",
+            "bQoMR2FtZUxvY2F0aW9uEjUKB2xvY2F0ZWQYASABKAsyIi5tb2Rjb25kdWN0",
+            "b3IudjEuTG9jYXRlZEdhbWVGb2xkZXJIABIcChJ1bmF2YWlsYWJsZV9yZWFz",
+            "b24YAiABKAlIAEIICgZyZXN1bHQiMQoRTG9jYXRlZEdhbWVGb2xkZXISDAoE",
+            "cGF0aBgBIAEoCRIOCgZleGlzdHMYAiABKAgidQoWR2FtZUV4ZWN1dGFibGVF",
+            "dmlkZW5jZRIMCgRwYXRoGAEgASgJEg4KBnNoYTI1NhgCIAEoCRIOCgZsZW5n",
+            "dGgYAyABKAQSFAoMZmlsZV92ZXJzaW9uGAQgASgJEhcKD3Byb2R1Y3RfdmVy",
+            "c2lvbhgFIAEoCSI1ChVHYW1lVmFsaWRhdGlvblByb2JsZW0SDAoEcGF0aBgB",
+            "IAEoCRIOCgZkZXRhaWwYAiABKAki5AQKGEdhbWVJbnN0YWxsYXRpb25Fdmlk",
+            "ZW5jZRI2CghwbGF0Zm9ybRgBIAEoDjIkLm1vZGNvbmR1Y3Rvci52MS5HYW1l",
+            "Q29udGV4dFBsYXRmb3JtEhEKCXJvb3RfcGF0aBgCIAEoCRIWCglkYXRhX3Bh",
+            "dGgYAyABKAlIAIgBARI7CgpleGVjdXRhYmxlGAQgASgLMicubW9kY29uZHVj",
+            "dG9yLnYxLkdhbWVFeGVjdXRhYmxlRXZpZGVuY2USGgoNbGF1bmNoZXJfcGF0",
+            "aBgFIAEoCUgBiAEBEjAKCWRvY3VtZW50cxgGIAEoCzIdLm1vZGNvbmR1Y3Rv",
+            "ci52MS5HYW1lTG9jYXRpb24SLAoFc2F2ZXMYByABKAsyHS5tb2Rjb25kdWN0",
+            "b3IudjEuR2FtZUxvY2F0aW9uEjUKDmxvY2FsX2FwcF9kYXRhGAggASgLMh0u",
+            "bW9kY29uZHVjdG9yLnYxLkdhbWVMb2NhdGlvbhI4Cghwcm9ibGVtcxgJIAMo",
+            "CzImLm1vZGNvbmR1Y3Rvci52MS5HYW1lVmFsaWRhdGlvblByb2JsZW0SGgoS",
+            "Y2hlY2tlZF9hdF91bml4X21zGAogASgDEhMKC2ZpbmdlcnByaW50GAsgASgJ",
+            "EhUKDWRlZmluaXRpb25faWQYDCABKAkSGwoTZGVmaW5pdGlvbl9yZXZpc2lv",
+            "bhgNIAEoDRI2CgZwcm90b24YDiABKAsyJi5tb2Rjb25kdWN0b3IudjEuUHJv",
+            "dG9uQ29udGV4dEV2aWRlbmNlQgwKCl9kYXRhX3BhdGhCEAoOX2xhdW5jaGVy",
+            "X3BhdGgi3QEKD0dhbWVCaW5kaW5nSW5mbxISCgpiaW5kaW5nX2lkGAEgASgJ",
+            "EgwKBHBhdGgYAiABKAkSOwoIZXZpZGVuY2UYAyABKAsyKS5tb2Rjb25kdWN0",
+            "b3IudjEuR2FtZUluc3RhbGxhdGlvbkV2aWRlbmNlEhMKC25lZWRzX2NoZWNr",
+            "GAQgASgIEhQKB2ZhaWx1cmUYBSABKAlIAIgBARI0CgZwcm90b24YBiABKAsy",
+            "JC5tb2Rjb25kdWN0b3IudjEuUHJvdG9uU2VsZWN0aW9uSW5mb0IKCghfZmFp",
+            "bHVyZSKmAQoQR2FtZUNvbnRleHRTdGF0ZRIUCgx3b3Jrc3BhY2VfaWQYASAB",
+            "KAkSEAoIcmV2aXNpb24YAiABKAQSNwoKZGVmaW5pdGlvbhgDIAEoCzIjLm1v",
+            "ZGNvbmR1Y3Rvci52MS5HYW1lRGVmaW5pdGlvbkluZm8SMQoHYmluZGluZxgE",
+            "IAEoCzIgLm1vZGNvbmR1Y3Rvci52MS5HYW1lQmluZGluZ0luZm8ilQEKEEdh",
+            "bWVDb250ZXh0RmF1bHQSMwoEY29kZRgBIAEoDjIlLm1vZGNvbmR1Y3Rvci52",
+            "MS5HYW1lQ29udGV4dEZhdWx0Q29kZRIOCgZkZXRhaWwYAiABKAkSPAoJY2Fu",
+            "ZGlkYXRlGAMgASgLMikubW9kY29uZHVjdG9yLnYxLkdhbWVJbnN0YWxsYXRp",
+            "b25FdmlkZW5jZSKFAQoQR2FtZUNvbnRleHRSZXBseRIyCgVzdGF0ZRgBIAEo",
+            "CzIhLm1vZGNvbmR1Y3Rvci52MS5HYW1lQ29udGV4dFN0YXRlSAASMgoFZmF1",
+            "bHQYAiABKAsyIS5tb2Rjb25kdWN0b3IudjEuR2FtZUNvbnRleHRGYXVsdEgA",
+            "QgkKB291dGNvbWUqgQEKE0dhbWVDb250ZXh0UGxhdGZvcm0SJQohR0FNRV9D",
+            "T05URVhUX1BMQVRGT1JNX1VOU1BFQ0lGSUVEEAASIQodR0FNRV9DT05URVhU",
+            "X1BMQVRGT1JNX1dJTkRPV1MQARIgChxHQU1FX0NPTlRFWFRfUExBVEZPUk1f",
+            "UFJPVE9OEAIq+wEKFEdhbWVDb250ZXh0RmF1bHRDb2RlEiIKHkdBTUVfQ09O",
+            "VEVYVF9GQVVMVF9VTlNQRUNJRklFRBAAEiAKHEdBTUVfQ09OVEVYVF9GQVVM",
+            "VF9OT1RfRk9VTkQQARIlCiFHQU1FX0NPTlRFWFRfRkFVTFRfU1RBTEVfUkVW",
+            "SVNJT04QAhIsCihHQU1FX0NPTlRFWFRfRkFVTFRfV09SS1NQQUNFX1VOQVZB",
+            "SUxBQkxFEAMSKwonR0FNRV9DT05URVhUX0ZBVUxUX0lOVkFMSURfSU5TVEFM",
+            "TEFUSU9OEAQSGwoXR0FNRV9DT05URVhUX0ZBVUxUX0JVU1kQBTK6AgoVR2Ft",
+            "ZUNvbnRleHRPcGVyYXRpb25zEl0KD1JlYWRHYW1lQ29udGV4dBInLm1vZGNv",
+            "bmR1Y3Rvci52MS5SZWFkR2FtZUNvbnRleHRSZXF1ZXN0GiEubW9kY29uZHVj",
+            "dG9yLnYxLkdhbWVDb250ZXh0UmVwbHkSXQoPU2F2ZUdhbWVDb250ZXh0Eicu",
+            "bW9kY29uZHVjdG9yLnYxLlNhdmVHYW1lQ29udGV4dFJlcXVlc3QaIS5tb2Rj",
+            "b25kdWN0b3IudjEuR2FtZUNvbnRleHRSZXBseRJjChJSZWZyZXNoR2FtZUNv",
+            "bnRleHQSKi5tb2Rjb25kdWN0b3IudjEuUmVmcmVzaEdhbWVDb250ZXh0UmVx",
+            "dWVzdBohLm1vZGNvbmR1Y3Rvci52MS5HYW1lQ29udGV4dFJlcGx5QhuqAhhN",
+            "b2RDb25kdWN0b3IuUHJvdG9jb2wuVjFiBnByb3RvMw=="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
-          new pbr::FileDescriptor[] { },
+          new pbr::FileDescriptor[] { global::ModConductor.Protocol.V1.ProtonContextsReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(new[] {typeof(global::ModConductor.Protocol.V1.GameContextPlatform), typeof(global::ModConductor.Protocol.V1.GameContextFaultCode), }, null, new pbr::GeneratedClrTypeInfo[] {
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ReadGameContextRequest), global::ModConductor.Protocol.V1.ReadGameContextRequest.Parser, new[]{ "WorkspaceId" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.SaveGameContextRequest), global::ModConductor.Protocol.V1.SaveGameContextRequest.Parser, new[]{ "WorkspaceId", "ExpectedRevision", "Path" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.SaveGameContextRequest), global::ModConductor.Protocol.V1.SaveGameContextRequest.Parser, new[]{ "WorkspaceId", "ExpectedRevision", "Path", "Proton" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.RefreshGameContextRequest), global::ModConductor.Protocol.V1.RefreshGameContextRequest.Parser, new[]{ "WorkspaceId", "ExpectedRevision" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.GameDefinitionInfo), global::ModConductor.Protocol.V1.GameDefinitionInfo.Parser, new[]{ "DefinitionId", "Revision", "Name", "Storefront", "DeclaredSteamAppId", "UnavailableCapabilities" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.UnavailableGameCapability), global::ModConductor.Protocol.V1.UnavailableGameCapability.Parser, new[]{ "Name", "Reason" }, null, null, null, null),
@@ -99,8 +103,8 @@ namespace ModConductor.Protocol.V1 {
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.LocatedGameFolder), global::ModConductor.Protocol.V1.LocatedGameFolder.Parser, new[]{ "Path", "Exists" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.GameExecutableEvidence), global::ModConductor.Protocol.V1.GameExecutableEvidence.Parser, new[]{ "Path", "Sha256", "Length", "FileVersion", "ProductVersion" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.GameValidationProblem), global::ModConductor.Protocol.V1.GameValidationProblem.Parser, new[]{ "Path", "Detail" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.GameInstallationEvidence), global::ModConductor.Protocol.V1.GameInstallationEvidence.Parser, new[]{ "Platform", "RootPath", "DataPath", "Executable", "LauncherPath", "Documents", "Saves", "LocalAppData", "Problems", "CheckedAtUnixMs", "Fingerprint", "DefinitionId", "DefinitionRevision" }, new[]{ "DataPath", "LauncherPath" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.GameBindingInfo), global::ModConductor.Protocol.V1.GameBindingInfo.Parser, new[]{ "BindingId", "Path", "Evidence", "NeedsCheck", "Failure" }, new[]{ "Failure" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.GameInstallationEvidence), global::ModConductor.Protocol.V1.GameInstallationEvidence.Parser, new[]{ "Platform", "RootPath", "DataPath", "Executable", "LauncherPath", "Documents", "Saves", "LocalAppData", "Problems", "CheckedAtUnixMs", "Fingerprint", "DefinitionId", "DefinitionRevision", "Proton" }, new[]{ "DataPath", "LauncherPath" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.GameBindingInfo), global::ModConductor.Protocol.V1.GameBindingInfo.Parser, new[]{ "BindingId", "Path", "Evidence", "NeedsCheck", "Failure", "Proton" }, new[]{ "Failure" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.GameContextState), global::ModConductor.Protocol.V1.GameContextState.Parser, new[]{ "WorkspaceId", "Revision", "Definition", "Binding" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.GameContextFault), global::ModConductor.Protocol.V1.GameContextFault.Parser, new[]{ "Code", "Detail", "Candidate" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.GameContextReply), global::ModConductor.Protocol.V1.GameContextReply.Parser, new[]{ "State", "Fault" }, new[]{ "Outcome" }, null, null, null)
@@ -364,6 +368,7 @@ namespace ModConductor.Protocol.V1 {
       workspaceId_ = other.workspaceId_;
       expectedRevision_ = other.expectedRevision_;
       path_ = other.path_;
+      proton_ = other.proton_ != null ? other.proton_.Clone() : null;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -409,6 +414,18 @@ namespace ModConductor.Protocol.V1 {
       }
     }
 
+    /// <summary>Field number for the "proton" field.</summary>
+    public const int ProtonFieldNumber = 4;
+    private global::ModConductor.Protocol.V1.ProtonSelectionInfo proton_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public global::ModConductor.Protocol.V1.ProtonSelectionInfo Proton {
+      get { return proton_; }
+      set {
+        proton_ = value;
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -427,6 +444,7 @@ namespace ModConductor.Protocol.V1 {
       if (WorkspaceId != other.WorkspaceId) return false;
       if (ExpectedRevision != other.ExpectedRevision) return false;
       if (Path != other.Path) return false;
+      if (!object.Equals(Proton, other.Proton)) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -437,6 +455,7 @@ namespace ModConductor.Protocol.V1 {
       if (WorkspaceId.Length != 0) hash ^= WorkspaceId.GetHashCode();
       if (ExpectedRevision != 0UL) hash ^= ExpectedRevision.GetHashCode();
       if (Path.Length != 0) hash ^= Path.GetHashCode();
+      if (proton_ != null) hash ^= Proton.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -467,6 +486,10 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(26);
         output.WriteString(Path);
       }
+      if (proton_ != null) {
+        output.WriteRawTag(34);
+        output.WriteMessage(Proton);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -489,6 +512,10 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(26);
         output.WriteString(Path);
       }
+      if (proton_ != null) {
+        output.WriteRawTag(34);
+        output.WriteMessage(Proton);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -507,6 +534,9 @@ namespace ModConductor.Protocol.V1 {
       }
       if (Path.Length != 0) {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(Path);
+      }
+      if (proton_ != null) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(Proton);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -528,6 +558,12 @@ namespace ModConductor.Protocol.V1 {
       }
       if (other.Path.Length != 0) {
         Path = other.Path;
+      }
+      if (other.proton_ != null) {
+        if (proton_ == null) {
+          Proton = new global::ModConductor.Protocol.V1.ProtonSelectionInfo();
+        }
+        Proton.MergeFrom(other.Proton);
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -560,6 +596,13 @@ namespace ModConductor.Protocol.V1 {
             Path = input.ReadString();
             break;
           }
+          case 34: {
+            if (proton_ == null) {
+              Proton = new global::ModConductor.Protocol.V1.ProtonSelectionInfo();
+            }
+            input.ReadMessage(Proton);
+            break;
+          }
         }
       }
     #endif
@@ -589,6 +632,13 @@ namespace ModConductor.Protocol.V1 {
           }
           case 26: {
             Path = input.ReadString();
+            break;
+          }
+          case 34: {
+            if (proton_ == null) {
+              Proton = new global::ModConductor.Protocol.V1.ProtonSelectionInfo();
+            }
+            input.ReadMessage(Proton);
             break;
           }
         }
@@ -2599,6 +2649,7 @@ namespace ModConductor.Protocol.V1 {
       fingerprint_ = other.fingerprint_;
       definitionId_ = other.definitionId_;
       definitionRevision_ = other.definitionRevision_;
+      proton_ = other.proton_ != null ? other.proton_.Clone() : null;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -2791,6 +2842,18 @@ namespace ModConductor.Protocol.V1 {
       }
     }
 
+    /// <summary>Field number for the "proton" field.</summary>
+    public const int ProtonFieldNumber = 14;
+    private global::ModConductor.Protocol.V1.ProtonContextEvidence proton_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public global::ModConductor.Protocol.V1.ProtonContextEvidence Proton {
+      get { return proton_; }
+      set {
+        proton_ = value;
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -2819,6 +2882,7 @@ namespace ModConductor.Protocol.V1 {
       if (Fingerprint != other.Fingerprint) return false;
       if (DefinitionId != other.DefinitionId) return false;
       if (DefinitionRevision != other.DefinitionRevision) return false;
+      if (!object.Equals(Proton, other.Proton)) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -2839,6 +2903,7 @@ namespace ModConductor.Protocol.V1 {
       if (Fingerprint.Length != 0) hash ^= Fingerprint.GetHashCode();
       if (DefinitionId.Length != 0) hash ^= DefinitionId.GetHashCode();
       if (DefinitionRevision != 0) hash ^= DefinitionRevision.GetHashCode();
+      if (proton_ != null) hash ^= Proton.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -2906,6 +2971,10 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(104);
         output.WriteUInt32(DefinitionRevision);
       }
+      if (proton_ != null) {
+        output.WriteRawTag(114);
+        output.WriteMessage(Proton);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -2965,6 +3034,10 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(104);
         output.WriteUInt32(DefinitionRevision);
       }
+      if (proton_ != null) {
+        output.WriteRawTag(114);
+        output.WriteMessage(Proton);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -3011,6 +3084,9 @@ namespace ModConductor.Protocol.V1 {
       }
       if (DefinitionRevision != 0) {
         size += 1 + pb::CodedOutputStream.ComputeUInt32Size(DefinitionRevision);
+      }
+      if (proton_ != null) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(Proton);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -3072,6 +3148,12 @@ namespace ModConductor.Protocol.V1 {
       }
       if (other.DefinitionRevision != 0) {
         DefinitionRevision = other.DefinitionRevision;
+      }
+      if (other.proton_ != null) {
+        if (proton_ == null) {
+          Proton = new global::ModConductor.Protocol.V1.ProtonContextEvidence();
+        }
+        Proton.MergeFrom(other.Proton);
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -3154,6 +3236,13 @@ namespace ModConductor.Protocol.V1 {
           }
           case 104: {
             DefinitionRevision = input.ReadUInt32();
+            break;
+          }
+          case 114: {
+            if (proton_ == null) {
+              Proton = new global::ModConductor.Protocol.V1.ProtonContextEvidence();
+            }
+            input.ReadMessage(Proton);
             break;
           }
         }
@@ -3239,6 +3328,13 @@ namespace ModConductor.Protocol.V1 {
             DefinitionRevision = input.ReadUInt32();
             break;
           }
+          case 114: {
+            if (proton_ == null) {
+              Proton = new global::ModConductor.Protocol.V1.ProtonContextEvidence();
+            }
+            input.ReadMessage(Proton);
+            break;
+          }
         }
       }
     }
@@ -3286,6 +3382,7 @@ namespace ModConductor.Protocol.V1 {
       evidence_ = other.evidence_ != null ? other.evidence_.Clone() : null;
       needsCheck_ = other.needsCheck_;
       failure_ = other.failure_;
+      proton_ = other.proton_ != null ? other.proton_.Clone() : null;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -3369,6 +3466,18 @@ namespace ModConductor.Protocol.V1 {
       failure_ = null;
     }
 
+    /// <summary>Field number for the "proton" field.</summary>
+    public const int ProtonFieldNumber = 6;
+    private global::ModConductor.Protocol.V1.ProtonSelectionInfo proton_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public global::ModConductor.Protocol.V1.ProtonSelectionInfo Proton {
+      get { return proton_; }
+      set {
+        proton_ = value;
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -3389,6 +3498,7 @@ namespace ModConductor.Protocol.V1 {
       if (!object.Equals(Evidence, other.Evidence)) return false;
       if (NeedsCheck != other.NeedsCheck) return false;
       if (Failure != other.Failure) return false;
+      if (!object.Equals(Proton, other.Proton)) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -3401,6 +3511,7 @@ namespace ModConductor.Protocol.V1 {
       if (evidence_ != null) hash ^= Evidence.GetHashCode();
       if (NeedsCheck != false) hash ^= NeedsCheck.GetHashCode();
       if (HasFailure) hash ^= Failure.GetHashCode();
+      if (proton_ != null) hash ^= Proton.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -3439,6 +3550,10 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(42);
         output.WriteString(Failure);
       }
+      if (proton_ != null) {
+        output.WriteRawTag(50);
+        output.WriteMessage(Proton);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -3469,6 +3584,10 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(42);
         output.WriteString(Failure);
       }
+      if (proton_ != null) {
+        output.WriteRawTag(50);
+        output.WriteMessage(Proton);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -3493,6 +3612,9 @@ namespace ModConductor.Protocol.V1 {
       }
       if (HasFailure) {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(Failure);
+      }
+      if (proton_ != null) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(Proton);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -3523,6 +3645,12 @@ namespace ModConductor.Protocol.V1 {
       }
       if (other.HasFailure) {
         Failure = other.Failure;
+      }
+      if (other.proton_ != null) {
+        if (proton_ == null) {
+          Proton = new global::ModConductor.Protocol.V1.ProtonSelectionInfo();
+        }
+        Proton.MergeFrom(other.Proton);
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -3566,6 +3694,13 @@ namespace ModConductor.Protocol.V1 {
             Failure = input.ReadString();
             break;
           }
+          case 50: {
+            if (proton_ == null) {
+              Proton = new global::ModConductor.Protocol.V1.ProtonSelectionInfo();
+            }
+            input.ReadMessage(Proton);
+            break;
+          }
         }
       }
     #endif
@@ -3606,6 +3741,13 @@ namespace ModConductor.Protocol.V1 {
           }
           case 42: {
             Failure = input.ReadString();
+            break;
+          }
+          case 50: {
+            if (proton_ == null) {
+              Proton = new global::ModConductor.Protocol.V1.ProtonSelectionInfo();
+            }
+            input.ReadMessage(Proton);
             break;
           }
         }

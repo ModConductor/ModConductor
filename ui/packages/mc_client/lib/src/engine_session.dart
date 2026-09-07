@@ -1,3 +1,5 @@
+import 'proton_context_client.dart';
+
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -22,6 +24,8 @@ class EngineSession {
   ClientChannel? _channel;
   OperationsClient? _operations;
   OperationsClient get operations => _operations!;
+  ProtonContextsClient? _protonContexts;
+  ProtonContextsClient get protonContexts => _protonContexts!;
   SteamDiscoveryClient? _steamDiscovery;
   SteamDiscoveryClient get steamDiscovery => _steamDiscovery!;
   GameContextsClient? _gameContexts;
@@ -77,6 +81,7 @@ class EngineSession {
     _modOrganization = ModOrganizationClient(channel, options);
     _gameContexts = GrpcGameContextsClient(channel, options);
     _steamDiscovery = GrpcSteamDiscoveryClient(channel, options);
+    _protonContexts = GrpcProtonContextsClient(channel, options);
   }
 
   Future<ConnectionReport> check() => operations.check();

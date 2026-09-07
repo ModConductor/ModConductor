@@ -1,3 +1,5 @@
+import 'proton_context_models.dart';
+
 class UnavailableGameCapability {
   const UnavailableGameCapability(this.name, this.reason);
   final String name;
@@ -74,6 +76,7 @@ class GameInstallationEvidence {
     required this.problems,
     required this.checkedAt,
     required this.fingerprint,
+    this.proton,
   });
   final String definitionId;
   final int definitionRevision;
@@ -88,6 +91,7 @@ class GameInstallationEvidence {
   final List<GameValidationProblem> problems;
   final DateTime checkedAt;
   final String fingerprint;
+  final ProtonEvidence? proton;
 }
 
 class GameBindingInfo {
@@ -97,12 +101,14 @@ class GameBindingInfo {
     required this.evidence,
     required this.needsCheck,
     this.failure,
+    this.proton,
   });
   final String id;
   final String path;
   final GameInstallationEvidence evidence;
   final bool needsCheck;
   final String? failure;
+  final ProtonSelection? proton;
 }
 
 class GameContextState {

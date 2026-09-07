@@ -68,6 +68,11 @@ module internal GameContextEncoding =
             text "productVersion" executable.ProductVersion
             w.WriteEndObject()
 
+        e.Proton
+        |> Option.iter (fun p ->
+            w.WritePropertyName("proton")
+            ProtonEncoding.write w p)
+
         location "documents" e.Locations.Documents
         location "saves" e.Locations.Saves
         location "localAppData" e.Locations.LocalAppData
@@ -136,6 +141,7 @@ module internal GameContextEncoding =
                   Sha256 = text e "sha256"
                   FileVersion = text e "fileVersion"
                   ProductVersion = text e "productVersion" })
+          Proton = optional root "proton" ProtonEncoding.read
           Locations =
             { Documents = location "documents"
               Saves = location "saves"

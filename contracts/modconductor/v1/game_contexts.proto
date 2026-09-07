@@ -1,6 +1,7 @@
 syntax = "proto3";
 package modconductor.v1;
 option csharp_namespace = "ModConductor.Protocol.V1";
+import "modconductor/v1/proton_contexts.proto";
 
 service GameContextOperations {
   rpc ReadGameContext(ReadGameContextRequest) returns (GameContextReply);
@@ -8,7 +9,7 @@ service GameContextOperations {
   rpc RefreshGameContext(RefreshGameContextRequest) returns (GameContextReply);
 }
 message ReadGameContextRequest { string workspace_id = 1; }
-message SaveGameContextRequest { string workspace_id = 1; uint64 expected_revision = 2; string path = 3; }
+message SaveGameContextRequest { string workspace_id = 1; uint64 expected_revision = 2; string path = 3; ProtonSelectionInfo proton = 4; }
 message RefreshGameContextRequest { string workspace_id = 1; uint64 expected_revision = 2; }
 message GameDefinitionInfo {
   string definition_id = 1;
@@ -40,6 +41,7 @@ message GameInstallationEvidence {
   string fingerprint = 11;
   string definition_id = 12;
   uint32 definition_revision = 13;
+  ProtonContextEvidence proton = 14;
 }
 message GameBindingInfo {
   string binding_id = 1;
@@ -47,6 +49,7 @@ message GameBindingInfo {
   GameInstallationEvidence evidence = 3;
   bool needs_check = 4;
   optional string failure = 5;
+  ProtonSelectionInfo proton = 6;
 }
 message GameContextState {
   string workspace_id = 1;

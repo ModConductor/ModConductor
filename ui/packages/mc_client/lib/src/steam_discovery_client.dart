@@ -32,7 +32,7 @@ SteamDirectory _directory(wire.SteamDirectory d) => SteamDirectory(
   d.canonicalPath,
   d.hasNativeIdentity() ? d.nativeIdentity : null,
 );
-SteamInstallationOrigin _origin(wire.SteamInstallationOrigin o) {
+SteamInstallationOrigin decodeSteamOrigin(wire.SteamInstallationOrigin o) {
   final m = o.manifest;
   return SteamInstallationOrigin(
     root: _root(o.root),
@@ -87,7 +87,7 @@ SteamSearchResult _result(wire.SteamSearchResult r) => SteamSearchResult(
       (c) => SteamInstallationCandidate(
         c.candidateId,
         _directory(c.directory),
-        List.unmodifiable(c.origins.map(_origin)),
+        List.unmodifiable(c.origins.map(decodeSteamOrigin)),
       ),
     ),
   ),

@@ -69,7 +69,8 @@ module internal Sqlite =
         | 4L
         | 5L
         | 6L
-        | 7L -> ()
+        | 7L
+        | 8L -> ()
         | _ -> raise (InvalidOperationException("The state database uses an unsupported version."))
 
         if number connection transaction "PRAGMA user_version" [] = 3L then
@@ -86,6 +87,14 @@ module internal Sqlite =
                 connection
                 transaction
                 "CREATE TABLE game_contexts(workspace_id TEXT PRIMARY KEY REFERENCES workspaces(id),id TEXT NOT NULL,path TEXT NOT NULL,revision INTEGER NOT NULL,evidence TEXT NOT NULL,checked_owner TEXT NOT NULL,failure TEXT); PRAGMA user_version=7;"
+                []
+
+
+        if number connection transaction "PRAGMA user_version" [] = 7L then
+            execute
+                connection
+                transaction
+                "ALTER TABLE game_contexts ADD COLUMN proton_selection TEXT; PRAGMA user_version=8;"
                 []
 
         beforeCommit ()

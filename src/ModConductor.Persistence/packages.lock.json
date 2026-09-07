@@ -99,6 +99,21 @@
           "FSharp.Core": "[10.1.400, )"
         }
       },
+      "modconductor.protoncontexts": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )",
+          "ModConductor.GameContexts": "[1.0.0, )",
+          "ModConductor.SteamDiscovery": "[1.0.0, )"
+        }
+      },
+      "modconductor.steamdiscovery": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )",
+          "ModConductor.Platform": "[1.0.0, )"
+        }
+      },
       "modconductor.workspaces": {
         "type": "Project",
         "dependencies": {

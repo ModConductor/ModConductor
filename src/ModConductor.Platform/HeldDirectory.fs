@@ -106,6 +106,38 @@ module private DirectoryNames =
                 raise (PlatformNotSupportedException())
         }
 
+module private DirectoryLinks =
+    [<DllImport("libc", SetLastError = true)>]
+    extern nativeint readlinkat(int directory, string name, [<Out>] byte[] target, unativeint size)
+
+    let read (handle: SafeFileHandle) (name: string) =
+        if not (OperatingSystem.IsLinux()) then
+            raise (PlatformNotSupportedException())
+
+        if
+            name = ""
+            || name = "."
+            || name = ".."
+            || name.Contains('/')
+            || name.Contains('\000')
+        then
+            invalidArg (nameof name) "Select one directory entry."
+
+        let bytes = Array.zeroCreate<byte> 4097
+
+        let count =
+            readlinkat (int (handle.DangerousGetHandle()), name, bytes, unativeint bytes.Length)
+
+        if count < 0n then
+            match Marshal.GetLastPInvokeError() with
+            | 2
+            | 22 -> None
+            | _ -> raise (IOException "Reading the directory link failed.")
+        elif count >= nativeint bytes.Length then
+            raise (IOException "The directory link is too long.")
+        else
+            Some(System.Text.UTF8Encoding(false, true).GetString(bytes, 0, int count))
+
 /// A held directory is a file-operation boundary, not authority over unregistered children.
 type HeldDirectory private (handle: SafeFileHandle) =
     let identity kind child =
@@ -115,6 +147,7 @@ type HeldDirectory private (handle: SafeFileHandle) =
 
     member _.Identity = identity EntryKind.Directory handle
     member _.Names = DirectoryNames.enumerate handle
+    member _.ReadLink(name) = DirectoryLinks.read handle name
 
     member _.Directory(name, expected: FileIdentity option) =
         let child = RelativeFile.openChild handle name true false

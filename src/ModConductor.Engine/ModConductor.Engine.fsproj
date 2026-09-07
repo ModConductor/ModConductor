@@ -19,8 +19,10 @@
     <Compile Include="ProfileModService.fs" />
     <Compile Include="OrganizationWire.fs" />
     <Compile Include="ModOrganizationService.fs" />
+    <Compile Include="ProtonWire.fs" />
     <Compile Include="GameContextService.fs" />
     <Compile Include="SteamDiscoveryService.fs" />
+    <Compile Include="ProtonContextService.fs" />
     <Compile Include="Program.fs" />
     <ProjectReference Include="../ModConductor.SteamDiscovery/ModConductor.SteamDiscovery.fsproj" />
     <ProjectReference Include="../ModConductor.Persistence/ModConductor.Persistence.fsproj" />
