@@ -289,6 +289,105 @@ void main() {
   }
 
   testWidgets(
+    'multi selection keeps stable IDs across modifiers and deltas while checkbox Space changes only its row',
+    (tester) async {
+      final rows = model(), focus = FocusNode(), checkFocus = FocusNode();
+      addTearDown(rows.dispose);
+      addTearDown(focus.dispose);
+      addTearDown(checkFocus.dispose);
+      rows.apply(upserts: [for (var id = 1; id <= 80; id++) item(id)]);
+      var enabled = false;
+      Set<int>? moved;
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: mcTheme(Brightness.light),
+          home: Scaffold(
+            body: StatefulBuilder(
+              builder: (context, update) => McCollection<int, Item>(
+                model: rows,
+                title: 'Mods',
+                filterLabel: 'Filter mods',
+                countLabel: '80 mods',
+                focusNode: focus,
+                multiSelect: true,
+                onMoveUp: () => moved = rows.selectedIds.toSet(),
+                columns: [
+                  McColumn(
+                    'Enabled',
+                    (row) => row.id == 3
+                        ? Checkbox(
+                            key: const ValueKey('enabled'),
+                            focusNode: checkFocus,
+                            value: enabled,
+                            onChanged: (value) =>
+                                update(() => enabled = value!),
+                          )
+                        : const SizedBox.shrink(),
+                    width: 80,
+                    interactive: true,
+                  ),
+                  McColumn('Name', (row) => Text(row.name)),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey<int>(1)));
+      await tester.pump();
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await tester.tap(find.byKey(const ValueKey<int>(3)));
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await tester.pump();
+      expect(rows.selectedIds, {1, 3});
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.tap(find.byKey(const ValueKey<int>(5)));
+      await tester.pump();
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.pump();
+      expect(rows.selectedIds, {3, 4, 5, 6});
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.space);
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await tester.pump();
+      expect(rows.selectedIds, {3, 4, 5});
+      expect(moved, {3, 4, 5});
+      expect(rows.focusedId, 6);
+      checkFocus.requestFocus();
+      await tester.pump();
+      await tester.sendKeyEvent(LogicalKeyboardKey.space);
+      await tester.pump();
+      expect(enabled, isTrue);
+      expect(rows.selectedIds, {3, 4, 5});
+      focus.requestFocus();
+      rows.apply(upserts: [item(81)]);
+      rows.sort((a, b) => b.id.compareTo(a.id));
+      await tester.pumpAndSettle();
+      expect(rows.focusedId, 6);
+      expect(rows.selectedIds, {3, 4, 5});
+      expect(
+        tester
+            .getRect(find.byKey(const ValueKey<int>(6)))
+            .overlaps(tester.getRect(find.byType(ListView))),
+        isTrue,
+      );
+      rows.filter('Item 4');
+      await tester.pump();
+      expect(rows.selectedIds, {3, 4, 5});
+      rows.apply(evicted: [3]);
+      expect(rows.selectedIds, {3, 4, 5});
+      rows.apply(upserts: [item(3)]);
+      rows.filter('');
+      await tester.pumpAndSettle();
+      expect(rows.selectedIds, {3, 4, 5});
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
     'tree arrows expand and return to the parent without losing the selected hidden child',
     (tester) async {
       final rows = model();

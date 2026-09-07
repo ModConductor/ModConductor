@@ -42,6 +42,12 @@ type NativeObservationSetup() =
                 RedirectStandardError = true
             )
 
+        match Environment.GetEnvironmentVariable "MC_NATIVE_SCOPE" with
+        | "selection" -> info.ArgumentList.Add "--selection"
+        | null
+        | "" -> ()
+        | _ -> invalidOp "Unknown native fixture scope."
+
         info.ArgumentList.Add primary
         let secondParent = Environment.GetEnvironmentVariable "MC_SECOND_FIXTURE_ROOT"
 

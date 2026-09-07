@@ -26,6 +26,7 @@ class ModLibraryBrowser extends StatefulWidget {
 
 class _ModLibraryBrowserState extends State<ModLibraryBrowser> {
   _Pane _pane = _Pane.mods;
+  bool _selectMultiple = false;
   final _modsFocus = FocusNode(debugLabel: 'Installed mods');
   final _filesFocus = FocusNode(debugLabel: 'Saved files');
   final _modsScroll = ScrollController();
@@ -69,67 +70,203 @@ class _ModLibraryBrowserState extends State<ModLibraryBrowser> {
     builder: (context, _) => LayoutBuilder(
       builder: (context, constraints) {
         final narrow = constraints.maxWidth < 1050;
-        final chosen = controller.mods.selected;
-        final modPanel = McCollection<ModRowId, ModEntry>(
+        final chosen = controller.selected;
+        final inventory = controller.inventory;
+        final versionColumn = constraints.maxWidth >= 1050;
+        Future<void> move(ProfileModMove direction) async {
+          await inventory.move(direction);
+          if (mounted) _modsFocus.requestFocus();
+        }
+
+        final editSelection = controller.canEdit && controller.activity == null;
+        final modPanel = McCollection<ModRowId, ProfileMod>(
           key: const ValueKey('installed-mods'),
           model: controller.mods,
           focusNode: _modsFocus,
           scrollController: _modsScroll,
           title: 'Installed mods',
-          filterLabel: controller.modsComplete
+          filterLabel: inventory.complete
               ? 'Filter mods'
               : 'Filter loaded mods',
           countLabel:
-              '${controller.mods.length} ${controller.mods.length == 1 ? 'mod' : 'mods'}${controller.modsComplete ? '' : ' loaded'}',
+              '${inventory.enabledCount} enabled · ${controller.mods.length}${inventory.complete ? '' : ' of ${inventory.total}'} ${inventory.total == 1 ? 'mod' : 'mods'}${inventory.complete ? '' : ' loaded'}',
           empty: 'No installed mods.',
+          multiSelect: true,
+          selectMultiple: _selectMultiple,
+          onMoveUp: editSelection && inventory.canMove
+              ? () => unawaited(move(ProfileModMove.up))
+              : null,
+          onMoveDown: editSelection && inventory.canMove
+              ? () => unawaited(move(ProfileModMove.down))
+              : null,
           onSelect: controller.select,
           semanticLabel: (row) =>
-              '${row.metadata.name}, ${_kind(row.kind)}${row.metadata.version.isEmpty ? '' : ', version ${row.metadata.version}'}, ${_status(row.status)}',
-          loading: controller.loadingMods,
-          problem: controller.modProblem,
-          onLoad: controller.canLoadMods
-              ? () => unawaited(controller.loadMods())
+              '${row.mod.metadata.name}${row.selection.priority == null ? '' : ', priority ${row.selection.priority! + 1}'}, ${_kind(row.mod.kind)}${row.mod.metadata.version.isEmpty ? '' : ', version ${row.mod.metadata.version}'}, ${_status(row.mod.status)}',
+          loading: inventory.loading,
+          problem: inventory.problem,
+          onLoad: inventory.canLoad ? () => unawaited(inventory.load()) : null,
+          onCancel: inventory.cancel,
+          onRefresh:
+              inventory.connected && !inventory.loading && !inventory.changing
+              ? () => unawaited(inventory.load(refresh: true))
               : null,
-          onCancel: controller.cancelMods,
-          onRefresh: controller.connected && !controller.loadingMods
-              ? () => unawaited(controller.loadMods(refresh: true))
-              : null,
+          toolbar: Wrap(
+            spacing: 6,
+            runSpacing: 4,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              FilterChip(
+                label: const Text('Select multiple'),
+                selected: _selectMultiple,
+                onSelected: (value) => setState(() => _selectMultiple = value),
+              ),
+              Text(
+                '${controller.mods.selectedIds.length} selected${inventory.hiddenSelected == 0 ? '' : ' · ${inventory.hiddenSelected} hidden'}',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              TextButton(
+                onPressed: editSelection && inventory.canToggle
+                    ? () => unawaited(inventory.enable(true))
+                    : null,
+                child: const Text('Enable'),
+              ),
+              TextButton(
+                onPressed: editSelection && inventory.canToggle
+                    ? () => unawaited(inventory.enable(false))
+                    : null,
+                child: const Text('Disable'),
+              ),
+              McIconAction(
+                label: 'Move selected mods up (Ctrl+Up)',
+                icon: const Icon(Icons.arrow_upward),
+                onPressed: editSelection && inventory.canMove
+                    ? () => unawaited(move(ProfileModMove.up))
+                    : null,
+              ),
+              McIconAction(
+                label: 'Move selected mods down (Ctrl+Down)',
+                icon: const Icon(Icons.arrow_downward),
+                onPressed: editSelection && inventory.canMove
+                    ? () => unawaited(move(ProfileModMove.down))
+                    : null,
+              ),
+              McIconAction(
+                label: 'Clear selection',
+                icon: const Icon(Icons.deselect),
+                onPressed: controller.mods.selectedIds.isEmpty
+                    ? null
+                    : controller.mods.clearSelection,
+              ),
+              if (!inventory.byPriority)
+                TextButton(
+                  onPressed: inventory.showPriority,
+                  child: const Text('Show priority'),
+                ),
+              if (inventory.changing)
+                const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+            ],
+          ),
           actions: [
             McAction(
               key: const ValueKey('add-mod'),
               focusNode: _addFocus,
               label: 'Add mod folder',
               icon: Icons.create_new_folder_outlined,
-              onPressed: controller.canEdit && controller.activity == null
+              onPressed:
+                  controller.canEdit &&
+                      controller.activity == null &&
+                      !inventory.changing
                   ? () => _details()
                   : null,
             ),
           ],
           columns: [
             McColumn(
-              'Name',
-              (row) => McCollectionName(
-                row.metadata.name,
-                icon: Icons.layers_outlined,
-              ),
-              compare: (a, b) => a.metadata.name.compareTo(b.metadata.name),
+              '',
+              (row) => switch (row.selection) {
+                ManagedProfileMod(:final enabled) => Semantics(
+                  label: 'Enable ${row.mod.metadata.name}',
+                  child: Checkbox(
+                    value: enabled,
+                    onChanged:
+                        editSelection &&
+                            inventory.connected &&
+                            !inventory.changing &&
+                            !inventory.stale
+                        ? (value) => unawaited(
+                            inventory.enable(value!, onlyModId: row.mod.id),
+                          )
+                        : null,
+                  ),
+                ),
+                OrderedProfileMod() => const ExcludeSemantics(
+                  child: Icon(Icons.horizontal_rule, size: 19),
+                ),
+                LockedProfileMod() => const ExcludeSemantics(
+                  child: Icon(Icons.lock_outline, size: 19),
+                ),
+              },
+              width: 44,
+              interactive: true,
             ),
             McColumn(
-              'Type',
-              (row) => Text(_kind(row.kind)),
-              width: 84,
-              compare: (a, b) => _kind(a.kind).compareTo(_kind(b.kind)),
-            ),
-            McColumn(
-              'Version',
+              'Priority',
               (row) => Text(
-                row.metadata.version,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+                row.selection.priority == null
+                    ? '—'
+                    : '${row.selection.priority! + 1}',
+                style: Theme.of(context).textTheme.bodySmall,
               ),
-              width: 65,
+              width: 68,
             ),
-            McColumn('Status', (row) => Text(_status(row.status)), width: 112),
+            McColumn(
+              'Name',
+              (row) => Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    row.mod.metadata.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (!versionColumn && row.mod.metadata.version.isNotEmpty)
+                    Text(
+                      'Version ${row.mod.metadata.version}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                ],
+              ),
+              compare: (a, b) =>
+                  a.mod.metadata.name.compareTo(b.mod.metadata.name),
+            ),
+            if (versionColumn)
+              McColumn(
+                'Version',
+                (row) => Text(
+                  row.mod.metadata.version,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                width: 65,
+              ),
+            McColumn(
+              'Status',
+              (row) => Text(
+                row.selection is ManagedProfileMod
+                    ? _status(row.mod.status)
+                    : _kind(row.mod.kind),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              width: 112,
+            ),
           ],
         );
         final version = controller.selectedVersionId;

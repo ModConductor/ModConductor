@@ -18,9 +18,16 @@ let main args =
         elif args.Length = 5 && args[0] = "--library-worker" then
             LibraryWorker.run args[1] args[2] args[3] args[4]
             0
+        elif args.Length = 5 && args[0] = "--selection-worker" then
+            SelectionFixtures.worker args[1] args[2] args[3] args[4]
+            0
         else
+            let selectionOnly = args.Length = 2 && args[0] = "--selection"
+
             let primary, secondary =
                 match args with
+                | [| "--selection"; primary |] when Path.IsPathFullyQualified primary ->
+                    primary, None
                 | [| primary |] when Path.IsPathFullyQualified primary -> primary, None
                 | [| primary; secondary |] when
                     Path.IsPathFullyQualified primary && Path.IsPathFullyQualified secondary
@@ -40,12 +47,15 @@ let main args =
                 else "other"
             )
 
-            Fixtures.observe writer primary secondary
-            StorageFixtures.observe writer primary
-            WorkspaceFixtures.observe writer primary
-            LibraryFixtures.observe writer primary
-            LibraryRecoveryFixtures.observe writer primary
-            LibraryIdentityFixtures.observe writer primary
+            if not selectionOnly then
+                Fixtures.observe writer primary secondary
+                StorageFixtures.observe writer primary
+                WorkspaceFixtures.observe writer primary
+                LibraryFixtures.observe writer primary
+                LibraryRecoveryFixtures.observe writer primary
+                LibraryIdentityFixtures.observe writer primary
+
+            SelectionFixtures.observe writer primary
             writer.WriteEndObject()
             writer.Flush()
             0

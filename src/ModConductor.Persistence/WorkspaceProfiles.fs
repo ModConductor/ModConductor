@@ -143,11 +143,20 @@ module internal WorkspaceProfiles =
                                 Sqlite.execute
                                     connection
                                     transaction
-                                    "INSERT INTO profiles VALUES($id,$workspace,$name)"
+                                    "INSERT INTO profiles(id,workspace_id,name) VALUES($id,$workspace,$name)"
                                     [ "$id", box (string value.Id)
                                       "$workspace", box (string id)
                                       "$name", box value.Name ]
 
+                                let source =
+                                    match edit with
+                                    | ProfileEdit.Clone(source, _) -> Some source
+                                    | ProfileEdit.Create _ -> None
+                                    | ProfileEdit.Rename _
+                                    | ProfileEdit.Select _
+                                    | ProfileEdit.Delete _ -> invalidOp "Expected a new profile."
+
+                                SelectionRows.initialize connection transaction id value.Id source
                                 Some value, None, selected |> Option.orElse (Some value.Id)
                             | ProfileEdit.Rename(target, name) ->
                                 Sqlite.execute

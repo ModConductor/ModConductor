@@ -9,6 +9,7 @@ import 'generated/modconductor/v1/bootstrap.pb.dart' as wire;
 import 'operations_client.dart';
 import 'workspaces_client.dart';
 import 'mod_library_client.dart';
+import 'profile_mod_client.dart';
 
 class EngineSession {
   EngineSession(this._process) : _errors = _process.stderr.listen((_) {});
@@ -18,6 +19,8 @@ class EngineSession {
   ClientChannel? _channel;
   OperationsClient? _operations;
   OperationsClient get operations => _operations!;
+  ProfileModsClient? _profileMods;
+  ProfileModsClient get profileMods => _profileMods!;
   ModLibraryClient? _modLibrary;
   ModLibraryClient get modLibrary => _modLibrary!;
   WorkspacesClient? _workspaces;
@@ -61,6 +64,7 @@ class EngineSession {
     _operations = OperationsClient(channel, options);
     _workspaces = GrpcWorkspacesClient(channel, options);
     _modLibrary = ModLibraryClient(channel, options);
+    _profileMods = ProfileModsClient(channel, options);
   }
 
   Future<ConnectionReport> check() => operations.check();

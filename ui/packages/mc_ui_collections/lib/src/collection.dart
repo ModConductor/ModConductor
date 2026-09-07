@@ -41,6 +41,11 @@ class McCollection<I extends Object, T extends Object> extends StatefulWidget {
     this.onCancel,
     this.onRefresh,
     this.footer,
+    this.toolbar,
+    this.multiSelect = false,
+    this.selectMultiple = false,
+    this.onMoveUp,
+    this.onMoveDown,
   });
   final McCollectionModel<I, T> model;
   final String title, filterLabel, countLabel, empty;
@@ -53,7 +58,9 @@ class McCollection<I extends Object, T extends Object> extends StatefulWidget {
   final bool loading;
   final String? problem;
   final VoidCallback? onLoad, onCancel, onRefresh;
-  final Widget? footer;
+  final Widget? footer, toolbar;
+  final bool multiSelect, selectMultiple;
+  final VoidCallback? onMoveUp, onMoveDown;
   @override
   State<McCollection<I, T>> createState() => _McCollectionState<I, T>();
 }
@@ -66,7 +73,6 @@ class _McCollectionState<I extends Object, T extends Object>
   late final _ownFocus = FocusNode(debugLabel: widget.title);
   FocusNode get _focus => widget.focusNode ?? _ownFocus;
   McCollectionModel<I, T> get model => widget.model;
-  McColumn<T>? _sort;
   double _extent = 48;
   @override
   void initState() {
@@ -88,8 +94,25 @@ class _McCollectionState<I extends Object, T extends Object>
     super.dispose();
   }
 
-  void _select(I id) {
-    model.select(id);
+  void _select(
+    I id, {
+    bool pointer = false,
+    bool toggle = false,
+    bool extend = false,
+  }) {
+    final keys = HardwareKeyboard.instance;
+    model.select(
+      id,
+      toggle:
+          widget.multiSelect &&
+          (toggle ||
+              (pointer &&
+                  (widget.selectMultiple ||
+                      keys.isControlPressed ||
+                      keys.isMetaPressed))),
+      extend:
+          widget.multiSelect && (extend || (pointer && keys.isShiftPressed)),
+    );
     _focus.requestFocus();
     widget.onSelect?.call(model[id]!);
   }
@@ -116,6 +139,23 @@ class _McCollectionState<I extends Object, T extends Object>
       return KeyEventResult.ignored;
     }
     final key = event.logicalKey;
+    if (widget.multiSelect && HardwareKeyboard.instance.isControlPressed) {
+      if (key == LogicalKeyboardKey.arrowUp ||
+          key == LogicalKeyboardKey.arrowDown) {
+        (key == LogicalKeyboardKey.arrowUp
+                ? widget.onMoveUp
+                : widget.onMoveDown)
+            ?.call();
+        return KeyEventResult.handled;
+      }
+      if (key == LogicalKeyboardKey.space &&
+          _focus.hasPrimaryFocus &&
+          model.focusedId != null) {
+        _select(model.focusedId!, toggle: true);
+        return KeyEventResult.handled;
+      }
+    }
+    if (!_focus.hasPrimaryFocus) return KeyEventResult.ignored;
     final visible = model.visible;
     if (visible.isEmpty) return KeyEventResult.ignored;
     final current = model.position(model.focusedId);
@@ -131,7 +171,7 @@ class _McCollectionState<I extends Object, T extends Object>
     if (key == LogicalKeyboardKey.pageUp) next = (current ?? 0) - page;
     if (next != null) {
       final id = visible[next.clamp(0, visible.length - 1)];
-      _select(id);
+      _select(id, extend: HardwareKeyboard.instance.isShiftPressed);
       _reveal(id);
       return KeyEventResult.handled;
     }
@@ -180,6 +220,11 @@ class _McCollectionState<I extends Object, T extends Object>
           ? Expanded(child: child)
           : SizedBox(width: width * scale.clamp(1, 1.25), child: child);
       final visible = model.visible;
+      if (_focus.hasPrimaryFocus && model.focusedId != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && model.focusedId != null) _reveal(model.focusedId!);
+        });
+      }
       return Container(
         decoration: BoxDecoration(
           color: colors.surface,
@@ -221,6 +266,11 @@ class _McCollectionState<I extends Object, T extends Object>
                 ),
               ),
             ),
+            if (widget.toolbar != null)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                child: widget.toolbar!,
+              ),
             Container(
               decoration: BoxDecoration(
                 border: Border.symmetric(
@@ -245,16 +295,16 @@ class _McCollectionState<I extends Object, T extends Object>
                               child: TextButton(
                                 onPressed: () {
                                   final descending =
-                                      _sort?.label == column.label &&
+                                      model.sortLabel == column.label &&
                                       !model.descending;
-                                  _sort = column;
                                   model.sort(
                                     column.compare!,
                                     descending: descending,
+                                    label: column.label,
                                   );
                                 },
                                 child: Text(
-                                  '${column.label}${_sort?.label == column.label
+                                  '${column.label}${model.sortLabel == column.label
                                       ? model.descending
                                             ? ' ↓'
                                             : ' ↑'
@@ -297,9 +347,10 @@ class _McCollectionState<I extends Object, T extends Object>
                                 : null,
                             itemBuilder: (context, index) {
                               final id = visible[index], row = model[id]!;
-                              final selected = id == model.selectedId;
+                              final selected = model.selectedIds.contains(id);
                               final focused =
-                                  id == model.focusedId && _focus.hasFocus;
+                                  id == model.focusedId &&
+                                  _focus.hasPrimaryFocus;
                               final branch = model.branch(id);
                               return Semantics(
                                 key: ValueKey<I>(id),
@@ -325,7 +376,7 @@ class _McCollectionState<I extends Object, T extends Object>
                                   child: InkWell(
                                     canRequestFocus: false,
                                     excludeFromSemantics: true,
-                                    onTap: () => _select(id),
+                                    onTap: () => _select(id, pointer: true),
                                     onDoubleTap: branch
                                         ? () => model.toggle(id)
                                         : null,

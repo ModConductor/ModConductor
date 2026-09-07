@@ -5,6 +5,7 @@ import 'engine_session.dart';
 import 'operations_client.dart';
 import 'workspaces_client.dart';
 import 'mod_library_client.dart';
+import 'profile_mod_client.dart';
 
 sealed class EngineState {
   const EngineState();
@@ -51,6 +52,8 @@ class EngineOwner {
   int _attempt = 0;
 
   EngineState get state => _state;
+  ProfileModsClient? get profileMods =>
+      _state is EngineConnected ? _session?.profileMods : null;
   ModLibraryClient? get modLibrary =>
       _state is EngineConnected ? _session?.modLibrary : null;
   WorkspacesClient? get workspaces =>

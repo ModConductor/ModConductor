@@ -106,6 +106,7 @@ void main() {
             child: ModConductorApp(
               workspaces: owner.workspaces,
               modLibrary: owner.modLibrary,
+              profileMods: owner.profileMods,
               status: DesktopConnected((owner.state as EngineConnected).report),
               chooseDirectory: (_) async => sourcePath,
             ),
@@ -113,7 +114,7 @@ void main() {
         );
         await tester.pumpAndSettle();
         await tap(ValueKey('workspace-$workspaceId'));
-        await until(() => workspaces().canEdit && !library().loadingMods);
+        await until(() => workspaces().canEdit && !library().inventory.loading);
         await tap(ValueKey((profileId: profileId)));
         expect(workspaces().workspace!.selectedProfile!.id, profileId);
         await capture('profiles-light');
@@ -132,26 +133,26 @@ void main() {
         await until(
           () =>
               library().mods.ids.any(
-                (id) => library().mods[id]!.kind == ModKind.regular,
+                (id) => library().mods[id]!.mod.kind == ModKind.regular,
               ) ||
               library().actionProblem != null,
         );
         expect(library().actionProblem, isNull);
         await capture('added-mod-light');
-        while (!library().modsComplete) {
+        while (!library().inventory.complete) {
           final more = find.descendant(
             of: find.byKey(const ValueKey('installed-mods')),
             matching: find.text('Load more'),
           );
           await tester.tap(more);
-          await until(() => !library().loadingMods);
+          await until(() => !library().inventory.loading);
         }
         final registered = (await owner.modLibrary!.inventory(profileId))
             .entries;
         expect(registered, isNotEmpty);
         final entry = library().mods.ids
             .map((id) => library().mods[id]!)
-            .singleWhere((row) => row.kind == ModKind.regular);
+            .singleWhere((row) => row.mod.kind == ModKind.regular);
         await tester.enterText(
           find.descendant(
             of: find.byKey(const ValueKey('installed-mods')),
@@ -160,8 +161,8 @@ void main() {
           'Weathered',
         );
         await tester.pumpAndSettle();
-        await tap(ValueKey((modId: entry.id)));
-        expect(library().mods.selected!.id, entry.id);
+        await tap(ValueKey((modId: entry.mod.id)));
+        expect(library().mods.selected!.mod.id, entry.mod.id);
         await tester.tap(find.text('Save version'));
         await until(
           () => library().activity == null && !library().loadingFiles,
@@ -200,7 +201,7 @@ void main() {
         );
         await tester.pumpAndSettle();
         final focused = library().files.focusedId;
-        await library().loadMods(refresh: true);
+        await library().inventory.load(refresh: true);
         await tester.pumpAndSettle();
         expect(library().selectedVersionId, pinned);
         expect(library().files.focusedId, focused);

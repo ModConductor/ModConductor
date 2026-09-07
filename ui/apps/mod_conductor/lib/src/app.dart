@@ -42,11 +42,13 @@ class ModConductorApp extends StatefulWidget {
     this.status = const DesktopDisconnected(),
     this.workspaces,
     this.modLibrary,
+    this.profileMods,
     this.chooseDirectory = chooseWorkspaceDirectory,
   });
   final DesktopStatus status;
   final WorkspacesClient? workspaces;
   final ModLibraryClient? modLibrary;
+  final ProfileModsClient? profileMods;
   final DirectoryChooser chooseDirectory;
   final VoidCallback? onQuit;
   final VoidCallback? onRetry;
@@ -67,6 +69,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
 
   void _syncLibrary() => _mods.attach(
     widget.modLibrary,
+    widget.profileMods,
     workspaceId: _workspaces.workspace?.id,
     profileId: _workspaces.workspace?.selectedProfile?.id,
     editable: _workspaces.canEdit,

@@ -91,8 +91,15 @@ and `ui/apps/mod_conductor/build/windows/x64/runner/Release/`.
 `python3 tools/check-linux-wire.py` runs the native Flutter connection check on a
 private Xvfb display. It requires Xvfb and xauth. Its `--workspaces` mode also
 requires xdotool for the isolated folder chooser. Use `--collections` for the
-profile, mod, and saved-file journey with synthetic in-process input. Use only an isolated guest for
+profile, mod, and saved-file journey with synthetic in-process input.
+`--profile-mods` checks real profile enablement and multi-selection moves.
+`MC_ENGINE_PATH` selects a previously published engine for these Linux UI checks. Use only an isolated guest for
 Windows UI checks. Never direct test input to the user's desktop.
 
 The [development policy](DEVELOPMENT-POLICY.md) governs local builds and
 publication. These commands do not authorize distribution.
+
+For focused native selection checks, set `MC_NATIVE_SCOPE=selection` and run the
+NUnit runner with `--filter 'FullyQualifiedName~SelectionTests'`. Leave this
+variable unset for the full fixture suite. The fixture includes a version-4
+database created through real engine calls for transactional migration checks.

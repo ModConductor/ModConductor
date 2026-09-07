@@ -5,7 +5,9 @@ import 'package:flutter/foundation.dart';
 import 'package:mc_client/mc_client.dart';
 import 'package:mc_ui_collections/mc_ui_collections.dart';
 
-typedef ModRowId = ({String modId});
+import 'profile_mods_controller.dart';
+export 'profile_mods_controller.dart';
+
 typedef FileRowId = ({String versionId, String path});
 
 class SavedFileNode {
@@ -27,10 +29,9 @@ class SavedFileNode {
 }
 
 class ModLibraryController extends ChangeNotifier {
-  final mods = McCollectionModel<ModRowId, ModEntry>(
-    idOf: (row) => (modId: row.id),
-    labelOf: (row) => row.metadata.name,
-  );
+  final inventory = ProfileModsController();
+  McCollectionModel<ModRowId, ProfileMod> get mods => inventory.model;
+  ModEntry? get selected => mods.selected?.mod;
   final files = McCollectionModel<FileRowId, SavedFileNode>(
     idOf: (row) => row.id,
     labelOf: (row) => row.path.join('/'),
@@ -39,29 +40,43 @@ class ModLibraryController extends ChangeNotifier {
   );
   ModLibraryClient? _client;
   String? _workspace, _profile;
-  int _epoch = 0, _inventoryRequest = 0, _fileRequest = 0;
+  int _epoch = 0, _fileRequest = 0;
   bool _disposed = false;
-  bool loadingMods = false, loadingFiles = false;
-  bool modsComplete = false, filesComplete = false;
+  bool loadingFiles = false;
+  bool filesComplete = false;
   bool canEdit = false;
-  String? modProblem, fileProblem, actionProblem, activity;
-  String? _nextMod;
+  String? fileProblem, actionProblem, activity;
   int _nextFile = 0;
-  String? selectedVersionId, _selectedMod;
+  String? selectedVersionId, _selectedMod, _pendingRegistration;
   int fileCount = 0;
 
   bool get connected => _client != null;
-  bool get canLoadMods => connected && _profile != null && !modsComplete;
   bool get canLoadFiles =>
       connected && selectedVersionId != null && !filesComplete;
   bool can(ModAction action) =>
       canEdit &&
       activity == null &&
-      (mods.selected?.actions.contains(action) ?? false);
+      (selected?.actions.contains(action) ?? false);
 
   ModLibraryController() {
-    mods.sort((a, b) => a.metadata.name.compareTo(b.metadata.name));
+    inventory.addListener(_inventoryChanged);
     files.sort((a, b) => a.name.compareTo(b.name));
+  }
+
+  void _inventoryChanged() {
+    final row = mods.selected;
+    if (_pendingRegistration != null &&
+        row?.mod.id == _pendingRegistration &&
+        !inventory.stale &&
+        inventory.problem == null) {
+      _pendingRegistration = null;
+      actionProblem = null;
+    }
+    if (row != null && row.mod.id != _selectedMod) {
+      select(row);
+    } else {
+      _notify();
+    }
   }
 
   void _notify() {
@@ -69,12 +84,18 @@ class ModLibraryController extends ChangeNotifier {
   }
 
   void attach(
-    ModLibraryClient? client, {
+    ModLibraryClient? client,
+    ProfileModsClient? selectionClient, {
     String? workspaceId,
     String? profileId,
     required bool editable,
   }) {
-    canEdit = editable && client != null && profileId != null;
+    canEdit =
+        editable &&
+        client != null &&
+        selectionClient != null &&
+        profileId != null;
+    inventory.attach(selectionClient, workspaceId, profileId);
     if (identical(client, _client) &&
         workspaceId == _workspace &&
         profileId == _profile) {
@@ -85,79 +106,25 @@ class ModLibraryController extends ChangeNotifier {
     _workspace = workspaceId;
     _profile = profileId;
     ++_epoch;
-    cancelMods();
     cancelFiles();
     activity = null;
     actionProblem = null;
     if (newScope) {
       _selectedMod = null;
-      mods.clear();
+      _pendingRegistration = null;
       _pin(null);
     }
-    modsComplete = false;
-    _nextMod = null;
     if (client != null && profileId != null) {
-      unawaited(loadMods());
       if (selectedVersionId != null) unawaited(loadFiles());
     }
     _notify();
   }
 
-  void _merge(Iterable<ModEntry> incoming) {
-    mods.apply(
-      upserts: incoming.where(
-        (row) =>
-            row.workspaceId == _workspace &&
-            (mods[(modId: row.id)]?.revision ?? -1) <= row.revision,
-      ),
-    );
-  }
-
-  Future<void> loadMods({bool refresh = false}) async {
-    final client = _client, profile = _profile;
-    if (client == null || profile == null || loadingMods) return;
-    if (!refresh && modsComplete) return;
-    final epoch = _epoch, request = ++_inventoryRequest;
-    final cursor = refresh ? null : _nextMod;
-    loadingMods = true;
-    modProblem = null;
-    _notify();
-    try {
-      final page = await client.inventory(profile, afterModId: cursor);
-      if (_disposed || epoch != _epoch || request != _inventoryRequest) return;
-      _merge(page.entries);
-      if (page.nextModId != null &&
-          (page.nextModId == cursor ||
-              (cursor != null && page.nextModId!.compareTo(cursor) <= 0))) {
-        modProblem = 'The mod list changed. Refresh the list.';
-      } else {
-        _nextMod = page.nextModId;
-        modsComplete = page.nextModId == null;
-      }
-    } on Exception catch (error) {
-      if (!_disposed && epoch == _epoch && request == _inventoryRequest) {
-        modProblem = error is LibraryException
-            ? error.detail
-            : 'Could not load mods.';
-      }
-    } finally {
-      if (!_disposed && epoch == _epoch && request == _inventoryRequest) {
-        loadingMods = false;
-        _notify();
-      }
-    }
-  }
-
-  void cancelMods() {
-    ++_inventoryRequest;
-    loadingMods = false;
-    _notify();
-  }
-
-  void select(ModEntry row) {
+  void select(ProfileMod value) {
+    final row = value.mod;
     final changed = _selectedMod != row.id;
     _selectedMod = row.id;
-    mods.select((modId: row.id));
+    if (mods.focusedId != (modId: row.id)) mods.select((modId: row.id));
     if (changed ||
         (selectedVersionId == null && row.currentVersionId != null)) {
       _pin(row.currentVersionId);
@@ -177,7 +144,7 @@ class ModLibraryController extends ChangeNotifier {
   }
 
   void showLatestVersion() {
-    _pin(mods.selected?.currentVersionId);
+    _pin(selected?.currentVersionId);
     unawaited(loadFiles());
     _notify();
   }
@@ -200,7 +167,7 @@ class ModLibraryController extends ChangeNotifier {
         return;
       }
       if (page.id != version ||
-          page.modId != mods.selected?.id ||
+          page.modId != selected?.id ||
           (page.nextOffset != null && page.nextOffset! <= offset)) {
         fileProblem = 'Could not load this saved version.';
         return;
@@ -253,6 +220,7 @@ class ModLibraryController extends ChangeNotifier {
     String label,
     Future<ModEntry> Function(ModLibraryClient) run, {
     bool showVersion = false,
+    bool registered = false,
   }) async {
     final client = _client;
     if (!canEdit || client == null || activity != null) return;
@@ -263,8 +231,19 @@ class ModLibraryController extends ChangeNotifier {
     try {
       final row = await run(client);
       if (_disposed || epoch != _epoch) return;
-      _merge([row]);
-      if (showVersion && mods.selected?.id == row.id) {
+      if (registered) {
+        final loaded = await inventory.registered(row.id);
+        if (_disposed || epoch != _epoch) return;
+        if (!loaded) {
+          _pendingRegistration = row.id;
+          actionProblem = 'The mod folder was added. Reload its profile state.';
+        } else {
+          select(mods[(modId: row.id)]!);
+        }
+      } else {
+        inventory.mergeMetadata([row]);
+      }
+      if (showVersion && selected?.id == row.id) {
         _pin(row.currentVersionId);
         unawaited(loadFiles());
       }
@@ -294,6 +273,7 @@ class ModLibraryController extends ChangeNotifier {
         metadata,
         NativeDirectoryMod(ModKind.regular, path),
       ),
+      registered: true,
     );
   }
 
@@ -303,7 +283,7 @@ class ModLibraryController extends ChangeNotifier {
   );
 
   Future<void> saveVersion() {
-    final original = mods.selected;
+    final original = selected;
     if (original == null || !can(ModAction.publish)) return Future.value();
     final version = newOperationId();
     return _action(
@@ -317,7 +297,8 @@ class ModLibraryController extends ChangeNotifier {
   void dispose() {
     _disposed = true;
     ++_epoch;
-    mods.dispose();
+    inventory.removeListener(_inventoryChanged);
+    inventory.dispose();
     files.dispose();
     super.dispose();
   }

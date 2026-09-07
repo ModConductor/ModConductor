@@ -11,7 +11,9 @@ consumer. Immutable row values and explicit callbacks replace dynamic feature ma
 Nonstructural deltas update cached rows without recalculating the visible list.
 
 `mc_workspaces` owns workspace/profile forms, lifecycle state, and the profile
-collection. `mc_mod_library` owns inventory and saved-version presentation. The app
+collection. `mc_mod_library` owns inventory, profile selection, and saved-version
+presentation. Its profile controller applies joined pages and atomic selection
+deltas. The library controller retains metadata actions and pinned file state. The app
 binds these libraries to `mc_client` and owns global navigation and appearance.
 
 Use the foundation's `McAction`, `McStatus`, `McFormDialog`, and name fields instead
@@ -37,7 +39,13 @@ the user selects another mod, saves a version, or opens the latest version.
 The narrow layout provides a pane selector. Each pane retains its model and
 scroll state. File rows support expansion with Left/Right. Up/Down, Home/End, and
 Page Up/Page Down move selection within the visible rows. Enter or Space selects
-or expands a row. Row semantics expose selection, focus, and expansion.
+or expands a row. Multi-selection keeps a stable set separate from the inspected
+row. Ctrl-click and Ctrl+Space toggle membership. Shift-click and Shift navigation
+select a range. The optional **Select multiple** mode supports pointer-only use.
+Ctrl+Up/Down invokes the same profile move as the arrow buttons. These actions
+are unavailable in a name-sorted view. **Show priority** restores the saved-order
+view. Checkboxes change one mod. **Enable** and **Disable** target the selected
+set, including explicitly counted hidden selections. Row semantics expose selection, focus, and expansion.
 
 ## Global controls
 

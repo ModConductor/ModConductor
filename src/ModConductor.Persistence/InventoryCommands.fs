@@ -129,6 +129,13 @@ module internal InventoryCommands =
                                                       |> Option.map (string >> box)
                                                       |> Option.defaultValue (box DBNull.Value)) ])
 
+                                            SelectionRows.registered
+                                                database.Connection
+                                                transaction
+                                                workspace
+                                                id
+                                                kind
+
                                             Ok
                                                 (LibraryRows.find
                                                     database.Connection

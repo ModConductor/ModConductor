@@ -37,6 +37,29 @@ class LibraryClient extends Fake implements ModLibraryClient {
       onEdit!(id, revision, metadata);
 }
 
+class SelectionClient extends Fake implements ProfileModsClient {
+  SelectionClient(this.library);
+  final LibraryClient library;
+  @override
+  Future<ProfileModsPage> read(
+    String profile, {
+    String? afterModId,
+    int? expectedRevision,
+  }) async {
+    final page = await library.inventory(profile, afterModId: afterModId);
+    return ProfileModsPage(
+      0,
+      [
+        for (final (index, mod) in page.entries.indexed)
+          ProfileMod(mod, ManagedProfileMod(mod.id, index, false)),
+      ],
+      page.nextModId,
+      page.entries.length,
+      0,
+    );
+  }
+}
+
 Future<void> settle() => Future<void>.delayed(Duration.zero);
 
 void main() {
@@ -47,24 +70,26 @@ void main() {
     addTearDown(controller.dispose);
     controller.attach(
       client,
+      SelectionClient(client),
       workspaceId: 'workspace',
       profileId: 'one',
       editable: true,
     );
-    controller.cancelMods();
+    controller.inventory.cancel();
     client.onInventory = (_, _) async => InventoryPage([mod('new')], null);
-    await controller.loadMods();
+    await controller.inventory.load();
     delayed.complete(InventoryPage([mod('stale')], 'cursor'));
     await settle();
     expect(controller.mods.ids, [(modId: 'new')]);
-    expect(controller.modsComplete, isTrue);
+    expect(controller.inventory.complete, isTrue);
     final previous = Completer<InventoryPage>();
     client.onInventory = (_, _) => previous.future;
-    final request = controller.loadMods(refresh: true);
+    final request = controller.inventory.load(refresh: true);
     client.onInventory = (_, _) async =>
         InventoryPage([mod('other', workspace: 'other')], null);
     controller.attach(
       client,
+      SelectionClient(client),
       workspaceId: 'other',
       profileId: 'two',
       editable: true,
@@ -82,6 +107,7 @@ void main() {
     addTearDown(controller.dispose);
     controller.attach(
       client,
+      SelectionClient(client),
       workspaceId: 'workspace',
       profileId: 'one',
       editable: true,
@@ -90,22 +116,22 @@ void main() {
     controller.select(controller.mods[(modId: 'a')]!);
     client.onEdit = (_, _, _) async => mod('a', revision: 2);
     await controller.edit(
-      controller.mods.selected!,
+      controller.selected!,
       const ModMetadata(name: 'Updated'),
     );
     client.onInventory = (_, _) async => throw Exception('transport');
-    await controller.loadMods();
-    expect(controller.modProblem, isNotNull);
-    expect(controller.modsComplete, isFalse);
-    expect(controller.mods.selected!.revision, 2);
+    await controller.inventory.load();
+    expect(controller.inventory.problem, isNotNull);
+    expect(controller.inventory.complete, isFalse);
+    expect(controller.selected!.revision, 2);
     client.onInventory = (_, cursor) async {
       expect(cursor, 'a');
       return InventoryPage([mod('a', revision: 1), mod('b')], null);
     };
-    await controller.loadMods();
-    expect(controller.mods.selected!.revision, 2);
+    await controller.inventory.load();
+    expect(controller.selected!.revision, 2);
     expect(controller.mods.length, 2);
-    expect(controller.modsComplete, isTrue);
+    expect(controller.inventory.complete, isTrue);
   });
 
   test('saved-file pages remain pinned through inventory updates and cancelled replies cannot cross mod selection', () async {
@@ -120,6 +146,7 @@ void main() {
     addTearDown(controller.dispose);
     controller.attach(
       client,
+      SelectionClient(client),
       workspaceId: 'workspace',
       profileId: 'one',
       editable: true,
@@ -142,7 +169,7 @@ void main() {
     final loading = controller.loadFiles();
     client.onInventory = (_, _) async =>
         InventoryPage([mod('a', revision: 1, version: 'new-version')], null);
-    await controller.loadMods(refresh: true);
+    await controller.inventory.load(refresh: true);
     expect(controller.selectedVersionId, 'version-a');
     client.onVersion = (id, _) async =>
         ModVersionPage(id, 'b', [file('other')], null);

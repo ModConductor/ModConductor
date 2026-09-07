@@ -1,0 +1,62 @@
+syntax = "proto3";
+package modconductor.v1;
+option csharp_namespace = "ModConductor.Protocol.V1";
+
+import "modconductor/v1/mod_library.proto";
+
+service ProfileModOperations {
+  rpc ReadProfileMods(ReadProfileModsRequest) returns (ProfileModsReply);
+  rpc ReadProfileMod(ReadProfileModRequest) returns (ProfileModReply);
+  rpc ChangeProfileMods(ChangeProfileModsRequest) returns (ProfileModsChangeReply);
+}
+message ManagedProfileMod { uint32 priority = 1; bool enabled = 2; }
+message OrderedProfileMod { uint32 priority = 1; }
+enum ProfileModRestriction {
+  PROFILE_MOD_RESTRICTION_UNSPECIFIED = 0;
+  PROFILE_MOD_RESTRICTION_BACKUP = 1;
+  PROFILE_MOD_RESTRICTION_UNMANAGED = 2;
+  PROFILE_MOD_RESTRICTION_AUTOMATIC = 3;
+}
+message ProfileModSelection {
+  string mod_id = 1;
+  oneof state {
+    ManagedProfileMod managed = 2;
+    OrderedProfileMod separator = 3;
+    ProfileModRestriction locked = 4;
+  }
+}
+message ProfileModView { InventoryMod mod = 1; ProfileModSelection selection = 2; }
+message ReadProfileModsRequest {
+  string profile_id = 1;
+  optional string after_mod_id = 2;
+  optional uint64 expected_revision = 3; // Required when continuing a page.
+}
+message ProfileModsPage {
+  uint64 revision = 1;
+  repeated ProfileModView entries = 2; // Bounded GUID-cursor inventory window, not display order.
+  optional string next_mod_id = 3;
+  uint32 total = 4;
+  uint32 enabled_count = 5;
+}
+message ProfileModsReply { oneof outcome { ProfileModsPage page = 1; ModLibraryFault fault = 2; } }
+enum ProfileModMove {
+  PROFILE_MOD_MOVE_UNSPECIFIED = 0;
+  PROFILE_MOD_MOVE_UP = 1;
+  PROFILE_MOD_MOVE_DOWN = 2;
+}
+message ChangeProfileModsRequest {
+  string profile_id = 1;
+  uint64 expected_revision = 2;
+  repeated string mod_ids = 3; // Up to 512 stable IDs. No filtered indices.
+  oneof edit { bool enabled = 4; ProfileModMove move = 5; }
+}
+message ProfileModsDelta {
+  uint64 revision = 1;
+  repeated ProfileModSelection changed = 2; // All changes, at most 1024 rows for a one-step move.
+  uint32 enabled_count = 3;
+}
+message ProfileModsChangeReply { oneof outcome { ProfileModsDelta delta = 1; ModLibraryFault fault = 2; } }
+
+message ReadProfileModRequest { string profile_id = 1; string mod_id = 2; optional uint64 expected_revision = 3; }
+message ProfileModDetail { uint64 revision = 1; ProfileModView entry = 2; }
+message ProfileModReply { oneof outcome { ProfileModDetail detail = 1; ModLibraryFault fault = 2; } }

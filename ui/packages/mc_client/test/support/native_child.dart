@@ -124,6 +124,15 @@ class NativeChild {
         ),
       );
 
+  ProfileModsClient profileMods({bool authenticate = true}) =>
+      ProfileModsClient(
+        _localChannel(),
+        CallOptions(
+          timeout: const Duration(seconds: 10),
+          metadata: authenticate ? {'mc-session': capability} : const {},
+        ),
+      );
+
   library_wire.ModLibraryOperationsClient rawModLibrary() =>
       library_wire.ModLibraryOperationsClient(
         _localChannel(),

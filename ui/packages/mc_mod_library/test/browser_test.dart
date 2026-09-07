@@ -18,7 +18,9 @@ class FolderClient extends LibraryClient {
     registrations++;
     expect(workspaceId, 'workspace');
     expect((registration as NativeDirectoryMod).path, '/workspace/source');
-    return mod(id);
+    final entry = mod(id);
+    onInventory = (_, _) async => InventoryPage([entry], null);
+    return entry;
   }
 }
 
@@ -32,6 +34,7 @@ void main() {
       addTearDown(controller.dispose);
       controller.attach(
         client,
+        SelectionClient(client),
         workspaceId: 'workspace',
         profileId: 'profile',
         editable: true,

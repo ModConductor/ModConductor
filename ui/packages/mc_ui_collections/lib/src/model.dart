@@ -21,12 +21,16 @@ class McCollectionModel<I extends Object, T extends Object>
   final Set<I> _expanded = {};
   List<I> _visible = [];
   Map<I, int> _positions = {};
-  I? _selected, _focused;
+  I? _selected, _focused, _anchor;
+  final Set<I> _selection = {};
+  String? _sortLabel;
   String _query = '';
   Comparator<T>? _compare;
   bool _descending = false;
 
   I? get selectedId => _selected;
+  Set<I> get selectedIds => UnmodifiableSetView(_selection);
+  String? get sortLabel => _sortLabel;
   I? get focusedId => _focused;
   T? get selected => _rows[_selected];
   T? operator [](I? id) => _rows[id];
@@ -66,6 +70,8 @@ class McCollectionModel<I extends Object, T extends Object>
         changed = true;
       }
       if (deleted.contains(id)) {
+        if (_selection.remove(id)) changed = true;
+        if (_anchor == id) _anchor = null;
         _expanded.remove(id);
         if (_selected == id) {
           _selected = null;
@@ -117,7 +123,8 @@ class McCollectionModel<I extends Object, T extends Object>
     });
   }
 
-  void sort(Comparator<T> compare, {bool descending = false}) {
+  void sort(Comparator<T> compare, {bool descending = false, String? label}) {
+    _sortLabel = label;
     _compare = compare;
     _descending = descending;
     for (final children in _children.values) {
@@ -161,10 +168,37 @@ class McCollectionModel<I extends Object, T extends Object>
     _positions = {for (var i = 0; i < visible.length; i++) visible[i]: i};
   }
 
-  void select(I id) {
-    if (_selected == id && _focused == id) return;
+  void select(I id, {bool toggle = false, bool extend = false}) {
+    final anchor = position(_anchor), target = position(id);
+    if (extend && anchor != null && target != null) {
+      _selection.clear();
+      final start = anchor < target ? anchor : target;
+      final end = anchor > target ? anchor : target;
+      _selection.addAll(_visible.getRange(start, end + 1));
+    } else if (toggle) {
+      if (!_selection.remove(id)) _selection.add(id);
+      _anchor = id;
+    } else {
+      if (_selected == id &&
+          _focused == id &&
+          _selection.length == 1 &&
+          _selection.contains(id)) {
+        return;
+      }
+      _selection
+        ..clear()
+        ..add(id);
+      _anchor = id;
+    }
     _selected = id;
     _focused = id;
+    notifyListeners();
+  }
+
+  void clearSelection() {
+    if (_selection.isEmpty) return;
+    _selection.clear();
+    _anchor = null;
     notifyListeners();
   }
 
@@ -182,7 +216,8 @@ class McCollectionModel<I extends Object, T extends Object>
     _expanded.clear();
     _visible = [];
     _positions = {};
-    _selected = _focused = null;
+    _selected = _focused = _anchor = null;
+    _selection.clear();
     _query = '';
     notifyListeners();
   }

@@ -8,6 +8,7 @@
 | `ModConductor.Platform` | Native path identity, held-directory access, and filesystem preflight |
 | `ModConductor.Workspaces` | Workspace and profile lifecycle |
 | `ModConductor.ModLibrary` | Mod identity, metadata, and immutable file versions |
+| `ModConductor.ModSelection` | Per-profile enablement, saved precedence, and batch rules |
 | `ModConductor.Persistence` | SQLite adapters, bounded queue, owner leases, and file receipts |
 | `ModConductor.Engine` | Process bootstrap and authenticated service adapters |
 | `mc_client` | Typed Dart transport and child-process lifecycle |
@@ -51,8 +52,9 @@ identity, and its original marker. Copying a marker does not import a workspace.
 An unobserved file effect remains unresolved after a crash. **Check again** checks
 recorded evidence. It does not infer ownership from a filename.
 
-Profiles currently contain IDs and names. The first profile becomes current.
-Clone creates a new profile identity, not copies of mod files. A current profile
+Profiles have stable IDs, names, and their own mod selection. The first profile
+becomes current. Clone copies enabled states and saved order in the same
+transaction as the new profile. It does not copy mod files. A current profile
 must be replaced before deletion. Profile edits check the workspace revision and
 commit all metadata together. Stale edits change nothing.
 
@@ -93,4 +95,28 @@ promised an atomic snapshot.
 
 Payload protection prevents ordinary writes, not hostile same-user or administrator
 changes. Reads reject changed identity or content. No garbage collection,
-archive installation, mod enablement, precedence, or game deployment is implemented.
+archive installation or game deployment is implemented.
+
+## Profile mods
+
+Regular mods and separators have contiguous saved priorities per profile. Higher
+priority numbers follow lower numbers in the saved order. Checkboxes change
+regular-mod enablement. Separators can move but cannot be enabled. Backups,
+unmanaged entries, and generated output cannot change profile selection.
+
+Each selected run moves across one neighboring unselected entry. Moves use the
+global saved order, not filtered row indices. The engine preserves the relative
+order of selected and unselected entries. Display sorting does not write priority.
+
+A batch checks the profile-selection revision and commits all changes together.
+Stale or unsupported batches change nothing. Every accepted batch advances the
+revision once, including a boundary move that leaves the order unchanged.
+
+New regular mods append disabled to each profile. Separators append without an
+enabled state. Every inventory registration invalidates profile-page continuation,
+including registration of a locked entry. New profiles initialize existing entries
+in stable ID order. Profile deletion removes its selection relation atomically.
+
+Joined pages pin selection revision, not a global metadata snapshot. Mod metadata
+retains its independent revision. Exact-ID reads recover the inspected row outside
+the first page. A failed reload does not undo a committed registration.

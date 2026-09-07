@@ -12,6 +12,7 @@ instruction. Preserve field identities and reserve removed fields.
 | `operations.proto` | Runtime checks, cancellation, replay, and change feeds |
 | `workspaces.proto` | Workspace roots and profile lifecycle |
 | `mod_library.proto` | Mod inventory, metadata, publication, and saved files |
+| `profile_mods.proto` | Per-profile enablement, precedence, and joined inventory reads |
 
 After locked restores, run `python3 tools/generate-protocol.py`. Use `--check` to
 compare both generated boundaries without changing source. The tool compiles all
@@ -46,7 +47,14 @@ provide a same-user sandbox.
 Runtime RPCs permit 4 KiB requests and 64 KiB replies. Workspace and mod RPCs
 permit 64 KiB requests and 2 MiB replies. Item and content budgets further bound
 profile, inventory, and version pages. A continuation cursor means the result is
-incomplete. Inventory pages do not promise one atomic snapshot across calls.
+incomplete. Inventory pages do not promise one atomic snapshot across calls. Profile-mod
+continuations require the returned selection revision. Optional revision fields
+use presence, not zero as a sentinel. Zero is a valid initial revision.
+
+Profile-mod changes accept at most 512 stable IDs and return all affected
+selection rows in one delta. A one-step move changes at most 1024 rows. Metadata
+remains independently revisioned. Exact-ID reads use the same revision check as
+pages and include the authoritative priority and selection constraint.
 
 Native and logical registration paths are mutually exclusive. The native path is
 only a chooser candidate. F# validates it through the same held-root boundary.
