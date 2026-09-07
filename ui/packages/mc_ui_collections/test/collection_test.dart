@@ -47,6 +47,34 @@ void main() {
     expect(rows.selectedId, isNull);
   });
 
+  test(
+    'moving a selected row keeps its sort position in the destination branch',
+    () {
+      final rows = model();
+      addTearDown(rows.dispose);
+      rows.apply(
+        upserts: [
+          item(10, name: 'Group A', folder: true),
+          item(20, name: 'Group B', folder: true),
+          item(1, name: 'Bravo', parent: 10),
+          item(2, name: 'Alpha', parent: 20),
+          item(3, name: 'Charlie', parent: 20),
+        ],
+      );
+      rows.sort((a, b) => a.name.compareTo(b.name));
+      rows.toggle(10);
+      rows.toggle(20);
+      rows.select(1);
+
+      rows.apply(upserts: [item(1, name: 'Bravo', parent: 20)]);
+
+      expect(rows.visible, [10, 20, 2, 1, 3]);
+      expect(rows.selectedId, 1);
+      expect(rows.focusedId, 1);
+      expect(rows.selected!.parent, 20);
+    },
+  );
+
   for (final scale in [1.0, 1.5]) {
     testWidgets(
       'keyboard follows stable IDs across virtual pages and preserves dialog focus at $scale text',

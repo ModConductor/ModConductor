@@ -91,7 +91,8 @@ class McCollectionModel<I extends Object, T extends Object>
       if (_query.trim().isNotEmpty && _search[id] != search) {
         projectionChanged = true;
       }
-      if (_compare != null && (old == null || _compare!(old, row) != 0)) {
+      if (_compare != null &&
+          (old == null || oldParent != parent || _compare!(old, row) != 0)) {
         affected.add(parent);
         projectionChanged = true;
       }
