@@ -12,6 +12,7 @@ import 'mod_library_client.dart';
 import 'profile_mod_client.dart';
 import 'mod_organization_client.dart';
 import 'game_context_client.dart';
+import 'steam_discovery_client.dart';
 
 class EngineSession {
   EngineSession(this._process) : _errors = _process.stderr.listen((_) {});
@@ -21,6 +22,8 @@ class EngineSession {
   ClientChannel? _channel;
   OperationsClient? _operations;
   OperationsClient get operations => _operations!;
+  SteamDiscoveryClient? _steamDiscovery;
+  SteamDiscoveryClient get steamDiscovery => _steamDiscovery!;
   GameContextsClient? _gameContexts;
   GameContextsClient get gameContexts => _gameContexts!;
   ModOrganizationClient? _modOrganization;
@@ -73,6 +76,7 @@ class EngineSession {
     _profileMods = ProfileModsClient(channel, options);
     _modOrganization = ModOrganizationClient(channel, options);
     _gameContexts = GrpcGameContextsClient(channel, options);
+    _steamDiscovery = GrpcSteamDiscoveryClient(channel, options);
   }
 
   Future<ConnectionReport> check() => operations.check();

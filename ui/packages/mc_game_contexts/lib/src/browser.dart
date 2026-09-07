@@ -13,8 +13,10 @@ class GameContextBrowser extends StatefulWidget {
     super.key,
     required this.controller,
     required this.chooseDirectory,
+    this.steamDiscovery,
   });
   final GameContextController controller;
+  final SteamDiscoveryClient? steamDiscovery;
   final GameDirectoryChooser chooseDirectory;
   @override
   State<GameContextBrowser> createState() => _GameContextBrowserState();
@@ -40,6 +42,7 @@ class _GameContextBrowserState extends State<GameContextBrowser> {
         initial: initial,
         client: client,
         chooseDirectory: widget.chooseDirectory,
+        steamDiscovery: widget.steamDiscovery,
         onSaved: (result) => c.accept(result, client),
         onUnknownSave: () => c.unknownSave(client, initial.workspaceId),
       ),

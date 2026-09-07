@@ -125,6 +125,13 @@
           "Grpc.Core.Api": "[2.83.0, )"
         }
       },
+      "modconductor.steamdiscovery": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )",
+          "ModConductor.Platform": "[1.0.0, )"
+        }
+      },
       "modconductor.workspaces": {
         "type": "Project",
         "dependencies": {

@@ -7,7 +7,8 @@
 | `ModConductor.Operations` | Runtime-check requests, durable outcomes, and coordination |
 | `ModConductor.Platform` | Native path identity, held-directory access, and filesystem preflight |
 | `ModConductor.Workspaces` | Workspace and profile lifecycle |
-| `ModConductor.GameContexts` | Game definitions, manual installation checks, and context evidence |
+| `ModConductor.GameContexts` | Game definitions, installation checks, and context evidence |
+| `ModConductor.SteamDiscovery` | Read-only Steam library search, manifest parsing, and candidate origins |
 | `ModConductor.ModLibrary` | Mod identity, metadata, and immutable file versions |
 | `ModConductor.ModSelection` | Per-profile enablement, saved precedence, and batch rules |
 | `ModConductor.ModOrganization` | Workspace categories, typed filters, and grouping contracts |
@@ -207,5 +208,15 @@ External changes do not form an atomic filesystem snapshot.
 
 The Skyrim Special Edition Steam definition declares Data and Windows target-name
 rules. Windows user locations use actual Known Folders without creation. Linux
-installation checks leave Proton and user locations unavailable. Steam discovery,
-prefix resolution, game launch, and deployment are not provided by these checks.
+installation checks leave Proton and user locations unavailable. Prefix resolution, game launch, and deployment are not provided by these checks.
+
+`SteamDiscovery` reads bounded library and app manifests from platform-default or
+explicit Steam folders. It follows declared directory links, rejects unsafe
+manifest installation paths, and merges installation identities while retaining
+all observed origins. A broken library does not hide valid results. Search limits
+and per-root problems remain explicit. No account scan or Steam write occurs.
+
+The Game form uses the shared installation table to choose a search result into
+its draft. Additional search folders last only for that form session. Choose does
+not save a binding; Save repeats the normal installation checks. Discovery facts
+are observations, not persisted Steam verification or entitlement evidence.

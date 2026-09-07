@@ -14,7 +14,8 @@ instruction. Preserve field identities and reserve removed fields.
 | `mod_library.proto` | Mod inventory, metadata, publication, and saved files |
 | `profile_mods.proto` | Per-profile enablement and precedence changes |
 | `mod_organization.proto` | Workspace category edits and revision-pinned mod queries |
-| `game_contexts.proto` | Manual workspace installation selection and checked evidence |
+| `game_contexts.proto` | Workspace installation selection and checked evidence |
+| `steam_discovery.proto` | Read-only Steam installation search and per-origin observations |
 
 After locked restores, run `python3 tools/generate-protocol.py`. Use `--check` to
 compare both generated boundaries without changing source. The tool compiles all

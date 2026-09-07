@@ -1,0 +1,63 @@
+syntax = "proto3";
+package modconductor.v1;
+option csharp_namespace = "ModConductor.Protocol.V1";
+
+service SteamDiscoveryOperations {
+  rpc SearchInstallations(SteamSearchRequest) returns (SteamSearchResult);
+}
+message SteamSearchRequest { string definition_id = 1; repeated string additional_roots = 2; }
+message SteamSearchRoot { string path = 1; string origin = 2; }
+message SteamDirectory {
+  string declared_path = 1;
+  string canonical_path = 2;
+  optional string native_identity = 3;
+}
+message SteamManifestEvidence {
+  string path = 1;
+  string native_identity = 2;
+  string sha256 = 3;
+  uint32 app_id = 4;
+  string install_directory = 5;
+  optional string name = 6;
+  optional string build_id = 7;
+  optional uint64 state_flags = 8;
+}
+message SteamInstallationOrigin {
+  SteamSearchRoot root = 1;
+  SteamDirectory steam_root = 2;
+  SteamDirectory library = 3;
+  optional string library_entry = 4;
+  SteamManifestEvidence manifest = 5;
+}
+message SteamInstallationCandidate {
+  string candidate_id = 1;
+  SteamDirectory directory = 2;
+  repeated SteamInstallationOrigin origins = 3;
+}
+enum SteamDiscoveryProblem {
+  STEAM_DISCOVERY_PROBLEM_UNSPECIFIED = 0;
+  STEAM_DISCOVERY_PROBLEM_ROOT_UNAVAILABLE = 1;
+  STEAM_DISCOVERY_PROBLEM_LIBRARIES_UNREADABLE = 2;
+  STEAM_DISCOVERY_PROBLEM_LIBRARIES_MALFORMED = 3;
+  STEAM_DISCOVERY_PROBLEM_LIBRARY_PATH_INVALID = 4;
+  STEAM_DISCOVERY_PROBLEM_MANIFEST_UNREADABLE = 5;
+  STEAM_DISCOVERY_PROBLEM_MANIFEST_MALFORMED = 6;
+  STEAM_DISCOVERY_PROBLEM_STALE_ENTRY = 7;
+  STEAM_DISCOVERY_PROBLEM_APP_ID_MISMATCH = 8;
+  STEAM_DISCOVERY_PROBLEM_UNSAFE_INSTALL_DIRECTORY = 9;
+  STEAM_DISCOVERY_PROBLEM_INSTALLATION_UNAVAILABLE = 10;
+  STEAM_DISCOVERY_PROBLEM_LIMIT_REACHED = 11;
+}
+message SteamSearchDiagnostic {
+  string root_path = 1;
+  string path = 2;
+  SteamDiscoveryProblem kind = 3;
+  string detail = 4;
+}
+message SteamSearchResult {
+  uint32 app_id = 1;
+  repeated SteamSearchRoot roots = 2;
+  repeated SteamInstallationCandidate candidates = 3;
+  repeated SteamSearchDiagnostic diagnostics = 4;
+  bool limited = 5;
+}

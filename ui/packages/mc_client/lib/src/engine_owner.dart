@@ -8,6 +8,7 @@ import 'mod_library_client.dart';
 import 'profile_mod_client.dart';
 import 'mod_organization_client.dart';
 import 'game_context_client.dart';
+import 'steam_discovery_client.dart';
 
 sealed class EngineState {
   const EngineState();
@@ -54,6 +55,8 @@ class EngineOwner {
   int _attempt = 0;
 
   EngineState get state => _state;
+  SteamDiscoveryClient? get steamDiscovery =>
+      _state is EngineConnected ? _session?.steamDiscovery : null;
   GameContextsClient? get gameContexts =>
       _state is EngineConnected ? _session?.gameContexts : null;
   ModOrganizationClient? get modOrganization =>

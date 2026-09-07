@@ -53,6 +53,7 @@ class ModConductorApp extends StatefulWidget {
     this.profileMods,
     this.modOrganization,
     this.gameContexts,
+    this.steamDiscovery,
     this.chooseGameDirectory = _chooseGameDirectory,
     this.chooseDirectory = chooseWorkspaceDirectory,
   });
@@ -62,6 +63,7 @@ class ModConductorApp extends StatefulWidget {
   final ProfileModsClient? profileMods;
   final ModOrganizationClient? modOrganization;
   final GameContextsClient? gameContexts;
+  final SteamDiscoveryClient? steamDiscovery;
   final GameDirectoryChooser chooseGameDirectory;
   final DirectoryChooser chooseDirectory;
   final VoidCallback? onQuit;
@@ -196,6 +198,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
                     gameContextBuilder: (context, workspace) =>
                         GameContextBrowser(
                           controller: _game,
+                          steamDiscovery: widget.steamDiscovery,
                           chooseDirectory: widget.chooseGameDirectory,
                         ),
                     modLibraryBuilder: (context, workspace) =>

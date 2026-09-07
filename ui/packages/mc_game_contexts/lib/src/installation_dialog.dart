@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:mc_client/mc_client.dart';
 import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 
+import 'steam_search_controller.dart';
+import 'steam_chooser.dart';
+
 typedef GameDirectoryChooser = Future<String?> Function(String? initialPath);
 
 class InstallationDialog extends StatefulWidget {
@@ -12,9 +15,11 @@ class InstallationDialog extends StatefulWidget {
     required this.chooseDirectory,
     required this.onSaved,
     required this.onUnknownSave,
+    this.steamDiscovery,
   });
   final GameContextState initial;
   final GameContextsClient client;
+  final SteamDiscoveryClient? steamDiscovery;
   final GameDirectoryChooser chooseDirectory;
   final ValueChanged<GameContextState> onSaved;
   final VoidCallback onUnknownSave;
@@ -27,6 +32,7 @@ class _InstallationDialogState extends State<InstallationDialog> {
     text: widget.initial.binding?.path ?? '',
   );
   late GameContextState current = widget.initial;
+  SteamSearchController? steamSearch;
   bool busy = false;
   bool submitting = false;
   bool needsReload = false;
@@ -34,8 +40,32 @@ class _InstallationDialogState extends State<InstallationDialog> {
   String? error;
   @override
   void dispose() {
+    steamSearch?.dispose();
     folder.dispose();
     super.dispose();
+  }
+
+  Future<void> findInSteam() async {
+    final discovery = widget.steamDiscovery;
+    if (busy || discovery == null) return;
+    final search = steamSearch ??= SteamSearchController(
+      discovery,
+      current.definition.id,
+    );
+    final path = await showDialog<String>(
+      context: context,
+      builder: (_) => SteamInstallationChooser(
+        controller: search,
+        gameName: current.definition.name,
+        chooseDirectory: widget.chooseDirectory,
+      ),
+    );
+    if (mounted && path != null) {
+      setState(() {
+        folder.text = path;
+        error = null;
+      });
+    }
   }
 
   Future<void> save() async {
@@ -149,11 +179,25 @@ class _InstallationDialogState extends State<InstallationDialog> {
         onFieldSubmitted: (_) => save(),
       ),
       const SizedBox(height: 10),
-      McAction(
-        key: const ValueKey('browse-installation'),
-        label: 'Browse…',
-        icon: Icons.folder_open,
-        onPressed: busy ? null : browse,
+      Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          McAction(
+            key: const ValueKey('browse-installation'),
+            label: 'Browse…',
+            icon: Icons.folder_open,
+            onPressed: busy ? null : browse,
+          ),
+          McAction(
+            key: const ValueKey('find-in-steam'),
+            label: 'Find in Steam…',
+            icon: Icons.search,
+            onPressed: busy || widget.steamDiscovery == null
+                ? null
+                : findInSteam,
+          ),
+        ],
       ),
       if (error != null) ...[
         const SizedBox(height: 16),

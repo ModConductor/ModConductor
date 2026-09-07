@@ -142,6 +142,15 @@ class NativeChild {
         ),
       );
 
+  SteamDiscoveryClient steamDiscovery({bool authenticate = true}) =>
+      GrpcSteamDiscoveryClient(
+        _localChannel(),
+        CallOptions(
+          timeout: const Duration(seconds: 30),
+          metadata: authenticate ? {'mc-session': capability} : const {},
+        ),
+      );
+
   ProfileModsClient profileMods({bool authenticate = true}) =>
       ProfileModsClient(
         _localChannel(),

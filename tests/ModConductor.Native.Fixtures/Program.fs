@@ -9,7 +9,14 @@ open ModConductor.Native.Fixtures
 [<EntryPoint>]
 let main args =
     try
-        if args.Length = 2 && args[0] = "--game-files" && Path.IsPathFullyQualified args[1] then
+        if
+            args.Length = 2
+            && args[0] = "--steam-files"
+            && Path.IsPathFullyQualified args[1]
+        then
+            SteamDiscoveryFixtures.create args[1] |> ignore
+            0
+        elif args.Length = 2 && args[0] = "--game-files" && Path.IsPathFullyQualified args[1] then
             GameContextFixtures.create args[1] 104
             0
         elif args.Length = 5 && args[0] = "--storage-worker" then
@@ -25,6 +32,7 @@ let main args =
             SelectionFixtures.worker args[1] args[2] args[3] args[4]
             0
         else
+            let steamOnly = args.Length = 2 && args[0] = "--steam-discovery"
             let contextsOnly = args.Length = 2 && args[0] = "--game-contexts"
             let plannerOnly = args.Length = 2 && args[0] = "--planner"
             let organizationOnly = args.Length = 2 && args[0] = "--organization"
@@ -32,6 +40,7 @@ let main args =
 
             let primary, secondary =
                 match args with
+                | [| "--steam-discovery"; primary |]
                 | [| "--game-contexts"; primary |]
                 | [| "--planner"; primary |]
                 | [| "--organization"; primary |]
@@ -56,7 +65,13 @@ let main args =
                 else "other"
             )
 
-            if not selectionOnly && not organizationOnly && not plannerOnly && not contextsOnly then
+            if
+                not selectionOnly
+                && not organizationOnly
+                && not plannerOnly
+                && not contextsOnly
+                && not steamOnly
+            then
                 Fixtures.observe writer primary secondary
                 StorageFixtures.observe writer primary
                 WorkspaceFixtures.observe writer primary
@@ -64,15 +79,18 @@ let main args =
                 LibraryRecoveryFixtures.observe writer primary
                 LibraryIdentityFixtures.observe writer primary
 
-            if not organizationOnly && not plannerOnly && not contextsOnly then
+            if not organizationOnly && not plannerOnly && not contextsOnly && not steamOnly then
                 SelectionFixtures.observe writer primary
 
-            if not selectionOnly && not plannerOnly && not contextsOnly then
+            if not selectionOnly && not plannerOnly && not contextsOnly && not steamOnly then
                 OrganizationFixtures.observe writer primary
                 OrganizationMigration.observe writer primary
 
-            if not selectionOnly && not organizationOnly && not contextsOnly then
+            if not selectionOnly && not organizationOnly && not contextsOnly && not steamOnly then
                 PlanningFixtures.observe writer
+
+            if steamOnly then
+                SteamDiscoveryFixtures.observe writer primary
 
             if contextsOnly then
                 GameContextFixtures.observe writer primary
