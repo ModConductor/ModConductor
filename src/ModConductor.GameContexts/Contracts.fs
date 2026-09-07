@@ -20,6 +20,9 @@ type GameDefinition =
       Executable: string
       Launcher: string
       Data: string
+      Documents: string list
+      Saves: string list
+      LocalAppData: string list
       TargetPolicy: TargetPolicy
       UnavailableCapabilities: UnavailableCapability list }
 
@@ -33,6 +36,9 @@ module Skyrim =
           Executable = "SkyrimSE.exe"
           Launcher = "SkyrimSELauncher.exe"
           Data = "Data"
+          Documents = [ "My Games"; "Skyrim Special Edition" ]
+          Saves = [ "My Games"; "Skyrim Special Edition"; "Saves" ]
+          LocalAppData = [ "Skyrim Special Edition" ]
           TargetPolicy = TargetPolicy.windows
           UnavailableCapabilities =
             [ { Name = "Launch"

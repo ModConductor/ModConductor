@@ -17,6 +17,7 @@ type GameContextTests() =
         =
         flag "structuredVersion" |> should equal true
         flag "readOnlyValidation" |> should equal true
+        flag "knownFoldersRemainUnchanged" |> should equal true
         flag "malformedVersionsRefused" |> should equal true
         flag "missingDataNotValid" |> should equal true
         flag "protonHasNoHostFolders" |> should equal true

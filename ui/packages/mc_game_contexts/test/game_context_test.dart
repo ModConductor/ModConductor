@@ -15,40 +15,44 @@ const definition = GameDefinitionInfo(
   declaredSteamAppId: 489830,
   unavailableCapabilities: [],
 );
-GameContextState snapshot(String workspace, int revision, String? path) =>
-    GameContextState(
-      workspaceId: workspace,
-      revision: revision,
-      definition: definition,
-      binding: path == null
-          ? null
-          : GameBindingInfo(
-              id: 'binding',
-              path: path,
-              needsCheck: false,
-              evidence: GameInstallationEvidence(
-                definitionId: definition.id,
-                definitionRevision: definition.revision,
-                platform: GameContextPlatform.proton,
-                rootPath: path,
-                dataPath: '$path/Data',
-                executable: GameExecutableEvidence(
-                  path: '$path/SkyrimSE.exe',
-                  sha256: 'abc',
-                  length: 1024,
-                  fileVersion: '1.7.104.0',
-                  productVersion: '1.7.104.0',
-                ),
-                launcherPath: null,
-                documents: const UnavailableGameLocation('unresolved'),
-                saves: const UnavailableGameLocation('unresolved'),
-                localAppData: const UnavailableGameLocation('unresolved'),
-                problems: const [],
-                checkedAt: DateTime.utc(2026),
-                fingerprint: 'fingerprint',
-              ),
+GameContextState snapshot(
+  String workspace,
+  int revision,
+  String? path, {
+  String version = '1.7.104.0',
+}) => GameContextState(
+  workspaceId: workspace,
+  revision: revision,
+  definition: definition,
+  binding: path == null
+      ? null
+      : GameBindingInfo(
+          id: 'binding',
+          path: path,
+          needsCheck: false,
+          evidence: GameInstallationEvidence(
+            definitionId: definition.id,
+            definitionRevision: definition.revision,
+            platform: GameContextPlatform.proton,
+            rootPath: path,
+            dataPath: '$path/Data',
+            executable: GameExecutableEvidence(
+              path: '$path/SkyrimSE.exe',
+              sha256: 'abc',
+              length: 1024,
+              fileVersion: version,
+              productVersion: version,
             ),
-    );
+            launcherPath: null,
+            documents: const UnavailableGameLocation('unresolved'),
+            saves: const UnavailableGameLocation('unresolved'),
+            localAppData: const UnavailableGameLocation('unresolved'),
+            problems: const [],
+            checkedAt: DateTime.utc(2026),
+            fingerprint: 'fingerprint-$version',
+          ),
+        ),
+);
 
 class Client implements GameContextsClient {
   Future<GameContextState> Function(String) onRead = (id) async =>
@@ -58,13 +62,15 @@ class Client implements GameContextsClient {
     revision,
     path,
   ) async => snapshot(id, revision + 1, path);
+  Future<GameContextState> Function(String, int)? onRefresh;
   @override
   Future<GameContextState> read(String id) => onRead(id);
   @override
   Future<GameContextState> save(String id, int revision, String path) =>
       onSave(id, revision, path);
   @override
-  Future<GameContextState> refresh(String id, int revision) => onRead(id);
+  Future<GameContextState> refresh(String id, int revision) =>
+      onRefresh?.call(id, revision) ?? onRead(id);
 }
 
 Future<void> page(WidgetTester tester, GameContextController controller) async {
@@ -141,6 +147,62 @@ void main() {
       await tester.pumpAndSettle();
       expect(controller.state!.binding!.path, '/accepted');
       expect(controller.needsRead, isFalse);
+      await tester.pumpWidget(const SizedBox());
+      controller.dispose();
+    },
+  );
+  testWidgets(
+    'a lost Refresh reply keeps last-known evidence until a read reconciles the committed revision',
+    (tester) async {
+      var saved = snapshot('workspace', 1, '/game');
+      var refreshes = 0;
+      final client = Client()
+        ..onRead = (_) async {
+          return saved;
+        }
+        ..onRefresh = (id, revision) async {
+          refreshes++;
+          saved = snapshot(id, revision + 1, '/game', version: '1.7.105.0');
+          throw TimeoutException('committed reply lost');
+        };
+      final controller = GameContextController()
+        ..attach(client, workspaceId: 'workspace', editable: true);
+      await page(tester, controller);
+      final checkedStatus = tester
+          .widget<McStatus>(find.byType(McStatus))
+          .title;
+      await tester.tap(find.byKey(const ValueKey('refresh-installation')));
+      await tester.pumpAndSettle();
+      expect(controller.state!.revision, 1);
+      expect(controller.state!.binding!.path, '/game');
+      expect(
+        controller.state!.binding!.evidence.executable!.fileVersion,
+        '1.7.104.0',
+      );
+      expect(controller.needsRead, isTrue);
+      expect(
+        tester
+            .widget<McAction>(find.byKey(const ValueKey('change-installation')))
+            .onPressed,
+        isNull,
+      );
+      expect(
+        tester
+            .widgetList<McStatus>(find.byType(McStatus))
+            .any((status) => status.title == checkedStatus),
+        isFalse,
+      );
+      await tester.tap(find.byKey(const ValueKey('refresh-installation')));
+      await tester.pumpAndSettle();
+      expect(refreshes, 1);
+      expect(controller.state!.revision, 2);
+      expect(controller.state!.binding!.path, '/game');
+      expect(
+        controller.state!.binding!.evidence.executable!.fileVersion,
+        '1.7.105.0',
+      );
+      expect(controller.needsRead, isFalse);
+      expect(controller.canChange, isTrue);
       await tester.pumpWidget(const SizedBox());
       controller.dispose();
     },

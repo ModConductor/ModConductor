@@ -68,6 +68,27 @@ module GameContextFixtures =
         let exe = Path.Combine(game, "SkyrimSE.exe")
         let initialBytes = File.ReadAllBytes exe
         let initialNames = Directory.GetFileSystemEntries(game) |> Array.sort
+
+        let knownFolderPaths =
+            if OperatingSystem.IsWindows() then
+                [ Environment.SpecialFolder.MyDocuments, Skyrim.definition.Documents
+                  Environment.SpecialFolder.MyDocuments, Skyrim.definition.Saves
+                  Environment.SpecialFolder.LocalApplicationData, Skyrim.definition.LocalAppData ]
+                |> List.map (fun (folder, components) ->
+                    let root =
+                        Environment.GetFolderPath(
+                            folder,
+                            Environment.SpecialFolderOption.DoNotVerify
+                        )
+
+                    if String.IsNullOrEmpty root then
+                        None
+                    else
+                        let path = Path.Combine(Array.ofList (root :: components))
+                        Some(path, Directory.Exists path))
+            else
+                []
+
         let inspected = InstallationValidation.inspect game
         writer.WriteStartObject("gameContexts")
 
@@ -91,6 +112,24 @@ module GameContextFixtures =
             initialBytes = File.ReadAllBytes exe
             && initialNames = (Directory.GetFileSystemEntries(game) |> Array.sort)
         )
+
+        let userFoldersUnchanged =
+            if OperatingSystem.IsWindows() then
+                List.zip
+                    knownFolderPaths
+                    [ inspected.Locations.Documents
+                      inspected.Locations.Saves
+                      inspected.Locations.LocalAppData ]
+                |> List.forall (fun (before, observed) ->
+                    match before, observed with
+                    | Some(path, existed), Location.Located(actual, exists) ->
+                        actual = path && exists = existed && Directory.Exists path = existed
+                    | None, Location.Unavailable _ -> true
+                    | _ -> false)
+            else
+                true
+
+        writer.WriteBoolean("knownFoldersRemainUnchanged", userFoldersUnchanged)
 
         let malformed = image 104
         BinaryPrimitives.WriteUInt32LittleEndian(malformed.AsSpan(564, 4), 0x80000020u)

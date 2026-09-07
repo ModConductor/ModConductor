@@ -155,7 +155,7 @@ class _GameContextBrowserState extends State<GameContextBrowser> {
                   ),
                   McAction(
                     key: const ValueKey('refresh-installation'),
-                    label: 'Refresh',
+                    label: c.needsRead ? 'Reload' : 'Refresh',
                     icon: Icons.refresh,
                     onPressed: c.canRefresh
                         ? () => unawaited(c.load(refresh: !c.needsRead))
@@ -179,7 +179,7 @@ class _GameContextBrowserState extends State<GameContextBrowser> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          if (binding.needsCheck)
+                          if (binding.needsCheck || c.needsRead)
                             const McStatus(title: 'Last checked details'),
                           fact('Executable', evidence.executable!.path),
                           fact(

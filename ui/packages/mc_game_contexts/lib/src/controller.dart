@@ -72,12 +72,13 @@ class GameContextController extends ChangeNotifier {
     final client = _client;
     final workspace = _workspace;
     if (client == null || workspace == null || loading) return false;
+    final checking = refresh && state?.binding != null;
     final epoch = ++_epoch;
     loading = true;
     problem = null;
     _notify();
     try {
-      final result = refresh && state?.binding != null
+      final result = checking
           ? await client.refresh(workspace, state!.revision)
           : await client.read(workspace);
       if (_disposed || epoch != _epoch) return false;
@@ -86,6 +87,7 @@ class GameContextController extends ChangeNotifier {
       return true;
     } on Exception catch (error) {
       if (!_disposed && epoch == _epoch) {
+        if (checking && error is! GameContextException) needsRead = true;
         problem = error is GameContextException
             ? error.detail
             : 'The installation check did not return a result.';
