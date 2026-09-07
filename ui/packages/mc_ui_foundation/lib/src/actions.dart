@@ -64,12 +64,15 @@ class McIconAction extends StatelessWidget {
   Widget build(BuildContext context) => MergeSemantics(
     child: Semantics(
       label: label,
-      child: IconButton(
-        tooltip: label,
-        icon: ExcludeSemantics(child: icon),
-        onPressed: onPressed,
-        focusNode: focusNode,
-        padding: padding,
+      child: TooltipTheme(
+        data: TooltipTheme.of(context).copyWith(excludeFromSemantics: true),
+        child: IconButton(
+          tooltip: label,
+          icon: ExcludeSemantics(child: icon),
+          onPressed: onPressed,
+          focusNode: focusNode,
+          padding: padding,
+        ),
       ),
     ),
   );
@@ -92,11 +95,14 @@ class McIconMenu<T> extends StatelessWidget {
   Widget build(BuildContext context) => MergeSemantics(
     child: Semantics(
       label: label,
-      child: PopupMenuButton<T>(
-        tooltip: label,
-        enabled: enabled,
-        itemBuilder: itemBuilder,
-        onSelected: onSelected,
+      child: TooltipTheme(
+        data: TooltipTheme.of(context).copyWith(excludeFromSemantics: true),
+        child: PopupMenuButton<T>(
+          tooltip: label,
+          enabled: enabled,
+          itemBuilder: itemBuilder,
+          onSelected: onSelected,
+        ),
       ),
     ),
   );

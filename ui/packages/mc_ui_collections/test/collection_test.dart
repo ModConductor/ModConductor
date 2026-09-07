@@ -144,6 +144,7 @@ void main() {
         final expanderWidget = tester.widget<McIconAction>(expander);
         final expanderNode = tester.getSemantics(expander);
         expect(expanderNode.getSemanticsData().label, expanderWidget.label);
+        expect(expanderNode.getSemanticsData().tooltip, isEmpty);
         expanderNode.owner!.performAction(expanderNode.id, SemanticsAction.tap);
         await tester.pumpAndSettle();
         final expanded = tester.getSemantics(branch).getSemanticsData();
@@ -158,6 +159,7 @@ void main() {
           menuNode.getSemanticsData().label,
           tester.widget<McIconMenu<String>>(menu).label,
         );
+        expect(menuNode.getSemanticsData().tooltip, isEmpty);
         menuNode.owner!.performAction(menuNode.id, SemanticsAction.tap);
         await tester.pumpAndSettle();
         final choice = tester.getSemantics(find.text('Act'));
