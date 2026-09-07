@@ -139,7 +139,7 @@ void main() {
               .evaluate()
               .isEmpty,
         );
-        final saved = await owner.gameContexts!.read(workspace);
+        var saved = await owner.gameContexts!.read(workspace);
         if (Platform.isLinux) {
           expect(saved.binding!.proton!.compatData, data);
           expect(
@@ -159,6 +159,57 @@ void main() {
         } else {
           expect(saved.binding!.proton, isNull);
           expect(saved.binding!.evidence.platform, GameContextPlatform.windows);
+        }
+        if (Platform.isLinux) {
+          final replacement = '${area.path}/replacement-game';
+          final created = await Process.run(fixtureTool, [
+            '--game-files',
+            replacement,
+          ]);
+          expect(created.exitCode, 0, reason: '${created.stderr}');
+          await tap(find.byKey(const ValueKey('change-installation')));
+          await tester.enterText(
+            find.byKey(const ValueKey('installation-folder')),
+            replacement,
+          );
+          await capture('changed-game-proton-cleared');
+          await tap(find.byKey(const ValueKey('submit')));
+          await until(
+            () => find
+                .byKey(const ValueKey('installation-folder'))
+                .evaluate()
+                .isEmpty,
+          );
+          final partial = await owner.gameContexts!.read(workspace);
+          expect(partial.binding!.path, replacement);
+          expect(partial.binding!.proton, isNull);
+          expect(partial.binding!.evidence.proton, isNull);
+          await tap(find.byKey(const ValueKey('change-installation')));
+          await tap(find.byKey(const ValueKey('select-proton')));
+          await tester.enterText(
+            find.byKey(const ValueKey('proton-data-folder')),
+            data,
+          );
+          await tester.enterText(
+            find.byKey(const ValueKey('proton-runtime-folder')),
+            runtime,
+          );
+          await tap(find.byKey(const ValueKey('submit')).last);
+          expect(
+            (await owner.gameContexts!.read(workspace)).revision,
+            partial.revision,
+          );
+          await tap(find.byKey(const ValueKey('submit')));
+          await until(
+            () => find
+                .byKey(const ValueKey('installation-folder'))
+                .evaluate()
+                .isEmpty,
+          );
+          saved = await owner.gameContexts!.read(workspace);
+          expect(saved.binding!.path, replacement);
+          expect(saved.binding!.proton!.compatData, data);
+          expect(saved.revision, partial.revision + 1);
         }
         await capture('saved-context');
         await tap(find.byKey(const ValueKey('nav-preferences')));

@@ -44,9 +44,26 @@ class _InstallationDialogState extends State<InstallationDialog> {
   bool needsReload = false;
   bool reloaded = false;
   String? error;
+  late String protonGamePath;
+  @override
+  void initState() {
+    super.initState();
+    protonGamePath = folder.text;
+    folder.addListener(gamePathChanged);
+  }
+
+  void gamePathChanged() {
+    if (folder.text == protonGamePath) return;
+    setState(() {
+      protonGamePath = folder.text;
+      proton = null;
+    });
+  }
+
   @override
   void dispose() {
     steamSearch?.dispose();
+    folder.removeListener(gamePathChanged);
     folder.dispose();
     super.dispose();
   }
@@ -77,18 +94,19 @@ class _InstallationDialogState extends State<InstallationDialog> {
   Future<void> chooseProton() async {
     final client = widget.protonContexts;
     if (busy || client == null || folder.text.isEmpty) return;
+    final gamePath = folder.text;
     final selected = await showDialog<ProtonSelection>(
       context: context,
       builder: (_) => ProtonDialog(
         game: current.definition,
-        gamePath: folder.text,
+        gamePath: gamePath,
         client: client,
         chooseDirectory: widget.chooseDirectory,
         roots: steamSearch?.additionalRoots ?? const [],
         initial: proton,
       ),
     );
-    if (mounted && selected != null) {
+    if (mounted && selected != null && folder.text == gamePath) {
       setState(() {
         proton = selected;
         error = null;
