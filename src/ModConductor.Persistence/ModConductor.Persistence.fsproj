@@ -30,7 +30,10 @@
     <Compile Include="OrganizationQuerySql.fs" />
     <Compile Include="OrganizationQuery.fs" />
     <Compile Include="ModOrganizationStore.fs" />
+    <Compile Include="GameContextEncoding.fs" />
+    <Compile Include="GameContextStore.fs" />
     <Compile Include="OperationStore.fs" />
+    <ProjectReference Include="../ModConductor.GameContexts/ModConductor.GameContexts.fsproj" />
     <ProjectReference Include="../ModConductor.ModLibrary/ModConductor.ModLibrary.fsproj" />
     <ProjectReference Include="../ModConductor.ModOrganization/ModConductor.ModOrganization.fsproj" />
     <ProjectReference Include="../ModConductor.ModSelection/ModConductor.ModSelection.fsproj" />

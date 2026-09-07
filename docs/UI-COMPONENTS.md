@@ -15,7 +15,8 @@ collection. `mc_mod_library` owns inventory, profile selection, and saved-versio
 presentation, category forms, and query state. Its profile controller applies
 revision-pinned queries after selection changes. The query cache keeps matching,
 context, and inspected rows separate. The library controller retains metadata
-actions and pinned file state. The app
+actions and pinned file state. `mc_game_contexts` owns the installation form, context controller, and evidence
+view. The app
 binds these libraries to `mc_client` and owns global navigation and appearance.
 
 Use the foundation's actions, menus, statuses, and name fields instead of
@@ -69,7 +70,7 @@ and profile behavior. Decorative icons do not add semantic names.
 - **Alt+1** opens Workspaces.
 - **Alt+2** or **Ctrl+,** opens Preferences.
 - **Ctrl+Q** or **Quit** requests native application exit.
-- **Tab** and **Shift+Tab** move focus. **Escape** dismisses a dialog.
+- **Tab** and **Shift+Tab** move focus. **Escape** dismisses a dialog unless an accepted Save is still in progress.
 
 Preference drafts remain across navigation and resize. **Apply** updates the
 current appearance and text size. **Cancel** restores active values. Appearance
@@ -77,3 +78,15 @@ preferences are not saved after exit.
 
 See [Architecture](ARCHITECTURE.md) for state ownership and
 [Build instructions](BUILDING.md) for component and native checks.
+
+## Game selection
+
+The workspace's Game mode retains the Profiles and Mods views. The installation
+form uses `McFormDialog`, the shared folder action, and inline errors. Save
+validates and commits without a separate Check step. Cancel closes an unsubmitted draft without changing the binding.
+The native game-folder picker does not offer directory creation.
+
+`McFormDialog.canCancel` defaults to true. The installation form disables dismissal
+while Save is in progress, then restores it on failure. A stale form preserves
+its folder draft and shows the current saved path after Reload. Change restores
+focus when the dialog closes. Refresh checks the saved installation.

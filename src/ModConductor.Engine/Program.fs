@@ -91,6 +91,13 @@ let run args =
 
     builder.Services.AddSingleton<ModConductor.Engine.ModLibraryService>() |> ignore
     builder.Services.AddSingleton<ModConductor.Engine.WorkspaceService>() |> ignore
+
+    builder.Services.AddSingleton<ModConductor.GameContexts.IGameContexts>(store.GameContexts)
+    |> ignore
+
+    builder.Services.AddSingleton<ModConductor.Engine.GameContextService>()
+    |> ignore
+
     builder.Services.AddSingleton<Coordinator>(coordinator) |> ignore
     builder.Services.AddSingleton<ModConductor.Engine.OperationService>() |> ignore
 
@@ -109,12 +116,16 @@ let run args =
         .AddServiceOptions<ModConductor.Engine.ProfileModService>(fun options ->
             options.MaxReceiveMessageSize <- Nullable 65536
             options.MaxSendMessageSize <- Nullable(2 * 1024 * 1024))
+        .AddServiceOptions<ModConductor.Engine.GameContextService>(fun options ->
+            options.MaxReceiveMessageSize <- Nullable 65536
+            options.MaxSendMessageSize <- Nullable(2 * 1024 * 1024))
         .AddServiceOptions<ModConductor.Engine.WorkspaceService>(fun options ->
             options.MaxReceiveMessageSize <- Nullable 65536
             options.MaxSendMessageSize <- Nullable(2 * 1024 * 1024))
     |> ignore
 
     use app = builder.Build()
+    app.MapGrpcService<ModConductor.Engine.GameContextService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.OperationService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.WorkspaceService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.ModOrganizationService>() |> ignore

@@ -19,6 +19,7 @@
     <Compile Include="ProfileModService.fs" />
     <Compile Include="OrganizationWire.fs" />
     <Compile Include="ModOrganizationService.fs" />
+    <Compile Include="GameContextService.fs" />
     <Compile Include="Program.fs" />
     <ProjectReference Include="../ModConductor.Persistence/ModConductor.Persistence.fsproj" />
     <ProjectReference Include="../ModConductor.Workspaces/ModConductor.Workspaces.fsproj" />

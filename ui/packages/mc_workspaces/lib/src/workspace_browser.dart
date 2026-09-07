@@ -11,6 +11,8 @@ import 'workspace_dialog.dart';
 
 typedef ProfileRowId = ({String profileId});
 
+enum _WorkspaceMode { profiles, mods, game }
+
 enum _ProfileAction { clone, rename, delete }
 
 class WorkspaceBrowser extends StatefulWidget {
@@ -19,10 +21,12 @@ class WorkspaceBrowser extends StatefulWidget {
     required this.controller,
     this.chooseDirectory = chooseWorkspaceDirectory,
     this.modLibraryBuilder,
+    this.gameContextBuilder,
   });
   final WorkspaceController controller;
   final DirectoryChooser chooseDirectory;
   final Widget Function(BuildContext, WorkspaceInfo)? modLibraryBuilder;
+  final Widget Function(BuildContext, WorkspaceInfo)? gameContextBuilder;
 
   @override
   State<WorkspaceBrowser> createState() => _WorkspaceBrowserState();
@@ -35,7 +39,7 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
   final _openWorkspaceFocus = FocusNode(debugLabel: 'Open workspace');
   final _createProfileFocus = FocusNode(debugLabel: 'Create profile');
   String? _shownId;
-  bool _showMods = false;
+  _WorkspaceMode _mode = _WorkspaceMode.profiles;
   final _profilesFocus = FocusNode(debugLabel: 'Profiles');
   final _profiles = McCollectionModel<ProfileRowId, ProfileInfo>(
     idOf: (row) => (profileId: row.id),
@@ -65,7 +69,7 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
     final id = controller.workspace?.id;
     if (id != _shownId) {
       _profiles.clear();
-      _showMods = false;
+      _mode = _WorkspaceMode.profiles;
     }
     final page = controller.page;
     if (id != null && page != null && !identical(page, _shownPage)) {
@@ -297,7 +301,8 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
                     child: McAction(
                       label: current?.name ?? 'Profiles',
                       icon: Icons.person_outline,
-                      onPressed: () => setState(() => _showMods = false),
+                      onPressed: () =>
+                          setState(() => _mode = _WorkspaceMode.profiles),
                     ),
                   ),
                   McAction(
@@ -320,42 +325,59 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
             ],
           ),
           const SizedBox(height: 16),
-          if (widget.modLibraryBuilder != null) ...[
+          if (widget.modLibraryBuilder != null ||
+              widget.gameContextBuilder != null) ...[
             Align(
               alignment: Alignment.centerLeft,
-              child: SegmentedButton<bool>(
-                segments: const [
+              child: SegmentedButton<_WorkspaceMode>(
+                segments: [
                   ButtonSegment(
-                    value: false,
+                    value: _WorkspaceMode.profiles,
                     label: Text('Profiles'),
                     icon: Icon(Icons.people_outline),
                   ),
-                  ButtonSegment(
-                    value: true,
-                    label: Text('Mods'),
-                    icon: Icon(Icons.layers_outlined),
-                  ),
+                  if (widget.modLibraryBuilder != null)
+                    ButtonSegment(
+                      value: _WorkspaceMode.mods,
+                      label: Text('Mods'),
+                      icon: Icon(Icons.layers_outlined),
+                    ),
+                  if (widget.gameContextBuilder != null)
+                    ButtonSegment(
+                      value: _WorkspaceMode.game,
+                      label: Text('Game'),
+                      icon: Icon(Icons.videogame_asset_outlined),
+                    ),
                 ],
-                selected: {_showMods},
+                selected: {_mode},
                 onSelectionChanged: (value) =>
-                    setState(() => _showMods = value.single),
+                    setState(() => _mode = value.single),
               ),
             ),
             const SizedBox(height: 16),
           ],
           Expanded(
             child: IndexedStack(
-              index: _showMods && widget.modLibraryBuilder != null ? 1 : 0,
+              index: _mode.index,
               children: [
                 ExcludeFocus(
-                  excluding: _showMods,
+                  excluding: _mode != _WorkspaceMode.profiles,
                   child: _profilesSurface(context),
                 ),
                 if (widget.modLibraryBuilder != null)
                   ExcludeFocus(
-                    excluding: !_showMods,
+                    excluding: _mode != _WorkspaceMode.mods,
                     child: widget.modLibraryBuilder!(context, workspace),
-                  ),
+                  )
+                else
+                  const SizedBox.shrink(),
+                if (widget.gameContextBuilder != null)
+                  ExcludeFocus(
+                    excluding: _mode != _WorkspaceMode.game,
+                    child: widget.gameContextBuilder!(context, workspace),
+                  )
+                else
+                  const SizedBox.shrink(),
               ],
             ),
           ),

@@ -7,6 +7,7 @@
 | `ModConductor.Operations` | Runtime-check requests, durable outcomes, and coordination |
 | `ModConductor.Platform` | Native path identity, held-directory access, and filesystem preflight |
 | `ModConductor.Workspaces` | Workspace and profile lifecycle |
+| `ModConductor.GameContexts` | Game definitions, manual installation checks, and context evidence |
 | `ModConductor.ModLibrary` | Mod identity, metadata, and immutable file versions |
 | `ModConductor.ModSelection` | Per-profile enablement, saved precedence, and batch rules |
 | `ModConductor.ModOrganization` | Workspace categories, typed filters, and grouping contracts |
@@ -187,3 +188,24 @@ precedence, mappings, policies, annotations, and sinks. Unordered input enumerat
 is canonicalized. Mod display names, categories, and UI filters are not planner inputs.
 `checkCurrent` rejects changed or unresolved supplied inputs without replacing a
 retained plan. It does not observe external changes or authorize activation.
+
+## Game installations
+
+Each workspace selects one installation. Profiles share that binding. Several
+workspaces can refer to the same installation. Selection does not change mods,
+versions, profile order, or enablement.
+
+Save checks the explicit folder and its expected binding revision before commit.
+The validator reads declared installation entries through held directories. It
+reads fixed PE version resources and hashes the same read-only executable handle.
+It does not launch the executable or write game files. Evidence is not publisher
+or Steam ownership verification.
+
+Failed replacement leaves the previous binding intact. Failed Refresh retains
+its last checked facts with a failure reason. Restart requires a new check.
+External changes do not form an atomic filesystem snapshot.
+
+The Skyrim Special Edition Steam definition declares Data and Windows target-name
+rules. Windows user locations use actual Known Folders without creation. Linux
+installation checks leave Proton and user locations unavailable. Steam discovery,
+prefix resolution, game launch, and deployment are not provided by these checks.

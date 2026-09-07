@@ -1,0 +1,19 @@
+name: mc_game_contexts
+description: Manual game installation presentation for Mod Conductor.
+publish_to: none
+resolution: workspace
+version: 0.1.0
+environment:
+  sdk: 3.13.2
+  flutter: 3.47.2
+dependencies:
+  flutter:
+    sdk: flutter
+  mc_client:
+    path: ../mc_client
+  mc_ui_foundation:
+    path: ../mc_ui_foundation
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: 6.0.0

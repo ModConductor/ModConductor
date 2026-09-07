@@ -12,6 +12,10 @@ dependencies:
   flutter:
     sdk: flutter
 
+  file_selector: 1.1.0
+  mc_game_contexts:
+    path: ../../packages/mc_game_contexts
+
   mc_client:
     path: ../../packages/mc_client
 

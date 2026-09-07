@@ -1,0 +1,66 @@
+syntax = "proto3";
+package modconductor.v1;
+option csharp_namespace = "ModConductor.Protocol.V1";
+
+service GameContextOperations {
+  rpc ReadGameContext(ReadGameContextRequest) returns (GameContextReply);
+  rpc SaveGameContext(SaveGameContextRequest) returns (GameContextReply);
+  rpc RefreshGameContext(RefreshGameContextRequest) returns (GameContextReply);
+}
+message ReadGameContextRequest { string workspace_id = 1; }
+message SaveGameContextRequest { string workspace_id = 1; uint64 expected_revision = 2; string path = 3; }
+message RefreshGameContextRequest { string workspace_id = 1; uint64 expected_revision = 2; }
+message GameDefinitionInfo {
+  string definition_id = 1;
+  uint32 revision = 2;
+  string name = 3;
+  string storefront = 4;
+  uint32 declared_steam_app_id = 5;
+  repeated UnavailableGameCapability unavailable_capabilities = 6;
+}
+message UnavailableGameCapability { string name = 1; string reason = 2; }
+enum GameContextPlatform { GAME_CONTEXT_PLATFORM_UNSPECIFIED = 0; GAME_CONTEXT_PLATFORM_WINDOWS = 1; GAME_CONTEXT_PLATFORM_PROTON = 2; }
+message GameLocation {
+  oneof result { LocatedGameFolder located = 1; string unavailable_reason = 2; }
+}
+message LocatedGameFolder { string path = 1; bool exists = 2; }
+message GameExecutableEvidence { string path = 1; string sha256 = 2; uint64 length = 3; string file_version = 4; string product_version = 5; }
+message GameValidationProblem { string path = 1; string detail = 2; }
+message GameInstallationEvidence {
+  GameContextPlatform platform = 1;
+  string root_path = 2;
+  optional string data_path = 3;
+  GameExecutableEvidence executable = 4;
+  optional string launcher_path = 5;
+  GameLocation documents = 6;
+  GameLocation saves = 7;
+  GameLocation local_app_data = 8;
+  repeated GameValidationProblem problems = 9;
+  int64 checked_at_unix_ms = 10;
+  string fingerprint = 11;
+  string definition_id = 12;
+  uint32 definition_revision = 13;
+}
+message GameBindingInfo {
+  string binding_id = 1;
+  string path = 2;
+  GameInstallationEvidence evidence = 3;
+  bool needs_check = 4;
+  optional string failure = 5;
+}
+message GameContextState {
+  string workspace_id = 1;
+  uint64 revision = 2;
+  GameDefinitionInfo definition = 3;
+  GameBindingInfo binding = 4;
+}
+enum GameContextFaultCode {
+  GAME_CONTEXT_FAULT_UNSPECIFIED = 0;
+  GAME_CONTEXT_FAULT_NOT_FOUND = 1;
+  GAME_CONTEXT_FAULT_STALE_REVISION = 2;
+  GAME_CONTEXT_FAULT_WORKSPACE_UNAVAILABLE = 3;
+  GAME_CONTEXT_FAULT_INVALID_INSTALLATION = 4;
+  GAME_CONTEXT_FAULT_BUSY = 5;
+}
+message GameContextFault { GameContextFaultCode code = 1; string detail = 2; GameInstallationEvidence candidate = 3; }
+message GameContextReply { oneof outcome { GameContextState state = 1; GameContextFault fault = 2; } }

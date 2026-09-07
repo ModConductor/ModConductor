@@ -9,7 +9,10 @@ open ModConductor.Native.Fixtures
 [<EntryPoint>]
 let main args =
     try
-        if args.Length = 5 && args[0] = "--storage-worker" then
+        if args.Length = 2 && args[0] = "--game-files" && Path.IsPathFullyQualified args[1] then
+            GameContextFixtures.create args[1] 104
+            0
+        elif args.Length = 5 && args[0] = "--storage-worker" then
             StorageWorker.run args[1] args[2] args[3] args[4]
             0
         elif args.Length = 5 && args[0] = "--workspace-worker" then
@@ -22,12 +25,14 @@ let main args =
             SelectionFixtures.worker args[1] args[2] args[3] args[4]
             0
         else
+            let contextsOnly = args.Length = 2 && args[0] = "--game-contexts"
             let plannerOnly = args.Length = 2 && args[0] = "--planner"
             let organizationOnly = args.Length = 2 && args[0] = "--organization"
             let selectionOnly = args.Length = 2 && args[0] = "--selection"
 
             let primary, secondary =
                 match args with
+                | [| "--game-contexts"; primary |]
                 | [| "--planner"; primary |]
                 | [| "--organization"; primary |]
                 | [| "--selection"; primary |] when Path.IsPathFullyQualified primary ->
@@ -51,7 +56,7 @@ let main args =
                 else "other"
             )
 
-            if not selectionOnly && not organizationOnly && not plannerOnly then
+            if not selectionOnly && not organizationOnly && not plannerOnly && not contextsOnly then
                 Fixtures.observe writer primary secondary
                 StorageFixtures.observe writer primary
                 WorkspaceFixtures.observe writer primary
@@ -59,15 +64,18 @@ let main args =
                 LibraryRecoveryFixtures.observe writer primary
                 LibraryIdentityFixtures.observe writer primary
 
-            if not organizationOnly && not plannerOnly then
+            if not organizationOnly && not plannerOnly && not contextsOnly then
                 SelectionFixtures.observe writer primary
 
-            if not selectionOnly && not plannerOnly then
+            if not selectionOnly && not plannerOnly && not contextsOnly then
                 OrganizationFixtures.observe writer primary
                 OrganizationMigration.observe writer primary
 
-            if not selectionOnly && not organizationOnly then
+            if not selectionOnly && not organizationOnly && not contextsOnly then
                 PlanningFixtures.observe writer
+
+            if contextsOnly then
+                GameContextFixtures.observe writer primary
 
             writer.WriteEndObject()
             writer.Flush()

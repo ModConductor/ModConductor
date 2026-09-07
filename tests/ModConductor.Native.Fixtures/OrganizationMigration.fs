@@ -99,7 +99,7 @@ module OrganizationMigration =
 
         writer.WriteBoolean(
             "stableAfterRestart",
-            number "PRAGMA user_version" = 6L
+            number "PRAGMA user_version" = 7L
             && rows "SELECT mod_id,category_id,label FROM mod_categories ORDER BY mod_id" = references
             && rows selectionSql = selection
         )

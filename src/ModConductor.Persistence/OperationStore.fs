@@ -10,6 +10,7 @@ type OperationStore(directory: string) =
     let modLibrary = ModLibraryStore(database, workspaceRoots)
     let organization = ModOrganizationStore(database, modLibrary.Access)
     let selection = ModSelectionStore(database, modLibrary.Access)
+    let gameContexts = GameContextStore(database, workspaceRoots)
     let connection = database.Connection
 
     let state transaction =
@@ -89,6 +90,8 @@ type OperationStore(directory: string) =
 
     member _.ModSelection = selection
     member _.ModOrganization = organization
+
+    member _.GameContexts = gameContexts
 
     member _.SqliteVersion = connection.ServerVersion
 
@@ -214,7 +217,10 @@ type OperationStore(directory: string) =
     interface IDisposable with
         member _.Dispose() =
             if
-                not (modLibrary.TryClose(fun () -> workspaces.TryClose(workspaceRoots.TryClose)))
+                not (
+                    gameContexts.TryClose()
+                    && modLibrary.TryClose(fun () -> workspaces.TryClose(workspaceRoots.TryClose))
+                )
             then
                 invalidOp
                     "A workspace change or root file check is still active. Wait for it before closing the store."

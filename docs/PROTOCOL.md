@@ -14,6 +14,7 @@ instruction. Preserve field identities and reserve removed fields.
 | `mod_library.proto` | Mod inventory, metadata, publication, and saved files |
 | `profile_mods.proto` | Per-profile enablement and precedence changes |
 | `mod_organization.proto` | Workspace category edits and revision-pinned mod queries |
+| `game_contexts.proto` | Manual workspace installation selection and checked evidence |
 
 After locked restores, run `python3 tools/generate-protocol.py`. Use `--check` to
 compare both generated boundaries without changing source. The tool compiles all
@@ -44,6 +45,11 @@ boundary. This does not protect against a malicious replacement executable or
 provide a same-user sandbox.
 
 ## Bounds and lifetime
+
+Game-context RPCs permit 64 KiB requests and 2 MiB replies. Save compares a workspace
+binding revision and returns either the committed state or a typed failure.
+Invalid candidates include check details. Declared Steam identity is not observed
+Steam evidence. Refresh retains the last successful evidence if its new check fails.
 
 Runtime RPCs permit 4 KiB requests and 64 KiB replies. Workspace and mod RPCs
 permit 64 KiB requests and 2 MiB replies. Item and content budgets further bound

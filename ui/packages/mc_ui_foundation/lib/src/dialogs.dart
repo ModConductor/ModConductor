@@ -38,25 +38,33 @@ class McFormDialog extends StatelessWidget {
     required this.children,
     required this.action,
     required this.onSubmit,
+    this.canCancel = true,
   });
   final String title;
   final List<Widget> children;
   final String action;
   final VoidCallback? onSubmit;
+  final bool canCancel;
 
   @override
-  Widget build(BuildContext context) => McDialog(
-    title: title,
-    actions: [
-      McAction(label: 'Cancel', onPressed: () => Navigator.pop(context)),
-      McAction(
-        key: const ValueKey('submit'),
-        label: action,
-        emphasis: McActionEmphasis.primary,
-        onPressed: onSubmit,
-      ),
-    ],
-    children: children,
+  Widget build(BuildContext context) => PopScope(
+    canPop: canCancel,
+    child: McDialog(
+      title: title,
+      actions: [
+        McAction(
+          label: 'Cancel',
+          onPressed: canCancel ? () => Navigator.pop(context) : null,
+        ),
+        McAction(
+          key: const ValueKey('submit'),
+          label: action,
+          emphasis: McActionEmphasis.primary,
+          onPressed: onSubmit,
+        ),
+      ],
+      children: children,
+    ),
   );
 }
 

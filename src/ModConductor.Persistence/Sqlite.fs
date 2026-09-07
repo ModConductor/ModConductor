@@ -68,7 +68,8 @@ module internal Sqlite =
         | 3L
         | 4L
         | 5L
-        | 6L -> ()
+        | 6L
+        | 7L -> ()
         | _ -> raise (InvalidOperationException("The state database uses an unsupported version."))
 
         if number connection transaction "PRAGMA user_version" [] = 3L then
@@ -79,6 +80,13 @@ module internal Sqlite =
 
         if number connection transaction "PRAGMA user_version" [] = 5L then
             execute connection transaction OrganizationSchema.sql []
+
+        if number connection transaction "PRAGMA user_version" [] = 6L then
+            execute
+                connection
+                transaction
+                "CREATE TABLE game_contexts(workspace_id TEXT PRIMARY KEY REFERENCES workspaces(id),id TEXT NOT NULL,path TEXT NOT NULL,revision INTEGER NOT NULL,evidence TEXT NOT NULL,checked_owner TEXT NOT NULL,failure TEXT); PRAGMA user_version=7;"
+                []
 
         beforeCommit ()
         transaction.Commit()

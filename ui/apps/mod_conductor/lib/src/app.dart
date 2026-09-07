@@ -5,6 +5,8 @@ import 'dart:ui' show AppExitType, AppExitResponse;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:file_selector/file_selector.dart';
+import 'package:mc_game_contexts/mc_game_contexts.dart';
 import 'package:mc_client/mc_client.dart';
 import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 import 'package:mc_mod_library/mc_mod_library.dart';
@@ -14,6 +16,12 @@ part 'shell.dart';
 part 'preferences.dart';
 part 'status.dart';
 part 'desktop_host.dart';
+
+Future<String?> _chooseGameDirectory(String? initialPath) => getDirectoryPath(
+  initialDirectory: initialPath,
+  confirmButtonText: 'Choose folder',
+  canCreateDirectories: false,
+);
 
 void _quitDesktop() {
   ServicesBinding.instance.exitApplication(AppExitType.cancelable);
@@ -44,6 +52,8 @@ class ModConductorApp extends StatefulWidget {
     this.modLibrary,
     this.profileMods,
     this.modOrganization,
+    this.gameContexts,
+    this.chooseGameDirectory = _chooseGameDirectory,
     this.chooseDirectory = chooseWorkspaceDirectory,
   });
   final DesktopStatus status;
@@ -51,6 +61,8 @@ class ModConductorApp extends StatefulWidget {
   final ModLibraryClient? modLibrary;
   final ProfileModsClient? profileMods;
   final ModOrganizationClient? modOrganization;
+  final GameContextsClient? gameContexts;
+  final GameDirectoryChooser chooseGameDirectory;
   final DirectoryChooser chooseDirectory;
   final VoidCallback? onQuit;
   final VoidCallback? onRetry;
@@ -68,35 +80,44 @@ class _ModConductorAppState extends State<ModConductorApp> {
   final _quitFocus = FocusNode(debugLabel: 'Quit');
   final _workspaces = WorkspaceController();
   final _mods = ModLibraryController();
+  final _game = GameContextController();
 
-  void _syncLibrary() => _mods.attach(
-    widget.modLibrary,
-    widget.profileMods,
-    organizationClient: widget.modOrganization,
-    workspaceId: _workspaces.workspace?.id,
-    profileId: _workspaces.workspace?.selectedProfile?.id,
-    editable: _workspaces.canEdit,
-  );
+  void _syncWorkspaceConsumers() {
+    _game.attach(
+      widget.gameContexts,
+      workspaceId: _workspaces.workspace?.id,
+      editable: _workspaces.canEdit,
+    );
+    _mods.attach(
+      widget.modLibrary,
+      widget.profileMods,
+      organizationClient: widget.modOrganization,
+      workspaceId: _workspaces.workspace?.id,
+      profileId: _workspaces.workspace?.selectedProfile?.id,
+      editable: _workspaces.canEdit,
+    );
+  }
 
   @override
   void initState() {
     super.initState();
-    _workspaces.addListener(_syncLibrary);
+    _workspaces.addListener(_syncWorkspaceConsumers);
     _workspaces.attach(widget.workspaces);
-    _syncLibrary();
+    _syncWorkspaceConsumers();
   }
 
   @override
   void didUpdateWidget(ModConductorApp oldWidget) {
     super.didUpdateWidget(oldWidget);
     _workspaces.attach(widget.workspaces);
-    _syncLibrary();
+    _syncWorkspaceConsumers();
   }
 
   @override
   void dispose() {
-    _workspaces.removeListener(_syncLibrary);
+    _workspaces.removeListener(_syncWorkspaceConsumers);
     _mods.dispose();
+    _game.dispose();
     _workspaces.dispose();
     for (final node in [
       _workspacesFocus,
@@ -172,6 +193,11 @@ class _ModConductorAppState extends State<ModConductorApp> {
                   DesktopConnecting() ||
                   DesktopConnected() => WorkspaceBrowser(
                     controller: _workspaces,
+                    gameContextBuilder: (context, workspace) =>
+                        GameContextBrowser(
+                          controller: _game,
+                          chooseDirectory: widget.chooseGameDirectory,
+                        ),
                     modLibraryBuilder: (context, workspace) =>
                         ModLibraryBrowser(
                           controller: _mods,

@@ -133,6 +133,15 @@ class NativeChild {
         ),
       );
 
+  GameContextsClient gameContexts({bool authenticate = true}) =>
+      GrpcGameContextsClient(
+        _localChannel(),
+        CallOptions(
+          timeout: const Duration(seconds: 30),
+          metadata: authenticate ? {'mc-session': capability} : const {},
+        ),
+      );
+
   ProfileModsClient profileMods({bool authenticate = true}) =>
       ProfileModsClient(
         _localChannel(),
