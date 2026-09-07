@@ -5,11 +5,18 @@ import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 import 'model.dart';
 
 class McColumn<T> {
-  const McColumn(this.label, this.cell, {this.width, this.compare});
+  const McColumn(
+    this.label,
+    this.cell, {
+    this.width,
+    this.compare,
+    this.interactive = false,
+  });
   final String label;
   final Widget Function(T) cell;
   final double? width;
   final Comparator<T>? compare;
+  final bool interactive;
 }
 
 /// One bounded viewport and keyboard focus owner for tables and trees.
@@ -301,9 +308,14 @@ class _McCollectionState<I extends Object, T extends Object>
                                 focusable: true,
                                 focused: focused,
                                 expanded: branch ? model.expanded(id) : null,
-                                label:
-                                    widget.semanticLabel?.call(row) ??
-                                    model.labelOf(row),
+                                label: [
+                                  widget.semanticLabel?.call(row) ??
+                                      model.labelOf(row),
+                                  if (branch)
+                                    model.expanded(id)
+                                        ? 'Expanded'
+                                        : 'Collapsed',
+                                ].join(', '),
                                 onTap: () => _select(id),
                                 onFocus: () => _select(id),
                                 child: Material(
@@ -348,9 +360,9 @@ class _McCollectionState<I extends Object, T extends Object>
                                             SizedBox(
                                               width: 32,
                                               child: branch
-                                                  ? IconButton(
+                                                  ? McIconAction(
                                                       padding: EdgeInsets.zero,
-                                                      tooltip:
+                                                      label:
                                                           '${model.expanded(id) ? 'Collapse' : 'Expand'} ${model.labelOf(row)}',
                                                       onPressed: () =>
                                                           model.toggle(id),
@@ -372,7 +384,10 @@ class _McCollectionState<I extends Object, T extends Object>
                                           ],
                                           for (final column in widget.columns)
                                             cell(
-                                              column.cell(row),
+                                              ExcludeSemantics(
+                                                excluding: !column.interactive,
+                                                child: column.cell(row),
+                                              ),
                                               column.width,
                                             ),
                                         ],
@@ -424,8 +439,8 @@ class _McCollectionState<I extends Object, T extends Object>
                       ),
                     ),
                   if (widget.onRefresh != null)
-                    IconButton(
-                      tooltip: 'Refresh ${widget.title}',
+                    McIconAction(
+                      label: 'Refresh ${widget.title}',
                       onPressed: widget.onRefresh,
                       icon: const Icon(Icons.refresh, size: 18),
                     ),

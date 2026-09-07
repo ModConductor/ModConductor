@@ -44,3 +44,60 @@ class McAction extends StatelessWidget {
     };
   }
 }
+
+class McIconAction extends StatelessWidget {
+  const McIconAction({
+    super.key,
+    required this.label,
+    required this.icon,
+    required this.onPressed,
+    this.focusNode,
+    this.padding,
+  });
+  final String label;
+  final Widget icon;
+  final VoidCallback? onPressed;
+  final FocusNode? focusNode;
+  final EdgeInsetsGeometry? padding;
+
+  @override
+  Widget build(BuildContext context) => MergeSemantics(
+    child: Semantics(
+      label: label,
+      child: IconButton(
+        tooltip: label,
+        icon: ExcludeSemantics(child: icon),
+        onPressed: onPressed,
+        focusNode: focusNode,
+        padding: padding,
+      ),
+    ),
+  );
+}
+
+class McIconMenu<T> extends StatelessWidget {
+  const McIconMenu({
+    super.key,
+    required this.label,
+    required this.itemBuilder,
+    required this.onSelected,
+    this.enabled = true,
+  });
+  final String label;
+  final PopupMenuItemBuilder<T> itemBuilder;
+  final PopupMenuItemSelected<T> onSelected;
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) => MergeSemantics(
+    child: Semantics(
+      label: label,
+      child: PopupMenuButton<T>(
+        tooltip: label,
+        enabled: enabled,
+        itemBuilder: itemBuilder,
+        onSelected: onSelected,
+      ),
+    ),
+  );
+}

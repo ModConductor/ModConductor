@@ -84,7 +84,7 @@ class _ModLibraryBrowserState extends State<ModLibraryBrowser> {
           empty: 'No installed mods.',
           onSelect: controller.select,
           semanticLabel: (row) =>
-              '${row.metadata.name}, ${_kind(row.kind)}, ${_status(row.status)}',
+              '${row.metadata.name}, ${_kind(row.kind)}${row.metadata.version.isEmpty ? '' : ', version ${row.metadata.version}'}, ${_status(row.status)}',
           loading: controller.loadingMods,
           problem: controller.modProblem,
           onLoad: controller.canLoadMods
@@ -166,14 +166,14 @@ class _ModLibraryBrowserState extends State<ModLibraryBrowser> {
           actions: [
             if (chosen?.currentVersionId != null &&
                 chosen?.currentVersionId != version)
-              IconButton(
-                tooltip: 'Open latest saved version',
+              McIconAction(
+                label: 'Open latest saved version',
                 onPressed: controller.showLatestVersion,
                 icon: const Icon(Icons.update),
               ),
-            IconButton(
+            McIconAction(
               focusNode: _editFocus,
-              tooltip: 'Edit mod details',
+              label: 'Edit mod details',
               onPressed: controller.can(ModAction.editMetadata)
                   ? () => _details(original: chosen)
                   : null,

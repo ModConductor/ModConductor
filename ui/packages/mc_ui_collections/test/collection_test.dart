@@ -1,4 +1,4 @@
-import 'dart:ui' show Tristate;
+import 'dart:ui' show SemanticsAction, Tristate;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -72,6 +72,113 @@ void main() {
       expect(rows.selectedId, 1);
       expect(rows.focusedId, 1);
       expect(rows.selected!.parent, 20);
+    },
+  );
+
+  testWidgets(
+    'accessible row actions keep their names, state and independent child controls',
+    (tester) async {
+      final rows = model();
+      final focus = FocusNode();
+      final semantics = tester.ensureSemantics();
+      addTearDown(rows.dispose);
+      addTearDown(focus.dispose);
+      try {
+        rows.apply(upserts: [item(1, folder: true), item(2, parent: 1)]);
+        var activated = 0, refreshed = 0;
+        String summary(Item row) => '${row.name}, record ${row.id}';
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: McCollection<int, Item>(
+                model: rows,
+                title: 'Records',
+                filterLabel: 'Filter',
+                countLabel: '2 records',
+                focusNode: focus,
+                semanticLabel: summary,
+                actions: [
+                  McIconAction(
+                    key: const ValueKey('refresh-action'),
+                    label: 'Reload records',
+                    icon: const Icon(Icons.refresh),
+                    onPressed: () => refreshed++,
+                  ),
+                ],
+                columns: [
+                  McColumn('Name', (row) => Text(row.name)),
+                  McColumn(
+                    'Action',
+                    (row) => McIconMenu<String>(
+                      key: ValueKey('menu-${row.id}'),
+                      label: 'Options for ${row.name}',
+                      itemBuilder: (_) => [
+                        const PopupMenuItem(value: 'act', child: Text('Act')),
+                      ],
+                      onSelected: (_) {
+                        activated = row.id;
+                        rows.select(row.id);
+                        focus.requestFocus();
+                      },
+                    ),
+                    width: 48,
+                    interactive: true,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        final branch = find.byKey(const ValueKey<int>(1));
+        final branchNode = tester.getSemantics(branch);
+        branchNode.owner!.performAction(branchNode.id, SemanticsAction.focus);
+        await tester.pump();
+        expect(rows.selectedId, 1);
+        final collapsed = tester.getSemantics(branch).getSemanticsData();
+        expect(collapsed.flagsCollection.isExpanded, Tristate.isFalse);
+        final expander = find.descendant(
+          of: branch,
+          matching: find.byType(McIconAction),
+        );
+        final expanderWidget = tester.widget<McIconAction>(expander);
+        final expanderNode = tester.getSemantics(expander);
+        expect(expanderNode.getSemanticsData().label, expanderWidget.label);
+        expanderNode.owner!.performAction(expanderNode.id, SemanticsAction.tap);
+        await tester.pumpAndSettle();
+        final expanded = tester.getSemantics(branch).getSemanticsData();
+        expect(expanded.flagsCollection.isExpanded, Tristate.isTrue);
+        expect(expanded.label, isNot(collapsed.label));
+        expect(expanded.label, contains(summary(rows[1]!)));
+        final child = tester.getSemantics(find.byKey(const ValueKey<int>(2)));
+        expect(child.getSemanticsData().label, summary(rows[2]!));
+        final menu = find.byKey(const ValueKey('menu-2'));
+        final menuNode = tester.getSemantics(menu);
+        expect(
+          menuNode.getSemanticsData().label,
+          tester.widget<McIconMenu<String>>(menu).label,
+        );
+        menuNode.owner!.performAction(menuNode.id, SemanticsAction.tap);
+        await tester.pumpAndSettle();
+        final choice = tester.getSemantics(find.text('Act'));
+        choice.owner!.performAction(choice.id, SemanticsAction.tap);
+        await tester.pumpAndSettle();
+        expect(activated, 2);
+        expect(rows.selectedId, 2);
+        expect(rows.focusedId, 2);
+        expect(focus.hasFocus, isTrue);
+        final refresh = find.byKey(const ValueKey('refresh-action'));
+        final refreshNode = tester.getSemantics(refresh);
+        expect(
+          refreshNode.getSemanticsData().label,
+          tester.widget<McIconAction>(refresh).label,
+        );
+        refreshNode.owner!.performAction(refreshNode.id, SemanticsAction.tap);
+        await tester.pump();
+        expect(refreshed, 1);
+      } finally {
+        semantics.dispose();
+      }
     },
   );
 

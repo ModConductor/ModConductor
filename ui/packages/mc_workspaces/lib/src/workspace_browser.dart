@@ -441,9 +441,9 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
                 ),
                 McColumn(
                   '',
-                  (row) => PopupMenuButton<_ProfileAction>(
+                  (row) => McIconMenu<_ProfileAction>(
                     key: ValueKey('profile-menu-${row.id}'),
-                    tooltip: 'Options for ${row.name}',
+                    label: 'Options for ${row.name}',
                     enabled: controller.canEdit,
                     onSelected: (action) {
                       _profiles.select((profileId: row.id));
@@ -475,6 +475,7 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
                     ],
                   ),
                   width: 42,
+                  interactive: true,
                 ),
               ],
             ),

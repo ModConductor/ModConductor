@@ -58,9 +58,9 @@ class _DesktopShell extends StatelessWidget {
                           ?.copyWith(fontSize: 17),
                     ),
                   ),
-                  IconButton(
+                  McIconAction(
                     key: const ValueKey('quick-theme'),
-                    tooltip: 'Change appearance',
+                    label: 'Change appearance',
                     onPressed: onToggleTheme,
                     icon: const Icon(Icons.brightness_6_outlined),
                   ),
