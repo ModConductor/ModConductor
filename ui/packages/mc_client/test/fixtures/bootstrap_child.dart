@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:mc_client/src/generated/modconductor/v2/engine_probe.pb.dart';
+import 'package:mc_client/src/generated/modconductor/v1/bootstrap.pb.dart';
 
 // A pipe relay for native fault injection. Session bytes never enter its output.
 Future<void> main(List<String> args) async {

@@ -1,0 +1,76 @@
+syntax = "proto3";
+package modconductor.v1;
+option csharp_namespace = "ModConductor.Protocol.V1";
+
+service WorkspaceOperations {
+  rpc CreateWorkspace(CreateWorkspaceRequest) returns (WorkspaceReply);
+  rpc OpenWorkspace(OpenWorkspaceRequest) returns (WorkspaceReply);
+  rpc ReadWorkspace(ReadWorkspaceRequest) returns (WorkspaceReply);
+  rpc EditProfile(EditProfileRequest) returns (ProfileReply);
+  rpc CheckWorkspace(CheckWorkspaceRequest) returns (WorkspaceReply);
+  rpc RecentWorkspaces(RecentWorkspacesRequest) returns (RecentWorkspacesReply);
+}
+message ProfileInfo { string profile_id = 1; string name = 2; }
+enum WorkspaceRootIssueReason {
+  WORKSPACE_ROOT_ISSUE_REASON_UNSPECIFIED = 0;
+  WORKSPACE_ROOT_ISSUE_REASON_INCOMPLETE_CREATION = 1;
+  WORKSPACE_ROOT_ISSUE_REASON_OWNERSHIP_UNPROVED = 2;
+  WORKSPACE_ROOT_ISSUE_REASON_IDENTITY_UNVERIFIED = 3;
+}
+message PendingWorkspaceRoot { uint64 receipt_revision = 1; WorkspaceRootIssueReason reason = 2; }
+message WorkspaceInfo {
+  string workspace_id = 1;
+  string name = 2;
+  string path = 3;
+  // Workspace metadata revision; independent of runtime-result and root-receipt revisions.
+  uint64 revision = 4;
+  ProfileInfo selected_profile = 5;
+  PendingWorkspaceRoot pending_root = 6;
+}
+message WorkspacePage {
+  WorkspaceInfo workspace = 1;
+  // At most 32 profiles, in stable ID order. A cursor permits the next page.
+  repeated ProfileInfo profiles = 2;
+  optional string next_profile_id = 3;
+}
+enum WorkspaceFaultCode {
+  WORKSPACE_FAULT_CODE_UNSPECIFIED = 0;
+  WORKSPACE_FAULT_CODE_NOT_FOUND = 1;
+  WORKSPACE_FAULT_CODE_STALE_REVISION = 2;
+  WORKSPACE_FAULT_CODE_IDENTITY_CONFLICT = 3;
+  WORKSPACE_FAULT_CODE_SELECTED_PROFILE = 4;
+  WORKSPACE_FAULT_CODE_INVALID_NAME = 5;
+  WORKSPACE_FAULT_CODE_INVALID_ROOT = 6;
+  WORKSPACE_FAULT_CODE_ROOT_UNRESOLVED = 7;
+  WORKSPACE_FAULT_CODE_BUSY = 8;
+}
+message WorkspaceFault { WorkspaceFaultCode code = 1; string detail = 2; }
+message WorkspaceReply { oneof outcome { WorkspacePage page = 1; WorkspaceFault fault = 2; } }
+message CreateWorkspaceRequest { string workspace_id = 1; string name = 2; string path = 3; uint64 expected_revision = 4; }
+message OpenWorkspaceRequest { string path = 1; }
+message ReadWorkspaceRequest { string workspace_id = 1; optional string after_profile_id = 2; }
+message CloneProfile { string source_profile_id = 1; ProfileInfo copy = 2; }
+message EditProfileRequest {
+  string workspace_id = 1;
+  uint64 expected_revision = 2;
+  oneof edit {
+    ProfileInfo create_profile = 3;
+    CloneProfile clone_profile = 4;
+    ProfileInfo rename_profile = 5;
+    string select_profile_id = 6;
+    string delete_profile_id = 7;
+  }
+}
+message ProfileChange {
+  WorkspaceInfo workspace = 1;
+  ProfileInfo changed = 2;
+  optional string deleted_profile_id = 3;
+}
+message ProfileReply { oneof outcome { ProfileChange change = 1; WorkspaceFault fault = 2; } }
+message CheckWorkspaceRequest { string workspace_id = 1; uint64 expected_receipt_revision = 2; }
+message RecentWorkspacesRequest { optional string after_workspace_id = 1; }
+message RecentWorkspacesReply {
+  // At most 8 registered roots. Presence is not a fresh filesystem validation.
+  repeated WorkspaceInfo workspaces = 1;
+  optional string next_workspace_id = 2;
+}

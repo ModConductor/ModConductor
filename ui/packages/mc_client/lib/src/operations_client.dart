@@ -4,7 +4,7 @@ import 'dart:math';
 import 'package:fixnum/fixnum.dart';
 import 'package:grpc/grpc.dart';
 
-import 'generated/modconductor/v2/engine_probe.pbgrpc.dart' as wire;
+import 'generated/modconductor/v1/operations.pbgrpc.dart' as wire;
 
 typedef RuntimeSummary = ({
   String architecture,
@@ -99,7 +99,7 @@ class OperationsClient {
   final wire.EngineOperationsClient _client;
 
   Future<OperationFeed> state() async =>
-      _feed(await _client.getState(wire.StateRequest(protocolMajor: 2)));
+      _feed(await _client.getState(wire.StateRequest(protocolMajor: 1)));
 
   Future<RuntimeCheck> begin({
     required String id,

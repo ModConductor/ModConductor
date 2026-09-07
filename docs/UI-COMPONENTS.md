@@ -1,31 +1,54 @@
 # Desktop components
 
-`ui/packages/mc_ui_foundation` owns the shared visual controls. `mc_workspaces` owns workspace presentation and forms. The app owns navigation and appearance drafts. The foundation does not import features or engine policy.
+## Ownership
 
-| Contract | Actual consumers | Shared behavior |
-| --- | --- | --- |
-| `mcTheme`, `McSpacing` | Workspaces; Preferences; design preview | Colors, bundled Roboto, spacing and light/dark themes |
-| `McPage`, `McSection` | Workspace entry; profiles; Preferences | Headings, scrolling and sections |
-| `McChoice<T>` | Preferences theme and text size | Typed values, keyboard selection and SDK semantics |
-| `McAction` | Workspace actions; profile actions; Preferences; dialogs | SDK buttons, emphasis, focus and enabled state |
-| `McStatus` | Workspace failure/recovery; Preferences; connection error | Text and icon status without color-only meaning |
-| `McFormDialog` | Workspace create/open; profile create/clone/rename/delete; preview | Scrollable SDK dialog, cancel, submit and focus restoration |
-| `McNameField`, `McNameDialog` | Workspace name; profile create/clone/rename; preview | Display-name input, validation and submission |
-| `WorkspaceDialog` | Create workspace; Open workspace | Native directory chooser, cancel and full selected path |
-| Profile row | Every loaded profile, including selected profile outside the current page | Selection, scoped menu and selected indicator |
+`mc_ui_foundation` owns themes, typography, spacing, actions, fields, dialogs, and
+status controls. It does not import feature clients or engine policy.
 
-The preview imports the production forms rather than retaining a second toolbox. Its folder list is a simulation only. Production uses the native directory chooser. [Workspace behavior](WORKSPACES.md) describes actual saved state and recovery.
+`mc_ui_collections` owns typed collection models, virtual table/tree rendering,
+display filters, sorting, selection, and keyboard navigation. IDs come from the
+consumer. Immutable row values and explicit callbacks replace dynamic feature maps.
+Nonstructural deltas update cached rows without recalculating the visible list.
 
-`DesktopHost` owns the process lifecycle through `mc_client`. `WorkspaceController` consumes its typed client and ignores stale completions from an old connection. Leaving a page does not cancel an accepted mutation. No widgets or page state live in the transport library.
+`mc_workspaces` owns workspace/profile forms, lifecycle state, and the profile
+collection. `mc_mod_library` owns inventory and saved-version presentation. The app
+binds these libraries to `mc_client` and owns global navigation and appearance.
 
-## Controls
+Use the foundation's `McAction`, `McStatus`, `McFormDialog`, and name fields instead
+of reproducing their styles. `McPage` provides a scrollable document layout.
+Collections need bounded height and must not sit inside an unbounded page scroll.
+
+## Collection behavior
+
+Row selection is presentation state. **Use profile** changes the current profile.
+Selecting a mod does not enable it. Display sorting does not change precedence.
+
+Profiles, installed mods, and saved files use `McCollection`. Consumers supply
+columns and typed row IDs. File node IDs include the pinned version and original
+path components. Arrival of another page does not replace selection or focus.
+A hidden or temporarily unloaded selected ID remains selected until explicit
+removal. Actions require a currently available row.
+
+Partial pages use **Filter loaded** labels and loaded counts. A failed continuation
+preserves prior rows and offers Retry. Canceling a load invalidates its late reply.
+It does not cancel a committed engine operation. Saved files remain pinned until
+the user selects another mod, saves a version, or opens the latest version.
+
+The narrow layout provides a pane selector. Each pane retains its model and
+scroll state. File rows support expansion with Left/Right. Up/Down, Home/End, and
+Page Up/Page Down move selection within the visible rows. Enter or Space selects
+or expands a row. Row semantics expose selection, focus, and expansion.
+
+## Global controls
 
 - **Alt+1** opens Workspaces.
 - **Alt+2** or **Ctrl+,** opens Preferences.
 - **Ctrl+Q** or **Quit** requests native application exit.
-- **Tab** and **Shift+Tab** move focus. **Enter** activates a focused control.
-- **Escape** closes a dialog and returns focus to its control.
+- **Tab** and **Shift+Tab** move focus. **Escape** dismisses a dialog.
 
-Preference drafts remain when you change pages or resize the window. **Apply** updates the current appearance and text size. **Cancel** restores active values. The header's appearance control changes the theme immediately. Appearance preferences are not saved after exit.
+Preference drafts remain across navigation and resize. **Apply** updates the
+current appearance and text size. **Cancel** restores active values. Appearance
+preferences are not saved after exit.
 
-The active-preferences comparison dialog remains private to Preferences. Native window behavior and folder selection require actual platform checks, not only widget tests. [Build commands](BUILDING.md) include the shared packages.
+See [Architecture](ARCHITECTURE.md) for state ownership and
+[Build instructions](BUILDING.md) for component and native checks.

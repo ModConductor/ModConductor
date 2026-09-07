@@ -5,7 +5,7 @@ import 'dart:math';
 
 import 'package:grpc/grpc.dart';
 
-import 'generated/modconductor/v2/engine_probe.pbgrpc.dart' as wire;
+import 'generated/modconductor/v1/bootstrap.pb.dart' as wire;
 import 'operations_client.dart';
 import 'workspaces_client.dart';
 import 'mod_library_client.dart';
@@ -36,7 +36,7 @@ class EngineSession {
     await _process.stdin.flush();
     final ready = await _readReady(_process.stdout)
         .timeout(const Duration(seconds: 10));
-    if (ready.protocolMajor != 2) {
+    if (ready.protocolMajor != 1) {
       throw const EngineProtocolMismatch();
     }
     if (ready.port < 1 || ready.port > 65535 || ready.certificatePem.isEmpty) {

@@ -32,8 +32,17 @@ module internal InventoryCommands =
                     | Ok library ->
                         let! input =
                             Task.Run(fun () ->
-                                match registration with
-                                | Registration.Directory(kind, path) when
+                                let normalized =
+                                    match registration with
+                                    | Registration.NativeDirectory(kind, candidate) ->
+                                        SourceFiles.relative root.Path candidate
+                                        |> Result.map (fun path ->
+                                            Registration.Directory(kind, path))
+                                    | value -> Ok value
+
+                                match normalized with
+                                | Error error -> Error error
+                                | Ok(Registration.Directory(kind, path)) when
                                     kind = ModKind.Regular
                                     || kind = ModKind.Unmanaged
                                     || kind = ModKind.GeneratedOutput
@@ -48,9 +57,12 @@ module internal InventoryCommands =
                                             (library.Identity |> Option.toList |> Set.ofList)
 
                                     Ok(kind, Some path, Some source.Identity, None)
-                                | Registration.Directory _ -> Error LibraryError.UnsupportedAction
-                                | Registration.Separator -> Ok(ModKind.Separator, None, None, None)
-                                | Registration.Backup version ->
+                                | Ok(Registration.Directory _)
+                                | Ok(Registration.NativeDirectory _) ->
+                                    Error LibraryError.UnsupportedAction
+                                | Ok Registration.Separator ->
+                                    Ok(ModKind.Separator, None, None, None)
+                                | Ok(Registration.Backup version) ->
                                     Ok(ModKind.Backup, None, None, Some version))
 
                         match input with

@@ -1,0 +1,106 @@
+syntax = "proto3";
+package modconductor.v1;
+option csharp_namespace = "ModConductor.Protocol.V1";
+
+// Workspace-owned directory inventory. No archive, deployment or game-folder actions.
+service ModLibraryOperations {
+  rpc RegisterMod(RegisterModRequest) returns (ModReply);
+  rpc EditMod(EditModRequest) returns (ModReply);
+  rpc ReadInventory(ReadInventoryRequest) returns (InventoryReply);
+  rpc ScanInventory(ScanInventoryRequest) returns (InventoryScanReply);
+  rpc PublishMod(PublishModRequest) returns (ModReply);
+  rpc ReadPublication(PublicationRequest) returns (PublicationReply);
+  rpc CancelPublication(PublicationRequest) returns (PublicationReply);
+  rpc ReadModVersion(ReadModVersionRequest) returns (ModVersionReply);
+  rpc ReadModPayload(ReadModPayloadRequest) returns (ModPayloadReply);
+}
+message ModLogicalPath { repeated string components = 1; }
+enum InventoryModKind {
+  INVENTORY_MOD_KIND_UNSPECIFIED = 0;
+  INVENTORY_MOD_KIND_REGULAR = 1;
+  INVENTORY_MOD_KIND_SEPARATOR = 2;
+  INVENTORY_MOD_KIND_BACKUP = 3;
+  INVENTORY_MOD_KIND_UNMANAGED = 4;
+  INVENTORY_MOD_KIND_GENERATED_OUTPUT = 5;
+}
+enum ModInventoryStatus {
+  MOD_INVENTORY_STATUS_UNSPECIFIED = 0;
+  MOD_INVENTORY_STATUS_READY = 1;
+  MOD_INVENTORY_STATUS_DETACHED = 2;
+  MOD_INVENTORY_STATUS_CHANGED = 3;
+  MOD_INVENTORY_STATUS_UNPROVED = 4;
+  MOD_INVENTORY_STATUS_PUBLISHING = 5;
+}
+enum InventoryModAction {
+  INVENTORY_MOD_ACTION_UNSPECIFIED = 0;
+  INVENTORY_MOD_ACTION_EDIT_METADATA = 1;
+  INVENTORY_MOD_ACTION_PUBLISH = 2;
+  INVENTORY_MOD_ACTION_READ_VERSION = 3;
+}
+message InventoryModMetadata { string name = 1; string notes = 2; string comment = 3; string version = 4; string source = 5; string category = 6; }
+message InventoryMod {
+  string mod_id = 1; string workspace_id = 2; InventoryModKind kind = 3;
+  InventoryModMetadata metadata = 4;
+  // Per-mod metadata/current-version revision, independent of workspace/runtime revisions.
+  uint64 revision = 5;
+  ModLogicalPath source_path = 6;
+  optional string current_version_id = 7;
+  ModInventoryStatus status = 8;
+  repeated InventoryModAction actions = 9;
+}
+enum ModLibraryFaultCode {
+  MOD_LIBRARY_FAULT_CODE_UNSPECIFIED = 0;
+  MOD_LIBRARY_FAULT_CODE_NOT_FOUND = 1;
+  MOD_LIBRARY_FAULT_CODE_STALE_REVISION = 2;
+  MOD_LIBRARY_FAULT_CODE_IDENTITY_CONFLICT = 3;
+  MOD_LIBRARY_FAULT_CODE_INVALID_METADATA = 4;
+  MOD_LIBRARY_FAULT_CODE_INVALID_SOURCE = 5;
+  MOD_LIBRARY_FAULT_CODE_UNPROVED_OWNERSHIP = 6;
+  MOD_LIBRARY_FAULT_CODE_SOURCE_CHANGED = 7;
+  MOD_LIBRARY_FAULT_CODE_UNSUPPORTED_ACTION = 8;
+  MOD_LIBRARY_FAULT_CODE_BUSY = 9;
+  MOD_LIBRARY_FAULT_CODE_LIMIT_EXCEEDED = 10;
+  MOD_LIBRARY_FAULT_CODE_FILE_UNAVAILABLE = 11;
+  MOD_LIBRARY_FAULT_CODE_CANCELLED = 12;
+}
+message ModLibraryFault { ModLibraryFaultCode code = 1; string detail = 2; }
+message ModReply { oneof outcome { InventoryMod mod = 1; ModLibraryFault fault = 2; } }
+message RegisterModRequest {
+  string workspace_id = 1; string mod_id = 2; InventoryModMetadata metadata = 3;
+  InventoryModKind kind = 4; ModLogicalPath source_path = 5; optional string backup_version_id = 6;
+  optional string native_source_path = 7; // Native chooser candidate, mutually exclusive with source_path.
+}
+message EditModRequest { string mod_id = 1; uint64 expected_revision = 2; InventoryModMetadata metadata = 3; }
+message ReadInventoryRequest { string profile_id = 1; optional string after_mod_id = 2; }
+message ModInventoryPage { repeated InventoryMod entries = 1; optional string next_mod_id = 2; } // At most 32, stable ID order.
+message InventoryReply { oneof outcome { ModInventoryPage page = 1; ModLibraryFault fault = 2; } }
+message ScanInventoryRequest { string workspace_id = 1; uint32 candidate_limit = 2; }
+message UnmanagedModPath { ModLogicalPath path = 1; bool directory = 2; bool unsupported = 3; }
+message ModInventoryScan {
+  // Bounded summary (32 each), not a complete inventory. ReadInventory pages persisted entries.
+  repeated InventoryMod entries = 1; repeated UnmanagedModPath unmanaged = 2; bool limited = 3;
+}
+message InventoryScanReply { oneof outcome { ModInventoryScan scan = 1; ModLibraryFault fault = 2; } }
+message PublishModRequest { string mod_id = 1; uint64 expected_revision = 2; string version_id = 3; }
+message PublicationRequest { string version_id = 1; }
+enum ModPublicationPhase {
+  MOD_PUBLICATION_PHASE_UNSPECIFIED = 0;
+  MOD_PUBLICATION_PHASE_INTENT = 1;
+  MOD_PUBLICATION_PHASE_OBSERVED = 2;
+  MOD_PUBLICATION_PHASE_COMPLETE = 3;
+  MOD_PUBLICATION_PHASE_INTERRUPTED = 4;
+  MOD_PUBLICATION_PHASE_CANCELLED = 5;
+}
+message ModPublicationReceipt { string version_id = 1; string mod_id = 2; uint64 expected_revision = 3; ModPublicationPhase phase = 4; }
+message PublicationReply { oneof outcome { ModPublicationReceipt receipt = 1; ModLibraryFault fault = 2; } }
+message ReadModVersionRequest { string version_id = 1; uint32 offset = 2; }
+message ModPayload { string payload_id = 1; uint64 length = 2; string sha256 = 3; }
+message ModManifestEntry { ModLogicalPath path = 1; ModPayload payload = 2; }
+message ModVersionPage {
+  string version_id = 1; string mod_id = 2;
+  repeated ModManifestEntry entries = 3; // At most 64; immutable original logical paths.
+  optional uint32 next_offset = 4;
+}
+message ModVersionReply { oneof outcome { ModVersionPage version = 1; ModLibraryFault fault = 2; } }
+message ReadModPayloadRequest { string version_id = 1; string payload_id = 2; uint64 offset = 3; uint32 count = 4; } // Count 1..65536.
+message ModPayloadReply { oneof outcome { bytes data = 1; ModLibraryFault fault = 2; } }

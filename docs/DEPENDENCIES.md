@@ -1,4 +1,4 @@
-# Wire proof dependencies
+# Dependencies
 
 The committed NuGet and pub locks pin resolved versions and integrity hashes.
 Original MC source remains unlicensed. These notices apply only to adopted third-party material.
@@ -24,9 +24,9 @@ Runtime direct dependencies are grpc 5.1.0 and protobuf 6.0.0. The workspace's
 build-only protoc_plugin 25.0.0 generates Dart using the pinned SDK. The SDK
 integration_test/flutter_driver packages drive the native Flutter check. Their
 Flutter/Dart notices are already retained in the main provenance inventory.
-No native UI plugin was added on Linux or Windows.
 
-The table lists actual new hosted resolutions, including generator and test
+
+The table lists hosted resolutions, including generator and test
 transitives. Each notice is retained from its resolved package archive. Existing
 hosted packages keep their previous notices. `ui/pubspec.lock` is authoritative
 for archive SHA-256 hashes.
@@ -104,6 +104,15 @@ The foundation retains the [Roboto notice](../ui/packages/mc_ui_foundation/notic
 
 The Linux x64 native asset SHA-256 is `eddcd4aa561d5b8f252db77e8272e7d1aed96bcab9fda3f177ca542f916290bf`.
 The Windows x64 native asset SHA-256 is `6ad8e149f8ce3ed3716402b4b3a2268ebbdc7b64391b5fafed747e03bb1b9418`.
-Both loaded SQLite 3.53.4 in NativeAOT transaction/restart probes. No encryption
-extension, paid feed, or commercial service is adopted. NuGet locks retain the
-complete closure. These third-party notices do not license original MC source.
+NuGet locks retain the complete closure. These notices do not license original
+Mod Conductor source.
+
+
+## Native test runner
+
+The managed assertion runner uses FsUnit 7.1.1, NUnit 4.6.1,
+NUnit3TestAdapter 6.3.0, and Microsoft.NET.Test.Sdk 18.9.0 under MIT terms.
+Retain the [FsUnit license](third-party/fsunit-LICENSE.txt),
+[NUnit license](third-party/nunit-LICENSE.txt), [NUnit component notices](third-party/nunit-THIRD_PARTY_NOTICES.md),
+and [adapter/runner package notices](third-party/platform-tests/).
+These packages are not included in the native fixture or application bundle.

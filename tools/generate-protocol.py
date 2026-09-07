@@ -37,10 +37,10 @@ with tempfile.TemporaryDirectory(prefix='protocol-', dir=scratch) as temporary:
     dart_out = temporary / 'dart'
     cs.mkdir()
     dart_out.mkdir()
-    schema = 'modconductor/v2/engine_probe.proto'
+    schemas = sorted(str(path.relative_to(root / 'contracts')) for path in (root / 'contracts').rglob('*.proto'))
     subprocess.run([str(protoc), '--version'], check=True)
-    subprocess.run([str(protoc), '-I', str(root / 'contracts'), '--csharp_out=' + str(cs), '--grpc_out=' + str(cs), '--plugin=protoc-gen-grpc=' + str(binaries / ('grpc_csharp_plugin' + suffix)), schema], check=True, cwd=root)
-    subprocess.run([str(protoc), '-I', str(root / 'contracts'), '--dart_out=grpc:' + str(dart_out), '--plugin=protoc-gen-dart=' + str(plugin), schema], check=True, cwd=root)
+    subprocess.run([str(protoc), '-I', str(root / 'contracts'), '--csharp_out=' + str(cs), '--grpc_out=' + str(cs), '--plugin=protoc-gen-grpc=' + str(binaries / ('grpc_csharp_plugin' + suffix)), *schemas], check=True, cwd=root)
+    subprocess.run([str(protoc), '-I', str(root / 'contracts'), '--dart_out=grpc:' + str(dart_out), '--plugin=protoc-gen-dart=' + str(plugin), *schemas], check=True, cwd=root)
     for generated, target in [(cs, cs_target), (dart_out, dart_target)]:
         expected = {p.relative_to(generated): p.read_bytes() for p in generated.rglob('*') if p.is_file()}
         actual = {p.relative_to(target): p.read_bytes() for p in target.rglob('*') if p.is_file()}

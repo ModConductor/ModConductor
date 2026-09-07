@@ -5,7 +5,7 @@ open System.Threading.Tasks
 open Grpc.Core
 open ModConductor.Platform
 open ModConductor.Workspaces
-open ModConductor.Protocol.V2
+open ModConductor.Protocol.V1
 
 module private WorkspaceWire =
     let reject message =
@@ -94,7 +94,7 @@ module private WorkspaceWire =
         | Error error -> WorkspaceReply(Fault = fault error)
         | Ok(value: ModConductor.Workspaces.WorkspacePage) ->
             let page =
-                ModConductor.Protocol.V2.WorkspacePage(Workspace = workspace value.Workspace)
+                ModConductor.Protocol.V1.WorkspacePage(Workspace = workspace value.Workspace)
 
             page.Profiles.AddRange(value.Profiles |> Seq.map profile)
 
@@ -108,7 +108,7 @@ module private WorkspaceWire =
         | Error error -> ProfileReply(Fault = fault error)
         | Ok(value: ModConductor.Workspaces.ProfileChange) ->
             let change =
-                ModConductor.Protocol.V2.ProfileChange(Workspace = workspace value.Workspace)
+                ModConductor.Protocol.V1.ProfileChange(Workspace = workspace value.Workspace)
 
             value.Changed |> Option.iter (fun item -> change.Changed <- profile item)
 

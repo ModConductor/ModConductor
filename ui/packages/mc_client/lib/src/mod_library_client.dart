@@ -1,7 +1,7 @@
 import 'package:fixnum/fixnum.dart';
 import 'package:grpc/grpc.dart';
 
-import 'generated/modconductor/v2/engine_probe.pbgrpc.dart' as wire;
+import 'generated/modconductor/v1/mod_library.pbgrpc.dart' as wire;
 import 'mod_library_models.dart';
 import 'mod_library_wire.dart' as mapping;
 export 'mod_library_models.dart';
@@ -27,6 +27,9 @@ class ModLibraryClient {
       case DirectoryMod(:final kind, :final path):
         request.kind = mapping.encodeModKind(kind);
         request.sourcePath = wire.ModLogicalPath(components: path);
+      case NativeDirectoryMod(:final kind, :final path):
+        request.kind = mapping.encodeModKind(kind);
+        request.nativeSourcePath = path;
       case SeparatorMod():
         request.kind = wire.InventoryModKind.INVENTORY_MOD_KIND_SEPARATOR;
       case BackupMod(:final versionId):

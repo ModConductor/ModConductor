@@ -1,7 +1,7 @@
 import 'package:fixnum/fixnum.dart';
 import 'package:grpc/grpc.dart';
 
-import 'generated/modconductor/v2/engine_probe.pbgrpc.dart' as wire;
+import 'generated/modconductor/v1/workspaces.pbgrpc.dart' as wire;
 
 class ProfileInfo {
   const ProfileInfo(this.id, this.name);

@@ -22,6 +22,18 @@ type internal SourceFile =
       Sha256: string }
 
 module internal SourceFiles =
+    let relative (root: HostPath) (candidate: HostPath) =
+        let relative = Path.GetRelativePath(HostPath.value root, HostPath.value candidate)
+        let separators = [| Path.DirectorySeparatorChar; Path.AltDirectorySeparatorChar |]
+
+        if Path.IsPathRooted relative then
+            Error LibraryError.InvalidSource
+        else
+            relative.Split(separators)
+            |> List.ofArray
+            |> LogicalPath.create
+            |> Result.mapError (fun _ -> LibraryError.InvalidSource)
+
     let child (root: HeldDirectory) path expected forbidden =
         if (LogicalPath.components path).Length > 128 then
             raise (IOException("The source folder is too deep."))

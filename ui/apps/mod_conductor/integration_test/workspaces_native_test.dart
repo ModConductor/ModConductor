@@ -157,7 +157,10 @@ void main() {
         final copy = getController().page!.profiles.singleWhere(
           (p) => p.id != first.id,
         );
-        await tapKey('profile-${copy.id}');
+        await tester.tap(find.byKey(ValueKey((profileId: copy.id))));
+        await tester.pumpAndSettle();
+        expect(getController().workspace!.selectedProfile!.id, first.id);
+        await tapKey('use-profile');
         await until(
           () =>
               getController().workspace!.selectedProfile!.id == copy.id &&

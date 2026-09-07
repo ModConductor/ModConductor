@@ -1,4 +1,4 @@
-import 'generated/modconductor/v2/engine_probe.pbgrpc.dart' as wire;
+import 'generated/modconductor/v1/mod_library.pbgrpc.dart' as wire;
 import 'mod_library_models.dart';
 
 ModKind modKind(wire.InventoryModKind value) => switch (value) {

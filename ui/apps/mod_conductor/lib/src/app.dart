@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mc_client/mc_client.dart';
 import 'package:mc_ui_foundation/mc_ui_foundation.dart';
+import 'package:mc_mod_library/mc_mod_library.dart';
 import 'package:mc_workspaces/mc_workspaces.dart';
 
 part 'shell.dart';
@@ -40,10 +41,12 @@ class ModConductorApp extends StatefulWidget {
     this.onRetry,
     this.status = const DesktopDisconnected(),
     this.workspaces,
+    this.modLibrary,
     this.chooseDirectory = chooseWorkspaceDirectory,
   });
   final DesktopStatus status;
   final WorkspacesClient? workspaces;
+  final ModLibraryClient? modLibrary;
   final DirectoryChooser chooseDirectory;
   final VoidCallback? onQuit;
   final VoidCallback? onRetry;
@@ -60,21 +63,34 @@ class _ModConductorAppState extends State<ModConductorApp> {
   final _detailsFocus = FocusNode(debugLabel: 'Active preferences');
   final _quitFocus = FocusNode(debugLabel: 'Quit');
   final _workspaces = WorkspaceController();
+  final _mods = ModLibraryController();
+
+  void _syncLibrary() => _mods.attach(
+    widget.modLibrary,
+    workspaceId: _workspaces.workspace?.id,
+    profileId: _workspaces.workspace?.selectedProfile?.id,
+    editable: _workspaces.canEdit,
+  );
 
   @override
   void initState() {
     super.initState();
+    _workspaces.addListener(_syncLibrary);
     _workspaces.attach(widget.workspaces);
+    _syncLibrary();
   }
 
   @override
   void didUpdateWidget(ModConductorApp oldWidget) {
     super.didUpdateWidget(oldWidget);
     _workspaces.attach(widget.workspaces);
+    _syncLibrary();
   }
 
   @override
   void dispose() {
+    _workspaces.removeListener(_syncLibrary);
+    _mods.dispose();
     _workspaces.dispose();
     for (final node in [
       _workspacesFocus,
@@ -150,6 +166,12 @@ class _ModConductorAppState extends State<ModConductorApp> {
                   DesktopConnecting() ||
                   DesktopConnected() => WorkspaceBrowser(
                     controller: _workspaces,
+                    modLibraryBuilder: (context, workspace) =>
+                        ModLibraryBrowser(
+                          controller: _mods,
+                          workspacePath: workspace.path,
+                          chooseDirectory: widget.chooseDirectory,
+                        ),
                     chooseDirectory: widget.chooseDirectory,
                   ),
                 },

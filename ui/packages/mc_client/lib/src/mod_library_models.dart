@@ -72,6 +72,12 @@ class DirectoryMod extends ModRegistration {
   final List<String> path;
 }
 
+class NativeDirectoryMod extends ModRegistration {
+  const NativeDirectoryMod(this.kind, this.path);
+  final ModKind kind;
+  final String path;
+}
+
 class SeparatorMod extends ModRegistration {
   const SeparatorMod();
 }

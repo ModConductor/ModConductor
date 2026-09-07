@@ -7,6 +7,9 @@ import 'package:mc_client/mc_client.dart';
 
 import 'support/native_child.dart';
 
+import 'package:mc_client/src/generated/modconductor/v1/mod_library.pbgrpc.dart'
+    as wire;
+
 void main() {
   final executable = Platform.environment['MC_ENGINE_PATH'];
   late Directory fixture, state, root, source;
@@ -61,6 +64,78 @@ void main() {
         ? 'Set MC_ENGINE_PATH to a published NativeAOT engine.'
         : false,
     () {
+      test('native folder choices retain original components and reject root or outside candidates without registration', () async {
+        final (child, workspaceId, profile) = await workspace();
+        final client = child.modLibrary();
+        final component = Platform.isLinux ? r'native\folder' : 'native folder';
+        final folder = await Directory(childPath(root.path, component))
+            .create();
+        await File(childPath(folder.path, 'payload.txt'))
+            .writeAsString('unchanged');
+        final entry = await client.register(
+          workspaceId,
+          newOperationId(),
+          const ModMetadata(name: 'Native folder'),
+          NativeDirectoryMod(ModKind.regular, folder.path),
+        );
+        expect(entry.sourcePath, [component]);
+        final saved = await client.publish(
+          entry.id,
+          entry.revision,
+          newOperationId(),
+        );
+        final version = await client.version(saved.currentVersionId!);
+        expect(
+          utf8.decode(
+            await client.readPayload(
+              version.id,
+              version.entries.single.payload.id,
+            ),
+          ),
+          'unchanged',
+        );
+        for (final invalid in [root.path, fixture.path, state.path]) {
+          await expectLater(
+            client.register(
+              workspaceId,
+              newOperationId(),
+              const ModMetadata(name: 'Outside'),
+              NativeDirectoryMod(ModKind.regular, invalid),
+            ),
+            throwsA(isA<LibraryException>()),
+          );
+        }
+        expect((await client.inventory(profile)).entries.map((row) => row.id), [
+          entry.id,
+        ]);
+        expect(
+          await File(childPath(folder.path, 'payload.txt')).readAsString(),
+          'unchanged',
+        );
+      });
+      test('ambiguous native and logical registration rejects before any mod is stored', () async {
+        final (child, workspaceId, profile) = await workspace();
+        await expectLater(
+          child.rawModLibrary().registerMod(
+            wire.RegisterModRequest(
+              workspaceId: workspaceId,
+              modId: newOperationId(),
+              metadata: wire.InventoryModMetadata(name: 'Ambiguous'),
+              kind: wire.InventoryModKind.INVENTORY_MOD_KIND_REGULAR,
+              sourcePath: wire.ModLogicalPath(components: ['source']),
+              nativeSourcePath: source.path,
+            ),
+          ),
+          throwsA(
+            isA<GrpcError>().having(
+              (error) => error.code,
+              'code',
+              StatusCode.invalidArgument,
+            ),
+          ),
+        );
+        expect((await child.modLibrary().inventory(profile)).entries, isEmpty);
+      });
       test('immutable versions retain bytes and shared profile identity through rename and restart', () async {
         final (child, workspaceId, profile) = await workspace();
         final copy = newOperationId();

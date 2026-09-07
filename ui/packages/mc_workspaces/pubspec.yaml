@@ -13,6 +13,8 @@ dependencies:
     path: ../mc_client
   mc_ui_foundation:
     path: ../mc_ui_foundation
+  mc_ui_collections:
+    path: ../mc_ui_collections
   file_selector: 1.1.0
 dev_dependencies:
   flutter_test:

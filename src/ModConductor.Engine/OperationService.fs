@@ -5,7 +5,7 @@ open System.Threading
 open System.Threading.Tasks
 open Grpc.Core
 open ModConductor.Operations
-open ModConductor.Protocol.V2
+open ModConductor.Protocol.V1
 
 module private OperationWire =
     let snapshot (value: Snapshot) =
@@ -99,7 +99,7 @@ type OperationService(store: IOperationStore, coordinator: Coordinator) =
     override _.GetState(request, _) =
         OperationWire.execute (fun () ->
             task {
-                if request.ProtocolMajor <> 2u then
+                if request.ProtocolMajor <> 1u then
                     OperationWire.reject
                         StatusCode.FailedPrecondition
                         "Unsupported protocol version."

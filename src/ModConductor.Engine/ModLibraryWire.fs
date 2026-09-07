@@ -4,7 +4,7 @@ open System
 open Grpc.Core
 open ModConductor.ModLibrary
 open ModConductor.Platform
-open ModConductor.Protocol.V2
+open ModConductor.Protocol.V1
 
 module internal ModLibraryWire =
     let reject message =
@@ -147,12 +147,26 @@ module internal ModLibraryWire =
                 else
                     ModKind.GeneratedOutput
 
-            Registration.Directory(kind, path request.SourcePath)
+            if request.HasNativeSourcePath then
+                if not (isNull request.SourcePath) then
+                    reject "Choose one source folder."
+
+                match HostPath.create request.NativeSourcePath with
+                | Ok candidate -> Registration.NativeDirectory(kind, candidate)
+                | Error message -> reject message
+            else
+                Registration.Directory(kind, path request.SourcePath)
         | InventoryModKind.Separator when
-            isNull request.SourcePath && not request.HasBackupVersionId
+            isNull request.SourcePath
+            && not request.HasBackupVersionId
+            && not request.HasNativeSourcePath
             ->
             Registration.Separator
-        | InventoryModKind.Backup when isNull request.SourcePath && request.HasBackupVersionId ->
+        | InventoryModKind.Backup when
+            isNull request.SourcePath
+            && request.HasBackupVersionId
+            && not request.HasNativeSourcePath
+            ->
             Registration.Backup(id request.BackupVersionId)
         | _ -> reject "Choose a valid mod type and source."
 

@@ -4,14 +4,18 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:grpc/grpc.dart';
+import 'package:mc_client/src/generated/modconductor/v1/mod_library.pbgrpc.dart'
+    as library_wire;
 import 'package:mc_client/mc_client.dart';
-import 'package:mc_client/src/generated/modconductor/v2/engine_probe.pbgrpc.dart'
+import 'package:mc_client/src/generated/modconductor/v1/operations.pbgrpc.dart'
     as wire;
+import 'package:mc_client/src/generated/modconductor/v1/bootstrap.pb.dart'
+    as bootstrap;
 
 class NativeChild {
   NativeChild(this.process, this.ready, this.capability, this.errors);
   final Process process;
-  final wire.EngineReady ready;
+  final bootstrap.EngineReady ready;
   final String capability;
   final List<int> errors;
   final List<ClientChannel> channels = [];
@@ -40,7 +44,7 @@ class NativeChild {
     }
     return NativeChild(
       process,
-      wire.EngineReady.fromBuffer(base64.decode(line)),
+      bootstrap.EngineReady.fromBuffer(base64.decode(line)),
       token,
       errors,
     );
@@ -117,6 +121,15 @@ class NativeChild {
           metadata: authenticate
               ? {'mc-session': token ?? capability}
               : const {},
+        ),
+      );
+
+  library_wire.ModLibraryOperationsClient rawModLibrary() =>
+      library_wire.ModLibraryOperationsClient(
+        _localChannel(),
+        options: CallOptions(
+          timeout: const Duration(seconds: 5),
+          metadata: {'mc-session': capability},
         ),
       );
 

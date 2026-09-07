@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:grpc/grpc.dart';
-import 'package:mc_client/src/generated/modconductor/v2/engine_probe.pbgrpc.dart'
+import 'package:mc_client/src/generated/modconductor/v1/operations.pbgrpc.dart'
     as wire;
 
 import 'support/native_child.dart';
@@ -35,7 +35,7 @@ void main() {
               StatusCode.unauthenticated,
             );
             await expectLater(
-              client.getState(wire.StateRequest(protocolMajor: 2)),
+              client.getState(wire.StateRequest(protocolMajor: 1)),
               throwsA(denied),
             );
             await expectLater(
@@ -54,7 +54,7 @@ void main() {
           }
           final accepted = child.client(token: child.capability);
           expect(
-            (await accepted.getState(wire.StateRequest(protocolMajor: 2)))
+            (await accepted.getState(wire.StateRequest(protocolMajor: 1)))
                 .hasSnapshot,
             isTrue,
           );
@@ -82,7 +82,7 @@ void main() {
         );
         for (final client in [wrongPeer, wrongName]) {
           await expectLater(
-            client.getState(wire.StateRequest(protocolMajor: 2)),
+            client.getState(wire.StateRequest(protocolMajor: 1)),
             throwsA(
               isA<GrpcError>().having(
                 (error) => error.code,
@@ -94,7 +94,7 @@ void main() {
         }
         final rightPeer = substitute.client(token: substitute.capability);
         expect(
-          (await rightPeer.getState(wire.StateRequest(protocolMajor: 2)))
+          (await rightPeer.getState(wire.StateRequest(protocolMajor: 1)))
               .hasSnapshot,
           isTrue,
         );
@@ -118,7 +118,7 @@ void main() {
           await child.process.stdin.close();
           expect(await child.process.exitCode, 0);
           await expectLater(
-            client.getState(wire.StateRequest(protocolMajor: 2)),
+            client.getState(wire.StateRequest(protocolMajor: 1)),
             throwsA(isA<GrpcError>()),
           );
           await child.close();

@@ -3,7 +3,7 @@ namespace ModConductor.Engine
 open Google.Protobuf
 open ModConductor.ModLibrary
 open ModConductor.Platform
-open ModConductor.Protocol.V2
+open ModConductor.Protocol.V1
 
 /// Authenticated feature boundary; RPC disconnection does not cancel durable publication.
 type ModLibraryService(library: IModLibrary) =

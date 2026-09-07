@@ -87,6 +87,7 @@ type LibraryError =
 [<RequireQualifiedAccess>]
 type Registration =
     | Directory of ModKind * LogicalPath
+    | NativeDirectory of ModKind * HostPath
     | Separator
     | Backup of Guid
 
