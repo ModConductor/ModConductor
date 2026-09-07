@@ -20,7 +20,10 @@ module LibraryFixtures =
           Comment = "Local fixture"
           Version = "1.0"
           Source = "Manual directory"
-          Category = "Visual" }
+          Categories =
+            [ { Id = Guid.Parse("fc53e8b3-6ac0-432a-b049-235ff80102ec")
+                Label = "Visual"
+                Missing = true } ] }
 
     let observe (writer: Utf8JsonWriter) primary =
         let area = Directory.CreateDirectory(Path.Combine(primary, "library")).FullName
@@ -100,7 +103,8 @@ module LibraryFixtures =
                 library.Edit(modId, second.Revision, metadata "Trees renamed") |> wait |> result
 
             let view id =
-                (library.Inventory(id, None) |> wait |> result).Entries
+                (InventoryObservations.read store id).Entries
+                |> List.map (fun row -> row.Entry.Mod)
                 |> List.find (fun value -> value.Id = modId)
 
             writer.WriteBoolean(
@@ -149,7 +153,8 @@ module LibraryFixtures =
             let library = store.ModLibrary :> IModLibrary
 
             let entry =
-                (library.Inventory(profile, None) |> wait |> result).Entries
+                (InventoryObservations.read store profile).Entries
+                |> List.map (fun row -> row.Entry.Mod)
                 |> List.find (fun value -> value.Id = modId)
 
             writer.WriteBoolean(

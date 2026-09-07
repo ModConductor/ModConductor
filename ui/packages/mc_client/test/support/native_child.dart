@@ -124,6 +124,15 @@ class NativeChild {
         ),
       );
 
+  ModOrganizationClient modOrganization({bool authenticate = true}) =>
+      ModOrganizationClient(
+        _localChannel(),
+        CallOptions(
+          timeout: const Duration(seconds: 10),
+          metadata: authenticate ? {'mc-session': capability} : const {},
+        ),
+      );
+
   ProfileModsClient profileMods({bool authenticate = true}) =>
       ProfileModsClient(
         _localChannel(),

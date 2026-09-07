@@ -39,9 +39,6 @@ type ModLibraryStore internal (database: StateDatabase, roots: OwnedWorkspaceRoo
         member _.Edit(id, expected, metadata) =
             access.Run(fun () -> InventoryCommands.edit database access id expected metadata ignore)
 
-        member _.Inventory(profile, after) =
-            access.Run(fun () -> InventoryCommands.inventory database access profile after)
-
         member _.Scan(workspace, limit) =
             access.Run(fun () -> InventoryScan.run database access workspace limit)
 

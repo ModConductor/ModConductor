@@ -142,6 +142,21 @@ const ModLogicalPath$json = {
 final $typed_data.Uint8List modLogicalPathDescriptor = $convert.base64Decode(
     'Cg5Nb2RMb2dpY2FsUGF0aBIeCgpjb21wb25lbnRzGAEgAygJUgpjb21wb25lbnRz');
 
+@$core.Deprecated('Use modCategoryReferenceDescriptor instead')
+const ModCategoryReference$json = {
+  '1': 'ModCategoryReference',
+  '2': [
+    {'1': 'category_id', '3': 1, '4': 1, '5': 9, '10': 'categoryId'},
+    {'1': 'label', '3': 2, '4': 1, '5': 9, '10': 'label'},
+    {'1': 'missing', '3': 3, '4': 1, '5': 8, '10': 'missing'},
+  ],
+};
+
+/// Descriptor for `ModCategoryReference`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List modCategoryReferenceDescriptor = $convert.base64Decode(
+    'ChRNb2RDYXRlZ29yeVJlZmVyZW5jZRIfCgtjYXRlZ29yeV9pZBgBIAEoCVIKY2F0ZWdvcnlJZB'
+    'IUCgVsYWJlbBgCIAEoCVIFbGFiZWwSGAoHbWlzc2luZxgDIAEoCFIHbWlzc2luZw==');
+
 @$core.Deprecated('Use inventoryModMetadataDescriptor instead')
 const InventoryModMetadata$json = {
   '1': 'InventoryModMetadata',
@@ -151,16 +166,28 @@ const InventoryModMetadata$json = {
     {'1': 'comment', '3': 3, '4': 1, '5': 9, '10': 'comment'},
     {'1': 'version', '3': 4, '4': 1, '5': 9, '10': 'version'},
     {'1': 'source', '3': 5, '4': 1, '5': 9, '10': 'source'},
-    {'1': 'category', '3': 6, '4': 1, '5': 9, '10': 'category'},
+    {
+      '1': 'categories',
+      '3': 7,
+      '4': 3,
+      '5': 11,
+      '6': '.modconductor.v1.ModCategoryReference',
+      '10': 'categories'
+    },
   ],
+  '9': [
+    {'1': 6, '2': 7},
+  ],
+  '10': ['category'],
 };
 
 /// Descriptor for `InventoryModMetadata`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List inventoryModMetadataDescriptor = $convert.base64Decode(
     'ChRJbnZlbnRvcnlNb2RNZXRhZGF0YRISCgRuYW1lGAEgASgJUgRuYW1lEhQKBW5vdGVzGAIgAS'
     'gJUgVub3RlcxIYCgdjb21tZW50GAMgASgJUgdjb21tZW50EhgKB3ZlcnNpb24YBCABKAlSB3Zl'
-    'cnNpb24SFgoGc291cmNlGAUgASgJUgZzb3VyY2USGgoIY2F0ZWdvcnkYBiABKAlSCGNhdGVnb3'
-    'J5');
+    'cnNpb24SFgoGc291cmNlGAUgASgJUgZzb3VyY2USRQoKY2F0ZWdvcmllcxgHIAMoCzIlLm1vZG'
+    'NvbmR1Y3Rvci52MS5Nb2RDYXRlZ29yeVJlZmVyZW5jZVIKY2F0ZWdvcmllc0oECAYQB1IIY2F0'
+    'ZWdvcnk=');
 
 @$core.Deprecated('Use inventoryModDescriptor instead')
 const InventoryMod$json = {
@@ -385,98 +412,6 @@ final $typed_data.Uint8List editModRequestDescriptor = $convert.base64Decode(
     'Cg5FZGl0TW9kUmVxdWVzdBIVCgZtb2RfaWQYASABKAlSBW1vZElkEisKEWV4cGVjdGVkX3Jldm'
     'lzaW9uGAIgASgEUhBleHBlY3RlZFJldmlzaW9uEkEKCG1ldGFkYXRhGAMgASgLMiUubW9kY29u'
     'ZHVjdG9yLnYxLkludmVudG9yeU1vZE1ldGFkYXRhUghtZXRhZGF0YQ==');
-
-@$core.Deprecated('Use readInventoryRequestDescriptor instead')
-const ReadInventoryRequest$json = {
-  '1': 'ReadInventoryRequest',
-  '2': [
-    {'1': 'profile_id', '3': 1, '4': 1, '5': 9, '10': 'profileId'},
-    {
-      '1': 'after_mod_id',
-      '3': 2,
-      '4': 1,
-      '5': 9,
-      '9': 0,
-      '10': 'afterModId',
-      '17': true
-    },
-  ],
-  '8': [
-    {'1': '_after_mod_id'},
-  ],
-};
-
-/// Descriptor for `ReadInventoryRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List readInventoryRequestDescriptor = $convert.base64Decode(
-    'ChRSZWFkSW52ZW50b3J5UmVxdWVzdBIdCgpwcm9maWxlX2lkGAEgASgJUglwcm9maWxlSWQSJQ'
-    'oMYWZ0ZXJfbW9kX2lkGAIgASgJSABSCmFmdGVyTW9kSWSIAQFCDwoNX2FmdGVyX21vZF9pZA==');
-
-@$core.Deprecated('Use modInventoryPageDescriptor instead')
-const ModInventoryPage$json = {
-  '1': 'ModInventoryPage',
-  '2': [
-    {
-      '1': 'entries',
-      '3': 1,
-      '4': 3,
-      '5': 11,
-      '6': '.modconductor.v1.InventoryMod',
-      '10': 'entries'
-    },
-    {
-      '1': 'next_mod_id',
-      '3': 2,
-      '4': 1,
-      '5': 9,
-      '9': 0,
-      '10': 'nextModId',
-      '17': true
-    },
-  ],
-  '8': [
-    {'1': '_next_mod_id'},
-  ],
-};
-
-/// Descriptor for `ModInventoryPage`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List modInventoryPageDescriptor = $convert.base64Decode(
-    'ChBNb2RJbnZlbnRvcnlQYWdlEjcKB2VudHJpZXMYASADKAsyHS5tb2Rjb25kdWN0b3IudjEuSW'
-    '52ZW50b3J5TW9kUgdlbnRyaWVzEiMKC25leHRfbW9kX2lkGAIgASgJSABSCW5leHRNb2RJZIgB'
-    'AUIOCgxfbmV4dF9tb2RfaWQ=');
-
-@$core.Deprecated('Use inventoryReplyDescriptor instead')
-const InventoryReply$json = {
-  '1': 'InventoryReply',
-  '2': [
-    {
-      '1': 'page',
-      '3': 1,
-      '4': 1,
-      '5': 11,
-      '6': '.modconductor.v1.ModInventoryPage',
-      '9': 0,
-      '10': 'page'
-    },
-    {
-      '1': 'fault',
-      '3': 2,
-      '4': 1,
-      '5': 11,
-      '6': '.modconductor.v1.ModLibraryFault',
-      '9': 0,
-      '10': 'fault'
-    },
-  ],
-  '8': [
-    {'1': 'outcome'},
-  ],
-};
-
-/// Descriptor for `InventoryReply`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List inventoryReplyDescriptor = $convert.base64Decode(
-    'Cg5JbnZlbnRvcnlSZXBseRI3CgRwYWdlGAEgASgLMiEubW9kY29uZHVjdG9yLnYxLk1vZEludm'
-    'VudG9yeVBhZ2VIAFIEcGFnZRI4CgVmYXVsdBgCIAEoCzIgLm1vZGNvbmR1Y3Rvci52MS5Nb2RM'
-    'aWJyYXJ5RmF1bHRIAFIFZmF1bHRCCQoHb3V0Y29tZQ==');
 
 @$core.Deprecated('Use scanInventoryRequestDescriptor instead')
 const ScanInventoryRequest$json = {

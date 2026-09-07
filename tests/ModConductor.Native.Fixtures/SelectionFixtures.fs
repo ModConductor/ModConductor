@@ -6,6 +6,7 @@ open System.Text.Json
 open Microsoft.Data.Sqlite
 open ModConductor.ModLibrary
 open ModConductor.ModSelection
+open ModConductor.ModOrganization
 open ModConductor.Persistence
 open ModConductor.Platform
 open ModConductor.Workspaces
@@ -23,14 +24,27 @@ module SelectionFixtures =
           Comment = ""
           Version = "1.0"
           Source = ""
-          Category = "" }
+          Categories = [] }
+
+    type private Snapshot =
+        { Revision: int64
+          Entries: ProfileMod list
+          EnabledCount: int
+          Cursor: QueryCursor }
 
     let private read (store: OperationStore) profile =
-        (store.ModSelection :> IModSelection).Read(profile, None, None)
-        |> wait
-        |> result
+        let page = InventoryObservations.read store profile
 
-    let private positions (page: ProfileModPage) =
+        { Revision = page.SelectionRevision
+          Entries = page.Entries |> List.map _.Entry
+          EnabledCount = page.EnabledCount
+          Cursor =
+            { CatalogueRevision = page.CatalogueRevision
+              SelectionRevision = page.SelectionRevision
+              QueryIdentity = page.QueryIdentity
+              Offset = 1 } }
+
+    let private positions (page: Snapshot) =
         page.Entries
         |> List.choose (fun row ->
             match row.Selection with
@@ -142,7 +156,9 @@ module SelectionFixtures =
 
             writer.WriteBoolean(
                 "membershipInvalidates",
-                selections.Read(first, Some(id 1), Some beforeLocked.Revision) |> wait =
+                (store.ModOrganization :> IModOrganization)
+                    .Query(first, InventoryObservations.query, Some beforeLocked.Cursor, None)
+                |> wait =
                     Error LibraryError.StaleRevision
             )
 
@@ -280,7 +296,9 @@ module SelectionFixtures =
                 number
                     state
                     ("SELECT count(*) FROM profile_mods WHERE profile_id='" + string copy + "'") = 0L
-                && (selections.Read(copy, None, None) |> wait = Error LibraryError.NotFound)
+                && ((store.ModOrganization :> IModOrganization)
+                        .Query(copy, InventoryObservations.query, None, None)
+                    |> wait = Error LibraryError.NotFound)
             )
 
             let current = workspaces.Read(workspace, None) |> wait |> result

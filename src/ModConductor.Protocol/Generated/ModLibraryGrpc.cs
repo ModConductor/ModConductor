@@ -55,10 +55,6 @@ namespace ModConductor.Protocol.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.EditModRequest> __Marshaller_modconductor_v1_EditModRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.EditModRequest.Parser));
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.ReadInventoryRequest> __Marshaller_modconductor_v1_ReadInventoryRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.ReadInventoryRequest.Parser));
-    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.InventoryReply> __Marshaller_modconductor_v1_InventoryReply = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.InventoryReply.Parser));
-    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.ScanInventoryRequest> __Marshaller_modconductor_v1_ScanInventoryRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.ScanInventoryRequest.Parser));
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.InventoryScanReply> __Marshaller_modconductor_v1_InventoryScanReply = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.InventoryScanReply.Parser));
@@ -92,14 +88,6 @@ namespace ModConductor.Protocol.V1 {
         "EditMod",
         __Marshaller_modconductor_v1_EditModRequest,
         __Marshaller_modconductor_v1_ModReply);
-
-    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-    static readonly grpc::Method<global::ModConductor.Protocol.V1.ReadInventoryRequest, global::ModConductor.Protocol.V1.InventoryReply> __Method_ReadInventory = new grpc::Method<global::ModConductor.Protocol.V1.ReadInventoryRequest, global::ModConductor.Protocol.V1.InventoryReply>(
-        grpc::MethodType.Unary,
-        __ServiceName,
-        "ReadInventory",
-        __Marshaller_modconductor_v1_ReadInventoryRequest,
-        __Marshaller_modconductor_v1_InventoryReply);
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Method<global::ModConductor.Protocol.V1.ScanInventoryRequest, global::ModConductor.Protocol.V1.InventoryScanReply> __Method_ScanInventory = new grpc::Method<global::ModConductor.Protocol.V1.ScanInventoryRequest, global::ModConductor.Protocol.V1.InventoryScanReply>(
@@ -167,12 +155,6 @@ namespace ModConductor.Protocol.V1 {
 
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V1.ModReply> EditMod(global::ModConductor.Protocol.V1.EditModRequest request, grpc::ServerCallContext context)
-      {
-        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
-      }
-
-      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V1.InventoryReply> ReadInventory(global::ModConductor.Protocol.V1.ReadInventoryRequest request, grpc::ServerCallContext context)
       {
         throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
       }
@@ -281,26 +263,6 @@ namespace ModConductor.Protocol.V1 {
       public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.ModReply> EditModAsync(global::ModConductor.Protocol.V1.EditModRequest request, grpc::CallOptions options)
       {
         return CallInvoker.AsyncUnaryCall(__Method_EditMod, null, options, request);
-      }
-      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual global::ModConductor.Protocol.V1.InventoryReply ReadInventory(global::ModConductor.Protocol.V1.ReadInventoryRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
-      {
-        return ReadInventory(request, new grpc::CallOptions(headers, deadline, cancellationToken));
-      }
-      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual global::ModConductor.Protocol.V1.InventoryReply ReadInventory(global::ModConductor.Protocol.V1.ReadInventoryRequest request, grpc::CallOptions options)
-      {
-        return CallInvoker.BlockingUnaryCall(__Method_ReadInventory, null, options, request);
-      }
-      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.InventoryReply> ReadInventoryAsync(global::ModConductor.Protocol.V1.ReadInventoryRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
-      {
-        return ReadInventoryAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
-      }
-      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.InventoryReply> ReadInventoryAsync(global::ModConductor.Protocol.V1.ReadInventoryRequest request, grpc::CallOptions options)
-      {
-        return CallInvoker.AsyncUnaryCall(__Method_ReadInventory, null, options, request);
       }
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       public virtual global::ModConductor.Protocol.V1.InventoryScanReply ScanInventory(global::ModConductor.Protocol.V1.ScanInventoryRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
@@ -438,7 +400,6 @@ namespace ModConductor.Protocol.V1 {
       return grpc::ServerServiceDefinition.CreateBuilder()
           .AddMethod(__Method_RegisterMod, serviceImpl.RegisterMod)
           .AddMethod(__Method_EditMod, serviceImpl.EditMod)
-          .AddMethod(__Method_ReadInventory, serviceImpl.ReadInventory)
           .AddMethod(__Method_ScanInventory, serviceImpl.ScanInventory)
           .AddMethod(__Method_PublishMod, serviceImpl.PublishMod)
           .AddMethod(__Method_ReadPublication, serviceImpl.ReadPublication)
@@ -456,7 +417,6 @@ namespace ModConductor.Protocol.V1 {
     {
       serviceBinder.AddMethod(__Method_RegisterMod, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.RegisterModRequest, global::ModConductor.Protocol.V1.ModReply>(serviceImpl.RegisterMod));
       serviceBinder.AddMethod(__Method_EditMod, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.EditModRequest, global::ModConductor.Protocol.V1.ModReply>(serviceImpl.EditMod));
-      serviceBinder.AddMethod(__Method_ReadInventory, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.ReadInventoryRequest, global::ModConductor.Protocol.V1.InventoryReply>(serviceImpl.ReadInventory));
       serviceBinder.AddMethod(__Method_ScanInventory, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.ScanInventoryRequest, global::ModConductor.Protocol.V1.InventoryScanReply>(serviceImpl.ScanInventory));
       serviceBinder.AddMethod(__Method_PublishMod, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.PublishModRequest, global::ModConductor.Protocol.V1.ModReply>(serviceImpl.PublishMod));
       serviceBinder.AddMethod(__Method_ReadPublication, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.PublicationRequest, global::ModConductor.Protocol.V1.PublicationReply>(serviceImpl.ReadPublication));

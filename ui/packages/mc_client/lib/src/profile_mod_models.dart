@@ -36,25 +36,6 @@ class ProfileMod {
   final ProfileModSelection selection;
 }
 
-class ProfileModsPage {
-  const ProfileModsPage(
-    this.revision,
-    this.entries,
-    this.nextModId,
-    this.total,
-    this.enabledCount,
-  );
-  final int revision, total, enabledCount;
-  final List<ProfileMod> entries;
-  final String? nextModId;
-}
-
-class ProfileModDetail {
-  const ProfileModDetail(this.revision, this.entry);
-  final int revision;
-  final ProfileMod entry;
-}
-
 class ProfileModsDelta {
   const ProfileModsDelta(this.revision, this.changed, this.enabledCount);
   final int revision, enabledCount;

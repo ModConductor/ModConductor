@@ -90,11 +90,21 @@ module internal InventoryCommands =
                                             |> Option.exists (fun value ->
                                                 value.Entry.WorkspaceId = workspace))
 
+                                    let canonical =
+                                        CategoryRows.canonicalMetadata
+                                            database.Connection
+                                            transaction
+                                            workspace
+                                            id
+                                            metadata
+
                                     let result =
                                         match
+                                            canonical,
                                             LibraryRows.find database.Connection transaction id
                                         with
-                                        | Some row when
+                                        | Error error, _ -> Error error
+                                        | Ok metadata, Some row when
                                             row.Entry.WorkspaceId = workspace
                                             && row.Entry.Kind = kind
                                             && row.Entry.Metadata = metadata
@@ -103,13 +113,14 @@ module internal InventoryCommands =
                                             && row.Entry.CurrentVersion = version
                                             ->
                                             Ok row.Entry
-                                        | Some _ -> Error LibraryError.IdentityConflict
-                                        | None when not versionValid -> Error LibraryError.NotFound
-                                        | None ->
+                                        | Ok _, Some _ -> Error LibraryError.IdentityConflict
+                                        | Ok _, None when not versionValid ->
+                                            Error LibraryError.NotFound
+                                        | Ok metadata, None ->
                                             Sqlite.execute
                                                 database.Connection
                                                 transaction
-                                                "INSERT INTO mods VALUES($id,$workspace,$kind,$name,$notes,$comment,$version,$source,$category,0,$path,$identity,$current,1)"
+                                                "INSERT INTO mods VALUES($id,$workspace,$kind,$name,$notes,$comment,$version,$source,0,$path,$identity,$current,1)"
                                                 (LibraryRows.metadataParameters metadata
                                                  @ [ "$id", box (string id)
                                                      "$workspace", box (string workspace)
@@ -128,6 +139,12 @@ module internal InventoryCommands =
                                                      (version
                                                       |> Option.map (string >> box)
                                                       |> Option.defaultValue (box DBNull.Value)) ])
+
+                                            CategoryRows.saveReferences
+                                                database.Connection
+                                                transaction
+                                                id
+                                                metadata.Categories
 
                                             SelectionRows.registered
                                                 database.Connection
@@ -187,76 +204,39 @@ module internal InventoryCommands =
                                     elif current.Entry.Status = InventoryStatus.Publishing then
                                         Error LibraryError.Busy
                                     else
-                                        Sqlite.execute
-                                            database.Connection
-                                            transaction
-                                            "UPDATE mods SET name=$name,notes=$notes,comment=$comment,version_text=$version,source_text=$source,category=$category,revision=revision+1 WHERE id=$id"
-                                            (LibraryRows.metadataParameters metadata
-                                             @ [ "$id", box (string id) ])
+                                        match
+                                            CategoryRows.canonicalMetadata
+                                                database.Connection
+                                                transaction
+                                                current.Entry.WorkspaceId
+                                                id
+                                                metadata
+                                        with
+                                        | Error error -> Error error
+                                        | Ok metadata ->
+                                            CategoryRows.saveReferences
+                                                database.Connection
+                                                transaction
+                                                id
+                                                metadata.Categories
 
-                                        beforeCommit ()
+                                            Sqlite.execute
+                                                database.Connection
+                                                transaction
+                                                "UPDATE mods SET name=$name,notes=$notes,comment=$comment,version_text=$version,source_text=$source,revision=revision+1 WHERE id=$id"
+                                                (LibraryRows.metadataParameters metadata
+                                                 @ [ "$id", box (string id) ])
 
-                                        Ok
-                                            (LibraryRows.find database.Connection transaction id
-                                             |> Option.get)
-                                                .Entry
+                                            beforeCommit ()
+
+                                            Ok
+                                                (LibraryRows.find
+                                                    database.Connection
+                                                    transaction
+                                                    id
+                                                 |> Option.get)
+                                                    .Entry
 
                                 transaction.Commit()
                                 result)
-        }
-
-    let inventory (database: StateDatabase) (access: LibraryAccess) profile after =
-        task {
-            let! workspace =
-                database.Enqueue(fun () ->
-                    LibraryRows.profileWorkspace database.Connection null profile)
-
-            match workspace with
-            | None -> return Error LibraryError.NotFound
-            | Some workspace ->
-                let! root = access.Root workspace
-
-                match root with
-                | Error error -> return Error error
-                | Ok _ ->
-                    return!
-                        database.Enqueue(fun () ->
-                            use transaction = database.Connection.BeginTransaction(deferred = true)
-                            // Recheck the actual profile reference in the same read snapshot.
-                            let result =
-                                if
-                                    LibraryRows.profileWorkspace
-                                        database.Connection
-                                        transaction
-                                        profile
-                                    <> Some workspace
-                                then
-                                    Error LibraryError.NotFound
-                                else
-                                    let ids =
-                                        LibraryRows.ids
-                                            database.Connection
-                                            transaction
-                                            workspace
-                                            (after |> Option.map string |> Option.defaultValue "")
-                                            33
-
-                                    let entries =
-                                        ids
-                                        |> List.choose (fun id ->
-                                            LibraryRows.find database.Connection transaction id
-                                            |> Option.map _.Entry)
-                                        |> InventoryPolicy.inventoryWindow
-
-                                    Ok
-                                        { Entries = entries
-                                          NextMod =
-                                            if ids.Length > entries.Length then
-                                                entries |> List.tryLast |> Option.map _.Id
-                                            else
-                                                None }
-
-
-                            transaction.Commit()
-                            result)
         }

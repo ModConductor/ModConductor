@@ -20,6 +20,7 @@ class McCollectionModel<I extends Object, T extends Object>
   final Map<I, String> _search = {};
   final Set<I> _expanded = {};
   List<I> _visible = [];
+  Set<I>? _included;
   Map<I, int> _positions = {};
   I? _selected, _focused, _anchor;
   final Set<I> _selection = {};
@@ -56,10 +57,15 @@ class McCollectionModel<I extends Object, T extends Object>
     Iterable<T> upserts = const [],
     Iterable<I> removed = const [],
     Iterable<I> evicted = const [],
+    Set<I>? visibleIds,
   }) {
     final affected = <I?>{};
     var changed = false;
     var projectionChanged = false;
+    if (visibleIds != null) {
+      _included = Set.of(visibleIds);
+      projectionChanged = changed = true;
+    }
     final deleted = removed.toSet();
     for (final id in {...deleted, ...evicted}) {
       final old = _rows.remove(id);
@@ -157,6 +163,7 @@ class McCollectionModel<I extends Object, T extends Object>
     final visible = <I>[];
     void visit(I? parent) {
       for (final id in _children[parent] ?? <I>[]) {
+        if (_included != null && !_included!.contains(id)) continue;
         if (matches != null && !matches.contains(id)) continue;
         visible.add(id);
         if (matches != null || expanded(id)) visit(id);
@@ -210,6 +217,7 @@ class McCollectionModel<I extends Object, T extends Object>
   }
 
   void clear() {
+    _included = null;
     _rows.clear();
     _children.clear();
     _search.clear();

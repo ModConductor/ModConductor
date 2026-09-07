@@ -22,7 +22,7 @@ type StorageTests() =
         number migration "afterInterruption" |> should equal 1L
         number migration "partialTables" |> should equal 0L
         number migration "committedRows" |> should equal 1L
-        number migration "afterUpgrade" |> should equal 5L
+        number migration "afterUpgrade" |> should equal 6L
         number migration "replayRevision" |> should equal 1L
 
     [<Test>]

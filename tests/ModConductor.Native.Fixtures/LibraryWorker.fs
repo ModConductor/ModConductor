@@ -19,7 +19,7 @@ module LibraryWorker =
                   Comment = ""
                   Version = ""
                   Source = ""
-                  Category = "" },
+                  Categories = [] },
                 if mode = "rename-before" then pause else ignore
             )
             |> StorageWorker.wait

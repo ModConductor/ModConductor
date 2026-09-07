@@ -2,7 +2,35 @@ import 'package:flutter/material.dart';
 
 import 'actions.dart';
 
-/// Shared modal composition for workspace, profile, and deletion forms.
+class McDialog extends StatelessWidget {
+  const McDialog({
+    super.key,
+    required this.title,
+    required this.children,
+    this.actions,
+  });
+  final String title;
+  final List<Widget> children;
+  final List<Widget>? actions;
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    scrollable: true,
+    title: Text(title),
+    content: SizedBox(
+      width: 460,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: children,
+      ),
+    ),
+    actions:
+        actions ??
+        [McAction(label: 'Close', onPressed: () => Navigator.pop(context))],
+  );
+}
+
 class McFormDialog extends StatelessWidget {
   const McFormDialog({
     super.key,
@@ -17,17 +45,8 @@ class McFormDialog extends StatelessWidget {
   final VoidCallback? onSubmit;
 
   @override
-  Widget build(BuildContext context) => AlertDialog(
-    scrollable: true,
-    title: Text(title),
-    content: SizedBox(
-      width: 460,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: children,
-      ),
-    ),
+  Widget build(BuildContext context) => McDialog(
+    title: title,
     actions: [
       McAction(label: 'Cancel', onPressed: () => Navigator.pop(context)),
       McAction(
@@ -37,6 +56,7 @@ class McFormDialog extends StatelessWidget {
         onPressed: onSubmit,
       ),
     ],
+    children: children,
   );
 }
 
@@ -47,7 +67,9 @@ class McNameField extends StatelessWidget {
     super.key,
     required this.controller,
     required this.onSubmit,
+    this.validator,
   });
+  final FormFieldValidator<String>? validator;
   final TextEditingController controller;
   final VoidCallback onSubmit;
   @override
@@ -57,8 +79,10 @@ class McNameField extends StatelessWidget {
     autofocus: true,
     onFieldSubmitted: (_) => onSubmit(),
     decoration: const InputDecoration(labelText: 'Name'),
-    validator: (value) =>
-        value == null || value.trim().isEmpty ? 'Enter a name.' : null,
+    validator:
+        validator ??
+        (value) =>
+            value == null || value.trim().isEmpty ? 'Enter a name.' : null,
   );
 }
 

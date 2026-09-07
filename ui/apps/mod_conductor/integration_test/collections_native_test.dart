@@ -107,6 +107,7 @@ void main() {
               workspaces: owner.workspaces,
               modLibrary: owner.modLibrary,
               profileMods: owner.profileMods,
+              modOrganization: owner.modOrganization,
               status: DesktopConnected((owner.state as EngineConnected).report),
               chooseDirectory: (_) async => sourcePath,
             ),
@@ -147,8 +148,10 @@ void main() {
           await tester.tap(more);
           await until(() => !library().inventory.loading);
         }
-        final registered = (await owner.modLibrary!.inventory(profileId))
-            .entries;
+        final registered = (await owner.modOrganization!.query(
+          profileId,
+          const ModQuery(),
+        )).entries;
         expect(registered, isNotEmpty);
         final entry = library().mods.ids
             .map((id) => library().mods[id]!)

@@ -58,7 +58,7 @@ dotnet test tests/ModConductor.Native.Tests -c Release --no-build --no-restore
 
 On Windows, use `win-x64` and the `.exe` paths. Set environment variables with
 PowerShell's `$env:NAME = 'value'`. The managed FsUnit/NUnit runner consumes the
-actual native fixture. Missing native paths cause explicit test skips, not passes.
+actual native fixture. Missing native paths do not count as passes.
 
 `MC_SECOND_FIXTURE_ROOT` selects an owned second-volume fixture location for
 cross-device tests. Do not select a physical game volume. `MC_NATIVE_REPORT`
@@ -93,6 +93,7 @@ private Xvfb display. It requires Xvfb and xauth. Its `--workspaces` mode also
 requires xdotool for the isolated folder chooser. Use `--collections` for the
 profile, mod, and saved-file journey with synthetic in-process input.
 `--profile-mods` checks real profile enablement and multi-selection moves.
+`--organization` checks category drafts, typed filters, and group context.
 `MC_ENGINE_PATH` selects a previously published engine for these Linux UI checks. Use only an isolated guest for
 Windows UI checks. Never direct test input to the user's desktop.
 
@@ -103,3 +104,8 @@ For focused native selection checks, set `MC_NATIVE_SCOPE=selection` and run the
 NUnit runner with `--filter 'FullyQualifiedName~SelectionTests'`. Leave this
 variable unset for the full fixture suite. The fixture includes a version-4
 database created through real engine calls for transactional migration checks.
+
+For focused category/query checks, use `MC_NATIVE_SCOPE=organization` with
+`--filter 'FullyQualifiedName~OrganizationTests'`. Its version-5 database fixture
+comes from real native engine registrations and profile edits. Migration checks
+use the database itself, not the original workspace folders.

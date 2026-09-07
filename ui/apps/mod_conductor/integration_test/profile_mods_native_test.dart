@@ -114,6 +114,7 @@ void main() {
               workspaces: owner.workspaces,
               modLibrary: owner.modLibrary,
               profileMods: owner.profileMods,
+              modOrganization: owner.modOrganization,
               status: DesktopConnected((owner.state as EngineConnected).report),
             ),
           ),
@@ -127,7 +128,11 @@ void main() {
         await tap(find.descendant(of: row(0), matching: find.byType(Checkbox)));
         await until(() => !library().inventory.changing);
         expect(
-          (await owner.profileMods!.find(profile, ids[0])).entry.selection,
+          (await owner.modOrganization!.query(
+            profile,
+            const ModQuery(),
+            inspectedId: ids[0],
+          )).inspected!.entry.selection,
           isA<ManagedProfileMod>().having((s) => s.enabled, 'enabled', isTrue),
         );
         await tap(row(1));
@@ -143,17 +148,19 @@ void main() {
         await until(() => !library().inventory.changing);
         expect(library().inventory.revision, revision + 1);
         expect(
-          (await owner.profileMods!.find(
+          (await owner.modOrganization!.query(
             profile,
-            ids[1],
-          )).entry.selection.priority,
+            const ModQuery(),
+            inspectedId: ids[1],
+          )).inspected!.entry.selection.priority,
           0,
         );
         expect(
-          (await owner.profileMods!.find(
+          (await owner.modOrganization!.query(
             profile,
-            ids[2],
-          )).entry.selection.priority,
+            const ModQuery(),
+            inspectedId: ids[2],
+          )).inspected!.entry.selection.priority,
           1,
         );
         await tap(find.descendant(of: table, matching: find.text('Enable')));
@@ -173,10 +180,11 @@ void main() {
         await until(() => !library().inventory.changing);
         expect(library().inventory.revision, filteredRevision + 1);
         expect(
-          (await owner.profileMods!.find(
+          (await owner.modOrganization!.query(
             profile,
-            ids[2],
-          )).entry.selection.priority,
+            const ModQuery(),
+            inspectedId: ids[2],
+          )).inspected!.entry.selection.priority,
           2,
         );
         await capture('profile-mods-filtered-light');

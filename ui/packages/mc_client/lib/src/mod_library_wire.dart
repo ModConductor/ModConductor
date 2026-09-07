@@ -95,7 +95,7 @@ wire.InventoryModMetadata encodeMetadata(ModMetadata value) =>
       comment: value.comment,
       version: value.version,
       source: value.source,
-      category: value.category,
+      categories: value.categories.map(encodeCategory),
     );
 ModEntry entry(wire.InventoryMod value) => ModEntry(
   id: value.modId,
@@ -107,7 +107,7 @@ ModEntry entry(wire.InventoryMod value) => ModEntry(
     comment: value.metadata.comment,
     version: value.metadata.version,
     source: value.metadata.source,
-    category: value.metadata.category,
+    categories: List.unmodifiable(value.metadata.categories.map(category)),
   ),
   revision: value.revision.toInt(),
   status: inventoryStatus(value.status),
@@ -137,3 +137,12 @@ PublicationReceipt publication(wire.PublicationReply value) =>
         'Missing publication result.',
       ),
     };
+
+wire.ModCategoryReference encodeCategory(CategoryReference value) =>
+    wire.ModCategoryReference(
+      categoryId: value.id,
+      label: value.label,
+      missing: value.missing,
+    );
+CategoryReference category(wire.ModCategoryReference value) =>
+    CategoryReference(value.categoryId, value.label, missing: value.missing);

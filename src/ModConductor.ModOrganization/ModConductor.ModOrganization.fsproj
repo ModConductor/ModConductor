@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><IsAotCompatible>true</IsAotCompatible></PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Contracts.fs" />
+    <Compile Include="CategoryPolicy.fs" />
+    <Compile Include="OrganizationPolicy.fs" />
+    <ProjectReference Include="../ModConductor.ModSelection/ModConductor.ModSelection.fsproj" />
+    <PackageReference Include="FSharp.Core" />
+  </ItemGroup>
+</Project>

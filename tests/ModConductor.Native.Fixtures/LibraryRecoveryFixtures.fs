@@ -43,7 +43,7 @@ module LibraryRecoveryFixtures =
                           Comment = ""
                           Version = ""
                           Source = ""
-                          Category = "" },
+                          Categories = [] },
                         Registration.Directory(
                             ModKind.Regular,
                             LogicalPath.create [ "source" ] |> result

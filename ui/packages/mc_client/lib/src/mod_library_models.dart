@@ -27,6 +27,12 @@ class LibraryException implements Exception {
   final String detail;
 }
 
+class CategoryReference {
+  const CategoryReference(this.id, this.label, {this.missing = false});
+  final String id, label;
+  final bool missing;
+}
+
 class ModMetadata {
   const ModMetadata({
     required this.name,
@@ -34,9 +40,10 @@ class ModMetadata {
     this.comment = '',
     this.version = '',
     this.source = '',
-    this.category = '',
+    this.categories = const [],
   });
-  final String name, notes, comment, version, source, category;
+  final String name, notes, comment, version, source;
+  final List<CategoryReference> categories;
 }
 
 class ModEntry {
@@ -85,12 +92,6 @@ class SeparatorMod extends ModRegistration {
 class BackupMod extends ModRegistration {
   const BackupMod(this.versionId);
   final String versionId;
-}
-
-class InventoryPage {
-  const InventoryPage(this.entries, this.nextModId);
-  final List<ModEntry> entries;
-  final String? nextModId;
 }
 
 class UnmanagedModPath {

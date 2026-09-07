@@ -6,7 +6,6 @@ option csharp_namespace = "ModConductor.Protocol.V1";
 service ModLibraryOperations {
   rpc RegisterMod(RegisterModRequest) returns (ModReply);
   rpc EditMod(EditModRequest) returns (ModReply);
-  rpc ReadInventory(ReadInventoryRequest) returns (InventoryReply);
   rpc ScanInventory(ScanInventoryRequest) returns (InventoryScanReply);
   rpc PublishMod(PublishModRequest) returns (ModReply);
   rpc ReadPublication(PublicationRequest) returns (PublicationReply);
@@ -37,7 +36,13 @@ enum InventoryModAction {
   INVENTORY_MOD_ACTION_PUBLISH = 2;
   INVENTORY_MOD_ACTION_READ_VERSION = 3;
 }
-message InventoryModMetadata { string name = 1; string notes = 2; string comment = 3; string version = 4; string source = 5; string category = 6; }
+message ModCategoryReference { string category_id = 1; string label = 2; bool missing = 3; }
+message InventoryModMetadata {
+  string name = 1; string notes = 2; string comment = 3; string version = 4; string source = 5;
+  reserved 6;
+  reserved "category";
+  repeated ModCategoryReference categories = 7;
+}
 message InventoryMod {
   string mod_id = 1; string workspace_id = 2; InventoryModKind kind = 3;
   InventoryModMetadata metadata = 4;
@@ -71,13 +76,10 @@ message RegisterModRequest {
   optional string native_source_path = 7; // Native chooser candidate, mutually exclusive with source_path.
 }
 message EditModRequest { string mod_id = 1; uint64 expected_revision = 2; InventoryModMetadata metadata = 3; }
-message ReadInventoryRequest { string profile_id = 1; optional string after_mod_id = 2; }
-message ModInventoryPage { repeated InventoryMod entries = 1; optional string next_mod_id = 2; } // At most 32, stable ID order.
-message InventoryReply { oneof outcome { ModInventoryPage page = 1; ModLibraryFault fault = 2; } }
 message ScanInventoryRequest { string workspace_id = 1; uint32 candidate_limit = 2; }
 message UnmanagedModPath { ModLogicalPath path = 1; bool directory = 2; bool unsupported = 3; }
 message ModInventoryScan {
-  // Bounded summary (32 each), not a complete inventory. ReadInventory pages persisted entries.
+  // Bounded summary (32 each), not a complete inventory. QueryMods pages persisted entries.
   repeated InventoryMod entries = 1; repeated UnmanagedModPath unmanaged = 2; bool limited = 3;
 }
 message InventoryScanReply { oneof outcome { ModInventoryScan scan = 1; ModLibraryFault fault = 2; } }

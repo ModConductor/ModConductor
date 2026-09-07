@@ -46,33 +46,9 @@ namespace ModConductor.Protocol.V1 {
     }
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.ReadProfileModsRequest> __Marshaller_modconductor_v1_ReadProfileModsRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.ReadProfileModsRequest.Parser));
-    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.ProfileModsReply> __Marshaller_modconductor_v1_ProfileModsReply = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.ProfileModsReply.Parser));
-    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.ReadProfileModRequest> __Marshaller_modconductor_v1_ReadProfileModRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.ReadProfileModRequest.Parser));
-    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.ProfileModReply> __Marshaller_modconductor_v1_ProfileModReply = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.ProfileModReply.Parser));
-    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.ChangeProfileModsRequest> __Marshaller_modconductor_v1_ChangeProfileModsRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.ChangeProfileModsRequest.Parser));
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.ProfileModsChangeReply> __Marshaller_modconductor_v1_ProfileModsChangeReply = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.ProfileModsChangeReply.Parser));
-
-    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-    static readonly grpc::Method<global::ModConductor.Protocol.V1.ReadProfileModsRequest, global::ModConductor.Protocol.V1.ProfileModsReply> __Method_ReadProfileMods = new grpc::Method<global::ModConductor.Protocol.V1.ReadProfileModsRequest, global::ModConductor.Protocol.V1.ProfileModsReply>(
-        grpc::MethodType.Unary,
-        __ServiceName,
-        "ReadProfileMods",
-        __Marshaller_modconductor_v1_ReadProfileModsRequest,
-        __Marshaller_modconductor_v1_ProfileModsReply);
-
-    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-    static readonly grpc::Method<global::ModConductor.Protocol.V1.ReadProfileModRequest, global::ModConductor.Protocol.V1.ProfileModReply> __Method_ReadProfileMod = new grpc::Method<global::ModConductor.Protocol.V1.ReadProfileModRequest, global::ModConductor.Protocol.V1.ProfileModReply>(
-        grpc::MethodType.Unary,
-        __ServiceName,
-        "ReadProfileMod",
-        __Marshaller_modconductor_v1_ReadProfileModRequest,
-        __Marshaller_modconductor_v1_ProfileModReply);
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Method<global::ModConductor.Protocol.V1.ChangeProfileModsRequest, global::ModConductor.Protocol.V1.ProfileModsChangeReply> __Method_ChangeProfileMods = new grpc::Method<global::ModConductor.Protocol.V1.ChangeProfileModsRequest, global::ModConductor.Protocol.V1.ProfileModsChangeReply>(
@@ -92,18 +68,6 @@ namespace ModConductor.Protocol.V1 {
     [grpc::BindServiceMethod(typeof(ProfileModOperations), "BindService")]
     public abstract partial class ProfileModOperationsBase
     {
-      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V1.ProfileModsReply> ReadProfileMods(global::ModConductor.Protocol.V1.ReadProfileModsRequest request, grpc::ServerCallContext context)
-      {
-        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
-      }
-
-      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V1.ProfileModReply> ReadProfileMod(global::ModConductor.Protocol.V1.ReadProfileModRequest request, grpc::ServerCallContext context)
-      {
-        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
-      }
-
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V1.ProfileModsChangeReply> ChangeProfileMods(global::ModConductor.Protocol.V1.ChangeProfileModsRequest request, grpc::ServerCallContext context)
       {
@@ -140,46 +104,6 @@ namespace ModConductor.Protocol.V1 {
       }
 
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual global::ModConductor.Protocol.V1.ProfileModsReply ReadProfileMods(global::ModConductor.Protocol.V1.ReadProfileModsRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
-      {
-        return ReadProfileMods(request, new grpc::CallOptions(headers, deadline, cancellationToken));
-      }
-      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual global::ModConductor.Protocol.V1.ProfileModsReply ReadProfileMods(global::ModConductor.Protocol.V1.ReadProfileModsRequest request, grpc::CallOptions options)
-      {
-        return CallInvoker.BlockingUnaryCall(__Method_ReadProfileMods, null, options, request);
-      }
-      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.ProfileModsReply> ReadProfileModsAsync(global::ModConductor.Protocol.V1.ReadProfileModsRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
-      {
-        return ReadProfileModsAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
-      }
-      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.ProfileModsReply> ReadProfileModsAsync(global::ModConductor.Protocol.V1.ReadProfileModsRequest request, grpc::CallOptions options)
-      {
-        return CallInvoker.AsyncUnaryCall(__Method_ReadProfileMods, null, options, request);
-      }
-      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual global::ModConductor.Protocol.V1.ProfileModReply ReadProfileMod(global::ModConductor.Protocol.V1.ReadProfileModRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
-      {
-        return ReadProfileMod(request, new grpc::CallOptions(headers, deadline, cancellationToken));
-      }
-      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual global::ModConductor.Protocol.V1.ProfileModReply ReadProfileMod(global::ModConductor.Protocol.V1.ReadProfileModRequest request, grpc::CallOptions options)
-      {
-        return CallInvoker.BlockingUnaryCall(__Method_ReadProfileMod, null, options, request);
-      }
-      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.ProfileModReply> ReadProfileModAsync(global::ModConductor.Protocol.V1.ReadProfileModRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
-      {
-        return ReadProfileModAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
-      }
-      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.ProfileModReply> ReadProfileModAsync(global::ModConductor.Protocol.V1.ReadProfileModRequest request, grpc::CallOptions options)
-      {
-        return CallInvoker.AsyncUnaryCall(__Method_ReadProfileMod, null, options, request);
-      }
-      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       public virtual global::ModConductor.Protocol.V1.ProfileModsChangeReply ChangeProfileMods(global::ModConductor.Protocol.V1.ChangeProfileModsRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
       {
         return ChangeProfileMods(request, new grpc::CallOptions(headers, deadline, cancellationToken));
@@ -213,8 +137,6 @@ namespace ModConductor.Protocol.V1 {
     public static grpc::ServerServiceDefinition BindService(ProfileModOperationsBase serviceImpl)
     {
       return grpc::ServerServiceDefinition.CreateBuilder()
-          .AddMethod(__Method_ReadProfileMods, serviceImpl.ReadProfileMods)
-          .AddMethod(__Method_ReadProfileMod, serviceImpl.ReadProfileMod)
           .AddMethod(__Method_ChangeProfileMods, serviceImpl.ChangeProfileMods).Build();
     }
 
@@ -225,8 +147,6 @@ namespace ModConductor.Protocol.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     public static void BindService(grpc::ServiceBinderBase serviceBinder, ProfileModOperationsBase serviceImpl)
     {
-      serviceBinder.AddMethod(__Method_ReadProfileMods, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.ReadProfileModsRequest, global::ModConductor.Protocol.V1.ProfileModsReply>(serviceImpl.ReadProfileMods));
-      serviceBinder.AddMethod(__Method_ReadProfileMod, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.ReadProfileModRequest, global::ModConductor.Protocol.V1.ProfileModReply>(serviceImpl.ReadProfileMod));
       serviceBinder.AddMethod(__Method_ChangeProfileMods, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.ChangeProfileModsRequest, global::ModConductor.Protocol.V1.ProfileModsChangeReply>(serviceImpl.ChangeProfileMods));
     }
 

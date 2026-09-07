@@ -25,15 +25,6 @@ type ProfileMod =
     { Mod: ModEntry
       Selection: SelectionState }
 
-type ProfileModPage =
-    { Revision: int64
-      Entries: ProfileMod list
-      NextMod: Guid option
-      Total: int
-      EnabledCount: int }
-
-type ProfileModDetail = { Revision: int64; Entry: ProfileMod }
-
 [<RequireQualifiedAccess>]
 type SelectionEdit =
     | Enable of bool
@@ -46,8 +37,5 @@ type SelectionDelta =
       EnabledCount: int }
 
 type IModSelection =
-    abstract Read: Guid * Guid option * int64 option -> Task<Result<ProfileModPage, LibraryError>>
-    abstract Find: Guid * Guid * int64 option -> Task<Result<ProfileModDetail, LibraryError>>
-
     abstract Change:
         Guid * int64 * Guid list * SelectionEdit -> Task<Result<SelectionDelta, LibraryError>>

@@ -30,7 +30,7 @@ class SavedFileNode {
 
 class ModLibraryController extends ChangeNotifier {
   final inventory = ProfileModsController();
-  McCollectionModel<ModRowId, ProfileMod> get mods => inventory.model;
+  McCollectionModel<ModRowId, OrganizedMod> get mods => inventory.model;
   ModEntry? get selected => mods.selected?.mod;
   final files = McCollectionModel<FileRowId, SavedFileNode>(
     idOf: (row) => row.id,
@@ -39,6 +39,8 @@ class ModLibraryController extends ChangeNotifier {
     isBranch: (row) => row.folder,
   );
   ModLibraryClient? _client;
+  ModOrganizationClient? organization;
+  String? get workspaceId => _workspace;
   String? _workspace, _profile;
   int _epoch = 0, _fileRequest = 0;
   bool _disposed = false;
@@ -73,7 +75,7 @@ class ModLibraryController extends ChangeNotifier {
       actionProblem = null;
     }
     if (row != null && row.mod.id != _selectedMod) {
-      select(row);
+      select(row.entry);
     } else {
       _notify();
     }
@@ -86,16 +88,23 @@ class ModLibraryController extends ChangeNotifier {
   void attach(
     ModLibraryClient? client,
     ProfileModsClient? selectionClient, {
+    ModOrganizationClient? organizationClient,
     String? workspaceId,
     String? profileId,
     required bool editable,
   }) {
+    organization = organizationClient;
     canEdit =
         editable &&
         client != null &&
         selectionClient != null &&
         profileId != null;
-    inventory.attach(selectionClient, workspaceId, profileId);
+    inventory.attach(
+      selectionClient,
+      organizationClient,
+      workspaceId,
+      profileId,
+    );
     if (identical(client, _client) &&
         workspaceId == _workspace &&
         profileId == _profile) {
@@ -238,7 +247,7 @@ class ModLibraryController extends ChangeNotifier {
           _pendingRegistration = row.id;
           actionProblem = 'The mod folder was added. Reload its profile state.';
         } else {
-          select(mods[(modId: row.id)]!);
+          select(mods[(modId: row.id)]!.entry);
         }
       } else {
         inventory.mergeMetadata([row]);

@@ -107,3 +107,37 @@ class McIconMenu<T> extends StatelessWidget {
     ),
   );
 }
+
+class McMenuAction<T> extends StatelessWidget {
+  const McMenuAction({
+    super.key,
+    required this.label,
+    required this.choices,
+    required this.describe,
+    required this.onSelected,
+    this.enabled = true,
+  });
+  final String label;
+  final List<T> choices;
+  final String Function(T) describe;
+  final ValueChanged<T> onSelected;
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) => MenuAnchor(
+    menuChildren: [
+      for (final choice in choices)
+        MenuItemButton(
+          onPressed: () => onSelected(choice),
+          child: Text(describe(choice)),
+        ),
+    ],
+    builder: (context, controller, child) => McAction(
+      label: label,
+      icon: Icons.arrow_drop_down,
+      onPressed: enabled
+          ? () => controller.isOpen ? controller.close() : controller.open()
+          : null,
+    ),
+  );
+}

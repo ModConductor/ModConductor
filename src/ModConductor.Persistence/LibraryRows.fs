@@ -31,7 +31,7 @@ module internal LibraryRows =
             Sqlite.command
                 connection
                 transaction
-                "SELECT id,workspace_id,kind,name,notes,comment,version_text,source_text,category,revision,source_path,source_identity,current_version,status FROM mods WHERE id=$id"
+                "SELECT id,workspace_id,kind,name,notes,comment,version_text,source_text,revision,source_path,source_identity,current_version,status FROM mods WHERE id=$id"
                 [ "$id", box (string id) ]
 
         use reader = statement.ExecuteReader()
@@ -45,7 +45,7 @@ module internal LibraryRows =
                   Comment = reader.GetString 5
                   Version = reader.GetString 6
                   Source = reader.GetString 7
-                  Category = reader.GetString 8 }
+                  Categories = CategoryRows.references connection transaction id }
 
             Some
                 { Entry =
@@ -54,19 +54,18 @@ module internal LibraryRows =
                         (Guid.Parse(reader.GetString 1))
                         (LibraryEncoding.readKind (reader.GetInt32 2))
                         metadata
-                        (reader.GetInt64 9)
-                        (optional reader 10 LibraryEncoding.readPath)
-                        (optional reader 12 Guid.Parse)
-                        (LibraryEncoding.readStatus (reader.GetInt32 13))
-                  SourceIdentity = optional reader 11 LibraryEncoding.readIdentity }
+                        (reader.GetInt64 8)
+                        (optional reader 9 LibraryEncoding.readPath)
+                        (optional reader 11 Guid.Parse)
+                        (LibraryEncoding.readStatus (reader.GetInt32 12))
+                  SourceIdentity = optional reader 10 LibraryEncoding.readIdentity }
 
     let metadataParameters (metadata: ModMetadata) =
         [ "$name", box metadata.Name
           "$notes", box metadata.Notes
           "$comment", box metadata.Comment
           "$version", box metadata.Version
-          "$source", box metadata.Source
-          "$category", box metadata.Category ]
+          "$source", box metadata.Source ]
 
     let library connection transaction workspace =
         use statement =

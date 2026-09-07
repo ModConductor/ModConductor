@@ -70,6 +70,85 @@ class ModLogicalPath extends $pb.GeneratedMessage {
   $pb.PbList<$core.String> get components => $_getList(0);
 }
 
+class ModCategoryReference extends $pb.GeneratedMessage {
+  factory ModCategoryReference({
+    $core.String? categoryId,
+    $core.String? label,
+    $core.bool? missing,
+  }) {
+    final result = create();
+    if (categoryId != null) result.categoryId = categoryId;
+    if (label != null) result.label = label;
+    if (missing != null) result.missing = missing;
+    return result;
+  }
+
+  ModCategoryReference._();
+
+  factory ModCategoryReference.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ModCategoryReference.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ModCategoryReference',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'categoryId')
+    ..aOS(2, _omitFieldNames ? '' : 'label')
+    ..aOB(3, _omitFieldNames ? '' : 'missing')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ModCategoryReference clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ModCategoryReference copyWith(void Function(ModCategoryReference) updates) =>
+      super.copyWith((message) => updates(message as ModCategoryReference))
+          as ModCategoryReference;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ModCategoryReference create() => ModCategoryReference._();
+  @$core.override
+  ModCategoryReference createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ModCategoryReference getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ModCategoryReference>(create);
+  static ModCategoryReference? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get categoryId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set categoryId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasCategoryId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearCategoryId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get label => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set label($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasLabel() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearLabel() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.bool get missing => $_getBF(2);
+  @$pb.TagNumber(3)
+  set missing($core.bool value) => $_setBool(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasMissing() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearMissing() => $_clearField(3);
+}
+
 class InventoryModMetadata extends $pb.GeneratedMessage {
   factory InventoryModMetadata({
     $core.String? name,
@@ -77,7 +156,7 @@ class InventoryModMetadata extends $pb.GeneratedMessage {
     $core.String? comment,
     $core.String? version,
     $core.String? source,
-    $core.String? category,
+    $core.Iterable<ModCategoryReference>? categories,
   }) {
     final result = create();
     if (name != null) result.name = name;
@@ -85,7 +164,7 @@ class InventoryModMetadata extends $pb.GeneratedMessage {
     if (comment != null) result.comment = comment;
     if (version != null) result.version = version;
     if (source != null) result.source = source;
-    if (category != null) result.category = category;
+    if (categories != null) result.categories.addAll(categories);
     return result;
   }
 
@@ -108,7 +187,8 @@ class InventoryModMetadata extends $pb.GeneratedMessage {
     ..aOS(3, _omitFieldNames ? '' : 'comment')
     ..aOS(4, _omitFieldNames ? '' : 'version')
     ..aOS(5, _omitFieldNames ? '' : 'source')
-    ..aOS(6, _omitFieldNames ? '' : 'category')
+    ..pPM<ModCategoryReference>(7, _omitFieldNames ? '' : 'categories',
+        subBuilder: ModCategoryReference.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -175,14 +255,8 @@ class InventoryModMetadata extends $pb.GeneratedMessage {
   @$pb.TagNumber(5)
   void clearSource() => $_clearField(5);
 
-  @$pb.TagNumber(6)
-  $core.String get category => $_getSZ(5);
-  @$pb.TagNumber(6)
-  set category($core.String value) => $_setString(5, value);
-  @$pb.TagNumber(6)
-  $core.bool hasCategory() => $_has(5);
-  @$pb.TagNumber(6)
-  void clearCategory() => $_clearField(6);
+  @$pb.TagNumber(7)
+  $pb.PbList<ModCategoryReference> get categories => $_getList(5);
 }
 
 class InventoryMod extends $pb.GeneratedMessage {
@@ -718,225 +792,6 @@ class EditModRequest extends $pb.GeneratedMessage {
   InventoryModMetadata ensureMetadata() => $_ensure(2);
 }
 
-class ReadInventoryRequest extends $pb.GeneratedMessage {
-  factory ReadInventoryRequest({
-    $core.String? profileId,
-    $core.String? afterModId,
-  }) {
-    final result = create();
-    if (profileId != null) result.profileId = profileId;
-    if (afterModId != null) result.afterModId = afterModId;
-    return result;
-  }
-
-  ReadInventoryRequest._();
-
-  factory ReadInventoryRequest.fromBuffer($core.List<$core.int> data,
-          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(data, registry);
-  factory ReadInventoryRequest.fromJson($core.String json,
-          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromJson(json, registry);
-
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
-      _omitMessageNames ? '' : 'ReadInventoryRequest',
-      package:
-          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
-      createEmptyInstance: create)
-    ..aOS(1, _omitFieldNames ? '' : 'profileId')
-    ..aOS(2, _omitFieldNames ? '' : 'afterModId')
-    ..hasRequiredFields = false;
-
-  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  ReadInventoryRequest clone() => deepCopy();
-  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  ReadInventoryRequest copyWith(void Function(ReadInventoryRequest) updates) =>
-      super.copyWith((message) => updates(message as ReadInventoryRequest))
-          as ReadInventoryRequest;
-
-  @$core.override
-  $pb.BuilderInfo get info_ => _i;
-
-  @$core.pragma('dart2js:noInline')
-  static ReadInventoryRequest create() => ReadInventoryRequest._();
-  @$core.override
-  ReadInventoryRequest createEmptyInstance() => create();
-  @$core.pragma('dart2js:noInline')
-  static ReadInventoryRequest getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<ReadInventoryRequest>(create);
-  static ReadInventoryRequest? _defaultInstance;
-
-  @$pb.TagNumber(1)
-  $core.String get profileId => $_getSZ(0);
-  @$pb.TagNumber(1)
-  set profileId($core.String value) => $_setString(0, value);
-  @$pb.TagNumber(1)
-  $core.bool hasProfileId() => $_has(0);
-  @$pb.TagNumber(1)
-  void clearProfileId() => $_clearField(1);
-
-  @$pb.TagNumber(2)
-  $core.String get afterModId => $_getSZ(1);
-  @$pb.TagNumber(2)
-  set afterModId($core.String value) => $_setString(1, value);
-  @$pb.TagNumber(2)
-  $core.bool hasAfterModId() => $_has(1);
-  @$pb.TagNumber(2)
-  void clearAfterModId() => $_clearField(2);
-}
-
-class ModInventoryPage extends $pb.GeneratedMessage {
-  factory ModInventoryPage({
-    $core.Iterable<InventoryMod>? entries,
-    $core.String? nextModId,
-  }) {
-    final result = create();
-    if (entries != null) result.entries.addAll(entries);
-    if (nextModId != null) result.nextModId = nextModId;
-    return result;
-  }
-
-  ModInventoryPage._();
-
-  factory ModInventoryPage.fromBuffer($core.List<$core.int> data,
-          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(data, registry);
-  factory ModInventoryPage.fromJson($core.String json,
-          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromJson(json, registry);
-
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
-      _omitMessageNames ? '' : 'ModInventoryPage',
-      package:
-          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
-      createEmptyInstance: create)
-    ..pPM<InventoryMod>(1, _omitFieldNames ? '' : 'entries',
-        subBuilder: InventoryMod.create)
-    ..aOS(2, _omitFieldNames ? '' : 'nextModId')
-    ..hasRequiredFields = false;
-
-  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  ModInventoryPage clone() => deepCopy();
-  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  ModInventoryPage copyWith(void Function(ModInventoryPage) updates) =>
-      super.copyWith((message) => updates(message as ModInventoryPage))
-          as ModInventoryPage;
-
-  @$core.override
-  $pb.BuilderInfo get info_ => _i;
-
-  @$core.pragma('dart2js:noInline')
-  static ModInventoryPage create() => ModInventoryPage._();
-  @$core.override
-  ModInventoryPage createEmptyInstance() => create();
-  @$core.pragma('dart2js:noInline')
-  static ModInventoryPage getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<ModInventoryPage>(create);
-  static ModInventoryPage? _defaultInstance;
-
-  @$pb.TagNumber(1)
-  $pb.PbList<InventoryMod> get entries => $_getList(0);
-
-  @$pb.TagNumber(2)
-  $core.String get nextModId => $_getSZ(1);
-  @$pb.TagNumber(2)
-  set nextModId($core.String value) => $_setString(1, value);
-  @$pb.TagNumber(2)
-  $core.bool hasNextModId() => $_has(1);
-  @$pb.TagNumber(2)
-  void clearNextModId() => $_clearField(2);
-}
-
-enum InventoryReply_Outcome { page, fault, notSet }
-
-class InventoryReply extends $pb.GeneratedMessage {
-  factory InventoryReply({
-    ModInventoryPage? page,
-    ModLibraryFault? fault,
-  }) {
-    final result = create();
-    if (page != null) result.page = page;
-    if (fault != null) result.fault = fault;
-    return result;
-  }
-
-  InventoryReply._();
-
-  factory InventoryReply.fromBuffer($core.List<$core.int> data,
-          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(data, registry);
-  factory InventoryReply.fromJson($core.String json,
-          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromJson(json, registry);
-
-  static const $core.Map<$core.int, InventoryReply_Outcome>
-      _InventoryReply_OutcomeByTag = {
-    1: InventoryReply_Outcome.page,
-    2: InventoryReply_Outcome.fault,
-    0: InventoryReply_Outcome.notSet
-  };
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
-      _omitMessageNames ? '' : 'InventoryReply',
-      package:
-          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
-      createEmptyInstance: create)
-    ..oo(0, [1, 2])
-    ..aOM<ModInventoryPage>(1, _omitFieldNames ? '' : 'page',
-        subBuilder: ModInventoryPage.create)
-    ..aOM<ModLibraryFault>(2, _omitFieldNames ? '' : 'fault',
-        subBuilder: ModLibraryFault.create)
-    ..hasRequiredFields = false;
-
-  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  InventoryReply clone() => deepCopy();
-  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  InventoryReply copyWith(void Function(InventoryReply) updates) =>
-      super.copyWith((message) => updates(message as InventoryReply))
-          as InventoryReply;
-
-  @$core.override
-  $pb.BuilderInfo get info_ => _i;
-
-  @$core.pragma('dart2js:noInline')
-  static InventoryReply create() => InventoryReply._();
-  @$core.override
-  InventoryReply createEmptyInstance() => create();
-  @$core.pragma('dart2js:noInline')
-  static InventoryReply getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<InventoryReply>(create);
-  static InventoryReply? _defaultInstance;
-
-  @$pb.TagNumber(1)
-  @$pb.TagNumber(2)
-  InventoryReply_Outcome whichOutcome() =>
-      _InventoryReply_OutcomeByTag[$_whichOneof(0)]!;
-  @$pb.TagNumber(1)
-  @$pb.TagNumber(2)
-  void clearOutcome() => $_clearField($_whichOneof(0));
-
-  @$pb.TagNumber(1)
-  ModInventoryPage get page => $_getN(0);
-  @$pb.TagNumber(1)
-  set page(ModInventoryPage value) => $_setField(1, value);
-  @$pb.TagNumber(1)
-  $core.bool hasPage() => $_has(0);
-  @$pb.TagNumber(1)
-  void clearPage() => $_clearField(1);
-  @$pb.TagNumber(1)
-  ModInventoryPage ensurePage() => $_ensure(0);
-
-  @$pb.TagNumber(2)
-  ModLibraryFault get fault => $_getN(1);
-  @$pb.TagNumber(2)
-  set fault(ModLibraryFault value) => $_setField(2, value);
-  @$pb.TagNumber(2)
-  $core.bool hasFault() => $_has(1);
-  @$pb.TagNumber(2)
-  void clearFault() => $_clearField(2);
-  @$pb.TagNumber(2)
-  ModLibraryFault ensureFault() => $_ensure(1);
-}
-
 class ScanInventoryRequest extends $pb.GeneratedMessage {
   factory ScanInventoryRequest({
     $core.String? workspaceId,
@@ -1140,7 +995,7 @@ class ModInventoryScan extends $pb.GeneratedMessage {
       $pb.GeneratedMessage.$_defaultFor<ModInventoryScan>(create);
   static ModInventoryScan? _defaultInstance;
 
-  /// Bounded summary (32 each), not a complete inventory. ReadInventory pages persisted entries.
+  /// Bounded summary (32 each), not a complete inventory. QueryMods pages persisted entries.
   @$pb.TagNumber(1)
   $pb.PbList<InventoryMod> get entries => $_getList(0);
 

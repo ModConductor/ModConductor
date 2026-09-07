@@ -57,6 +57,7 @@ class _DesktopHostState extends State<DesktopHost> with WidgetsBindingObserver {
     workspaces: _owner.workspaces,
     modLibrary: _owner.modLibrary,
     profileMods: _owner.profileMods,
+    modOrganization: _owner.modOrganization,
     status: switch (_owner.state) {
       EngineIdle() => const DesktopDisconnected(),
       EngineConnecting() => const DesktopConnecting(),

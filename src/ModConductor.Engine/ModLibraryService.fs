@@ -34,26 +34,6 @@ type ModLibraryService(library: IModLibrary) =
             return ModLibraryWire.modReply result
         }
 
-    override _.ReadInventory(request, _) =
-        task {
-            let after =
-                if request.HasAfterModId then
-                    Some(ModLibraryWire.id request.AfterModId)
-                else
-                    None
-
-            let! result = library.Inventory(ModLibraryWire.id request.ProfileId, after)
-
-            return
-                match result with
-                | Error error -> InventoryReply(Fault = ModLibraryWire.fault error)
-                | Ok value ->
-                    let page = ModInventoryPage()
-                    page.Entries.AddRange(value.Entries |> Seq.map ModLibraryWire.entry)
-                    value.NextMod |> Option.iter (fun id -> page.NextModId <- id.ToString("N"))
-                    InventoryReply(Page = page)
-        }
-
     override _.ScanInventory(request, _) =
         task {
             let! result =

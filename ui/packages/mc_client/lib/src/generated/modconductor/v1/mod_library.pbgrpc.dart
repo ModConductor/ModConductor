@@ -48,13 +48,6 @@ class ModLibraryOperationsClient extends $grpc.Client {
     return $createUnaryCall(_$editMod, request, options: options);
   }
 
-  $grpc.ResponseFuture<$0.InventoryReply> readInventory(
-    $0.ReadInventoryRequest request, {
-    $grpc.CallOptions? options,
-  }) {
-    return $createUnaryCall(_$readInventory, request, options: options);
-  }
-
   $grpc.ResponseFuture<$0.InventoryScanReply> scanInventory(
     $0.ScanInventoryRequest request, {
     $grpc.CallOptions? options,
@@ -108,11 +101,6 @@ class ModLibraryOperationsClient extends $grpc.Client {
       '/modconductor.v1.ModLibraryOperations/EditMod',
       ($0.EditModRequest value) => value.writeToBuffer(),
       $0.ModReply.fromBuffer);
-  static final _$readInventory =
-      $grpc.ClientMethod<$0.ReadInventoryRequest, $0.InventoryReply>(
-          '/modconductor.v1.ModLibraryOperations/ReadInventory',
-          ($0.ReadInventoryRequest value) => value.writeToBuffer(),
-          $0.InventoryReply.fromBuffer);
   static final _$scanInventory =
       $grpc.ClientMethod<$0.ScanInventoryRequest, $0.InventoryScanReply>(
           '/modconductor.v1.ModLibraryOperations/ScanInventory',
@@ -165,14 +153,6 @@ abstract class ModLibraryOperationsServiceBase extends $grpc.Service {
         false,
         ($core.List<$core.int> value) => $0.EditModRequest.fromBuffer(value),
         ($0.ModReply value) => value.writeToBuffer()));
-    $addMethod($grpc.ServiceMethod<$0.ReadInventoryRequest, $0.InventoryReply>(
-        'ReadInventory',
-        readInventory_Pre,
-        false,
-        false,
-        ($core.List<$core.int> value) =>
-            $0.ReadInventoryRequest.fromBuffer(value),
-        ($0.InventoryReply value) => value.writeToBuffer()));
     $addMethod(
         $grpc.ServiceMethod<$0.ScanInventoryRequest, $0.InventoryScanReply>(
             'ScanInventory',
@@ -240,14 +220,6 @@ abstract class ModLibraryOperationsServiceBase extends $grpc.Service {
 
   $async.Future<$0.ModReply> editMod(
       $grpc.ServiceCall call, $0.EditModRequest request);
-
-  $async.Future<$0.InventoryReply> readInventory_Pre($grpc.ServiceCall $call,
-      $async.Future<$0.ReadInventoryRequest> $request) async {
-    return readInventory($call, await $request);
-  }
-
-  $async.Future<$0.InventoryReply> readInventory(
-      $grpc.ServiceCall call, $0.ReadInventoryRequest request);
 
   $async.Future<$0.InventoryScanReply> scanInventory_Pre(
       $grpc.ServiceCall $call,

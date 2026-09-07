@@ -114,7 +114,7 @@ type WorkspaceStateStore internal (database: StateDatabase, roots: OwnedWorkspac
                                         Sqlite.execute
                                             database.Connection
                                             transaction
-                                            "INSERT INTO workspaces VALUES($id,$name,0,NULL)"
+                                            "INSERT INTO workspaces(id,name,revision,selected_profile) VALUES($id,$name,0,NULL)"
                                             [ "$id", box (string id); "$name", box name ]
 
                                         Ok receipt

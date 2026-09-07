@@ -15,7 +15,12 @@ module InventoryPolicy =
             || not (valid 1024 value.Comment)
             || not (valid 256 value.Version)
             || not (valid 1024 value.Source)
-            || not (valid 256 value.Category)
+            || value.Categories.Length > 32
+            || (value.Categories
+                |> List.exists (fun category ->
+                    category.Id = Guid.Empty || not (valid 256 category.Label)))
+            || (value.Categories |> List.distinctBy _.Id |> List.length)
+               <> value.Categories.Length
         then
             Error LibraryError.InvalidMetadata
         else
@@ -58,27 +63,27 @@ module InventoryPolicy =
     let private pathSize path =
         LogicalPath.components path |> List.sumBy textSize
 
+    let inventorySize (entry: ModEntry) =
+        let metadata = entry.Metadata
+
+        512
+        + List.sumBy
+            textSize
+            [ metadata.Name
+              metadata.Notes
+              metadata.Comment
+              metadata.Version
+              metadata.Source ]
+        + (metadata.Categories |> List.sumBy (fun category -> 64 + textSize category.Label))
+        + (entry.SourcePath |> Option.map pathSize |> Option.defaultValue 0)
+
     let inventoryWindow (entries: ModEntry list) =
         let mutable remaining = 512 * 1024
 
         entries
         |> List.truncate 32
         |> List.takeWhile (fun entry ->
-            let metadata = entry.Metadata
-
-            let size =
-                512
-                + List.sumBy
-                    textSize
-                    [ metadata.Name
-                      metadata.Notes
-                      metadata.Comment
-                      metadata.Version
-                      metadata.Source
-                      metadata.Category ]
-                + (entry.SourcePath |> Option.map pathSize |> Option.defaultValue 0)
-
-            remaining <- remaining - size
+            remaining <- remaining - inventorySize entry
             remaining >= 0)
 
     let manifestWindow (entries: ManifestEntry list) =

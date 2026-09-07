@@ -18,6 +18,7 @@ journey = parser.add_mutually_exclusive_group()
 journey.add_argument('--workspaces', action='store_true')
 journey.add_argument('--collections', action='store_true')
 journey.add_argument('--profile-mods', action='store_true')
+journey.add_argument('--organization', action='store_true')
 parser.add_argument('--output', type=Path)
 args = parser.parse_args()
 if args.output:
@@ -57,8 +58,8 @@ with tempfile.TemporaryDirectory(prefix='wire-display-', dir=root / '.agent-work
                 if server.poll() is not None or time.monotonic() >= deadline:
                     raise SystemExit('Private Xvfb did not start.')
                 time.sleep(.05)
-            command = [str(root / '.tools/flutter/bin/flutter'), 'test', 'integration_test/workspaces_native_test.dart' if args.workspaces else 'integration_test/profile_mods_native_test.dart' if args.profile_mods else 'integration_test/collections_native_test.dart' if args.collections else 'integration_test/native_wire_test.dart', '-d', 'linux', '--no-pub', '--dart-define=MC_ENGINE_PATH=' + str(engine), '--reporter', 'expanded', *(['--verbose'] if os.environ.get('MC_VERBOSE_NATIVE') == '1' else [])]
-            if args.collections or args.profile_mods:
+            command = [str(root / '.tools/flutter/bin/flutter'), 'test', 'integration_test/organization_native_test.dart' if args.organization else 'integration_test/workspaces_native_test.dart' if args.workspaces else 'integration_test/profile_mods_native_test.dart' if args.profile_mods else 'integration_test/collections_native_test.dart' if args.collections else 'integration_test/native_wire_test.dart', '-d', 'linux', '--no-pub', '--dart-define=MC_ENGINE_PATH=' + str(engine), '--reporter', 'expanded', *(['--verbose'] if os.environ.get('MC_VERBOSE_NATIVE') == '1' else [])]
+            if args.collections or args.profile_mods or args.organization:
                 command.append('--dart-define=MC_COLLECTION_OUTPUT=' + str(fixture))
             if args.workspaces:
                 command.append('--dart-define=MC_UI_FIXTURE=' + str(fixture))

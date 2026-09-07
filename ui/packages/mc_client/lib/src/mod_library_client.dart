@@ -52,25 +52,6 @@ class ModLibraryClient {
       ),
     ),
   );
-  Future<InventoryPage> inventory(
-    String profileId, {
-    String? afterModId,
-  }) async {
-    final reply = await _client.readInventory(
-      wire.ReadInventoryRequest(profileId: profileId, afterModId: afterModId),
-    );
-    return switch (reply.whichOutcome()) {
-      wire.InventoryReply_Outcome.page => InventoryPage(
-        List.unmodifiable(reply.page.entries.map(mapping.entry)),
-        reply.page.hasNextModId() ? reply.page.nextModId : null,
-      ),
-      wire.InventoryReply_Outcome.fault => mapping.reject(reply.fault),
-      wire.InventoryReply_Outcome.notSet => throw const FormatException(
-        'Missing inventory result.',
-      ),
-    };
-  }
-
   Future<InventoryScan> scan(
     String workspaceId, {
     required int candidateLimit,

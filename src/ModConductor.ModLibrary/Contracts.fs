@@ -12,13 +12,18 @@ type ModKind =
     | Unmanaged
     | GeneratedOutput
 
+type CategoryReference =
+    { Id: Guid
+      Label: string
+      Missing: bool }
+
 type ModMetadata =
     { Name: string
       Notes: string
       Comment: string
       Version: string
       Source: string
-      Category: string }
+      Categories: CategoryReference list }
 
 [<RequireQualifiedAccess>]
 type InventoryStatus =
@@ -57,10 +62,6 @@ type ModVersion =
       ModId: Guid
       Entries: ManifestEntry list
       NextOffset: int option }
-
-type InventoryPage =
-    { Entries: ModEntry list
-      NextMod: Guid option }
 
 type UnmanagedEntry = { Path: LogicalPath; Kind: EntryKind }
 
@@ -110,7 +111,6 @@ type IModLibrary =
         Guid * Guid * ModMetadata * Registration -> Task<Result<ModEntry, LibraryError>>
 
     abstract Edit: Guid * int64 * ModMetadata -> Task<Result<ModEntry, LibraryError>>
-    abstract Inventory: Guid * Guid option -> Task<Result<InventoryPage, LibraryError>>
     abstract Scan: Guid * int -> Task<Result<InventoryScan, LibraryError>>
     abstract Publish: Guid * int64 * Guid -> Task<Result<ModEntry, LibraryError>>
     abstract Publication: Guid -> Task<Result<PublicationReceipt, LibraryError>>

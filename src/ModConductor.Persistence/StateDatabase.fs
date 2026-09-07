@@ -42,6 +42,19 @@ type internal StateDatabase(directory: string) =
         try
             SQLitePCL.Batteries_V2.Init()
             connection.Open()
+
+            connection.CreateCollation(
+                "MC_NAME",
+                (fun left right ->
+                    ModConductor.ModOrganization.OrganizationPolicy.compareNames left right)
+            )
+
+            connection.CreateFunction<string, string, bool>(
+                "mc_contains",
+                fun value query ->
+                    ModConductor.ModOrganization.OrganizationPolicy.contains value query
+            )
+
             Sqlite.migrate connection
             OwnerLease.recover owners ownerId abandonOwner
         with _ ->

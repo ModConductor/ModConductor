@@ -81,6 +81,14 @@ let run args =
 
     builder.Services.AddSingleton<ModConductor.Engine.ProfileModService>() |> ignore
 
+    builder.Services.AddSingleton<ModConductor.ModOrganization.IModOrganization>(
+        store.ModOrganization
+    )
+    |> ignore
+
+    builder.Services.AddSingleton<ModConductor.Engine.ModOrganizationService>()
+    |> ignore
+
     builder.Services.AddSingleton<ModConductor.Engine.ModLibraryService>() |> ignore
     builder.Services.AddSingleton<ModConductor.Engine.WorkspaceService>() |> ignore
     builder.Services.AddSingleton<Coordinator>(coordinator) |> ignore
@@ -95,6 +103,9 @@ let run args =
         .AddServiceOptions<ModConductor.Engine.ModLibraryService>(fun options ->
             options.MaxReceiveMessageSize <- Nullable 65536
             options.MaxSendMessageSize <- Nullable(2 * 1024 * 1024))
+        .AddServiceOptions<ModConductor.Engine.ModOrganizationService>(fun options ->
+            options.MaxReceiveMessageSize <- Nullable 65536
+            options.MaxSendMessageSize <- Nullable(2 * 1024 * 1024))
         .AddServiceOptions<ModConductor.Engine.ProfileModService>(fun options ->
             options.MaxReceiveMessageSize <- Nullable 65536
             options.MaxSendMessageSize <- Nullable(2 * 1024 * 1024))
@@ -106,6 +117,7 @@ let run args =
     use app = builder.Build()
     app.MapGrpcService<ModConductor.Engine.OperationService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.WorkspaceService>() |> ignore
+    app.MapGrpcService<ModConductor.Engine.ModOrganizationService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.ModLibraryService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.ProfileModService>() |> ignore
     app.StartAsync().GetAwaiter().GetResult()

@@ -4,23 +4,34 @@ import 'package:flutter/foundation.dart';
 import 'package:mc_client/mc_client.dart';
 import 'package:mc_ui_collections/mc_ui_collections.dart';
 
-typedef ModRowId = ({String modId});
+import 'mod_query_cache.dart';
+export 'mod_query_cache.dart' show ModRowId;
 
 class ProfileModsController extends ChangeNotifier {
-  final model = McCollectionModel<ModRowId, ProfileMod>(
-    idOf: (row) => (modId: row.mod.id),
-    labelOf: (row) => row.mod.metadata.name,
-  );
+  final _cache = ModQueryCache();
+  McCollectionModel<ModRowId, OrganizedMod> get model => _cache.model;
   ProfileModsClient? _client;
-  String? _workspace, _profile, _nextMod, _pendingFocus;
+  ModOrganizationClient? _organization;
+  String? _workspace, _profile, _pendingFocus;
+  ModQueryCursor? _next;
+  ModQuery query = const ModQuery();
   int _epoch = 0, _request = 0;
-  bool _disposed = false;
+  Timer? _debounce;
+  bool _disposed = false, _publishing = false;
   bool loading = false, changing = false, complete = false, stale = false;
-  int? revision;
-  int total = 0, enabledCount = 0;
+  int? revision, catalogueRevision;
+  int total = 0,
+      enabledCount = 0,
+      matchingMods = 0,
+      matchingSeparators = 0,
+      matchingGroups = 0;
   String? problem;
-  bool get connected => _client != null && _profile != null;
-  bool get byPriority => model.sortLabel == 'Priority' && !model.descending;
+  int get loaded => _cache.loaded;
+  bool get connected =>
+      _client != null && _organization != null && _profile != null;
+  bool get byPriority =>
+      query.view == OrganizationView.flat &&
+      query.sort == OrganizationSort.priority;
   bool get canLoad => connected && (!complete || stale);
   bool get canChange =>
       connected &&
@@ -44,49 +55,84 @@ class ProfileModsController extends ChangeNotifier {
       model.selectedIds.where((id) => model.position(id) == null).length;
 
   ProfileModsController() {
-    showPriority();
+    model.sort(comparePriority, label: 'Priority');
     model.addListener(_notify);
   }
   void _notify() {
-    if (!_disposed) notifyListeners();
+    if (!_disposed && !_publishing) notifyListeners();
   }
 
-  void showPriority() => model.sort(comparePriority, label: 'Priority');
-  int comparePriority(ProfileMod a, ProfileMod b) {
-    final left = a.selection.priority, right = b.selection.priority;
-    if (left == null && right != null) return 1;
-    if (right == null && left != null) return -1;
-    return left == null ? a.mod.id.compareTo(b.mod.id) : left.compareTo(right!);
+  void showPriority() => setQuery(
+    query.copyWith(
+      view: OrganizationView.flat,
+      sort: OrganizationSort.priority,
+    ),
+  );
+  int comparePriority(OrganizedMod a, OrganizedMod b) =>
+      _cache.comparePriority(a, b);
+  void sort(String label) => setQuery(
+    query.copyWith(
+      sort: label == 'Name' ? OrganizationSort.name : OrganizationSort.priority,
+    ),
+  );
+  void search(String value) {
+    _debounce?.cancel();
+    cancel();
+    query = query.copyWith(text: value);
+    stale = true;
+    _notify();
+    _debounce = Timer(
+      const Duration(milliseconds: 200),
+      () => unawaited(load(refresh: true)),
+    );
   }
 
-  void attach(ProfileModsClient? client, String? workspace, String? profile) {
+  void setQuery(ModQuery value) {
+    _debounce?.cancel();
+    cancel();
+    query = value;
+    stale = true;
+    unawaited(load(refresh: true));
+  }
+
+  void attach(
+    ProfileModsClient? client,
+    ModOrganizationClient? organization,
+    String? workspace,
+    String? profile,
+  ) {
     if (identical(_client, client) &&
+        identical(_organization, organization) &&
         _workspace == workspace &&
         _profile == profile) {
       return;
     }
     final newScope = _workspace != workspace || _profile != profile;
     _client = client;
+    _organization = organization;
     _workspace = workspace;
     _profile = profile;
     ++_epoch;
     ++_request;
+    _debounce?.cancel();
     loading = changing = false;
     if (newScope) {
-      revision = null;
-      total = enabledCount = 0;
+      revision = catalogueRevision = null;
+      total = enabledCount = matchingMods = matchingSeparators =
+          matchingGroups = 0;
       _pendingFocus = null;
       complete = stale = false;
       problem = null;
-      _nextMod = null;
-      model.clear();
-      showPriority();
+      _next = null;
+      _cache.clear();
+      query = const ModQuery();
     }
     if (connected) unawaited(load(refresh: true));
     _notify();
   }
 
   void mergeMetadata(Iterable<ModEntry> entries) {
+    cancel();
     model.apply(
       upserts: entries
           .where(
@@ -95,79 +141,96 @@ class ProfileModsController extends ChangeNotifier {
                 model[(modId: mod.id)] != null &&
                 model[(modId: mod.id)]!.mod.revision <= mod.revision,
           )
-          .map((mod) => ProfileMod(mod, model[(modId: mod.id)]!.selection)),
+          .map((mod) {
+            final old = model[(modId: mod.id)]!;
+            return OrganizedMod(
+              ProfileMod(mod, old.selection),
+              old.groupId,
+              groupSize: old.groupSize,
+            );
+          }),
     );
+    if (connected) {
+      stale = true;
+      unawaited(load(refresh: true));
+    }
   }
 
-  Future<bool> load({bool refresh = false, String? focusId}) async {
-    final client = _client, profile = _profile;
-    if (client == null || profile == null || loading || changing) return false;
+  Future<bool> load({
+    bool refresh = false,
+    String? focusId,
+    int? expectedSelection,
+    List<ProfileModSelection> delta = const [],
+  }) async {
+    final client = _organization, profile = _profile;
+    if (client == null ||
+        profile == null ||
+        loading ||
+        (changing && expectedSelection == null)) {
+      return false;
+    }
     refresh = refresh || stale || revision == null;
     if (!refresh && complete) return true;
     _pendingFocus = focusId ?? _pendingFocus;
     final epoch = _epoch, request = ++_request;
-    final cursor = refresh ? null : _nextMod,
-        expected = refresh ? null : revision;
+    final cursor = refresh ? null : _next;
+    final requested = query;
     loading = true;
     problem = null;
     _notify();
     bool current() => !_disposed && epoch == _epoch && request == _request;
     try {
-      final page = await client.read(
+      final page = await client.query(
         profile,
-        afterModId: cursor,
-        expectedRevision: expected,
+        requested,
+        cursor: cursor,
+        inspectedId: _pendingFocus ?? model.selectedId?.modId,
       );
       if (!current()) return false;
-      if ((expected != null && page.revision != expected) ||
-          (page.nextModId != null &&
-              cursor != null &&
-              page.nextModId!.compareTo(cursor) <= 0)) {
-        throw const FormatException(
-          'The profile page changed. Reload its mods.',
-        );
+      if ((expectedSelection != null &&
+              page.selectionRevision != expectedSelection) ||
+          (cursor != null &&
+              (page.catalogueRevision != cursor.catalogueRevision ||
+                  page.selectionRevision != cursor.selectionRevision ||
+                  page.queryIdentity != cursor.queryIdentity)) ||
+          (page.next != null && page.next!.offset <= (cursor?.offset ?? 0))) {
+        throw const FormatException('The mod query changed. Reload its mods.');
       }
-      final entries = [...page.entries];
-      final inspect = _pendingFocus ?? model.selectedId?.modId;
-      if (refresh &&
-          inspect != null &&
-          !entries.any((row) => row.mod.id == inspect)) {
-        final exact = await client.find(
-          profile,
-          inspect,
-          expectedRevision: page.revision,
-        );
-        if (!current()) return false;
-        if (exact.revision != page.revision) {
-          throw const FormatException('The profile changed during reload.');
-        }
-        entries.add(exact.entry);
+      if ([
+        ...page.entries,
+        ...page.context,
+        if (page.inspected != null) page.inspected!,
+      ].any(
+        (row) =>
+            (model[(modId: row.mod.id)]?.mod.revision ?? -1) > row.mod.revision,
+      )) {
+        throw const FormatException('The mod metadata changed during reload.');
       }
-      final merged = entries
-          .where((row) => row.mod.workspaceId == _workspace)
-          .map((row) {
-            final old = model[(modId: row.mod.id)];
-            return old != null && old.mod.revision > row.mod.revision
-                ? ProfileMod(old.mod, row.selection)
-                : row;
-          })
-          .toList();
-      final present = merged.map((row) => (modId: row.mod.id)).toSet();
-      final evicted = refresh && page.revision != revision
-          ? model.ids.where((id) => !present.contains(id)).toList()
-          : <ModRowId>[];
-      revision = page.revision;
-      total = page.total;
+      revision = page.selectionRevision;
+      catalogueRevision = page.catalogueRevision;
+      total = page.totalMods;
       enabledCount = page.enabledCount;
-      _nextMod = page.nextModId;
-      complete = _nextMod == null;
+      matchingMods = page.matchingMods;
+      matchingSeparators = page.matchingSeparators;
+      matchingGroups = page.matchingGroups;
+      _next = page.next;
+      complete = _next == null;
       stale = false;
       loading = false;
-      model.apply(upserts: merged, evicted: evicted);
+      if (expectedSelection != null) changing = false;
+      _publishing = true;
+      _cache.accept(
+        page,
+        requested,
+        refresh: refresh,
+        offset: cursor?.offset ?? 0,
+        delta: delta,
+      );
       if (_pendingFocus != null) {
         model.select((modId: _pendingFocus!));
         _pendingFocus = null;
       }
+      _publishing = false;
       _notify();
       return true;
     } on Exception catch (error) {
@@ -179,10 +242,11 @@ class ProfileModsController extends ChangeNotifier {
                 error.fault == LibraryFault.staleRevision);
         problem = error is LibraryException
             ? error.detail
-            : 'Could not load the profile mods.';
+            : 'Could not load the mods.';
       }
       return false;
     } finally {
+      _publishing = false;
       if (current() && loading) {
         loading = false;
         _notify();
@@ -245,27 +309,26 @@ class ProfileModsController extends ChangeNotifier {
       if (delta.revision != expected + 1) {
         throw const FormatException('The profile revision changed.');
       }
-      final upserts = <ProfileMod>[];
-      for (final selection in delta.changed) {
-        final row = model[(modId: selection.modId)];
-        if (row != null) upserts.add(ProfileMod(row.mod, selection));
+      // Filtering and pagination depend on selection; publish one new query snapshot after the command.
+      if (!await load(
+            refresh: true,
+            expectedSelection: delta.revision,
+            delta: delta.changed,
+          ) &&
+          !_disposed &&
+          epoch == _epoch) {
+        stale = true;
+        problem = 'The profile change was saved. Could not reload its mods.';
+        _notify();
       }
-      revision = delta.revision;
-      enabledCount = delta.enabledCount;
-      changing = false;
-      model.apply(upserts: upserts);
-      if (upserts.isEmpty) _notify();
     } on Exception catch (error) {
       if (!_disposed && epoch == _epoch) {
         stale =
-            error is FormatException ||
-            (error is LibraryException &&
-                error.fault == LibraryFault.staleRevision);
+            error is! LibraryException ||
+            error.fault == LibraryFault.staleRevision;
         problem = error is LibraryException
             ? error.detail
-            : 'Could not save the profile change. Reload its mods.';
-        // A lost reply can follow a committed command. Reload before issuing another write.
-        if (error is! LibraryException) stale = true;
+            : 'Could not confirm the profile change. Reload its mods.';
       }
     } finally {
       if (!_disposed && epoch == _epoch && changing) {
@@ -279,6 +342,7 @@ class ProfileModsController extends ChangeNotifier {
   void dispose() {
     _disposed = true;
     ++_epoch;
+    _debounce?.cancel();
     model.removeListener(_notify);
     model.dispose();
     super.dispose();

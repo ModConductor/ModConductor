@@ -12,7 +12,8 @@ instruction. Preserve field identities and reserve removed fields.
 | `operations.proto` | Runtime checks, cancellation, replay, and change feeds |
 | `workspaces.proto` | Workspace roots and profile lifecycle |
 | `mod_library.proto` | Mod inventory, metadata, publication, and saved files |
-| `profile_mods.proto` | Per-profile enablement, precedence, and joined inventory reads |
+| `profile_mods.proto` | Per-profile enablement and precedence changes |
+| `mod_organization.proto` | Workspace category edits and revision-pinned mod queries |
 
 After locked restores, run `python3 tools/generate-protocol.py`. Use `--check` to
 compare both generated boundaries without changing source. The tool compiles all
@@ -47,14 +48,19 @@ provide a same-user sandbox.
 Runtime RPCs permit 4 KiB requests and 64 KiB replies. Workspace and mod RPCs
 permit 64 KiB requests and 2 MiB replies. Item and content budgets further bound
 profile, inventory, and version pages. A continuation cursor means the result is
-incomplete. Inventory pages do not promise one atomic snapshot across calls. Profile-mod
-continuations require the returned selection revision. Optional revision fields
-use presence, not zero as a sentinel. Zero is a valid initial revision.
+incomplete. Mod queries return at most 32 matching source rows, 32 separator
+context rows, and one inspected detail. The byte budget can return fewer complete
+rows. Context and inspected details do not count as matches or loaded source rows.
+Continuations pin catalogue revision, selection revision, and query identity.
+Category pages contain 32 siblings and ancestor paths of at most 16 levels.
+Optional revision fields use presence, not zero as a sentinel.
 
 Profile-mod changes accept at most 512 stable IDs and return all affected
-selection rows in one delta. A one-step move changes at most 1024 rows. Metadata
-remains independently revisioned. Exact-ID reads use the same revision check as
-pages and include the authoritative priority and selection constraint.
+selection rows in one delta. A one-step move changes at most 1024 rows. Mod queries
+include authoritative selection constraints and an optional inspected mod outside
+the matching page. Metadata has its own revision. Category references replace the
+old scalar metadata field; field 6 is reserved. Up to 32 references fit one mod,
+and a query accepts up to 16 typed filters.
 
 Native and logical registration paths are mutually exclusive. The native path is
 only a chooser candidate. F# validates it through the same held-root boundary.

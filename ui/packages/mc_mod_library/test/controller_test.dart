@@ -4,6 +4,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mc_client/mc_client.dart';
 import 'package:mc_mod_library/mc_mod_library.dart';
 
+import 'organization_fakes.dart';
+export 'organization_fakes.dart';
+
 ModEntry mod(
   String id, {
   int revision = 0,
@@ -23,12 +26,9 @@ ManifestEntry file(String name) =>
     ManifestEntry([name], ModPayload(name, 5, 'hash'));
 
 class LibraryClient extends Fake implements ModLibraryClient {
-  Future<InventoryPage> Function(String, String?)? onInventory;
+  Future<ModQueryPage> Function(String, ModQueryCursor?)? onQuery;
   Future<ModVersionPage> Function(String, int)? onVersion;
   Future<ModEntry> Function(String, int, ModMetadata)? onEdit;
-  @override
-  Future<InventoryPage> inventory(String profile, {String? afterModId}) =>
-      onInventory!(profile, afterModId);
   @override
   Future<ModVersionPage> version(String id, {int offset = 0}) =>
       onVersion!(id, offset);
@@ -37,106 +37,102 @@ class LibraryClient extends Fake implements ModLibraryClient {
       onEdit!(id, revision, metadata);
 }
 
-class SelectionClient extends Fake implements ProfileModsClient {
-  SelectionClient(this.library);
-  final LibraryClient library;
-  @override
-  Future<ProfileModsPage> read(
-    String profile, {
-    String? afterModId,
-    int? expectedRevision,
-  }) async {
-    final page = await library.inventory(profile, afterModId: afterModId);
-    return ProfileModsPage(
-      0,
-      [
-        for (final (index, mod) in page.entries.indexed)
-          ProfileMod(mod, ManagedProfileMod(mod.id, index, false)),
-      ],
-      page.nextModId,
-      page.entries.length,
-      0,
-    );
-  }
-}
+QueryClient organization(LibraryClient library) =>
+    QueryClient()
+      ..onQuery = (profile, query, cursor, inspected) =>
+          library.onQuery!(profile, cursor);
+ModQueryPage inventoryPage(List<ModEntry> values, int? next) => queryPage([
+  for (final (index, value) in values.indexed)
+    OrganizedMod(
+      ProfileMod(value, ManagedProfileMod(value.id, index, false)),
+      null,
+    ),
+], nextOffset: next);
 
 Future<void> settle() => Future<void>.delayed(Duration.zero);
 
 void main() {
   test('cancelled and old-scope pages cannot replace current rows or resume a cancelled continuation', () async {
-    final delayed = Completer<InventoryPage>();
-    final client = LibraryClient()..onInventory = (_, _) => delayed.future;
+    final delayed = Completer<ModQueryPage>();
+    final client = LibraryClient()..onQuery = (_, _) => delayed.future;
     final controller = ModLibraryController();
     addTearDown(controller.dispose);
     controller.attach(
       client,
-      SelectionClient(client),
+      SelectionClient(),
+      organizationClient: organization(client),
       workspaceId: 'workspace',
       profileId: 'one',
       editable: true,
     );
     controller.inventory.cancel();
-    client.onInventory = (_, _) async => InventoryPage([mod('new')], null);
+    client.onQuery = (_, _) async => inventoryPage([mod('new')], null);
     await controller.inventory.load();
-    delayed.complete(InventoryPage([mod('stale')], 'cursor'));
+    delayed.complete(inventoryPage([mod('stale')], 1));
     await settle();
     expect(controller.mods.ids, [(modId: 'new')]);
     expect(controller.inventory.complete, isTrue);
-    final previous = Completer<InventoryPage>();
-    client.onInventory = (_, _) => previous.future;
+    final previous = Completer<ModQueryPage>();
+    client.onQuery = (_, _) => previous.future;
     final request = controller.inventory.load(refresh: true);
-    client.onInventory = (_, _) async =>
-        InventoryPage([mod('other', workspace: 'other')], null);
+    client.onQuery = (_, _) async =>
+        inventoryPage([mod('other', workspace: 'other')], null);
     controller.attach(
       client,
-      SelectionClient(client),
+      SelectionClient(),
+      organizationClient: organization(client),
       workspaceId: 'other',
       profileId: 'two',
       editable: true,
     );
     await settle();
-    previous.complete(InventoryPage([mod('late')], null));
+    previous.complete(inventoryPage([mod('late')], null));
     await request;
     expect(controller.mods.ids, [(modId: 'other')]);
   });
 
   test('later inventory failure retains partial rows and stale per-mod revisions cannot overwrite a completed edit', () async {
     final client = LibraryClient()
-      ..onInventory = (_, _) async => InventoryPage([mod('a')], 'a');
+      ..onQuery = (_, _) async => inventoryPage([mod('a')], 1);
     final controller = ModLibraryController();
     addTearDown(controller.dispose);
     controller.attach(
       client,
-      SelectionClient(client),
+      SelectionClient(),
+      organizationClient: organization(client),
       workspaceId: 'workspace',
       profileId: 'one',
       editable: true,
     );
     await settle();
-    controller.select(controller.mods[(modId: 'a')]!);
+    controller.select(controller.mods[(modId: 'a')]!.entry);
     client.onEdit = (_, _, _) async => mod('a', revision: 2);
     await controller.edit(
       controller.selected!,
       const ModMetadata(name: 'Updated'),
     );
-    client.onInventory = (_, _) async => throw Exception('transport');
+    client.onQuery = (_, _) async => throw Exception('transport');
     await controller.inventory.load();
     expect(controller.inventory.problem, isNotNull);
     expect(controller.inventory.complete, isFalse);
     expect(controller.selected!.revision, 2);
-    client.onInventory = (_, cursor) async {
-      expect(cursor, 'a');
-      return InventoryPage([mod('a', revision: 1), mod('b')], null);
+    client.onQuery = (_, cursor) async {
+      expect(cursor, isNull);
+      return inventoryPage([mod('a', revision: 1), mod('b')], null);
     };
     await controller.inventory.load();
     expect(controller.selected!.revision, 2);
+    expect(controller.inventory.stale, isTrue);
+    client.onQuery = (_, _) async =>
+        inventoryPage([mod('a', revision: 2), mod('b')], null);
+    await controller.inventory.load(refresh: true);
     expect(controller.mods.length, 2);
     expect(controller.inventory.complete, isTrue);
   });
 
   test('saved-file pages remain pinned through inventory updates and cancelled replies cannot cross mod selection', () async {
     final client = LibraryClient()
-      ..onInventory = (_, _) async => InventoryPage([
+      ..onQuery = (_, _) async => inventoryPage([
         mod('a', version: 'version-a'),
         mod('b', version: 'version-b'),
       ], null);
@@ -146,14 +142,15 @@ void main() {
     addTearDown(controller.dispose);
     controller.attach(
       client,
-      SelectionClient(client),
+      SelectionClient(),
+      organizationClient: organization(client),
       workspaceId: 'workspace',
       profileId: 'one',
       editable: true,
     );
     await settle();
     controller.mods.select((modId: 'a'));
-    controller.select(controller.mods.selected!);
+    controller.select(controller.mods.selected!.entry);
     controller.cancelFiles();
     client.onVersion = (id, offset) async =>
         ModVersionPage(id, 'a', [file('first')], 1);
@@ -167,14 +164,16 @@ void main() {
     final oldVersion = Completer<ModVersionPage>();
     client.onVersion = (_, _) => oldVersion.future;
     final loading = controller.loadFiles();
-    client.onInventory = (_, _) async =>
-        InventoryPage([mod('a', revision: 1, version: 'new-version')], null);
+    client.onQuery = (_, _) async => inventoryPage([
+      mod('a', revision: 1, version: 'new-version'),
+      mod('b', version: 'version-b'),
+    ], null);
     await controller.inventory.load(refresh: true);
     expect(controller.selectedVersionId, 'version-a');
     client.onVersion = (id, _) async =>
         ModVersionPage(id, 'b', [file('other')], null);
     controller.mods.select((modId: 'b'));
-    controller.select(controller.mods.selected!);
+    controller.select(controller.mods.selected!.entry);
     await settle();
     oldVersion.complete(ModVersionPage('version-a', 'a', [file('late')], null));
     await loading;

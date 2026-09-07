@@ -58,6 +58,22 @@ void main() {
     }
     await fixture.delete(recursive: true);
   });
+  Future<({List<ModEntry> entries, ModQueryCursor? next})> inventory(
+    NativeChild child,
+    String profile, {
+    ModQueryCursor? cursor,
+  }) async {
+    final page = await child.modOrganization().query(
+      profile,
+      const ModQuery(),
+      cursor: cursor,
+    );
+    return (
+      entries: page.entries.map((row) => row.mod).toList(),
+      next: page.next,
+    );
+  }
+
   group(
     'native mod library wire',
     skip: executable == null
@@ -105,7 +121,7 @@ void main() {
             throwsA(isA<LibraryException>()),
           );
         }
-        expect((await client.inventory(profile)).entries.map((row) => row.id), [
+        expect((await inventory(child, profile)).entries.map((row) => row.id), [
           entry.id,
         ]);
         expect(
@@ -134,7 +150,7 @@ void main() {
             ),
           ),
         );
-        expect((await child.modLibrary().inventory(profile)).entries, isEmpty);
+        expect((await inventory(child, profile)).entries, isEmpty);
       });
       test('immutable versions retain bytes and shared profile identity through rename and restart', () async {
         final (child, workspaceId, profile) = await workspace();
@@ -161,7 +177,13 @@ void main() {
             notes: 'Keep this',
             source: 'Local directory',
             version: '1.0',
-            category: 'Visual',
+            categories: [
+              CategoryReference(
+                'fc53e8b36ac0432ab049235ff80102ec',
+                'Visual',
+                missing: true,
+              ),
+            ],
             comment: 'Fixture',
           ),
           const DirectoryMod(ModKind.regular, ['source']),
@@ -201,12 +223,18 @@ void main() {
             notes: 'Keep this',
             source: 'Local directory',
             version: '1.0',
-            category: 'Visual',
+            categories: [
+              CategoryReference(
+                'fc53e8b36ac0432ab049235ff80102ec',
+                'Visual',
+                missing: true,
+              ),
+            ],
             comment: 'Fixture',
           ),
         );
         for (final selected in [profile, copy]) {
-          final entry = (await client.inventory(selected)).entries.single;
+          final entry = (await inventory(child, selected)).entries.single;
           expect(entry.id, id);
           expect(entry.metadata.name, renamed.metadata.name);
         }
@@ -232,9 +260,7 @@ void main() {
         await child.close();
         final restarted = await start();
         await restarted.workspaces().open(root.path);
-        final entry = (await restarted.modLibrary().inventory(profile))
-            .entries
-            .single;
+        final entry = (await inventory(restarted, profile)).entries.single;
         expect(entry.metadata.notes, 'Keep this');
         expect(entry.metadata.name, 'Trees renamed');
         expect(entry.currentVersionId, secondId);
@@ -272,10 +298,7 @@ void main() {
               ),
             );
           }
-          expect(
-            (await child.modLibrary().inventory(profile)).entries,
-            isEmpty,
-          );
+          expect((await inventory(child, profile)).entries, isEmpty);
           expect(
             (await root.list().toList()).whereType<Directory>().map(
               (d) => d.path,
@@ -368,8 +391,10 @@ void main() {
           isTrue,
         );
         expect(
-          (await client.inventory(profile)).entries
-              .any((entry) => entry.id == id),
+          (await inventory(
+            child,
+            profile,
+          )).entries.any((entry) => entry.id == id),
           isTrue,
         );
         final manifest = await client.version(version);
@@ -401,19 +426,22 @@ void main() {
               notes: notes,
               comment: comment,
               source: comment,
-              category: List.filled(256, '界').join(),
+              categories: [
+                CategoryReference(
+                  'fc53e8b36ac0432ab049235ff80102ec',
+                  List.filled(256, '界').join(),
+                  missing: true,
+                ),
+              ],
             ),
             const SeparatorMod(),
           );
         }
-        final first = await client.inventory(profile);
+        final first = await inventory(child, profile);
         expect(first.entries.length, lessThan(30));
         expect(first.entries, isNotEmpty);
-        final second = await client.inventory(
-          profile,
-          afterModId: first.nextModId,
-        );
-        expect(second.nextModId, isNull);
+        final second = await inventory(child, profile, cursor: first.next);
+        expect(second.next, isNull);
         final entries = [...first.entries, ...second.entries];
         expect(entries.length, 30);
         expect(entries.map((entry) => entry.id).toSet().length, 30);

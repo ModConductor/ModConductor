@@ -22,10 +22,12 @@ let main args =
             SelectionFixtures.worker args[1] args[2] args[3] args[4]
             0
         else
+            let organizationOnly = args.Length = 2 && args[0] = "--organization"
             let selectionOnly = args.Length = 2 && args[0] = "--selection"
 
             let primary, secondary =
                 match args with
+                | [| "--organization"; primary |]
                 | [| "--selection"; primary |] when Path.IsPathFullyQualified primary ->
                     primary, None
                 | [| primary |] when Path.IsPathFullyQualified primary -> primary, None
@@ -47,7 +49,7 @@ let main args =
                 else "other"
             )
 
-            if not selectionOnly then
+            if not selectionOnly && not organizationOnly then
                 Fixtures.observe writer primary secondary
                 StorageFixtures.observe writer primary
                 WorkspaceFixtures.observe writer primary
@@ -55,7 +57,13 @@ let main args =
                 LibraryRecoveryFixtures.observe writer primary
                 LibraryIdentityFixtures.observe writer primary
 
-            SelectionFixtures.observe writer primary
+            if not organizationOnly then
+                SelectionFixtures.observe writer primary
+
+            if not selectionOnly then
+                OrganizationFixtures.observe writer primary
+                OrganizationMigration.observe writer primary
+
             writer.WriteEndObject()
             writer.Flush()
             0

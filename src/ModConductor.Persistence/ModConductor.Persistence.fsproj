@@ -6,8 +6,10 @@
     <Compile Include="OwnerLease.fs" />
     <Compile Include="LibrarySchema.fs" />
     <Compile Include="SelectionSchema.fs" />
+    <Compile Include="OrganizationSchema.fs" />
     <Compile Include="Sqlite.fs" />
     <Compile Include="LibraryEncoding.fs" />
+    <Compile Include="CategoryRows.fs" />
     <Compile Include="LibraryRows.fs" />
     <Compile Include="OperationRows.fs" />
     <Compile Include="OperationJournal.fs" />
@@ -24,8 +26,13 @@
     <Compile Include="InventoryScan.fs" />
     <Compile Include="ModLibraryStore.fs" />
     <Compile Include="ModSelectionStore.fs" />
+    <Compile Include="CategoryCommands.fs" />
+    <Compile Include="OrganizationQuerySql.fs" />
+    <Compile Include="OrganizationQuery.fs" />
+    <Compile Include="ModOrganizationStore.fs" />
     <Compile Include="OperationStore.fs" />
     <ProjectReference Include="../ModConductor.ModLibrary/ModConductor.ModLibrary.fsproj" />
+    <ProjectReference Include="../ModConductor.ModOrganization/ModConductor.ModOrganization.fsproj" />
     <ProjectReference Include="../ModConductor.ModSelection/ModConductor.ModSelection.fsproj" />
     <ProjectReference Include="../ModConductor.Operations/ModConductor.Operations.fsproj" />
     <ProjectReference Include="../ModConductor.Platform/ModConductor.Platform.fsproj" />

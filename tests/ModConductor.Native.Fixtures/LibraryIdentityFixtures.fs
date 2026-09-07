@@ -18,7 +18,7 @@ module LibraryIdentityFixtures =
           Comment = ""
           Version = ""
           Source = ""
-          Category = "" }
+          Categories = [] }
 
     let observe (writer: Utf8JsonWriter) primary =
         writer.WriteStartObject("libraryIdentity")
@@ -68,7 +68,9 @@ module LibraryIdentityFixtures =
             let library = reopened.ModLibrary :> IModLibrary
 
             let read profile =
-                (library.Inventory(profile, None) |> wait |> result).Entries |> List.exactlyOne
+                (InventoryObservations.read reopened profile).Entries
+                |> List.map (fun row -> row.Entry.Mod)
+                |> List.exactlyOne
 
             let actual = read first
             writer.WriteStartObject(mode)

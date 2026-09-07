@@ -3,3 +3,4 @@ export 'src/operations_client.dart';
 export 'src/workspaces_client.dart';
 export 'src/mod_library_client.dart';
 export 'src/profile_mod_client.dart';
+export 'src/mod_organization_client.dart';

@@ -19,7 +19,7 @@ class FolderClient extends LibraryClient {
     expect(workspaceId, 'workspace');
     expect((registration as NativeDirectoryMod).path, '/workspace/source');
     final entry = mod(id);
-    onInventory = (_, _) async => InventoryPage([entry], null);
+    onQuery = (_, _) async => inventoryPage([entry], null);
     return entry;
   }
 }
@@ -29,12 +29,13 @@ void main() {
     'native folder choice submits through the feature client and updates the inventory',
     (tester) async {
       final client = FolderClient()
-        ..onInventory = (_, _) async => const InventoryPage([], null);
+        ..onQuery = (_, _) async => inventoryPage([], null);
       final controller = ModLibraryController();
       addTearDown(controller.dispose);
       controller.attach(
         client,
-        SelectionClient(client),
+        SelectionClient(),
+        organizationClient: organization(client),
         workspaceId: 'workspace',
         profileId: 'profile',
         editable: true,

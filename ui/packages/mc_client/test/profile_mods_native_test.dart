@@ -29,18 +29,17 @@ void main() {
     children.clear();
     await fixture.delete(recursive: true);
   });
-  Future<List<ProfileMod>> all(ProfileModsClient client, String profile) async {
-    final first = await client.read(profile);
-    final rows = [...first.entries];
-    var next = first.nextModId;
+  Future<List<ProfileMod>> all(
+    ModOrganizationClient client,
+    String profile,
+  ) async {
+    final first = await client.query(profile, const ModQuery());
+    final rows = first.entries.map((row) => row.entry).toList();
+    var next = first.next;
     while (next != null) {
-      final page = await client.read(
-        profile,
-        afterModId: next,
-        expectedRevision: first.revision,
-      );
-      rows.addAll(page.entries);
-      next = page.nextModId;
+      final page = await client.query(profile, const ModQuery(), cursor: next);
+      rows.addAll(page.entries.map((row) => row.entry));
+      next = page.next;
     }
     return rows;
   }
@@ -79,7 +78,11 @@ void main() {
           ProfileInfo(profile, 'Everyday'),
         );
         var client = child.profileMods();
-        expect((await client.read(profile, expectedRevision: 0)).revision, 0);
+        var inventory = child.modOrganization();
+        expect(
+          (await inventory.query(profile, const ModQuery())).selectionRevision,
+          0,
+        );
         for (var i = 100; i < 135; i++) {
           final folder = 'mod-$i';
           await Directory('${root.path}/$folder').create();
@@ -90,8 +93,8 @@ void main() {
             DirectoryMod(ModKind.regular, [folder]),
           );
         }
-        final before = await client.read(profile);
-        expect(before.nextModId, isNotNull);
+        final before = await inventory.query(profile, const ModQuery());
+        expect(before.next, isNotNull);
         await Directory('${root.path}/local').create();
         await child.modLibrary().register(
           workspace,
@@ -100,11 +103,7 @@ void main() {
           const DirectoryMod(ModKind.unmanaged, ['local']),
         );
         await expectLater(
-          client.read(
-            profile,
-            afterModId: before.nextModId,
-            expectedRevision: before.revision,
-          ),
+          inventory.query(profile, const ModQuery(), cursor: before.next),
           throwsA(
             isA<LibraryException>().having(
               (e) => e.fault,
@@ -113,30 +112,30 @@ void main() {
             ),
           ),
         );
-        final latest = await client.read(profile);
+        final latest = await inventory.query(profile, const ModQuery());
         expect(
-          (await client.find(
+          (await inventory.query(
             profile,
-            id(134),
-            expectedRevision: latest.revision,
-          )).entry.mod.id,
+            const ModQuery(),
+            inspectedId: id(134),
+          )).inspected!.entry.mod.id,
           id(134),
         );
         expect(
-          (await client.find(
+          (await inventory.query(
             profile,
-            id(1),
-            expectedRevision: latest.revision,
-          )).entry.selection,
+            const ModQuery(),
+            inspectedId: id(1),
+          )).inspected!.entry.selection,
           isA<LockedProfileMod>(),
         );
-        final moved = await client.move(profile, latest.revision, [
+        final moved = await client.move(profile, latest.selectionRevision, [
           id(106),
           id(103),
           id(102),
         ], ProfileModMove.up);
         final projection = {
-          for (final row in await all(client, profile))
+          for (final row in await all(inventory, profile))
             row.mod.id: row.selection.priority,
         };
         expect(
@@ -146,7 +145,7 @@ void main() {
           ],
           [0, 1, 2, 3, 4, 5, 6],
         );
-        expect(moved.revision, latest.revision + 1);
+        expect(moved.revision, latest.selectionRevision + 1);
         final enabled = await client.enable(profile, moved.revision, [
           id(102),
           id(106),
@@ -162,7 +161,7 @@ void main() {
             ),
           ),
         );
-        final saved = values(await all(client, profile));
+        final saved = values(await all(inventory, profile));
         final workspaceState = await child.workspaces().read(workspace);
         final copy = newOperationId();
         await child.workspaces().cloneProfile(
@@ -171,13 +170,17 @@ void main() {
           profile,
           ProfileInfo(copy, 'Copy'),
         );
-        expect(values(await all(client, copy)), saved);
+        expect(values(await all(inventory, copy)), saved);
         await child.close();
         children.remove(child);
         child = await start();
         client = child.profileMods();
-        expect(values(await all(client, profile)), saved);
-        expect((await client.read(profile)).revision, enabled.revision);
+        inventory = child.modOrganization();
+        expect(values(await all(inventory, profile)), saved);
+        expect(
+          (await inventory.query(profile, const ModQuery())).selectionRevision,
+          enabled.revision,
+        );
       });
       test('separator and locked-entry refusals leave whole batches unchanged and the new service enforces authentication', () async {
         final child = await start();
@@ -207,10 +210,14 @@ void main() {
           const ModMetadata(name: 'Automatic'),
           const DirectoryMod(ModKind.generatedOutput, ['source']),
         );
-        final client = child.profileMods(),
-            before = await child.profileMods().read(profile);
+        final client = child.profileMods();
+        final inventory = child.modOrganization();
+        final before = await inventory.query(profile, const ModQuery());
         await expectLater(
-          client.enable(profile, before.revision, [id(1), id(2)], true),
+          client.enable(profile, before.selectionRevision, [
+            id(1),
+            id(2),
+          ], true),
           throwsA(
             isA<LibraryException>().having(
               (e) => e.fault,
@@ -220,7 +227,7 @@ void main() {
           ),
         );
         await expectLater(
-          client.move(profile, before.revision, [
+          client.move(profile, before.selectionRevision, [
             id(1),
             id(3),
           ], ProfileModMove.up),
@@ -232,21 +239,26 @@ void main() {
             ),
           ),
         );
-        final after = await client.read(profile);
-        expect(values(after.entries), values(before.entries));
-        expect(after.revision, before.revision);
-        final moved = await client.move(profile, before.revision, [
+        final after = await inventory.query(profile, const ModQuery());
+        expect(
+          values(after.entries.map((row) => row.entry).toList()),
+          values(before.entries.map((row) => row.entry).toList()),
+        );
+        expect(after.selectionRevision, before.selectionRevision);
+        final moved = await client.move(profile, before.selectionRevision, [
           id(2),
         ], ProfileModMove.up);
-        final separator = await client.find(
+        final separator = await inventory.query(
           profile,
-          id(2),
-          expectedRevision: moved.revision,
+          const ModQuery(),
+          inspectedId: id(2),
         );
-        expect(separator.entry.selection, isA<OrderedProfileMod>());
-        expect(separator.entry.selection.priority, 0);
+        expect(separator.inspected!.entry.selection, isA<OrderedProfileMod>());
+        expect(separator.inspected!.entry.selection.priority, 0);
         await expectLater(
-          child.profileMods(authenticate: false).read(profile),
+          child
+              .modOrganization(authenticate: false)
+              .query(profile, const ModQuery()),
           throwsA(
             isA<GrpcError>().having(
               (e) => e.code,
@@ -255,7 +267,10 @@ void main() {
             ),
           ),
         );
-        expect((await client.read(profile)).revision, moved.revision);
+        expect(
+          (await inventory.query(profile, const ModQuery())).selectionRevision,
+          moved.revision,
+        );
       });
     },
   );

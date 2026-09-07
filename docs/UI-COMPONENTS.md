@@ -12,12 +12,15 @@ Nonstructural deltas update cached rows without recalculating the visible list.
 
 `mc_workspaces` owns workspace/profile forms, lifecycle state, and the profile
 collection. `mc_mod_library` owns inventory, profile selection, and saved-version
-presentation. Its profile controller applies joined pages and atomic selection
-deltas. The library controller retains metadata actions and pinned file state. The app
+presentation, category forms, and query state. Its profile controller applies
+revision-pinned queries after selection changes. The query cache keeps matching,
+context, and inspected rows separate. The library controller retains metadata
+actions and pinned file state. The app
 binds these libraries to `mc_client` and owns global navigation and appearance.
 
-Use the foundation's `McAction`, `McStatus`, `McFormDialog`, and name fields instead
-of reproducing their styles. `McPage` provides a scrollable document layout.
+Use the foundation's actions, menus, statuses, and name fields instead of
+reproducing their styles. `McDialog` owns the modal shell and a single Close
+action. `McFormDialog` uses that shell for Cancel and Submit forms. `McPage` provides a scrollable document layout.
 Collections need bounded height and must not sit inside an unbounded page scroll.
 
 ## Collection behavior
@@ -31,7 +34,10 @@ path components. Arrival of another page does not replace selection or focus.
 A hidden or temporarily unloaded selected ID remains selected until explicit
 removal. Actions require a currently available row.
 
-Partial pages use **Filter loaded** labels and loaded counts. A failed continuation
+Local file, profile, and category filters use **Filter loaded** labels when pages
+are incomplete. Installed-mod filters query the engine, not cached labels. They
+keep the typed query and reject old responses after text, view, or sort changes.
+Their footer distinguishes matches from loaded rows and context. A failed continuation
 preserves prior rows and offers Retry. Canceling a load invalidates its late reply.
 It does not cancel a committed engine operation. Saved files remain pinned until
 the user selects another mod, saves a version, or opens the latest version.
@@ -43,9 +49,20 @@ or expands a row. Multi-selection keeps a stable set separate from the inspected
 row. Ctrl-click and Ctrl+Space toggle membership. Shift-click and Shift navigation
 select a range. The optional **Select multiple** mode supports pointer-only use.
 Ctrl+Up/Down invokes the same profile move as the arrow buttons. These actions
-are unavailable in a name-sorted view. **Show priority** restores the saved-order
+are unavailable in a name-sorted or grouped view. **Show priority** restores the saved-order
 view. Checkboxes change one mod. **Enable** and **Disable** target the selected
 set, including explicitly counted hidden selections. Row semantics expose selection, focus, and expansion.
+
+Category assignment, category filtering, and category management reuse one tree
+picker. The picker searches raw loaded labels while visibly marking missing and
+whitespace-only labels. Assignment inside mod details remains a local draft until
+the outer **Save**. Category management commits each command and has **Close**,
+not a session-wide Cancel. Filter controls remain behind **Filters**.
+
+The collection supports externally supplied filter text, sort callbacks, and a
+stable-ID visibility set. These are presentation inputs, not matching policy.
+Optional visual titles, node icons, and expander placement preserve default file
+and profile behavior. Decorative icons do not add semantic names.
 
 ## Global controls
 

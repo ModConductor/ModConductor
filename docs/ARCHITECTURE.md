@@ -9,6 +9,7 @@
 | `ModConductor.Workspaces` | Workspace and profile lifecycle |
 | `ModConductor.ModLibrary` | Mod identity, metadata, and immutable file versions |
 | `ModConductor.ModSelection` | Per-profile enablement, saved precedence, and batch rules |
+| `ModConductor.ModOrganization` | Workspace categories, typed filters, and grouping contracts |
 | `ModConductor.Persistence` | SQLite adapters, bounded queue, owner leases, and file receipts |
 | `ModConductor.Engine` | Process bootstrap and authenticated service adapters |
 | `mc_client` | Typed Dart transport and child-process lifecycle |
@@ -117,6 +118,40 @@ enabled state. Every inventory registration invalidates profile-page continuatio
 including registration of a locked entry. New profiles initialize existing entries
 in stable ID order. Profile deletion removes its selection relation atomically.
 
-Joined pages pin selection revision, not a global metadata snapshot. Mod metadata
-retains its independent revision. Exact-ID reads recover the inspected row outside
-the first page. A failed reload does not undo a committed registration.
+Mod queries pin the catalogue and profile-selection revisions. Each response reads
+stored metadata, selection, counts, and group context in one SQLite snapshot.
+A continuation rejects changed state or a different query. The catalogue counter
+invalidates reads; it does not have the selection command's one-increment rule.
+It does not observe external file changes until an existing scan or publication
+records them. A failed reload does not undo a committed registration.
+
+## Categories and filters
+
+Category definitions and mod memberships belong to a workspace, not a profile.
+A mod can have several categories. The category tree cannot contain cycles or
+cross-workspace parents. Moving a category preserves its ID and memberships.
+Names are exact values: case, spaces, and Unicode normalization do not merge them.
+Legacy nonempty category strings become separate root categories per workspace.
+Whitespace-only legacy labels remain visible and can be renamed.
+
+Only leaf categories can be deleted. Deletion keeps assigned references with the
+stable category ID and last known label. Unrelated mod edits preserve missing
+references. Explicit removal or reassignment can replace them. Mod details and
+category assignments commit together under the mod revision. Definition changes
+advance affected mod revisions, so old details drafts cannot overwrite a rename
+or deletion. A known category ID from another workspace is refused.
+
+Text search is a trimmed, case-insensitive literal substring across the mod's
+name, version, source, notes, comment, and category labels. It has no query syntax.
+Text must match alongside the typed filters. **All** requires every typed filter;
+**Any** requires at least one. An empty typed filter list matches all entries.
+Category filters include descendants only when explicitly selected. Descendants
+use the current live tree; a missing reference can still match its own ID. Other filters
+select kind, status, enabled state, no categories, or missing category references.
+
+Groups follow global saved priority: each separator owns following regular mods
+until the next separator. Leading mods and locked entries remain at the root.
+Adjacent and trailing separators can form empty groups. A filter retains a group
+header when the header or a child matches, without revealing other children.
+Grouped name sorting orders children within each group. Moves require the flat
+priority view. Selecting a separator never selects or enables its children.

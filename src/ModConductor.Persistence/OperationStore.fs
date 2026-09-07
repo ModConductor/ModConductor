@@ -8,6 +8,7 @@ type OperationStore(directory: string) =
     let workspaceRoots = OwnedWorkspaceRootStore(database)
     let workspaces = WorkspaceStateStore(database, workspaceRoots)
     let modLibrary = ModLibraryStore(database, workspaceRoots)
+    let organization = ModOrganizationStore(database, modLibrary.Access)
     let selection = ModSelectionStore(database, modLibrary.Access)
     let connection = database.Connection
 
@@ -87,6 +88,7 @@ type OperationStore(directory: string) =
     member _.ModLibrary = modLibrary
 
     member _.ModSelection = selection
+    member _.ModOrganization = organization
 
     member _.SqliteVersion = connection.ServerVersion
 

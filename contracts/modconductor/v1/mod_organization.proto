@@ -1,0 +1,60 @@
+syntax = "proto3";
+package modconductor.v1;
+option csharp_namespace = "ModConductor.Protocol.V1";
+
+import "modconductor/v1/mod_library.proto";
+import "modconductor/v1/profile_mods.proto";
+
+service ModOrganizationOperations {
+  rpc ReadCategories(ReadCategoriesRequest) returns (CategoriesReply);
+  rpc EditCategory(EditCategoryRequest) returns (OrganizationChangeReply);
+  rpc QueryMods(QueryModsRequest) returns (ModQueryReply);
+}
+message ModCategory {
+  string category_id = 1; string workspace_id = 2; optional string parent_id = 3;
+  string label = 4; bool missing = 5; uint32 assigned_count = 6; bool has_children = 7;
+}
+message ReadCategoriesRequest {
+  string workspace_id = 1; optional string parent_id = 2; optional string after_id = 3;
+  optional uint64 expected_revision = 4;
+}
+message CategoriesPage {
+  uint64 revision = 1; repeated ModCategory entries = 2;
+  repeated ModCategory ancestors = 3; optional string next_id = 4;
+}
+message CategoriesReply { oneof outcome { CategoriesPage page = 1; ModLibraryFault fault = 2; } }
+message CategoryDefinition { string category_id = 1; optional string parent_id = 2; string label = 3; }
+message EditCategoryRequest {
+  string workspace_id = 1; uint64 expected_revision = 2;
+  oneof edit { CategoryDefinition create = 3; CategoryDefinition update = 4; string delete_id = 5; }
+}
+message OrganizationRevision { uint64 revision = 1; }
+message OrganizationChangeReply { oneof outcome { OrganizationRevision changed = 1; ModLibraryFault fault = 2; } }
+enum ModFilterMode { MOD_FILTER_MODE_UNSPECIFIED = 0; MOD_FILTER_MODE_ALL = 1; MOD_FILTER_MODE_ANY = 2; }
+enum ModQueryView { MOD_QUERY_VIEW_UNSPECIFIED = 0; MOD_QUERY_VIEW_FLAT = 1; MOD_QUERY_VIEW_GROUPS = 2; }
+enum ModQuerySort { MOD_QUERY_SORT_UNSPECIFIED = 0; MOD_QUERY_SORT_PRIORITY = 1; MOD_QUERY_SORT_NAME = 2; }
+enum ModEnabledFilter { MOD_ENABLED_FILTER_UNSPECIFIED = 0; MOD_ENABLED_FILTER_YES = 1; MOD_ENABLED_FILTER_NO = 2; MOD_ENABLED_FILTER_NOT_APPLICABLE = 3; }
+message ModCategoryFilter { ModCategoryReference category = 1; bool descendants = 2; }
+message ModFilterPredicate {
+  oneof predicate {
+    ModCategoryFilter category = 1; InventoryModKind kind = 2; ModInventoryStatus status = 3;
+    ModEnabledFilter enabled = 4; bool uncategorized = 5; bool missing_category = 6;
+  }
+}
+message ModQueryDefinition {
+  string text = 1; ModFilterMode mode = 2; repeated ModFilterPredicate filters = 3;
+  ModQueryView view = 4; ModQuerySort sort = 5;
+}
+message ModQueryCursor {
+  uint64 catalogue_revision = 1; uint64 selection_revision = 2; string query_identity = 3; uint32 offset = 4;
+}
+message QueryModsRequest { string profile_id = 1; ModQueryDefinition query = 2; ModQueryCursor cursor = 3; optional string inspected_mod_id = 4; }
+message SeparatorGroupSize { uint32 matching = 1; uint32 total = 2; }
+message OrganizedModView { ProfileModView entry = 1; optional string group_id = 2; SeparatorGroupSize group_size = 3; }
+message ModQueryPage {
+  uint64 catalogue_revision = 1; uint64 selection_revision = 2; string query_identity = 3;
+  repeated OrganizedModView entries = 4; repeated OrganizedModView context = 5;
+  OrganizedModView inspected = 6; ModQueryCursor next = 7;
+  uint32 matching_mods = 8; uint32 matching_separators = 9; uint32 total_mods = 10; uint32 enabled_count = 11; uint32 matching_groups = 12;
+}
+message ModQueryReply { oneof outcome { ModQueryPage page = 1; ModLibraryFault fault = 2; } }

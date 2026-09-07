@@ -4,6 +4,9 @@ import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 
 import 'package:file_selector/file_selector.dart';
 
+import 'category_picker.dart';
+import 'category_controller.dart';
+
 typedef ModDirectoryChooser = Future<String?> Function(String? initial);
 Future<String?> chooseModDirectory(String? initial) => getDirectoryPath(
   initialDirectory: initial,
@@ -16,10 +19,14 @@ class ModDialog extends StatefulWidget {
   const ModDialog({
     super.key,
     this.original,
+    this.organization,
+    this.workspaceId,
     required this.initialPath,
     required this.chooseDirectory,
   });
   final ModMetadata? original;
+  final ModOrganizationClient? organization;
+  final String? workspaceId;
   final String initialPath;
   final ModDirectoryChooser chooseDirectory;
   @override
@@ -33,6 +40,9 @@ class _ModDialogState extends State<ModDialog> {
     text: widget.original?.version ?? '',
   );
   late final _notes = TextEditingController(text: widget.original?.notes ?? '');
+  late List<CategoryReference> _categories = List.of(
+    widget.original?.categories ?? const [],
+  );
   String? _path, _problem;
   bool _choosing = false;
   @override
@@ -56,7 +66,7 @@ class _ModDialogState extends State<ModDialog> {
         notes: _notes.text,
         comment: widget.original?.comment ?? '',
         source: widget.original?.source ?? '',
-        category: widget.original?.category ?? '',
+        categories: List.unmodifiable(_categories),
       ),
       path: _path,
     ));
@@ -100,6 +110,40 @@ class _ModDialogState extends State<ModDialog> {
           maxLines: 4,
           decoration: const InputDecoration(labelText: 'Notes'),
         ),
+        if (widget.organization != null && widget.workspaceId != null) ...[
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  _categories.isEmpty
+                      ? 'No categories'
+                      : _categories
+                            .map(
+                              (value) =>
+                                  '${categoryLabel(value.label)}${value.missing ? ' (missing)' : ''}',
+                            )
+                            .join(', '),
+                ),
+              ),
+              TextButton(
+                onPressed: () async {
+                  final values = await chooseCategories(
+                    context,
+                    widget.organization!,
+                    widget.workspaceId!,
+                    title: 'Categories for ${_name.text}',
+                    initial: _categories,
+                  );
+                  if (mounted && values != null) {
+                    setState(() => _categories = values);
+                  }
+                },
+                child: const Text('Categories'),
+              ),
+            ],
+          ),
+        ],
         if (widget.original == null) ...[
           const SizedBox(height: 16),
           const Text('Choose a mod folder inside this workspace.'),

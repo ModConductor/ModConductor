@@ -10,6 +10,7 @@ import 'operations_client.dart';
 import 'workspaces_client.dart';
 import 'mod_library_client.dart';
 import 'profile_mod_client.dart';
+import 'mod_organization_client.dart';
 
 class EngineSession {
   EngineSession(this._process) : _errors = _process.stderr.listen((_) {});
@@ -19,6 +20,8 @@ class EngineSession {
   ClientChannel? _channel;
   OperationsClient? _operations;
   OperationsClient get operations => _operations!;
+  ModOrganizationClient? _modOrganization;
+  ModOrganizationClient get modOrganization => _modOrganization!;
   ProfileModsClient? _profileMods;
   ProfileModsClient get profileMods => _profileMods!;
   ModLibraryClient? _modLibrary;
@@ -65,6 +68,7 @@ class EngineSession {
     _workspaces = GrpcWorkspacesClient(channel, options);
     _modLibrary = ModLibraryClient(channel, options);
     _profileMods = ProfileModsClient(channel, options);
+    _modOrganization = ModOrganizationClient(channel, options);
   }
 
   Future<ConnectionReport> check() => operations.check();

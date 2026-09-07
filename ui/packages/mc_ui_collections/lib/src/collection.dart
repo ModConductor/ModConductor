@@ -25,14 +25,24 @@ class McCollection<I extends Object, T extends Object> extends StatefulWidget {
     super.key,
     required this.model,
     required this.title,
+    this.showTitle = true,
     required this.columns,
     required this.filterLabel,
     required this.countLabel,
     this.empty = 'No items.',
+    this.emptyContent,
     this.actions = const [],
     this.onSelect,
     this.onActivate,
     this.semanticLabel,
+    this.nodeIcon,
+    this.nodeLabel,
+    this.showTree,
+    this.filterText,
+    this.filterEnabled = true,
+    this.onFilterChanged,
+    this.filterActions = const [],
+    this.onSort,
     this.focusNode,
     this.scrollController,
     this.loading = false,
@@ -49,16 +59,24 @@ class McCollection<I extends Object, T extends Object> extends StatefulWidget {
   });
   final McCollectionModel<I, T> model;
   final String title, filterLabel, countLabel, empty;
+  final bool showTitle;
   final List<McColumn<T>> columns;
   final List<Widget> actions;
   final ValueChanged<T>? onSelect, onActivate;
   final String Function(T)? semanticLabel;
+  final Widget Function(T)? nodeIcon;
+  final String Function(T)? nodeLabel;
+  final bool? showTree;
+  final String? filterText;
+  final bool filterEnabled;
+  final ValueChanged<String>? onFilterChanged, onSort;
+  final List<Widget> filterActions;
   final FocusNode? focusNode;
   final ScrollController? scrollController;
   final bool loading;
   final String? problem;
   final VoidCallback? onLoad, onCancel, onRefresh;
-  final Widget? footer, toolbar;
+  final Widget? footer, toolbar, emptyContent;
   final bool multiSelect, selectMultiple;
   final VoidCallback? onMoveUp, onMoveDown;
   @override
@@ -77,13 +95,15 @@ class _McCollectionState<I extends Object, T extends Object>
   @override
   void initState() {
     super.initState();
-    _filter.text = model.query;
+    _filter.text = widget.filterText ?? model.query;
   }
 
   @override
   void didUpdateWidget(McCollection<I, T> oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (_filter.text != model.query) _filter.text = model.query;
+    if (_filter.text != (widget.filterText ?? model.query)) {
+      _filter.text = widget.filterText ?? model.query;
+    }
   }
 
   @override
@@ -235,35 +255,51 @@ class _McCollectionState<I extends Object, T extends Object>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            if (widget.showTitle || widget.actions.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+                child: Row(
+                  children: [
+                    if (widget.showTitle)
+                      Expanded(
+                        child: Tooltip(
+                          message: widget.title,
+                          child: Text(
+                            widget.title,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                        ),
+                      ),
+                    if (!widget.showTitle) const Spacer(),
+                    const SizedBox(width: 12),
+                    ...widget.actions,
+                  ],
+                ),
+              ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+              padding: EdgeInsets.fromLTRB(
+                12,
+                widget.showTitle || widget.actions.isNotEmpty ? 0 : 12,
+                12,
+                12,
+              ),
               child: Row(
                 children: [
                   Expanded(
-                    child: Tooltip(
-                      message: widget.title,
-                      child: Text(
-                        widget.title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.titleMedium,
+                    child: TextField(
+                      controller: _filter,
+                      enabled: widget.filterEnabled,
+                      onChanged: widget.onFilterChanged ?? model.filter,
+                      decoration: InputDecoration(
+                        labelText: widget.filterLabel,
+                        prefixIcon: const Icon(Icons.search, size: 20),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  ...widget.actions,
+                  ...widget.filterActions,
                 ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-              child: TextField(
-                controller: _filter,
-                onChanged: model.filter,
-                decoration: InputDecoration(
-                  labelText: widget.filterLabel,
-                  prefixIcon: const Icon(Icons.search, size: 20),
-                ),
               ),
             ),
             if (widget.toolbar != null)
@@ -294,6 +330,10 @@ class _McCollectionState<I extends Object, T extends Object>
                               alignment: Alignment.centerLeft,
                               child: TextButton(
                                 onPressed: () {
+                                  if (widget.onSort != null) {
+                                    widget.onSort!(column.label);
+                                    return;
+                                  }
                                   final descending =
                                       model.sortLabel == column.label &&
                                       !model.descending;
@@ -329,11 +369,13 @@ class _McCollectionState<I extends Object, T extends Object>
                       ? Center(
                           child: Padding(
                             padding: const EdgeInsets.all(24),
-                            child: Text(
-                              model.query.isNotEmpty
-                                  ? 'No matches in loaded items.'
-                                  : widget.empty,
-                            ),
+                            child:
+                                widget.emptyContent ??
+                                Text(
+                                  model.query.isNotEmpty
+                                      ? 'No matches in loaded items.'
+                                      : widget.empty,
+                                ),
                           ),
                         )
                       : Scrollbar(
@@ -403,7 +445,8 @@ class _McCollectionState<I extends Object, T extends Object>
                                       ),
                                       child: Row(
                                         children: [
-                                          if (model.parentOf != null) ...[
+                                          if (widget.showTree ??
+                                              (model.parentOf != null)) ...[
                                             SizedBox(
                                               width: (model.depth(id) * 18.0)
                                                   .clamp(0, 108),
@@ -411,25 +454,22 @@ class _McCollectionState<I extends Object, T extends Object>
                                             SizedBox(
                                               width: 32,
                                               child: branch
-                                                  ? McIconAction(
-                                                      padding: EdgeInsets.zero,
-                                                      label:
-                                                          '${model.expanded(id) ? 'Collapse' : 'Expand'} ${model.labelOf(row)}',
-                                                      onPressed: () =>
-                                                          model.toggle(id),
-                                                      icon: Icon(
-                                                        model.expanded(id)
-                                                            ? Icons
-                                                                  .keyboard_arrow_down
-                                                            : Icons
-                                                                  .chevron_right,
-                                                        size: 20,
-                                                      ),
+                                                  ? McCollectionExpander(
+                                                      model: model,
+                                                      id: id,
+                                                      label: widget.nodeLabel
+                                                          ?.call(row),
                                                     )
-                                                  : const Icon(
-                                                      Icons
-                                                          .insert_drive_file_outlined,
-                                                      size: 19,
+                                                  : ExcludeSemantics(
+                                                      child:
+                                                          widget.nodeIcon?.call(
+                                                            row,
+                                                          ) ??
+                                                          const Icon(
+                                                            Icons
+                                                                .insert_drive_file_outlined,
+                                                            size: 19,
+                                                          ),
                                                     ),
                                             ),
                                           ],
@@ -527,5 +567,29 @@ class McCollectionName extends StatelessWidget {
         ),
       ),
     ],
+  );
+}
+
+class McCollectionExpander<I extends Object, T extends Object>
+    extends StatelessWidget {
+  const McCollectionExpander({
+    super.key,
+    required this.model,
+    required this.id,
+    this.label,
+  });
+  final McCollectionModel<I, T> model;
+  final I id;
+  final String? label;
+  @override
+  Widget build(BuildContext context) => McIconAction(
+    padding: EdgeInsets.zero,
+    label:
+        '${model.expanded(id) ? 'Collapse' : 'Expand'} ${label ?? model.labelOf(model[id]!)}',
+    onPressed: () => model.toggle(id),
+    icon: Icon(
+      model.expanded(id) ? Icons.keyboard_arrow_down : Icons.chevron_right,
+      size: 20,
+    ),
   );
 }

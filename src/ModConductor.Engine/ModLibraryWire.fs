@@ -40,6 +40,18 @@ module internal ModLibraryWire =
         result.Components.AddRange(LogicalPath.components value)
         result
 
+    let categoryReference (value: ModCategoryReference) : CategoryReference =
+        { Id = id value.CategoryId
+          Label = value.Label
+          Missing = value.Missing }
+
+    let category (value: CategoryReference) =
+        ModCategoryReference(
+            CategoryId = value.Id.ToString("N"),
+            Label = value.Label,
+            Missing = value.Missing
+        )
+
     let metadata (value: InventoryModMetadata) : ModMetadata =
         if isNull value then
             reject "Enter mod details."
@@ -49,7 +61,7 @@ module internal ModLibraryWire =
           Comment = value.Comment
           Version = value.Version
           Source = value.Source
-          Category = value.Category }
+          Categories = value.Categories |> Seq.map categoryReference |> Seq.toList }
 
     let kind =
         function
@@ -71,8 +83,7 @@ module internal ModLibraryWire =
                         Notes = value.Metadata.Notes,
                         Comment = value.Metadata.Comment,
                         Version = value.Metadata.Version,
-                        Source = value.Metadata.Source,
-                        Category = value.Metadata.Category
+                        Source = value.Metadata.Source
                     ),
                 Revision = uint64 value.Revision,
                 Status =
@@ -83,6 +94,8 @@ module internal ModLibraryWire =
                     | InventoryStatus.Unproved -> ModInventoryStatus.Unproved
                     | InventoryStatus.Publishing -> ModInventoryStatus.Publishing
             )
+
+        result.Metadata.Categories.AddRange(value.Metadata.Categories |> Seq.map category)
 
         value.SourcePath |> Option.iter (fun path -> result.SourcePath <- logical path)
 

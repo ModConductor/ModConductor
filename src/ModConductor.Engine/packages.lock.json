@@ -70,6 +70,13 @@
           "ModConductor.Platform": "[1.0.0, )"
         }
       },
+      "modconductor.modorganization": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )",
+          "ModConductor.ModSelection": "[1.0.0, )"
+        }
+      },
       "modconductor.modselection": {
         "type": "Project",
         "dependencies": {
@@ -89,6 +96,7 @@
           "FSharp.Core": "[10.1.400, )",
           "Microsoft.Data.Sqlite.Core": "[10.0.11, )",
           "ModConductor.ModLibrary": "[1.0.0, )",
+          "ModConductor.ModOrganization": "[1.0.0, )",
           "ModConductor.ModSelection": "[1.0.0, )",
           "ModConductor.Operations": "[1.0.0, )",
           "ModConductor.Platform": "[1.0.0, )",
