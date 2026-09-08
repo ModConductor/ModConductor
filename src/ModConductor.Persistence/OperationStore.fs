@@ -15,6 +15,9 @@ type OperationStore(directory: string) =
     let filePlans =
         ModConductor.FilePlanning.FilePlanSession(FilePlanRepository(database, modLibrary.Access))
 
+    let deployment =
+        ModConductor.DeploymentRecovery.Recovery(DeploymentRepository(database))
+
     let connection = database.Connection
 
     let state transaction =
@@ -219,11 +222,14 @@ type OperationStore(directory: string) =
 
                 transaction.Commit())
 
+    member internal _.Deployment = deployment
+
     interface IDisposable with
         member _.Dispose() =
             if
                 not (
-                    filePlans.TryClose()
+                    deployment.TryClose()
+                    && filePlans.TryClose()
                     && gameContexts.TryClose()
                     && modLibrary.TryClose(fun () -> workspaces.TryClose(workspaceRoots.TryClose))
                 )

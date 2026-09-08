@@ -8,6 +8,7 @@
     <Compile Include="Capabilities.fs" />
     <Compile Include="RelativeFile.fs" />
     <Compile Include="RootIdentityFile.fs" />
+    <Compile Include="HeldEntries.fs" />
     <Compile Include="HeldDirectory.fs" />
     <PackageReference Include="FSharp.Core" />
   </ItemGroup>

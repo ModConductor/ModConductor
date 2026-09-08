@@ -7,6 +7,7 @@
     <Compile Include="LibrarySchema.fs" />
     <Compile Include="SelectionSchema.fs" />
     <Compile Include="OrganizationSchema.fs" />
+    <Compile Include="DeploymentSchema.fs" />
     <Compile Include="Sqlite.fs" />
     <Compile Include="LibraryEncoding.fs" />
     <Compile Include="CategoryRows.fs" />
@@ -17,6 +18,9 @@
     <Compile Include="SelectionRows.fs" />
     <Compile Include="WorkspaceProfiles.fs" />
     <Compile Include="StateDatabase.fs" />
+    <Compile Include="DeploymentValueEncoding.fs"/><Compile Include="DeploymentGenerationEncoding.fs"/><Compile Include="DeploymentEncoding.fs" />
+    <Compile Include="DeploymentRows.fs" />
+    <Compile Include="DeploymentRepository.fs" />
     <Compile Include="OwnedWorkspaceRootStore.fs" />
     <Compile Include="WorkspaceStateStore.fs" />
     <Compile Include="LibraryAccess.fs" />
@@ -36,6 +40,7 @@
     <Compile Include="FilePlanRows.fs" />
     <Compile Include="FilePlanRepository.fs" />
     <Compile Include="OperationStore.fs" />
+    <ProjectReference Include="../ModConductor.DeploymentRecovery/ModConductor.DeploymentRecovery.fsproj" />
     <ProjectReference Include="../ModConductor.FilePlanning/ModConductor.FilePlanning.fsproj" />
     <ProjectReference Include="../ModConductor.ProtonContexts/ModConductor.ProtonContexts.fsproj" />
     <ProjectReference Include="../ModConductor.GameContexts/ModConductor.GameContexts.fsproj" />

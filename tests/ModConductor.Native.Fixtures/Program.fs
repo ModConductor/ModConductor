@@ -11,6 +11,23 @@ let main args =
     try
         if
             args.Length = 2
+            && args[0] = "--deployment-recovery"
+            && Path.IsPathFullyQualified args[1]
+        then
+            DeploymentFixtures.run args[1]
+            0
+        elif
+            args.Length = 2
+            && args[0] = "--migrate-state"
+            && Path.IsPathFullyQualified args[1]
+        then
+            DeploymentFixtures.migrate args[1]
+            0
+        elif args.Length = 5 && args[0] = "--deployment-worker" then
+            DeploymentFixtures.worker args[1] args[2] args[3] args[4]
+            0
+        elif
+            args.Length = 2
             && args[0] = "--proton-files"
             && Path.IsPathFullyQualified args[1]
         then

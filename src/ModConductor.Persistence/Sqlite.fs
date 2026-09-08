@@ -71,7 +71,8 @@ module internal Sqlite =
         | 6L
         | 7L
         | 8L
-        | 9L -> ()
+        | 9L
+        | 10L -> ()
         | _ -> raise (InvalidOperationException("The state database uses an unsupported version."))
 
         if number connection transaction "PRAGMA user_version" [] = 3L then
@@ -110,6 +111,9 @@ module internal Sqlite =
                 PRAGMA user_version=9;
                 """
                 []
+
+        if number connection transaction "PRAGMA user_version" [] = 9L then
+            execute connection transaction DeploymentSchema.sql []
 
         beforeCommit ()
         transaction.Commit()

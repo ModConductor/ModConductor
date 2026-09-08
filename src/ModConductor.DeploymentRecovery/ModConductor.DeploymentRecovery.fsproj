@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><IsAotCompatible>true</IsAotCompatible></PropertyGroup>
+  <ItemGroup>
+    <Compile Include="AssemblyInfo.fs" />
+    <Compile Include="Contracts.fs" />
+    <Compile Include="Files.fs" />
+    <Compile Include="Preparation.fs" />
+    <Compile Include="RecoverySteps.fs"/><Compile Include="Recovery.fs" />
+    <ProjectReference Include="../ModConductor.DeploymentPlanning/ModConductor.DeploymentPlanning.fsproj" />
+    <ProjectReference Include="../ModConductor.Platform/ModConductor.Platform.fsproj" />
+    <PackageReference Include="FSharp.Core" />
+  </ItemGroup>
+</Project>

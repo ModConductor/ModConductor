@@ -148,6 +148,17 @@ type HeldDirectory private (handle: SafeFileHandle) =
     member _.Identity = identity EntryKind.Directory handle
     member _.Names = DirectoryNames.enumerate handle
     member _.ReadLink(name) = DirectoryLinks.read handle name
+    member internal _.Handle = handle
+    member _.InspectEntry(name) = HeldEntries.inspect handle name
+
+    member _.CreateLink(name, target, directory) =
+        HeldEntries.createLink handle name target directory
+
+    member _.RemoveLink(name, expected) =
+        HeldEntries.removeLink handle name expected
+
+    member _.MoveOriginal(name, expected, destination: HeldDirectory, target) =
+        HeldEntries.moveOriginal handle name destination.Handle target expected
 
     member _.Directory(name, expected: FileIdentity option) =
         let child = RelativeFile.openChild handle name true false

@@ -29,6 +29,12 @@ type internal StateDatabase(directory: string) =
         Sqlite.execute
             connection
             null
+            "UPDATE deployment_receipts SET abandoned=1,busy=0 WHERE owner=$owner AND phase NOT IN (2,3)"
+            [ "$owner", box owner ]
+
+        Sqlite.execute
+            connection
+            null
             "UPDATE root_creation_receipts SET abandoned=1,busy=0 WHERE owner=$owner AND phase<>3"
             [ "$owner", box owner ]
 
