@@ -175,9 +175,11 @@ module internal RecoveryParents =
                             (RecoveryFiles.binding receipt.Context change.Target).Directory
                             change.Target.Path
                             (fun parent name ->
-                                use child = parent.Directory(name, Some actual.Identity)
+                                let empty =
+                                    use child = parent.Directory(name, Some actual.Identity)
+                                    Seq.isEmpty child.Names
 
-                                if not (Seq.isEmpty child.Names) then
+                                if not empty then
                                     RecoveryFiles.fail
                                         "An owned parent is not empty; its contents were left untouched."
 
