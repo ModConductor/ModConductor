@@ -10,7 +10,14 @@ import 'mod_dialog.dart';
 import 'category_manager.dart';
 import 'filter_dialog.dart';
 
-enum _Pane { mods, files }
+enum _Pane { mods, files, extraFiles }
+
+typedef ModFilePaneBuilder = Widget Function(
+  BuildContext context,
+  Widget savedFiles,
+  bool extra,
+  bool narrow,
+);
 
 enum _OrganizationAction { group, flat, categories }
 
@@ -20,10 +27,18 @@ class ModLibraryBrowser extends StatefulWidget {
     required this.controller,
     required this.workspacePath,
     this.chooseDirectory = chooseModDirectory,
+    this.filePaneBuilder,
+    this.singlePane,
+    this.extraFilePaneLabel,
+    this.savedFileActions = const [],
   });
   final ModLibraryController controller;
   final String workspacePath;
   final ModDirectoryChooser chooseDirectory;
+  final ModFilePaneBuilder? filePaneBuilder;
+  final bool? singlePane;
+  final String? extraFilePaneLabel;
+  final List<Widget> savedFileActions;
   @override
   State<ModLibraryBrowser> createState() => _ModLibraryBrowserState();
 }
@@ -75,7 +90,7 @@ class _ModLibraryBrowserState extends State<ModLibraryBrowser> {
     listenable: controller,
     builder: (context, _) => LayoutBuilder(
       builder: (context, constraints) {
-        final narrow = constraints.maxWidth < 1050;
+        final narrow = widget.singlePane ?? constraints.maxWidth < 1050;
         final chosen = controller.selected;
         final inventory = controller.inventory;
         final versionColumn = constraints.maxWidth >= 1050;
@@ -383,6 +398,8 @@ class _ModLibraryBrowserState extends State<ModLibraryBrowser> {
           focusNode: _filesFocus,
           scrollController: _filesScroll,
           title: chosen?.metadata.name ?? 'Saved files',
+          showTitle: !narrow || widget.extraFilePaneLabel == null,
+          filterActions: widget.savedFileActions,
           filterLabel: controller.filesComplete || version == null
               ? 'Filter files'
               : 'Filter loaded files',
@@ -447,25 +464,41 @@ class _ModLibraryBrowserState extends State<ModLibraryBrowser> {
             ),
           ],
         );
+        final extended =
+            widget.extraFilePaneLabel != null && widget.filePaneBuilder != null;
+        final extra = _pane == _Pane.extraFiles && extended;
+        Widget filesPanel() =>
+            widget.filePaneBuilder?.call(context, treePanel, extra, narrow) ??
+            treePanel;
         return Column(
           children: [
             if (narrow) ...[
               SizedBox(
                 width: double.infinity,
                 child: SegmentedButton<_Pane>(
-                  segments: const [
-                    ButtonSegment(
+                  segments: [
+                    const ButtonSegment(
                       value: _Pane.mods,
                       label: Text('Installed mods'),
                       icon: Icon(Icons.layers_outlined),
                     ),
-                    ButtonSegment(
+                    const ButtonSegment(
                       value: _Pane.files,
                       label: Text('Saved files'),
                       icon: Icon(Icons.account_tree_outlined),
                     ),
+                    if (extended)
+                      ButtonSegment(
+                        value: _Pane.extraFiles,
+                        label: Text(widget.extraFilePaneLabel!),
+                        icon: const Icon(Icons.folder_open),
+                      ),
                   ],
-                  selected: {_pane},
+                  selected: {
+                    extra
+                        ? _Pane.extraFiles
+                        : (_pane == _Pane.mods ? _Pane.mods : _Pane.files),
+                  },
                   onSelectionChanged: (value) =>
                       setState(() => _pane = value.single),
                 ),
@@ -475,15 +508,15 @@ class _ModLibraryBrowserState extends State<ModLibraryBrowser> {
             Expanded(
               child: narrow
                   ? IndexedStack(
-                      index: _pane.index,
+                      index: _pane == _Pane.mods ? 0 : 1,
                       children: [
                         ExcludeFocus(
                           excluding: _pane != _Pane.mods,
                           child: modPanel,
                         ),
                         ExcludeFocus(
-                          excluding: _pane != _Pane.files,
-                          child: treePanel,
+                          excluding: _pane == _Pane.mods,
+                          child: filesPanel(),
                         ),
                       ],
                     )
@@ -492,7 +525,40 @@ class _ModLibraryBrowserState extends State<ModLibraryBrowser> {
                       children: [
                         Expanded(flex: 11, child: modPanel),
                         const SizedBox(width: 16),
-                        Expanded(flex: 10, child: treePanel),
+                        Expanded(
+                          flex: 10,
+                          child: Column(
+                            children: [
+                              if (extended) ...[
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: SegmentedButton<bool>(
+                                    segments: [
+                                      const ButtonSegment(
+                                        value: false,
+                                        label: Text('Saved mod files'),
+                                        icon: Icon(Icons.inventory_2_outlined),
+                                      ),
+                                      ButtonSegment(
+                                        value: true,
+                                        label: Text(widget.extraFilePaneLabel!),
+                                        icon: const Icon(Icons.folder_open),
+                                      ),
+                                    ],
+                                    selected: {extra},
+                                    onSelectionChanged: (value) => setState(
+                                      () => _pane = value.single
+                                          ? _Pane.extraFiles
+                                          : _Pane.files,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                              ],
+                              Expanded(child: filesPanel()),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
             ),

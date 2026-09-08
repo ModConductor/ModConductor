@@ -39,6 +39,7 @@ let main args =
             SelectionFixtures.worker args[1] args[2] args[3] args[4]
             0
         else
+            let filePlansOnly = args.Length = 2 && args[0] = "--file-plans"
             let protonOnly = args.Length = 2 && args[0] = "--proton-contexts"
             let steamOnly = args.Length = 2 && args[0] = "--steam-discovery"
             let contextsOnly = args.Length = 2 && args[0] = "--game-contexts"
@@ -48,6 +49,7 @@ let main args =
 
             let primary, secondary =
                 match args with
+                | [| "--file-plans"; primary |]
                 | [| "--proton-contexts"; primary |]
                 | [| "--steam-discovery"; primary |]
                 | [| "--game-contexts"; primary |]
@@ -75,7 +77,8 @@ let main args =
             )
 
             if
-                not selectionOnly
+                not filePlansOnly
+                && not selectionOnly
                 && not organizationOnly
                 && not plannerOnly
                 && not contextsOnly
@@ -90,7 +93,8 @@ let main args =
                 LibraryIdentityFixtures.observe writer primary
 
             if
-                not organizationOnly
+                not filePlansOnly
+                && not organizationOnly
                 && not plannerOnly
                 && not contextsOnly
                 && not steamOnly
@@ -99,7 +103,8 @@ let main args =
                 SelectionFixtures.observe writer primary
 
             if
-                not selectionOnly
+                not filePlansOnly
+                && not selectionOnly
                 && not plannerOnly
                 && not contextsOnly
                 && not steamOnly
@@ -109,13 +114,19 @@ let main args =
                 OrganizationMigration.observe writer primary
 
             if
-                not selectionOnly
+                not filePlansOnly
+                && not selectionOnly
                 && not organizationOnly
                 && not contextsOnly
                 && not steamOnly
                 && not protonOnly
             then
                 PlanningFixtures.observe writer
+
+            if filePlansOnly then
+                FileVisibilityFixtures.observe writer
+                ConcurrentRootFixtures.observe writer primary
+                FilePlanningFixtures.observe writer primary
 
             if protonOnly then
                 ProtonFixtures.observe writer primary

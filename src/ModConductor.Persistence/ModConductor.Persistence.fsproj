@@ -33,7 +33,10 @@
     <Compile Include="ProtonEncoding.fs" />
     <Compile Include="GameContextEncoding.fs" />
     <Compile Include="GameContextStore.fs" />
+    <Compile Include="FilePlanRows.fs" />
+    <Compile Include="FilePlanRepository.fs" />
     <Compile Include="OperationStore.fs" />
+    <ProjectReference Include="../ModConductor.FilePlanning/ModConductor.FilePlanning.fsproj" />
     <ProjectReference Include="../ModConductor.ProtonContexts/ModConductor.ProtonContexts.fsproj" />
     <ProjectReference Include="../ModConductor.GameContexts/ModConductor.GameContexts.fsproj" />
     <ProjectReference Include="../ModConductor.ModLibrary/ModConductor.ModLibrary.fsproj" />

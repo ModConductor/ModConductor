@@ -59,6 +59,22 @@
           "SQLitePCLRaw.core": "3.0.5"
         }
       },
+      "modconductor.deploymentplanning": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )",
+          "ModConductor.ModLibrary": "[1.0.0, )",
+          "ModConductor.Platform": "[1.0.0, )"
+        }
+      },
+      "modconductor.fileplanning": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )",
+          "ModConductor.DeploymentPlanning": "[1.0.0, )",
+          "ModConductor.GameContexts": "[1.0.0, )"
+        }
+      },
       "modconductor.gamecontexts": {
         "type": "Project",
         "dependencies": {

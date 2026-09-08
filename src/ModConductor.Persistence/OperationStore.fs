@@ -11,6 +11,10 @@ type OperationStore(directory: string) =
     let organization = ModOrganizationStore(database, modLibrary.Access)
     let selection = ModSelectionStore(database, modLibrary.Access)
     let gameContexts = GameContextStore(database, workspaceRoots)
+
+    let filePlans =
+        ModConductor.FilePlanning.FilePlanSession(FilePlanRepository(database, modLibrary.Access))
+
     let connection = database.Connection
 
     let state transaction =
@@ -92,6 +96,7 @@ type OperationStore(directory: string) =
     member _.ModOrganization = organization
 
     member _.GameContexts = gameContexts
+    member _.FilePlans = filePlans
 
     member _.SqliteVersion = connection.ServerVersion
 
@@ -218,7 +223,8 @@ type OperationStore(directory: string) =
         member _.Dispose() =
             if
                 not (
-                    gameContexts.TryClose()
+                    filePlans.TryClose()
+                    && gameContexts.TryClose()
                     && modLibrary.TryClose(fun () -> workspaces.TryClose(workspaceRoots.TryClose))
                 )
             then

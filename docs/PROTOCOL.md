@@ -17,6 +17,7 @@ instruction. Preserve field identities and reserve removed fields.
 | `game_contexts.proto` | Workspace installation selection and checked evidence |
 | `steam_discovery.proto` | Read-only Steam installation search and per-origin observations |
 | `proton_contexts.proto` | Existing prefix/runtime choices, mapping observations and Windows user paths |
+| `file_plans.proto` | Observed Data files, planned sources, exact-copy visibility and history |
 
 After locked restores, run `python3 tools/generate-protocol.py`. Use `--check` to
 compare both generated boundaries without changing source. The tool compiles all
@@ -84,3 +85,10 @@ and cancels app exit rather than killing an authenticated engine.
 
 See [Architecture](ARCHITECTURE.md) for revision and recovery semantics and
 [Build instructions](BUILDING.md) for native checks.
+
+File acquisition streams coalesced progress and one final result. Stream
+cancellation stops the read; it does not publish a partial observation. File pages
+carry an opaque query cursor and a snapshot ID. Visibility-only changes return a
+new snapshot while preserving path-query continuation when membership and order
+are unchanged. Other input changes invalidate continuation. An inspected saved
+copy can be returned as separate focused context outside the sources page.

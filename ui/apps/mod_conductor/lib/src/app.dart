@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:mc_game_contexts/mc_game_contexts.dart';
+import 'package:mc_file_plans/mc_file_plans.dart';
 import 'package:mc_client/mc_client.dart';
 import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 import 'package:mc_mod_library/mc_mod_library.dart';
@@ -53,6 +54,7 @@ class ModConductorApp extends StatefulWidget {
     this.profileMods,
     this.modOrganization,
     this.gameContexts,
+    this.filePlans,
     this.steamDiscovery,
     this.protonContexts,
     this.chooseGameDirectory = _chooseGameDirectory,
@@ -64,6 +66,7 @@ class ModConductorApp extends StatefulWidget {
   final ProfileModsClient? profileMods;
   final ModOrganizationClient? modOrganization;
   final GameContextsClient? gameContexts;
+  final FilePlansClient? filePlans;
   final SteamDiscoveryClient? steamDiscovery;
   final ProtonContextsClient? protonContexts;
   final GameDirectoryChooser chooseGameDirectory;
@@ -85,8 +88,23 @@ class _ModConductorAppState extends State<ModConductorApp> {
   final _workspaces = WorkspaceController();
   final _mods = ModLibraryController();
   final _game = GameContextController();
+  final _files = FilePlansController();
+  int? _contextRevision;
+  void _gameChanged() {
+    final revision = _game.state?.revision;
+    if (_contextRevision != null && revision != _contextRevision) {
+      _files.invalidate();
+    }
+    _contextRevision = revision;
+    if (mounted) setState(() {});
+  }
 
   void _syncWorkspaceConsumers() {
+    _files.attach(
+      widget.filePlans,
+      _workspaces.workspace?.selectedProfile?.id,
+      available: _workspaces.canEdit,
+    );
     _game.attach(
       widget.gameContexts,
       workspaceId: _workspaces.workspace?.id,
@@ -105,6 +123,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
   @override
   void initState() {
     super.initState();
+    _game.addListener(_gameChanged);
     _workspaces.addListener(_syncWorkspaceConsumers);
     _workspaces.attach(widget.workspaces);
     _syncWorkspaceConsumers();
@@ -120,6 +139,8 @@ class _ModConductorAppState extends State<ModConductorApp> {
   @override
   void dispose() {
     _workspaces.removeListener(_syncWorkspaceConsumers);
+    _game.removeListener(_gameChanged);
+    _files.dispose();
     _mods.dispose();
     _game.dispose();
     _workspaces.dispose();
@@ -205,11 +226,27 @@ class _ModConductorAppState extends State<ModConductorApp> {
                           chooseDirectory: widget.chooseGameDirectory,
                         ),
                     modLibraryBuilder: (context, workspace) =>
-                        ModLibraryBrowser(
-                          controller: _mods,
-                          workspacePath: workspace.path,
-                          chooseDirectory: widget.chooseDirectory,
-                        ),
+                        widget.filePlans == null
+                        ? ModLibraryBrowser(
+                            controller: _mods,
+                            workspacePath: workspace.path,
+                            chooseDirectory: widget.chooseDirectory,
+                          )
+                        : FilePlanningWorkbench(
+                            mods: _mods,
+                            plans: _files,
+                            workspacePath: workspace.path,
+                            chooseDirectory: widget.chooseDirectory,
+                            profileName: workspace.selectedProfile?.name,
+                            archiveUnavailable:
+                                _game.state?.definition.unavailableCapabilities
+                                    .any(
+                                      (capability) =>
+                                          capability.name ==
+                                          'Archive inspection',
+                                    ) ??
+                                false,
+                          ),
                     chooseDirectory: widget.chooseDirectory,
                   ),
                 },

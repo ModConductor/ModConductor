@@ -70,7 +70,8 @@ module internal Sqlite =
         | 5L
         | 6L
         | 7L
-        | 8L -> ()
+        | 8L
+        | 9L -> ()
         | _ -> raise (InvalidOperationException("The state database uses an unsupported version."))
 
         if number connection transaction "PRAGMA user_version" [] = 3L then
@@ -95,6 +96,19 @@ module internal Sqlite =
                 connection
                 transaction
                 "ALTER TABLE game_contexts ADD COLUMN proton_selection TEXT; PRAGMA user_version=8;"
+                []
+
+        if number connection transaction "PRAGMA user_version" [] = 8L then
+            execute
+                connection
+                transaction
+                """
+                CREATE TABLE file_visibility_state(workspace_id TEXT PRIMARY KEY REFERENCES workspaces(id),revision INTEGER NOT NULL);
+                CREATE TABLE hidden_mod_files(workspace_id TEXT NOT NULL REFERENCES workspaces(id),mod_id TEXT NOT NULL REFERENCES mods(id),version_id TEXT NOT NULL REFERENCES mod_versions(id),path TEXT NOT NULL,hidden INTEGER NOT NULL CHECK(hidden IN (0,1)),PRIMARY KEY(workspace_id,mod_id,version_id,path));
+                CREATE TABLE file_visibility_changes(id INTEGER PRIMARY KEY,workspace_id TEXT NOT NULL REFERENCES workspaces(id),mod_id TEXT NOT NULL,version_id TEXT NOT NULL,path TEXT NOT NULL,hidden INTEGER NOT NULL,before_hidden INTEGER NOT NULL,profile_id TEXT NOT NULL,before_fingerprint TEXT NOT NULL,after_fingerprint TEXT NOT NULL,recorded_at TEXT NOT NULL);
+                CREATE INDEX file_visibility_history ON file_visibility_changes(workspace_id,mod_id,version_id,path,id);
+                PRAGMA user_version=9;
+                """
                 []
 
         beforeCommit ()

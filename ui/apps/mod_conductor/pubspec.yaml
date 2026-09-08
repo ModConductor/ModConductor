@@ -19,6 +19,8 @@ dependencies:
   mc_client:
     path: ../../packages/mc_client
 
+  mc_file_plans:
+    path: ../../packages/mc_file_plans
   mc_mod_library:
     path: ../../packages/mc_mod_library
   mc_workspaces:

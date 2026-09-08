@@ -86,9 +86,22 @@ See [Architecture](ARCHITECTURE.md) for state ownership and
 The workspace's Game mode retains the Profiles and Mods views. The installation
 form uses `McFormDialog`, the shared folder action, and inline errors. Save
 validates and commits without a separate Check step. Cancel closes an unsubmitted draft without changing the binding.
-The native game-folder picker does not offer directory creation.
+The app requests folder selection. The standard Windows picker can still expose
+file actions; it is not a read-only sandbox.
 
 `McFormDialog.canCancel` defaults to true. The installation form disables dismissal
 while Save is in progress, then restores it on failure. A stale form preserves
 its folder draft and shows the current saved path after Reload. Change restores
 focus when the dialog closes. Refresh checks the saved installation.
+
+## File views
+
+`mc_file_plans` composes the existing mod browser and pinned Saved files tree with
+the Skyrim Data view. `McInspector` supplies a dismissible, scrollable details area
+and fixed action footer. It is docked on wide layouts and used in a drawer on
+smaller layouts. The narrow browser uses one pane selector.
+
+The engine supplies winners, hidden states, allowed actions and paged tree rows.
+Filters match file paths; display choices do not change precedence. Hide and
+Unhide affect one saved copy across all workspace profiles. Cold Load and Refresh
+are cancellable. Previous observations remain visible after a failed check.

@@ -9,3 +9,5 @@ export 'src/game_context_client.dart';
 export 'src/steam_discovery_client.dart';
 
 export 'src/proton_context_client.dart';
+
+export 'src/file_plan_client.dart';

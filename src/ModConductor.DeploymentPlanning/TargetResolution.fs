@@ -5,6 +5,13 @@ open System.Collections.Generic
 open ModConductor.Platform
 
 module internal TargetResolution =
+    let reason (winner: Contribution) alternatives =
+        match alternatives with
+        | [] -> WinnerReason.OnlyContribution
+        | next :: _ when next.Precedence.Tier <> winner.Precedence.Tier ->
+            WinnerReason.HigherLayerTier
+        | _ -> WinnerReason.HigherPriority
+
     let resolve
         (roots: Dictionary<Guid, TargetPolicy>)
         contributions
@@ -111,18 +118,11 @@ module internal TargetResolution =
                 if not ambiguous then
                     let alternatives = List.tail ordered
 
-                    let reason =
-                        match alternatives with
-                        | [] -> WinnerReason.OnlyContribution
-                        | next :: _ when next.Precedence.Tier <> winner.Precedence.Tier ->
-                            WinnerReason.HigherLayerTier
-                        | _ -> WinnerReason.HigherPriority
-
                     resolved.Add
                         { Target = target
                           Winner = winner
                           Alternatives = alternatives
-                          Reason = reason }
+                          Reason = reason winner alternatives }
 
         resolved
         |> Seq.sortBy (fun value -> PlanningPaths.targetOrder value.Target)

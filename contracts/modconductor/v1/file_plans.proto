@@ -1,0 +1,62 @@
+syntax = "proto3";
+package modconductor.v1;
+option csharp_namespace = "ModConductor.Protocol.V1";
+import "modconductor/v1/mod_library.proto";
+
+service FilePlanOperations {
+  rpc OpenFilePlan(OpenFilePlanRequest) returns (FilePlanReply);
+  rpc AcquireFilePlan(AcquireFilePlanRequest) returns (stream FilePlanLoadEvent);
+  rpc ReadFilePlan(FilePlanRequest) returns (FilePlanReply);
+  rpc ReadFilePlanChildren(FilePlanChildrenRequest) returns (FilePlanPageReply);
+  rpc ReadFilePlanProblems(FilePlanProblemsRequest) returns (FilePlanProblemsReply);
+  rpc InspectFilePlanTarget(InspectFilePlanRequest) returns (FilePlanInspectionReply);
+  rpc InspectSavedFile(InspectSavedFileRequest) returns (FilePlanInspectionReply);
+  rpc ChangeFileVisibility(ChangeFileVisibilityRequest) returns (FileVisibilityReply);
+  rpc ReadFileVisibilityHistory(FileVisibilityHistoryRequest) returns (FileVisibilityHistoryReply);
+}
+message ManagedFileCopy { string mod_id = 1; string version_id = 2; ModLogicalPath path = 3; }
+message FilePlanCursor { string identity = 1; uint32 offset = 2; }
+message OpenFilePlanRequest { string profile_id = 1; }
+message AcquireFilePlanRequest { string profile_id = 1; bool refresh = 2; }
+message FilePlanRequest { string snapshot_id = 1; }
+message FilePlanChildrenRequest { string snapshot_id = 1; ModLogicalPath parent = 2; string filter = 3; FilePlanCursor cursor = 4; }
+message FilePlanProblemsRequest { string snapshot_id = 1; FilePlanCursor cursor = 2; }
+message InspectFilePlanRequest { string snapshot_id = 1; ModLogicalPath target = 2; FilePlanCursor cursor = 3; }
+message InspectSavedFileRequest { string snapshot_id = 1; ManagedFileCopy copy = 2; }
+message ChangeFileVisibilityRequest { string snapshot_id = 1; ManagedFileCopy copy = 2; bool hidden = 3; }
+message FileVisibilityHistoryRequest { string snapshot_id = 1; ManagedFileCopy copy = 2; optional uint64 before_id = 3; }
+message FilePlanState {
+  string snapshot_id = 1; string workspace_id = 2; string profile_id = 3; string fingerprint = 4;
+  bool loaded = 5; bool stale = 6; uint32 planned_files = 7; uint32 absent_targets = 8; uint32 inspected_files = 9;
+  repeated string problems = 10; uint32 problem_count = 11; optional int64 observed_at_unix_ms = 12;
+}
+enum PlannedFileDisposition { PLANNED_FILE_DISPOSITION_UNSPECIFIED = 0; PLANNED_FILE_DISPOSITION_PLANNED = 1; PLANNED_FILE_DISPOSITION_ABSENT = 2; PLANNED_FILE_DISPOSITION_UNRESOLVED = 3; }
+message PlannedFileNode { ModLogicalPath path = 1; bool directory = 2; PlannedFileDisposition disposition = 3; string source_name = 4; uint32 copies = 5; }
+message PlannedFilePage { FilePlanState state = 1; repeated PlannedFileNode nodes = 2; FilePlanCursor next = 3; }
+message InspectedFileCopy {
+  ManagedFileCopy copy = 1; ModLogicalPath source_path = 2; string name = 3; string version_label = 4; optional uint32 priority = 5;
+  bool enabled = 6; bool hidden = 7; bool winner = 8; bool historical = 9; uint64 length = 10; string sha256 = 11;
+  bool can_hide = 12; bool can_unhide = 13;
+}
+message PlannedFileInspection { FilePlanState state = 1; ModLogicalPath target = 2; repeated InspectedFileCopy copies = 3; FilePlanCursor next = 4; InspectedFileCopy focused_copy = 5; }
+message FileVisibilityChange { FilePlanState state = 1; PlannedFileNode changed = 2; }
+message FileVisibilityAudit {
+  uint64 id = 1; ManagedFileCopy copy = 2; bool hidden = 3; bool before_hidden = 4; string profile_id = 5;
+  string before_fingerprint = 6; string after_fingerprint = 7; int64 recorded_at_unix_ms = 8;
+}
+message FileVisibilityHistory { repeated FileVisibilityAudit changes = 1; optional uint64 next_before_id = 2; }
+message FilePlanProblems { repeated string problems = 1; FilePlanCursor next = 2; }
+enum FilePlanFaultCode {
+  FILE_PLAN_FAULT_UNSPECIFIED = 0; FILE_PLAN_FAULT_NOT_FOUND = 1; FILE_PLAN_FAULT_BUSY = 2; FILE_PLAN_FAULT_EXPIRED = 3;
+  FILE_PLAN_FAULT_STALE = 4; FILE_PLAN_FAULT_CONTEXT_UNAVAILABLE = 5; FILE_PLAN_FAULT_FILE_UNAVAILABLE = 6;
+  FILE_PLAN_FAULT_LIMIT_EXCEEDED = 7; FILE_PLAN_FAULT_CANCELLED = 8; FILE_PLAN_FAULT_INVALID_COPY = 9; FILE_PLAN_FAULT_BLOCKED = 10;
+}
+message FilePlanFault { FilePlanFaultCode code = 1; string detail = 2; }
+message FilePlanReply { oneof outcome { FilePlanState state = 1; FilePlanFault fault = 2; } }
+message FilePlanPageReply { oneof outcome { PlannedFilePage page = 1; FilePlanFault fault = 2; } }
+message FilePlanInspectionReply { oneof outcome { PlannedFileInspection inspection = 1; FilePlanFault fault = 2; } }
+message FileVisibilityReply { oneof outcome { FileVisibilityChange change = 1; FilePlanFault fault = 2; } }
+message FileVisibilityHistoryReply { oneof outcome { FileVisibilityHistory history = 1; FilePlanFault fault = 2; } }
+message FilePlanProblemsReply { oneof outcome { FilePlanProblems problems = 1; FilePlanFault fault = 2; } }
+message FilePlanLoadProgress { uint32 files = 1; uint32 total_files = 2; uint64 bytes = 3; uint64 total_bytes = 4; }
+message FilePlanLoadEvent { oneof event { FilePlanLoadProgress progress = 1; FilePlanReply finished = 2; } }

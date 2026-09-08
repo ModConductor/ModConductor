@@ -133,6 +133,11 @@ class NativeChild {
         ),
       );
 
+  FilePlansClient filePlans({bool authenticate = true}) => GrpcFilePlansClient(
+    _localChannel(),
+    CallOptions(metadata: authenticate ? {'mc-session': capability} : const {}),
+  );
+
   GameContextsClient gameContexts({bool authenticate = true}) =>
       GrpcGameContextsClient(
         _localChannel(),

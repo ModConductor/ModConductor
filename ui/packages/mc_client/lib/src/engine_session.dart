@@ -1,3 +1,4 @@
+import 'file_plan_client.dart';
 import 'proton_context_client.dart';
 
 import 'dart:async';
@@ -28,6 +29,8 @@ class EngineSession {
   ProtonContextsClient get protonContexts => _protonContexts!;
   SteamDiscoveryClient? _steamDiscovery;
   SteamDiscoveryClient get steamDiscovery => _steamDiscovery!;
+  FilePlansClient? _filePlans;
+  FilePlansClient get filePlans => _filePlans!;
   GameContextsClient? _gameContexts;
   GameContextsClient get gameContexts => _gameContexts!;
   ModOrganizationClient? _modOrganization;
@@ -79,6 +82,10 @@ class EngineSession {
     _modLibrary = ModLibraryClient(channel, options);
     _profileMods = ProfileModsClient(channel, options);
     _modOrganization = ModOrganizationClient(channel, options);
+    _filePlans = GrpcFilePlansClient(
+      channel,
+      CallOptions(metadata: options.metadata),
+    );
     _gameContexts = GrpcGameContextsClient(channel, options);
     _steamDiscovery = GrpcSteamDiscoveryClient(channel, options);
     _protonContexts = GrpcProtonContextsClient(channel, options);

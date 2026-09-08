@@ -242,3 +242,25 @@ resolved; outside-prefix redirects, ambiguous names and unknown variables remain
 unavailable without a host-folder fallback. Missing leaves are not created. Windows
 native contexts do not use the Proton resolver. Schema migration preserves older
 path-only selections and their evidence; restarting still requires recheck.
+
+## Planned loose files
+
+`FilePlanning` acquires the checked Skyrim Data folder and complete, pinned mod
+manifests. It uses `DeploymentPlanning` for target identity, precedence and original
+collision guards. The game folder is observed content, not a verified pristine
+installation. BSA files are opaque files; archive members are not inspected.
+
+Explicit Load or Refresh streams real content hashes through held read-only
+handles. Session-only observations are bounded and cancellable. Cached reuse and
+Hide check the metadata inventory without hashing all content again. Files that
+change without detectable metadata changes, or after a check, are not covered by
+an atomic snapshot guarantee. Link/reparse entries are refused in this observed
+Data view; deployed-link ownership is not inferred.
+
+Persistence stores shared workspace exclusions for an exact mod, saved version
+and manifest path, together with each accepted change's before/after state and
+fingerprints. Hide selects the next eligible source; no eligible source means the
+target is absent. Unhide restores eligibility. Neither operation changes payloads,
+source folders, profile order or enablement. New full versions do not inherit old
+exclusions. Historical rules remain readable, and profile clone/delete does not
+remove them. These views do not activate or deploy files.

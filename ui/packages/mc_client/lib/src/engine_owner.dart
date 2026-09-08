@@ -1,3 +1,4 @@
+import 'file_plan_client.dart';
 import 'proton_context_client.dart';
 
 import 'dart:async';
@@ -61,6 +62,8 @@ class EngineOwner {
       _state is EngineConnected ? _session?.protonContexts : null;
   SteamDiscoveryClient? get steamDiscovery =>
       _state is EngineConnected ? _session?.steamDiscovery : null;
+  FilePlansClient? get filePlans =>
+      _state is EngineConnected ? _session?.filePlans : null;
   GameContextsClient? get gameContexts =>
       _state is EngineConnected ? _session?.gameContexts : null;
   ModOrganizationClient? get modOrganization =>

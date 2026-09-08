@@ -10,6 +10,10 @@ open ModConductor.Platform
 /// Storage for the root identity file only; other files in a selected root are not adopted.
 type OwnedWorkspaceRootStore internal (database: StateDatabase) =
     let active = HashSet<Guid>()
+
+    let validations =
+        Dictionary<Guid, Task<Result<RootCreationReceipt, WorkspaceFailure>>>()
+
     let gate = obj ()
     let mutable closed = false
 
@@ -127,48 +131,78 @@ type OwnedWorkspaceRootStore internal (database: StateDatabase) =
                     leave id
         }
 
-    member _.Validate(id: Guid) =
+    let validate id =
         task {
-            if not (enter id) then
-                return Error WorkspaceFailure.Busy
-            else
-                try
-                    let! row =
-                        database.Enqueue(fun () -> WorkspaceRows.find database.Connection null id)
+            let! row = database.Enqueue(fun () -> WorkspaceRows.find database.Connection null id)
 
-                    match row with
-                    | None -> return Error WorkspaceFailure.NotFound
-                    | Some row when row.Receipt.Phase <> RootCreationPhase.Complete ->
-                        let! observed =
-                            fileAttempt (fun () ->
-                                RootIdentityFile.validateRoot
-                                    row.Receipt.Workspace.Path
-                                    row.Receipt.Workspace.Identity)
+            match row with
+            | None -> return Error WorkspaceFailure.NotFound
+            | Some row when row.Receipt.Phase <> RootCreationPhase.Complete ->
+                let! observed =
+                    fileAttempt (fun () ->
+                        RootIdentityFile.validateRoot
+                            row.Receipt.Workspace.Path
+                            row.Receipt.Workspace.Identity)
 
-                        match observed with
-                        | Ok() -> return Ok row.Receipt
-                        | Error _ -> return Error WorkspaceFailure.IdentityConflict
-                    | Some row ->
-                        match row.Receipt.MarkerIdentity with
-                        | None -> return Error WorkspaceFailure.IdentityConflict
-                        | Some identity ->
-                            let! observed =
-                                fileAttempt (fun () ->
-                                    let root = row.Receipt.Workspace
+                match observed with
+                | Ok() -> return Ok row.Receipt
+                | Error _ -> return Error WorkspaceFailure.IdentityConflict
+            | Some row ->
+                match row.Receipt.MarkerIdentity with
+                | None -> return Error WorkspaceFailure.IdentityConflict
+                | Some identity ->
+                    let! observed =
+                        fileAttempt (fun () ->
+                            let root = row.Receipt.Workspace
 
-                                    RootIdentityFile.matches
-                                        root.Path
-                                        root.Identity
-                                        identity
-                                        (contents row))
+                            RootIdentityFile.matches
+                                root.Path
+                                root.Identity
+                                identity
+                                (contents row))
 
-                            match observed with
-                            | Ok true -> return Ok row.Receipt
-                            | Ok false -> return Error WorkspaceFailure.IdentityConflict
-                            | Error _ -> return Error WorkspaceFailure.InvalidRoot
-                finally
-                    leave id
+                    match observed with
+                    | Ok true -> return Ok row.Receipt
+                    | Ok false -> return Error WorkspaceFailure.IdentityConflict
+                    | Error _ -> return Error WorkspaceFailure.InvalidRoot
         }
+
+    member _.Validate(id: Guid) =
+        lock gate (fun () ->
+            match validations.TryGetValue id with
+            | true, pending -> pending
+            | false, _ when not (enter id) -> Task.FromResult(Error WorkspaceFailure.Busy)
+            | false, _ ->
+                let completion =
+                    TaskCompletionSource<Result<RootCreationReceipt, WorkspaceFailure>>(
+                        TaskCreationOptions.RunContinuationsAsynchronously
+                    )
+
+                validations.Add(id, completion.Task)
+
+                task {
+                    let! outcome =
+                        task {
+                            try
+                                let! result = validate id
+                                return Choice1Of2 result
+                            with error ->
+                                return Choice2Of2 error
+                        }
+
+                    lock gate (fun () ->
+                        validations.Remove id |> ignore
+                        active.Remove id |> ignore
+
+                        match outcome with
+                        | Choice1Of2 result -> completion.SetResult result
+                        | Choice2Of2(:? OperationCanceledException as error) ->
+                            completion.SetCanceled error.CancellationToken
+                        | Choice2Of2 error -> completion.SetException error)
+                }
+                |> ignore
+
+                completion.Task)
 
     member _.Prepare(id: Guid, expectedWorkspaceRevision: int64, root: SelectedRoot) =
         database.Enqueue(fun () ->

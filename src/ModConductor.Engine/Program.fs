@@ -89,6 +89,11 @@ let run args =
     builder.Services.AddSingleton<ModConductor.Engine.ModOrganizationService>()
     |> ignore
 
+    builder.Services.AddSingleton<ModConductor.FilePlanning.IFilePlans>(store.FilePlans)
+    |> ignore
+
+    builder.Services.AddSingleton<ModConductor.Engine.FilePlanService>() |> ignore
+
     builder.Services.AddSingleton<ModConductor.Engine.ModLibraryService>() |> ignore
     builder.Services.AddSingleton<ModConductor.Engine.WorkspaceService>() |> ignore
 
@@ -137,6 +142,7 @@ let run args =
     |> ignore
 
     use app = builder.Build()
+    app.MapGrpcService<ModConductor.Engine.FilePlanService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.SteamDiscoveryService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.ProtonContextService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.GameContextService>() |> ignore
@@ -167,6 +173,7 @@ let run args =
 
     app.WaitForShutdownAsync().GetAwaiter().GetResult()
     coordinator.Drain().GetAwaiter().GetResult()
+    store.FilePlans.Drain().GetAwaiter().GetResult()
     store.ModLibrary.Drain().GetAwaiter().GetResult()
     store.Workspaces.Drain().GetAwaiter().GetResult()
     0
