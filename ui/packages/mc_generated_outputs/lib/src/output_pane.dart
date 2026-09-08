@@ -275,8 +275,8 @@ class _OutputPaneState extends State<OutputPane> {
                             ),
                     ),
                     if (compactActions)
-                      PopupMenuButton<String>(
-                        tooltip: 'Review selected outputs',
+                      McIconMenu<String>(
+                        label: 'Review selected outputs',
                         enabled: canAct,
                         itemBuilder: (_) => [
                           const PopupMenuItem(
