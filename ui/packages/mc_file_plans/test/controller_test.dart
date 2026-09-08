@@ -238,6 +238,39 @@ void main() {
   });
 
   testWidgets(
+    'a replacement snapshot keeps its completed filtered page after the previous debounce deadline',
+    (tester) async {
+      final client = FakePlans();
+      final queries = <(String, String)>[];
+      client.page = (id, parent, filter, cursor) async {
+        queries.add((id, filter));
+        return FilePlanPage(state(id), [
+          node(['$id.txt']),
+        ], null);
+      };
+      final tree = PlannedFilesController()..attach(client, state('first'));
+      await tester.pump();
+      tree.search('second');
+      await tester.pump(const Duration(milliseconds: 50));
+      tree.attach(client, state('second'));
+      await tester.pump();
+      tree.model.select(filePathId(['second.txt']));
+      await tester.pump(const Duration(milliseconds: 250));
+      expect(tree.model.visible.map((id) => tree.model[id]!.path.last), [
+        'second.txt',
+      ]);
+      expect(tree.model.selectedId, filePathId(['second.txt']));
+      expect(tree.model.focusedId, filePathId(['second.txt']));
+      expect(tree.filter, 'second');
+      expect(queries.where((query) => query.$1 == 'second'), [
+        ('second', 'second'),
+      ]);
+      tree.dispose();
+      await client.stream.close();
+    },
+  );
+
+  testWidgets(
     'visibility delta preserves expanded branch selection and its next page cursor',
     (tester) async {
       final client = FakePlans();

@@ -67,6 +67,7 @@ type FilePlanningTests() =
         flag "retainedOriginalIsUnchanged" |> should equal true
         flag "hideCannotResolveInputAliases" |> should equal true
         flag "unknownCopyCannotCreateRule" |> should equal true
+        flag "historyBytePagesContinueWithoutLoss" |> should equal true
 
     [<Test>]
     member _.``concurrent inventory and file reads should share root checks without admitting writes or caching completed checks``

@@ -220,6 +220,7 @@ type FilePlanSession(repository: IFilePlanRepository) =
                                                 Sha256 = saved.Entry.Payload.Sha256
                                                 CanHide = false
                                                 CanUnhide = false } ] })
+                            |> Result.bind InspectionProjection.bounded
                 })
 
         member _.Change(id, copy, hidden, token) =
@@ -337,5 +338,8 @@ type FilePlanSession(repository: IFilePlanRepository) =
                     match cache.Find id with
                     | None -> return Error FilePlanError.Expired
                     | Some snapshot ->
-                        return! repository.History(snapshot.Sources.Stamp.WorkspaceId, copy, after)
+                        let! changes =
+                            repository.History(snapshot.Sources.Stamp.WorkspaceId, copy, after)
+
+                        return changes |> Result.bind PlanSnapshot.historyPage
                 })

@@ -5,6 +5,7 @@ open System.Text.Json
 open ModConductor.DeploymentPlanning
 open ModConductor.Platform
 open ModConductor.ModLibrary
+open ModConductor.FilePlanning
 
 module FileVisibilityFixtures =
     let observe (writer: Utf8JsonWriter) =
@@ -116,6 +117,50 @@ module FileVisibilityFixtures =
             "unknownCopyCannotCreateRule",
             Visibility.setHidden { copy with VersionId = Guid.NewGuid() } true original
             |> Result.isError
+        )
+
+        let longPath =
+            LogicalPath.create ((List.replicate 60 (String('界', 50))) @ [ "copy.txt" ])
+            |> StorageWorker.result
+
+        let changes =
+            [ for id in List.rev [ 1L .. 64L ] ->
+                  { Id = id
+                    Copy =
+                      { ModId = high
+                        VersionId = highVersion
+                        Path = longPath }
+                    Hidden = id % 2L = 0L
+                    BeforeHidden = id % 2L <> 0L
+                    ProfileId = profile
+                    BeforeFingerprint = String('a', 64)
+                    AfterFingerprint = String('b', 64)
+                    RecordedAt = DateTimeOffset.UnixEpoch.AddSeconds(float id) } ]
+
+        let first =
+            changes |> List.truncate 32 |> PlanSnapshot.historyPage |> StorageWorker.result
+
+        let collected = ResizeArray<FileChange>(first.Changes)
+        let mutable next = first.NextBeforeId
+
+        while next.IsSome do
+            let before = next.Value
+
+            let page =
+                changes
+                |> List.filter (fun change -> change.Id < before)
+                |> List.truncate 32
+                |> PlanSnapshot.historyPage
+                |> StorageWorker.result
+
+            collected.AddRange page.Changes
+            next <- page.NextBeforeId
+
+        writer.WriteBoolean(
+            "historyBytePagesContinueWithoutLoss",
+            first.Changes.Length < 32
+            && first.NextBeforeId.IsSome
+            && List.ofSeq collected = changes
         )
 
         writer.WriteEndObject()

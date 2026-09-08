@@ -190,11 +190,11 @@ module internal FilePlanWire =
     let history =
         function
         | Error error -> FileVisibilityHistoryReply(Fault = fault error)
-        | Ok(values: FileChange list) ->
+        | Ok(page: FileHistoryPage) ->
             let result = FileVisibilityHistory()
 
             result.Changes.AddRange(
-                values
+                page.Changes
                 |> Seq.map (fun value ->
                     FileVisibilityAudit(
                         Id = uint64 value.Id,
@@ -208,7 +208,6 @@ module internal FilePlanWire =
                     ))
             )
 
-            if values.Length = Limits.pageRows then
-                result.NextBeforeId <- uint64 (List.last values).Id
+            page.NextBeforeId |> Option.iter (fun id -> result.NextBeforeId <- uint64 id)
 
             FileVisibilityHistoryReply(History = result)

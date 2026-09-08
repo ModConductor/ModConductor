@@ -6,6 +6,24 @@ open ModConductor.GameContexts
 open ModConductor.DeploymentPlanning
 
 module internal InspectionProjection =
+    let size (row: InspectedCopy) =
+        Encoding.UTF8.GetByteCount row.Name
+        + Encoding.UTF8.GetByteCount row.VersionLabel
+        + PlanSnapshot.pathBytes row.SourcePath
+        + (row.Copy
+           |> Option.map (fun copy -> PlanSnapshot.pathBytes copy.Path)
+           |> Option.defaultValue 0)
+        + 512
+
+    let bounded (inspection: FileInspection) =
+        if
+            (inspection.FocusedCopy |> Option.exists (fun row -> size row > Limits.pageBytes))
+            || (inspection.Copies |> List.exists (fun row -> size row > Limits.pageBytes))
+        then
+            Error(FilePlanError.LimitExceeded "A file record exceeds the reply limit.")
+        else
+            Ok inspection
+
     let private inspectionRow
         (snapshot: PlanSnapshot)
         (target: LogicalPath)
@@ -81,11 +99,7 @@ module internal InspectionProjection =
         PlanSnapshot.page
             (PlanSnapshot.queryIdentity snapshot "inspect" (Some target) "")
             cursor
-            (fun (row: InspectedCopy) ->
-                Encoding.UTF8.GetByteCount row.Name
-                + Encoding.UTF8.GetByteCount row.VersionLabel
-                + Encoding.UTF8.GetByteCount(LogicalPath.display row.SourcePath)
-                + 256)
+            size
             (modCopies.Length + gameCopies.Length)
             (fun index ->
                 inspectionRow

@@ -283,7 +283,8 @@ module FilePlanningFixtures =
                 "staleWriteHasNoAudit",
                 plans.Change(initial.Id, lowCopy, true, CancellationToken.None) |> wait = Error
                     FilePlanError.Stale
-                && (plans.History(hidden.Snapshot.Id, lowCopy, None) |> wait |> result).IsEmpty
+                && (plans.History(hidden.Snapshot.Id, lowCopy, None) |> wait |> result)
+                    .Changes.IsEmpty
             )
 
             let fresh = acquire first true
@@ -430,7 +431,7 @@ module FilePlanningFixtures =
                 published.CurrentVersion = Some nextVersion
                 && not newCopy.Hidden
                 && newCopy.Copy.Value.VersionId = nextVersion
-                && (plans.History(newPlan.Id, absentCopy, None) |> wait |> result).Length = 3
+                && (plans.History(newPlan.Id, absentCopy, None) |> wait |> result).Changes.Length = 3
             )
 
             let historical = plans.InspectCopy(newPlan.Id, absentCopy) |> wait |> result
@@ -443,7 +444,7 @@ module FilePlanningFixtures =
                 && not historical.Copies.Head.CanHide
             )
 
-            let history = plans.History(newPlan.Id, highCopy, None) |> wait |> result
+            let history = (plans.History(newPlan.Id, highCopy, None) |> wait |> result).Changes
 
             writer.WriteBoolean(
                 "auditRetainsExactCopyTransitions",
@@ -478,9 +479,13 @@ module FilePlanningFixtures =
                 context.Revision = finalContextRevision
                 && context.Binding.Value.NeedsCheck
                 && not opened.Loaded
-                && (plans.History(opened.Id, highCopy, None) |> wait |> result) = retained
+                && (plans.History(opened.Id, highCopy, None) |> wait |> result).Changes = retained
             )
 
             store.FilePlans.Drain().GetAwaiter().GetResult()
+
+        for file in Directory.EnumerateFiles(root, "*.payload", SearchOption.AllDirectories) do
+            if OperatingSystem.IsWindows() then
+                File.SetAttributes(file, FileAttributes.Normal)
 
         writer.WriteEndObject()

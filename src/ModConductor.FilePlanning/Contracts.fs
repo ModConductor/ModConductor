@@ -82,6 +82,10 @@ type FileChange =
       AfterFingerprint: string
       RecordedAt: DateTimeOffset }
 
+type FileHistoryPage =
+    { Changes: FileChange list
+      NextBeforeId: int64 option }
+
 type SavedCopy =
     { Copy: ModFile
       Name: string
@@ -188,4 +192,4 @@ type IFilePlans =
     abstract Change:
         Guid * ModFile * bool * CancellationToken -> Task<Result<VisibilityChange, FilePlanError>>
 
-    abstract History: Guid * ModFile * int64 option -> Task<Result<FileChange list, FilePlanError>>
+    abstract History: Guid * ModFile * int64 option -> Task<Result<FileHistoryPage, FilePlanError>>

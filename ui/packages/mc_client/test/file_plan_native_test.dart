@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:grpc/grpc.dart';
@@ -171,6 +172,93 @@ void main() {
     },
     skip: engine == null || fixture == null
         ? 'Set MC_ENGINE_PATH and MC_NATIVE_FIXTURE to published native tools.'
+        : false,
+  );
+  test(
+    'valid large source pages and multibyte filters pass the authenticated file service',
+    () async {
+      final area = await Directory.systemTemp.createTemp('mc-file-envelope-');
+      final root = await Directory('${area.path}/root').create();
+      final state = await Directory('${area.path}/state').create();
+      final child = await NativeChild.start(engine!, state);
+      final workspace = newOperationId(), profile = newOperationId();
+      final copies = <ManagedFileCopy>{};
+      final path = ['界' * 50, '路' * 50, 'copy.txt'];
+      try {
+        await child.workspaces().create(workspace, 'File sources', root.path);
+        await child.workspaces().createProfile(
+          workspace,
+          0,
+          ProfileInfo(profile, 'Everyday'),
+        );
+        for (var index = 0; index < 30; index++) {
+          final mod = newOperationId(), version = newOperationId();
+          final source = 'source$index';
+          final folder = await Directory(
+            '${root.path}/$source/${path.take(2).join('/')}',
+          ).create(recursive: true);
+          await File('${folder.path}/${path.last}')
+              .writeAsString('Owned fixture payload');
+          final registered = await child.modLibrary().register(
+            workspace,
+            mod,
+            ModMetadata(name: '${'名' * 250}$index', version: '版' * 256),
+            DirectoryMod(ModKind.regular, [source]),
+          );
+          await child.modLibrary().publish(mod, registered.revision, version);
+          copies.add(ManagedFileCopy(mod, version, path));
+        }
+        final inventory = await child.modOrganization().query(
+          profile,
+          const ModQuery(),
+        );
+        await child.profileMods().enable(
+          profile,
+          inventory.selectionRevision,
+          copies.map((copy) => copy.modId),
+          true,
+        );
+        final files = child.filePlans();
+        final opened = await files.open(profile);
+        final inspected = await files.inspect(opened.id, path);
+        expect(inspected.copies.map((row) => row.copy).toSet(), copies);
+        expect(
+          inspected.copies.every(
+            (row) => row.versionLabel == '版' * 256 && !row.hidden,
+          ),
+          isTrue,
+        );
+        final byteFloor = inspected.copies.fold<int>(
+          0,
+          (sum, row) =>
+              sum +
+              utf8.encode(row.name).length +
+              utf8.encode(row.versionLabel).length +
+              utf8.encode(row.sha256).length +
+              utf8.encode(row.copy!.modId).length +
+              utf8.encode(row.copy!.versionId).length +
+              2 * utf8.encode(row.sourcePath.join('/')).length,
+        );
+        stdout.writeln(
+          'Authenticated source-page UTF-8 field bytes (excluding protobuf overhead): $byteFloor',
+        );
+        final filtered = await files.children(opened.id, filter: '界' * 2048);
+        expect(filtered.nodes, isEmpty);
+        expect(filtered.state.id, opened.id);
+        expect(
+          (await files.inspect(
+            opened.id,
+            path,
+          )).copies.map((row) => row.copy).toSet(),
+          copies,
+        );
+      } finally {
+        await child.close();
+        await area.delete(recursive: true);
+      }
+    },
+    skip: engine == null
+        ? 'Set MC_ENGINE_PATH to the published native engine.'
         : false,
   );
 }

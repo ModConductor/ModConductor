@@ -22,6 +22,11 @@ type internal PlanSnapshot =
       Queries: Dictionary<string, Map<LogicalPath option, LogicalPath array>> }
 
 module internal PlanSnapshot =
+    let pathBytes path =
+        LogicalPath.components path
+        |> List.sumBy (fun part -> Encoding.UTF8.GetByteCount part + 4)
+
+
     let private contextProblem (sources: PlanSources) =
         match sources.Context.Binding with
         | None -> Some "Select a game installation."
@@ -107,7 +112,12 @@ module internal PlanSnapshot =
                        + 128
                    )))
 
-        if bytes > Limits.snapshotBytes then
+        if
+            problems
+            |> Array.exists (fun text -> Encoding.UTF8.GetByteCount text + 8 > Limits.pageBytes)
+        then
+            Error(FilePlanError.LimitExceeded "A file problem exceeds the reply limit.")
+        elif bytes > Limits.snapshotBytes then
             Error(FilePlanError.LimitExceeded "The file view exceeds the metadata limit.")
         else
             Ok
@@ -155,6 +165,15 @@ module internal PlanSnapshot =
 
     let summary stale (snapshot: PlanSnapshot) =
         let problems = snapshot.Problems
+        let mutable bytes = 0
+
+        let preview =
+            problems
+            |> Seq.truncate Limits.pageRows
+            |> Seq.takeWhile (fun text ->
+                bytes <- bytes + Encoding.UTF8.GetByteCount text + 8
+                bytes <= Limits.pageBytes)
+            |> Seq.toList
 
         { Id = snapshot.Id
           WorkspaceId = snapshot.Sources.Stamp.WorkspaceId
@@ -169,7 +188,7 @@ module internal PlanSnapshot =
             else
                 0
           InspectedFiles = snapshot.Index.Targets.Count
-          Problems = problems |> Seq.truncate Limits.pageRows |> Seq.toList
+          Problems = preview
           ProblemCount = problems.Length
           ObservedAt = snapshot.Game |> Option.map _.ObservedAt }
 
@@ -264,9 +283,7 @@ module internal PlanSnapshot =
                 identity
                 cursor
                 (fun (row: FileNode) ->
-                    Encoding.UTF8.GetByteCount(LogicalPath.display row.Path)
-                    + Encoding.UTF8.GetByteCount row.SourceName
-                    + 128)
+                    pathBytes row.Path + Encoding.UTF8.GetByteCount row.SourceName + 128)
                 paths.Length
                 (fun index ->
                     FileIndex.node snapshot.Sources snapshot.Visibility snapshot.Index paths[index])
@@ -278,3 +295,20 @@ module internal PlanSnapshot =
             (fun text -> Encoding.UTF8.GetByteCount(text: string) + 8)
             snapshot.Problems.Length
             (fun index -> snapshot.Problems[index])
+
+    let historyPage (changes: FileChange list) =
+        let values = List.toArray changes
+
+        page
+            "history"
+            None
+            (fun (change: FileChange) -> pathBytes change.Copy.Path + 512)
+            values.Length
+            (fun index -> values[index])
+        |> Result.map (fun (included, next) ->
+            { Changes = included
+              NextBeforeId =
+                if next.IsSome || values.Length = Limits.pageRows then
+                    included |> List.tryLast |> Option.map _.Id
+                else
+                    None })

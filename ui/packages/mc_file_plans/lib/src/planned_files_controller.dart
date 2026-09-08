@@ -52,6 +52,8 @@ class PlannedFilesController extends ChangeNotifier {
     _pending.clear();
     problem = null;
     if (!preserve) {
+      _debounce?.cancel();
+      _debounce = null;
       _pages.clear();
       _visible.clear();
       _applying = true;
