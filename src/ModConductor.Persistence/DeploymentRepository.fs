@@ -47,7 +47,7 @@ type internal DeploymentRepository(database: StateDatabase) =
         member _.Pending after =
             database.Enqueue(fun () -> DeploymentRows.pending connection after)
 
-        member _.Begin(previous, receipt, generation) =
+        member _.Begin(previous, receipt, generation, expectedSources) =
             database.Enqueue(fun () ->
                 use transaction = connection.BeginTransaction(deferred = false)
 
@@ -58,6 +58,13 @@ type internal DeploymentRepository(database: StateDatabase) =
 
                 if DeploymentRows.receipt connection transaction receipt.Id |> Option.isSome then
                     raise (RecoveryException RecoveryError.Stale)
+
+                match expectedSources with
+                | Some expected when
+                    FilePlanRows.stamp connection transaction expected.ProfileId <> Some expected
+                    ->
+                    raise (RecoveryException RecoveryError.Stale)
+                | _ -> ()
 
                 DeploymentRows.checkOwnership connection transaction receipt.Context
 

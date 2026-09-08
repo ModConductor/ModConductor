@@ -22,6 +22,15 @@
           "ModConductor.Platform": "[1.0.0, )"
         }
       },
+      "modconductor.deploymentrecovery": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )",
+          "ModConductor.DeploymentPlanning": "[1.0.0, )",
+          "ModConductor.FilePlanning": "[1.0.0, )",
+          "ModConductor.Platform": "[1.0.0, )"
+        }
+      },
       "modconductor.fileplanning": {
         "type": "Project",
         "dependencies": {

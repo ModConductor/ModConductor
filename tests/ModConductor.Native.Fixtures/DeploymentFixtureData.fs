@@ -199,7 +199,8 @@ module internal DeploymentFixtureData =
           Roots = area.Bindings
           Generation = generation
           DirectoryBoundaries = [ target "folder" ]
-          PreserveOriginals = [] }
+          PreserveOriginals = []
+          ExpectedSources = None }
 
     let run (store: OperationStore) (receipt: Receipt) restore hook =
         get (

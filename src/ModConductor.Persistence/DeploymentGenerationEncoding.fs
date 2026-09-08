@@ -79,19 +79,59 @@ module internal DeploymentGenerationEncoding =
         | 2 -> let id = readGuid r in WritableTarget.Subtree(id, PlanPath.At(readPath r))
         | _ -> corrupt ()
 
+    let private backing (w: BinaryWriter) (v: FileBacking) =
+        location w v.Directory
+        path w v.Path
+        identity w v.Identity
+        option guid w v.OwnerGeneration
+
+    let private readBacking (r: BinaryReader) : FileBacking =
+        { Directory = readLocation r
+          Path = readPath r
+          Identity = readIdentity r
+          OwnerGeneration = readOption readGuid r }
+
+    let private observed (w: BinaryWriter) (v: ObservedFile) =
+        target w v.Target
+        identity w v.Identity
+        w.Write v.Length
+        w.Write v.Sha256
+
+    let private readObserved (r: BinaryReader) : ObservedFile =
+        { Target = readTarget r
+          Identity = readIdentity r
+          Length = r.ReadInt64()
+          Sha256 = r.ReadString() }
+
+    let private working (w: BinaryWriter) (v: WorkingBinding) =
+        target w v.Target
+        w.Write v.Directory
+        location w v.Root
+        path w v.Path
+        identity w v.Identity
+
+    let private readWorking (r: BinaryReader) : WorkingBinding =
+        { Target = readTarget r
+          Directory = r.ReadBoolean()
+          Root = readLocation r
+          Path = readPath r
+          Identity = readIdentity r }
+
     let private file (w: BinaryWriter) (v: GenerationFile) =
         target w v.Target
         path w v.Path
         identity w v.Identity
         w.Write v.Length
         w.Write v.Sha256
+        option backing w v.Backing
 
-    let private readFile (r: BinaryReader) : GenerationFile =
+    let private readFile version (r: BinaryReader) : GenerationFile =
         { Target = readTarget r
           Path = readPath r
           Identity = readIdentity r
           Length = r.ReadInt64()
-          Sha256 = r.ReadString() }
+          Sha256 = r.ReadString()
+          Backing = if version >= 2 then readOption readBacking r else None }
 
     let generation (w: BinaryWriter) (v: Generation) =
         guid w v.Id
@@ -101,12 +141,16 @@ module internal DeploymentGenerationEncoding =
         list source w v.References
         list writable w v.Writable
         list root w v.Roots
+        list observed w v.Observed
+        list working w v.Working
 
-    let readGeneration (r: BinaryReader) : Generation =
+    let readGeneration version (r: BinaryReader) : Generation =
         { Id = readGuid r
           PlanFingerprint = r.ReadString()
           Directory = readLocation r
-          Files = readList readFile r
+          Files = readList (readFile version) r
           References = readList readSource r
           Writable = readList readWritable r
-          Roots = readList readRoot r }
+          Roots = readList readRoot r
+          Observed = if version >= 2 then readList readObserved r else []
+          Working = if version >= 2 then readList readWorking r else [] }

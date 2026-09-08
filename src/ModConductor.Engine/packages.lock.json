@@ -63,6 +63,14 @@
           "SQLitePCLRaw.core": "3.0.5"
         }
       },
+      "modconductor.deploymentgenerations": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )",
+          "ModConductor.DeploymentRecovery": "[1.0.0, )",
+          "ModConductor.FilePlanning": "[1.0.0, )"
+        }
+      },
       "modconductor.deploymentplanning": {
         "type": "Project",
         "dependencies": {
@@ -76,6 +84,7 @@
         "dependencies": {
           "FSharp.Core": "[10.1.400, )",
           "ModConductor.DeploymentPlanning": "[1.0.0, )",
+          "ModConductor.FilePlanning": "[1.0.0, )",
           "ModConductor.Platform": "[1.0.0, )"
         }
       },
@@ -126,6 +135,7 @@
         "dependencies": {
           "FSharp.Core": "[10.1.400, )",
           "Microsoft.Data.Sqlite.Core": "[10.0.11, )",
+          "ModConductor.DeploymentGenerations": "[1.0.0, )",
           "ModConductor.DeploymentRecovery": "[1.0.0, )",
           "ModConductor.FilePlanning": "[1.0.0, )",
           "ModConductor.GameContexts": "[1.0.0, )",

@@ -95,6 +95,42 @@ module internal Preparation =
             if root.Directory.Identity.Device <> root.Originals.Identity.Device then
                 RecoveryFiles.fail "Original preservation requires the target volume."
 
+    let private checkExternalLocations (roots: RootBinding list) (generation: Generation) =
+        let protectedLocations =
+            generation.Directory
+            :: (roots |> List.collect (fun root -> [ root.Directory; root.Originals ]))
+
+        let external =
+            (generation.Files |> List.choose _.Backing |> List.map _.Directory)
+            @ (generation.Working |> List.map _.Root)
+
+        let overlaps (a: Location) (b: Location) =
+            a.Identity = b.Identity
+            || nested (HostPath.value a.Path) (HostPath.value b.Path)
+            || nested (HostPath.value b.Path) (HostPath.value a.Path)
+
+        for location in external do
+            let selected =
+                RootSelection.select location.Path
+                |> Result.defaultWith (fun _ ->
+                    RecoveryFiles.fail "External generation storage is unavailable.")
+
+            if RootSelection.path selected <> location.Path then
+                RecoveryFiles.fail "Use canonical external storage locations."
+
+            if protectedLocations |> List.exists (overlaps location) then
+                RecoveryFiles.fail
+                    "Payload and working storage must be outside deployment locations."
+
+        for working in generation.Working do
+            if
+                generation.Files
+                |> List.choose _.Backing
+                |> List.exists (fun backing -> overlaps working.Root backing.Directory)
+            then
+                RecoveryFiles.fail
+                    "Working storage must be separate from immutable payload storage."
+
     let private projection (request: SwitchRequest) =
         let generation = request.Generation
         let boundaries = request.DirectoryBoundaries
@@ -109,6 +145,9 @@ module internal Preparation =
             if
                 not (generation.Files |> List.exists (fun file -> contains boundary file.Target))
             then
+                raise (RecoveryException RecoveryError.InvalidPlan)
+
+            if generation.Observed |> List.exists (fun file -> overlap boundary file.Target) then
                 raise (RecoveryException RecoveryError.InvalidPlan)
 
             for output in generation.Writable do
@@ -146,6 +185,14 @@ module internal Preparation =
             { Generation = generation.Id
               Target = RecoveryFiles.path generation.Directory path
               Directory = directory })
+        |> fun immutable ->
+            immutable
+            @ (generation.Working
+               |> List.map (fun working ->
+                   working.Target,
+                   { Generation = generation.Id
+                     Target = RecoveryFiles.path working.Root working.Path
+                     Directory = working.Directory }))
 
     let prepare (existing: Context option) (request: SwitchRequest) =
         if
@@ -201,7 +248,9 @@ module internal Preparation =
             | Some value -> value
 
         checkLocations context.Roots request.Generation
+        checkExternalLocations context.Roots request.Generation
         RecoveryFiles.verifyGeneration request.Generation
+        RecoveryFiles.verifyObserved context request.Generation
         let proposed = projection request
 
         let targets =

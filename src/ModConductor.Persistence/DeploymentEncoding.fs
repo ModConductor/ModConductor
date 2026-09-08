@@ -121,10 +121,10 @@ module internal DeploymentEncoding =
           Originals = readList readOriginal r
           Detail = r.ReadString() }
 
-    let private encode write value =
+    let private encode version write value =
         use stream = new MemoryStream()
         use writer = new BinaryWriter(stream, UTF8Encoding(false, true), true)
-        writer.Write 1
+        writer.Write(version: int)
         write writer value
         writer.Flush()
 
@@ -141,10 +141,12 @@ module internal DeploymentEncoding =
             use stream = new MemoryStream(bytes, false)
             use reader = new BinaryReader(stream, UTF8Encoding(false, true))
 
-            if reader.ReadInt32() <> 1 then
+            let version = reader.ReadInt32()
+
+            if version < 1 || version > 2 then
                 corrupt ()
 
-            let value = read reader
+            let value = read version reader
 
             if stream.Position <> stream.Length then
                 corrupt ()
@@ -156,11 +158,16 @@ module internal DeploymentEncoding =
         | :? FormatException
         | :? OverflowException -> corrupt ()
 
-    let contextBytes value = encode context value
-    let receiptBytes value = encode receipt value
-    let generationBytes value = encode generation value
-    let contextFrom bytes = decode readContext bytes
-    let receiptFrom bytes = decode readReceipt bytes
+    let contextBytes value = encode 1 context value
+    let receiptBytes value = encode 1 receipt value
+    let generationBytes value = encode 2 generation value
+
+    let contextFrom bytes =
+        decode (fun version r -> if version <> 1 then corrupt () else readContext r) bytes
+
+    let receiptFrom bytes =
+        decode (fun version r -> if version <> 1 then corrupt () else readReceipt r) bytes
+
     let generationFrom bytes = decode readGeneration bytes
 
     let hash (bytes: byte[]) =

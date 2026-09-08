@@ -40,7 +40,15 @@ type internal Recovery(repository: IRecoveryRepository) =
                     try
                         let! context = repository.Context request.ContextId
                         let! receipt = Task.Run(fun () -> Preparation.prepare context request)
-                        let! saved = repository.Begin(context, receipt, request.Generation)
+
+                        let! saved =
+                            repository.Begin(
+                                context,
+                                receipt,
+                                request.Generation,
+                                request.ExpectedSources
+                            )
+
                         return Ok saved
                     with error ->
                         match convert error with
@@ -102,6 +110,11 @@ type internal Recovery(repository: IRecoveryRepository) =
                                     "The recorded generation differs from the activation context."
 
                             RecoveryFiles.verifyGeneration proposed
+
+                            RecoveryFiles.verifyObserved
+                                { claimed.Context with
+                                    Originals = claimed.Originals }
+                                proposed
 
                             match claimed.Previous with
                             | Some previous ->

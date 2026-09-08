@@ -150,3 +150,30 @@ module Visibility =
 
     let sources target plan =
         plan.Sources.TryFind target |> Option.defaultValue []
+
+    /// Projects the existing resolution without making blocked inputs activatable.
+    let view plan =
+        match plan.Original with
+        | PlanningResult.Blocked blocked -> Error blocked.Issues
+        | PlanningResult.Ready original ->
+            let view = Planner.view original
+
+            let current file =
+                plan.Files.TryFind file.Target |> Option.flatten
+
+            Ok
+                { view with
+                    Fingerprint = plan.Fingerprint
+                    ReadOnlyFiles = view.ReadOnlyFiles |> List.choose current
+                    Writable =
+                        view.Writable
+                        |> List.map (function
+                            | WritableProjection.File(id, target, seed) ->
+                                WritableProjection.File(id, target, seed |> Option.bind current)
+                            | WritableProjection.Subtree(id, root, path, seeds) ->
+                                WritableProjection.Subtree(
+                                    id,
+                                    root,
+                                    path,
+                                    seeds |> List.choose current
+                                )) }

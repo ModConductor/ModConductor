@@ -10,6 +10,7 @@
     <Compile Include="RootIdentityFile.fs" />
     <Compile Include="HeldEntries.fs" />
     <Compile Include="HeldDirectory.fs" />
+    <Compile Include="GenerationStorage.fs" />
     <PackageReference Include="FSharp.Core" />
   </ItemGroup>
 </Project>

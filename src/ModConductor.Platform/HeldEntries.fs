@@ -60,7 +60,7 @@ module internal HeldEntries =
         then
             invalidArg (nameof name) "Select one native directory entry."
 
-    let private path (handle: SafeFileHandle) name =
+    let path (handle: SafeFileHandle) name =
         nameCheck name
 
         if OperatingSystem.IsLinux() then

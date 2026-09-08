@@ -20,7 +20,6 @@
     <Compile Include="StateDatabase.fs" />
     <Compile Include="DeploymentValueEncoding.fs"/><Compile Include="DeploymentGenerationEncoding.fs"/><Compile Include="DeploymentEncoding.fs" />
     <Compile Include="DeploymentRows.fs" />
-    <Compile Include="DeploymentRepository.fs" />
     <Compile Include="OwnedWorkspaceRootStore.fs" />
     <Compile Include="WorkspaceStateStore.fs" />
     <Compile Include="LibraryAccess.fs" />
@@ -38,8 +37,12 @@
     <Compile Include="GameContextEncoding.fs" />
     <Compile Include="GameContextStore.fs" />
     <Compile Include="FilePlanRows.fs" />
+    <Compile Include="DeploymentRepository.fs" />
     <Compile Include="FilePlanRepository.fs" />
+    <Compile Include="GenerationSources.fs" />
+    <Compile Include="DeploymentGenerationStore.fs" />
     <Compile Include="OperationStore.fs" />
+    <ProjectReference Include="../ModConductor.DeploymentGenerations/ModConductor.DeploymentGenerations.fsproj" />
     <ProjectReference Include="../ModConductor.DeploymentRecovery/ModConductor.DeploymentRecovery.fsproj" />
     <ProjectReference Include="../ModConductor.FilePlanning/ModConductor.FilePlanning.fsproj" />
     <ProjectReference Include="../ModConductor.ProtonContexts/ModConductor.ProtonContexts.fsproj" />

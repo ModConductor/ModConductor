@@ -174,12 +174,67 @@ module internal RecoveryFiles =
         check directory []
 
         for file in generation.Files do
-            withParent generation.Directory file.Path (fun parent name ->
+            let read (parent: HeldDirectory) name identity =
+                let stream, _ = parent.Read(name, Some identity)
+                use stream = stream
+
+                if stream.Length <> file.Length || digest stream <> file.Sha256 then
+                    fail "A retained generation file changed."
+
+            match file.Backing with
+            | None ->
+                withParent generation.Directory file.Path (fun parent name ->
+                    read parent name file.Identity)
+            | Some backing ->
+                withParent generation.Directory file.Path (fun parent name ->
+                    let expected =
+                        { Generation = generation.Id
+                          Target = path backing.Directory backing.Path
+                          Directory = false }
+
+                    match parent.InspectEntry name with
+                    | Some entry when entry.Identity = file.Identity && linkMatches expected entry ->
+                        ()
+                    | _ -> fail "A retained generation link changed.")
+
+                withParent backing.Directory backing.Path (fun parent name ->
+                    read parent name backing.Identity)
+
+        for working in generation.Working do
+            withParent working.Root working.Path (fun parent name ->
+                match parent.InspectEntry name with
+                | Some entry when
+                    entry.Identity = working.Identity
+                    && entry.Kind = (if working.Directory then
+                                         EntryKind.Directory
+                                     else
+                                         EntryKind.RegularFile)
+                    ->
+                    ()
+                | _ -> fail "A declared working location changed.")
+
+    let verifyObserved (context: Context) (generation: Generation) =
+        for file in generation.Observed do
+            let check (parent: HeldDirectory) name =
                 let stream, _ = parent.Read(name, Some file.Identity)
                 use stream = stream
 
                 if stream.Length <> file.Length || digest stream <> file.Sha256 then
-                    fail "A retained generation file changed.")
+                    fail "An observed game-folder file changed."
+
+            match observe context file.Target with
+            | Some entry when entry.Kind = EntryKind.RegularFile && entry.Identity = file.Identity ->
+                withParent (binding context file.Target).Directory file.Target.Path check
+            | _ ->
+                match
+                    context.Originals
+                    |> List.tryFind (fun original -> original.Target = file.Target)
+                with
+                | Some original when original.Entry.Identity = file.Identity ->
+                    let root = binding context file.Target
+                    use stored = HeldDirectory.Open(root.Originals.Path, root.Originals.Identity)
+                    check stored original.Backup
+                | _ -> fail "An observed game-folder file has no matching preserved original."
 
 module internal Generations =
     let capture id (directory: Location) plan input =
@@ -215,7 +270,8 @@ module internal Generations =
                       Path = path
                       Identity = identity
                       Length = length
-                      Sha256 = hash }))
+                      Sha256 = hash
+                      Backing = None }))
 
         let seeds =
             view.Writable
@@ -235,4 +291,6 @@ module internal Generations =
           Files = files
           References = references
           Writable = input.Writable |> List.map (fun value -> value.Target)
-          Roots = input.Roots }
+          Roots = input.Roots
+          Observed = []
+          Working = [] }

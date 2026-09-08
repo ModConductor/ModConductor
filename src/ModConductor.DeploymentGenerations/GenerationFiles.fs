@@ -1,0 +1,151 @@
+namespace ModConductor.DeploymentGenerations
+
+open System
+open System.IO
+open System.Diagnostics
+open System.Threading
+open ModConductor.Platform
+open ModConductor.DeploymentPlanning
+open ModConductor.DeploymentRecovery
+
+module internal GenerationFiles =
+    let logical parts =
+        LogicalPath.create parts
+        |> Result.defaultWith (fun _ -> raise (RecoveryException RecoveryError.InvalidPlan))
+
+    let checkProcesses (processes: ProcessIdentity list) =
+        for expected in processes do
+            let running =
+                try
+                    use runningProcess = Process.GetProcessById expected.Id
+
+                    not runningProcess.HasExited
+                    && runningProcess.StartTime.ToUniversalTime() = expected.StartedAt
+                    && runningProcess.MainModule.FileName = expected.Executable
+                with :? ArgumentException ->
+                    false
+
+            if running then
+                raise (
+                    RecoveryException(
+                        RecoveryError.Unavailable "The declared game process is running."
+                    )
+                )
+
+    let content =
+        function
+        | SourcePin.Mod(_, _, entry) -> entry.Payload.Length, entry.Payload.Sha256
+        | SourcePin.Snapshot(_, _, entry) -> entry.Length, entry.Sha256
+
+    let read (source: FileBacking) action =
+        RecoveryFiles.withParent source.Directory source.Path (fun parent name ->
+            let stream, _ = parent.Read(name, Some source.Identity)
+            use stream = stream
+            action stream)
+
+    let verify pin source =
+        let length, hash = content pin
+
+        read source (fun stream ->
+            if stream.Length <> length || RecoveryFiles.digest stream <> hash then
+                RecoveryFiles.fail "A pinned source changed.")
+
+    let inspect (root: Location) path =
+        use directory = HeldDirectory.Open(root.Path, root.Identity)
+
+        let rec walk (parent: HeldDirectory) =
+            function
+            | [ name ] -> parent.InspectEntry name
+            | name :: rest ->
+                match parent.InspectEntry name with
+                | None -> None
+                | Some entry when entry.Kind = EntryKind.Directory ->
+                    use child = parent.Directory(name, Some entry.Identity)
+                    walk child rest
+                | Some _ -> RecoveryFiles.fail "A working path has an unexpected parent."
+            | [] -> invalidOp "Empty working path."
+
+        walk directory (LogicalPath.components path)
+
+    let withCreatedParent (root: Location) path action =
+        use directory = HeldDirectory.Open(root.Path, root.Identity)
+
+        let rec walk (parent: HeldDirectory) =
+            function
+            | [ name ] -> action parent name
+            | name :: rest ->
+                use child =
+                    match parent.InspectEntry name with
+                    | None -> parent.CreateDirectory name
+                    | Some entry when entry.Kind = EntryKind.Directory ->
+                        parent.Directory(name, Some entry.Identity)
+                    | Some _ -> RecoveryFiles.fail "Prepared storage contains an unexpected entry."
+
+                walk child rest
+            | [] -> invalidOp "Empty file path."
+
+        walk directory (LogicalPath.components path)
+
+    let copy token pin source destination path readOnly =
+        let expectedLength, expectedHash = content pin
+
+        read source (fun input ->
+            withCreatedParent destination path (fun parent name ->
+                let output, identity = parent.Create name
+                use output = output
+                let buffer = Array.zeroCreate<byte> 65536
+                let mutable count = 0
+                let mutable total = 0L
+                let mutable more = true
+
+                while more do
+                    (token: CancellationToken).ThrowIfCancellationRequested()
+                    count <- input.Read(buffer, 0, buffer.Length)
+
+                    if count = 0 then
+                        more <- false
+                    else
+                        total <- total + int64 count
+
+                        if total > expectedLength then
+                            RecoveryFiles.fail "A copied source changed length."
+
+                        output.Write(buffer, 0, count)
+
+                output.Flush true
+
+                if total <> expectedLength then
+                    RecoveryFiles.fail "A copied source changed length."
+
+                output.Position <- 0L
+
+                if RecoveryFiles.digest output <> expectedHash then
+                    RecoveryFiles.fail "A copied source changed."
+
+                if readOnly then
+                    if OperatingSystem.IsWindows() then
+                        File.SetAttributes(output.SafeFileHandle, FileAttributes.ReadOnly)
+                    else
+                        File.SetUnixFileMode(output.SafeFileHandle, UnixFileMode.UserRead)
+
+                identity))
+
+    let protect (root: Location) =
+        let rec walk (location: Location) =
+            use held = HeldDirectory.Open(location.Path, location.Identity)
+
+            for name in held.Names do
+                match held.InspectEntry name with
+                | Some entry when entry.Kind = EntryKind.Directory ->
+                    walk
+                        { Path =
+                            HostPath.create (Path.Combine(HostPath.value location.Path, name))
+                            |> Result.defaultWith (fun _ -> invalidOp "Invalid child.")
+                          Identity = entry.Identity }
+                | Some entry when entry.Kind = EntryKind.Link ->
+                    GenerationStorage.protectLink held name entry
+                | _ -> ()
+
+            GenerationStorage.protectDirectory location.Path location.Identity
+
+        walk root

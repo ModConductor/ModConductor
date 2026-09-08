@@ -9,7 +9,32 @@ open ModConductor.Native.Fixtures
 [<EntryPoint>]
 let main args =
     try
-        if
+        if args.Length = 1 && args[0] = "--generation-game" then
+            Console.WriteLine "ready"
+            Console.ReadLine() |> ignore
+            0
+        elif
+            args.Length = 3
+            && args[0] = "--generation-legacy"
+            && Path.IsPathFullyQualified args[1]
+        then
+            GenerationFixtures.legacy args[1] args[2]
+            0
+        elif
+            args.Length = 2
+            && args[0] = "--generations"
+            && Path.IsPathFullyQualified args[1]
+        then
+            use writer =
+                new Utf8JsonWriter(Console.OpenStandardOutput(), JsonWriterOptions(Indented = true))
+
+            writer.WriteStartObject()
+            writer.WriteBoolean("nativeAot", not RuntimeFeature.IsDynamicCodeSupported)
+            GenerationFixtures.observe writer args[1]
+            writer.WriteEndObject()
+            writer.Flush()
+            0
+        elif
             args.Length = 2
             && args[0] = "--deployment-recovery"
             && Path.IsPathFullyQualified args[1]

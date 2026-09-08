@@ -14,12 +14,32 @@ type internal RootBinding =
       Directory: Location
       Originals: Location }
 
+type internal FileBacking =
+    { Directory: Location
+      Path: LogicalPath
+      Identity: FileIdentity
+      OwnerGeneration: Guid option }
+
+type internal ObservedFile =
+    { Target: TargetFile
+      Identity: FileIdentity
+      Length: int64
+      Sha256: string }
+
+type internal WorkingBinding =
+    { Target: TargetFile
+      Directory: bool
+      Root: Location
+      Path: LogicalPath
+      Identity: FileIdentity }
+
 type internal GenerationFile =
     { Target: TargetFile
       Path: LogicalPath
       Identity: FileIdentity
       Length: int64
-      Sha256: string }
+      Sha256: string
+      Backing: FileBacking option }
 
 type internal Generation =
     { Id: Guid
@@ -28,7 +48,9 @@ type internal Generation =
       Files: GenerationFile list
       References: SourcePin list
       Writable: WritableTarget list
-      Roots: TargetRoot list }
+      Roots: TargetRoot list
+      Observed: ObservedFile list
+      Working: WorkingBinding list }
 
 type internal LinkSpec =
     { Generation: Guid
@@ -112,7 +134,8 @@ type internal SwitchRequest =
       Roots: RootBinding list
       Generation: Generation
       DirectoryBoundaries: TargetFile list
-      PreserveOriginals: TargetFile list }
+      PreserveOriginals: TargetFile list
+      ExpectedSources: ModConductor.FilePlanning.SourceStamp option }
 
 [<RequireQualifiedAccess>]
 type internal RecoveryError =
@@ -131,7 +154,11 @@ type internal IRecoveryRepository =
     abstract Context: Guid -> Task<Context option>
     abstract Generation: Guid * Guid -> Task<Generation option>
     abstract Read: Guid -> Task<Receipt option>
-    abstract Begin: Context option * Receipt * Generation -> Task<Receipt>
+
+    abstract Begin:
+        Context option * Receipt * Generation * ModConductor.FilePlanning.SourceStamp option ->
+            Task<Receipt>
+
     abstract Claim: Guid * int64 -> Task<Receipt>
     abstract Save: Receipt -> Task<Receipt>
     abstract Finish: Receipt * Context -> Task<Receipt>
