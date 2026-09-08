@@ -116,8 +116,9 @@ void main() {
       }
 
       Future<void> review(String label) async {
-        if (narrow) {
-          await tap(find.byTooltip('Review selected outputs'));
+        final menu = find.byTooltip('Review selected outputs');
+        if (menu.evaluate().isNotEmpty) {
+          await tap(menu);
           await tap(find.text(label).last);
         } else {
           await tap(action(label));
@@ -297,7 +298,13 @@ void main() {
         await capture('locations-dark');
         await tap(action('Close'));
         await view('Writable game files');
-        await tap(action('Add writable file'));
+        await tap(icon('Writable game files'));
+        await tap(
+          find.descendant(
+            of: find.byType(OutputLocationsDialog),
+            matching: action('Add writable file'),
+          ),
+        );
         final fields = find.descendant(
           of: find.byType(AddOutputLocationDialog),
           matching: find.byType(TextFormField),
@@ -311,6 +318,7 @@ void main() {
               !outputs().changing &&
               find.byType(AddOutputLocationDialog).evaluate().isEmpty,
         );
+        await tap(action('Close'));
         await tap(
           find.descendant(
             of: find.byType(DeploymentAction),

@@ -108,7 +108,17 @@ class OutputResultStatus extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(child: McStatus(title: title)),
+        Expanded(
+          child: McStatus(
+            title: title,
+            detail:
+                controller.needsRead &&
+                    !controller.loading &&
+                    controller.problem == null
+                ? 'Refresh to check the current output files.'
+                : null,
+          ),
+        ),
         McIconAction(
           label: 'Dismiss result',
           icon: const Icon(Icons.close),

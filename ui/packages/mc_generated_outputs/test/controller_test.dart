@@ -8,6 +8,7 @@ import 'package:mc_generated_outputs/src/unfinished_review.dart';
 import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 import 'package:mc_client/mc_client.dart';
 import 'package:mc_generated_outputs/src/output_controller.dart';
+import 'package:mc_generated_outputs/src/output_pane.dart';
 import 'package:mc_generated_outputs/src/output_tree.dart';
 
 OutputScope scope(String workspace) => OutputScope(
@@ -102,6 +103,112 @@ class Outputs implements GeneratedOutputsClient {
 }
 
 void main() {
+  testWidgets(
+    'a short output pane keeps unknown-result recovery and its error reachable',
+    (tester) async {
+      await tester.runAsync(() async {
+        final font = FontLoader('packages/mc_ui_foundation/Roboto');
+        for (final weight in ['Regular', 'Medium', 'Bold']) {
+          font.addFont(
+            rootBundle.load(
+              'packages/mc_ui_foundation/assets/fonts/Roboto-$weight.ttf',
+            ),
+          );
+        }
+        await font.load();
+      });
+      final api = Outputs()
+        ..loseReply = true
+        ..incomplete = true;
+      final loadedScope = OutputScope(
+        scope('one').reference,
+        '/game',
+        const [
+          OutputLocation(
+            id: 'location',
+            workspaceId: 'one',
+            contextId: 'context-one',
+            name: 'Tool files',
+            kind: OutputLocationKind.toolFolder,
+            revision: 1,
+            status: OutputLocationStatus.ready,
+            physicalPath: '/outputs',
+          ),
+        ],
+        const [],
+        const [],
+      );
+      final loaded = OutputSnapshot(
+        'checked',
+        loadedScope,
+        DateTime.utc(2026),
+        1,
+        1,
+        1,
+      );
+      api.reading = (_) async => loadedScope;
+      api.paging = (_, _, _) async =>
+          OutputPage(loaded, [file('output')], 1, null, 1, 1);
+      final controller = OutputController();
+      addTearDown(controller.dispose);
+      controller.attach(api, 'one', available: true);
+      await tester.pump();
+      controller.snapshot = loaded;
+      controller.tools.attach(api, loaded);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: mcTheme(Brightness.light),
+          home: Scaffold(
+            body: MediaQuery(
+              data: const MediaQueryData(textScaler: TextScaler.linear(1.5)),
+              child: Align(
+                alignment: Alignment.topLeft,
+                child: SizedBox(
+                  width: 680,
+                  height: 317.25,
+                  child: OutputPane(
+                    controller: controller,
+                    kind: OutputLocationKind.toolFolder,
+                    narrow: true,
+                    onInspect: () {},
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      await controller.apply([
+        file('output').selection,
+      ], const MoveOutputToMod(NewOutputMod('new-mod', 'Output', '1')));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(controller.problem, isNotNull);
+      final read = find.byWidgetPredicate(
+        (w) => w is McAction && w.label == 'Read action result',
+      );
+      await tester.ensureVisible(read);
+      await tester.tap(read);
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(controller.result?.complete, isFalse);
+      final resume = find.byWidgetPredicate(
+        (w) => w is McAction && w.label == 'Continue review',
+      );
+      await tester.ensureVisible(resume);
+      await tester.tap(resume);
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(api.applications, 1);
+      expect(api.resumes, 1);
+      expect(controller.result?.complete, isTrue);
+      expect(controller.pendingAction, isNull);
+    },
+    variant: TargetPlatformVariant.only(TargetPlatform.windows),
+  );
+
   testWidgets(
     'a restarted review is read by its durable ID before the user continues it',
     (tester) async {
