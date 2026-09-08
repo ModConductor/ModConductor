@@ -350,6 +350,16 @@ module internal GenerationFixtures =
             |> wait
             |> result
 
+        let unstamped = switch 0L first None
+        let missingStamp = store.Generations.Start(unstamped, []) |> wait
+
+        writer.WriteBoolean(
+            "newGenerationRequiresStamp",
+            Result.isError missingStamp
+            && (store.Deployment.Read unstamped.Id |> wait).IsNone
+            && (store.Deployment.Context contextId |> wait).IsNone
+        )
+
         let firstReceipt =
             store.Generations.Start(switch 0L first (Some first.Sources), [])
             |> wait
@@ -487,6 +497,31 @@ module internal GenerationFixtures =
         )
 
         writer.WriteNumber("generationCopiedBytes", second.Measurements.CopiedBytes)
+
+        let neverRecorded = build (Guid.NewGuid()) (Some second.Generation)
+        let currentSelection = InventoryObservations.read store profile
+
+        selection.Change(
+            profile,
+            currentSelection.SelectionRevision,
+            [ modId ],
+            SelectionEdit.Enable true
+        )
+        |> wait
+        |> result
+        |> ignore
+
+        let staleWithoutStamp = switch 1L neverRecorded None
+        let unstampedStale = store.Generations.Start(staleWithoutStamp, []) |> wait
+
+        writer.WriteBoolean(
+            "staleNewGenerationWithoutStampRefused",
+            Result.isError unstampedStale
+            && (store.Deployment.Read staleWithoutStamp.Id |> wait).IsNone
+            && (store.Deployment.Generation(contextId, neverRecorded.Generation.Id) |> wait).IsNone
+        )
+
+        let second = build (Guid.NewGuid()) (Some second.Generation)
 
         let secondReceipt =
             store.Generations.Start(switch 1L second (Some second.Sources), [])

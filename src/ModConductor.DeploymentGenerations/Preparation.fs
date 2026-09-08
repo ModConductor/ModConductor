@@ -17,6 +17,71 @@ type internal PreparedBuild =
       SeedBytes: int64
       Capacity: (Location * int64 * int64) list }
 
+module internal GenerationCapacity =
+    let private add left right = Checked.(+) left right
+
+    let private entries count =
+        add 65536L (Checked.(*) (int64 count) 4096L)
+
+    let required
+        (request: BuildRequest)
+        (managed: ResolvedFile list)
+        (secondary: ResolvedFile list)
+        (bindings: (WorkingLocation * TargetFile * bool * ResolvedFile list) list)
+        (seeds: (Guid * Location * LogicalPath * SourcePin) list)
+        =
+        try
+            [ yield request.Storage, entries managed.Length
+              if not secondary.IsEmpty then
+                  yield
+                      request.SecondaryStorage,
+                      secondary
+                      |> List.fold
+                          (fun total file ->
+                              add total (fst (GenerationFiles.content file.Winner.Source)))
+                          (entries secondary.Length)
+              for binding, _, _, _ in bindings do
+                  yield binding.Root, entries 0
+              for root in request.Roots do
+                  let immutableCount =
+                      managed
+                      |> List.filter (fun file -> file.Target.Root = root.Root.Id)
+                      |> List.length
+
+                  let workingCount =
+                      bindings
+                      |> List.filter (fun (_, target, _, _) -> target.Root = root.Root.Id)
+                      |> List.length
+
+                  yield root.Directory, entries (Checked.(+) immutableCount workingCount)
+              for _, root, _, pin in seeds do
+                  yield root, add (fst (GenerationFiles.content pin)) 4096L ]
+            |> List.groupBy (fun (location, _) -> location.Identity.Device)
+            |> List.map (fun (_, charges) ->
+                fst charges.Head, charges |> List.fold (fun total (_, bytes) -> add total bytes) 0L)
+        with :? OverflowException ->
+            raise (RecoveryException RecoveryError.Limit)
+
+    let sum values =
+        try
+            values |> Seq.fold add 0L
+        with :? OverflowException ->
+            raise (RecoveryException RecoveryError.Limit)
+
+    let check available requirements =
+        let capacity =
+            requirements |> List.map (fun (root, needed) -> root, needed, available root)
+
+        if capacity |> List.exists (fun (_, needed, free) -> free < needed) then
+            raise (
+                RecoveryException(
+                    RecoveryError.Unavailable
+                        "There is not enough storage for the required copies and links."
+                )
+            )
+
+        capacity
+
 module internal GenerationPreparation =
     open GenerationFiles
 
@@ -112,34 +177,18 @@ module internal GenerationPreparation =
                     | None -> Some(binding.Declaration, binding.Root, path, seed.Winner.Source)))
 
         let copiedBytes =
-            secondaryCopies |> List.sumBy (fun file -> content file.Winner.Source |> fst)
+            secondaryCopies
+            |> Seq.map (fun file -> content file.Winner.Source |> fst)
+            |> GenerationCapacity.sum
 
-        let seedBytes = seedCopies |> List.sumBy (fun (_, _, _, pin) -> content pin |> fst)
-        let metadataBytes = 65536L + int64 managed.Length * 4096L
-
-        let requirements =
-            [ yield request.Storage, metadataBytes
-              yield request.SecondaryStorage, copiedBytes + 65536L
-              for binding, _, _, _ in bindings do
-                  yield binding.Root, 65536L
-              for root in request.Roots do
-                  yield root.Directory, metadataBytes
-              for _, root, _, pin in seedCopies do
-                  yield root, fst (content pin) + 4096L ]
-            |> List.groupBy (fun (location, _) -> location.Identity.Device)
-            |> List.map (fun (_, entries) -> fst entries.Head, entries |> List.sumBy snd)
+        let seedBytes =
+            seedCopies
+            |> Seq.map (fun (_, _, _, pin) -> content pin |> fst)
+            |> GenerationCapacity.sum
 
         let capacity =
-            requirements
-            |> List.map (fun (root, needed) -> let free = available root in root, needed, free)
-
-        if capacity |> List.exists (fun (_, needed, free) -> free < needed) then
-            raise (
-                RecoveryException(
-                    RecoveryError.Unavailable
-                        "There is not enough storage for the required copies and links."
-                )
-            )
+            GenerationCapacity.required request managed secondaryCopies bindings seedCopies
+            |> GenerationCapacity.check available
 
         let overlaps (left: Location) (right: Location) =
             left.Identity = right.Identity

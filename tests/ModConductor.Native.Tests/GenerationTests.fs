@@ -11,6 +11,12 @@ type GenerationTests() =
             .GetProperty(name: string)
             .GetBoolean()
 
+    let correction name =
+        NativeObservations.report.RootElement
+            .GetProperty("generationCorrections")
+            .GetProperty(name: string)
+            .GetBoolean()
+
     [<Test>]
     member _.``generation switching should share exact managed payloads and leave base files in place``
         ()
@@ -31,6 +37,9 @@ type GenerationTests() =
     member _.``retained generations should recover without rolling back mutable copies or altering immutable sources``
         ()
         =
+        correction "partialSeedNotPublished" |> should equal true
+        correction "seedRetryPublishesComplete" |> should equal true
+        correction "seedPublicationNeverOverwrites" |> should equal true
         flag "interruptedSwitchRecorded" |> should equal true
         flag "sourceBytesAndPermissionsUnchanged" |> should equal true
         flag "ordinaryWritesRefused" |> should equal true
@@ -44,6 +53,13 @@ type GenerationTests() =
     member _.``deployment should refuse live processes stale inputs changed base and foreign targets without effects``
         ()
         =
+        correction "reusedSecondaryNeedsNoCopyCapacity" |> should equal true
+        correction "secondaryEntriesCharged" |> should equal true
+        correction "targetCostsRemainOnTheirDevice" |> should equal true
+        correction "workingActivationCharged" |> should equal true
+        correction "capacityOverflowRefused" |> should equal true
+        flag "newGenerationRequiresStamp" |> should equal true
+        flag "staleNewGenerationWithoutStampRefused" |> should equal true
         flag "closePreservesActivePreparation" |> should equal true
         flag "runningGameRefused" |> should equal true
         flag "wholeRootRefusedWithoutEffects" |> should equal true

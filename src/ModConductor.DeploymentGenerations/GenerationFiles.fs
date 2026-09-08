@@ -86,7 +86,7 @@ module internal GenerationFiles =
 
         walk directory (LogicalPath.components path)
 
-    let copy token pin source destination path readOnly =
+    let private copyAtCheckpoint token pin source destination path readOnly afterChunk =
         let expectedLength, expectedHash = content pin
 
         read source (fun input ->
@@ -111,6 +111,7 @@ module internal GenerationFiles =
                             RecoveryFiles.fail "A copied source changed length."
 
                         output.Write(buffer, 0, count)
+                        afterChunk total
 
                 output.Flush true
 
@@ -129,6 +130,34 @@ module internal GenerationFiles =
                         File.SetUnixFileMode(output.SafeFileHandle, UnixFileMode.UserRead)
 
                 identity))
+
+    let copy token pin source destination path readOnly =
+        copyAtCheckpoint token pin source destination path readOnly ignore
+
+    let seedAtCheckpoint (token: CancellationToken) pin source destination path afterChunk =
+        let parts = LogicalPath.components path
+
+        let temporary =
+            logical (
+                List.take (parts.Length - 1) parts
+                @ [ ".mc-seed-" + Guid.NewGuid().ToString("N") + ".tmp" ]
+            )
+
+        let identity =
+            copyAtCheckpoint token pin source destination temporary false afterChunk
+
+        token.ThrowIfCancellationRequested()
+
+        RecoveryFiles.withParent destination temporary (fun parent name ->
+            match parent.InspectEntry name with
+            | Some entry when entry.Identity = identity && entry.Kind = EntryKind.RegularFile ->
+                parent.MoveOriginal(name, entry, parent, List.last parts)
+            | _ -> RecoveryFiles.fail "The prepared working seed changed before publication.")
+
+        identity
+
+    let seed token pin source destination path =
+        seedAtCheckpoint token pin source destination path ignore
 
     let protect (root: Location) =
         let rec walk (location: Location) =

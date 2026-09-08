@@ -135,7 +135,7 @@ module internal GenerationBuilder =
                     seedCopies
                     |> List.filter (fun (declaration, _, _, _) ->
                         declaration = binding.Declaration) do
-                    copy token pin (source sources pin) root path false |> ignore
+                    seed token pin (source sources pin) root path |> ignore
 
                 let identity =
                     RecoveryFiles.withParent binding.Root binding.Path (fun parent name ->
@@ -215,5 +215,7 @@ module internal GenerationBuilder =
               CopiedBytes = copiedBytes
               WritableSeedBytes = seedBytes
               BaseCopiedBytes = 0L
-              AvailableBytes = capacity |> List.sumBy (fun (_, _, free) -> free)
-              RequiredBytes = capacity |> List.sumBy (fun (_, needed, _) -> needed) } }
+              AvailableBytes =
+                capacity |> Seq.map (fun (_, _, free) -> free) |> GenerationCapacity.sum
+              RequiredBytes =
+                capacity |> Seq.map (fun (_, needed, _) -> needed) |> GenerationCapacity.sum } }

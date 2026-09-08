@@ -104,7 +104,16 @@ type internal DeploymentGenerationStore
         protect (fun () ->
             task {
                 GenerationFiles.checkProcesses processes
-                return! recovery.Start request
+
+                match request.ExpectedSources with
+                | Some _ -> return! recovery.Start request
+                | None ->
+                    let! retained = recovery.Generation(request.ContextId, request.Generation.Id)
+
+                    if retained = Some request.Generation then
+                        return! recovery.Start request
+                    else
+                        return Error RecoveryError.Stale
             })
 
     member _.Run(id, revision, restore, cancellation, afterEffect, processes) =

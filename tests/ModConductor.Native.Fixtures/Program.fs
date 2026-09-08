@@ -31,6 +31,7 @@ let main args =
             writer.WriteStartObject()
             writer.WriteBoolean("nativeAot", not RuntimeFeature.IsDynamicCodeSupported)
             GenerationFixtures.observe writer args[1]
+            GenerationCorrectionFixtures.observe writer args[1]
             writer.WriteEndObject()
             writer.Flush()
             0
