@@ -308,7 +308,17 @@ void main() {
               !controller().inspector.loading &&
               controller().inspector.selected?.copy == pinned,
         );
-        await tap(find.text('Saved version and history'));
+        final history = find.text('Saved version and history');
+        await tester.scrollUntilVisible(
+          history,
+          160,
+          scrollable: find.descendant(
+            of: find.byType(McInspector),
+            matching: find.byType(Scrollable),
+          ),
+          maxScrolls: 12,
+        );
+        await tap(history);
         await until(() => controller().inspector.historyLoaded);
         expect(controller().inspector.history.length, 2);
         await capture('saved-history-dark');
