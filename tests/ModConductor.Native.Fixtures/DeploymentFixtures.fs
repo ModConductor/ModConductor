@@ -13,19 +13,6 @@ open ModConductor.Persistence
 open DeploymentFixtureData
 
 module DeploymentFixtures =
-    exception private Interrupted
-
-    let private interrupt wanted phase index =
-        if phase = wanted && (index = 0 || index = -1) then
-            raise Interrupted
-
-    let private stopped action =
-        try
-            action () |> ignore
-            invalidOp "Expected an interruption."
-        with Interrupted ->
-            ()
-
     let private flag (writer: Utf8JsonWriter) name condition =
         check condition name
         writer.WriteBoolean((name: string), condition)
@@ -232,7 +219,7 @@ module DeploymentFixtures =
                     PreserveOriginals = [ target "shared.txt"; target "folder" ] }
 
             let receipt = get (originalStore.Deployment.Start explicit) |> ok
-            stopped (fun () -> run originalStore receipt false (interrupt "installed"))
+            stopped (fun () -> run originalStore receipt false (interrupt "install-intent"))
             let partial = read originalStore receipt.Id
 
             flag
@@ -317,7 +304,6 @@ module DeploymentFixtures =
                   "remove-intent"
                   "removed"
                   "install-intent"
-                  "installed"
                   "verified"
                   "committed" ]
 
@@ -344,7 +330,7 @@ module DeploymentFixtures =
 
                 resumeCount <- resumeCount + 1
 
-            flag writer "everyActivationPhaseRecovers" (resumeCount = phases.Length)
+            flag writer "recordedActivationPhasesRecover" (resumeCount = phases.Length)
 
             for phase in [ "restore-intent"; "restored"; "verified"; "committed" ] do
                 let item = create (Path.Combine(root, "restore-" + phase))
@@ -443,7 +429,7 @@ module DeploymentFixtures =
                         false,
                         cancellation.Token,
                         fun phase index ->
-                            if phase = "installed" && index = 0 then
+                            if phase = "remove-intent" && index = 1 then
                                 cancellation.Cancel()
                     )
                 )
@@ -523,12 +509,24 @@ module DeploymentFixtures =
             child.Terminate()
             use recovered = new OperationStore(crash.State)
             let abandoned = read recovered crashId
-            run recovered abandoned false (fun _ _ -> ()) |> ok |> ignore
+
+            let ambiguous =
+                RecoveryFiles.observe abandoned.Context abandoned.Changes.Head.Target
+
+            let outcome = run recovered abandoned false (fun _ _ -> ())
 
             flag
                 writer
-                "processLossReleasesOwner"
-                (contents crash "added.txt" = "new" && (context recovered).Pending.IsNone)
+                "unrecordedCreateRequiresReviewAfterProcessLoss"
+                (match outcome with
+                 | Error(RecoveryError.Mismatch _) ->
+                     RecoveryFiles.observe abandoned.Context abandoned.Changes.Head.Target = ambiguous
+                     && ambiguous.IsSome
+                     && (read recovered crashId).Phase = ReceiptPhase.Blocked
+                     && (context recovered).Active = Some crash.First.Id
+                 | _ -> false)
+
+            DeploymentBoundaryFixtures.observe writer root
 
             let corrupt = create (Path.Combine(root, "corrupt"))
             let corruptId = Guid.NewGuid()

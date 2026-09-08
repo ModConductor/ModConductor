@@ -40,10 +40,7 @@ module internal RecoverySteps =
 
                         let actual = RecoveryFiles.observe receipt.Context change.Target
 
-                        let before =
-                            match change.Before with
-                            | EntryState.Link(spec, _) -> EntryState.Link(spec, None)
-                            | state -> state
+                        let before = change.Before
 
                         if
                             not (

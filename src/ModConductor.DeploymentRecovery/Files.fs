@@ -83,7 +83,7 @@ module internal RecoveryFiles =
         match expected, state with
         | EntryState.Missing, None -> true
         | EntryState.Link(spec, identity), Some actual ->
-            linkMatches spec actual && (identity.IsNone || identity = Some actual)
+            linkMatches spec actual && identity = Some actual
         | EntryState.Original original, Some _ -> originalMatches context original false
         | _ -> false
 
@@ -130,7 +130,8 @@ module internal RecoveryFiles =
             current
         else
             if current.IsSome then
-                fail "The deployment destination is occupied by a changed entry."
+                fail
+                    "The existing entry has no matching recorded identity; review it before recovery."
 
             match state with
             | EntryState.Missing -> None

@@ -13,6 +13,19 @@ open ModConductor.DeploymentRecovery
 open ModConductor.Persistence
 
 module internal DeploymentFixtureData =
+    exception Interrupted
+
+    let interrupt wanted phase index =
+        if phase = wanted && (index = 0 || index = -1) then
+            raise Interrupted
+
+    let stopped action =
+        try
+            action () |> ignore
+            invalidOp "Expected an interruption."
+        with Interrupted ->
+            ()
+
     let id value =
         Guid.Parse((string value).PadLeft(32, '0'))
 

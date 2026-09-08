@@ -74,10 +74,23 @@ module internal Preparation =
 
             if
                 targets
-                |> List.exists (fun (_, path) ->
-                    nested path originals || nested path generationPath)
+                |> List.exists (fun (targetRoot, path) ->
+                    targetRoot.Directory.Identity = root.Originals.Identity
+                    || targetRoot.Directory.Identity = generation.Directory.Identity
+                    || nested path originals
+                    || nested originals path
+                    || nested path generationPath
+                    || nested generationPath path)
             then
-                RecoveryFiles.fail "Generation and original storage must be outside every target."
+                RecoveryFiles.fail
+                    "Targets, generation storage and original storage must be disjoint."
+
+            if
+                generation.Directory.Identity = root.Originals.Identity
+                || nested generationPath originals
+                || nested originals generationPath
+            then
+                RecoveryFiles.fail "Generation and original storage must be disjoint."
 
             if root.Directory.Identity.Device <> root.Originals.Identity.Device then
                 RecoveryFiles.fail "Original preservation requires the target volume."

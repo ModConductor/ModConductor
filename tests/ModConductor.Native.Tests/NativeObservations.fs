@@ -43,6 +43,7 @@ type NativeObservationSetup() =
             )
 
         match Environment.GetEnvironmentVariable "MC_NATIVE_SCOPE" with
+        | "storage" -> info.ArgumentList.Add "--storage"
         | "deployment-recovery" -> info.ArgumentList.Add "--deployment-recovery"
         | "file-plans" -> info.ArgumentList.Add "--file-plans"
         | "proton-contexts" -> info.ArgumentList.Add "--proton-contexts"

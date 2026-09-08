@@ -16,6 +16,9 @@ let main args =
         then
             DeploymentFixtures.run args[1]
             0
+        elif args.Length = 2 && args[0] = "--storage" && Path.IsPathFullyQualified args[1] then
+            StorageFixtures.run args[1]
+            0
         elif
             args.Length = 2
             && args[0] = "--migrate-state"

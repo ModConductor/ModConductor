@@ -277,3 +277,17 @@ module StorageFixtures =
             writer.WriteEndObject()
 
         writer.WriteEndObject()
+
+    let run primary =
+        use output = Console.OpenStandardOutput()
+        use writer = new Utf8JsonWriter(output, JsonWriterOptions(Indented = true))
+        writer.WriteStartObject()
+
+        writer.WriteBoolean(
+            "nativeAot",
+            not Runtime.CompilerServices.RuntimeFeature.IsDynamicCodeSupported
+        )
+
+        observe writer primary
+        writer.WriteEndObject()
+        writer.Flush()

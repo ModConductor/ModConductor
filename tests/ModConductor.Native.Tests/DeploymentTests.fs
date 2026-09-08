@@ -27,9 +27,10 @@ type DeploymentTests() =
     member _.``interrupted activation and restoration should resume from durable effects after owner loss``
         ()
         =
-        flag "everyActivationPhaseRecovers" |> should equal true
+        flag "recordedActivationPhasesRecover" |> should equal true
         flag "interruptedRestoreRecovers" |> should equal true
-        flag "processLossReleasesOwner" |> should equal true
+        flag "recordedIdentitySurvivesOwnerLoss" |> should equal true
+        flag "unrecordedCreateRequiresReviewAfterProcessLoss" |> should equal true
         flag "cancelledEffectRemainsRecoverable" |> should equal true
         flag "originalsRecordedBeforeEffects" |> should equal true
         flag "explicitOriginalsRestored" |> should equal true
@@ -41,6 +42,10 @@ type DeploymentTests() =
         flag "foreignFileBeforeResumePreserved" |> should equal true
         flag "foreignLinkBeforeRetryPreserved" |> should equal true
         flag "originalRestoreNeverOverwrites" |> should equal true
+        flag "unrecordedActivationLinkPreserved" |> should equal true
+        flag "unrecordedRestoreLinkPreserved" |> should equal true
+        flag "overlappingStorageRefusedBeforeRows" |> should equal true
+        flag "disjointTargetsMayShareOriginals" |> should equal true
         flag "changedGenerationRefusesBeforeEffects" |> should equal true
         flag "corruptReceiptHasNoEffects" |> should equal true
         flag "partialReceiptDiscoverable" |> should equal true
