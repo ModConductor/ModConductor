@@ -264,6 +264,16 @@ module internal OutputActionRows =
             |> Option.defaultWith (fun () -> OutputRows.fail OutputError.NotFound)
 
         if not record.Result.Complete then
+            if
+                OutputRows.revision
+                    database.Connection
+                    transaction
+                    record.Scope.WorkspaceId
+                    record.Scope.ContextId
+                <> record.Scope.Revision
+            then
+                OutputRows.fail OutputError.Stale
+
             OutputRows.idle database.Connection transaction record.Scope.WorkspaceId
 
             Sqlite.execute

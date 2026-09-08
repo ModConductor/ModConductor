@@ -648,3 +648,4 @@ module GeneratedOutputFixtures =
             |> ignore
 
         GenerationCleanup.normalize area
+        GeneratedOutputRecoveryFixtures.observe writer primary

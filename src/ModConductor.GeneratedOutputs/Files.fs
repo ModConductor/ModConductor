@@ -199,15 +199,16 @@ module internal OutputFiles =
             | _ -> false)
 
     let remove (observation: OutputObservation) token =
-        if not (current observation token) then
-            false
-        else
-            use root =
-                HeldDirectory.Open(observation.Backing.Root, observation.Backing.RootIdentity)
+        use root =
+            HeldDirectory.Open(observation.Backing.Root, observation.Backing.RootIdentity)
 
-            withParent root (path observation.Backing observation.File.Path) (fun parent name ->
+        withParent root (path observation.Backing observation.File.Path) (fun parent name ->
+            match parent.InspectEntry name with
+            | None -> true
+            | Some _ when current observation token ->
                 match observation.File.Identity with
-                | None -> ()
-                | Some identity -> parent.RemoveFile(name, identity))
-
-            true
+                | None -> false
+                | Some identity ->
+                    parent.RemoveFile(name, identity)
+                    true
+            | Some _ -> false)

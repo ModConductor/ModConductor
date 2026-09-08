@@ -132,23 +132,23 @@ type GeneratedOutputSession internal (repository: IOutputRepository) =
                         if state.Disposition = OutputDisposition.Pending then
                             let! disposition =
                                 Task.Run(fun () ->
-                                    let current = OutputFiles.current observation token
-
-                                    if not current then
-                                        OutputDisposition.Changed
-                                    else
-                                        match record.Action with
-                                        | OutputAction.Keep -> OutputDisposition.Kept
-                                        | OutputAction.SaveCopyToMod _ -> OutputDisposition.Copied
-                                        | OutputAction.Discard
-                                        | OutputAction.MoveToMod _ ->
-                                            if OutputFiles.remove observation token then
-                                                match record.Action with
-                                                | OutputAction.Discard ->
-                                                    OutputDisposition.Discarded
-                                                | _ -> OutputDisposition.Moved
-                                            else
-                                                OutputDisposition.Changed)
+                                    match record.Action with
+                                    | OutputAction.Keep
+                                    | OutputAction.SaveCopyToMod _ ->
+                                        if OutputFiles.current observation token then
+                                            match record.Action with
+                                            | OutputAction.Keep -> OutputDisposition.Kept
+                                            | _ -> OutputDisposition.Copied
+                                        else
+                                            OutputDisposition.Changed
+                                    | OutputAction.Discard
+                                    | OutputAction.MoveToMod _ ->
+                                        if OutputFiles.remove observation token then
+                                            match record.Action with
+                                            | OutputAction.Discard -> OutputDisposition.Discarded
+                                            | _ -> OutputDisposition.Moved
+                                        else
+                                            OutputDisposition.Changed)
 
                             let! saved = repository.SaveEntry(record.Id, selected, disposition)
                             result <- saved

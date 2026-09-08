@@ -51,3 +51,23 @@ type GeneratedOutputTests() =
         flag "savedRecipeSurvivesRestart" |> should equal true
         flag "restartRestoreKeepsPinsAndAbsentStoppedSlot" |> should equal true
         flag "restoreDoesNotChangeConfiguredProfileSelection" |> should equal true
+
+    [<Test>]
+    member _.``resuming an unfinished review should respect later output configuration while completed replay stays historical``
+        ()
+        =
+        flag "stoppedOutputRefusesOldDiscardAfterRestart" |> should equal true
+
+        flag "completedOutputReplayRemainsHistoricalAfterConfigurationChange"
+        |> should equal true
+
+    [<Test>]
+    member _.``resuming after removal should complete the absent intent without republishing or removing replacement bytes``
+        ()
+        =
+        flag "removedOutputRetainsPendingPublicationBeforeResultSave"
+        |> should equal true
+
+        flag "restartCompletesAbsentMoveWithoutAnotherPublication" |> should equal true
+        flag "restartCompletesAbsentDiscardTruthfully" |> should equal true
+        flag "restartLeavesPresentReplacementUntouched" |> should equal true
