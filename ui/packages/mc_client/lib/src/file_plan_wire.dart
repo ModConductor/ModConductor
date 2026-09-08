@@ -39,6 +39,8 @@ PlannedFileNode node(wire.PlannedFileNode value) => PlannedFileNode(
   sourceName: value.sourceName,
   copies: value.copies,
   disposition: switch (value.disposition) {
+    wire.PlannedFileDisposition.PLANNED_FILE_DISPOSITION_WRITABLE =>
+      PlannedFileDisposition.writable,
     wire.PlannedFileDisposition.PLANNED_FILE_DISPOSITION_PLANNED =>
       PlannedFileDisposition.planned,
     wire.PlannedFileDisposition.PLANNED_FILE_DISPOSITION_ABSENT =>
@@ -110,6 +112,7 @@ FilePlanInspection inspection(wire.FilePlanInspectionReply reply) =>
         List.unmodifiable(reply.inspection.target.components),
         List.unmodifiable(reply.inspection.copies.map(inspected)),
         reply.inspection.hasNext() ? decodeCursor(reply.inspection.next) : null,
+        writable: reply.inspection.writable,
         focusedCopy: reply.inspection.hasFocusedCopy()
             ? inspected(reply.inspection.focusedCopy)
             : null,

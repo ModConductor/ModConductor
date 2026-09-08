@@ -1,3 +1,5 @@
+import 'package:mc_generated_outputs/mc_generated_outputs.dart';
+
 import 'dart:async';
 import 'dart:io';
 
@@ -55,6 +57,8 @@ class ModConductorApp extends StatefulWidget {
     this.modOrganization,
     this.gameContexts,
     this.filePlans,
+    this.outputs,
+    this.deployments,
     this.steamDiscovery,
     this.protonContexts,
     this.chooseGameDirectory = _chooseGameDirectory,
@@ -67,6 +71,8 @@ class ModConductorApp extends StatefulWidget {
   final ModOrganizationClient? modOrganization;
   final GameContextsClient? gameContexts;
   final FilePlansClient? filePlans;
+  final GeneratedOutputsClient? outputs;
+  final DeploymentsClient? deployments;
   final SteamDiscoveryClient? steamDiscovery;
   final ProtonContextsClient? protonContexts;
   final GameDirectoryChooser chooseGameDirectory;
@@ -89,17 +95,55 @@ class _ModConductorAppState extends State<ModConductorApp> {
   final _mods = ModLibraryController();
   final _game = GameContextController();
   final _files = FilePlansController();
+  final _outputs = OutputController();
+  final _deployments = DeploymentController();
+  int? _selectionRevision, _catalogueRevision;
   int? _contextRevision;
+  void _modsChanged() {
+    if ((_selectionRevision != null &&
+            _selectionRevision != _mods.inventory.revision) ||
+        (_catalogueRevision != null &&
+            _catalogueRevision != _mods.inventory.catalogueRevision)) {
+      _deployments.invalidate();
+    }
+    _selectionRevision = _mods.inventory.revision;
+    _catalogueRevision = _mods.inventory.catalogueRevision;
+  }
+
+  void _outputsChanged() {
+    _files.invalidate();
+    _deployments.invalidate();
+    unawaited(_mods.inventory.refreshCatalogue());
+  }
+
+  void _deploymentChanged() {
+    _files.invalidate();
+    _outputs.invalidate();
+  }
+
   void _gameChanged() {
     final revision = _game.state?.revision;
     if (_contextRevision != null && revision != _contextRevision) {
       _files.invalidate();
+      _outputs.invalidate();
+      _deployments.invalidate();
     }
     _contextRevision = revision;
     if (mounted) setState(() {});
   }
 
   void _syncWorkspaceConsumers() {
+    _outputs.attach(
+      widget.outputs,
+      _workspaces.workspace?.id,
+      available: _workspaces.canEdit,
+    );
+    _deployments.attach(
+      widget.deployments,
+      _workspaces.workspace?.selectedProfile?.id,
+      _workspaces.workspace?.selectedProfile?.name,
+      available: _workspaces.canEdit,
+    );
     _files.attach(
       widget.filePlans,
       _workspaces.workspace?.selectedProfile?.id,
@@ -124,6 +168,9 @@ class _ModConductorAppState extends State<ModConductorApp> {
   void initState() {
     super.initState();
     _game.addListener(_gameChanged);
+    _mods.addListener(_modsChanged);
+    _outputs.onChanged = _outputsChanged;
+    _deployments.onChanged = _deploymentChanged;
     _workspaces.addListener(_syncWorkspaceConsumers);
     _workspaces.attach(widget.workspaces);
     _syncWorkspaceConsumers();
@@ -140,6 +187,9 @@ class _ModConductorAppState extends State<ModConductorApp> {
   void dispose() {
     _workspaces.removeListener(_syncWorkspaceConsumers);
     _game.removeListener(_gameChanged);
+    _mods.removeListener(_modsChanged);
+    _outputs.dispose();
+    _deployments.dispose();
     _files.dispose();
     _mods.dispose();
     _game.dispose();
@@ -218,6 +268,11 @@ class _ModConductorAppState extends State<ModConductorApp> {
                   DesktopConnecting() ||
                   DesktopConnected() => WorkspaceBrowser(
                     controller: _workspaces,
+                    headerActions: widget.deployments == null
+                        ? null
+                        : (context, workspace) => [
+                            DeploymentAction(controller: _deployments),
+                          ],
                     gameContextBuilder: (context, workspace) =>
                         GameContextBrowser(
                           controller: _game,
@@ -232,9 +287,28 @@ class _ModConductorAppState extends State<ModConductorApp> {
                             workspacePath: workspace.path,
                             chooseDirectory: widget.chooseDirectory,
                           )
-                        : FilePlanningWorkbench(
+                        : widget.outputs == null
+                        ? FilePlanningWorkbench(
                             mods: _mods,
                             plans: _files,
+                            workspacePath: workspace.path,
+                            chooseDirectory: widget.chooseDirectory,
+                            profileName: workspace.selectedProfile?.name,
+                            archiveUnavailable:
+                                _game.state?.definition.unavailableCapabilities
+                                    .any(
+                                      (capability) =>
+                                          capability.name ==
+                                          'Archive inspection',
+                                    ) ??
+                                false,
+                          )
+                        : DeploymentOutputsWorkbench(
+                            mods: _mods,
+                            plans: _files,
+                            outputs: _outputs,
+                            profileId: workspace.selectedProfile?.id,
+                            organization: widget.modOrganization,
                             workspacePath: workspace.path,
                             chooseDirectory: widget.chooseDirectory,
                             profileName: workspace.selectedProfile?.name,

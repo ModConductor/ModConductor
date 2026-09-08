@@ -63,4 +63,5 @@ module internal Generations =
           Roots = input.Roots
           Observed = []
           Working = []
+          Provenance = None
           NativeTargets = Map.empty }

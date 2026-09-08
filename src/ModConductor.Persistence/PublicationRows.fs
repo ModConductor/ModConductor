@@ -38,7 +38,14 @@ module internal PublicationRows =
                   ExpectedRevision = reader.GetInt64 1
                   Phase = readPhase (reader.GetInt32 2) }
 
-    let prepare (connection: Microsoft.Data.Sqlite.SqliteConnection) owner modId expected version =
+    let prepare
+        (connection: Microsoft.Data.Sqlite.SqliteConnection)
+        owner
+        modId
+        expected
+        version
+        (composition: LibraryCompositionInput option)
+        =
         use transaction = connection.BeginTransaction(deferred = false)
 
         let result =
@@ -48,7 +55,15 @@ module internal PublicationRows =
             | Some receipt, Some row when
                 receipt.ModId = modId && receipt.ExpectedRevision = expected
                 ->
-                if receipt.Phase = PublicationPhase.Complete then
+                let matchingOrigin =
+                    match LibraryRows.origin connection transaction version, composition with
+                    | VersionOrigin.RegisteredSource, None -> true
+                    | VersionOrigin.Outputs action, Some input -> action = input.ActionId
+                    | _ -> false
+
+                if not matchingOrigin then
+                    Error LibraryError.IdentityConflict
+                elif receipt.Phase = PublicationPhase.Complete then
                     Ok(row, Replay)
                 elif
                     receipt.Phase = PublicationPhase.Observed
@@ -75,6 +90,13 @@ module internal PublicationRows =
             | Some _, _ -> Error LibraryError.IdentityConflict
             | None, None -> Error LibraryError.NotFound
             | None, Some row when row.Entry.Revision <> expected -> Error LibraryError.StaleRevision
+            | None, Some row when composition.IsNone && row.Entry.SourcePath.IsNone ->
+                Error LibraryError.UnsupportedAction
+            | None, Some row when
+                composition
+                |> Option.exists (fun input -> input.SourceVersion <> row.Entry.CurrentVersion)
+                ->
+                Error LibraryError.StaleRevision
             | None, Some row when row.Entry.Kind <> ModKind.Regular ->
                 Error LibraryError.UnsupportedAction
             | None, Some _ when
@@ -95,6 +117,20 @@ module internal PublicationRows =
                       "$mod", box (string modId)
                       "$revision", box expected
                       "$owner", box owner ]
+
+                composition
+                |> Option.iter (fun input ->
+                    Sqlite.execute
+                        connection
+                        transaction
+                        "INSERT INTO mod_version_origins VALUES($version,$action,$source,$label)"
+                        [ "$version", box (string version)
+                          "$action", box (string input.ActionId)
+                          "$source",
+                          input.SourceVersion
+                          |> Option.map (string >> box)
+                          |> Option.defaultValue (box DBNull.Value)
+                          "$label", box input.VersionLabel ])
 
                 LibraryRows.setStatus connection transaction modId InventoryStatus.Publishing
                 Ok(row, Capture)
@@ -187,7 +223,7 @@ module internal PublicationRows =
                 Sqlite.execute
                     connection
                     transaction
-                    "UPDATE mods SET current_version=$version,revision=revision+1,status=1 WHERE id=$mod"
+                    "UPDATE mods SET current_version=$version,revision=revision+1,status=1,version_text=COALESCE((SELECT version_label FROM mod_version_origins WHERE version_id=$version),version_text) WHERE id=$mod"
                     [ "$version", box (string version); "$mod", box (string receipt.ModId) ]
 
                 Ok (LibraryRows.find connection transaction receipt.ModId |> Option.get).Entry

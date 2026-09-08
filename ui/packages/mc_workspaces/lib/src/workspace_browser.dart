@@ -22,11 +22,13 @@ class WorkspaceBrowser extends StatefulWidget {
     this.chooseDirectory = chooseWorkspaceDirectory,
     this.modLibraryBuilder,
     this.gameContextBuilder,
+    this.headerActions,
   });
   final WorkspaceController controller;
   final DirectoryChooser chooseDirectory;
   final Widget Function(BuildContext, WorkspaceInfo)? modLibraryBuilder;
   final Widget Function(BuildContext, WorkspaceInfo)? gameContextBuilder;
+  final List<Widget> Function(BuildContext, WorkspaceInfo)? headerActions;
 
   @override
   State<WorkspaceBrowser> createState() => _WorkspaceBrowserState();
@@ -305,6 +307,7 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
                           setState(() => _mode = _WorkspaceMode.profiles),
                     ),
                   ),
+                  ...?widget.headerActions?.call(context, workspace),
                   McAction(
                     key: const ValueKey('close-workspace'),
                     label: 'Close workspace',

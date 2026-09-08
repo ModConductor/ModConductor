@@ -97,6 +97,10 @@ wire.InventoryModMetadata encodeMetadata(ModMetadata value) =>
       source: value.source,
       categories: value.categories.map(encodeCategory),
     );
+ModVersionOrigin origin(wire.ModVersionOrigin value) => ModVersionOrigin(
+  outputActionId: value.hasOutputActionId() ? value.outputActionId : null,
+);
+
 ModEntry entry(wire.InventoryMod value) => ModEntry(
   id: value.modId,
   workspaceId: value.workspaceId,
@@ -116,6 +120,7 @@ ModEntry entry(wire.InventoryMod value) => ModEntry(
       ? List.unmodifiable(value.sourcePath.components)
       : null,
   currentVersionId: value.hasCurrentVersionId() ? value.currentVersionId : null,
+  versionOrigin: value.hasVersionOrigin() ? origin(value.versionOrigin) : null,
 );
 ModEntry modReply(wire.ModReply value) => switch (value.whichOutcome()) {
   wire.ModReply_Outcome.mod => entry(value.mod),

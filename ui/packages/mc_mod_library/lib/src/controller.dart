@@ -50,6 +50,7 @@ class ModLibraryController extends ChangeNotifier {
   String? fileProblem, actionProblem, activity;
   int _nextFile = 0;
   String? selectedVersionId, _selectedMod, _pendingRegistration;
+  ModVersionOrigin? selectedVersionOrigin;
   int fileCount = 0;
 
   bool get connected => _client != null;
@@ -145,6 +146,7 @@ class ModLibraryController extends ChangeNotifier {
   void _pin(String? version) {
     cancelFiles();
     selectedVersionId = version;
+    selectedVersionOrigin = null;
     _nextFile = 0;
     fileCount = 0;
     filesComplete = false;
@@ -181,6 +183,7 @@ class ModLibraryController extends ChangeNotifier {
         fileProblem = 'Could not load this saved version.';
         return;
       }
+      selectedVersionOrigin = page.origin;
       final additions = <FileRowId, SavedFileNode>{};
       for (final entry in page.entries) {
         for (var length = 1; length <= entry.path.length; length++) {

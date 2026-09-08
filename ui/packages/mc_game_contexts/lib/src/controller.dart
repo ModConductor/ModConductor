@@ -5,6 +5,7 @@ import 'package:mc_client/mc_client.dart';
 
 class GameContextController extends ChangeNotifier {
   GameContextsClient? _client;
+  final _startupChecks = <String>{};
   String? _workspace;
   int _epoch = 0;
   bool _disposed = false;
@@ -35,6 +36,7 @@ class GameContextController extends ChangeNotifier {
     required bool editable,
   }) {
     final changed = client != _client || workspaceId != _workspace;
+    if (client != _client) _startupChecks.clear();
     _client = client;
     _workspace = workspaceId;
     this.editable = editable;
@@ -44,7 +46,9 @@ class GameContextController extends ChangeNotifier {
       needsRead = false;
       problem = null;
       loading = false;
-      if (client != null && workspaceId != null) unawaited(load());
+      if (client != null && workspaceId != null) {
+        unawaited(_load(initialize: true));
+      }
     }
     _notify();
   }
@@ -63,25 +67,38 @@ class GameContextController extends ChangeNotifier {
     ++_epoch;
     loading = false;
     state = result;
+    _startupChecks.add(result.workspaceId);
     needsRead = false;
     problem = null;
     _notify();
   }
 
-  Future<bool> load({bool refresh = false}) async {
+  Future<bool> load({bool refresh = false}) => _load(refresh: refresh);
+
+  Future<bool> _load({bool refresh = false, bool initialize = false}) async {
     final client = _client;
     final workspace = _workspace;
     if (client == null || workspace == null || loading) return false;
-    final checking = refresh && state?.binding != null;
+    var checking = refresh && state?.binding != null;
+    if (checking) _startupChecks.add(workspace);
     final epoch = ++_epoch;
     loading = true;
     problem = null;
     _notify();
     try {
-      final result = checking
+      var result = checking
           ? await client.refresh(workspace, state!.revision)
           : await client.read(workspace);
       if (_disposed || epoch != _epoch) return false;
+      state = result;
+      if (initialize &&
+          (result.binding?.needsCheck ?? false) &&
+          _startupChecks.add(workspace)) {
+        checking = true;
+        _notify();
+        result = await client.refresh(workspace, result.revision);
+        if (_disposed || epoch != _epoch) return false;
+      }
       state = result;
       needsRead = false;
       return true;

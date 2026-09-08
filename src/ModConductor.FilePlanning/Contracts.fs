@@ -80,6 +80,7 @@ type SourceStamp =
       SelectionRevision: int64
       ContextRevision: int64
       ExclusionRevision: int64
+      OutputRevision: int64
       Versions: (Guid * Guid option) list
       Deployment: string option }
 
@@ -93,7 +94,8 @@ type PlanSources =
       Context: GameContextState
       Profile: ProfileSnapshot
       Mods: ModLabel list
-      Hidden: Set<ModFile> }
+      Hidden: Set<ModFile>
+      Writable: WritableDeclaration list }
 
 type FileChange =
     { Id: int64
@@ -136,6 +138,7 @@ type IFilePlanRepository =
 
 [<RequireQualifiedAccess>]
 type FileDisposition =
+    | Writable
     | Planned
     | Absent
     | Unresolved
@@ -184,7 +187,8 @@ type InspectedCopy =
       CanUnhide: bool }
 
 type FileInspection =
-    { Snapshot: FilePlanSummary
+    { Writable: bool
+      Snapshot: FilePlanSummary
       Target: LogicalPath
       Copies: InspectedCopy list
       FocusedCopy: InspectedCopy option

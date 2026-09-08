@@ -32,10 +32,30 @@ type DeploymentProgress =
       Total: int
       Bytes: int64 }
 
+type DeploymentProfile =
+    { Id: Guid
+      Name: string
+      Revision: int64
+      EnabledMods: int }
+
+type SavedDeployment =
+    { Id: Guid
+      PreparedAt: DateTimeOffset option
+      Profile: DeploymentProfile option
+      Known: bool
+      Active: bool
+      Fingerprint: string
+      CanRestore: bool }
+
+type SavedDeploymentPage =
+    { Entries: SavedDeployment list
+      NextBefore: int64 option }
+
 type DeploymentStatus =
     { WorkspaceId: Guid
       Revision: int64
       ActiveGeneration: Guid option
+      Active: SavedDeployment option
       PendingReceipt: Guid option
       Sources: SourceStamp }
 
@@ -44,6 +64,10 @@ type PreparedDeployment =
       WorkspaceId: Guid
       Fingerprint: string
       Sources: SourceStamp
+      Profile: DeploymentProfile option
+      WritableFiles: int
+      ChangedPaths: int
+      PreservedOriginals: int
       ManagedLinks: int
       CopiedBytes: int64
       RequiredBytes: int64 }
@@ -61,6 +85,9 @@ type DeploymentReceipt =
 
 type IDeploymentBackend =
     abstract Read: profile: Guid -> Task<Result<DeploymentStatus, DeploymentError>>
+
+    abstract Saved:
+        profile: Guid * before: int64 option -> Task<Result<SavedDeploymentPage, DeploymentError>>
 
     abstract Prepare:
         id: Guid *
@@ -101,6 +128,8 @@ type internal PreparedState =
 
 type internal IDeploymentRepository =
     abstract Read: Guid -> Task<PlanSources * Context option>
+    abstract Saved: Guid * Guid option * int64 option -> Task<SavedDeploymentPage>
+    abstract SavedOne: Guid * Guid -> Task<SavedDeployment option>
 
     abstract Prepare:
         Guid * PlanSources * Context option * (DeploymentProgress -> unit) * CancellationToken ->

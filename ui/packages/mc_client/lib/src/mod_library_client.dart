@@ -129,6 +129,7 @@ class ModLibraryClient {
           ),
         ),
         reply.version.hasNextOffset() ? reply.version.nextOffset : null,
+        origin: mapping.origin(reply.version.origin),
       ),
       wire.ModVersionReply_Outcome.fault => mapping.reject(reply.fault),
       wire.ModVersionReply_Outcome.notSet => throw const FormatException(

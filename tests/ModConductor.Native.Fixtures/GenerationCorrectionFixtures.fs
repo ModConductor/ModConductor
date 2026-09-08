@@ -153,6 +153,7 @@ module internal GenerationCorrectionFixtures =
 
         let working =
             { Declaration = Guid.NewGuid()
+              Initialized = false
               Root = bucket 5
               Path = path "settings.ini" }
 

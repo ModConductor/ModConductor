@@ -1,3 +1,5 @@
+import 'output_client.dart';
+import 'deployment_client.dart';
 import 'file_plan_client.dart';
 import 'proton_context_client.dart';
 
@@ -62,6 +64,10 @@ class EngineOwner {
       _state is EngineConnected ? _session?.protonContexts : null;
   SteamDiscoveryClient? get steamDiscovery =>
       _state is EngineConnected ? _session?.steamDiscovery : null;
+  GeneratedOutputsClient? get outputs =>
+      _state is EngineConnected ? _session?.outputs : null;
+  DeploymentsClient? get deployments =>
+      _state is EngineConnected ? _session?.deployments : null;
   FilePlansClient? get filePlans =>
       _state is EngineConnected ? _session?.filePlans : null;
   GameContextsClient? get gameContexts =>

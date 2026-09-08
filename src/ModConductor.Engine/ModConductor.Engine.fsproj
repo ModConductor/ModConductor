@@ -25,6 +25,10 @@
     <Compile Include="ProtonContextService.fs" />
     <Compile Include="FilePlanWire.fs" />
     <Compile Include="FilePlanService.fs" />
+    <Compile Include="OutputWire.fs" />
+    <Compile Include="OutputService.fs" />
+    <Compile Include="DeploymentWire.fs" />
+    <Compile Include="DeploymentService.fs" />
     <Compile Include="Program.fs" />
     <ProjectReference Include="../ModConductor.SteamDiscovery/ModConductor.SteamDiscovery.fsproj" />
     <ProjectReference Include="../ModConductor.Persistence/ModConductor.Persistence.fsproj" />

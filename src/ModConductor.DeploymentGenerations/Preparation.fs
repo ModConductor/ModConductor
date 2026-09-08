@@ -158,7 +158,7 @@ module internal GenerationPreparation =
         let seedCopies =
             bindings
             |> List.collect (fun (binding, target, directory, seeds) ->
-                seeds
+                (if binding.Initialized then [] else seeds)
                 |> List.choose (fun seed ->
                     let relative =
                         if directory then

@@ -16,6 +16,7 @@ type internal CopyRecord =
 type internal FileIndex =
     { Directories: Set<LogicalPath>
       Targets: Set<LogicalPath>
+      Writable: Set<LogicalPath>
       Copies: Map<LogicalPath, ModFile array>
       CopyTargets: Map<ModFile, LogicalPath>
       Children: Map<LogicalPath option, LogicalPath array>
@@ -84,6 +85,17 @@ module internal FileIndex =
                     if layer.Enabled then
                         targets.Add target |> ignore
 
+        let writable =
+            sources.Writable
+            |> List.choose (fun declaration ->
+                match declaration.Target with
+                | WritableTarget.File(_, path) -> Some(register path)
+                | WritableTarget.Subtree _ -> None)
+            |> Set.ofList
+
+        for path in writable do
+            targets.Add path |> ignore
+
         for path in targets do
             let parts = LogicalPath.components path
 
@@ -133,6 +145,7 @@ module internal FileIndex =
 
         { Directories = Set.ofSeq folders
           Targets = Set.ofSeq targets
+          Writable = writable
           Copies =
             copies
             |> Seq.map (fun pair ->
@@ -167,17 +180,22 @@ module internal FileIndex =
           Disposition =
             if not (Diagnostics.issues visibility).IsEmpty then
                 FileDisposition.Unresolved
+            elif index.Writable.Contains path then
+                FileDisposition.Writable
             elif resolved.IsSome then
                 FileDisposition.Planned
             else
                 FileDisposition.Absent
           SourceName =
-            resolved
-            |> Option.map (fun file ->
-                match file.Winner.Source with
-                | SourcePin.Mod(id, _, _) -> label id
-                | SourcePin.Snapshot _ -> "Game folder")
-            |> Option.defaultValue ""
+            if index.Writable.Contains path then
+                "Writable file"
+            else
+                resolved
+                |> Option.map (fun file ->
+                    match file.Winner.Source with
+                    | SourcePin.Mod(id, _, _) -> label id
+                    | SourcePin.Snapshot _ -> "Game folder")
+                |> Option.defaultValue ""
           Copies =
             (index.Copies.TryFind path |> Option.defaultValue [||]).Length
             + (Visibility.sources

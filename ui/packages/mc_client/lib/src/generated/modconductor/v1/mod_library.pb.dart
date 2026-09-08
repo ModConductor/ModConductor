@@ -270,6 +270,7 @@ class InventoryMod extends $pb.GeneratedMessage {
     $core.String? currentVersionId,
     ModInventoryStatus? status,
     $core.Iterable<InventoryModAction>? actions,
+    ModVersionOrigin? versionOrigin,
   }) {
     final result = create();
     if (modId != null) result.modId = modId;
@@ -281,6 +282,7 @@ class InventoryMod extends $pb.GeneratedMessage {
     if (currentVersionId != null) result.currentVersionId = currentVersionId;
     if (status != null) result.status = status;
     if (actions != null) result.actions.addAll(actions);
+    if (versionOrigin != null) result.versionOrigin = versionOrigin;
     return result;
   }
 
@@ -317,6 +319,8 @@ class InventoryMod extends $pb.GeneratedMessage {
         valueOf: InventoryModAction.valueOf,
         enumValues: InventoryModAction.values,
         defaultEnumValue: InventoryModAction.INVENTORY_MOD_ACTION_UNSPECIFIED)
+    ..aOM<ModVersionOrigin>(10, _omitFieldNames ? '' : 'versionOrigin',
+        subBuilder: ModVersionOrigin.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -417,6 +421,17 @@ class InventoryMod extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(9)
   $pb.PbList<InventoryModAction> get actions => $_getList(8);
+
+  @$pb.TagNumber(10)
+  ModVersionOrigin get versionOrigin => $_getN(9);
+  @$pb.TagNumber(10)
+  set versionOrigin(ModVersionOrigin value) => $_setField(10, value);
+  @$pb.TagNumber(10)
+  $core.bool hasVersionOrigin() => $_has(9);
+  @$pb.TagNumber(10)
+  void clearVersionOrigin() => $_clearField(10);
+  @$pb.TagNumber(10)
+  ModVersionOrigin ensureVersionOrigin() => $_ensure(9);
 }
 
 class ModLibraryFault extends $pb.GeneratedMessage {
@@ -1643,18 +1658,75 @@ class ModManifestEntry extends $pb.GeneratedMessage {
   ModPayload ensurePayload() => $_ensure(1);
 }
 
+class ModVersionOrigin extends $pb.GeneratedMessage {
+  factory ModVersionOrigin({
+    $core.String? outputActionId,
+  }) {
+    final result = create();
+    if (outputActionId != null) result.outputActionId = outputActionId;
+    return result;
+  }
+
+  ModVersionOrigin._();
+
+  factory ModVersionOrigin.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ModVersionOrigin.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ModVersionOrigin',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'outputActionId')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ModVersionOrigin clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ModVersionOrigin copyWith(void Function(ModVersionOrigin) updates) =>
+      super.copyWith((message) => updates(message as ModVersionOrigin))
+          as ModVersionOrigin;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ModVersionOrigin create() => ModVersionOrigin._();
+  @$core.override
+  ModVersionOrigin createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ModVersionOrigin getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ModVersionOrigin>(create);
+  static ModVersionOrigin? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get outputActionId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set outputActionId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasOutputActionId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearOutputActionId() => $_clearField(1);
+}
+
 class ModVersionPage extends $pb.GeneratedMessage {
   factory ModVersionPage({
     $core.String? versionId,
     $core.String? modId,
     $core.Iterable<ModManifestEntry>? entries,
     $core.int? nextOffset,
+    ModVersionOrigin? origin,
   }) {
     final result = create();
     if (versionId != null) result.versionId = versionId;
     if (modId != null) result.modId = modId;
     if (entries != null) result.entries.addAll(entries);
     if (nextOffset != null) result.nextOffset = nextOffset;
+    if (origin != null) result.origin = origin;
     return result;
   }
 
@@ -1677,6 +1749,8 @@ class ModVersionPage extends $pb.GeneratedMessage {
     ..pPM<ModManifestEntry>(3, _omitFieldNames ? '' : 'entries',
         subBuilder: ModManifestEntry.create)
     ..aI(4, _omitFieldNames ? '' : 'nextOffset', fieldType: $pb.PbFieldType.OU3)
+    ..aOM<ModVersionOrigin>(5, _omitFieldNames ? '' : 'origin',
+        subBuilder: ModVersionOrigin.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1727,6 +1801,17 @@ class ModVersionPage extends $pb.GeneratedMessage {
   $core.bool hasNextOffset() => $_has(3);
   @$pb.TagNumber(4)
   void clearNextOffset() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  ModVersionOrigin get origin => $_getN(4);
+  @$pb.TagNumber(5)
+  set origin(ModVersionOrigin value) => $_setField(5, value);
+  @$pb.TagNumber(5)
+  $core.bool hasOrigin() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearOrigin() => $_clearField(5);
+  @$pb.TagNumber(5)
+  ModVersionOrigin ensureOrigin() => $_ensure(4);
 }
 
 enum ModVersionReply_Outcome { version, fault, notSet }

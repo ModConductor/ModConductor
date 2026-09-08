@@ -11,3 +11,6 @@ export 'src/steam_discovery_client.dart';
 export 'src/proton_context_client.dart';
 
 export 'src/file_plan_client.dart';
+
+export 'src/output_client.dart';
+export 'src/deployment_client.dart';

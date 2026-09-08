@@ -66,6 +66,13 @@ type internal DeploymentRepository(database: StateDatabase) =
                     raise (RecoveryException RecoveryError.Stale)
                 | _ -> ()
 
+                if
+                    receipt.Context.Roots
+                    |> List.exists (fun root ->
+                        OutputRows.active connection transaction root.Root.Id)
+                then
+                    raise (RecoveryException RecoveryError.Busy)
+
                 DeploymentRows.checkOwnership
                     connection
                     transaction

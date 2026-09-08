@@ -329,6 +329,41 @@ module DeploymentBackendFixtures =
               PreserveOriginals = context.Originals |> List.map _.Target
               ExpectedSources = Some((backend.Read profile |> wait |> result).Sources) }
 
+        let cleared =
+            store.Generations.Start(request (Guid.NewGuid()) baseGeneration, [])
+            |> wait
+            |> result
+
+        store.Generations.Run(
+            cleared.Id,
+            cleared.Revision,
+            false,
+            CancellationToken.None,
+            (fun _ _ -> ()),
+            []
+        )
+        |> wait
+        |> result
+        |> ignore
+
+        let leafGeneration =
+            (store.Deployment.Generation(deploymentContext (), old.Id) |> wait).Value
+
+        let leafRequest = request (Guid.NewGuid()) leafGeneration
+        let leafReceipt = store.Generations.Start(leafRequest, []) |> wait |> result
+
+        store.Generations.Run(
+            leafReceipt.Id,
+            leafReceipt.Revision,
+            false,
+            CancellationToken.None,
+            (fun _ _ -> ()),
+            []
+        )
+        |> wait
+        |> result
+        |> ignore
+
         let removing =
             store.Generations.Start(request (Guid.NewGuid()) baseGeneration, [])
             |> wait

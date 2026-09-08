@@ -26,6 +26,7 @@ module internal DeploymentPreparation =
           Identity = created.Identity }
 
     let prepare
+        (database: StateDatabase)
         (access: LibraryAccess)
         (plans: FilePlanSession)
         (generations: DeploymentGenerationStore)
@@ -34,6 +35,7 @@ module internal DeploymentPreparation =
         (sources: PlanSources)
         existing
         gameFolderOnly
+        retainedProfile
         progress
         token
         =
@@ -122,12 +124,20 @@ module internal DeploymentPreparation =
                     | None -> return None
                 }
 
+            let writable = if gameFolderOnly then [] else sources.Writable
+
+            let! working =
+                if gameFolderOnly then
+                    System.Threading.Tasks.Task.FromResult []
+                else
+                    DeploymentOutputs.read database workspace sources
+
             let request: BuildRequest =
                 { Id = id
                   Storage = storage
                   SecondaryStorage = secondary
                   Roots = roots
-                  Working = []
+                  Working = working
                   Previous = previous
                   Processes = [] }
 
@@ -146,10 +156,12 @@ module internal DeploymentPreparation =
                     request,
                     sources.Stamp.ProfileId,
                     [ snapshot ],
-                    [],
+                    writable,
                     token,
                     (fun location -> GenerationStorage.available location.Path location.Identity),
-                    gameFolderOnly = gameFolderOnly
+                    gameFolderOnly = gameFolderOnly,
+                    ?retainedProfile = retainedProfile,
+                    recordProfile = true
                 )
 
             let built =
@@ -157,6 +169,8 @@ module internal DeploymentPreparation =
 
             if built.Sources <> sources.Stamp then
                 raise (RecoveryException RecoveryError.Stale)
+
+            do! DeploymentOutputs.initialized database sources.Stamp working
 
             let known =
                 (observation.Entries |> List.map _.Path)
@@ -201,11 +215,36 @@ module internal DeploymentPreparation =
                     else
                         None)
 
+            let switch =
+                { Id = id
+                  ContextId = contextId
+                  ContextFingerprint = ownership
+                  ExpectedRevision = existing |> Option.map _.Revision |> Option.defaultValue 0L
+                  Roots = roots
+                  Generation = generation
+                  DirectoryBoundaries = boundaries
+                  PreserveOriginals = collisions
+                  ExpectedSources = Some built.Sources }
+
+            let paths =
+                (ModConductor.DeploymentRecovery.Preparation.projection switch |> List.map fst)
+                @ (existing
+                   |> Option.map (fun context -> context.Links |> List.map _.Target)
+                   |> Option.defaultValue [])
+                |> Set.ofList
+
             let view =
                 { Id = id
                   WorkspaceId = sources.Stamp.WorkspaceId
                   Fingerprint = built.Generation.PlanFingerprint
                   Sources = built.Sources
+                  Profile =
+                    generation.Provenance
+                    |> Option.bind _.Profile
+                    |> Option.map SavedDeployments.profile
+                  WritableFiles = generation.Working.Length
+                  ChangedPaths = paths.Count
+                  PreservedOriginals = collisions.Length
                   ManagedLinks = built.Measurements.GenerationLinks
                   CopiedBytes = built.Measurements.CopiedBytes
                   RequiredBytes = built.Measurements.RequiredBytes }
@@ -213,14 +252,5 @@ module internal DeploymentPreparation =
             return
                 { View = view
                   Context = sources.Context
-                  Switch =
-                    { Id = id
-                      ContextId = contextId
-                      ContextFingerprint = ownership
-                      ExpectedRevision = existing |> Option.map _.Revision |> Option.defaultValue 0L
-                      Roots = roots
-                      Generation = generation
-                      DirectoryBoundaries = boundaries
-                      PreserveOriginals = collisions
-                      ExpectedSources = Some built.Sources } }
+                  Switch = switch }
         }

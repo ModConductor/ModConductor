@@ -146,11 +146,12 @@ module internal GenerationBuilder =
                                           else
                                               EntryKind.RegularFile)
                             ->
-                            entry.Identity
+                            Some entry.Identity
+                        | None when not isDirectory && binding.Initialized -> None
                         | None when not isDirectory ->
                             let stream, identity = parent.Create name in
                             stream.Dispose()
-                            identity
+                            Some identity
                         | _ -> RecoveryFiles.fail "A declared working entry changed.")
 
                 { Target = target
@@ -201,6 +202,7 @@ module internal GenerationBuilder =
               References = references
               Writable = sources.Input.Planning.Writable |> List.map _.Target
               Roots = sources.Input.Planning.Roots
+              Provenance = None
               NativeTargets = Map.empty
               Working = workingBindings
               Observed = observed }

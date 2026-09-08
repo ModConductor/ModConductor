@@ -23,6 +23,7 @@ const PlannedFileDisposition$json = {
     {'1': 'PLANNED_FILE_DISPOSITION_PLANNED', '2': 1},
     {'1': 'PLANNED_FILE_DISPOSITION_ABSENT', '2': 2},
     {'1': 'PLANNED_FILE_DISPOSITION_UNRESOLVED', '2': 3},
+    {'1': 'PLANNED_FILE_DISPOSITION_WRITABLE', '2': 4},
   ],
 };
 
@@ -31,7 +32,7 @@ final $typed_data.Uint8List plannedFileDispositionDescriptor = $convert.base64De
     'ChZQbGFubmVkRmlsZURpc3Bvc2l0aW9uEigKJFBMQU5ORURfRklMRV9ESVNQT1NJVElPTl9VTl'
     'NQRUNJRklFRBAAEiQKIFBMQU5ORURfRklMRV9ESVNQT1NJVElPTl9QTEFOTkVEEAESIwofUExB'
     'Tk5FRF9GSUxFX0RJU1BPU0lUSU9OX0FCU0VOVBACEicKI1BMQU5ORURfRklMRV9ESVNQT1NJVE'
-    'lPTl9VTlJFU09MVkVEEAM=');
+    'lPTl9VTlJFU09MVkVEEAMSJQohUExBTk5FRF9GSUxFX0RJU1BPU0lUSU9OX1dSSVRBQkxFEAQ=');
 
 @$core.Deprecated('Use filePlanFaultCodeDescriptor instead')
 const FilePlanFaultCode$json = {
@@ -517,6 +518,7 @@ const PlannedFileInspection$json = {
       '6': '.modconductor.v1.InspectedFileCopy',
       '10': 'focusedCopy'
     },
+    {'1': 'writable', '3': 6, '4': 1, '5': 8, '10': 'writable'},
   ],
 };
 
@@ -527,7 +529,8 @@ final $typed_data.Uint8List plannedFileInspectionDescriptor = $convert.base64Dec
     'Lk1vZExvZ2ljYWxQYXRoUgZ0YXJnZXQSOgoGY29waWVzGAMgAygLMiIubW9kY29uZHVjdG9yLn'
     'YxLkluc3BlY3RlZEZpbGVDb3B5UgZjb3BpZXMSMwoEbmV4dBgEIAEoCzIfLm1vZGNvbmR1Y3Rv'
     'ci52MS5GaWxlUGxhbkN1cnNvclIEbmV4dBJFCgxmb2N1c2VkX2NvcHkYBSABKAsyIi5tb2Rjb2'
-    '5kdWN0b3IudjEuSW5zcGVjdGVkRmlsZUNvcHlSC2ZvY3VzZWRDb3B5');
+    '5kdWN0b3IudjEuSW5zcGVjdGVkRmlsZUNvcHlSC2ZvY3VzZWRDb3B5EhoKCHdyaXRhYmxlGAYg'
+    'ASgIUgh3cml0YWJsZQ==');
 
 @$core.Deprecated('Use fileVisibilityChangeDescriptor instead')
 const FileVisibilityChange$json = {

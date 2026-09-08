@@ -7,7 +7,7 @@ open ModConductor.Platform
 open ModConductor.ModLibrary
 
 /// Publication receipts share the existing SQLite queue and engine ownership lease.
-type internal LibraryPublication(database: StateDatabase, access: LibraryAccess) =
+type internal LibraryPublication(database: StateDatabase, access: LibraryAccess) as this =
     let connection = database.Connection
     let db action = database.EnqueueInternal action
 
@@ -169,14 +169,29 @@ type internal LibraryPublication(database: StateDatabase, access: LibraryAccess)
                         LibraryFiles.verify directory payload)
         }
 
-    member _.Publish(modId, expected, version, afterEffect, afterObservation) =
+    member private _.Run
+        (
+            modId,
+            expected,
+            version,
+            composition,
+            cancellation: System.Threading.CancellationToken,
+            afterEffect,
+            afterObservation
+        ) =
         task {
             if version = Guid.Empty then
                 return Error LibraryError.IdentityConflict
             else
                 let! prepared =
                     database.Enqueue(fun () ->
-                        PublicationRows.prepare connection database.OwnerId modId expected version)
+                        PublicationRows.prepare
+                            connection
+                            database.OwnerId
+                            modId
+                            expected
+                            version
+                            composition)
 
                 match prepared with
                 | Error error -> return Error error
@@ -199,14 +214,29 @@ type internal LibraryPublication(database: StateDatabase, access: LibraryAccess)
                                 | Ok library ->
                                     match work with
                                     | Capture ->
-                                        do!
-                                            capture
-                                                root
-                                                library
-                                                row
-                                                version
-                                                afterEffect
-                                                afterObservation
+                                        match composition with
+                                        | None ->
+                                            do!
+                                                capture
+                                                    root
+                                                    library
+                                                    row
+                                                    version
+                                                    afterEffect
+                                                    afterObservation
+                                        | Some input ->
+                                            do!
+                                                LibraryComposition.capture
+                                                    database
+                                                    root
+                                                    library
+                                                    version
+                                                    input
+                                                    (fun () ->
+                                                        cancellation.ThrowIfCancellationRequested()
+                                                        checkCancelled version ())
+                                                    afterEffect
+                                                    afterObservation
                                     | CommitObserved -> ()
                                     | Replay ->
                                         invalidOp "A completed publication has no file work."
@@ -252,3 +282,17 @@ type internal LibraryPublication(database: StateDatabase, access: LibraryAccess)
                                 access.Fail()
                                 reraise ()
         }
+
+    member _.Publish(modId, expected, version, afterEffect, afterObservation) =
+        this.Run(
+            modId,
+            expected,
+            version,
+            None,
+            System.Threading.CancellationToken.None,
+            afterEffect,
+            afterObservation
+        )
+
+    member _.Compose(modId, expected, version, input, cancellation, afterEffect, afterObservation) =
+        this.Run(modId, expected, version, Some input, cancellation, afterEffect, afterObservation)

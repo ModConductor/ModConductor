@@ -20,6 +20,11 @@ type OperationStore(directory: string) =
 
     let generations = DeploymentGenerationStore(database, modLibrary.Access, deployment)
 
+    let outputs =
+        ModConductor.GeneratedOutputs.GeneratedOutputSession(
+            OutputRepository(database, modLibrary.Access, modLibrary.PublicationOwner)
+        )
+
     let deploymentBackend =
         ModConductor.Deployment.DeploymentBackend(
             DeploymentBackendRepository(
@@ -113,6 +118,7 @@ type OperationStore(directory: string) =
 
     member _.GameContexts = gameContexts
     member _.FilePlans = filePlans
+    member _.GeneratedOutputs = outputs :> ModConductor.GeneratedOutputs.IGeneratedOutputs
     member _.Deployments = deploymentBackend :> ModConductor.Deployment.IDeploymentBackend
 
     member _.SqliteVersion = connection.ServerVersion
@@ -236,6 +242,14 @@ type OperationStore(directory: string) =
 
                 transaction.Commit())
 
+    member internal _.ApplyOutputAtCheckpoint
+        (id, snapshot, selected, action, token, afterPublication)
+        =
+        outputs.ApplyAtCheckpoint(id, snapshot, selected, action, token, afterPublication)
+
+    member _.DrainOutputs() = outputs.Drain()
+    member _.DrainDeployments() = deploymentBackend.Drain()
+
     member internal _.Deployment = deployment
     member internal _.Generations = generations
 
@@ -243,13 +257,14 @@ type OperationStore(directory: string) =
         member _.Dispose() =
             if
                 not (
-                    deploymentBackend.TryClose(fun () ->
-                        generations.TryClose(fun () ->
-                            deployment.TryClose()
-                            && filePlans.TryClose()
-                            && gameContexts.TryClose()
-                            && modLibrary.TryClose(fun () ->
-                                workspaces.TryClose(workspaceRoots.TryClose))))
+                    outputs.TryClose(fun () ->
+                        deploymentBackend.TryClose(fun () ->
+                            generations.TryClose(fun () ->
+                                deployment.TryClose()
+                                && filePlans.TryClose()
+                                && gameContexts.TryClose()
+                                && modLibrary.TryClose(fun () ->
+                                    workspaces.TryClose(workspaceRoots.TryClose)))))
                 )
             then
                 invalidOp

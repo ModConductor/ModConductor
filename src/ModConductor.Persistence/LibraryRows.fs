@@ -26,6 +26,18 @@ module internal LibraryRows =
         else
             Some(read (reader.GetString column))
 
+    let origin connection transaction version =
+        use query =
+            Sqlite.command
+                connection
+                transaction
+                "SELECT output_action FROM mod_version_origins WHERE version_id=$version"
+                [ "$version", box (string version) ]
+
+        match query.ExecuteScalar() with
+        | :? string as action -> VersionOrigin.Outputs(Guid.Parse action)
+        | _ -> VersionOrigin.RegisteredSource
+
     let find connection transaction id =
         use statement =
             Sqlite.command
@@ -58,6 +70,10 @@ module internal LibraryRows =
                         (optional reader 9 LibraryEncoding.readPath)
                         (optional reader 11 Guid.Parse)
                         (LibraryEncoding.readStatus (reader.GetInt32 12))
+                    |> fun entry ->
+                        { entry with
+                            VersionOrigin =
+                                entry.CurrentVersion |> Option.map (origin connection transaction) }
                   SourceIdentity = optional reader 10 LibraryEncoding.readIdentity }
 
     let metadataParameters (metadata: ModMetadata) =
@@ -146,6 +162,7 @@ module internal LibraryRows =
             Some
                 { Id = id
                   ModId = Guid.Parse(string modId)
+                  Origin = origin connection transaction id
                   Entries =
                     [ while reader.Read() do
                           yield

@@ -52,6 +52,7 @@ message InventoryMod {
   optional string current_version_id = 7;
   ModInventoryStatus status = 8;
   repeated InventoryModAction actions = 9;
+  ModVersionOrigin version_origin = 10;
 }
 enum ModLibraryFaultCode {
   MOD_LIBRARY_FAULT_CODE_UNSPECIFIED = 0;
@@ -98,10 +99,12 @@ message PublicationReply { oneof outcome { ModPublicationReceipt receipt = 1; Mo
 message ReadModVersionRequest { string version_id = 1; uint32 offset = 2; }
 message ModPayload { string payload_id = 1; uint64 length = 2; string sha256 = 3; }
 message ModManifestEntry { ModLogicalPath path = 1; ModPayload payload = 2; }
+message ModVersionOrigin { optional string output_action_id = 1; }
 message ModVersionPage {
   string version_id = 1; string mod_id = 2;
   repeated ModManifestEntry entries = 3; // At most 64; immutable original logical paths.
   optional uint32 next_offset = 4;
+  ModVersionOrigin origin = 5;
 }
 message ModVersionReply { oneof outcome { ModVersionPage version = 1; ModLibraryFault fault = 2; } }
 message ReadModPayloadRequest { string version_id = 1; string payload_id = 2; uint64 offset = 3; uint32 count = 4; } // Count 1..65536.

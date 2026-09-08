@@ -46,6 +46,12 @@ module internal FilePlanRows =
                     "SELECT COALESCE((SELECT revision FROM game_contexts WHERE workspace_id=$workspace),0)"
                     [ "$workspace", box (string workspace) ]
               ExclusionRevision = revision connection transaction workspace
+              OutputRevision =
+                Sqlite.number
+                    connection
+                    transaction
+                    "SELECT COALESCE(SUM(revision),0) FROM output_contexts WHERE workspace_id=$workspace"
+                    [ "$workspace", box (string workspace) ]
               Versions = versions connection transaction workspace
               Deployment =
                 match GameContextRows.read connection transaction "" workspace with
@@ -173,6 +179,8 @@ module internal FilePlanRows =
                                         Some
                                             { Id = version
                                               ModId = Guid.Parse(string modId)
+                                              Origin =
+                                                LibraryRows.origin connection transaction version
                                               Entries = List.ofSeq entries
                                               NextOffset = None })
 
@@ -209,7 +217,40 @@ module internal FilePlanRows =
                               Complete = true
                               Mods = List.ofSeq selected }
                           Mods = List.ofSeq mods
-                          Hidden = hidden connection transaction stamp.WorkspaceId }
+                          Hidden = hidden connection transaction stamp.WorkspaceId
+                          Writable =
+                            match context.Binding with
+                            | None -> []
+                            | Some _ ->
+                                let id = OutputRows.contextId stamp.WorkspaceId context
+
+                                use query =
+                                    Sqlite.command
+                                        connection
+                                        transaction
+                                        "SELECT id,target FROM output_locations WHERE workspace_id=$workspace AND context_id=$context AND enabled=1 AND purpose=1 ORDER BY id LIMIT 65"
+                                        [ "$workspace", box (string stamp.WorkspaceId)
+                                          "$context", box (string id) ]
+
+                                use reader = query.ExecuteReader()
+
+                                let declarations =
+                                    [ while reader.Read() do
+                                          yield
+                                              { Id = Guid.Parse(reader.GetString 0)
+                                                Target =
+                                                  WritableTarget.File(
+                                                      stamp.WorkspaceId,
+                                                      LibraryEncoding.readPath (reader.GetString 1)
+                                                  ) } ]
+
+                                if declarations.Length > 64 then
+                                    raise (
+                                        ModConductor.DeploymentRecovery.RecoveryException
+                                            ModConductor.DeploymentRecovery.RecoveryError.Limit
+                                    )
+
+                                declarations }
 
     let savedCopy connection transaction workspace (copy: ModFile) =
         use command =

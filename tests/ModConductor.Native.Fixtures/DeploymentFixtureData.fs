@@ -107,6 +107,7 @@ module internal DeploymentFixtureData =
                           { Id = id (100 + int revision)
                             ModId = id 4
                             Entries = entries
+                            Origin = ModConductor.ModLibrary.VersionOrigin.RegisteredSource
                             NextOffset = None }
                     Mappings =
                       [ { SourcePrefix = PlanPath.Root

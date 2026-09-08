@@ -38,6 +38,7 @@ module FileVisibilityFixtures =
                     { Id = version
                       ModId = id
                       Entries = entries
+                      Origin = ModConductor.ModLibrary.VersionOrigin.RegisteredSource
                       NextOffset = None }
               Mappings = [ mapping ]
               Archives = [] }

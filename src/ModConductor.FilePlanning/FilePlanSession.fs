@@ -145,6 +145,7 @@ type FilePlanSession(repository: IFilePlanRepository) =
                             InspectionProjection.inspect target cursor snapshot
                             |> Result.map (fun (copies, next) ->
                                 { Snapshot = describe stale snapshot
+                                  Writable = snapshot.Index.Writable.Contains target
                                   Target = target
                                   Next = next
                                   FocusedCopy = None
@@ -177,6 +178,7 @@ type FilePlanSession(repository: IFilePlanRepository) =
                                     InspectionProjection.inspect target None snapshot
                                     |> Result.map (fun (copies, next) ->
                                         { Snapshot = describe stale snapshot
+                                          Writable = snapshot.Index.Writable.Contains target
                                           Target = target
                                           Next = next
                                           FocusedCopy =
@@ -205,6 +207,7 @@ type FilePlanSession(repository: IFilePlanRepository) =
                                 | _ ->
                                     Ok
                                         { Snapshot = describe stale snapshot
+                                          Writable = false
                                           Target = copy.Path
                                           Next = None
                                           FocusedCopy = None

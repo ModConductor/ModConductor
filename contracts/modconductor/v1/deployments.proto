@@ -1,0 +1,34 @@
+syntax = "proto3";
+package modconductor.v1;
+option csharp_namespace = "ModConductor.Protocol.V1";
+
+service DeploymentOperations {
+  rpc ReadDeployment(ReadDeploymentRequest) returns (DeploymentStateReply);
+  rpc ReadSavedDeployments(SavedDeploymentsRequest) returns (SavedDeploymentsReply);
+  rpc PrepareDeployment(PrepareDeploymentRequest) returns (stream DeploymentPrepareEvent);
+  rpc ActivateDeployment(ActivateDeploymentRequest) returns (stream DeploymentRunEvent);
+  rpc RecoverDeployment(RecoverDeploymentRequest) returns (stream DeploymentRunEvent);
+  rpc ReadDeploymentReceipt(DeploymentReceiptRequest) returns (DeploymentReceiptReply);
+}
+message ReadDeploymentRequest { string profile_id = 1; }
+message DeploymentProfile { string id = 1; string name = 2; uint64 revision = 3; uint32 enabled_mods = 4; }
+message SavedDeployment { string id = 1; optional int64 prepared_at_unix_ms = 2; DeploymentProfile profile = 3; bool known = 4; bool active = 5; string fingerprint = 6; bool can_restore = 7; }
+message DeploymentState { string workspace_id = 1; uint64 revision = 2; SavedDeployment active = 3; optional string pending_receipt = 4; string source_token = 5; }
+message SavedDeploymentsRequest { string profile_id = 1; optional uint64 before = 2; }
+message SavedDeploymentsPage { repeated SavedDeployment entries = 1; optional uint64 next_before = 2; }
+message PrepareDeploymentRequest { string id = 1; string profile_id = 2; string source_token = 3; bool retained = 4; optional string generation_id = 5; }
+message PreparedDeployment { string id = 1; string workspace_id = 2; string fingerprint = 3; string source_token = 4; DeploymentProfile profile = 5; uint32 writable_files = 6; uint32 changed_paths = 7; uint32 preserved_originals = 8; uint32 managed_links = 9; uint64 copied_bytes = 10; uint64 required_bytes = 11; }
+message ActivateDeploymentRequest { string prepared_id = 1; string profile_id = 2; string source_token = 3; }
+message RecoverDeploymentRequest { string receipt_id = 1; uint64 revision = 2; bool restore = 3; }
+message DeploymentReceiptRequest { string receipt_id = 1; }
+enum DeploymentPhase { DEPLOYMENT_PHASE_UNSPECIFIED = 0; DEPLOYMENT_PHASE_PREPARING = 1; DEPLOYMENT_PHASE_APPLYING = 2; DEPLOYMENT_PHASE_RESTORING = 3; DEPLOYMENT_PHASE_COMPLETE = 4; DEPLOYMENT_PHASE_RESTORED = 5; DEPLOYMENT_PHASE_BLOCKED = 6; }
+message DeploymentReceipt { string id = 1; string workspace_id = 2; uint64 revision = 3; DeploymentPhase phase = 4; optional string previous = 5; string proposed = 6; uint32 completed = 7; uint32 total = 8; string detail = 9; }
+message DeploymentProgress { DeploymentPhase phase = 1; uint32 completed = 2; uint32 total = 3; uint64 bytes = 4; }
+enum DeploymentFaultCode { DEPLOYMENT_FAULT_UNSPECIFIED = 0; DEPLOYMENT_FAULT_NOT_FOUND = 1; DEPLOYMENT_FAULT_BUSY = 2; DEPLOYMENT_FAULT_STALE = 3; DEPLOYMENT_FAULT_CANCELLED = 4; DEPLOYMENT_FAULT_BLOCKED = 5; DEPLOYMENT_FAULT_UNAVAILABLE = 6; }
+message DeploymentFault { DeploymentFaultCode code = 1; string detail = 2; }
+message DeploymentStateReply { oneof outcome { DeploymentState state = 1; DeploymentFault fault = 2; } }
+message SavedDeploymentsReply { oneof outcome { SavedDeploymentsPage page = 1; DeploymentFault fault = 2; } }
+message PreparedDeploymentReply { oneof outcome { PreparedDeployment prepared = 1; DeploymentFault fault = 2; } }
+message DeploymentReceiptReply { oneof outcome { DeploymentReceipt receipt = 1; DeploymentFault fault = 2; } }
+message DeploymentPrepareEvent { oneof event { DeploymentProgress progress = 1; PreparedDeploymentReply finished = 2; } }
+message DeploymentRunEvent { oneof event { DeploymentProgress progress = 1; DeploymentReceiptReply finished = 2; } }

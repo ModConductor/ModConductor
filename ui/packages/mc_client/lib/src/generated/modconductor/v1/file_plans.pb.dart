@@ -1432,6 +1432,7 @@ class PlannedFileInspection extends $pb.GeneratedMessage {
     $core.Iterable<InspectedFileCopy>? copies,
     FilePlanCursor? next,
     InspectedFileCopy? focusedCopy,
+    $core.bool? writable,
   }) {
     final result = create();
     if (state != null) result.state = state;
@@ -1439,6 +1440,7 @@ class PlannedFileInspection extends $pb.GeneratedMessage {
     if (copies != null) result.copies.addAll(copies);
     if (next != null) result.next = next;
     if (focusedCopy != null) result.focusedCopy = focusedCopy;
+    if (writable != null) result.writable = writable;
     return result;
   }
 
@@ -1466,6 +1468,7 @@ class PlannedFileInspection extends $pb.GeneratedMessage {
         subBuilder: FilePlanCursor.create)
     ..aOM<InspectedFileCopy>(5, _omitFieldNames ? '' : 'focusedCopy',
         subBuilder: InspectedFileCopy.create)
+    ..aOB(6, _omitFieldNames ? '' : 'writable')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1534,6 +1537,15 @@ class PlannedFileInspection extends $pb.GeneratedMessage {
   void clearFocusedCopy() => $_clearField(5);
   @$pb.TagNumber(5)
   InspectedFileCopy ensureFocusedCopy() => $_ensure(4);
+
+  @$pb.TagNumber(6)
+  $core.bool get writable => $_getBF(5);
+  @$pb.TagNumber(6)
+  set writable($core.bool value) => $_setBool(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasWritable() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearWritable() => $_clearField(6);
 }
 
 class FileVisibilityChange extends $pb.GeneratedMessage {

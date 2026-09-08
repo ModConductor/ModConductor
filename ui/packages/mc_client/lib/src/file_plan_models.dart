@@ -43,7 +43,7 @@ class FilePlanState {
   final DateTime? observedAt;
 }
 
-enum PlannedFileDisposition { planned, absent, unresolved }
+enum PlannedFileDisposition { planned, absent, unresolved, writable }
 
 class PlannedFileNode {
   const PlannedFileNode({
@@ -98,11 +98,13 @@ class FilePlanInspection {
     this.copies,
     this.next, {
     this.focusedCopy,
+    this.writable = false,
   });
   final FilePlanState state;
   final List<String> target;
   final List<InspectedFileCopy> copies;
   final InspectedFileCopy? focusedCopy;
+  final bool writable;
   final FilePlanCursor? next;
 }
 

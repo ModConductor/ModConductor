@@ -1,3 +1,5 @@
+import 'output_client.dart';
+import 'deployment_client.dart';
 import 'file_plan_client.dart';
 import 'proton_context_client.dart';
 
@@ -29,6 +31,10 @@ class EngineSession {
   ProtonContextsClient get protonContexts => _protonContexts!;
   SteamDiscoveryClient? _steamDiscovery;
   SteamDiscoveryClient get steamDiscovery => _steamDiscovery!;
+  GeneratedOutputsClient? _outputs;
+  GeneratedOutputsClient get outputs => _outputs!;
+  DeploymentsClient? _deployments;
+  DeploymentsClient get deployments => _deployments!;
   FilePlansClient? _filePlans;
   FilePlansClient get filePlans => _filePlans!;
   GameContextsClient? _gameContexts;
@@ -83,6 +89,14 @@ class EngineSession {
     _profileMods = ProfileModsClient(channel, options);
     _modOrganization = ModOrganizationClient(channel, options);
     _filePlans = GrpcFilePlansClient(
+      channel,
+      CallOptions(metadata: options.metadata),
+    );
+    _outputs = GrpcGeneratedOutputsClient(
+      channel,
+      CallOptions(metadata: options.metadata),
+    );
+    _deployments = GrpcDeploymentsClient(
       channel,
       CallOptions(metadata: options.metadata),
     );

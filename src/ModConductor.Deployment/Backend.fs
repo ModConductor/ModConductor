@@ -51,6 +51,14 @@ type DeploymentBackend internal (repository: IDeploymentRepository) =
     let order = Queue<Guid>()
     let mutable closed = false
 
+    let mutable drained =
+        new System.Threading.Tasks.TaskCompletionSource<unit>(
+            System.Threading.Tasks.TaskCreationOptions.RunContinuationsAsynchronously
+        )
+
+    do drained.SetResult()
+
+
     let protect action =
         task {
             try
@@ -66,7 +74,17 @@ type DeploymentBackend internal (repository: IDeploymentRepository) =
     let run workspace action =
         task {
             let entered =
-                lock gate (fun () -> not closed && active.Count < 2 && active.Add workspace)
+                lock gate (fun () ->
+                    if closed || active.Count >= 2 || active.Contains workspace then
+                        false
+                    else
+                        if active.Count = 0 then
+                            drained <-
+                                new System.Threading.Tasks.TaskCompletionSource<unit>(
+                                    System.Threading.Tasks.TaskCreationOptions.RunContinuationsAsynchronously
+                                )
+
+                        active.Add workspace)
 
             if not entered then
                 return Error DeploymentError.Busy
@@ -74,7 +92,11 @@ type DeploymentBackend internal (repository: IDeploymentRepository) =
                 try
                     return! protect action
                 finally
-                    lock gate (fun () -> active.Remove workspace |> ignore)
+                    lock gate (fun () ->
+                        active.Remove workspace |> ignore
+
+                        if active.Count = 0 then
+                            drained.TrySetResult() |> ignore)
         }
 
     let execute (receipt: Receipt) restoring progress token =
@@ -109,6 +131,8 @@ type DeploymentBackend internal (repository: IDeploymentRepository) =
                 |> Result.mapError DeploymentReports.error
         }
 
+    member _.Drain() = lock gate (fun () -> drained.Task)
+
     member internal _.TryClose(next: unit -> bool) =
         lock gate (fun () ->
             if active.Count <> 0 || not (next ()) then
@@ -124,13 +148,31 @@ type DeploymentBackend internal (repository: IDeploymentRepository) =
                 task {
                     let! sources, context = repository.Read profile
 
+                    let! active =
+                        match context |> Option.bind _.Active with
+                        | Some id -> repository.SavedOne(context.Value.Id, id)
+                        | None -> System.Threading.Tasks.Task.FromResult None
+
                     return
                         Ok
                             { WorkspaceId = sources.Stamp.WorkspaceId
                               Revision = context |> Option.map _.Revision |> Option.defaultValue 0L
                               ActiveGeneration = context |> Option.bind _.Active
+                              Active = active
                               PendingReceipt = context |> Option.bind _.Pending
                               Sources = sources.Stamp }
+                })
+
+        member _.Saved(profile, before) =
+            protect (fun () ->
+                task {
+                    let! _, context = repository.Read profile
+
+                    match context with
+                    | None -> return Ok { Entries = []; NextBefore = None }
+                    | Some context ->
+                        let! page = repository.Saved(context.Id, context.Active, before)
+                        return Ok page
                 })
 
         member _.Prepare(id, expected, progress, token) =

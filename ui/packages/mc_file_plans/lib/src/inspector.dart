@@ -121,6 +121,8 @@ class FileSourcesInspector extends StatelessWidget {
                 ? (winner == null
                       ? 'Previous file view'
                       : 'Previous winner: ${winner.name}')
+                : view.writable
+                ? 'Writable game file'
                 : winner != null
                 ? 'Winner: ${winner.name}'
                 : view.canLoad

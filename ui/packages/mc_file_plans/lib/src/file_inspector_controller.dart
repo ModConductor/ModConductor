@@ -20,6 +20,7 @@ class FileInspectorController extends ChangeNotifier {
   FilePlanCursor? _next;
   final history = <FileVisibilityAudit>[];
   int? _before;
+  bool writable = false;
   bool historyLoaded = false;
   bool loading = false, loadingHistory = false;
   String? problem, historyProblem;
@@ -49,6 +50,7 @@ class FileInspectorController extends ChangeNotifier {
     target = null;
     requestedCopy = null;
     focusedCopy = null;
+    writable = false;
     _copies.clear();
     _selected = null;
     _next = null;
@@ -91,6 +93,7 @@ class FileInspectorController extends ChangeNotifier {
     _next = null;
     _copies.clear();
     focusedCopy = null;
+    writable = false;
     _clearHistory();
     final chosen =
         selected?.copy ??
@@ -130,6 +133,7 @@ class FileInspectorController extends ChangeNotifier {
         );
       }
       target = result.target;
+      writable = result.writable;
       _next = result.next;
       focusedCopy = result.focusedCopy ?? focusedCopy;
       for (final copy in result.copies) {

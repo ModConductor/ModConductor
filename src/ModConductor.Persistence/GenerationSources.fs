@@ -11,7 +11,15 @@ open ModConductor.DeploymentRecovery
 open ModConductor.DeploymentGenerations
 
 module internal GenerationSources =
-    let read (database: StateDatabase) (access: LibraryAccess) profile roots snapshots writable =
+    let read
+        (database: StateDatabase)
+        (access: LibraryAccess)
+        profile
+        roots
+        snapshots
+        writable
+        (retained: SavedProfile option)
+        =
         task {
             let! read =
                 database.Enqueue(fun () ->
@@ -23,6 +31,27 @@ module internal GenerationSources =
                     let result =
                         sources
                         |> Result.map (fun sources ->
+                            let saved =
+                                retained
+                                |> Option.defaultWith (fun () ->
+                                    GenerationProfile.capture
+                                        database.Connection
+                                        transaction
+                                        sources)
+
+                            let sources =
+                                match retained with
+                                | None -> sources
+                                | Some saved ->
+                                    { sources with
+                                        Profile =
+                                            GenerationProfile.restore
+                                                database.Connection
+                                                transaction
+                                                sources.Stamp.WorkspaceId
+                                                saved
+                                        Hidden = saved.Hidden }
+
                             let payloads =
                                 sources.Profile.Mods
                                 |> List.collect (fun layer ->
@@ -54,12 +83,12 @@ module internal GenerationSources =
                                         RecoveryFiles.fail
                                             "An exact managed payload is unavailable.")
 
-                            sources, library, files)
+                            sources, library, files, saved)
 
                     transaction.Commit()
                     result)
 
-            let sources, library, files =
+            let sources, library, files, saved =
                 read
                 |> Result.defaultWith (fun _ -> raise (RecoveryException RecoveryError.Stale))
 
@@ -134,5 +163,6 @@ module internal GenerationSources =
                           Writable = writable }
                       Hidden = sources.Hidden }
                   Stamp = sources.Stamp
-                  Files = Map.ofList (managed @ observed) }
+                  Files = Map.ofList (managed @ observed) },
+                saved
         }

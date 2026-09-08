@@ -18,6 +18,7 @@ type ModLibraryStore internal (database: StateDatabase, roots: OwnedWorkspaceRoo
                 return Error LibraryError.Busy
         }
 
+    member internal _.PublicationOwner = publication
     member internal _.Access = access
     member _.Failed = access.Failed
     member _.Drain() = access.Drain()

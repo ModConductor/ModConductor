@@ -102,7 +102,8 @@ type ModLibraryService(library: IModLibrary) =
                     let version =
                         ModVersionPage(
                             VersionId = value.Id.ToString("N"),
-                            ModId = value.ModId.ToString("N")
+                            ModId = value.ModId.ToString("N"),
+                            Origin = ModLibraryWire.origin value.Origin
                         )
 
                     version.Entries.AddRange(

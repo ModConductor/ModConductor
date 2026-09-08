@@ -115,6 +115,7 @@ module internal FilePlanWire =
             Copies = uint32 value.Copies,
             Disposition =
                 (match value.Disposition with
+                 | FileDisposition.Writable -> PlannedFileDisposition.Writable
                  | FileDisposition.Planned -> PlannedFileDisposition.Planned
                  | FileDisposition.Absent -> PlannedFileDisposition.Absent
                  | FileDisposition.Unresolved -> PlannedFileDisposition.Unresolved)
@@ -159,7 +160,8 @@ module internal FilePlanWire =
             let result =
                 PlannedFileInspection(
                     State = state value.Snapshot,
-                    Target = ModLibraryWire.logical value.Target
+                    Target = ModLibraryWire.logical value.Target,
+                    Writable = value.Writable
                 )
 
             result.Copies.AddRange(value.Copies |> Seq.map inspected)

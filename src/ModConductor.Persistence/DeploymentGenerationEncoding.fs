@@ -108,14 +108,18 @@ module internal DeploymentGenerationEncoding =
         w.Write v.Directory
         location w v.Root
         path w v.Path
-        identity w v.Identity
+        option identity w v.Identity
 
-    let private readWorking (r: BinaryReader) : WorkingBinding =
+    let private readWorking version (r: BinaryReader) : WorkingBinding =
         { Target = readTarget r
           Directory = r.ReadBoolean()
           Root = readLocation r
           Path = readPath r
-          Identity = readIdentity r }
+          Identity =
+            if version >= 4 then
+                readOption readIdentity r
+            else
+                Some(readIdentity r) }
 
     let private file (w: BinaryWriter) (v: GenerationFile) =
         target w v.Target
@@ -132,6 +136,54 @@ module internal DeploymentGenerationEncoding =
           Length = r.ReadInt64()
           Sha256 = r.ReadString()
           Backing = if version >= 2 then readOption readBacking r else None }
+
+    let private savedMod (w: BinaryWriter) (value: SavedMod) =
+        guid w value.ModId
+        option guid w value.VersionId
+        w.Write value.Priority
+        boolean w value.Enabled
+
+    let private readSavedMod (r: BinaryReader) : SavedMod =
+        { ModId = readGuid r
+          VersionId = readOption readGuid r
+          Priority = r.ReadInt32()
+          Enabled = readBoolean r }
+
+    let private savedProfile (w: BinaryWriter) (value: SavedProfile) =
+        guid w value.Id
+        w.Write value.Name
+        w.Write value.Revision
+        list savedMod w value.Mods
+
+        list
+            (fun w (file: ModFile) ->
+                guid w file.ModId
+                guid w file.VersionId
+                path w file.Path)
+            w
+            (Set.toList value.Hidden)
+
+    let private readSavedProfile (r: BinaryReader) : SavedProfile =
+        { Id = readGuid r
+          Name = r.ReadString()
+          Revision = r.ReadInt64()
+          Mods = readList readSavedMod r
+          Hidden =
+            readList
+                (fun r ->
+                    { ModId = readGuid r
+                      VersionId = readGuid r
+                      Path = readPath r })
+                r
+            |> Set.ofList }
+
+    let private provenance (w: BinaryWriter) (value: GenerationProvenance) =
+        w.Write(value.PreparedAt.ToUnixTimeMilliseconds())
+        option savedProfile w value.Profile
+
+    let private readProvenance (r: BinaryReader) : GenerationProvenance =
+        { PreparedAt = DateTimeOffset.FromUnixTimeMilliseconds(r.ReadInt64())
+          Profile = readOption readSavedProfile r }
 
     let generation (w: BinaryWriter) (v: Generation) =
         guid w v.Id
@@ -151,6 +203,8 @@ module internal DeploymentGenerationEncoding =
             w
             (Map.toList v.NativeTargets)
 
+        option provenance w v.Provenance
+
     let readGeneration version (r: BinaryReader) : Generation =
         { Id = readGuid r
           PlanFingerprint = r.ReadString()
@@ -160,9 +214,14 @@ module internal DeploymentGenerationEncoding =
           Writable = readList readWritable r
           Roots = readList readRoot r
           Observed = if version >= 2 then readList readObserved r else []
-          Working = if version >= 2 then readList readWorking r else []
+          Working =
+            if version >= 2 then
+                readList (readWorking version) r
+            else
+                []
           NativeTargets =
             if version >= 3 then
                 readList (fun r -> let key = readTarget r in key, readPath r) r |> Map.ofList
             else
-                Map.empty }
+                Map.empty
+          Provenance = if version >= 4 then readOption readProvenance r else None }

@@ -31,7 +31,7 @@ type internal WorkingBinding =
       Directory: bool
       Root: Location
       Path: LogicalPath
-      Identity: FileIdentity }
+      Identity: FileIdentity option }
 
 type internal GenerationFile =
     { Target: TargetFile
@@ -40,6 +40,23 @@ type internal GenerationFile =
       Length: int64
       Sha256: string
       Backing: FileBacking option }
+
+type internal SavedMod =
+    { ModId: Guid
+      VersionId: Guid option
+      Priority: int
+      Enabled: bool }
+
+type internal SavedProfile =
+    { Id: Guid
+      Name: string
+      Revision: int64
+      Mods: SavedMod list
+      Hidden: Set<ModFile> }
+
+type internal GenerationProvenance =
+    { PreparedAt: DateTimeOffset
+      Profile: SavedProfile option }
 
 type internal Generation =
     { Id: Guid
@@ -51,7 +68,8 @@ type internal Generation =
       Roots: TargetRoot list
       Observed: ObservedFile list
       Working: WorkingBinding list
-      NativeTargets: Map<TargetFile, LogicalPath> }
+      NativeTargets: Map<TargetFile, LogicalPath>
+      Provenance: GenerationProvenance option }
 
 type internal LinkSpec =
     { Generation: Guid

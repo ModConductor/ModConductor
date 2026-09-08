@@ -46,6 +46,11 @@ class ModMetadata {
   final List<CategoryReference> categories;
 }
 
+class ModVersionOrigin {
+  const ModVersionOrigin({this.outputActionId});
+  final String? outputActionId;
+}
+
 class ModEntry {
   const ModEntry({
     required this.id,
@@ -57,6 +62,7 @@ class ModEntry {
     required this.actions,
     this.sourcePath,
     this.currentVersionId,
+    this.versionOrigin,
   });
   final String id, workspaceId;
   final ModKind kind;
@@ -67,6 +73,7 @@ class ModEntry {
   // Original components, not a host path. Backslashes on Linux are ordinary characters.
   final List<String>? sourcePath;
   final String? currentVersionId;
+  final ModVersionOrigin? versionOrigin;
 }
 
 sealed class ModRegistration {
@@ -120,9 +127,16 @@ class ManifestEntry {
 }
 
 class ModVersionPage {
-  const ModVersionPage(this.id, this.modId, this.entries, this.nextOffset);
+  const ModVersionPage(
+    this.id,
+    this.modId,
+    this.entries,
+    this.nextOffset, {
+    this.origin = const ModVersionOrigin(),
+  });
   final String id, modId;
   final List<ManifestEntry> entries;
+  final ModVersionOrigin origin;
   final int? nextOffset;
 }
 

@@ -138,6 +138,22 @@ class NativeChild {
     CallOptions(metadata: authenticate ? {'mc-session': capability} : const {}),
   );
 
+  GeneratedOutputsClient outputs({bool authenticate = true}) =>
+      GrpcGeneratedOutputsClient(
+        _localChannel(),
+        CallOptions(
+          metadata: authenticate ? {'mc-session': capability} : const {},
+        ),
+      );
+
+  DeploymentsClient deployments({bool authenticate = true}) =>
+      GrpcDeploymentsClient(
+        _localChannel(),
+        CallOptions(
+          metadata: authenticate ? {'mc-session': capability} : const {},
+        ),
+      );
+
   GameContextsClient gameContexts({bool authenticate = true}) =>
       GrpcGameContextsClient(
         _localChannel(),

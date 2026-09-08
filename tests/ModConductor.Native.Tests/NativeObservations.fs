@@ -43,6 +43,7 @@ type NativeObservationSetup() =
             )
 
         match Environment.GetEnvironmentVariable "MC_NATIVE_SCOPE" with
+        | "generated-outputs" -> info.ArgumentList.Add "--generated-outputs"
         | "deployment-backend" -> info.ArgumentList.Add "--deployment-backend"
         | "generations" -> info.ArgumentList.Add "--generations"
         | "storage" -> info.ArgumentList.Add "--storage"

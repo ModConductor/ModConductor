@@ -18,6 +18,8 @@ instruction. Preserve field identities and reserve removed fields.
 | `steam_discovery.proto` | Read-only Steam installation search and per-origin observations |
 | `proton_contexts.proto` | Existing prefix/runtime choices, mapping observations and Windows user paths |
 | `file_plans.proto` | Observed Data files, planned sources, exact-copy visibility and history |
+| `generated_outputs.proto` | Context-owned output locations, checked files, immutable promotion and durable review results |
+| `deployments.proto` | Current and saved deployment views, preparation, activation and receipt recovery |
 
 After locked restores, run `python3 tools/generate-protocol.py`. Use `--check` to
 compare both generated boundaries without changing source. The tool compiles all
@@ -78,7 +80,7 @@ and a query accepts up to 16 typed filters.
 Native and logical registration paths are mutually exclusive. The native path is
 only a chooser candidate. F# validates it through the same held-root boundary.
 
-Client calls have deadlines. A timeout does not prove that a mutation rolled back.
+A timeout does not prove that a mutation rolled back.
 Refresh state or query its durable identity. Closing stdin requests graceful
 shutdown. The engine drains accepted work. A shutdown timeout keeps the owned child
 and cancels app exit rather than killing an authenticated engine.
@@ -92,3 +94,9 @@ carry an opaque query cursor and a snapshot ID. Visibility-only changes return a
 new snapshot while preserving path-query continuation when membership and order
 are unchanged. Other input changes invalidate continuation. An inspected saved
 copy can be returned as separate focused context outside the sources page.
+
+Output observation and deployment calls have no inherited short unary deadline.
+Progress is coalesced; clients drain the final RPC response before decoding its
+terminal outcome. Cancellation of observation or preparation does not authorize
+undoing a completed publication or deployment. Output pages contain complete
+records; selections and replies have separate bounded service envelopes.

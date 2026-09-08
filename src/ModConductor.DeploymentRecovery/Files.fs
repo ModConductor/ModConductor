@@ -236,13 +236,13 @@ module internal RecoveryFiles =
             withParent working.Root working.Path (fun parent name ->
                 match parent.InspectEntry name with
                 | Some entry when
-                    entry.Identity = working.Identity
-                    && entry.Kind = (if working.Directory then
-                                         EntryKind.Directory
-                                     else
-                                         EntryKind.RegularFile)
+                    working.Directory
+                    && entry.Kind = EntryKind.Directory
+                    && Some entry.Identity = working.Identity
                     ->
                     ()
+                | Some entry when not working.Directory && entry.Kind = EntryKind.RegularFile -> ()
+                | None when not working.Directory -> ()
                 | _ -> fail "A declared working location changed.")
 
     let verifyGeneration generation =

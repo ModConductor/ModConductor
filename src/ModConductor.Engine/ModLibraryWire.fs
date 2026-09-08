@@ -71,6 +71,15 @@ module internal ModLibraryWire =
         | ModKind.Unmanaged -> InventoryModKind.Unmanaged
         | ModKind.GeneratedOutput -> InventoryModKind.GeneratedOutput
 
+    let origin value =
+        let result = ModVersionOrigin()
+
+        match value with
+        | VersionOrigin.RegisteredSource -> ()
+        | VersionOrigin.Outputs id -> result.OutputActionId <- id.ToString("N")
+
+        result
+
     let entry (value: ModEntry) =
         let result =
             InventoryMod(
@@ -96,6 +105,9 @@ module internal ModLibraryWire =
             )
 
         result.Metadata.Categories.AddRange(value.Metadata.Categories |> Seq.map category)
+
+        value.VersionOrigin
+        |> Option.iter (fun value -> result.VersionOrigin <- origin value)
 
         value.SourcePath |> Option.iter (fun path -> result.SourcePath <- logical path)
 

@@ -39,6 +39,11 @@ type ModAction =
     | Publish
     | ReadVersion
 
+[<RequireQualifiedAccess>]
+type VersionOrigin =
+    | RegisteredSource
+    | Outputs of action: Guid
+
 type ModEntry =
     { Id: Guid
       WorkspaceId: Guid
@@ -47,6 +52,7 @@ type ModEntry =
       Revision: int64
       SourcePath: LogicalPath option
       CurrentVersion: Guid option
+      VersionOrigin: VersionOrigin option
       Status: InventoryStatus
       Actions: ModAction list }
 
@@ -60,6 +66,7 @@ type ManifestEntry = { Path: LogicalPath; Payload: Payload }
 type ModVersion =
     { Id: Guid
       ModId: Guid
+      Origin: VersionOrigin
       Entries: ManifestEntry list
       NextOffset: int option }
 

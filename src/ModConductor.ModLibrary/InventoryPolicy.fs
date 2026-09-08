@@ -53,8 +53,11 @@ module InventoryPolicy =
           Revision = revision
           SourcePath = source
           CurrentVersion = version
+          VersionOrigin = version |> Option.map (fun _ -> VersionOrigin.RegisteredSource)
           Status = status
-          Actions = actions kind status version }
+          Actions =
+            actions kind status version
+            |> List.filter (fun action -> action <> ModAction.Publish || source.IsSome) }
 
     // Conservative wire-size bounds in addition to row bounds. Paths retain original components.
     let private textSize (text: string) =

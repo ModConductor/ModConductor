@@ -180,7 +180,7 @@ module internal DeploymentEncoding =
 
             let version = reader.ReadInt32()
 
-            if version < 1 || version > 3 then
+            if version < 1 || version > 4 then
                 corrupt ()
 
             let value = read version reader
@@ -197,7 +197,7 @@ module internal DeploymentEncoding =
 
     let contextBytes value = encode 2 context value
     let receiptBytes value = encode 2 receipt value
-    let generationBytes value = encode 3 generation value
+    let generationBytes value = encode 4 generation value
 
     let contextFrom bytes =
         decode (fun version r -> if version > 2 then corrupt () else readContext version r) bytes

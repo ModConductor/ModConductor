@@ -30,7 +30,7 @@ message FilePlanState {
   bool loaded = 5; bool stale = 6; uint32 planned_files = 7; uint32 absent_targets = 8; uint32 inspected_files = 9;
   repeated string problems = 10; uint32 problem_count = 11; optional int64 observed_at_unix_ms = 12;
 }
-enum PlannedFileDisposition { PLANNED_FILE_DISPOSITION_UNSPECIFIED = 0; PLANNED_FILE_DISPOSITION_PLANNED = 1; PLANNED_FILE_DISPOSITION_ABSENT = 2; PLANNED_FILE_DISPOSITION_UNRESOLVED = 3; }
+enum PlannedFileDisposition { PLANNED_FILE_DISPOSITION_UNSPECIFIED = 0; PLANNED_FILE_DISPOSITION_PLANNED = 1; PLANNED_FILE_DISPOSITION_ABSENT = 2; PLANNED_FILE_DISPOSITION_UNRESOLVED = 3; PLANNED_FILE_DISPOSITION_WRITABLE = 4; }
 message PlannedFileNode { ModLogicalPath path = 1; bool directory = 2; PlannedFileDisposition disposition = 3; string source_name = 4; uint32 copies = 5; }
 message PlannedFilePage { FilePlanState state = 1; repeated PlannedFileNode nodes = 2; FilePlanCursor next = 3; }
 message InspectedFileCopy {
@@ -38,7 +38,7 @@ message InspectedFileCopy {
   bool enabled = 6; bool hidden = 7; bool winner = 8; bool historical = 9; uint64 length = 10; string sha256 = 11;
   bool can_hide = 12; bool can_unhide = 13;
 }
-message PlannedFileInspection { FilePlanState state = 1; ModLogicalPath target = 2; repeated InspectedFileCopy copies = 3; FilePlanCursor next = 4; InspectedFileCopy focused_copy = 5; }
+message PlannedFileInspection { FilePlanState state = 1; ModLogicalPath target = 2; repeated InspectedFileCopy copies = 3; FilePlanCursor next = 4; InspectedFileCopy focused_copy = 5; bool writable = 6; }
 message FileVisibilityChange { FilePlanState state = 1; PlannedFileNode changed = 2; }
 message FileVisibilityAudit {
   uint64 id = 1; ManagedFileCopy copy = 2; bool hidden = 3; bool before_hidden = 4; string profile_id = 5;

@@ -27,6 +27,9 @@ class PlannedFileDisposition extends $pb.ProtobufEnum {
   static const PlannedFileDisposition PLANNED_FILE_DISPOSITION_UNRESOLVED =
       PlannedFileDisposition._(
           3, _omitEnumNames ? '' : 'PLANNED_FILE_DISPOSITION_UNRESOLVED');
+  static const PlannedFileDisposition PLANNED_FILE_DISPOSITION_WRITABLE =
+      PlannedFileDisposition._(
+          4, _omitEnumNames ? '' : 'PLANNED_FILE_DISPOSITION_WRITABLE');
 
   static const $core.List<PlannedFileDisposition> values =
       <PlannedFileDisposition>[
@@ -34,10 +37,11 @@ class PlannedFileDisposition extends $pb.ProtobufEnum {
     PLANNED_FILE_DISPOSITION_PLANNED,
     PLANNED_FILE_DISPOSITION_ABSENT,
     PLANNED_FILE_DISPOSITION_UNRESOLVED,
+    PLANNED_FILE_DISPOSITION_WRITABLE,
   ];
 
   static final $core.List<PlannedFileDisposition?> _byValue =
-      $pb.ProtobufEnum.$_initByValueList(values, 3);
+      $pb.ProtobufEnum.$_initByValueList(values, 4);
   static PlannedFileDisposition? valueOf($core.int value) =>
       value < 0 || value >= _byValue.length ? null : _byValue[value];
 

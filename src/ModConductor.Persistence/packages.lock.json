@@ -107,6 +107,13 @@
           "ModConductor.Platform": "[1.0.0, )"
         }
       },
+      "modconductor.generatedoutputs": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )",
+          "ModConductor.ModLibrary": "[1.0.0, )"
+        }
+      },
       "modconductor.modlibrary": {
         "type": "Project",
         "dependencies": {

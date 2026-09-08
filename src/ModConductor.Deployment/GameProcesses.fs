@@ -96,23 +96,18 @@ module internal GameProcesses =
                         "A game process could not be excluded from this installation. Stop it before deployment."
                 )
 
-    let validate (state: GameContextState) =
+    let validateContext (state: GameContextState) =
         match state.Binding with
         | Some binding when not binding.NeedsCheck && binding.Evidence.Valid ->
-            let fresh = InstallationValidation.inspect binding.Path
+            let evidence = binding.Evidence
 
-            let fresh =
-                match binding.Proton with
-                | Some selection when fresh.Valid ->
-                    ModConductor.ProtonContexts.Validation.inspect fresh selection
-                | _ -> fresh
-
-            if not fresh.Valid || fresh.Fingerprint <> binding.Evidence.Fingerprint then
-                raise (IOException "The game context changed. Refresh it before deployment.")
-
-            if fresh.Platform = ContextPlatform.Proton && fresh.Proton.IsNone then
+            if evidence.Platform = ContextPlatform.Proton && evidence.Proton.IsNone then
                 raise (IOException "Select a checked Proton context before deployment.")
 
-            check fresh
-            fresh
+            evidence
         | _ -> raise (IOException "Select and refresh the game context before deployment.")
+
+    let validate state =
+        let evidence = validateContext state
+        check evidence
+        evidence

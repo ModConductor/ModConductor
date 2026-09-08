@@ -94,6 +94,13 @@
           "ModConductor.Platform": "[1.0.0, )"
         }
       },
+      "modconductor.generatedoutputs": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )",
+          "ModConductor.ModLibrary": "[1.0.0, )"
+        }
+      },
       "modconductor.modlibrary": {
         "type": "Project",
         "dependencies": {
@@ -131,6 +138,7 @@
           "ModConductor.DeploymentRecovery": "[1.0.0, )",
           "ModConductor.FilePlanning": "[1.0.0, )",
           "ModConductor.GameContexts": "[1.0.0, )",
+          "ModConductor.GeneratedOutputs": "[1.0.0, )",
           "ModConductor.ModLibrary": "[1.0.0, )",
           "ModConductor.ModOrganization": "[1.0.0, )",
           "ModConductor.ModSelection": "[1.0.0, )",

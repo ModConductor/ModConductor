@@ -19,6 +19,7 @@ type internal GenerationSources =
 
 type internal WorkingLocation =
     { Declaration: Guid
+      Initialized: bool
       Root: Location
       Path: LogicalPath }
 

@@ -131,7 +131,7 @@ module internal Preparation =
                 RecoveryFiles.fail
                     "Working storage must be separate from immutable payload storage."
 
-    let private projection (request: SwitchRequest) =
+    let projection (request: SwitchRequest) =
         let generation = request.Generation
         let boundaries = request.DirectoryBoundaries
 

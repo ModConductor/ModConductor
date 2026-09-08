@@ -19,6 +19,9 @@ class FilePlanningWorkbench extends StatefulWidget {
     required this.chooseDirectory,
     this.profileName,
     this.archiveUnavailable = false,
+    this.additionalFilePanes,
+    this.additionalInspector,
+    this.onCloseAdditionalInspector,
   });
   final ModLibraryController mods;
   final FilePlansController plans;
@@ -26,6 +29,10 @@ class FilePlanningWorkbench extends StatefulWidget {
   final Future<String?> Function(String?) chooseDirectory;
   final String? profileName;
   final bool archiveUnavailable;
+  final List<ModFilePane> Function(VoidCallback onInspect)? additionalFilePanes;
+  final Widget Function(VoidCallback onClose)? additionalInspector;
+  final VoidCallback? onCloseAdditionalInspector;
+
   @override
   State<FilePlanningWorkbench> createState() => _FilePlanningWorkbenchState();
 }
@@ -82,6 +89,7 @@ class _FilePlanningWorkbenchState extends State<FilePlanningWorkbench> {
       _scaffold.currentState!.closeEndDrawer();
     } else {
       widget.plans.inspector.close();
+      widget.onCloseAdditionalInspector?.call();
       _opener?.requestFocus();
     }
   }
@@ -96,11 +104,13 @@ class _FilePlanningWorkbenchState extends State<FilePlanningWorkbench> {
         final saved = widget.mods.files.selected;
         final mod = widget.mods.selected;
         final version = widget.mods.selectedVersionId;
-        Widget inspector() => FileSourcesInspector(
-          controller: widget.plans,
-          onClose: _close,
-          profileName: widget.profileName,
-        );
+        Widget inspector() =>
+            widget.additionalInspector?.call(_close) ??
+            FileSourcesInspector(
+              controller: widget.plans,
+              onClose: _close,
+              profileName: widget.profileName,
+            );
         return Scaffold(
           key: _scaffold,
           backgroundColor: Colors.transparent,
@@ -111,6 +121,7 @@ class _FilePlanningWorkbenchState extends State<FilePlanningWorkbench> {
           onEndDrawerChanged: (open) {
             if (!open) {
               widget.plans.inspector.close();
+              widget.onCloseAdditionalInspector?.call();
               _opener?.requestFocus();
             }
           },
@@ -123,7 +134,6 @@ class _FilePlanningWorkbenchState extends State<FilePlanningWorkbench> {
                   workspacePath: widget.workspacePath,
                   chooseDirectory: widget.chooseDirectory,
                   singlePane: narrow,
-                  extraFilePaneLabel: 'Skyrim Data',
                   savedFileActions: [
                     McIconAction(
                       label: 'Inspect file',
@@ -137,6 +147,7 @@ class _FilePlanningWorkbenchState extends State<FilePlanningWorkbench> {
                               widget.plans.state == null
                           ? null
                           : () {
+                              widget.onCloseAdditionalInspector?.call();
                               _open();
                               unawaited(
                                 widget.plans.inspector.showCopy(
@@ -146,24 +157,34 @@ class _FilePlanningWorkbenchState extends State<FilePlanningWorkbench> {
                             },
                     ),
                   ],
-                  filePaneBuilder: (context, savedFiles, planned, narrow) =>
-                      planned
-                      ? PlannedFiles(
-                          controller: widget.plans,
-                          focusNode: _filesFocus,
-                          narrow: narrow,
-                          archiveUnavailable: widget.archiveUnavailable,
-                          onInspect: (row) {
-                            _open();
-                            unawaited(
-                              widget.plans.inspector.showTarget(row.path),
-                            );
-                          },
-                        )
-                      : savedFiles,
+                  filePanes: [
+                    ModFilePane(
+                      'skyrim-data',
+                      'Skyrim Data',
+                      (context, narrow) => PlannedFiles(
+                        controller: widget.plans,
+                        focusNode: _filesFocus,
+                        narrow: narrow,
+                        archiveUnavailable: widget.archiveUnavailable,
+                        onInspect: (row) {
+                          widget.onCloseAdditionalInspector?.call();
+                          _open();
+                          unawaited(
+                            widget.plans.inspector.showTarget(row.path),
+                          );
+                        },
+                      ),
+                    ),
+                    ...?widget.additionalFilePanes?.call(() {
+                      widget.plans.inspector.close();
+                      _open();
+                    }),
+                  ],
                 ),
               ),
-              if (!_compact && widget.plans.inspector.visible) ...[
+              if (!_compact &&
+                  (widget.plans.inspector.visible ||
+                      widget.additionalInspector != null)) ...[
                 const SizedBox(width: 16),
                 SizedBox(width: 350, child: inspector()),
               ],

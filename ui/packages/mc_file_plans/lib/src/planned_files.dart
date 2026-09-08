@@ -121,6 +121,7 @@ class PlannedFiles extends StatelessWidget {
                 String origin(PlannedFileNode row) => row.directory
                     ? ''
                     : switch (row.disposition) {
+                        PlannedFileDisposition.writable => row.sourceName,
                         PlannedFileDisposition.planned => row.sourceName,
                         PlannedFileDisposition.absent => 'Absent',
                         PlannedFileDisposition.unresolved => 'Unresolved',

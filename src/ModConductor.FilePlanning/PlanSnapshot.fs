@@ -74,7 +74,7 @@ module internal PlanSnapshot =
                 [ { Id = root
                     Policy = Skyrim.definition.TargetPolicy } ]
               ReadOnly = [ snapshot ]
-              Writable = [] }
+              Writable = sources.Writable }
 
         let visibility =
             Visibility.prepare

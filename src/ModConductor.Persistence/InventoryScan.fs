@@ -36,10 +36,24 @@ module internal InventoryScan =
                             let library =
                                 LibraryRows.library database.Connection transaction workspace
 
-                            transaction.Commit()
-                            rows, library, ids.Length > limit)
+                            use query =
+                                Sqlite.command
+                                    database.Connection
+                                    transaction
+                                    "SELECT root_name FROM output_locations WHERE workspace_id=$workspace"
+                                    [ "$workspace", box (string workspace) ]
 
-                    let rows, library, limited = snapshot
+                            use reader = query.ExecuteReader()
+
+                            let outputRoots =
+                                [ while reader.Read() do
+                                      yield reader.GetString 0 ]
+                                |> Set.ofList
+
+                            transaction.Commit()
+                            rows, library, outputRoots, ids.Length > limit)
+
+                    let rows, library, outputRoots, limited = snapshot
 
                     let! observations =
                         Task.Run(fun () ->
@@ -64,6 +78,7 @@ module internal InventoryScan =
                                 if
                                     name <> RootIdentityFile.name
                                     && not (Set.contains name excluded)
+                                    && not (Set.contains name outputRoots)
                                     && not (
                                         library |> Option.exists (fun value -> value.Name = name)
                                     )
@@ -150,7 +165,10 @@ module internal InventoryScan =
                                                 for payload in stored do
                                                     LibraryFiles.verify payloads payload
 
-                                                if row.Entry.Kind = ModKind.Backup then
+                                                if
+                                                    row.Entry.Kind = ModKind.Backup
+                                                    || row.Entry.SourcePath.IsNone
+                                                then
                                                     InventoryStatus.Ready,
                                                     max 1 stored.Length,
                                                     false

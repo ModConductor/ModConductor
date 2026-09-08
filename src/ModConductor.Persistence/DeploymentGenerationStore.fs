@@ -60,7 +60,9 @@ type internal DeploymentGenerationStore
             writable,
             cancellation: CancellationToken,
             available,
-            ?gameFolderOnly: bool
+            ?gameFolderOnly: bool,
+            ?retainedProfile: SavedProfile,
+            ?recordProfile: bool
         ) =
         prepare (fun () ->
             protect (fun () ->
@@ -68,7 +70,7 @@ type internal DeploymentGenerationStore
                     let! admitted =
                         access.Run(fun () ->
                             task {
-                                let! sources =
+                                let! sources, saved =
                                     GenerationSources.read
                                         database
                                         access
@@ -76,6 +78,7 @@ type internal DeploymentGenerationStore
                                         (request.Roots |> List.map _.Root)
                                         snapshots
                                         writable
+                                        retainedProfile
 
                                 let sources =
                                     if defaultArg gameFolderOnly false then
@@ -98,7 +101,27 @@ type internal DeploymentGenerationStore
                                             sources
                                             cancellation)
 
-                                return Ok built
+                                return
+                                    Ok
+                                        { built with
+                                            Generation =
+                                                { built.Generation with
+                                                    Provenance =
+                                                        if defaultArg recordProfile false then
+                                                            Some
+                                                                { PreparedAt =
+                                                                    DateTimeOffset.UtcNow
+                                                                  Profile =
+                                                                    if
+                                                                        defaultArg
+                                                                            gameFolderOnly
+                                                                            false
+                                                                    then
+                                                                        None
+                                                                    else
+                                                                        Some saved }
+                                                        else
+                                                            None } }
                             })
 
                     return

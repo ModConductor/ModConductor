@@ -20,6 +20,7 @@ GameContextState snapshot(
   int revision,
   String? path, {
   String version = '1.7.104.0',
+  bool needsCheck = false,
 }) => GameContextState(
   workspaceId: workspace,
   revision: revision,
@@ -29,7 +30,7 @@ GameContextState snapshot(
       : GameBindingInfo(
           id: 'binding',
           path: path,
-          needsCheck: false,
+          needsCheck: needsCheck,
           evidence: GameInstallationEvidence(
             definitionId: definition.id,
             definitionRevision: definition.revision,
@@ -93,6 +94,86 @@ Future<void> page(WidgetTester tester, GameContextController controller) async {
 }
 
 void main() {
+  test('startup checks prior-session evidence once and leaves failed checks to explicit refresh', () async {
+    final client = Client();
+    var checks = 0;
+    client.onRead = (id) async =>
+        snapshot(id, 1, id == 'workspace' ? '/game' : null, needsCheck: true);
+    client.onRefresh = (id, revision) async {
+      checks++;
+      if (checks == 1) throw TimeoutException('No startup reply');
+      return snapshot(
+        id,
+        revision + 1,
+        '/game',
+        version: 'new-session-version',
+      );
+    };
+    final controller = GameContextController();
+    controller.attach(client, workspaceId: 'workspace', editable: true);
+    await Future<void>.delayed(Duration.zero);
+    expect(checks, 1);
+    expect(controller.state!.binding!.needsCheck, isTrue);
+    expect(controller.needsRead, isTrue);
+    await controller.load();
+    controller.attach(client, workspaceId: 'other', editable: true);
+    await Future<void>.delayed(Duration.zero);
+    controller.attach(client, workspaceId: 'workspace', editable: true);
+    await Future<void>.delayed(Duration.zero);
+    expect(checks, 1);
+    await controller.load(refresh: true);
+    expect(checks, 2);
+    expect(controller.state!.binding!.needsCheck, isFalse);
+    expect(
+      controller.state!.binding!.evidence.executable!.fileVersion,
+      'new-session-version',
+    );
+    var restartedChecks = 0;
+    final restarted = Client();
+    restarted.onRead = (id) async => snapshot(id, 2, '/game', needsCheck: true);
+    restarted.onRefresh = (id, revision) async {
+      restartedChecks++;
+      return snapshot(id, revision + 1, '/game', version: 'current-discovery');
+    };
+    controller.attach(restarted, workspaceId: 'workspace', editable: true);
+    await Future<void>.delayed(Duration.zero);
+    expect(restartedChecks, 1);
+    expect(
+      controller.state!.binding!.evidence.executable!.fileVersion,
+      'current-discovery',
+    );
+    await controller.load();
+    expect(restartedChecks, 1);
+    controller.dispose();
+  });
+
+  test(
+    'a superseded startup read cannot check another workspace after navigation',
+    () async {
+      final oldRead = Completer<GameContextState>();
+      final client = Client();
+      final checks = <String>[];
+      client.onRead = (id) => id == 'old'
+          ? oldRead.future
+          : Future.value(snapshot(id, 1, '/current'));
+      client.onRefresh = (id, revision) async {
+        checks.add(id);
+        return snapshot(id, revision + 1, '/game');
+      };
+      final controller = GameContextController();
+      controller.attach(client, workspaceId: 'old', editable: true);
+      controller.attach(client, workspaceId: 'current', editable: true);
+      oldRead.complete(snapshot('old', 1, '/old', needsCheck: true));
+      await Future<void>.delayed(Duration.zero);
+      expect(checks, isEmpty);
+      expect(controller.state!.workspaceId, 'current');
+      controller.attach(client, workspaceId: 'old', editable: true);
+      await Future<void>.delayed(Duration.zero);
+      expect(checks, ['old']);
+      controller.dispose();
+    },
+  );
+
   test('a late context read cannot replace another workspace or a newer saved revision', () async {
     final client = Client();
     final first = Completer<GameContextState>();

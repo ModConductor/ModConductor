@@ -30,6 +30,7 @@ module internal InspectionProjection =
         (value: Choice<ModFile, SourcePin * SnapshotFile>)
         =
         let invalid = snapshot.Problems.Length <> 0
+        let writable = snapshot.Index.Writable.Contains target
 
         let winner =
             Visibility.files snapshot.Visibility
@@ -53,7 +54,9 @@ module internal InspectionProjection =
               Enabled = row.Enabled
               Hidden = hidden
               Winner =
-                not invalid && winner = Some(SourcePin.Mod(id.ModId, id.VersionId, row.Entry))
+                not invalid
+                && not writable
+                && winner = Some(SourcePin.Mod(id.ModId, id.VersionId, row.Entry))
               Historical = false
               Length = row.Entry.Payload.Length
               Sha256 = row.Entry.Payload.Sha256
@@ -70,7 +73,7 @@ module internal InspectionProjection =
               Priority = None
               Enabled = true
               Hidden = false
-              Winner = not invalid && winner = Some source
+              Winner = not invalid && not writable && winner = Some source
               Historical = false
               Length = file.Length
               Sha256 = file.Sha256

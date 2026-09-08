@@ -92,7 +92,11 @@ file actions; it is not a read-only sandbox.
 `McFormDialog.canCancel` defaults to true. The installation form disables dismissal
 while Save is in progress, then restores it on failure. A stale form preserves
 its folder draft and shows the current saved path after Reload. Change restores
-focus when the dialog closes. Refresh checks the saved installation.
+focus when the dialog closes. Refresh checks the saved installation. On first
+attachment in an engine session,
+a saved binding from a previous session receives one startup check through that
+same operation. Failed checks require manual Refresh; navigation does not retry
+them. Ordinary output and deployment actions reuse the checked session snapshot.
 
 ## File views
 
@@ -105,3 +109,11 @@ The engine supplies winners, hidden states, allowed actions and paged tree rows.
 Filters match file paths; display choices do not change precedence. Hide and
 Unhide affect one saved copy across all workspace profiles. Cold Load and Refresh
 are cancellable. Previous observations remain visible after a failed check.
+
+`mc_generated_outputs` supplies Tool outputs and Writable game files as named
+`ModFilePane` inputs to the same browser. They use engine-filtered pages and the
+same inspector and drawer. The deployment action distinguishes the configured
+profile, prepared plan, and known active deployment. A base-only view is Not deployed.
+Unfinished output reviews are read by their durable action IDs before explicit
+continuation. Promotion and location forms keep their drafts after an unknown
+reply; they do not imply cancellation while submitting.

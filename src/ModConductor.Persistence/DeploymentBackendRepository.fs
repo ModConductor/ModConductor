@@ -47,6 +47,7 @@ type internal DeploymentBackendRepository
 
         member _.Prepare(id, sources, existing, progress, token) =
             DeploymentPreparation.prepare
+                database
                 access
                 plans
                 generations
@@ -55,6 +56,7 @@ type internal DeploymentBackendRepository
                 sources
                 existing
                 false
+                None
                 progress
                 token
 
@@ -64,6 +66,7 @@ type internal DeploymentBackendRepository
                 | None ->
                     return!
                         DeploymentPreparation.prepare
+                            database
                             access
                             plans
                             generations
@@ -72,6 +75,7 @@ type internal DeploymentBackendRepository
                             sources
                             (Some context)
                             true
+                            None
                             progress
                             token
                 | Some generationId ->
@@ -82,63 +86,40 @@ type internal DeploymentBackendRepository
                         |> Option.defaultWith (fun () ->
                             raise (RecoveryException RecoveryError.NotFound))
 
-                    RecoveryFiles.verifyGenerationWith token recorded
-                    RecoveryFiles.verifyObservedWith token context recorded
+                    let provenance =
+                        recorded.Provenance
+                        |> Option.defaultWith (fun () ->
+                            raise (
+                                RecoveryException(
+                                    RecoveryError.Unavailable
+                                        "This saved deployment has no recorded profile order and file visibility. Its files remain retained, but it cannot be prepared for restoration."
+                                )
+                            ))
 
-                    return
-                        { Context = sources.Context
-                          View =
-                            { Id = id
-                              WorkspaceId = sources.Stamp.WorkspaceId
-                              Sources = sources.Stamp
-                              Fingerprint = recorded.PlanFingerprint
-                              ManagedLinks = recorded.Files.Length
-                              CopiedBytes = 0L
-                              RequiredBytes = 0L }
-                          Switch =
-                            { Id = id
-                              ContextId = context.Id
-                              ContextFingerprint = context.Fingerprint
-                              ExpectedRevision = context.Revision
-                              Roots = context.Roots
-                              Generation = recorded
-                              DirectoryBoundaries =
-                                context.Links
-                                |> List.filter (fun link -> link.Spec.Directory)
-                                |> List.choose (fun link ->
-                                    recorded.Files
-                                    |> List.tryPick (fun file ->
-                                        let parts =
-                                            ModConductor.Platform.LogicalPath.components
-                                                file.Target.Path
-
-                                        let depth =
-                                            ModConductor.Platform.LogicalPath.components
-                                                link.Target.Path
-                                            |> List.length
-
-                                        if parts.Length > depth then
-                                            let logical =
-                                                ModConductor.Platform.LogicalPath.create (
-                                                    List.take depth parts
-                                                )
-                                                |> Result.defaultWith (fun _ ->
-                                                    invalidOp "Invalid boundary.")
-
-                                            let target = { file.Target with Path = logical }
-
-                                            if
-                                                (RecoveryFiles.nativeTarget recorded target) = link.Target
-                                            then
-                                                Some target
-                                            else
-                                                None
-                                        else
-                                            None))
-                                |> List.distinct
-                              PreserveOriginals = context.Originals |> List.map _.Target
-                              ExpectedSources = Some sources.Stamp } }
+                    return!
+                        DeploymentPreparation.prepare
+                            database
+                            access
+                            plans
+                            generations
+                            recovery
+                            id
+                            sources
+                            (Some context)
+                            provenance.Profile.IsNone
+                            provenance.Profile
+                            progress
+                            token
             }
+
+        member _.Saved(context, active, before) =
+            database.Enqueue(fun () ->
+                SavedDeployments.page database.Connection context active before)
+
+        member _.SavedOne(context, id) =
+            database.Enqueue(fun () ->
+                DeploymentRows.generation database.Connection null context id
+                |> Option.map (SavedDeployments.describe (Some id)))
 
         member _.Current stamp =
             database.Enqueue(fun () ->

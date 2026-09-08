@@ -39,6 +39,7 @@ module PlanningFixtures =
                 { Id = id (identity + 100)
                   ModId = id identity
                   Entries = entries
+                  Origin = ModConductor.ModLibrary.VersionOrigin.RegisteredSource
                   NextOffset = None }
           Mappings = [ mapping ]
           Archives = [] }

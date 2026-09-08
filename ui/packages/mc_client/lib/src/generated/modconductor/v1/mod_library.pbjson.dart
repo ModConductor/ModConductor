@@ -245,6 +245,14 @@ const InventoryMod$json = {
       '6': '.modconductor.v1.InventoryModAction',
       '10': 'actions'
     },
+    {
+      '1': 'version_origin',
+      '3': 10,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.ModVersionOrigin',
+      '10': 'versionOrigin'
+    },
   ],
   '8': [
     {'1': '_current_version_id'},
@@ -261,7 +269,9 @@ final $typed_data.Uint8List inventoryModDescriptor = $convert.base64Decode(
     'pzb3VyY2VQYXRoEjEKEmN1cnJlbnRfdmVyc2lvbl9pZBgHIAEoCUgAUhBjdXJyZW50VmVyc2lv'
     'bklkiAEBEjsKBnN0YXR1cxgIIAEoDjIjLm1vZGNvbmR1Y3Rvci52MS5Nb2RJbnZlbnRvcnlTdG'
     'F0dXNSBnN0YXR1cxI9CgdhY3Rpb25zGAkgAygOMiMubW9kY29uZHVjdG9yLnYxLkludmVudG9y'
-    'eU1vZEFjdGlvblIHYWN0aW9uc0IVChNfY3VycmVudF92ZXJzaW9uX2lk');
+    'eU1vZEFjdGlvblIHYWN0aW9ucxJICg52ZXJzaW9uX29yaWdpbhgKIAEoCzIhLm1vZGNvbmR1Y3'
+    'Rvci52MS5Nb2RWZXJzaW9uT3JpZ2luUg12ZXJzaW9uT3JpZ2luQhUKE19jdXJyZW50X3ZlcnNp'
+    'b25faWQ=');
 
 @$core.Deprecated('Use modLibraryFaultDescriptor instead')
 const ModLibraryFault$json = {
@@ -673,6 +683,30 @@ final $typed_data.Uint8List modManifestEntryDescriptor = $convert.base64Decode(
     '9naWNhbFBhdGhSBHBhdGgSNQoHcGF5bG9hZBgCIAEoCzIbLm1vZGNvbmR1Y3Rvci52MS5Nb2RQ'
     'YXlsb2FkUgdwYXlsb2Fk');
 
+@$core.Deprecated('Use modVersionOriginDescriptor instead')
+const ModVersionOrigin$json = {
+  '1': 'ModVersionOrigin',
+  '2': [
+    {
+      '1': 'output_action_id',
+      '3': 1,
+      '4': 1,
+      '5': 9,
+      '9': 0,
+      '10': 'outputActionId',
+      '17': true
+    },
+  ],
+  '8': [
+    {'1': '_output_action_id'},
+  ],
+};
+
+/// Descriptor for `ModVersionOrigin`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List modVersionOriginDescriptor = $convert.base64Decode(
+    'ChBNb2RWZXJzaW9uT3JpZ2luEi0KEG91dHB1dF9hY3Rpb25faWQYASABKAlIAFIOb3V0cHV0QW'
+    'N0aW9uSWSIAQFCEwoRX291dHB1dF9hY3Rpb25faWQ=');
+
 @$core.Deprecated('Use modVersionPageDescriptor instead')
 const ModVersionPage$json = {
   '1': 'ModVersionPage',
@@ -696,6 +730,14 @@ const ModVersionPage$json = {
       '10': 'nextOffset',
       '17': true
     },
+    {
+      '1': 'origin',
+      '3': 5,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.ModVersionOrigin',
+      '10': 'origin'
+    },
   ],
   '8': [
     {'1': '_next_offset'},
@@ -707,7 +749,8 @@ final $typed_data.Uint8List modVersionPageDescriptor = $convert.base64Decode(
     'Cg5Nb2RWZXJzaW9uUGFnZRIdCgp2ZXJzaW9uX2lkGAEgASgJUgl2ZXJzaW9uSWQSFQoGbW9kX2'
     'lkGAIgASgJUgVtb2RJZBI7CgdlbnRyaWVzGAMgAygLMiEubW9kY29uZHVjdG9yLnYxLk1vZE1h'
     'bmlmZXN0RW50cnlSB2VudHJpZXMSJAoLbmV4dF9vZmZzZXQYBCABKA1IAFIKbmV4dE9mZnNldI'
-    'gBAUIOCgxfbmV4dF9vZmZzZXQ=');
+    'gBARI5CgZvcmlnaW4YBSABKAsyIS5tb2Rjb25kdWN0b3IudjEuTW9kVmVyc2lvbk9yaWdpblIG'
+    'b3JpZ2luQg4KDF9uZXh0X29mZnNldA==');
 
 @$core.Deprecated('Use modVersionReplyDescriptor instead')
 const ModVersionReply$json = {

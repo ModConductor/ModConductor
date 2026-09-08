@@ -109,6 +109,18 @@ let run args =
     builder.Services.AddSingleton<ModConductor.Engine.ProtonContextService>()
     |> ignore
 
+    builder.Services.AddSingleton<ModConductor.GeneratedOutputs.IGeneratedOutputs>(
+        store.GeneratedOutputs
+    )
+    |> ignore
+
+    builder.Services.AddSingleton<ModConductor.Engine.OutputService>() |> ignore
+
+    builder.Services.AddSingleton<ModConductor.Deployment.IDeploymentBackend>(store.Deployments)
+    |> ignore
+
+    builder.Services.AddSingleton<ModConductor.Engine.DeploymentService>() |> ignore
+
     builder.Services.AddSingleton<Coordinator>(coordinator) |> ignore
     builder.Services.AddSingleton<ModConductor.Engine.OperationService>() |> ignore
 
@@ -118,6 +130,12 @@ let run args =
             options.MaxReceiveMessageSize <- Nullable 4096
             options.MaxSendMessageSize <- Nullable 65536
             options.EnableDetailedErrors <- Nullable false)
+        .AddServiceOptions<ModConductor.Engine.OutputService>(fun options ->
+            options.MaxReceiveMessageSize <- Nullable(256 * 1024)
+            options.MaxSendMessageSize <- Nullable(2 * 1024 * 1024))
+        .AddServiceOptions<ModConductor.Engine.DeploymentService>(fun options ->
+            options.MaxReceiveMessageSize <- Nullable 4096
+            options.MaxSendMessageSize <- Nullable(256 * 1024))
         .AddServiceOptions<ModConductor.Engine.FilePlanService>(fun options ->
             options.MaxReceiveMessageSize <- Nullable(256 * 1024)
             options.MaxSendMessageSize <- Nullable(2 * 1024 * 1024))
@@ -145,6 +163,8 @@ let run args =
     |> ignore
 
     use app = builder.Build()
+    app.MapGrpcService<ModConductor.Engine.OutputService>() |> ignore
+    app.MapGrpcService<ModConductor.Engine.DeploymentService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.FilePlanService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.SteamDiscoveryService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.ProtonContextService>() |> ignore
@@ -176,6 +196,8 @@ let run args =
 
     app.WaitForShutdownAsync().GetAwaiter().GetResult()
     coordinator.Drain().GetAwaiter().GetResult()
+    store.DrainOutputs().GetAwaiter().GetResult()
+    store.DrainDeployments().GetAwaiter().GetResult()
     store.FilePlans.Drain().GetAwaiter().GetResult()
     store.ModLibrary.Drain().GetAwaiter().GetResult()
     store.Workspaces.Drain().GetAwaiter().GetResult()

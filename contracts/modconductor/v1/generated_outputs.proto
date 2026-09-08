@@ -1,0 +1,61 @@
+syntax = "proto3";
+package modconductor.v1;
+option csharp_namespace = "ModConductor.Protocol.V1";
+import "modconductor/v1/mod_library.proto";
+
+service GeneratedOutputOperations {
+  rpc ReadOutputs(ReadOutputsRequest) returns (OutputScopeReply);
+  rpc AddOutputLocation(AddOutputLocationRequest) returns (OutputLocationReply);
+  rpc StopUsingOutputLocation(StopOutputLocationRequest) returns (OutputLocationReply);
+  rpc ObserveOutputs(ObserveOutputsRequest) returns (stream OutputLoadEvent);
+  rpc ReadOutputPage(OutputPageRequest) returns (OutputPageReply);
+  rpc PreviewOutputPromotion(OutputPromotionRequest) returns (OutputPromotionReply);
+  rpc ApplyOutputAction(ApplyOutputActionRequest) returns (OutputActionReply);
+  rpc ReadOutputAction(OutputActionRequest) returns (OutputActionReply);
+  rpc ResumeOutputAction(OutputActionRequest) returns (OutputActionReply);
+}
+message OutputScopeRef { string workspace_id = 1; string context_id = 2; uint64 revision = 3; uint64 context_revision = 4; }
+message ReadOutputsRequest { string workspace_id = 1; optional string context_id = 2; }
+enum OutputLocationKind { OUTPUT_LOCATION_KIND_UNSPECIFIED = 0; OUTPUT_LOCATION_KIND_TOOL_FOLDER = 1; OUTPUT_LOCATION_KIND_WRITABLE_FILE = 2; }
+enum OutputLocationStatus { OUTPUT_LOCATION_STATUS_UNSPECIFIED = 0; OUTPUT_LOCATION_STATUS_UNINITIALIZED = 1; OUTPUT_LOCATION_STATUS_READY = 2; OUTPUT_LOCATION_STATUS_STOPPED = 3; }
+message OutputLocation {
+  string id = 1; string workspace_id = 2; string context_id = 3; string name = 4;
+  OutputLocationKind kind = 5; ModLogicalPath target = 6; uint64 revision = 7;
+  OutputLocationStatus status = 8; string physical_path = 9;
+}
+message OutputContext { string id = 1; string installation = 2; bool current = 3; }
+message OutputScope {
+  OutputScopeRef reference = 1; string installation = 2; repeated OutputLocation locations = 3;
+  repeated OutputContext contexts = 4; repeated string pending_actions = 5;
+}
+message AddOutputLocationRequest { string id = 1; OutputScopeRef expected = 2; string name = 3; OutputLocationKind kind = 4; ModLogicalPath target = 5; }
+message StopOutputLocationRequest { string id = 1; uint64 revision = 2; }
+message ObserveOutputsRequest { OutputScopeRef expected = 1; }
+enum OutputFileStatus { OUTPUT_FILE_STATUS_UNSPECIFIED = 0; OUTPUT_FILE_STATUS_NEW = 1; OUTPUT_FILE_STATUS_CHANGED = 2; OUTPUT_FILE_STATUS_KEPT = 3; OUTPUT_FILE_STATUS_ABSENT = 4; }
+message OutputFile { string location_id = 1; ModLogicalPath path = 2; OutputFileStatus status = 3; uint64 length = 4; string sha256 = 5; int64 observed_at_unix_ms = 6; optional string deployment_id = 7; }
+message OutputSnapshot { string id = 1; OutputScope scope = 2; int64 observed_at_unix_ms = 3; uint32 files = 4; uint32 entries = 5; uint32 unreviewed = 6; }
+message OutputPageRequest { string snapshot_id = 1; optional string cursor = 2; string filter = 3; OutputLocationKind kind = 4; }
+message OutputPage { OutputSnapshot snapshot = 1; repeated OutputFile entries = 2; uint32 matching = 3; optional string next_cursor = 4; uint32 files = 5; uint32 unreviewed = 6; }
+message OutputSelection { string location_id = 1; ModLogicalPath path = 2; }
+message ExistingOutputMod { string mod_id = 1; uint64 revision = 2; string version_label = 3; }
+message NewOutputMod { string mod_id = 1; string name = 2; string version_label = 3; }
+message OutputDestination { oneof destination { ExistingOutputMod existing_mod = 1; NewOutputMod new_mod = 2; } }
+enum OutputActionKind { OUTPUT_ACTION_KIND_UNSPECIFIED = 0; OUTPUT_ACTION_KIND_KEEP = 1; OUTPUT_ACTION_KIND_DISCARD = 2; OUTPUT_ACTION_KIND_MOVE_TO_MOD = 3; OUTPUT_ACTION_KIND_SAVE_COPY_TO_MOD = 4; }
+message OutputActionSpec { OutputActionKind kind = 1; OutputDestination destination = 2; }
+message OutputPromotionRequest { string snapshot_id = 1; repeated OutputSelection files = 2; OutputActionSpec action = 3; }
+message OutputPromotionPreview { uint32 selected = 1; repeated ModLogicalPath replaced = 2; optional string previous_version = 3; bool registered_source = 4; }
+message ApplyOutputActionRequest { string id = 1; string snapshot_id = 2; repeated OutputSelection files = 3; OutputActionSpec action = 4; }
+message OutputActionRequest { string id = 1; }
+enum OutputDisposition { OUTPUT_DISPOSITION_UNSPECIFIED = 0; OUTPUT_DISPOSITION_KEPT = 1; OUTPUT_DISPOSITION_DISCARDED = 2; OUTPUT_DISPOSITION_MOVED = 3; OUTPUT_DISPOSITION_COPIED = 4; OUTPUT_DISPOSITION_CHANGED = 5; OUTPUT_DISPOSITION_PENDING = 6; }
+message OutputActionEntry { OutputSelection file = 1; OutputDisposition disposition = 2; }
+message OutputActionResult { string id = 1; optional string version_id = 2; bool published = 3; repeated OutputActionEntry entries = 4; bool complete = 5; }
+enum OutputFaultCode { OUTPUT_FAULT_UNSPECIFIED = 0; OUTPUT_FAULT_NOT_FOUND = 1; OUTPUT_FAULT_BUSY = 2; OUTPUT_FAULT_STALE = 3; OUTPUT_FAULT_CANCELLED = 4; OUTPUT_FAULT_INVALID = 5; OUTPUT_FAULT_UNAVAILABLE = 6; OUTPUT_FAULT_LIMIT_EXCEEDED = 7; }
+message OutputFault { OutputFaultCode code = 1; string detail = 2; }
+message OutputScopeReply { oneof outcome { OutputScope scope = 1; OutputFault fault = 2; } }
+message OutputLocationReply { oneof outcome { OutputLocation location = 1; OutputFault fault = 2; } }
+message OutputSnapshotReply { oneof outcome { OutputSnapshot snapshot = 1; OutputFault fault = 2; } }
+message OutputPageReply { oneof outcome { OutputPage page = 1; OutputFault fault = 2; } }
+message OutputPromotionReply { oneof outcome { OutputPromotionPreview preview = 1; OutputFault fault = 2; } }
+message OutputActionReply { oneof outcome { OutputActionResult result = 1; OutputFault fault = 2; } }
+message OutputProgress { uint32 files = 1; uint64 bytes = 2; }
+message OutputLoadEvent { oneof event { OutputProgress progress = 1; OutputSnapshotReply finished = 2; } }
