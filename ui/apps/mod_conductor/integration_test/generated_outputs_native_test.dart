@@ -116,7 +116,9 @@ void main() {
       }
 
       Future<void> review(String label) async {
-        final menu = find.byTooltip('Review selected outputs');
+        final menu = find.byWidgetPredicate(
+          (w) => w is McIconMenu<String> && w.label == 'Review selected outputs',
+        );
         if (menu.evaluate().isNotEmpty) {
           await tap(menu);
           await tap(find.text(label).last);
