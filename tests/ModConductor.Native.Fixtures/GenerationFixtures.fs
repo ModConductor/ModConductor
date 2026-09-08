@@ -135,7 +135,8 @@ module internal GenerationFixtures =
                         TargetPrefix = PlanPath.Root } ]
                   Archives = [] }
               Directory = location targetPath
-              Files = observed }
+              Files = observed
+              Originals = Map.empty }
 
         let extraSource = make "explicit-secondary"
         File.WriteAllText(Path.Combine(extraSource, "extra.txt"), "explicit secondary bytes")
@@ -156,7 +157,8 @@ module internal GenerationFixtures =
                     Kind = ReadOnlyLayerKind.Secondary
                     Files = [ extraFile ] }
               Directory = location extraSource
-              Files = Map.ofList [ extraFile.Path, extraIdentity ] }
+              Files = Map.ofList [ extraFile.Path, extraIdentity ]
+              Originals = Map.empty }
 
         let snapshots = [ snapshot; extra ]
         let writableId, outputId = Guid.NewGuid(), Guid.NewGuid()

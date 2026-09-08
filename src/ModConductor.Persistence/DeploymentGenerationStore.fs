@@ -53,8 +53,15 @@ type internal DeploymentGenerationStore
         }
 
     member _.Build
-        (request, profile, snapshots, writable, cancellation: CancellationToken, available)
-        =
+        (
+            request,
+            profile,
+            snapshots,
+            writable,
+            cancellation: CancellationToken,
+            available,
+            ?gameFolderOnly: bool
+        ) =
         prepare (fun () ->
             protect (fun () ->
                 task {
@@ -69,6 +76,19 @@ type internal DeploymentGenerationStore
                                         (request.Roots |> List.map _.Root)
                                         snapshots
                                         writable
+
+                                let sources =
+                                    if defaultArg gameFolderOnly false then
+                                        { sources with
+                                            Input =
+                                                { sources.Input with
+                                                    Planning =
+                                                        { sources.Input.Planning with
+                                                            Profile =
+                                                                { sources.Input.Planning.Profile with
+                                                                    Mods = [] } } } }
+                                    else
+                                        sources
 
                                 let! built =
                                     Task.Run(fun () ->
@@ -100,18 +120,18 @@ type internal DeploymentGenerationStore
             fun location -> GenerationStorage.available location.Path location.Identity
         )
 
-    member _.Start(request: SwitchRequest, processes) =
+    member _.Start(request: SwitchRequest, processes, ?cancellation: CancellationToken) =
         protect (fun () ->
             task {
                 GenerationFiles.checkProcesses processes
 
                 match request.ExpectedSources with
-                | Some _ -> return! recovery.Start request
+                | Some _ -> return! recovery.Start(request, ?cancellation = cancellation)
                 | None ->
                     let! retained = recovery.Generation(request.ContextId, request.Generation.Id)
 
                     if retained = Some request.Generation then
-                        return! recovery.Start request
+                        return! recovery.Start(request, ?cancellation = cancellation)
                     else
                         return Error RecoveryError.Stale
             })

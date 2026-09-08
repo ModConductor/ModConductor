@@ -59,6 +59,14 @@
           "SQLitePCLRaw.core": "3.0.5"
         }
       },
+      "modconductor.deployment": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )",
+          "ModConductor.DeploymentGenerations": "[1.0.0, )",
+          "ModConductor.ProtonContexts": "[1.0.0, )"
+        }
+      },
       "modconductor.deploymentgenerations": {
         "type": "Project",
         "dependencies": {

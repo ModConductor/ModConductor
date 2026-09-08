@@ -46,7 +46,29 @@ module internal FilePlanRows =
                     "SELECT COALESCE((SELECT revision FROM game_contexts WHERE workspace_id=$workspace),0)"
                     [ "$workspace", box (string workspace) ]
               ExclusionRevision = revision connection transaction workspace
-              Versions = versions connection transaction workspace })
+              Versions = versions connection transaction workspace
+              Deployment =
+                match GameContextRows.read connection transaction "" workspace with
+                | Ok state ->
+                    state.Binding
+                    |> Option.bind (fun binding ->
+                        let id =
+                            ModConductor.Deployment.DeploymentContextId.create
+                                workspace
+                                (ModConductor.Deployment.DeploymentContextId.fingerprint
+                                    binding.Evidence)
+
+                        use command =
+                            Sqlite.command
+                                connection
+                                transaction
+                                "SELECT digest FROM deployment_contexts WHERE id=$id"
+                                [ "$id", box (string id) ]
+
+                        match command.ExecuteScalar() with
+                        | :? string as value -> Some value
+                        | _ -> None)
+                | Error _ -> None })
 
     let hidden connection transaction workspace =
         use command =

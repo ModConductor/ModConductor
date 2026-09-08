@@ -177,6 +177,14 @@ module internal DeploymentValueEncoding =
           Sha256 = readOption readText r
           Backup = r.ReadString() }
 
+    let ownedDirectory w (value: OwnedDirectory) =
+        target w value.Target
+        identity w value.Identity
+
+    let readOwnedDirectory r : OwnedDirectory =
+        { Target = readTarget r
+          Identity = readIdentity r }
+
     let context (w: BinaryWriter) (v: Context) =
         guid w v.Id
         w.Write v.Fingerprint
@@ -186,8 +194,9 @@ module internal DeploymentValueEncoding =
         list link w v.Links
         list original w v.Originals
         option guid w v.Pending
+        list ownedDirectory w v.Directories
 
-    let readContext (r: BinaryReader) : Context =
+    let readContext version (r: BinaryReader) : Context =
         { Id = readGuid r
           Fingerprint = r.ReadString()
           Roots = readList readBinding r
@@ -195,4 +204,5 @@ module internal DeploymentValueEncoding =
           Active = readOption readGuid r
           Links = readList readLink r
           Originals = readList readOriginal r
-          Pending = readOption readGuid r }
+          Pending = readOption readGuid r
+          Directories = if version >= 2 then readList readOwnedDirectory r else [] }

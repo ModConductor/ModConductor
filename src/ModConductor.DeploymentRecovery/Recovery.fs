@@ -27,11 +27,13 @@ type internal Recovery(repository: IRecoveryRepository) =
         | RecoveryException error -> Some error
         | :? IOException as error -> Some(RecoveryError.Unavailable error.Message)
         | :? UnauthorizedAccessException as error -> Some(RecoveryError.Unavailable error.Message)
+        | :? OperationCanceledException ->
+            Some(RecoveryError.Unavailable "Deployment preparation was cancelled.")
         | :? PlatformNotSupportedException ->
             Some(RecoveryError.Unavailable "Symbolic-link operations are unavailable.")
         | _ -> None
 
-    member _.Start(request: SwitchRequest) =
+    member _.Start(request: SwitchRequest, ?cancellation: CancellationToken) =
         task {
             if not (enter request.Id) then
                 return Error RecoveryError.Busy
@@ -39,7 +41,9 @@ type internal Recovery(repository: IRecoveryRepository) =
                 try
                     try
                         let! context = repository.Context request.ContextId
-                        let! receipt = Task.Run(fun () -> Preparation.prepare context request)
+                        let token = defaultArg cancellation CancellationToken.None
+                        let! receipt = Task.Run(fun () -> Preparation.prepare token context request)
+                        token.ThrowIfCancellationRequested()
 
                         let! saved =
                             repository.Begin(
@@ -109,9 +113,10 @@ type internal Recovery(repository: IRecoveryRepository) =
                                 RecoveryFiles.fail
                                     "The recorded generation differs from the activation context."
 
-                            RecoveryFiles.verifyGeneration proposed
+                            RecoveryFiles.verifyGenerationWith cancellation proposed
 
-                            RecoveryFiles.verifyObserved
+                            RecoveryFiles.verifyObservedWith
+                                cancellation
                                 { claimed.Context with
                                     Originals = claimed.Originals }
                                 proposed
@@ -119,7 +124,7 @@ type internal Recovery(repository: IRecoveryRepository) =
                             match claimed.Previous with
                             | Some previous ->
                                 let! old = repository.Generation(claimed.Context.Id, previous)
-                                RecoveryFiles.verifyGeneration (required old)
+                                RecoveryFiles.verifyGenerationWith cancellation (required old)
                             | None -> ()
 
                             let restoring =
@@ -142,8 +147,13 @@ type internal Recovery(repository: IRecoveryRepository) =
 
                             boundary "intent" -1
 
+                            let! parentReady =
+                                RecoveryParents.create save boundary starting restoring
+
                             let! receipt =
-                                RecoverySteps.run save boundary cancellation starting restoring
+                                RecoverySteps.run save boundary cancellation parentReady restoring
+
+                            let! receipt = RecoveryParents.remove save boundary receipt restoring
 
                             let links =
                                 receipt.Changes
@@ -165,6 +175,7 @@ type internal Recovery(repository: IRecoveryRepository) =
                                         if
                                             not (
                                                 RecoveryFiles.stateMatches
+                                                    cancellation
                                                     receipt.Context
                                                     change.Target
                                                     (EntryState.Link(spec, Some entry))
@@ -183,6 +194,7 @@ type internal Recovery(repository: IRecoveryRepository) =
                                         if
                                             not (
                                                 RecoveryFiles.stateMatches
+                                                    cancellation
                                                     receipt.Context
                                                     change.Target
                                                     state
@@ -206,6 +218,7 @@ type internal Recovery(repository: IRecoveryRepository) =
                                          else
                                              Some receipt.Proposed)
                                     Links = links
+                                    Directories = RecoveryParents.completed receipt restoring
                                     Originals =
                                         (if restoring then
                                              receipt.Context.Originals

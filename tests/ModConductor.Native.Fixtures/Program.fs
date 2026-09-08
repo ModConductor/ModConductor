@@ -14,6 +14,29 @@ let main args =
             Console.ReadLine() |> ignore
             0
         elif
+            args.Length = 6
+            && args[0] = "--deployment-live"
+            && Path.IsPathFullyQualified args[1]
+            && Path.IsPathFullyQualified args[2]
+        then
+            DeploymentLiveFixture.run args[1] args[2] args[3] args[4] args[5]
+            0
+        elif
+            args.Length = 2
+            && args[0] = "--deployment-backend"
+            && Path.IsPathFullyQualified args[1]
+        then
+            use writer =
+                new Utf8JsonWriter(Console.OpenStandardOutput(), JsonWriterOptions(Indented = true))
+
+            writer.WriteStartObject()
+            writer.WriteBoolean("nativeAot", not RuntimeFeature.IsDynamicCodeSupported)
+            DeploymentBackendFixtures.observe writer args[1]
+            DeploymentProcessFixtures.observe writer args[1]
+            writer.WriteEndObject()
+            writer.Flush()
+            0
+        elif
             args.Length = 3
             && args[0] = "--generation-legacy"
             && Path.IsPathFullyQualified args[1]

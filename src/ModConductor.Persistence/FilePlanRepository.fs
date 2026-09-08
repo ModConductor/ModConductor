@@ -14,6 +14,8 @@ type FilePlanRepository internal (database: StateDatabase, access: LibraryAccess
             try
                 return! action ()
             with
+            | ModConductor.DeploymentRecovery.RecoveryException _ ->
+                return Error FilePlanError.Blocked
             | :? ModConductor.Operations.CapacityException -> return Error FilePlanError.Busy
             | :? OperationCanceledException -> return Error FilePlanError.Cancelled
             | :? IOException as e -> return Error(FilePlanError.FileUnavailable e.Message)
@@ -57,6 +59,11 @@ type FilePlanRepository internal (database: StateDatabase, access: LibraryAccess
                         let! root = access.Root sources.Stamp.WorkspaceId
                         return root |> Result.mapError rootError |> Result.map (fun _ -> sources)
                 })
+
+        member _.GameProjection(expected, token) =
+            protect (fun () ->
+                transact false (fun c t ->
+                    DeploymentProjection.read c t database.OwnerId expected token))
 
         member _.Copy(workspace, copy) =
             protect (fun () ->

@@ -102,15 +102,28 @@ module internal GenerationSources =
                             |> Option.defaultWith (fun () ->
                                 RecoveryFiles.fail "A snapshot file has no observed identity.")
 
+                        let backing =
+                            match snapshot.Originals.TryFind file.Path with
+                            | Some original ->
+                                { Directory =
+                                    { Path = original.Root
+                                      Identity = original.RootIdentity }
+                                  Path = original.Path
+                                  Identity = original.Identity
+                                  OwnerGeneration = None }
+                            | None ->
+                                { Directory = snapshot.Directory
+                                  Path = file.Path
+                                  Identity = identity
+                                  OwnerGeneration = None }
+
                         SourcePin.Snapshot(
                             snapshot.Snapshot.Id,
                             snapshot.Snapshot.Generation,
                             file
                         ),
-                        { Directory = snapshot.Directory
-                          Path = file.Path
-                          Identity = identity
-                          OwnerGeneration = None }))
+                        backing))
+
 
             return
                 { Input =

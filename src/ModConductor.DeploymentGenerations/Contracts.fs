@@ -9,7 +9,8 @@ open ModConductor.DeploymentRecovery
 type internal SnapshotSource =
     { Snapshot: ReadOnlySnapshot
       Directory: Location
-      Files: Map<LogicalPath, FileIdentity> }
+      Files: Map<LogicalPath, FileIdentity>
+      Originals: Map<LogicalPath, GameFileSource> }
 
 type internal GenerationSources =
     { Input: VisibilityInput

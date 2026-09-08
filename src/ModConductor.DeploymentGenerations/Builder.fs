@@ -201,6 +201,7 @@ module internal GenerationBuilder =
               References = references
               Writable = sources.Input.Planning.Writable |> List.map _.Target
               Roots = sources.Input.Planning.Roots
+              NativeTargets = Map.empty
               Working = workingBindings
               Observed = observed }
 

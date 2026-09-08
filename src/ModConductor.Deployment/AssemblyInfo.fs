@@ -1,7 +1,7 @@
-namespace ModConductor.FilePlanning
+namespace ModConductor.Deployment
 
 open System.Runtime.CompilerServices
 
-[<assembly: InternalsVisibleTo("ModConductor.Native.Fixtures")>]
 [<assembly: InternalsVisibleTo("ModConductor.Persistence")>]
+[<assembly: InternalsVisibleTo("ModConductor.Native.Fixtures")>]
 do ()

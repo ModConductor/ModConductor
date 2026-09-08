@@ -104,7 +104,7 @@ module internal DeploymentRows =
 
             Some(value, reader.GetString 5, reader.GetBoolean 6, reader.GetBoolean 7)
 
-    let checkOwnership connection transaction (value: Context) =
+    let checkOwnership connection transaction (value: Context) workspace =
         use command =
             Sqlite.command
                 connection
@@ -117,7 +117,26 @@ module internal DeploymentRows =
         while reader.Read() do
             let existing = DeploymentEncoding.contextFrom (bytes reader 0)
 
-            if Preparation.overlappingRoots existing.Roots value.Roots then
+            let sameWorkspace =
+                workspace
+                |> Option.exists (fun id ->
+                    existing.Roots.Length = 1
+                    && value.Roots.Length = 1
+                    && existing.Roots.Head.Root.Id = id
+                    && value.Roots.Head.Root.Id = id)
+
+            let inactive =
+                existing.Pending.IsNone
+                && existing.Links.IsEmpty
+                && existing.Directories.IsEmpty
+
+            if sameWorkspace && not inactive then
+                raise (RecoveryException RecoveryError.Busy)
+
+            if
+                Preparation.overlappingRoots existing.Roots value.Roots
+                && not (sameWorkspace && inactive)
+            then
                 raise (
                     RecoveryException(
                         RecoveryError.Mismatch "Another deployment context owns this target."

@@ -78,6 +78,8 @@ type FilePlanSession(repository: IFilePlanRepository) =
         cache.Put(snapshot, fresh)
         describe false snapshot
 
+    member internal _.Observation id = cache.Find id |> Option.bind _.Game
+
     member _.Drain() =
         lock gate (fun () ->
             closing <- true

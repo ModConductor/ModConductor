@@ -52,64 +52,67 @@ type internal SnapshotAcquisition(repository: IFilePlanRepository, cache: Snapsh
                 match PlanSnapshot.context sources with
                 | Error error -> return Error error
                 | Ok evidence ->
-                    let cached =
-                        if refresh then
-                            None
-                        else
-                            cache.Game
-                                sources.Stamp.WorkspaceId
-                                evidence.DataIdentity
-                                evidence.Fingerprint
+                    let! projected = repository.GameProjection(sources.Stamp, token)
 
-                    let! observation =
-                        Task.Run(
-                            (fun () ->
-                                match cached with
-                                | None ->
-                                    GameFiles.acquire
-                                        evidence
-                                        sources.Stamp.WorkspaceId
-                                        progress
-                                        token
-                                | Some observation ->
-                                    if cache.GameStale observation then
-                                        Error FilePlanError.Stale
-                                    else
-                                        match GameFiles.current observation token with
-                                        | Ok true -> Ok observation
-                                        | Ok false ->
-                                            cache.MarkGameStale observation
-                                            Error FilePlanError.Stale
-                                        | Error FilePlanError.Cancelled ->
-                                            Error FilePlanError.Cancelled
-                                        | Error error ->
-                                            cache.MarkGameStale observation
-                                            Error error),
-                            token
-                        )
-
-                    match observation with
+                    match projected with
                     | Error error -> return Error error
-                    | Ok observation ->
-                        let! verified =
-                            repository.VerifyPayloads(
-                                sources,
-                                Limits.contentBytes
-                                - (observation.Snapshot.Files |> List.sumBy _.Length),
+                    | Ok projection ->
+                        let cached =
+                            if refresh then
+                                None
+                            else
+                                cache.Game
+                                    sources.Stamp.WorkspaceId
+                                    evidence.DataIdentity
+                                    evidence.Fingerprint
+
+                        let! observation =
+                            Task.Run(
+                                (fun () ->
+                                    match cached with
+                                    | None ->
+                                        GameFiles.acquireProjected
+                                            projection
+                                            evidence
+                                            sources.Stamp.WorkspaceId
+                                            progress
+                                            token
+                                    | Some previous ->
+                                        if cache.GameStale previous then
+                                            Error FilePlanError.Stale
+                                        else
+                                            match GameFiles.reuse projection previous token with
+                                            | Ok observation -> Ok observation
+                                            | Error FilePlanError.Cancelled ->
+                                                Error FilePlanError.Cancelled
+                                            | Error error ->
+                                                cache.MarkGameStale previous
+                                                Error error),
                                 token
                             )
 
-                        match verified with
+                        match observation with
                         | Error error -> return Error error
-                        | Ok() ->
-                            let! snapshot = create sources (Some observation)
-                            token.ThrowIfCancellationRequested()
-                            let! current = repository.Current sources.Stamp
+                        | Ok observation ->
+                            let! verified =
+                                repository.VerifyPayloads(
+                                    sources,
+                                    Limits.contentBytes
+                                    - (observation.Snapshot.Files |> List.sumBy _.Length),
+                                    token
+                                )
 
-                            return
-                                match current with
-                                | Error error -> Error error
-                                | Ok false -> Error FilePlanError.Stale
-                                | Ok true ->
-                                    snapshot |> Result.map (keep (refresh || cached.IsNone))
+                            match verified with
+                            | Error error -> return Error error
+                            | Ok() ->
+                                let! snapshot = create sources (Some observation)
+                                token.ThrowIfCancellationRequested()
+                                let! current = repository.Current sources.Stamp
+
+                                return
+                                    match current with
+                                    | Error error -> Error error
+                                    | Ok false -> Error FilePlanError.Stale
+                                    | Ok true ->
+                                        snapshot |> Result.map (keep (refresh || cached.IsNone))
         }

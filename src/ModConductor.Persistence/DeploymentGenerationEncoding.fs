@@ -144,6 +144,13 @@ module internal DeploymentGenerationEncoding =
         list observed w v.Observed
         list working w v.Working
 
+        list
+            (fun w (key, value) ->
+                target w key
+                path w value)
+            w
+            (Map.toList v.NativeTargets)
+
     let readGeneration version (r: BinaryReader) : Generation =
         { Id = readGuid r
           PlanFingerprint = r.ReadString()
@@ -153,4 +160,9 @@ module internal DeploymentGenerationEncoding =
           Writable = readList readWritable r
           Roots = readList readRoot r
           Observed = if version >= 2 then readList readObserved r else []
-          Working = if version >= 2 then readList readWorking r else [] }
+          Working = if version >= 2 then readList readWorking r else []
+          NativeTargets =
+            if version >= 3 then
+                readList (fun r -> let key = readTarget r in key, readPath r) r |> Map.ofList
+            else
+                Map.empty }

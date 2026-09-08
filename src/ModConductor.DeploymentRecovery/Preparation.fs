@@ -193,8 +193,9 @@ module internal Preparation =
                    { Generation = generation.Id
                      Target = RecoveryFiles.path working.Root working.Path
                      Directory = working.Directory }))
+        |> List.map (fun (target, spec) -> RecoveryFiles.nativeTarget generation target, spec)
 
-    let prepare (existing: Context option) (request: SwitchRequest) =
+    let prepare token (existing: Context option) (request: SwitchRequest) =
         if
             request.Id = Guid.Empty
             || request.ContextId = Guid.Empty
@@ -235,6 +236,7 @@ module internal Preparation =
                   Revision = 0L
                   Active = None
                   Links = []
+                  Directories = []
                   Originals = []
                   Pending = None }
             | None -> raise (RecoveryException RecoveryError.Stale)
@@ -247,10 +249,24 @@ module internal Preparation =
                 RecoveryFiles.fail "The activation context changed."
             | Some value -> value
 
+        for KeyValue(target, nativePath) in request.Generation.NativeTargets do
+            let root = context.Roots |> List.tryFind (fun root -> root.Root.Id = target.Root)
+
+            match root with
+            | Some root when
+                (ModConductor.Platform.TargetPolicy.comparer root.Root.Policy)
+                    .Equals(
+                        ModConductor.Platform.TargetPolicy.key root.Root.Policy target.Path,
+                        ModConductor.Platform.TargetPolicy.key root.Root.Policy nativePath
+                    )
+                ->
+                ()
+            | _ -> raise (RecoveryException RecoveryError.InvalidPlan)
+
         checkLocations context.Roots request.Generation
         checkExternalLocations context.Roots request.Generation
-        RecoveryFiles.verifyGeneration request.Generation
-        RecoveryFiles.verifyObserved context request.Generation
+        RecoveryFiles.verifyGenerationWith token request.Generation
+        RecoveryFiles.verifyObservedWith token context request.Generation
         let proposed = projection request
 
         let targets =
@@ -285,7 +301,13 @@ module internal Preparation =
                     | None, None -> EntryState.Missing
                     | None, Some entry when request.PreserveOriginals |> List.contains target ->
                         let original =
-                            RecoveryFiles.captureOriginal request.Id index context target entry
+                            RecoveryFiles.captureOriginal
+                                token
+                                request.Id
+                                index
+                                context
+                                target
+                                entry
 
                         originals <-
                             original
@@ -302,7 +324,7 @@ module internal Preparation =
                     | None ->
                         match originals |> List.tryFind (fun value -> value.Target = target) with
                         | Some original ->
-                            if not (RecoveryFiles.originalMatches context original true) then
+                            if not (RecoveryFiles.originalMatches token context original true) then
                                 RecoveryFiles.fail
                                     "The original required by the removed path changed."
 
@@ -325,5 +347,6 @@ module internal Preparation =
           Revision = 0L
           Phase = ReceiptPhase.Applying
           Changes = changes
+          Parents = RecoveryParents.prepare context (proposed |> List.map fst)
           Originals = originals
           Detail = "" }

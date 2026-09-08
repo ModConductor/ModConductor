@@ -157,6 +157,9 @@ type HeldDirectory private (handle: SafeFileHandle) =
     member _.RemoveLink(name, expected) =
         HeldEntries.removeLink handle name expected
 
+    member _.RemoveDirectory(name, expected) =
+        HeldEntries.removeDirectory handle name expected
+
     member _.MoveOriginal(name, expected, destination: HeldDirectory, target) =
         HeldEntries.moveOriginal handle name destination.Handle target expected
 

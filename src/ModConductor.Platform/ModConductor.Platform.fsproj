@@ -11,6 +11,7 @@
     <Compile Include="HeldEntries.fs" />
     <Compile Include="HeldDirectory.fs" />
     <Compile Include="GenerationStorage.fs" />
+    <Compile Include="GameProcessObservation.fs" />
     <PackageReference Include="FSharp.Core" />
   </ItemGroup>
 </Project>

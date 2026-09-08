@@ -4,6 +4,8 @@
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="Contracts.fs" />
     <Compile Include="Files.fs" />
+    <Compile Include="Generations.fs" />
+    <Compile Include="RecoveryParents.fs" />
     <Compile Include="Preparation.fs" />
     <Compile Include="RecoverySteps.fs"/><Compile Include="Recovery.fs" />
     <ProjectReference Include="../ModConductor.FilePlanning/ModConductor.FilePlanning.fsproj" />

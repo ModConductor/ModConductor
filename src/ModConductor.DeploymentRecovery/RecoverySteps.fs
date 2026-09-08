@@ -45,6 +45,7 @@ module internal RecoverySteps =
                         if
                             not (
                                 RecoveryFiles.stateMatches
+                                    cancellation
                                     receipt.Context
                                     change.Target
                                     before
@@ -63,6 +64,7 @@ module internal RecoverySteps =
                                 if
                                     not (
                                         RecoveryFiles.stateMatches
+                                            cancellation
                                             receipt.Context
                                             change.Target
                                             after
@@ -76,12 +78,13 @@ module internal RecoverySteps =
                                 | EntryState.Link _ ->
                                     RecoveryFiles.remove receipt.Context change.Target entry
                                 | EntryState.Original original ->
-                                    RecoveryFiles.preserve receipt.Context original
+                                    RecoveryFiles.preserve cancellation receipt.Context original
                                 | EntryState.Missing ->
                                     RecoveryFiles.fail
                                         "An unexpected entry occupies the restore path."
 
-                        let observed = RecoveryFiles.install receipt.Context change.Target before
+                        let observed =
+                            RecoveryFiles.install cancellation receipt.Context change.Target before
 
                         boundary "restored" index
 
@@ -117,7 +120,7 @@ module internal RecoverySteps =
                             ->
                             RecoveryFiles.remove receipt.Context change.Target actual
                         | EntryState.Original original, _ ->
-                            RecoveryFiles.preserve receipt.Context original
+                            RecoveryFiles.preserve cancellation receipt.Context original
                         | _ -> RecoveryFiles.fail "The entry changed before removal."
 
                         boundary "removed" index
@@ -140,7 +143,11 @@ module internal RecoverySteps =
 
                     if change.Phase = EntryPhase.InstallIntent then
                         let observed =
-                            RecoveryFiles.install receipt.Context change.Target change.After
+                            RecoveryFiles.install
+                                cancellation
+                                receipt.Context
+                                change.Target
+                                change.After
 
                         boundary "installed" index
 

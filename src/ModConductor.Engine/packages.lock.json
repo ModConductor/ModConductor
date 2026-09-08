@@ -63,6 +63,14 @@
           "SQLitePCLRaw.core": "3.0.5"
         }
       },
+      "modconductor.deployment": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )",
+          "ModConductor.DeploymentGenerations": "[1.0.0, )",
+          "ModConductor.ProtonContexts": "[1.0.0, )"
+        }
+      },
       "modconductor.deploymentgenerations": {
         "type": "Project",
         "dependencies": {
@@ -135,6 +143,7 @@
         "dependencies": {
           "FSharp.Core": "[10.1.400, )",
           "Microsoft.Data.Sqlite.Core": "[10.0.11, )",
+          "ModConductor.Deployment": "[1.0.0, )",
           "ModConductor.DeploymentGenerations": "[1.0.0, )",
           "ModConductor.DeploymentRecovery": "[1.0.0, )",
           "ModConductor.FilePlanning": "[1.0.0, )",

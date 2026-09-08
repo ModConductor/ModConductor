@@ -3,6 +3,7 @@
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="Contracts.fs" />
+    <Compile Include="GameInventory.fs" />
     <Compile Include="GameFiles.fs" />
     <Compile Include="Diagnostics.fs" />
     <Compile Include="FileIndex.fs" />

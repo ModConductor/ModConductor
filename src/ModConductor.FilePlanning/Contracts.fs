@@ -30,11 +30,33 @@ type ObservedEntry =
       Length: int64
       Modified: DateTime }
 
+type GameFileSource =
+    { Root: HostPath
+      RootIdentity: FileIdentity
+      Path: LogicalPath
+      Identity: FileIdentity }
+
+type GameOwnedLink = { Path: LogicalPath; Entry: HeldEntry }
+
+type GameProjection =
+    { Stamp: string option
+      Links: GameOwnedLink list
+      Directories: Map<LogicalPath, FileIdentity>
+      Originals: Map<LogicalPath, GameFileSource> }
+
+module GameProjection =
+    let empty =
+        { Stamp = None
+          Links = []
+          Directories = Map.empty
+          Originals = Map.empty }
+
 type GameObservation =
     { ContextFingerprint: string
       Root: HostPath
       Identity: FileIdentity
       Entries: ObservedEntry list
+      Projection: GameProjection
       Snapshot: ReadOnlySnapshot
       ObservedAt: DateTimeOffset
       EncodedBytes: int64 }
@@ -58,7 +80,8 @@ type SourceStamp =
       SelectionRevision: int64
       ContextRevision: int64
       ExclusionRevision: int64
-      Versions: (Guid * Guid option) list }
+      Versions: (Guid * Guid option) list
+      Deployment: string option }
 
 type ModLabel =
     { Id: Guid
@@ -99,6 +122,9 @@ type IFilePlanRepository =
     abstract Read: Guid -> Task<Result<PlanSources, FilePlanError>>
     abstract Copy: Guid * ModFile -> Task<Result<SavedCopy, FilePlanError>>
     abstract Current: SourceStamp -> Task<Result<bool, FilePlanError>>
+
+    abstract GameProjection:
+        SourceStamp * CancellationToken -> Task<Result<GameProjection, FilePlanError>>
 
     abstract VerifyPayloads:
         PlanSources * int64 * CancellationToken -> Task<Result<unit, FilePlanError>>

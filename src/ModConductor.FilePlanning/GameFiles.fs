@@ -10,94 +10,7 @@ open ModConductor.Platform
 open ModConductor.GameContexts
 open ModConductor.DeploymentPlanning
 
-type internal ScanLimitException(message: string) =
-    inherit IOException(message)
-
-type internal ScanChangedException() =
-    inherit IOException("Game files changed. Refresh to check them again.")
-
 module GameFiles =
-    let private path components =
-        LogicalPath.create components
-        |> Result.defaultWith (fun _ ->
-            raise (IOException("The game folder contains an invalid file name.")))
-
-    let private encoded path =
-        int64 (Encoding.UTF8.GetByteCount(LogicalPath.display path) + 128)
-
-    let private inventory (root: HeldDirectory) (token: CancellationToken) =
-        let result = ResizeArray<ObservedEntry>()
-        let mutable bytes = 0L
-        let mutable metadata = 0L
-
-        let rec walk (directory: HeldDirectory) components depth =
-            if depth > Limits.depth then
-                raise (ScanLimitException("The game folder exceeds the depth limit."))
-
-            for name in directory.Names do
-                token.ThrowIfCancellationRequested()
-
-                if result.Count >= Limits.entries then
-                    raise (ScanLimitException("The game folder exceeds the entry limit."))
-
-                let parts = components @ [ name ]
-                let logical = path parts
-                metadata <- metadata + encoded logical
-
-                if metadata > Limits.snapshotBytes then
-                    raise (
-                        ScanLimitException("The game file inventory exceeds the metadata limit.")
-                    )
-
-                let child =
-                    try
-                        Some(directory.Directory(name, None))
-                    with :? IOException ->
-                        None
-
-                match child with
-                | Some child ->
-                    use child = child
-
-                    result.Add
-                        { Path = logical
-                          Identity = child.Identity
-                          Directory = true
-                          Length = 0L
-                          Modified = DateTime.MinValue }
-
-                    walk child parts (depth + 1)
-                | None ->
-                    let stream, identity = directory.Read(name, None)
-                    use stream = stream
-                    bytes <- bytes + stream.Length
-
-                    if bytes > Limits.contentBytes then
-                        raise (
-                            ScanLimitException("The game files exceed the 64 GiB content limit.")
-                        )
-
-                    result.Add
-                        { Path = logical
-                          Identity = identity
-                          Directory = false
-                          Length = stream.Length
-                          Modified = File.GetLastWriteTimeUtc stream.SafeFileHandle }
-
-        walk root [] 0
-        result |> Seq.sortBy _.Path |> Seq.toList, bytes, metadata
-
-    let private read (root: HeldDirectory) (entry: ObservedEntry) =
-        let rec descend (directory: HeldDirectory) =
-            function
-            | [] -> invalidOp "A file path cannot be empty."
-            | [ name ] -> directory.Read(name, Some entry.Identity)
-            | name :: rest ->
-                use child = directory.Directory(name, None)
-                descend child rest
-
-        descend root (LogicalPath.components entry.Path)
-
     let private protect action =
         try
             Ok(action ())
@@ -109,7 +22,8 @@ module GameFiles =
         | :? UnauthorizedAccessException ->
             Error(FilePlanError.FileUnavailable "The game files cannot be read.")
 
-    let acquire
+    let acquireProjected
+        (projection: GameProjection)
         (evidence: InstallationEvidence)
         rootId
         (progress: AcquisitionProgress -> unit)
@@ -132,7 +46,7 @@ module GameFiles =
                     raise (IOException("The checked Data path is invalid.")))
 
             use root = HeldDirectory.Open(rootPath, identity)
-            let entries, total, metadata = inventory root token
+            let entries, total, metadata = GameInventory.inventory root projection token
 
             let totalFiles =
                 entries |> List.filter (fun entry -> not entry.Directory) |> List.length
@@ -158,7 +72,7 @@ module GameFiles =
                 token.ThrowIfCancellationRequested()
 
                 if not entry.Directory then
-                    let stream, _ = read root entry
+                    let stream, _ = GameInventory.read root projection entry
                     use stream = stream
 
                     if
@@ -197,7 +111,7 @@ module GameFiles =
                           Length = entry.Length
                           Sha256 = Convert.ToHexStringLower(digest.GetHashAndReset()) }
 
-            let after, _, _ = inventory root token
+            let after, _, _ = GameInventory.inventory root projection token
 
             if after <> entries then
                 raise (ScanChangedException())
@@ -240,6 +154,7 @@ module GameFiles =
               Root = rootPath
               Identity = identity
               Entries = entries
+              Projection = projection
               EncodedBytes = metadata
               ObservedAt = DateTimeOffset.UtcNow
               Snapshot =
@@ -258,5 +173,20 @@ module GameFiles =
     let current (observation: GameObservation) token =
         protect (fun () ->
             use root = HeldDirectory.Open(observation.Root, observation.Identity)
-            let entries, _, _ = inventory root token
+            let entries, _, _ = GameInventory.inventory root observation.Projection token
             entries = observation.Entries)
+
+    let internal reuse projection (observation: GameObservation) token =
+        protect (fun () ->
+            use root = HeldDirectory.Open(observation.Root, observation.Identity)
+            let entries, _, metadata = GameInventory.inventory root projection token
+
+            if entries <> observation.Entries then
+                raise (ScanChangedException())
+
+            { observation with
+                Projection = projection
+                EncodedBytes = metadata })
+
+    let acquire evidence rootId progress token =
+        acquireProjected GameProjection.empty evidence rootId progress token

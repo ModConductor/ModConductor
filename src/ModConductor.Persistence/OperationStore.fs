@@ -20,6 +20,17 @@ type OperationStore(directory: string) =
 
     let generations = DeploymentGenerationStore(database, modLibrary.Access, deployment)
 
+    let deploymentBackend =
+        ModConductor.Deployment.DeploymentBackend(
+            DeploymentBackendRepository(
+                database,
+                modLibrary.Access,
+                filePlans,
+                deployment,
+                generations
+            )
+        )
+
     let connection = database.Connection
 
     let state transaction =
@@ -102,6 +113,7 @@ type OperationStore(directory: string) =
 
     member _.GameContexts = gameContexts
     member _.FilePlans = filePlans
+    member _.Deployments = deploymentBackend :> ModConductor.Deployment.IDeploymentBackend
 
     member _.SqliteVersion = connection.ServerVersion
 
@@ -231,12 +243,13 @@ type OperationStore(directory: string) =
         member _.Dispose() =
             if
                 not (
-                    generations.TryClose(fun () ->
-                        deployment.TryClose()
-                        && filePlans.TryClose()
-                        && gameContexts.TryClose()
-                        && modLibrary.TryClose(fun () ->
-                            workspaces.TryClose(workspaceRoots.TryClose)))
+                    deploymentBackend.TryClose(fun () ->
+                        generations.TryClose(fun () ->
+                            deployment.TryClose()
+                            && filePlans.TryClose()
+                            && gameContexts.TryClose()
+                            && modLibrary.TryClose(fun () ->
+                                workspaces.TryClose(workspaceRoots.TryClose))))
                 )
             then
                 invalidOp

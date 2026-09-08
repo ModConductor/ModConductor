@@ -87,6 +87,41 @@ module internal DeploymentEncoding =
           Observed = readOption readEntry r
           RestoredEntry = readOption readEntry r }
 
+    let private parentChange w (value: ParentChange) =
+        target w value.Target
+        option identity w value.Before
+        boolean w value.Desired
+        option identity w value.Observed
+        option identity w value.Restored
+
+        w.Write(
+            match value.Phase with
+            | EntryPhase.Pending -> 0
+            | EntryPhase.RemoveIntent -> 1
+            | EntryPhase.Cleared -> 2
+            | EntryPhase.InstallIntent -> 3
+            | EntryPhase.Installed -> 4
+            | EntryPhase.RestoreIntent -> 5
+            | EntryPhase.Restored -> 6
+        )
+
+    let private readParentChange r : ParentChange =
+        { Target = readTarget r
+          Before = readOption readIdentity r
+          Desired = readBoolean r
+          Observed = readOption readIdentity r
+          Restored = readOption readIdentity r
+          Phase =
+            match r.ReadInt32() with
+            | 0 -> EntryPhase.Pending
+            | 1 -> EntryPhase.RemoveIntent
+            | 2 -> EntryPhase.Cleared
+            | 3 -> EntryPhase.InstallIntent
+            | 4 -> EntryPhase.Installed
+            | 5 -> EntryPhase.RestoreIntent
+            | 6 -> EntryPhase.Restored
+            | _ -> corrupt () }
+
     let private receipt (w: BinaryWriter) (v: Receipt) =
         guid w v.Id
 
@@ -104,14 +139,15 @@ module internal DeploymentEncoding =
         list change w v.Changes
         list original w v.Originals
         w.Write v.Detail
+        list parentChange w v.Parents
 
-    let private readReceipt (r: BinaryReader) : Receipt =
+    let private readReceipt version (r: BinaryReader) : Receipt =
         { Id = readGuid r
           Model =
             (match r.ReadInt32() with
              | 1 -> DeploymentModel.SymbolicLinkGeneration
              | _ -> corrupt ())
-          Context = readContext r
+          Context = readContext version r
           Proposed = readGuid r
           Previous = readOption readGuid r
           PlanFingerprint = r.ReadString()
@@ -119,7 +155,8 @@ module internal DeploymentEncoding =
           Phase = readPhase (r.ReadInt32())
           Changes = readList readChange r
           Originals = readList readOriginal r
-          Detail = r.ReadString() }
+          Detail = r.ReadString()
+          Parents = if version >= 2 then readList readParentChange r else [] }
 
     let private encode version write value =
         use stream = new MemoryStream()
@@ -143,7 +180,7 @@ module internal DeploymentEncoding =
 
             let version = reader.ReadInt32()
 
-            if version < 1 || version > 2 then
+            if version < 1 || version > 3 then
                 corrupt ()
 
             let value = read version reader
@@ -158,15 +195,15 @@ module internal DeploymentEncoding =
         | :? FormatException
         | :? OverflowException -> corrupt ()
 
-    let contextBytes value = encode 1 context value
-    let receiptBytes value = encode 1 receipt value
-    let generationBytes value = encode 2 generation value
+    let contextBytes value = encode 2 context value
+    let receiptBytes value = encode 2 receipt value
+    let generationBytes value = encode 3 generation value
 
     let contextFrom bytes =
-        decode (fun version r -> if version <> 1 then corrupt () else readContext r) bytes
+        decode (fun version r -> if version > 2 then corrupt () else readContext version r) bytes
 
     let receiptFrom bytes =
-        decode (fun version r -> if version <> 1 then corrupt () else readReceipt r) bytes
+        decode (fun version r -> if version > 2 then corrupt () else readReceipt version r) bytes
 
     let generationFrom bytes = decode readGeneration bytes
 

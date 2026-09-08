@@ -50,7 +50,8 @@ type internal Generation =
       Writable: WritableTarget list
       Roots: TargetRoot list
       Observed: ObservedFile list
-      Working: WorkingBinding list }
+      Working: WorkingBinding list
+      NativeTargets: Map<TargetFile, LogicalPath> }
 
 type internal LinkSpec =
     { Generation: Guid
@@ -68,6 +69,10 @@ type internal Original =
       Sha256: string option
       Backup: string }
 
+type internal OwnedDirectory =
+    { Target: TargetFile
+      Identity: FileIdentity }
+
 type internal Context =
     { Id: Guid
       Fingerprint: string
@@ -75,6 +80,7 @@ type internal Context =
       Revision: int64
       Active: Guid option
       Links: ActiveLink list
+      Directories: OwnedDirectory list
       Originals: Original list
       Pending: Guid option }
 
@@ -93,6 +99,14 @@ type internal EntryPhase =
     | Installed
     | RestoreIntent
     | Restored
+
+type internal ParentChange =
+    { Target: TargetFile
+      Before: FileIdentity option
+      Desired: bool
+      Observed: FileIdentity option
+      Restored: FileIdentity option
+      Phase: EntryPhase }
 
 [<RequireQualifiedAccess>]
 type internal ReceiptPhase =
@@ -123,6 +137,7 @@ type internal Receipt =
       Revision: int64
       Phase: ReceiptPhase
       Changes: EntryChange list
+      Parents: ParentChange list
       Originals: Original list
       Detail: string }
 

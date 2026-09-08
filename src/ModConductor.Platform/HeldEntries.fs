@@ -166,6 +166,16 @@ module internal HeldEntries =
                 File.Delete(path handle name)
         | _ -> raise (IOException "The owned link changed; it was left untouched.")
 
+    let removeDirectory (handle: SafeFileHandle) name expected =
+        match inspect handle name with
+        | Some actual when actual.Kind = EntryKind.Directory && actual.Identity = expected ->
+            if OperatingSystem.IsLinux() then
+                if unlinkat (int (handle.DangerousGetHandle()), name, 0x200) <> 0 then
+                    raise (IOException "Removing the empty owned directory failed.")
+            else
+                Directory.Delete(path handle name, false)
+        | _ -> raise (IOException "The owned directory changed; it was left untouched.")
+
     let moveOriginal
         (source: SafeFileHandle)
         name

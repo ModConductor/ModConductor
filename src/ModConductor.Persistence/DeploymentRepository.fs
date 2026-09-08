@@ -66,7 +66,11 @@ type internal DeploymentRepository(database: StateDatabase) =
                     raise (RecoveryException RecoveryError.Stale)
                 | _ -> ()
 
-                DeploymentRows.checkOwnership connection transaction receipt.Context
+                DeploymentRows.checkOwnership
+                    connection
+                    transaction
+                    receipt.Context
+                    (expectedSources |> Option.map _.WorkspaceId)
 
                 DeploymentRows.writeContext
                     connection

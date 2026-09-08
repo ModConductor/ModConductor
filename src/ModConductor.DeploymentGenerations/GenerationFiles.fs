@@ -120,7 +120,7 @@ module internal GenerationFiles =
 
                 output.Position <- 0L
 
-                if RecoveryFiles.digest output <> expectedHash then
+                if RecoveryFiles.digestWith token output <> expectedHash then
                     RecoveryFiles.fail "A copied source changed."
 
                 if readOnly then
