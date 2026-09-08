@@ -322,6 +322,15 @@ void main() {
         await until(() => controller().inspector.historyLoaded);
         expect(controller().inspector.history.length, 2);
         await capture('saved-history-dark');
+        await tester.scrollUntilVisible(
+          icon('Close inspector'),
+          -160,
+          scrollable: find.descendant(
+            of: find.byType(McInspector),
+            matching: find.byType(Scrollable),
+          ),
+          maxScrolls: 12,
+        );
         await tap(icon('Close inspector'));
 
         expect(
