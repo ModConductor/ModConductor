@@ -309,13 +309,19 @@ void main() {
               controller().inspector.selected?.copy == pinned,
         );
         final history = find.text('Saved version and history');
+        final inspectorScroll = find
+            .descendant(
+              of: find.descendant(
+                of: find.byType(McInspector),
+                matching: find.byType(ListView),
+              ),
+              matching: find.byType(Scrollable),
+            )
+            .first;
         await tester.scrollUntilVisible(
           history,
           160,
-          scrollable: find.descendant(
-            of: find.byType(McInspector),
-            matching: find.byType(Scrollable),
-          ),
+          scrollable: inspectorScroll,
           maxScrolls: 12,
         );
         await tap(history);
@@ -325,10 +331,7 @@ void main() {
         await tester.scrollUntilVisible(
           icon('Close inspector'),
           -160,
-          scrollable: find.descendant(
-            of: find.byType(McInspector),
-            matching: find.byType(Scrollable),
-          ),
+          scrollable: inspectorScroll,
           maxScrolls: 12,
         );
         await tap(icon('Close inspector'));
