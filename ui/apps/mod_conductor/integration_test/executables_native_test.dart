@@ -191,8 +191,26 @@ void main() {
         await tap(action('Close'));
         await tester.sendKeyEvent(LogicalKeyboardKey.escape);
         await tester.pumpAndSettle();
-        final close = icon('Close inspector');
-        if (close.evaluate().isNotEmpty) await tap(close);
+        final inspector = find.byType(McInspector);
+        if (inspector.evaluate().isNotEmpty) {
+          final inspectorScroll = find
+              .descendant(
+                of: find.descendant(
+                  of: inspector,
+                  matching: find.byType(ListView),
+                ),
+                matching: find.byType(Scrollable),
+              )
+              .first;
+          await tester.scrollUntilVisible(
+            icon('Close inspector'),
+            -160,
+            scrollable: inspectorScroll,
+            maxScrolls: 12,
+          );
+          await tap(icon('Close inspector'));
+        }
+        expect(find.byType(McInspector), findsNothing);
         await theme('Dark');
         await capture('finished-dark');
         await option('Edit');
