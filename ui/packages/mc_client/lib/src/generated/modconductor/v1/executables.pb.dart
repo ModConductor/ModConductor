@@ -628,6 +628,7 @@ class ExecutableRun extends $pb.GeneratedMessage {
     $core.int? rootExitCode,
     $core.int? observedProcessCount,
     $core.String? problem,
+    GameRunInfo? game,
   }) {
     final result = create();
     if (request != null) result.request = request;
@@ -643,6 +644,7 @@ class ExecutableRun extends $pb.GeneratedMessage {
     if (observedProcessCount != null)
       result.observedProcessCount = observedProcessCount;
     if (problem != null) result.problem = problem;
+    if (game != null) result.game = game;
     return result;
   }
 
@@ -678,6 +680,8 @@ class ExecutableRun extends $pb.GeneratedMessage {
     ..aI(11, _omitFieldNames ? '' : 'observedProcessCount',
         fieldType: $pb.PbFieldType.OU3)
     ..aOS(12, _omitFieldNames ? '' : 'problem')
+    ..aOM<GameRunInfo>(13, _omitFieldNames ? '' : 'game',
+        subBuilder: GameRunInfo.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -810,6 +814,17 @@ class ExecutableRun extends $pb.GeneratedMessage {
   $core.bool hasProblem() => $_has(11);
   @$pb.TagNumber(12)
   void clearProblem() => $_clearField(12);
+
+  @$pb.TagNumber(13)
+  GameRunInfo get game => $_getN(12);
+  @$pb.TagNumber(13)
+  set game(GameRunInfo value) => $_setField(13, value);
+  @$pb.TagNumber(13)
+  $core.bool hasGame() => $_has(12);
+  @$pb.TagNumber(13)
+  void clearGame() => $_clearField(13);
+  @$pb.TagNumber(13)
+  GameRunInfo ensureGame() => $_ensure(12);
 }
 
 class ExecutableProblem extends $pb.GeneratedMessage {
@@ -1281,6 +1296,399 @@ class ExecutableRunPageReply extends $pb.GeneratedMessage {
   void clearProblem() => $_clearField(3);
   @$pb.TagNumber(3)
   ExecutableProblem ensureProblem() => $_ensure(2);
+}
+
+class GameRunRequest extends $pb.GeneratedMessage {
+  factory GameRunRequest({
+    $core.String? id,
+    $core.String? workspaceId,
+    $fixnum.Int64? workspaceRevision,
+    $core.String? profileId,
+    $fixnum.Int64? contextRevision,
+    $core.String? sourceToken,
+  }) {
+    final result = create();
+    if (id != null) result.id = id;
+    if (workspaceId != null) result.workspaceId = workspaceId;
+    if (workspaceRevision != null) result.workspaceRevision = workspaceRevision;
+    if (profileId != null) result.profileId = profileId;
+    if (contextRevision != null) result.contextRevision = contextRevision;
+    if (sourceToken != null) result.sourceToken = sourceToken;
+    return result;
+  }
+
+  GameRunRequest._();
+
+  factory GameRunRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory GameRunRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'GameRunRequest',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'id')
+    ..aOS(2, _omitFieldNames ? '' : 'workspaceId')
+    ..a<$fixnum.Int64>(
+        3, _omitFieldNames ? '' : 'workspaceRevision', $pb.PbFieldType.OU6,
+        defaultOrMaker: $fixnum.Int64.ZERO)
+    ..aOS(4, _omitFieldNames ? '' : 'profileId')
+    ..a<$fixnum.Int64>(
+        5, _omitFieldNames ? '' : 'contextRevision', $pb.PbFieldType.OU6,
+        defaultOrMaker: $fixnum.Int64.ZERO)
+    ..aOS(6, _omitFieldNames ? '' : 'sourceToken')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GameRunRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GameRunRequest copyWith(void Function(GameRunRequest) updates) =>
+      super.copyWith((message) => updates(message as GameRunRequest))
+          as GameRunRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GameRunRequest create() => GameRunRequest._();
+  @$core.override
+  GameRunRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static GameRunRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<GameRunRequest>(create);
+  static GameRunRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get id => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set id($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get workspaceId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set workspaceId($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasWorkspaceId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearWorkspaceId() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get workspaceRevision => $_getI64(2);
+  @$pb.TagNumber(3)
+  set workspaceRevision($fixnum.Int64 value) => $_setInt64(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasWorkspaceRevision() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearWorkspaceRevision() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get profileId => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set profileId($core.String value) => $_setString(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasProfileId() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearProfileId() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $fixnum.Int64 get contextRevision => $_getI64(4);
+  @$pb.TagNumber(5)
+  set contextRevision($fixnum.Int64 value) => $_setInt64(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasContextRevision() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearContextRevision() => $_clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.String get sourceToken => $_getSZ(5);
+  @$pb.TagNumber(6)
+  set sourceToken($core.String value) => $_setString(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasSourceToken() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearSourceToken() => $_clearField(6);
+}
+
+class GameRunFiles extends $pb.GeneratedMessage {
+  factory GameRunFiles({
+    $core.String? receiptId,
+    $core.String? generationId,
+    $core.String? fingerprint,
+  }) {
+    final result = create();
+    if (receiptId != null) result.receiptId = receiptId;
+    if (generationId != null) result.generationId = generationId;
+    if (fingerprint != null) result.fingerprint = fingerprint;
+    return result;
+  }
+
+  GameRunFiles._();
+
+  factory GameRunFiles.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory GameRunFiles.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'GameRunFiles',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'receiptId')
+    ..aOS(2, _omitFieldNames ? '' : 'generationId')
+    ..aOS(3, _omitFieldNames ? '' : 'fingerprint')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GameRunFiles clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GameRunFiles copyWith(void Function(GameRunFiles) updates) =>
+      super.copyWith((message) => updates(message as GameRunFiles))
+          as GameRunFiles;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GameRunFiles create() => GameRunFiles._();
+  @$core.override
+  GameRunFiles createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static GameRunFiles getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<GameRunFiles>(create);
+  static GameRunFiles? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get receiptId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set receiptId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasReceiptId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearReceiptId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get generationId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set generationId($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasGenerationId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearGenerationId() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get fingerprint => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set fingerprint($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasFingerprint() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearFingerprint() => $_clearField(3);
+}
+
+class GameRunInfo extends $pb.GeneratedMessage {
+  factory GameRunInfo({
+    GameRunRequest? request,
+    $core.String? contextId,
+    $core.String? name,
+    $core.String? gameDirectory,
+    $core.String? runtime,
+    $core.String? executable,
+    $core.Iterable<$core.String>? arguments,
+    $core.String? workingDirectory,
+    $core.Iterable<ExecutableEnvironmentSetting>? environment,
+    GamePreparationPhase? preparation,
+    $core.int? completed,
+    $core.int? total,
+    GameRunFiles? files,
+  }) {
+    final result = create();
+    if (request != null) result.request = request;
+    if (contextId != null) result.contextId = contextId;
+    if (name != null) result.name = name;
+    if (gameDirectory != null) result.gameDirectory = gameDirectory;
+    if (runtime != null) result.runtime = runtime;
+    if (executable != null) result.executable = executable;
+    if (arguments != null) result.arguments.addAll(arguments);
+    if (workingDirectory != null) result.workingDirectory = workingDirectory;
+    if (environment != null) result.environment.addAll(environment);
+    if (preparation != null) result.preparation = preparation;
+    if (completed != null) result.completed = completed;
+    if (total != null) result.total = total;
+    if (files != null) result.files = files;
+    return result;
+  }
+
+  GameRunInfo._();
+
+  factory GameRunInfo.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory GameRunInfo.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'GameRunInfo',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..aOM<GameRunRequest>(1, _omitFieldNames ? '' : 'request',
+        subBuilder: GameRunRequest.create)
+    ..aOS(2, _omitFieldNames ? '' : 'contextId')
+    ..aOS(3, _omitFieldNames ? '' : 'name')
+    ..aOS(4, _omitFieldNames ? '' : 'gameDirectory')
+    ..aOS(5, _omitFieldNames ? '' : 'runtime')
+    ..aOS(6, _omitFieldNames ? '' : 'executable')
+    ..pPS(7, _omitFieldNames ? '' : 'arguments')
+    ..aOS(8, _omitFieldNames ? '' : 'workingDirectory')
+    ..pPM<ExecutableEnvironmentSetting>(9, _omitFieldNames ? '' : 'environment',
+        subBuilder: ExecutableEnvironmentSetting.create)
+    ..aE<GamePreparationPhase>(10, _omitFieldNames ? '' : 'preparation',
+        enumValues: GamePreparationPhase.values)
+    ..aI(11, _omitFieldNames ? '' : 'completed', fieldType: $pb.PbFieldType.OU3)
+    ..aI(12, _omitFieldNames ? '' : 'total', fieldType: $pb.PbFieldType.OU3)
+    ..aOM<GameRunFiles>(13, _omitFieldNames ? '' : 'files',
+        subBuilder: GameRunFiles.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GameRunInfo clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GameRunInfo copyWith(void Function(GameRunInfo) updates) =>
+      super.copyWith((message) => updates(message as GameRunInfo))
+          as GameRunInfo;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GameRunInfo create() => GameRunInfo._();
+  @$core.override
+  GameRunInfo createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static GameRunInfo getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<GameRunInfo>(create);
+  static GameRunInfo? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  GameRunRequest get request => $_getN(0);
+  @$pb.TagNumber(1)
+  set request(GameRunRequest value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasRequest() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearRequest() => $_clearField(1);
+  @$pb.TagNumber(1)
+  GameRunRequest ensureRequest() => $_ensure(0);
+
+  @$pb.TagNumber(2)
+  $core.String get contextId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set contextId($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasContextId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearContextId() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get name => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set name($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasName() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearName() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get gameDirectory => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set gameDirectory($core.String value) => $_setString(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasGameDirectory() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearGameDirectory() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.String get runtime => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set runtime($core.String value) => $_setString(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasRuntime() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearRuntime() => $_clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.String get executable => $_getSZ(5);
+  @$pb.TagNumber(6)
+  set executable($core.String value) => $_setString(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasExecutable() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearExecutable() => $_clearField(6);
+
+  @$pb.TagNumber(7)
+  $pb.PbList<$core.String> get arguments => $_getList(6);
+
+  @$pb.TagNumber(8)
+  $core.String get workingDirectory => $_getSZ(7);
+  @$pb.TagNumber(8)
+  set workingDirectory($core.String value) => $_setString(7, value);
+  @$pb.TagNumber(8)
+  $core.bool hasWorkingDirectory() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearWorkingDirectory() => $_clearField(8);
+
+  @$pb.TagNumber(9)
+  $pb.PbList<ExecutableEnvironmentSetting> get environment => $_getList(8);
+
+  @$pb.TagNumber(10)
+  GamePreparationPhase get preparation => $_getN(9);
+  @$pb.TagNumber(10)
+  set preparation(GamePreparationPhase value) => $_setField(10, value);
+  @$pb.TagNumber(10)
+  $core.bool hasPreparation() => $_has(9);
+  @$pb.TagNumber(10)
+  void clearPreparation() => $_clearField(10);
+
+  @$pb.TagNumber(11)
+  $core.int get completed => $_getIZ(10);
+  @$pb.TagNumber(11)
+  set completed($core.int value) => $_setUnsignedInt32(10, value);
+  @$pb.TagNumber(11)
+  $core.bool hasCompleted() => $_has(10);
+  @$pb.TagNumber(11)
+  void clearCompleted() => $_clearField(11);
+
+  @$pb.TagNumber(12)
+  $core.int get total => $_getIZ(11);
+  @$pb.TagNumber(12)
+  set total($core.int value) => $_setUnsignedInt32(11, value);
+  @$pb.TagNumber(12)
+  $core.bool hasTotal() => $_has(11);
+  @$pb.TagNumber(12)
+  void clearTotal() => $_clearField(12);
+
+  @$pb.TagNumber(13)
+  GameRunFiles get files => $_getN(12);
+  @$pb.TagNumber(13)
+  set files(GameRunFiles value) => $_setField(13, value);
+  @$pb.TagNumber(13)
+  $core.bool hasFiles() => $_has(12);
+  @$pb.TagNumber(13)
+  void clearFiles() => $_clearField(13);
+  @$pb.TagNumber(13)
+  GameRunFiles ensureFiles() => $_ensure(12);
 }
 
 const $core.bool _omitFieldNames =

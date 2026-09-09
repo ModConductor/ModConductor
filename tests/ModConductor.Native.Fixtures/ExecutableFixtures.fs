@@ -193,7 +193,7 @@ module ExecutableFixtures =
 
                 check
                     "launchReplayDoesNotSpawn"
-                    (replay.Request = request
+                    (replay.Source = RunSource.Preset(request, preset)
                      && replay.Phase = RunPhase.Finished
                      && File.ReadAllText(Path.Combine(controls, "roundtrip.count")) = "1")
 
@@ -212,13 +212,14 @@ module ExecutableFixtures =
 
                 check
                     "presetEditKeepsCapturedRun"
-                    (found = renamed && (read api workspace request.Id).Preset = preset)
+                    (found = renamed
+                     && (read api workspace request.Id).Source = RunSource.Preset(request, preset))
 
                 check
                     "presetPageReportsLatestRun"
                     (listed.LatestRuns
                      |> List.exists (fun value ->
-                         value.Request.Id = request.Id && value.Preset = preset))
+                         value.Id = request.Id && value.Source = RunSource.Preset(request, preset)))
 
                 let chain = Directory.CreateDirectory(Path.Combine(area, "chain")).FullName
 
@@ -397,7 +398,7 @@ module ExecutableFixtures =
 
             check
                 "runHistorySurvivesRestart"
-                (historical |> List.exists (fun row -> row.Request.Id = ownerLost))
+                (historical |> List.exists (fun row -> row.Id = ownerLost))
         finally
             Environment.SetEnvironmentVariable("MC024_SET", previousSet)
             Environment.SetEnvironmentVariable("MC024_REMOVE", previousRemove)

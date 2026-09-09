@@ -56,6 +56,61 @@ module internal ExecutableWire =
           PresetId = ModLibraryWire.id value.PresetId
           PresetRevision = ModLibraryWire.number value.PresetRevision }
 
+    let gameRequest (value: GameRunRequest) =
+        Protocol.V1.GameRunRequest(
+            Id = value.Id.ToString("N"),
+            WorkspaceId = value.WorkspaceId.ToString("N"),
+            WorkspaceRevision = uint64 value.WorkspaceRevision,
+            ProfileId = value.ProfileId.ToString("N"),
+            ContextRevision = uint64 value.ContextRevision,
+            SourceToken = value.SourceToken
+        )
+
+    let parseGameRequest (value: Protocol.V1.GameRunRequest) : GameRunRequest =
+        { Id = ModLibraryWire.id value.Id
+          WorkspaceId = ModLibraryWire.id value.WorkspaceId
+          WorkspaceRevision = ModLibraryWire.number value.WorkspaceRevision
+          ProfileId = ModLibraryWire.id value.ProfileId
+          ContextRevision = ModLibraryWire.number value.ContextRevision
+          SourceToken = value.SourceToken }
+
+    let game (value: GameRun) =
+        let result =
+            Protocol.V1.GameRunInfo(
+                Request = gameRequest value.Request,
+                ContextId = value.ContextId.ToString("N"),
+                Name = value.Name,
+                GameDirectory = value.GameDirectory,
+                Runtime = value.Runtime,
+                Executable = value.Launch.Executable,
+                WorkingDirectory = value.Launch.WorkingDirectory,
+                Completed = uint32 value.Preparation.Completed,
+                Total = uint32 value.Preparation.Total,
+                Preparation =
+                    match value.Preparation.Phase with
+                    | GamePreparationPhase.Preparing -> Protocol.V1.GamePreparationPhase.Preparing
+                    | GamePreparationPhase.Applying -> Protocol.V1.GamePreparationPhase.Applying
+                    | GamePreparationPhase.Ready -> Protocol.V1.GamePreparationPhase.Ready
+            )
+
+        result.Arguments.AddRange value.Launch.Arguments
+
+        for name, value in value.Launch.Environment do
+            let setting = Protocol.V1.ExecutableEnvironmentSetting(Name = name)
+            value |> Option.iter (fun text -> setting.Value <- text)
+            result.Environment.Add setting
+
+        value.Files
+        |> Option.iter (fun files ->
+            result.Files <-
+                Protocol.V1.GameRunFiles(
+                    ReceiptId = files.ReceiptId.ToString("N"),
+                    GenerationId = files.GenerationId.ToString("N"),
+                    Fingerprint = files.Fingerprint
+                ))
+
+        result
+
     let private phase =
         function
         | RunPhase.Starting -> Protocol.V1.ExecutableRunPhase.Starting
@@ -69,12 +124,16 @@ module internal ExecutableWire =
     let run (value: ExecutableRun) =
         let wire =
             Protocol.V1.ExecutableRun(
-                Request = request value.Request,
                 Revision = uint64 value.Revision,
-                Preset = preset value.Preset,
                 RequestedAt = value.RequestedAt.ToString("O"),
                 Phase = phase value.Phase
             )
+
+        match value.Source with
+        | RunSource.Preset(input, captured) ->
+            wire.Request <- request input
+            wire.Preset <- preset captured
+        | RunSource.Game captured -> wire.Game <- game captured
 
         value.ProfileId |> Option.iter (fun id -> wire.ProfileId <- id.ToString("N"))
         value.ProfileName |> Option.iter (fun name -> wire.ProfileName <- name)

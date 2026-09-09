@@ -3,6 +3,8 @@
   <ItemGroup>
     <Compile Include="Contracts.fs" />
     <Compile Include="Policy.fs" />
+    <Compile Include="RunOwner.fs" />
+    <Compile Include="RunLifecycle.fs" />
     <Compile Include="Session.fs" />
     <ProjectReference Include="../ModConductor.Platform/ModConductor.Platform.fsproj" />
     <PackageReference Include="FSharp.Core" />

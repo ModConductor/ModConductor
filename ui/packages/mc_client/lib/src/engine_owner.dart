@@ -1,3 +1,4 @@
+import 'game_launch_client.dart';
 import 'executable_client.dart';
 import 'output_client.dart';
 import 'deployment_client.dart';
@@ -65,6 +66,8 @@ class EngineOwner {
       _state is EngineConnected ? _session?.protonContexts : null;
   SteamDiscoveryClient? get steamDiscovery =>
       _state is EngineConnected ? _session?.steamDiscovery : null;
+  GameLaunchingClient? get gameLaunching =>
+      _state is EngineConnected ? _session?.gameLaunching : null;
   ExecutablesClient? get executables =>
       _state is EngineConnected ? _session?.executables : null;
   GeneratedOutputsClient? get outputs =>

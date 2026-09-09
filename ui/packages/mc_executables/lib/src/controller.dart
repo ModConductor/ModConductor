@@ -83,17 +83,15 @@ class ExecutablesController extends ChangeNotifier {
   }
 
   void _applyRun(ExecutableRun value) {
-    final previous = latest[value.preset.id];
+    if (value.preset == null) return;
+    final previous = latest[value.preset!.id];
     if (previous == null ||
-        (previous.request.id == value.request.id &&
-            value.revision >= previous.revision) ||
-        (previous.request.id != value.request.id &&
+        (previous.id == value.id && value.revision >= previous.revision) ||
+        (previous.id != value.id &&
             value.requestedAt.isAfter(previous.requestedAt))) {
-      latest[value.preset.id] = value;
+      latest[value.preset!.id] = value;
     }
-    final index = history.indexWhere(
-      (row) => row.request.id == value.request.id,
-    );
+    final index = history.indexWhere((row) => row.id == value.id);
     if (index >= 0 && value.revision >= history[index].revision) {
       history[index] = value;
     }
@@ -107,12 +105,12 @@ class ExecutablesController extends ChangeNotifier {
       _watchId = null;
       return;
     }
-    if (_watchId == run.request.id) return;
+    if (_watchId == run.id) return;
     unawaited(_watch?.cancel());
-    _watchId = run.request.id;
-    final epoch = _epoch, id = run.request.id;
+    _watchId = run.id;
+    final epoch = _epoch, id = run.id;
     _watch = api
-        .observe(run.request.workspaceId, id)
+        .observe(run.workspaceId, id)
         .listen(
           (value) {
             if (epoch != _epoch || _watchId != id) return;
@@ -340,14 +338,11 @@ class ExecutablesController extends ChangeNotifier {
     }
     final epoch = _epoch;
     changing = true;
-    pendingStop = run.request.id;
+    pendingStop = run.id;
     problem = null;
     _notify();
     try {
-      final value = await api.stopWaiting(
-        run.request.workspaceId,
-        run.request.id,
-      );
+      final value = await api.stopWaiting(run.workspaceId, run.id);
       if (epoch != _epoch) return;
       _applyRun(value);
       pendingStop = null;
@@ -367,7 +362,7 @@ class ExecutablesController extends ChangeNotifier {
   }
 
   Future<void> readRun() async {
-    final id = pendingLaunch?.id ?? pendingStop ?? selectedRun?.request.id,
+    final id = pendingLaunch?.id ?? pendingStop ?? selectedRun?.id,
         api = client,
         ws = workspace?.id;
     if (id == null || api == null || ws == null || !connected || changing) {
@@ -420,7 +415,7 @@ class ExecutablesController extends ChangeNotifier {
       if (epoch != _epoch) return;
       if (!_historyLoaded) history.clear();
       for (final run in page.runs) {
-        if (!history.any((v) => v.request.id == run.request.id)) {
+        if (!history.any((v) => v.id == run.id)) {
           history.add(run);
         }
       }

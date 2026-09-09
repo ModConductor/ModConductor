@@ -253,10 +253,7 @@ void main() {
         await until(() => controller().presets.length == 0);
         await option('Recent runs');
         await until(() => controller().history.length >= 3);
-        expect(
-          controller().history.any((r) => r.request.id == oldRun.request.id),
-          isTrue,
-        );
+        expect(controller().history.any((r) => r.id == oldRun.id), isTrue);
         await capture('history-dark');
         await tap(action('Close'));
         final after = await owner.workspaces!.read(id);

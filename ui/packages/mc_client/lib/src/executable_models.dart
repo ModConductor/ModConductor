@@ -1,3 +1,5 @@
+import 'game_launch_models.dart';
+
 enum ExecutableFailure {
   notFound,
   staleRevision,
@@ -71,6 +73,7 @@ class ExecutableRun {
     required this.request,
     required this.revision,
     required this.preset,
+    this.game,
     required this.profileId,
     required this.profileName,
     required this.requestedAt,
@@ -81,9 +84,19 @@ class ExecutableRun {
     required this.observedProcessCount,
     required this.problem,
   });
-  final ExecutableRunRequest request;
+  final ExecutableRunRequest? request;
+  final GameRunInfo? game;
   final int revision;
-  final ExecutablePreset preset;
+  final ExecutablePreset? preset;
+  String get id => request?.id ?? game!.request.id;
+  String get workspaceId => request?.workspaceId ?? game!.request.workspaceId;
+  String get name => preset?.name ?? game!.name;
+  String get executable => preset?.executable ?? game!.executable;
+  String get workingDirectory =>
+      preset?.workingDirectory ?? game!.workingDirectory;
+  List<String> get arguments => preset?.arguments ?? game!.arguments;
+  List<ExecutableEnvironment> get environment =>
+      preset?.environment ?? game!.environment;
   final String? profileId, profileName, scope, problem;
   final DateTime requestedAt;
   final ExecutableRunPhase phase;

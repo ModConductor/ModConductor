@@ -51,13 +51,31 @@ module GameProcessObservation =
             try
                 let name = running.ProcessName
 
-                if not (candidate name) then
+                let executable =
+                    if OperatingSystem.IsLinux() then
+                        try
+                            FileInfo("/proc/" + string running.Id + "/exe").LinkTarget
+                            |> Option.ofObj
+                        with
+                        | :? IOException
+                        | :? UnauthorizedAccessException -> None
+                    else
+                        None
+
+                let wineExecutable =
+                    executable
+                    |> Option.exists (fun path ->
+                        Path
+                            .GetFileName(path)
+                            .StartsWith("wine", StringComparison.OrdinalIgnoreCase))
+
+                if not (candidate name || wineExecutable) then
                     None
                 else
                     let mutable record =
                         { ProcessId = running.Id
                           ProcessName = name
-                          Executable = None
+                          Executable = executable
                           Arguments = []
                           Prefix = None
                           Incomplete = false }

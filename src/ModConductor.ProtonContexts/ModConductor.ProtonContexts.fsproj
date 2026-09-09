@@ -4,6 +4,7 @@
     <Compile Include="PrefixFiles.fs" />
     <Compile Include="WineRegistry.fs" />
     <Compile Include="PrefixPaths.fs" />
+    <Compile Include="LaunchDiscovery.fs" />
     <Compile Include="Validation.fs" />
     <Compile Include="Discovery.fs" />
     <ProjectReference Include="../ModConductor.GameContexts/ModConductor.GameContexts.fsproj" />

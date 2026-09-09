@@ -4,8 +4,11 @@
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="Contracts.fs" />
     <Compile Include="ContextIdentity.fs" />
+    <Compile Include="SourceIdentity.fs" />
     <Compile Include="GameProcesses.fs" />
     <Compile Include="PhysicalTargets.fs" />
+    <Compile Include="Reports.fs" />
+    <Compile Include="LaunchDeployment.fs" />
     <Compile Include="Backend.fs" />
     <ProjectReference Include="../ModConductor.DeploymentGenerations/ModConductor.DeploymentGenerations.fsproj" />
     <ProjectReference Include="../ModConductor.ProtonContexts/ModConductor.ProtonContexts.fsproj" />

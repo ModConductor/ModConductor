@@ -1,3 +1,4 @@
+import 'game_launch_client.dart';
 import 'executable_client.dart';
 import 'output_client.dart';
 import 'deployment_client.dart';
@@ -32,6 +33,8 @@ class EngineSession {
   ProtonContextsClient get protonContexts => _protonContexts!;
   SteamDiscoveryClient? _steamDiscovery;
   SteamDiscoveryClient get steamDiscovery => _steamDiscovery!;
+  GameLaunchingClient? _gameLaunching;
+  GameLaunchingClient get gameLaunching => _gameLaunching!;
   ExecutablesClient? _executables;
   ExecutablesClient get executables => _executables!;
   GeneratedOutputsClient? _outputs;
@@ -95,7 +98,14 @@ class EngineSession {
       channel,
       CallOptions(metadata: options.metadata),
     );
-    _executables = GrpcExecutablesClient(channel,CallOptions(metadata:options.metadata));
+    _executables = GrpcExecutablesClient(
+      channel,
+      CallOptions(metadata: options.metadata),
+    );
+    _gameLaunching = GrpcGameLaunchingClient(
+      channel,
+      CallOptions(metadata: options.metadata),
+    );
     _outputs = GrpcGeneratedOutputsClient(
       channel,
       CallOptions(metadata: options.metadata),

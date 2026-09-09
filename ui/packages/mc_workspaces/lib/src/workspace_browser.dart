@@ -24,6 +24,7 @@ class WorkspaceBrowser extends StatefulWidget {
     this.gameContextBuilder,
     this.executableBuilder,
     this.headerActions,
+    this.compactCloseAction = false,
   });
   final WorkspaceController controller;
   final DirectoryChooser chooseDirectory;
@@ -31,6 +32,7 @@ class WorkspaceBrowser extends StatefulWidget {
   final Widget Function(BuildContext, WorkspaceInfo)? gameContextBuilder;
   final Widget Function(BuildContext, WorkspaceInfo)? executableBuilder;
   final List<Widget> Function(BuildContext, WorkspaceInfo)? headerActions;
+  final bool compactCloseAction;
 
   @override
   State<WorkspaceBrowser> createState() => _WorkspaceBrowserState();
@@ -310,12 +312,20 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
                     ),
                   ),
                   ...?widget.headerActions?.call(context, workspace),
-                  McAction(
-                    key: const ValueKey('close-workspace'),
-                    label: 'Close workspace',
-                    icon: Icons.close,
-                    onPressed: controller.close,
-                  ),
+                  if (widget.compactCloseAction)
+                    McIconAction(
+                      key: const ValueKey('close-workspace'),
+                      label: 'Close workspace',
+                      icon: const Icon(Icons.close),
+                      onPressed: controller.close,
+                    )
+                  else
+                    McAction(
+                      key: const ValueKey('close-workspace'),
+                      label: 'Close workspace',
+                      icon: Icons.close,
+                      onPressed: controller.close,
+                    ),
                   if (controller.needsCheck)
                     McAction(
                       key: const ValueKey('check-workspace'),

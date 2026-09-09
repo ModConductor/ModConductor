@@ -62,6 +62,24 @@ final $typed_data.Uint8List executableProblemCodeDescriptor = $convert.base64Dec
     'Q0FQQUNJVFkQBBIjCh9FWEVDVVRBQkxFX1BST0JMRU1fQ09ERV9JTlZBTElEEAUSJwojRVhFQ1'
     'VUQUJMRV9QUk9CTEVNX0NPREVfVU5BVkFJTEFCTEUQBg==');
 
+@$core.Deprecated('Use gamePreparationPhaseDescriptor instead')
+const GamePreparationPhase$json = {
+  '1': 'GamePreparationPhase',
+  '2': [
+    {'1': 'GAME_PREPARATION_PHASE_UNSPECIFIED', '2': 0},
+    {'1': 'GAME_PREPARATION_PHASE_PREPARING', '2': 1},
+    {'1': 'GAME_PREPARATION_PHASE_APPLYING', '2': 2},
+    {'1': 'GAME_PREPARATION_PHASE_READY', '2': 3},
+  ],
+};
+
+/// Descriptor for `GamePreparationPhase`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List gamePreparationPhaseDescriptor = $convert.base64Decode(
+    'ChRHYW1lUHJlcGFyYXRpb25QaGFzZRImCiJHQU1FX1BSRVBBUkFUSU9OX1BIQVNFX1VOU1BFQ0'
+    'lGSUVEEAASJAogR0FNRV9QUkVQQVJBVElPTl9QSEFTRV9QUkVQQVJJTkcQARIjCh9HQU1FX1BS'
+    'RVBBUkFUSU9OX1BIQVNFX0FQUExZSU5HEAISIAocR0FNRV9QUkVQQVJBVElPTl9QSEFTRV9SRU'
+    'FEWRAD');
+
 @$core.Deprecated('Use executableEnvironmentSettingDescriptor instead')
 const ExecutableEnvironmentSetting$json = {
   '1': 'ExecutableEnvironmentSetting',
@@ -303,6 +321,14 @@ const ExecutableRun$json = {
       '10': 'problem',
       '17': true
     },
+    {
+      '1': 'game',
+      '3': 13,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.GameRunInfo',
+      '10': 'game'
+    },
   ],
   '8': [
     {'1': '_profile_id'},
@@ -326,9 +352,10 @@ final $typed_data.Uint8List executableRunDescriptor = $convert.base64Decode(
     'aGFzZRIiCgpwcm9jZXNzX2lkGAggASgNSAJSCXByb2Nlc3NJZIgBARIZCgVzY29wZRgJIAEoCU'
     'gDUgVzY29wZYgBARIpCg5yb290X2V4aXRfY29kZRgKIAEoBUgEUgxyb290RXhpdENvZGWIAQES'
     'OQoWb2JzZXJ2ZWRfcHJvY2Vzc19jb3VudBgLIAEoDUgFUhRvYnNlcnZlZFByb2Nlc3NDb3VudI'
-    'gBARIdCgdwcm9ibGVtGAwgASgJSAZSB3Byb2JsZW2IAQFCDQoLX3Byb2ZpbGVfaWRCDwoNX3By'
-    'b2ZpbGVfbmFtZUINCgtfcHJvY2Vzc19pZEIICgZfc2NvcGVCEQoPX3Jvb3RfZXhpdF9jb2RlQh'
-    'kKF19vYnNlcnZlZF9wcm9jZXNzX2NvdW50QgoKCF9wcm9ibGVt');
+    'gBARIdCgdwcm9ibGVtGAwgASgJSAZSB3Byb2JsZW2IAQESMAoEZ2FtZRgNIAEoCzIcLm1vZGNv'
+    'bmR1Y3Rvci52MS5HYW1lUnVuSW5mb1IEZ2FtZUINCgtfcHJvZmlsZV9pZEIPCg1fcHJvZmlsZV'
+    '9uYW1lQg0KC19wcm9jZXNzX2lkQggKBl9zY29wZUIRCg9fcm9vdF9leGl0X2NvZGVCGQoXX29i'
+    'c2VydmVkX3Byb2Nlc3NfY291bnRCCgoIX3Byb2JsZW0=');
 
 @$core.Deprecated('Use executableProblemDescriptor instead')
 const ExecutableProblem$json = {
@@ -543,3 +570,113 @@ final $typed_data.Uint8List executableRunPageReplyDescriptor = $convert.base64De
     'EuRXhlY3V0YWJsZVJ1blIEcnVucxIcCgduZXh0X2lkGAIgASgJSABSBm5leHRJZIgBARJBCgdw'
     'cm9ibGVtGAMgASgLMiIubW9kY29uZHVjdG9yLnYxLkV4ZWN1dGFibGVQcm9ibGVtSAFSB3Byb2'
     'JsZW2IAQFCCgoIX25leHRfaWRCCgoIX3Byb2JsZW0=');
+
+@$core.Deprecated('Use gameRunRequestDescriptor instead')
+const GameRunRequest$json = {
+  '1': 'GameRunRequest',
+  '2': [
+    {'1': 'id', '3': 1, '4': 1, '5': 9, '10': 'id'},
+    {'1': 'workspace_id', '3': 2, '4': 1, '5': 9, '10': 'workspaceId'},
+    {
+      '1': 'workspace_revision',
+      '3': 3,
+      '4': 1,
+      '5': 4,
+      '10': 'workspaceRevision'
+    },
+    {'1': 'profile_id', '3': 4, '4': 1, '5': 9, '10': 'profileId'},
+    {'1': 'context_revision', '3': 5, '4': 1, '5': 4, '10': 'contextRevision'},
+    {'1': 'source_token', '3': 6, '4': 1, '5': 9, '10': 'sourceToken'},
+  ],
+};
+
+/// Descriptor for `GameRunRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List gameRunRequestDescriptor = $convert.base64Decode(
+    'Cg5HYW1lUnVuUmVxdWVzdBIOCgJpZBgBIAEoCVICaWQSIQoMd29ya3NwYWNlX2lkGAIgASgJUg'
+    't3b3Jrc3BhY2VJZBItChJ3b3Jrc3BhY2VfcmV2aXNpb24YAyABKARSEXdvcmtzcGFjZVJldmlz'
+    'aW9uEh0KCnByb2ZpbGVfaWQYBCABKAlSCXByb2ZpbGVJZBIpChBjb250ZXh0X3JldmlzaW9uGA'
+    'UgASgEUg9jb250ZXh0UmV2aXNpb24SIQoMc291cmNlX3Rva2VuGAYgASgJUgtzb3VyY2VUb2tl'
+    'bg==');
+
+@$core.Deprecated('Use gameRunFilesDescriptor instead')
+const GameRunFiles$json = {
+  '1': 'GameRunFiles',
+  '2': [
+    {'1': 'receipt_id', '3': 1, '4': 1, '5': 9, '10': 'receiptId'},
+    {'1': 'generation_id', '3': 2, '4': 1, '5': 9, '10': 'generationId'},
+    {'1': 'fingerprint', '3': 3, '4': 1, '5': 9, '10': 'fingerprint'},
+  ],
+};
+
+/// Descriptor for `GameRunFiles`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List gameRunFilesDescriptor = $convert.base64Decode(
+    'CgxHYW1lUnVuRmlsZXMSHQoKcmVjZWlwdF9pZBgBIAEoCVIJcmVjZWlwdElkEiMKDWdlbmVyYX'
+    'Rpb25faWQYAiABKAlSDGdlbmVyYXRpb25JZBIgCgtmaW5nZXJwcmludBgDIAEoCVILZmluZ2Vy'
+    'cHJpbnQ=');
+
+@$core.Deprecated('Use gameRunInfoDescriptor instead')
+const GameRunInfo$json = {
+  '1': 'GameRunInfo',
+  '2': [
+    {
+      '1': 'request',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.GameRunRequest',
+      '10': 'request'
+    },
+    {'1': 'context_id', '3': 2, '4': 1, '5': 9, '10': 'contextId'},
+    {'1': 'name', '3': 3, '4': 1, '5': 9, '10': 'name'},
+    {'1': 'game_directory', '3': 4, '4': 1, '5': 9, '10': 'gameDirectory'},
+    {'1': 'runtime', '3': 5, '4': 1, '5': 9, '10': 'runtime'},
+    {'1': 'executable', '3': 6, '4': 1, '5': 9, '10': 'executable'},
+    {'1': 'arguments', '3': 7, '4': 3, '5': 9, '10': 'arguments'},
+    {
+      '1': 'working_directory',
+      '3': 8,
+      '4': 1,
+      '5': 9,
+      '10': 'workingDirectory'
+    },
+    {
+      '1': 'environment',
+      '3': 9,
+      '4': 3,
+      '5': 11,
+      '6': '.modconductor.v1.ExecutableEnvironmentSetting',
+      '10': 'environment'
+    },
+    {
+      '1': 'preparation',
+      '3': 10,
+      '4': 1,
+      '5': 14,
+      '6': '.modconductor.v1.GamePreparationPhase',
+      '10': 'preparation'
+    },
+    {'1': 'completed', '3': 11, '4': 1, '5': 13, '10': 'completed'},
+    {'1': 'total', '3': 12, '4': 1, '5': 13, '10': 'total'},
+    {
+      '1': 'files',
+      '3': 13,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.GameRunFiles',
+      '10': 'files'
+    },
+  ],
+};
+
+/// Descriptor for `GameRunInfo`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List gameRunInfoDescriptor = $convert.base64Decode(
+    'CgtHYW1lUnVuSW5mbxI5CgdyZXF1ZXN0GAEgASgLMh8ubW9kY29uZHVjdG9yLnYxLkdhbWVSdW'
+    '5SZXF1ZXN0UgdyZXF1ZXN0Eh0KCmNvbnRleHRfaWQYAiABKAlSCWNvbnRleHRJZBISCgRuYW1l'
+    'GAMgASgJUgRuYW1lEiUKDmdhbWVfZGlyZWN0b3J5GAQgASgJUg1nYW1lRGlyZWN0b3J5EhgKB3'
+    'J1bnRpbWUYBSABKAlSB3J1bnRpbWUSHgoKZXhlY3V0YWJsZRgGIAEoCVIKZXhlY3V0YWJsZRIc'
+    'Cglhcmd1bWVudHMYByADKAlSCWFyZ3VtZW50cxIrChF3b3JraW5nX2RpcmVjdG9yeRgIIAEoCV'
+    'IQd29ya2luZ0RpcmVjdG9yeRJPCgtlbnZpcm9ubWVudBgJIAMoCzItLm1vZGNvbmR1Y3Rvci52'
+    'MS5FeGVjdXRhYmxlRW52aXJvbm1lbnRTZXR0aW5nUgtlbnZpcm9ubWVudBJHCgtwcmVwYXJhdG'
+    'lvbhgKIAEoDjIlLm1vZGNvbmR1Y3Rvci52MS5HYW1lUHJlcGFyYXRpb25QaGFzZVILcHJlcGFy'
+    'YXRpb24SHAoJY29tcGxldGVkGAsgASgNUgljb21wbGV0ZWQSFAoFdG90YWwYDCABKA1SBXRvdG'
+    'FsEjMKBWZpbGVzGA0gASgLMh0ubW9kY29uZHVjdG9yLnYxLkdhbWVSdW5GaWxlc1IFZmlsZXM=');

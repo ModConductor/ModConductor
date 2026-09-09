@@ -101,6 +101,19 @@ module ContextIdentity =
                 identity (Some f.Identity)
                 text f.Sha256
 
+            match p.Launch with
+            | Error reason ->
+                writer.Write false
+                text reason
+            | Ok launch ->
+                writer.Write true
+                text launch.Executable
+                writer.Write launch.Arguments.Length
+                launch.Arguments |> List.iter text
+                text launch.SteamRoot
+                writer.Write launch.Libraries.Length
+                launch.Libraries |> List.iter text
+
             file p.Launcher
             writer.Write p.Metadata.Length
             p.Metadata |> List.iter file

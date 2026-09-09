@@ -65,6 +65,7 @@ class ModConductorApp extends StatefulWidget {
     this.outputs,
     this.deployments,
     this.executables,
+    this.gameLaunching,
     this.chooseExecutable = _chooseExecutable,
     this.steamDiscovery,
     this.protonContexts,
@@ -81,6 +82,7 @@ class ModConductorApp extends StatefulWidget {
   final GeneratedOutputsClient? outputs;
   final DeploymentsClient? deployments;
   final ExecutablesClient? executables;
+  final GameLaunchingClient? gameLaunching;
   final ExecutablePathChooser chooseExecutable;
   final SteamDiscoveryClient? steamDiscovery;
   final ProtonContextsClient? protonContexts;
@@ -107,6 +109,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
   final _outputs = OutputController();
   final _deployments = DeploymentController();
   final _executables = ExecutablesController();
+  final _play = GamePlayController();
   int? _selectionRevision, _catalogueRevision;
   int? _contextRevision;
   void _modsChanged() {
@@ -115,6 +118,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
         (_catalogueRevision != null &&
             _catalogueRevision != _mods.inventory.catalogueRevision)) {
       _deployments.invalidate();
+      _play.invalidate();
     }
     _selectionRevision = _mods.inventory.revision;
     _catalogueRevision = _mods.inventory.catalogueRevision;
@@ -137,12 +141,20 @@ class _ModConductorAppState extends State<ModConductorApp> {
       _files.invalidate();
       _outputs.invalidate();
       _deployments.invalidate();
+      _play.invalidate();
     }
+    if (revision != _contextRevision) _play.invalidate();
     _contextRevision = revision;
     if (mounted) setState(() {});
   }
 
   void _syncWorkspaceConsumers() {
+    _play.attach(
+      widget.gameLaunching,
+      widget.executables,
+      _workspaces.workspace,
+      available: _workspaces.canEdit,
+    );
     _executables.attach(
       widget.executables,
       _workspaces.workspace,
@@ -186,6 +198,10 @@ class _ModConductorAppState extends State<ModConductorApp> {
     _mods.addListener(_modsChanged);
     _outputs.onChanged = _outputsChanged;
     _deployments.onChanged = _deploymentChanged;
+    _play.onDeploymentChanged = () {
+      _deployments.invalidate();
+      _deploymentChanged();
+    };
     _workspaces.addListener(_syncWorkspaceConsumers);
     _workspaces.attach(widget.workspaces);
     _syncWorkspaceConsumers();
@@ -206,6 +222,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
     _outputs.dispose();
     _deployments.dispose();
     _executables.dispose();
+    _play.dispose();
     _files.dispose();
     _mods.dispose();
     _game.dispose();
@@ -291,10 +308,22 @@ class _ModConductorAppState extends State<ModConductorApp> {
                             chooseExecutable: widget.chooseExecutable,
                             chooseDirectory: widget.chooseGameDirectory,
                           ),
+                    compactCloseAction:
+                        widget.gameLaunching != null &&
+                        MediaQuery.sizeOf(context).width < 950,
                     headerActions: widget.deployments == null
                         ? null
                         : (context, workspace) => [
-                            DeploymentAction(controller: _deployments),
+                            SizedBox(
+                              width:
+                                  widget.gameLaunching != null &&
+                                      MediaQuery.sizeOf(context).width < 950
+                                  ? 250
+                                  : null,
+                              child: DeploymentAction(controller: _deployments),
+                            ),
+                            if (widget.gameLaunching != null)
+                              GamePlayActions(controller: _play),
                           ],
                     gameContextBuilder: (context, workspace) =>
                         GameContextBrowser(

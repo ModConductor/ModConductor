@@ -6,166 +6,18 @@ open System.Threading
 open System.Threading.Tasks
 open ModConductor.Platform
 
-type private RunOwner(initial: ExecutableRun) =
-    member val Gate = new SemaphoreSlim(1, 1)
-    member val Snapshot = initial with get, set
-    member val Native: INativeRun option = None with get, set
-    member val Completion: Task = Task.CompletedTask with get, set
-
 type ExecutableSession(repository: IExecutableRepository) =
-    let gate = obj ()
-    let runs = Dictionary<Guid, RunOwner>()
-    let roots = HashSet<Task<int>>()
-    let mutable closing = false
+    let state = ExecutionState()
+    let gate, runs, roots = state.Gate, state.Runs, state.Roots
     let admission = new SemaphoreSlim(1, 1)
 
     let failed =
         TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)
 
-    let record (owner: RunOwner) value =
-        task {
-            let! saved = repository.Update value
-            owner.Snapshot <- saved
-            return saved
-        }
+    let launch owner =
+        RunLifecycle.start repository state failed owner
 
-    let watch (owner: RunOwner) =
-        task {
-            do! owner.Gate.WaitAsync()
-
-            try
-                let! current =
-                    repository.Read(owner.Snapshot.Request.WorkspaceId, owner.Snapshot.Request.Id)
-
-                match current with
-                | Error _ -> ()
-                | Ok value when ExecutablePolicy.terminal value.Phase -> owner.Snapshot <- value
-                | Ok value ->
-                    owner.Snapshot <- value
-
-                    if lock gate (fun () -> closing) then
-                        let! _ =
-                            record
-                                owner
-                                { value with
-                                    Phase = RunPhase.TrackingUnavailable
-                                    Problem = Some "The app closed before launch was confirmed." }
-
-                        ()
-                    else
-                        try
-                            let native = NativeProcessLaunch.start value.Preset.Launch
-                            owner.Native <- Some native
-                            lock gate (fun () -> roots.Add native.RootExit |> ignore)
-
-                            let! _ =
-                                record
-                                    owner
-                                    { value with
-                                        Phase = RunPhase.Running
-                                        ProcessId = Some native.ProcessId
-                                        Scope = Some native.Scope }
-
-                            ()
-                        with error ->
-                            let phase =
-                                if Option.isSome owner.Native then
-                                    RunPhase.TrackingUnavailable
-                                else
-                                    RunPhase.Failed
-
-                            let! _ =
-                                record
-                                    owner
-                                    { owner.Snapshot with
-                                        Phase = phase
-                                        Problem = Some error.Message }
-
-                            ()
-            finally
-                owner.Gate.Release() |> ignore
-
-            let mutable watching = not (ExecutablePolicy.terminal owner.Snapshot.Phase)
-
-            while watching do
-                do! Task.Delay 200
-                do! owner.Gate.WaitAsync()
-
-                try
-                    if
-                        lock gate (fun () -> closing)
-                        || ExecutablePolicy.terminal owner.Snapshot.Phase
-                    then
-                        watching <- false
-                    else
-                        match owner.Native with
-                        | None -> watching <- false
-                        | Some native ->
-                            try
-                                let observation = native.Observe()
-
-                                let phase =
-                                    if Option.isNone observation.RootExitCode then
-                                        RunPhase.Running
-                                    elif not observation.ScopeEnded then
-                                        RunPhase.WaitingForChildren
-                                    else
-                                        RunPhase.Finished
-
-                                if
-                                    owner.Snapshot.Phase <> phase
-                                    || owner.Snapshot.RootExitCode <> observation.RootExitCode
-                                    || owner.Snapshot.ActiveProcesses <> observation.ActiveProcesses
-                                then
-                                    let! _ =
-                                        record
-                                            owner
-                                            { owner.Snapshot with
-                                                Phase = phase
-                                                RootExitCode = observation.RootExitCode
-                                                ActiveProcesses = observation.ActiveProcesses }
-
-                                    ()
-
-                                watching <- not (ExecutablePolicy.terminal phase)
-                            with error ->
-                                let! _ =
-                                    record
-                                        owner
-                                        { owner.Snapshot with
-                                            Phase = RunPhase.TrackingUnavailable
-                                            ActiveProcesses = None
-                                            Problem = Some error.Message }
-
-                                watching <- false
-                finally
-                    owner.Gate.Release() |> ignore
-
-            do! owner.Gate.WaitAsync()
-
-            try
-                owner.Native |> Option.iter _.Dispose()
-                owner.Native <- None
-            finally
-                owner.Gate.Release() |> ignore
-
-            lock gate (fun () -> runs.Remove owner.Snapshot.Request.Id |> ignore)
-        }
-
-    let launch (owner: RunOwner) =
-        task {
-            try
-                try
-                    do! watch owner
-                with _ ->
-                    failed.TrySetResult() |> ignore
-            finally
-                owner.Native |> Option.iter _.Dispose()
-                owner.Native <- None
-                lock gate (fun () -> runs.Remove owner.Snapshot.Request.Id |> ignore)
-        }
-
-    let beginRun request =
+    let beginRun (request: RunRequest) =
         task {
             do! admission.WaitAsync()
 
@@ -173,9 +25,9 @@ type ExecutableSession(repository: IExecutableRepository) =
                 let admitted =
                     lock gate (fun () ->
                         roots.RemoveWhere(fun root -> root.IsCompleted) |> ignore
-                        not closing && runs.Count < 32 && roots.Count < 32)
+                        not state.Closing && runs.Count < 32 && roots.Count < 32)
 
-                if lock gate (fun () -> closing) then
+                if lock gate (fun () -> state.Closing) then
                     return Error(ExecutableError.Unavailable "The executable owner is closing.")
                 elif
                     request.Id = Guid.Empty
@@ -190,7 +42,12 @@ type ExecutableSession(repository: IExecutableRepository) =
 
                     let! result =
                         match existing with
-                        | Ok value when value.Request = request -> Task.FromResult(Ok(value, false))
+                        | Ok value when
+                            (match value.Source with
+                             | RunSource.Preset(previous, _) -> previous = request
+                             | RunSource.Game _ -> false)
+                            ->
+                            Task.FromResult(Ok(value, false))
                         | Ok _ -> Task.FromResult(Error ExecutableError.IdentityConflict)
                         | Error ExecutableError.NotFound when not admitted ->
                             Task.FromResult(Error ExecutableError.Capacity)
@@ -201,10 +58,46 @@ type ExecutableSession(repository: IExecutableRepository) =
                     | Error problem -> return Error problem
                     | Ok(snapshot, false) -> return Ok snapshot
                     | Ok(snapshot, true) ->
-                        let owner = RunOwner snapshot
+                        let owner = RunOwner(snapshot, None)
                         lock gate (fun () -> runs.Add(request.Id, owner))
                         owner.Completion <- launch owner
                         return Ok snapshot
+            finally
+                admission.Release() |> ignore
+        }
+
+    let beginGame (game: GameRun) prepare =
+        task {
+            do! admission.WaitAsync()
+
+            try
+                let available =
+                    lock gate (fun () ->
+                        roots.RemoveWhere(fun root -> root.IsCompleted) |> ignore
+                        not state.Closing && runs.Count < 32 && roots.Count < 32)
+
+                let! existing = repository.Read(game.Request.WorkspaceId, game.Request.Id)
+
+                let! result =
+                    match existing with
+                    | Ok value ->
+                        match value.Source with
+                        | RunSource.Game previous when previous.Request = game.Request ->
+                            Task.FromResult(Ok(value, false))
+                        | _ -> Task.FromResult(Error ExecutableError.IdentityConflict)
+                    | Error ExecutableError.NotFound when available -> repository.BeginGame game
+                    | Error ExecutableError.NotFound ->
+                        Task.FromResult(Error ExecutableError.Capacity)
+                    | Error problem -> Task.FromResult(Error problem)
+
+                match result with
+                | Error error -> return Error error
+                | Ok(value, false) -> return Ok value
+                | Ok(value, true) ->
+                    let owner = RunOwner(value, Some prepare)
+                    lock gate (fun () -> runs.Add(value.Id, owner))
+                    owner.Completion <- launch owner
+                    return Ok value
             finally
                 admission.Release() |> ignore
         }
@@ -244,6 +137,30 @@ type ExecutableSession(repository: IExecutableRepository) =
         ExecutableError.Unavailable "The executable owner is closing."
 
     member _.Failed = failed.Task
+    member _.LatestGame workspace = repository.LatestGame workspace
+    member _.BeginGame(game, prepare) = beginGame game prepare
+
+    member _.CancelGame(workspace, id) =
+        task {
+            let pending =
+                lock gate (fun () ->
+                    match runs.TryGetValue id with
+                    | true, owner when
+                        owner.Snapshot.WorkspaceId = workspace
+                        && owner.Prepare.IsSome
+                        && owner.Native.IsNone
+                        ->
+                        owner.Cancellation.Cancel()
+                        Some owner.Completion
+                    | _ -> None)
+
+            match pending with
+            | Some completion -> do! completion
+            | None -> ()
+
+            return! repository.Read(workspace, id)
+        }
+
 
     member _.Close() =
         task {
@@ -251,7 +168,11 @@ type ExecutableSession(repository: IExecutableRepository) =
 
             let pending =
                 lock gate (fun () ->
-                    closing <- true
+                    state.Closing <- true
+
+                    for owner in runs.Values do
+                        owner.Cancellation.Cancel()
+
                     runs.Values |> Seq.toArray)
 
             admission.Release() |> ignore
@@ -260,20 +181,20 @@ type ExecutableSession(repository: IExecutableRepository) =
 
     interface IExecutables with
         member _.List(workspace, after) =
-            if lock gate (fun () -> closing) then
+            if lock gate (fun () -> state.Closing) then
                 Task.FromResult(Error(unavailable ()))
             else
                 repository.List(workspace, after)
 
         member _.ReadPreset(workspace, id) =
-            if lock gate (fun () -> closing) then
+            if lock gate (fun () -> state.Closing) then
                 Task.FromResult(Error(unavailable ()))
             else
                 repository.ReadPreset(workspace, id)
 
         member _.Save value =
             task {
-                if lock gate (fun () -> closing) then
+                if lock gate (fun () -> state.Closing) then
                     return Error(unavailable ())
                 else
                     match ExecutablePolicy.validate value with
@@ -282,7 +203,7 @@ type ExecutableSession(repository: IExecutableRepository) =
             }
 
         member _.Delete(workspace, id, revision) =
-            if lock gate (fun () -> closing) then
+            if lock gate (fun () -> state.Closing) then
                 Task.FromResult(Error(unavailable ()))
             else
                 repository.Delete(workspace, id, revision)
@@ -290,19 +211,19 @@ type ExecutableSession(repository: IExecutableRepository) =
         member _.Begin request = beginRun request
 
         member _.Read(workspace, id) =
-            if lock gate (fun () -> closing) then
+            if lock gate (fun () -> state.Closing) then
                 Task.FromResult(Error(unavailable ()))
             else
                 repository.Read(workspace, id)
 
         member _.Recent(workspace, after) =
-            if lock gate (fun () -> closing) then
+            if lock gate (fun () -> state.Closing) then
                 Task.FromResult(Error(unavailable ()))
             else
                 repository.Recent(workspace, after)
 
         member _.StopWaiting(workspace, id) =
-            if lock gate (fun () -> closing) then
+            if lock gate (fun () -> state.Closing) then
                 Task.FromResult(Error(unavailable ()))
             else
                 stop workspace id

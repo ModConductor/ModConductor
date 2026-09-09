@@ -114,6 +114,14 @@
           "ModConductor.Platform": "[1.0.0, )"
         }
       },
+      "modconductor.gamelaunching": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )",
+          "ModConductor.Deployment": "[1.0.0, )",
+          "ModConductor.Executables": "[1.0.0, )"
+        }
+      },
       "modconductor.generatedoutputs": {
         "type": "Project",
         "dependencies": {

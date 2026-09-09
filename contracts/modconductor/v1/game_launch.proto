@@ -1,0 +1,22 @@
+syntax = "proto3";
+package modconductor.v1;
+option csharp_namespace = "ModConductor.Protocol.V1";
+import "modconductor/v1/executables.proto";
+
+service GameLaunchOperations {
+  rpc ReadGameLaunch(GameLaunchStateRequest) returns (GameLaunchStateReply);
+  rpc PlayGame(GameRunRequest) returns (ExecutableRunReply);
+  rpc CancelGameLaunch(ExecutableRunRef) returns (ExecutableRunReply);
+}
+message GameLaunchStateRequest { string workspace_id = 1; string profile_id = 2; }
+message GameLaunchState {
+  string workspace_id = 1;
+  string profile_id = 2;
+  uint64 context_revision = 3;
+  string source_token = 4;
+  string name = 5;
+  string runtime = 6;
+  optional string problem = 7;
+  ExecutableRun latest = 8;
+}
+message GameLaunchStateReply { oneof result { GameLaunchState state = 1; ExecutableProblem problem = 2; } }

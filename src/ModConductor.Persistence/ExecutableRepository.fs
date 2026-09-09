@@ -203,7 +203,12 @@ type internal ExecutableRepository(database: StateDatabase) =
 
                 let result =
                     match readRun transaction request.WorkspaceId request.Id with
-                    | Some current when current.Request = request -> Ok(current, false)
+                    | Some current when
+                        (match current.Source with
+                         | RunSource.Preset(previous, _) -> previous = request
+                         | RunSource.Game _ -> false)
+                        ->
+                        Ok(current, false)
                     | Some _ -> Error ExecutableError.IdentityConflict
                     | None when
                         scalar
@@ -258,9 +263,8 @@ type internal ExecutableRepository(database: StateDatabase) =
                                 Error ExecutableError.Capacity
                             else
                                 let value =
-                                    { Request = request
+                                    { Source = RunSource.Preset(request, tool)
                                       Revision = 1L
-                                      Preset = tool
                                       ProfileId = profile
                                       ProfileName = name
                                       RequestedAt = DateTimeOffset.UtcNow
@@ -285,6 +289,17 @@ type internal ExecutableRepository(database: StateDatabase) =
 
                 transaction.Commit()
                 result)
+
+        member _.LatestGame workspace =
+            database.Enqueue(fun () ->
+                scalar
+                    null
+                    "SELECT id FROM executable_runs WHERE workspace_id=$workspace AND preset_id='' ORDER BY sequence DESC LIMIT 1"
+                    [ "$workspace", box (string workspace) ]
+                |> Option.bind (fun key -> readRun null workspace (Guid.Parse key)))
+
+        member _.BeginGame game =
+            GameRunAdmission.beginRun database readRun game
 
         member _.Read(workspace, key) =
             database.Enqueue(fun () ->
@@ -329,7 +344,7 @@ type internal ExecutableRepository(database: StateDatabase) =
                         Ok(
                             values,
                             if more then
-                                values |> List.tryLast |> Option.map _.Request.Id
+                                values |> List.tryLast |> Option.map _.Id
                             else
                                 None
                         ))
@@ -339,7 +354,7 @@ type internal ExecutableRepository(database: StateDatabase) =
                 use transaction = connection.BeginTransaction(deferred = false)
 
                 let current =
-                    readRun transaction value.Request.WorkspaceId value.Request.Id
+                    readRun transaction value.WorkspaceId value.Id
                     |> Option.defaultWith (fun () ->
                         invalidOp "The executable run no longer exists.")
 
@@ -358,7 +373,7 @@ type internal ExecutableRepository(database: StateDatabase) =
                             connection
                             transaction
                             "UPDATE executable_runs SET revision=$revision,phase=$phase,data=$data WHERE id=$id AND owner=$owner"
-                            [ "$id", box (id value.Request.Id)
+                            [ "$id", box (id value.Id)
                               "$owner", box database.OwnerId
                               "$revision", box saved.Revision
                               "$phase", box (ExecutableEncoding.phase saved.Phase)

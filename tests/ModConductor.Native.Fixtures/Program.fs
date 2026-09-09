@@ -9,7 +9,25 @@ open ModConductor.Native.Fixtures
 [<EntryPoint>]
 let main args =
     try
-        if args.Length >= 3 && args[0] = "--executable-child" then
+        if args.Length = 3 && args[0] = "--wine-check" then
+            GameLaunchChild.wine args[1]
+        elif args.Length >= 3 && args[0] = "--game-load" then
+            GameLaunchChild.run args[1..]
+        elif
+            args.Length = 2
+            && args[0] = "--game-launch"
+            && Path.IsPathFullyQualified args[1]
+        then
+            use writer =
+                new Utf8JsonWriter(Console.OpenStandardOutput(), JsonWriterOptions(Indented = true))
+
+            writer.WriteStartObject()
+            writer.WriteBoolean("nativeAot", not RuntimeFeature.IsDynamicCodeSupported)
+            GameLaunchFixtures.observe writer args[1]
+            writer.WriteEndObject()
+            writer.Flush()
+            0
+        elif args.Length >= 3 && args[0] = "--executable-child" then
             ExecutableChild.run args[1..]
         elif
             args.Length = 2

@@ -7,18 +7,9 @@ import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 
 import 'controller.dart';
 import 'editor.dart';
-
-String executableRunLabel(ExecutableRun? run) => run == null
-    ? 'Not run'
-    : switch (run.phase) {
-        ExecutableRunPhase.starting => 'Starting…',
-        ExecutableRunPhase.running => 'Running',
-        ExecutableRunPhase.waitingForChildren => 'Waiting for children',
-        ExecutableRunPhase.finished => 'Finished',
-        ExecutableRunPhase.failed => 'Could not start',
-        ExecutableRunPhase.detached => 'Stopped waiting',
-        ExecutableRunPhase.trackingUnavailable => 'Tracking unavailable',
-      };
+import 'run_details.dart';
+import 'run_presentation.dart';
+export 'run_presentation.dart' show executableRunLabel;
 
 class ExecutablesBrowser extends StatefulWidget {
   const ExecutablesBrowser({
@@ -90,11 +81,11 @@ class _ExecutablesBrowserState extends State<ExecutablesBrowser> {
               Text(c.readingHistory ? 'Reading…' : 'No runs recorded.'),
             for (final run in c.history)
               ListTile(
-                title: Text(run.preset.name),
+                title: Text(run.name),
                 subtitle: Text(
                   '${executableRunLabel(run)} · ${run.requestedAt.toLocal()}',
                 ),
-                onTap: () => _runDetails(context, run),
+                onTap: () => showExecutableRunDetails(context, run),
               ),
             if (c.canLoadHistory || c.readingHistory)
               McAction(
@@ -163,7 +154,7 @@ class _ExecutablesBrowserState extends State<ExecutablesBrowser> {
             const SizedBox(height: 12),
             McAction(
               label: 'Run details',
-              onPressed: () => _runDetails(context, run),
+              onPressed: () => showExecutableRunDetails(context, run),
             ),
             const SizedBox(height: 16),
           ],
@@ -380,74 +371,6 @@ Widget _detail(BuildContext context, String label, String value) => Padding(
       Text(label, style: Theme.of(context).textTheme.labelLarge),
       const SizedBox(height: 4),
       SelectableText(value),
-    ],
-  ),
-);
-void _runDetails(BuildContext context, ExecutableRun run) => showDialog<void>(
-  context: context,
-  builder: (context) => McDialog(
-    title: '${run.preset.name} run',
-    children: [
-      McStatus(title: executableRunLabel(run), detail: run.problem),
-      const SizedBox(height: 16),
-      _detail(
-        context,
-        'Configured profile at start',
-        run.profileName ?? 'No profile',
-      ),
-      _detail(context, 'Requested', run.requestedAt.toLocal().toString()),
-      _detail(
-        context,
-        'Root process',
-        run.rootExitCode != null
-            ? 'Exited ${run.rootExitCode}'
-            : run.processId != null
-            ? 'Last observed PID ${run.processId}'
-            : 'Not observed',
-      ),
-      _detail(
-        context,
-        'Observed process count',
-        run.observedProcessCount?.toString() ?? 'Unknown',
-      ),
-      ExpansionTile(
-        tilePadding: EdgeInsets.zero,
-        title: const Text('Saved launch'),
-        children: [
-          _detail(context, 'Executable', run.preset.executable),
-          _detail(context, 'Working directory', run.preset.workingDirectory),
-          for (var i = 0; i < run.preset.arguments.length; i++)
-            _detail(
-              context,
-              'Argument ${i + 1}',
-              run.preset.arguments[i].isEmpty
-                  ? '(empty)'
-                  : run.preset.arguments[i],
-            ),
-          for (final row in run.preset.environment)
-            _detail(context, row.name, row.value ?? 'Remove child variable'),
-        ],
-      ),
-      ExpansionTile(
-        tilePadding: EdgeInsets.zero,
-        title: const Text('Tracking scope'),
-        children: [
-          Text(
-            run.scope == null
-                ? 'Tracking did not start.'
-                : run.scope!.contains('job')
-                ? 'This run observes its Windows job. Processes outside that job are not tracked.'
-                : 'This run observes its native process group. Processes that leave the group are not tracked.',
-          ),
-          const SizedBox(height: 12),
-          const Text(
-            'Stopping waiting or closing Mod Conductor does not stop the tool or remove deployed files.',
-          ),
-          const SizedBox(height: 12),
-          const Text('Interactive terminal programs are not supported.'),
-          const SizedBox(height: 12),
-        ],
-      ),
     ],
   ),
 );

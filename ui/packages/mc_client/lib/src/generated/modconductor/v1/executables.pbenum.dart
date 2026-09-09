@@ -101,5 +101,34 @@ class ExecutableProblemCode extends $pb.ProtobufEnum {
   const ExecutableProblemCode._(super.value, super.name);
 }
 
+class GamePreparationPhase extends $pb.ProtobufEnum {
+  static const GamePreparationPhase GAME_PREPARATION_PHASE_UNSPECIFIED =
+      GamePreparationPhase._(
+          0, _omitEnumNames ? '' : 'GAME_PREPARATION_PHASE_UNSPECIFIED');
+  static const GamePreparationPhase GAME_PREPARATION_PHASE_PREPARING =
+      GamePreparationPhase._(
+          1, _omitEnumNames ? '' : 'GAME_PREPARATION_PHASE_PREPARING');
+  static const GamePreparationPhase GAME_PREPARATION_PHASE_APPLYING =
+      GamePreparationPhase._(
+          2, _omitEnumNames ? '' : 'GAME_PREPARATION_PHASE_APPLYING');
+  static const GamePreparationPhase GAME_PREPARATION_PHASE_READY =
+      GamePreparationPhase._(
+          3, _omitEnumNames ? '' : 'GAME_PREPARATION_PHASE_READY');
+
+  static const $core.List<GamePreparationPhase> values = <GamePreparationPhase>[
+    GAME_PREPARATION_PHASE_UNSPECIFIED,
+    GAME_PREPARATION_PHASE_PREPARING,
+    GAME_PREPARATION_PHASE_APPLYING,
+    GAME_PREPARATION_PHASE_READY,
+  ];
+
+  static final $core.List<GamePreparationPhase?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 3);
+  static GamePreparationPhase? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const GamePreparationPhase._(super.value, super.name);
+}
+
 const $core.bool _omitEnumNames =
     $core.bool.fromEnvironment('protobuf.omit_enum_names');

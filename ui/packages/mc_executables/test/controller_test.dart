@@ -126,7 +126,7 @@ class FakeExecutables implements ExecutablesClient {
   Future<ExecutableRun> stopWaiting(String workspaceId, String id) async {
     ++stops;
     return recorded = run(
-      recorded!.request,
+      recorded!.request!,
       phase: ExecutableRunPhase.detached,
     );
   }
@@ -151,7 +151,7 @@ void main() {
       final pending = c.readRun();
       api.changes.add(
         run(
-          api.recorded!.request,
+          api.recorded!.request!,
           phase: ExecutableRunPhase.finished,
           revision: 2,
         ),

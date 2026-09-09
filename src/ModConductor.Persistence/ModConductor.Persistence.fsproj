@@ -56,6 +56,7 @@
     <Compile Include="DeploymentPreparation.fs" />
     <Compile Include="DeploymentBackendRepository.fs" />
     <Compile Include="ExecutableEncoding.fs" />
+    <Compile Include="GameRunAdmission.fs" />
     <Compile Include="ExecutableRepository.fs" />
     <Compile Include="OperationStore.fs" />
     <ProjectReference Include="../ModConductor.GeneratedOutputs/ModConductor.GeneratedOutputs.fsproj" />
@@ -71,6 +72,7 @@
     <ProjectReference Include="../ModConductor.Operations/ModConductor.Operations.fsproj" />
     <ProjectReference Include="../ModConductor.Platform/ModConductor.Platform.fsproj" />
     <ProjectReference Include="../ModConductor.Workspaces/ModConductor.Workspaces.fsproj" />
+    <ProjectReference Include="../ModConductor.GameLaunching/ModConductor.GameLaunching.fsproj" />
     <ProjectReference Include="../ModConductor.Executables/ModConductor.Executables.fsproj" />
     <PackageReference Include="FSharp.Core" />
     <PackageReference Include="Microsoft.Data.Sqlite.Core" />

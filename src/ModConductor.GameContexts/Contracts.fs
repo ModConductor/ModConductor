@@ -43,9 +43,7 @@ module Skyrim =
           IniFiles = [ "Skyrim.ini"; "SkyrimPrefs.ini"; "SkyrimCustom.ini" ]
           TargetPolicy = TargetPolicy.windows
           UnavailableCapabilities =
-            [ { Name = "Launch"
-                Reason = "Game launch is not implemented." }
-              { Name = "Plugin editing"
+            [ { Name = "Plugin editing"
                 Reason = "Plugin editing is not implemented." }
               { Name = "Archive inspection"
                 Reason = "Archive inspection is not implemented." }
@@ -98,6 +96,12 @@ type ProtonPath =
       WindowsPath: string option
       HostLocation: Location }
 
+type ProtonLaunch =
+    { Executable: string
+      Arguments: string list
+      SteamRoot: string
+      Libraries: string list }
+
 type ProtonEvidence =
     { Selection: ProtonSelection
       PrefixPath: string
@@ -108,6 +112,7 @@ type ProtonEvidence =
       RuntimeVersion: string
       PrefixVersion: string option
       Launcher: ContextFileEvidence
+      Launch: Result<ProtonLaunch, string>
       Metadata: ContextFileEvidence list
       PerGameTool: string option
       GlobalTool: string option

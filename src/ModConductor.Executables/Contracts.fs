@@ -1,6 +1,7 @@
 namespace ModConductor.Executables
 
 open System
+open System.Threading
 open System.Threading.Tasks
 open ModConductor.Platform
 
@@ -28,10 +29,68 @@ type RunRequest =
       PresetId: Guid
       PresetRevision: int64 }
 
+type GameRunRequest =
+    { Id: Guid
+      WorkspaceId: Guid
+      WorkspaceRevision: int64
+      ProfileId: Guid
+      ContextRevision: int64
+      SourceToken: string }
+
+type AppliedGameFiles =
+    { ReceiptId: Guid
+      GenerationId: Guid
+      Fingerprint: string }
+
+[<RequireQualifiedAccess>]
+type GamePreparationPhase =
+    | Preparing
+    | Applying
+    | Ready
+
+type GamePreparation =
+    { Phase: GamePreparationPhase
+      Completed: int
+      Total: int }
+
+type GameRun =
+    { Request: GameRunRequest
+      ContextId: Guid
+      Name: string
+      GameDirectory: string
+      Runtime: string
+      Launch: NativeLaunch
+      Preparation: GamePreparation
+      Files: AppliedGameFiles option }
+
+[<RequireQualifiedAccess>]
+type RunSource =
+    | Preset of RunRequest * ExecutablePreset
+    | Game of GameRun
+
+    member this.Id =
+        match this with
+        | Preset(request, _) -> request.Id
+        | Game game -> game.Request.Id
+
+    member this.WorkspaceId =
+        match this with
+        | Preset(request, _) -> request.WorkspaceId
+        | Game game -> game.Request.WorkspaceId
+
+    member this.Name =
+        match this with
+        | Preset(_, preset) -> preset.Name
+        | Game game -> game.Name
+
+    member this.Launch =
+        match this with
+        | Preset(_, preset) -> preset.Launch
+        | Game game -> game.Launch
+
 type ExecutableRun =
-    { Request: RunRequest
+    { Source: RunSource
       Revision: int64
-      Preset: ExecutablePreset
       ProfileId: Guid option
       ProfileName: string option
       RequestedAt: DateTimeOffset
@@ -41,6 +100,14 @@ type ExecutableRun =
       RootExitCode: int option
       ActiveProcesses: int option
       Problem: string option }
+
+    member this.Id = this.Source.Id
+    member this.WorkspaceId = this.Source.WorkspaceId
+    member this.Name = this.Source.Name
+    member this.Launch = this.Source.Launch
+
+type PrepareGameRun =
+    GameRun -> CancellationToken -> (GamePreparation -> Task<unit>) -> Task<GameRun * IDisposable>
 
 type PresetPage =
     { Presets: ExecutablePreset list
@@ -62,6 +129,8 @@ type IExecutableRepository =
     abstract Save: ExecutablePreset -> Task<Result<ExecutablePreset, ExecutableError>>
     abstract Delete: Guid * Guid * int64 -> Task<Result<unit, ExecutableError>>
     abstract Begin: RunRequest -> Task<Result<ExecutableRun * bool, ExecutableError>>
+    abstract BeginGame: GameRun -> Task<Result<ExecutableRun * bool, ExecutableError>>
+    abstract LatestGame: Guid -> Task<ExecutableRun option>
     abstract Read: Guid * Guid -> Task<Result<ExecutableRun, ExecutableError>>
 
     abstract Recent:

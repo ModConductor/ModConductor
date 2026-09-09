@@ -8,42 +8,6 @@ open System.Threading.Tasks
 open ModConductor.FilePlanning
 open ModConductor.DeploymentRecovery
 
-module internal DeploymentReports =
-    let phase =
-        function
-        | ReceiptPhase.Applying -> DeploymentPhase.Applying
-        | ReceiptPhase.Restoring -> DeploymentPhase.Restoring
-        | ReceiptPhase.Complete -> DeploymentPhase.Complete
-        | ReceiptPhase.Restored -> DeploymentPhase.Restored
-        | ReceiptPhase.Blocked -> DeploymentPhase.Blocked
-
-    let receipt (value: Receipt) =
-        { Id = value.Id
-          WorkspaceId = value.Context.Roots.Head.Root.Id
-          Revision = value.Revision
-          Phase = phase value.Phase
-          Previous = value.Previous
-          Proposed = value.Proposed
-          Completed =
-            value.Changes
-            |> List.filter (fun change ->
-                change.Phase = EntryPhase.Installed || change.Phase = EntryPhase.Restored)
-            |> List.length
-          Total = value.Changes.Length
-          Detail = value.Detail }
-
-    let error =
-        function
-        | RecoveryError.NotFound -> DeploymentError.NotFound
-        | RecoveryError.Busy -> DeploymentError.Busy
-        | RecoveryError.Stale -> DeploymentError.Stale
-        | RecoveryError.InvalidPlan -> DeploymentError.Blocked "The file plan is not valid."
-        | RecoveryError.Limit ->
-            DeploymentError.Unavailable "The deployment exceeds its supported bounds."
-        | RecoveryError.Mismatch text
-        | RecoveryError.Corrupt text -> DeploymentError.Blocked text
-        | RecoveryError.Unavailable text -> DeploymentError.Unavailable text
-
 type DeploymentBackend internal (repository: IDeploymentRepository) =
     let gate = obj ()
     let active = HashSet<Guid>()
@@ -71,32 +35,35 @@ type DeploymentBackend internal (repository: IDeploymentRepository) =
                 return Error(DeploymentError.Unavailable "Deployment storage cannot be accessed.")
         }
 
+    let enter workspace =
+        lock gate (fun () ->
+            if closed || active.Count >= 2 || active.Contains workspace then
+                false
+            else
+                if active.Count = 0 then
+                    drained <-
+                        new System.Threading.Tasks.TaskCompletionSource<unit>(
+                            System.Threading.Tasks.TaskCreationOptions.RunContinuationsAsynchronously
+                        )
+
+                active.Add workspace)
+
+    let leave workspace =
+        lock gate (fun () ->
+            active.Remove workspace |> ignore
+
+            if active.Count = 0 then
+                drained.TrySetResult() |> ignore)
+
     let run workspace action =
         task {
-            let entered =
-                lock gate (fun () ->
-                    if closed || active.Count >= 2 || active.Contains workspace then
-                        false
-                    else
-                        if active.Count = 0 then
-                            drained <-
-                                new System.Threading.Tasks.TaskCompletionSource<unit>(
-                                    System.Threading.Tasks.TaskCreationOptions.RunContinuationsAsynchronously
-                                )
-
-                        active.Add workspace)
-
-            if not entered then
+            if not (enter workspace) then
                 return Error DeploymentError.Busy
             else
                 try
                     return! protect action
                 finally
-                    lock gate (fun () ->
-                        active.Remove workspace |> ignore
-
-                        if active.Count = 0 then
-                            drained.TrySetResult() |> ignore)
+                    leave workspace
         }
 
     let execute (receipt: Receipt) restoring progress token =
@@ -141,6 +108,38 @@ type DeploymentBackend internal (repository: IDeploymentRepository) =
                 closed <- true
                 prepared.Clear()
                 true)
+
+    member _.PrepareForLaunch(id, expected: SourceStamp, progress, token) =
+        task {
+            if not (enter expected.WorkspaceId) then
+                return Error DeploymentError.Busy
+            else
+                let mutable retained = false
+
+                try
+                    let! result =
+                        protect (fun () ->
+                            LaunchDeployment.prepare repository execute id expected progress token)
+
+                    match result with
+                    | Error error -> return Error error
+                    | Ok(prepared, receipt) ->
+                        let mutable released = false
+
+                        let lease =
+                            { new IDisposable with
+                                member _.Dispose() =
+                                    lock gate (fun () ->
+                                        if not released then
+                                            released <- true
+                                            leave expected.WorkspaceId) }
+
+                        retained <- true
+                        return Ok(prepared, receipt, lease)
+                finally
+                    if not retained then
+                        leave expected.WorkspaceId
+        }
 
     interface IDeploymentBackend with
         member _.Read profile =

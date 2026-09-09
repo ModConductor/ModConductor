@@ -108,6 +108,21 @@ module internal ProtonEncoding =
         e.PerGameTool |> Option.iter (text "perGameTool")
         e.GlobalTool |> Option.iter (text "globalTool")
         e.MappingProblem |> Option.iter (text "mappingProblem")
+
+        match e.Launch with
+        | Error reason -> text "launchProblem" reason
+        | Ok launch ->
+            w.WriteStartObject("launch")
+            text "executable" launch.Executable
+            text "steamRoot" launch.SteamRoot
+            w.WriteStartArray("arguments")
+            launch.Arguments |> List.iter (fun value -> w.WriteStringValue(value: string))
+            w.WriteEndArray()
+            w.WriteStartArray("libraries")
+            launch.Libraries |> List.iter (fun value -> w.WriteStringValue(value: string))
+            w.WriteEndArray()
+            w.WriteEndObject()
+
         w.WritePropertyName("launcher")
         file e.Launcher
         w.WriteStartArray("metadata")
@@ -148,6 +163,25 @@ module internal ProtonEncoding =
           PerGameTool = optional e "perGameTool"
           GlobalTool = optional e "globalTool"
           MappingProblem = optional e "mappingProblem"
+          Launch =
+            let mutable launch = Unchecked.defaultof<JsonElement>
+
+            if e.TryGetProperty("launch", &launch) then
+                Ok
+                    { Executable = text launch "executable"
+                      Arguments =
+                        [ for value in (get launch "arguments").EnumerateArray() ->
+                              value.GetString() ]
+                      SteamRoot = text launch "steamRoot"
+                      Libraries =
+                        [ for value in (get launch "libraries").EnumerateArray() ->
+                              value.GetString() ] }
+            else
+                Error(
+                    defaultArg
+                        (optional e "launchProblem")
+                        "Refresh the installation to check its launch context."
+                )
           Launcher = file (get e "launcher")
           Metadata = [ for f in (get e "metadata").EnumerateArray() -> file f ]
           Paths =

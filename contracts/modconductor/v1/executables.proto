@@ -61,6 +61,7 @@ message ExecutableRun {
   optional int32 root_exit_code = 10;
   optional uint32 observed_process_count = 11;
   optional string problem = 12;
+  GameRunInfo game = 13;
 }
 enum ExecutableProblemCode {
   EXECUTABLE_PROBLEM_CODE_UNSPECIFIED = 0;
@@ -77,3 +78,34 @@ message ExecutableMutationReply { optional ExecutableProblem problem = 1; }
 message ExecutablePresetPageReply { repeated ExecutablePreset presets = 1; optional string next_id = 2; optional ExecutableProblem problem = 3; repeated ExecutableRun latest_runs = 4; }
 message ExecutableRunReply { oneof result { ExecutableRun run = 1; ExecutableProblem problem = 2; } }
 message ExecutableRunPageReply { repeated ExecutableRun runs = 1; optional string next_id = 2; optional ExecutableProblem problem = 3; }
+
+message GameRunRequest {
+  string id = 1;
+  string workspace_id = 2;
+  uint64 workspace_revision = 3;
+  string profile_id = 4;
+  uint64 context_revision = 5;
+  string source_token = 6;
+}
+message GameRunFiles { string receipt_id = 1; string generation_id = 2; string fingerprint = 3; }
+enum GamePreparationPhase {
+  GAME_PREPARATION_PHASE_UNSPECIFIED = 0;
+  GAME_PREPARATION_PHASE_PREPARING = 1;
+  GAME_PREPARATION_PHASE_APPLYING = 2;
+  GAME_PREPARATION_PHASE_READY = 3;
+}
+message GameRunInfo {
+  GameRunRequest request = 1;
+  string context_id = 2;
+  string name = 3;
+  string game_directory = 4;
+  string runtime = 5;
+  string executable = 6;
+  repeated string arguments = 7;
+  string working_directory = 8;
+  repeated ExecutableEnvironmentSetting environment = 9;
+  GamePreparationPhase preparation = 10;
+  uint32 completed = 11;
+  uint32 total = 12;
+  GameRunFiles files = 13;
+}

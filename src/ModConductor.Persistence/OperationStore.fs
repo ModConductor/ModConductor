@@ -39,6 +39,9 @@ type OperationStore(directory: string) =
     let executables =
         ModConductor.Executables.ExecutableSession(ExecutableRepository(database))
 
+    let gameLaunching =
+        ModConductor.GameLaunching.GameLaunchSession(gameContexts, deploymentBackend, executables)
+
     let connection = database.Connection
 
     let state transaction =
@@ -124,6 +127,8 @@ type OperationStore(directory: string) =
     member _.GeneratedOutputs = outputs :> ModConductor.GeneratedOutputs.IGeneratedOutputs
     member _.Deployments = deploymentBackend :> ModConductor.Deployment.IDeploymentBackend
 
+    member _.GameLaunching = gameLaunching :> ModConductor.GameLaunching.IGameLaunching
+    member _.CloseExecutables() = executables.Close()
     member _.ExecutablesFailed = executables.Failed
 
     member _.Executables = executables :> ModConductor.Executables.IExecutables

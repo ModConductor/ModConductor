@@ -199,6 +199,9 @@ module Validation =
                 if snd (PrefixFiles.directory declared) <> expected then
                     raise (IOException "A selected Proton folder changed during the check.")
 
+            let launch, launchFiles =
+                LaunchDiscovery.inspect selection installationDirectory launcher.Path
+
             let evidence =
                 { Selection = { selection with ToolId = toolId }
                   PrefixPath = prefix
@@ -209,10 +212,12 @@ module Validation =
                   RuntimeVersion = runtimeVersion
                   PrefixVersion = prefixVersion
                   Launcher = launcher
+                  Launch = launch
                   Metadata =
                     associationFiles
                     @ [ registryFile; versionFile ]
                     @ toolFiles
+                    @ launchFiles
                     @ prefixFiles
                     @ (mapping
                        |> Option.map (fun m -> [ source m.Source ])

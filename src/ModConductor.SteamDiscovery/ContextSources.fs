@@ -16,6 +16,11 @@ type SteamToolMapping =
       GlobalDefault: string option
       Source: SteamSourceFile }
 
+type CompatibilityLaunchManifest =
+    { Command: string
+      RequiredApp: uint32 option
+      Source: SteamSourceFile }
+
 type InstalledCompatibilityTool =
     { Id: string
       Name: string
@@ -29,6 +34,35 @@ module ContextSources =
         |> Result.mapError (function
             | SteamFiles.Unreadable e
             | SteamFiles.Malformed e -> e)
+
+    let launchManifest directory token =
+        read token (Path.Combine(directory, "toolmanifest.vdf"))
+        |> Result.bind (fun (values, identity, hash, path) ->
+            KeyValues.body "manifest" values
+            |> Result.bind (fun fields ->
+                match
+                    KeyValues.text "version" fields,
+                    KeyValues.text "commandline" fields,
+                    KeyValues.text "require_tool_appid" fields
+                with
+                | Ok(Some "2"), Ok(Some command), Ok required when command.Length <= 4096 ->
+                    let app =
+                        match required with
+                        | None -> Ok None
+                        | Some value ->
+                            match UInt32.TryParse value with
+                            | true, value when value <> 0u -> Ok(Some value)
+                            | _ -> Error "The compatibility-tool dependency app ID is invalid."
+
+                    app
+                    |> Result.map (fun required ->
+                        { Command = command
+                          RequiredApp = required
+                          Source =
+                            { Path = path
+                              Identity = identity
+                              Sha256 = hash } })
+                | _ -> Error "The compatibility-tool launch manifest is not supported."))
 
     let gameManifest (appId: uint32) library token =
         let path =

@@ -77,10 +77,10 @@ module internal ExecutableEncoding =
               Arguments = args
               Environment = environment } }
 
-    let private encode write value =
+    let private encode (version: int) write value =
         use stream = new MemoryStream()
         use writer = new BinaryWriter(stream)
-        writer.Write 1
+        writer.Write version
         write writer value
         writer.Flush()
         Convert.ToBase64String(stream.ToArray())
@@ -89,29 +89,148 @@ module internal ExecutableEncoding =
         use stream = new MemoryStream(Convert.FromBase64String value)
         use reader = new BinaryReader(stream)
 
-        if reader.ReadInt32() <> 1 then
-            raise (InvalidDataException "The executable record version is unsupported.")
-
-        let result = read reader
+        let version = reader.ReadInt32()
+        let result = read version reader
 
         if stream.Position <> stream.Length then
             raise (InvalidDataException "The executable record has trailing data.")
 
         result
 
-    let encodePreset value = encode preset value
-    let decodePreset value = decode readPreset value
+    let encodePreset value = encode 1 preset value
+
+    let decodePreset value =
+        decode
+            (fun version reader ->
+                if version <> 1 then
+                    raise (InvalidDataException "The executable preset version is unsupported.")
+
+                readPreset reader)
+            value
+
+    let private nativeRequest (w: BinaryWriter) (v: RunRequest) =
+        guid w v.Id
+        guid w v.WorkspaceId
+        w.Write v.WorkspaceRevision
+        guid w v.PresetId
+        w.Write v.PresetRevision
+
+    let private readRequest (r: BinaryReader) : RunRequest =
+        { Id = readGuid r
+          WorkspaceId = readGuid r
+          WorkspaceRevision = r.ReadInt64()
+          PresetId = readGuid r
+          PresetRevision = r.ReadInt64() }
+
+    let private launch (w: BinaryWriter) (v: ModConductor.Platform.NativeLaunch) =
+        w.Write v.Executable
+        w.Write v.WorkingDirectory
+        w.Write v.Arguments.Length
+        v.Arguments |> List.iter (text w)
+        w.Write v.Environment.Length
+
+        for name, value in v.Environment do
+            text w name
+            opt text w value
+
+    let private readLaunch (r: BinaryReader) : ModConductor.Platform.NativeLaunch =
+        let executable, directory = r.ReadString(), r.ReadString()
+        let args = [ for _ in 1 .. r.ReadInt32() -> r.ReadString() ]
+
+        let env =
+            [ for _ in 1 .. r.ReadInt32() -> r.ReadString(), readOpt (fun r -> r.ReadString()) r ]
+
+        { Executable = executable
+          WorkingDirectory = directory
+          Arguments = args
+          Environment = env }
+
+    let private game (w: BinaryWriter) (v: GameRun) =
+        guid w v.Request.Id
+        guid w v.Request.WorkspaceId
+        w.Write v.Request.WorkspaceRevision
+        guid w v.Request.ProfileId
+        w.Write v.Request.ContextRevision
+        text w v.Request.SourceToken
+        guid w v.ContextId
+        text w v.Name
+        text w v.GameDirectory
+        text w v.Runtime
+        launch w v.Launch
+
+        w.Write(
+            match v.Preparation.Phase with
+            | GamePreparationPhase.Preparing -> 0
+            | GamePreparationPhase.Applying -> 1
+            | GamePreparationPhase.Ready -> 2
+        )
+
+        w.Write v.Preparation.Completed
+        w.Write v.Preparation.Total
+
+        opt
+            (fun w files ->
+                guid w files.ReceiptId
+                guid w files.GenerationId
+                text w files.Fingerprint)
+            w
+            v.Files
+
+    let private readGame (r: BinaryReader) : GameRun =
+        let request =
+            { Id = readGuid r
+              WorkspaceId = readGuid r
+              WorkspaceRevision = r.ReadInt64()
+              ProfileId = readGuid r
+              ContextRevision = r.ReadInt64()
+              SourceToken = r.ReadString() }
+
+        let context, name, directory, runtime =
+            readGuid r, r.ReadString(), r.ReadString(), r.ReadString()
+
+        let launch = readLaunch r
+
+        let phase =
+            match r.ReadInt32() with
+            | 0 -> GamePreparationPhase.Preparing
+            | 1 -> GamePreparationPhase.Applying
+            | 2 -> GamePreparationPhase.Ready
+            | _ -> raise (InvalidDataException "The game preparation phase is invalid.")
+
+        let completed, total = r.ReadInt32(), r.ReadInt32()
+
+        { Request = request
+          ContextId = context
+          Name = name
+          GameDirectory = directory
+          Runtime = runtime
+          Launch = launch
+          Preparation =
+            { Phase = phase
+              Completed = completed
+              Total = total }
+          Files =
+            readOpt
+                (fun r ->
+                    { ReceiptId = readGuid r
+                      GenerationId = readGuid r
+                      Fingerprint = r.ReadString() })
+                r }
 
     let encodeRun (value: ExecutableRun) =
         encode
+            2
             (fun w v ->
-                guid w v.Request.Id
-                guid w v.Request.WorkspaceId
-                w.Write v.Request.WorkspaceRevision
-                guid w v.Request.PresetId
-                w.Write v.Request.PresetRevision
+                match v.Source with
+                | RunSource.Preset(request, value) ->
+                    w.Write 0
+                    nativeRequest w request
+                    preset w value
+                | RunSource.Game value ->
+                    w.Write 1
+                    game w value
+
                 w.Write v.Revision
-                preset w v.Preset
                 opt guid w v.ProfileId
                 opt text w v.ProfileName
                 w.Write(v.RequestedAt.ToString("O"))
@@ -125,17 +244,26 @@ module internal ExecutableEncoding =
 
     let decodeRun value =
         decode
-            (fun r ->
-                let request =
-                    { Id = readGuid r
-                      WorkspaceId = readGuid r
-                      WorkspaceRevision = r.ReadInt64()
-                      PresetId = readGuid r
-                      PresetRevision = r.ReadInt64() }
+            (fun version r ->
+                let source, revision =
+                    match version with
+                    | 1 ->
+                        let request = readRequest r
+                        let revision = r.ReadInt64()
+                        RunSource.Preset(request, readPreset r), revision
+                    | 2 ->
+                        let source =
+                            match r.ReadInt32() with
+                            | 0 -> RunSource.Preset(readRequest r, readPreset r)
+                            | 1 -> RunSource.Game(readGame r)
+                            | _ -> raise (InvalidDataException "The run source is invalid.")
 
-                { Request = request
-                  Revision = r.ReadInt64()
-                  Preset = readPreset r
+                        source, r.ReadInt64()
+                    | _ ->
+                        raise (InvalidDataException "The executable run version is unsupported.")
+
+                { Source = source
+                  Revision = revision
                   ProfileId = readOpt readGuid r
                   ProfileName = readOpt (fun r -> r.ReadString()) r
                   RequestedAt = DateTimeOffset.Parse(r.ReadString())
