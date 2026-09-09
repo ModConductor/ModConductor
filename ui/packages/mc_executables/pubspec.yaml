@@ -1,0 +1,21 @@
+name: mc_executables
+description: Shared native executable and run presentation.
+publish_to: none
+resolution: workspace
+version: 0.1.0
+environment:
+  sdk: 3.13.2
+  flutter: 3.47.2
+dependencies:
+  flutter:
+    sdk: flutter
+  mc_client:
+    path: ../mc_client
+  mc_ui_foundation:
+    path: ../mc_ui_foundation
+  mc_ui_collections:
+    path: ../mc_ui_collections
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: 6.0.0

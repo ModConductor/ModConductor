@@ -50,6 +50,12 @@ type internal StateDatabase(directory: string) =
             "UPDATE output_actions SET busy=0 WHERE owner=$owner"
             [ "$owner", box owner ]
 
+        Sqlite.execute
+            connection
+            null
+            "UPDATE executable_runs SET phase=6,revision=revision+1 WHERE owner=$owner AND phase IN (0,1,2)"
+            [ "$owner", box owner ]
+
     do
         try
             SQLitePCL.Batteries_V2.Init()

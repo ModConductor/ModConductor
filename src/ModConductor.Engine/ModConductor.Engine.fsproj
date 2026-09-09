@@ -29,6 +29,8 @@
     <Compile Include="OutputService.fs" />
     <Compile Include="DeploymentWire.fs" />
     <Compile Include="DeploymentService.fs" />
+    <Compile Include="ExecutableWire.fs" />
+    <Compile Include="ExecutableService.fs" />
     <Compile Include="Program.fs" />
     <ProjectReference Include="../ModConductor.SteamDiscovery/ModConductor.SteamDiscovery.fsproj" />
     <ProjectReference Include="../ModConductor.Persistence/ModConductor.Persistence.fsproj" />

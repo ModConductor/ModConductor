@@ -9,7 +9,23 @@ open ModConductor.Native.Fixtures
 [<EntryPoint>]
 let main args =
     try
-        if args.Length = 1 && args[0] = "--generation-game" then
+        if args.Length >= 3 && args[0] = "--executable-child" then
+            ExecutableChild.run args[1..]
+        elif
+            args.Length = 2
+            && args[0] = "--executables"
+            && Path.IsPathFullyQualified args[1]
+        then
+            use writer =
+                new Utf8JsonWriter(Console.OpenStandardOutput(), JsonWriterOptions(Indented = true))
+
+            writer.WriteStartObject()
+            writer.WriteBoolean("nativeAot", not RuntimeFeature.IsDynamicCodeSupported)
+            ExecutableFixtures.observe writer args[1]
+            writer.WriteEndObject()
+            writer.Flush()
+            0
+        elif args.Length = 1 && args[0] = "--generation-game" then
             Console.WriteLine "ready"
             Console.ReadLine() |> ignore
             0

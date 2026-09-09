@@ -10,6 +10,7 @@
     <Project Path="src/ModConductor.DeploymentGenerations/ModConductor.DeploymentGenerations.fsproj" />
     <Project Path="src/ModConductor.DeploymentPlanning/ModConductor.DeploymentPlanning.fsproj" />
     <Project Path="src/ModConductor.Platform/ModConductor.Platform.fsproj" />
+    <Project Path="src/ModConductor.Executables/ModConductor.Executables.fsproj" />
     <Project Path="src/ModConductor.ModLibrary/ModConductor.ModLibrary.fsproj" />
     <Project Path="src/ModConductor.ModOrganization/ModConductor.ModOrganization.fsproj" />
     <Project Path="src/ModConductor.ModSelection/ModConductor.ModSelection.fsproj" />

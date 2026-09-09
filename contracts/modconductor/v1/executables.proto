@@ -1,0 +1,79 @@
+syntax = "proto3";
+package modconductor.v1;
+option csharp_namespace = "ModConductor.Protocol.V1";
+
+service ExecutableOperations {
+  rpc ListExecutablePresets(ExecutablePageRequest) returns (ExecutablePresetPageReply);
+  rpc ReadExecutablePreset(ExecutablePresetRef) returns (ExecutablePresetReply);
+  rpc SaveExecutablePreset(ExecutablePreset) returns (ExecutablePresetReply);
+  rpc DeleteExecutablePreset(DeleteExecutablePresetRequest) returns (ExecutableMutationReply);
+  rpc BeginExecutableRun(ExecutableRunRequest) returns (ExecutableRunReply);
+  rpc ReadExecutableRun(ExecutableRunRef) returns (ExecutableRunReply);
+  rpc ObserveExecutableRun(ExecutableRunRef) returns (stream ExecutableRunReply);
+  rpc ReadExecutableRuns(ExecutablePageRequest) returns (ExecutableRunPageReply);
+  rpc StopWaitingForExecutable(ExecutableRunRef) returns (ExecutableRunReply);
+}
+message ExecutableEnvironmentSetting {
+  string name = 1;
+  optional string value = 2; // Absent means remove from the child environment. No row means inherit.
+}
+message ExecutablePreset {
+  string id = 1;
+  string workspace_id = 2;
+  uint64 revision = 3;
+  string name = 4;
+  string executable = 5;
+  string working_directory = 6;
+  repeated string arguments = 7;
+  repeated ExecutableEnvironmentSetting environment = 8;
+}
+message ExecutablePageRequest { string workspace_id = 1; optional string after_id = 2; }
+message ExecutablePresetRef { string workspace_id = 1; string id = 2; }
+message DeleteExecutablePresetRequest { string workspace_id = 1; string id = 2; uint64 expected_revision = 3; }
+message ExecutableRunRequest {
+  string id = 1;
+  string workspace_id = 2;
+  uint64 workspace_revision = 3;
+  string preset_id = 4;
+  uint64 preset_revision = 5;
+}
+message ExecutableRunRef { string workspace_id = 1; string id = 2; }
+enum ExecutableRunPhase {
+  EXECUTABLE_RUN_PHASE_UNSPECIFIED = 0;
+  EXECUTABLE_RUN_PHASE_STARTING = 1;
+  EXECUTABLE_RUN_PHASE_RUNNING = 2;
+  EXECUTABLE_RUN_PHASE_WAITING_FOR_CHILDREN = 3;
+  EXECUTABLE_RUN_PHASE_FINISHED = 4;
+  EXECUTABLE_RUN_PHASE_FAILED = 5;
+  EXECUTABLE_RUN_PHASE_DETACHED = 6;
+  EXECUTABLE_RUN_PHASE_TRACKING_UNAVAILABLE = 7;
+}
+message ExecutableRun {
+  ExecutableRunRequest request = 1;
+  uint64 revision = 2;
+  ExecutablePreset preset = 3;
+  optional string profile_id = 4;
+  optional string profile_name = 5;
+  string requested_at = 6;
+  ExecutableRunPhase phase = 7;
+  optional uint32 process_id = 8;
+  optional string scope = 9;
+  optional int32 root_exit_code = 10;
+  optional uint32 observed_process_count = 11;
+  optional string problem = 12;
+}
+enum ExecutableProblemCode {
+  EXECUTABLE_PROBLEM_CODE_UNSPECIFIED = 0;
+  EXECUTABLE_PROBLEM_CODE_NOT_FOUND = 1;
+  EXECUTABLE_PROBLEM_CODE_STALE_REVISION = 2;
+  EXECUTABLE_PROBLEM_CODE_IDENTITY_CONFLICT = 3;
+  EXECUTABLE_PROBLEM_CODE_CAPACITY = 4;
+  EXECUTABLE_PROBLEM_CODE_INVALID = 5;
+  EXECUTABLE_PROBLEM_CODE_UNAVAILABLE = 6;
+}
+message ExecutableProblem { ExecutableProblemCode code = 1; string detail = 2; }
+message ExecutablePresetReply { oneof result { ExecutablePreset preset = 1; ExecutableProblem problem = 2; } }
+message ExecutableMutationReply { optional ExecutableProblem problem = 1; }
+message ExecutablePresetPageReply { repeated ExecutablePreset presets = 1; optional string next_id = 2; optional ExecutableProblem problem = 3; repeated ExecutableRun latest_runs = 4; }
+message ExecutableRunReply { oneof result { ExecutableRun run = 1; ExecutableProblem problem = 2; } }
+message ExecutableRunPageReply { repeated ExecutableRun runs = 1; optional string next_id = 2; optional ExecutableProblem problem = 3; }

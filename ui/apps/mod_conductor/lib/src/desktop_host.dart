@@ -62,6 +62,7 @@ class _DesktopHostState extends State<DesktopHost> with WidgetsBindingObserver {
     filePlans: _owner.filePlans,
     outputs: _owner.outputs,
     deployments: _owner.deployments,
+    executables: _owner.executables,
     steamDiscovery: _owner.steamDiscovery,
     protonContexts: _owner.protonContexts,
     status: switch (_owner.state) {

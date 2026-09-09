@@ -1,4 +1,5 @@
 import 'package:mc_generated_outputs/mc_generated_outputs.dart';
+import 'package:mc_executables/mc_executables.dart';
 
 import 'dart:async';
 import 'dart:io';
@@ -25,6 +26,10 @@ Future<String?> _chooseGameDirectory(String? initialPath) => getDirectoryPath(
   confirmButtonText: 'Choose folder',
   canCreateDirectories: false,
 );
+
+Future<String?> _chooseExecutable(String? initial) async => (await openFile(
+  initialDirectory: initial == null ? null : File(initial).parent.path,
+))?.path;
 
 void _quitDesktop() {
   ServicesBinding.instance.exitApplication(AppExitType.cancelable);
@@ -59,6 +64,8 @@ class ModConductorApp extends StatefulWidget {
     this.filePlans,
     this.outputs,
     this.deployments,
+    this.executables,
+    this.chooseExecutable = _chooseExecutable,
     this.steamDiscovery,
     this.protonContexts,
     this.chooseGameDirectory = _chooseGameDirectory,
@@ -73,6 +80,8 @@ class ModConductorApp extends StatefulWidget {
   final FilePlansClient? filePlans;
   final GeneratedOutputsClient? outputs;
   final DeploymentsClient? deployments;
+  final ExecutablesClient? executables;
+  final ExecutablePathChooser chooseExecutable;
   final SteamDiscoveryClient? steamDiscovery;
   final ProtonContextsClient? protonContexts;
   final GameDirectoryChooser chooseGameDirectory;
@@ -97,6 +106,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
   final _files = FilePlansController();
   final _outputs = OutputController();
   final _deployments = DeploymentController();
+  final _executables = ExecutablesController();
   int? _selectionRevision, _catalogueRevision;
   int? _contextRevision;
   void _modsChanged() {
@@ -133,6 +143,11 @@ class _ModConductorAppState extends State<ModConductorApp> {
   }
 
   void _syncWorkspaceConsumers() {
+    _executables.attach(
+      widget.executables,
+      _workspaces.workspace,
+      available: _workspaces.canEdit,
+    );
     _outputs.attach(
       widget.outputs,
       _workspaces.workspace?.id,
@@ -190,6 +205,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
     _mods.removeListener(_modsChanged);
     _outputs.dispose();
     _deployments.dispose();
+    _executables.dispose();
     _files.dispose();
     _mods.dispose();
     _game.dispose();
@@ -268,6 +284,13 @@ class _ModConductorAppState extends State<ModConductorApp> {
                   DesktopConnecting() ||
                   DesktopConnected() => WorkspaceBrowser(
                     controller: _workspaces,
+                    executableBuilder: widget.executables == null
+                        ? null
+                        : (context, workspace) => ExecutablesBrowser(
+                            controller: _executables,
+                            chooseExecutable: widget.chooseExecutable,
+                            chooseDirectory: widget.chooseGameDirectory,
+                          ),
                     headerActions: widget.deployments == null
                         ? null
                         : (context, workspace) => [

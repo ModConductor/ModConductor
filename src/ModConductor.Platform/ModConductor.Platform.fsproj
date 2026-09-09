@@ -12,6 +12,10 @@
     <Compile Include="HeldDirectory.fs" />
     <Compile Include="GenerationStorage.fs" />
     <Compile Include="GameProcessObservation.fs" />
+    <Compile Include="ChildProcess.fs" />
+    <Compile Include="LinuxChildProcess.fs" />
+    <Compile Include="WindowsChildProcess.fs" />
+    <Compile Include="NativeProcessLaunch.fs" />
     <PackageReference Include="FSharp.Core" />
   </ItemGroup>
 </Project>

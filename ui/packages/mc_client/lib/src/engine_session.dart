@@ -1,3 +1,4 @@
+import 'executable_client.dart';
 import 'output_client.dart';
 import 'deployment_client.dart';
 import 'file_plan_client.dart';
@@ -31,6 +32,8 @@ class EngineSession {
   ProtonContextsClient get protonContexts => _protonContexts!;
   SteamDiscoveryClient? _steamDiscovery;
   SteamDiscoveryClient get steamDiscovery => _steamDiscovery!;
+  ExecutablesClient? _executables;
+  ExecutablesClient get executables => _executables!;
   GeneratedOutputsClient? _outputs;
   GeneratedOutputsClient get outputs => _outputs!;
   DeploymentsClient? _deployments;
@@ -92,6 +95,7 @@ class EngineSession {
       channel,
       CallOptions(metadata: options.metadata),
     );
+    _executables = GrpcExecutablesClient(channel,CallOptions(metadata:options.metadata));
     _outputs = GrpcGeneratedOutputsClient(
       channel,
       CallOptions(metadata: options.metadata),

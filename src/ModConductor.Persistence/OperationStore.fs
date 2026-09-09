@@ -36,6 +36,9 @@ type OperationStore(directory: string) =
             )
         )
 
+    let executables =
+        ModConductor.Executables.ExecutableSession(ExecutableRepository(database))
+
     let connection = database.Connection
 
     let state transaction =
@@ -120,6 +123,10 @@ type OperationStore(directory: string) =
     member _.FilePlans = filePlans
     member _.GeneratedOutputs = outputs :> ModConductor.GeneratedOutputs.IGeneratedOutputs
     member _.Deployments = deploymentBackend :> ModConductor.Deployment.IDeploymentBackend
+
+    member _.ExecutablesFailed = executables.Failed
+
+    member _.Executables = executables :> ModConductor.Executables.IExecutables
 
     member _.SqliteVersion = connection.ServerVersion
 
@@ -271,4 +278,5 @@ type OperationStore(directory: string) =
                     "A workspace change or root file check is still active. Wait for it before closing the store."
 
 
+            executables.Close().GetAwaiter().GetResult()
             (database :> IDisposable).Dispose()

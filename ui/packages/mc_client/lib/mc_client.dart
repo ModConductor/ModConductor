@@ -14,3 +14,4 @@ export 'src/file_plan_client.dart';
 
 export 'src/output_client.dart';
 export 'src/deployment_client.dart';
+export 'src/executable_client.dart';

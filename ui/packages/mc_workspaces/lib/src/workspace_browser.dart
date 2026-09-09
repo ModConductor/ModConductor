@@ -11,7 +11,7 @@ import 'workspace_dialog.dart';
 
 typedef ProfileRowId = ({String profileId});
 
-enum _WorkspaceMode { profiles, mods, game }
+enum _WorkspaceMode { profiles, mods, game, tools }
 
 enum _ProfileAction { clone, rename, delete }
 
@@ -22,12 +22,14 @@ class WorkspaceBrowser extends StatefulWidget {
     this.chooseDirectory = chooseWorkspaceDirectory,
     this.modLibraryBuilder,
     this.gameContextBuilder,
+    this.executableBuilder,
     this.headerActions,
   });
   final WorkspaceController controller;
   final DirectoryChooser chooseDirectory;
   final Widget Function(BuildContext, WorkspaceInfo)? modLibraryBuilder;
   final Widget Function(BuildContext, WorkspaceInfo)? gameContextBuilder;
+  final Widget Function(BuildContext, WorkspaceInfo)? executableBuilder;
   final List<Widget> Function(BuildContext, WorkspaceInfo)? headerActions;
 
   @override
@@ -329,7 +331,8 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
           ),
           const SizedBox(height: 16),
           if (widget.modLibraryBuilder != null ||
-              widget.gameContextBuilder != null) ...[
+              widget.gameContextBuilder != null ||
+              widget.executableBuilder != null) ...[
             Align(
               alignment: Alignment.centerLeft,
               child: SegmentedButton<_WorkspaceMode>(
@@ -350,6 +353,12 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
                       value: _WorkspaceMode.game,
                       label: Text('Game'),
                       icon: Icon(Icons.videogame_asset_outlined),
+                    ),
+                  if (widget.executableBuilder != null)
+                    ButtonSegment(
+                      value: _WorkspaceMode.tools,
+                      label: Text("Tools"),
+                      icon: Icon(Icons.terminal),
                     ),
                 ],
                 selected: {_mode},
@@ -378,6 +387,13 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
                   ExcludeFocus(
                     excluding: _mode != _WorkspaceMode.game,
                     child: widget.gameContextBuilder!(context, workspace),
+                  )
+                else
+                  const SizedBox.shrink(),
+                if (widget.executableBuilder != null)
+                  ExcludeFocus(
+                    excluding: _mode != _WorkspaceMode.tools,
+                    child: widget.executableBuilder!(context, workspace),
                   )
                 else
                   const SizedBox.shrink(),

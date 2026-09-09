@@ -121,6 +121,11 @@ let run args =
 
     builder.Services.AddSingleton<ModConductor.Engine.DeploymentService>() |> ignore
 
+    builder.Services.AddSingleton<ModConductor.Executables.IExecutables>(store.Executables)
+    |> ignore
+
+    builder.Services.AddSingleton<ModConductor.Engine.ExecutableService>() |> ignore
+
     builder.Services.AddSingleton<Coordinator>(coordinator) |> ignore
     builder.Services.AddSingleton<ModConductor.Engine.OperationService>() |> ignore
 
@@ -130,6 +135,9 @@ let run args =
             options.MaxReceiveMessageSize <- Nullable 4096
             options.MaxSendMessageSize <- Nullable 65536
             options.EnableDetailedErrors <- Nullable false)
+        .AddServiceOptions<ModConductor.Engine.ExecutableService>(fun options ->
+            options.MaxReceiveMessageSize <- Nullable(256 * 1024)
+            options.MaxSendMessageSize <- Nullable(2 * 1024 * 1024))
         .AddServiceOptions<ModConductor.Engine.OutputService>(fun options ->
             options.MaxReceiveMessageSize <- Nullable(256 * 1024)
             options.MaxSendMessageSize <- Nullable(2 * 1024 * 1024))
@@ -164,6 +172,7 @@ let run args =
 
     use app = builder.Build()
     app.MapGrpcService<ModConductor.Engine.OutputService>() |> ignore
+    app.MapGrpcService<ModConductor.Engine.ExecutableService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.DeploymentService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.FilePlanService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.SteamDiscoveryService>() |> ignore
@@ -184,6 +193,9 @@ let run args =
     let lifetime = app.Services.GetRequiredService<IHostApplicationLifetime>()
 
     store.ModLibrary.Failed.ContinueWith(fun (_: Task) -> lifetime.StopApplication())
+    |> ignore
+
+    store.ExecutablesFailed.ContinueWith(fun (_: Task) -> lifetime.StopApplication())
     |> ignore
 
     coordinator.Failed.ContinueWith(fun (_: Task) -> lifetime.StopApplication())
