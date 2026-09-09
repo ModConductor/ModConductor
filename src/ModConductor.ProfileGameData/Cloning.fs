@@ -12,6 +12,7 @@ module internal ProfileCloning =
         (initial: ProfileDataActionRecord)
         (token: CancellationToken)
         progress
+        captureCheckpoint
         =
         task {
             let targetId =
@@ -60,8 +61,13 @@ module internal ProfileCloning =
                         action <- value
                     }
 
-                let! copied = DataEffects.run context action save token ignore
+                // Finish recorded source replacements before cancellation can delete their stage.
+                let! copied =
+                    DataEffects.run context action save CancellationToken.None captureCheckpoint
+
                 action <- copied
+
+            token.ThrowIfCancellationRequested()
 
             let mutable target =
                 action.CloneTarget

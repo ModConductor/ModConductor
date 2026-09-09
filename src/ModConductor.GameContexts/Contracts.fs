@@ -47,8 +47,8 @@ module Skyrim =
                 Reason = "Plugin editing is not implemented." }
               { Name = "Archive inspection"
                 Reason = "Archive inspection is not implemented." }
-              { Name = "Save management"
-                Reason = "Save management is not implemented." } ] }
+              { Name = "Individual save editing"
+                Reason = "Individual save editing is not implemented." } ] }
 
 [<RequireQualifiedAccess>]
 type Location =

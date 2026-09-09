@@ -284,6 +284,53 @@ module ProfileDataFixtures =
                  && File.ReadAllText(Path.Combine(kept.SettingsPath, "SkyrimPrefs.ini")).Contains
                      "1600")
 
+            play first |> ignore
+            let activeSettings = "[Display]\niSize W=1777\n"
+            File.WriteAllText(prefs, activeSettings)
+            let cancelledActiveClone = Guid.NewGuid()
+            use activeCopyCancellation = new CancellationTokenSource()
+            let mutable cancelledAfterSourcePreserved = false
+            let privatePrefs = Path.Combine(kept.SettingsPath, "SkyrimPrefs.ini")
+            let current = ws.Read(workspace, None) |> wait |> result
+
+            let cancelledCapture =
+                store.CloneProfileDataAtCheckpoint(
+                    workspace,
+                    current.Workspace.Revision,
+                    first,
+                    { Id = cancelledActiveClone
+                      Name = "Cancelled active copy" },
+                    activeCopyCancellation.Token,
+                    fun phase ->
+                        if phase = "preserved" && not (File.Exists privatePrefs) then
+                            cancelledAfterSourcePreserved <- true
+                            activeCopyCancellation.Cancel()
+                )
+                |> wait
+
+            let afterActiveCancellation = ws.Read(workspace, None) |> wait |> result
+            let retainedSource = read first
+
+            check
+                "cancelAfterPreservingActiveSourceFinishesCaptureBeforeCleanup"
+                (cancelledAfterSourcePreserved
+                 && Result.isError cancelledCapture
+                 && afterActiveCancellation.Workspace.Revision = current.Workspace.Revision
+                 && not (
+                     afterActiveCancellation.Profiles
+                     |> List.exists (fun value -> value.Id = cancelledActiveClone)
+                 )
+                 && retainedSource.Pending.IsNone
+                 && retainedSource.InUse = Some first
+                 && File.ReadAllText privatePrefs = activeSettings
+                 && File.ReadAllText prefs = activeSettings
+                 && File.ReadAllText(Path.Combine(kept.SavesPath, "private.ess")) = "first profile save")
+
+            api.Restore(Guid.NewGuid(), retainedSource.Reference, token)
+            |> wait
+            |> result
+            |> ignore
+
             let clone = Guid.NewGuid()
             let current = ws.Read(workspace, None) |> wait |> result
 

@@ -107,7 +107,7 @@ class _ProfileSaveFilesState extends State<ProfileSaveFiles> {
                 showTitle: false,
                 filterLabel: 'Filter loaded files',
                 countLabel:
-                    '${model.length} entries${next != null ? ' loaded' : ''}',
+                    '${model.length} ${model.length == 1 ? 'entry' : 'entries'}${next != null ? ' loaded' : ''}',
                 empty: busy ? 'Reading save files…' : 'No save files.',
                 onRefresh: busy ? null : () => unawaited(read()),
                 onLoad: busy || next == null

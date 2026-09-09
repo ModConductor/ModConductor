@@ -100,6 +100,7 @@ type internal ProfileDataMutations
         (progress: ProfileCopyProgress -> unit)
         (token: CancellationToken)
         beforeCommit
+        captureCheckpoint
         =
         task {
             match enter workspace with
@@ -188,6 +189,7 @@ type internal ProfileDataMutations
                                             action
                                             token
                                             notify
+                                            captureCheckpoint
 
                                     completed.Add(context, action, copy)
 
@@ -432,7 +434,10 @@ type internal ProfileDataMutations
         }
 
     member _.Edit(workspace, expected, command, progress, token, beforeCommit) =
-        mutate workspace expected command progress token beforeCommit
+        mutate workspace expected command progress token beforeCommit ignore
+
+    member _.CloneAtCaptureCheckpoint(workspace, expected, source, target, token, checkpoint) =
+        mutate workspace expected (ProfileEdit.Clone(source, target)) ignore token ignore checkpoint
 
     member _.Resume(workspace, id, progress, token) =
         task {
@@ -493,5 +498,5 @@ type internal ProfileDataMutations
                                       Deleted = Some target }
                             | _ -> invalidOp "Expected a retained profile mutation.")
                 else
-                    return! mutate workspace expected command progress token ignore
+                    return! mutate workspace expected command progress token ignore ignore
         }

@@ -284,6 +284,18 @@ type OperationStore(directory: string) =
         =
         outputs.ApplyAtCheckpoint(id, snapshot, selected, action, token, afterPublication)
 
+    member internal _.CloneProfileDataAtCheckpoint
+        (workspace, expected, source, target, token, checkpoint)
+        =
+        profileMutations.CloneAtCaptureCheckpoint(
+            workspace,
+            expected,
+            source,
+            target,
+            token,
+            checkpoint
+        )
+
     member internal _.RestoreProfileDataAtCheckpoint(id, expected, token, checkpoint) =
         profileGameData.RestoreAtCheckpoint(id, expected, token, checkpoint)
 
