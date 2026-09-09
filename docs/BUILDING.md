@@ -64,6 +64,24 @@ actual native fixture. Missing native paths do not count as passes.
 cross-device tests. Do not select a physical game volume. `MC_NATIVE_REPORT`
 selects an optional observation file.
 
+For an optional cross-platform runner, select one existing fixture scope. The
+output directory must be new. Commands, stdout, stderr, the fixture report,
+binary hash, exit codes, and elapsed times are retained there:
+
+```sh
+python3 tools/check-native.py --scope executables --fixture "$MC_NATIVE_FIXTURE" --output .agent-workspace/check-executables
+python3 tools/check-native.py --scope storage --fixture "$MC_NATIVE_FIXTURE" --test-filter 'FullyQualifiedName~StorageTests' --build-tests --output .agent-workspace/check-storage
+```
+
+Use `--publish` instead of `--fixture` to run normal locked restore and NativeAOT
+publication for the current OS. No SDK, package version, cache location, or
+system setting is changed. Do not restore native projects with
+`PublishAot=false`: that produces a different lock graph. Managed diagnostics
+must use isolated restore outputs or reuse the native restore with `--no-restore`.
+The runner does not interpret every report field as an assertion. The existing
+fixture or NUnit tests determine success. It retains fixture data for inspection;
+remove only those owned test directories after the results are retained.
+
 ## Desktop
 
 From `ui/`:
