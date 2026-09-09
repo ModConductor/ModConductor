@@ -84,6 +84,9 @@ class WorkspaceFaultCode extends $pb.ProtobufEnum {
   static const WorkspaceFaultCode WORKSPACE_FAULT_CODE_BUSY =
       WorkspaceFaultCode._(
           8, _omitEnumNames ? '' : 'WORKSPACE_FAULT_CODE_BUSY');
+  static const WorkspaceFaultCode WORKSPACE_FAULT_CODE_PROFILE_DATA =
+      WorkspaceFaultCode._(
+          9, _omitEnumNames ? '' : 'WORKSPACE_FAULT_CODE_PROFILE_DATA');
 
   static const $core.List<WorkspaceFaultCode> values = <WorkspaceFaultCode>[
     WORKSPACE_FAULT_CODE_UNSPECIFIED,
@@ -95,10 +98,11 @@ class WorkspaceFaultCode extends $pb.ProtobufEnum {
     WORKSPACE_FAULT_CODE_INVALID_ROOT,
     WORKSPACE_FAULT_CODE_ROOT_UNRESOLVED,
     WORKSPACE_FAULT_CODE_BUSY,
+    WORKSPACE_FAULT_CODE_PROFILE_DATA,
   ];
 
   static final $core.List<WorkspaceFaultCode?> _byValue =
-      $pb.ProtobufEnum.$_initByValueList(values, 8);
+      $pb.ProtobufEnum.$_initByValueList(values, 9);
   static WorkspaceFaultCode? valueOf($core.int value) =>
       value < 0 || value >= _byValue.length ? null : _byValue[value];
 

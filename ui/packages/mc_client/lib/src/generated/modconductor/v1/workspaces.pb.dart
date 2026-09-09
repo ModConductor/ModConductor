@@ -1341,6 +1341,232 @@ class RecentWorkspacesReply extends $pb.GeneratedMessage {
   void clearNextWorkspaceId() => $_clearField(2);
 }
 
+class ProfileCopyProgress extends $pb.GeneratedMessage {
+  factory ProfileCopyProgress({
+    $core.int? files,
+    $fixnum.Int64? bytes,
+  }) {
+    final result = create();
+    if (files != null) result.files = files;
+    if (bytes != null) result.bytes = bytes;
+    return result;
+  }
+
+  ProfileCopyProgress._();
+
+  factory ProfileCopyProgress.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ProfileCopyProgress.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ProfileCopyProgress',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..aI(1, _omitFieldNames ? '' : 'files', fieldType: $pb.PbFieldType.OU3)
+    ..a<$fixnum.Int64>(2, _omitFieldNames ? '' : 'bytes', $pb.PbFieldType.OU6,
+        defaultOrMaker: $fixnum.Int64.ZERO)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ProfileCopyProgress clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ProfileCopyProgress copyWith(void Function(ProfileCopyProgress) updates) =>
+      super.copyWith((message) => updates(message as ProfileCopyProgress))
+          as ProfileCopyProgress;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ProfileCopyProgress create() => ProfileCopyProgress._();
+  @$core.override
+  ProfileCopyProgress createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ProfileCopyProgress getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ProfileCopyProgress>(create);
+  static ProfileCopyProgress? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.int get files => $_getIZ(0);
+  @$pb.TagNumber(1)
+  set files($core.int value) => $_setUnsignedInt32(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasFiles() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearFiles() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get bytes => $_getI64(1);
+  @$pb.TagNumber(2)
+  set bytes($fixnum.Int64 value) => $_setInt64(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasBytes() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearBytes() => $_clearField(2);
+}
+
+class ResumeProfileEditRequest extends $pb.GeneratedMessage {
+  factory ResumeProfileEditRequest({
+    $core.String? workspaceId,
+    $core.String? actionId,
+  }) {
+    final result = create();
+    if (workspaceId != null) result.workspaceId = workspaceId;
+    if (actionId != null) result.actionId = actionId;
+    return result;
+  }
+
+  ResumeProfileEditRequest._();
+
+  factory ResumeProfileEditRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ResumeProfileEditRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ResumeProfileEditRequest',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'workspaceId')
+    ..aOS(2, _omitFieldNames ? '' : 'actionId')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ResumeProfileEditRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ResumeProfileEditRequest copyWith(
+          void Function(ResumeProfileEditRequest) updates) =>
+      super.copyWith((message) => updates(message as ResumeProfileEditRequest))
+          as ResumeProfileEditRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ResumeProfileEditRequest create() => ResumeProfileEditRequest._();
+  @$core.override
+  ResumeProfileEditRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ResumeProfileEditRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ResumeProfileEditRequest>(create);
+  static ResumeProfileEditRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get workspaceId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set workspaceId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasWorkspaceId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearWorkspaceId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get actionId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set actionId($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasActionId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearActionId() => $_clearField(2);
+}
+
+enum ProfileEditEvent_Event { progress, finished, notSet }
+
+class ProfileEditEvent extends $pb.GeneratedMessage {
+  factory ProfileEditEvent({
+    ProfileCopyProgress? progress,
+    ProfileReply? finished,
+  }) {
+    final result = create();
+    if (progress != null) result.progress = progress;
+    if (finished != null) result.finished = finished;
+    return result;
+  }
+
+  ProfileEditEvent._();
+
+  factory ProfileEditEvent.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ProfileEditEvent.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static const $core.Map<$core.int, ProfileEditEvent_Event>
+      _ProfileEditEvent_EventByTag = {
+    1: ProfileEditEvent_Event.progress,
+    2: ProfileEditEvent_Event.finished,
+    0: ProfileEditEvent_Event.notSet
+  };
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ProfileEditEvent',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..oo(0, [1, 2])
+    ..aOM<ProfileCopyProgress>(1, _omitFieldNames ? '' : 'progress',
+        subBuilder: ProfileCopyProgress.create)
+    ..aOM<ProfileReply>(2, _omitFieldNames ? '' : 'finished',
+        subBuilder: ProfileReply.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ProfileEditEvent clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ProfileEditEvent copyWith(void Function(ProfileEditEvent) updates) =>
+      super.copyWith((message) => updates(message as ProfileEditEvent))
+          as ProfileEditEvent;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ProfileEditEvent create() => ProfileEditEvent._();
+  @$core.override
+  ProfileEditEvent createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ProfileEditEvent getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ProfileEditEvent>(create);
+  static ProfileEditEvent? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  @$pb.TagNumber(2)
+  ProfileEditEvent_Event whichEvent() =>
+      _ProfileEditEvent_EventByTag[$_whichOneof(0)]!;
+  @$pb.TagNumber(1)
+  @$pb.TagNumber(2)
+  void clearEvent() => $_clearField($_whichOneof(0));
+
+  @$pb.TagNumber(1)
+  ProfileCopyProgress get progress => $_getN(0);
+  @$pb.TagNumber(1)
+  set progress(ProfileCopyProgress value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasProgress() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearProgress() => $_clearField(1);
+  @$pb.TagNumber(1)
+  ProfileCopyProgress ensureProgress() => $_ensure(0);
+
+  @$pb.TagNumber(2)
+  ProfileReply get finished => $_getN(1);
+  @$pb.TagNumber(2)
+  set finished(ProfileReply value) => $_setField(2, value);
+  @$pb.TagNumber(2)
+  $core.bool hasFinished() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearFinished() => $_clearField(2);
+  @$pb.TagNumber(2)
+  ProfileReply ensureFinished() => $_ensure(1);
+}
+
 const $core.bool _omitFieldNames =
     $core.bool.fromEnvironment('protobuf.omit_field_names');
 const $core.bool _omitMessageNames =

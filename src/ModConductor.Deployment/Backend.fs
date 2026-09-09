@@ -109,6 +109,20 @@ type DeploymentBackend internal (repository: IDeploymentRepository) =
                 prepared.Clear()
                 true)
 
+    member internal _.TryAcquireWorkspace(workspace) =
+        if not (enter workspace) then
+            None
+        else
+            let mutable released = false
+
+            Some
+                { new IDisposable with
+                    member _.Dispose() =
+                        lock gate (fun () ->
+                            if not released then
+                                released <- true
+                                leave workspace) }
+
     member _.PrepareForLaunch(id, expected: SourceStamp, progress, token) =
         task {
             if not (enter expected.WorkspaceId) then

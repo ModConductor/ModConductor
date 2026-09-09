@@ -47,6 +47,7 @@ const WorkspaceFaultCode$json = {
     {'1': 'WORKSPACE_FAULT_CODE_INVALID_ROOT', '2': 6},
     {'1': 'WORKSPACE_FAULT_CODE_ROOT_UNRESOLVED', '2': 7},
     {'1': 'WORKSPACE_FAULT_CODE_BUSY', '2': 8},
+    {'1': 'WORKSPACE_FAULT_CODE_PROFILE_DATA', '2': 9},
   ],
 };
 
@@ -58,7 +59,8 @@ final $typed_data.Uint8List workspaceFaultCodeDescriptor = $convert.base64Decode
     'RZX0NPTkZMSUNUEAMSKQolV09SS1NQQUNFX0ZBVUxUX0NPREVfU0VMRUNURURfUFJPRklMRRAE'
     'EiUKIVdPUktTUEFDRV9GQVVMVF9DT0RFX0lOVkFMSURfTkFNRRAFEiUKIVdPUktTUEFDRV9GQV'
     'VMVF9DT0RFX0lOVkFMSURfUk9PVBAGEigKJFdPUktTUEFDRV9GQVVMVF9DT0RFX1JPT1RfVU5S'
-    'RVNPTFZFRBAHEh0KGVdPUktTUEFDRV9GQVVMVF9DT0RFX0JVU1kQCA==');
+    'RVNPTFZFRBAHEh0KGVdPUktTUEFDRV9GQVVMVF9DT0RFX0JVU1kQCBIlCiFXT1JLU1BBQ0VfRk'
+    'FVTFRfQ09ERV9QUk9GSUxFX0RBVEEQCQ==');
 
 @$core.Deprecated('Use profileInfoDescriptor instead')
 const ProfileInfo$json = {
@@ -536,3 +538,66 @@ final $typed_data.Uint8List recentWorkspacesReplyDescriptor = $convert.base64Dec
     'ChVSZWNlbnRXb3Jrc3BhY2VzUmVwbHkSPgoKd29ya3NwYWNlcxgBIAMoCzIeLm1vZGNvbmR1Y3'
     'Rvci52MS5Xb3Jrc3BhY2VJbmZvUgp3b3Jrc3BhY2VzEi8KEW5leHRfd29ya3NwYWNlX2lkGAIg'
     'ASgJSABSD25leHRXb3Jrc3BhY2VJZIgBAUIUChJfbmV4dF93b3Jrc3BhY2VfaWQ=');
+
+@$core.Deprecated('Use profileCopyProgressDescriptor instead')
+const ProfileCopyProgress$json = {
+  '1': 'ProfileCopyProgress',
+  '2': [
+    {'1': 'files', '3': 1, '4': 1, '5': 13, '10': 'files'},
+    {'1': 'bytes', '3': 2, '4': 1, '5': 4, '10': 'bytes'},
+  ],
+};
+
+/// Descriptor for `ProfileCopyProgress`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List profileCopyProgressDescriptor = $convert.base64Decode(
+    'ChNQcm9maWxlQ29weVByb2dyZXNzEhQKBWZpbGVzGAEgASgNUgVmaWxlcxIUCgVieXRlcxgCIA'
+    'EoBFIFYnl0ZXM=');
+
+@$core.Deprecated('Use resumeProfileEditRequestDescriptor instead')
+const ResumeProfileEditRequest$json = {
+  '1': 'ResumeProfileEditRequest',
+  '2': [
+    {'1': 'workspace_id', '3': 1, '4': 1, '5': 9, '10': 'workspaceId'},
+    {'1': 'action_id', '3': 2, '4': 1, '5': 9, '10': 'actionId'},
+  ],
+};
+
+/// Descriptor for `ResumeProfileEditRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List resumeProfileEditRequestDescriptor =
+    $convert.base64Decode(
+        'ChhSZXN1bWVQcm9maWxlRWRpdFJlcXVlc3QSIQoMd29ya3NwYWNlX2lkGAEgASgJUgt3b3Jrc3'
+        'BhY2VJZBIbCglhY3Rpb25faWQYAiABKAlSCGFjdGlvbklk');
+
+@$core.Deprecated('Use profileEditEventDescriptor instead')
+const ProfileEditEvent$json = {
+  '1': 'ProfileEditEvent',
+  '2': [
+    {
+      '1': 'progress',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.ProfileCopyProgress',
+      '9': 0,
+      '10': 'progress'
+    },
+    {
+      '1': 'finished',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.ProfileReply',
+      '9': 0,
+      '10': 'finished'
+    },
+  ],
+  '8': [
+    {'1': 'event'},
+  ],
+};
+
+/// Descriptor for `ProfileEditEvent`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List profileEditEventDescriptor = $convert.base64Decode(
+    'ChBQcm9maWxlRWRpdEV2ZW50EkIKCHByb2dyZXNzGAEgASgLMiQubW9kY29uZHVjdG9yLnYxLl'
+    'Byb2ZpbGVDb3B5UHJvZ3Jlc3NIAFIIcHJvZ3Jlc3MSOwoIZmluaXNoZWQYAiABKAsyHS5tb2Rj'
+    'b25kdWN0b3IudjEuUHJvZmlsZVJlcGx5SABSCGZpbmlzaGVkQgcKBWV2ZW50');

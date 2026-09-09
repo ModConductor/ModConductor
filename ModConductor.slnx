@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/ModConductor.ProfileGameData/ModConductor.ProfileGameData.fsproj" />
     <Project Path="src/ModConductor.GameLaunching/ModConductor.GameLaunching.fsproj" />
     <Project Path="src/ModConductor.GeneratedOutputs/ModConductor.GeneratedOutputs.fsproj" />
     <Project Path="src/ModConductor.DeploymentRecovery/ModConductor.DeploymentRecovery.fsproj" />

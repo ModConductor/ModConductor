@@ -68,13 +68,15 @@ module GameLaunchCancellationFixture =
             TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)
 
         let prepare: PrepareGameRun =
-            fun _ token progress ->
+            fun game token progress ->
                 task {
                     do!
                         progress
-                            { Phase = GamePreparationPhase.Applying
-                              Completed = 1
-                              Total = 2 }
+                            { game with
+                                Preparation =
+                                    { Phase = GamePreparationPhase.Applying
+                                      Completed = 1
+                                      Total = 2 } }
 
                     entered.SetResult()
                     do! Task.Delay(-1, token)

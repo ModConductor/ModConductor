@@ -1,0 +1,57 @@
+syntax = "proto3";
+package modconductor.v1;
+option csharp_namespace = "ModConductor.Protocol.V1";
+
+service ProfileDataOperations {
+  rpc ReadProfileData(ProfileDataReadRequest) returns (ProfileDataReply);
+  rpc EditProfileData(ProfileDataEditRequest) returns (stream ProfileDataEvent);
+  rpc RestoreProfileData(ProfileDataRestoreRequest) returns (stream ProfileDataEvent);
+  rpc ResumeProfileData(ProfileDataActionRequest) returns (stream ProfileDataEvent);
+}
+message ProfileDataReadRequest { string workspace_id = 1; string profile_id = 2; }
+message ProfileDataRef { string workspace_id = 1; string profile_id = 2; string context_id = 3; uint64 revision = 4; }
+message ProfileDataOptions { bool settings = 1; bool saves = 2; }
+message ProfileDataState {
+  ProfileDataRef reference = 1;
+  ProfileDataOptions options = 2;
+  optional string in_use_profile_id = 3;
+  string settings_path = 4;
+  string saves_path = 5;
+  uint32 settings_files = 6;
+  uint32 save_files = 7;
+  optional string pending_action_id = 8;
+  optional string problem = 9;
+  bool pending_profile_change = 10;
+}
+enum InitialProfileSaves { INITIAL_PROFILE_SAVES_UNSPECIFIED = 0; INITIAL_PROFILE_SAVES_EMPTY = 1; INITIAL_PROFILE_SAVES_COPY_GLOBAL = 2; }
+enum DisabledProfileFiles { DISABLED_PROFILE_FILES_UNSPECIFIED = 0; DISABLED_PROFILE_FILES_KEEP = 1; DISABLED_PROFILE_FILES_DELETE = 2; }
+message ProfileDataEditRequest {
+  string id = 1;
+  ProfileDataRef expected = 2;
+  ProfileDataOptions options = 3;
+  InitialProfileSaves initial_saves = 4;
+  DisabledProfileFiles disabled_files = 5;
+}
+message ProfileDataRestoreRequest { string id = 1; ProfileDataRef expected = 2; }
+message ProfileDataActionRequest { string workspace_id = 1; string id = 2; }
+message ProfileDataActionResult {
+  string id = 1;
+  ProfileDataState state = 2;
+  bool complete = 3;
+  uint32 completed_files = 4;
+  optional string problem = 5;
+}
+enum ProfileDataProblemKind {
+  PROFILE_DATA_PROBLEM_UNSPECIFIED = 0;
+  PROFILE_DATA_PROBLEM_NOT_FOUND = 1;
+  PROFILE_DATA_PROBLEM_BUSY = 2;
+  PROFILE_DATA_PROBLEM_STALE = 3;
+  PROFILE_DATA_PROBLEM_CANCELLED = 4;
+  PROFILE_DATA_PROBLEM_INVALID = 5;
+  PROFILE_DATA_PROBLEM_UNAVAILABLE = 6;
+  PROFILE_DATA_PROBLEM_CONFLICT = 7;
+}
+message ProfileDataProblem { ProfileDataProblemKind kind = 1; string detail = 2; }
+message ProfileDataReply { oneof result { ProfileDataState state = 1; ProfileDataProblem problem = 2; } }
+message ProfileDataProgress { uint32 files = 1; uint64 bytes = 2; }
+message ProfileDataEvent { oneof event { ProfileDataProgress progress = 1; ProfileDataActionResult result = 2; ProfileDataProblem problem = 3; } }

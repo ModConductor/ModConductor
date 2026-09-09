@@ -163,20 +163,32 @@ module internal ExecutableEncoding =
             | GamePreparationPhase.Preparing -> 0
             | GamePreparationPhase.Applying -> 1
             | GamePreparationPhase.Ready -> 2
+            | GamePreparationPhase.ProfileData -> 3
         )
 
         w.Write v.Preparation.Completed
         w.Write v.Preparation.Total
 
         opt
-            (fun w files ->
+            (fun w (files: AppliedGameFiles) ->
                 guid w files.ReceiptId
                 guid w files.GenerationId
                 text w files.Fingerprint)
             w
             v.Files
 
-    let private readGame (r: BinaryReader) : GameRun =
+        w.Write v.ProfileDataRevision
+
+        opt
+            (fun w (value: AppliedProfileData) ->
+                guid w value.ReceiptId
+                w.Write value.Revision
+                w.Write value.CompletedFiles
+                w.Write value.Complete)
+            w
+            v.ProfileData
+
+    let private readGame version (r: BinaryReader) : GameRun =
         let request =
             { Id = readGuid r
               WorkspaceId = readGuid r
@@ -195,6 +207,7 @@ module internal ExecutableEncoding =
             | 0 -> GamePreparationPhase.Preparing
             | 1 -> GamePreparationPhase.Applying
             | 2 -> GamePreparationPhase.Ready
+            | 3 -> GamePreparationPhase.ProfileData
             | _ -> raise (InvalidDataException "The game preparation phase is invalid.")
 
         let completed, total = r.ReadInt32(), r.ReadInt32()
@@ -215,11 +228,24 @@ module internal ExecutableEncoding =
                     { ReceiptId = readGuid r
                       GenerationId = readGuid r
                       Fingerprint = r.ReadString() })
-                r }
+                r
+          ProfileDataRevision = if version >= 3 then r.ReadInt64() else 0L
+          ProfileData =
+            if version >= 3 then
+                readOpt
+                    (fun r ->
+                        { ReceiptId = readGuid r
+                          Revision = r.ReadInt64()
+                          CompletedFiles = r.ReadInt32()
+                          Complete = r.ReadBoolean() }
+                        : AppliedProfileData)
+                    r
+            else
+                None }
 
     let encodeRun (value: ExecutableRun) =
         encode
-            2
+            3
             (fun w v ->
                 match v.Source with
                 | RunSource.Preset(request, value) ->
@@ -251,11 +277,12 @@ module internal ExecutableEncoding =
                         let request = readRequest r
                         let revision = r.ReadInt64()
                         RunSource.Preset(request, readPreset r), revision
-                    | 2 ->
+                    | 2
+                    | 3 ->
                         let source =
                             match r.ReadInt32() with
                             | 0 -> RunSource.Preset(readRequest r, readPreset r)
-                            | 1 -> RunSource.Game(readGame r)
+                            | 1 -> RunSource.Game(readGame version r)
                             | _ -> raise (InvalidDataException "The run source is invalid.")
 
                         source, r.ReadInt64()

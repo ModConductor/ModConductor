@@ -10,8 +10,12 @@
     <Compile Include="DeploymentSchema.fs" />
     <Compile Include="OutputSchema.fs" />
     <Compile Include="ExecutableSchema.fs" />
+    <Compile Include="ProfileDataSchema.fs" />
     <Compile Include="Sqlite.fs" />
     <Compile Include="LibraryEncoding.fs" />
+    <Compile Include="ProfileDataValueEncoding.fs" />
+    <Compile Include="ProfileDataEncoding.fs" />
+    <Compile Include="ProfileDataRows.fs" />
     <Compile Include="CategoryRows.fs" />
     <Compile Include="LibraryRows.fs" />
     <Compile Include="OperationRows.fs" />
@@ -39,6 +43,8 @@
     <Compile Include="ProtonEncoding.fs" />
     <Compile Include="GameContextEncoding.fs" />
     <Compile Include="GameContextStore.fs" />
+    <Compile Include="ProfileDataRepository.fs" />
+    <Compile Include="ProfileDataMutations.fs" />
     <Compile Include="OutputRows.fs" />
     <Compile Include="OutputEncoding.fs" />
     <Compile Include="OutputLocationStore.fs" />
@@ -59,6 +65,7 @@
     <Compile Include="GameRunAdmission.fs" />
     <Compile Include="ExecutableRepository.fs" />
     <Compile Include="OperationStore.fs" />
+    <ProjectReference Include="../ModConductor.ProfileGameData/ModConductor.ProfileGameData.fsproj" />
     <ProjectReference Include="../ModConductor.GeneratedOutputs/ModConductor.GeneratedOutputs.fsproj" />
     <ProjectReference Include="../ModConductor.Deployment/ModConductor.Deployment.fsproj" />
     <ProjectReference Include="../ModConductor.DeploymentGenerations/ModConductor.DeploymentGenerations.fsproj" />

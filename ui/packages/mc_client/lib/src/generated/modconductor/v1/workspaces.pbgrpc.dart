@@ -60,6 +60,24 @@ class WorkspaceOperationsClient extends $grpc.Client {
     return $createUnaryCall(_$editProfile, request, options: options);
   }
 
+  $grpc.ResponseStream<$0.ProfileEditEvent> editProfileWithProgress(
+    $0.EditProfileRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createStreamingCall(
+        _$editProfileWithProgress, $async.Stream.fromIterable([request]),
+        options: options);
+  }
+
+  $grpc.ResponseStream<$0.ProfileEditEvent> resumeProfileEdit(
+    $0.ResumeProfileEditRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createStreamingCall(
+        _$resumeProfileEdit, $async.Stream.fromIterable([request]),
+        options: options);
+  }
+
   $grpc.ResponseFuture<$0.WorkspaceReply> checkWorkspace(
     $0.CheckWorkspaceRequest request, {
     $grpc.CallOptions? options,
@@ -96,6 +114,16 @@ class WorkspaceOperationsClient extends $grpc.Client {
           '/modconductor.v1.WorkspaceOperations/EditProfile',
           ($0.EditProfileRequest value) => value.writeToBuffer(),
           $0.ProfileReply.fromBuffer);
+  static final _$editProfileWithProgress =
+      $grpc.ClientMethod<$0.EditProfileRequest, $0.ProfileEditEvent>(
+          '/modconductor.v1.WorkspaceOperations/EditProfileWithProgress',
+          ($0.EditProfileRequest value) => value.writeToBuffer(),
+          $0.ProfileEditEvent.fromBuffer);
+  static final _$resumeProfileEdit =
+      $grpc.ClientMethod<$0.ResumeProfileEditRequest, $0.ProfileEditEvent>(
+          '/modconductor.v1.WorkspaceOperations/ResumeProfileEdit',
+          ($0.ResumeProfileEditRequest value) => value.writeToBuffer(),
+          $0.ProfileEditEvent.fromBuffer);
   static final _$checkWorkspace =
       $grpc.ClientMethod<$0.CheckWorkspaceRequest, $0.WorkspaceReply>(
           '/modconductor.v1.WorkspaceOperations/CheckWorkspace',
@@ -146,6 +174,23 @@ abstract class WorkspaceOperationsServiceBase extends $grpc.Service {
         ($core.List<$core.int> value) =>
             $0.EditProfileRequest.fromBuffer(value),
         ($0.ProfileReply value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.EditProfileRequest, $0.ProfileEditEvent>(
+        'EditProfileWithProgress',
+        editProfileWithProgress_Pre,
+        false,
+        true,
+        ($core.List<$core.int> value) =>
+            $0.EditProfileRequest.fromBuffer(value),
+        ($0.ProfileEditEvent value) => value.writeToBuffer()));
+    $addMethod(
+        $grpc.ServiceMethod<$0.ResumeProfileEditRequest, $0.ProfileEditEvent>(
+            'ResumeProfileEdit',
+            resumeProfileEdit_Pre,
+            false,
+            true,
+            ($core.List<$core.int> value) =>
+                $0.ResumeProfileEditRequest.fromBuffer(value),
+            ($0.ProfileEditEvent value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$0.CheckWorkspaceRequest, $0.WorkspaceReply>(
         'CheckWorkspace',
         checkWorkspace_Pre,
@@ -196,6 +241,24 @@ abstract class WorkspaceOperationsServiceBase extends $grpc.Service {
 
   $async.Future<$0.ProfileReply> editProfile(
       $grpc.ServiceCall call, $0.EditProfileRequest request);
+
+  $async.Stream<$0.ProfileEditEvent> editProfileWithProgress_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.EditProfileRequest> $request) async* {
+    yield* editProfileWithProgress($call, await $request);
+  }
+
+  $async.Stream<$0.ProfileEditEvent> editProfileWithProgress(
+      $grpc.ServiceCall call, $0.EditProfileRequest request);
+
+  $async.Stream<$0.ProfileEditEvent> resumeProfileEdit_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.ResumeProfileEditRequest> $request) async* {
+    yield* resumeProfileEdit($call, await $request);
+  }
+
+  $async.Stream<$0.ProfileEditEvent> resumeProfileEdit(
+      $grpc.ServiceCall call, $0.ResumeProfileEditRequest request);
 
   $async.Future<$0.WorkspaceReply> checkWorkspace_Pre($grpc.ServiceCall $call,
       $async.Future<$0.CheckWorkspaceRequest> $request) async {

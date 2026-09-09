@@ -2,6 +2,7 @@ namespace ModConductor.Workspaces
 
 open System
 open System.Threading.Tasks
+open System.Threading
 open ModConductor.Platform
 
 type Profile = { Id: Guid; Name: string }
@@ -43,6 +44,7 @@ type WorkspaceError =
     | InvalidRoot of string
     | RootUnresolved
     | Busy
+    | ProfileData of string
 
 [<RequireQualifiedAccess>]
 type ProfileEdit =
@@ -57,10 +59,21 @@ type ProfileChange =
       Changed: Profile option
       Deleted: Guid option }
 
+type ProfileCopyProgress = { Files: int; Bytes: int64 }
+
 type IWorkspaceState =
     abstract Create: Guid * string * SelectedRoot -> Task<Result<WorkspacePage, WorkspaceError>>
     abstract Open: SelectedRoot -> Task<Result<WorkspacePage, WorkspaceError>>
     abstract Read: Guid * Guid option -> Task<Result<WorkspacePage, WorkspaceError>>
     abstract Edit: Guid * int64 * ProfileEdit -> Task<Result<ProfileChange, WorkspaceError>>
+
+    abstract EditWithProgress:
+        Guid * int64 * ProfileEdit * (ProfileCopyProgress -> unit) * CancellationToken ->
+            Task<Result<ProfileChange, WorkspaceError>>
+
+    abstract ResumeProfileEdit:
+        Guid * Guid * (ProfileCopyProgress -> unit) * CancellationToken ->
+            Task<Result<ProfileChange, WorkspaceError>>
+
     abstract Check: Guid * int64 -> Task<Result<WorkspacePage, WorkspaceError>>
     abstract Recent: Guid option -> Task<WorkspaceList>

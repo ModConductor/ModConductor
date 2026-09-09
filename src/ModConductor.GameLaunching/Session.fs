@@ -4,11 +4,26 @@ open System
 open ModConductor.GameContexts
 open ModConductor.Deployment
 open ModConductor.Executables
+open ModConductor.ProfileGameData
+open System.Security.Cryptography
+open System.Text
 
 type GameLaunchSession
-    (contexts: IGameContexts, deployment: DeploymentBackend, executables: ExecutableSession) =
+    (
+        contexts: IGameContexts,
+        deployment: DeploymentBackend,
+        executables: ExecutableSession,
+        profiles: ProfileGameDataSession
+    ) =
     let runs = executables :> IExecutables
     let deployments = deployment :> IDeploymentBackend
+
+    let token sources revision =
+        SHA256.HashData(
+            Encoding.UTF8.GetBytes(SourceIdentity.token sources + ":" + string revision)
+        )
+        |> Convert.ToHexString
+        |> fun value -> value.ToLowerInvariant()
 
     let context workspace =
         task {
@@ -29,6 +44,7 @@ type GameLaunchSession
                 match state, deployed with
                 | Ok state, Ok deployed when deployed.WorkspaceId = workspace ->
                     let! latest = executables.LatestGame workspace
+                    let! dataRevision = profiles.Revision(workspace, profile)
 
                     let runtime, problem =
                         match Descriptor.create state with
@@ -40,7 +56,8 @@ type GameLaunchSession
                             { WorkspaceId = workspace
                               ProfileId = profile
                               ContextRevision = state.Revision
-                              SourceToken = SourceIdentity.token deployed.Sources
+                              SourceToken =
+                                token deployed.Sources (dataRevision |> Result.defaultValue -1L)
                               Name = Skyrim.definition.Name
                               Runtime = runtime
                               Problem = problem
@@ -74,11 +91,15 @@ type GameLaunchSession
                         let! state = context request.WorkspaceId
                         let! deployed = deployments.Read request.ProfileId
 
+                        let! dataRevision =
+                            profiles.Revision(request.WorkspaceId, request.ProfileId)
+
                         match state, deployed with
                         | Ok state, Ok deployed when
                             deployed.WorkspaceId = request.WorkspaceId
                             && state.Revision = request.ContextRevision
-                            && SourceIdentity.token deployed.Sources = request.SourceToken
+                            && Result.isOk dataRevision
+                            && token deployed.Sources (dataRevision |> Result.defaultValue -1L) = request.SourceToken
                             ->
                             match Descriptor.create state with
                             | Error error -> return Error(ExecutableError.Unavailable error)
@@ -94,12 +115,14 @@ type GameLaunchSession
                                         { Phase = GamePreparationPhase.Preparing
                                           Completed = 0
                                           Total = 0 }
-                                      Files = None }
+                                      Files = None
+                                      ProfileDataRevision = dataRevision |> Result.defaultValue -1L
+                                      ProfileData = None }
 
                                 return!
                                     executables.BeginGame(
                                         game,
-                                        Preparation.run deployment deployed.Sources
+                                        Preparation.run deployment profiles deployed.Sources
                                     )
                         | Error error, _ -> return Error error
                         | _, Error error ->

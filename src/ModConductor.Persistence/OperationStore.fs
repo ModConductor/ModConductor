@@ -6,7 +6,6 @@ open ModConductor.Operations
 type OperationStore(directory: string) =
     let database = new StateDatabase(directory)
     let workspaceRoots = OwnedWorkspaceRootStore(database)
-    let workspaces = WorkspaceStateStore(database, workspaceRoots)
     let modLibrary = ModLibraryStore(database, workspaceRoots)
     let organization = ModOrganizationStore(database, modLibrary.Access)
     let selection = ModSelectionStore(database, modLibrary.Access)
@@ -36,11 +35,34 @@ type OperationStore(directory: string) =
             )
         )
 
+    let profileGameData =
+        ModConductor.ProfileGameData.ProfileGameDataSession(
+            ProfileDataRepository(database, modLibrary.Access),
+            deploymentBackend.TryAcquireWorkspace,
+            ModConductor.Deployment.GameProcesses.validate >> ignore
+        )
+
+    let profileMutations =
+        ProfileDataMutations(database, modLibrary.Access, deploymentBackend.TryAcquireWorkspace)
+
+    let workspaces =
+        WorkspaceStateStore(
+            database,
+            workspaceRoots,
+            profileMutations.Edit,
+            profileMutations.Resume
+        )
+
     let executables =
         ModConductor.Executables.ExecutableSession(ExecutableRepository(database))
 
     let gameLaunching =
-        ModConductor.GameLaunching.GameLaunchSession(gameContexts, deploymentBackend, executables)
+        ModConductor.GameLaunching.GameLaunchSession(
+            gameContexts,
+            deploymentBackend,
+            executables,
+            profileGameData
+        )
 
     let connection = database.Connection
 
@@ -126,6 +148,9 @@ type OperationStore(directory: string) =
     member _.FilePlans = filePlans
     member _.GeneratedOutputs = outputs :> ModConductor.GeneratedOutputs.IGeneratedOutputs
     member _.Deployments = deploymentBackend :> ModConductor.Deployment.IDeploymentBackend
+
+    member _.ProfileGameData =
+        profileGameData :> ModConductor.ProfileGameData.IProfileGameData
 
     member _.GameLaunching = gameLaunching :> ModConductor.GameLaunching.IGameLaunching
     member _.CloseExecutables() = executables.Close()
@@ -260,7 +285,12 @@ type OperationStore(directory: string) =
         outputs.ApplyAtCheckpoint(id, snapshot, selected, action, token, afterPublication)
 
     member _.DrainOutputs() = outputs.Drain()
-    member _.DrainDeployments() = deploymentBackend.Drain()
+
+    member _.DrainDeployments() =
+        task {
+            do! deploymentBackend.Drain()
+            do! profileGameData.Drain()
+        }
 
     member internal _.Deployment = deployment
     member internal _.Generations = generations
@@ -271,12 +301,13 @@ type OperationStore(directory: string) =
                 not (
                     outputs.TryClose(fun () ->
                         deploymentBackend.TryClose(fun () ->
-                            generations.TryClose(fun () ->
-                                deployment.TryClose()
-                                && filePlans.TryClose()
-                                && gameContexts.TryClose()
-                                && modLibrary.TryClose(fun () ->
-                                    workspaces.TryClose(workspaceRoots.TryClose)))))
+                            profileGameData.TryClose(fun () ->
+                                generations.TryClose(fun () ->
+                                    deployment.TryClose()
+                                    && filePlans.TryClose()
+                                    && gameContexts.TryClose()
+                                    && modLibrary.TryClose(fun () ->
+                                        workspaces.TryClose(workspaceRoots.TryClose))))))
                 )
             then
                 invalidOp

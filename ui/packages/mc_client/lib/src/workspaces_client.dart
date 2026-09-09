@@ -1,6 +1,8 @@
 import 'package:fixnum/fixnum.dart';
 import 'package:grpc/grpc.dart';
 
+import 'completed_events.dart';
+
 import 'generated/modconductor/v1/workspaces.pbgrpc.dart' as wire;
 
 class ProfileInfo {
@@ -67,6 +69,7 @@ enum WorkspaceFault {
   invalidRoot,
   unresolved,
   busy,
+  profileData,
 }
 
 class WorkspaceException implements Exception {
@@ -158,6 +161,8 @@ Never _reject(wire.WorkspaceFault value) =>
       wire.WorkspaceFaultCode.WORKSPACE_FAULT_CODE_ROOT_UNRESOLVED =>
         WorkspaceFault.unresolved,
       wire.WorkspaceFaultCode.WORKSPACE_FAULT_CODE_BUSY => WorkspaceFault.busy,
+      wire.WorkspaceFaultCode.WORKSPACE_FAULT_CODE_PROFILE_DATA =>
+        WorkspaceFault.profileData,
       _ => throw const FormatException('Unsupported workspace failure.'),
     }, value.detail);
 
@@ -174,10 +179,46 @@ WorkspacePage _page(wire.WorkspaceReply reply) =>
       ),
     };
 
-class GrpcWorkspacesClient implements WorkspacesClient {
+sealed class ProfileChangeEvent {
+  const ProfileChangeEvent();
+}
+
+class ProfileCopyProgress extends ProfileChangeEvent {
+  const ProfileCopyProgress(this.files, this.bytes);
+  final int files, bytes;
+}
+
+class ProfileChangeComplete extends ProfileChangeEvent {
+  const ProfileChangeComplete(this.change);
+  final ProfileChange change;
+}
+
+abstract interface class ProfileChangesClient {
+  Stream<ProfileChangeEvent> cloneWithProgress(
+    String workspace,
+    int revision,
+    String source,
+    ProfileInfo copy,
+  );
+  Stream<ProfileChangeEvent> deleteWithProgress(
+    String workspace,
+    int revision,
+    String profile,
+  );
+  Stream<ProfileChangeEvent> resumeProfileEdit(
+    String workspace,
+    String actionId,
+  );
+}
+
+class GrpcWorkspacesClient implements WorkspacesClient, ProfileChangesClient {
   GrpcWorkspacesClient(ClientChannel channel, CallOptions options)
-    : _wire = wire.WorkspaceOperationsClient(channel, options: options);
-  final wire.WorkspaceOperationsClient _wire;
+    : _wire = wire.WorkspaceOperationsClient(channel, options: options),
+      _profileWire = wire.WorkspaceOperationsClient(
+        channel,
+        options: CallOptions(metadata: options.metadata),
+      );
+  final wire.WorkspaceOperationsClient _wire, _profileWire;
 
   @override
   Future<WorkspacePage> create(String id, String name, String path) async =>
@@ -223,21 +264,82 @@ class GrpcWorkspacesClient implements WorkspacesClient {
   wire.ProfileInfo _value(ProfileInfo profile) =>
       wire.ProfileInfo(profileId: profile.id, name: profile.name);
   Future<ProfileChange> _edit(wire.EditProfileRequest request) async {
-    final reply = await _wire.editProfile(request);
-    return switch (reply.whichOutcome()) {
-      wire.ProfileReply_Outcome.fault => _reject(reply.fault),
-      wire.ProfileReply_Outcome.notSet => throw const FormatException(
-        'Missing profile result.',
-      ),
-      wire.ProfileReply_Outcome.change => ProfileChange(
-        _workspace(reply.change.workspace),
-        reply.change.hasChanged() ? _profile(reply.change.changed) : null,
-        reply.change.hasDeletedProfileId()
-            ? reply.change.deletedProfileId
-            : null,
-      ),
-    };
+    return _profileReply(await _profileWire.editProfile(request));
   }
+
+  ProfileChange _profileReply(wire.ProfileReply reply) => switch (reply
+      .whichOutcome()) {
+    wire.ProfileReply_Outcome.fault => _reject(reply.fault),
+    wire.ProfileReply_Outcome.notSet => throw const FormatException(
+      'Missing profile result.',
+    ),
+    wire.ProfileReply_Outcome.change => ProfileChange(
+      _workspace(reply.change.workspace),
+      reply.change.hasChanged() ? _profile(reply.change.changed) : null,
+      reply.change.hasDeletedProfileId() ? reply.change.deletedProfileId : null,
+    ),
+  };
+
+  Stream<ProfileChangeEvent> _profileEvents(
+    Stream<wire.ProfileEditEvent> source,
+  ) => completedEvents(
+    source,
+    (event) => event.hasFinished(),
+    (event) => switch (event.whichEvent()) {
+      wire.ProfileEditEvent_Event.progress => ProfileCopyProgress(
+        event.progress.files,
+        event.progress.bytes.toInt(),
+      ),
+      wire.ProfileEditEvent_Event.finished => ProfileChangeComplete(
+        _profileReply(event.finished),
+      ),
+      wire.ProfileEditEvent_Event.notSet => throw const FormatException(
+        'The profile change event is missing.',
+      ),
+    },
+  );
+
+  @override
+  Stream<ProfileChangeEvent> cloneWithProgress(
+    String workspace,
+    int revision,
+    String source,
+    ProfileInfo copy,
+  ) => _profileEvents(
+    _profileWire.editProfileWithProgress(
+      wire.EditProfileRequest(
+        workspaceId: workspace,
+        expectedRevision: Int64(revision),
+        cloneProfile: wire.CloneProfile(
+          sourceProfileId: source,
+          copy: _value(copy),
+        ),
+      ),
+    ),
+  );
+  @override
+  Stream<ProfileChangeEvent> deleteWithProgress(
+    String workspace,
+    int revision,
+    String profile,
+  ) => _profileEvents(
+    _profileWire.editProfileWithProgress(
+      wire.EditProfileRequest(
+        workspaceId: workspace,
+        expectedRevision: Int64(revision),
+        deleteProfileId: profile,
+      ),
+    ),
+  );
+  @override
+  Stream<ProfileChangeEvent> resumeProfileEdit(
+    String workspace,
+    String actionId,
+  ) => _profileEvents(
+    _profileWire.resumeProfileEdit(
+      wire.ResumeProfileEditRequest(workspaceId: workspace, actionId: actionId),
+    ),
+  );
 
   @override
   Future<ProfileChange> createProfile(

@@ -6,6 +6,7 @@
     <Compile Include="Descriptor.fs" />
     <Compile Include="Preparation.fs" />
     <Compile Include="Session.fs" />
+    <ProjectReference Include="../ModConductor.ProfileGameData/ModConductor.ProfileGameData.fsproj" />
     <ProjectReference Include="../ModConductor.Executables/ModConductor.Executables.fsproj" />
     <ProjectReference Include="../ModConductor.Deployment/ModConductor.Deployment.fsproj" />
     <PackageReference Include="FSharp.Core" />

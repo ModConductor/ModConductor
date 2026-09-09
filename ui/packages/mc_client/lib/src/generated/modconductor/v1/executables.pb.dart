@@ -1496,6 +1496,100 @@ class GameRunFiles extends $pb.GeneratedMessage {
   void clearFingerprint() => $_clearField(3);
 }
 
+class GameRunProfileData extends $pb.GeneratedMessage {
+  factory GameRunProfileData({
+    $core.String? receiptId,
+    $fixnum.Int64? revision,
+    $core.int? completedFiles,
+    $core.bool? complete,
+  }) {
+    final result = create();
+    if (receiptId != null) result.receiptId = receiptId;
+    if (revision != null) result.revision = revision;
+    if (completedFiles != null) result.completedFiles = completedFiles;
+    if (complete != null) result.complete = complete;
+    return result;
+  }
+
+  GameRunProfileData._();
+
+  factory GameRunProfileData.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory GameRunProfileData.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'GameRunProfileData',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'receiptId')
+    ..a<$fixnum.Int64>(
+        2, _omitFieldNames ? '' : 'revision', $pb.PbFieldType.OU6,
+        defaultOrMaker: $fixnum.Int64.ZERO)
+    ..aI(3, _omitFieldNames ? '' : 'completedFiles',
+        fieldType: $pb.PbFieldType.OU3)
+    ..aOB(4, _omitFieldNames ? '' : 'complete')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GameRunProfileData clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GameRunProfileData copyWith(void Function(GameRunProfileData) updates) =>
+      super.copyWith((message) => updates(message as GameRunProfileData))
+          as GameRunProfileData;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GameRunProfileData create() => GameRunProfileData._();
+  @$core.override
+  GameRunProfileData createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static GameRunProfileData getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<GameRunProfileData>(create);
+  static GameRunProfileData? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get receiptId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set receiptId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasReceiptId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearReceiptId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get revision => $_getI64(1);
+  @$pb.TagNumber(2)
+  set revision($fixnum.Int64 value) => $_setInt64(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasRevision() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearRevision() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.int get completedFiles => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set completedFiles($core.int value) => $_setUnsignedInt32(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasCompletedFiles() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearCompletedFiles() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.bool get complete => $_getBF(3);
+  @$pb.TagNumber(4)
+  set complete($core.bool value) => $_setBool(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasComplete() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearComplete() => $_clearField(4);
+}
+
 class GameRunInfo extends $pb.GeneratedMessage {
   factory GameRunInfo({
     GameRunRequest? request,
@@ -1511,6 +1605,8 @@ class GameRunInfo extends $pb.GeneratedMessage {
     $core.int? completed,
     $core.int? total,
     GameRunFiles? files,
+    $fixnum.Int64? profileDataRevision,
+    GameRunProfileData? profileData,
   }) {
     final result = create();
     if (request != null) result.request = request;
@@ -1526,6 +1622,9 @@ class GameRunInfo extends $pb.GeneratedMessage {
     if (completed != null) result.completed = completed;
     if (total != null) result.total = total;
     if (files != null) result.files = files;
+    if (profileDataRevision != null)
+      result.profileDataRevision = profileDataRevision;
+    if (profileData != null) result.profileData = profileData;
     return result;
   }
 
@@ -1560,6 +1659,11 @@ class GameRunInfo extends $pb.GeneratedMessage {
     ..aI(12, _omitFieldNames ? '' : 'total', fieldType: $pb.PbFieldType.OU3)
     ..aOM<GameRunFiles>(13, _omitFieldNames ? '' : 'files',
         subBuilder: GameRunFiles.create)
+    ..a<$fixnum.Int64>(
+        14, _omitFieldNames ? '' : 'profileDataRevision', $pb.PbFieldType.OU6,
+        defaultOrMaker: $fixnum.Int64.ZERO)
+    ..aOM<GameRunProfileData>(15, _omitFieldNames ? '' : 'profileData',
+        subBuilder: GameRunProfileData.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1689,6 +1793,26 @@ class GameRunInfo extends $pb.GeneratedMessage {
   void clearFiles() => $_clearField(13);
   @$pb.TagNumber(13)
   GameRunFiles ensureFiles() => $_ensure(12);
+
+  @$pb.TagNumber(14)
+  $fixnum.Int64 get profileDataRevision => $_getI64(13);
+  @$pb.TagNumber(14)
+  set profileDataRevision($fixnum.Int64 value) => $_setInt64(13, value);
+  @$pb.TagNumber(14)
+  $core.bool hasProfileDataRevision() => $_has(13);
+  @$pb.TagNumber(14)
+  void clearProfileDataRevision() => $_clearField(14);
+
+  @$pb.TagNumber(15)
+  GameRunProfileData get profileData => $_getN(14);
+  @$pb.TagNumber(15)
+  set profileData(GameRunProfileData value) => $_setField(15, value);
+  @$pb.TagNumber(15)
+  $core.bool hasProfileData() => $_has(14);
+  @$pb.TagNumber(15)
+  void clearProfileData() => $_clearField(15);
+  @$pb.TagNumber(15)
+  GameRunProfileData ensureProfileData() => $_ensure(14);
 }
 
 const $core.bool _omitFieldNames =

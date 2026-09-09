@@ -75,7 +75,7 @@ module private WorkspaceWire =
                 WorkspaceFaultCode.StaleRevision, "The workspace changed."
             | WorkspaceError.IdentityConflict ->
                 WorkspaceFaultCode.IdentityConflict,
-                "The workspace folder or identity does not match. Existing files were left unchanged."
+                "The workspace folder or identity does not match."
             | WorkspaceError.SelectedProfile ->
                 WorkspaceFaultCode.SelectedProfile, "Select another profile before deletion."
             | WorkspaceError.InvalidName ->
@@ -84,6 +84,7 @@ module private WorkspaceWire =
             | WorkspaceError.RootUnresolved ->
                 WorkspaceFaultCode.RootUnresolved,
                 "Workspace creation needs a check before more changes."
+            | WorkspaceError.ProfileData detail -> WorkspaceFaultCode.ProfileData, detail
             | WorkspaceError.Busy ->
                 WorkspaceFaultCode.Busy, "A workspace change is still in progress."
 
@@ -194,6 +195,45 @@ type WorkspaceService(state: IWorkspaceState) =
                 let! result = state.Read(WorkspaceWire.id request.WorkspaceId, after)
                 return WorkspaceWire.pageReply result
             })
+
+    override _.EditProfileWithProgress(request, output, context) =
+        let workspace = WorkspaceWire.id request.WorkspaceId
+        let revision = WorkspaceWire.revision request.ExpectedRevision
+        let command = WorkspaceWire.edit request
+
+        ProfileActionStream.send
+            context
+            output
+            (fun (value: ModConductor.Workspaces.ProfileCopyProgress) ->
+                ProfileEditEvent(
+                    Progress =
+                        ProfileCopyProgress(Files = uint32 value.Files, Bytes = uint64 value.Bytes)
+                ))
+            (fun value -> ProfileEditEvent(Finished = WorkspaceWire.changeReply value))
+            (fun progress ->
+                state.EditWithProgress(
+                    workspace,
+                    revision,
+                    command,
+                    progress,
+                    context.CancellationToken
+                ))
+
+    override _.ResumeProfileEdit(request, output, context) =
+        let workspace, id =
+            WorkspaceWire.id request.WorkspaceId, WorkspaceWire.id request.ActionId
+
+        ProfileActionStream.send
+            context
+            output
+            (fun (value: ModConductor.Workspaces.ProfileCopyProgress) ->
+                ProfileEditEvent(
+                    Progress =
+                        ProfileCopyProgress(Files = uint32 value.Files, Bytes = uint64 value.Bytes)
+                ))
+            (fun value -> ProfileEditEvent(Finished = WorkspaceWire.changeReply value))
+            (fun progress ->
+                state.ResumeProfileEdit(workspace, id, progress, context.CancellationToken))
 
     override _.EditProfile(request, _) =
         WorkspaceWire.execute (fun () ->

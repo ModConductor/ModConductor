@@ -47,11 +47,18 @@ type GamePreparationPhase =
     | Preparing
     | Applying
     | Ready
+    | ProfileData
 
 type GamePreparation =
     { Phase: GamePreparationPhase
       Completed: int
       Total: int }
+
+type AppliedProfileData =
+    { ReceiptId: Guid
+      Revision: int64
+      CompletedFiles: int
+      Complete: bool }
 
 type GameRun =
     { Request: GameRunRequest
@@ -61,7 +68,9 @@ type GameRun =
       Runtime: string
       Launch: NativeLaunch
       Preparation: GamePreparation
-      Files: AppliedGameFiles option }
+      Files: AppliedGameFiles option
+      ProfileDataRevision: int64
+      ProfileData: AppliedProfileData option }
 
 [<RequireQualifiedAccess>]
 type RunSource =
@@ -107,7 +116,7 @@ type ExecutableRun =
     member this.Launch = this.Source.Launch
 
 type PrepareGameRun =
-    GameRun -> CancellationToken -> (GamePreparation -> Task<unit>) -> Task<GameRun * IDisposable>
+    GameRun -> CancellationToken -> (GameRun -> Task<unit>) -> Task<GameRun * IDisposable>
 
 type PresetPage =
     { Presets: ExecutablePreset list

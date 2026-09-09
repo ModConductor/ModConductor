@@ -7,6 +7,8 @@ service WorkspaceOperations {
   rpc OpenWorkspace(OpenWorkspaceRequest) returns (WorkspaceReply);
   rpc ReadWorkspace(ReadWorkspaceRequest) returns (WorkspaceReply);
   rpc EditProfile(EditProfileRequest) returns (ProfileReply);
+  rpc EditProfileWithProgress(EditProfileRequest) returns (stream ProfileEditEvent);
+  rpc ResumeProfileEdit(ResumeProfileEditRequest) returns (stream ProfileEditEvent);
   rpc CheckWorkspace(CheckWorkspaceRequest) returns (WorkspaceReply);
   rpc RecentWorkspaces(RecentWorkspacesRequest) returns (RecentWorkspacesReply);
 }
@@ -43,6 +45,7 @@ enum WorkspaceFaultCode {
   WORKSPACE_FAULT_CODE_INVALID_ROOT = 6;
   WORKSPACE_FAULT_CODE_ROOT_UNRESOLVED = 7;
   WORKSPACE_FAULT_CODE_BUSY = 8;
+  WORKSPACE_FAULT_CODE_PROFILE_DATA = 9;
 }
 message WorkspaceFault { WorkspaceFaultCode code = 1; string detail = 2; }
 message WorkspaceReply { oneof outcome { WorkspacePage page = 1; WorkspaceFault fault = 2; } }
@@ -74,3 +77,7 @@ message RecentWorkspacesReply {
   repeated WorkspaceInfo workspaces = 1;
   optional string next_workspace_id = 2;
 }
+
+message ProfileCopyProgress { uint32 files = 1; uint64 bytes = 2; }
+message ResumeProfileEditRequest { string workspace_id = 1; string action_id = 2; }
+message ProfileEditEvent { oneof event { ProfileCopyProgress progress = 1; ProfileReply finished = 2; } }

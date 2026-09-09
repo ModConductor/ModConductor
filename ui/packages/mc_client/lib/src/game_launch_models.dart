@@ -13,11 +13,23 @@ class GameRunRequest {
   final int workspaceRevision, contextRevision;
 }
 
-enum GamePreparationPhase { preparing, applying, ready }
+enum GamePreparationPhase { preparing, applying, ready, profileData }
 
 class GameRunFiles {
   const GameRunFiles(this.receiptId, this.generationId, this.fingerprint);
   final String receiptId, generationId, fingerprint;
+}
+
+class GameRunProfileData {
+  const GameRunProfileData(
+    this.receiptId,
+    this.revision,
+    this.completedFiles,
+    this.complete,
+  );
+  final String receiptId;
+  final int revision, completedFiles;
+  final bool complete;
 }
 
 class GameRunInfo {
@@ -35,6 +47,8 @@ class GameRunInfo {
     required this.completed,
     required this.total,
     required this.files,
+    this.profileDataRevision = 0,
+    this.profileData,
   });
   final GameRunRequest request;
   final String contextId,
@@ -48,6 +62,8 @@ class GameRunInfo {
   final GamePreparationPhase preparation;
   final int completed, total;
   final GameRunFiles? files;
+  final int profileDataRevision;
+  final GameRunProfileData? profileData;
 }
 
 class GameLaunchState {

@@ -119,7 +119,8 @@
         "dependencies": {
           "FSharp.Core": "[10.1.400, )",
           "ModConductor.Deployment": "[1.0.0, )",
-          "ModConductor.Executables": "[1.0.0, )"
+          "ModConductor.Executables": "[1.0.0, )",
+          "ModConductor.ProfileGameData": "[1.0.0, )"
         }
       },
       "modconductor.generatedoutputs": {
@@ -160,6 +161,13 @@
         "type": "Project",
         "dependencies": {
           "FSharp.Core": "[10.1.400, )"
+        }
+      },
+      "modconductor.profilegamedata": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )",
+          "ModConductor.GameContexts": "[1.0.0, )"
         }
       },
       "modconductor.protoncontexts": {

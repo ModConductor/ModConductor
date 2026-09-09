@@ -13,6 +13,7 @@
     <Compile Include="SessionAuthentication.fs" />
     <Compile Include="Probe.fs" />
     <Compile Include="OperationService.fs" />
+    <Compile Include="ProfileActionStream.fs" />
     <Compile Include="WorkspaceService.fs" />
     <Compile Include="ModLibraryWire.fs" />
     <Compile Include="ModLibraryService.fs" />
@@ -32,6 +33,8 @@
     <Compile Include="ExecutableWire.fs" />
     <Compile Include="ExecutableService.fs" />
     <Compile Include="GameLaunchService.fs" />
+    <Compile Include="ProfileDataWire.fs" />
+    <Compile Include="ProfileDataService.fs" />
     <Compile Include="Program.fs" />
     <ProjectReference Include="../ModConductor.SteamDiscovery/ModConductor.SteamDiscovery.fsproj" />
     <ProjectReference Include="../ModConductor.Persistence/ModConductor.Persistence.fsproj" />

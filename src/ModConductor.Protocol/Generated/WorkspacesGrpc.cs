@@ -58,6 +58,10 @@ namespace ModConductor.Protocol.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.ProfileReply> __Marshaller_modconductor_v1_ProfileReply = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.ProfileReply.Parser));
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.ProfileEditEvent> __Marshaller_modconductor_v1_ProfileEditEvent = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.ProfileEditEvent.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.ResumeProfileEditRequest> __Marshaller_modconductor_v1_ResumeProfileEditRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.ResumeProfileEditRequest.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.CheckWorkspaceRequest> __Marshaller_modconductor_v1_CheckWorkspaceRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.CheckWorkspaceRequest.Parser));
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.RecentWorkspacesRequest> __Marshaller_modconductor_v1_RecentWorkspacesRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.RecentWorkspacesRequest.Parser));
@@ -95,6 +99,22 @@ namespace ModConductor.Protocol.V1 {
         "EditProfile",
         __Marshaller_modconductor_v1_EditProfileRequest,
         __Marshaller_modconductor_v1_ProfileReply);
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::ModConductor.Protocol.V1.EditProfileRequest, global::ModConductor.Protocol.V1.ProfileEditEvent> __Method_EditProfileWithProgress = new grpc::Method<global::ModConductor.Protocol.V1.EditProfileRequest, global::ModConductor.Protocol.V1.ProfileEditEvent>(
+        grpc::MethodType.ServerStreaming,
+        __ServiceName,
+        "EditProfileWithProgress",
+        __Marshaller_modconductor_v1_EditProfileRequest,
+        __Marshaller_modconductor_v1_ProfileEditEvent);
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::ModConductor.Protocol.V1.ResumeProfileEditRequest, global::ModConductor.Protocol.V1.ProfileEditEvent> __Method_ResumeProfileEdit = new grpc::Method<global::ModConductor.Protocol.V1.ResumeProfileEditRequest, global::ModConductor.Protocol.V1.ProfileEditEvent>(
+        grpc::MethodType.ServerStreaming,
+        __ServiceName,
+        "ResumeProfileEdit",
+        __Marshaller_modconductor_v1_ResumeProfileEditRequest,
+        __Marshaller_modconductor_v1_ProfileEditEvent);
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Method<global::ModConductor.Protocol.V1.CheckWorkspaceRequest, global::ModConductor.Protocol.V1.WorkspaceReply> __Method_CheckWorkspace = new grpc::Method<global::ModConductor.Protocol.V1.CheckWorkspaceRequest, global::ModConductor.Protocol.V1.WorkspaceReply>(
@@ -142,6 +162,18 @@ namespace ModConductor.Protocol.V1 {
 
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V1.ProfileReply> EditProfile(global::ModConductor.Protocol.V1.EditProfileRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task EditProfileWithProgress(global::ModConductor.Protocol.V1.EditProfileRequest request, grpc::IServerStreamWriter<global::ModConductor.Protocol.V1.ProfileEditEvent> responseStream, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task ResumeProfileEdit(global::ModConductor.Protocol.V1.ResumeProfileEditRequest request, grpc::IServerStreamWriter<global::ModConductor.Protocol.V1.ProfileEditEvent> responseStream, grpc::ServerCallContext context)
       {
         throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
       }
@@ -268,6 +300,26 @@ namespace ModConductor.Protocol.V1 {
         return CallInvoker.AsyncUnaryCall(__Method_EditProfile, null, options, request);
       }
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncServerStreamingCall<global::ModConductor.Protocol.V1.ProfileEditEvent> EditProfileWithProgress(global::ModConductor.Protocol.V1.EditProfileRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return EditProfileWithProgress(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncServerStreamingCall<global::ModConductor.Protocol.V1.ProfileEditEvent> EditProfileWithProgress(global::ModConductor.Protocol.V1.EditProfileRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncServerStreamingCall(__Method_EditProfileWithProgress, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncServerStreamingCall<global::ModConductor.Protocol.V1.ProfileEditEvent> ResumeProfileEdit(global::ModConductor.Protocol.V1.ResumeProfileEditRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return ResumeProfileEdit(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncServerStreamingCall<global::ModConductor.Protocol.V1.ProfileEditEvent> ResumeProfileEdit(global::ModConductor.Protocol.V1.ResumeProfileEditRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncServerStreamingCall(__Method_ResumeProfileEdit, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       public virtual global::ModConductor.Protocol.V1.WorkspaceReply CheckWorkspace(global::ModConductor.Protocol.V1.CheckWorkspaceRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
       {
         return CheckWorkspace(request, new grpc::CallOptions(headers, deadline, cancellationToken));
@@ -325,6 +377,8 @@ namespace ModConductor.Protocol.V1 {
           .AddMethod(__Method_OpenWorkspace, serviceImpl.OpenWorkspace)
           .AddMethod(__Method_ReadWorkspace, serviceImpl.ReadWorkspace)
           .AddMethod(__Method_EditProfile, serviceImpl.EditProfile)
+          .AddMethod(__Method_EditProfileWithProgress, serviceImpl.EditProfileWithProgress)
+          .AddMethod(__Method_ResumeProfileEdit, serviceImpl.ResumeProfileEdit)
           .AddMethod(__Method_CheckWorkspace, serviceImpl.CheckWorkspace)
           .AddMethod(__Method_RecentWorkspaces, serviceImpl.RecentWorkspaces).Build();
     }
@@ -340,6 +394,8 @@ namespace ModConductor.Protocol.V1 {
       serviceBinder.AddMethod(__Method_OpenWorkspace, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.OpenWorkspaceRequest, global::ModConductor.Protocol.V1.WorkspaceReply>(serviceImpl.OpenWorkspace));
       serviceBinder.AddMethod(__Method_ReadWorkspace, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.ReadWorkspaceRequest, global::ModConductor.Protocol.V1.WorkspaceReply>(serviceImpl.ReadWorkspace));
       serviceBinder.AddMethod(__Method_EditProfile, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.EditProfileRequest, global::ModConductor.Protocol.V1.ProfileReply>(serviceImpl.EditProfile));
+      serviceBinder.AddMethod(__Method_EditProfileWithProgress, serviceImpl == null ? null : new grpc::ServerStreamingServerMethod<global::ModConductor.Protocol.V1.EditProfileRequest, global::ModConductor.Protocol.V1.ProfileEditEvent>(serviceImpl.EditProfileWithProgress));
+      serviceBinder.AddMethod(__Method_ResumeProfileEdit, serviceImpl == null ? null : new grpc::ServerStreamingServerMethod<global::ModConductor.Protocol.V1.ResumeProfileEditRequest, global::ModConductor.Protocol.V1.ProfileEditEvent>(serviceImpl.ResumeProfileEdit));
       serviceBinder.AddMethod(__Method_CheckWorkspace, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.CheckWorkspaceRequest, global::ModConductor.Protocol.V1.WorkspaceReply>(serviceImpl.CheckWorkspace));
       serviceBinder.AddMethod(__Method_RecentWorkspaces, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.RecentWorkspacesRequest, global::ModConductor.Protocol.V1.RecentWorkspacesReply>(serviceImpl.RecentWorkspaces));
     }

@@ -1,3 +1,4 @@
+import 'profile_data_client.dart';
 import 'game_launch_client.dart';
 import 'executable_client.dart';
 import 'output_client.dart';
@@ -33,6 +34,8 @@ class EngineSession {
   ProtonContextsClient get protonContexts => _protonContexts!;
   SteamDiscoveryClient? _steamDiscovery;
   SteamDiscoveryClient get steamDiscovery => _steamDiscovery!;
+  ProfileDataClient? _profileData;
+  ProfileDataClient get profileData => _profileData!;
   GameLaunchingClient? _gameLaunching;
   GameLaunchingClient get gameLaunching => _gameLaunching!;
   ExecutablesClient? _executables;
@@ -103,6 +106,10 @@ class EngineSession {
       CallOptions(metadata: options.metadata),
     );
     _gameLaunching = GrpcGameLaunchingClient(
+      channel,
+      CallOptions(metadata: options.metadata),
+    );
+    _profileData = GrpcProfileDataClient(
       channel,
       CallOptions(metadata: options.metadata),
     );

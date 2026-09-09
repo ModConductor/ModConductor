@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><IsAotCompatible>true</IsAotCompatible></PropertyGroup>
+  <ItemGroup>
+    <Compile Include="AssemblyInfo.fs" />
+    <Compile Include="Contracts.fs" />
+    <Compile Include="Ini.fs" />
+    <Compile Include="Files.fs" />
+    <Compile Include="Records.fs" />
+    <Compile Include="Locations.fs" />
+    <Compile Include="Trees.fs" />
+    <Compile Include="Effects.fs" />
+    <Compile Include="Deletion.fs" />
+    <Compile Include="SettingsPreparation.fs" />
+    <Compile Include="Repository.fs" />
+    <Compile Include="Initialization.fs" />
+    <Compile Include="ActionPreparation.fs" />
+    <Compile Include="Cloning.fs" />
+    <Compile Include="Session.fs" />
+    <ProjectReference Include="../ModConductor.GameContexts/ModConductor.GameContexts.fsproj" />
+    <PackageReference Include="FSharp.Core" />
+  </ItemGroup>
+</Project>

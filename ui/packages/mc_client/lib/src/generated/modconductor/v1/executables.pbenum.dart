@@ -114,16 +114,20 @@ class GamePreparationPhase extends $pb.ProtobufEnum {
   static const GamePreparationPhase GAME_PREPARATION_PHASE_READY =
       GamePreparationPhase._(
           3, _omitEnumNames ? '' : 'GAME_PREPARATION_PHASE_READY');
+  static const GamePreparationPhase GAME_PREPARATION_PHASE_PROFILE_DATA =
+      GamePreparationPhase._(
+          4, _omitEnumNames ? '' : 'GAME_PREPARATION_PHASE_PROFILE_DATA');
 
   static const $core.List<GamePreparationPhase> values = <GamePreparationPhase>[
     GAME_PREPARATION_PHASE_UNSPECIFIED,
     GAME_PREPARATION_PHASE_PREPARING,
     GAME_PREPARATION_PHASE_APPLYING,
     GAME_PREPARATION_PHASE_READY,
+    GAME_PREPARATION_PHASE_PROFILE_DATA,
   ];
 
   static final $core.List<GamePreparationPhase?> _byValue =
-      $pb.ProtobufEnum.$_initByValueList(values, 3);
+      $pb.ProtobufEnum.$_initByValueList(values, 4);
   static GamePreparationPhase? valueOf($core.int value) =>
       value < 0 || value >= _byValue.length ? null : _byValue[value];
 

@@ -100,10 +100,10 @@ module internal WorkspaceProfiles =
         WorkspaceRows.find connection transaction id
         |> Option.bind (fun row -> summary connection transaction row.Receipt)
 
-    let edit (connection: SqliteConnection) id expected command beforeCommit =
-        use transaction = connection.BeginTransaction(deferred = false)
-
-        let result =
+    let validate (connection: SqliteConnection) transaction id expected command =
+        if not (ProfileDataRows.profileEditAllowed connection transaction id expected command) then
+            Error WorkspaceError.Busy
+        else
             match read connection transaction id with
             | None -> Error WorkspaceError.NotFound
             | Some current when current.PendingRoot.IsSome -> Error WorkspaceError.RootUnresolved
@@ -136,65 +136,76 @@ module internal WorkspaceProfiles =
                     if duplicate then
                         Error WorkspaceError.IdentityConflict
                     else
-                        let changed, deleted, selection =
-                            match edit with
-                            | ProfileEdit.Create value
-                            | ProfileEdit.Clone(_, value) ->
-                                Sqlite.execute
-                                    connection
-                                    transaction
-                                    "INSERT INTO profiles(id,workspace_id,name) VALUES($id,$workspace,$name)"
-                                    [ "$id", box (string value.Id)
-                                      "$workspace", box (string id)
-                                      "$name", box value.Name ]
+                        Ok(current, edit)
 
-                                let source =
-                                    match edit with
-                                    | ProfileEdit.Clone(source, _) -> Some source
-                                    | ProfileEdit.Create _ -> None
-                                    | ProfileEdit.Rename _
-                                    | ProfileEdit.Select _
-                                    | ProfileEdit.Delete _ -> invalidOp "Expected a new profile."
+    let editIn (connection: SqliteConnection) transaction id expected command =
+        match validate connection transaction id expected command with
+        | Error error -> Error error
+        | Ok(current, edit) ->
+            let selected = current.SelectedProfile |> Option.map _.Id
 
-                                SelectionRows.initialize connection transaction id value.Id source
-                                Some value, None, selected |> Option.orElse (Some value.Id)
-                            | ProfileEdit.Rename(target, name) ->
-                                Sqlite.execute
-                                    connection
-                                    transaction
-                                    "UPDATE profiles SET name=$name WHERE workspace_id=$workspace AND id=$id"
-                                    [ "$id", box (string target)
-                                      "$workspace", box (string id)
-                                      "$name", box name ]
+            let changed, deleted, selection =
+                match edit with
+                | ProfileEdit.Create value
+                | ProfileEdit.Clone(_, value) ->
+                    Sqlite.execute
+                        connection
+                        transaction
+                        "INSERT INTO profiles(id,workspace_id,name) VALUES($id,$workspace,$name)"
+                        [ "$id", box (string value.Id)
+                          "$workspace", box (string id)
+                          "$name", box value.Name ]
 
-                                Some { Profile.Id = target; Name = name }, None, selected
-                            | ProfileEdit.Select target -> None, None, Some target
-                            | ProfileEdit.Delete target ->
-                                Sqlite.execute
-                                    connection
-                                    transaction
-                                    "DELETE FROM profiles WHERE workspace_id=$workspace AND id=$id"
-                                    [ "$id", box (string target); "$workspace", box (string id) ]
+                    let source =
+                        match edit with
+                        | ProfileEdit.Clone(source, _) -> Some source
+                        | ProfileEdit.Create _ -> None
+                        | ProfileEdit.Rename _
+                        | ProfileEdit.Select _
+                        | ProfileEdit.Delete _ -> invalidOp "Expected a new profile."
 
-                                None, Some target, selected
+                    SelectionRows.initialize connection transaction id value.Id source
+                    Some value, None, selected |> Option.orElse (Some value.Id)
+                | ProfileEdit.Rename(target, name) ->
+                    Sqlite.execute
+                        connection
+                        transaction
+                        "UPDATE profiles SET name=$name WHERE workspace_id=$workspace AND id=$id"
+                        [ "$id", box (string target)
+                          "$workspace", box (string id)
+                          "$name", box name ]
 
-                        Sqlite.execute
-                            connection
-                            transaction
-                            "UPDATE workspaces SET revision=revision+1,selected_profile=$selected WHERE id=$id"
-                            [ "$id", box (string id)
-                              "$selected",
-                              selection
-                              |> Option.map (string >> box)
-                              |> Option.defaultValue (box DBNull.Value) ]
+                    Some { Profile.Id = target; Name = name }, None, selected
+                | ProfileEdit.Select target -> None, None, Some target
+                | ProfileEdit.Delete target ->
+                    Sqlite.execute
+                        connection
+                        transaction
+                        "DELETE FROM profiles WHERE workspace_id=$workspace AND id=$id"
+                        [ "$id", box (string target); "$workspace", box (string id) ]
 
-                        let workspace = read connection transaction id |> Option.get
+                    None, Some target, selected
 
-                        Ok
-                            { Workspace = workspace
-                              Changed = changed
-                              Deleted = deleted }
+            Sqlite.execute
+                connection
+                transaction
+                "UPDATE workspaces SET revision=revision+1,selected_profile=$selected WHERE id=$id"
+                [ "$id", box (string id)
+                  "$selected",
+                  selection
+                  |> Option.map (string >> box)
+                  |> Option.defaultValue (box DBNull.Value) ]
 
+            let workspace = read connection transaction id |> Option.get
+
+            Ok
+                { Workspace = workspace
+                  Changed = changed
+                  Deleted = deleted }
+
+    let edit (connection: SqliteConnection) id expected command beforeCommit =
+        use transaction = connection.BeginTransaction(deferred = false)
+        let result = editIn connection transaction id expected command
         beforeCommit ()
         transaction.Commit()
         result

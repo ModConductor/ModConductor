@@ -2,11 +2,28 @@ namespace ModConductor.Persistence
 
 open System
 open System.Threading.Tasks
+open System.Threading
 open ModConductor.Workspaces
 open ModConductor.Platform
 
 /// Feature adapter over the existing SQLite queue and owned-root receipts.
-type WorkspaceStateStore internal (database: StateDatabase, roots: OwnedWorkspaceRootStore) =
+type WorkspaceStateStore
+    internal
+    (
+        database: StateDatabase,
+        roots: OwnedWorkspaceRootStore,
+        editProfile:
+            (Guid *
+            int64 *
+            ProfileEdit *
+            (ProfileCopyProgress -> unit) *
+            CancellationToken *
+            (unit -> unit)
+                -> Task<Result<ProfileChange, WorkspaceError>>),
+        resumeProfile:
+            (Guid * Guid * (ProfileCopyProgress -> unit) * CancellationToken
+                -> Task<Result<ProfileChange, WorkspaceError>>)
+    ) =
     let gate = obj ()
     let mutable active = 0
     let mutable closing = false
@@ -147,7 +164,7 @@ type WorkspaceStateStore internal (database: StateDatabase, roots: OwnedWorkspac
                         | Ok _ -> return! page id None
             })
 
-    let edit id expected command beforeCommit =
+    let edit id expected command progress token beforeCommit =
         run (fun () ->
             task {
                 let! valid = roots.Validate id
@@ -155,14 +172,7 @@ type WorkspaceStateStore internal (database: StateDatabase, roots: OwnedWorkspac
                 match valid with
                 | Error error -> return Error(failure error)
                 | Ok _ ->
-                    return!
-                        database.Enqueue(fun () ->
-                            WorkspaceProfiles.edit
-                                database.Connection
-                                id
-                                expected
-                                command
-                                beforeCommit)
+                    return! editProfile (id, expected, command, progress, token, beforeCommit)
             })
 
     member internal _.CreateAtCheckpoint
@@ -171,7 +181,7 @@ type WorkspaceStateStore internal (database: StateDatabase, roots: OwnedWorkspac
         create id name root beforeEffect afterEffect afterObservation
 
     member internal _.EditAtCheckpoint(id, expected, command, beforeCommit) =
-        edit id expected command beforeCommit
+        edit id expected command ignore CancellationToken.None beforeCommit
 
     member _.Drain() =
         lock gate (fun () ->
@@ -208,7 +218,15 @@ type WorkspaceStateStore internal (database: StateDatabase, roots: OwnedWorkspac
                 })
 
         member _.Read(id, after) = run (fun () -> read id after)
-        member _.Edit(id, expected, command) = edit id expected command ignore
+
+        member _.Edit(id, expected, command) =
+            edit id expected command ignore CancellationToken.None ignore
+
+        member _.EditWithProgress(id, expected, command, progress, token) =
+            edit id expected command progress token ignore
+
+        member _.ResumeProfileEdit(workspace, id, progress, token) =
+            run (fun () -> resumeProfile (workspace, id, progress, token))
 
         member _.Check(id, expected) =
             run (fun () ->

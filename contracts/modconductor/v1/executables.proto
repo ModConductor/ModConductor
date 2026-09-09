@@ -93,7 +93,9 @@ enum GamePreparationPhase {
   GAME_PREPARATION_PHASE_PREPARING = 1;
   GAME_PREPARATION_PHASE_APPLYING = 2;
   GAME_PREPARATION_PHASE_READY = 3;
+  GAME_PREPARATION_PHASE_PROFILE_DATA = 4;
 }
+message GameRunProfileData { string receipt_id = 1; uint64 revision = 2; uint32 completed_files = 3; bool complete = 4; }
 message GameRunInfo {
   GameRunRequest request = 1;
   string context_id = 2;
@@ -108,4 +110,6 @@ message GameRunInfo {
   uint32 completed = 11;
   uint32 total = 12;
   GameRunFiles files = 13;
+  uint64 profile_data_revision = 14;
+  GameRunProfileData profile_data = 15;
 }

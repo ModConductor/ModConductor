@@ -1,0 +1,172 @@
+// This is a generated file - do not edit.
+//
+// Generated from modconductor/v1/profile_data.proto.
+
+// @dart = 3.3
+
+// ignore_for_file: annotate_overrides, camel_case_types, comment_references
+// ignore_for_file: constant_identifier_names
+// ignore_for_file: curly_braces_in_flow_control_structures
+// ignore_for_file: deprecated_member_use_from_same_package, library_prefixes
+// ignore_for_file: non_constant_identifier_names, prefer_relative_imports
+
+import 'dart:async' as $async;
+import 'dart:core' as $core;
+
+import 'package:grpc/service_api.dart' as $grpc;
+import 'package:protobuf/protobuf.dart' as $pb;
+
+import 'profile_data.pb.dart' as $0;
+
+export 'profile_data.pb.dart';
+
+@$pb.GrpcServiceName('modconductor.v1.ProfileDataOperations')
+class ProfileDataOperationsClient extends $grpc.Client {
+  /// The hostname for this service.
+  static const $core.String defaultHost = '';
+
+  /// OAuth scopes needed for the client.
+  static const $core.List<$core.String> oauthScopes = [
+    '',
+  ];
+
+  ProfileDataOperationsClient(super.channel,
+      {super.options, super.interceptors});
+
+  $grpc.ResponseFuture<$0.ProfileDataReply> readProfileData(
+    $0.ProfileDataReadRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$readProfileData, request, options: options);
+  }
+
+  $grpc.ResponseStream<$0.ProfileDataEvent> editProfileData(
+    $0.ProfileDataEditRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createStreamingCall(
+        _$editProfileData, $async.Stream.fromIterable([request]),
+        options: options);
+  }
+
+  $grpc.ResponseStream<$0.ProfileDataEvent> restoreProfileData(
+    $0.ProfileDataRestoreRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createStreamingCall(
+        _$restoreProfileData, $async.Stream.fromIterable([request]),
+        options: options);
+  }
+
+  $grpc.ResponseStream<$0.ProfileDataEvent> resumeProfileData(
+    $0.ProfileDataActionRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createStreamingCall(
+        _$resumeProfileData, $async.Stream.fromIterable([request]),
+        options: options);
+  }
+
+  // method descriptors
+
+  static final _$readProfileData =
+      $grpc.ClientMethod<$0.ProfileDataReadRequest, $0.ProfileDataReply>(
+          '/modconductor.v1.ProfileDataOperations/ReadProfileData',
+          ($0.ProfileDataReadRequest value) => value.writeToBuffer(),
+          $0.ProfileDataReply.fromBuffer);
+  static final _$editProfileData =
+      $grpc.ClientMethod<$0.ProfileDataEditRequest, $0.ProfileDataEvent>(
+          '/modconductor.v1.ProfileDataOperations/EditProfileData',
+          ($0.ProfileDataEditRequest value) => value.writeToBuffer(),
+          $0.ProfileDataEvent.fromBuffer);
+  static final _$restoreProfileData =
+      $grpc.ClientMethod<$0.ProfileDataRestoreRequest, $0.ProfileDataEvent>(
+          '/modconductor.v1.ProfileDataOperations/RestoreProfileData',
+          ($0.ProfileDataRestoreRequest value) => value.writeToBuffer(),
+          $0.ProfileDataEvent.fromBuffer);
+  static final _$resumeProfileData =
+      $grpc.ClientMethod<$0.ProfileDataActionRequest, $0.ProfileDataEvent>(
+          '/modconductor.v1.ProfileDataOperations/ResumeProfileData',
+          ($0.ProfileDataActionRequest value) => value.writeToBuffer(),
+          $0.ProfileDataEvent.fromBuffer);
+}
+
+@$pb.GrpcServiceName('modconductor.v1.ProfileDataOperations')
+abstract class ProfileDataOperationsServiceBase extends $grpc.Service {
+  $core.String get $name => 'modconductor.v1.ProfileDataOperations';
+
+  ProfileDataOperationsServiceBase() {
+    $addMethod(
+        $grpc.ServiceMethod<$0.ProfileDataReadRequest, $0.ProfileDataReply>(
+            'ReadProfileData',
+            readProfileData_Pre,
+            false,
+            false,
+            ($core.List<$core.int> value) =>
+                $0.ProfileDataReadRequest.fromBuffer(value),
+            ($0.ProfileDataReply value) => value.writeToBuffer()));
+    $addMethod(
+        $grpc.ServiceMethod<$0.ProfileDataEditRequest, $0.ProfileDataEvent>(
+            'EditProfileData',
+            editProfileData_Pre,
+            false,
+            true,
+            ($core.List<$core.int> value) =>
+                $0.ProfileDataEditRequest.fromBuffer(value),
+            ($0.ProfileDataEvent value) => value.writeToBuffer()));
+    $addMethod(
+        $grpc.ServiceMethod<$0.ProfileDataRestoreRequest, $0.ProfileDataEvent>(
+            'RestoreProfileData',
+            restoreProfileData_Pre,
+            false,
+            true,
+            ($core.List<$core.int> value) =>
+                $0.ProfileDataRestoreRequest.fromBuffer(value),
+            ($0.ProfileDataEvent value) => value.writeToBuffer()));
+    $addMethod(
+        $grpc.ServiceMethod<$0.ProfileDataActionRequest, $0.ProfileDataEvent>(
+            'ResumeProfileData',
+            resumeProfileData_Pre,
+            false,
+            true,
+            ($core.List<$core.int> value) =>
+                $0.ProfileDataActionRequest.fromBuffer(value),
+            ($0.ProfileDataEvent value) => value.writeToBuffer()));
+  }
+
+  $async.Future<$0.ProfileDataReply> readProfileData_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.ProfileDataReadRequest> $request) async {
+    return readProfileData($call, await $request);
+  }
+
+  $async.Future<$0.ProfileDataReply> readProfileData(
+      $grpc.ServiceCall call, $0.ProfileDataReadRequest request);
+
+  $async.Stream<$0.ProfileDataEvent> editProfileData_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.ProfileDataEditRequest> $request) async* {
+    yield* editProfileData($call, await $request);
+  }
+
+  $async.Stream<$0.ProfileDataEvent> editProfileData(
+      $grpc.ServiceCall call, $0.ProfileDataEditRequest request);
+
+  $async.Stream<$0.ProfileDataEvent> restoreProfileData_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.ProfileDataRestoreRequest> $request) async* {
+    yield* restoreProfileData($call, await $request);
+  }
+
+  $async.Stream<$0.ProfileDataEvent> restoreProfileData(
+      $grpc.ServiceCall call, $0.ProfileDataRestoreRequest request);
+
+  $async.Stream<$0.ProfileDataEvent> resumeProfileData_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.ProfileDataActionRequest> $request) async* {
+    yield* resumeProfileData($call, await $request);
+  }
+
+  $async.Stream<$0.ProfileDataEvent> resumeProfileData(
+      $grpc.ServiceCall call, $0.ProfileDataActionRequest request);
+}

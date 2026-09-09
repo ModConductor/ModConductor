@@ -47,22 +47,13 @@ module internal RunLifecycle =
                                     task {
                                         match value.Source, owner.Prepare with
                                         | RunSource.Game game, Some prepare ->
-                                            let progress state =
+                                            let progress current =
                                                 task {
-                                                    let current =
-                                                        match owner.Snapshot.Source with
-                                                        | RunSource.Game current -> current
-                                                        | RunSource.Preset _ ->
-                                                            invalidOp "The game run changed source."
-
                                                     let! _ =
                                                         record
                                                             owner
                                                             { owner.Snapshot with
-                                                                Source =
-                                                                    RunSource.Game
-                                                                        { current with
-                                                                            Preparation = state } }
+                                                                Source = RunSource.Game current }
 
                                                     return ()
                                                 }

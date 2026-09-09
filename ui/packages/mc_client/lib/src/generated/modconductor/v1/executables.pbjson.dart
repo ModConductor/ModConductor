@@ -70,6 +70,7 @@ const GamePreparationPhase$json = {
     {'1': 'GAME_PREPARATION_PHASE_PREPARING', '2': 1},
     {'1': 'GAME_PREPARATION_PHASE_APPLYING', '2': 2},
     {'1': 'GAME_PREPARATION_PHASE_READY', '2': 3},
+    {'1': 'GAME_PREPARATION_PHASE_PROFILE_DATA', '2': 4},
   ],
 };
 
@@ -78,7 +79,7 @@ final $typed_data.Uint8List gamePreparationPhaseDescriptor = $convert.base64Deco
     'ChRHYW1lUHJlcGFyYXRpb25QaGFzZRImCiJHQU1FX1BSRVBBUkFUSU9OX1BIQVNFX1VOU1BFQ0'
     'lGSUVEEAASJAogR0FNRV9QUkVQQVJBVElPTl9QSEFTRV9QUkVQQVJJTkcQARIjCh9HQU1FX1BS'
     'RVBBUkFUSU9OX1BIQVNFX0FQUExZSU5HEAISIAocR0FNRV9QUkVQQVJBVElPTl9QSEFTRV9SRU'
-    'FEWRAD');
+    'FEWRADEicKI0dBTUVfUFJFUEFSQVRJT05fUEhBU0VfUFJPRklMRV9EQVRBEAQ=');
 
 @$core.Deprecated('Use executableEnvironmentSettingDescriptor instead')
 const ExecutableEnvironmentSetting$json = {
@@ -614,6 +615,23 @@ final $typed_data.Uint8List gameRunFilesDescriptor = $convert.base64Decode(
     'Rpb25faWQYAiABKAlSDGdlbmVyYXRpb25JZBIgCgtmaW5nZXJwcmludBgDIAEoCVILZmluZ2Vy'
     'cHJpbnQ=');
 
+@$core.Deprecated('Use gameRunProfileDataDescriptor instead')
+const GameRunProfileData$json = {
+  '1': 'GameRunProfileData',
+  '2': [
+    {'1': 'receipt_id', '3': 1, '4': 1, '5': 9, '10': 'receiptId'},
+    {'1': 'revision', '3': 2, '4': 1, '5': 4, '10': 'revision'},
+    {'1': 'completed_files', '3': 3, '4': 1, '5': 13, '10': 'completedFiles'},
+    {'1': 'complete', '3': 4, '4': 1, '5': 8, '10': 'complete'},
+  ],
+};
+
+/// Descriptor for `GameRunProfileData`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List gameRunProfileDataDescriptor = $convert.base64Decode(
+    'ChJHYW1lUnVuUHJvZmlsZURhdGESHQoKcmVjZWlwdF9pZBgBIAEoCVIJcmVjZWlwdElkEhoKCH'
+    'JldmlzaW9uGAIgASgEUghyZXZpc2lvbhInCg9jb21wbGV0ZWRfZmlsZXMYAyABKA1SDmNvbXBs'
+    'ZXRlZEZpbGVzEhoKCGNvbXBsZXRlGAQgASgIUghjb21wbGV0ZQ==');
+
 @$core.Deprecated('Use gameRunInfoDescriptor instead')
 const GameRunInfo$json = {
   '1': 'GameRunInfo',
@@ -665,6 +683,21 @@ const GameRunInfo$json = {
       '6': '.modconductor.v1.GameRunFiles',
       '10': 'files'
     },
+    {
+      '1': 'profile_data_revision',
+      '3': 14,
+      '4': 1,
+      '5': 4,
+      '10': 'profileDataRevision'
+    },
+    {
+      '1': 'profile_data',
+      '3': 15,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.GameRunProfileData',
+      '10': 'profileData'
+    },
   ],
 };
 
@@ -679,4 +712,7 @@ final $typed_data.Uint8List gameRunInfoDescriptor = $convert.base64Decode(
     'MS5FeGVjdXRhYmxlRW52aXJvbm1lbnRTZXR0aW5nUgtlbnZpcm9ubWVudBJHCgtwcmVwYXJhdG'
     'lvbhgKIAEoDjIlLm1vZGNvbmR1Y3Rvci52MS5HYW1lUHJlcGFyYXRpb25QaGFzZVILcHJlcGFy'
     'YXRpb24SHAoJY29tcGxldGVkGAsgASgNUgljb21wbGV0ZWQSFAoFdG90YWwYDCABKA1SBXRvdG'
-    'FsEjMKBWZpbGVzGA0gASgLMh0ubW9kY29uZHVjdG9yLnYxLkdhbWVSdW5GaWxlc1IFZmlsZXM=');
+    'FsEjMKBWZpbGVzGA0gASgLMh0ubW9kY29uZHVjdG9yLnYxLkdhbWVSdW5GaWxlc1IFZmlsZXMS'
+    'MgoVcHJvZmlsZV9kYXRhX3JldmlzaW9uGA4gASgEUhNwcm9maWxlRGF0YVJldmlzaW9uEkYKDH'
+    'Byb2ZpbGVfZGF0YRgPIAEoCzIjLm1vZGNvbmR1Y3Rvci52MS5HYW1lUnVuUHJvZmlsZURhdGFS'
+    'C3Byb2ZpbGVEYXRh');

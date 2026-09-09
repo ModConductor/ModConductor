@@ -123,7 +123,8 @@
         "dependencies": {
           "FSharp.Core": "[10.1.400, )",
           "ModConductor.Deployment": "[1.0.0, )",
-          "ModConductor.Executables": "[1.0.0, )"
+          "ModConductor.Executables": "[1.0.0, )",
+          "ModConductor.ProfileGameData": "[1.0.0, )"
         }
       },
       "modconductor.generatedoutputs": {
@@ -178,6 +179,7 @@
           "ModConductor.ModSelection": "[1.0.0, )",
           "ModConductor.Operations": "[1.0.0, )",
           "ModConductor.Platform": "[1.0.0, )",
+          "ModConductor.ProfileGameData": "[1.0.0, )",
           "ModConductor.ProtonContexts": "[1.0.0, )",
           "ModConductor.Workspaces": "[1.0.0, )",
           "SQLitePCLRaw.bundle_e_sqlite3": "[3.0.5, )"
@@ -187,6 +189,13 @@
         "type": "Project",
         "dependencies": {
           "FSharp.Core": "[10.1.400, )"
+        }
+      },
+      "modconductor.profilegamedata": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )",
+          "ModConductor.GameContexts": "[1.0.0, )"
         }
       },
       "modconductor.protocol": {

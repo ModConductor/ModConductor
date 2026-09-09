@@ -282,6 +282,8 @@ GameRunInfo readGameRun(wire.GameRunInfo value) {
         GamePreparationPhase.preparing,
       wire.GamePreparationPhase.GAME_PREPARATION_PHASE_APPLYING =>
         GamePreparationPhase.applying,
+      wire.GamePreparationPhase.GAME_PREPARATION_PHASE_PROFILE_DATA =>
+        GamePreparationPhase.profileData,
       wire.GamePreparationPhase.GAME_PREPARATION_PHASE_READY =>
         GamePreparationPhase.ready,
       _ => throw const FormatException(
@@ -290,6 +292,15 @@ GameRunInfo readGameRun(wire.GameRunInfo value) {
     },
     completed: value.completed,
     total: value.total,
+    profileDataRevision: value.profileDataRevision.toInt(),
+    profileData: value.hasProfileData()
+        ? GameRunProfileData(
+            value.profileData.receiptId,
+            value.profileData.revision.toInt(),
+            value.profileData.completedFiles,
+            value.profileData.complete,
+          )
+        : null,
     files: value.hasFiles()
         ? GameRunFiles(
             value.files.receiptId,

@@ -91,7 +91,21 @@ module internal ExecutableWire =
                     | GamePreparationPhase.Preparing -> Protocol.V1.GamePreparationPhase.Preparing
                     | GamePreparationPhase.Applying -> Protocol.V1.GamePreparationPhase.Applying
                     | GamePreparationPhase.Ready -> Protocol.V1.GamePreparationPhase.Ready
+                    | GamePreparationPhase.ProfileData ->
+                        Protocol.V1.GamePreparationPhase.ProfileData
             )
+
+        result.ProfileDataRevision <- uint64 value.ProfileDataRevision
+
+        value.ProfileData
+        |> Option.iter (fun data ->
+            result.ProfileData <-
+                Protocol.V1.GameRunProfileData(
+                    ReceiptId = data.ReceiptId.ToString("N"),
+                    Revision = uint64 data.Revision,
+                    CompletedFiles = uint32 data.CompletedFiles,
+                    Complete = data.Complete
+                ))
 
         result.Arguments.AddRange value.Launch.Arguments
 
