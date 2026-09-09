@@ -40,7 +40,54 @@ class ScriptedClient extends Fake implements WorkspacesClient {
   ) => onRename!(workspace, revision, profile);
 }
 
+class CopyClient extends ScriptedClient implements ProfileChangesClient {
+  final copy = StreamController<ProfileChangeEvent>();
+  @override
+  Stream<ProfileChangeEvent> cloneWithProgress(
+    String workspace,
+    int revision,
+    String source,
+    ProfileInfo target,
+  ) => copy.stream;
+  @override
+  Stream<ProfileChangeEvent> deleteWithProgress(
+    String workspace,
+    int revision,
+    String profile,
+  ) => throw UnimplementedError();
+  @override
+  Stream<ProfileChangeEvent> resumeProfileEdit(
+    String workspace,
+    String actionId,
+  ) => throw UnimplementedError();
+}
+
 void main() {
+  test('cancelling a streamed clone keeps the selected profile and rejects late completion', () async {
+    final client = CopyClient()..onOpen = (_) async => page('one');
+    final controller = WorkspaceController()..attach(client);
+    await controller.open('/fixture/one');
+    final pending = controller.clone(controller.page!.profiles.single, 'Copy');
+    client.copy.add(const ProfileCopyProgress(2, 65536));
+    await Future<void>.delayed(Duration.zero);
+    expect(controller.copyProgress!.bytes, 65536);
+    await controller.cancelProfileChange();
+    await pending;
+    final late = page('one', revision: 1, name: 'Copy');
+    client.copy.add(
+      ProfileChangeComplete(
+        ProfileChange(late.workspace, const ProfileInfo('copy', 'Copy'), null),
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+    expect(controller.workspace!.selectedProfile!.id, 'profile');
+    expect(controller.page!.profiles.map((value) => value.id), ['profile']);
+    expect(controller.activity, isNull);
+    expect(controller.currentProblem, isNotNull);
+    controller.dispose();
+    await client.copy.close();
+  });
+
   test(
     'an old connection completion cannot replace a newly opened workspace',
     () async {

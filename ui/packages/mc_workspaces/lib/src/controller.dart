@@ -17,6 +17,80 @@ class WorkspaceController extends ChangeNotifier {
   final Map<String, String> _activities = {};
   ({String id, String name, String path})? _creation;
 
+  StreamSubscription<ProfileChangeEvent>? _profileChange;
+  Completer<ProfileChange>? _profileResult;
+  ProfileCopyProgress? copyProgress;
+  bool get canCancelProfileChange => _profileChange != null;
+
+  Future<ProfileChange> _profileEvents(Stream<ProfileChangeEvent> events) {
+    final done = Completer<ProfileChange>();
+    _profileResult = done;
+    copyProgress = null;
+    final epoch = _epoch;
+    _profileChange = events.listen(
+      (event) {
+        if (_disposed || epoch != _epoch) return;
+        switch (event) {
+          case ProfileCopyProgress():
+            copyProgress = event;
+            _notify();
+          case ProfileChangeComplete():
+            if (!done.isCompleted) done.complete(event.change);
+        }
+      },
+      onError: (Object error) {
+        if (!done.isCompleted) done.completeError(error);
+      },
+      onDone: () {
+        if (!done.isCompleted) {
+          done.completeError(
+            const WorkspaceException(
+              WorkspaceFault.profileData,
+              'The profile action did not return a result. Read Settings and saves to continue.',
+            ),
+          );
+        }
+      },
+    );
+    return done.future.whenComplete(() {
+      if (identical(_profileResult, done)) {
+        _profileChange = null;
+        _profileResult = null;
+        copyProgress = null;
+      }
+    });
+  }
+
+  Future<void> cancelProfileChange() async {
+    final pending = _profileResult;
+    final subscription = _profileChange;
+    await subscription?.cancel();
+    if (pending != null && !pending.isCompleted) {
+      pending.completeError(
+        const WorkspaceException(
+          WorkspaceFault.profileData,
+          'The profile action was cancelled. Read Settings and saves to see any remaining action.',
+        ),
+      );
+    }
+  }
+
+  Future<void> resumeProfileChange(String actionId) =>
+      _edit('Continue profile change', (client, current) {
+        if (client is! ProfileChangesClient) {
+          throw const WorkspaceException(
+            WorkspaceFault.profileData,
+            'Profile recovery is unavailable.',
+          );
+        }
+        return _profileEvents(
+          (client as ProfileChangesClient).resumeProfileEdit(
+            current.id,
+            actionId,
+          ),
+        );
+      });
+
   bool get connected => _client != null;
   WorkspaceInfo? get workspace => showingWorkspace ? page?.workspace : null;
   String? get activity => _activities[workspace?.id ?? ''];
@@ -38,6 +112,7 @@ class WorkspaceController extends ChangeNotifier {
 
   void attach(WorkspacesClient? client) {
     if (identical(client, _client)) return;
+    unawaited(cancelProfileChange());
     _client = client;
     ++_epoch;
     _activities.clear();
@@ -265,15 +340,25 @@ class WorkspaceController extends ChangeNotifier {
       ProfileInfo(newOperationId(), name),
     ),
   );
-  Future<void> clone(ProfileInfo source, String name) => _edit(
-    'Profile clone: ${source.name}',
-    (client, current) => client.cloneProfile(
-      current.id,
-      current.revision,
-      source.id,
-      ProfileInfo(newOperationId(), name),
-    ),
-  );
+  Future<void> clone(ProfileInfo source, String name) =>
+      _edit('Profile clone: ${source.name}', (client, current) {
+        final target = ProfileInfo(newOperationId(), name);
+        return client is ProfileChangesClient
+            ? _profileEvents(
+                (client as ProfileChangesClient).cloneWithProgress(
+                  current.id,
+                  current.revision,
+                  source.id,
+                  target,
+                ),
+              )
+            : client.cloneProfile(
+                current.id,
+                current.revision,
+                source.id,
+                target,
+              );
+      });
   Future<void> rename(ProfileInfo profile, String name) => _edit(
     'Profile rename: ${profile.name}',
     (client, current) => client.renameProfile(
@@ -289,12 +374,20 @@ class WorkspaceController extends ChangeNotifier {
   );
   Future<void> delete(ProfileInfo profile) => _edit(
     'Profile deletion: ${profile.name}',
-    (client, current) =>
-        client.deleteProfile(current.id, current.revision, profile.id),
+    (client, current) => client is ProfileChangesClient
+        ? _profileEvents(
+            (client as ProfileChangesClient).deleteWithProgress(
+              current.id,
+              current.revision,
+              profile.id,
+            ),
+          )
+        : client.deleteProfile(current.id, current.revision, profile.id),
   );
 
   @override
   void dispose() {
+    unawaited(cancelProfileChange());
     _disposed = true;
     ++_epoch;
     super.dispose();

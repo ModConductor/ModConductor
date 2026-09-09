@@ -149,8 +149,8 @@ let run args =
             options.MaxSendMessageSize <- Nullable 65536
             options.EnableDetailedErrors <- Nullable false)
         .AddServiceOptions<ModConductor.Engine.ProfileDataService>(fun options ->
-            options.MaxReceiveMessageSize <- Nullable 4096
-            options.MaxSendMessageSize <- Nullable(256 * 1024))
+            options.MaxReceiveMessageSize <- Nullable(256 * 1024)
+            options.MaxSendMessageSize <- Nullable(2 * 1024 * 1024))
         .AddServiceOptions<ModConductor.Engine.GameLaunchService>(fun options ->
             options.MaxReceiveMessageSize <- Nullable(256 * 1024)
             options.MaxSendMessageSize <- Nullable(2 * 1024 * 1024))

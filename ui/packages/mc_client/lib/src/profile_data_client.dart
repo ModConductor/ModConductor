@@ -7,6 +7,12 @@ import 'profile_data_models.dart';
 export 'profile_data_models.dart';
 
 abstract interface class ProfileDataClient {
+  Future<ProfileSavePage> saveFiles(
+    String workspaceId,
+    String profileId,
+    List<String> path, {
+    String? after,
+  });
   Future<ProfileDataState> read(String workspaceId, String profileId);
   Stream<ProfileDataEvent> edit(
     String id,
@@ -23,6 +29,33 @@ class GrpcProfileDataClient implements ProfileDataClient {
   GrpcProfileDataClient(ClientChannel channel, CallOptions options)
     : _client = wire.ProfileDataOperationsClient(channel, options: options);
   final wire.ProfileDataOperationsClient _client;
+  @override
+  Future<ProfileSavePage> saveFiles(
+    String workspaceId,
+    String profileId,
+    List<String> path, {
+    String? after,
+  }) async {
+    final reply = await _client.listProfileSaves(
+      wire.ProfileSaveRequest(
+        workspaceId: workspaceId,
+        profileId: profileId,
+        path: path,
+        after: after,
+      ),
+    );
+    return switch (reply.whichResult()) {
+      wire.ProfileSaveReply_Result.page => ProfileSavePage([
+        for (final entry in reply.page.entries)
+          ProfileSaveEntry(entry.name, entry.directory, entry.bytes.toInt()),
+      ], reply.page.hasNext() ? reply.page.next : null),
+      wire.ProfileSaveReply_Result.problem => throw _problem(reply.problem),
+      wire.ProfileSaveReply_Result.notSet => throw const FormatException(
+        'The save file page is missing.',
+      ),
+    };
+  }
+
   @override
   Future<ProfileDataState> read(String workspaceId, String profileId) async {
     final reply = await _client.readProfileData(
@@ -119,6 +152,8 @@ ProfileDataState _state(wire.ProfileDataState value) {
     pendingActionId: value.hasPendingActionId() ? value.pendingActionId : null,
     problem: value.hasProblem() ? value.problem : null,
     pendingProfileChange: value.pendingProfileChange,
+    settingsInitialized: value.settingsInitialized,
+    savesInitialized: value.savesInitialized,
   );
 }
 

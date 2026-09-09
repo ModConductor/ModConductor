@@ -13,5 +13,6 @@ workspace:
   - packages/mc_file_plans
   - packages/mc_generated_outputs
   - packages/mc_executables
+  - packages/mc_profile_data
 dev_dependencies:
   protoc_plugin: 25.0.0

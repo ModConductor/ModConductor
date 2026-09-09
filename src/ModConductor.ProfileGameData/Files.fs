@@ -28,6 +28,22 @@ type internal PreparedFileChange =
 
 exception internal ProfileDataException of ProfileDataError
 
+module internal DataErrors =
+    let message (error: exn) =
+        match error with
+        | ProfileDataException value ->
+            match value with
+            | ProfileDataError.NotFound -> "The profile settings were not found."
+            | ProfileDataError.Busy -> "Wait for the current profile operation."
+            | ProfileDataError.Stale -> "The profile settings changed. Read them again."
+            | ProfileDataError.Cancelled -> "The profile action was cancelled."
+            | ProfileDataError.Invalid detail
+            | ProfileDataError.Unavailable detail
+            | ProfileDataError.Conflict detail -> detail
+        | :? OperationCanceledException -> "The profile action was cancelled."
+        | :? UnauthorizedAccessException -> "The profile settings or saves cannot be accessed."
+        | _ -> error.Message
+
 module internal DataFiles =
     let fail detail =
         raise (ProfileDataException(ProfileDataError.Conflict detail))

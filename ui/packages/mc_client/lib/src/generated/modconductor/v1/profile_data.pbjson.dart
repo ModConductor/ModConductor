@@ -175,6 +175,20 @@ const ProfileDataState$json = {
       '5': 8,
       '10': 'pendingProfileChange'
     },
+    {
+      '1': 'settings_initialized',
+      '3': 11,
+      '4': 1,
+      '5': 8,
+      '10': 'settingsInitialized'
+    },
+    {
+      '1': 'saves_initialized',
+      '3': 12,
+      '4': 1,
+      '5': 8,
+      '10': 'savesInitialized'
+    },
   ],
   '8': [
     {'1': '_in_use_profile_id'},
@@ -193,8 +207,10 @@ final $typed_data.Uint8List profileDataStateDescriptor = $convert.base64Decode(
     'MYBiABKA1SDXNldHRpbmdzRmlsZXMSHQoKc2F2ZV9maWxlcxgHIAEoDVIJc2F2ZUZpbGVzEi8K'
     'EXBlbmRpbmdfYWN0aW9uX2lkGAggASgJSAFSD3BlbmRpbmdBY3Rpb25JZIgBARIdCgdwcm9ibG'
     'VtGAkgASgJSAJSB3Byb2JsZW2IAQESNAoWcGVuZGluZ19wcm9maWxlX2NoYW5nZRgKIAEoCFIU'
-    'cGVuZGluZ1Byb2ZpbGVDaGFuZ2VCFAoSX2luX3VzZV9wcm9maWxlX2lkQhQKEl9wZW5kaW5nX2'
-    'FjdGlvbl9pZEIKCghfcHJvYmxlbQ==');
+    'cGVuZGluZ1Byb2ZpbGVDaGFuZ2USMQoUc2V0dGluZ3NfaW5pdGlhbGl6ZWQYCyABKAhSE3NldH'
+    'RpbmdzSW5pdGlhbGl6ZWQSKwoRc2F2ZXNfaW5pdGlhbGl6ZWQYDCABKAhSEHNhdmVzSW5pdGlh'
+    'bGl6ZWRCFAoSX2luX3VzZV9wcm9maWxlX2lkQhQKEl9wZW5kaW5nX2FjdGlvbl9pZEIKCghfcH'
+    'JvYmxlbQ==');
 
 @$core.Deprecated('Use profileDataEditRequestDescriptor instead')
 const ProfileDataEditRequest$json = {
@@ -432,3 +448,97 @@ final $typed_data.Uint8List profileDataEventDescriptor = $convert.base64Decode(
     'ZHVjdG9yLnYxLlByb2ZpbGVEYXRhQWN0aW9uUmVzdWx0SABSBnJlc3VsdBI/Cgdwcm9ibGVtGA'
     'MgASgLMiMubW9kY29uZHVjdG9yLnYxLlByb2ZpbGVEYXRhUHJvYmxlbUgAUgdwcm9ibGVtQgcK'
     'BWV2ZW50');
+
+@$core.Deprecated('Use profileSaveRequestDescriptor instead')
+const ProfileSaveRequest$json = {
+  '1': 'ProfileSaveRequest',
+  '2': [
+    {'1': 'workspace_id', '3': 1, '4': 1, '5': 9, '10': 'workspaceId'},
+    {'1': 'profile_id', '3': 2, '4': 1, '5': 9, '10': 'profileId'},
+    {'1': 'path', '3': 3, '4': 3, '5': 9, '10': 'path'},
+    {'1': 'after', '3': 4, '4': 1, '5': 9, '9': 0, '10': 'after', '17': true},
+  ],
+  '8': [
+    {'1': '_after'},
+  ],
+};
+
+/// Descriptor for `ProfileSaveRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List profileSaveRequestDescriptor = $convert.base64Decode(
+    'ChJQcm9maWxlU2F2ZVJlcXVlc3QSIQoMd29ya3NwYWNlX2lkGAEgASgJUgt3b3Jrc3BhY2VJZB'
+    'IdCgpwcm9maWxlX2lkGAIgASgJUglwcm9maWxlSWQSEgoEcGF0aBgDIAMoCVIEcGF0aBIZCgVh'
+    'ZnRlchgEIAEoCUgAUgVhZnRlcogBAUIICgZfYWZ0ZXI=');
+
+@$core.Deprecated('Use profileSaveEntryDescriptor instead')
+const ProfileSaveEntry$json = {
+  '1': 'ProfileSaveEntry',
+  '2': [
+    {'1': 'name', '3': 1, '4': 1, '5': 9, '10': 'name'},
+    {'1': 'directory', '3': 2, '4': 1, '5': 8, '10': 'directory'},
+    {'1': 'bytes', '3': 3, '4': 1, '5': 4, '10': 'bytes'},
+  ],
+};
+
+/// Descriptor for `ProfileSaveEntry`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List profileSaveEntryDescriptor = $convert.base64Decode(
+    'ChBQcm9maWxlU2F2ZUVudHJ5EhIKBG5hbWUYASABKAlSBG5hbWUSHAoJZGlyZWN0b3J5GAIgAS'
+    'gIUglkaXJlY3RvcnkSFAoFYnl0ZXMYAyABKARSBWJ5dGVz');
+
+@$core.Deprecated('Use profileSavePageDescriptor instead')
+const ProfileSavePage$json = {
+  '1': 'ProfileSavePage',
+  '2': [
+    {
+      '1': 'entries',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.modconductor.v1.ProfileSaveEntry',
+      '10': 'entries'
+    },
+    {'1': 'next', '3': 2, '4': 1, '5': 9, '9': 0, '10': 'next', '17': true},
+  ],
+  '8': [
+    {'1': '_next'},
+  ],
+};
+
+/// Descriptor for `ProfileSavePage`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List profileSavePageDescriptor = $convert.base64Decode(
+    'Cg9Qcm9maWxlU2F2ZVBhZ2USOwoHZW50cmllcxgBIAMoCzIhLm1vZGNvbmR1Y3Rvci52MS5Qcm'
+    '9maWxlU2F2ZUVudHJ5UgdlbnRyaWVzEhcKBG5leHQYAiABKAlIAFIEbmV4dIgBAUIHCgVfbmV4'
+    'dA==');
+
+@$core.Deprecated('Use profileSaveReplyDescriptor instead')
+const ProfileSaveReply$json = {
+  '1': 'ProfileSaveReply',
+  '2': [
+    {
+      '1': 'page',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.ProfileSavePage',
+      '9': 0,
+      '10': 'page'
+    },
+    {
+      '1': 'problem',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.ProfileDataProblem',
+      '9': 0,
+      '10': 'problem'
+    },
+  ],
+  '8': [
+    {'1': 'result'},
+  ],
+};
+
+/// Descriptor for `ProfileSaveReply`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List profileSaveReplyDescriptor = $convert.base64Decode(
+    'ChBQcm9maWxlU2F2ZVJlcGx5EjYKBHBhZ2UYASABKAsyIC5tb2Rjb25kdWN0b3IudjEuUHJvZm'
+    'lsZVNhdmVQYWdlSABSBHBhZ2USPwoHcHJvYmxlbRgCIAEoCzIjLm1vZGNvbmR1Y3Rvci52MS5Q'
+    'cm9maWxlRGF0YVByb2JsZW1IAFIHcHJvYmxlbUIICgZyZXN1bHQ=');

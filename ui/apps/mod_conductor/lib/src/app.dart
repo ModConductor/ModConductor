@@ -1,5 +1,6 @@
 import 'package:mc_generated_outputs/mc_generated_outputs.dart';
 import 'package:mc_executables/mc_executables.dart';
+import 'package:mc_profile_data/mc_profile_data.dart';
 
 import 'dart:async';
 import 'dart:io';
@@ -66,6 +67,7 @@ class ModConductorApp extends StatefulWidget {
     this.deployments,
     this.executables,
     this.gameLaunching,
+    this.profileData,
     this.chooseExecutable = _chooseExecutable,
     this.steamDiscovery,
     this.protonContexts,
@@ -83,6 +85,7 @@ class ModConductorApp extends StatefulWidget {
   final DeploymentsClient? deployments;
   final ExecutablesClient? executables;
   final GameLaunchingClient? gameLaunching;
+  final ProfileDataClient? profileData;
   final ExecutablePathChooser chooseExecutable;
   final SteamDiscoveryClient? steamDiscovery;
   final ProtonContextsClient? protonContexts;
@@ -110,6 +113,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
   final _deployments = DeploymentController();
   final _executables = ExecutablesController();
   final _play = GamePlayController();
+  final _profileData = ProfileDataController();
   int? _selectionRevision, _catalogueRevision;
   int? _contextRevision;
   void _modsChanged() {
@@ -142,6 +146,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
       _outputs.invalidate();
       _deployments.invalidate();
       _play.invalidate();
+      _profileData.invalidate();
     }
     if (revision != _contextRevision) _play.invalidate();
     _contextRevision = revision;
@@ -198,7 +203,9 @@ class _ModConductorAppState extends State<ModConductorApp> {
     _mods.addListener(_modsChanged);
     _outputs.onChanged = _outputsChanged;
     _deployments.onChanged = _deploymentChanged;
+    _profileData.onChanged = _play.invalidate;
     _play.onDeploymentChanged = () {
+      _profileData.invalidate();
       _deployments.invalidate();
       _deploymentChanged();
     };
@@ -223,6 +230,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
     _deployments.dispose();
     _executables.dispose();
     _play.dispose();
+    _profileData.dispose();
     _files.dispose();
     _mods.dispose();
     _game.dispose();
@@ -301,6 +309,23 @@ class _ModConductorAppState extends State<ModConductorApp> {
                   DesktopConnecting() ||
                   DesktopConnected() => WorkspaceBrowser(
                     controller: _workspaces,
+                    profileInspectorBuilder: widget.profileData == null
+                        ? null
+                        : (context, workspace, profile, close) =>
+                              ProfileSettingsInspector(
+                                controller: _profileData,
+                                client: widget.profileData,
+                                workspace: workspace,
+                                profile: profile,
+                                profiles:
+                                    _workspaces.page?.profiles ?? const [],
+                                available:
+                                    _workspaces.canEdit &&
+                                    _game.state?.binding?.needsCheck == false,
+                                onClose: close,
+                                onResumeProfileChange:
+                                    _workspaces.resumeProfileChange,
+                              ),
                     executableBuilder: widget.executables == null
                         ? null
                         : (context, workspace) => ExecutablesBrowser(

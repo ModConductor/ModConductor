@@ -48,13 +48,15 @@ class ProfileDataState {
     this.pendingActionId,
     this.problem,
     this.pendingProfileChange = false,
+    this.settingsInitialized = false,
+    this.savesInitialized = false,
   });
   final ProfileDataRef reference;
   final ProfileDataOptions options;
   final String settingsPath, savesPath;
   final int settingsFiles, saveFiles;
   final String? inUseProfileId, pendingActionId, problem;
-  final bool pendingProfileChange;
+  final bool pendingProfileChange, settingsInitialized, savesInitialized;
 }
 
 sealed class ProfileDataEvent {
@@ -79,4 +81,17 @@ class ProfileDataResult extends ProfileDataEvent {
   final bool complete;
   final int completedFiles;
   final String? problem;
+}
+
+class ProfileSaveEntry {
+  const ProfileSaveEntry(this.name, this.directory, this.bytes);
+  final String name;
+  final bool directory;
+  final int bytes;
+}
+
+class ProfileSavePage {
+  const ProfileSavePage(this.entries, this.next);
+  final List<ProfileSaveEntry> entries;
+  final String? next;
 }

@@ -33,6 +33,13 @@ class ProfileDataOperationsClient extends $grpc.Client {
   ProfileDataOperationsClient(super.channel,
       {super.options, super.interceptors});
 
+  $grpc.ResponseFuture<$0.ProfileSaveReply> listProfileSaves(
+    $0.ProfileSaveRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$listProfileSaves, request, options: options);
+  }
+
   $grpc.ResponseFuture<$0.ProfileDataReply> readProfileData(
     $0.ProfileDataReadRequest request, {
     $grpc.CallOptions? options,
@@ -69,6 +76,11 @@ class ProfileDataOperationsClient extends $grpc.Client {
 
   // method descriptors
 
+  static final _$listProfileSaves =
+      $grpc.ClientMethod<$0.ProfileSaveRequest, $0.ProfileSaveReply>(
+          '/modconductor.v1.ProfileDataOperations/ListProfileSaves',
+          ($0.ProfileSaveRequest value) => value.writeToBuffer(),
+          $0.ProfileSaveReply.fromBuffer);
   static final _$readProfileData =
       $grpc.ClientMethod<$0.ProfileDataReadRequest, $0.ProfileDataReply>(
           '/modconductor.v1.ProfileDataOperations/ReadProfileData',
@@ -96,6 +108,14 @@ abstract class ProfileDataOperationsServiceBase extends $grpc.Service {
   $core.String get $name => 'modconductor.v1.ProfileDataOperations';
 
   ProfileDataOperationsServiceBase() {
+    $addMethod($grpc.ServiceMethod<$0.ProfileSaveRequest, $0.ProfileSaveReply>(
+        'ListProfileSaves',
+        listProfileSaves_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.ProfileSaveRequest.fromBuffer(value),
+        ($0.ProfileSaveReply value) => value.writeToBuffer()));
     $addMethod(
         $grpc.ServiceMethod<$0.ProfileDataReadRequest, $0.ProfileDataReply>(
             'ReadProfileData',
@@ -133,6 +153,15 @@ abstract class ProfileDataOperationsServiceBase extends $grpc.Service {
                 $0.ProfileDataActionRequest.fromBuffer(value),
             ($0.ProfileDataEvent value) => value.writeToBuffer()));
   }
+
+  $async.Future<$0.ProfileSaveReply> listProfileSaves_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.ProfileSaveRequest> $request) async {
+    return listProfileSaves($call, await $request);
+  }
+
+  $async.Future<$0.ProfileSaveReply> listProfileSaves(
+      $grpc.ServiceCall call, $0.ProfileSaveRequest request);
 
   $async.Future<$0.ProfileDataReply> readProfileData_Pre(
       $grpc.ServiceCall $call,

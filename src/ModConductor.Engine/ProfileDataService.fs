@@ -23,6 +23,35 @@ type ProfileDataService(profiles: IProfileGameData) =
             ProfileDataWire.finished
             action
 
+    override _.ListProfileSaves(request, _) =
+        task {
+            let! result =
+                profiles.SaveFiles(
+                    ModLibraryWire.id request.WorkspaceId,
+                    ModLibraryWire.id request.ProfileId,
+                    List.ofSeq request.Path,
+                    if request.HasAfter then Some request.After else None
+                )
+
+            match result with
+            | Error error ->
+                return Protocol.V1.ProfileSaveReply(Problem = ProfileDataWire.problem error)
+            | Ok value ->
+                let page = Protocol.V1.ProfileSavePage()
+
+                for entry in value.Entries do
+                    page.Entries.Add(
+                        Protocol.V1.ProfileSaveEntry(
+                            Name = entry.Name,
+                            Directory = entry.Directory,
+                            Bytes = uint64 entry.Bytes
+                        )
+                    )
+
+                value.Next |> Option.iter (fun next -> page.Next <- next)
+                return Protocol.V1.ProfileSaveReply(Page = page)
+        }
+
     override _.ReadProfileData(request, _) =
         task {
             let! result =

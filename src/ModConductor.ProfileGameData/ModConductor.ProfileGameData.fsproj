@@ -15,6 +15,7 @@
     <Compile Include="Initialization.fs" />
     <Compile Include="ActionPreparation.fs" />
     <Compile Include="Cloning.fs" />
+    <Compile Include="Browsing.fs" />
     <Compile Include="Session.fs" />
     <ProjectReference Include="../ModConductor.GameContexts/ModConductor.GameContexts.fsproj" />
     <PackageReference Include="FSharp.Core" />

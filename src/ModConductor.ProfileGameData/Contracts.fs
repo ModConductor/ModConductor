@@ -45,6 +45,8 @@ type ProfileDataState =
       SavesPath: string
       SettingsFiles: int
       SaveFiles: int
+      SettingsInitialized: bool
+      SavesInitialized: bool
       Pending: Guid option
       PendingProfileChange: bool
       Problem: string option }
@@ -77,7 +79,20 @@ type ProfileDataApplication =
       Complete: bool
       Problem: string option }
 
+type ProfileSaveEntry =
+    { Name: string
+      Directory: bool
+      Bytes: int64 }
+
+type ProfileSavePage =
+    { Entries: ProfileSaveEntry list
+      Next: string option }
+
 type IProfileGameData =
+    abstract SaveFiles:
+        workspace: Guid * profile: Guid * path: string list * after: string option ->
+            Task<Result<ProfileSavePage, ProfileDataError>>
+
     abstract Read:
         workspace: Guid * profile: Guid -> Task<Result<ProfileDataState, ProfileDataError>>
 

@@ -3,6 +3,7 @@ package modconductor.v1;
 option csharp_namespace = "ModConductor.Protocol.V1";
 
 service ProfileDataOperations {
+  rpc ListProfileSaves(ProfileSaveRequest) returns (ProfileSaveReply);
   rpc ReadProfileData(ProfileDataReadRequest) returns (ProfileDataReply);
   rpc EditProfileData(ProfileDataEditRequest) returns (stream ProfileDataEvent);
   rpc RestoreProfileData(ProfileDataRestoreRequest) returns (stream ProfileDataEvent);
@@ -22,6 +23,8 @@ message ProfileDataState {
   optional string pending_action_id = 8;
   optional string problem = 9;
   bool pending_profile_change = 10;
+  bool settings_initialized = 11;
+  bool saves_initialized = 12;
 }
 enum InitialProfileSaves { INITIAL_PROFILE_SAVES_UNSPECIFIED = 0; INITIAL_PROFILE_SAVES_EMPTY = 1; INITIAL_PROFILE_SAVES_COPY_GLOBAL = 2; }
 enum DisabledProfileFiles { DISABLED_PROFILE_FILES_UNSPECIFIED = 0; DISABLED_PROFILE_FILES_KEEP = 1; DISABLED_PROFILE_FILES_DELETE = 2; }
@@ -55,3 +58,8 @@ message ProfileDataProblem { ProfileDataProblemKind kind = 1; string detail = 2;
 message ProfileDataReply { oneof result { ProfileDataState state = 1; ProfileDataProblem problem = 2; } }
 message ProfileDataProgress { uint32 files = 1; uint64 bytes = 2; }
 message ProfileDataEvent { oneof event { ProfileDataProgress progress = 1; ProfileDataActionResult result = 2; ProfileDataProblem problem = 3; } }
+
+message ProfileSaveRequest { string workspace_id = 1; string profile_id = 2; repeated string path = 3; optional string after = 4; }
+message ProfileSaveEntry { string name = 1; bool directory = 2; uint64 bytes = 3; }
+message ProfileSavePage { repeated ProfileSaveEntry entries = 1; optional string next = 2; }
+message ProfileSaveReply { oneof result { ProfileSavePage page = 1; ProfileDataProblem problem = 2; } }

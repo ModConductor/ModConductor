@@ -64,8 +64,13 @@ module ProfileDataFixtures =
             )
 
             let workspace, first, second = Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid()
-            use store = new OperationStore(Path.Combine(area, "state"))
-            let ws = store.Workspaces :> IWorkspaceState
+            let mutable store = new OperationStore(Path.Combine(area, "state"))
+
+            use lifetime =
+                { new IDisposable with
+                    member _.Dispose() = (store :> IDisposable).Dispose() }
+
+            let mutable ws = store.Workspaces :> IWorkspaceState
 
             let created =
                 ws.Create(workspace, "Private game files", StorageWorker.select workspacePath)
@@ -108,7 +113,7 @@ module ProfileDataFixtures =
             File.WriteAllText(prefs, original)
             File.WriteAllText(globalSave, "synthetic global save")
             let originalIdentity = identity prefs
-            let api = store.ProfileGameData
+            let mutable api = store.ProfileGameData
 
             let read profile =
                 api.Read(workspace, profile) |> wait |> result
@@ -304,6 +309,31 @@ module ProfileDataFixtures =
                  && File.ReadAllText(Path.Combine(kept.SavesPath, "private.ess")) = "first profile save"
                  && identity cloneSave <> identity (Path.Combine(kept.SavesPath, "private.ess")))
 
+            let nested =
+                Directory.CreateDirectory(Path.Combine(cloneData.SavesPath, "Nested")).FullName
+
+            for index in 1..70 do
+                File.WriteAllText(
+                    Path.Combine(nested, index.ToString("D3") + ".ess"),
+                    "owned fixture"
+                )
+
+            let mutable next = None
+            let mutable loaded = []
+            let mutable pages = 0
+            let mutable more = true
+
+            while more do
+                let page = api.SaveFiles(workspace, clone, [ "Nested" ], next) |> wait |> result
+                loaded <- loaded @ (page.Entries |> List.map _.Name)
+                next <- page.Next
+                pages <- pages + 1
+                more <- next.IsSome
+
+            check
+                "saveBrowsingContinuesWithoutMissingOrDuplicateFiles"
+                (pages = 3 && loaded.Length = 70 && (List.distinct loaded).Length = 70)
+
             let large = Path.Combine(kept.SavesPath, "copy-cancellation.ess")
             File.WriteAllBytes(large, Array.create (8 * 1024 * 1024) 42uy)
             let cancelledId = Guid.NewGuid()
@@ -390,5 +420,84 @@ module ProfileDataFixtures =
                 "profileDeletionRemovesItsPrivateCopy"
                 (not (Directory.Exists cloneData.SavesPath)
                  && File.Exists(Path.Combine(kept.SavesPath, "private.ess")))
+
+            let beforeInterruptedRestore = File.ReadAllBytes prefs
+            start first |> ignore
+
+            File.WriteAllText(
+                Path.Combine(documents, "SkyrimPrefs.ini"),
+                "[Display]\niSize W=777\n"
+            )
+
+            let interruptedId = Guid.NewGuid()
+
+            let interrupted =
+                store.RestoreProfileDataAtCheckpoint(
+                    interruptedId,
+                    (read first).Reference,
+                    token,
+                    fun phase ->
+                        if phase = "installed" then
+                            raise (IOException "Controlled interruption after file replacement.")
+                )
+                |> wait
+                |> result
+
+            check
+                "interruptedRestoreRetainsItsPartialReceipt"
+                (not interrupted.Complete && interrupted.State.Pending = Some interruptedId)
+
+            (store :> IDisposable).Dispose()
+            store <- new OperationStore(Path.Combine(area, "state"))
+            ws <- store.Workspaces :> IWorkspaceState
+            api <- store.ProfileGameData
+            let contexts = store.GameContexts :> IGameContexts
+            let reloaded = contexts.Read(workspace) |> wait |> result
+            contexts.Refresh(workspace, reloaded.Revision) |> wait |> result |> ignore
+
+            let resumed =
+                store.ProfileGameData.Resume(workspace, interruptedId, token) |> wait |> result
+
+            let replayed =
+                store.ProfileGameData.Resume(workspace, interruptedId, token) |> wait |> result
+
+            check
+                "restartResumesInterruptedRestoreWithoutLosingSettings"
+                (resumed.Complete
+                 && replayed.Complete
+                 && resumed.State.InUse.IsNone
+                 && File
+                     .ReadAllText(Path.Combine(kept.SettingsPath, "SkyrimPrefs.ini"))
+                     .Contains("777")
+                 && File.ReadAllBytes prefs = beforeInterruptedRestore)
+
+            start first |> ignore
+            let conflictId = Guid.NewGuid()
+
+            let paused =
+                store.RestoreProfileDataAtCheckpoint(
+                    conflictId,
+                    (read first).Reference,
+                    token,
+                    fun phase ->
+                        if phase = "installed" then
+                            raise (IOException "Controlled pause before the next settings file.")
+                )
+                |> wait
+                |> result
+
+            let replacement = Path.Combine(documents, "ordinary-save.tmp")
+            File.WriteAllText(replacement, "[Display]\niSize W=640\n")
+            File.Move(replacement, prefs, true)
+            let changedIdentity, changedBytes = identity prefs, File.ReadAllBytes prefs
+            let refused = api.Resume(workspace, conflictId, token) |> wait |> result
+
+            check
+                "changedFileDuringPausedRestoreIsLeftUntouched"
+                (not paused.Complete
+                 && not refused.Complete
+                 && refused.State.Pending = Some conflictId
+                 && identity prefs = changedIdentity
+                 && File.ReadAllBytes prefs = changedBytes)
 
         writer.WriteEndObject()

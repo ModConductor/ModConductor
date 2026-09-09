@@ -24,6 +24,7 @@ class WorkspaceBrowser extends StatefulWidget {
     this.gameContextBuilder,
     this.executableBuilder,
     this.headerActions,
+    this.profileInspectorBuilder,
     this.compactCloseAction = false,
   });
   final WorkspaceController controller;
@@ -33,6 +34,8 @@ class WorkspaceBrowser extends StatefulWidget {
   final Widget Function(BuildContext, WorkspaceInfo)? executableBuilder;
   final List<Widget> Function(BuildContext, WorkspaceInfo)? headerActions;
   final bool compactCloseAction;
+  final Widget Function(BuildContext, WorkspaceInfo, ProfileInfo, VoidCallback)?
+  profileInspectorBuilder;
 
   @override
   State<WorkspaceBrowser> createState() => _WorkspaceBrowserState();
@@ -52,6 +55,18 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
     labelOf: (row) => row.name,
   );
   WorkspacePage? _shownPage;
+  final _profilePane = GlobalKey<ScaffoldState>();
+  bool _inspected = false,
+      _compactProfile = false,
+      _compactProfileActions = false;
+  void _inspectProfile() {
+    setState(() => _inspected = true);
+    if (_compactProfile) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _profilePane.currentState?.openEndDrawer();
+      });
+    }
+  }
 
   @override
   void initState() {
@@ -76,6 +91,7 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
     if (id != _shownId) {
       _profiles.clear();
       _mode = _WorkspaceMode.profiles;
+      _inspected = false;
     }
     final page = controller.page;
     if (id != null && page != null && !identical(page, _shownPage)) {
@@ -173,7 +189,7 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
         onSubmit: selected ? null : () => Navigator.pop(context, true),
         children: [
           const Text(
-            'This permanently removes this profile. Installed mods and other profiles stay unchanged.',
+            'This permanently removes this profile and its private settings and saves. Installed mods and other profiles stay unchanged.',
           ),
           if (selected) ...[
             const SizedBox(height: McSpacing.large),
@@ -425,7 +441,17 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
           ],
           if (controller.activity != null) ...[
             const SizedBox(height: 12),
-            McStatus(title: '${controller.activity} in progress.'),
+            McStatus(
+              title: '${controller.activity} in progress.',
+              detail: controller.copyProgress == null
+                  ? null
+                  : '${controller.copyProgress!.files} files · ${controller.copyProgress!.bytes} bytes copied',
+            ),
+            if (controller.canCancelProfileChange)
+              McAction(
+                label: 'Cancel',
+                onPressed: () => unawaited(controller.cancelProfileChange()),
+              ),
           ],
           if (controller.currentProblem != null) ...[
             const SizedBox(height: 12),
@@ -441,6 +467,58 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
 
   Widget _profilesSurface(BuildContext context) => ListenableBuilder(
     listenable: _profiles,
+    builder: (context, _) => LayoutBuilder(
+      builder: (context, constraints) {
+        final selected = _profiles.selected;
+        _compactProfileActions =
+            constraints.maxHeight <
+            420 * MediaQuery.textScalerOf(context).scale(1);
+        _compactProfile =
+            constraints.maxWidth <
+            1100 * MediaQuery.textScalerOf(context).scale(1);
+        Widget inspector(VoidCallback close) => widget.profileInspectorBuilder!(
+          context,
+          controller.workspace!,
+          selected!,
+          close,
+        );
+        return Scaffold(
+          key: _profilePane,
+          backgroundColor: Colors.transparent,
+          endDrawer:
+              _compactProfile &&
+                  selected != null &&
+                  widget.profileInspectorBuilder != null
+              ? Drawer(
+                  width: 440,
+                  child: inspector(
+                    () => _profilePane.currentState?.closeEndDrawer(),
+                  ),
+                )
+              : null,
+          body: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(child: _profileCollection(context)),
+              if (!_compactProfile &&
+                  _inspected &&
+                  selected != null &&
+                  widget.profileInspectorBuilder != null) ...[
+                const SizedBox(width: 16),
+                SizedBox(
+                  width: 390,
+                  child: inspector(() => setState(() => _inspected = false)),
+                ),
+              ],
+            ],
+          ),
+        );
+      },
+    ),
+  );
+
+  Widget _profileCollection(BuildContext context) => ListenableBuilder(
+    listenable: _profiles,
     builder: (context, _) {
       final selected = _profiles.selected;
       final current = controller.workspace?.selectedProfile;
@@ -451,6 +529,19 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
             child: McCollection<ProfileRowId, ProfileInfo>(
               model: _profiles,
               title: 'Profiles',
+              showTitle: !_compactProfileActions,
+              filterActions: [
+                if (_compactProfileActions)
+                  McIconAction(
+                    key: const ValueKey('create-profile'),
+                    focusNode: _createProfileFocus,
+                    label: 'Create profile',
+                    icon: const Icon(Icons.add),
+                    onPressed: controller.canEdit
+                        ? () => _profileDialog(context)
+                        : null,
+                  ),
+              ],
               focusNode: _profilesFocus,
               filterLabel: incomplete
                   ? 'Filter loaded profiles'
@@ -467,16 +558,17 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
               semanticLabel: (row) =>
                   '${row.name}${row.id == current?.id ? ', current profile' : ''}',
               actions: [
-                McAction(
-                  key: const ValueKey('create-profile'),
-                  focusNode: _createProfileFocus,
-                  label: 'Create profile',
-                  icon: Icons.add,
-                  emphasis: McActionEmphasis.primary,
-                  onPressed: controller.canEdit
-                      ? () => _profileDialog(context)
-                      : null,
-                ),
+                if (!_compactProfileActions)
+                  McAction(
+                    key: const ValueKey('create-profile'),
+                    focusNode: _createProfileFocus,
+                    label: 'Create profile',
+                    icon: Icons.add,
+                    emphasis: McActionEmphasis.primary,
+                    onPressed: controller.canEdit
+                        ? () => _profileDialog(context)
+                        : null,
+                  ),
               ],
               columns: [
                 McColumn(
@@ -552,6 +644,12 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
                   selected?.name ?? 'No profile selected',
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
+                if (widget.profileInspectorBuilder != null)
+                  McAction(
+                    label: 'Settings and saves',
+                    icon: Icons.tune,
+                    onPressed: selected == null ? null : _inspectProfile,
+                  ),
                 McAction(
                   key: const ValueKey('use-profile'),
                   label: 'Use profile',

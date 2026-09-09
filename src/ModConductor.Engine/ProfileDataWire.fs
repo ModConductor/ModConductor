@@ -35,6 +35,8 @@ module internal ProfileDataWire =
                 SavesPath = value.SavesPath,
                 SettingsFiles = uint32 value.SettingsFiles,
                 SaveFiles = uint32 value.SaveFiles,
+                SettingsInitialized = value.SettingsInitialized,
+                SavesInitialized = value.SavesInitialized,
                 PendingProfileChange = value.PendingProfileChange
             )
 

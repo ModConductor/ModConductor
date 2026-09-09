@@ -29,7 +29,7 @@ type ProfileGameDataSession
         task {
             let admitted =
                 lock gate (fun () ->
-                    if closed then
+                    if closed || active >= 2 then
                         false
                     else
                         if active = 0 then
@@ -172,6 +172,8 @@ type ProfileGameDataSession
             |> Option.defaultValue ""
           SettingsFiles = settingsCount
           SaveFiles = saveCount
+          SettingsInitialized = profile |> Option.exists _.SettingsInitialized
+          SavesInitialized = profile |> Option.exists _.SavesInitialized
           Pending = scope.Context |> Option.bind _.Pending
           PendingProfileChange = false
           Problem = problem }
@@ -246,6 +248,7 @@ type ProfileGameDataSession
         : ProfileDataActionRecord
 
     let execute
+        checkpoint
         (scope: ProfileDataScope)
         (context: ProfileDataContext)
         (initial: ProfileDataActionRecord)
@@ -334,7 +337,7 @@ type ProfileGameDataSession
                             do! report current
                         }
 
-                    let! applied = DataEffects.run context action save token ignore
+                    let! applied = DataEffects.run context action save token checkpoint
 
                     action <-
                         { applied with
@@ -394,7 +397,7 @@ type ProfileGameDataSession
 
                 action <-
                     { action with
-                        Problem = Some error.Message }
+                        Problem = Some(DataErrors.message error) }
 
                 do! repository.SaveAction action
                 do! report action
@@ -408,7 +411,7 @@ type ProfileGameDataSession
                       CompletedFiles =
                         action.CompletedFiles
                         + (action.Deletion |> Option.map _.CompletedFiles |> Option.defaultValue 0)
-                      Problem = Some error.Message }
+                      Problem = Some(DataErrors.message error) }
         }
 
     let completedFiles (action: ProfileDataActionRecord) =
@@ -438,6 +441,42 @@ type ProfileGameDataSession
                           Problem = value.Problem }
             | _ -> return None
         }
+
+    let restore id (expected: ProfileDataRef) token checkpoint =
+        run expected.WorkspaceId (fun () ->
+            task {
+                requireIds [ id; expected.WorkspaceId; expected.ProfileId; expected.ContextId ]
+
+                let! previous =
+                    replay
+                        expected.WorkspaceId
+                        expected.ProfileId
+                        id
+                        ProfileDataActionKind.Restore
+                        expected.Revision
+
+                match previous with
+                | Some result -> return Ok result
+                | None ->
+                    let! scope = repository.Read(expected.WorkspaceId, expected.ProfileId)
+                    check scope expected
+                    let! context = DataInitialization.context repository scope
+
+                    let! action =
+                        repository.Claim(
+                            context,
+                            initial id context scope.ProfileId ProfileDataActionKind.Restore
+                        )
+
+                    let! result =
+                        execute checkpoint scope context action token ignore (fun _ ->
+                            Task.FromResult())
+
+                    return Ok result
+            })
+
+    member internal _.RestoreAtCheckpoint(id, expected, token, checkpoint) =
+        restore id expected token checkpoint
 
     member _.Drain() = lock gate (fun () -> drained.Task)
 
@@ -507,7 +546,8 @@ type ProfileGameDataSession
                                       Complete = value.Complete
                                       Problem = value.Problem }
 
-                            let! result = execute scope context action token ignore reportAction
+                            let! result =
+                                execute ignore scope context action token ignore reportAction
 
                             return
                                 Ok(
@@ -521,6 +561,15 @@ type ProfileGameDataSession
             })
 
     interface IProfileGameData with
+        member _.SaveFiles(workspace, profile, path, after) =
+            protect (fun () ->
+                task {
+                    requireIds [ workspace; profile ]
+                    let! scope = repository.Read(workspace, profile)
+                    let root = scope.Profile |> Option.bind _.Saves
+                    return Ok(SaveBrowsing.page root path after)
+                })
+
         member _.Read(workspace, profile) =
             protect (fun () ->
                 task {
@@ -572,43 +621,13 @@ type ProfileGameDataSession
                             )
 
                         let! result =
-                            execute scope context action token progress (fun _ ->
+                            execute ignore scope context action token progress (fun _ ->
                                 Task.FromResult())
 
                         return Ok result
                 })
 
-        member _.Restore(id, expected, token) =
-            run expected.WorkspaceId (fun () ->
-                task {
-                    requireIds [ id; expected.WorkspaceId; expected.ProfileId; expected.ContextId ]
-
-                    let! previous =
-                        replay
-                            expected.WorkspaceId
-                            expected.ProfileId
-                            id
-                            ProfileDataActionKind.Restore
-                            expected.Revision
-
-                    match previous with
-                    | Some result -> return Ok result
-                    | None ->
-                        let! scope = repository.Read(expected.WorkspaceId, expected.ProfileId)
-                        check scope expected
-                        let! context = DataInitialization.context repository scope
-
-                        let! action =
-                            repository.Claim(
-                                context,
-                                initial id context scope.ProfileId ProfileDataActionKind.Restore
-                            )
-
-                        let! result =
-                            execute scope context action token ignore (fun _ -> Task.FromResult())
-
-                        return Ok result
-                })
+        member _.Restore(id, expected, token) = restore id expected token ignore
 
         member _.Resume(workspace, id, token) =
             run workspace (fun () ->
@@ -653,7 +672,8 @@ type ProfileGameDataSession
                         let! action = repository.Claim(context, previous)
 
                         let! result =
-                            execute scope context action token ignore (fun _ -> Task.FromResult())
+                            execute ignore scope context action token ignore (fun _ ->
+                                Task.FromResult())
 
                         return Ok result
                 })

@@ -284,6 +284,9 @@ type OperationStore(directory: string) =
         =
         outputs.ApplyAtCheckpoint(id, snapshot, selected, action, token, afterPublication)
 
+    member internal _.RestoreProfileDataAtCheckpoint(id, expected, token, checkpoint) =
+        profileGameData.RestoreAtCheckpoint(id, expected, token, checkpoint)
+
     member _.DrainOutputs() = outputs.Drain()
 
     member _.DrainDeployments() =
