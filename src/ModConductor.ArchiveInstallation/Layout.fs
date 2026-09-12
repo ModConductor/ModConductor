@@ -88,7 +88,7 @@ module Layout =
         writer.Write(name: string)
         writer.Write(version: string)
 
-        for file in files |> List.sortBy _.Index do
+        for file in files |> List.sortBy (fun file -> file.Index, file.Destination) do
             writer.Write(file.Index)
             writer.Write(LogicalPath.display file.Destination)
 
@@ -135,10 +135,11 @@ module Layout =
                     |> Option.defaultWith (fun () ->
                         refuse "An included file is not in this archive.")
 
-                if entry.Directory || not (selected.Add file.Index) then
-                    refuse "Choose each archive file only once."
+                if entry.Directory then
+                    refuse "Choose a file rather than a folder entry."
 
-                bytes <- bytes + entry.Size
+                if selected.Add file.Index then
+                    bytes <- bytes + entry.Size
 
             Destinations.validate (draft.Files |> List.map _.Destination)
 
@@ -184,7 +185,8 @@ module Layout =
              else
                  suggested)
           Version = ""
-          Plan = None }
+          Plan = None
+          ChoiceInstaller = false }
         |> finish
 
     let change (draft: InstallationDraft) change =
@@ -265,6 +267,15 @@ module Layout =
             Revision = draft.Revision + 1L }
         |> finish
 
+    let selectFiles (draft: InstallationDraft) name version files =
+        { draft with
+            Revision = draft.Revision + 1L
+            Root = []
+            Files = files
+            Name = if String.IsNullOrWhiteSpace name then draft.Name else name
+            Version = version }
+        |> finish
+
     let forUpdate
         (draft: InstallationDraft)
         name
@@ -302,7 +313,10 @@ module Layout =
             Name = name
             Version = version
             Files = selected
-            Bytes = selected |> List.sumBy (fun file -> sizes[file.Index])
+            Bytes =
+                selected
+                |> List.distinctBy _.Index
+                |> List.sumBy (fun file -> sizes[file.Index])
             Target = Some target
             Fingerprint =
                 fingerprint source.Artifact source.Sha256 name version selected (Some target) }
@@ -319,8 +333,9 @@ module Layout =
 
         for file in plan.Files do
             match entries |> Map.tryFind file.Index with
-            | Some entry when not entry.Directory && selected.Add file.Index ->
-                bytes <- bytes + entry.Size
+            | Some entry when not entry.Directory ->
+                if selected.Add file.Index then
+                    bytes <- bytes + entry.Size
             | _ -> refuse "The installation plan changed. Review it again."
 
         let existing =

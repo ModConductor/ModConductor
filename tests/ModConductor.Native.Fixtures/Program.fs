@@ -41,6 +41,15 @@ let main args =
                 args[7]
 
             0
+        elif args.Length = 2 && args[0] = "--fomod" then
+            use output = Console.OpenStandardOutput()
+            use writer = new Utf8JsonWriter(output, JsonWriterOptions(Indented = true))
+            writer.WriteStartObject()
+            writer.WriteBoolean("nativeAot", not RuntimeFeature.IsDynamicCodeSupported)
+            FomodFixtures.observe writer args[1]
+            writer.WriteEndObject()
+            writer.Flush()
+            0
         elif args.Length = 2 && args[0] = "--mod-maintenance" then
             use output = Console.OpenStandardOutput()
             use writer = new Utf8JsonWriter(output, JsonWriterOptions(Indented = true))

@@ -1,3 +1,4 @@
+import 'fomod_client.dart';
 import 'maintenance_client.dart';
 import 'installation_client.dart';
 import 'artifact_client.dart';
@@ -70,6 +71,7 @@ class EngineOwner {
       _state is EngineConnected ? _session?.protonContexts : null;
   SteamDiscoveryClient? get steamDiscovery =>
       _state is EngineConnected ? _session?.steamDiscovery : null;
+  FomodClient? get fomod => _state is EngineConnected ? _session?.fomod : null;
   MaintenanceClient? get maintenance =>
       _state is EngineConnected ? _session?.maintenance : null;
   InstallationsClient? get installations =>

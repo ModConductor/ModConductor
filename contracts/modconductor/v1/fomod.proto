@@ -1,0 +1,54 @@
+syntax = "proto3";
+package modconductor.v1;
+option csharp_namespace = "ModConductor.Protocol.V1";
+import "modconductor/v1/archive_installation.proto";
+service FomodInstallation {
+  rpc OpenChoices(OpenFomodChoices) returns (FomodChoices);
+  rpc ReadChoices(InstallationDraftReference) returns (FomodChoices);
+  rpc ChangeChoice(FomodChoiceChange) returns (FomodChoices);
+  rpc NextStep(InstallationDraftReference) returns (FomodChoices);
+  rpc PreviousStep(InstallationDraftReference) returns (FomodChoices);
+  rpc UseManualLayout(InstallationDraftReference) returns (ArchiveInstallationDraft);
+  rpc ReadChoiceImage(FomodImageRequest) returns (FomodImage);
+}
+message OpenFomodChoices { InstallationDraftReference draft = 1; string profile_id = 2; }
+message FomodChoiceChange { InstallationDraftReference draft = 1; uint32 option_id = 2; bool selected = 3; }
+message FomodImageRequest { InstallationDraftReference draft = 1; repeated string path = 2; }
+message FomodImage { bytes content = 1; }
+enum FomodGroupKind { FOMOD_GROUP_KIND_ANY = 0; FOMOD_GROUP_KIND_ALL = 1; FOMOD_GROUP_KIND_AT_LEAST_ONE = 2; FOMOD_GROUP_KIND_AT_MOST_ONE = 3; FOMOD_GROUP_KIND_EXACTLY_ONE = 4; }
+enum FomodOptionKind { FOMOD_OPTION_KIND_REQUIRED = 0; FOMOD_OPTION_KIND_RECOMMENDED = 1; FOMOD_OPTION_KIND_OPTIONAL = 2; FOMOD_OPTION_KIND_NOT_USABLE = 3; FOMOD_OPTION_KIND_COULD_BE_USABLE = 4; FOMOD_OPTION_KIND_UNKNOWN = 5; }
+message FomodOption {
+  uint32 id = 1;
+  string name = 2;
+  string description = 3;
+  FomodOptionKind kind = 4;
+  bool selected = 5;
+  bool can_change = 6;
+  repeated string image = 7;
+  optional string problem = 8;
+}
+message FomodGroup { string name = 1; FomodGroupKind kind = 2; repeated FomodOption options = 3; }
+message FomodSource { repeated string path = 1; }
+message FomodPlannedFile {
+  uint32 index = 1;
+  repeated string destination = 2;
+  repeated string source = 3;
+  string choice = 4;
+  uint64 bytes = 5;
+  repeated FomodSource replaces = 6;
+}
+message FomodChoices {
+  InstallationDraftReference reference = 1;
+  string profile_id = 2;
+  string name = 3;
+  string step_name = 4;
+  uint32 step_number = 5;
+  uint32 visible_steps = 6;
+  bool can_back = 7;
+  bool has_step = 8;
+  repeated FomodGroup groups = 9;
+  repeated FomodPlannedFile files = 10;
+  bool review_ready = 11;
+  optional string problem = 12;
+  ArchiveInstallationDraft reviewed_draft = 13;
+}

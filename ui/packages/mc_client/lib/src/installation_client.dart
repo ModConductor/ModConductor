@@ -36,33 +36,6 @@ class GrpcInstallationsClient implements InstallationsClient {
     }
   }
 
-  InstallationDraft _draft(wire.ArchiveInstallationDraft d) =>
-      InstallationDraft(
-        id: d.reference.id,
-        workspaceId: d.reference.workspaceId,
-        revision: d.reference.revision.toInt(),
-        artifactId: d.artifact.id,
-        archiveName: d.archiveName,
-        manifest: InspectedArchive(d.manifest.sha256, d.manifest.format, [
-          for (final e in d.manifest.entries)
-            InspectedEntry(
-              e.index,
-              List.unmodifiable(e.components),
-              e.directory,
-              e.size.toInt(),
-              e.hasCompressedSize() ? e.compressedSize.toInt() : null,
-            ),
-        ], d.manifest.totalSize.toInt()),
-        root: List.unmodifiable(d.root),
-        files: [
-          for (final f in d.files)
-            InstallationFile(f.index, List.unmodifiable(f.destination)),
-        ],
-        name: d.name,
-        version: d.version,
-        bytes: d.bytes.toInt(),
-        canInstall: d.canInstall,
-      );
   wire.InstallationDraftReference _reference(InstallationDraft d) =>
       wire.InstallationDraftReference(
         workspaceId: d.workspaceId,
@@ -81,7 +54,10 @@ class GrpcInstallationsClient implements InstallationsClient {
       ),
       options: CallOptions(timeout: const Duration(days: 1)),
     );
-    return InstallationPreparation(_call(call).then(_draft), call.cancel);
+    return InstallationPreparation(
+      _call(call).then(installationDraft),
+      call.cancel,
+    );
   }
 
   @override
@@ -109,7 +85,9 @@ class GrpcInstallationsClient implements InstallationsClient {
           version: change.version,
         );
     }
-    return _draft(await _call(_client.changeInstallationLayout(request)));
+    return installationDraft(
+      await _call(_client.changeInstallationLayout(request)),
+    );
   }
 
   @override
@@ -181,4 +159,33 @@ InstallationStatus installationStatus(wire.ArchiveInstallationStatus s) =>
       problem: s.hasProblem() ? s.problem : null,
       modId: s.hasModId() ? s.modId : null,
       versionId: s.hasVersionId() ? s.versionId : null,
+    );
+
+InstallationDraft installationDraft(wire.ArchiveInstallationDraft d) =>
+    InstallationDraft(
+      id: d.reference.id,
+      workspaceId: d.reference.workspaceId,
+      revision: d.reference.revision.toInt(),
+      artifactId: d.artifact.id,
+      archiveName: d.archiveName,
+      manifest: InspectedArchive(d.manifest.sha256, d.manifest.format, [
+        for (final e in d.manifest.entries)
+          InspectedEntry(
+            e.index,
+            List.unmodifiable(e.components),
+            e.directory,
+            e.size.toInt(),
+            e.hasCompressedSize() ? e.compressedSize.toInt() : null,
+          ),
+      ], d.manifest.totalSize.toInt()),
+      root: List.unmodifiable(d.root),
+      files: [
+        for (final f in d.files)
+          InstallationFile(f.index, List.unmodifiable(f.destination)),
+      ],
+      name: d.name,
+      version: d.version,
+      bytes: d.bytes.toInt(),
+      canInstall: d.canInstall,
+      choiceInstaller: d.choiceInstaller,
     );

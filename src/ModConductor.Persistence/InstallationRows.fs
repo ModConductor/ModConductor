@@ -131,9 +131,13 @@ module internal InstallationRows =
                             value.TotalFiles
                         elif state = InstallationState.Running then
                             retainedFiles
-                            + (observed
-                               |> List.filter (fun f -> f.Identity.IsSome || f.Reused.IsSome)
-                               |> List.length)
+                            + int (
+                                Sqlite.number
+                                    connection
+                                    transaction
+                                    "SELECT count(*) FROM installation_destinations d JOIN installation_files f ON f.installation_id=d.installation_id AND f.entry_index=d.entry_index WHERE d.installation_id=$id AND (f.identity IS NOT NULL OR f.reused_payload IS NOT NULL)"
+                                    [ "$id", box (string id) ]
+                            )
                         else
                             observed |> List.filter (fun f -> f.Identity.IsSome) |> List.length
                     Bytes =
@@ -147,7 +151,7 @@ module internal InstallationRows =
                             |> List.filter (fun f -> f.Identity.IsSome)
                             |> List.sumBy (fun f -> defaultArg f.Length 0L) }
 
-    let reserve (connection: SqliteConnection) owner id (plan: InstallationPlan) =
+    let reserve (connection: SqliteConnection) owner id (plan: InstallationPlan) check =
         use transaction = connection.BeginTransaction(deferred = false)
         let existing = find connection transaction plan.Artifact.WorkspaceId id
 
@@ -166,6 +170,8 @@ module internal InstallationRows =
 
                 false
             | None ->
+                check transaction
+
                 match plan.Target with
                 | Some target ->
                     match LibraryRows.find connection transaction target.ModId with
@@ -245,7 +251,7 @@ module internal InstallationRows =
                       |> Option.map (fun target -> box (string target.PreviousVersion))
                       |> Option.defaultValue (box DBNull.Value) ]
 
-                for file in plan.Files do
+                for file in plan.Files |> List.distinctBy _.Index do
                     Sqlite.execute
                         connection
                         transaction
@@ -254,6 +260,15 @@ module internal InstallationRows =
                           "$index", box file.Index
                           "$path", box (LibraryEncoding.path file.Destination)
                           "$payload", box (string (Guid.NewGuid())) ]
+
+                for file in plan.Files do
+                    Sqlite.execute
+                        connection
+                        transaction
+                        "INSERT INTO installation_destinations VALUES($id,$index,$path)"
+                        [ "$id", box (string id)
+                          "$index", box file.Index
+                          "$path", box (LibraryEncoding.path file.Destination) ]
 
                 for file in plan.Target |> Option.map _.Existing |> Option.defaultValue [] do
                     Sqlite.execute
@@ -303,7 +318,7 @@ module internal InstallationRows =
         let observed = files connection transaction id
 
         if
-            observed.Length <> plan.Files.Length
+            observed.Length <> (plan.Files |> List.distinctBy _.Index |> List.length)
             || observed
                |> List.exists (fun f ->
                    f.Digest.IsNone || (f.Identity.IsNone && f.Reused.IsNone) || f.Length.IsNone)
@@ -360,10 +375,11 @@ module internal InstallationRows =
             Sqlite.execute
                 connection
                 transaction
-                "INSERT INTO mod_manifest VALUES($version,$path,$payload)"
+                "INSERT INTO mod_manifest SELECT $version,path,$payload FROM installation_destinations WHERE installation_id=$id AND entry_index=$index"
                 [ "$version", box (string version)
-                  "$path", box (LibraryEncoding.path file.Destination)
-                  "$payload", box (string payloadId) ]
+                  "$payload", box (string payloadId)
+                  "$id", box (string id)
+                  "$index", box file.Index ]
 
         Sqlite.execute
             connection

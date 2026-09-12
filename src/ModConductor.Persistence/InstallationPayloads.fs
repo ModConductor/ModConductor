@@ -65,7 +65,7 @@ type internal InstallationPayloads(database: StateDatabase, access: LibraryAcces
         checkpoint "before-extraction"
 
         contents.ReadEntries(
-            plan.Files |> List.map _.Index,
+            plan.Files |> List.map _.Index |> List.distinct,
             fun (index, source) ->
                 token.ThrowIfCancellationRequested()
                 let file = files[index]

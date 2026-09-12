@@ -28,6 +28,25 @@ type InstallationStore
     let db action = database.EnqueueInternal action |> wait
     let refuse message = raise (InstallationException message)
 
+    let draftReference (workspace, id, revision) =
+        if closing then
+            refuse "The app is closing."
+
+        match drafts.TryGetValue workspace with
+        | true, draft when draft.Id = id && draft.Revision = revision -> draft
+        | _ -> refuse "The installation preview changed. Open it again."
+
+    let choices =
+        FomodDrafts(
+            database,
+            inspection,
+            gate,
+            draftReference,
+            fun draft ->
+                drafts[draft.Artifact.WorkspaceId] <- draft
+                updates.Remove draft.Artifact.WorkspaceId |> ignore
+        )
+
     let snapshot workspace id =
         InstallationRows.find connection null workspace id
         |> Option.defaultWith (fun () -> refuse "This installation is no longer available.")
@@ -105,8 +124,27 @@ type InstallationStore
             try
                 let! artifact = artifacts.Read(reference.WorkspaceId, reference.Id)
                 let artifact = artifactResult artifact
-                let! manifest = inspection.Inspect(reference, token)
-                let draft = Layout.prepare reference artifact.OriginalName (artifactResult manifest)
+
+                let! prepared =
+                    inspection.WithContents(
+                        reference,
+                        token,
+                        fun contents ->
+                            Layout.prepare reference artifact.OriginalName contents.Manifest,
+                            ModConductor.Fomod.ArchiveInput.read contents
+                    )
+
+                let draft, input = artifactResult prepared
+
+                let available =
+                    match input with
+                    | ModConductor.Fomod.InstallerInput.Absent -> false
+                    | _ -> true
+
+                let draft =
+                    { draft with
+                        ChoiceInstaller = available
+                        Plan = if available then None else draft.Plan }
 
                 return
                     lock gate (fun () ->
@@ -114,13 +152,19 @@ type InstallationStore
                             raise (OperationCanceledException())
 
                         drafts[reference.WorkspaceId] <- draft
+                        choices.Prepared(draft, input)
                         draft)
             finally
                 lock gate (fun () -> preparing.Remove reference.WorkspaceId |> ignore)
         }
 
+    member _.Fomod = choices
+
     member _.Change(workspace, id, revision, change) =
         lock gate (fun () ->
+            if choices.Active workspace then
+                refuse "Return to the manual layout before changing these files."
+
             match drafts.TryGetValue workspace with
             | true, draft when draft.Id = id && draft.Revision = revision ->
                 let next = Layout.change draft change
@@ -135,6 +179,7 @@ type InstallationStore
             | true, draft when draft.Id = id ->
                 drafts.Remove workspace |> ignore
                 updates.Remove workspace |> ignore
+                choices.Close workspace
             | _ -> ())
 
     member private _.StartPlan(id, plan, checkpoint) =
@@ -153,7 +198,14 @@ type InstallationStore
                 refuse "Two installations are already active. Wait for one to finish."
 
             let snapshot, fresh =
-                db (fun () -> InstallationRows.reserve connection database.OwnerId id plan)
+                db (fun () ->
+                    InstallationRows.reserve
+                        connection
+                        database.OwnerId
+                        id
+                        plan
+                        (fun transaction ->
+                            choices.Check connection transaction plan.Artifact.WorkspaceId))
 
             if fresh then
                 let cancellation = new CancellationTokenSource()

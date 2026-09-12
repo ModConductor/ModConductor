@@ -343,6 +343,7 @@ class ArchiveInstallationDraft extends $pb.GeneratedMessage {
     $core.String? version,
     $fixnum.Int64? bytes,
     $core.bool? canInstall,
+    $core.bool? choiceInstaller,
   }) {
     final result = create();
     if (reference != null) result.reference = reference;
@@ -355,6 +356,7 @@ class ArchiveInstallationDraft extends $pb.GeneratedMessage {
     if (version != null) result.version = version;
     if (bytes != null) result.bytes = bytes;
     if (canInstall != null) result.canInstall = canInstall;
+    if (choiceInstaller != null) result.choiceInstaller = choiceInstaller;
     return result;
   }
 
@@ -387,6 +389,7 @@ class ArchiveInstallationDraft extends $pb.GeneratedMessage {
     ..a<$fixnum.Int64>(9, _omitFieldNames ? '' : 'bytes', $pb.PbFieldType.OU6,
         defaultOrMaker: $fixnum.Int64.ZERO)
     ..aOB(10, _omitFieldNames ? '' : 'canInstall')
+    ..aOB(11, _omitFieldNames ? '' : 'choiceInstaller')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -492,6 +495,15 @@ class ArchiveInstallationDraft extends $pb.GeneratedMessage {
   $core.bool hasCanInstall() => $_has(9);
   @$pb.TagNumber(10)
   void clearCanInstall() => $_clearField(10);
+
+  @$pb.TagNumber(11)
+  $core.bool get choiceInstaller => $_getBF(10);
+  @$pb.TagNumber(11)
+  set choiceInstaller($core.bool value) => $_setBool(10, value);
+  @$pb.TagNumber(11)
+  $core.bool hasChoiceInstaller() => $_has(10);
+  @$pb.TagNumber(11)
+  void clearChoiceInstaller() => $_clearField(11);
 }
 
 class InstallationRoot extends $pb.GeneratedMessage {

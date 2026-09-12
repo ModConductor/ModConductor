@@ -81,6 +81,14 @@ class InstallationController extends ChangeNotifier {
     }
   }
 
+  void adoptDraft(InstallationDraft value) {
+    if (!canEdit) return;
+    draft = value;
+    updatePreview = null;
+    problem = null;
+    _notify();
+  }
+
   Future<void> install() async {
     final current = draft;
     if (busy || current == null || !current.canInstall || status != null)

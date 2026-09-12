@@ -78,6 +78,7 @@ class ModConductorApp extends StatefulWidget {
     this.artifacts,
     this.installations,
     this.maintenance,
+    this.fomod,
     this.chooseArchive = _chooseArchive,
     this.chooseExecutable = _chooseExecutable,
     this.steamDiscovery,
@@ -100,6 +101,7 @@ class ModConductorApp extends StatefulWidget {
   final ArtifactsClient? artifacts;
   final InstallationsClient? installations;
   final MaintenanceClient? maintenance;
+  final FomodClient? fomod;
   final ArchiveChooser chooseArchive;
   final ExecutablePathChooser chooseExecutable;
   final SteamDiscoveryClient? steamDiscovery;
@@ -356,6 +358,8 @@ class _ModConductorAppState extends State<ModConductorApp> {
                         : (context, workspace, openMods) => ArtifactBrowser(
                             controller: _artifacts,
                             installations: widget.installations,
+                            fomod: widget.fomod,
+                            profileId: workspace.selectedProfile?.id,
                             maintenance: widget.maintenance,
                             updateTargets:
                                 widget.modOrganization == null ||

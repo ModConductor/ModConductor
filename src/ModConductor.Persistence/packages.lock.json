@@ -130,6 +130,13 @@
           "ModConductor.GameContexts": "[1.0.0, )"
         }
       },
+      "modconductor.fomod": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )",
+          "ModConductor.ArchiveInstallation": "[1.0.0, )"
+        }
+      },
       "modconductor.gamecontexts": {
         "type": "Project",
         "dependencies": {

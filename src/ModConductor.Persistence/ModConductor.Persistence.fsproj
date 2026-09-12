@@ -15,6 +15,7 @@
     <Compile Include="DownloadSchema.fs" />
     <Compile Include="InstallationSchema.fs" />
     <Compile Include="MaintenanceSchema.fs" />
+    <Compile Include="FomodSchema.fs" />
     <Compile Include="Sqlite.fs" />
     <Compile Include="MaintenanceClaims.fs" />
     <Compile Include="LibraryEncoding.fs" />
@@ -78,6 +79,9 @@
     <Compile Include="DownloadTarget.fs" />
     <Compile Include="DownloadRepository.fs" />
     <Compile Include="UpdateInspection.fs" />
+    <Compile Include="FomodGameFacts.fs" />
+    <Compile Include="FomodFacts.fs" />
+    <Compile Include="FomodDrafts.fs" />
     <Compile Include="InstallationRows.fs" />
     <Compile Include="InstallationPayloads.fs" />
     <Compile Include="InstallationStore.fs" />
@@ -91,6 +95,7 @@
     <Compile Include="OperationStore.fs" />
     <ProjectReference Include="../ModConductor.HttpDownloads/ModConductor.HttpDownloads.fsproj" />
     <ProjectReference Include="../ModConductor.ArchiveInstallation/ModConductor.ArchiveInstallation.fsproj" />
+    <ProjectReference Include="../ModConductor.Fomod/ModConductor.Fomod.fsproj" />
     <ProjectReference Include="../ModConductor.ModMaintenance/ModConductor.ModMaintenance.fsproj" />
     <ProjectReference Include="../ModConductor.ArchiveInspection/ModConductor.ArchiveInspection.fsproj" />
     <ProjectReference Include="../ModConductor.ArtifactLibrary/ModConductor.ArtifactLibrary.fsproj" />

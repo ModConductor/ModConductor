@@ -20,13 +20,14 @@ class InstallationDraft {
     required this.version,
     required this.bytes,
     required this.canInstall,
+    this.choiceInstaller = false,
   });
   final String id, workspaceId, artifactId, archiveName, name, version;
   final int revision, bytes;
   final InspectedArchive manifest;
   final List<String> root;
   final List<InstallationFile> files;
-  final bool canInstall;
+  final bool canInstall, choiceInstaller;
 }
 
 sealed class InstallationLayoutChange {

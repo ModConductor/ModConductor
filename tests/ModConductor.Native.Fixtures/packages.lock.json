@@ -117,6 +117,13 @@
           "ModConductor.GameContexts": "[1.0.0, )"
         }
       },
+      "modconductor.fomod": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )",
+          "ModConductor.ArchiveInstallation": "[1.0.0, )"
+        }
+      },
       "modconductor.gamecontexts": {
         "type": "Project",
         "dependencies": {
@@ -194,6 +201,7 @@
           "ModConductor.DeploymentRecovery": "[1.0.0, )",
           "ModConductor.Executables": "[1.0.0, )",
           "ModConductor.FilePlanning": "[1.0.0, )",
+          "ModConductor.Fomod": "[1.0.0, )",
           "ModConductor.GameContexts": "[1.0.0, )",
           "ModConductor.GameLaunching": "[1.0.0, )",
           "ModConductor.GeneratedOutputs": "[1.0.0, )",

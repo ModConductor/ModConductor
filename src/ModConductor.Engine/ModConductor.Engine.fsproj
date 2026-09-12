@@ -41,6 +41,8 @@
     <Compile Include="ArchiveInspectionService.fs" />
     <Compile Include="InstallationWire.fs" />
     <Compile Include="InstallationService.fs" />
+    <Compile Include="FomodWire.fs" />
+    <Compile Include="FomodService.fs" />
     <Compile Include="UpdateService.fs" />
     <Compile Include="DeletionWire.fs" />
     <Compile Include="DeletionService.fs" />

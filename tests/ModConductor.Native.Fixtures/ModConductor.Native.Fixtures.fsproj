@@ -11,6 +11,8 @@
     <Compile Include="MaintenanceDeployments.fs" />
     <Compile Include="MaintenanceFixtures.fs" />
     <Compile Include="MaintenanceRecoveryFixtures.fs" />
+    <Compile Include="FomodSamples.fs" />
+    <Compile Include="FomodFixtures.fs" />
     <Compile Include="Program.fs"/>
     <ProjectReference Include="../../src/ModConductor.DeploymentRecovery/ModConductor.DeploymentRecovery.fsproj"/>
     <ProjectReference Include="../../src/ModConductor.Platform/ModConductor.Platform.fsproj"/>

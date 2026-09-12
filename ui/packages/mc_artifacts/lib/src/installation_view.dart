@@ -1,3 +1,4 @@
+import 'fomod_view.dart';
 import 'update_form.dart';
 import 'update_view.dart';
 
@@ -20,6 +21,8 @@ class ArchiveInstallationView extends StatefulWidget {
     required this.artifact,
     required this.client,
     this.maintenance,
+    this.fomod,
+    this.profileId,
     this.updateTargets,
     required this.onBack,
     required this.onCommitted,
@@ -28,6 +31,8 @@ class ArchiveInstallationView extends StatefulWidget {
   final Artifact artifact;
   final InstallationsClient client;
   final MaintenanceClient? maintenance;
+  final FomodClient? fomod;
+  final String? profileId;
   final Future<ModQueryPage> Function(ModQueryCursor?)? updateTargets;
   final VoidCallback onBack, onCommitted, onOpenMods;
   @override
@@ -146,6 +151,28 @@ class _ArchiveInstallationViewState extends State<ArchiveInstallationView> {
           onBack: widget.onBack,
         );
       }
+      if (draft?.choiceInstaller == true &&
+          widget.fomod != null &&
+          status == null) {
+        return FomodView(
+          key: ValueKey((draft!.id, widget.fomod)),
+          client: widget.fomod!,
+          initial: draft,
+          profileId: widget.profileId,
+          available: controller.canEdit,
+          operationProblem: controller.problem,
+          onReviewed: controller.adoptDraft,
+          onManual: (value) {
+            controller.adoptDraft(value);
+            layout(!value.canInstall);
+          },
+          onInstall: () => unawaited(controller.install()),
+          onBack: widget.onBack,
+          onUpdate: widget.maintenance != null && widget.updateTargets != null
+              ? () => unawaited(updateTarget())
+              : null,
+        );
+      }
       final included = draft?.files.length ?? 0,
           omitted =
               (draft?.manifest.entries.where((e) => !e.directory).length ?? 0) -
@@ -182,7 +209,9 @@ class _ArchiveInstallationViewState extends State<ArchiveInstallationView> {
             Row(
               children: [
                 McIconAction(
-                  label: manual ? 'Back to review' : 'Back to archives',
+                  label: manual && draft?.canInstall == true
+                      ? 'Back to review'
+                      : 'Back to archives',
                   icon: const Icon(Icons.arrow_back),
                   onPressed: manual && draft?.canInstall == true
                       ? () => layout(false)

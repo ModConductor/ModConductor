@@ -37,7 +37,8 @@ type InstallationDraft =
       Files: SelectedFile list
       Name: string
       Version: string
-      Plan: InstallationPlan option }
+      Plan: InstallationPlan option
+      ChoiceInstaller: bool }
 
 [<RequireQualifiedAccess>]
 type LayoutChange =

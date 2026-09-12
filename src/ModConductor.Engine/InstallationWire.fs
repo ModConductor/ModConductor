@@ -15,7 +15,8 @@ module internal InstallationWire =
             with error ->
                 let message =
                     match error with
-                    | :? InstallationException -> Some error.Message
+                    | :? InstallationException
+                    | :? ModConductor.Fomod.FomodException -> Some error.Message
                     | _ -> ArchiveFailure.message error
 
                 match message with
@@ -52,7 +53,8 @@ module internal InstallationWire =
                 Name = value.Name,
                 Version = value.Version,
                 Bytes = uint64 (value.Plan |> Option.map _.Bytes |> Option.defaultValue 0L),
-                CanInstall = value.Plan.IsSome
+                CanInstall = value.Plan.IsSome,
+                ChoiceInstaller = value.ChoiceInstaller
             )
 
         result.Root.AddRange value.Root

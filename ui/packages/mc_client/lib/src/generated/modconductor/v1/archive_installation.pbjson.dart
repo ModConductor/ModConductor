@@ -140,6 +140,7 @@ const ArchiveInstallationDraft$json = {
     {'1': 'version', '3': 8, '4': 1, '5': 9, '10': 'version'},
     {'1': 'bytes', '3': 9, '4': 1, '5': 4, '10': 'bytes'},
     {'1': 'can_install', '3': 10, '4': 1, '5': 8, '10': 'canInstall'},
+    {'1': 'choice_installer', '3': 11, '4': 1, '5': 8, '10': 'choiceInstaller'},
   ],
 };
 
@@ -152,7 +153,8 @@ final $typed_data.Uint8List archiveInstallationDraftDescriptor = $convert.base64
     'b2Rjb25kdWN0b3IudjEuSW5zcGVjdGVkQXJjaGl2ZVIIbWFuaWZlc3QSEgoEcm9vdBgFIAMoCV'
     'IEcm9vdBI3CgVmaWxlcxgGIAMoCzIhLm1vZGNvbmR1Y3Rvci52MS5JbnN0YWxsYXRpb25GaWxl'
     'UgVmaWxlcxISCgRuYW1lGAcgASgJUgRuYW1lEhgKB3ZlcnNpb24YCCABKAlSB3ZlcnNpb24SFA'
-    'oFYnl0ZXMYCSABKARSBWJ5dGVzEh8KC2Nhbl9pbnN0YWxsGAogASgIUgpjYW5JbnN0YWxs');
+    'oFYnl0ZXMYCSABKARSBWJ5dGVzEh8KC2Nhbl9pbnN0YWxsGAogASgIUgpjYW5JbnN0YWxsEikK'
+    'EGNob2ljZV9pbnN0YWxsZXIYCyABKAhSD2Nob2ljZUluc3RhbGxlcg==');
 
 @$core.Deprecated('Use installationRootDescriptor instead')
 const InstallationRoot$json = {

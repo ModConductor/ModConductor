@@ -29,6 +29,7 @@ message ArchiveInstallationDraft {
   string version = 8;
   uint64 bytes = 9;
   bool can_install = 10;
+  bool choice_installer = 11;
 }
 message InstallationRoot { repeated string components = 1; }
 message InstallationInclusion { repeated string source = 1; bool included = 2; }

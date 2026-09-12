@@ -20,3 +20,5 @@ export 'src/profile_data_client.dart';
 export 'src/artifact_client.dart';
 export 'src/installation_client.dart';
 export 'src/maintenance_client.dart';
+
+export 'src/fomod_client.dart';
