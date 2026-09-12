@@ -33,6 +33,12 @@ module internal InstallationWire =
         ModLibraryWire.id reference.Id,
         ModLibraryWire.number reference.Revision
 
+    let mode value =
+        match value with
+        | InstallationMode.Manual -> ArchiveInstaller.Manual
+        | InstallationMode.Fomod -> ArchiveInstaller.Fomod
+        | InstallationMode.Bain -> ArchiveInstaller.Bain
+
     let draft (value: InstallationDraft) =
         let result =
             ArchiveInstallationDraft(
@@ -54,9 +60,11 @@ module internal InstallationWire =
                 Version = value.Version,
                 Bytes = uint64 (value.Plan |> Option.map _.Bytes |> Option.defaultValue 0L),
                 CanInstall = value.Plan.IsSome,
-                ChoiceInstaller = value.ChoiceInstaller
+                Installer = mode value.Installer
             )
 
+        result.AvailableInstallers.AddRange(value.AvailableInstallers |> List.map mode)
+        result.WizardScripts.AddRange(value.WizardScripts |> List.map LogicalPath.display)
         result.Root.AddRange value.Root
 
         for file in value.Files do

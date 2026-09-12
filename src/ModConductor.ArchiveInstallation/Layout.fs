@@ -35,18 +35,7 @@ module Layout =
                 None)
 
     let private quickRoot manifest =
-        let markers =
-            set
-                [ "textures"
-                  "meshes"
-                  "scripts"
-                  "interface"
-                  "sound"
-                  "music"
-                  "strings"
-                  "seq"
-                  "grass"
-                  "skse" ]
+        let markers = DataLayout.directories
 
         let candidates =
             files manifest
@@ -186,7 +175,9 @@ module Layout =
                  suggested)
           Version = ""
           Plan = None
-          ChoiceInstaller = false }
+          Installer = InstallationMode.Manual
+          AvailableInstallers = [ InstallationMode.Manual ]
+          WizardScripts = [] }
         |> finish
 
     let change (draft: InstallationDraft) change =

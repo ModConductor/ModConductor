@@ -9,6 +9,18 @@ open ModConductor.ModLibrary
 type SelectedFile =
     { Index: int; Destination: LogicalPath }
 
+type ReviewedFile =
+    { File: SelectedFile
+      Source: LogicalPath
+      Choice: string
+      Replaces: LogicalPath list }
+
+[<RequireQualifiedAccess>]
+type InstallationMode =
+    | Manual
+    | Fomod
+    | Bain
+
 type InstallationTarget =
     { ModId: Guid
       Revision: int64
@@ -38,7 +50,9 @@ type InstallationDraft =
       Name: string
       Version: string
       Plan: InstallationPlan option
-      ChoiceInstaller: bool }
+      Installer: InstallationMode
+      AvailableInstallers: InstallationMode list
+      WizardScripts: LogicalPath list }
 
 [<RequireQualifiedAccess>]
 type LayoutChange =

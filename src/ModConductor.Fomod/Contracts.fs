@@ -122,14 +122,8 @@ type Wizard =
       Future: Page list
       Problem: string option }
 
-type PlannedFile =
-    { File: SelectedFile
-      Source: LogicalPath
-      Choice: string
-      Replaces: LogicalPath list }
-
 type PlannedChoices =
-    { Files: PlannedFile list
+    { Files: ReviewedFile list
       Name: string
       Version: string }
 

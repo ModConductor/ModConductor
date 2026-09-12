@@ -79,6 +79,7 @@ class ModConductorApp extends StatefulWidget {
     this.installations,
     this.maintenance,
     this.fomod,
+    this.bain,
     this.chooseArchive = _chooseArchive,
     this.chooseExecutable = _chooseExecutable,
     this.steamDiscovery,
@@ -102,6 +103,7 @@ class ModConductorApp extends StatefulWidget {
   final InstallationsClient? installations;
   final MaintenanceClient? maintenance;
   final FomodClient? fomod;
+  final BainClient? bain;
   final ArchiveChooser chooseArchive;
   final ExecutablePathChooser chooseExecutable;
   final SteamDiscoveryClient? steamDiscovery;
@@ -359,6 +361,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
                             controller: _artifacts,
                             installations: widget.installations,
                             fomod: widget.fomod,
+                            bain: widget.bain,
                             profileId: workspace.selectedProfile?.id,
                             maintenance: widget.maintenance,
                             updateTargets:

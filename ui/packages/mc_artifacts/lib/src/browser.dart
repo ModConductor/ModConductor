@@ -24,6 +24,7 @@ class ArtifactBrowser extends StatefulWidget {
     this.installations,
     this.maintenance,
     this.fomod,
+    this.bain,
     this.profileId,
     this.updateTargets,
     this.onInstalled,
@@ -35,6 +36,7 @@ class ArtifactBrowser extends StatefulWidget {
   final InstallationsClient? installations;
   final MaintenanceClient? maintenance;
   final FomodClient? fomod;
+  final BainClient? bain;
   final String? profileId;
   final Future<ModQueryPage> Function(ModQueryCursor?)? updateTargets;
   final Future<void> Function()? onInstalled;
@@ -181,6 +183,7 @@ class _ArtifactBrowserState extends State<ArtifactBrowser> {
             client: widget.installations!,
             maintenance: widget.maintenance,
             fomod: widget.fomod,
+            bain: widget.bain,
             profileId: widget.profileId,
             updateTargets: widget.updateTargets,
             onBack: () => setState(() => installing = null),

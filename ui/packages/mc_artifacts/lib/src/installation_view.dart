@@ -1,4 +1,5 @@
 import 'fomod_view.dart';
+import 'bain_view.dart';
 import 'update_form.dart';
 import 'update_view.dart';
 
@@ -22,6 +23,7 @@ class ArchiveInstallationView extends StatefulWidget {
     required this.client,
     this.maintenance,
     this.fomod,
+    this.bain,
     this.profileId,
     this.updateTargets,
     required this.onBack,
@@ -32,6 +34,7 @@ class ArchiveInstallationView extends StatefulWidget {
   final InstallationsClient client;
   final MaintenanceClient? maintenance;
   final FomodClient? fomod;
+  final BainClient? bain;
   final String? profileId;
   final Future<ModQueryPage> Function(ModQueryCursor?)? updateTargets;
   final VoidCallback onBack, onCommitted, onOpenMods;
@@ -151,12 +154,34 @@ class _ArchiveInstallationViewState extends State<ArchiveInstallationView> {
           onBack: widget.onBack,
         );
       }
-      if (draft?.choiceInstaller == true &&
+      if (draft?.installer == InstallationMode.bain &&
+          widget.bain != null &&
+          status == null) {
+        return BainView(
+          key: ValueKey((draft!.id, widget.bain)),
+          client: widget.bain!,
+          initial: draft,
+          available: controller.canEdit,
+          operationProblem: controller.problem,
+          onReviewed: controller.adoptDraft,
+          onModeChanged: (value) {
+            controller.adoptDraft(value);
+            layout(!value.canInstall);
+          },
+          onInstall: () => unawaited(controller.install()),
+          onBack: widget.onBack,
+          onUpdate: widget.maintenance != null && widget.updateTargets != null
+              ? () => unawaited(updateTarget())
+              : null,
+        );
+      }
+      if (draft?.installer == InstallationMode.fomod &&
           widget.fomod != null &&
           status == null) {
         return FomodView(
           key: ValueKey((draft!.id, widget.fomod)),
           client: widget.fomod!,
+          packages: widget.bain,
           initial: draft,
           profileId: widget.profileId,
           available: controller.canEdit,
@@ -209,11 +234,12 @@ class _ArchiveInstallationViewState extends State<ArchiveInstallationView> {
             Row(
               children: [
                 McIconAction(
-                  label: manual && draft?.canInstall == true
+                  label: status == null && manual && draft?.canInstall == true
                       ? 'Back to review'
                       : 'Back to archives',
                   icon: const Icon(Icons.arrow_back),
-                  onPressed: manual && draft?.canInstall == true
+                  onPressed:
+                      status == null && manual && draft?.canInstall == true
                       ? () => layout(false)
                       : widget.onBack,
                 ),
@@ -345,6 +371,13 @@ class _ArchiveInstallationViewState extends State<ArchiveInstallationView> {
                                 ? '$included ${included == 1 ? 'file' : 'files'} · ${archiveSize(draft.bytes)} · Mod starts disabled'
                                 : '$included ${included == 1 ? 'file' : 'files'} · ${archiveSize(draft.bytes)} · $omitted excluded',
                             filterActions: [
+                              if (draft.wizardScripts.isNotEmpty) ...[
+                                Text(
+                                  'Wizard script not supported',
+                                  style: Theme.of(c).textTheme.bodySmall,
+                                ),
+                                const SizedBox(width: 8),
+                              ],
                               if (narrow) ...[
                                 if (manual)
                                   rootChoice()

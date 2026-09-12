@@ -343,7 +343,9 @@ class ArchiveInstallationDraft extends $pb.GeneratedMessage {
     $core.String? version,
     $fixnum.Int64? bytes,
     $core.bool? canInstall,
-    $core.bool? choiceInstaller,
+    ArchiveInstaller? installer,
+    $core.Iterable<ArchiveInstaller>? availableInstallers,
+    $core.Iterable<$core.String>? wizardScripts,
   }) {
     final result = create();
     if (reference != null) result.reference = reference;
@@ -356,7 +358,10 @@ class ArchiveInstallationDraft extends $pb.GeneratedMessage {
     if (version != null) result.version = version;
     if (bytes != null) result.bytes = bytes;
     if (canInstall != null) result.canInstall = canInstall;
-    if (choiceInstaller != null) result.choiceInstaller = choiceInstaller;
+    if (installer != null) result.installer = installer;
+    if (availableInstallers != null)
+      result.availableInstallers.addAll(availableInstallers);
+    if (wizardScripts != null) result.wizardScripts.addAll(wizardScripts);
     return result;
   }
 
@@ -389,7 +394,14 @@ class ArchiveInstallationDraft extends $pb.GeneratedMessage {
     ..a<$fixnum.Int64>(9, _omitFieldNames ? '' : 'bytes', $pb.PbFieldType.OU6,
         defaultOrMaker: $fixnum.Int64.ZERO)
     ..aOB(10, _omitFieldNames ? '' : 'canInstall')
-    ..aOB(11, _omitFieldNames ? '' : 'choiceInstaller')
+    ..aE<ArchiveInstaller>(12, _omitFieldNames ? '' : 'installer',
+        enumValues: ArchiveInstaller.values)
+    ..pc<ArchiveInstaller>(
+        13, _omitFieldNames ? '' : 'availableInstallers', $pb.PbFieldType.KE,
+        valueOf: ArchiveInstaller.valueOf,
+        enumValues: ArchiveInstaller.values,
+        defaultEnumValue: ArchiveInstaller.ARCHIVE_INSTALLER_MANUAL)
+    ..pPS(14, _omitFieldNames ? '' : 'wizardScripts')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -496,14 +508,20 @@ class ArchiveInstallationDraft extends $pb.GeneratedMessage {
   @$pb.TagNumber(10)
   void clearCanInstall() => $_clearField(10);
 
-  @$pb.TagNumber(11)
-  $core.bool get choiceInstaller => $_getBF(10);
-  @$pb.TagNumber(11)
-  set choiceInstaller($core.bool value) => $_setBool(10, value);
-  @$pb.TagNumber(11)
-  $core.bool hasChoiceInstaller() => $_has(10);
-  @$pb.TagNumber(11)
-  void clearChoiceInstaller() => $_clearField(11);
+  @$pb.TagNumber(12)
+  ArchiveInstaller get installer => $_getN(10);
+  @$pb.TagNumber(12)
+  set installer(ArchiveInstaller value) => $_setField(12, value);
+  @$pb.TagNumber(12)
+  $core.bool hasInstaller() => $_has(10);
+  @$pb.TagNumber(12)
+  void clearInstaller() => $_clearField(12);
+
+  @$pb.TagNumber(13)
+  $pb.PbList<ArchiveInstaller> get availableInstallers => $_getList(11);
+
+  @$pb.TagNumber(14)
+  $pb.PbList<$core.String> get wizardScripts => $_getList(12);
 }
 
 class InstallationRoot extends $pb.GeneratedMessage {

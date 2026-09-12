@@ -184,6 +184,9 @@ let run args =
         .AddServiceOptions<ModConductor.Engine.DeletionService>(fun options ->
             options.MaxReceiveMessageSize <- Nullable 4096
             options.MaxSendMessageSize <- Nullable(16 * 1024 * 1024))
+        .AddServiceOptions<ModConductor.Engine.BainService>(fun options ->
+            options.MaxReceiveMessageSize <- Nullable(16 * 1024)
+            options.MaxSendMessageSize <- Nullable(16 * 1024 * 1024))
         .AddServiceOptions<ModConductor.Engine.FomodService>(fun options ->
             options.MaxReceiveMessageSize <- Nullable(16 * 1024)
             options.MaxSendMessageSize <- Nullable(16 * 1024 * 1024))
@@ -249,6 +252,7 @@ let run args =
     app.MapGrpcService<ModConductor.Engine.ArchiveInspectionService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.InstallationService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.FomodService>() |> ignore
+    app.MapGrpcService<ModConductor.Engine.BainService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.UpdateService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.DeletionService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.DownloadService>() |> ignore

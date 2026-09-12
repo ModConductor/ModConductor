@@ -47,6 +47,16 @@ type InstallationStore
                 updates.Remove draft.Artifact.WorkspaceId |> ignore
         )
 
+    let packages =
+        BainDrafts(
+            inspection,
+            gate,
+            draftReference,
+            fun draft ->
+                drafts[draft.Artifact.WorkspaceId] <- draft
+                updates.Remove draft.Artifact.WorkspaceId |> ignore
+        )
+
     let snapshot workspace id =
         InstallationRows.find connection null workspace id
         |> Option.defaultWith (fun () -> refuse "This installation is no longer available.")
@@ -131,20 +141,46 @@ type InstallationStore
                         token,
                         fun contents ->
                             Layout.prepare reference artifact.OriginalName contents.Manifest,
-                            ModConductor.Fomod.ArchiveInput.read contents
+                            ModConductor.Fomod.ArchiveInput.read contents,
+                            ModConductor.Bain.Detection.inspect contents.Manifest
                     )
 
-                let draft, input = artifactResult prepared
+                let original, input, packageInput = artifactResult prepared
 
-                let available =
+                let fomod =
                     match input with
                     | ModConductor.Fomod.InstallerInput.Absent -> false
                     | _ -> true
 
+                let bain = packageInput.Definition.IsSome || packageInput.Problem.IsSome
+
+                let available =
+                    [ InstallationMode.Manual
+                      if fomod then
+                          InstallationMode.Fomod
+                      if bain then
+                          InstallationMode.Bain ]
+
+                let mode =
+                    match input with
+                    | ModConductor.Fomod.InstallerInput.Xml _ -> InstallationMode.Fomod
+                    | _ when bain -> InstallationMode.Bain
+                    | _ when fomod -> InstallationMode.Fomod
+                    | _ -> InstallationMode.Manual
+
+                let original =
+                    { original with
+                        AvailableInstallers = available
+                        WizardScripts = packageInput.Scripts }
+
                 let draft =
-                    { draft with
-                        ChoiceInstaller = available
-                        Plan = if available then None else draft.Plan }
+                    { original with
+                        Installer = mode
+                        Plan =
+                            if mode = InstallationMode.Manual then
+                                original.Plan
+                            else
+                                None }
 
                 return
                     lock gate (fun () ->
@@ -153,16 +189,42 @@ type InstallationStore
 
                         drafts[reference.WorkspaceId] <- draft
                         choices.Prepared(draft, input)
+                        packages.Prepared(original, packageInput)
                         draft)
             finally
                 lock gate (fun () -> preparing.Remove reference.WorkspaceId |> ignore)
         }
 
     member _.Fomod = choices
+    member _.Bain = packages
+
+    member _.UseInstaller(workspace, id, revision, mode) =
+        lock gate (fun () ->
+            let current = draftReference (workspace, id, revision)
+
+            if not (List.contains mode current.AvailableInstallers) then
+                refuse "This installer is not available for this archive."
+
+            let manual =
+                match current.Installer with
+                | InstallationMode.Fomod -> choices.Manual(workspace, id, revision)
+                | InstallationMode.Bain -> packages.Manual(workspace, id, revision)
+                | InstallationMode.Manual -> current
+
+            let next =
+                { manual with
+                    Revision = manual.Revision + 1L
+                    Installer = mode
+                    Plan = if mode = InstallationMode.Manual then manual.Plan else None }
+
+            drafts[workspace] <- next
+            updates.Remove workspace |> ignore
+            next)
+
 
     member _.Change(workspace, id, revision, change) =
         lock gate (fun () ->
-            if choices.Active workspace then
+            if (draftReference (workspace, id, revision)).Installer <> InstallationMode.Manual then
                 refuse "Return to the manual layout before changing these files."
 
             match drafts.TryGetValue workspace with
@@ -180,6 +242,7 @@ type InstallationStore
                 drafts.Remove workspace |> ignore
                 updates.Remove workspace |> ignore
                 choices.Close workspace
+                packages.Close workspace
             | _ -> ())
 
     member private _.StartPlan(id, plan, checkpoint) =

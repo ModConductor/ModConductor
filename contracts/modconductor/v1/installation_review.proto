@@ -1,0 +1,12 @@
+syntax = "proto3";
+package modconductor.v1;
+option csharp_namespace = "ModConductor.Protocol.V1";
+message InstallationSourcePath { repeated string path = 1; }
+message InstallationReviewedFile {
+  uint32 index = 1;
+  repeated string destination = 2;
+  repeated string source = 3;
+  string choice = 4;
+  uint64 bytes = 5;
+  repeated InstallationSourcePath replaces = 6;
+}

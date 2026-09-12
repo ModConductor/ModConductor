@@ -116,8 +116,6 @@ type FomodDrafts
         inputs.Remove workspace |> ignore
         sessions.Remove workspace |> ignore
 
-    member internal _.Active workspace = sessions.ContainsKey workspace
-
     member internal _.Check connection transaction workspace =
         match sessions.TryGetValue workspace with
         | true, session -> session.Facts |> Option.iter (FomodFacts.current connection transaction)
@@ -128,6 +126,9 @@ type FomodDrafts
             let draft, original, input =
                 lock gate (fun () ->
                     let draft = getDraft (workspace, id, revision)
+
+                    if draft.Installer <> InstallationMode.Fomod then
+                        refuse "Open the XML installer first."
 
                     match inputs.TryGetValue workspace with
                     | true, input ->
@@ -233,11 +234,10 @@ type FomodDrafts
                 { chosen with
                     Revision = revision + 1L
                     Root = original.Root
-                    ChoiceInstaller = false }
+                    Installer = InstallationMode.Manual }
 
             saveDraft draft
             sessions.Remove workspace |> ignore
-            inputs.Remove workspace |> ignore
             draft)
 
     member _.Image(workspace, id, revision, path: string list, token: CancellationToken) =

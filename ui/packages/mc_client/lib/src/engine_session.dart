@@ -1,4 +1,5 @@
 import 'fomod_client.dart';
+import 'bain_client.dart';
 import 'maintenance_client.dart';
 import 'installation_client.dart';
 import 'artifact_client.dart';
@@ -38,6 +39,8 @@ class EngineSession {
   ProtonContextsClient get protonContexts => _protonContexts!;
   SteamDiscoveryClient? _steamDiscovery;
   SteamDiscoveryClient get steamDiscovery => _steamDiscovery!;
+  BainClient? _bain;
+  BainClient get bain => _bain!;
   FomodClient? _fomod;
   FomodClient get fomod => _fomod!;
   MaintenanceClient? _maintenance;
@@ -121,6 +124,7 @@ class EngineSession {
       channel,
       CallOptions(metadata: options.metadata),
     );
+    _bain = GrpcBainClient(channel, CallOptions(metadata: options.metadata));
     _fomod = GrpcFomodClient(channel, CallOptions(metadata: options.metadata));
     _maintenance = GrpcMaintenanceClient(
       channel,

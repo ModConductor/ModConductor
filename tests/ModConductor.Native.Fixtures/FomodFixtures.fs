@@ -304,7 +304,7 @@ module FomodFixtures =
                 store.Installations.Fomod.Manual(workspace, view.Draft.Id, view.Draft.Revision)
 
             store.Installations.CloseDraft(workspace, manual.Id)
-            view.Problem.IsSome && not manual.ChoiceInstaller
+            view.Problem.IsSome && manual.Installer = InstallationMode.Manual
 
         check
             "ExternalEntityAndMalformedXmlHaveManualExit"

@@ -3,13 +3,17 @@ import 'package:mc_client/mc_client.dart';
 
 class FomodController extends ChangeNotifier {
   FomodController(this.client, InstallationDraft draft)
-    : _initial = FomodReference(draft.workspaceId, draft.id, draft.revision);
+    : _initial = InstallationDraftReference(
+        draft.workspaceId,
+        draft.id,
+        draft.revision,
+      );
   final FomodClient client;
-  final FomodReference _initial;
+  final InstallationDraftReference _initial;
   FomodChoices? value;
   String? problem;
   bool busy = false, _disposed = false;
-  FomodReference get reference => value?.reference ?? _initial;
+  InstallationDraftReference get reference => value?.reference ?? _initial;
   void _notify() {
     if (!_disposed) notifyListeners();
   }
@@ -46,13 +50,18 @@ class FomodController extends ChangeNotifier {
       _run(() => client.choose(reference, option.id, selected));
   Future<void> next() => _run(() => client.next(reference));
   Future<void> back() => _run(() => client.back(reference));
-  Future<InstallationDraft?> manual() async {
+  Future<InstallationDraft?> manual() => _leave(() => client.manual(reference));
+  Future<InstallationDraft?> packages(BainClient packages) =>
+      _leave(() => packages.useInstaller(reference, InstallationMode.bain));
+  Future<InstallationDraft?> _leave(
+    Future<InstallationDraft> Function() action,
+  ) async {
     if (busy || _disposed) return null;
     busy = true;
     problem = null;
     _notify();
     try {
-      return await client.manual(reference);
+      return await action();
     } on Exception catch (error) {
       if (!_disposed) problem = _message(error);
       return null;

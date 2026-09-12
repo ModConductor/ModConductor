@@ -43,5 +43,27 @@ class InstallationPhase extends $pb.ProtobufEnum {
   const InstallationPhase._(super.value, super.name);
 }
 
+class ArchiveInstaller extends $pb.ProtobufEnum {
+  static const ArchiveInstaller ARCHIVE_INSTALLER_MANUAL =
+      ArchiveInstaller._(0, _omitEnumNames ? '' : 'ARCHIVE_INSTALLER_MANUAL');
+  static const ArchiveInstaller ARCHIVE_INSTALLER_FOMOD =
+      ArchiveInstaller._(1, _omitEnumNames ? '' : 'ARCHIVE_INSTALLER_FOMOD');
+  static const ArchiveInstaller ARCHIVE_INSTALLER_BAIN =
+      ArchiveInstaller._(2, _omitEnumNames ? '' : 'ARCHIVE_INSTALLER_BAIN');
+
+  static const $core.List<ArchiveInstaller> values = <ArchiveInstaller>[
+    ARCHIVE_INSTALLER_MANUAL,
+    ARCHIVE_INSTALLER_FOMOD,
+    ARCHIVE_INSTALLER_BAIN,
+  ];
+
+  static final $core.List<ArchiveInstaller?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 2);
+  static ArchiveInstaller? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const ArchiveInstaller._(super.value, super.name);
+}
+
 const $core.bool _omitEnumNames =
     $core.bool.fromEnvironment('protobuf.omit_enum_names');

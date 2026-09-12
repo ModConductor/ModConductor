@@ -1,0 +1,34 @@
+syntax = "proto3";
+package modconductor.v1;
+option csharp_namespace = "ModConductor.Protocol.V1";
+import "modconductor/v1/archive_installation.proto";
+import "modconductor/v1/installation_review.proto";
+service BainInstallation {
+  rpc OpenPackageChoices(InstallationDraftReference) returns (BainChoices);
+  rpc SelectPackageFolder(BainFolderSelection) returns (BainChoices);
+  rpc SelectAllPackageFolders(BainAllFoldersSelection) returns (BainChoices);
+  rpc IncludePackageFile(BainFileSelection) returns (BainChoices);
+  rpc ReviewPackageFiles(InstallationDraftReference) returns (BainChoices);
+  rpc BackToPackageFolders(InstallationDraftReference) returns (BainChoices);
+  rpc ReadPackageFolder(BainFolderReference) returns (BainFolderFiles);
+  rpc ReadPackageNotes(InstallationDraftReference) returns (BainPackageNotes);
+  rpc SelectArchiveInstaller(ArchiveInstallerChange) returns (ArchiveInstallationDraft);
+}
+message ArchiveInstallerChange { InstallationDraftReference reference = 1; ArchiveInstaller installer = 2; }
+message BainFolderSelection { InstallationDraftReference reference = 1; uint32 index = 2; bool selected = 3; }
+message BainAllFoldersSelection { InstallationDraftReference reference = 1; bool selected = 2; }
+message BainFileSelection { InstallationDraftReference reference = 1; repeated string path = 2; bool included = 3; }
+message BainFolderReference { InstallationDraftReference reference = 1; uint32 index = 2; }
+message BainPackageNotes { string text = 1; }
+message BainFolderFiles { repeated InstallationReviewedFile files = 1; }
+message BainPackage { uint32 index = 1; string name = 2; uint32 files = 3; uint64 bytes = 4; bool selected = 5; }
+message BainReviewedFile { InstallationReviewedFile file = 1; bool included = 2; }
+message BainChoices {
+  InstallationDraftReference reference = 1;
+  repeated BainPackage packages = 2;
+  repeated BainReviewedFile files = 3;
+  bool reviewing = 4;
+  bool has_notes = 5;
+  optional string problem = 6;
+  ArchiveInstallationDraft reviewed_draft = 7;
+}

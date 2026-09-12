@@ -26,61 +26,58 @@ namespace ModConductor.Protocol.V1 {
           string.Concat(
             "Chttb2Rjb25kdWN0b3IvdjEvZm9tb2QucHJvdG8SD21vZGNvbmR1Y3Rvci52",
             "MRoqbW9kY29uZHVjdG9yL3YxL2FyY2hpdmVfaW5zdGFsbGF0aW9uLnByb3Rv",
-            "ImIKEE9wZW5Gb21vZENob2ljZXMSOgoFZHJhZnQYASABKAsyKy5tb2Rjb25k",
-            "dWN0b3IudjEuSW5zdGFsbGF0aW9uRHJhZnRSZWZlcmVuY2USEgoKcHJvZmls",
-            "ZV9pZBgCIAEoCSJ0ChFGb21vZENob2ljZUNoYW5nZRI6CgVkcmFmdBgBIAEo",
-            "CzIrLm1vZGNvbmR1Y3Rvci52MS5JbnN0YWxsYXRpb25EcmFmdFJlZmVyZW5j",
-            "ZRIRCglvcHRpb25faWQYAiABKA0SEAoIc2VsZWN0ZWQYAyABKAgiXQoRRm9t",
-            "b2RJbWFnZVJlcXVlc3QSOgoFZHJhZnQYASABKAsyKy5tb2Rjb25kdWN0b3Iu",
-            "djEuSW5zdGFsbGF0aW9uRHJhZnRSZWZlcmVuY2USDAoEcGF0aBgCIAMoCSId",
-            "CgpGb21vZEltYWdlEg8KB2NvbnRlbnQYASABKAwiwwEKC0ZvbW9kT3B0aW9u",
-            "EgoKAmlkGAEgASgNEgwKBG5hbWUYAiABKAkSEwoLZGVzY3JpcHRpb24YAyAB",
-            "KAkSLgoEa2luZBgEIAEoDjIgLm1vZGNvbmR1Y3Rvci52MS5Gb21vZE9wdGlv",
-            "bktpbmQSEAoIc2VsZWN0ZWQYBSABKAgSEgoKY2FuX2NoYW5nZRgGIAEoCBIN",
-            "CgVpbWFnZRgHIAMoCRIUCgdwcm9ibGVtGAggASgJSACIAQFCCgoIX3Byb2Js",
-            "ZW0ieAoKRm9tb2RHcm91cBIMCgRuYW1lGAEgASgJEi0KBGtpbmQYAiABKA4y",
-            "Hy5tb2Rjb25kdWN0b3IudjEuRm9tb2RHcm91cEtpbmQSLQoHb3B0aW9ucxgD",
-            "IAMoCzIcLm1vZGNvbmR1Y3Rvci52MS5Gb21vZE9wdGlvbiIbCgtGb21vZFNv",
-            "dXJjZRIMCgRwYXRoGAEgAygJIpUBChBGb21vZFBsYW5uZWRGaWxlEg0KBWlu",
-            "ZGV4GAEgASgNEhMKC2Rlc3RpbmF0aW9uGAIgAygJEg4KBnNvdXJjZRgDIAMo",
-            "CRIOCgZjaG9pY2UYBCABKAkSDQoFYnl0ZXMYBSABKAQSLgoIcmVwbGFjZXMY",
-            "BiADKAsyHC5tb2Rjb25kdWN0b3IudjEuRm9tb2RTb3VyY2UirQMKDEZvbW9k",
-            "Q2hvaWNlcxI+CglyZWZlcmVuY2UYASABKAsyKy5tb2Rjb25kdWN0b3IudjEu",
-            "SW5zdGFsbGF0aW9uRHJhZnRSZWZlcmVuY2USEgoKcHJvZmlsZV9pZBgCIAEo",
-            "CRIMCgRuYW1lGAMgASgJEhEKCXN0ZXBfbmFtZRgEIAEoCRITCgtzdGVwX251",
-            "bWJlchgFIAEoDRIVCg12aXNpYmxlX3N0ZXBzGAYgASgNEhAKCGNhbl9iYWNr",
-            "GAcgASgIEhAKCGhhc19zdGVwGAggASgIEisKBmdyb3VwcxgJIAMoCzIbLm1v",
-            "ZGNvbmR1Y3Rvci52MS5Gb21vZEdyb3VwEjAKBWZpbGVzGAogAygLMiEubW9k",
-            "Y29uZHVjdG9yLnYxLkZvbW9kUGxhbm5lZEZpbGUSFAoMcmV2aWV3X3JlYWR5",
-            "GAsgASgIEhQKB3Byb2JsZW0YDCABKAlIAIgBARJBCg5yZXZpZXdlZF9kcmFm",
-            "dBgNIAEoCzIpLm1vZGNvbmR1Y3Rvci52MS5BcmNoaXZlSW5zdGFsbGF0aW9u",
-            "RHJhZnRCCgoIX3Byb2JsZW0qqwEKDkZvbW9kR3JvdXBLaW5kEhgKFEZPTU9E",
-            "X0dST1VQX0tJTkRfQU5ZEAASGAoURk9NT0RfR1JPVVBfS0lORF9BTEwQARIh",
-            "Ch1GT01PRF9HUk9VUF9LSU5EX0FUX0xFQVNUX09ORRACEiAKHEZPTU9EX0dS",
-            "T1VQX0tJTkRfQVRfTU9TVF9PTkUQAxIgChxGT01PRF9HUk9VUF9LSU5EX0VY",
-            "QUNUTFlfT05FEAQq3AEKD0ZvbW9kT3B0aW9uS2luZBIeChpGT01PRF9PUFRJ",
-            "T05fS0lORF9SRVFVSVJFRBAAEiEKHUZPTU9EX09QVElPTl9LSU5EX1JFQ09N",
-            "TUVOREVEEAESHgoaRk9NT0RfT1BUSU9OX0tJTkRfT1BUSU9OQUwQAhIgChxG",
-            "T01PRF9PUFRJT05fS0lORF9OT1RfVVNBQkxFEAMSJQohRk9NT0RfT1BUSU9O",
-            "X0tJTkRfQ09VTERfQkVfVVNBQkxFEAQSHQoZRk9NT0RfT1BUSU9OX0tJTkRf",
-            "VU5LTk9XThAFMoUFChFGb21vZEluc3RhbGxhdGlvbhJPCgtPcGVuQ2hvaWNl",
-            "cxIhLm1vZGNvbmR1Y3Rvci52MS5PcGVuRm9tb2RDaG9pY2VzGh0ubW9kY29u",
-            "ZHVjdG9yLnYxLkZvbW9kQ2hvaWNlcxJZCgtSZWFkQ2hvaWNlcxIrLm1vZGNv",
-            "bmR1Y3Rvci52MS5JbnN0YWxsYXRpb25EcmFmdFJlZmVyZW5jZRodLm1vZGNv",
-            "bmR1Y3Rvci52MS5Gb21vZENob2ljZXMSUQoMQ2hhbmdlQ2hvaWNlEiIubW9k",
-            "Y29uZHVjdG9yLnYxLkZvbW9kQ2hvaWNlQ2hhbmdlGh0ubW9kY29uZHVjdG9y",
-            "LnYxLkZvbW9kQ2hvaWNlcxJWCghOZXh0U3RlcBIrLm1vZGNvbmR1Y3Rvci52",
-            "MS5JbnN0YWxsYXRpb25EcmFmdFJlZmVyZW5jZRodLm1vZGNvbmR1Y3Rvci52",
-            "MS5Gb21vZENob2ljZXMSWgoMUHJldmlvdXNTdGVwEisubW9kY29uZHVjdG9y",
-            "LnYxLkluc3RhbGxhdGlvbkRyYWZ0UmVmZXJlbmNlGh0ubW9kY29uZHVjdG9y",
-            "LnYxLkZvbW9kQ2hvaWNlcxJpCg9Vc2VNYW51YWxMYXlvdXQSKy5tb2Rjb25k",
-            "dWN0b3IudjEuSW5zdGFsbGF0aW9uRHJhZnRSZWZlcmVuY2UaKS5tb2Rjb25k",
-            "dWN0b3IudjEuQXJjaGl2ZUluc3RhbGxhdGlvbkRyYWZ0ElIKD1JlYWRDaG9p",
-            "Y2VJbWFnZRIiLm1vZGNvbmR1Y3Rvci52MS5Gb21vZEltYWdlUmVxdWVzdBob",
-            "Lm1vZGNvbmR1Y3Rvci52MS5Gb21vZEltYWdlQhuqAhhNb2RDb25kdWN0b3Iu",
-            "UHJvdG9jb2wuVjFiBnByb3RvMw=="));
+            "Giltb2Rjb25kdWN0b3IvdjEvaW5zdGFsbGF0aW9uX3Jldmlldy5wcm90byJi",
+            "ChBPcGVuRm9tb2RDaG9pY2VzEjoKBWRyYWZ0GAEgASgLMisubW9kY29uZHVj",
+            "dG9yLnYxLkluc3RhbGxhdGlvbkRyYWZ0UmVmZXJlbmNlEhIKCnByb2ZpbGVf",
+            "aWQYAiABKAkidAoRRm9tb2RDaG9pY2VDaGFuZ2USOgoFZHJhZnQYASABKAsy",
+            "Ky5tb2Rjb25kdWN0b3IudjEuSW5zdGFsbGF0aW9uRHJhZnRSZWZlcmVuY2US",
+            "EQoJb3B0aW9uX2lkGAIgASgNEhAKCHNlbGVjdGVkGAMgASgIIl0KEUZvbW9k",
+            "SW1hZ2VSZXF1ZXN0EjoKBWRyYWZ0GAEgASgLMisubW9kY29uZHVjdG9yLnYx",
+            "Lkluc3RhbGxhdGlvbkRyYWZ0UmVmZXJlbmNlEgwKBHBhdGgYAiADKAkiHQoK",
+            "Rm9tb2RJbWFnZRIPCgdjb250ZW50GAEgASgMIsMBCgtGb21vZE9wdGlvbhIK",
+            "CgJpZBgBIAEoDRIMCgRuYW1lGAIgASgJEhMKC2Rlc2NyaXB0aW9uGAMgASgJ",
+            "Ei4KBGtpbmQYBCABKA4yIC5tb2Rjb25kdWN0b3IudjEuRm9tb2RPcHRpb25L",
+            "aW5kEhAKCHNlbGVjdGVkGAUgASgIEhIKCmNhbl9jaGFuZ2UYBiABKAgSDQoF",
+            "aW1hZ2UYByADKAkSFAoHcHJvYmxlbRgIIAEoCUgAiAEBQgoKCF9wcm9ibGVt",
+            "IngKCkZvbW9kR3JvdXASDAoEbmFtZRgBIAEoCRItCgRraW5kGAIgASgOMh8u",
+            "bW9kY29uZHVjdG9yLnYxLkZvbW9kR3JvdXBLaW5kEi0KB29wdGlvbnMYAyAD",
+            "KAsyHC5tb2Rjb25kdWN0b3IudjEuRm9tb2RPcHRpb24itQMKDEZvbW9kQ2hv",
+            "aWNlcxI+CglyZWZlcmVuY2UYASABKAsyKy5tb2Rjb25kdWN0b3IudjEuSW5z",
+            "dGFsbGF0aW9uRHJhZnRSZWZlcmVuY2USEgoKcHJvZmlsZV9pZBgCIAEoCRIM",
+            "CgRuYW1lGAMgASgJEhEKCXN0ZXBfbmFtZRgEIAEoCRITCgtzdGVwX251bWJl",
+            "chgFIAEoDRIVCg12aXNpYmxlX3N0ZXBzGAYgASgNEhAKCGNhbl9iYWNrGAcg",
+            "ASgIEhAKCGhhc19zdGVwGAggASgIEisKBmdyb3VwcxgJIAMoCzIbLm1vZGNv",
+            "bmR1Y3Rvci52MS5Gb21vZEdyb3VwEjgKBWZpbGVzGAogAygLMikubW9kY29u",
+            "ZHVjdG9yLnYxLkluc3RhbGxhdGlvblJldmlld2VkRmlsZRIUCgxyZXZpZXdf",
+            "cmVhZHkYCyABKAgSFAoHcHJvYmxlbRgMIAEoCUgAiAEBEkEKDnJldmlld2Vk",
+            "X2RyYWZ0GA0gASgLMikubW9kY29uZHVjdG9yLnYxLkFyY2hpdmVJbnN0YWxs",
+            "YXRpb25EcmFmdEIKCghfcHJvYmxlbSqrAQoORm9tb2RHcm91cEtpbmQSGAoU",
+            "Rk9NT0RfR1JPVVBfS0lORF9BTlkQABIYChRGT01PRF9HUk9VUF9LSU5EX0FM",
+            "TBABEiEKHUZPTU9EX0dST1VQX0tJTkRfQVRfTEVBU1RfT05FEAISIAocRk9N",
+            "T0RfR1JPVVBfS0lORF9BVF9NT1NUX09ORRADEiAKHEZPTU9EX0dST1VQX0tJ",
+            "TkRfRVhBQ1RMWV9PTkUQBCrcAQoPRm9tb2RPcHRpb25LaW5kEh4KGkZPTU9E",
+            "X09QVElPTl9LSU5EX1JFUVVJUkVEEAASIQodRk9NT0RfT1BUSU9OX0tJTkRf",
+            "UkVDT01NRU5ERUQQARIeChpGT01PRF9PUFRJT05fS0lORF9PUFRJT05BTBAC",
+            "EiAKHEZPTU9EX09QVElPTl9LSU5EX05PVF9VU0FCTEUQAxIlCiFGT01PRF9P",
+            "UFRJT05fS0lORF9DT1VMRF9CRV9VU0FCTEUQBBIdChlGT01PRF9PUFRJT05f",
+            "S0lORF9VTktOT1dOEAUyhQUKEUZvbW9kSW5zdGFsbGF0aW9uEk8KC09wZW5D",
+            "aG9pY2VzEiEubW9kY29uZHVjdG9yLnYxLk9wZW5Gb21vZENob2ljZXMaHS5t",
+            "b2Rjb25kdWN0b3IudjEuRm9tb2RDaG9pY2VzElkKC1JlYWRDaG9pY2VzEisu",
+            "bW9kY29uZHVjdG9yLnYxLkluc3RhbGxhdGlvbkRyYWZ0UmVmZXJlbmNlGh0u",
+            "bW9kY29uZHVjdG9yLnYxLkZvbW9kQ2hvaWNlcxJRCgxDaGFuZ2VDaG9pY2US",
+            "Ii5tb2Rjb25kdWN0b3IudjEuRm9tb2RDaG9pY2VDaGFuZ2UaHS5tb2Rjb25k",
+            "dWN0b3IudjEuRm9tb2RDaG9pY2VzElYKCE5leHRTdGVwEisubW9kY29uZHVj",
+            "dG9yLnYxLkluc3RhbGxhdGlvbkRyYWZ0UmVmZXJlbmNlGh0ubW9kY29uZHVj",
+            "dG9yLnYxLkZvbW9kQ2hvaWNlcxJaCgxQcmV2aW91c1N0ZXASKy5tb2Rjb25k",
+            "dWN0b3IudjEuSW5zdGFsbGF0aW9uRHJhZnRSZWZlcmVuY2UaHS5tb2Rjb25k",
+            "dWN0b3IudjEuRm9tb2RDaG9pY2VzEmkKD1VzZU1hbnVhbExheW91dBIrLm1v",
+            "ZGNvbmR1Y3Rvci52MS5JbnN0YWxsYXRpb25EcmFmdFJlZmVyZW5jZRopLm1v",
+            "ZGNvbmR1Y3Rvci52MS5BcmNoaXZlSW5zdGFsbGF0aW9uRHJhZnQSUgoPUmVh",
+            "ZENob2ljZUltYWdlEiIubW9kY29uZHVjdG9yLnYxLkZvbW9kSW1hZ2VSZXF1",
+            "ZXN0GhsubW9kY29uZHVjdG9yLnYxLkZvbW9kSW1hZ2VCG6oCGE1vZENvbmR1",
+            "Y3Rvci5Qcm90b2NvbC5WMWIGcHJvdG8z"));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
-          new pbr::FileDescriptor[] { global::ModConductor.Protocol.V1.ArchiveInstallationReflection.Descriptor, },
+          new pbr::FileDescriptor[] { global::ModConductor.Protocol.V1.ArchiveInstallationReflection.Descriptor, global::ModConductor.Protocol.V1.InstallationReviewReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(new[] {typeof(global::ModConductor.Protocol.V1.FomodGroupKind), typeof(global::ModConductor.Protocol.V1.FomodOptionKind), }, null, new pbr::GeneratedClrTypeInfo[] {
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.OpenFomodChoices), global::ModConductor.Protocol.V1.OpenFomodChoices.Parser, new[]{ "Draft", "ProfileId" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.FomodChoiceChange), global::ModConductor.Protocol.V1.FomodChoiceChange.Parser, new[]{ "Draft", "OptionId", "Selected" }, null, null, null, null),
@@ -88,8 +85,6 @@ namespace ModConductor.Protocol.V1 {
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.FomodImage), global::ModConductor.Protocol.V1.FomodImage.Parser, new[]{ "Content" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.FomodOption), global::ModConductor.Protocol.V1.FomodOption.Parser, new[]{ "Id", "Name", "Description", "Kind", "Selected", "CanChange", "Image", "Problem" }, new[]{ "Problem" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.FomodGroup), global::ModConductor.Protocol.V1.FomodGroup.Parser, new[]{ "Name", "Kind", "Options" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.FomodSource), global::ModConductor.Protocol.V1.FomodSource.Parser, new[]{ "Path" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.FomodPlannedFile), global::ModConductor.Protocol.V1.FomodPlannedFile.Parser, new[]{ "Index", "Destination", "Source", "Choice", "Bytes", "Replaces" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.FomodChoices), global::ModConductor.Protocol.V1.FomodChoices.Parser, new[]{ "Reference", "ProfileId", "Name", "StepName", "StepNumber", "VisibleSteps", "CanBack", "HasStep", "Groups", "Files", "ReviewReady", "Problem", "ReviewedDraft" }, new[]{ "Problem" }, null, null, null)
           }));
     }
@@ -1795,543 +1790,6 @@ namespace ModConductor.Protocol.V1 {
   }
 
   [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
-  public sealed partial class FomodSource : pb::IMessage<FomodSource>
-  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
-      , pb::IBufferMessage
-  #endif
-  {
-    private static readonly pb::MessageParser<FomodSource> _parser = new pb::MessageParser<FomodSource>(() => new FomodSource());
-    private pb::UnknownFieldSet _unknownFields;
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public static pb::MessageParser<FomodSource> Parser { get { return _parser; } }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public static pbr::MessageDescriptor Descriptor {
-      get { return global::ModConductor.Protocol.V1.FomodReflection.Descriptor.MessageTypes[6]; }
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    pbr::MessageDescriptor pb::IMessage.Descriptor {
-      get { return Descriptor; }
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public FomodSource() {
-      OnConstruction();
-    }
-
-    partial void OnConstruction();
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public FomodSource(FomodSource other) : this() {
-      path_ = other.path_.Clone();
-      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public FomodSource Clone() {
-      return new FomodSource(this);
-    }
-
-    /// <summary>Field number for the "path" field.</summary>
-    public const int PathFieldNumber = 1;
-    private static readonly pb::FieldCodec<string> _repeated_path_codec
-        = pb::FieldCodec.ForString(10);
-    private readonly pbc::RepeatedField<string> path_ = new pbc::RepeatedField<string>();
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public pbc::RepeatedField<string> Path {
-      get { return path_; }
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public override bool Equals(object other) {
-      return Equals(other as FomodSource);
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public bool Equals(FomodSource other) {
-      if (ReferenceEquals(other, null)) {
-        return false;
-      }
-      if (ReferenceEquals(other, this)) {
-        return true;
-      }
-      if(!path_.Equals(other.path_)) return false;
-      return Equals(_unknownFields, other._unknownFields);
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public override int GetHashCode() {
-      int hash = 1;
-      hash ^= path_.GetHashCode();
-      if (_unknownFields != null) {
-        hash ^= _unknownFields.GetHashCode();
-      }
-      return hash;
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public override string ToString() {
-      return pb::JsonFormatter.ToDiagnosticString(this);
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public void WriteTo(pb::CodedOutputStream output) {
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
-      output.WriteRawMessage(this);
-    #else
-      path_.WriteTo(output, _repeated_path_codec);
-      if (_unknownFields != null) {
-        _unknownFields.WriteTo(output);
-      }
-    #endif
-    }
-
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
-      path_.WriteTo(ref output, _repeated_path_codec);
-      if (_unknownFields != null) {
-        _unknownFields.WriteTo(ref output);
-      }
-    }
-    #endif
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public int CalculateSize() {
-      int size = 0;
-      size += path_.CalculateSize(_repeated_path_codec);
-      if (_unknownFields != null) {
-        size += _unknownFields.CalculateSize();
-      }
-      return size;
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public void MergeFrom(FomodSource other) {
-      if (other == null) {
-        return;
-      }
-      path_.Add(other.path_);
-      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public void MergeFrom(pb::CodedInputStream input) {
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
-      input.ReadRawMessage(this);
-    #else
-      uint tag;
-      while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
-          default:
-            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
-            break;
-          case 10: {
-            path_.AddEntriesFrom(input, _repeated_path_codec);
-            break;
-          }
-        }
-      }
-    #endif
-    }
-
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
-      uint tag;
-      while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
-          default:
-            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
-            break;
-          case 10: {
-            path_.AddEntriesFrom(ref input, _repeated_path_codec);
-            break;
-          }
-        }
-      }
-    }
-    #endif
-
-  }
-
-  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
-  public sealed partial class FomodPlannedFile : pb::IMessage<FomodPlannedFile>
-  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
-      , pb::IBufferMessage
-  #endif
-  {
-    private static readonly pb::MessageParser<FomodPlannedFile> _parser = new pb::MessageParser<FomodPlannedFile>(() => new FomodPlannedFile());
-    private pb::UnknownFieldSet _unknownFields;
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public static pb::MessageParser<FomodPlannedFile> Parser { get { return _parser; } }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public static pbr::MessageDescriptor Descriptor {
-      get { return global::ModConductor.Protocol.V1.FomodReflection.Descriptor.MessageTypes[7]; }
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    pbr::MessageDescriptor pb::IMessage.Descriptor {
-      get { return Descriptor; }
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public FomodPlannedFile() {
-      OnConstruction();
-    }
-
-    partial void OnConstruction();
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public FomodPlannedFile(FomodPlannedFile other) : this() {
-      index_ = other.index_;
-      destination_ = other.destination_.Clone();
-      source_ = other.source_.Clone();
-      choice_ = other.choice_;
-      bytes_ = other.bytes_;
-      replaces_ = other.replaces_.Clone();
-      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public FomodPlannedFile Clone() {
-      return new FomodPlannedFile(this);
-    }
-
-    /// <summary>Field number for the "index" field.</summary>
-    public const int IndexFieldNumber = 1;
-    private uint index_;
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public uint Index {
-      get { return index_; }
-      set {
-        index_ = value;
-      }
-    }
-
-    /// <summary>Field number for the "destination" field.</summary>
-    public const int DestinationFieldNumber = 2;
-    private static readonly pb::FieldCodec<string> _repeated_destination_codec
-        = pb::FieldCodec.ForString(18);
-    private readonly pbc::RepeatedField<string> destination_ = new pbc::RepeatedField<string>();
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public pbc::RepeatedField<string> Destination {
-      get { return destination_; }
-    }
-
-    /// <summary>Field number for the "source" field.</summary>
-    public const int SourceFieldNumber = 3;
-    private static readonly pb::FieldCodec<string> _repeated_source_codec
-        = pb::FieldCodec.ForString(26);
-    private readonly pbc::RepeatedField<string> source_ = new pbc::RepeatedField<string>();
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public pbc::RepeatedField<string> Source {
-      get { return source_; }
-    }
-
-    /// <summary>Field number for the "choice" field.</summary>
-    public const int ChoiceFieldNumber = 4;
-    private string choice_ = "";
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public string Choice {
-      get { return choice_; }
-      set {
-        choice_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
-      }
-    }
-
-    /// <summary>Field number for the "bytes" field.</summary>
-    public const int BytesFieldNumber = 5;
-    private ulong bytes_;
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public ulong Bytes {
-      get { return bytes_; }
-      set {
-        bytes_ = value;
-      }
-    }
-
-    /// <summary>Field number for the "replaces" field.</summary>
-    public const int ReplacesFieldNumber = 6;
-    private static readonly pb::FieldCodec<global::ModConductor.Protocol.V1.FomodSource> _repeated_replaces_codec
-        = pb::FieldCodec.ForMessage(50, global::ModConductor.Protocol.V1.FomodSource.Parser);
-    private readonly pbc::RepeatedField<global::ModConductor.Protocol.V1.FomodSource> replaces_ = new pbc::RepeatedField<global::ModConductor.Protocol.V1.FomodSource>();
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public pbc::RepeatedField<global::ModConductor.Protocol.V1.FomodSource> Replaces {
-      get { return replaces_; }
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public override bool Equals(object other) {
-      return Equals(other as FomodPlannedFile);
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public bool Equals(FomodPlannedFile other) {
-      if (ReferenceEquals(other, null)) {
-        return false;
-      }
-      if (ReferenceEquals(other, this)) {
-        return true;
-      }
-      if (Index != other.Index) return false;
-      if(!destination_.Equals(other.destination_)) return false;
-      if(!source_.Equals(other.source_)) return false;
-      if (Choice != other.Choice) return false;
-      if (Bytes != other.Bytes) return false;
-      if(!replaces_.Equals(other.replaces_)) return false;
-      return Equals(_unknownFields, other._unknownFields);
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public override int GetHashCode() {
-      int hash = 1;
-      if (Index != 0) hash ^= Index.GetHashCode();
-      hash ^= destination_.GetHashCode();
-      hash ^= source_.GetHashCode();
-      if (Choice.Length != 0) hash ^= Choice.GetHashCode();
-      if (Bytes != 0UL) hash ^= Bytes.GetHashCode();
-      hash ^= replaces_.GetHashCode();
-      if (_unknownFields != null) {
-        hash ^= _unknownFields.GetHashCode();
-      }
-      return hash;
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public override string ToString() {
-      return pb::JsonFormatter.ToDiagnosticString(this);
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public void WriteTo(pb::CodedOutputStream output) {
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
-      output.WriteRawMessage(this);
-    #else
-      if (Index != 0) {
-        output.WriteRawTag(8);
-        output.WriteUInt32(Index);
-      }
-      destination_.WriteTo(output, _repeated_destination_codec);
-      source_.WriteTo(output, _repeated_source_codec);
-      if (Choice.Length != 0) {
-        output.WriteRawTag(34);
-        output.WriteString(Choice);
-      }
-      if (Bytes != 0UL) {
-        output.WriteRawTag(40);
-        output.WriteUInt64(Bytes);
-      }
-      replaces_.WriteTo(output, _repeated_replaces_codec);
-      if (_unknownFields != null) {
-        _unknownFields.WriteTo(output);
-      }
-    #endif
-    }
-
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
-      if (Index != 0) {
-        output.WriteRawTag(8);
-        output.WriteUInt32(Index);
-      }
-      destination_.WriteTo(ref output, _repeated_destination_codec);
-      source_.WriteTo(ref output, _repeated_source_codec);
-      if (Choice.Length != 0) {
-        output.WriteRawTag(34);
-        output.WriteString(Choice);
-      }
-      if (Bytes != 0UL) {
-        output.WriteRawTag(40);
-        output.WriteUInt64(Bytes);
-      }
-      replaces_.WriteTo(ref output, _repeated_replaces_codec);
-      if (_unknownFields != null) {
-        _unknownFields.WriteTo(ref output);
-      }
-    }
-    #endif
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public int CalculateSize() {
-      int size = 0;
-      if (Index != 0) {
-        size += 1 + pb::CodedOutputStream.ComputeUInt32Size(Index);
-      }
-      size += destination_.CalculateSize(_repeated_destination_codec);
-      size += source_.CalculateSize(_repeated_source_codec);
-      if (Choice.Length != 0) {
-        size += 1 + pb::CodedOutputStream.ComputeStringSize(Choice);
-      }
-      if (Bytes != 0UL) {
-        size += 1 + pb::CodedOutputStream.ComputeUInt64Size(Bytes);
-      }
-      size += replaces_.CalculateSize(_repeated_replaces_codec);
-      if (_unknownFields != null) {
-        size += _unknownFields.CalculateSize();
-      }
-      return size;
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public void MergeFrom(FomodPlannedFile other) {
-      if (other == null) {
-        return;
-      }
-      if (other.Index != 0) {
-        Index = other.Index;
-      }
-      destination_.Add(other.destination_);
-      source_.Add(other.source_);
-      if (other.Choice.Length != 0) {
-        Choice = other.Choice;
-      }
-      if (other.Bytes != 0UL) {
-        Bytes = other.Bytes;
-      }
-      replaces_.Add(other.replaces_);
-      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public void MergeFrom(pb::CodedInputStream input) {
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
-      input.ReadRawMessage(this);
-    #else
-      uint tag;
-      while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
-          default:
-            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
-            break;
-          case 8: {
-            Index = input.ReadUInt32();
-            break;
-          }
-          case 18: {
-            destination_.AddEntriesFrom(input, _repeated_destination_codec);
-            break;
-          }
-          case 26: {
-            source_.AddEntriesFrom(input, _repeated_source_codec);
-            break;
-          }
-          case 34: {
-            Choice = input.ReadString();
-            break;
-          }
-          case 40: {
-            Bytes = input.ReadUInt64();
-            break;
-          }
-          case 50: {
-            replaces_.AddEntriesFrom(input, _repeated_replaces_codec);
-            break;
-          }
-        }
-      }
-    #endif
-    }
-
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
-      uint tag;
-      while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
-          default:
-            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
-            break;
-          case 8: {
-            Index = input.ReadUInt32();
-            break;
-          }
-          case 18: {
-            destination_.AddEntriesFrom(ref input, _repeated_destination_codec);
-            break;
-          }
-          case 26: {
-            source_.AddEntriesFrom(ref input, _repeated_source_codec);
-            break;
-          }
-          case 34: {
-            Choice = input.ReadString();
-            break;
-          }
-          case 40: {
-            Bytes = input.ReadUInt64();
-            break;
-          }
-          case 50: {
-            replaces_.AddEntriesFrom(ref input, _repeated_replaces_codec);
-            break;
-          }
-        }
-      }
-    }
-    #endif
-
-  }
-
-  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class FomodChoices : pb::IMessage<FomodChoices>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
@@ -2346,7 +1804,7 @@ namespace ModConductor.Protocol.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::ModConductor.Protocol.V1.FomodReflection.Descriptor.MessageTypes[8]; }
+      get { return global::ModConductor.Protocol.V1.FomodReflection.Descriptor.MessageTypes[6]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -2497,12 +1955,12 @@ namespace ModConductor.Protocol.V1 {
 
     /// <summary>Field number for the "files" field.</summary>
     public const int FilesFieldNumber = 10;
-    private static readonly pb::FieldCodec<global::ModConductor.Protocol.V1.FomodPlannedFile> _repeated_files_codec
-        = pb::FieldCodec.ForMessage(82, global::ModConductor.Protocol.V1.FomodPlannedFile.Parser);
-    private readonly pbc::RepeatedField<global::ModConductor.Protocol.V1.FomodPlannedFile> files_ = new pbc::RepeatedField<global::ModConductor.Protocol.V1.FomodPlannedFile>();
+    private static readonly pb::FieldCodec<global::ModConductor.Protocol.V1.InstallationReviewedFile> _repeated_files_codec
+        = pb::FieldCodec.ForMessage(82, global::ModConductor.Protocol.V1.InstallationReviewedFile.Parser);
+    private readonly pbc::RepeatedField<global::ModConductor.Protocol.V1.InstallationReviewedFile> files_ = new pbc::RepeatedField<global::ModConductor.Protocol.V1.InstallationReviewedFile>();
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public pbc::RepeatedField<global::ModConductor.Protocol.V1.FomodPlannedFile> Files {
+    public pbc::RepeatedField<global::ModConductor.Protocol.V1.InstallationReviewedFile> Files {
       get { return files_; }
     }
 

@@ -1,12 +1,10 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:mc_client/mc_client.dart';
-import 'package:mc_ui_collections/mc_ui_collections.dart';
 import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 
-import 'archive_facts.dart';
+import 'installation_files_review.dart';
 import 'fomod_controller.dart';
 import 'fomod_options.dart';
 
@@ -22,9 +20,11 @@ class FomodView extends StatefulWidget {
     required this.onInstall,
     required this.onBack,
     this.onUpdate,
+    this.packages,
     this.operationProblem,
   });
   final FomodClient client;
+  final BainClient? packages;
   final InstallationDraft initial;
   final String? profileId, operationProblem;
   final bool available;
@@ -38,14 +38,11 @@ class FomodView extends StatefulWidget {
 class _FomodViewState extends State<FomodView> {
   late final controller = FomodController(widget.client, widget.initial);
   final pane = GlobalKey<ScaffoldState>();
-  final rows = McCollectionModel<String, FomodPlannedFile>(
-    idOf: (f) => jsonEncode(f.destination),
-    labelOf: (f) => f.destination.join('/'),
-  );
+  InstallationReviewedFile? selectedFile;
   FomodChoices? rendered;
   InstallationDraft? adopted;
   FomodOption? selectedOption;
-  bool replacements = false, inspected = false;
+  bool inspected = false;
   bool get available => widget.available && !controller.busy;
   @override
   void initState() {
@@ -59,7 +56,16 @@ class _FomodViewState extends State<FomodView> {
     final value = controller.value;
     if (value != null && !identical(value, rendered)) {
       rendered = value;
-      applyRows();
+      if (selectedFile != null) {
+        selectedFile = value.files
+            .where(
+              (file) =>
+                  file.destination.join('/') ==
+                  selectedFile!.destination.join('/'),
+            )
+            .firstOrNull;
+        if (selectedFile == null && selectedOption == null) inspected = false;
+      }
       if (selectedOption != null) {
         selectedOption = value.groups
             .expand((g) => g.options)
@@ -76,19 +82,10 @@ class _FomodViewState extends State<FomodView> {
     setState(() {});
   }
 
-  void applyRows() {
-    final files = controller.value?.files ?? const <FomodPlannedFile>[];
-    rows.apply(
-      upserts: replacements ? files.where((f) => f.replaces.isNotEmpty) : files,
-      evicted: rows.ids.toList(),
-    );
-  }
-
   @override
   void dispose() {
     controller.removeListener(changed);
     controller.dispose();
-    rows.dispose();
     super.dispose();
   }
 
@@ -108,6 +105,22 @@ class _FomodViewState extends State<FomodView> {
       if (confirmed != true || !mounted) return;
     }
     final draft = await controller.manual();
+    if (mounted && draft != null) widget.onManual(draft);
+  }
+
+  Future<void> usePackages() async {
+    if (!available || widget.packages == null) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (c) => McFormDialog(
+        title: 'Switch to package folders?',
+        action: 'Use package folders',
+        onSubmit: () => Navigator.pop(c, true),
+        children: const [Text('Your installer choices will be cleared.')],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final draft = await controller.packages(widget.packages!);
     if (mounted && draft != null) widget.onManual(draft);
   }
 
@@ -156,7 +169,7 @@ class _FomodViewState extends State<FomodView> {
   }
 
   Widget inspector(BuildContext c, VoidCallback close) {
-    final option = selectedOption, file = rows.selected;
+    final option = selectedOption, file = selectedFile;
     return McInspector(
       title: option?.name ?? file?.destination.last ?? 'File',
       onClose: close,
@@ -178,27 +191,8 @@ class _FomodViewState extends State<FomodView> {
             ]
           : file == null
           ? []
-          : [
-              archiveFact(c, 'Selected source', file.source.join('/')),
-              archiveFact(c, 'From', file.choice),
-              archiveFact(c, 'Size', archiveSize(file.bytes)),
-              if (file.replaces.isNotEmpty)
-                archiveFact(
-                  c,
-                  'Replaces',
-                  file.replaces.map((p) => p.join('/')).join('\n'),
-                ),
-            ],
+          : installationReviewedFacts(c, file),
     );
-  }
-
-  String _count(FomodChoices value) {
-    final files = replacements
-        ? value.files.where((file) => file.replaces.isNotEmpty).toList()
-        : value.files;
-    final sizes = {for (final file in files) file.index: file.bytes};
-    final bytes = sizes.values.fold(0, (sum, value) => sum + value);
-    return '${files.length} ${files.length == 1 ? 'file' : 'files'} · ${archiveSize(bytes)}';
   }
 
   @override
@@ -256,6 +250,15 @@ class _FomodViewState extends State<FomodView> {
                       enabled: available,
                       child: const Text('Use manual layout'),
                     ),
+                    if (widget.packages != null &&
+                        widget.initial.availableInstallers.contains(
+                          InstallationMode.bain,
+                        ))
+                      PopupMenuItem(
+                        value: 'packages',
+                        enabled: available,
+                        child: const Text('Use package folders'),
+                      ),
                     if (review && widget.onUpdate != null)
                       PopupMenuItem(
                         value: 'update',
@@ -266,6 +269,8 @@ class _FomodViewState extends State<FomodView> {
                   onSelected: (value) {
                     if (value == 'manual') {
                       unawaited(manual());
+                    } else if (value == 'packages') {
+                      unawaited(usePackages());
                     } else {
                       widget.onUpdate?.call();
                     }
@@ -291,6 +296,13 @@ class _FomodViewState extends State<FomodView> {
             ),
             const SizedBox(height: 8),
             if (controller.busy) const LinearProgressIndicator(),
+            if (widget.initial.wizardScripts.isNotEmpty) ...[
+              Text(
+                'Wizard script not supported',
+                style: Theme.of(c).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 8),
+            ],
             if (problem != null) ...[
               McStatus(title: problem, tone: McStatusTone.error),
               const SizedBox(height: 8),
@@ -361,53 +373,14 @@ class _FomodViewState extends State<FomodView> {
                       children: [
                         Expanded(
                           child: review
-                              ? McCollection<String, FomodPlannedFile>(
-                                  model: rows,
-                                  title: 'Files to install',
-                                  showTitle: !narrow,
-                                  showTree: false,
-                                  compactFilter: narrow,
-                                  filterLabel: 'Filter files',
-                                  countLabel: _count(value),
-                                  filterActions: [
-                                    McMenuAction<bool>(
-                                      label: replacements
-                                          ? 'Replacements (${value.files.where((f) => f.replaces.isNotEmpty).length})'
-                                          : 'All files',
-                                      choices: const [false, true],
-                                      describe: (v) => v
-                                          ? 'Replacements (${value.files.where((f) => f.replaces.isNotEmpty).length})'
-                                          : 'All files',
-                                      onSelected: (v) => setState(() {
-                                        replacements = v;
-                                        applyRows();
-                                      }),
-                                    ),
-                                  ],
-                                  onSelect: (_) {
+                              ? InstallationFilesReview(
+                                  files: value.files,
+                                  narrow: narrow,
+                                  onSelect: (file) {
+                                    selectedFile = file;
                                     selectedOption = null;
                                     inspect();
                                   },
-                                  columns: [
-                                    McColumn(
-                                      'Destination',
-                                      (f) => McCollectionName(
-                                        f.destination.join('/'),
-                                      ),
-                                    ),
-                                    if (!narrow)
-                                      McColumn(
-                                        'From',
-                                        (f) => Text(f.choice),
-                                        width: 190,
-                                      ),
-                                    if (!narrow)
-                                      McColumn(
-                                        'Size',
-                                        (f) => Text(archiveSize(f.bytes)),
-                                        width: 90,
-                                      ),
-                                  ],
                                 )
                               : FomodOptionGroups(
                                   key: ValueKey((

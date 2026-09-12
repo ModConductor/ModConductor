@@ -187,5 +187,15 @@ InstallationDraft installationDraft(wire.ArchiveInstallationDraft d) =>
       version: d.version,
       bytes: d.bytes.toInt(),
       canInstall: d.canInstall,
-      choiceInstaller: d.choiceInstaller,
+      installer: installationMode(d.installer),
+      availableInstallers: [
+        for (final m in d.availableInstallers) installationMode(m),
+      ],
+      wizardScripts: List.unmodifiable(d.wizardScripts),
     );
+
+InstallationMode installationMode(wire.ArchiveInstaller mode) => switch (mode) {
+  wire.ArchiveInstaller.ARCHIVE_INSTALLER_FOMOD => InstallationMode.fomod,
+  wire.ArchiveInstaller.ARCHIVE_INSTALLER_BAIN => InstallationMode.bain,
+  _ => InstallationMode.manual,
+};

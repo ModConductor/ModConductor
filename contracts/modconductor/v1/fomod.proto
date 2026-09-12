@@ -2,6 +2,7 @@ syntax = "proto3";
 package modconductor.v1;
 option csharp_namespace = "ModConductor.Protocol.V1";
 import "modconductor/v1/archive_installation.proto";
+import "modconductor/v1/installation_review.proto";
 service FomodInstallation {
   rpc OpenChoices(OpenFomodChoices) returns (FomodChoices);
   rpc ReadChoices(InstallationDraftReference) returns (FomodChoices);
@@ -28,15 +29,6 @@ message FomodOption {
   optional string problem = 8;
 }
 message FomodGroup { string name = 1; FomodGroupKind kind = 2; repeated FomodOption options = 3; }
-message FomodSource { repeated string path = 1; }
-message FomodPlannedFile {
-  uint32 index = 1;
-  repeated string destination = 2;
-  repeated string source = 3;
-  string choice = 4;
-  uint64 bytes = 5;
-  repeated FomodSource replaces = 6;
-}
 message FomodChoices {
   InstallationDraftReference reference = 1;
   string profile_id = 2;
@@ -47,7 +39,7 @@ message FomodChoices {
   bool can_back = 7;
   bool has_step = 8;
   repeated FomodGroup groups = 9;
-  repeated FomodPlannedFile files = 10;
+  repeated InstallationReviewedFile files = 10;
   bool review_ready = 11;
   optional string problem = 12;
   ArchiveInstallationDraft reviewed_draft = 13;

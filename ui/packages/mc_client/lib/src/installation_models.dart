@@ -1,5 +1,30 @@
 import 'archive_inspection_models.dart';
 
+enum InstallationMode { manual, fomod, bain }
+
+class InstallationDraftReference {
+  const InstallationDraftReference(this.workspaceId, this.id, this.revision);
+  final String workspaceId, id;
+  final int revision;
+}
+
+class InstallationReviewedFile {
+  const InstallationReviewedFile(
+    this.index,
+    this.destination,
+    this.source,
+    this.choice,
+    this.bytes,
+    this.replaces, {
+    this.included = true,
+  });
+  final int index, bytes;
+  final List<String> destination, source;
+  final String choice;
+  final List<List<String>> replaces;
+  final bool included;
+}
+
 class InstallationFile {
   const InstallationFile(this.index, this.destination);
   final int index;
@@ -20,14 +45,21 @@ class InstallationDraft {
     required this.version,
     required this.bytes,
     required this.canInstall,
-    this.choiceInstaller = false,
+    this.installer = InstallationMode.manual,
+    this.availableInstallers = const [InstallationMode.manual],
+    this.wizardScripts = const [],
   });
   final String id, workspaceId, artifactId, archiveName, name, version;
   final int revision, bytes;
   final InspectedArchive manifest;
   final List<String> root;
   final List<InstallationFile> files;
-  final bool canInstall, choiceInstaller;
+  final bool canInstall;
+  final InstallationMode installer;
+  final List<InstallationMode> availableInstallers;
+  final List<String> wizardScripts;
+  InstallationDraftReference get reference =>
+      InstallationDraftReference(workspaceId, id, revision);
 }
 
 sealed class InstallationLayoutChange {

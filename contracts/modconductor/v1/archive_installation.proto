@@ -29,7 +29,10 @@ message ArchiveInstallationDraft {
   string version = 8;
   uint64 bytes = 9;
   bool can_install = 10;
-  bool choice_installer = 11;
+  reserved 11;
+  ArchiveInstaller installer = 12;
+  repeated ArchiveInstaller available_installers = 13;
+  repeated string wizard_scripts = 14;
 }
 message InstallationRoot { repeated string components = 1; }
 message InstallationInclusion { repeated string source = 1; bool included = 2; }
@@ -65,3 +68,5 @@ message ArchiveInstallationStatus {
   bool is_update = 16;
 }
 message ArchiveInstallationList { repeated ArchiveInstallationStatus entries = 1; }
+
+enum ArchiveInstaller { ARCHIVE_INSTALLER_MANUAL = 0; ARCHIVE_INSTALLER_FOMOD = 1; ARCHIVE_INSTALLER_BAIN = 2; }

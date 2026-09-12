@@ -75,7 +75,7 @@ module Planning =
                 | true, values -> values.Add entry
                 | _ -> folders[prefix] <- ResizeArray([ entry ])
 
-        let winners = Dictionary<string, PlannedFile>()
+        let winners = Dictionary<string, ReviewedFile>()
         let mutable count = 0
 
         for mapping, label in chosen |> List.sortBy (fun (m, _) -> m.Priority, m.Order) do

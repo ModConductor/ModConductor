@@ -22,3 +22,5 @@ export 'src/installation_client.dart';
 export 'src/maintenance_client.dart';
 
 export 'src/fomod_client.dart';
+
+export 'src/bain_client.dart';

@@ -203,45 +203,6 @@ final $typed_data.Uint8List fomodGroupDescriptor = $convert.base64Decode(
     'R1Y3Rvci52MS5Gb21vZEdyb3VwS2luZFIEa2luZBI2CgdvcHRpb25zGAMgAygLMhwubW9kY29u'
     'ZHVjdG9yLnYxLkZvbW9kT3B0aW9uUgdvcHRpb25z');
 
-@$core.Deprecated('Use fomodSourceDescriptor instead')
-const FomodSource$json = {
-  '1': 'FomodSource',
-  '2': [
-    {'1': 'path', '3': 1, '4': 3, '5': 9, '10': 'path'},
-  ],
-};
-
-/// Descriptor for `FomodSource`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List fomodSourceDescriptor =
-    $convert.base64Decode('CgtGb21vZFNvdXJjZRISCgRwYXRoGAEgAygJUgRwYXRo');
-
-@$core.Deprecated('Use fomodPlannedFileDescriptor instead')
-const FomodPlannedFile$json = {
-  '1': 'FomodPlannedFile',
-  '2': [
-    {'1': 'index', '3': 1, '4': 1, '5': 13, '10': 'index'},
-    {'1': 'destination', '3': 2, '4': 3, '5': 9, '10': 'destination'},
-    {'1': 'source', '3': 3, '4': 3, '5': 9, '10': 'source'},
-    {'1': 'choice', '3': 4, '4': 1, '5': 9, '10': 'choice'},
-    {'1': 'bytes', '3': 5, '4': 1, '5': 4, '10': 'bytes'},
-    {
-      '1': 'replaces',
-      '3': 6,
-      '4': 3,
-      '5': 11,
-      '6': '.modconductor.v1.FomodSource',
-      '10': 'replaces'
-    },
-  ],
-};
-
-/// Descriptor for `FomodPlannedFile`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List fomodPlannedFileDescriptor = $convert.base64Decode(
-    'ChBGb21vZFBsYW5uZWRGaWxlEhQKBWluZGV4GAEgASgNUgVpbmRleBIgCgtkZXN0aW5hdGlvbh'
-    'gCIAMoCVILZGVzdGluYXRpb24SFgoGc291cmNlGAMgAygJUgZzb3VyY2USFgoGY2hvaWNlGAQg'
-    'ASgJUgZjaG9pY2USFAoFYnl0ZXMYBSABKARSBWJ5dGVzEjgKCHJlcGxhY2VzGAYgAygLMhwubW'
-    '9kY29uZHVjdG9yLnYxLkZvbW9kU291cmNlUghyZXBsYWNlcw==');
-
 @$core.Deprecated('Use fomodChoicesDescriptor instead')
 const FomodChoices$json = {
   '1': 'FomodChoices',
@@ -274,7 +235,7 @@ const FomodChoices$json = {
       '3': 10,
       '4': 3,
       '5': 11,
-      '6': '.modconductor.v1.FomodPlannedFile',
+      '6': '.modconductor.v1.InstallationReviewedFile',
       '10': 'files'
     },
     {'1': 'review_ready', '3': 11, '4': 1, '5': 8, '10': 'reviewReady'},
@@ -309,8 +270,8 @@ final $typed_data.Uint8List fomodChoicesDescriptor = $convert.base64Decode(
     'FtZRIfCgtzdGVwX251bWJlchgFIAEoDVIKc3RlcE51bWJlchIjCg12aXNpYmxlX3N0ZXBzGAYg'
     'ASgNUgx2aXNpYmxlU3RlcHMSGQoIY2FuX2JhY2sYByABKAhSB2NhbkJhY2sSGQoIaGFzX3N0ZX'
     'AYCCABKAhSB2hhc1N0ZXASMwoGZ3JvdXBzGAkgAygLMhsubW9kY29uZHVjdG9yLnYxLkZvbW9k'
-    'R3JvdXBSBmdyb3VwcxI3CgVmaWxlcxgKIAMoCzIhLm1vZGNvbmR1Y3Rvci52MS5Gb21vZFBsYW'
-    '5uZWRGaWxlUgVmaWxlcxIhCgxyZXZpZXdfcmVhZHkYCyABKAhSC3Jldmlld1JlYWR5Eh0KB3By'
-    'b2JsZW0YDCABKAlIAFIHcHJvYmxlbYgBARJQCg5yZXZpZXdlZF9kcmFmdBgNIAEoCzIpLm1vZG'
-    'NvbmR1Y3Rvci52MS5BcmNoaXZlSW5zdGFsbGF0aW9uRHJhZnRSDXJldmlld2VkRHJhZnRCCgoI'
-    'X3Byb2JsZW0=');
+    'R3JvdXBSBmdyb3VwcxI/CgVmaWxlcxgKIAMoCzIpLm1vZGNvbmR1Y3Rvci52MS5JbnN0YWxsYX'
+    'Rpb25SZXZpZXdlZEZpbGVSBWZpbGVzEiEKDHJldmlld19yZWFkeRgLIAEoCFILcmV2aWV3UmVh'
+    'ZHkSHQoHcHJvYmxlbRgMIAEoCUgAUgdwcm9ibGVtiAEBElAKDnJldmlld2VkX2RyYWZ0GA0gAS'
+    'gLMikubW9kY29uZHVjdG9yLnYxLkFyY2hpdmVJbnN0YWxsYXRpb25EcmFmdFINcmV2aWV3ZWRE'
+    'cmFmdEIKCghfcHJvYmxlbQ==');

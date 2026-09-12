@@ -11,12 +11,6 @@ enum FomodOptionKind {
   unknown,
 }
 
-class FomodReference {
-  const FomodReference(this.workspaceId, this.id, this.revision);
-  final String workspaceId, id;
-  final int revision;
-}
-
 class FomodOption {
   const FomodOption({
     required this.id,
@@ -43,21 +37,6 @@ class FomodGroup {
   final List<FomodOption> options;
 }
 
-class FomodPlannedFile {
-  const FomodPlannedFile(
-    this.index,
-    this.destination,
-    this.source,
-    this.choice,
-    this.bytes,
-    this.replaces,
-  );
-  final int index, bytes;
-  final List<String> destination, source;
-  final String choice;
-  final List<List<String>> replaces;
-}
-
 class FomodChoices {
   const FomodChoices({
     required this.reference,
@@ -74,12 +53,12 @@ class FomodChoices {
     this.reviewedDraft,
     this.problem,
   });
-  final FomodReference reference;
+  final InstallationDraftReference reference;
   final String profileId, name, stepName;
   final int stepNumber, visibleSteps;
   final bool hasStep, canBack, reviewReady;
   final List<FomodGroup> groups;
-  final List<FomodPlannedFile> files;
+  final List<InstallationReviewedFile> files;
   final InstallationDraft? reviewedDraft;
   final String? problem;
 }

@@ -12,11 +12,11 @@
 
 import 'dart:core' as $core;
 
-import 'package:fixnum/fixnum.dart' as $fixnum;
 import 'package:protobuf/protobuf.dart' as $pb;
 
 import 'archive_installation.pb.dart' as $1;
 import 'fomod.pbenum.dart';
+import 'installation_review.pb.dart' as $2;
 
 export 'package:protobuf/protobuf.dart' show GeneratedMessageGenericExtensions;
 
@@ -501,154 +501,6 @@ class FomodGroup extends $pb.GeneratedMessage {
   $pb.PbList<FomodOption> get options => $_getList(2);
 }
 
-class FomodSource extends $pb.GeneratedMessage {
-  factory FomodSource({
-    $core.Iterable<$core.String>? path,
-  }) {
-    final result = create();
-    if (path != null) result.path.addAll(path);
-    return result;
-  }
-
-  FomodSource._();
-
-  factory FomodSource.fromBuffer($core.List<$core.int> data,
-          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(data, registry);
-  factory FomodSource.fromJson($core.String json,
-          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromJson(json, registry);
-
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
-      _omitMessageNames ? '' : 'FomodSource',
-      package:
-          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
-      createEmptyInstance: create)
-    ..pPS(1, _omitFieldNames ? '' : 'path')
-    ..hasRequiredFields = false;
-
-  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  FomodSource clone() => deepCopy();
-  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  FomodSource copyWith(void Function(FomodSource) updates) =>
-      super.copyWith((message) => updates(message as FomodSource))
-          as FomodSource;
-
-  @$core.override
-  $pb.BuilderInfo get info_ => _i;
-
-  @$core.pragma('dart2js:noInline')
-  static FomodSource create() => FomodSource._();
-  @$core.override
-  FomodSource createEmptyInstance() => create();
-  @$core.pragma('dart2js:noInline')
-  static FomodSource getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<FomodSource>(create);
-  static FomodSource? _defaultInstance;
-
-  @$pb.TagNumber(1)
-  $pb.PbList<$core.String> get path => $_getList(0);
-}
-
-class FomodPlannedFile extends $pb.GeneratedMessage {
-  factory FomodPlannedFile({
-    $core.int? index,
-    $core.Iterable<$core.String>? destination,
-    $core.Iterable<$core.String>? source,
-    $core.String? choice,
-    $fixnum.Int64? bytes,
-    $core.Iterable<FomodSource>? replaces,
-  }) {
-    final result = create();
-    if (index != null) result.index = index;
-    if (destination != null) result.destination.addAll(destination);
-    if (source != null) result.source.addAll(source);
-    if (choice != null) result.choice = choice;
-    if (bytes != null) result.bytes = bytes;
-    if (replaces != null) result.replaces.addAll(replaces);
-    return result;
-  }
-
-  FomodPlannedFile._();
-
-  factory FomodPlannedFile.fromBuffer($core.List<$core.int> data,
-          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(data, registry);
-  factory FomodPlannedFile.fromJson($core.String json,
-          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromJson(json, registry);
-
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
-      _omitMessageNames ? '' : 'FomodPlannedFile',
-      package:
-          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
-      createEmptyInstance: create)
-    ..aI(1, _omitFieldNames ? '' : 'index', fieldType: $pb.PbFieldType.OU3)
-    ..pPS(2, _omitFieldNames ? '' : 'destination')
-    ..pPS(3, _omitFieldNames ? '' : 'source')
-    ..aOS(4, _omitFieldNames ? '' : 'choice')
-    ..a<$fixnum.Int64>(5, _omitFieldNames ? '' : 'bytes', $pb.PbFieldType.OU6,
-        defaultOrMaker: $fixnum.Int64.ZERO)
-    ..pPM<FomodSource>(6, _omitFieldNames ? '' : 'replaces',
-        subBuilder: FomodSource.create)
-    ..hasRequiredFields = false;
-
-  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  FomodPlannedFile clone() => deepCopy();
-  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  FomodPlannedFile copyWith(void Function(FomodPlannedFile) updates) =>
-      super.copyWith((message) => updates(message as FomodPlannedFile))
-          as FomodPlannedFile;
-
-  @$core.override
-  $pb.BuilderInfo get info_ => _i;
-
-  @$core.pragma('dart2js:noInline')
-  static FomodPlannedFile create() => FomodPlannedFile._();
-  @$core.override
-  FomodPlannedFile createEmptyInstance() => create();
-  @$core.pragma('dart2js:noInline')
-  static FomodPlannedFile getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<FomodPlannedFile>(create);
-  static FomodPlannedFile? _defaultInstance;
-
-  @$pb.TagNumber(1)
-  $core.int get index => $_getIZ(0);
-  @$pb.TagNumber(1)
-  set index($core.int value) => $_setUnsignedInt32(0, value);
-  @$pb.TagNumber(1)
-  $core.bool hasIndex() => $_has(0);
-  @$pb.TagNumber(1)
-  void clearIndex() => $_clearField(1);
-
-  @$pb.TagNumber(2)
-  $pb.PbList<$core.String> get destination => $_getList(1);
-
-  @$pb.TagNumber(3)
-  $pb.PbList<$core.String> get source => $_getList(2);
-
-  @$pb.TagNumber(4)
-  $core.String get choice => $_getSZ(3);
-  @$pb.TagNumber(4)
-  set choice($core.String value) => $_setString(3, value);
-  @$pb.TagNumber(4)
-  $core.bool hasChoice() => $_has(3);
-  @$pb.TagNumber(4)
-  void clearChoice() => $_clearField(4);
-
-  @$pb.TagNumber(5)
-  $fixnum.Int64 get bytes => $_getI64(4);
-  @$pb.TagNumber(5)
-  set bytes($fixnum.Int64 value) => $_setInt64(4, value);
-  @$pb.TagNumber(5)
-  $core.bool hasBytes() => $_has(4);
-  @$pb.TagNumber(5)
-  void clearBytes() => $_clearField(5);
-
-  @$pb.TagNumber(6)
-  $pb.PbList<FomodSource> get replaces => $_getList(5);
-}
-
 class FomodChoices extends $pb.GeneratedMessage {
   factory FomodChoices({
     $1.InstallationDraftReference? reference,
@@ -660,7 +512,7 @@ class FomodChoices extends $pb.GeneratedMessage {
     $core.bool? canBack,
     $core.bool? hasStep,
     $core.Iterable<FomodGroup>? groups,
-    $core.Iterable<FomodPlannedFile>? files,
+    $core.Iterable<$2.InstallationReviewedFile>? files,
     $core.bool? reviewReady,
     $core.String? problem,
     $1.ArchiveInstallationDraft? reviewedDraft,
@@ -708,8 +560,8 @@ class FomodChoices extends $pb.GeneratedMessage {
     ..aOB(8, _omitFieldNames ? '' : 'hasStep')
     ..pPM<FomodGroup>(9, _omitFieldNames ? '' : 'groups',
         subBuilder: FomodGroup.create)
-    ..pPM<FomodPlannedFile>(10, _omitFieldNames ? '' : 'files',
-        subBuilder: FomodPlannedFile.create)
+    ..pPM<$2.InstallationReviewedFile>(10, _omitFieldNames ? '' : 'files',
+        subBuilder: $2.InstallationReviewedFile.create)
     ..aOB(11, _omitFieldNames ? '' : 'reviewReady')
     ..aOS(12, _omitFieldNames ? '' : 'problem')
     ..aOM<$1.ArchiveInstallationDraft>(
@@ -814,7 +666,7 @@ class FomodChoices extends $pb.GeneratedMessage {
   $pb.PbList<FomodGroup> get groups => $_getList(8);
 
   @$pb.TagNumber(10)
-  $pb.PbList<FomodPlannedFile> get files => $_getList(9);
+  $pb.PbList<$2.InstallationReviewedFile> get files => $_getList(9);
 
   @$pb.TagNumber(11)
   $core.bool get reviewReady => $_getBF(10);

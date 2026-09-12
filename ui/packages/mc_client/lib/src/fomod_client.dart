@@ -7,22 +7,29 @@ import 'artifact_models.dart';
 import 'installation_models.dart';
 import 'installation_client.dart' show installationDraft;
 import 'fomod_models.dart';
+import 'installation_review_client.dart';
 import 'generated/modconductor/v1/fomod.pbgrpc.dart' as wire;
 import 'generated/modconductor/v1/archive_installation.pb.dart' as installation;
 export 'fomod_models.dart';
 
 abstract interface class FomodClient {
-  Future<FomodChoices> open(FomodReference reference, String profileId);
-  Future<FomodChoices> read(FomodReference reference);
+  Future<FomodChoices> open(
+    InstallationDraftReference reference,
+    String profileId,
+  );
+  Future<FomodChoices> read(InstallationDraftReference reference);
   Future<FomodChoices> choose(
-    FomodReference reference,
+    InstallationDraftReference reference,
     int optionId,
     bool selected,
   );
-  Future<FomodChoices> next(FomodReference reference);
-  Future<FomodChoices> back(FomodReference reference);
-  Future<InstallationDraft> manual(FomodReference reference);
-  Future<Uint8List> image(FomodReference reference, List<String> path);
+  Future<FomodChoices> next(InstallationDraftReference reference);
+  Future<FomodChoices> back(InstallationDraftReference reference);
+  Future<InstallationDraft> manual(InstallationDraftReference reference);
+  Future<Uint8List> image(
+    InstallationDraftReference reference,
+    List<String> path,
+  );
 }
 
 class GrpcFomodClient implements FomodClient {
@@ -37,14 +44,15 @@ class GrpcFomodClient implements FomodClient {
     }
   }
 
-  installation.InstallationDraftReference _reference(FomodReference value) =>
-      installation.InstallationDraftReference(
-        workspaceId: value.workspaceId,
-        id: value.id,
-        revision: Int64(value.revision),
-      );
+  installation.InstallationDraftReference _reference(
+    InstallationDraftReference value,
+  ) => installation.InstallationDraftReference(
+    workspaceId: value.workspaceId,
+    id: value.id,
+    revision: Int64(value.revision),
+  );
   FomodChoices _choices(wire.FomodChoices value) => FomodChoices(
-    reference: FomodReference(
+    reference: InstallationDraftReference(
       value.reference.workspaceId,
       value.reference.id,
       value.reference.revision.toInt(),
@@ -102,36 +110,28 @@ class GrpcFomodClient implements FomodClient {
           ],
         ),
     ],
-    files: [
-      for (final file in value.files)
-        FomodPlannedFile(
-          file.index,
-          List.unmodifiable(file.destination),
-          List.unmodifiable(file.source),
-          file.choice,
-          file.bytes.toInt(),
-          [for (final source in file.replaces) List.unmodifiable(source.path)],
-        ),
-    ],
+    files: [for (final file in value.files) reviewedFile(file)],
   );
   @override
-  Future<FomodChoices> open(FomodReference reference, String profileId) async =>
-      _choices(
-        await _call(
-          _client.openChoices(
-            wire.OpenFomodChoices(
-              draft: _reference(reference),
-              profileId: profileId,
-            ),
-          ),
+  Future<FomodChoices> open(
+    InstallationDraftReference reference,
+    String profileId,
+  ) async => _choices(
+    await _call(
+      _client.openChoices(
+        wire.OpenFomodChoices(
+          draft: _reference(reference),
+          profileId: profileId,
         ),
-      );
+      ),
+    ),
+  );
   @override
-  Future<FomodChoices> read(FomodReference reference) async =>
+  Future<FomodChoices> read(InstallationDraftReference reference) async =>
       _choices(await _call(_client.readChoices(_reference(reference))));
   @override
   Future<FomodChoices> choose(
-    FomodReference reference,
+    InstallationDraftReference reference,
     int optionId,
     bool selected,
   ) async => _choices(
@@ -146,23 +146,26 @@ class GrpcFomodClient implements FomodClient {
     ),
   );
   @override
-  Future<FomodChoices> next(FomodReference reference) async =>
+  Future<FomodChoices> next(InstallationDraftReference reference) async =>
       _choices(await _call(_client.nextStep(_reference(reference))));
   @override
-  Future<FomodChoices> back(FomodReference reference) async =>
+  Future<FomodChoices> back(InstallationDraftReference reference) async =>
       _choices(await _call(_client.previousStep(_reference(reference))));
   @override
-  Future<InstallationDraft> manual(FomodReference reference) async =>
-      installationDraft(
-        await _call(_client.useManualLayout(_reference(reference))),
-      );
+  Future<InstallationDraft> manual(
+    InstallationDraftReference reference,
+  ) async => installationDraft(
+    await _call(_client.useManualLayout(_reference(reference))),
+  );
   @override
-  Future<Uint8List> image(FomodReference reference, List<String> path) async =>
-      Uint8List.fromList(
-        (await _call(
-          _client.readChoiceImage(
-            wire.FomodImageRequest(draft: _reference(reference), path: path),
-          ),
-        )).content,
-      );
+  Future<Uint8List> image(
+    InstallationDraftReference reference,
+    List<String> path,
+  ) async => Uint8List.fromList(
+    (await _call(
+      _client.readChoiceImage(
+        wire.FomodImageRequest(draft: _reference(reference), path: path),
+      ),
+    )).content,
+  );
 }

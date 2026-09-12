@@ -101,23 +101,7 @@ module internal FomodWire =
             let entries =
                 value.Draft.Manifest.Entries |> List.map (fun e -> e.Index, e) |> Map.ofList
 
-            for planned in planned.Files do
-                let file =
-                    FomodPlannedFile(
-                        Index = uint32 planned.File.Index,
-                        Choice = planned.Choice,
-                        Bytes = uint64 entries[planned.File.Index].Size
-                    )
-
-                file.Destination.AddRange(LogicalPath.components planned.File.Destination)
-                file.Source.AddRange(LogicalPath.components planned.Source)
-
-                for path in planned.Replaces do
-                    let source = FomodSource()
-                    source.Path.AddRange(LogicalPath.components path)
-                    file.Replaces.Add source
-
-                result.Files.Add file
+            result.Files.AddRange(planned.Files |> List.map (InstallationReviewWire.file entries))
 
         value.Problem |> Option.iter (fun why -> result.Problem <- why)
         result
