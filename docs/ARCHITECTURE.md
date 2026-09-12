@@ -10,6 +10,7 @@
 | `ModConductor.GameContexts` | Game definitions, installation checks, and context evidence |
 | `ModConductor.SteamDiscovery` | Read-only Steam library, app and compatibility-tool metadata |
 | `ModConductor.ProtonContexts` | Chosen Proton installation, prefix and Windows user-path checks |
+| `ModConductor.ArchiveInspection` | Read-only archive metadata and scoped lazy entry reads |
 | `ModConductor.HttpDownloads` | Engine-owned HTTP workers, range validation, retries, and integrity checks |
 | `ModConductor.ArtifactLibrary` | Archive identity, availability, and manual installed-version provenance |
 | `ModConductor.ModLibrary` | Mod identity, metadata, and immutable file versions |
@@ -318,3 +319,27 @@ check. Neither case validates the archive format or proves installability.
 
 Source URLs are retained for resume. User information and fragments are refused;
 cookies are disabled. Display and error text omit URL queries and response bodies.
+
+
+## Archive inspection
+
+Read contents obtains a verified read handle from the existing artifact owner.
+The held-file identity and saved length/digest are checked before parsing. The
+claim and stream last only for that read. Metadata inspection does not scan file
+payloads or change archive availability, provenance, or bytes. Its complete result
+is retained only by the current UI view; no new database schema or inventory exists.
+
+Logical names use portable Windows naming rules and case-insensitive canonical
+Unicode collision keys, while preserving original spelling. Links, devices,
+redirections, duplicate paths and file/folder conflicts are refused. Implied
+folders count toward the 20,000-node limit. Other limits are 32 levels, 1,024
+characters per path, 2 MiB total names, 16 GiB per file, 64 GiB expanded bytes and
+a 1,000:1 ratio. Nested archives remain leaf files; they are not opened recursively.
+
+`Inspection.WithContents` keeps lazy entry reads in the same verified stream scope
+for the installation consumer. Solid entry reads account for decoded preceding
+entries. Listing metadata does not prove every payload can be decoded. Reader
+exceptions reach the normal operation error path; known corrupt input asks for a
+fresh download. Password and unsupported cases are distinct. MC does not constrain
+dependency-internal allocations or CPU use before metadata/bytes return. There is
+no parser helper, fork, header validator or corruption recovery system.

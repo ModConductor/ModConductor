@@ -135,3 +135,10 @@ only newer snapshots from the current workspace and reconnects observation witho
 resubmitting a download. Navigation does not pause or duplicate transfers. Pause
 retains bytes; Restart asks before discarding a nonempty partial copy. The details
 view distinguishes a match to a supplied SHA-256 from no supplied checksum.
+
+
+Read contents opens the archive's metadata tree inside Archives. Back to archives
+retains the library selection. The existing collection, tree expander and inspector
+show entry paths and sizes; narrow details use the same drawer. Changing workspace
+clears the contents view. A late or canceled read cannot replace another view.
+No install action or archive-validity status is inferred from the listed metadata.

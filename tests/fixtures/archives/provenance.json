@@ -1,0 +1,22 @@
+[
+  {
+    "file": "test_read_format_rar5_compressed.rar",
+    "sha256": "68f9d7e2662cd5bc5607ba9c6bf1edbf121cf3b08011a7d8643091791750a7c8",
+    "source": "https://github.com/libarchive/libarchive/blob/c719b9b1f56621d92063a85361cc8d114f5575a9/libarchive/test/test_read_format_rar5_compressed.rar.uu"
+  },
+  {
+    "file": "rar5-store.rar",
+    "sha256": "338d8aaf1d08eac8c2c9ba64297c6b0a66fdea3c935ed91466e2d34c3d0339f1",
+    "source": "MC generated; RAR5 stored format, https://www.rarlab.com/technote.htm"
+  },
+  {
+    "file": "test_read_format_rar5_multiple_files_solid.rar",
+    "sha256": "0aa2c652c06304dedd93019663c1d52d5e85055d5fdb8045bfcc4345b90b4a0f",
+    "source": "https://github.com/libarchive/libarchive/blob/c719b9b1f56621d92063a85361cc8d114f5575a9/libarchive/test/test_read_format_rar5_multiple_files_solid.rar.uu"
+  },
+  {
+    "file": "rar5-encrypted.rar",
+    "sha256": "72b69a1d5f5757511e683a9207166c60e91ce0846ae446b8b332b085f9e0ba48",
+    "source": "https://github.com/libarchive/libarchive/blob/c719b9b1f56621d92063a85361cc8d114f5575a9/libarchive/test/test_read_format_rar5_encrypted.rar.uu"
+  }
+]

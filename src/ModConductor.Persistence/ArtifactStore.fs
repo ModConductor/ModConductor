@@ -30,6 +30,55 @@ type internal ArtifactStore(database: StateDatabase, access: LibraryAccess) =
 
     member _.AddAtCheckpoint(request, token, checkpoint) = files.Add(request, token, checkpoint)
 
+    interface IArtifactSource with
+        member _.ReadVerified(reference, token, consume) =
+            task {
+                let! outcome =
+                    run (fun () ->
+                        withClaim reference (fun row ->
+                            if row.Phase <> 2 then
+                                refuse ArtifactError.Unavailable
+
+                            let inspect (file: FileStream) =
+                                use file = file
+
+                                ArtifactFiles.verify
+                                    token
+                                    row.Artifact.Length
+                                    row.Artifact.Sha256
+                                    file
+
+                                file.Position <- 0L
+                                // Consumer errors belong to its operation, not file admission.
+                                try
+                                    Choice1Of2(consume (row.Artifact, file :> Stream))
+                                with error ->
+                                    Choice2Of2 error
+
+                            if row.Artifact.Storage = ArtifactStorage.Reference then
+                                let file, _ =
+                                    ArtifactFiles.openExternal
+                                        row.Artifact.Path
+                                        row.SourceIdentity
+
+                                inspect file
+                            else
+                                use directory = library row.Artifact.WorkspaceId
+
+                                let file, _ =
+                                    directory.Read(
+                                        ArtifactFiles.final row.Artifact.Id,
+                                        row.StoredIdentity
+                                    )
+
+                                inspect file))
+
+                match outcome with
+                | Ok(Choice1Of2 value) -> return Ok value
+                | Ok(Choice2Of2 error) -> return raise error
+                | Error error -> return Error error
+            }
+
     interface IArtifactLibrary with
         member _.Add(request, token) = files.Add(request, token, ignore)
 

@@ -28,6 +28,8 @@ Artifact archive(
 
 class Client implements ArtifactsClient {
   @override
+  ArchiveRead readContents(Artifact artifact) => throw UnimplementedError();
+  @override
   Future<Artifact> download(
     String workspaceId,
     String id,

@@ -13,12 +13,14 @@ class ArtifactInspector extends StatelessWidget {
     super.key,
     required this.controller,
     required this.onClose,
+    required this.onRead,
     required this.onLocate,
     required this.onLink,
     required this.onCleanup,
   });
   final ArtifactController controller;
   final VoidCallback onClose;
+  final ValueChanged<Artifact> onRead;
   final Future<void> Function(Artifact) onLocate, onLink;
   final Future<void> Function(Artifact, bool) onCleanup;
   Widget details(BuildContext c, Artifact artifact) => ExpansionTile(
@@ -48,6 +50,16 @@ class ArtifactInspector extends StatelessWidget {
               spacing: 8,
               runSpacing: 8,
               children: [
+                if (artifact.state == ArtifactState.ready ||
+                    artifact.state == ArtifactState.installed)
+                  McAction(
+                    label: 'Read contents',
+                    icon: Icons.folder_open,
+                    emphasis: McActionEmphasis.primary,
+                    onPressed: controller.canEdit
+                        ? () => onRead(artifact)
+                        : null,
+                  ),
                 if (artifact.download != null)
                   DownloadControls(artifact: artifact, controller: controller),
                 if (artifact.canLocate)

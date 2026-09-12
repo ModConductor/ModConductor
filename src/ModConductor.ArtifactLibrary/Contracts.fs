@@ -105,3 +105,9 @@ type IArtifactLibrary =
     abstract Link: ArtifactRef * Guid * Guid * bool -> Task<Result<Artifact, ArtifactError>>
     abstract DeleteCopy: ArtifactRef -> Task<Result<Artifact, ArtifactError>>
     abstract Remove: ArtifactRef -> Task<Result<unit, ArtifactError>>
+
+
+type IArtifactSource =
+    abstract ReadVerified<'a> :
+        ArtifactRef * CancellationToken * (Artifact * System.IO.Stream -> 'a) ->
+            Task<Result<'a, ArtifactError>>

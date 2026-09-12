@@ -12,6 +12,7 @@ Original MC source remains unlicensed. These notices apply only to adopted third
 | Grpc.Tools | 2.83.0 | Build-only protoc and C# plugin, PrivateAssets=All; [upstream commit](https://github.com/grpc/grpc/tree/c876f4da50f7da2f331888b88b2a7243514139fe) | [Apache-2.0](third-party/grpc-tools-LICENSE.txt) |
 | Bundled protoc | 35.1 | Actual compiler reported by Grpc.Tools; [upstream](https://github.com/protocolbuffers/protobuf/tree/v35.1) | [BSD-3-Clause](third-party/protoc-LICENSE.txt) |
 | CSharpier | 1.3.0 | Local formatter for protocol project/central package/solution metadata; [upstream commit](https://github.com/belav/csharpier/tree/c3fe3f22a4f091eaf759e0b5aa8f3b9d3565e51b) | [MIT](third-party/csharpier-LICENSE.txt) |
+| SharpCompress | 0.50.4 | In-process ZIP/7z/RAR metadata and lazy reads; [tagged source](https://github.com/adamhathcock/sharpcompress/tree/0.50.4), net10.0 asset has no package dependencies | [MIT and component notice](third-party/sharpcompress-NOTICES.txt) |
 | Microsoft.AspNetCore.App | 10.0.11 | Slim host/Kestrel runtime, pinned with the existing .NET runtime; [source commit](https://github.com/dotnet/dotnet/tree/e2f47b0110ed922f21a1522da67279133ce28f32) | [MIT](third-party/aspnetcore-LICENSE.txt), [component notices](third-party/aspnetcore-NOTICES.txt) |
 
 Package metadata supplies the source commits above. ASP.NET notices come from the

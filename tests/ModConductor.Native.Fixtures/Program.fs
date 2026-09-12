@@ -9,7 +9,28 @@ open ModConductor.Native.Fixtures
 [<EntryPoint>]
 let main args =
     try
-        if args.Length = 6 && args[0] = "--download-worker" then
+        if
+            args.Length = 2
+            && args[0] = "--inspection-files"
+            && Path.IsPathFullyQualified args[1]
+        then
+            ArchiveInspectionFixtures.create args[1]
+            0
+        elif
+            args.Length = 2
+            && args[0] = "--archive-inspection"
+            && Path.IsPathFullyQualified args[1]
+        then
+            use writer =
+                new Utf8JsonWriter(Console.OpenStandardOutput(), JsonWriterOptions(Indented = true))
+
+            writer.WriteStartObject()
+            writer.WriteBoolean("nativeAot", not RuntimeFeature.IsDynamicCodeSupported)
+            ArchiveInspectionFixtures.observe writer args[1]
+            writer.WriteEndObject()
+            writer.Flush()
+            0
+        elif args.Length = 6 && args[0] = "--download-worker" then
             DownloadFixtures.worker args[1] args[2] args[3] args[4] args[5]
             0
         elif args.Length = 1 && args[0] = "--download-server" then

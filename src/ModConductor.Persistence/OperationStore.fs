@@ -15,6 +15,11 @@ type OperationStore(directory: string, ?downloadPolicy: ModConductor.HttpDownloa
             ?policy = downloadPolicy
         )
 
+    let archiveInspection =
+        ModConductor.ArchiveInspection.Inspection(
+            artifacts :> ModConductor.ArtifactLibrary.IArtifactSource
+        )
+
     let organization = ModOrganizationStore(database, modLibrary.Access)
     let selection = ModSelectionStore(database, modLibrary.Access)
     let gameContexts = GameContextStore(database, workspaceRoots)
@@ -148,6 +153,8 @@ type OperationStore(directory: string, ?downloadPolicy: ModConductor.HttpDownloa
     member _.Workspaces = workspaces
 
     member _.ModLibrary = modLibrary
+    member _.ArtifactSource = artifacts :> ModConductor.ArtifactLibrary.IArtifactSource
+    member _.ArchiveInspection = archiveInspection
     member _.Downloads = downloads
 
     member _.Artifacts = artifacts :> ModConductor.ArtifactLibrary.IArtifactLibrary

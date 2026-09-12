@@ -109,3 +109,10 @@ not start another transfer. Pause, Resume, and Restart act on the saved artifact
 Watch observes up to 64 supplied IDs and coalesces changed revisions every 500 ms.
 Canceling Watch does not cancel a download. Artifact and download services allow
 128 KiB requests and 2 MiB replies, with additional source-count and row bounds.
+
+
+`v1/archive_inspection.proto` exposes one metadata inspection of an exact artifact
+revision. Its 8 MiB response contains a complete bounded manifest, not a success
+prefix or pagination cursor. The source digest identifies the observed archive;
+entry indices stay internal to the reader boundary. Request cancellation cancels
+this read, not the artifact or its download. Payload bytes are not sent by this RPC.

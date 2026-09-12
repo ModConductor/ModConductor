@@ -6,6 +6,7 @@ import 'package:mc_ui_collections/mc_ui_collections.dart';
 import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 
 import 'controller.dart';
+import 'contents_view.dart';
 import 'forms.dart';
 import 'download_form.dart';
 import 'download_view.dart';
@@ -33,6 +34,7 @@ class _ArtifactBrowserState extends State<ArtifactBrowser> {
   final addFocus = FocusNode(debugLabel: 'Add archive');
   final scroll = ScrollController();
   bool inspected = false;
+  Artifact? contents;
   ArtifactController get controller => widget.controller;
   @override
   void dispose() {
@@ -131,6 +133,10 @@ class _ArtifactBrowserState extends State<ArtifactBrowser> {
   Widget inspector(BuildContext c, VoidCallback close) => ArtifactInspector(
     controller: controller,
     onClose: close,
+    onRead: (artifact) {
+      pane.currentState?.closeEndDrawer();
+      setState(() => contents = artifact);
+    },
     onLocate: fileForm,
     onLink: link,
     onCleanup: (artifact, bytes) => cleanup(artifact, bytes: bytes),
@@ -143,6 +149,18 @@ class _ArtifactBrowserState extends State<ArtifactBrowser> {
       builder: (c, constraints) {
         final narrow =
             constraints.maxWidth < 1100 * MediaQuery.textScalerOf(c).scale(1);
+        if (contents?.workspaceId != controller.workspaceId) contents = null;
+        final archive = contents;
+        if (archive != null &&
+            archive.workspaceId == controller.workspaceId &&
+            controller.client != null) {
+          return ArchiveContentsView(
+            key: ValueKey(archive.id),
+            artifact: archive,
+            client: controller.client!,
+            onBack: () => setState(() => contents = null),
+          );
+        }
         return Scaffold(
           key: pane,
           backgroundColor: Colors.transparent,

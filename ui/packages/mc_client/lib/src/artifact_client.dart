@@ -5,9 +5,13 @@ import 'generated/modconductor/v1/artifacts.pbgrpc.dart' as wire;
 import 'generated/modconductor/v1/downloads.pbgrpc.dart' as transfer;
 import 'generated/modconductor/v1/download_models.pb.dart' as model;
 import 'artifact_models.dart';
+import 'archive_inspection_models.dart';
+import 'generated/modconductor/v1/archive_inspection.pbgrpc.dart' as inspection;
+export 'archive_inspection_models.dart';
 export 'artifact_models.dart';
 
 abstract interface class ArtifactsClient {
+  ArchiveRead readContents(Artifact expected);
   Future<ArtifactPage> list(
     String workspaceId, {
     String? after,
@@ -42,8 +46,36 @@ abstract interface class ArtifactsClient {
 class GrpcArtifactsClient implements ArtifactsClient {
   GrpcArtifactsClient(ClientChannel channel, CallOptions options)
     : _client = wire.ArtifactLibraryClient(channel, options: options),
-      _downloads = transfer.ArtifactDownloadsClient(channel, options: options);
+      _downloads = transfer.ArtifactDownloadsClient(channel, options: options),
+      _inspection = inspection.ArchiveInspectionClient(
+        channel,
+        options: options,
+      );
+  final inspection.ArchiveInspectionClient _inspection;
   final wire.ArtifactLibraryClient _client;
+  @override
+  ArchiveRead readContents(Artifact expected) {
+    final call = _inspection.inspectArchive(
+      _ref(expected),
+      options: CallOptions(timeout: const Duration(days: 1)),
+    );
+    return ArchiveRead(
+      _call(call).then(
+        (reply) => InspectedArchive(reply.sha256, reply.format, [
+          for (final e in reply.entries)
+            InspectedEntry(
+              e.index,
+              List.unmodifiable(e.components),
+              e.directory,
+              e.size.toInt(),
+              e.hasCompressedSize() ? e.compressedSize.toInt() : null,
+            ),
+        ], reply.totalSize.toInt()),
+      ),
+      call.cancel,
+    );
+  }
+
   final transfer.ArtifactDownloadsClient _downloads;
   Future<T> _call<T>(Future<T> pending) async {
     try {
