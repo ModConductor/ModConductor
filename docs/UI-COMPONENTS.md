@@ -127,3 +127,11 @@ version. Add archive defaults to a reference; Copy to library is explicit.
 Delete copy preserves the original file, installed mods, and list entry. Remove from
 list applies only when no mod links or owned archive bytes remain. A failed or
 unknown mutation requires Refresh before another edit.
+
+
+The archive browser also owns the URL download form and transfer controls. Optional
+size, checksum, and mirror inputs stay in a disclosure. Its controller applies
+only newer snapshots from the current workspace and reconnects observation without
+resubmitting a download. Navigation does not pause or duplicate transfers. Pause
+retains bytes; Restart asks before discarding a nonempty partial copy. The details
+view distinguishes a match to a supplied SHA-256 from no supplied checksum.

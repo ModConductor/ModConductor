@@ -30,6 +30,7 @@ class Artifact {
     this.length,
     this.sha256,
     this.problem,
+    this.download,
   });
   final String id, workspaceId, originalName, originalPath, path;
   final int revision;
@@ -39,6 +40,7 @@ class Artifact {
   final String? sha256, problem;
   final List<ArtifactLink> links;
   final bool canRetry, canLocate, canDeleteCopy, canRemove;
+  final ArtifactDownload? download;
 }
 
 class ArtifactPage {
@@ -56,4 +58,45 @@ class ArtifactLinkPage {
 class ArtifactProblem implements Exception {
   const ArtifactProblem(this.detail);
   final String detail;
+}
+
+enum DownloadPhase { queued, running, waiting, paused, failed, complete }
+
+enum DownloadAction { pause, resume, restart }
+
+class ArtifactDownload {
+  const ArtifactDownload({
+    required this.phase,
+    required this.bytes,
+    required this.source,
+    required this.checksumMatched,
+    required this.restartRequired,
+    this.total,
+    this.expectedSha256,
+    this.retryAt,
+  });
+  final DownloadPhase phase;
+  final int bytes;
+  final int? total;
+  final String source;
+  final String? expectedSha256;
+  final bool checksumMatched, restartRequired;
+  final DateTime? retryAt;
+  bool get active =>
+      phase == DownloadPhase.queued ||
+      phase == DownloadPhase.running ||
+      phase == DownloadPhase.waiting;
+}
+
+class ArchiveDownloadRequest {
+  const ArchiveDownloadRequest({
+    required this.name,
+    required this.sources,
+    this.expectedLength,
+    this.expectedSha256,
+  });
+  final String name;
+  final List<String> sources;
+  final int? expectedLength;
+  final String? expectedSha256;
 }

@@ -35,6 +35,22 @@ type internal ArtifactCapture(operations: ArtifactAccess) =
                 else
                     ArtifactFiles.verify token row.Artifact.Length row.Artifact.Sha256 file
                     if row.Phase = 2 then row else finish row 2 None
+            elif row.Phase = 0 && row.Artifact.Download.IsSome && row.StoredIdentity.IsSome then
+                use directory = library row.Artifact.WorkspaceId
+
+                use file =
+                    directory.Write(ArtifactFiles.stage row.Artifact.Id, row.StoredIdentity.Value)
+
+                let bytes = row.Artifact.Download.Value.Bytes
+
+                if file.Length < bytes then
+                    raise (IOException "The partial copy is shorter than its saved size.")
+
+                if file.Length > bytes then
+                    file.SetLength bytes
+                    file.Flush true
+
+                row
             elif row.Phase = 0 || (row.Phase = 3 && row.StoredIdentity.IsNone) then
                 row
             else

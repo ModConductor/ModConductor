@@ -123,6 +123,13 @@
           "ModConductor.ModLibrary": "[1.0.0, )"
         }
       },
+      "modconductor.httpdownloads": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )",
+          "ModConductor.ArtifactLibrary": "[1.0.0, )"
+        }
+      },
       "modconductor.modlibrary": {
         "type": "Project",
         "dependencies": {
@@ -164,6 +171,7 @@
           "ModConductor.GameContexts": "[1.0.0, )",
           "ModConductor.GameLaunching": "[1.0.0, )",
           "ModConductor.GeneratedOutputs": "[1.0.0, )",
+          "ModConductor.HttpDownloads": "[1.0.0, )",
           "ModConductor.ModLibrary": "[1.0.0, )",
           "ModConductor.ModOrganization": "[1.0.0, )",
           "ModConductor.ModSelection": "[1.0.0, )",

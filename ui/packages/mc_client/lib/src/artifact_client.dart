@@ -2,6 +2,8 @@ import 'package:fixnum/fixnum.dart';
 import 'package:grpc/grpc.dart';
 
 import 'generated/modconductor/v1/artifacts.pbgrpc.dart' as wire;
+import 'generated/modconductor/v1/downloads.pbgrpc.dart' as transfer;
+import 'generated/modconductor/v1/download_models.pb.dart' as model;
 import 'artifact_models.dart';
 export 'artifact_models.dart';
 
@@ -28,12 +30,21 @@ abstract interface class ArtifactsClient {
   });
   Future<Artifact> deleteCopy(Artifact expected);
   Future<void> remove(Artifact expected);
+  Future<Artifact> download(
+    String workspaceId,
+    String id,
+    ArchiveDownloadRequest request,
+  );
+  Future<Artifact> controlDownload(Artifact artifact, DownloadAction action);
+  Stream<Artifact> watchDownloads(String workspaceId, List<String> ids);
 }
 
 class GrpcArtifactsClient implements ArtifactsClient {
   GrpcArtifactsClient(ClientChannel channel, CallOptions options)
-    : _client = wire.ArtifactLibraryClient(channel, options: options);
+    : _client = wire.ArtifactLibraryClient(channel, options: options),
+      _downloads = transfer.ArtifactDownloadsClient(channel, options: options);
   final wire.ArtifactLibraryClient _client;
+  final transfer.ArtifactDownloadsClient _downloads;
   Future<T> _call<T>(Future<T> pending) async {
     try {
       return await pending;
@@ -72,7 +83,90 @@ class GrpcArtifactsClient implements ArtifactsClient {
     sha256: a.hasSha256() ? a.sha256 : null,
     problem: a.hasProblem() ? a.problem : null,
     links: List.unmodifiable(a.links.map(_link)),
+    download: a.hasDownload() ? _download(a.download) : null,
   );
+  ArtifactDownload _download(model.ArchiveDownload d) => ArtifactDownload(
+    phase: switch (d.phase) {
+      model.DownloadPhase.DOWNLOAD_PHASE_QUEUED => DownloadPhase.queued,
+      model.DownloadPhase.DOWNLOAD_PHASE_RUNNING => DownloadPhase.running,
+      model.DownloadPhase.DOWNLOAD_PHASE_WAITING => DownloadPhase.waiting,
+      model.DownloadPhase.DOWNLOAD_PHASE_PAUSED => DownloadPhase.paused,
+      model.DownloadPhase.DOWNLOAD_PHASE_FAILED => DownloadPhase.failed,
+      model.DownloadPhase.DOWNLOAD_PHASE_COMPLETE => DownloadPhase.complete,
+      _ => throw const FormatException('Unknown download state.'),
+    },
+    bytes: d.bytes.toInt(),
+    total: d.hasTotal() ? d.total.toInt() : null,
+    source: d.source,
+    expectedSha256: d.hasExpectedSha256() ? d.expectedSha256 : null,
+    checksumMatched: d.checksumMatched,
+    restartRequired: d.restartRequired,
+    retryAt: d.hasRetryAtUnixMs()
+        ? DateTime.fromMillisecondsSinceEpoch(d.retryAtUnixMs.toInt())
+        : null,
+  );
+  @override
+  Future<Artifact> download(
+    String workspaceId,
+    String id,
+    ArchiveDownloadRequest request,
+  ) async => _artifact(
+    await _call(
+      _downloads.startDownload(
+        transfer.DownloadStartRequest(
+          workspaceId: workspaceId,
+          id: id,
+          name: request.name,
+          sources: request.sources,
+          expectedLength: request.expectedLength == null
+              ? null
+              : Int64(request.expectedLength!),
+          expectedSha256: request.expectedSha256,
+        ),
+      ),
+    ),
+  );
+  @override
+  Future<Artifact> controlDownload(
+    Artifact artifact,
+    DownloadAction action,
+  ) async => _artifact(
+    await _call(
+      _downloads.controlDownload(
+        transfer.DownloadControlRequest(
+          workspaceId: artifact.workspaceId,
+          id: artifact.id,
+          command: switch (action) {
+            DownloadAction.pause =>
+              transfer.DownloadCommand.DOWNLOAD_COMMAND_PAUSE,
+            DownloadAction.resume =>
+              transfer.DownloadCommand.DOWNLOAD_COMMAND_RESUME,
+            DownloadAction.restart =>
+              transfer.DownloadCommand.DOWNLOAD_COMMAND_RESTART,
+          },
+        ),
+      ),
+    ),
+  );
+  @override
+  Stream<Artifact> watchDownloads(String workspaceId, List<String> ids) async* {
+    final call = _downloads.watchDownloads(
+      transfer.DownloadWatchRequest(workspaceId: workspaceId, ids: ids),
+      options: CallOptions(timeout: const Duration(days: 1)),
+    );
+    try {
+      await for (final artifact in call) {
+        yield _artifact(artifact);
+      }
+    } on GrpcError catch (error) {
+      throw ArtifactProblem(
+        error.message ?? 'Download progress is unavailable.',
+      );
+    } finally {
+      await call.cancel();
+    }
+  }
+
   wire.ArtifactReference _ref(Artifact a) => wire.ArtifactReference(
     workspaceId: a.workspaceId,
     id: a.id,

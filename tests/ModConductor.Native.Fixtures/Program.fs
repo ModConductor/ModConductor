@@ -9,7 +9,30 @@ open ModConductor.Native.Fixtures
 [<EntryPoint>]
 let main args =
     try
-        if args.Length = 6 && args[0] = "--artifact-worker" then
+        if args.Length = 6 && args[0] = "--download-worker" then
+            DownloadFixtures.worker args[1] args[2] args[3] args[4] args[5]
+            0
+        elif args.Length = 1 && args[0] = "--download-server" then
+            use server = new DownloadServer()
+
+            Console.WriteLine(
+                server.Url + " " + server.Checksum + " " + server.Payload.Length.ToString()
+            )
+
+            Console.Out.Flush()
+            Console.ReadLine() |> ignore
+            0
+        elif args.Length = 2 && args[0] = "--downloads" && Path.IsPathFullyQualified args[1] then
+            use writer =
+                new Utf8JsonWriter(Console.OpenStandardOutput(), JsonWriterOptions(Indented = true))
+
+            writer.WriteStartObject()
+            writer.WriteBoolean("nativeAot", not RuntimeFeature.IsDynamicCodeSupported)
+            DownloadFixtures.observe writer args[1]
+            writer.WriteEndObject()
+            writer.Flush()
+            0
+        elif args.Length = 6 && args[0] = "--artifact-worker" then
             ArtifactFixtures.worker args[1] args[2] args[3] args[4] args[5]
             0
         elif args.Length = 2 && args[0] = "--artifacts" && Path.IsPathFullyQualified args[1] then

@@ -1,0 +1,17 @@
+syntax = "proto3";
+package modconductor.v1;
+option csharp_namespace = "ModConductor.Protocol.V1";
+import "modconductor/v1/artifacts.proto";
+
+service ArtifactDownloads {
+  rpc StartDownload(DownloadStartRequest) returns (ArchiveArtifact);
+  rpc ControlDownload(DownloadControlRequest) returns (ArchiveArtifact);
+  rpc WatchDownloads(DownloadWatchRequest) returns (stream ArchiveArtifact);
+}
+enum DownloadCommand { DOWNLOAD_COMMAND_UNSPECIFIED = 0; DOWNLOAD_COMMAND_PAUSE = 1; DOWNLOAD_COMMAND_RESUME = 2; DOWNLOAD_COMMAND_RESTART = 3; }
+message DownloadStartRequest {
+  string workspace_id = 1; string id = 2; string name = 3; repeated string sources = 4;
+  optional uint64 expected_length = 5; optional string expected_sha256 = 6;
+}
+message DownloadControlRequest { string workspace_id = 1; string id = 2; DownloadCommand command = 3; }
+message DownloadWatchRequest { string workspace_id = 1; repeated string ids = 2; }

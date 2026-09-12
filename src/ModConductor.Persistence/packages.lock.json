@@ -136,6 +136,13 @@
           "ModConductor.ModLibrary": "[1.0.0, )"
         }
       },
+      "modconductor.httpdownloads": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )",
+          "ModConductor.ArtifactLibrary": "[1.0.0, )"
+        }
+      },
       "modconductor.modlibrary": {
         "type": "Project",
         "dependencies": {

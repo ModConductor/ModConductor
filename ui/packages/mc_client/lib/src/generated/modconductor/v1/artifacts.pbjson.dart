@@ -122,11 +122,22 @@ const ArchiveArtifact$json = {
     {'1': 'can_locate', '3': 14, '4': 1, '5': 8, '10': 'canLocate'},
     {'1': 'can_delete_copy', '3': 15, '4': 1, '5': 8, '10': 'canDeleteCopy'},
     {'1': 'can_remove', '3': 16, '4': 1, '5': 8, '10': 'canRemove'},
+    {
+      '1': 'download',
+      '3': 17,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.ArchiveDownload',
+      '9': 3,
+      '10': 'download',
+      '17': true
+    },
   ],
   '8': [
     {'1': '_length'},
     {'1': '_sha256'},
     {'1': '_problem'},
+    {'1': '_download'},
   ],
 };
 
@@ -142,8 +153,9 @@ final $typed_data.Uint8List archiveArtifactDescriptor = $convert.base64Decode(
     'gBARI5CgVsaW5rcxgMIAMoCzIjLm1vZGNvbmR1Y3Rvci52MS5BcnRpZmFjdFByb3ZlbmFuY2VS'
     'BWxpbmtzEhsKCWNhbl9yZXRyeRgNIAEoCFIIY2FuUmV0cnkSHQoKY2FuX2xvY2F0ZRgOIAEoCF'
     'IJY2FuTG9jYXRlEiYKD2Nhbl9kZWxldGVfY29weRgPIAEoCFINY2FuRGVsZXRlQ29weRIdCgpj'
-    'YW5fcmVtb3ZlGBAgASgIUgljYW5SZW1vdmVCCQoHX2xlbmd0aEIJCgdfc2hhMjU2QgoKCF9wcm'
-    '9ibGVt');
+    'YW5fcmVtb3ZlGBAgASgIUgljYW5SZW1vdmUSQQoIZG93bmxvYWQYESABKAsyIC5tb2Rjb25kdW'
+    'N0b3IudjEuQXJjaGl2ZURvd25sb2FkSANSCGRvd25sb2FkiAEBQgkKB19sZW5ndGhCCQoHX3No'
+    'YTI1NkIKCghfcHJvYmxlbUILCglfZG93bmxvYWQ=');
 
 @$core.Deprecated('Use artifactLinkPageDescriptor instead')
 const ArtifactLinkPage$json = {

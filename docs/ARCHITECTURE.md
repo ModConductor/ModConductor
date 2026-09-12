@@ -10,6 +10,7 @@
 | `ModConductor.GameContexts` | Game definitions, installation checks, and context evidence |
 | `ModConductor.SteamDiscovery` | Read-only Steam library, app and compatibility-tool metadata |
 | `ModConductor.ProtonContexts` | Chosen Proton installation, prefix and Windows user-path checks |
+| `ModConductor.HttpDownloads` | Engine-owned HTTP workers, range validation, retries, and integrity checks |
 | `ModConductor.ArtifactLibrary` | Archive identity, availability, and manual installed-version provenance |
 | `ModConductor.ModLibrary` | Mod identity, metadata, and immutable file versions |
 | `ModConductor.ModSelection` | Per-profile enablement, saved precedence, and batch rules |
@@ -286,3 +287,34 @@ workspace. Later filename, path, or mod-name changes do not change those IDs.
 Deleting an owned copy retains its links and changes availability to File not found.
 Removing an unlinked list entry never deletes an external archive. All file work
 uses the existing library admission and database owner lease, not another journal.
+
+## HTTP downloads
+
+Downloads use the same artifact ID, owner lease, and staging files as local
+archives. Schema 15 adds transfer metadata to those rows, not a second inventory.
+Two engine-owned workers run outside the shared file-admission gate. At most 32
+items can wait. Closing a view cancels its observation only. Engine shutdown drains
+the workers before the artifact store and database close. Saved unfinished work
+returns Paused after restart; only a user action starts the network again.
+
+Each checkpoint flushes bytes before saving their length. Reconciliation truncates
+only an uncommitted tail. Reopening a partial file uses the held directory's
+non-truncating, identity-checked read/write handle on Linux and Windows. Completion
+uses the existing observed-file phase and no-replace promotion.
+
+Resume requires the same effective source, strong ETag, and exact byte range and
+total. Requests use the stored representation without automatic decompression.
+An incompatible response retains the prefix and requires explicit Restart.
+Mirrors can change automatically only before any bytes are saved. Restart can
+select the next mirror and discard the partial copy without changing the artifact
+ID or its links.
+
+A user run permits three attempts, with 1- and 2-second retry delays and any longer
+Retry-After deadline. Saved deadlines release workers rather than occupying them.
+Connect timeout is 10 seconds; response-header and read-idle timeouts are 30 seconds.
+Expected length and an optional supplied SHA-256 must match before availability.
+A computed digest without a supplied checksum is not an independent integrity
+check. Neither case validates the archive format or proves installability.
+
+Source URLs are retained for resume. User information and fragments are refused;
+cookies are disabled. Display and error text omit URL queries and response bodies.

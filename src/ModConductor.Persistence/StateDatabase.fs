@@ -29,6 +29,12 @@ type internal StateDatabase(directory: string) =
         Sqlite.execute
             connection
             null
+            "UPDATE artifact_downloads SET state=3 WHERE state IN (0,1,2) AND artifact_id IN (SELECT id FROM artifacts WHERE owner=$owner)"
+            [ "$owner", box owner ]
+
+        Sqlite.execute
+            connection
+            null
             "UPDATE artifacts SET busy=0 WHERE owner=$owner"
             [ "$owner", box owner ]
 

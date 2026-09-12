@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+
+import 'archive_facts.dart';
+
 import 'package:mc_client/mc_client.dart';
 import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 
@@ -9,15 +12,6 @@ class ArchiveFile {
 }
 
 typedef ArchiveChooser = Future<ArchiveFile?> Function();
-String archiveSize(int? bytes) => bytes == null
-    ? 'Unknown'
-    : bytes < 1024
-    ? '$bytes B'
-    : bytes < 1024 * 1024
-    ? '${(bytes / 1024).toStringAsFixed(1)} KB'
-    : bytes < 1024 * 1024 * 1024
-    ? '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB'
-    : '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
 
 class ArchiveFileForm extends StatefulWidget {
   const ArchiveFileForm({

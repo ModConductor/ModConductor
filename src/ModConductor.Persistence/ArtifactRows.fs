@@ -70,7 +70,8 @@ module internal ArtifactRows =
                       CanRetry = false
                       CanLocate = false
                       CanDeleteCopy = false
-                      CanRemove = false }
+                      CanRemove = false
+                      Download = None }
                   Phase = phase
                   Owner = reader.GetString 6
                   Busy = reader.GetBoolean 7
@@ -81,6 +82,7 @@ module internal ArtifactRows =
 
             reader.Close()
             let provenance = links connection transaction id
+            let download = DownloadRows.info connection transaction id phase
 
             let state =
                 match phase with
@@ -94,8 +96,9 @@ module internal ArtifactRows =
                     Artifact =
                         { row.Artifact with
                             State = state
+                            Download = download
                             Links = provenance
-                            CanRetry = not row.Busy && phase = 0
+                            CanRetry = not row.Busy && phase = 0 && download.IsNone
                             CanLocate =
                                 not row.Busy
                                 && row.Artifact.Storage = ArtifactStorage.Reference
@@ -103,6 +106,7 @@ module internal ArtifactRows =
                             CanDeleteCopy =
                                 not row.Busy
                                 && row.Artifact.Storage = ArtifactStorage.Copy
+                                && not (DownloadRows.running download)
                                 && (phase <> 3 || row.StoredIdentity.IsSome)
                             CanRemove =
                                 not row.Busy

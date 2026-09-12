@@ -12,6 +12,7 @@
     <Compile Include="ExecutableSchema.fs" />
     <Compile Include="ProfileDataSchema.fs" />
     <Compile Include="ArtifactSchema.fs" />
+    <Compile Include="DownloadSchema.fs" />
     <Compile Include="Sqlite.fs" />
     <Compile Include="LibraryEncoding.fs" />
     <Compile Include="ProfileDataValueEncoding.fs" />
@@ -65,12 +66,16 @@
     <Compile Include="ExecutableEncoding.fs" />
     <Compile Include="GameRunAdmission.fs" />
     <Compile Include="ExecutableRepository.fs" />
+    <Compile Include="DownloadRows.fs" />
     <Compile Include="ArtifactRows.fs" />
     <Compile Include="ArtifactFiles.fs" />
     <Compile Include="ArtifactAccess.fs" />
     <Compile Include="ArtifactCapture.fs" />
     <Compile Include="ArtifactStore.fs" />
+    <Compile Include="DownloadTarget.fs" />
+    <Compile Include="DownloadRepository.fs" />
     <Compile Include="OperationStore.fs" />
+    <ProjectReference Include="../ModConductor.HttpDownloads/ModConductor.HttpDownloads.fsproj" />
     <ProjectReference Include="../ModConductor.ArtifactLibrary/ModConductor.ArtifactLibrary.fsproj" />
     <ProjectReference Include="../ModConductor.ProfileGameData/ModConductor.ProfileGameData.fsproj" />
     <ProjectReference Include="../ModConductor.GeneratedOutputs/ModConductor.GeneratedOutputs.fsproj" />

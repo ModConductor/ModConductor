@@ -71,20 +71,24 @@ type internal ArtifactStore(database: StateDatabase, access: LibraryAccess) =
                     not row.Busy
                     && not (lock checkedArtifacts (fun () -> checkedArtifacts.Contains id))
                 then
-                    withClaim
-                        { WorkspaceId = workspace
-                          Id = id
-                          Revision = row.Artifact.Revision }
-                        (fun row -> files.Reconcile(CancellationToken.None, row) |> ignore)
+                    try
+                        withClaim
+                            { WorkspaceId = workspace
+                              Id = id
+                              Revision = row.Artifact.Revision }
+                            (fun row -> files.Reconcile(CancellationToken.None, row) |> ignore)
 
-                    lock checkedArtifacts (fun () -> checkedArtifacts.Add id |> ignore)
+                        lock checkedArtifacts (fun () -> checkedArtifacts.Add id |> ignore)
+                    with :? ArtifactException as error when
+                        error.Error = ArtifactError.Busy || error.Error = ArtifactError.Stale ->
+                        ()
 
                 (read workspace id).Artifact)
 
         member _.Retry(reference, token) =
             run (fun () ->
                 withClaim reference (fun row ->
-                    if row.Phase <> 0 then
+                    if row.Phase <> 0 || row.Artifact.Download.IsSome then
                         refuse ArtifactError.Conflict
 
                     files.Capture(token, row))
@@ -227,7 +231,10 @@ type internal ArtifactStore(database: StateDatabase, access: LibraryAccess) =
         member _.DeleteCopy(reference) =
             run (fun () ->
                 withClaim reference (fun row ->
-                    if row.Artifact.Storage <> ArtifactStorage.Copy then
+                    if
+                        row.Artifact.Storage <> ArtifactStorage.Copy
+                        || DownloadRows.running row.Artifact.Download
+                    then
                         refuse ArtifactError.Conflict
 
                     let row = finish row 4 None

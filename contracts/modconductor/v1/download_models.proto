@@ -1,0 +1,9 @@
+syntax = "proto3";
+package modconductor.v1;
+option csharp_namespace = "ModConductor.Protocol.V1";
+
+enum DownloadPhase { DOWNLOAD_PHASE_UNSPECIFIED = 0; DOWNLOAD_PHASE_QUEUED = 1; DOWNLOAD_PHASE_RUNNING = 2; DOWNLOAD_PHASE_WAITING = 3; DOWNLOAD_PHASE_PAUSED = 4; DOWNLOAD_PHASE_FAILED = 5; DOWNLOAD_PHASE_COMPLETE = 6; }
+message ArchiveDownload {
+  DownloadPhase phase = 1; uint64 bytes = 2; optional uint64 total = 3; string source = 4;
+  optional string expected_sha256 = 5; bool checksum_matched = 6; bool restart_required = 7; optional int64 retry_at_unix_ms = 8;
+}

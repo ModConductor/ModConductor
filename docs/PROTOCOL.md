@@ -100,3 +100,12 @@ Progress is coalesced; clients drain the final RPC response before decoding its
 terminal outcome. Cancellation of observation or preparation does not authorize
 undoing a completed publication or deployment. Output pages contain complete
 records; selections and replies have separate bounded service envelopes.
+
+
+Download commands and observation use `v1/downloads.proto`. The artifact snapshot
+imports the shared `v1/download_models.proto`; transfer records are not duplicated.
+Start fixes its request to the supplied artifact ID. Repeating that request does
+not start another transfer. Pause, Resume, and Restart act on the saved artifact.
+Watch observes up to 64 supplied IDs and coalesces changed revisions every 500 ms.
+Canceling Watch does not cancel a download. Artifact and download services allow
+128 KiB requests and 2 MiB replies, with additional source-count and row bounds.

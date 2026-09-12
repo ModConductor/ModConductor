@@ -204,6 +204,20 @@ type HeldDirectory private (handle: SafeFileHandle) =
             child.Dispose()
             reraise ()
 
+    member _.Write(name, expected: FileIdentity) =
+        let child = RelativeFile.openWritable handle name
+
+        try
+            let actual = identity EntryKind.RegularFile child
+
+            if actual <> expected then
+                raise (IOException("The file changed."))
+
+            new FileStream(child, FileAccess.ReadWrite)
+        with _ ->
+            child.Dispose()
+            reraise ()
+
     member _.Create(name) =
         let child = RelativeFile.openChild handle name false true
 

@@ -3,11 +3,18 @@ namespace ModConductor.Persistence
 open System
 open ModConductor.Operations
 
-type OperationStore(directory: string) =
+type OperationStore(directory: string, ?downloadPolicy: ModConductor.HttpDownloads.DownloadPolicy) =
     let database = new StateDatabase(directory)
     let workspaceRoots = OwnedWorkspaceRootStore(database)
     let modLibrary = ModLibraryStore(database, workspaceRoots)
     let artifacts = ArtifactStore(database, modLibrary.Access)
+
+    let downloads =
+        new ModConductor.HttpDownloads.DownloadSession(
+            DownloadRepository(database, modLibrary.Access),
+            ?policy = downloadPolicy
+        )
+
     let organization = ModOrganizationStore(database, modLibrary.Access)
     let selection = ModSelectionStore(database, modLibrary.Access)
     let gameContexts = GameContextStore(database, workspaceRoots)
@@ -141,6 +148,8 @@ type OperationStore(directory: string) =
     member _.Workspaces = workspaces
 
     member _.ModLibrary = modLibrary
+    member _.Downloads = downloads
+
     member _.Artifacts = artifacts :> ModConductor.ArtifactLibrary.IArtifactLibrary
 
     member internal _.AddArtifactAtCheckpoint(request, token, checkpoint) =
@@ -319,7 +328,8 @@ type OperationStore(directory: string) =
         member _.Dispose() =
             if
                 not (
-                    outputs.TryClose(fun () ->
+                    downloads.TryClose()
+                    && outputs.TryClose(fun () ->
                         deploymentBackend.TryClose(fun () ->
                             profileGameData.TryClose(fun () ->
                                 generations.TryClose(fun () ->
@@ -334,5 +344,6 @@ type OperationStore(directory: string) =
                     "A workspace change or root file check is still active. Wait for it before closing the store."
 
 
+            (downloads :> IDisposable).Dispose()
             executables.Close().GetAwaiter().GetResult()
             (database :> IDisposable).Dispose()

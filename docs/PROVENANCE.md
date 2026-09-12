@@ -78,3 +78,9 @@ baseline above. The state distinctions, archive metadata, restart scan, and expl
 removal were behavior references. MC uses its own stable IDs and SQLite records;
 it does not adopt MO2's session IDs, filename-based sidecars, or orphan deletion.
 No MO2 source text was copied into the archive implementation.
+
+
+MC-031 also inspected the range/resume path in `src/downloadmanager.cpp:1047–1105`
+at that baseline. It informed the behavior comparison; the new HttpClient worker
+uses strong-ETag and exact-range checks rather than adopting the raw append path.
+No MO2 source text was copied into the download implementation.

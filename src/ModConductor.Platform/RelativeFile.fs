@@ -57,7 +57,7 @@ module internal RelativeFile =
         uint32 eaLength
     )
 
-    let openChild (root: SafeFileHandle) name directory create =
+    let private openEntry (root: SafeFileHandle) name directory create writable =
         if
             String.IsNullOrEmpty name
             || name = "."
@@ -83,6 +83,7 @@ module internal RelativeFile =
                 0xA0800
                 ||| (if directory then 0x10000
                      elif create then 0xC2
+                     elif writable then 2
                      else 0)
 
             let descriptor = openAt (int (root.DangerousGetHandle()), name, flags, 0x180u)
@@ -121,7 +122,7 @@ module internal RelativeFile =
                     createFile (
                         &handle,
                         (if directory then 0x100081u
-                         elif create then 0x100183u
+                         elif create || writable then 0x100183u
                          else 0x100081u),
                         &attributes,
                         &status,
@@ -150,3 +151,8 @@ module internal RelativeFile =
                 Marshal.FreeHGlobal characters
         else
             raise (PlatformNotSupportedException())
+
+    let openChild root name directory create =
+        openEntry root name directory create false
+
+    let openWritable root name = openEntry root name false false true

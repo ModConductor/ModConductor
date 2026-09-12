@@ -16,6 +16,7 @@ import 'package:fixnum/fixnum.dart' as $fixnum;
 import 'package:protobuf/protobuf.dart' as $pb;
 
 import 'artifacts.pbenum.dart';
+import 'download_models.pb.dart' as $1;
 
 export 'package:protobuf/protobuf.dart' show GeneratedMessageGenericExtensions;
 
@@ -130,6 +131,7 @@ class ArchiveArtifact extends $pb.GeneratedMessage {
     $core.bool? canLocate,
     $core.bool? canDeleteCopy,
     $core.bool? canRemove,
+    $1.ArchiveDownload? download,
   }) {
     final result = create();
     if (id != null) result.id = id;
@@ -148,6 +150,7 @@ class ArchiveArtifact extends $pb.GeneratedMessage {
     if (canLocate != null) result.canLocate = canLocate;
     if (canDeleteCopy != null) result.canDeleteCopy = canDeleteCopy;
     if (canRemove != null) result.canRemove = canRemove;
+    if (download != null) result.download = download;
     return result;
   }
 
@@ -187,6 +190,8 @@ class ArchiveArtifact extends $pb.GeneratedMessage {
     ..aOB(14, _omitFieldNames ? '' : 'canLocate')
     ..aOB(15, _omitFieldNames ? '' : 'canDeleteCopy')
     ..aOB(16, _omitFieldNames ? '' : 'canRemove')
+    ..aOM<$1.ArchiveDownload>(17, _omitFieldNames ? '' : 'download',
+        subBuilder: $1.ArchiveDownload.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -345,6 +350,17 @@ class ArchiveArtifact extends $pb.GeneratedMessage {
   $core.bool hasCanRemove() => $_has(15);
   @$pb.TagNumber(16)
   void clearCanRemove() => $_clearField(16);
+
+  @$pb.TagNumber(17)
+  $1.ArchiveDownload get download => $_getN(16);
+  @$pb.TagNumber(17)
+  set download($1.ArchiveDownload value) => $_setField(17, value);
+  @$pb.TagNumber(17)
+  $core.bool hasDownload() => $_has(16);
+  @$pb.TagNumber(17)
+  void clearDownload() => $_clearField(17);
+  @$pb.TagNumber(17)
+  $1.ArchiveDownload ensureDownload() => $_ensure(16);
 }
 
 class ArtifactLinkPage extends $pb.GeneratedMessage {

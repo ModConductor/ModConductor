@@ -11,10 +11,74 @@ class ArtifactController extends ChangeNotifier {
   );
   ArtifactsClient? client;
   String? workspaceId;
-  String? next, problem, activity;
+  String? next, problem, activity, progressProblem;
   bool loaded = false, needsRead = false;
   int _epoch = 0;
   bool _disposed = false;
+  StreamSubscription<Artifact>? _watch;
+  Timer? _reconnect;
+  int _watchEpoch = 0;
+  void _cancelObservation() {
+    final previous = _watch;
+    _watch = null;
+    if (previous != null) {
+      unawaited(previous.cancel().onError<ArtifactProblem>((_, _) {}));
+    }
+  }
+
+  void observe() {
+    _reconnect?.cancel();
+    _cancelObservation();
+    final watchEpoch = ++_watchEpoch, epoch = _epoch;
+    final client = this.client, workspace = workspaceId;
+    if (_disposed || client == null || workspace == null) return;
+    final ids = <String>{
+      if (model.selectedId != null && selected?.download != null)
+        model.selectedId!,
+      for (final id in model.ids)
+        if (model[id]?.download?.active == true) id,
+      for (final id in model.ids)
+        if (model[id]?.download != null) id,
+    }.take(64).toList();
+    if (ids.isEmpty) return;
+    void reconnect() {
+      if (_disposed || epoch != _epoch || watchEpoch != _watchEpoch) return;
+      _reconnect?.cancel();
+      _reconnect = Timer(const Duration(seconds: 1), observe);
+    }
+
+    _watch = client
+        .watchDownloads(workspace, ids)
+        .listen(
+          (artifact) {
+            if (_disposed ||
+                epoch != _epoch ||
+                watchEpoch != _watchEpoch ||
+                artifact.workspaceId != workspace)
+              return;
+            final previous = model[artifact.id];
+            final recovered = progressProblem != null;
+            progressProblem = null;
+            if (previous == null || previous.revision >= artifact.revision) {
+              if (recovered) _notify();
+              return;
+            }
+            model.apply(upserts: [artifact]);
+            _notify();
+          },
+          onError: (Object _) {
+            if (!_disposed && epoch == _epoch && watchEpoch == _watchEpoch) {
+              progressProblem =
+                  'Download progress is unavailable. Reconnecting.';
+              _notify();
+            }
+            reconnect();
+          },
+          onDone: reconnect,
+          cancelOnError: true,
+        );
+  }
+
   bool get busy => activity != null;
   bool get canEdit =>
       client != null && workspaceId != null && !busy && !needsRead;
@@ -27,11 +91,15 @@ class ArtifactController extends ChangeNotifier {
     if (identical(client, this.client) && workspaceId == this.workspaceId)
       return;
     ++_epoch;
+    ++_watchEpoch;
+    _reconnect?.cancel();
+    _cancelObservation();
     this.client = client;
     this.workspaceId = workspaceId;
     model.clear();
     next = null;
     problem = null;
+    progressProblem = null;
     activity = null;
     loaded = false;
     needsRead = false;
@@ -76,6 +144,7 @@ class ArtifactController extends ChangeNotifier {
     } finally {
       if (!_disposed && epoch == _epoch) {
         activity = null;
+        observe();
         _notify();
       }
     }
@@ -112,6 +181,7 @@ class ArtifactController extends ChangeNotifier {
     } finally {
       if (!_disposed && epoch == _epoch) {
         activity = null;
+        observe();
         _notify();
       }
     }
@@ -120,6 +190,9 @@ class ArtifactController extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    ++_watchEpoch;
+    _reconnect?.cancel();
+    _cancelObservation();
     ++_epoch;
     model.dispose();
     super.dispose();

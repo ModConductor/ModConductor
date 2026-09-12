@@ -26,6 +26,25 @@ type ArtifactLinkPage =
     { Entries: ArtifactLink list
       Next: Guid option }
 
+[<RequireQualifiedAccess>]
+type DownloadState =
+    | Queued
+    | Running
+    | Waiting
+    | Paused
+    | Failed
+    | Complete
+
+type DownloadInfo =
+    { State: DownloadState
+      Bytes: int64
+      Total: int64 option
+      Source: string
+      ExpectedSha256: string option
+      ChecksumMatched: bool
+      RestartRequired: bool
+      RetryAt: DateTimeOffset option }
+
 type Artifact =
     { Id: Guid
       WorkspaceId: Guid
@@ -42,7 +61,8 @@ type Artifact =
       CanRetry: bool
       CanLocate: bool
       CanDeleteCopy: bool
-      CanRemove: bool }
+      CanRemove: bool
+      Download: DownloadInfo option }
 
 type ArtifactPage =
     { Entries: Artifact list

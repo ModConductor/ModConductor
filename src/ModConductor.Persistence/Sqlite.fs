@@ -76,7 +76,8 @@ module internal Sqlite =
         | 11L
         | 12L
         | 13L
-        | 14L -> ()
+        | 14L
+        | 15L -> ()
         | _ -> raise (InvalidOperationException("The state database uses an unsupported version."))
 
         if number connection transaction "PRAGMA user_version" [] = 3L then
@@ -130,6 +131,9 @@ module internal Sqlite =
 
         if number connection transaction "PRAGMA user_version" [] = 13L then
             execute connection transaction ArtifactSchema.sql []
+
+        if number connection transaction "PRAGMA user_version" [] = 14L then
+            execute connection transaction DownloadSchema.sql []
 
         beforeCommit ()
         transaction.Commit()

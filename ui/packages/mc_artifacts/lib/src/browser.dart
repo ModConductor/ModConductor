@@ -7,14 +7,11 @@ import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 
 import 'controller.dart';
 import 'forms.dart';
+import 'download_form.dart';
+import 'download_view.dart';
+import 'archive_facts.dart';
+import 'artifact_inspector.dart';
 export 'forms.dart' show ArchiveFile, ArchiveChooser;
-
-String archiveState(ArtifactState state) => switch (state) {
-  ArtifactState.ready => 'Available',
-  ArtifactState.detached => 'File not found',
-  ArtifactState.incomplete => 'Incomplete',
-  ArtifactState.installed => 'Installed',
-};
 
 class ArtifactBrowser extends StatefulWidget {
   const ArtifactBrowser({
@@ -67,6 +64,20 @@ class _ArtifactBrowserState extends State<ArtifactBrowser> {
     if (mounted) setState(() => inspected = true);
   }
 
+  Future<void> download() async {
+    final request = await showDialog<ArchiveDownloadRequest>(
+      context: context,
+      builder: (_) => const ArchiveDownloadForm(),
+    );
+    if (request == null || !mounted) return;
+    final id = newOperationId();
+    await controller.change(
+      'Starting download',
+      (client, workspace) => client.download(workspace, id, request),
+    );
+    if (mounted) setState(() => inspected = true);
+  }
+
   Future<void> link(Artifact artifact) async {
     final client = controller.client;
     if (client == null) return;
@@ -92,7 +103,11 @@ class _ArtifactBrowserState extends State<ArtifactBrowser> {
           Text(artifact.originalName),
           const SizedBox(height: 16),
           Text(
-            bytes ? 'The original file and installed mods stay unchanged.' : 'Removes this archive from the list. The original file stays unchanged.',
+            bytes
+                ? (artifact.download == null
+                      ? 'The original file and installed mods stay unchanged.'
+                      : 'Installed mods stay unchanged.')
+                : 'Removes this archive from the list. The original file stays unchanged.',
           ),
           if (bytes) ...[
             const SizedBox(height: 16),
@@ -113,125 +128,13 @@ class _ArtifactBrowserState extends State<ArtifactBrowser> {
     );
   }
 
-  Widget fact(BuildContext c, String label, String value) => Padding(
-    padding: const EdgeInsets.only(bottom: 16),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: Theme.of(c).textTheme.bodySmall),
-        const SizedBox(height: 4),
-        SelectableText(value),
-      ],
-    ),
+  Widget inspector(BuildContext c, VoidCallback close) => ArtifactInspector(
+    controller: controller,
+    onClose: close,
+    onLocate: fileForm,
+    onLink: link,
+    onCleanup: (artifact, bytes) => cleanup(artifact, bytes: bytes),
   );
-  Widget inspector(BuildContext c, VoidCallback close) {
-    final artifact = controller.selected;
-    return McInspector(
-      title: artifact?.originalName ?? 'Archive',
-      onClose: close,
-      footer: artifact == null
-          ? null
-          : Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                if (artifact.canLocate)
-                  McAction(
-                    label: 'Locate archive',
-                    icon: Icons.folder_open,
-                    onPressed: controller.canEdit
-                        ? () => fileForm(artifact)
-                        : null,
-                  ),
-                if (artifact.canRetry)
-                  McAction(
-                    label: 'Retry',
-                    icon: Icons.refresh,
-                    onPressed: controller.canEdit
-                        ? () => unawaited(
-                            controller.change(
-                              'Reading archive',
-                              (client, _) => client.retry(artifact),
-                            ),
-                          )
-                        : null,
-                  ),
-                if (artifact.canDeleteCopy)
-                  McAction(
-                    label: 'Delete copy',
-                    icon: Icons.delete_outline,
-                    onPressed: controller.canEdit
-                        ? () => cleanup(artifact, bytes: true)
-                        : null,
-                  ),
-                if (artifact.canRemove)
-                  McAction(
-                    label: 'Remove from list',
-                    icon: Icons.delete_outline,
-                    onPressed: controller.canEdit
-                        ? () => cleanup(artifact, bytes: false)
-                        : null,
-                  ),
-              ],
-            ),
-      children: artifact == null
-          ? [const Text('Select an archive.')]
-          : [
-              McStatus(
-                title: archiveState(artifact.state),
-                detail: artifact.problem,
-              ),
-              const SizedBox(height: 24),
-              fact(
-                c,
-                'Storage',
-                artifact.storage == ArtifactStorage.copy
-                    ? 'Library copy'
-                    : 'Current folder',
-              ),
-              fact(c, 'Size', archiveSize(artifact.length)),
-              fact(c, 'Location', artifact.path),
-              Text('Installed mods', style: Theme.of(c).textTheme.titleMedium),
-              const SizedBox(height: 8),
-              if (artifact.links.isEmpty) const Text('No installed-mod links.'),
-              for (final link in artifact.links) ...[
-                Text(link.modName),
-                Text('Linked manually', style: Theme.of(c).textTheme.bodySmall),
-                fact(c, 'Saved version', link.versionLabel),
-                McAction(
-                  label: 'Remove link',
-                  icon: Icons.link_off,
-                  onPressed: controller.canEdit
-                      ? () => unawaited(
-                          controller.change(
-                            'Removing mod link',
-                            (client, _) =>
-                                client.link(artifact, link, remove: true),
-                          ),
-                        )
-                      : null,
-                ),
-                const SizedBox(height: 12),
-              ],
-              McAction(
-                label: 'Link installed mod',
-                icon: Icons.link,
-                onPressed: controller.canEdit ? () => link(artifact) : null,
-              ),
-              const SizedBox(height: 16),
-              ExpansionTile(
-                tilePadding: EdgeInsets.zero,
-                title: const Text('Archive details'),
-                children: [
-                  fact(c, 'Original file', artifact.originalPath),
-                  fact(c, 'Archive ID', artifact.id),
-                  if (artifact.sha256 != null)
-                    fact(c, 'SHA-256', artifact.sha256!),
-                ],
-              ),
-            ],
-    );
-  }
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
@@ -265,25 +168,39 @@ class _ArtifactBrowserState extends State<ArtifactBrowser> {
                       '${controller.model.ids.length} ${controller.model.ids.length == 1 ? 'archive' : 'archives'}${controller.next == null ? '' : ' loaded'}',
                   empty: 'No archives.',
                   loading: controller.busy,
-                  problem: controller.problem,
+                  problem: controller.problem ?? controller.progressProblem,
                   filterActions: [
-                    if (narrow)
+                    if (narrow) ...[
                       McIconAction(
                         label: 'Add archive',
                         icon: const Icon(Icons.add),
                         focusNode: addFocus,
                         onPressed: controller.canEdit ? fileForm : null,
                       ),
+                      McIconAction(
+                        label: 'Download archive',
+                        icon: const Icon(Icons.download),
+                        onPressed: controller.canEdit ? download : null,
+                      ),
+                    ],
                   ],
                   actions: [
                     if (!narrow)
                       McAction(
                         label: 'Add archive',
                         icon: Icons.add,
-                        emphasis: McActionEmphasis.primary,
                         focusNode: addFocus,
                         onPressed: controller.canEdit ? fileForm : null,
                       ),
+                    if (!narrow) ...[
+                      const SizedBox(width: 8),
+                      McAction(
+                        label: 'Download',
+                        icon: Icons.download,
+                        emphasis: McActionEmphasis.primary,
+                        onPressed: controller.canEdit ? download : null,
+                      ),
+                    ],
                   ],
                   onRefresh: controller.busy || controller.client == null
                       ? null
@@ -292,6 +209,7 @@ class _ArtifactBrowserState extends State<ArtifactBrowser> {
                       ? () => controller.load(more: true)
                       : null,
                   onSelect: (_) {
+                    controller.observe();
                     setState(() => inspected = true);
                     if (narrow) pane.currentState?.openEndDrawer();
                   },
@@ -305,14 +223,24 @@ class _ArtifactBrowserState extends State<ArtifactBrowser> {
                     ),
                     McColumn(
                       'Status',
-                      (a) => Text(archiveState(a.state)),
-                      width: narrow ? 110 : 140,
+                      (a) => Text(
+                        a.download != null &&
+                                a.download!.phase != DownloadPhase.complete
+                            ? downloadLabel(a.download!)
+                            : archiveState(a.state),
+                      ),
+                      width: 160,
                     ),
                     if (!narrow)
                       McColumn(
                         'Size',
-                        (a) => Text(archiveSize(a.length)),
-                        width: 95,
+                        (a) => Text(
+                          a.download != null &&
+                                  a.download!.phase != DownloadPhase.complete
+                              ? downloadSize(a.download!)
+                              : archiveSize(a.length),
+                        ),
+                        width: 150,
                       ),
                   ],
                 ),

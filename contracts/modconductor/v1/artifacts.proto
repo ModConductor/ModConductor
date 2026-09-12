@@ -1,6 +1,7 @@
 syntax = "proto3";
 package modconductor.v1;
 option csharp_namespace = "ModConductor.Protocol.V1";
+import "modconductor/v1/download_models.proto";
 
 service ArtifactLibrary {
   rpc ListArtifacts(ArtifactListRequest) returns (ArtifactPage);
@@ -23,6 +24,7 @@ message ArchiveArtifact {
   optional uint64 length = 9; optional string sha256 = 10; optional string problem = 11;
   repeated ArtifactProvenance links = 12;
   bool can_retry = 13; bool can_locate = 14; bool can_delete_copy = 15; bool can_remove = 16;
+  optional ArchiveDownload download = 17;
 }
 message ArtifactLinkPage { repeated ArtifactProvenance entries = 1; optional string next = 2; }
 message ArtifactPage { repeated ArchiveArtifact entries = 1; optional string next = 2; }

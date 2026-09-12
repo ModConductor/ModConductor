@@ -4,7 +4,7 @@ open Grpc.Core
 open ModConductor.ArtifactLibrary
 open ModConductor.Protocol.V1
 
-module private ArtifactWire =
+module internal ArtifactWire =
     let result value =
         value
         |> Result.defaultWith (fun problem ->
@@ -41,6 +41,31 @@ module private ArtifactWire =
           Id = ModLibraryWire.id value.Id
           Revision = ModLibraryWire.number value.Revision }
 
+    let download (value: DownloadInfo) =
+        let wire =
+            ArchiveDownload(
+                Phase =
+                    (match value.State with
+                     | DownloadState.Queued -> DownloadPhase.Queued
+                     | DownloadState.Running -> DownloadPhase.Running
+                     | DownloadState.Waiting -> DownloadPhase.Waiting
+                     | DownloadState.Paused -> DownloadPhase.Paused
+                     | DownloadState.Failed -> DownloadPhase.Failed
+                     | DownloadState.Complete -> DownloadPhase.Complete),
+                Bytes = uint64 value.Bytes,
+                Source = value.Source,
+                ChecksumMatched = value.ChecksumMatched,
+                RestartRequired = value.RestartRequired
+            )
+
+        value.Total |> Option.iter (fun n -> wire.Total <- uint64 n)
+        value.ExpectedSha256 |> Option.iter (fun text -> wire.ExpectedSha256 <- text)
+
+        value.RetryAt
+        |> Option.iter (fun at -> wire.RetryAtUnixMs <- at.ToUnixTimeMilliseconds())
+
+        wire
+
     let artifact (value: Artifact) =
         let wire =
             ArchiveArtifact(
@@ -66,6 +91,7 @@ module private ArtifactWire =
                      | ArtifactState.Installed -> ArchiveState.Installed)
             )
 
+        value.Download |> Option.iter (fun d -> wire.Download <- download d)
         value.Length |> Option.iter (fun n -> wire.Length <- uint64 n)
         value.Sha256 |> Option.iter (fun text -> wire.Sha256 <- text)
         value.Problem |> Option.iter (fun text -> wire.Problem <- text)

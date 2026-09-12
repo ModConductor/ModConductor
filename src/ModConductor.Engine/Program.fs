@@ -144,6 +144,11 @@ let run args =
 
     builder.Services.AddSingleton<ModConductor.Engine.ArtifactService>() |> ignore
 
+    builder.Services.AddSingleton<ModConductor.HttpDownloads.DownloadSession>(store.Downloads)
+    |> ignore
+
+    builder.Services.AddSingleton<ModConductor.Engine.DownloadService>() |> ignore
+
     builder.Services.AddSingleton<Coordinator>(coordinator) |> ignore
     builder.Services.AddSingleton<ModConductor.Engine.OperationService>() |> ignore
 
@@ -153,6 +158,12 @@ let run args =
             options.MaxReceiveMessageSize <- Nullable 4096
             options.MaxSendMessageSize <- Nullable 65536
             options.EnableDetailedErrors <- Nullable false)
+        .AddServiceOptions<ModConductor.Engine.DownloadService>(fun options ->
+            options.MaxReceiveMessageSize <- Nullable(128 * 1024)
+            options.MaxSendMessageSize <- Nullable(2 * 1024 * 1024))
+        .AddServiceOptions<ModConductor.Engine.ArtifactService>(fun options ->
+            options.MaxReceiveMessageSize <- Nullable(128 * 1024)
+            options.MaxSendMessageSize <- Nullable(2 * 1024 * 1024))
         .AddServiceOptions<ModConductor.Engine.ProfileDataService>(fun options ->
             options.MaxReceiveMessageSize <- Nullable(256 * 1024)
             options.MaxSendMessageSize <- Nullable(2 * 1024 * 1024))
@@ -200,6 +211,7 @@ let run args =
     app.MapGrpcService<ModConductor.Engine.GameLaunchService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.ProfileDataService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.ArtifactService>() |> ignore
+    app.MapGrpcService<ModConductor.Engine.DownloadService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.DeploymentService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.FilePlanService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.SteamDiscoveryService>() |> ignore
@@ -233,7 +245,11 @@ let run args =
         lifetime.StopApplication())
     |> ignore
 
+    store.Downloads.Failed.ContinueWith(fun (_: Task) -> lifetime.StopApplication())
+    |> ignore
+
     app.WaitForShutdownAsync().GetAwaiter().GetResult()
+    store.Downloads.Stop().GetAwaiter().GetResult()
     coordinator.Drain().GetAwaiter().GetResult()
     store.DrainOutputs().GetAwaiter().GetResult()
     store.CloseExecutables().GetAwaiter().GetResult()

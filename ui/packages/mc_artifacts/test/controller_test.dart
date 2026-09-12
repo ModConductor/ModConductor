@@ -4,10 +4,16 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mc_client/mc_client.dart';
 import 'package:mc_artifacts/mc_artifacts.dart';
 
-Artifact archive(String workspace, String id) => Artifact(
+Artifact archive(
+  String workspace,
+  String id, {
+  ArtifactDownload? download,
+  int revision = 0,
+}) => Artifact(
   id: id,
   workspaceId: workspace,
-  revision: 0,
+  revision: revision,
+  download: download,
   originalName: '$id.zip',
   originalPath: '/$id.zip',
   path: '/$id.zip',
@@ -21,6 +27,23 @@ Artifact archive(String workspace, String id) => Artifact(
 );
 
 class Client implements ArtifactsClient {
+  @override
+  Future<Artifact> download(
+    String workspaceId,
+    String id,
+    ArchiveDownloadRequest request,
+  ) => throw UnimplementedError();
+  @override
+  Future<Artifact> controlDownload(Artifact artifact, DownloadAction action) =>
+      throw UnimplementedError();
+  final feeds = <StreamController<Artifact>>[];
+  @override
+  Stream<Artifact> watchDownloads(String workspaceId, List<String> ids) {
+    final feed = StreamController<Artifact>();
+    feeds.add(feed);
+    return feed.stream;
+  }
+
   final pages = <Completer<ArtifactPage>>[];
   final added = Completer<Artifact>();
   final known = <String, Artifact>{};
@@ -65,6 +88,51 @@ class Client implements ArtifactsClient {
 }
 
 void main() {
+  test('download observations preserve newer state and cannot cross workspace navigation', () async {
+    final client = Client(), controller = ArtifactController();
+    addTearDown(() async {
+      controller.dispose();
+      for (final feed in client.feeds) {
+        await feed.close();
+      }
+    });
+    const download = ArtifactDownload(
+      phase: DownloadPhase.running,
+      bytes: 64,
+      source: 'https://example.test/file',
+      checksumMatched: false,
+      restartRequired: false,
+    );
+    controller.attach(client, 'first');
+    client.pages.single.complete(
+      ArtifactPage([archive('first', 'transfer', download: download)], null),
+    );
+    await Future<void>.delayed(Duration.zero);
+    controller.model.select('transfer');
+    final old = client.feeds.single;
+    old.add(archive('first', 'transfer', download: download, revision: 2));
+    old.add(archive('first', 'transfer', download: download, revision: 1));
+    await Future<void>.delayed(Duration.zero);
+    expect(controller.selected!.revision, 2);
+    old.addError(const ArtifactProblem('Observation lost'));
+    await Future<void>.delayed(Duration.zero);
+    expect(controller.progressProblem, isNotNull);
+    await Future<void>.delayed(const Duration(milliseconds: 1100));
+    client.feeds.last.add(
+      archive('first', 'transfer', download: download, revision: 2),
+    );
+    await Future<void>.delayed(Duration.zero);
+    expect(controller.progressProblem, isNull);
+    controller.attach(client, 'second');
+    client.pages.last.complete(
+      ArtifactPage([archive('second', 'other')], null),
+    );
+    old.add(archive('first', 'transfer', download: download, revision: 3));
+    await Future<void>.delayed(Duration.zero);
+    expect(controller.workspaceId, 'second');
+    expect(controller.model.ids, ['other']);
+  });
+
   test(
     'refresh retains a selected archive outside the first page by stable ID',
     () async {
