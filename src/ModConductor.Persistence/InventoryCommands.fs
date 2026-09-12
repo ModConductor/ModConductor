@@ -88,7 +88,13 @@ module internal InventoryCommands =
                                                     transaction
                                                     value.ModId)
                                             |> Option.exists (fun value ->
-                                                value.Entry.WorkspaceId = workspace))
+                                                value.Entry.WorkspaceId = workspace
+                                                && not (
+                                                    MaintenanceClaims.deleting
+                                                        database.Connection
+                                                        transaction
+                                                        value.Entry.Id
+                                                )))
 
                                     let canonical =
                                         CategoryRows.canonicalMetadata
@@ -201,7 +207,13 @@ module internal InventoryCommands =
                                         )
                                     then
                                         Error LibraryError.UnsupportedAction
-                                    elif current.Entry.Status = InventoryStatus.Publishing then
+                                    elif
+                                        current.Entry.Status = InventoryStatus.Publishing
+                                        || MaintenanceClaims.busy
+                                            database.Connection
+                                            transaction
+                                            id
+                                    then
                                         Error LibraryError.Busy
                                     else
                                         match

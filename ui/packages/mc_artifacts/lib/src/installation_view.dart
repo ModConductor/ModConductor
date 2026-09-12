@@ -1,3 +1,6 @@
+import 'update_form.dart';
+import 'update_view.dart';
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -16,12 +19,16 @@ class ArchiveInstallationView extends StatefulWidget {
     super.key,
     required this.artifact,
     required this.client,
+    this.maintenance,
+    this.updateTargets,
     required this.onBack,
     required this.onCommitted,
     required this.onOpenMods,
   });
   final Artifact artifact;
   final InstallationsClient client;
+  final MaintenanceClient? maintenance;
+  final Future<ModQueryPage> Function(ModQueryCursor?)? updateTargets;
   final VoidCallback onBack, onCommitted, onOpenMods;
   @override
   State<ArchiveInstallationView> createState() =>
@@ -100,12 +107,45 @@ class _ArchiveInstallationViewState extends State<ArchiveInstallationView> {
     if (change != null && mounted) await controller.change(change);
   }
 
+  Future<void> updateTarget() async {
+    final draft = controller.draft;
+    if (draft == null ||
+        widget.maintenance == null ||
+        widget.updateTargets == null)
+      return;
+    final result = await showDialog<({ModEntry target, String version})>(
+      context: context,
+      builder: (_) => UpdateTargetForm(
+        archiveName: draft.archiveName,
+        load: widget.updateTargets!,
+        target: controller.updateTarget,
+        version: controller.updatePreview?.nextVersion ?? draft.version,
+      ),
+    );
+    if (result != null && mounted)
+      await controller.prepareUpdate(
+        widget.maintenance!,
+        result.target,
+        result.version,
+      );
+  }
+
   @override
   Widget build(BuildContext c) => LayoutBuilder(
     builder: (c, box) {
       final narrow = box.maxWidth < 1100 * MediaQuery.textScalerOf(c).scale(1),
           draft = controller.draft,
           status = controller.status;
+      if (controller.updatePreview != null &&
+          status == null &&
+          widget.maintenance != null) {
+        return ModUpdateView(
+          controller: controller,
+          client: widget.maintenance!,
+          edit: updateTarget,
+          onBack: widget.onBack,
+        );
+      }
       final included = draft?.files.length ?? 0,
           omitted =
               (draft?.manifest.entries.where((e) => !e.directory).length ?? 0) -
@@ -165,6 +205,15 @@ class _ArchiveInstallationViewState extends State<ArchiveInstallationView> {
                 ),
                 if (draft != null && status == null) ...[
                   if (!manual) ...[
+                    if (widget.maintenance != null &&
+                        widget.updateTargets != null)
+                      McIconAction(
+                        label: 'Update installed mod',
+                        icon: const Icon(Icons.system_update_alt),
+                        onPressed: controller.canEdit && draft.canInstall
+                            ? updateTarget
+                            : null,
+                      ),
                     McIconAction(
                       label: 'Edit mod details',
                       icon: const Icon(Icons.edit_outlined),

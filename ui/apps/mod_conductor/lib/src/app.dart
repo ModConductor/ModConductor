@@ -77,6 +77,7 @@ class ModConductorApp extends StatefulWidget {
     this.profileData,
     this.artifacts,
     this.installations,
+    this.maintenance,
     this.chooseArchive = _chooseArchive,
     this.chooseExecutable = _chooseExecutable,
     this.steamDiscovery,
@@ -98,6 +99,7 @@ class ModConductorApp extends StatefulWidget {
   final ProfileDataClient? profileData;
   final ArtifactsClient? artifacts;
   final InstallationsClient? installations;
+  final MaintenanceClient? maintenance;
   final ArchiveChooser chooseArchive;
   final ExecutablePathChooser chooseExecutable;
   final SteamDiscoveryClient? steamDiscovery;
@@ -354,6 +356,19 @@ class _ModConductorAppState extends State<ModConductorApp> {
                         : (context, workspace, openMods) => ArtifactBrowser(
                             controller: _artifacts,
                             installations: widget.installations,
+                            maintenance: widget.maintenance,
+                            updateTargets:
+                                widget.modOrganization == null ||
+                                    workspace.selectedProfile == null
+                                ? null
+                                : (cursor) => widget.modOrganization!.query(
+                                    workspace.selectedProfile!.id,
+                                    const ModQuery(
+                                      filters: [KindFilter(ModKind.regular)],
+                                      sort: OrganizationSort.name,
+                                    ),
+                                    cursor: cursor,
+                                  ),
                             onOpenMods: openMods,
                             onInstalled: _mods.inventory.refreshCatalogue,
                             chooseFile: widget.chooseArchive,
@@ -387,12 +402,30 @@ class _ModConductorAppState extends State<ModConductorApp> {
                         widget.filePlans == null
                         ? ModLibraryBrowser(
                             controller: _mods,
+                            maintenance: widget.maintenance,
+                            onOpenDeployment: widget.deployments == null
+                                ? null
+                                : () => showDialog<void>(
+                                    context: context,
+                                    builder: (_) => DeploymentDialog(
+                                      controller: _deployments,
+                                    ),
+                                  ),
                             workspacePath: workspace.path,
                             chooseDirectory: widget.chooseDirectory,
                           )
                         : widget.outputs == null
                         ? FilePlanningWorkbench(
                             mods: _mods,
+                            maintenance: widget.maintenance,
+                            onOpenDeployment: widget.deployments == null
+                                ? null
+                                : () => showDialog<void>(
+                                    context: context,
+                                    builder: (_) => DeploymentDialog(
+                                      controller: _deployments,
+                                    ),
+                                  ),
                             plans: _files,
                             workspacePath: workspace.path,
                             chooseDirectory: widget.chooseDirectory,
@@ -408,6 +441,15 @@ class _ModConductorAppState extends State<ModConductorApp> {
                           )
                         : DeploymentOutputsWorkbench(
                             mods: _mods,
+                            maintenance: widget.maintenance,
+                            onOpenDeployment: widget.deployments == null
+                                ? null
+                                : () => showDialog<void>(
+                                    context: context,
+                                    builder: (_) => DeploymentDialog(
+                                      controller: _deployments,
+                                    ),
+                                  ),
                             plans: _files,
                             outputs: _outputs,
                             profileId: workspace.selectedProfile?.id,

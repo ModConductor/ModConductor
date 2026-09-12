@@ -36,9 +36,10 @@ class SavedDeployment {
     this.known,
     this.active,
     this.fingerprint,
-    this.canRestore,
+    this.canRestore, {this.unavailable}
   );
   final String id, fingerprint;
+  final String? unavailable;
   final DateTime? preparedAt;
   final DeploymentProfile? profile;
   final bool known, active, canRestore;

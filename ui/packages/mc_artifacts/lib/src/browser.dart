@@ -22,6 +22,8 @@ class ArtifactBrowser extends StatefulWidget {
     required this.chooseFile,
     required this.workspacePath,
     this.installations,
+    this.maintenance,
+    this.updateTargets,
     this.onInstalled,
     this.onOpenMods,
   });
@@ -29,6 +31,8 @@ class ArtifactBrowser extends StatefulWidget {
   final ArchiveChooser chooseFile;
   final String workspacePath;
   final InstallationsClient? installations;
+  final MaintenanceClient? maintenance;
+  final Future<ModQueryPage> Function(ModQueryCursor?)? updateTargets;
   final Future<void> Function()? onInstalled;
   final VoidCallback? onOpenMods;
   @override
@@ -171,6 +175,8 @@ class _ArtifactBrowserState extends State<ArtifactBrowser> {
             key: ValueKey((installing!.id, widget.installations)),
             artifact: installing!,
             client: widget.installations!,
+            maintenance: widget.maintenance,
+            updateTargets: widget.updateTargets,
             onBack: () => setState(() => installing = null),
             onCommitted: () {
               installationRefresh = () async {

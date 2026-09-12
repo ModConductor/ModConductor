@@ -103,6 +103,7 @@ module internal ModLibraryWire =
                     | InventoryStatus.Changed -> ModInventoryStatus.Changed
                     | InventoryStatus.Unproved -> ModInventoryStatus.Unproved
                     | InventoryStatus.Publishing -> ModInventoryStatus.Publishing
+                    | InventoryStatus.Deleting -> ModInventoryStatus.Deleting
             )
 
         result.Metadata.Categories.AddRange(value.Metadata.Categories |> Seq.map category)

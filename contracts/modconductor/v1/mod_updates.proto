@@ -1,0 +1,41 @@
+syntax = "proto3";
+package modconductor.v1;
+option csharp_namespace = "ModConductor.Protocol.V1";
+import "modconductor/v1/archive_installation.proto";
+import "modconductor/v1/mod_library.proto";
+service ModUpdates {
+  rpc PrepareModUpdate(PrepareModUpdateRequest) returns (ModUpdatePreview);
+  rpc StartModUpdate(StartModUpdateRequest) returns (ArchiveInstallationStatus);
+}
+enum ModUpdateMode { MOD_UPDATE_MODE_MERGE = 0; MOD_UPDATE_MODE_REPLACE = 1; }
+enum ModUpdateChange { MOD_UPDATE_CHANGE_ADD = 0; MOD_UPDATE_CHANGE_REPLACE = 1; MOD_UPDATE_CHANGE_REMOVE = 2; MOD_UPDATE_CHANGE_KEEP = 3; }
+message PrepareModUpdateRequest {
+  InstallationDraftReference draft = 1;
+  string mod_id = 2;
+  uint64 revision = 3;
+  ModUpdateMode mode = 4;
+  repeated ModLogicalPath keep = 5;
+  string version = 6;
+}
+message ModUpdateFile {
+  ModLogicalPath path = 1;
+  ModUpdateChange change = 2;
+  optional uint64 existing_bytes = 3;
+  optional uint64 incoming_bytes = 4;
+  repeated ModLogicalPath existing_paths = 5;
+  bool has_incoming = 6;
+}
+message ModUpdatePreview {
+  string id = 1;
+  string workspace_id = 2;
+  string mod_id = 3;
+  string name = 4;
+  string current_version = 5;
+  string next_version = 6;
+  ModUpdateMode mode = 7;
+  repeated ModUpdateFile files = 8;
+  repeated ModLogicalPath keep = 9;
+  uint64 required_bytes = 10;
+  repeated string source_notices = 11;
+}
+message StartModUpdateRequest { string workspace_id = 1; string preview_id = 2; string id = 3; }

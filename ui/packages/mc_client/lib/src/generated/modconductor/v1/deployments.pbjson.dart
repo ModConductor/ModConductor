@@ -114,9 +114,19 @@ const SavedDeployment$json = {
     {'1': 'active', '3': 5, '4': 1, '5': 8, '10': 'active'},
     {'1': 'fingerprint', '3': 6, '4': 1, '5': 9, '10': 'fingerprint'},
     {'1': 'can_restore', '3': 7, '4': 1, '5': 8, '10': 'canRestore'},
+    {
+      '1': 'unavailable',
+      '3': 8,
+      '4': 1,
+      '5': 9,
+      '9': 1,
+      '10': 'unavailable',
+      '17': true
+    },
   ],
   '8': [
     {'1': '_prepared_at_unix_ms'},
+    {'1': '_unavailable'},
   ],
 };
 
@@ -126,8 +136,9 @@ final $typed_data.Uint8List savedDeploymentDescriptor = $convert.base64Decode(
     'MYAiABKANIAFIQcHJlcGFyZWRBdFVuaXhNc4gBARI8Cgdwcm9maWxlGAMgASgLMiIubW9kY29u'
     'ZHVjdG9yLnYxLkRlcGxveW1lbnRQcm9maWxlUgdwcm9maWxlEhQKBWtub3duGAQgASgIUgVrbm'
     '93bhIWCgZhY3RpdmUYBSABKAhSBmFjdGl2ZRIgCgtmaW5nZXJwcmludBgGIAEoCVILZmluZ2Vy'
-    'cHJpbnQSHwoLY2FuX3Jlc3RvcmUYByABKAhSCmNhblJlc3RvcmVCFgoUX3ByZXBhcmVkX2F0X3'
-    'VuaXhfbXM=');
+    'cHJpbnQSHwoLY2FuX3Jlc3RvcmUYByABKAhSCmNhblJlc3RvcmUSJQoLdW5hdmFpbGFibGUYCC'
+    'ABKAlIAVILdW5hdmFpbGFibGWIAQFCFgoUX3ByZXBhcmVkX2F0X3VuaXhfbXNCDgoMX3VuYXZh'
+    'aWxhYmxl');
 
 @$core.Deprecated('Use deploymentStateDescriptor instead')
 const DeploymentState$json = {

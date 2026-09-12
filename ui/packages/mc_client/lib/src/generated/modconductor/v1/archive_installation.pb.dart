@@ -964,6 +964,7 @@ class ArchiveInstallationStatus extends $pb.GeneratedMessage {
     $core.String? modId,
     $core.String? versionId,
     $fixnum.Int64? temporaryBytes,
+    $core.bool? isUpdate,
   }) {
     final result = create();
     if (id != null) result.id = id;
@@ -981,6 +982,7 @@ class ArchiveInstallationStatus extends $pb.GeneratedMessage {
     if (modId != null) result.modId = modId;
     if (versionId != null) result.versionId = versionId;
     if (temporaryBytes != null) result.temporaryBytes = temporaryBytes;
+    if (isUpdate != null) result.isUpdate = isUpdate;
     return result;
   }
 
@@ -1019,6 +1021,7 @@ class ArchiveInstallationStatus extends $pb.GeneratedMessage {
     ..a<$fixnum.Int64>(
         15, _omitFieldNames ? '' : 'temporaryBytes', $pb.PbFieldType.OU6,
         defaultOrMaker: $fixnum.Int64.ZERO)
+    ..aOB(16, _omitFieldNames ? '' : 'isUpdate')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1175,6 +1178,15 @@ class ArchiveInstallationStatus extends $pb.GeneratedMessage {
   $core.bool hasTemporaryBytes() => $_has(14);
   @$pb.TagNumber(15)
   void clearTemporaryBytes() => $_clearField(15);
+
+  @$pb.TagNumber(16)
+  $core.bool get isUpdate => $_getBF(15);
+  @$pb.TagNumber(16)
+  set isUpdate($core.bool value) => $_setBool(15, value);
+  @$pb.TagNumber(16)
+  $core.bool hasIsUpdate() => $_has(15);
+  @$pb.TagNumber(16)
+  void clearIsUpdate() => $_clearField(16);
 }
 
 class ArchiveInstallationList extends $pb.GeneratedMessage {

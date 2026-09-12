@@ -49,6 +49,8 @@ module internal DeploymentWire =
                 CanRestore = value.CanRestore
             )
 
+        value.Unavailable |> Option.iter (fun reason -> result.Unavailable <- reason)
+
         value.PreparedAt
         |> Option.iter (fun time -> result.PreparedAtUnixMs <- time.ToUnixTimeMilliseconds())
 

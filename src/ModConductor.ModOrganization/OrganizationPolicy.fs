@@ -53,7 +53,8 @@ module OrganizationPolicy =
                    | InventoryStatus.Detached -> "detached"
                    | InventoryStatus.Changed -> "changed"
                    | InventoryStatus.Unproved -> "unproved"
-                   | InventoryStatus.Publishing -> "publishing")
+                   | InventoryStatus.Publishing -> "publishing"
+                   | InventoryStatus.Deleting -> "deleting")
             | ModFilter.Enabled enabled ->
                 "enabled:"
                 + (match enabled with

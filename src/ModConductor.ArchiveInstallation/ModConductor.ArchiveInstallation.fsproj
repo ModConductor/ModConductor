@@ -2,6 +2,7 @@
   <PropertyGroup><IsAotCompatible>true</IsAotCompatible></PropertyGroup>
   <ItemGroup>
     <Compile Include="Contracts.fs" />
+    <Compile Include="Destinations.fs" />
     <Compile Include="Layout.fs" />
     <ProjectReference Include="../ModConductor.ArchiveInspection/ModConductor.ArchiveInspection.fsproj" />
     <ProjectReference Include="../ModConductor.ModLibrary/ModConductor.ModLibrary.fsproj" />

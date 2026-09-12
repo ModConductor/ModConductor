@@ -66,10 +66,14 @@ type internal DeploymentRepository(database: StateDatabase) =
                     raise (RecoveryException RecoveryError.Stale)
                 | _ -> ()
 
+                if not (MaintenanceClaims.generationExists connection transaction generation) then
+                    raise (RecoveryException RecoveryError.Stale)
+
                 if
                     receipt.Context.Roots
                     |> List.exists (fun root ->
-                        OutputRows.active connection transaction root.Root.Id)
+                        OutputRows.active connection transaction root.Root.Id
+                        || MaintenanceClaims.workspace connection transaction root.Root.Id)
                 then
                     raise (RecoveryException RecoveryError.Busy)
 
@@ -96,6 +100,13 @@ type internal DeploymentRepository(database: StateDatabase) =
 
                 let receipt, actualOwner, busy, abandoned =
                     DeploymentRows.receipt connection transaction id |> required
+
+                if
+                    receipt.Context.Roots
+                    |> List.exists (fun root ->
+                        MaintenanceClaims.workspace connection transaction root.Root.Id)
+                then
+                    raise (RecoveryException RecoveryError.Busy)
 
                 if receipt.Revision <> expected then
                     raise (RecoveryException RecoveryError.Stale)

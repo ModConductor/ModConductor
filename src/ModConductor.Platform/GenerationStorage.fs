@@ -50,17 +50,25 @@ module GenerationStorage =
         else
             raise (PlatformNotSupportedException())
 
-    let protectDirectory (path: HostPath) identity =
+    let private directoryProtection (path: HostPath) identity protect =
         use held = HeldDirectory.Open(path, identity)
 
         if OperatingSystem.IsLinux() then
-            File.SetUnixFileMode(held.Handle, UnixFileMode.UserRead ||| UnixFileMode.UserExecute)
+            File.SetUnixFileMode(
+                held.Handle,
+                UnixFileMode.UserRead
+                ||| UnixFileMode.UserExecute
+                ||| (if protect then
+                         enum<UnixFileMode> 0
+                     else
+                         UnixFileMode.UserWrite)
+            )
         elif OperatingSystem.IsWindows() then
             let directory = DirectoryInfo(HostPath.value path)
             let security = directory.GetAccessControl()
             use user = WindowsIdentity.GetCurrent()
 
-            security.AddAccessRule(
+            let rule =
                 FileSystemAccessRule(
                     user.User,
                     FileSystemRights.Write
@@ -70,11 +78,18 @@ module GenerationStorage =
                     PropagationFlags.None,
                     AccessControlType.Deny
                 )
-            )
+
+            if protect then
+                security.AddAccessRule rule
+            else
+                security.RemoveAccessRuleSpecific rule
 
             directory.SetAccessControl security
         else
             raise (PlatformNotSupportedException())
+
+    let protectDirectory path identity = directoryProtection path identity true
+    let allowDirectoryChanges path identity = directoryProtection path identity false
 
     [<DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)>]
     extern SafeFileHandle private CreateFileW(
@@ -103,7 +118,7 @@ module GenerationStorage =
         byte[] descriptor
     )
 
-    let protectLink (root: HeldDirectory) name expected =
+    let private linkProtection (root: HeldDirectory) name expected protect =
         if root.InspectEntry name <> Some expected || expected.Kind <> EntryKind.Link then
             raise (IOException("The prepared link changed before protection."))
 
@@ -134,11 +149,18 @@ module GenerationStorage =
             security.SetSecurityDescriptorBinaryForm(descriptor, AccessControlSections.Access)
             use user = WindowsIdentity.GetCurrent()
 
-            security.AddAccessRule(
+            let rule =
                 FileSystemAccessRule(user.User, FileSystemRights.Delete, AccessControlType.Deny)
-            )
+
+            if protect then
+                security.AddAccessRule rule
+            else
+                security.RemoveAccessRuleSpecific rule
 
             if
                 SetKernelObjectSecurity(entry, 4u, security.GetSecurityDescriptorBinaryForm()) = 0
             then
                 raise (IOException("The link cannot be protected from ordinary replacement."))
+
+    let protectLink root name expected = linkProtection root name expected true
+    let allowLinkDeletion root name expected = linkProtection root name expected false

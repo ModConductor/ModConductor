@@ -17,6 +17,8 @@ class DeploymentOutputsWorkbench extends StatelessWidget {
     required this.chooseDirectory,
     this.profileId,
     this.profileName,
+    this.maintenance,
+    this.onOpenDeployment,
     this.organization,
     this.archiveUnavailable = false,
   });
@@ -26,6 +28,8 @@ class DeploymentOutputsWorkbench extends StatelessWidget {
   final String workspacePath;
   final Future<String?> Function(String?) chooseDirectory;
   final String? profileId, profileName;
+  final MaintenanceClient? maintenance;
+  final VoidCallback? onOpenDeployment;
   final ModOrganizationClient? organization;
   final bool archiveUnavailable;
   @override
@@ -33,6 +37,8 @@ class DeploymentOutputsWorkbench extends StatelessWidget {
     listenable: outputs,
     builder: (context, _) => FilePlanningWorkbench(
       mods: mods,
+      maintenance: maintenance,
+      onOpenDeployment: onOpenDeployment,
       plans: plans,
       workspacePath: workspacePath,
       chooseDirectory: chooseDirectory,

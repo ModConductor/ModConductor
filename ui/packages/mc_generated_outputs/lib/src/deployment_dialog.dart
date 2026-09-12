@@ -286,7 +286,7 @@ class _SavedDeploymentsDialogState extends State<SavedDeploymentsDialog> {
                   if (value.profile != null)
                     '${value.profile!.enabledMods} ${value.profile!.enabledMods == 1 ? 'mod' : 'mods'}',
                   if (!value.canRestore)
-                    'Saved order and file visibility are unavailable',
+                    value.unavailable ?? 'Saved order and file visibility are unavailable',
                 ].join(' · '),
               ),
               trailing: McAction(

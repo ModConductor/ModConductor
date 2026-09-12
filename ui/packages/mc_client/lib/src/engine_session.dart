@@ -1,3 +1,4 @@
+import 'maintenance_client.dart';
 import 'installation_client.dart';
 import 'artifact_client.dart';
 import 'profile_data_client.dart';
@@ -36,6 +37,8 @@ class EngineSession {
   ProtonContextsClient get protonContexts => _protonContexts!;
   SteamDiscoveryClient? _steamDiscovery;
   SteamDiscoveryClient get steamDiscovery => _steamDiscovery!;
+  MaintenanceClient? _maintenance;
+  MaintenanceClient get maintenance => _maintenance!;
   InstallationsClient? _installations;
   InstallationsClient get installations => _installations!;
   ArtifactsClient? _artifacts;
@@ -115,6 +118,7 @@ class EngineSession {
       channel,
       CallOptions(metadata: options.metadata),
     );
+    _maintenance = GrpcMaintenanceClient(channel, CallOptions(metadata: options.metadata));
     _installations = GrpcInstallationsClient(
       channel,
       CallOptions(metadata: options.metadata),

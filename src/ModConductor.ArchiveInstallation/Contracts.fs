@@ -4,9 +4,16 @@ open System
 open ModConductor.ArchiveInspection
 open ModConductor.ArtifactLibrary
 open ModConductor.Platform
+open ModConductor.ModLibrary
 
 type SelectedFile =
     { Index: int; Destination: LogicalPath }
+
+type InstallationTarget =
+    { ModId: Guid
+      Revision: int64
+      PreviousVersion: Guid
+      Existing: ManifestEntry list }
 
 type InstallationPlan =
     { Artifact: ArtifactRef
@@ -17,7 +24,8 @@ type InstallationPlan =
       Root: string list
       Files: SelectedFile list
       Bytes: int64
-      Fingerprint: string }
+      Fingerprint: string
+      Target: InstallationTarget option }
 
 type InstallationDraft =
     { Id: Guid
@@ -52,6 +60,7 @@ type Installation =
       ArchiveName: string
       Name: string
       Version: string
+      IsUpdate: bool
       State: InstallationState
       Files: int
       TotalFiles: int

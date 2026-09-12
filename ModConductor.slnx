@@ -15,6 +15,7 @@
     <Project Path="src/ModConductor.Platform/ModConductor.Platform.fsproj" />
     <Project Path="src/ModConductor.Executables/ModConductor.Executables.fsproj" />
     <Project Path="src/ModConductor.ArchiveInstallation/ModConductor.ArchiveInstallation.fsproj" />
+    <Project Path="src/ModConductor.ModMaintenance/ModConductor.ModMaintenance.fsproj" />
     <Project Path="src/ModConductor.ArchiveInspection/ModConductor.ArchiveInspection.fsproj" />
     <Project Path="src/ModConductor.ArtifactLibrary/ModConductor.ArtifactLibrary.fsproj" />
     <Project Path="src/ModConductor.ModLibrary/ModConductor.ModLibrary.fsproj" />

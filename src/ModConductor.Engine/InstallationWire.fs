@@ -78,6 +78,7 @@ module internal InstallationWire =
                 WorkspaceId = value.WorkspaceId.ToString("N"),
                 ArtifactId = value.ArtifactId.ToString("N"),
                 ArchiveName = value.ArchiveName,
+                IsUpdate = value.IsUpdate,
                 Name = value.Name,
                 Version = value.Version,
                 Phase = phase,

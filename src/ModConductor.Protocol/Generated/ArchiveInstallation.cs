@@ -55,7 +55,7 @@ namespace ModConductor.Protocol.V1 {
             "GAUgASgLMiUubW9kY29uZHVjdG9yLnYxLkluc3RhbGxhdGlvbk1ldGFkYXRh",
             "SABCCAoGY2hhbmdlImIKGFN0YXJ0QXJjaGl2ZUluc3RhbGxhdGlvbhI6CgVk",
             "cmFmdBgBIAEoCzIrLm1vZGNvbmR1Y3Rvci52MS5JbnN0YWxsYXRpb25EcmFm",
-            "dFJlZmVyZW5jZRIKCgJpZBgCIAEoCSKeAwoZQXJjaGl2ZUluc3RhbGxhdGlv",
+            "dFJlZmVyZW5jZRIKCgJpZBgCIAEoCSKxAwoZQXJjaGl2ZUluc3RhbGxhdGlv",
             "blN0YXR1cxIKCgJpZBgBIAEoCRIUCgx3b3Jrc3BhY2VfaWQYAiABKAkSEwoL",
             "YXJ0aWZhY3RfaWQYAyABKAkSFAoMYXJjaGl2ZV9uYW1lGAQgASgJEgwKBG5h",
             "bWUYBSABKAkSDwoHdmVyc2lvbhgGIAEoCRIxCgVwaGFzZRgHIAEoDjIiLm1v",
@@ -63,34 +63,35 @@ namespace ModConductor.Protocol.V1 {
             "DRITCgt0b3RhbF9maWxlcxgJIAEoDRINCgVieXRlcxgKIAEoBBITCgt0b3Rh",
             "bF9ieXRlcxgLIAEoBBIUCgdwcm9ibGVtGAwgASgJSACIAQESEwoGbW9kX2lk",
             "GA0gASgJSAGIAQESFwoKdmVyc2lvbl9pZBgOIAEoCUgCiAEBEhwKD3RlbXBv",
-            "cmFyeV9ieXRlcxgPIAEoBEgDiAEBQgoKCF9wcm9ibGVtQgkKB19tb2RfaWRC",
-            "DQoLX3ZlcnNpb25faWRCEgoQX3RlbXBvcmFyeV9ieXRlcyJWChdBcmNoaXZl",
-            "SW5zdGFsbGF0aW9uTGlzdBI7CgdlbnRyaWVzGAEgAygLMioubW9kY29uZHVj",
-            "dG9yLnYxLkFyY2hpdmVJbnN0YWxsYXRpb25TdGF0dXMqlgEKEUluc3RhbGxh",
-            "dGlvblBoYXNlEh4KGklOU1RBTExBVElPTl9QSEFTRV9SVU5OSU5HEAASHgoa",
-            "SU5TVEFMTEFUSU9OX1BIQVNFX1NUT1BQRUQQARIfChtJTlNUQUxMQVRJT05f",
-            "UEhBU0VfQ09NUExFVEUQAhIgChxJTlNUQUxMQVRJT05fUEhBU0VfRElTQ0FS",
-            "REVEEAMy9wYKE0FyY2hpdmVJbnN0YWxsYXRpb24SZAoTUHJlcGFyZUluc3Rh",
-            "bGxhdGlvbhIiLm1vZGNvbmR1Y3Rvci52MS5BcnRpZmFjdFJlZmVyZW5jZRop",
-            "Lm1vZGNvbmR1Y3Rvci52MS5BcmNoaXZlSW5zdGFsbGF0aW9uRHJhZnQScAoY",
-            "Q2hhbmdlSW5zdGFsbGF0aW9uTGF5b3V0EikubW9kY29uZHVjdG9yLnYxLklu",
-            "c3RhbGxhdGlvbkxheW91dENoYW5nZRopLm1vZGNvbmR1Y3Rvci52MS5BcmNo",
-            "aXZlSW5zdGFsbGF0aW9uRHJhZnQSbwoWQ2xvc2VJbnN0YWxsYXRpb25EcmFm",
-            "dBIrLm1vZGNvbmR1Y3Rvci52MS5JbnN0YWxsYXRpb25EcmFmdFJlZmVyZW5j",
-            "ZRooLm1vZGNvbmR1Y3Rvci52MS5JbnN0YWxsYXRpb25EcmFmdENsb3NlZBJq",
-            "ChFTdGFydEluc3RhbGxhdGlvbhIpLm1vZGNvbmR1Y3Rvci52MS5TdGFydEFy",
-            "Y2hpdmVJbnN0YWxsYXRpb24aKi5tb2Rjb25kdWN0b3IudjEuQXJjaGl2ZUlu",
-            "c3RhbGxhdGlvblN0YXR1cxJnChNSZWNlbnRJbnN0YWxsYXRpb25zEiYubW9k",
-            "Y29uZHVjdG9yLnYxLkluc3RhbGxhdGlvbldvcmtzcGFjZRooLm1vZGNvbmR1",
-            "Y3Rvci52MS5BcmNoaXZlSW5zdGFsbGF0aW9uTGlzdBJpChFXYXRjaEluc3Rh",
-            "bGxhdGlvbhImLm1vZGNvbmR1Y3Rvci52MS5JbnN0YWxsYXRpb25SZWZlcmVu",
-            "Y2UaKi5tb2Rjb25kdWN0b3IudjEuQXJjaGl2ZUluc3RhbGxhdGlvblN0YXR1",
-            "czABEmgKEkNhbmNlbEluc3RhbGxhdGlvbhImLm1vZGNvbmR1Y3Rvci52MS5J",
-            "bnN0YWxsYXRpb25SZWZlcmVuY2UaKi5tb2Rjb25kdWN0b3IudjEuQXJjaGl2",
-            "ZUluc3RhbGxhdGlvblN0YXR1cxJtChdEZWxldGVJbnN0YWxsYXRpb25GaWxl",
-            "cxImLm1vZGNvbmR1Y3Rvci52MS5JbnN0YWxsYXRpb25SZWZlcmVuY2UaKi5t",
-            "b2Rjb25kdWN0b3IudjEuQXJjaGl2ZUluc3RhbGxhdGlvblN0YXR1c0IbqgIY",
-            "TW9kQ29uZHVjdG9yLlByb3RvY29sLlYxYgZwcm90bzM="));
+            "cmFyeV9ieXRlcxgPIAEoBEgDiAEBEhEKCWlzX3VwZGF0ZRgQIAEoCEIKCghf",
+            "cHJvYmxlbUIJCgdfbW9kX2lkQg0KC192ZXJzaW9uX2lkQhIKEF90ZW1wb3Jh",
+            "cnlfYnl0ZXMiVgoXQXJjaGl2ZUluc3RhbGxhdGlvbkxpc3QSOwoHZW50cmll",
+            "cxgBIAMoCzIqLm1vZGNvbmR1Y3Rvci52MS5BcmNoaXZlSW5zdGFsbGF0aW9u",
+            "U3RhdHVzKpYBChFJbnN0YWxsYXRpb25QaGFzZRIeChpJTlNUQUxMQVRJT05f",
+            "UEhBU0VfUlVOTklORxAAEh4KGklOU1RBTExBVElPTl9QSEFTRV9TVE9QUEVE",
+            "EAESHwobSU5TVEFMTEFUSU9OX1BIQVNFX0NPTVBMRVRFEAISIAocSU5TVEFM",
+            "TEFUSU9OX1BIQVNFX0RJU0NBUkRFRBADMvcGChNBcmNoaXZlSW5zdGFsbGF0",
+            "aW9uEmQKE1ByZXBhcmVJbnN0YWxsYXRpb24SIi5tb2Rjb25kdWN0b3IudjEu",
+            "QXJ0aWZhY3RSZWZlcmVuY2UaKS5tb2Rjb25kdWN0b3IudjEuQXJjaGl2ZUlu",
+            "c3RhbGxhdGlvbkRyYWZ0EnAKGENoYW5nZUluc3RhbGxhdGlvbkxheW91dBIp",
+            "Lm1vZGNvbmR1Y3Rvci52MS5JbnN0YWxsYXRpb25MYXlvdXRDaGFuZ2UaKS5t",
+            "b2Rjb25kdWN0b3IudjEuQXJjaGl2ZUluc3RhbGxhdGlvbkRyYWZ0Em8KFkNs",
+            "b3NlSW5zdGFsbGF0aW9uRHJhZnQSKy5tb2Rjb25kdWN0b3IudjEuSW5zdGFs",
+            "bGF0aW9uRHJhZnRSZWZlcmVuY2UaKC5tb2Rjb25kdWN0b3IudjEuSW5zdGFs",
+            "bGF0aW9uRHJhZnRDbG9zZWQSagoRU3RhcnRJbnN0YWxsYXRpb24SKS5tb2Rj",
+            "b25kdWN0b3IudjEuU3RhcnRBcmNoaXZlSW5zdGFsbGF0aW9uGioubW9kY29u",
+            "ZHVjdG9yLnYxLkFyY2hpdmVJbnN0YWxsYXRpb25TdGF0dXMSZwoTUmVjZW50",
+            "SW5zdGFsbGF0aW9ucxImLm1vZGNvbmR1Y3Rvci52MS5JbnN0YWxsYXRpb25X",
+            "b3Jrc3BhY2UaKC5tb2Rjb25kdWN0b3IudjEuQXJjaGl2ZUluc3RhbGxhdGlv",
+            "bkxpc3QSaQoRV2F0Y2hJbnN0YWxsYXRpb24SJi5tb2Rjb25kdWN0b3IudjEu",
+            "SW5zdGFsbGF0aW9uUmVmZXJlbmNlGioubW9kY29uZHVjdG9yLnYxLkFyY2hp",
+            "dmVJbnN0YWxsYXRpb25TdGF0dXMwARJoChJDYW5jZWxJbnN0YWxsYXRpb24S",
+            "Ji5tb2Rjb25kdWN0b3IudjEuSW5zdGFsbGF0aW9uUmVmZXJlbmNlGioubW9k",
+            "Y29uZHVjdG9yLnYxLkFyY2hpdmVJbnN0YWxsYXRpb25TdGF0dXMSbQoXRGVs",
+            "ZXRlSW5zdGFsbGF0aW9uRmlsZXMSJi5tb2Rjb25kdWN0b3IudjEuSW5zdGFs",
+            "bGF0aW9uUmVmZXJlbmNlGioubW9kY29uZHVjdG9yLnYxLkFyY2hpdmVJbnN0",
+            "YWxsYXRpb25TdGF0dXNCG6oCGE1vZENvbmR1Y3Rvci5Qcm90b2NvbC5WMWIG",
+            "cHJvdG8z"));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::ModConductor.Protocol.V1.ArtifactsReflection.Descriptor, global::ModConductor.Protocol.V1.ArchiveInspectionReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(new[] {typeof(global::ModConductor.Protocol.V1.InstallationPhase), }, null, new pbr::GeneratedClrTypeInfo[] {
@@ -106,7 +107,7 @@ namespace ModConductor.Protocol.V1 {
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.InstallationMetadata), global::ModConductor.Protocol.V1.InstallationMetadata.Parser, new[]{ "Name", "Version" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.InstallationLayoutChange), global::ModConductor.Protocol.V1.InstallationLayoutChange.Parser, new[]{ "Reference", "Root", "Inclusion", "Destination", "Metadata" }, new[]{ "Change" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.StartArchiveInstallation), global::ModConductor.Protocol.V1.StartArchiveInstallation.Parser, new[]{ "Draft", "Id" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ArchiveInstallationStatus), global::ModConductor.Protocol.V1.ArchiveInstallationStatus.Parser, new[]{ "Id", "WorkspaceId", "ArtifactId", "ArchiveName", "Name", "Version", "Phase", "Files", "TotalFiles", "Bytes", "TotalBytes", "Problem", "ModId", "VersionId", "TemporaryBytes" }, new[]{ "Problem", "ModId", "VersionId", "TemporaryBytes" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ArchiveInstallationStatus), global::ModConductor.Protocol.V1.ArchiveInstallationStatus.Parser, new[]{ "Id", "WorkspaceId", "ArtifactId", "ArchiveName", "Name", "Version", "Phase", "Files", "TotalFiles", "Bytes", "TotalBytes", "Problem", "ModId", "VersionId", "TemporaryBytes", "IsUpdate" }, new[]{ "Problem", "ModId", "VersionId", "TemporaryBytes" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ArchiveInstallationList), global::ModConductor.Protocol.V1.ArchiveInstallationList.Parser, new[]{ "Entries" }, null, null, null, null)
           }));
     }
@@ -3351,6 +3352,7 @@ namespace ModConductor.Protocol.V1 {
       modId_ = other.modId_;
       versionId_ = other.versionId_;
       temporaryBytes_ = other.temporaryBytes_;
+      isUpdate_ = other.isUpdate_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -3597,6 +3599,18 @@ namespace ModConductor.Protocol.V1 {
       _hasBits0 &= ~1;
     }
 
+    /// <summary>Field number for the "is_update" field.</summary>
+    public const int IsUpdateFieldNumber = 16;
+    private bool isUpdate_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool IsUpdate {
+      get { return isUpdate_; }
+      set {
+        isUpdate_ = value;
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -3627,6 +3641,7 @@ namespace ModConductor.Protocol.V1 {
       if (ModId != other.ModId) return false;
       if (VersionId != other.VersionId) return false;
       if (TemporaryBytes != other.TemporaryBytes) return false;
+      if (IsUpdate != other.IsUpdate) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -3649,6 +3664,7 @@ namespace ModConductor.Protocol.V1 {
       if (HasModId) hash ^= ModId.GetHashCode();
       if (HasVersionId) hash ^= VersionId.GetHashCode();
       if (HasTemporaryBytes) hash ^= TemporaryBytes.GetHashCode();
+      if (IsUpdate != false) hash ^= IsUpdate.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -3727,6 +3743,10 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(120);
         output.WriteUInt64(TemporaryBytes);
       }
+      if (IsUpdate != false) {
+        output.WriteRawTag(128, 1);
+        output.WriteBool(IsUpdate);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -3797,6 +3817,10 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(120);
         output.WriteUInt64(TemporaryBytes);
       }
+      if (IsUpdate != false) {
+        output.WriteRawTag(128, 1);
+        output.WriteBool(IsUpdate);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -3851,6 +3875,9 @@ namespace ModConductor.Protocol.V1 {
       }
       if (HasTemporaryBytes) {
         size += 1 + pb::CodedOutputStream.ComputeUInt64Size(TemporaryBytes);
+      }
+      if (IsUpdate != false) {
+        size += 2 + 1;
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -3908,6 +3935,9 @@ namespace ModConductor.Protocol.V1 {
       }
       if (other.HasTemporaryBytes) {
         TemporaryBytes = other.TemporaryBytes;
+      }
+      if (other.IsUpdate != false) {
+        IsUpdate = other.IsUpdate;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -3988,6 +4018,10 @@ namespace ModConductor.Protocol.V1 {
             TemporaryBytes = input.ReadUInt64();
             break;
           }
+          case 128: {
+            IsUpdate = input.ReadBool();
+            break;
+          }
         }
       }
     #endif
@@ -4065,6 +4099,10 @@ namespace ModConductor.Protocol.V1 {
           }
           case 120: {
             TemporaryBytes = input.ReadUInt64();
+            break;
+          }
+          case 128: {
+            IsUpdate = input.ReadBool();
             break;
           }
         }

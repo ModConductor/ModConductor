@@ -45,7 +45,8 @@ type SavedDeployment =
       Known: bool
       Active: bool
       Fingerprint: string
-      CanRestore: bool }
+      CanRestore: bool
+      Unavailable: string option }
 
 type SavedDeploymentPage =
     { Entries: SavedDeployment list

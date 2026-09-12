@@ -79,6 +79,18 @@ type internal DeploymentBackendRepository
                             progress
                             token
                 | Some generationId ->
+                    let! unavailable =
+                        database.Enqueue(fun () ->
+                            MaintenanceClaims.unavailable
+                                database.Connection
+                                null
+                                context.Id
+                                generationId)
+
+                    unavailable
+                    |> Option.iter (fun reason ->
+                        raise (RecoveryException(RecoveryError.Unavailable reason)))
+
                     let! recorded = recovery.Generation(context.Id, generationId)
 
                     let recorded =
@@ -119,7 +131,11 @@ type internal DeploymentBackendRepository
         member _.SavedOne(context, id) =
             database.Enqueue(fun () ->
                 DeploymentRows.generation database.Connection null context id
-                |> Option.map (SavedDeployments.describe (Some id)))
+                |> Option.map (
+                    SavedDeployments.describe
+                        (Some id)
+                        (MaintenanceClaims.unavailable database.Connection null context id)
+                ))
 
         member _.Current stamp =
             database.Enqueue(fun () ->

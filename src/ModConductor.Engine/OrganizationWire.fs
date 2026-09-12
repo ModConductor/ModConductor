@@ -92,6 +92,7 @@ module internal OrganizationWire =
                 | ModInventoryStatus.Changed -> InventoryStatus.Changed
                 | ModInventoryStatus.Unproved -> InventoryStatus.Unproved
                 | ModInventoryStatus.Publishing -> InventoryStatus.Publishing
+                | ModInventoryStatus.Deleting -> InventoryStatus.Deleting
                 | _ -> ModLibraryWire.reject "Choose a mod status."
             )
         | ModFilterPredicate.PredicateOneofCase.Enabled ->

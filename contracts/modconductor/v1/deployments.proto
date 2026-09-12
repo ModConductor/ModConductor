@@ -12,7 +12,7 @@ service DeploymentOperations {
 }
 message ReadDeploymentRequest { string profile_id = 1; }
 message DeploymentProfile { string id = 1; string name = 2; uint64 revision = 3; uint32 enabled_mods = 4; }
-message SavedDeployment { string id = 1; optional int64 prepared_at_unix_ms = 2; DeploymentProfile profile = 3; bool known = 4; bool active = 5; string fingerprint = 6; bool can_restore = 7; }
+message SavedDeployment { string id = 1; optional int64 prepared_at_unix_ms = 2; DeploymentProfile profile = 3; bool known = 4; bool active = 5; string fingerprint = 6; bool can_restore = 7; optional string unavailable = 8; }
 message DeploymentState { string workspace_id = 1; uint64 revision = 2; SavedDeployment active = 3; optional string pending_receipt = 4; string source_token = 5; }
 message SavedDeploymentsRequest { string profile_id = 1; optional uint64 before = 2; }
 message SavedDeploymentsPage { repeated SavedDeployment entries = 1; optional uint64 next_before = 2; }

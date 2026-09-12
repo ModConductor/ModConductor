@@ -1,3 +1,6 @@
+import 'deletion_controller.dart';
+import 'deletion_view.dart';
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -26,6 +29,9 @@ class ModLibraryBrowser extends StatefulWidget {
     this.chooseDirectory = chooseModDirectory,
     this.filePanes = const [],
     this.singlePane,
+    this.maintenance,
+    this.onOpenDeployment,
+    this.onMaintenanceOpen,
     this.savedFileActions = const [],
   });
   final ModLibraryController controller;
@@ -33,6 +39,8 @@ class ModLibraryBrowser extends StatefulWidget {
   final ModDirectoryChooser chooseDirectory;
   final List<ModFilePane> filePanes;
   final bool? singlePane;
+  final MaintenanceClient? maintenance;
+  final VoidCallback? onOpenDeployment, onMaintenanceOpen;
   final List<Widget> savedFileActions;
   @override
   State<ModLibraryBrowser> createState() => _ModLibraryBrowserState();
@@ -48,8 +56,32 @@ class _ModLibraryBrowserState extends State<ModLibraryBrowser> {
   final _addFocus = FocusNode(debugLabel: 'Add mod folder');
   final _editFocus = FocusNode(debugLabel: 'Edit mod details');
   ModLibraryController get controller => widget.controller;
+  late final deletion = DeletionController(
+    () => controller.inventory.refreshCatalogue(),
+  );
+  @override
+  void initState() {
+    super.initState();
+    controller.addListener(attachDeletion);
+    attachDeletion();
+  }
+
+  void attachDeletion() =>
+      deletion.attach(widget.maintenance, controller.workspaceId);
+  @override
+  void didUpdateWidget(ModLibraryBrowser oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.controller, widget.controller)) {
+      oldWidget.controller.removeListener(attachDeletion);
+      controller.addListener(attachDeletion);
+    }
+    attachDeletion();
+  }
+
   @override
   void dispose() {
+    controller.removeListener(attachDeletion);
+    deletion.dispose();
     _modsFocus.dispose();
     _filesFocus.dispose();
     _modsScroll.dispose();
@@ -82,9 +114,15 @@ class _ModLibraryBrowserState extends State<ModLibraryBrowser> {
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
-    listenable: controller,
+    listenable: Listenable.merge([controller, deletion]),
     builder: (context, _) => LayoutBuilder(
       builder: (context, constraints) {
+        if (deletion.viewing) {
+          return ModDeletionView(
+            controller: deletion,
+            onOpenDeployment: widget.onOpenDeployment,
+          );
+        }
         final narrow = widget.singlePane ?? constraints.maxWidth < 1050;
         final compact = narrow && constraints.maxHeight < 500;
         final chosen = controller.selected;
@@ -97,6 +135,21 @@ class _ModLibraryBrowserState extends State<ModLibraryBrowser> {
 
         final editSelection = controller.canEdit && controller.activity == null;
         final modActions = <Widget>[
+          if (widget.maintenance != null)
+            McIconAction(
+              label: 'Delete mod',
+              icon: const Icon(Icons.delete_outline),
+              onPressed:
+                  chosen?.kind == ModKind.regular &&
+                      chosen?.status != InventoryStatus.deleting &&
+                      controller.canEdit &&
+                      !deletion.busy
+                  ? () {
+                      widget.onMaintenanceOpen?.call();
+                      unawaited(deletion.open(chosen!));
+                    }
+                  : null,
+            ),
           McIconMenu<_OrganizationAction>(
             label: 'Installed mods options',
             enabled: controller.organization != null,
@@ -523,6 +576,25 @@ class _ModLibraryBrowserState extends State<ModLibraryBrowser> {
 
         return Column(
           children: [
+            if (deletion.pending.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  children: [
+                    const Expanded(child: Text('Mod deletion unfinished')),
+                    McAction(
+                      label: 'Open deletion',
+                      onPressed: () {
+                        widget.onMaintenanceOpen?.call();
+                        deletion.resume(deletion.pending.first);
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            if (deletion.problem != null)
+              McStatus(title: deletion.problem!, tone: McStatusTone.error),
+
             if (narrow) ...[
               if (extended)
                 choice(true)
@@ -616,6 +688,7 @@ String _status(InventoryStatus status) => switch (status) {
   InventoryStatus.changed => 'Source changed',
   InventoryStatus.unproved => 'Not verified',
   InventoryStatus.publishing => 'Save in progress',
+  InventoryStatus.deleting => 'Deletion unfinished',
 };
 String _size(int bytes) => bytes >= 1048576
     ? '${(bytes / 1048576).toStringAsFixed(1)} MiB'

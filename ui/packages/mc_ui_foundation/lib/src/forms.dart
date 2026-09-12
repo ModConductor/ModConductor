@@ -8,12 +8,14 @@ class McChoice<T> extends StatelessWidget {
     required this.choices,
     required this.describe,
     required this.onChanged,
+    this.enabled = true,
   });
   final String label;
   final T value;
   final List<T> choices;
   final String Function(T) describe;
   final ValueChanged<T> onChanged;
+  final bool enabled;
   @override
   Widget build(BuildContext context) => DropdownButtonFormField<T>(
     key: ValueKey((label, value)),
@@ -27,8 +29,10 @@ class McChoice<T> extends StatelessWidget {
           child: Text(describe(choice), overflow: TextOverflow.ellipsis),
         ),
     ],
-    onChanged: (value) {
-      if (value != null) onChanged(value);
-    },
+    onChanged: enabled
+        ? (value) {
+            if (value != null) onChanged(value);
+          }
+        : null,
   );
 }

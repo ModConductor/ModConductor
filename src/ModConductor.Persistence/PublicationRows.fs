@@ -52,6 +52,8 @@ module internal PublicationRows =
             match
                 find connection transaction version, LibraryRows.find connection transaction modId
             with
+            | _, Some _ when MaintenanceClaims.busy connection transaction modId ->
+                Error LibraryError.Busy
             | Some receipt, Some row when
                 receipt.ModId = modId && receipt.ExpectedRevision = expected
                 ->

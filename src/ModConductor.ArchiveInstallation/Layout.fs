@@ -19,10 +19,6 @@ module Layout =
         LogicalPath.create parts
         |> Result.defaultWith (fun _ -> refuse "Choose a relative destination within the mod.")
 
-    let private policy =
-        { TargetPolicy.windows with
-            Unicode = CanonicalComposition }
-
     let private files (manifest: ArchiveManifest) =
         manifest.Entries |> List.filter (fun e -> not e.Directory)
 
@@ -75,6 +71,43 @@ module Layout =
         | [ root ] -> Some root
         | _ -> None
 
+    let private fingerprint
+        (reference: ModConductor.ArtifactLibrary.ArtifactRef)
+        sha
+        name
+        version
+        (files: SelectedFile list)
+        (target: InstallationTarget option)
+        =
+        use buffer = new MemoryStream()
+        use writer = new BinaryWriter(buffer, Encoding.UTF8, true)
+        writer.Write(string reference.WorkspaceId)
+        writer.Write(string reference.Id)
+        writer.Write(reference.Revision)
+        writer.Write(sha: string)
+        writer.Write(name: string)
+        writer.Write(version: string)
+
+        for file in files |> List.sortBy _.Index do
+            writer.Write(file.Index)
+            writer.Write(LogicalPath.display file.Destination)
+
+        match target with
+        | None -> ()
+        | Some target ->
+            writer.Write(string target.ModId)
+            writer.Write(target.Revision)
+            writer.Write(string target.PreviousVersion)
+
+            for file in target.Existing |> List.sortBy _.Path do
+                writer.Write(LogicalPath.display file.Path)
+                writer.Write(string file.Payload.Id)
+                writer.Write(file.Payload.Length)
+                writer.Write(file.Payload.Sha256)
+
+        writer.Flush()
+        SHA256.HashData(buffer.ToArray()) |> Convert.ToHexStringLower
+
     let private finish (draft: InstallationDraft) =
         if draft.Files.IsEmpty then
             { draft with Plan = None }
@@ -92,14 +125,8 @@ module Layout =
 
             let entries = draft.Manifest.Entries |> List.map (fun e -> e.Index, e) |> Map.ofList
 
-            let seen =
-                System.Collections.Generic.Dictionary<string, string>(
-                    StringComparer.OrdinalIgnoreCase
-                )
-
             let selected = System.Collections.Generic.HashSet<int>()
             let mutable bytes = 0L
-            let mutable destinationCharacters = 0
 
             for file in draft.Files do
                 let entry =
@@ -111,69 +138,18 @@ module Layout =
                 if entry.Directory || not (selected.Add file.Index) then
                     refuse "Choose each archive file only once."
 
-                destinationCharacters <-
-                    destinationCharacters + (LogicalPath.display file.Destination).Length
-
-                if destinationCharacters > ArchiveLimits.Default.NameCharacters then
-                    refuse "The installation contains too much destination path data."
-
-                let parts = LogicalPath.components file.Destination
-
-                if
-                    parts.Length > ArchiveLimits.Default.Depth
-                    || (LogicalPath.display file.Destination).Length > ArchiveLimits.Default.PathCharacters
-                    || not (TargetPolicy.problems policy file.Destination).IsEmpty
-                then
-                    refuse
-                        "A destination cannot be used in this mod. Choose a relative Windows-compatible path."
-
-                for count in 1 .. parts.Length do
-                    let target = path (List.take count parts)
-                    let key = TargetPolicy.key policy target
-                    let spelling = LogicalPath.display target
-
-                    match seen.TryGetValue key with
-                    | true, original when original <> spelling ->
-                        refuse
-                            "Two destinations use conflicting names. Change a destination or exclude a file."
-                    | _ -> seen[key] <- spelling
-
-                    if seen.Count > ArchiveLimits.Default.Entries then
-                        refuse "The installation contains too many file and folder entries."
-
                 bytes <- bytes + entry.Size
 
-            let targets =
-                draft.Files
-                |> List.map (fun f -> TargetPolicy.key policy f.Destination)
-                |> Set.ofList
+            Destinations.validate (draft.Files |> List.map _.Destination)
 
-            if targets.Count <> draft.Files.Length then
-                refuse
-                    "Two files have the same destination. Change a destination or exclude a file."
-
-            for file in draft.Files do
-                let parts = LogicalPath.components file.Destination
-
-                for count in 1 .. parts.Length - 1 do
-                    if targets.Contains(TargetPolicy.key policy (path (List.take count parts))) then
-                        refuse "A destination is both a file and a folder."
-
-            use buffer = new MemoryStream()
-            use writer = new BinaryWriter(buffer, Encoding.UTF8, true)
-            writer.Write(string draft.Artifact.WorkspaceId)
-            writer.Write(string draft.Artifact.Id)
-            writer.Write(draft.Artifact.Revision)
-            writer.Write(draft.Manifest.Sha256)
-            writer.Write(metadata.Name)
-            writer.Write(metadata.Version)
-
-            for file in draft.Files |> List.sortBy _.Index do
-                writer.Write(file.Index)
-                writer.Write(LogicalPath.display file.Destination)
-
-            writer.Flush()
-            let fingerprint = SHA256.HashData(buffer.ToArray()) |> Convert.ToHexStringLower
+            let fingerprint =
+                fingerprint
+                    draft.Artifact
+                    draft.Manifest.Sha256
+                    metadata.Name
+                    metadata.Version
+                    draft.Files
+                    None
 
             { draft with
                 Name = metadata.Name
@@ -187,7 +163,8 @@ module Layout =
                           Root = draft.Root
                           Files = draft.Files
                           Bytes = bytes
-                          Fingerprint = fingerprint } }
+                          Fingerprint = fingerprint
+                          Target = None } }
 
     let prepare reference name manifest =
         let root = quickRoot manifest
@@ -288,25 +265,74 @@ module Layout =
             Revision = draft.Revision + 1L }
         |> finish
 
+    let forUpdate
+        (draft: InstallationDraft)
+        name
+        version
+        (target: InstallationTarget)
+        (selected: SelectedFile list)
+        =
+        let source =
+            draft.Plan
+            |> Option.defaultWith (fun () -> refuse "Review the archive layout first.")
+
+        InventoryPolicy.metadata
+            { Name = name
+              Version = version
+              Notes = ""
+              Comment = ""
+              Source = ""
+              Categories = [] }
+        |> Result.defaultWith (fun _ -> refuse "Enter a version of at most 256 characters.")
+        |> ignore
+
+        if selected |> List.exists (fun file -> not (List.contains file draft.Files)) then
+            refuse "The archive selection changed. Review the layout again."
+
+        Destinations.validate (
+            (selected |> List.map _.Destination) @ (target.Existing |> List.map _.Path)
+        )
+
+        let sizes =
+            draft.Manifest.Entries
+            |> List.map (fun entry -> entry.Index, entry.Size)
+            |> Map.ofList
+
+        { source with
+            Name = name
+            Version = version
+            Files = selected
+            Bytes = selected |> List.sumBy (fun file -> sizes[file.Index])
+            Target = Some target
+            Fingerprint =
+                fingerprint source.Artifact source.Sha256 name version selected (Some target) }
+
     let confirm (plan: InstallationPlan) (manifest: ArchiveManifest) =
         if manifest.Sha256 <> plan.Sha256 then
             refuse "The archive changed. Read its contents and review the installation again."
 
-        let checkedPlan =
-            { Id = Guid.Empty
-              Revision = 0L
-              Artifact = plan.Artifact
-              ArchiveName = plan.ArchiveName
-              Manifest = manifest
-              Root = plan.Root
-              Files = plan.Files
-              Name = plan.Name
-              Version = plan.Version
-              Plan = None }
-            |> finish
+        let entries =
+            manifest.Entries |> List.map (fun entry -> entry.Index, entry) |> Map.ofList
+
+        let mutable bytes = 0L
+        let selected = System.Collections.Generic.HashSet<int>()
+
+        for file in plan.Files do
+            match entries |> Map.tryFind file.Index with
+            | Some entry when not entry.Directory && selected.Add file.Index ->
+                bytes <- bytes + entry.Size
+            | _ -> refuse "The installation plan changed. Review it again."
+
+        let existing =
+            plan.Target
+            |> Option.map (fun target -> target.Existing |> List.map _.Path)
+            |> Option.defaultValue []
+
+        Destinations.validate ((plan.Files |> List.map _.Destination) @ existing)
 
         if
-            checkedPlan.Plan.Value.Fingerprint <> plan.Fingerprint
-            || checkedPlan.Plan.Value.Bytes <> plan.Bytes
+            bytes <> plan.Bytes
+            || fingerprint plan.Artifact plan.Sha256 plan.Name plan.Version plan.Files plan.Target
+               <> plan.Fingerprint
         then
             refuse "The installation plan changed. Review it again."

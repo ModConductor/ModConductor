@@ -60,6 +60,7 @@ module internal LibraryEncoding =
         | InventoryStatus.Changed -> 3
         | InventoryStatus.Unproved -> 4
         | InventoryStatus.Publishing -> 5
+        | InventoryStatus.Deleting -> 6
 
     let readStatus =
         function
@@ -68,4 +69,5 @@ module internal LibraryEncoding =
         | 3 -> InventoryStatus.Changed
         | 4 -> InventoryStatus.Unproved
         | 5 -> InventoryStatus.Publishing
+        | 6 -> InventoryStatus.Deleting
         | _ -> raise (InvalidDataException("Unknown inventory status."))

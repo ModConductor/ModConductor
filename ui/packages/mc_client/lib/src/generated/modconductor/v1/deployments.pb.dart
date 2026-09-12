@@ -180,6 +180,7 @@ class SavedDeployment extends $pb.GeneratedMessage {
     $core.bool? active,
     $core.String? fingerprint,
     $core.bool? canRestore,
+    $core.String? unavailable,
   }) {
     final result = create();
     if (id != null) result.id = id;
@@ -189,6 +190,7 @@ class SavedDeployment extends $pb.GeneratedMessage {
     if (active != null) result.active = active;
     if (fingerprint != null) result.fingerprint = fingerprint;
     if (canRestore != null) result.canRestore = canRestore;
+    if (unavailable != null) result.unavailable = unavailable;
     return result;
   }
 
@@ -214,6 +216,7 @@ class SavedDeployment extends $pb.GeneratedMessage {
     ..aOB(5, _omitFieldNames ? '' : 'active')
     ..aOS(6, _omitFieldNames ? '' : 'fingerprint')
     ..aOB(7, _omitFieldNames ? '' : 'canRestore')
+    ..aOS(8, _omitFieldNames ? '' : 'unavailable')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -299,6 +302,15 @@ class SavedDeployment extends $pb.GeneratedMessage {
   $core.bool hasCanRestore() => $_has(6);
   @$pb.TagNumber(7)
   void clearCanRestore() => $_clearField(7);
+
+  @$pb.TagNumber(8)
+  $core.String get unavailable => $_getSZ(7);
+  @$pb.TagNumber(8)
+  set unavailable($core.String value) => $_setString(7, value);
+  @$pb.TagNumber(8)
+  $core.bool hasUnavailable() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearUnavailable() => $_clearField(8);
 }
 
 class DeploymentState extends $pb.GeneratedMessage {

@@ -69,6 +69,7 @@ class InstallationStatus {
     required this.totalFiles,
     required this.bytes,
     required this.totalBytes,
+    this.isUpdate = false,
     this.temporaryBytes,
     this.problem,
     this.modId,
@@ -76,6 +77,7 @@ class InstallationStatus {
   });
   final String id, workspaceId, artifactId, archiveName, name, version;
   final String? problem, modId, versionId;
+  final bool isUpdate;
   final InstallationPhase phase;
   final int files, totalFiles, bytes, totalBytes;
   final int? temporaryBytes;

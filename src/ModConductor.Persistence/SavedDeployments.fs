@@ -11,14 +11,15 @@ module internal SavedDeployments =
           Revision = value.Revision
           EnabledMods = value.Mods |> List.filter _.Enabled |> List.length }
 
-    let describe active (generation: Generation) : SavedDeployment =
+    let describe active (unavailable: string option) (generation: Generation) : SavedDeployment =
         { Id = generation.Id
           PreparedAt = generation.Provenance |> Option.map _.PreparedAt
           Profile = generation.Provenance |> Option.bind _.Profile |> Option.map profile
           Known = generation.Provenance.IsSome
           Active = active = Some generation.Id
           Fingerprint = generation.PlanFingerprint
-          CanRestore = generation.Provenance.IsSome }
+          CanRestore = generation.Provenance.IsSome && unavailable.IsNone
+          Unavailable = unavailable }
 
     let page (connection: Microsoft.Data.Sqlite.SqliteConnection) context active before =
         use transaction = connection.BeginTransaction(deferred = true)
@@ -45,7 +46,9 @@ module internal SavedDeployments =
             |> List.map (fun (_, id) ->
                 DeploymentRows.generation connection transaction context id
                 |> Option.defaultWith (fun () -> raise (RecoveryException RecoveryError.NotFound))
-                |> describe active)
+                |> describe
+                    active
+                    (MaintenanceClaims.unavailable connection transaction context id))
 
         transaction.Commit()
 

@@ -63,34 +63,6 @@ class GrpcInstallationsClient implements InstallationsClient {
         bytes: d.bytes.toInt(),
         canInstall: d.canInstall,
       );
-  InstallationStatus _status(wire.ArchiveInstallationStatus s) =>
-      InstallationStatus(
-        id: s.id,
-        workspaceId: s.workspaceId,
-        artifactId: s.artifactId,
-        archiveName: s.archiveName,
-        name: s.name,
-        version: s.version,
-        phase: switch (s.phase) {
-          wire.InstallationPhase.INSTALLATION_PHASE_RUNNING =>
-            InstallationPhase.running,
-          wire.InstallationPhase.INSTALLATION_PHASE_STOPPED =>
-            InstallationPhase.stopped,
-          wire.InstallationPhase.INSTALLATION_PHASE_COMPLETE =>
-            InstallationPhase.complete,
-          wire.InstallationPhase.INSTALLATION_PHASE_DISCARDED =>
-            InstallationPhase.discarded,
-          _ => throw const ArtifactProblem('Unknown installation state.'),
-        },
-        files: s.files,
-        totalFiles: s.totalFiles,
-        bytes: s.bytes.toInt(),
-        totalBytes: s.totalBytes.toInt(),
-        temporaryBytes: s.hasTemporaryBytes() ? s.temporaryBytes.toInt() : null,
-        problem: s.hasProblem() ? s.problem : null,
-        modId: s.hasModId() ? s.modId : null,
-        versionId: s.hasVersionId() ? s.versionId : null,
-      );
   wire.InstallationDraftReference _reference(InstallationDraft d) =>
       wire.InstallationDraftReference(
         workspaceId: d.workspaceId,
@@ -145,7 +117,7 @@ class GrpcInstallationsClient implements InstallationsClient {
       _call(_client.closeInstallationDraft(_reference(draft)));
   @override
   Future<InstallationStatus> start(InstallationDraft draft, String id) async =>
-      _status(
+      installationStatus(
         await _call(
           _client.startInstallation(
             wire.StartArchiveInstallation(draft: _reference(draft), id: id),
@@ -158,11 +130,11 @@ class GrpcInstallationsClient implements InstallationsClient {
         _client.recentInstallations(
           wire.InstallationWorkspace(workspaceId: workspaceId),
         ),
-      )).entries.map(_status).toList();
+      )).entries.map(installationStatus).toList();
   @override
   Stream<InstallationStatus> watch(InstallationStatus status) async* {
     try {
-      yield* _client.watchInstallation(_job(status)).map(_status);
+      yield* _client.watchInstallation(_job(status)).map(installationStatus);
     } on GrpcError catch (error) {
       throw ArtifactProblem(
         error.message ?? 'Installation progress is unavailable.',
@@ -172,10 +144,41 @@ class GrpcInstallationsClient implements InstallationsClient {
 
   @override
   Future<InstallationStatus> cancel(InstallationStatus status) async =>
-      _status(await _call(_client.cancelInstallation(_job(status))));
+      installationStatus(await _call(_client.cancelInstallation(_job(status))));
   @override
   Future<InstallationStatus> deleteTemporaryFiles(
     InstallationStatus status,
-  ) async =>
-      _status(await _call(_client.deleteInstallationFiles(_job(status))));
+  ) async => installationStatus(
+    await _call(_client.deleteInstallationFiles(_job(status))),
+  );
 }
+
+InstallationStatus installationStatus(wire.ArchiveInstallationStatus s) =>
+    InstallationStatus(
+      id: s.id,
+      workspaceId: s.workspaceId,
+      artifactId: s.artifactId,
+      archiveName: s.archiveName,
+      name: s.name,
+      version: s.version,
+      isUpdate: s.isUpdate,
+      phase: switch (s.phase) {
+        wire.InstallationPhase.INSTALLATION_PHASE_RUNNING =>
+          InstallationPhase.running,
+        wire.InstallationPhase.INSTALLATION_PHASE_STOPPED =>
+          InstallationPhase.stopped,
+        wire.InstallationPhase.INSTALLATION_PHASE_COMPLETE =>
+          InstallationPhase.complete,
+        wire.InstallationPhase.INSTALLATION_PHASE_DISCARDED =>
+          InstallationPhase.discarded,
+        _ => throw const ArtifactProblem('Unknown installation state.'),
+      },
+      files: s.files,
+      totalFiles: s.totalFiles,
+      bytes: s.bytes.toInt(),
+      totalBytes: s.totalBytes.toInt(),
+      temporaryBytes: s.hasTemporaryBytes() ? s.temporaryBytes.toInt() : null,
+      problem: s.hasProblem() ? s.problem : null,
+      modId: s.hasModId() ? s.modId : null,
+      versionId: s.hasVersionId() ? s.versionId : null,
+    );

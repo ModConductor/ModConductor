@@ -155,6 +155,12 @@ let run args =
     builder.Services.AddSingleton<ModConductor.Persistence.InstallationStore>(store.Installations)
     |> ignore
 
+    builder.Services.AddSingleton<ModConductor.Persistence.DeletionStore>(store.Deletions)
+    |> ignore
+
+    builder.Services.AddSingleton<ModConductor.Engine.UpdateService>() |> ignore
+    builder.Services.AddSingleton<ModConductor.Engine.DeletionService>() |> ignore
+
     builder.Services.AddSingleton<ModConductor.Engine.InstallationService>()
     |> ignore
 
@@ -172,6 +178,12 @@ let run args =
             options.MaxReceiveMessageSize <- Nullable 4096
             options.MaxSendMessageSize <- Nullable 65536
             options.EnableDetailedErrors <- Nullable false)
+        .AddServiceOptions<ModConductor.Engine.UpdateService>(fun options ->
+            options.MaxReceiveMessageSize <- Nullable(16 * 1024 * 1024)
+            options.MaxSendMessageSize <- Nullable(16 * 1024 * 1024))
+        .AddServiceOptions<ModConductor.Engine.DeletionService>(fun options ->
+            options.MaxReceiveMessageSize <- Nullable 4096
+            options.MaxSendMessageSize <- Nullable(16 * 1024 * 1024))
         .AddServiceOptions<ModConductor.Engine.InstallationService>(fun options ->
             options.MaxReceiveMessageSize <- System.Nullable(16 * 1024 * 1024)
             options.MaxSendMessageSize <- System.Nullable(16 * 1024 * 1024))
@@ -233,6 +245,8 @@ let run args =
     app.MapGrpcService<ModConductor.Engine.ArtifactService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.ArchiveInspectionService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.InstallationService>() |> ignore
+    app.MapGrpcService<ModConductor.Engine.UpdateService>() |> ignore
+    app.MapGrpcService<ModConductor.Engine.DeletionService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.DownloadService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.DeploymentService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.FilePlanService>() |> ignore
@@ -272,6 +286,7 @@ let run args =
 
     app.WaitForShutdownAsync().GetAwaiter().GetResult()
     store.Installations.Stop().GetAwaiter().GetResult()
+    store.Deletions.Stop().GetAwaiter().GetResult()
     store.Downloads.Stop().GetAwaiter().GetResult()
     coordinator.Drain().GetAwaiter().GetResult()
     store.DrainOutputs().GetAwaiter().GetResult()

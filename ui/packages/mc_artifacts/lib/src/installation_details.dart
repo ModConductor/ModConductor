@@ -93,9 +93,11 @@ Widget installationResult(
             children: [
               McStatus(
                 title: installing
-                    ? 'Installing ${status.name}'
+                    ? '${status.isUpdate ? 'Updating' : 'Installing'} ${status.name}'
                     : success
-                    ? '${status.name} installed'
+                    ? '${status.name} ${status.isUpdate ? 'updated' : 'installed'}'
+                    : status.isUpdate
+                    ? 'Update stopped'
                     : 'Installation stopped',
                 detail: status.problem,
               ),
@@ -112,7 +114,9 @@ Widget installationResult(
                 ),
                 const SizedBox(height: 24),
                 McAction(
-                  label: 'Cancel installation',
+                  label: status.isUpdate
+                      ? 'Cancel update'
+                      : 'Cancel installation',
                   icon: Icons.close,
                   onPressed: controller.busy
                       ? null

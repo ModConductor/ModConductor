@@ -173,7 +173,13 @@ module internal HeldEntries =
                 if unlinkat (int (handle.DangerousGetHandle()), name, 0) <> 0 then
                     raise (IOException "Removing the owned file failed.")
             else
-                File.Delete(path handle name)
+                let file = path handle name
+                let attributes = File.GetAttributes file
+
+                if attributes.HasFlag FileAttributes.ReadOnly then
+                    File.SetAttributes(file, attributes &&& ~~~FileAttributes.ReadOnly)
+
+                File.Delete file
         | _ -> raise (IOException "The owned file changed; it was left untouched.")
 
     let removeDirectory (handle: SafeFileHandle) name expected =

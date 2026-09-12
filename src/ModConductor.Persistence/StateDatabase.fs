@@ -29,7 +29,13 @@ type internal StateDatabase(directory: string) =
         Sqlite.execute
             connection
             null
-            "UPDATE archive_installations SET state=CASE WHEN state=0 THEN 1 ELSE state END,busy=0,problem=CASE WHEN state=0 THEN 'The app closed before installation finished. No mod was added.' ELSE problem END WHERE owner=$owner"
+            "UPDATE archive_installations SET state=CASE WHEN state=0 THEN 1 ELSE state END,busy=0,problem=CASE WHEN state=0 AND target_revision IS NOT NULL THEN 'The app closed before the update finished. The previous version stays active.' WHEN state=0 THEN 'The app closed before installation finished. No mod was added.' ELSE problem END WHERE owner=$owner"
+            [ "$owner", box owner ]
+
+        Sqlite.execute
+            connection
+            null
+            "UPDATE mod_deletions SET busy=0,problem='Deletion stopped when the app closed. Continue deletion to finish.' WHERE owner=$owner AND busy=1"
             [ "$owner", box owner ]
 
         Sqlite.execute
@@ -59,7 +65,7 @@ type internal StateDatabase(directory: string) =
         Sqlite.execute
             connection
             null
-            "UPDATE mods SET status=4 WHERE id IN (SELECT mod_id FROM mod_versions WHERE owner=$owner AND phase IN (1,2)); UPDATE mod_versions SET phase=CASE WHEN phase=1 THEN 4 ELSE phase END,busy=0 WHERE owner=$owner AND phase IN (1,2)"
+            "UPDATE mods SET status=4 WHERE id IN (SELECT mod_id FROM mod_versions WHERE owner=$owner AND phase IN (1,2)) AND NOT EXISTS(SELECT 1 FROM mod_deletion_targets t WHERE t.mod_id=mods.id); UPDATE mod_versions SET phase=CASE WHEN phase=1 THEN 4 ELSE phase END,busy=0 WHERE owner=$owner AND phase IN (1,2)"
             [ "$owner", box owner ]
 
         Sqlite.execute

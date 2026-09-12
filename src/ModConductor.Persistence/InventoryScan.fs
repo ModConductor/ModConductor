@@ -118,6 +118,7 @@ module internal InventoryScan =
                     for row in rows do
                         if
                             row.Entry.Status <> InventoryStatus.Publishing
+                            && row.Entry.Status <> InventoryStatus.Deleting
                             && row.Entry.Kind <> ModKind.Separator
                         then
                             if remaining <= 0 then
@@ -245,7 +246,7 @@ module internal InventoryScan =
                                         Sqlite.execute
                                             database.Connection
                                             null
-                                            "UPDATE mods SET status=$status WHERE id=$id AND revision=$revision AND status<>5"
+                                            "UPDATE mods SET status=$status WHERE id=$id AND revision=$revision AND status NOT IN (5,6)"
                                             [ "$status", box (LibraryEncoding.status status)
                                               "$id", box (string row.Entry.Id)
                                               "$revision", box row.Entry.Revision ])

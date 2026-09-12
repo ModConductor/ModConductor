@@ -172,7 +172,7 @@ module internal DeploymentRows =
             Sqlite.execute
                 connection
                 transaction
-                "INSERT INTO deployment_generations VALUES($context,$id,$body,$digest)"
+                "INSERT INTO deployment_generations(context_id,id,body,digest) VALUES($context,$id,$body,$digest)"
                 [ "$context", identifier contextId
                   "$id", identifier value.Id
                   "$body", box body

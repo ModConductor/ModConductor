@@ -23,6 +23,8 @@ type OperationStore(directory: string, ?downloadPolicy: ModConductor.HttpDownloa
     let installations =
         InstallationStore(database, modLibrary.Access, artifacts, archiveInspection)
 
+    let deletions = DeletionStore(database, modLibrary.Access)
+
     let organization = ModOrganizationStore(database, modLibrary.Access)
     let selection = ModSelectionStore(database, modLibrary.Access)
     let gameContexts = GameContextStore(database, workspaceRoots)
@@ -159,6 +161,7 @@ type OperationStore(directory: string, ?downloadPolicy: ModConductor.HttpDownloa
     member _.ArtifactSource = artifacts :> ModConductor.ArtifactLibrary.IArtifactSource
     member _.ArchiveInspection = archiveInspection
     member _.Installations = installations
+    member _.Deletions = deletions
     member _.Downloads = downloads
 
     member _.Artifacts = artifacts :> ModConductor.ArtifactLibrary.IArtifactLibrary
@@ -340,6 +343,7 @@ type OperationStore(directory: string, ?downloadPolicy: ModConductor.HttpDownloa
             if
                 not (
                     installations.TryClose()
+                    && deletions.TryClose()
                     && downloads.TryClose()
                     && outputs.TryClose(fun () ->
                         deploymentBackend.TryClose(fun () ->

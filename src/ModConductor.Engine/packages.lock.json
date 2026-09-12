@@ -171,6 +171,13 @@
           "ModConductor.Platform": "[1.0.0, )"
         }
       },
+      "modconductor.modmaintenance": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )",
+          "ModConductor.ArchiveInstallation": "[1.0.0, )"
+        }
+      },
       "modconductor.modorganization": {
         "type": "Project",
         "dependencies": {
@@ -209,6 +216,7 @@
           "ModConductor.GeneratedOutputs": "[1.0.0, )",
           "ModConductor.HttpDownloads": "[1.0.0, )",
           "ModConductor.ModLibrary": "[1.0.0, )",
+          "ModConductor.ModMaintenance": "[1.0.0, )",
           "ModConductor.ModOrganization": "[1.0.0, )",
           "ModConductor.ModSelection": "[1.0.0, )",
           "ModConductor.Operations": "[1.0.0, )",

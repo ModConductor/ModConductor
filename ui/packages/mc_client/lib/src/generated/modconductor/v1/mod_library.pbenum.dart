@@ -68,6 +68,9 @@ class ModInventoryStatus extends $pb.ProtobufEnum {
   static const ModInventoryStatus MOD_INVENTORY_STATUS_PUBLISHING =
       ModInventoryStatus._(
           5, _omitEnumNames ? '' : 'MOD_INVENTORY_STATUS_PUBLISHING');
+  static const ModInventoryStatus MOD_INVENTORY_STATUS_DELETING =
+      ModInventoryStatus._(
+          6, _omitEnumNames ? '' : 'MOD_INVENTORY_STATUS_DELETING');
 
   static const $core.List<ModInventoryStatus> values = <ModInventoryStatus>[
     MOD_INVENTORY_STATUS_UNSPECIFIED,
@@ -76,10 +79,11 @@ class ModInventoryStatus extends $pb.ProtobufEnum {
     MOD_INVENTORY_STATUS_CHANGED,
     MOD_INVENTORY_STATUS_UNPROVED,
     MOD_INVENTORY_STATUS_PUBLISHING,
+    MOD_INVENTORY_STATUS_DELETING,
   ];
 
   static final $core.List<ModInventoryStatus?> _byValue =
-      $pb.ProtobufEnum.$_initByValueList(values, 5);
+      $pb.ProtobufEnum.$_initByValueList(values, 6);
   static ModInventoryStatus? valueOf($core.int value) =>
       value < 0 || value >= _byValue.length ? null : _byValue[value];
 

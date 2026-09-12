@@ -10,6 +10,8 @@ class InstallationController extends ChangeNotifier {
   final VoidCallback onCommitted;
   InstallationDraft? draft;
   InstallationStatus? status;
+  UpdatePreview? updatePreview;
+  ModEntry? updateTarget;
   String? problem, startId;
   bool busy = false, _disposed = false;
   int _epoch = 0;
@@ -68,6 +70,7 @@ class InstallationController extends ChangeNotifier {
       final value = await client.change(current, change);
       if (_disposed) return false;
       draft = value;
+      updatePreview = null;
       return true;
     } on Exception catch (error) {
       if (!_disposed) problem = _message(error);
@@ -88,6 +91,65 @@ class InstallationController extends ChangeNotifier {
     _notify();
     try {
       final value = await client.start(current, startId!);
+      if (_disposed) {
+        await client.closeDraft(current);
+      } else {
+        _accept(value);
+      }
+    } on Exception catch (error) {
+      if (!_disposed) problem = _message(error);
+    } finally {
+      busy = false;
+      _notify();
+    }
+  }
+
+  Future<void> prepareUpdate(
+    MaintenanceClient maintenance,
+    ModEntry target,
+    String version, {
+    UpdateMode mode = UpdateMode.merge,
+    List<List<String>> keep = const [],
+  }) async {
+    final current = draft;
+    if (!canEdit || current == null) return;
+    busy = true;
+    problem = null;
+    _notify();
+    try {
+      final value = await maintenance.prepareUpdate(
+        current,
+        target,
+        mode,
+        keep,
+        version,
+      );
+      if (_disposed) return;
+      updateTarget = target;
+      updatePreview = value;
+    } on Exception catch (error) {
+      if (!_disposed) problem = _message(error);
+    } finally {
+      busy = false;
+      _notify();
+    }
+  }
+
+  void closeUpdate() {
+    if (!canEdit) return;
+    updatePreview = null;
+    _notify();
+  }
+
+  Future<void> update(MaintenanceClient maintenance) async {
+    final preview = updatePreview, current = draft;
+    if (busy || preview == null || current == null || status != null) return;
+    busy = true;
+    problem = null;
+    startId ??= newOperationId();
+    _notify();
+    try {
+      final value = await maintenance.startUpdate(preview, startId!);
       if (_disposed) {
         await client.closeDraft(current);
       } else {

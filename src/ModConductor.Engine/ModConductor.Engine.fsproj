@@ -8,6 +8,7 @@
     <ILLinkTreatWarningsAsErrors>true</ILLinkTreatWarningsAsErrors>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../ModConductor.ModMaintenance/ModConductor.ModMaintenance.fsproj" />
     <Compile Include="SessionKey.fs" />
     <Compile Include="Bootstrap.fs" />
     <Compile Include="SessionAuthentication.fs" />
@@ -40,6 +41,9 @@
     <Compile Include="ArchiveInspectionService.fs" />
     <Compile Include="InstallationWire.fs" />
     <Compile Include="InstallationService.fs" />
+    <Compile Include="UpdateService.fs" />
+    <Compile Include="DeletionWire.fs" />
+    <Compile Include="DeletionService.fs" />
     <Compile Include="Program.fs" />
     <ProjectReference Include="../ModConductor.SteamDiscovery/ModConductor.SteamDiscovery.fsproj" />
     <ProjectReference Include="../ModConductor.Persistence/ModConductor.Persistence.fsproj" />

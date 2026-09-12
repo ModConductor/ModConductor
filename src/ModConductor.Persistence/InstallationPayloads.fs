@@ -36,6 +36,32 @@ type internal InstallationPayloads(database: StateDatabase, access: LibraryAcces
             |> List.map (fun file -> file.Index, file)
             |> Map.ofList
 
+        let previous =
+            plan.Target
+            |> Option.map (fun target ->
+                let version =
+                    db (fun () ->
+                        LibraryRows.version connection null target.PreviousVersion 0 20001
+                        |> Option.get)
+
+                for entry in version.Entries do
+                    let stored =
+                        db (fun () ->
+                            LibraryRows.payload connection null entry.Payload.Id |> Option.get)
+
+                    try
+                        LibraryFiles.verify library stored
+                    with :? IOException ->
+                        refuse (
+                            "A stored file changed or is unavailable: "
+                            + ModConductor.Platform.LogicalPath.display entry.Path
+                        )
+
+                version.Entries
+                |> List.map (fun entry -> Destinations.key entry.Path, entry.Payload)
+                |> Map.ofList)
+            |> Option.defaultValue Map.empty
+
         checkpoint "before-extraction"
 
         contents.ReadEntries(
@@ -93,6 +119,23 @@ type internal InstallationPayloads(database: StateDatabase, access: LibraryAcces
                               "$length", box output.Length
                               "$digest",
                               digest |> Option.map box |> Option.defaultValue (box DBNull.Value) ])
+
+                let length = output.Length
+                output.Dispose()
+
+                match previous |> Map.tryFind (Destinations.key file.Destination) with
+                | Some original when original.Length = length && digest = Some original.Sha256 ->
+                    library.RemoveFile(LibraryFiles.payloadName file.PayloadId, identity)
+
+                    db (fun () ->
+                        Sqlite.execute
+                            connection
+                            null
+                            "UPDATE installation_files SET identity=NULL,reused_payload=$payload WHERE installation_id=$id AND entry_index=$index"
+                            [ "$payload", box (string original.Id)
+                              "$id", box (string id)
+                              "$index", box index ])
+                | _ -> ()
 
                 checkpoint "file-observed"
         )

@@ -32,6 +32,7 @@ type InventoryStatus =
     | Changed
     | Unproved
     | Publishing
+    | Deleting
 
 [<RequireQualifiedAccess>]
 type ModAction =

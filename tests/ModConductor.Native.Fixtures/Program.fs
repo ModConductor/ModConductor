@@ -30,6 +30,27 @@ let main args =
             writer.WriteEndObject()
             writer.Flush()
             0
+        elif args.Length = 8 && args[0] = "--maintenance-worker" then
+            MaintenanceRecoveryFixtures.worker
+                args[1]
+                args[2]
+                args[3]
+                args[4]
+                args[5]
+                args[6]
+                args[7]
+
+            0
+        elif args.Length = 2 && args[0] = "--mod-maintenance" then
+            use output = Console.OpenStandardOutput()
+            use writer = new Utf8JsonWriter(output, JsonWriterOptions(Indented = true))
+            writer.WriteStartObject()
+            writer.WriteBoolean("nativeAot", not RuntimeFeature.IsDynamicCodeSupported)
+            MaintenanceFixtures.observe writer (Path.Combine(args[1], "effects"))
+            MaintenanceRecoveryFixtures.observe writer (Path.Combine(args[1], "restart"))
+            writer.WriteEndObject()
+            writer.Flush()
+            0
         elif args.Length = 6 && args[0] = "--installation-worker" then
             InstallationFixtures.worker args[1] args[2] args[3] args[4] args[5]
             0

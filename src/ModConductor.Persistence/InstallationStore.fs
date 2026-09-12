@@ -7,6 +7,7 @@ open System.Collections.Generic
 open ModConductor.ArchiveInstallation
 open ModConductor.ArchiveInspection
 open ModConductor.ArtifactLibrary
+open ModConductor.ModMaintenance
 
 type InstallationStore
     internal
@@ -20,6 +21,7 @@ type InstallationStore
     let gate = obj ()
     let drafts = Dictionary<Guid, InstallationDraft>()
     let preparing = HashSet<Guid>()
+    let updates = Dictionary<Guid, UpdatePreview>()
     let workers = Dictionary<Guid, CancellationTokenSource * Task>()
     let mutable closing = false
     let wait (value: Task<'a>) = value.GetAwaiter().GetResult()
@@ -69,11 +71,20 @@ type InstallationStore
             with error ->
                 let message =
                     match error with
-                    | :? OperationCanceledException -> "Installation cancelled. No mod was added."
+                    | :? OperationCanceledException ->
+                        if plan.Target.IsSome then
+                            "Update cancelled. The previous version stays active."
+                        else
+                            "Installation cancelled. No mod was added."
                     | :? InstallationException -> error.Message
                     | _ ->
                         ArchiveFailure.message error
-                        |> Option.defaultValue "Installation failed. No mod was added."
+                        |> Option.defaultValue (
+                            if plan.Target.IsSome then
+                                "Update failed. The previous version stays active."
+                            else
+                                "Installation failed. No mod was added."
+                        )
 
                 do!
                     database.EnqueueInternal(fun () ->
@@ -113,6 +124,7 @@ type InstallationStore
             match drafts.TryGetValue workspace with
             | true, draft when draft.Id = id && draft.Revision = revision ->
                 let next = Layout.change draft change
+                updates.Remove workspace |> ignore
                 drafts[workspace] <- next
                 next
             | _ -> refuse "The installation preview changed. Open it again.")
@@ -120,10 +132,12 @@ type InstallationStore
     member _.CloseDraft(workspace, id) =
         lock gate (fun () ->
             match drafts.TryGetValue workspace with
-            | true, draft when draft.Id = id -> drafts.Remove workspace |> ignore
+            | true, draft when draft.Id = id ->
+                drafts.Remove workspace |> ignore
+                updates.Remove workspace |> ignore
             | _ -> ())
 
-    member internal _.StartAtCheckpoint(workspace, draftId, revision, id, checkpoint) =
+    member private _.StartPlan(id, plan, checkpoint) =
         lock gate (fun () ->
             if closing then
                 refuse "The app is closing."
@@ -138,16 +152,6 @@ type InstallationStore
             if workers.Count >= 2 && not (workers.ContainsKey id) then
                 refuse "Two installations are already active. Wait for one to finish."
 
-            let draft =
-                match drafts.TryGetValue workspace with
-                | true, draft when draft.Id = draftId && draft.Revision = revision -> draft
-                | _ -> refuse "The installation preview changed. Open it again."
-
-            let plan =
-                draft.Plan
-                |> Option.defaultWith (fun () ->
-                    refuse "Choose files and review their destinations before installation.")
-
             let snapshot, fresh =
                 db (fun () -> InstallationRows.reserve connection database.OwnerId id plan)
 
@@ -160,6 +164,87 @@ type InstallationStore
                 workers[id] <- cancellation, work
 
             snapshot)
+
+    member internal this.StartAtCheckpoint(workspace, draftId, revision, id, checkpoint) =
+        lock gate (fun () ->
+            let draft =
+                match drafts.TryGetValue workspace with
+                | true, draft when draft.Id = draftId && draft.Revision = revision -> draft
+                | _ -> refuse "The installation preview changed. Open it again."
+
+            let plan =
+                draft.Plan
+                |> Option.defaultWith (fun () ->
+                    refuse "Choose files and review their destinations before installation.")
+
+            this.StartPlan(id, plan, checkpoint))
+
+    member _.PrepareUpdate(workspace, draftId, revision, modId, expected, mode, keep, version) =
+        task {
+            let draft =
+                lock gate (fun () ->
+                    match drafts.TryGetValue workspace with
+                    | true, draft when draft.Id = draftId && draft.Revision = revision -> draft
+                    | _ -> refuse "The archive layout changed. Review it again.")
+
+            let cached =
+                lock gate (fun () ->
+                    match updates.TryGetValue workspace with
+                    | true, preview when
+                        preview.DraftId = draft.Id
+                        && preview.DraftRevision = draft.Revision
+                        && preview.Target.Id = modId
+                        && preview.Target.Revision = expected
+                        ->
+                        Some preview
+                    | _ -> None)
+
+            let! result =
+                match cached with
+                | Some previous ->
+                    Task.FromResult(
+                        Ok(
+                            Updates.prepare
+                                draft
+                                previous.Target
+                                previous.Previous
+                                mode
+                                keep
+                                version
+                                previous.SourceNotices
+                        )
+                    )
+                | None ->
+                    access.Run(fun () ->
+                        task {
+                            let! target, saved, notices =
+                                UpdateInspection.read database access modId expected
+
+                            return Ok(Updates.prepare draft target saved mode keep version notices)
+                        })
+
+            let preview =
+                result
+                |> Result.defaultWith (fun _ -> refuse "The mod library is busy or unavailable.")
+
+            return
+                lock gate (fun () ->
+                    match drafts.TryGetValue workspace with
+                    | true, current when current.Id = draft.Id && current.Revision = draft.Revision ->
+                        updates[workspace] <- preview
+                        preview
+                    | _ -> refuse "The archive layout changed. Review it again.")
+        }
+
+    member internal this.StartUpdateAtCheckpoint(workspace, previewId, id, checkpoint) =
+        lock gate (fun () ->
+            match updates.TryGetValue workspace with
+            | true, preview when preview.Id = previewId ->
+                this.StartPlan(id, preview.Plan, checkpoint)
+            | _ -> refuse "The update preview changed. Review it again.")
+
+    member this.StartUpdate(workspace, previewId, id) =
+        this.StartUpdateAtCheckpoint(workspace, previewId, id, ignore)
 
     member this.Start(workspace, draftId, revision, id) =
         this.StartAtCheckpoint(workspace, draftId, revision, id, ignore)
@@ -235,7 +320,7 @@ type InstallationStore
                                     Sqlite.execute
                                         connection
                                         null
-                                        "UPDATE archive_installations SET state=3,busy=0 WHERE id=$id"
+                                        "UPDATE archive_installations SET state=3,busy=0 WHERE id=$id; DELETE FROM installation_reuse WHERE installation_id=$id"
                                         [ "$id", box (string id) ])
 
                             return Ok()
@@ -262,6 +347,7 @@ type InstallationStore
                 lock gate (fun () ->
                     closing <- true
                     drafts.Clear()
+                    updates.Clear()
 
                     for cancel, _ in workers.Values do
                         cancel.Cancel()
@@ -286,4 +372,5 @@ type InstallationStore
 
                 workers.Clear()
                 drafts.Clear()
+                updates.Clear()
                 true)

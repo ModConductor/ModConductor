@@ -344,6 +344,7 @@ const ArchiveInstallationStatus$json = {
       '10': 'temporaryBytes',
       '17': true
     },
+    {'1': 'is_update', '3': 16, '4': 1, '5': 8, '10': 'isUpdate'},
   ],
   '8': [
     {'1': '_problem'},
@@ -364,8 +365,8 @@ final $typed_data.Uint8List archiveInstallationStatusDescriptor = $convert.base6
     'dGFsX2J5dGVzGAsgASgEUgp0b3RhbEJ5dGVzEh0KB3Byb2JsZW0YDCABKAlIAFIHcHJvYmxlbY'
     'gBARIaCgZtb2RfaWQYDSABKAlIAVIFbW9kSWSIAQESIgoKdmVyc2lvbl9pZBgOIAEoCUgCUgl2'
     'ZXJzaW9uSWSIAQESLAoPdGVtcG9yYXJ5X2J5dGVzGA8gASgESANSDnRlbXBvcmFyeUJ5dGVziA'
-    'EBQgoKCF9wcm9ibGVtQgkKB19tb2RfaWRCDQoLX3ZlcnNpb25faWRCEgoQX3RlbXBvcmFyeV9i'
-    'eXRlcw==');
+    'EBEhsKCWlzX3VwZGF0ZRgQIAEoCFIIaXNVcGRhdGVCCgoIX3Byb2JsZW1CCQoHX21vZF9pZEIN'
+    'CgtfdmVyc2lvbl9pZEISChBfdGVtcG9yYXJ5X2J5dGVz');
 
 @$core.Deprecated('Use archiveInstallationListDescriptor instead')
 const ArchiveInstallationList$json = {

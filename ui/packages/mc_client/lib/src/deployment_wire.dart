@@ -36,6 +36,7 @@ SavedDeployment saved(wire.SavedDeployment value) => SavedDeployment(
   value.active,
   value.fingerprint,
   value.canRestore,
+  unavailable: value.hasUnavailable() ? value.unavailable : null,
 );
 DeploymentPhase phase(wire.DeploymentPhase value) => switch (value) {
   wire.DeploymentPhase.DEPLOYMENT_PHASE_PREPARING => DeploymentPhase.preparing,
