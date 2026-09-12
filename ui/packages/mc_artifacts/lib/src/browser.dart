@@ -197,11 +197,7 @@ class _ArtifactBrowserState extends State<ArtifactBrowser> {
               for (final link in artifact.links) ...[
                 Text(link.modName),
                 Text('Linked manually', style: Theme.of(c).textTheme.bodySmall),
-                fact(
-                  c,
-                  'Saved version',
-                  '${link.versionLabel}\n${link.versionId}',
-                ),
+                fact(c, 'Saved version', link.versionLabel),
                 McAction(
                   label: 'Remove link',
                   icon: Icons.link_off,
@@ -266,7 +262,7 @@ class _ArtifactBrowserState extends State<ArtifactBrowser> {
                       ? 'Filter archives'
                       : 'Filter loaded archives',
                   countLabel:
-                      '${controller.model.ids.length} archives${controller.next == null ? '' : ' loaded'}',
+                      '${controller.model.ids.length} ${controller.model.ids.length == 1 ? 'archive' : 'archives'}${controller.next == null ? '' : ' loaded'}',
                   empty: 'No archives.',
                   loading: controller.busy,
                   problem: controller.problem,

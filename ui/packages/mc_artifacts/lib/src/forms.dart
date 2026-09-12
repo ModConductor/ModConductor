@@ -181,9 +181,7 @@ class _ArchiveLinkFormState extends State<ArchiveLinkForm> {
         ),
         const SizedBox(height: 16),
         Text('Saved version', style: Theme.of(context).textTheme.bodySmall),
-        SelectableText(
-          '${links[chosen]!.versionLabel}\n${links[chosen]!.versionId}',
-        ),
+        SelectableText(links[chosen]!.versionLabel),
         const SizedBox(height: 16),
       ] else if (loaded)
         const Text('No installed mods have a saved version.'),
