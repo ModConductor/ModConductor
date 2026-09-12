@@ -7,9 +7,11 @@ class ArtifactLink {
     this.modId,
     this.versionId,
     this.modName,
-    this.versionLabel,
-  );
+    this.versionLabel, {
+    this.installed = false,
+  });
   final String modId, versionId, modName, versionLabel;
+  final bool installed;
 }
 
 class Artifact {

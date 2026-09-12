@@ -68,6 +68,14 @@
           "SharpCompress": "[0.50.4, )"
         }
       },
+      "modconductor.archiveinstallation": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )",
+          "ModConductor.ArchiveInspection": "[1.0.0, )",
+          "ModConductor.ModLibrary": "[1.0.0, )"
+        }
+      },
       "modconductor.artifactlibrary": {
         "type": "Project",
         "dependencies": {

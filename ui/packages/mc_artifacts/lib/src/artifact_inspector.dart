@@ -14,6 +14,7 @@ class ArtifactInspector extends StatelessWidget {
     required this.controller,
     required this.onClose,
     required this.onRead,
+    this.onInstall,
     required this.onLocate,
     required this.onLink,
     required this.onCleanup,
@@ -21,6 +22,7 @@ class ArtifactInspector extends StatelessWidget {
   final ArtifactController controller;
   final VoidCallback onClose;
   final ValueChanged<Artifact> onRead;
+  final ValueChanged<Artifact>? onInstall;
   final Future<void> Function(Artifact) onLocate, onLink;
   final Future<void> Function(Artifact, bool) onCleanup;
   Widget details(BuildContext c, Artifact artifact) => ExpansionTile(
@@ -50,12 +52,22 @@ class ArtifactInspector extends StatelessWidget {
               spacing: 8,
               runSpacing: 8,
               children: [
+                if (onInstall != null &&
+                    (artifact.state == ArtifactState.ready ||
+                        artifact.state == ArtifactState.installed))
+                  McAction(
+                    label: 'Install',
+                    icon: Icons.install_desktop,
+                    emphasis: McActionEmphasis.primary,
+                    onPressed: controller.canEdit
+                        ? () => onInstall!(artifact)
+                        : null,
+                  ),
                 if (artifact.state == ArtifactState.ready ||
                     artifact.state == ArtifactState.installed)
                   McAction(
                     label: 'Read contents',
                     icon: Icons.folder_open,
-                    emphasis: McActionEmphasis.primary,
                     onPressed: controller.canEdit
                         ? () => onRead(artifact)
                         : null,
@@ -147,23 +159,26 @@ class ArtifactInspector extends StatelessWidget {
                 for (final link in artifact.links) ...[
                   Text(link.modName),
                   Text(
-                    'Linked manually',
+                    link.installed
+                        ? 'Installed from archive'
+                        : 'Linked manually',
                     style: Theme.of(c).textTheme.bodySmall,
                   ),
                   archiveFact(c, 'Saved version', link.versionLabel),
-                  McAction(
-                    label: 'Remove link',
-                    icon: Icons.link_off,
-                    onPressed: controller.canEdit
-                        ? () => unawaited(
-                            controller.change(
-                              'Removing mod link',
-                              (client, _) =>
-                                  client.link(artifact, link, remove: true),
-                            ),
-                          )
-                        : null,
-                  ),
+                  if (!link.installed)
+                    McAction(
+                      label: 'Remove link',
+                      icon: Icons.link_off,
+                      onPressed: controller.canEdit
+                          ? () => unawaited(
+                              controller.change(
+                                'Removing mod link',
+                                (client, _) =>
+                                    client.link(artifact, link, remove: true),
+                              ),
+                            )
+                          : null,
+                    ),
                   const SizedBox(height: 12),
                 ],
                 McAction(

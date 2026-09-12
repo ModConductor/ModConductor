@@ -85,8 +85,13 @@ class GrpcArtifactsClient implements ArtifactsClient {
     }
   }
 
-  ArtifactLink _link(wire.ArtifactProvenance link) =>
-      ArtifactLink(link.modId, link.versionId, link.modName, link.versionLabel);
+  ArtifactLink _link(wire.ArtifactProvenance link) => ArtifactLink(
+    link.modId,
+    link.versionId,
+    link.modName,
+    link.versionLabel,
+    installed: link.installed,
+  );
   Artifact _artifact(wire.ArchiveArtifact a) => Artifact(
     id: a.id,
     workspaceId: a.workspaceId,

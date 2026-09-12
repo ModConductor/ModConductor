@@ -40,6 +40,7 @@ class McCollection<I extends Object, T extends Object> extends StatefulWidget {
     this.showTree,
     this.filterText,
     this.filterEnabled = true,
+    this.compactFilter = false,
     this.onFilterChanged,
     this.filterActions = const [],
     this.onSort,
@@ -68,7 +69,7 @@ class McCollection<I extends Object, T extends Object> extends StatefulWidget {
   final String Function(T)? nodeLabel;
   final bool? showTree;
   final String? filterText;
-  final bool filterEnabled;
+  final bool filterEnabled, compactFilter;
   final ValueChanged<String>? onFilterChanged, onSort;
   final List<Widget> filterActions;
   final FocusNode? focusNode;
@@ -92,6 +93,9 @@ class _McCollectionState<I extends Object, T extends Object>
   FocusNode get _focus => widget.focusNode ?? _ownFocus;
   McCollectionModel<I, T> get model => widget.model;
   double _extent = 48;
+  bool filterOpen = false;
+  bool get showingFilter =>
+      !widget.compactFilter || filterOpen || _filter.text.isNotEmpty;
   @override
   void initState() {
     super.initState();
@@ -281,23 +285,44 @@ class _McCollectionState<I extends Object, T extends Object>
             Padding(
               padding: EdgeInsets.fromLTRB(
                 12,
-                widget.showTitle || widget.actions.isNotEmpty ? 0 : 12,
+                !showingFilter
+                    ? 0
+                    : widget.showTitle || widget.actions.isNotEmpty
+                    ? 0
+                    : 12,
                 12,
-                12,
+                !showingFilter ? 0 : 12,
               ),
               child: Row(
                 children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _filter,
-                      enabled: widget.filterEnabled,
-                      onChanged: widget.onFilterChanged ?? model.filter,
-                      decoration: InputDecoration(
-                        labelText: widget.filterLabel,
-                        prefixIcon: const Icon(Icons.search, size: 20),
+                  if (showingFilter)
+                    Expanded(
+                      child: TextField(
+                        controller: _filter,
+                        enabled: widget.filterEnabled,
+                        onChanged: widget.onFilterChanged ?? model.filter,
+                        decoration: InputDecoration(
+                          labelText: widget.filterLabel,
+                          prefixIcon: const Icon(Icons.search, size: 20),
+                        ),
                       ),
                     ),
-                  ),
+                  if (widget.compactFilter) ...[
+                    McIconAction(
+                      label: showingFilter
+                          ? 'Close filter'
+                          : widget.filterLabel,
+                      icon: Icon(showingFilter ? Icons.close : Icons.search),
+                      onPressed: () => setState(() {
+                        filterOpen = !showingFilter;
+                        if (!filterOpen) {
+                          _filter.clear();
+                          (widget.onFilterChanged ?? model.filter)('');
+                        }
+                      }),
+                    ),
+                    if (!showingFilter) const Spacer(),
+                  ],
                   ...widget.filterActions,
                 ],
               ),

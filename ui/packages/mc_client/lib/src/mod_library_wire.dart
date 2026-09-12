@@ -99,6 +99,9 @@ wire.InventoryModMetadata encodeMetadata(ModMetadata value) =>
     );
 ModVersionOrigin origin(wire.ModVersionOrigin value) => ModVersionOrigin(
   outputActionId: value.hasOutputActionId() ? value.outputActionId : null,
+  archiveArtifactId: value.hasArchiveArtifactId()
+      ? value.archiveArtifactId
+      : null,
 );
 
 ModEntry entry(wire.InventoryMod value) => ModEntry(

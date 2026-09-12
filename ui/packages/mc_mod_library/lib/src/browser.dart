@@ -86,6 +86,7 @@ class _ModLibraryBrowserState extends State<ModLibraryBrowser> {
     builder: (context, _) => LayoutBuilder(
       builder: (context, constraints) {
         final narrow = widget.singlePane ?? constraints.maxWidth < 1050;
+        final compact = narrow && constraints.maxHeight < 500;
         final chosen = controller.selected;
         final inventory = controller.inventory;
         final versionColumn = constraints.maxWidth >= 1050;
@@ -95,12 +96,67 @@ class _ModLibraryBrowserState extends State<ModLibraryBrowser> {
         }
 
         final editSelection = controller.canEdit && controller.activity == null;
+        final modActions = <Widget>[
+          McIconMenu<_OrganizationAction>(
+            label: 'Installed mods options',
+            enabled: controller.organization != null,
+            itemBuilder: (_) => [
+              PopupMenuItem(
+                value: inventory.query.view == OrganizationView.groups
+                    ? _OrganizationAction.flat
+                    : _OrganizationAction.group,
+                child: Text(
+                  inventory.query.view == OrganizationView.groups
+                      ? 'Show flat list'
+                      : 'Group by separators',
+                ),
+              ),
+              const PopupMenuItem(
+                value: _OrganizationAction.categories,
+                child: Text('Manage categories'),
+              ),
+            ],
+            onSelected: (action) async {
+              switch (action) {
+                case _OrganizationAction.group:
+                  inventory.setQuery(
+                    inventory.query.copyWith(view: OrganizationView.groups),
+                  );
+                case _OrganizationAction.flat:
+                  inventory.setQuery(
+                    inventory.query.copyWith(view: OrganizationView.flat),
+                  );
+                case _OrganizationAction.categories:
+                  await manageCategories(
+                    context,
+                    controller.organization!,
+                    controller.workspaceId!,
+                  );
+                  if (mounted) await inventory.refreshCatalogue();
+              }
+            },
+          ),
+          McAction(
+            key: const ValueKey('add-mod'),
+            focusNode: _addFocus,
+            label: 'Add mod folder',
+            icon: Icons.create_new_folder_outlined,
+            onPressed:
+                controller.canEdit &&
+                    controller.activity == null &&
+                    !inventory.changing
+                ? () => _details()
+                : null,
+          ),
+        ];
         final modPanel = McCollection<ModRowId, OrganizedMod>(
           key: const ValueKey('installed-mods'),
           model: controller.mods,
           focusNode: _modsFocus,
           scrollController: _modsScroll,
           title: 'Installed mods',
+          showTitle: !compact,
+          compactFilter: compact,
           showTree: false,
           nodeIcon: (_) => const SizedBox.shrink(),
           filterText: inventory.query.text,
@@ -109,6 +165,7 @@ class _ModLibraryBrowserState extends State<ModLibraryBrowser> {
           onSort: inventory.sort,
           filterLabel: 'Filter mods',
           filterActions: [
+            if (compact) ...modActions,
             TextButton(
               onPressed:
                   controller.organization == null ||
@@ -237,59 +294,7 @@ class _ModLibraryBrowserState extends State<ModLibraryBrowser> {
                 ),
             ],
           ),
-          actions: [
-            McIconMenu<_OrganizationAction>(
-              label: 'Installed mods options',
-              enabled: controller.organization != null,
-              itemBuilder: (_) => [
-                PopupMenuItem(
-                  value: inventory.query.view == OrganizationView.groups
-                      ? _OrganizationAction.flat
-                      : _OrganizationAction.group,
-                  child: Text(
-                    inventory.query.view == OrganizationView.groups
-                        ? 'Show flat list'
-                        : 'Group by separators',
-                  ),
-                ),
-                const PopupMenuItem(
-                  value: _OrganizationAction.categories,
-                  child: Text('Manage categories'),
-                ),
-              ],
-              onSelected: (action) async {
-                switch (action) {
-                  case _OrganizationAction.group:
-                    inventory.setQuery(
-                      inventory.query.copyWith(view: OrganizationView.groups),
-                    );
-                  case _OrganizationAction.flat:
-                    inventory.setQuery(
-                      inventory.query.copyWith(view: OrganizationView.flat),
-                    );
-                  case _OrganizationAction.categories:
-                    await manageCategories(
-                      context,
-                      controller.organization!,
-                      controller.workspaceId!,
-                    );
-                    if (mounted) await inventory.refreshCatalogue();
-                }
-              },
-            ),
-            McAction(
-              key: const ValueKey('add-mod'),
-              focusNode: _addFocus,
-              label: 'Add mod folder',
-              icon: Icons.create_new_folder_outlined,
-              onPressed:
-                  controller.canEdit &&
-                      controller.activity == null &&
-                      !inventory.changing
-                  ? () => _details()
-                  : null,
-            ),
-          ],
+          actions: compact ? const [] : modActions,
           columns: [
             McColumn(
               '',

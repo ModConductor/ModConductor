@@ -36,7 +36,17 @@ module internal LibraryRows =
 
         match query.ExecuteScalar() with
         | :? string as action -> VersionOrigin.Outputs(Guid.Parse action)
-        | _ -> VersionOrigin.RegisteredSource
+        | _ ->
+            use source =
+                Sqlite.command
+                    connection
+                    transaction
+                    "SELECT artifact_id FROM archive_version_origins WHERE version_id=$version"
+                    [ "$version", box (string version) ]
+
+            match source.ExecuteScalar() with
+            | :? string as artifact -> VersionOrigin.Archive(Guid.Parse artifact)
+            | _ -> VersionOrigin.RegisteredSource
 
     let find connection transaction id =
         use statement =

@@ -102,7 +102,8 @@ module internal ArtifactWire =
                     ModId = link.ModId.ToString("N"),
                     VersionId = link.VersionId.ToString("N"),
                     ModName = link.ModName,
-                    VersionLabel = link.VersionLabel
+                    VersionLabel = link.VersionLabel,
+                    Installed = link.Installed
                 )
             )
 
@@ -157,7 +158,8 @@ type ArtifactService(library: IArtifactLibrary) =
                         ModId = link.ModId.ToString("N"),
                         VersionId = link.VersionId.ToString("N"),
                         ModName = link.ModName,
-                        VersionLabel = link.VersionLabel
+                        VersionLabel = link.VersionLabel,
+                        Installed = link.Installed
                     )
                 )
 

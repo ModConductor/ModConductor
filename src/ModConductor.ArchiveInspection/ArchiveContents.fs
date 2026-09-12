@@ -123,9 +123,16 @@ type ArchiveContents
 
     member _.Manifest = manifest
 
-    member _.ReadEntry(index: int, consume: Stream -> unit) =
-        if index < 0 || index >= raw.Count || raw[index].IsDirectory then
-            invalidArg (nameof index) "Choose a file entry from this manifest."
+    member _.ReadEntries(indices: int list, consume: int * Stream -> unit) =
+        let selected = System.Collections.Generic.HashSet<int>(indices)
+
+        if
+            selected.Count <> indices.Length
+            || indices
+               |> List.exists (fun index ->
+                   index < 0 || index >= raw.Count || raw[index].IsDirectory)
+        then
+            invalidArg (nameof indices) "Choose file entries from this manifest."
 
         let mutable decoded = 0L
 
@@ -144,22 +151,26 @@ type ArchiveContents
             action (bounded :> Stream)
             bounded.CopyTo Stream.Null
 
-        if archive.IsSolid then
+        if archive.IsSolid && selected.Count > 0 then
+            let byName = entries |> List.map (fun e -> raw[e.Index].Key, e.Index) |> Map.ofList
             use reader = archive.ExtractAllEntries()
-            let mutable found = false
 
-            while not found && reader.MoveToNextEntry() do
+            while selected.Count > 0 && reader.MoveToNextEntry() do
                 token.ThrowIfCancellationRequested()
 
                 if not reader.Entry.IsDirectory then
-                    found <- reader.Entry.Key = raw[index].Key
+                    let index = byName |> Map.tryFind reader.Entry.Key
+                    let wanted = index |> Option.filter selected.Remove
 
-                    read
-                        (reader.OpenEntryStream())
-                        reader.Entry.Size
-                        (if found then consume else ignore)
+                    read (reader.OpenEntryStream()) reader.Entry.Size (fun stream ->
+                        wanted |> Option.iter (fun index -> consume (index, stream)))
 
-            if not found then
-                raise (InvalidDataException "The archive entry is missing.")
+            if selected.Count <> 0 then
+                raise (InvalidDataException "An archive entry is missing.")
         else
-            read (raw[index].OpenEntryStream()) raw[index].Size consume
+            for index in indices |> List.sort do
+                read (raw[index].OpenEntryStream()) raw[index].Size (fun stream ->
+                    consume (index, stream))
+
+    member this.ReadEntry(index: int, consume: Stream -> unit) =
+        this.ReadEntries([ index ], fun (_, stream) -> consume stream)

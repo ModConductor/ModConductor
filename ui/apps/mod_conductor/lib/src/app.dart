@@ -76,6 +76,7 @@ class ModConductorApp extends StatefulWidget {
     this.gameLaunching,
     this.profileData,
     this.artifacts,
+    this.installations,
     this.chooseArchive = _chooseArchive,
     this.chooseExecutable = _chooseExecutable,
     this.steamDiscovery,
@@ -96,6 +97,7 @@ class ModConductorApp extends StatefulWidget {
   final GameLaunchingClient? gameLaunching;
   final ProfileDataClient? profileData;
   final ArtifactsClient? artifacts;
+  final InstallationsClient? installations;
   final ArchiveChooser chooseArchive;
   final ExecutablePathChooser chooseExecutable;
   final SteamDiscoveryClient? steamDiscovery;
@@ -349,8 +351,11 @@ class _ModConductorAppState extends State<ModConductorApp> {
                           ),
                     artifactBuilder: widget.artifacts == null
                         ? null
-                        : (context, workspace) => ArtifactBrowser(
+                        : (context, workspace, openMods) => ArtifactBrowser(
                             controller: _artifacts,
+                            installations: widget.installations,
+                            onOpenMods: openMods,
+                            onInstalled: _mods.inventory.refreshCatalogue,
                             chooseFile: widget.chooseArchive,
                             workspacePath: workspace.path,
                           ),

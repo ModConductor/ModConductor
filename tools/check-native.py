@@ -13,7 +13,7 @@ import time
 SCOPES = (
     'all', 'storage', 'selection', 'organization', 'planner', 'game-contexts',
     'steam-discovery', 'proton-contexts', 'file-plans', 'deployment-recovery',
-    'generations', 'deployment-backend', 'generated-outputs', 'executables', 'game-launch', 'profile-data', 'artifacts', 'downloads', 'archive-inspection',
+    'generations', 'deployment-backend', 'generated-outputs', 'executables', 'game-launch', 'profile-data', 'artifacts', 'downloads', 'archive-inspection', 'archive-installation',
 )
 
 

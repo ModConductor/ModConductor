@@ -16,7 +16,8 @@ service ArtifactLibrary {
 }
 enum ArchiveStorage { ARCHIVE_STORAGE_UNSPECIFIED = 0; ARCHIVE_STORAGE_REFERENCE = 1; ARCHIVE_STORAGE_COPY = 2; }
 enum ArchiveState { ARCHIVE_STATE_UNSPECIFIED = 0; ARCHIVE_STATE_INCOMPLETE = 1; ARCHIVE_STATE_READY = 2; ARCHIVE_STATE_DETACHED = 3; ARCHIVE_STATE_INSTALLED = 4; }
-message ArtifactProvenance { string mod_id = 1; string version_id = 2; string mod_name = 3; string version_label = 4; }
+message ArtifactProvenance { string mod_id = 1; string version_id = 2; string mod_name = 3; string version_label = 4;
+  bool installed = 5; }
 message ArchiveArtifact {
   string id = 1; string workspace_id = 2; uint64 revision = 3;
   string original_name = 4; string original_path = 5; string path = 6;

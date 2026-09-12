@@ -13,6 +13,7 @@
     <Compile Include="ProfileDataSchema.fs" />
     <Compile Include="ArtifactSchema.fs" />
     <Compile Include="DownloadSchema.fs" />
+    <Compile Include="InstallationSchema.fs" />
     <Compile Include="Sqlite.fs" />
     <Compile Include="LibraryEncoding.fs" />
     <Compile Include="ProfileDataValueEncoding.fs" />
@@ -74,8 +75,12 @@
     <Compile Include="ArtifactStore.fs" />
     <Compile Include="DownloadTarget.fs" />
     <Compile Include="DownloadRepository.fs" />
+    <Compile Include="InstallationRows.fs" />
+    <Compile Include="InstallationPayloads.fs" />
+    <Compile Include="InstallationStore.fs" />
     <Compile Include="OperationStore.fs" />
     <ProjectReference Include="../ModConductor.HttpDownloads/ModConductor.HttpDownloads.fsproj" />
+    <ProjectReference Include="../ModConductor.ArchiveInstallation/ModConductor.ArchiveInstallation.fsproj" />
     <ProjectReference Include="../ModConductor.ArchiveInspection/ModConductor.ArchiveInspection.fsproj" />
     <ProjectReference Include="../ModConductor.ArtifactLibrary/ModConductor.ArtifactLibrary.fsproj" />
     <ProjectReference Include="../ModConductor.ProfileGameData/ModConductor.ProfileGameData.fsproj" />

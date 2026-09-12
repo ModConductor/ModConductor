@@ -696,16 +696,27 @@ const ModVersionOrigin$json = {
       '10': 'outputActionId',
       '17': true
     },
+    {
+      '1': 'archive_artifact_id',
+      '3': 2,
+      '4': 1,
+      '5': 9,
+      '9': 1,
+      '10': 'archiveArtifactId',
+      '17': true
+    },
   ],
   '8': [
     {'1': '_output_action_id'},
+    {'1': '_archive_artifact_id'},
   ],
 };
 
 /// Descriptor for `ModVersionOrigin`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List modVersionOriginDescriptor = $convert.base64Decode(
     'ChBNb2RWZXJzaW9uT3JpZ2luEi0KEG91dHB1dF9hY3Rpb25faWQYASABKAlIAFIOb3V0cHV0QW'
-    'N0aW9uSWSIAQFCEwoRX291dHB1dF9hY3Rpb25faWQ=');
+    'N0aW9uSWSIAQESMwoTYXJjaGl2ZV9hcnRpZmFjdF9pZBgCIAEoCUgBUhFhcmNoaXZlQXJ0aWZh'
+    'Y3RJZIgBAUITChFfb3V0cHV0X2FjdGlvbl9pZEIWChRfYXJjaGl2ZV9hcnRpZmFjdF9pZA==');
 
 @$core.Deprecated('Use modVersionPageDescriptor instead')
 const ModVersionPage$json = {

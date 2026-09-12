@@ -42,6 +42,7 @@ type ModAction =
 [<RequireQualifiedAccess>]
 type VersionOrigin =
     | RegisteredSource
+    | Archive of artifactId: Guid
     | Outputs of action: Guid
 
 type ModEntry =

@@ -56,6 +56,7 @@ const ArtifactProvenance$json = {
     {'1': 'version_id', '3': 2, '4': 1, '5': 9, '10': 'versionId'},
     {'1': 'mod_name', '3': 3, '4': 1, '5': 9, '10': 'modName'},
     {'1': 'version_label', '3': 4, '4': 1, '5': 9, '10': 'versionLabel'},
+    {'1': 'installed', '3': 5, '4': 1, '5': 8, '10': 'installed'},
   ],
 };
 
@@ -63,7 +64,8 @@ const ArtifactProvenance$json = {
 final $typed_data.Uint8List artifactProvenanceDescriptor = $convert.base64Decode(
     'ChJBcnRpZmFjdFByb3ZlbmFuY2USFQoGbW9kX2lkGAEgASgJUgVtb2RJZBIdCgp2ZXJzaW9uX2'
     'lkGAIgASgJUgl2ZXJzaW9uSWQSGQoIbW9kX25hbWUYAyABKAlSB21vZE5hbWUSIwoNdmVyc2lv'
-    'bl9sYWJlbBgEIAEoCVIMdmVyc2lvbkxhYmVs');
+    'bl9sYWJlbBgEIAEoCVIMdmVyc2lvbkxhYmVsEhwKCWluc3RhbGxlZBgFIAEoCFIJaW5zdGFsbG'
+    'Vk');
 
 @$core.Deprecated('Use archiveArtifactDescriptor instead')
 const ArchiveArtifact$json = {

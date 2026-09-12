@@ -1,0 +1,65 @@
+syntax = "proto3";
+package modconductor.v1;
+option csharp_namespace = "ModConductor.Protocol.V1";
+import "modconductor/v1/artifacts.proto";
+import "modconductor/v1/archive_inspection.proto";
+service ArchiveInstallation {
+  rpc PrepareInstallation(ArtifactReference) returns (ArchiveInstallationDraft);
+  rpc ChangeInstallationLayout(InstallationLayoutChange) returns (ArchiveInstallationDraft);
+  rpc CloseInstallationDraft(InstallationDraftReference) returns (InstallationDraftClosed);
+  rpc StartInstallation(StartArchiveInstallation) returns (ArchiveInstallationStatus);
+  rpc RecentInstallations(InstallationWorkspace) returns (ArchiveInstallationList);
+  rpc WatchInstallation(InstallationReference) returns (stream ArchiveInstallationStatus);
+  rpc CancelInstallation(InstallationReference) returns (ArchiveInstallationStatus);
+  rpc DeleteInstallationFiles(InstallationReference) returns (ArchiveInstallationStatus);
+}
+message InstallationDraftReference { string workspace_id = 1; string id = 2; uint64 revision = 3; }
+message InstallationDraftClosed {}
+message InstallationWorkspace { string workspace_id = 1; }
+message InstallationReference { string workspace_id = 1; string id = 2; }
+message InstallationFile { uint32 index = 1; repeated string destination = 2; }
+message ArchiveInstallationDraft {
+  InstallationDraftReference reference = 1;
+  ArtifactReference artifact = 2;
+  string archive_name = 3;
+  InspectedArchive manifest = 4;
+  repeated string root = 5;
+  repeated InstallationFile files = 6;
+  string name = 7;
+  string version = 8;
+  uint64 bytes = 9;
+  bool can_install = 10;
+}
+message InstallationRoot { repeated string components = 1; }
+message InstallationInclusion { repeated string source = 1; bool included = 2; }
+message InstallationDestination { repeated string source = 1; repeated string destination = 2; }
+message InstallationMetadata { string name = 1; string version = 2; }
+message InstallationLayoutChange {
+  InstallationDraftReference reference = 1;
+  oneof change {
+    InstallationRoot root = 2;
+    InstallationInclusion inclusion = 3;
+    InstallationDestination destination = 4;
+    InstallationMetadata metadata = 5;
+  }
+}
+message StartArchiveInstallation { InstallationDraftReference draft = 1; string id = 2; }
+enum InstallationPhase { INSTALLATION_PHASE_RUNNING = 0; INSTALLATION_PHASE_STOPPED = 1; INSTALLATION_PHASE_COMPLETE = 2; INSTALLATION_PHASE_DISCARDED = 3; }
+message ArchiveInstallationStatus {
+  string id = 1;
+  string workspace_id = 2;
+  string artifact_id = 3;
+  string archive_name = 4;
+  string name = 5;
+  string version = 6;
+  InstallationPhase phase = 7;
+  uint32 files = 8;
+  uint32 total_files = 9;
+  uint64 bytes = 10;
+  uint64 total_bytes = 11;
+  optional string problem = 12;
+  optional string mod_id = 13;
+  optional string version_id = 14;
+  optional uint64 temporary_bytes = 15;
+}
+message ArchiveInstallationList { repeated ArchiveInstallationStatus entries = 1; }

@@ -76,6 +76,7 @@ module internal ModLibraryWire =
 
         match value with
         | VersionOrigin.RegisteredSource -> ()
+        | VersionOrigin.Archive id -> result.ArchiveArtifactId <- id.ToString("N")
         | VersionOrigin.Outputs id -> result.OutputActionId <- id.ToString("N")
 
         result

@@ -22,7 +22,7 @@ module internal ArtifactRows =
             Sqlite.command
                 connection
                 transaction
-                "SELECT l.mod_id,l.version_id,COALESCE(m.name,l.mod_name),l.version_label FROM artifact_links l LEFT JOIN mods m ON m.id=l.mod_id WHERE l.artifact_id=$id ORDER BY l.mod_id,l.version_id"
+                "SELECT l.mod_id,l.version_id,COALESCE(m.name,l.mod_name),l.version_label,l.installed FROM artifact_links l LEFT JOIN mods m ON m.id=l.mod_id WHERE l.artifact_id=$id ORDER BY l.mod_id,l.version_id"
                 [ "$id", box (string id) ]
 
         use reader = query.ExecuteReader()
@@ -32,7 +32,8 @@ module internal ArtifactRows =
                   { ModId = Guid.Parse(reader.GetString 0)
                     VersionId = Guid.Parse(reader.GetString 1)
                     ModName = reader.GetString 2
-                    VersionLabel = reader.GetString 3 } ]
+                    VersionLabel = reader.GetString 3
+                    Installed = reader.GetBoolean 4 } ]
 
     let find connection transaction workspace id =
         use query =
@@ -82,6 +83,15 @@ module internal ArtifactRows =
 
             reader.Close()
             let provenance = links connection transaction id
+
+            let installing =
+                Sqlite.number
+                    connection
+                    transaction
+                    "SELECT count(*) FROM archive_installations WHERE artifact_id=$id AND state IN (0,1)"
+                    [ "$id", box (string id) ]
+                <> 0L
+
             let download = DownloadRows.info connection transaction id phase
 
             let state =
@@ -111,6 +121,7 @@ module internal ArtifactRows =
                             CanRemove =
                                 not row.Busy
                                 && provenance.IsEmpty
+                                && not installing
                                 && (row.Artifact.Storage = ArtifactStorage.Reference
                                     || (phase = 3 && row.StoredIdentity.IsNone)) } }
 

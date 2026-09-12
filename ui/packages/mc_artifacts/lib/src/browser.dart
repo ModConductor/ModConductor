@@ -6,6 +6,7 @@ import 'package:mc_ui_collections/mc_ui_collections.dart';
 import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 
 import 'controller.dart';
+import 'installation_view.dart';
 import 'contents_view.dart';
 import 'forms.dart';
 import 'download_form.dart';
@@ -20,10 +21,16 @@ class ArtifactBrowser extends StatefulWidget {
     required this.controller,
     required this.chooseFile,
     required this.workspacePath,
+    this.installations,
+    this.onInstalled,
+    this.onOpenMods,
   });
   final ArtifactController controller;
   final ArchiveChooser chooseFile;
   final String workspacePath;
+  final InstallationsClient? installations;
+  final Future<void> Function()? onInstalled;
+  final VoidCallback? onOpenMods;
   @override
   State<ArtifactBrowser> createState() => _ArtifactBrowserState();
 }
@@ -34,7 +41,8 @@ class _ArtifactBrowserState extends State<ArtifactBrowser> {
   final addFocus = FocusNode(debugLabel: 'Add archive');
   final scroll = ScrollController();
   bool inspected = false;
-  Artifact? contents;
+  Artifact? contents, installing;
+  Future<void>? installationRefresh;
   ArtifactController get controller => widget.controller;
   @override
   void dispose() {
@@ -137,6 +145,12 @@ class _ArtifactBrowserState extends State<ArtifactBrowser> {
       pane.currentState?.closeEndDrawer();
       setState(() => contents = artifact);
     },
+    onInstall: widget.installations == null
+        ? null
+        : (artifact) {
+            pane.currentState?.closeEndDrawer();
+            setState(() => installing = artifact);
+          },
     onLocate: fileForm,
     onLink: link,
     onCleanup: (artifact, bytes) => cleanup(artifact, bytes: bytes),
@@ -150,6 +164,26 @@ class _ArtifactBrowserState extends State<ArtifactBrowser> {
         final narrow =
             constraints.maxWidth < 1100 * MediaQuery.textScalerOf(c).scale(1);
         if (contents?.workspaceId != controller.workspaceId) contents = null;
+        if (installing?.workspaceId != controller.workspaceId)
+          installing = null;
+        if (installing != null && widget.installations != null) {
+          return ArchiveInstallationView(
+            key: ValueKey((installing!.id, widget.installations)),
+            artifact: installing!,
+            client: widget.installations!,
+            onBack: () => setState(() => installing = null),
+            onCommitted: () {
+              installationRefresh = () async {
+                await controller.load();
+                if (mounted) await widget.onInstalled?.call();
+              }();
+            },
+            onOpenMods: () async {
+              await installationRefresh;
+              if (mounted) widget.onOpenMods?.call();
+            },
+          );
+        }
         final archive = contents;
         if (archive != null &&
             archive.workspaceId == controller.workspaceId &&

@@ -33,7 +33,8 @@ class WorkspaceBrowser extends StatefulWidget {
   final Widget Function(BuildContext, WorkspaceInfo)? modLibraryBuilder;
   final Widget Function(BuildContext, WorkspaceInfo)? gameContextBuilder;
   final Widget Function(BuildContext, WorkspaceInfo)? executableBuilder;
-  final Widget Function(BuildContext, WorkspaceInfo)? artifactBuilder;
+  final Widget Function(BuildContext, WorkspaceInfo, VoidCallback)?
+  artifactBuilder;
   final List<Widget> Function(BuildContext, WorkspaceInfo)? headerActions;
   final bool compactCloseAction;
   final Widget Function(BuildContext, WorkspaceInfo, ProfileInfo, VoidCallback)?
@@ -438,7 +439,11 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
                 if (widget.artifactBuilder != null)
                   ExcludeFocus(
                     excluding: _mode != _WorkspaceMode.archives,
-                    child: widget.artifactBuilder!(context, workspace),
+                    child: widget.artifactBuilder!(
+                      context,
+                      workspace,
+                      () => setState(() => _mode = _WorkspaceMode.mods),
+                    ),
                   )
                 else
                   const SizedBox.shrink(),

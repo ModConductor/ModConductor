@@ -101,7 +101,8 @@ type internal ArtifactStore(database: StateDatabase, access: LibraryAccess) =
                                   { ModId = Guid.Parse(reader.GetString 0)
                                     VersionId = Guid.Parse(reader.GetString 1)
                                     ModName = reader.GetString 2
-                                    VersionLabel = reader.GetString 3 } ]
+                                    VersionLabel = reader.GetString 3
+                                    Installed = false } ]
 
                     let entries = links |> List.truncate 64
 
@@ -232,6 +233,15 @@ type internal ArtifactStore(database: StateDatabase, access: LibraryAccess) =
                         refuse ArtifactError.Stale
 
                     if remove then
+                        if
+                            row.Artifact.Links
+                            |> List.exists (fun link ->
+                                link.ModId = modId
+                                && link.VersionId = versionId
+                                && link.Installed)
+                        then
+                            refuse ArtifactError.InvalidLink
+
                         Sqlite.execute
                             connection
                             transaction
@@ -260,7 +270,7 @@ type internal ArtifactStore(database: StateDatabase, access: LibraryAccess) =
                         Sqlite.execute
                             connection
                             transaction
-                            "INSERT OR IGNORE INTO artifact_links VALUES($artifact,$mod,$version,$name,$label)"
+                            "INSERT OR IGNORE INTO artifact_links(artifact_id,mod_id,version_id,mod_name,version_label) VALUES($artifact,$mod,$version,$name,$label)"
                             [ "$artifact", box (string reference.Id)
                               "$mod", box (string modId)
                               "$version", box (string versionId)
@@ -321,6 +331,16 @@ type internal ArtifactStore(database: StateDatabase, access: LibraryAccess) =
 
                     if row.Artifact.Revision <> reference.Revision then
                         refuse ArtifactError.Stale
+
+                    if
+                        Sqlite.number
+                            connection
+                            transaction
+                            "SELECT count(*) FROM archive_installations WHERE artifact_id=$id AND state IN (0,1)"
+                            [ "$id", box (string reference.Id) ]
+                        <> 0L
+                    then
+                        refuse ArtifactError.Conflict
 
                     if not row.Artifact.Links.IsEmpty then
                         refuse ArtifactError.Linked

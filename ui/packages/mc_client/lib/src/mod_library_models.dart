@@ -47,8 +47,8 @@ class ModMetadata {
 }
 
 class ModVersionOrigin {
-  const ModVersionOrigin({this.outputActionId});
-  final String? outputActionId;
+  const ModVersionOrigin({this.outputActionId, this.archiveArtifactId});
+  final String? outputActionId, archiveArtifactId;
 }
 
 class ModEntry {

@@ -72,6 +72,14 @@
           "SharpCompress": "[0.50.4, )"
         }
       },
+      "modconductor.archiveinstallation": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )",
+          "ModConductor.ArchiveInspection": "[1.0.0, )",
+          "ModConductor.ModLibrary": "[1.0.0, )"
+        }
+      },
       "modconductor.artifactlibrary": {
         "type": "Project",
         "dependencies": {
@@ -189,6 +197,7 @@
           "FSharp.Core": "[10.1.400, )",
           "Microsoft.Data.Sqlite.Core": "[10.0.11, )",
           "ModConductor.ArchiveInspection": "[1.0.0, )",
+          "ModConductor.ArchiveInstallation": "[1.0.0, )",
           "ModConductor.ArtifactLibrary": "[1.0.0, )",
           "ModConductor.Deployment": "[1.0.0, )",
           "ModConductor.DeploymentGenerations": "[1.0.0, )",

@@ -1,3 +1,4 @@
+import 'installation_client.dart';
 import 'artifact_client.dart';
 import 'profile_data_client.dart';
 import 'game_launch_client.dart';
@@ -68,6 +69,8 @@ class EngineOwner {
       _state is EngineConnected ? _session?.protonContexts : null;
   SteamDiscoveryClient? get steamDiscovery =>
       _state is EngineConnected ? _session?.steamDiscovery : null;
+  InstallationsClient? get installations =>
+      _state is EngineConnected ? _session?.installations : null;
   ArtifactsClient? get artifacts =>
       _state is EngineConnected ? _session?.artifacts : null;
   ProfileDataClient? get profileData =>

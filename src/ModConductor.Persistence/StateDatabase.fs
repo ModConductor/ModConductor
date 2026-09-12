@@ -29,6 +29,12 @@ type internal StateDatabase(directory: string) =
         Sqlite.execute
             connection
             null
+            "UPDATE archive_installations SET state=CASE WHEN state=0 THEN 1 ELSE state END,busy=0,problem=CASE WHEN state=0 THEN 'The app closed before installation finished. No mod was added.' ELSE problem END WHERE owner=$owner"
+            [ "$owner", box owner ]
+
+        Sqlite.execute
+            connection
+            null
             "UPDATE artifact_downloads SET state=3 WHERE state IN (0,1,2) AND artifact_id IN (SELECT id FROM artifacts WHERE owner=$owner)"
             [ "$owner", box owner ]
 

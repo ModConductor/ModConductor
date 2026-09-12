@@ -20,7 +20,8 @@ type ArtifactLink =
     { ModId: Guid
       VersionId: Guid
       ModName: string
-      VersionLabel: string }
+      VersionLabel: string
+      Installed: bool }
 
 type ArtifactLinkPage =
     { Entries: ArtifactLink list

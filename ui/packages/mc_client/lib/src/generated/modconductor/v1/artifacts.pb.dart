@@ -28,12 +28,14 @@ class ArtifactProvenance extends $pb.GeneratedMessage {
     $core.String? versionId,
     $core.String? modName,
     $core.String? versionLabel,
+    $core.bool? installed,
   }) {
     final result = create();
     if (modId != null) result.modId = modId;
     if (versionId != null) result.versionId = versionId;
     if (modName != null) result.modName = modName;
     if (versionLabel != null) result.versionLabel = versionLabel;
+    if (installed != null) result.installed = installed;
     return result;
   }
 
@@ -55,6 +57,7 @@ class ArtifactProvenance extends $pb.GeneratedMessage {
     ..aOS(2, _omitFieldNames ? '' : 'versionId')
     ..aOS(3, _omitFieldNames ? '' : 'modName')
     ..aOS(4, _omitFieldNames ? '' : 'versionLabel')
+    ..aOB(5, _omitFieldNames ? '' : 'installed')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -111,6 +114,15 @@ class ArtifactProvenance extends $pb.GeneratedMessage {
   $core.bool hasVersionLabel() => $_has(3);
   @$pb.TagNumber(4)
   void clearVersionLabel() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.bool get installed => $_getBF(4);
+  @$pb.TagNumber(5)
+  set installed($core.bool value) => $_setBool(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasInstalled() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearInstalled() => $_clearField(5);
 }
 
 class ArchiveArtifact extends $pb.GeneratedMessage {

@@ -5,6 +5,32 @@ open ModConductor.ArchiveInspection
 open ModConductor.Platform
 open ModConductor.Protocol.V1
 
+module internal ArchiveInspectionWire =
+    let manifest (manifest: ArchiveManifest) =
+        let reply =
+            InspectedArchive(
+                Sha256 = manifest.Sha256,
+                Format = manifest.Format,
+                TotalSize = uint64 manifest.TotalSize
+            )
+
+        for entry in manifest.Entries do
+            let value =
+                InspectedArchiveEntry(
+                    Index = uint32 entry.Index,
+                    Directory = entry.Directory,
+                    Size = uint64 entry.Size
+                )
+
+            value.Components.AddRange(LogicalPath.components entry.Path)
+
+            entry.CompressedSize
+            |> Option.iter (fun size -> value.CompressedSize <- uint64 size)
+
+            reply.Entries.Add value
+
+        reply
+
 type ArchiveInspectionService(inspection: Inspection) =
     inherit ArchiveInspection.ArchiveInspectionBase()
 
@@ -16,29 +42,7 @@ type ArchiveInspectionService(inspection: Inspection) =
 
                 let manifest = ArtifactWire.result result
 
-                let reply =
-                    InspectedArchive(
-                        Sha256 = manifest.Sha256,
-                        Format = manifest.Format,
-                        TotalSize = uint64 manifest.TotalSize
-                    )
-
-                for entry in manifest.Entries do
-                    let value =
-                        InspectedArchiveEntry(
-                            Index = uint32 entry.Index,
-                            Directory = entry.Directory,
-                            Size = uint64 entry.Size
-                        )
-
-                    value.Components.AddRange(LogicalPath.components entry.Path)
-
-                    entry.CompressedSize
-                    |> Option.iter (fun size -> value.CompressedSize <- uint64 size)
-
-                    reply.Entries.Add value
-
-                return reply
+                return ArchiveInspectionWire.manifest manifest
             with error ->
                 match ArchiveFailure.message error with
                 | Some message ->

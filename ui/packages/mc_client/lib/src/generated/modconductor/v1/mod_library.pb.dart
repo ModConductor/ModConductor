@@ -1661,9 +1661,11 @@ class ModManifestEntry extends $pb.GeneratedMessage {
 class ModVersionOrigin extends $pb.GeneratedMessage {
   factory ModVersionOrigin({
     $core.String? outputActionId,
+    $core.String? archiveArtifactId,
   }) {
     final result = create();
     if (outputActionId != null) result.outputActionId = outputActionId;
+    if (archiveArtifactId != null) result.archiveArtifactId = archiveArtifactId;
     return result;
   }
 
@@ -1682,6 +1684,7 @@ class ModVersionOrigin extends $pb.GeneratedMessage {
           const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
       createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'outputActionId')
+    ..aOS(2, _omitFieldNames ? '' : 'archiveArtifactId')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1711,6 +1714,15 @@ class ModVersionOrigin extends $pb.GeneratedMessage {
   $core.bool hasOutputActionId() => $_has(0);
   @$pb.TagNumber(1)
   void clearOutputActionId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get archiveArtifactId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set archiveArtifactId($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasArchiveArtifactId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearArchiveArtifactId() => $_clearField(2);
 }
 
 class ModVersionPage extends $pb.GeneratedMessage {

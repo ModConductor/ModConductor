@@ -152,6 +152,12 @@ let run args =
     builder.Services.AddSingleton<ModConductor.Engine.ArchiveInspectionService>()
     |> ignore
 
+    builder.Services.AddSingleton<ModConductor.Persistence.InstallationStore>(store.Installations)
+    |> ignore
+
+    builder.Services.AddSingleton<ModConductor.Engine.InstallationService>()
+    |> ignore
+
     builder.Services.AddSingleton<ModConductor.HttpDownloads.DownloadSession>(store.Downloads)
     |> ignore
 
@@ -166,6 +172,9 @@ let run args =
             options.MaxReceiveMessageSize <- Nullable 4096
             options.MaxSendMessageSize <- Nullable 65536
             options.EnableDetailedErrors <- Nullable false)
+        .AddServiceOptions<ModConductor.Engine.InstallationService>(fun options ->
+            options.MaxReceiveMessageSize <- System.Nullable(16 * 1024 * 1024)
+            options.MaxSendMessageSize <- System.Nullable(16 * 1024 * 1024))
         .AddServiceOptions<ModConductor.Engine.ArchiveInspectionService>(fun options ->
             options.MaxReceiveMessageSize <- Nullable(4 * 1024)
             options.MaxSendMessageSize <- Nullable(8 * 1024 * 1024))
@@ -223,6 +232,7 @@ let run args =
     app.MapGrpcService<ModConductor.Engine.ProfileDataService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.ArtifactService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.ArchiveInspectionService>() |> ignore
+    app.MapGrpcService<ModConductor.Engine.InstallationService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.DownloadService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.DeploymentService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.FilePlanService>() |> ignore
@@ -261,6 +271,7 @@ let run args =
     |> ignore
 
     app.WaitForShutdownAsync().GetAwaiter().GetResult()
+    store.Installations.Stop().GetAwaiter().GetResult()
     store.Downloads.Stop().GetAwaiter().GetResult()
     coordinator.Drain().GetAwaiter().GetResult()
     store.DrainOutputs().GetAwaiter().GetResult()

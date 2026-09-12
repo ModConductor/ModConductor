@@ -195,8 +195,7 @@ module internal PublicationRows =
         transaction.Commit()
         result
 
-    let complete (connection: Microsoft.Data.Sqlite.SqliteConnection) owner version =
-        use transaction = connection.BeginTransaction(deferred = false)
+    let completeIn (connection: Microsoft.Data.Sqlite.SqliteConnection) transaction owner version =
         let receipt = find connection transaction version |> Option.get
         let row = LibraryRows.find connection transaction receipt.ModId |> Option.get
 
@@ -228,5 +227,10 @@ module internal PublicationRows =
 
                 Ok (LibraryRows.find connection transaction receipt.ModId |> Option.get).Entry
 
+        result
+
+    let complete (connection: Microsoft.Data.Sqlite.SqliteConnection) owner version =
+        use transaction = connection.BeginTransaction(deferred = false)
+        let result = completeIn connection transaction owner version
         transaction.Commit()
         result

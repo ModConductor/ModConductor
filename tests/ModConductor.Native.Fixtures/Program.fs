@@ -30,6 +30,30 @@ let main args =
             writer.WriteEndObject()
             writer.Flush()
             0
+        elif args.Length = 6 && args[0] = "--installation-worker" then
+            InstallationFixtures.worker args[1] args[2] args[3] args[4] args[5]
+            0
+        elif
+            args.Length = 2
+            && args[0] = "--installation-files"
+            && Path.IsPathFullyQualified args[1]
+        then
+            InstallationFixtures.create args[1]
+            0
+        elif
+            args.Length = 2
+            && args[0] = "--archive-installation"
+            && Path.IsPathFullyQualified args[1]
+        then
+            use writer =
+                new Utf8JsonWriter(Console.OpenStandardOutput(), JsonWriterOptions(Indented = true))
+
+            writer.WriteStartObject()
+            writer.WriteBoolean("nativeAot", not RuntimeFeature.IsDynamicCodeSupported)
+            InstallationFixtures.observe writer args[1]
+            writer.WriteEndObject()
+            writer.Flush()
+            0
         elif args.Length = 6 && args[0] = "--download-worker" then
             DownloadFixtures.worker args[1] args[2] args[3] args[4] args[5]
             0
