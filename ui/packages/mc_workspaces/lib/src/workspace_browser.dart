@@ -11,7 +11,7 @@ import 'workspace_dialog.dart';
 
 typedef ProfileRowId = ({String profileId});
 
-enum _WorkspaceMode { profiles, mods, game, tools }
+enum _WorkspaceMode { profiles, mods, game, tools, archives }
 
 enum _ProfileAction { clone, rename, delete }
 
@@ -23,6 +23,7 @@ class WorkspaceBrowser extends StatefulWidget {
     this.modLibraryBuilder,
     this.gameContextBuilder,
     this.executableBuilder,
+    this.artifactBuilder,
     this.headerActions,
     this.profileInspectorBuilder,
     this.compactCloseAction = false,
@@ -32,6 +33,7 @@ class WorkspaceBrowser extends StatefulWidget {
   final Widget Function(BuildContext, WorkspaceInfo)? modLibraryBuilder;
   final Widget Function(BuildContext, WorkspaceInfo)? gameContextBuilder;
   final Widget Function(BuildContext, WorkspaceInfo)? executableBuilder;
+  final Widget Function(BuildContext, WorkspaceInfo)? artifactBuilder;
   final List<Widget> Function(BuildContext, WorkspaceInfo)? headerActions;
   final bool compactCloseAction;
   final Widget Function(BuildContext, WorkspaceInfo, ProfileInfo, VoidCallback)?
@@ -358,38 +360,48 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
           const SizedBox(height: 16),
           if (widget.modLibraryBuilder != null ||
               widget.gameContextBuilder != null ||
-              widget.executableBuilder != null) ...[
+              widget.executableBuilder != null ||
+              widget.artifactBuilder != null) ...[
             Align(
               alignment: Alignment.centerLeft,
-              child: SegmentedButton<_WorkspaceMode>(
-                segments: [
-                  ButtonSegment(
-                    value: _WorkspaceMode.profiles,
-                    label: Text('Profiles'),
-                    icon: Icon(Icons.people_outline),
-                  ),
-                  if (widget.modLibraryBuilder != null)
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: SegmentedButton<_WorkspaceMode>(
+                  segments: [
                     ButtonSegment(
-                      value: _WorkspaceMode.mods,
-                      label: Text('Mods'),
-                      icon: Icon(Icons.layers_outlined),
+                      value: _WorkspaceMode.profiles,
+                      label: Text('Profiles'),
+                      icon: Icon(Icons.people_outline),
                     ),
-                  if (widget.gameContextBuilder != null)
-                    ButtonSegment(
-                      value: _WorkspaceMode.game,
-                      label: Text('Game'),
-                      icon: Icon(Icons.videogame_asset_outlined),
-                    ),
-                  if (widget.executableBuilder != null)
-                    ButtonSegment(
-                      value: _WorkspaceMode.tools,
-                      label: Text("Tools"),
-                      icon: Icon(Icons.terminal),
-                    ),
-                ],
-                selected: {_mode},
-                onSelectionChanged: (value) =>
-                    setState(() => _mode = value.single),
+                    if (widget.modLibraryBuilder != null)
+                      ButtonSegment(
+                        value: _WorkspaceMode.mods,
+                        label: Text('Mods'),
+                        icon: Icon(Icons.layers_outlined),
+                      ),
+                    if (widget.gameContextBuilder != null)
+                      ButtonSegment(
+                        value: _WorkspaceMode.game,
+                        label: Text('Game'),
+                        icon: Icon(Icons.videogame_asset_outlined),
+                      ),
+                    if (widget.executableBuilder != null)
+                      ButtonSegment(
+                        value: _WorkspaceMode.tools,
+                        label: Text("Tools"),
+                        icon: Icon(Icons.terminal),
+                      ),
+                    if (widget.artifactBuilder != null)
+                      ButtonSegment(
+                        value: _WorkspaceMode.archives,
+                        label: Text("Archives"),
+                        icon: Icon(Icons.inventory_2_outlined),
+                      ),
+                  ],
+                  selected: {_mode},
+                  onSelectionChanged: (value) =>
+                      setState(() => _mode = value.single),
+                ),
               ),
             ),
             const SizedBox(height: 16),
@@ -420,6 +432,13 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
                   ExcludeFocus(
                     excluding: _mode != _WorkspaceMode.tools,
                     child: widget.executableBuilder!(context, workspace),
+                  )
+                else
+                  const SizedBox.shrink(),
+                if (widget.artifactBuilder != null)
+                  ExcludeFocus(
+                    excluding: _mode != _WorkspaceMode.archives,
+                    child: widget.artifactBuilder!(context, workspace),
                   )
                 else
                   const SizedBox.shrink(),

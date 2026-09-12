@@ -17,3 +17,4 @@ export 'src/deployment_client.dart';
 export 'src/executable_client.dart';
 export 'src/game_launch_client.dart';
 export 'src/profile_data_client.dart';
+export 'src/artifact_client.dart';

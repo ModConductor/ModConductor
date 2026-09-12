@@ -7,6 +7,7 @@ type OperationStore(directory: string) =
     let database = new StateDatabase(directory)
     let workspaceRoots = OwnedWorkspaceRootStore(database)
     let modLibrary = ModLibraryStore(database, workspaceRoots)
+    let artifacts = ArtifactStore(database, modLibrary.Access)
     let organization = ModOrganizationStore(database, modLibrary.Access)
     let selection = ModSelectionStore(database, modLibrary.Access)
     let gameContexts = GameContextStore(database, workspaceRoots)
@@ -140,6 +141,10 @@ type OperationStore(directory: string) =
     member _.Workspaces = workspaces
 
     member _.ModLibrary = modLibrary
+    member _.Artifacts = artifacts :> ModConductor.ArtifactLibrary.IArtifactLibrary
+
+    member internal _.AddArtifactAtCheckpoint(request, token, checkpoint) =
+        artifacts.AddAtCheckpoint(request, token, checkpoint)
 
     member _.ModSelection = selection
     member _.ModOrganization = organization

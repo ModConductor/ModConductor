@@ -117,3 +117,13 @@ profile, prepared plan, and known active deployment. A base-only view is Not dep
 Unfinished output reviews are read by their durable action IDs before explicit
 continuation. Promotion and location forms keep their drafts after an unknown
 reply; they do not imply cancellation while submitting.
+
+## Archives
+
+`mc_artifacts` supplies the workspace Archives mode. It reuses the collection,
+inspector, drawer, forms, and compact add action. The workspace header stays intact.
+Availability and installed-mod links are separate. Manual links name the exact saved
+version. Add archive defaults to a reference; Copy to library is explicit.
+Delete copy preserves the original file, installed mods, and list entry. Remove from
+list applies only when no mod links or owned archive bytes remain. A failed or
+unknown mutation requires Refresh before another edit.

@@ -1,0 +1,35 @@
+syntax = "proto3";
+package modconductor.v1;
+option csharp_namespace = "ModConductor.Protocol.V1";
+
+service ArtifactLibrary {
+  rpc ListArtifacts(ArtifactListRequest) returns (ArtifactPage);
+  rpc ListArtifactLinkOptions(ArtifactListRequest) returns (ArtifactLinkPage);
+  rpc ReadArtifact(ArtifactReadRequest) returns (ArchiveArtifact);
+  rpc AddArtifact(ArtifactAddRequest) returns (ArchiveArtifact);
+  rpc RetryArtifact(ArtifactReference) returns (ArchiveArtifact);
+  rpc LocateArtifact(ArtifactLocateRequest) returns (ArchiveArtifact);
+  rpc LinkArtifact(ArtifactLinkRequest) returns (ArchiveArtifact);
+  rpc DeleteArtifactCopy(ArtifactReference) returns (ArchiveArtifact);
+  rpc RemoveArtifact(ArtifactReference) returns (ArtifactRemoved);
+}
+enum ArchiveStorage { ARCHIVE_STORAGE_UNSPECIFIED = 0; ARCHIVE_STORAGE_REFERENCE = 1; ARCHIVE_STORAGE_COPY = 2; }
+enum ArchiveState { ARCHIVE_STATE_UNSPECIFIED = 0; ARCHIVE_STATE_INCOMPLETE = 1; ARCHIVE_STATE_READY = 2; ARCHIVE_STATE_DETACHED = 3; ARCHIVE_STATE_INSTALLED = 4; }
+message ArtifactProvenance { string mod_id = 1; string version_id = 2; string mod_name = 3; string version_label = 4; }
+message ArchiveArtifact {
+  string id = 1; string workspace_id = 2; uint64 revision = 3;
+  string original_name = 4; string original_path = 5; string path = 6;
+  ArchiveStorage storage = 7; ArchiveState state = 8;
+  optional uint64 length = 9; optional string sha256 = 10; optional string problem = 11;
+  repeated ArtifactProvenance links = 12;
+  bool can_retry = 13; bool can_locate = 14; bool can_delete_copy = 15; bool can_remove = 16;
+}
+message ArtifactLinkPage { repeated ArtifactProvenance entries = 1; optional string next = 2; }
+message ArtifactPage { repeated ArchiveArtifact entries = 1; optional string next = 2; }
+message ArtifactListRequest { string workspace_id = 1; optional string after = 2; bool refresh = 3; }
+message ArtifactReadRequest { string workspace_id = 1; string id = 2; }
+message ArtifactAddRequest { string workspace_id = 1; string id = 2; string path = 3; ArchiveStorage storage = 4; }
+message ArtifactReference { string workspace_id = 1; string id = 2; uint64 revision = 3; }
+message ArtifactLocateRequest { ArtifactReference expected = 1; string path = 2; }
+message ArtifactLinkRequest { ArtifactReference expected = 1; string mod_id = 2; string version_id = 3; bool remove = 4; }
+message ArtifactRemoved {}

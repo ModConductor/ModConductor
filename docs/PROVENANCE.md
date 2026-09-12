@@ -70,3 +70,11 @@ It contains no user data or credentials.
 The source-informed investigation is not claimed to be clean-room work.
 Future reuse must be recorded as reuse rather than inferred to be original merely
 because it is rewritten in another language. This inventory is not a final GPL determination.
+
+## Local archive behavior reference
+
+MC-030 inspected `src/downloadmanager.h` and `src/downloadmanager.cpp` at the MO2
+baseline above. The state distinctions, archive metadata, restart scan, and explicit
+removal were behavior references. MC uses its own stable IDs and SQLite records;
+it does not adopt MO2's session IDs, filename-based sidecars, or orphan deletion.
+No MO2 source text was copied into the archive implementation.

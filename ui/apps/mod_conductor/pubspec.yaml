@@ -19,6 +19,8 @@ dependencies:
   mc_client:
     path: ../../packages/mc_client
 
+  mc_artifacts:
+    path: ../../packages/mc_artifacts
   mc_profile_data:
     path: ../../packages/mc_profile_data
   mc_executables:

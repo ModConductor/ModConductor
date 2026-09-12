@@ -139,6 +139,11 @@ let run args =
     builder.Services.AddSingleton<ModConductor.Engine.ProfileDataService>()
     |> ignore
 
+    builder.Services.AddSingleton<ModConductor.ArtifactLibrary.IArtifactLibrary>(store.Artifacts)
+    |> ignore
+
+    builder.Services.AddSingleton<ModConductor.Engine.ArtifactService>() |> ignore
+
     builder.Services.AddSingleton<Coordinator>(coordinator) |> ignore
     builder.Services.AddSingleton<ModConductor.Engine.OperationService>() |> ignore
 
@@ -194,6 +199,7 @@ let run args =
     app.MapGrpcService<ModConductor.Engine.ExecutableService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.GameLaunchService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.ProfileDataService>() |> ignore
+    app.MapGrpcService<ModConductor.Engine.ArtifactService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.DeploymentService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.FilePlanService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.SteamDiscoveryService>() |> ignore

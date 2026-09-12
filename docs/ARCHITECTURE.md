@@ -10,6 +10,7 @@
 | `ModConductor.GameContexts` | Game definitions, installation checks, and context evidence |
 | `ModConductor.SteamDiscovery` | Read-only Steam library, app and compatibility-tool metadata |
 | `ModConductor.ProtonContexts` | Chosen Proton installation, prefix and Windows user-path checks |
+| `ModConductor.ArtifactLibrary` | Archive identity, availability, and manual installed-version provenance |
 | `ModConductor.ModLibrary` | Mod identity, metadata, and immutable file versions |
 | `ModConductor.ModSelection` | Per-profile enablement, saved precedence, and batch rules |
 | `ModConductor.ModOrganization` | Workspace categories, typed filters, and grouping contracts |
@@ -264,3 +265,24 @@ target is absent. Unhide restores eligibility. Neither operation changes payload
 source folders, profile order or enablement. New full versions do not inherit old
 exclusions. Historical rules remain readable, and profile clone/delete does not
 remove them. These views do not activate or deploy files.
+
+## Local archives
+
+Archives belong to a workspace but remain separate from installed mod payloads.
+Reference adoption leaves the original file in place. Explicit copies use the
+existing identity-checked library folder with separate `artifact-*.partial` and
+`artifact-*.archive` names. SQLite retains the original filename and path, stable
+artifact ID, observed file identity, length, digest, and manual mod/version links.
+No archive format is parsed by this feature.
+
+Known rows reconcile on the first list request of an engine session and on explicit
+Refresh. Direct reads also check an archive before its first use in that session. Observed complete copies can finish their no-replace rename after restart.
+Incomplete bytes and missing files remain unavailable. Detached metadata and linked
+provenance are not removed automatically. A digest describes observed bytes, not
+archive validity or installability.
+
+Manual links select an existing mod and its current saved version in the same
+workspace. Later filename, path, or mod-name changes do not change those IDs.
+Deleting an owned copy retains its links and changes availability to File not found.
+Removing an unlinked list entry never deletes an external archive. All file work
+uses the existing library admission and database owner lease, not another journal.

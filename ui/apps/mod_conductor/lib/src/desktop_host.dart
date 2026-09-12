@@ -65,6 +65,7 @@ class _DesktopHostState extends State<DesktopHost> with WidgetsBindingObserver {
     executables: _owner.executables,
     gameLaunching: _owner.gameLaunching,
     profileData: _owner.profileData,
+    artifacts: _owner.artifacts,
     steamDiscovery: _owner.steamDiscovery,
     protonContexts: _owner.protonContexts,
     status: switch (_owner.state) {

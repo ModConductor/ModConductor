@@ -9,7 +9,20 @@ open ModConductor.Native.Fixtures
 [<EntryPoint>]
 let main args =
     try
-        if
+        if args.Length = 6 && args[0] = "--artifact-worker" then
+            ArtifactFixtures.worker args[1] args[2] args[3] args[4] args[5]
+            0
+        elif args.Length = 2 && args[0] = "--artifacts" && Path.IsPathFullyQualified args[1] then
+            use writer =
+                new Utf8JsonWriter(Console.OpenStandardOutput(), JsonWriterOptions(Indented = true))
+
+            writer.WriteStartObject()
+            writer.WriteBoolean("nativeAot", not RuntimeFeature.IsDynamicCodeSupported)
+            ArtifactFixtures.observe writer args[1]
+            writer.WriteEndObject()
+            writer.Flush()
+            0
+        elif
             args.Length = 2
             && args[0] = "--profile-data"
             && Path.IsPathFullyQualified args[1]

@@ -1,3 +1,4 @@
+import 'artifact_client.dart';
 import 'profile_data_client.dart';
 import 'game_launch_client.dart';
 import 'executable_client.dart';
@@ -34,6 +35,8 @@ class EngineSession {
   ProtonContextsClient get protonContexts => _protonContexts!;
   SteamDiscoveryClient? _steamDiscovery;
   SteamDiscoveryClient get steamDiscovery => _steamDiscovery!;
+  ArtifactsClient? _artifacts;
+  ArtifactsClient get artifacts => _artifacts!;
   ProfileDataClient? _profileData;
   ProfileDataClient get profileData => _profileData!;
   GameLaunchingClient? _gameLaunching;
@@ -106,6 +109,10 @@ class EngineSession {
       CallOptions(metadata: options.metadata),
     );
     _gameLaunching = GrpcGameLaunchingClient(
+      channel,
+      CallOptions(metadata: options.metadata),
+    );
+    _artifacts = GrpcArtifactsClient(
       channel,
       CallOptions(metadata: options.metadata),
     );

@@ -35,6 +35,7 @@
     <Compile Include="GameLaunchService.fs" />
     <Compile Include="ProfileDataWire.fs" />
     <Compile Include="ProfileDataService.fs" />
+    <Compile Include="ArtifactService.fs" />
     <Compile Include="Program.fs" />
     <ProjectReference Include="../ModConductor.SteamDiscovery/ModConductor.SteamDiscovery.fsproj" />
     <ProjectReference Include="../ModConductor.Persistence/ModConductor.Persistence.fsproj" />

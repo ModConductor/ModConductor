@@ -1,3 +1,4 @@
+import 'package:mc_artifacts/mc_artifacts.dart';
 import 'package:mc_generated_outputs/mc_generated_outputs.dart';
 import 'package:mc_executables/mc_executables.dart';
 import 'package:mc_profile_data/mc_profile_data.dart';
@@ -31,6 +32,12 @@ Future<String?> _chooseGameDirectory(String? initialPath) => getDirectoryPath(
 Future<String?> _chooseExecutable(String? initial) async => (await openFile(
   initialDirectory: initial == null ? null : File(initial).parent.path,
 ))?.path;
+
+Future<ArchiveFile?> _chooseArchive() async {
+  final file = await openFile();
+  if (file == null) return null;
+  return ArchiveFile(file.path, await file.length());
+}
 
 void _quitDesktop() {
   ServicesBinding.instance.exitApplication(AppExitType.cancelable);
@@ -68,6 +75,8 @@ class ModConductorApp extends StatefulWidget {
     this.executables,
     this.gameLaunching,
     this.profileData,
+    this.artifacts,
+    this.chooseArchive = _chooseArchive,
     this.chooseExecutable = _chooseExecutable,
     this.steamDiscovery,
     this.protonContexts,
@@ -86,6 +95,8 @@ class ModConductorApp extends StatefulWidget {
   final ExecutablesClient? executables;
   final GameLaunchingClient? gameLaunching;
   final ProfileDataClient? profileData;
+  final ArtifactsClient? artifacts;
+  final ArchiveChooser chooseArchive;
   final ExecutablePathChooser chooseExecutable;
   final SteamDiscoveryClient? steamDiscovery;
   final ProtonContextsClient? protonContexts;
@@ -110,6 +121,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
   final _game = GameContextController();
   final _files = FilePlansController();
   final _outputs = OutputController();
+  final _artifacts = ArtifactController();
   final _deployments = DeploymentController();
   final _executables = ExecutablesController();
   final _play = GamePlayController();
@@ -165,6 +177,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
       _workspaces.workspace,
       available: _workspaces.canEdit,
     );
+    _artifacts.attach(widget.artifacts, _workspaces.workspace?.id);
     _outputs.attach(
       widget.outputs,
       _workspaces.workspace?.id,
@@ -228,6 +241,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
     _mods.removeListener(_modsChanged);
     _outputs.dispose();
     _deployments.dispose();
+    _artifacts.dispose();
     _executables.dispose();
     _play.dispose();
     _profileData.dispose();
@@ -332,6 +346,13 @@ class _ModConductorAppState extends State<ModConductorApp> {
                             controller: _executables,
                             chooseExecutable: widget.chooseExecutable,
                             chooseDirectory: widget.chooseGameDirectory,
+                          ),
+                    artifactBuilder: widget.artifacts == null
+                        ? null
+                        : (context, workspace) => ArtifactBrowser(
+                            controller: _artifacts,
+                            chooseFile: widget.chooseArchive,
+                            workspacePath: workspace.path,
                           ),
                     compactCloseAction:
                         widget.gameLaunching != null &&
