@@ -14,7 +14,7 @@ module internal DownloadRows =
             Sqlite.command
                 connection
                 transaction
-                "SELECT a.workspace_id,a.original_name,d.sources,d.expected_length,d.expected_sha,d.bytes,d.total,d.etag,d.effective_url,d.source_index,d.attempt FROM artifact_downloads d JOIN artifacts a ON a.id=d.artifact_id WHERE a.id=$id"
+                "SELECT a.workspace_id,a.original_name,d.sources,d.expected_length,d.expected_sha,d.bytes,d.total,d.etag,d.effective_url,d.source_index,d.attempt,d.nexus_version FROM artifact_downloads d JOIN artifacts a ON a.id=d.artifact_id WHERE a.id=$id"
                 [ "$id", box (string id) ]
 
         use r = query.ExecuteReader()
@@ -29,7 +29,13 @@ module internal DownloadRows =
                       Name = r.GetString 1
                       Sources =
                         (r.GetString 2).Split('\n')
-                        |> Array.map DownloadSource.decode
+                        |> Array.map (fun source ->
+                            match DownloadSource.decode source with
+                            | DownloadSource.Nexus reference ->
+                                DownloadSource.Nexus
+                                    { reference with
+                                        Version = optional r 11 r.GetString }
+                            | value -> value)
                         |> Array.toList
                       ExpectedLength = optional r 3 r.GetInt64
                       ExpectedSha256 = optional r 4 r.GetString }

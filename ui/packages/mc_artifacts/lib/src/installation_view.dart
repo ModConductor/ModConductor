@@ -22,6 +22,8 @@ class ArchiveInstallationView extends StatefulWidget {
     required this.artifact,
     required this.client,
     this.initialDraft,
+    this.suggestedTarget,
+    this.suggestedVersion,
     this.initialStatus,
     this.backLabel = 'Back to archives',
     this.maintenance,
@@ -33,6 +35,8 @@ class ArchiveInstallationView extends StatefulWidget {
     required this.onCommitted,
     required this.onOpenMods,
   });
+  final ModEntry? suggestedTarget;
+  final String? suggestedVersion;
   final InstallationDraft? initialDraft;
   final InstallationStatus? initialStatus;
   final String backLabel;
@@ -134,8 +138,11 @@ class _ArchiveInstallationViewState extends State<ArchiveInstallationView> {
       builder: (_) => UpdateTargetForm(
         archiveName: draft.archiveName,
         load: widget.updateTargets!,
-        target: controller.updateTarget,
-        version: controller.updatePreview?.nextVersion ?? draft.version,
+        target: controller.updateTarget ?? widget.suggestedTarget,
+        version:
+            controller.updatePreview?.nextVersion ??
+            widget.suggestedVersion ??
+            draft.version,
       ),
     );
     if (result != null && mounted)
@@ -273,7 +280,9 @@ class _ArchiveInstallationViewState extends State<ArchiveInstallationView> {
                     if (widget.maintenance != null &&
                         widget.updateTargets != null)
                       McIconAction(
-                        label: 'Update installed mod',
+                        label: widget.suggestedTarget == null
+                            ? 'Update installed mod'
+                            : 'Review update',
                         icon: const Icon(Icons.system_update_alt),
                         onPressed: controller.canEdit && draft.canInstall
                             ? updateTarget

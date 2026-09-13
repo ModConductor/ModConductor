@@ -2,6 +2,7 @@ import 'link_setup_client.dart';
 import 'nxm_client.dart';
 import 'desktop_client.dart';
 import 'nexus_client.dart';
+import 'nexus_metadata_client.dart';
 import 'credential_client.dart';
 import 'fomod_client.dart';
 import 'bain_client.dart';
@@ -84,6 +85,8 @@ class EngineOwner {
   NxmClient? get nxm => _state is EngineConnected ? _session?.nxm : null;
   DesktopClient? get desktop =>
       _state is EngineConnected ? _session?.desktop : null;
+  NexusMetadataClient? get nexusMetadata =>
+      _state is EngineConnected ? _session?.nexusMetadata : null;
   NexusClient? get nexus => _state is EngineConnected ? _session?.nexus : null;
   CredentialsClient? get credentials =>
       _state is EngineConnected ? _session?.credentials : null;

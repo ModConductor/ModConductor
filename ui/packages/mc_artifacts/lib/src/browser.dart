@@ -56,6 +56,9 @@ class _ArtifactBrowserState extends State<ArtifactBrowser> {
   final focus = FocusNode(debugLabel: 'Archives');
   final addFocus = FocusNode(debugLabel: 'Add archive');
   final scroll = ScrollController();
+  int reviewNavigation = 0;
+  ModEntry? suggestedTarget;
+  String? suggestedVersion;
   bool inspected = false;
   bool nexus = false;
   Artifact? contents, installing, bundle;
@@ -172,7 +175,17 @@ class _ArtifactBrowserState extends State<ArtifactBrowser> {
         ? null
         : (artifact) {
             pane.currentState?.closeEndDrawer();
-            setState(() => installing = artifact);
+            setState(() {
+              installing = artifact;
+              suggestedVersion =
+                  controller.updateReview?.artifact.id == artifact.id
+                  ? controller.updateReview?.version
+                  : null;
+              suggestedTarget =
+                  controller.updateReview?.artifact.id == artifact.id
+                  ? controller.updateReview?.target
+                  : null;
+            });
           },
     onLocate: fileForm,
     onLink: link,
@@ -238,17 +251,32 @@ class _ArtifactBrowserState extends State<ArtifactBrowser> {
         if (contents?.workspaceId != controller.workspaceId) contents = null;
         if (installing?.workspaceId != controller.workspaceId)
           installing = null;
+        if (reviewNavigation != controller.reviewNavigation) {
+          reviewNavigation = controller.reviewNavigation;
+          final review = controller.updateReview;
+          if (review?.artifact.workspaceId == controller.workspaceId) {
+            installing = review!.artifact;
+            suggestedTarget = review.target;
+            suggestedVersion = review.version;
+          }
+        }
         if (installing != null && widget.installations != null) {
           return ArchiveInstallationView(
             key: ValueKey((installing!.id, widget.installations)),
             artifact: installing!,
+            suggestedTarget: suggestedTarget,
+            suggestedVersion: suggestedVersion,
             client: widget.installations!,
             maintenance: widget.maintenance,
             fomod: widget.fomod,
             bain: widget.bain,
             profileId: widget.profileId,
             updateTargets: widget.updateTargets,
-            onBack: () => setState(() => installing = null),
+            onBack: () => setState(() {
+              installing = null;
+              suggestedTarget = null;
+              suggestedVersion = null;
+            }),
             onCommitted: () {
               installationRefresh = () async {
                 await controller.load();

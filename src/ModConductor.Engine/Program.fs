@@ -118,6 +118,18 @@ let runWithNexus registration (handoff: ModConductor.Nexus.IOAuthHandoff) args =
 
     builder.Services.AddSingleton<ModConductor.Engine.NxmService>() |> ignore
     builder.Services.AddSingleton<ModConductor.Engine.NexusService>() |> ignore
+
+    builder.Services.AddSingleton<ModConductor.Nexus.NexusModDetails>(
+        ModConductor.Nexus.NexusModDetails(nexus, store.NexusMetadata)
+    )
+    |> ignore
+
+    builder.Services.AddSingleton<ModConductor.Engine.NexusMetadataService>()
+    |> ignore
+
+    builder.Services.AddSingleton<ModConductor.Engine.NexusInteractionsService>()
+    |> ignore
+
     builder.Services.AddSingleton<ModConductor.Engine.DesktopService>() |> ignore
 
     builder.Services.AddSingleton<IOperationStore>(store) |> ignore
@@ -322,6 +334,8 @@ let runWithNexus registration (handoff: ModConductor.Nexus.IOAuthHandoff) args =
     app.MapGrpcService<ModConductor.Engine.DeletionService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.CredentialService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.NexusService>() |> ignore
+    app.MapGrpcService<ModConductor.Engine.NexusMetadataService>() |> ignore
+    app.MapGrpcService<ModConductor.Engine.NexusInteractionsService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.NxmService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.LinkSetupService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.DesktopService>() |> ignore

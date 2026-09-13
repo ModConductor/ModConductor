@@ -134,7 +134,8 @@ type NexusService
                                             Game = game
                                             ModId = request.ModId
                                             FileId = request.FileId
-                                            Keyed = false } ]
+                                            Keyed = false
+                                            Version = Some file.Version } ]
                                   ExpectedLength = file.Bytes
                                   ExpectedSha256 = None }
 

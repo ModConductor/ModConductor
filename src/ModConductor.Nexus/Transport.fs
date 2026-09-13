@@ -196,6 +196,72 @@ type internal NexusTransport(registration: NexusRegistration, interval: TimeSpan
     member this.Api(path: string, access, entitlement, token) =
         this.Send(Uri(registration.Api, path), Some access, None, entitlement, token)
 
+    member _.Mutate
+        (path: string, access: string, action: NexusInteraction, fields, token: CancellationToken)
+        =
+        NexusBoundary.protect (fun () ->
+            task {
+                do! slots.WaitAsync token
+
+                try
+                    do! wait token
+
+                    use request =
+                        new HttpRequestMessage(
+                            (if action = NexusInteraction.Untrack then
+                                 HttpMethod.Delete
+                             else
+                                 HttpMethod.Post),
+                            Uri(registration.Api, path)
+                        )
+
+                    request.Headers.UserAgent.ParseAdd("ModConductor/0.1.0")
+
+                    request.Headers.TryAddWithoutValidation("Application-Name", "ModConductor")
+                    |> ignore
+
+                    request.Headers.TryAddWithoutValidation("Application-Version", "0.1.0")
+                    |> ignore
+
+                    request.Headers.Authorization <- AuthenticationHeaderValue("Bearer", access)
+                    request.Content <- new ByteArrayContent(MetadataJson.write fields)
+                    request.Content.Headers.ContentType <- MediaTypeHeaderValue("application/json")
+                    use deadline = CancellationTokenSource.CreateLinkedTokenSource token
+                    deadline.CancelAfter(TimeSpan.FromSeconds 30.)
+
+                    try
+                        use! response = client.SendAsync(request, deadline.Token)
+                        let code = int response.StatusCode
+
+                        if code = 429 then
+                            let until = retryAfter response
+                            lock scheduling (fun () -> blockedUntil <- max blockedUntil until)
+                            raise (NexusException(NexusProblem.RateLimited until))
+
+                        if code = 401 then
+                            raise (NexusException NexusProblem.SignInRequired)
+
+                        if code = 403 || code = 400 || code = 422 then
+                            raise (NexusException NexusProblem.Forbidden)
+
+                        if code = 404 then
+                            raise (NexusException NexusProblem.NotFound)
+
+                        if code = 405 || code = 501 then
+                            raise (NexusException NexusProblem.InteractionUnavailable)
+
+                        if code <> 200 && code <> 201 then
+                            raise (NexusException NexusProblem.InteractionUnknown)
+
+                        let! bytes = response.Content.ReadAsByteArrayAsync deadline.Token
+                        return JsonDocument.Parse(ReadOnlyMemory bytes)
+                    with
+                    | :? NexusException as error -> return raise error
+                    | _ -> return raise (NexusException NexusProblem.InteractionUnknown)
+                finally
+                    slots.Release() |> ignore
+            })
+
     interface IDisposable with
         member _.Dispose() =
             client.Dispose()

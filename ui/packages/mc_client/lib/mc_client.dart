@@ -34,3 +34,5 @@ export 'src/desktop_client.dart';
 export 'src/nxm_client.dart';
 
 export 'src/link_setup_client.dart';
+
+export 'src/nexus_metadata_client.dart';

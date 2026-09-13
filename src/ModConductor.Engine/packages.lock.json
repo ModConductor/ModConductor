@@ -263,6 +263,7 @@
           "ModConductor.ModMaintenance": "[1.0.0, )",
           "ModConductor.ModOrganization": "[1.0.0, )",
           "ModConductor.ModSelection": "[1.0.0, )",
+          "ModConductor.Nexus": "[1.0.0, )",
           "ModConductor.Operations": "[1.0.0, )",
           "ModConductor.Platform": "[1.0.0, )",
           "ModConductor.ProfileGameData": "[1.0.0, )",

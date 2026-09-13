@@ -2,6 +2,7 @@ import 'link_setup_client.dart';
 import 'nxm_client.dart';
 import 'desktop_client.dart';
 import 'nexus_client.dart';
+import 'nexus_metadata_client.dart';
 import 'credential_client.dart';
 import 'fomod_client.dart';
 import 'bain_client.dart';
@@ -51,6 +52,8 @@ class EngineSession {
   NxmClient get nxm => _nxm!;
   DesktopClient? _desktop;
   DesktopClient get desktop => _desktop!;
+  NexusMetadataClient? _nexusMetadata;
+  NexusMetadataClient get nexusMetadata => _nexusMetadata!;
   NexusClient? _nexus;
   NexusClient get nexus => _nexus!;
   CredentialsClient? _credentials;
@@ -146,6 +149,10 @@ class EngineSession {
     _desktop = GrpcDesktopClient(channel, options);
     _nxm = NxmClient(channel, options);
     _linkSetup = LinkSetupClient(channel, options);
+    _nexusMetadata = GrpcNexusMetadataClient(
+      channel,
+      CallOptions(metadata: options.metadata),
+    );
     _nexus = GrpcNexusClient(channel, CallOptions(metadata: options.metadata));
     _credentials = GrpcCredentialsClient(
       channel,

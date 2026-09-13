@@ -37,12 +37,19 @@ type NexusServer() =
     let mutable expires = 600
     let mutable subject = "42"
     let mutable held: TaskCompletionSource<unit> option = None
-    let payload = Array.init (1024 * 1024) (fun n -> byte (n % 251))
+    let mutable payload = Array.init (1024 * 1024) (fun n -> byte (n % 251))
     let mutable downloadKey = "synthetic-signed-key-A"
     let mutable nxmRequests = 0
     let mutable privateHeader = false
     let mutable ranges = 0
     let mutable slow = false
+    let mutable metadata = false
+    let mutable tracked = false
+    let mutable endorsement = "Undecided"
+    let mutable writes = 0
+    let mutable metadataHold: TaskCompletionSource<unit> option = None
+    let mutable lastVersion = ""
+
 
     let send (context: HttpListenerContext) =
         task {
@@ -186,13 +193,83 @@ type NexusServer() =
                                       + downloadKey
                                       + "\"}"
                                       + "]"))
+                    elif path.EndsWith "/user/tracked_mods.json" then
+                        if request.HttpMethod = "GET" then
+                            do!
+                                write
+                                    200
+                                    (if tracked then
+                                         """[{"domain_name":"skyrimspecialedition","mod_id":64012}]"""
+                                     else
+                                         "[]")
+                        else
+                            writes <- writes + 1
+                            use body = new StreamReader(request.InputStream)
+                            let! content = body.ReadToEndAsync(stop.Token)
+                            use json = System.Text.Json.JsonDocument.Parse content
+
+                            if
+                                json.RootElement.GetProperty("domain_name").GetString()
+                                <> "skyrimspecialedition"
+                                || json.RootElement.GetProperty("mod_id").GetInt64() <> 64012L
+                            then
+                                failwith "Tracking identity differed."
+
+                            if mode = "write-refused" then
+                                do! write 403 "{}"
+                            else
+                                tracked <- request.HttpMethod = "POST"
+
+                                do!
+                                    write
+                                        (if mode = "write-uncertain" then 202 else 200)
+                                        """{"message":"Updated"}"""
+                    elif path.EndsWith "/user/endorsements.json" then
+                        if mode = "endorsements-refused" then
+                            do! write 403 "{}"
+                        else
+                            do!
+                                write
+                                    200
+                                    ("[{\"domain_name\":\"skyrimspecialedition\",\"mod_id\":64012,\"status\":\""
+                                     + endorsement
+                                     + "\"}]")
+                    elif path.EndsWith "/endorse.json" || path.EndsWith "/abstain.json" then
+                        writes <- writes + 1
+                        use body = new StreamReader(request.InputStream)
+                        let! content = body.ReadToEndAsync(stop.Token)
+                        use json = System.Text.Json.JsonDocument.Parse content
+                        lastVersion <- json.RootElement.GetProperty("Version").GetString()
+
+                        if mode = "write-refused" then
+                            do! write 403 "{}"
+                        else
+                            endorsement <-
+                                if path.EndsWith "/endorse.json" then
+                                    "Endorsed"
+                                else
+                                    "Abstained"
+
+                            do! write 200 ("{\"status\":\"" + endorsement + "\"}")
                     elif path.EndsWith "/games/skyrimspecialedition.json" then
-                        do! write 200 "{\"id\":1704,\"domain_name\":\"skyrimspecialedition\"}"
-                    elif path.EndsWith "/mods/64012.json" then
                         do!
                             write
                                 200
-                                "{\"mod_id\":64012,\"game_id\":1704,\"name\":\"Quiet rivers\",\"summary\":\"River textures\"}"
+                                """{"id":1704,"domain_name":"skyrimspecialedition","categories":[{"category_id":29,"name":"Visuals and Graphics"}]}"""
+                    elif path.EndsWith "/mods/64012.json" then
+                        match metadataHold with
+                        | Some hold -> do! hold.Task.WaitAsync(stop.Token)
+                        | None -> ()
+
+                        if mode = "metadata-error" then
+                            do! write 404 "{}"
+                        else
+                            do!
+                                write
+                                    200
+                                    ("""{"mod_id":64012,"game_id":1704,"name":"Quiet Rivers — Water and Foam","summary":"River textures","version":"1.5","author":"Rowan","uploaded_by":"Rowan","category_id":29,"updated_timestamp":1789238400,"allow_rating":true,"available":"""
+                                     + (if mode = "unavailable" then "false" else "true")
+                                     + "}")
                     else
                         let file (id: int) (name: string) (category: string) =
                             ("{"
@@ -202,9 +279,43 @@ type NexusServer() =
                              + name
                              + "\",\"version\":\"1.4\",\"category_name\":\""
                              + category
-                             + "\",\"description\":\"Adds river textures for Skyrim Special Edition.\",\"size_in_bytes\":1048576}")
+                             + "\",\"category_id\":1,\"uploaded_timestamp\":1789238400,\"description\":\"Adds river textures for Skyrim Special Edition.\",\"size_in_bytes\":"
+                             + string payload.Length
+                             + "}")
 
-                        if path.EndsWith "/files.json" then
+                        if metadata && path.EndsWith "/files.json" then
+                            let entry (id: int) (name: string) (version: string) (category: int) =
+                                "{\"file_id\":"
+                                + id.ToString(Globalization.CultureInfo.InvariantCulture)
+                                + ",\"file_name\":\""
+                                + name
+                                + "\",\"version\":\""
+                                + version
+                                + "\",\"category_name\":\""
+                                + (if category = 1 then "Main files"
+                                   elif category = 3 then "Optional files"
+                                   else "Old files")
+                                + "\",\"category_id\":"
+                                + category.ToString(Globalization.CultureInfo.InvariantCulture)
+                                + ",\"uploaded_timestamp\":1789238400,\"description\":\"Water textures\",\"size_in_bytes\":"
+                                + payload.Length.ToString(
+                                    Globalization.CultureInfo.InvariantCulture
+                                )
+                                + "}"
+
+                            do!
+                                write
+                                    200
+                                    ("""{"files":["""
+                                     + entry 501 "Quiet rivers — full.zip" "1.4" 4
+                                     + ","
+                                     + entry 502 "Quiet rivers — full.zip" "1.5" 1
+                                     + ","
+                                     + entry 503 "River sounds patch.zip" "1.2" 3
+                                     + ","
+                                     + entry 504 "Quiet rivers — light.zip" "1.5" 3
+                                     + """],"file_updates":[{"old_file_id":501,"new_file_id":502},{"old_file_id":501,"new_file_id":504}]}""")
+                        elif path.EndsWith "/files.json" then
                             do!
                                 write
                                     200
@@ -328,6 +439,26 @@ type NexusServer() =
 
     member _.DownloadKey
         with set value = downloadKey <- value
+
+    member _.Metadata
+        with set value = metadata <- value
+
+    member _.Payload
+        with set value = payload <- value
+
+    member _.Writes = writes
+    member _.LastVersion = lastVersion
+
+    member _.HoldMetadata() =
+        let value =
+            TaskCompletionSource<unit>(TaskCreationOptions.RunContinuationsAsynchronously)
+
+        metadataHold <- Some value
+        value
+
+    member _.ReleaseMetadata() =
+        metadataHold |> Option.iter (fun hold -> hold.TrySetResult(()) |> ignore)
+        metadataHold <- None
 
     member _.TokenCount = tokenCount
 

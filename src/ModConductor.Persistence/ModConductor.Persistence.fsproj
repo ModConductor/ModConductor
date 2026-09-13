@@ -17,6 +17,7 @@
     <Compile Include="MaintenanceSchema.fs" />
     <Compile Include="FomodSchema.fs" />
     <Compile Include="BundleSchema.fs" />
+    <Compile Include="NexusMetadataSchema.fs" />
     <Compile Include="Sqlite.fs" />
     <Compile Include="MaintenanceClaims.fs" />
     <Compile Include="LibraryEncoding.fs" />
@@ -31,6 +32,9 @@
     <Compile Include="SelectionRows.fs" />
     <Compile Include="WorkspaceProfiles.fs" />
     <Compile Include="StateDatabase.fs" />
+    <Compile Include="NexusOriginRows.fs" />
+    <Compile Include="NexusMetadataRows.fs" />
+    <Compile Include="NexusMetadataStore.fs" />
     <Compile Include="DeploymentValueEncoding.fs"/><Compile Include="DeploymentGenerationEncoding.fs"/><Compile Include="DeploymentEncoding.fs" />
     <Compile Include="DeploymentRows.fs" />
     <Compile Include="OwnedWorkspaceRootStore.fs" />
@@ -99,6 +103,7 @@
     <Compile Include="DeletionCompletion.fs" />
     <Compile Include="DeletionStore.fs" />
     <Compile Include="OperationStore.fs" />
+    <ProjectReference Include="../ModConductor.Nexus/ModConductor.Nexus.fsproj" />
     <ProjectReference Include="../ModConductor.HttpDownloads/ModConductor.HttpDownloads.fsproj" />
     <ProjectReference Include="../ModConductor.ArchiveInstallation/ModConductor.ArchiveInstallation.fsproj" />
     <ProjectReference Include="../ModConductor.Bain/ModConductor.Bain.fsproj" />

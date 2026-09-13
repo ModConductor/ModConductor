@@ -19,6 +19,7 @@
     <Compile Include="CredentialFixtures.fs" />
     <Compile Include="NexusServer.fs" />
     <Compile Include="NexusFixtures.fs" />
+    <Compile Include="NexusMetadataFixtures.fs" />
     <Compile Include="NxmFixtures.fs" />
     <Compile Include="NxmDeliveryFixtures.fs" />
     <Compile Include="DesktopFixtures.fs" />

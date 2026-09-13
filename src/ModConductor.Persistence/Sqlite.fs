@@ -81,7 +81,8 @@ module internal Sqlite =
         | 16L
         | 17L
         | 18L
-        | 19L -> ()
+        | 19L
+        | 20L -> ()
         | _ -> raise (InvalidOperationException("The state database uses an unsupported version."))
 
         if number connection transaction "PRAGMA user_version" [] = 3L then
@@ -150,6 +151,9 @@ module internal Sqlite =
 
         if number connection transaction "PRAGMA user_version" [] = 18L then
             execute connection transaction BundleSchema.sql []
+
+        if number connection transaction "PRAGMA user_version" [] = 19L then
+            execute connection transaction NexusMetadataSchema.sql []
 
         beforeCommit ()
         transaction.Commit()

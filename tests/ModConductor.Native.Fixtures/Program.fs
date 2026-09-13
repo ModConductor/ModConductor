@@ -46,6 +46,18 @@ let main args =
             0
         elif args.Length = 3 && args[0] = "--nexus-engine" then
             NexusFixtures.engine args[1] args[2]
+        elif args.Length = 3 && args[0] = "--nexus-metadata-engine" then
+            NexusMetadataFixtures.engine args[1] args[2]
+        elif args.Length = 2 && args[0] = "--nexus-metadata" then
+            use writer =
+                new Utf8JsonWriter(Console.OpenStandardOutput(), JsonWriterOptions(Indented = true))
+
+            writer.WriteStartObject()
+            writer.WriteBoolean("nativeAot", not RuntimeFeature.IsDynamicCodeSupported)
+            NexusMetadataFixtures.observe writer args[1]
+            writer.WriteEndObject()
+            writer.Flush()
+            0
         elif args.Length = 2 && args[0] = "--nexus" then
             use writer =
                 new Utf8JsonWriter(Console.OpenStandardOutput(), JsonWriterOptions(Indented = true))

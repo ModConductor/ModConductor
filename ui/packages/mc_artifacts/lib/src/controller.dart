@@ -5,6 +5,19 @@ import 'package:mc_client/mc_client.dart';
 import 'package:mc_ui_collections/mc_ui_collections.dart';
 
 class ArtifactController extends ChangeNotifier {
+  ({Artifact artifact, ModEntry target, String version})? updateReview;
+  int reviewNavigation = 0;
+  void reviewUpdate(
+    Artifact artifact,
+    ModEntry target, {
+    bool open = true,
+    required String version,
+  }) {
+    updateReview = (artifact: artifact, target: target, version: version);
+    if (open) ++reviewNavigation;
+    _notify();
+  }
+
   final model = McCollectionModel<String, Artifact>(
     idOf: (a) => a.id,
     labelOf: (a) => a.originalName,
@@ -91,6 +104,7 @@ class ArtifactController extends ChangeNotifier {
     if (identical(client, this.client) && workspaceId == this.workspaceId)
       return;
     ++_epoch;
+    updateReview = null;
     ++_watchEpoch;
     _reconnect?.cancel();
     _cancelObservation();

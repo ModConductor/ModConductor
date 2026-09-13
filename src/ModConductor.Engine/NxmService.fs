@@ -25,7 +25,8 @@ type NxmService
           Game = file.Game
           ModId = file.ModId
           FileId = file.FileId
-          Keyed = file.Keyed }
+          Keyed = file.Keyed
+          Version = None }
 
     let read (request: NexusLinkRequest) =
         task {
@@ -148,7 +149,9 @@ type NxmService
                                           WorkspaceId = ModLibraryWire.id request.WorkspaceId
                                           Name = result.File.Name
                                           Sources =
-                                            [ DownloadSource.Nexus(identity file account.Subject) ]
+                                            [ DownloadSource.Nexus
+                                                  { identity file account.Subject with
+                                                      Version = Some result.File.Version } ]
                                           ExpectedLength =
                                             if result.File.HasBytes then
                                                 Some result.File.Bytes

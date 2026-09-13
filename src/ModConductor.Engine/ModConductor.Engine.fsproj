@@ -56,6 +56,9 @@
     <Compile Include="DesktopService.fs" />
     <Compile Include="NexusWire.fs" />
     <Compile Include="NexusService.fs" />
+    <Compile Include="NexusMetadataWire.fs" />
+    <Compile Include="NexusMetadataService.fs" />
+    <Compile Include="NexusInteractionsService.fs" />
     <Compile Include="NxmService.fs" />
     <Compile Include="LinkSetupService.fs" />
     <Compile Include="Program.fs" />

@@ -7,6 +7,11 @@ module internal NexusWire =
     let failure problem =
         let code =
             match problem with
+            | NexusProblem.ModChanged -> "mod_changed"
+            | NexusProblem.CategoryUnavailable -> "category_unavailable"
+            | NexusProblem.InteractionUnknown -> "interaction_unknown"
+            | NexusProblem.InteractionUnavailable -> "interaction_unavailable"
+            | NexusProblem.InteractionBusy -> "interaction_busy"
             | NexusProblem.NotConfigured -> "not_configured"
             | NexusProblem.SignInRequired -> "sign_in_required"
             | NexusProblem.Cancelled -> "cancelled"

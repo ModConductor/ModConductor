@@ -96,6 +96,12 @@
           "ModConductor.ArchiveInstallation": "[1.0.0, )"
         }
       },
+      "modconductor.credentials": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )"
+        }
+      },
       "modconductor.deployment": {
         "type": "Project",
         "dependencies": {
@@ -209,6 +215,13 @@
           "ModConductor.ModLibrary": "[1.0.0, )"
         }
       },
+      "modconductor.nexus": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )",
+          "ModConductor.Credentials": "[1.0.0, )"
+        }
+      },
       "modconductor.operations": {
         "type": "Project",
         "dependencies": {
@@ -255,6 +268,13 @@
         "requested": "[0.50.4, )",
         "resolved": "0.50.4",
         "contentHash": "/hxjUR7DEX6mky8/LQXyrnrKioOL6D6veAID1EZpro+q4s02x5dHEYBV3qjEN6lDYYilDoQQ76BcmQj+lRx51w=="
+      }
+    },
+    "net10.0/linux-x64": {
+      "SQLite": {
+        "type": "Transitive",
+        "resolved": "3.53.4",
+        "contentHash": "KN7jeWqgUPeBRe1FlcpZURzxomuKKEKHmBBQfg+Nx7NkY1LjKhzHvH+3ASkNvhayESE34nMBinL9CV21JfPRJw=="
       }
     }
   }

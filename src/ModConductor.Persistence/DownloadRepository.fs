@@ -158,6 +158,16 @@ type internal DownloadRepository(database: StateDatabase, access: LibraryAccess)
                                   "$length", ArtifactRows.nullable request.ExpectedLength
                                   "$sha", ArtifactRows.nullable request.ExpectedSha256 ]
 
+                        match request.Sources with
+                        | [ DownloadSource.Nexus reference ] ->
+                            Sqlite.execute
+                                connection
+                                tx
+                                "UPDATE artifact_downloads SET nexus_version=COALESCE(nexus_version,$version) WHERE artifact_id=$id"
+                                [ "$version", ArtifactRows.nullable reference.Version
+                                  "$id", box (string selected) ]
+                        | _ -> ()
+
                         tx.Commit()
                         selected)
 

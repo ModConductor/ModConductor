@@ -276,7 +276,8 @@ module NexusFixtures =
                         Game = "skyrimspecialedition"
                         ModId = 64012L
                         FileId = 501L
-                        Keyed = false } ]
+                        Keyed = false
+                        Version = None } ]
               ExpectedLength = Some 1048576L
               ExpectedSha256 = None }
         |> wait

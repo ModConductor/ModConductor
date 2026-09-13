@@ -8,6 +8,11 @@ open ModConductor.Credentials
 [<RequireQualifiedAccess>]
 type NexusProblem =
     | NotConfigured
+    | ModChanged
+    | CategoryUnavailable
+    | InteractionUnknown
+    | InteractionUnavailable
+    | InteractionBusy
     | SignInRequired
     | Cancelled
     | InvalidCallback
@@ -86,6 +91,12 @@ type DownloadLease = { Url: Uri; Expires: DateTimeOffset }
 module NexusProblem =
     let message =
         function
+        | NexusProblem.ModChanged -> "The mod or its Nexus link changed. Reopen its details."
+        | NexusProblem.CategoryUnavailable -> "This workspace category is no longer available."
+        | NexusProblem.InteractionUnknown ->
+            "Nexus did not confirm the change. Refresh before you try again."
+        | NexusProblem.InteractionUnavailable -> "This Nexus action is not available for this app."
+        | NexusProblem.InteractionBusy -> "A Nexus account action is already in progress."
         | NexusProblem.NotConfigured -> "Sign-in is not configured in this build."
         | NexusProblem.SignInRequired -> "Sign in to Nexus Mods again."
         | NexusProblem.Cancelled -> "The Nexus request was cancelled."

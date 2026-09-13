@@ -37,6 +37,7 @@ type NexusSession
     let mutable problem = None
     let mutable signIn: Task = Task.CompletedTask
     let nxm = NxmAuthorizations()
+    let interactions = InteractionMemory()
 
     let nxmExpiry =
         new Timer(
@@ -73,7 +74,8 @@ type NexusSession
 
                 if error = NexusProblem.SignInRequired || error = NexusProblem.AccountChanged then
                     tokens <- None
-                    account <- None)
+                    account <- None
+                    interactions.Clear())
 
     let require epoch (token: CancellationToken) =
         token.ThrowIfCancellationRequested()
@@ -397,6 +399,7 @@ type NexusSession
                     account <- None
                     leases.Clear()
                     nxm.Clear()
+                    interactions.Clear()
                     boundSubject <- None
                     tokens <- None
                     waiting <- false
@@ -421,64 +424,314 @@ type NexusSession
                 commit.Release() |> ignore
         }
 
-    member _.ReadMod(game: string, modId: int64) =
+    member _.ReadMetadata(identity: NexusIdentity) =
         run (fun epoch token ->
             task {
-                if game <> "skyrimspecialedition" || modId <= 0L then
+                if identity.Game <> "skyrimspecialedition" || identity.Mod <= 0L then
                     raise (NexusException NexusProblem.NotFound)
 
                 let! bearer = access epoch token false
 
-                use! gameReply =
-                    transport.Value.Api(("games/" + game + ".json"), bearer, false, token)
+                use! game =
+                    transport.Value.Api("games/" + identity.Game + ".json", bearer, false, token)
 
-                if NexusJson.text "domain_name" gameReply.RootElement <> game then
-                    NexusJson.fail ()
+                let path =
+                    "games/"
+                    + identity.Game
+                    + "/mods/"
+                    + identity.Mod.ToString(Globalization.CultureInfo.InvariantCulture)
 
-                use! modReply =
-                    transport.Value.Api(
-                        ("games/"
-                         + game
-                         + "/mods/"
-                         + (modId).ToString(System.Globalization.CultureInfo.InvariantCulture)
-                         + ".json"),
-                        bearer,
-                        false,
-                        token
-                    )
+                use! modReply = transport.Value.Api(path + ".json", bearer, false, token)
 
-                let value = modReply.RootElement
-
-                if
-                    NexusJson.number "mod_id" value <> modId
-                    || NexusJson.number "game_id" value
-                       <> NexusJson.number "id" gameReply.RootElement
-                then
-                    NexusJson.fail ()
-
-                use! filesReply =
-                    transport.Value.Api(
-                        ("games/"
-                         + game
-                         + "/mods/"
-                         + (modId).ToString(System.Globalization.CultureInfo.InvariantCulture)
-                         + "/files.json"),
-                        bearer,
-                        false,
-                        token
-                    )
-
-                let files =
-                    NexusJson.field "files" filesReply.RootElement
-                    |> Option.defaultWith NexusJson.fail
+                use! files =
+                    if MetadataJson.boolean "available" modReply.RootElement then
+                        transport.Value.Api(path + "/files.json", bearer, false, token)
+                    else
+                        Task.FromResult(JsonDocument.Parse("{\"files\":[],\"file_updates\":[]}"))
 
                 return
-                    { Game = game
-                      Id = modId
-                      Name = NexusJson.text "name" value
-                      Summary = NexusJson.optionalText "summary" value |> Option.defaultValue ""
-                      Files = files.EnumerateArray() |> Seq.map NexusJson.file |> Seq.toList }
+                    MetadataJson.metadata
+                        identity
+                        game.RootElement
+                        modReply.RootElement
+                        files.RootElement
             })
+
+    member this.ReadMod(game: string, modId: int64) =
+        task {
+            let! result = this.ReadMetadata { Game = game; Mod = modId }
+
+            return
+                result
+                |> Result.bind (fun value ->
+                    if not value.Available then
+                        Error NexusProblem.NotFound
+                    else
+                        Ok
+                            { Game = game
+                              Id = modId
+                              Name = value.Name
+                              Summary = value.Summary
+                              Files = value.Files |> List.map (fun file -> file.File) })
+        }
+
+    member _.ForgetInteractions(identity: NexusIdentity) =
+        lock gate (fun () -> interactions.Forget identity)
+
+    member _.InteractionState(identity: NexusIdentity) =
+        lock gate (fun () ->
+            { interactions.Get(account |> Option.map (fun value -> value.Subject), identity) with
+                AccountName = account |> Option.map _.Name })
+
+    member this.RefreshInteractions(identity: NexusIdentity) =
+        task {
+            let mutable started = None
+
+            let! result =
+                run (fun epoch token ->
+                    task {
+                        let! bearer = access epoch token false
+
+                        let state =
+                            lock gate (fun () ->
+                                require epoch token
+
+                                let subject =
+                                    account
+                                    |> Option.map (fun value -> value.Subject)
+                                    |> Option.defaultWith (fun () ->
+                                        raise (NexusException NexusProblem.SignInRequired))
+
+                                interactions.Begin(subject, identity, None)
+                                |> Result.defaultWith (fun error -> raise (NexusException error)))
+
+                        started <- Some state
+
+                        let! tracked =
+                            NexusBoundary.protect (fun () ->
+                                task {
+                                    use! reply =
+                                        transport.Value.Api(
+                                            "user/tracked_mods.json",
+                                            bearer,
+                                            false,
+                                            token
+                                        )
+
+                                    return MetadataJson.tracking identity reply.RootElement
+                                })
+
+                        let! endorsed =
+                            NexusBoundary.protect (fun () ->
+                                task {
+                                    use! reply =
+                                        transport.Value.Api(
+                                            "user/endorsements.json",
+                                            bearer,
+                                            false,
+                                            token
+                                        )
+
+                                    return MetadataJson.endorsements identity reply.RootElement
+                                })
+
+                        return tracked, endorsed
+                    })
+
+            lock gate (fun () ->
+                started
+                |> Option.iter (fun value ->
+                    match result with
+                    | Ok(tracking, endorsement) ->
+                        let problem =
+                            match tracking, endorsement with
+                            | Error error, _
+                            | _, Error error -> Some error
+                            | _ -> None
+
+                        interactions.Finish(
+                            identity,
+                            value,
+                            Result.toOption tracking,
+                            Result.toOption endorsement,
+                            problem
+                        )
+                    | Error error -> interactions.Finish(identity, value, None, None, Some error)))
+
+            return this.InteractionState identity
+        }
+
+    member this.ChangeInteraction
+        (identity: NexusIdentity, expected: int64, action: NexusInteraction, version: string)
+        =
+        task {
+            let mutable started = None
+            let mutable submitted = false
+
+            let! result =
+                run (fun epoch token ->
+                    task {
+                        let! bearer = access epoch token false
+
+                        let state, already =
+                            lock gate (fun () ->
+                                require epoch token
+
+                                let subject =
+                                    account
+                                    |> Option.map (fun value -> value.Subject)
+                                    |> Option.defaultWith (fun () ->
+                                        raise (NexusException NexusProblem.SignInRequired))
+
+                                let value = interactions.Get(Some subject, identity)
+
+                                if value.Busy then
+                                    raise (NexusException NexusProblem.InteractionBusy)
+
+                                if value.Revision <> expected then
+                                    raise (NexusException NexusProblem.InteractionUnknown)
+
+                                let already =
+                                    match action with
+                                    | NexusInteraction.Track -> value.Tracking |> Option.map id
+                                    | NexusInteraction.Untrack -> value.Tracking |> Option.map not
+                                    | NexusInteraction.Endorse ->
+                                        value.Endorsement
+                                        |> Option.map ((=) NexusEndorsement.Endorsed)
+                                    | NexusInteraction.Abstain ->
+                                        value.Endorsement
+                                        |> Option.map ((=) NexusEndorsement.Abstained)
+
+                                if already.IsNone then
+                                    raise (NexusException NexusProblem.InteractionUnknown)
+
+                                if already.Value then
+                                    value, true
+                                else
+                                    interactions.Begin(subject, identity, Some expected)
+                                    |> Result.defaultWith (fun error ->
+                                        raise (NexusException error)),
+                                    false)
+
+                        if already then
+                            return state.Tracking, state.Endorsement
+                        else
+                            started <- Some state
+
+                            let tracking =
+                                action = NexusInteraction.Track
+                                || action = NexusInteraction.Untrack
+
+                            let path, fields =
+                                if tracking then
+                                    "user/tracked_mods.json",
+                                    [ "domain_name", Choice1Of2 identity.Game
+                                      "mod_id", Choice2Of2 identity.Mod ]
+                                else
+                                    "games/"
+                                    + identity.Game
+                                    + "/mods/"
+                                    + identity.Mod.ToString(
+                                        Globalization.CultureInfo.InvariantCulture
+                                    )
+                                    + (if action = NexusInteraction.Endorse then
+                                           "/endorse.json"
+                                       else
+                                           "/abstain.json"),
+                                    [ "Version", Choice1Of2 version ]
+
+                            submitted <- true
+
+                            let! written =
+                                transport.Value.Mutate(path, bearer, action, fields, token)
+
+                            match written with
+                            | Error error -> return raise (NexusException error)
+                            | Ok response ->
+                                use response = response
+
+                                if tracking then
+                                    use! reply =
+                                        transport.Value.Api(
+                                            "user/tracked_mods.json",
+                                            bearer,
+                                            false,
+                                            token
+                                        )
+
+                                    let value = MetadataJson.tracking identity reply.RootElement
+
+                                    if value <> (action = NexusInteraction.Track) then
+                                        raise (NexusException NexusProblem.InteractionUnknown)
+
+                                    return Some value, state.Endorsement
+                                else
+                                    let value =
+                                        MetadataJson.endorsement (
+                                            NexusJson.text "status" response.RootElement
+                                        )
+
+                                    if
+                                        value
+                                        <> (if action = NexusInteraction.Endorse then
+                                                NexusEndorsement.Endorsed
+                                            else
+                                                NexusEndorsement.Abstained)
+                                    then
+                                        raise (NexusException NexusProblem.InteractionUnknown)
+
+                                    return state.Tracking, Some value
+                    })
+
+            lock gate (fun () ->
+                started
+                |> Option.iter (fun value ->
+                    match result with
+                    | Ok(tracking, endorsement) ->
+                        interactions.Finish(identity, value, tracking, endorsement, None)
+                    | Error error ->
+                        let issue =
+                            if
+                                submitted
+                                && (error = NexusProblem.Cancelled
+                                    || error = NexusProblem.TimedOut
+                                    || error = NexusProblem.Offline
+                                    || error = NexusProblem.InvalidResponse
+                                    || error = NexusProblem.Failed)
+                            then
+                                NexusProblem.InteractionUnknown
+                            else
+                                error
+
+                        let tracking =
+                            if
+                                action = NexusInteraction.Track
+                                || action = NexusInteraction.Untrack
+                            then
+                                None
+                            else
+                                value.Tracking
+
+                        let endorsement =
+                            if
+                                action = NexusInteraction.Endorse
+                                || action = NexusInteraction.Abstain
+                            then
+                                None
+                            else
+                                value.Endorsement
+
+                        interactions.Finish(identity, value, tracking, endorsement, Some issue)))
+
+            let current = this.InteractionState identity
+
+            return
+                match started, result with
+                | None, Error error -> { current with Problem = Some error }
+                | _, Error error when current.Subject.IsNone ->
+                    { current with Problem = Some error }
+                | _ -> current
+        }
 
     member _.ReadFile(game: string, modId: int64, fileId: int64) =
         run (fun epoch token ->
@@ -660,6 +913,7 @@ type NexusSession
                     tokens <- None
                     leases.Clear()
                     nxm.Clear()
+                    interactions.Clear()
                     signIn)
 
             do! pending

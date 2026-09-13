@@ -11,7 +11,8 @@ type NexusFileReference =
       Game: string
       ModId: int64
       FileId: int64
-      Keyed: bool }
+      Keyed: bool
+      Version: string option }
 
 [<RequireQualifiedAccess>]
 type DownloadSource =
@@ -127,7 +128,8 @@ module DownloadSource =
                   Game = parts[2]
                   ModId = Int64.Parse parts[3]
                   FileId = Int64.Parse parts[4]
-                  Keyed = parts[0] = "nexus-link:" }
+                  Keyed = parts[0] = "nexus-link:"
+                  Version = None }
         else
             DownloadSource.Url source
 

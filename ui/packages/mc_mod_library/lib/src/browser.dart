@@ -31,6 +31,7 @@ class ModLibraryBrowser extends StatefulWidget {
     this.singlePane,
     this.maintenance,
     this.onOpenDeployment,
+    this.onOpenNexus,
     this.onMaintenanceOpen,
     this.savedFileActions = const [],
   });
@@ -39,6 +40,7 @@ class ModLibraryBrowser extends StatefulWidget {
   final ModDirectoryChooser chooseDirectory;
   final List<ModFilePane> filePanes;
   final bool? singlePane;
+  final void Function(ModEntry)? onOpenNexus;
   final MaintenanceClient? maintenance;
   final VoidCallback? onOpenDeployment, onMaintenanceOpen;
   final List<Widget> savedFileActions;
@@ -135,6 +137,17 @@ class _ModLibraryBrowserState extends State<ModLibraryBrowser> {
 
         final editSelection = controller.canEdit && controller.activity == null;
         final modActions = <Widget>[
+          if (widget.onOpenNexus != null)
+            McIconAction(
+              label: 'Nexus Mods',
+              icon: const Icon(Icons.public),
+              onPressed:
+                  chosen?.kind == ModKind.regular &&
+                      !deletion.busy &&
+                      controller.activity == null
+                  ? () => widget.onOpenNexus!(chosen!)
+                  : null,
+            ),
           if (widget.maintenance != null)
             McIconAction(
               label: 'Delete mod',

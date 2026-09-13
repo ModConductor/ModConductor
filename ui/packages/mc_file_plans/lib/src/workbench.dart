@@ -20,6 +20,7 @@ class FilePlanningWorkbench extends StatefulWidget {
     this.profileName,
     this.maintenance,
     this.onOpenDeployment,
+    this.onOpenNexus,
     this.archiveUnavailable = false,
     this.additionalFilePanes,
     this.additionalInspector,
@@ -30,6 +31,7 @@ class FilePlanningWorkbench extends StatefulWidget {
   final String workspacePath;
   final Future<String?> Function(String?) chooseDirectory;
   final String? profileName;
+  final void Function(ModEntry)? onOpenNexus;
   final MaintenanceClient? maintenance;
   final VoidCallback? onOpenDeployment;
   final bool archiveUnavailable;
@@ -135,6 +137,7 @@ class _FilePlanningWorkbenchState extends State<FilePlanningWorkbench> {
               Expanded(
                 child: ModLibraryBrowser(
                   controller: widget.mods,
+                  onOpenNexus: widget.onOpenNexus,
                   maintenance: widget.maintenance,
                   onOpenDeployment: widget.onOpenDeployment,
                   onMaintenanceOpen: _close,

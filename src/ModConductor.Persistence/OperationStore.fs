@@ -12,6 +12,10 @@ type OperationStore
     let database = new StateDatabase(directory)
     let workspaceRoots = OwnedWorkspaceRootStore(database)
     let modLibrary = ModLibraryStore(database, workspaceRoots)
+
+    let nexusMetadata =
+        NexusMetadataStore(database) :> ModConductor.Nexus.INexusMetadataStore
+
     let artifacts = ArtifactStore(database, modLibrary.Access)
 
     let downloads =
@@ -174,6 +178,8 @@ type OperationStore
     member _.Installations = installations
     member _.Bundles = bundles
     member _.Deletions = deletions
+    member _.NexusMetadata = nexusMetadata
+
     member _.Downloads = downloads
 
     member _.Artifacts = artifacts :> ModConductor.ArtifactLibrary.IArtifactLibrary

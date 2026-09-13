@@ -69,6 +69,7 @@ class ModConductorApp extends StatefulWidget {
     this.bain,
     this.credentials,
     this.nexus,
+    this.nexusMetadata,
     this.linkSetup,
     this.bundles,
     this.chooseArchive = desktop.chooseArchive,
@@ -98,6 +99,7 @@ class ModConductorApp extends StatefulWidget {
   final BainClient? bain;
   final CredentialsClient? credentials;
   final NexusClient? nexus;
+  final NexusMetadataClient? nexusMetadata;
   final LinkSetupClient? linkSetup;
   final BundlesClient? bundles;
   final ArchiveChooser chooseArchive;
@@ -126,6 +128,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
   final _files = FilePlansController();
   final _outputs = OutputController();
   final _artifacts = ArtifactController();
+  final _nexusDetails = ModNexusController();
   final _deployments = DeploymentController();
   final _executables = ExecutablesController();
   final _play = GamePlayController();
@@ -182,6 +185,11 @@ class _ModConductorAppState extends State<ModConductorApp> {
       available: _workspaces.canEdit,
     );
     _artifacts.attach(widget.artifacts, _workspaces.workspace?.id);
+    _nexusDetails.attach(
+      widget.nexusMetadata,
+      widget.nexus,
+      _workspaces.workspace?.id,
+    );
     _outputs.attach(
       widget.outputs,
       _workspaces.workspace?.id,
@@ -246,6 +254,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
     _outputs.dispose();
     _deployments.dispose();
     _artifacts.dispose();
+    _nexusDetails.dispose();
     _executables.dispose();
     _play.dispose();
     _profileData.dispose();
@@ -266,6 +275,9 @@ class _ModConductorAppState extends State<ModConductorApp> {
 
   void _navigate(_Destination value) {
     setState(() => _destination = value);
+    if (value == _Destination.workspaces && _nexusDetails.viewing) {
+      unawaited(_nexusDetails.readAccount());
+    }
     (value == _Destination.workspaces ? _workspacesFocus : _preferencesFocus)
         .requestFocus();
   }
@@ -434,73 +446,123 @@ class _ModConductorAppState extends State<ModConductorApp> {
                           chooseDirectory: widget.chooseGameDirectory,
                         ),
                     modLibraryBuilder: (context, workspace) =>
-                        widget.filePlans == null
-                        ? ModLibraryBrowser(
-                            controller: _mods,
-                            maintenance: widget.maintenance,
-                            onOpenDeployment: widget.deployments == null
-                                ? null
-                                : () => showDialog<void>(
-                                    context: context,
-                                    builder: (_) => DeploymentDialog(
-                                      controller: _deployments,
-                                    ),
-                                  ),
-                            workspacePath: workspace.path,
-                            chooseDirectory: widget.chooseDirectory,
-                          )
-                        : widget.outputs == null
-                        ? FilePlanningWorkbench(
-                            mods: _mods,
-                            maintenance: widget.maintenance,
-                            onOpenDeployment: widget.deployments == null
-                                ? null
-                                : () => showDialog<void>(
-                                    context: context,
-                                    builder: (_) => DeploymentDialog(
-                                      controller: _deployments,
-                                    ),
-                                  ),
-                            plans: _files,
-                            workspacePath: workspace.path,
-                            chooseDirectory: widget.chooseDirectory,
-                            profileName: workspace.selectedProfile?.name,
-                            archiveUnavailable:
-                                _game.state?.definition.unavailableCapabilities
-                                    .any(
-                                      (capability) =>
-                                          capability.name ==
-                                          'Archive inspection',
-                                    ) ??
-                                false,
-                          )
-                        : DeploymentOutputsWorkbench(
-                            mods: _mods,
-                            maintenance: widget.maintenance,
-                            onOpenDeployment: widget.deployments == null
-                                ? null
-                                : () => showDialog<void>(
-                                    context: context,
-                                    builder: (_) => DeploymentDialog(
-                                      controller: _deployments,
-                                    ),
-                                  ),
-                            plans: _files,
-                            outputs: _outputs,
-                            profileId: workspace.selectedProfile?.id,
-                            organization: widget.modOrganization,
-                            workspacePath: workspace.path,
-                            chooseDirectory: widget.chooseDirectory,
-                            profileName: workspace.selectedProfile?.name,
-                            archiveUnavailable:
-                                _game.state?.definition.unavailableCapabilities
-                                    .any(
-                                      (capability) =>
-                                          capability.name ==
-                                          'Archive inspection',
-                                    ) ??
-                                false,
-                          ),
+                        ListenableBuilder(
+                          listenable: _nexusDetails,
+                          builder: (context, _) => _nexusDetails.viewing
+                              ? ModNexusView(
+                                  controller: _nexusDetails,
+                                  onMapped: _mods.inventory.refreshCatalogue,
+                                  organization: widget.modOrganization,
+                                  localCategories:
+                                      _mods.selected?.metadata.categories ??
+                                      const [],
+                                  onDownloaded:
+                                      (artifact, details, version) async {
+                                        await _artifacts.load();
+                                        _artifacts.model.select(artifact.id);
+                                        final target = _mods.selected;
+                                        if (target?.id ==
+                                                details.reference.mod &&
+                                            target?.currentVersionId ==
+                                                details.reference.version) {
+                                          _artifacts.reviewUpdate(
+                                            artifact,
+                                            target!,
+                                            version: version,
+                                            open:
+                                                artifact.state ==
+                                                    ArtifactState.ready ||
+                                                artifact.state ==
+                                                    ArtifactState.installed,
+                                          );
+                                        }
+                                        _nexusDetails.close();
+                                        _workspaces.showArchives();
+                                      },
+                                )
+                              : widget.filePlans == null
+                              ? ModLibraryBrowser(
+                                  controller: _mods,
+                                  onOpenNexus: widget.nexusMetadata == null
+                                      ? null
+                                      : _nexusDetails.open,
+                                  maintenance: widget.maintenance,
+                                  onOpenDeployment: widget.deployments == null
+                                      ? null
+                                      : () => showDialog<void>(
+                                          context: context,
+                                          builder: (_) => DeploymentDialog(
+                                            controller: _deployments,
+                                          ),
+                                        ),
+                                  workspacePath: workspace.path,
+                                  chooseDirectory: widget.chooseDirectory,
+                                )
+                              : widget.outputs == null
+                              ? FilePlanningWorkbench(
+                                  mods: _mods,
+                                  onOpenNexus: widget.nexusMetadata == null
+                                      ? null
+                                      : _nexusDetails.open,
+                                  maintenance: widget.maintenance,
+                                  onOpenDeployment: widget.deployments == null
+                                      ? null
+                                      : () => showDialog<void>(
+                                          context: context,
+                                          builder: (_) => DeploymentDialog(
+                                            controller: _deployments,
+                                          ),
+                                        ),
+                                  plans: _files,
+                                  workspacePath: workspace.path,
+                                  chooseDirectory: widget.chooseDirectory,
+                                  profileName: workspace.selectedProfile?.name,
+                                  archiveUnavailable:
+                                      _game
+                                          .state
+                                          ?.definition
+                                          .unavailableCapabilities
+                                          .any(
+                                            (capability) =>
+                                                capability.name ==
+                                                'Archive inspection',
+                                          ) ??
+                                      false,
+                                )
+                              : DeploymentOutputsWorkbench(
+                                  mods: _mods,
+                                  onOpenNexus: widget.nexusMetadata == null
+                                      ? null
+                                      : _nexusDetails.open,
+                                  maintenance: widget.maintenance,
+                                  onOpenDeployment: widget.deployments == null
+                                      ? null
+                                      : () => showDialog<void>(
+                                          context: context,
+                                          builder: (_) => DeploymentDialog(
+                                            controller: _deployments,
+                                          ),
+                                        ),
+                                  plans: _files,
+                                  outputs: _outputs,
+                                  profileId: workspace.selectedProfile?.id,
+                                  organization: widget.modOrganization,
+                                  workspacePath: workspace.path,
+                                  chooseDirectory: widget.chooseDirectory,
+                                  profileName: workspace.selectedProfile?.name,
+                                  archiveUnavailable:
+                                      _game
+                                          .state
+                                          ?.definition
+                                          .unavailableCapabilities
+                                          .any(
+                                            (capability) =>
+                                                capability.name ==
+                                                'Archive inspection',
+                                          ) ??
+                                      false,
+                                ),
+                        ),
                     chooseDirectory: widget.chooseDirectory,
                   ),
                 },

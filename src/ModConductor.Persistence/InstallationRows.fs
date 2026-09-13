@@ -405,6 +405,7 @@ module internal InstallationRows =
             [ "$version", box (string version); "$artifact", box (string plan.Artifact.Id) ]
 
         BundleRows.published connection transaction version plan
+        NexusOriginRows.published connection transaction modId version
 
         PublicationRows.completeIn connection transaction owner version
         |> Result.defaultWith (fun _ ->

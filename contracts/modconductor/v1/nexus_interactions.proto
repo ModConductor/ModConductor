@@ -1,0 +1,16 @@
+syntax = "proto3";
+package modconductor.v1;
+option csharp_namespace = "ModConductor.Protocol.V1";
+import "modconductor/v1/nexus.proto";
+import "modconductor/v1/nexus_metadata.proto";
+
+service NexusInteractions {
+  rpc ReadModNexusInteractions(ModNexusReference) returns (ModNexusInteractionsReply);
+  rpc ChangeModNexusInteraction(ChangeModNexusInteractionRequest) returns (ModNexusInteractionsReply);
+}
+message ModNexusInteractionState {
+  int64 revision=1; optional bool tracking=2; optional string endorsement=3;
+  bool busy=4; optional NexusFailure failure=5; optional string account_name=6;
+}
+message ModNexusInteractionsReply { oneof result { ModNexusInteractionState state=1; NexusFailure failure=2; } }
+message ChangeModNexusInteractionRequest { ModNexusReference reference=1; int64 revision=2; string action=3; }
