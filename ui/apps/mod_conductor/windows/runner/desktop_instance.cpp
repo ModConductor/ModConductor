@@ -24,7 +24,7 @@ std::vector<BYTE> TokenData(HANDLE token, TOKEN_INFORMATION_CLASS kind) {
   return bytes;
 }
 std::vector<BYTE> Encode(const desktop::Arguments& input) {
-  const auto args = desktop::Screen(input);
+  const auto args = desktop::IsNxm(input) ? input : desktop::Screen(input);
   std::vector<BYTE> bytes;
   auto number = [&](uint32_t value) {
     for (int i = 0; i < 4; ++i)
@@ -128,6 +128,7 @@ void DesktopInstance::Detach() {
   requests_.Stop();
   if (stop_) SetEvent(stop_);
   if (listener_.joinable()) listener_.join();
+  nxm_.reset();
   if (channel_) {
     channel_->SetMethodCallHandler(nullptr);
     channel_.reset();
@@ -161,6 +162,17 @@ bool DesktopInstance::Forward(const desktop::Arguments& arguments) {
       CreateFileW(pipe_name_.c_str(), GENERIC_READ | GENERIC_WRITE, 0, nullptr,
                   OPEN_EXISTING, FILE_FLAG_OVERLAPPED, nullptr);
   if (pipe == INVALID_HANDLE_VALUE) return false;
+  if (desktop::IsNxm(arguments)) {
+    ULONG server_pid = 0;
+    bool trusted = GetNamedPipeServerProcessId(pipe, &server_pid) != FALSE;
+    HANDLE server = trusted ? OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, server_pid) : nullptr;
+    wchar_t current_path[32768], server_path[32768];
+    DWORD server_length = 32768;
+    const DWORD current_length = GetModuleFileNameW(nullptr, current_path, 32768);
+    trusted = server && current_length > 0 && current_length < 32768 && QueryFullProcessImageNameW(server, 0, server_path, &server_length) && current_length == server_length && _wcsnicmp(current_path, server_path, server_length) == 0;
+    if (server) CloseHandle(server);
+    if (!trusted) { CloseHandle(pipe); return false; }
+  }
   auto bytes = Encode(arguments);
   DWORD sent = 0, received = 0, answer = 0;
   const bool success =
@@ -173,6 +185,7 @@ bool DesktopInstance::Forward(const desktop::Arguments& arguments) {
     DWORD confirmation = 0, written = 0;
     Transfer(pipe, &confirmation, sizeof(confirmation), true, written);
   }
+  std::fill(bytes.begin(), bytes.end(), 0);
   CloseHandle(pipe);
   return success;
 }
@@ -225,7 +238,7 @@ void DesktopInstance::Listen() {
                              Decode(buffer, length, args) && requests_.Add(args)
                          ? 1
                          : 0;
-      if (answer) PostMessage(window_, kRequestMessage, 1, 0);
+      if (answer) { if (nxm_) nxm_->Notify(); PostMessage(window_, kRequestMessage, 1, 0); }
       DWORD sent = 0;
       if (Transfer(pipe, &answer, sizeof(answer), true, sent)) {
         DWORD confirmation = 0, read = 0;
@@ -249,9 +262,13 @@ flutter::EncodableValue DesktopInstance::State() {
   if (state.first) {
     flutter::EncodableList args;
     for (const auto& arg : state.first->arguments) args.emplace_back(arg);
+    result[V("nxmPending")] = V(state.first->private_pending);
+    result[V("nxmFailed")] = V(state.first->delivery_failed);
+    result[V("nxmReference")] = V(state.first->reference);
     result[V("id")] = V(state.first->id);
     result[V("arguments")] = V(args);
   }
+  result[V("processId")] = V(static_cast<int32_t>(GetCurrentProcessId()));
   return V(result);
 }
 void DesktopInstance::Attach(flutter::BinaryMessenger* messenger, HWND window) {
@@ -259,8 +276,19 @@ void DesktopInstance::Attach(flutter::BinaryMessenger* messenger, HWND window) {
   channel_ = std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
       messenger, "dev.modconductor/desktop",
       &flutter::StandardMethodCodec::GetInstance());
+  nxm_ = std::make_unique<desktop::NxmDelivery>(requests_, [this] { PostMessage(window_, kRequestMessage, 0, 0); });
   channel_->SetMethodCallHandler([this](const auto& call, auto result) {
-    if (call.method_name() == "dismiss") {
+    if (call.method_name() == "configureNxm") {
+      const auto* args = call.arguments() ? std::get_if<flutter::EncodableMap>(call.arguments()) : nullptr;
+      if (!args) { result->Error("invalid", "Invalid desktop connection."); return; }
+      const auto endpoint = args->find(flutter::EncodableValue("endpoint"));
+      const auto capability = args->find(flutter::EncodableValue("capability"));
+      const auto pid = args->find(flutter::EncodableValue("processId"));
+      if (endpoint == args->end() || capability == args->end() || pid == args->end() || !std::holds_alternative<std::string>(endpoint->second) || !std::holds_alternative<std::vector<uint8_t>>(capability->second) || !std::holds_alternative<int32_t>(pid->second)) {
+        result->Error("invalid", "Invalid desktop connection."); return;
+      }
+      nxm_->Configure({std::get<std::string>(endpoint->second), std::get<std::vector<uint8_t>>(capability->second), std::get<int32_t>(pid->second)});
+    } else if (call.method_name() == "dismiss") {
       const auto* value = call.arguments();
       if (!value || (!std::holds_alternative<int64_t>(*value) &&
                      !std::holds_alternative<int32_t>(*value))) {
@@ -270,6 +298,7 @@ void DesktopInstance::Attach(flutter::BinaryMessenger* messenger, HWND window) {
       requests_.Dismiss(std::holds_alternative<int64_t>(*value)
                             ? std::get<int64_t>(*value)
                             : std::get<int32_t>(*value));
+      nxm_->Notify();
     } else if (call.method_name() != "state") {
       result->NotImplemented();
       return;

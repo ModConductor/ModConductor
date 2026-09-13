@@ -40,6 +40,24 @@ type internal DownloadRepository(database: StateDatabase, access: LibraryAccess)
         then
             refuse ArtifactError.Busy
 
+    let findNexus tx workspace reference =
+        use query =
+            Sqlite.command
+                connection
+                tx
+                "SELECT a.id FROM artifacts a JOIN artifact_downloads d ON d.artifact_id=a.id WHERE a.workspace_id=$workspace AND a.phase IN (0,1,2) AND (d.sources=$ordinary OR d.sources=$keyed) ORDER BY CASE WHEN a.phase=2 THEN 0 ELSE 1 END,a.id LIMIT 1"
+                [ "$workspace", box (string workspace)
+                  "$ordinary",
+                  box (
+                      DownloadSource.encode (DownloadSource.Nexus { reference with Keyed = false })
+                  )
+                  "$keyed",
+                  box (DownloadSource.encode (DownloadSource.Nexus { reference with Keyed = true })) ]
+
+        match query.ExecuteScalar() with
+        | :? string as value -> Some(Guid.Parse value)
+        | _ -> None
+
     let start (request: DownloadRequest) =
         protect (fun () ->
             task {
@@ -64,15 +82,33 @@ type internal DownloadRepository(database: StateDatabase, access: LibraryAccess)
                 then
                     refuse ArtifactError.Conflict
 
-                do!
+                let! actualId =
                     db (fun () ->
                         use tx = connection.BeginTransaction(deferred = false)
 
+                        let matching =
+                            match request.Sources with
+                            | [ DownloadSource.Nexus reference ] ->
+                                findNexus tx request.WorkspaceId reference
+                            | _ -> None
+
+                        let selected = defaultArg matching request.Id
+
                         let parameters =
-                            [ "$id", box (string request.Id)
+                            [ "$id", box (string selected)
                               "$workspace", box (string request.WorkspaceId) ]
 
-                        match DownloadRows.work connection tx request.Id with
+                        match DownloadRows.work connection tx selected with
+                        | Some _ when matching.IsSome ->
+                            match request.Sources with
+                            | [ DownloadSource.Nexus reference ] when reference.Keyed ->
+                                Sqlite.execute
+                                    connection
+                                    tx
+                                    "UPDATE artifact_downloads SET sources=$source WHERE artifact_id=$id"
+                                    [ "$source", box (DownloadSource.encode request.Sources.Head)
+                                      "$id", box (string selected) ]
+                            | _ -> ()
                         | Some existing when existing.Request = request -> ()
                         | Some _ -> refuse ArtifactError.Conflict
                         | None ->
@@ -122,9 +158,10 @@ type internal DownloadRepository(database: StateDatabase, access: LibraryAccess)
                                   "$length", ArtifactRows.nullable request.ExpectedLength
                                   "$sha", ArtifactRows.nullable request.ExpectedSha256 ]
 
-                        tx.Commit())
+                        tx.Commit()
+                        selected)
 
-                let! artifact = read request.WorkspaceId request.Id
+                let! artifact = read request.WorkspaceId actualId
                 return Ok artifact
             })
 
@@ -209,6 +246,11 @@ type internal DownloadRepository(database: StateDatabase, access: LibraryAccess)
             })
 
     interface IDownloadRepository with
+        member _.FindNexus(workspace, reference) =
+            db (fun () ->
+                findNexus null workspace reference
+                |> Option.map (fun id -> (find null workspace id).Artifact))
+
         member _.AccountDownloads subject =
             db (fun () ->
                 use query =

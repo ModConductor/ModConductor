@@ -1,0 +1,23 @@
+syntax = "proto3";
+package modconductor.v1;
+option csharp_namespace = "ModConductor.Protocol.V1";
+import "modconductor/v1/nexus.proto";
+import "modconductor/v1/artifacts.proto";
+
+service NexusLinks {
+  rpc ConfigureNexusIngress(NexusIngressRequest) returns (NexusIngressReply);
+  rpc ReadNexusLink(NexusLinkRequest) returns (NexusLinkReply);
+  rpc DownloadNexusLink(NexusLinkRequest) returns (NexusLinkReply);
+  rpc DismissNexusLink(NexusLinkRequest) returns (NexusStatusRequest);
+}
+message NexusIngressRequest { int32 process_id = 1; }
+message NexusIngressReply { string endpoint = 1; bytes capability = 2; int32 process_id = 3; }
+message NexusLinkRequest { string reference = 1; string workspace_id = 2; }
+message NexusLinkReply {
+  string game = 1;
+  NexusFileInfo file = 2;
+  string problem = 3;
+  bool sign_in_required = 4;
+  ArchiveArtifact artifact = 5;
+  string problem_detail = 6;
+}

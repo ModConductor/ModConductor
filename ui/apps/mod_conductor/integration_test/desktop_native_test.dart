@@ -104,7 +104,7 @@ void main() {
       try {
         await owner.connect();
         expect(owner.state, isA<EngineConnected>());
-        requests.attach(owner.desktop);
+        requests.attach(owner.desktop, nxm: owner.nxm);
         await owner.workspaces!.create(workspace, 'Weekend', root.path);
         await owner.workspaces!.createProfile(
           workspace,

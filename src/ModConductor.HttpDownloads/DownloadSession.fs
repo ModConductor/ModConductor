@@ -205,6 +205,9 @@ type DownloadSession
             return! ended
         }
 
+    member _.FindNexus(workspace, reference) =
+        repository.FindNexus(workspace, reference)
+
     member _.Start request =
         guarded (fun () ->
             task {

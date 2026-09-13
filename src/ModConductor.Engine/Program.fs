@@ -64,6 +64,12 @@ let runWithNexus registration (handoff: ModConductor.Nexus.IOAuthHandoff) args =
 
     downloads <- Some store.Downloads
 
+    use nxmIngress =
+        new ModConductor.Desktop.PrivateIngress(
+            (fun (id, input) -> nexus.AcceptNxm(id, input)),
+            nexus.DismissNxm
+        )
+
     let sqliteVersion = store.SqliteVersion
 
     let coordinator =
@@ -100,6 +106,17 @@ let runWithNexus registration (handoff: ModConductor.Nexus.IOAuthHandoff) args =
     builder.Services.AddSingleton<ModConductor.Nexus.IOAuthHandoff>(handoff)
     |> ignore
 
+    builder.Services.AddSingleton<ModConductor.Desktop.ILinkSetup>(
+        ModConductor.Desktop.LinkSetup.create directory
+    )
+    |> ignore
+
+    builder.Services.AddSingleton<ModConductor.Engine.LinkSetupService>() |> ignore
+
+    builder.Services.AddSingleton<ModConductor.Desktop.PrivateIngress>(nxmIngress)
+    |> ignore
+
+    builder.Services.AddSingleton<ModConductor.Engine.NxmService>() |> ignore
     builder.Services.AddSingleton<ModConductor.Engine.NexusService>() |> ignore
     builder.Services.AddSingleton<ModConductor.Engine.DesktopService>() |> ignore
 
@@ -305,6 +322,8 @@ let runWithNexus registration (handoff: ModConductor.Nexus.IOAuthHandoff) args =
     app.MapGrpcService<ModConductor.Engine.DeletionService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.CredentialService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.NexusService>() |> ignore
+    app.MapGrpcService<ModConductor.Engine.NxmService>() |> ignore
+    app.MapGrpcService<ModConductor.Engine.LinkSetupService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.DesktopService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.DownloadService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.DeploymentService>() |> ignore
@@ -344,6 +363,7 @@ let runWithNexus registration (handoff: ModConductor.Nexus.IOAuthHandoff) args =
     |> ignore
 
     app.WaitForShutdownAsync().GetAwaiter().GetResult()
+    nxmIngress.Stop().GetAwaiter().GetResult()
     store.Installations.Stop().GetAwaiter().GetResult()
     store.Deletions.Stop().GetAwaiter().GetResult()
     store.Downloads.Stop().GetAwaiter().GetResult()

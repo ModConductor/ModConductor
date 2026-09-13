@@ -26,7 +26,8 @@ type NexusDownloadLinks(session: NexusSession) =
                             reference.Game,
                             reference.ModId,
                             reference.FileId,
-                            reference.Account
+                            reference.Account,
+                            requiresLink = reference.Keyed
                         )
                         .WaitAsync
                         token
@@ -132,7 +133,8 @@ type NexusService
                                           { Account = account.Subject
                                             Game = game
                                             ModId = request.ModId
-                                            FileId = request.FileId } ]
+                                            FileId = request.FileId
+                                            Keyed = false } ]
                                   ExpectedLength = file.Bytes
                                   ExpectedSha256 = None }
 

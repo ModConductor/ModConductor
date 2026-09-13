@@ -39,6 +39,7 @@ type NexusServer() =
     let mutable held: TaskCompletionSource<unit> option = None
     let payload = Array.init (1024 * 1024) (fun n -> byte (n % 251))
     let mutable downloadKey = "synthetic-signed-key-A"
+    let mutable nxmRequests = 0
     let mutable privateHeader = false
     let mutable ranges = 0
     let mutable slow = false
@@ -164,7 +165,15 @@ type NexusServer() =
                     elif mode = "offline" then
                         do! write 503 "{\"error\":\"synthetic-access-secret\"}"
                     elif path.EndsWith "/download_link.json" then
-                        if mode = "entitlement" then
+                        if request.QueryString["key"] = "synthetic-nxm-private-grant" then
+                            nxmRequests <- nxmRequests + 1
+
+                        if
+                            mode = "nxm"
+                            && request.QueryString["key"] <> "synthetic-nxm-private-grant"
+                        then
+                            do! write 403 "{\"error\":\"synthetic-nxm-private-grant\"}"
+                        elif mode = "entitlement" then
                             do! write 403 "{\"error\":\"synthetic-signed-secret\"}"
                         else
                             do!
@@ -327,6 +336,7 @@ type NexusServer() =
         | true, n -> n
         | _ -> 0
 
+    member _.NxmRequests = nxmRequests
     member _.PrivateHeader = privateHeader
     member _.Ranges = ranges
     member _.Root = root

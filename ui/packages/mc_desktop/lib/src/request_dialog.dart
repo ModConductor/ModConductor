@@ -1,3 +1,5 @@
+import 'nxm_request_dialog.dart';
+
 import 'package:flutter/material.dart';
 import 'package:mc_artifacts/mc_artifacts.dart';
 import 'package:mc_client/mc_client.dart';
@@ -7,7 +9,18 @@ import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 import 'requests.dart';
 
 class DesktopRequestChoice {
-  const DesktopRequestChoice(this.id, this.intent, this.workspace);
+  const DesktopRequestChoice(this.id, this.intent, this.workspace)
+    : artifact = null;
+  DesktopRequestChoice.nexus(this.id, Artifact value, WorkspaceInfo target)
+    : artifact = value,
+      workspace = target,
+      intent = DesktopIntent(
+        DesktopIntentKind.archives,
+        target.path,
+        target.id,
+        0,
+      );
+  final Artifact? artifact;
   final int id;
   final DesktopIntent intent;
   final WorkspaceInfo? workspace;
@@ -19,14 +32,22 @@ class OpenRequestsDialog extends StatelessWidget {
     required this.requests,
     required this.workspaces,
     this.onRetry,
+    this.onPreferences,
   });
   final DesktopRequests requests;
   final WorkspaceController workspaces;
   final VoidCallback? onRetry;
+  final VoidCallback? onPreferences;
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: Listenable.merge([requests, workspaces]),
     builder: (context, _) {
+      if (requests.isNexus)
+        return NexusRequestDialog(
+          requests: requests,
+          workspaces: workspaces,
+          onPreferences: onPreferences,
+        );
       final intent = requests.intent;
       final archive = intent?.kind == DesktopIntentKind.archive;
       final selected = workspaces.recent
@@ -181,5 +202,7 @@ Future<void> openDesktopRequest(
       return;
     }
   }
+  if (choice.artifact case final artifact?)
+    artifacts.acceptDownload(artifact, select: true);
   await requests.dismiss(choice.id);
 }

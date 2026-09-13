@@ -36,6 +36,16 @@ type NexusSession
     let mutable disconnecting = false
     let mutable problem = None
     let mutable signIn: Task = Task.CompletedTask
+    let nxm = NxmAuthorizations()
+
+    let nxmExpiry =
+        new Timer(
+            TimerCallback(fun _ -> lock gate (fun () -> nxm.Expire())),
+            null,
+            TimeSpan.FromSeconds 30.,
+            TimeSpan.FromSeconds 30.
+        )
+
     let leases = Dictionary<string * int64 * int64 * string, DownloadLease>()
 
     let configured () =
@@ -386,6 +396,7 @@ type NexusSession
                     lifetime <- new CancellationTokenSource()
                     account <- None
                     leases.Clear()
+                    nxm.Clear()
                     boundSubject <- None
                     tokens <- None
                     waiting <- false
@@ -499,7 +510,42 @@ type NexusSession
                 return file
             })
 
-    member _.Resolve(game: string, modId: int64, fileId: int64, subject: string) =
+    member _.AcceptNxm(id, input) =
+        lock gate (fun () -> nxm.Accept(id, input))
+
+    member _.ReadNxm id =
+        lock gate (fun () -> nxm.Read id |> Result.map (fun link -> link.File))
+
+    member _.ValidateNxm(id, subject) =
+        lock gate (fun () -> nxm.Validate(id, subject) |> Result.map (fun link -> link.File))
+
+    member _.AdmitNxm(id, subject) =
+        lock gate (fun () ->
+            let epoch = generation
+
+            if account |> Option.forall (fun value -> value.Subject <> subject) then
+                Error Nxm.mismatch
+            else
+                nxm.Admit(id, subject)
+                |> Result.map (fun (file, cancel) ->
+                    if file.Keyed then
+                        leases.Remove((file.Game, file.ModId, file.FileId, subject)) |> ignore
+
+                    new NxmAdmission(
+                        file,
+                        fun () ->
+                            lock gate (fun () ->
+                                if
+                                    epoch = generation && not lifetime.IsCancellationRequested
+                                then
+                                    cancel ())
+                    )))
+
+    member _.DismissNxm id = lock gate (fun () -> nxm.Dismiss id)
+
+    member _.Resolve
+        (game: string, modId: int64, fileId: int64, subject: string, ?requiresLink: bool)
+        =
         run (fun epoch token ->
             task {
                 if game <> "skyrimspecialedition" || modId <= 0L || fileId <= 0L then
@@ -514,6 +560,22 @@ type NexusSession
                     raise (NexusException NexusProblem.DownloadAccount)
 
                 let key = game, modId, fileId, subject
+
+                let grant = lock gate (fun () -> nxm.Grant key)
+
+                if defaultArg requiresLink false && grant.IsNone then
+                    raise (NexusException NexusProblem.DownloadLinkNeeded)
+
+                let query =
+                    grant
+                    |> Option.map (fun g ->
+                        "?key="
+                        + Uri.EscapeDataString g.Key
+                        + "&expires="
+                        + g.Expires
+                            .ToUnixTimeSeconds()
+                            .ToString(System.Globalization.CultureInfo.InvariantCulture))
+                    |> Option.defaultValue ""
 
                 let cached =
                     lock gate (fun () ->
@@ -538,7 +600,8 @@ type NexusSession
                              + (modId).ToString(System.Globalization.CultureInfo.InvariantCulture)
                              + "/files/"
                              + (fileId).ToString(System.Globalization.CultureInfo.InvariantCulture)
-                             + "/download_link.json"),
+                             + "/download_link.json"
+                             + query),
                             bearer,
                             true,
                             token
@@ -596,6 +659,7 @@ type NexusSession
                     lifetime.Cancel()
                     tokens <- None
                     leases.Clear()
+                    nxm.Clear()
                     signIn)
 
             do! pending
@@ -607,6 +671,7 @@ type NexusSession
         member this.Dispose() =
             this.Stop().GetAwaiter().GetResult()
             transport |> Option.iter (fun value -> (value :> IDisposable).Dispose())
+            nxmExpiry.Dispose()
             lifetime.Dispose()
             refreshGate.Dispose()
             commit.Dispose()

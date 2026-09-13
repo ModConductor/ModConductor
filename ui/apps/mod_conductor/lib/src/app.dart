@@ -69,6 +69,7 @@ class ModConductorApp extends StatefulWidget {
     this.bain,
     this.credentials,
     this.nexus,
+    this.linkSetup,
     this.bundles,
     this.chooseArchive = desktop.chooseArchive,
     this.chooseExecutable = desktop.chooseExecutable,
@@ -97,6 +98,7 @@ class ModConductorApp extends StatefulWidget {
   final BainClient? bain;
   final CredentialsClient? credentials;
   final NexusClient? nexus;
+  final LinkSetupClient? linkSetup;
   final BundlesClient? bundles;
   final ArchiveChooser chooseArchive;
   final ExecutablePathChooser chooseExecutable;
@@ -302,12 +304,18 @@ class _ModConductorAppState extends State<ModConductorApp> {
           onRequests: () async {
             final requests = widget.desktopRequests;
             if (requests == null) return;
+            if (!requests.hasWorkspaceSelection) {
+              requests.selectWorkspace(_workspaces.workspace?.id);
+            } else {
+              unawaited(requests.recheck());
+            }
             final choice = await showDialog<DesktopRequestChoice>(
               context: context,
               builder: (_) => OpenRequestsDialog(
                 requests: requests,
                 workspaces: _workspaces,
                 onRetry: widget.onRetry,
+                onPreferences: () => _navigate(_Destination.preferences),
               ),
             );
             if (choice != null && context.mounted) {
@@ -502,6 +510,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
                 child: _PreferencesPage(
                   credentials: widget.credentials,
                   nexus: widget.nexus,
+                  linkSetup: widget.linkSetup,
                   applied: _applied,
                   draft: _draft,
                   detailsFocus: _detailsFocus,

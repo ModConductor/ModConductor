@@ -4,6 +4,9 @@
     <Compile Include="Activation.fs" />
     <Compile Include="StateLease.fs" />
     <Compile Include="WebLink.fs" />
+    <Compile Include="PrivateIngress.fs" />
+    <Compile Include="LinkSetup.fs" />
+    <Compile Include="WindowsLinkSetup.fs" />
     <ProjectReference Include="../ModConductor.Platform/ModConductor.Platform.fsproj" />
     <PackageReference Include="FSharp.Core" />
   </ItemGroup>

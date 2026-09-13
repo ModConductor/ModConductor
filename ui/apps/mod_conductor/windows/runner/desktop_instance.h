@@ -8,7 +8,7 @@
 #include <memory>
 #include <thread>
 
-#include "../../runner/desktop_requests.h"
+#include "../../runner/nxm_delivery.h"
 
 class DesktopInstance {
  public:
@@ -19,7 +19,9 @@ class DesktopInstance {
   bool Forward(const desktop::Arguments& arguments);
   void Attach(flutter::BinaryMessenger* messenger, HWND window);
   bool Add(const desktop::Arguments& arguments) {
-    return requests_.Add(arguments);
+    const bool result = requests_.Add(arguments);
+    if (nxm_) nxm_->Notify();
+    return result;
   }
   void Changed(bool present);
   void Detach();
@@ -36,6 +38,7 @@ class DesktopInstance {
   std::wstring pipe_name_, pipe_descriptor_;
   std::thread listener_;
   desktop::Requests requests_;
+  std::unique_ptr<desktop::NxmDelivery> nxm_;
   std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>> channel_;
 };
 #endif

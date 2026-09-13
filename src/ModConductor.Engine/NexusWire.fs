@@ -12,6 +12,7 @@ module internal NexusWire =
             | NexusProblem.Cancelled -> "cancelled"
             | NexusProblem.InvalidCallback -> "invalid_callback"
             | NexusProblem.AccountChanged -> "account_changed"
+            | NexusProblem.DownloadLinkNeeded -> "download_link_needed"
             | NexusProblem.DownloadAccount -> "download_account"
             | NexusProblem.Storage _ -> "storage"
             | NexusProblem.Entitlement -> "entitlement"

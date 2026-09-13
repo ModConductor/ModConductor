@@ -4,6 +4,7 @@ class _PreferencesPage extends StatelessWidget {
   const _PreferencesPage({
     required this.credentials,
     required this.nexus,
+    required this.linkSetup,
     required this.applied,
     required this.draft,
     required this.onDraft,
@@ -13,6 +14,7 @@ class _PreferencesPage extends StatelessWidget {
   });
   final CredentialsClient? credentials;
   final NexusClient? nexus;
+  final LinkSetupClient? linkSetup;
   final _Preferences applied;
   final _Preferences draft;
   final ValueChanged<_Preferences> onDraft;
@@ -86,6 +88,8 @@ class _PreferencesPage extends StatelessWidget {
       ),
       const SizedBox(height: McSpacing.medium),
       CredentialPreferences(client: credentials, nexus: nexus),
+      const SizedBox(height: McSpacing.medium),
+      NexusLinkPreferences(client: linkSetup),
     ],
   );
 }

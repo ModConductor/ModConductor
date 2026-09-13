@@ -13,6 +13,7 @@ type NexusProblem =
     | InvalidCallback
     | AccountChanged
     | DownloadAccount
+    | DownloadLinkNeeded
     | Storage of StorageProblem
     | Entitlement
     | Forbidden
@@ -91,6 +92,8 @@ module NexusProblem =
         | NexusProblem.InvalidCallback -> "The sign-in response did not match this request."
         | NexusProblem.AccountChanged ->
             "Nexus Mods returned a different account. Disconnect before changing accounts."
+        | NexusProblem.DownloadLinkNeeded ->
+            "A new download link is needed. Use Mod Manager Download on Nexus Mods again."
         | NexusProblem.DownloadAccount -> "Use the Nexus account that started this download."
         | NexusProblem.Storage StorageProblem.Locked ->
             "Unlock the system keyring or choose This session only, then sign in again."

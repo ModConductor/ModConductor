@@ -2,7 +2,9 @@
 #define MOD_CONDUCTOR_DESKTOP_CHANNEL_H_
 #include <flutter_linux/flutter_linux.h>
 
-#include "../../runner/desktop_requests.h"
+#include "../../runner/nxm_delivery.h"
+#include <atomic>
+#include <memory>
 
 class DesktopChannel {
  public:
@@ -17,6 +19,8 @@ class DesktopChannel {
   void Changed();
   bool available_;
   desktop::Requests requests_;
+  std::shared_ptr<std::atomic<bool>> alive_ = std::make_shared<std::atomic<bool>>(true);
+  std::unique_ptr<desktop::NxmDelivery> nxm_;
   FlMethodChannel* channel_ = nullptr;
 };
 #endif

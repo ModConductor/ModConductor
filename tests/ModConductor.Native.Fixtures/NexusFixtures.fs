@@ -14,7 +14,7 @@ open ModConductor.ArtifactLibrary
 open ModConductor.Persistence
 open ModConductor.Workspaces
 
-type private NexusMemoryStore() =
+type internal NexusMemoryStore() =
     let mutable bytes: byte[] option = None
     let mutable saves = 0
     member _.Bytes = bytes |> Option.map Array.copy
@@ -275,7 +275,8 @@ module NexusFixtures =
                       { Account = "42"
                         Game = "skyrimspecialedition"
                         ModId = 64012L
-                        FileId = 501L } ]
+                        FileId = 501L
+                        Keyed = false } ]
               ExpectedLength = Some 1048576L
               ExpectedSha256 = None }
         |> wait

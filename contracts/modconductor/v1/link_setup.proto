@@ -1,0 +1,20 @@
+syntax = "proto3";
+package modconductor.v1;
+option csharp_namespace = "ModConductor.Protocol.V1";
+service NexusLinkSetup {
+  rpc ReadLinkSetup(LinkSetupRequest) returns (LinkSetupReply);
+  rpc AddLinkSetup(AddLinkSetupRequest) returns (LinkSetupReply);
+  rpc RemoveLinkSetup(LinkSetupRequest) returns (LinkSetupReply);
+  rpc OpenLinkDefaults(LinkSetupRequest) returns (LinkSetupReply);
+}
+message LinkSetupRequest {}
+message AddLinkSetupRequest { string executable = 1; }
+enum LinkDefault { LINK_DEFAULT_UNKNOWN = 0; LINK_DEFAULT_MC = 1; LINK_DEFAULT_OTHER = 2; LINK_DEFAULT_NONE = 3; }
+message LinkSetupReply {
+  bool windows = 1;
+  optional bool available = 2;
+  LinkDefault default_app = 3;
+  bool changed = 4;
+  optional string problem = 5;
+  bool can_remove = 6;
+}

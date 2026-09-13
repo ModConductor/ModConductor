@@ -1,3 +1,5 @@
+import 'link_setup_client.dart';
+import 'nxm_client.dart';
 import 'desktop_client.dart';
 import 'nexus_client.dart';
 import 'credential_client.dart';
@@ -43,6 +45,10 @@ class EngineSession {
   ProtonContextsClient get protonContexts => _protonContexts!;
   SteamDiscoveryClient? _steamDiscovery;
   SteamDiscoveryClient get steamDiscovery => _steamDiscovery!;
+  LinkSetupClient? _linkSetup;
+  LinkSetupClient get linkSetup => _linkSetup!;
+  NxmClient? _nxm;
+  NxmClient get nxm => _nxm!;
   DesktopClient? _desktop;
   DesktopClient get desktop => _desktop!;
   NexusClient? _nexus;
@@ -138,6 +144,8 @@ class EngineSession {
     );
     _bain = GrpcBainClient(channel, CallOptions(metadata: options.metadata));
     _desktop = GrpcDesktopClient(channel, options);
+    _nxm = NxmClient(channel, options);
+    _linkSetup = LinkSetupClient(channel, options);
     _nexus = GrpcNexusClient(channel, CallOptions(metadata: options.metadata));
     _credentials = GrpcCredentialsClient(
       channel,

@@ -1,3 +1,5 @@
+import 'link_setup_client.dart';
+import 'nxm_client.dart';
 import 'desktop_client.dart';
 import 'nexus_client.dart';
 import 'credential_client.dart';
@@ -77,6 +79,9 @@ class EngineOwner {
   SteamDiscoveryClient? get steamDiscovery =>
       _state is EngineConnected ? _session?.steamDiscovery : null;
   BainClient? get bain => _session?.bain;
+  LinkSetupClient? get linkSetup =>
+      _state is EngineConnected ? _session?.linkSetup : null;
+  NxmClient? get nxm => _state is EngineConnected ? _session?.nxm : null;
   DesktopClient? get desktop =>
       _state is EngineConnected ? _session?.desktop : null;
   NexusClient? get nexus => _state is EngineConnected ? _session?.nexus : null;

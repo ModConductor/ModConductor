@@ -37,7 +37,7 @@ class _DesktopHostState extends State<DesktopHost> with WidgetsBindingObserver {
     );
     _requests = DesktopRequests();
     _changes = _owner.changes.listen((_) {
-      _requests.attach(_owner.desktop);
+      _requests.attach(_owner.desktop, nxm: _owner.nxm);
       if (mounted) setState(() {});
     });
     unawaited(_owner.connect());
@@ -77,6 +77,7 @@ class _DesktopHostState extends State<DesktopHost> with WidgetsBindingObserver {
     bain: _owner.bain,
     credentials: _owner.credentials,
     nexus: _owner.nexus,
+    linkSetup: _owner.linkSetup,
     bundles: _owner.bundles,
     steamDiscovery: _owner.steamDiscovery,
     protonContexts: _owner.protonContexts,

@@ -10,7 +10,8 @@ type NexusFileReference =
     { Account: string
       Game: string
       ModId: int64
-      FileId: int64 }
+      FileId: int64
+      Keyed: bool }
 
 [<RequireQualifiedAccess>]
 type DownloadSource =
@@ -70,6 +71,7 @@ type IDownloadTarget =
     abstract Publish: int64 * string -> Task
 
 type IDownloadRepository =
+    abstract FindNexus: Guid * NexusFileReference -> Task<Artifact option>
     abstract AccountDownloads: string -> Task<(Guid * Guid) list>
     abstract Read: Guid * Guid -> Task<Result<Artifact, ArtifactError>>
     abstract Start: DownloadRequest -> Task<Result<Artifact, ArtifactError>>
@@ -104,14 +106,17 @@ module DownloadSource =
         | DownloadSource.Nexus value ->
             String.concat
                 "/"
-                [ "nexus:"
+                [ (if value.Keyed then "nexus-link:" else "nexus:")
                   Uri.EscapeDataString value.Account
                   value.Game
                   string value.ModId
                   string value.FileId ]
 
     let decode (source: string) =
-        if source.StartsWith("nexus:/", StringComparison.Ordinal) then
+        if
+            source.StartsWith("nexus:/", StringComparison.Ordinal)
+            || source.StartsWith("nexus-link:/", StringComparison.Ordinal)
+        then
             let parts = source.Split('/')
 
             if parts.Length <> 5 then
@@ -121,7 +126,8 @@ module DownloadSource =
                 { Account = Uri.UnescapeDataString parts[1]
                   Game = parts[2]
                   ModId = Int64.Parse parts[3]
-                  FileId = Int64.Parse parts[4] }
+                  FileId = Int64.Parse parts[4]
+                  Keyed = parts[0] = "nexus-link:" }
         else
             DownloadSource.Url source
 
