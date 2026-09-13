@@ -39,6 +39,11 @@ let run args =
     use sessionKey = ModConductor.Engine.SessionKey.create ()
     use certificate = ModConductor.Engine.Bootstrap.createCertificate sessionKey.Rsa
 
+    use credentials =
+        new ModConductor.Credentials.CredentialSession(
+            ModConductor.Credentials.CredentialStore.create ()
+        )
+
     use store = new OperationStore(directory)
 
     let sqliteVersion = store.SqliteVersion
@@ -67,6 +72,11 @@ let run args =
         ModConductor.Engine.SessionAuthentication(capability)
     )
     |> ignore
+
+    builder.Services.AddSingleton<ModConductor.Credentials.CredentialSession>(credentials)
+    |> ignore
+
+    builder.Services.AddSingleton<ModConductor.Engine.CredentialService>() |> ignore
 
     builder.Services.AddSingleton<IOperationStore>(store) |> ignore
 
@@ -262,6 +272,7 @@ let run args =
     app.MapGrpcService<ModConductor.Engine.BundleService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.UpdateService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.DeletionService>() |> ignore
+    app.MapGrpcService<ModConductor.Engine.CredentialService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.DownloadService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.DeploymentService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.FilePlanService>() |> ignore

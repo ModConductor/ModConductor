@@ -1,3 +1,4 @@
+import 'credential_client.dart';
 import 'fomod_client.dart';
 import 'bain_client.dart';
 import 'bundle_client.dart';
@@ -74,7 +75,10 @@ class EngineOwner {
   SteamDiscoveryClient? get steamDiscovery =>
       _state is EngineConnected ? _session?.steamDiscovery : null;
   BainClient? get bain => _session?.bain;
-  BundlesClient? get bundles => _state is EngineConnected ? _session?.bundles : null;
+  CredentialsClient? get credentials =>
+      _state is EngineConnected ? _session?.credentials : null;
+  BundlesClient? get bundles =>
+      _state is EngineConnected ? _session?.bundles : null;
   FomodClient? get fomod => _state is EngineConnected ? _session?.fomod : null;
   MaintenanceClient? get maintenance =>
       _state is EngineConnected ? _session?.maintenance : null;

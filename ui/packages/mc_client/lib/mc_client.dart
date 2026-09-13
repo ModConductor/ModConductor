@@ -1,3 +1,4 @@
+export 'src/credential_client.dart';
 export 'src/engine_owner.dart';
 export 'src/operations_client.dart';
 export 'src/workspaces_client.dart';

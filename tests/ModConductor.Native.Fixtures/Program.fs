@@ -9,7 +9,20 @@ open ModConductor.Native.Fixtures
 [<EntryPoint>]
 let main args =
     try
-        if
+        if args.Length = 2 && args[0] = "--credential-worker" then
+            CredentialFixtures.worker args[1]
+            0
+        elif args.Length = 2 && args[0] = "--credentials" then
+            use writer =
+                new Utf8JsonWriter(Console.OpenStandardOutput(), JsonWriterOptions(Indented = true))
+
+            writer.WriteStartObject()
+            writer.WriteBoolean("nativeAot", not RuntimeFeature.IsDynamicCodeSupported)
+            CredentialFixtures.observe writer
+            writer.WriteEndObject()
+            writer.Flush()
+            0
+        elif
             args.Length = 2
             && args[0] = "--inspection-files"
             && Path.IsPathFullyQualified args[1]

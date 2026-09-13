@@ -1,3 +1,4 @@
+import 'credential_client.dart';
 import 'fomod_client.dart';
 import 'bain_client.dart';
 import 'bundle_client.dart';
@@ -40,6 +41,8 @@ class EngineSession {
   ProtonContextsClient get protonContexts => _protonContexts!;
   SteamDiscoveryClient? _steamDiscovery;
   SteamDiscoveryClient get steamDiscovery => _steamDiscovery!;
+  CredentialsClient? _credentials;
+  CredentialsClient get credentials => _credentials!;
   BundlesClient? _bundles;
   BundlesClient get bundles => _bundles!;
   BainClient? _bain;
@@ -128,7 +131,17 @@ class EngineSession {
       CallOptions(metadata: options.metadata),
     );
     _bain = GrpcBainClient(channel, CallOptions(metadata: options.metadata));
-    _bundles = GrpcBundlesClient(channel, CallOptions(metadata: options.metadata));
+    _credentials = GrpcCredentialsClient(
+      channel,
+      CallOptions(
+        metadata: options.metadata,
+        timeout: const Duration(seconds: 20),
+      ),
+    );
+    _bundles = GrpcBundlesClient(
+      channel,
+      CallOptions(metadata: options.metadata),
+    );
     _fomod = GrpcFomodClient(channel, CallOptions(metadata: options.metadata));
     _maintenance = GrpcMaintenanceClient(
       channel,

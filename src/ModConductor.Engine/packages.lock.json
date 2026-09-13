@@ -100,6 +100,12 @@
           "ModConductor.ArchiveInstallation": "[1.0.0, )"
         }
       },
+      "modconductor.credentials": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )"
+        }
+      },
       "modconductor.deployment": {
         "type": "Project",
         "dependencies": {

@@ -1,3 +1,4 @@
+import 'package:mc_credentials/mc_credentials.dart';
 import 'package:mc_artifacts/mc_artifacts.dart';
 import 'package:mc_generated_outputs/mc_generated_outputs.dart';
 import 'package:mc_executables/mc_executables.dart';
@@ -80,6 +81,7 @@ class ModConductorApp extends StatefulWidget {
     this.maintenance,
     this.fomod,
     this.bain,
+    this.credentials,
     this.bundles,
     this.chooseArchive = _chooseArchive,
     this.chooseExecutable = _chooseExecutable,
@@ -105,6 +107,7 @@ class ModConductorApp extends StatefulWidget {
   final MaintenanceClient? maintenance;
   final FomodClient? fomod;
   final BainClient? bain;
+  final CredentialsClient? credentials;
   final BundlesClient? bundles;
   final ArchiveChooser chooseArchive;
   final ExecutablePathChooser chooseExecutable;
@@ -483,6 +486,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
               ExcludeFocus(
                 excluding: _destination != _Destination.preferences,
                 child: _PreferencesPage(
+                  credentials: widget.credentials,
                   applied: _applied,
                   draft: _draft,
                   detailsFocus: _detailsFocus,

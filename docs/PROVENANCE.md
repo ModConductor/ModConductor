@@ -107,3 +107,19 @@ MC-033 inspected the selected-tree mapping and installation completion in
 `installationmanager.cpp:253–280,483–565` and `organizercore.cpp:878–916`.
 These are behavior references. MC uses its own confirmed manifest, single-pass
 payload writes and atomic SQLite publication. No MO2 installer source was copied.
+
+## Credential storage
+
+MC-038 calls the installed Linux libsecret C API dynamically. It does not copy
+libsecret source or add a managed D-Bus package. Qualification used libsecret
+0.21.7 ([LGPL-2.1-or-later](https://gitlab.gnome.org/GNOME/libsecret/-/blob/0.21.7/COPYING)).
+The [upstream API reference](https://gnome.pages.gitlab.gnome.org/libsecret/) reports
+0.21.8; this is not the installed qualification version. Distribution must include
+the native dependency and its applicable notices. Packaging remains separate work.
+
+Windows uses the operating system Credential Manager API. Windows runtime checks
+remain deferred to MC-064. The isolated Linux fixtures use a private D-Bus and
+GNOME Keyring, not a human keyring or live provider credentials.
+
+MO2 `settings.cpp:2552–2660` informed the credential-storage comparison. MC does
+not adopt MO2 client identifiers, credentials, authentication code or source text.

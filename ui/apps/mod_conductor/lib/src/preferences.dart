@@ -2,6 +2,7 @@ part of 'app.dart';
 
 class _PreferencesPage extends StatelessWidget {
   const _PreferencesPage({
+    required this.credentials,
     required this.applied,
     required this.draft,
     required this.onDraft,
@@ -9,6 +10,7 @@ class _PreferencesPage extends StatelessWidget {
     required this.onCancel,
     required this.detailsFocus,
   });
+  final CredentialsClient? credentials;
   final _Preferences applied;
   final _Preferences draft;
   final ValueChanged<_Preferences> onDraft;
@@ -80,6 +82,8 @@ class _PreferencesPage extends StatelessWidget {
           ),
         ],
       ),
+      const SizedBox(height: McSpacing.medium),
+      CredentialPreferences(client: credentials),
     ],
   );
 }

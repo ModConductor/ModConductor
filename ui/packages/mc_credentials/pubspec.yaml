@@ -1,0 +1,14 @@
+name: mc_credentials
+description: Credential storage preferences for Mod Conductor.
+publish_to: none
+resolution: workspace
+environment:
+  sdk: 3.13.2
+  flutter: 3.47.2
+dependencies:
+  flutter:
+    sdk: flutter
+  mc_client:
+    path: ../mc_client
+  mc_ui_foundation:
+    path: ../mc_ui_foundation

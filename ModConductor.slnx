@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/ModConductor.Credentials/ModConductor.Credentials.fsproj" />
     <Project Path="src/ModConductor.Bain/ModConductor.Bain.fsproj" />
   <Project Path="src/ModConductor.BundleInstallation/ModConductor.BundleInstallation.fsproj" />
     <Project Path="src/ModConductor.Fomod/ModConductor.Fomod.fsproj" />

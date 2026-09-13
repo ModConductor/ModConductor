@@ -51,7 +51,9 @@
     <Compile Include="UpdateService.fs" />
     <Compile Include="DeletionWire.fs" />
     <Compile Include="DeletionService.fs" />
+    <Compile Include="CredentialService.fs" />
     <Compile Include="Program.fs" />
+    <ProjectReference Include="../ModConductor.Credentials/ModConductor.Credentials.fsproj" />
     <ProjectReference Include="../ModConductor.SteamDiscovery/ModConductor.SteamDiscovery.fsproj" />
     <ProjectReference Include="../ModConductor.Persistence/ModConductor.Persistence.fsproj" />
     <ProjectReference Include="../ModConductor.Workspaces/ModConductor.Workspaces.fsproj" />
