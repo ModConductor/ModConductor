@@ -58,7 +58,7 @@ void NxmDelivery::Run() {
     lock.unlock();
     while (const auto request = requests_.Pending()) {
       const bool success = Send(target, *request, false);
-      if (!requests_.Delivered(request->serial, success) && success) Send(target, *request, true);
+      if (!requests_.Delivered(request->serial, success)) Send(target, *request, true);
       changed_();
       { std::lock_guard<std::mutex> guard(mutex_); if (stopping_) break; }
     }

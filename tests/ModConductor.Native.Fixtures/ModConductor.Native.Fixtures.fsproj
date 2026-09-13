@@ -20,6 +20,7 @@
     <Compile Include="NexusServer.fs" />
     <Compile Include="NexusFixtures.fs" />
     <Compile Include="NxmFixtures.fs" />
+    <Compile Include="NxmDeliveryFixtures.fs" />
     <Compile Include="DesktopFixtures.fs" />
     <Compile Include="Program.fs"/>
     <ProjectReference Include="../../src/ModConductor.Engine/ModConductor.Engine.fsproj" />

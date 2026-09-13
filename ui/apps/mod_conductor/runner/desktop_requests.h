@@ -102,6 +102,7 @@ class Requests {
       entry.fingerprint = fingerprint;
       std::random_device random;
       for (auto& value : entry.key) value = static_cast<uint8_t>(random());
+      entry.view.reference = Reference(entry.key);
     }
     queue_.push_back(std::move(entry));
     return true;
@@ -122,7 +123,6 @@ class Requests {
       entry.view.delivery_failed = !success;
       if (success) {
         entry.view.private_pending = false;
-        entry.view.reference = Reference(entry.key);
         std::fill(entry.raw.begin(), entry.raw.end(), '\0');
         entry.raw.clear();
       }

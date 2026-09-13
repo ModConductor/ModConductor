@@ -9,7 +9,17 @@ open ModConductor.Native.Fixtures
 [<EntryPoint>]
 let main args =
     try
-        if args.Length = 2 && args[0] = "--nxm" then
+        if args.Length = 3 && args[0] = "--nxm-delivery" then
+            use writer =
+                new Utf8JsonWriter(Console.OpenStandardOutput(), JsonWriterOptions(Indented = true))
+
+            writer.WriteStartObject()
+            writer.WriteBoolean("nativeAot", not RuntimeFeature.IsDynamicCodeSupported)
+            NxmDeliveryFixtures.observe writer args[1] args[2]
+            writer.WriteEndObject()
+            writer.Flush()
+            0
+        elif args.Length = 2 && args[0] = "--nxm" then
             use writer =
                 new Utf8JsonWriter(Console.OpenStandardOutput(), JsonWriterOptions(Indented = true))
 
