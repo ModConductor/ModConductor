@@ -27,6 +27,8 @@
     <Compile Include="ProtonContextService.fs" />
     <Compile Include="FilePlanWire.fs" />
     <Compile Include="FilePlanService.fs" />
+    <Compile Include="BethesdaPluginWire.fs" />
+    <Compile Include="BethesdaPluginService.fs" />
     <Compile Include="OutputWire.fs" />
     <Compile Include="OutputService.fs" />
     <Compile Include="DeploymentWire.fs" />

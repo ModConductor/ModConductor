@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><IsAotCompatible>true</IsAotCompatible></PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Contracts.fs" />
+    <Compile Include="HeaderReader.fs" />
+    <Compile Include="MasterGraph.fs" />
+    <Compile Include="PluginSession.fs" />
+    <ProjectReference Include="../ModConductor.FilePlanning/ModConductor.FilePlanning.fsproj" />
+    <PackageReference Include="FSharp.Core" />
+  </ItemGroup>
+</Project>

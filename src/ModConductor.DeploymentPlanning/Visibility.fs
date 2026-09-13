@@ -58,20 +58,11 @@ module Visibility =
         SHA256.HashData(bytes.GetBuffer().AsSpan(0, int bytes.Length))
         |> Convert.ToHexStringLower
 
-    let private resolve target hidden sources =
-        let eligible =
-            sources
-            |> List.filter (fun source ->
-                copy source.Source |> Option.forall (fun id -> not (Set.contains id hidden)))
+    let eligible hidden source =
+        copy source |> Option.forall (fun id -> not (Set.contains id hidden))
 
-        match eligible with
-        | [] -> None
-        | winner :: alternatives ->
-            Some
-                { Target = target
-                  Winner = winner
-                  Alternatives = alternatives
-                  Reason = TargetResolution.reason winner alternatives }
+    let private resolve target hidden sources =
+        TargetResolution.select target (fun source -> eligible hidden source.Source) sources
 
     let prepare input =
         let original = Planner.compute input.Planning

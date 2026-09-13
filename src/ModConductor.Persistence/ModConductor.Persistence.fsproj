@@ -117,6 +117,7 @@
     <ProjectReference Include="../ModConductor.Deployment/ModConductor.Deployment.fsproj" />
     <ProjectReference Include="../ModConductor.DeploymentGenerations/ModConductor.DeploymentGenerations.fsproj" />
     <ProjectReference Include="../ModConductor.DeploymentRecovery/ModConductor.DeploymentRecovery.fsproj" />
+    <ProjectReference Include="../ModConductor.Bethesda/ModConductor.Bethesda.fsproj" />
     <ProjectReference Include="../ModConductor.FilePlanning/ModConductor.FilePlanning.fsproj" />
     <ProjectReference Include="../ModConductor.ProtonContexts/ModConductor.ProtonContexts.fsproj" />
     <ProjectReference Include="../ModConductor.GameContexts/ModConductor.GameContexts.fsproj" />

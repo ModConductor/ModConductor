@@ -70,7 +70,7 @@ module internal PlanningPaths =
         | WritableTarget.File(_, path) -> PlanPath.At path
         | WritableTarget.Subtree(_, path) -> path
 
-    let sortedContributions values =
+    let sortContributions sourcePath (values: FileContribution<'Source> list) =
         values
         |> List.sortBy (fun item ->
             let tier, priority = rank item.Precedence
@@ -80,3 +80,5 @@ module internal PlanningPaths =
             item.LayerId,
             LogicalPath.components (sourcePath item.Source),
             item.Source)
+
+    let sortedContributions values = sortContributions sourcePath values

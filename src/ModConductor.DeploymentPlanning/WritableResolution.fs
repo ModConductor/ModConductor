@@ -5,6 +5,24 @@ open System.Collections.Generic
 open ModConductor.Platform
 
 module internal WritableResolution =
+    let prefix policy (parent: string) (child: string) =
+        parent = ""
+        || (child.Length >= parent.Length
+            && (TargetPolicy.comparer policy).Equals(parent, child.Substring(0, parent.Length))
+            && (child.Length = parent.Length || child[parent.Length] = '/'))
+
+    let covers policy (declaration: WritableDeclaration) (target: TargetFile) =
+        target.Root = PlanningPaths.rootOf declaration.Target
+        && (match declaration.Target with
+            | WritableTarget.File(_, path) ->
+                (TargetPolicy.comparer policy)
+                    .Equals(PlanningPaths.key policy path, PlanningPaths.key policy target.Path)
+            | WritableTarget.Subtree(_, path) ->
+                prefix
+                    policy
+                    (PlanningPaths.locationKey policy path)
+                    (PlanningPaths.key policy target.Path))
+
     let project
         (roots: Dictionary<Guid, TargetPolicy>)
         (files: ResolvedFile list)
@@ -15,11 +33,6 @@ module internal WritableResolution =
         let valid = ResizeArray<WritableDeclaration * TargetPolicy * string>()
         let identities = HashSet<Guid>()
 
-        let prefix policy (parent: string) (child: string) =
-            parent = ""
-            || (child.Length >= parent.Length
-                && (TargetPolicy.comparer policy).Equals(parent, child.Substring(0, parent.Length))
-                && (child.Length = parent.Length || child[parent.Length] = '/'))
 
         for declaration in declarations |> List.sort do
             if not (identities.Add declaration.Id) then
@@ -81,14 +94,8 @@ module internal WritableResolution =
         for file in files do
             let owner =
                 valid
-                |> Seq.tryFind (fun (declaration, policy, key) ->
-                    file.Target.Root = PlanningPaths.rootOf declaration.Target
-                    && (match declaration.Target with
-                        | WritableTarget.File _ ->
-                            (TargetPolicy.comparer policy)
-                                .Equals(key, PlanningPaths.key policy file.Target.Path)
-                        | WritableTarget.Subtree _ ->
-                            prefix policy key (PlanningPaths.key policy file.Target.Path)))
+                |> Seq.tryFind (fun (declaration, policy, _) ->
+                    covers policy declaration file.Target)
 
             match owner with
             | None -> readOnly.Add file

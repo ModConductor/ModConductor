@@ -28,6 +28,7 @@ class ModLibraryBrowser extends StatefulWidget {
     required this.workspacePath,
     this.chooseDirectory = chooseModDirectory,
     this.filePanes = const [],
+    this.paneLabel = 'Files',
     this.singlePane,
     this.maintenance,
     this.onOpenDeployment,
@@ -39,6 +40,7 @@ class ModLibraryBrowser extends StatefulWidget {
   final String workspacePath;
   final ModDirectoryChooser chooseDirectory;
   final List<ModFilePane> filePanes;
+  final String paneLabel;
   final bool? singlePane;
   final void Function(ModEntry)? onOpenNexus;
   final MaintenanceClient? maintenance;
@@ -617,7 +619,7 @@ class _ModLibraryBrowserState extends State<ModLibraryBrowser> {
             );
           }
           return McChoice<String>(
-            label: includeMods ? 'View' : 'Files',
+            label: includeMods ? 'View' : widget.paneLabel,
             value: selected,
             choices: [
               if (includeMods) 'mods',

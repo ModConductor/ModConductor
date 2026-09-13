@@ -30,11 +30,7 @@ type ObservedEntry =
       Length: int64
       Modified: DateTime }
 
-type GameFileSource =
-    { Root: HostPath
-      RootIdentity: FileIdentity
-      Path: LogicalPath
-      Identity: FileIdentity }
+type GameFileSource = ObservedFileSource
 
 type GameOwnedLink = { Path: LogicalPath; Entry: HeldEntry }
 
@@ -223,3 +219,18 @@ type IFilePlans =
         Guid * ModFile * bool * CancellationToken -> Task<Result<VisibilityChange, FilePlanError>>
 
     abstract History: Guid * ModFile * int64 option -> Task<Result<FileHistoryPage, FilePlanError>>
+
+/// Candidate reads keep header inspection separate from full deployment acquisition.
+type IFileCandidateRepository =
+    inherit IFilePlanRepository
+
+    abstract CandidateProjection:
+        SourceStamp * (LogicalPath -> bool) * CancellationToken ->
+            Task<Result<GameProjection, FilePlanError>>
+
+    abstract OpenManaged:
+        Guid * SourcePin * CancellationToken -> Task<Result<System.IO.FileStream, FilePlanError>>
+
+type CandidateObservation =
+    { Sources: PlanSources
+      Plan: CandidatePlan }

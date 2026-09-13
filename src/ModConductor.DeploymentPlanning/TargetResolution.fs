@@ -4,25 +4,45 @@ open System
 open System.Collections.Generic
 open ModConductor.Platform
 
+[<RequireQualifiedAccess>]
+type internal ResolutionIssue<'Source> =
+    | TargetAlias of TargetFile * FileContribution<'Source> list
+    | PrecedenceTie of TargetFile * FileContribution<'Source> list
+    | DirectorySpellingTie of TargetFile * FileContribution<'Source> list
+    | FileDirectoryConflict of TargetFile
+
 module internal TargetResolution =
-    let reason (winner: Contribution) alternatives =
+    let reason (winner: FileContribution<'Source>) alternatives =
         match alternatives with
         | [] -> WinnerReason.OnlyContribution
         | next :: _ when next.Precedence.Tier <> winner.Precedence.Tier ->
             WinnerReason.HigherLayerTier
         | _ -> WinnerReason.HigherPriority
 
-    let resolve
+    let select target eligible (sources: FileContribution<'Source> list) =
+        match sources |> List.filter eligible with
+        | [] -> None
+        | winner :: alternatives ->
+            Some
+                { Target = target
+                  Winner = winner
+                  Alternatives = alternatives
+                  Reason = reason winner alternatives }
+
+    let resolveCore
+        sourcePath
         (roots: Dictionary<Guid, TargetPolicy>)
         contributions
-        (issues: ResizeArray<PlanningIssue>)
+        (issues: ResizeArray<ResolutionIssue<'Source>>)
         =
-        let resolved = ResizeArray<ResolvedFile>()
+        let resolved = ResizeArray<ResolvedTarget<'Source>>()
         let directories = ResizeArray<TargetFile>()
 
         for KeyValue(root, policy) in roots do
-            let files = PlanningPaths.table<ResizeArray<Contribution>> policy
-            let folders = PlanningPaths.table<ResizeArray<LogicalPath * Contribution>> policy
+            let files = PlanningPaths.table<ResizeArray<FileContribution<'Source>>> policy
+
+            let folders =
+                PlanningPaths.table<ResizeArray<LogicalPath * FileContribution<'Source>>> policy
 
             for contribution in
                 contributions |> List.filter (fun value -> value.MappedTarget.Root = root) do
@@ -58,9 +78,11 @@ module internal TargetResolution =
                 for _, entries in ordered |> List.groupBy (fun (_, value) -> value.LayerId) do
                     if entries |> List.map fst |> List.distinct |> List.length > 1 then
                         issues.Add(
-                            PlanningIssue.TargetAlias(
+                            ResolutionIssue.TargetAlias(
                                 address,
-                                entries |> List.map snd |> PlanningPaths.sortedContributions
+                                entries
+                                |> List.map snd
+                                |> PlanningPaths.sortContributions sourcePath
                             )
                         )
 
@@ -69,16 +91,16 @@ module internal TargetResolution =
 
                 if tied |> List.map fst |> List.distinct |> List.length > 1 then
                     issues.Add(
-                        PlanningIssue.DirectorySpellingTie(
+                        ResolutionIssue.DirectorySpellingTie(
                             address,
-                            tied |> List.map snd |> PlanningPaths.sortedContributions
+                            tied |> List.map snd |> PlanningPaths.sortContributions sourcePath
                         )
                     )
 
                 spellings.Add(key, chosenPath)
 
                 if files.ContainsKey key then
-                    issues.Add(PlanningIssue.FileDirectoryConflict address)
+                    issues.Add(ResolutionIssue.FileDirectoryConflict address)
 
             let canonical path =
                 let parents = PlanningPaths.prefixes path
@@ -96,7 +118,7 @@ module internal TargetResolution =
                 directories.Add { Root = root; Path = canonical path }
 
             for KeyValue(_, values) in files do
-                let ordered = values |> Seq.toList |> PlanningPaths.sortedContributions
+                let ordered = values |> Seq.toList |> PlanningPaths.sortContributions sourcePath
                 let winner = List.head ordered
 
                 let target =
@@ -108,12 +130,12 @@ module internal TargetResolution =
                 for _, entries in ordered |> List.groupBy _.LayerId do
                     if entries.Length > 1 then
                         ambiguous <- true
-                        issues.Add(PlanningIssue.TargetAlias(target, entries))
+                        issues.Add(ResolutionIssue.TargetAlias(target, entries))
 
                 for _, entries in ordered |> List.groupBy _.Precedence do
                     if entries.Length > 1 then
                         ambiguous <- true
-                        issues.Add(PlanningIssue.PrecedenceTie(target, entries))
+                        issues.Add(ResolutionIssue.PrecedenceTie(target, entries))
 
                 if not ambiguous then
                     let alternatives = List.tail ordered
@@ -128,3 +150,22 @@ module internal TargetResolution =
         |> Seq.sortBy (fun value -> PlanningPaths.targetOrder value.Target)
         |> Seq.toList,
         directories |> Seq.sortBy PlanningPaths.targetOrder |> Seq.toList
+
+    let resolve roots contributions (issues: ResizeArray<PlanningIssue>) =
+        let found = ResizeArray()
+        let result = resolveCore PlanningPaths.sourcePath roots contributions found
+
+        for issue in found do
+            issues.Add(
+                match issue with
+                | ResolutionIssue.TargetAlias(target, sources) ->
+                    PlanningIssue.TargetAlias(target, sources)
+                | ResolutionIssue.PrecedenceTie(target, sources) ->
+                    PlanningIssue.PrecedenceTie(target, sources)
+                | ResolutionIssue.DirectorySpellingTie(target, sources) ->
+                    PlanningIssue.DirectorySpellingTie(target, sources)
+                | ResolutionIssue.FileDirectoryConflict target ->
+                    PlanningIssue.FileDirectoryConflict target
+            )
+
+        result

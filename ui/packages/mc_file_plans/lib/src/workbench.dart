@@ -1,4 +1,7 @@
 import 'dart:async';
+
+import 'package:mc_bethesda/mc_bethesda.dart';
+
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -18,6 +21,7 @@ class FilePlanningWorkbench extends StatefulWidget {
     required this.workspacePath,
     required this.chooseDirectory,
     this.profileName,
+    this.plugins,
     this.maintenance,
     this.onOpenDeployment,
     this.onOpenNexus,
@@ -31,6 +35,7 @@ class FilePlanningWorkbench extends StatefulWidget {
   final String workspacePath;
   final Future<String?> Function(String?) chooseDirectory;
   final String? profileName;
+  final PluginsController? plugins;
   final void Function(ModEntry)? onOpenNexus;
   final MaintenanceClient? maintenance;
   final VoidCallback? onOpenDeployment;
@@ -102,7 +107,10 @@ class _FilePlanningWorkbenchState extends State<FilePlanningWorkbench> {
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
-    listenable: widget.plans,
+    listenable: Listenable.merge([
+      widget.plans,
+      if (widget.plugins != null) widget.plugins!,
+    ]),
     builder: (context, _) => LayoutBuilder(
       builder: (context, bounds) {
         _compact = bounds.maxWidth < 1200;
@@ -110,13 +118,14 @@ class _FilePlanningWorkbenchState extends State<FilePlanningWorkbench> {
         final saved = widget.mods.files.selected;
         final mod = widget.mods.selected;
         final version = widget.mods.selectedVersionId;
-        Widget inspector() =>
-            widget.additionalInspector?.call(_close) ??
-            FileSourcesInspector(
-              controller: widget.plans,
-              onClose: _close,
-              profileName: widget.profileName,
-            );
+        Widget inspector() => widget.plugins?.inspecting == true
+            ? PluginInspector(controller: widget.plugins!, onClose: _close)
+            : widget.additionalInspector?.call(_close) ??
+                  FileSourcesInspector(
+                    controller: widget.plans,
+                    onClose: _close,
+                    profileName: widget.profileName,
+                  );
         return Scaffold(
           key: _scaffold,
           backgroundColor: Colors.transparent,
@@ -127,6 +136,7 @@ class _FilePlanningWorkbenchState extends State<FilePlanningWorkbench> {
           onEndDrawerChanged: (open) {
             if (!open) {
               widget.plans.inspector.close();
+              widget.plugins?.closeInspector();
               widget.onCloseAdditionalInspector?.call();
               _opener?.requestFocus();
             }
@@ -167,7 +177,23 @@ class _FilePlanningWorkbenchState extends State<FilePlanningWorkbench> {
                             },
                     ),
                   ],
+                  paneLabel: widget.plugins == null ? 'Files' : 'View',
                   filePanes: [
+                    if (widget.plugins case final plugins?)
+                      ModFilePane(
+                        'bethesda-plugins',
+                        'Plugins',
+                        (context, narrow) => PluginsPane(
+                          controller: plugins,
+                          narrow: narrow,
+                          onInspect: () {
+                            widget.plans.inspector.close();
+                            widget.onCloseAdditionalInspector?.call();
+                            _opener = FocusManager.instance.primaryFocus;
+                            _scaffold.currentState?.openEndDrawer();
+                          },
+                        ),
+                      ),
                     ModFilePane(
                       'skyrim-data',
                       'Skyrim Data',

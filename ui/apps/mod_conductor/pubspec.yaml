@@ -9,6 +9,8 @@ environment:
   flutter: 3.47.2
 
 dependencies:
+  mc_bethesda:
+    path: ../../packages/mc_bethesda
   flutter:
     sdk: flutter
 

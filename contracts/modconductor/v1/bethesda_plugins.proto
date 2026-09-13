@@ -1,0 +1,37 @@
+syntax = "proto3";
+package modconductor.v1;
+option csharp_namespace = "ModConductor.Protocol.V1";
+import "modconductor/v1/file_plans.proto";
+
+// Header observations are read-only and are not deployment content pins.
+service BethesdaPlugins {
+  rpc ScanPlugins(ScanPluginsRequest) returns (BethesdaPluginsReply);
+  rpc ReadPlugins(ReadPluginsRequest) returns (BethesdaPluginsReply);
+}
+message ScanPluginsRequest { string profile_id = 1; }
+message ReadPluginsRequest { string snapshot_id = 1; }
+message BethesdaPluginSource {
+  string name = 1; string version = 2; string path = 3;
+  string mod_id = 4; string version_id = 5; bool game_file = 6;
+}
+message BethesdaMaster {
+  string name = 1; string status = 2; BethesdaPluginSource source = 3;
+}
+message BethesdaPluginHeader {
+  string extension = 1; uint32 flags = 2; uint32 form_version = 3;
+  float header_version = 4; uint32 declared_records = 5;
+  bool localized = 6; string author = 7; string description = 8; string flag_labels = 9;
+}
+message BethesdaPlugin {
+  string name = 1; string kind = 2; string status = 3; string problem = 4; bool has_issues = 5;
+  BethesdaPluginSource winner = 6; repeated BethesdaPluginSource alternatives = 7;
+  BethesdaPluginHeader header = 8; repeated BethesdaMaster masters = 9;
+}
+message BethesdaPluginSnapshot {
+  string snapshot_id = 1; string workspace_id = 2; string profile_id = 3;
+  int64 observed_at_unix_ms = 4; bool stale = 5;
+  repeated BethesdaPlugin plugins = 6; repeated string problems = 7;
+}
+message BethesdaPluginsReply {
+  oneof outcome { BethesdaPluginSnapshot snapshot = 1; FilePlanFault fault = 2; }
+}

@@ -12,7 +12,10 @@ module private DeploymentProjectionHelpers =
         List.truncate a.Length b = a
 
 module internal DeploymentProjection =
-    let read connection transaction owner (expected: SourceStamp) token =
+    let private readWith candidate connection transaction owner (expected: SourceStamp) token =
+        let included path =
+            candidate |> Option.forall (fun predicate -> predicate path)
+
         if FilePlanRows.stamp connection transaction expected.ProfileId <> Some expected then
             Error FilePlanError.Stale
         else
@@ -46,15 +49,16 @@ module internal DeploymentProjection =
                         evidence.DataIdentity = Some root.Directory.Identity
                         && evidence.DataPath = Some(HostPath.value root.Directory.Path)
                         ->
-                        match context.Active with
-                        | Some id ->
+                        match context.Active, candidate with
+                        | Some id, None ->
                             DeploymentRows.generation connection transaction context.Id id
                             |> Option.defaultWith (fun () ->
                                 RecoveryFiles.fail "The active generation is unavailable.")
                             |> RecoveryFiles.verifyGenerationWith token
-                        | None -> ()
+                        | _ -> ()
 
-                        for link in context.Links do
+                        for link in
+                            context.Links |> List.filter (fun link -> included link.Target.Path) do
                             if RecoveryFiles.observe context link.Target <> Some link.Entry then
                                 RecoveryFiles.fail "An active deployment link changed."
 
@@ -62,12 +66,14 @@ module internal DeploymentProjection =
                             context.Originals
                             |> List.choose (fun original ->
                                 if
-                                    context.Links
-                                    |> List.exists (fun link ->
-                                        contains link.Target.Path original.Target.Path)
+                                    included original.Target.Path
+                                    && context.Links
+                                       |> List.exists (fun link ->
+                                           contains link.Target.Path original.Target.Path)
                                 then
                                     if
-                                        not (
+                                        candidate.IsNone
+                                        && not (
                                             RecoveryFiles.originalMatches
                                                 token
                                                 context
@@ -81,8 +87,7 @@ module internal DeploymentProjection =
                                         RecoveryFiles.fail
                                             "A preserved directory cannot be read as a game file."
 
-                                    Some(
-                                        original.Target.Path,
+                                    let source: GameFileSource =
                                         { Root = root.Originals.Path
                                           RootIdentity = root.Originals.Identity
                                           Path =
@@ -90,7 +95,8 @@ module internal DeploymentProjection =
                                             |> Result.defaultWith (fun _ ->
                                                 invalidOp "Invalid original name.")
                                           Identity = original.Entry.Identity }
-                                    )
+
+                                    Some(original.Target.Path, source)
                                 else
                                     None)
                             |> Map.ofList
@@ -98,11 +104,13 @@ module internal DeploymentProjection =
                         Ok
                             { Directories =
                                 context.Directories
+                                |> List.filter (fun row -> included row.Target.Path)
                                 |> List.map (fun row -> row.Target.Path, row.Identity)
                                 |> Map.ofList
                               Stamp = expected.Deployment
                               Links =
                                 context.Links
+                                |> List.filter (fun link -> included link.Target.Path)
                                 |> List.map (fun link ->
                                     { Path = link.Target.Path
                                       Entry = link.Entry })
@@ -112,3 +120,9 @@ module internal DeploymentProjection =
                             FilePlanError.ContextUnavailable
                                 "The deployment belongs to a different game installation."
                         )
+
+    let read connection transaction owner expected token =
+        readWith None connection transaction owner expected token
+
+    let candidates predicate connection transaction owner expected token =
+        readWith (Some predicate) connection transaction owner expected token

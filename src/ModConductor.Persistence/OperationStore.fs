@@ -47,6 +47,9 @@ type OperationStore
     let filePlans =
         ModConductor.FilePlanning.FilePlanSession(FilePlanRepository(database, modLibrary.Access))
 
+    let plugins =
+        ModConductor.Bethesda.PluginSession(FilePlanRepository(database, modLibrary.Access))
+
     let deployment =
         ModConductor.DeploymentRecovery.Recovery(DeploymentRepository(database))
 
@@ -192,6 +195,7 @@ type OperationStore
 
     member _.GameContexts = gameContexts
     member _.FilePlans = filePlans
+    member _.Plugins = plugins
     member _.GeneratedOutputs = outputs :> ModConductor.GeneratedOutputs.IGeneratedOutputs
     member _.Deployments = deploymentBackend :> ModConductor.Deployment.IDeploymentBackend
 
@@ -349,6 +353,7 @@ type OperationStore
 
     member _.DrainDeployments() =
         task {
+            do! plugins.Drain()
             do! deploymentBackend.Drain()
             do! profileGameData.Drain()
         }
@@ -360,7 +365,8 @@ type OperationStore
         member _.Dispose() =
             if
                 not (
-                    installations.TryClose()
+                    plugins.TryClose()
+                    && installations.TryClose()
                     && deletions.TryClose()
                     && downloads.TryClose()
                     && outputs.TryClose(fun () ->

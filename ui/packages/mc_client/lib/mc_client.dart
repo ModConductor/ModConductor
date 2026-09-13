@@ -36,3 +36,5 @@ export 'src/nxm_client.dart';
 export 'src/link_setup_client.dart';
 
 export 'src/nexus_metadata_client.dart';
+
+export 'src/bethesda_client.dart';

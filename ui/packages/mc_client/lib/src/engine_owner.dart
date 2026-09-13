@@ -1,3 +1,4 @@
+import 'bethesda_client.dart';
 import 'link_setup_client.dart';
 import 'nxm_client.dart';
 import 'desktop_client.dart';
@@ -109,6 +110,8 @@ class EngineOwner {
       _state is EngineConnected ? _session?.outputs : null;
   DeploymentsClient? get deployments =>
       _state is EngineConnected ? _session?.deployments : null;
+  BethesdaClient? get bethesda =>
+      _state is EngineConnected ? _session?.bethesda : null;
   FilePlansClient? get filePlans =>
       _state is EngineConnected ? _session?.filePlans : null;
   GameContextsClient? get gameContexts =>

@@ -1,3 +1,4 @@
+import 'package:mc_bethesda/mc_bethesda.dart';
 import 'package:flutter/material.dart';
 import 'package:mc_client/mc_client.dart';
 import 'package:mc_file_plans/mc_file_plans.dart';
@@ -16,6 +17,7 @@ class DeploymentOutputsWorkbench extends StatelessWidget {
     required this.workspacePath,
     required this.chooseDirectory,
     this.profileId,
+    this.plugins,
     this.profileName,
     this.maintenance,
     this.onOpenDeployment,
@@ -25,6 +27,7 @@ class DeploymentOutputsWorkbench extends StatelessWidget {
   });
   final ModLibraryController mods;
   final FilePlansController plans;
+  final PluginsController? plugins;
   final OutputController outputs;
   final String workspacePath;
   final Future<String?> Function(String?) chooseDirectory;
@@ -43,6 +46,7 @@ class DeploymentOutputsWorkbench extends StatelessWidget {
       maintenance: maintenance,
       onOpenDeployment: onOpenDeployment,
       plans: plans,
+      plugins: plugins,
       workspacePath: workspacePath,
       chooseDirectory: chooseDirectory,
       profileName: profileName,

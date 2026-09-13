@@ -9,6 +9,7 @@
     <Compile Include="WritableResolution.fs" />
     <Compile Include="Planner.fs" />
     <Compile Include="Visibility.fs" />
+    <Compile Include="Candidates.fs" />
     <ProjectReference Include="../ModConductor.Platform/ModConductor.Platform.fsproj" />
     <ProjectReference Include="../ModConductor.ModLibrary/ModConductor.ModLibrary.fsproj" />
     <PackageReference Include="FSharp.Core" />

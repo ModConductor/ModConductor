@@ -83,12 +83,14 @@ type LayerTier =
 
 type Precedence = { Tier: LayerTier; Priority: int }
 
-type Contribution =
+type FileContribution<'Source> =
     { LayerId: Guid
       Precedence: Precedence
-      Source: SourcePin
+      Source: 'Source
       MappedTarget: TargetFile
       Archives: ArchiveAnnotation list }
+
+type Contribution = FileContribution<SourcePin>
 
 [<RequireQualifiedAccess>]
 type WinnerReason =
@@ -96,11 +98,13 @@ type WinnerReason =
     | HigherLayerTier
     | HigherPriority
 
-type ResolvedFile =
+type ResolvedTarget<'Source> =
     { Target: TargetFile
-      Winner: Contribution
-      Alternatives: Contribution list
+      Winner: FileContribution<'Source>
+      Alternatives: FileContribution<'Source> list
       Reason: WinnerReason }
+
+type ResolvedFile = ResolvedTarget<SourcePin>
 
 [<RequireQualifiedAccess>]
 type WritableProjection =

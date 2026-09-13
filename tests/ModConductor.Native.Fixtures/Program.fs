@@ -9,7 +9,20 @@ open ModConductor.Native.Fixtures
 [<EntryPoint>]
 let main args =
     try
-        if args.Length = 3 && args[0] = "--nxm-delivery" then
+        if args.Length = 2 && args[0] = "--bethesda-files" then
+            BethesdaSamples.files args[1] |> Console.WriteLine
+            0
+        elif args.Length = 2 && args[0] = "--bethesda" then
+            use writer =
+                new Utf8JsonWriter(Console.OpenStandardOutput(), JsonWriterOptions(Indented = true))
+
+            writer.WriteStartObject()
+            writer.WriteBoolean("nativeAot", not RuntimeFeature.IsDynamicCodeSupported)
+            BethesdaFixtures.observe writer args[1]
+            writer.WriteEndObject()
+            writer.Flush()
+            0
+        elif args.Length = 3 && args[0] = "--nxm-delivery" then
             use writer =
                 new Utf8JsonWriter(Console.OpenStandardOutput(), JsonWriterOptions(Indented = true))
 

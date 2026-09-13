@@ -207,3 +207,71 @@ type FilePlanRepository internal (database: StateDatabase, access: LibraryAccess
                             transact false (fun c t ->
                                 Ok(FilePlanRows.history c t workspace copy after))
                 })
+
+    interface IFileCandidateRepository with
+        member _.CandidateProjection(expected, predicate, token) =
+            protect (fun () ->
+                transact false (fun c t ->
+                    DeploymentProjection.candidates predicate c t database.OwnerId expected token))
+
+        member _.OpenManaged(workspace, pin, token) =
+            protect (fun () ->
+                task {
+                    token.ThrowIfCancellationRequested()
+                    let! root = access.Root workspace
+
+                    match root with
+                    | Error error -> return Error(rootError error)
+                    | Ok root ->
+                        let! stored =
+                            transact false (fun c t ->
+                                match pin with
+                                | SourcePin.Snapshot _ -> Error FilePlanError.InvalidCopy
+                                | SourcePin.Mod(modId, versionId, entry) ->
+                                    match
+                                        FilePlanRows.savedCopy
+                                            c
+                                            t
+                                            workspace
+                                            { ModId = modId
+                                              VersionId = versionId
+                                              Path = entry.Path }
+                                    with
+                                    | Ok copy when copy.Entry = entry ->
+                                        match
+                                            LibraryRows.library c t workspace,
+                                            LibraryRows.payload c t entry.Payload.Id
+                                        with
+                                        | Some library, Some payload when
+                                            payload.Payload = entry.Payload
+                                            ->
+                                            Ok(library, payload)
+                                        | _ ->
+                                            Error(
+                                                FilePlanError.FileUnavailable
+                                                    "The published plugin payload is unavailable."
+                                            )
+                                    | _ -> Error FilePlanError.Stale)
+
+                        match stored with
+                        | Error error -> return Error error
+                        | Ok(library, payload) ->
+                            use folder = LibraryFiles.openLibrary root library
+
+                            let stream, _ =
+                                folder.Read(
+                                    LibraryFiles.payloadName payload.Payload.Id,
+                                    Some payload.Identity
+                                )
+
+                            if stream.Length <> payload.Payload.Length then
+                                stream.Dispose()
+
+                                return
+                                    Error(
+                                        FilePlanError.FileUnavailable
+                                            "The published plugin file changed."
+                                    )
+                            else
+                                return Ok stream
+                })

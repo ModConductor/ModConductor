@@ -1,3 +1,4 @@
+import 'package:mc_bethesda/mc_bethesda.dart';
 import 'package:mc_credentials/mc_credentials.dart';
 import 'package:mc_artifacts/mc_artifacts.dart';
 import 'package:mc_generated_outputs/mc_generated_outputs.dart';
@@ -57,6 +58,7 @@ class ModConductorApp extends StatefulWidget {
     this.modOrganization,
     this.gameContexts,
     this.filePlans,
+    this.bethesda,
     this.outputs,
     this.deployments,
     this.executables,
@@ -87,6 +89,7 @@ class ModConductorApp extends StatefulWidget {
   final ModOrganizationClient? modOrganization;
   final GameContextsClient? gameContexts;
   final FilePlansClient? filePlans;
+  final BethesdaClient? bethesda;
   final GeneratedOutputsClient? outputs;
   final DeploymentsClient? deployments;
   final ExecutablesClient? executables;
@@ -126,6 +129,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
   final _mods = ModLibraryController();
   final _game = GameContextController();
   final _files = FilePlansController();
+  final _plugins = PluginsController();
   final _outputs = OutputController();
   final _artifacts = ArtifactController();
   final _nexusDetails = ModNexusController();
@@ -140,6 +144,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
             _selectionRevision != _mods.inventory.revision) ||
         (_catalogueRevision != null &&
             _catalogueRevision != _mods.inventory.catalogueRevision)) {
+      _plugins.invalidate();
       _deployments.invalidate();
       _play.invalidate();
     }
@@ -148,12 +153,14 @@ class _ModConductorAppState extends State<ModConductorApp> {
   }
 
   void _outputsChanged() {
+    _plugins.invalidate();
     _files.invalidate();
     _deployments.invalidate();
     unawaited(_mods.inventory.refreshCatalogue());
   }
 
   void _deploymentChanged() {
+    _plugins.invalidate();
     _files.invalidate();
     _outputs.invalidate();
   }
@@ -161,6 +168,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
   void _gameChanged() {
     final revision = _game.state?.revision;
     if (_contextRevision != null && revision != _contextRevision) {
+      _plugins.invalidate();
       _files.invalidate();
       _outputs.invalidate();
       _deployments.invalidate();
@@ -200,6 +208,10 @@ class _ModConductorAppState extends State<ModConductorApp> {
       _workspaces.workspace?.selectedProfile?.id,
       _workspaces.workspace?.selectedProfile?.name,
       available: _workspaces.canEdit,
+    );
+    _plugins.attach(
+      widget.bethesda,
+      _workspaces.workspace?.selectedProfile?.id,
     );
     _files.attach(
       widget.filePlans,
@@ -258,6 +270,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
     _executables.dispose();
     _play.dispose();
     _profileData.dispose();
+    _plugins.dispose();
     _files.dispose();
     _mods.dispose();
     _game.dispose();
@@ -514,6 +527,9 @@ class _ModConductorAppState extends State<ModConductorApp> {
                                           ),
                                         ),
                                   plans: _files,
+                                  plugins: widget.bethesda == null
+                                      ? null
+                                      : _plugins,
                                   workspacePath: workspace.path,
                                   chooseDirectory: widget.chooseDirectory,
                                   profileName: workspace.selectedProfile?.name,
@@ -544,6 +560,9 @@ class _ModConductorAppState extends State<ModConductorApp> {
                                           ),
                                         ),
                                   plans: _files,
+                                  plugins: widget.bethesda == null
+                                      ? null
+                                      : _plugins,
                                   outputs: _outputs,
                                   profileId: workspace.selectedProfile?.id,
                                   organization: widget.modOrganization,

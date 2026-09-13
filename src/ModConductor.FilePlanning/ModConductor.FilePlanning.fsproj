@@ -8,6 +8,7 @@
     <Compile Include="Diagnostics.fs" />
     <Compile Include="FileIndex.fs" />
     <Compile Include="PlanSnapshot.fs" />
+    <Compile Include="CandidateFiles.fs" />
     <Compile Include="FileInspection.fs" />
     <Compile Include="SnapshotCache.fs" />
     <Compile Include="SnapshotAcquisition.fs" />
