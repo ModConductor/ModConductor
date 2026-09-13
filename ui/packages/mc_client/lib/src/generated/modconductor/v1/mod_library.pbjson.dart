@@ -706,10 +706,21 @@ const ModVersionOrigin$json = {
       '10': 'archiveArtifactId',
       '17': true
     },
+    {
+      '1': 'bundle',
+      '3': 3,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.BundleProvenance',
+      '9': 2,
+      '10': 'bundle',
+      '17': true
+    },
   ],
   '8': [
     {'1': '_output_action_id'},
     {'1': '_archive_artifact_id'},
+    {'1': '_bundle'},
   ],
 };
 
@@ -717,7 +728,9 @@ const ModVersionOrigin$json = {
 final $typed_data.Uint8List modVersionOriginDescriptor = $convert.base64Decode(
     'ChBNb2RWZXJzaW9uT3JpZ2luEi0KEG91dHB1dF9hY3Rpb25faWQYASABKAlIAFIOb3V0cHV0QW'
     'N0aW9uSWSIAQESMwoTYXJjaGl2ZV9hcnRpZmFjdF9pZBgCIAEoCUgBUhFhcmNoaXZlQXJ0aWZh'
-    'Y3RJZIgBAUITChFfb3V0cHV0X2FjdGlvbl9pZEIWChRfYXJjaGl2ZV9hcnRpZmFjdF9pZA==');
+    'Y3RJZIgBARI+CgZidW5kbGUYAyABKAsyIS5tb2Rjb25kdWN0b3IudjEuQnVuZGxlUHJvdmVuYW'
+    '5jZUgCUgZidW5kbGWIAQFCEwoRX291dHB1dF9hY3Rpb25faWRCFgoUX2FyY2hpdmVfYXJ0aWZh'
+    'Y3RfaWRCCQoHX2J1bmRsZQ==');
 
 @$core.Deprecated('Use modVersionPageDescriptor instead')
 const ModVersionPage$json = {

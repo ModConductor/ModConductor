@@ -46,6 +46,8 @@
     <Compile Include="FomodService.fs" />
     <Compile Include="BainWire.fs" />
     <Compile Include="BainService.fs" />
+    <Compile Include="BundleWire.fs" />
+    <Compile Include="BundleService.fs" />
     <Compile Include="UpdateService.fs" />
     <Compile Include="DeletionWire.fs" />
     <Compile Include="DeletionService.fs" />

@@ -125,6 +125,11 @@ module internal DeletionSnapshot =
                 |> List.collect (fun id -> InstallationRows.files connection transaction id)
                 |> List.filter (fun file -> file.Reused.IsNone)
 
+            let bundleSources = BundleDeletion.files connection transaction workspace targets
+
+            if BundleDeletion.busy connection transaction workspace targets then
+                blocked <- Some "Finish the bundle operation before deleting this mod."
+
             let artifactIds =
                 [ for target in targets do
                       yield!
@@ -151,7 +156,14 @@ module internal DeletionSnapshot =
                             [ "$id", box (string artifact.Artifact.Id) ]
                         |> List.exists (fun id -> not (members.Contains id))
 
-                    let shared = usedElsewhere || otherInstalls
+                    let shared =
+                        usedElsewhere
+                        || otherInstalls
+                        || BundleDeletion.parentShared
+                            connection
+                            transaction
+                            artifact.Artifact.Id
+                            members
 
                     if not shared && artifact.Busy then
                         blocked <-
@@ -203,6 +215,7 @@ module internal DeletionSnapshot =
             versions,
             payloads,
             temporary,
+            bundleSources,
             artifacts,
             generations,
             profiles,

@@ -46,8 +46,19 @@ class ModMetadata {
   final List<CategoryReference> categories;
 }
 
+class BundleArchiveOrigin {
+  const BundleArchiveOrigin(this.path,this.sha256);
+  final List<String> path;
+  final String sha256;
+}
+class BundleVersionOrigin {
+  const BundleVersionOrigin(this.parentSha256,this.archives);
+  final String parentSha256;
+  final List<BundleArchiveOrigin> archives;
+}
 class ModVersionOrigin {
-  const ModVersionOrigin({this.outputActionId, this.archiveArtifactId});
+  const ModVersionOrigin({this.outputActionId, this.archiveArtifactId,this.bundle});
+  final BundleVersionOrigin? bundle;
   final String? outputActionId, archiveArtifactId;
 }
 

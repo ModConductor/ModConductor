@@ -146,6 +146,8 @@ module internal DeletionCompletion =
                     [ "$context", box (string context.Id)
                       "$generation", box (string generation.Id) ]
 
+        BundleDeletion.complete connection transaction workspace targets
+
         let outputActions =
             DeletionQueries.ids
                 connection
@@ -193,7 +195,7 @@ module internal DeletionCompletion =
             Sqlite.execute
                 connection
                 transaction
-                "DELETE FROM archive_version_origins WHERE version_id=$version; DELETE FROM mod_version_origins WHERE version_id=$version; UPDATE mod_version_origins SET source_version=NULL WHERE source_version=$version; DELETE FROM mod_manifest WHERE version_id=$version"
+                "DELETE FROM bundle_version_origins WHERE version_id=$version; DELETE FROM archive_version_origins WHERE version_id=$version; DELETE FROM mod_version_origins WHERE version_id=$version; UPDATE mod_version_origins SET source_version=NULL WHERE source_version=$version; DELETE FROM mod_manifest WHERE version_id=$version"
                 [ "$version", box (string version) ]
 
         for payload in privatePayloads do

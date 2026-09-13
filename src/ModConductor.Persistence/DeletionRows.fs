@@ -175,6 +175,17 @@ module internal DeletionRows =
             if Set.ofList privatePayloads <> Set.ofList plan.PrivatePayloads then
                 refuse "Shared file references changed. Review deletion again."
 
+            if BundleDeletion.busy connection transaction plan.View.WorkspaceId targets then
+                refuse "Finish the bundle operation before deleting this mod."
+
+            let bundleSources =
+                BundleDeletion.files connection transaction plan.View.WorkspaceId targets
+                |> List.choose (fun (s, shared) -> if shared then None else Some(s.BundleId, s.Id))
+                |> Set.ofList
+
+            if bundleSources <> Set.ofList plan.BundleSources then
+                refuse "Bundle archive references changed. Review deletion again."
+
             let related =
                 [ for target in targets do
                       yield!
@@ -207,7 +218,15 @@ module internal DeletionRows =
                             [ "$id", box (string artifact.Artifact.Id) ]
                         |> List.forall members.Contains
 
-                    links && installs)
+                    links
+                    && installs
+                    && not (
+                        BundleDeletion.parentShared
+                            connection
+                            transaction
+                            artifact.Artifact.Id
+                            members
+                    ))
 
             if
                 (privateArtifacts |> List.map _.Artifact.Id |> Set.ofList)

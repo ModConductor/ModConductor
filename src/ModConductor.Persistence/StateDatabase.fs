@@ -29,6 +29,12 @@ type internal StateDatabase(directory: string) =
         Sqlite.execute
             connection
             null
+            "UPDATE bundle_work SET busy=0,problem='Bundle preparation stopped when the app closed. Review the next mod to continue.' WHERE owner=$owner AND busy<>0"
+            [ "$owner", box owner ]
+
+        Sqlite.execute
+            connection
+            null
             "UPDATE archive_installations SET state=CASE WHEN state=0 THEN 1 ELSE state END,busy=0,problem=CASE WHEN state=0 AND target_revision IS NOT NULL THEN 'The app closed before the update finished. The previous version stays active.' WHEN state=0 THEN 'The app closed before installation finished. No mod was added.' ELSE problem END WHERE owner=$owner"
             [ "$owner", box owner ]
 

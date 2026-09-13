@@ -153,10 +153,16 @@ module internal InstallationRows =
 
     let reserve (connection: SqliteConnection) owner id (plan: InstallationPlan) check =
         use transaction = connection.BeginTransaction(deferred = false)
+
+        let id =
+            BundleRows.target connection transaction plan.Artifact.WorkspaceId plan.Bundle id
+
         let existing = find connection transaction plan.Artifact.WorkspaceId id
 
         let fresh =
             match existing with
+            | Some current when current.State = InstallationState.Complete && plan.Bundle.IsSome ->
+                false
             | Some _ ->
                 use query =
                     Sqlite.command
@@ -223,7 +229,10 @@ module internal InstallationRows =
                       "$mod",
                       box (
                           string (
-                              plan.Target |> Option.map _.ModId |> Option.defaultWith Guid.NewGuid
+                              plan.Target
+                              |> Option.map _.ModId
+                              |> Option.orElseWith (fun () -> plan.Bundle |> Option.map _.ModId)
+                              |> Option.defaultWith Guid.NewGuid
                           )
                       )
                       "$version", box (string (Guid.NewGuid()))
@@ -250,6 +259,8 @@ module internal InstallationRows =
                       plan.Target
                       |> Option.map (fun target -> box (string target.PreviousVersion))
                       |> Option.defaultValue (box DBNull.Value) ]
+
+                BundleRows.reserved connection transaction id plan
 
                 for file in plan.Files |> List.distinctBy _.Index do
                     Sqlite.execute
@@ -392,6 +403,8 @@ module internal InstallationRows =
             transaction
             "INSERT INTO archive_version_origins VALUES($version,$artifact)"
             [ "$version", box (string version); "$artifact", box (string plan.Artifact.Id) ]
+
+        BundleRows.published connection transaction version plan
 
         PublicationRows.completeIn connection transaction owner version
         |> Result.defaultWith (fun _ ->

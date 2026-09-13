@@ -20,6 +20,7 @@ class BainView extends StatefulWidget {
     required this.onInstall,
     required this.onBack,
     this.onUpdate,
+    this.backLabel = 'Back to archives',
     this.operationProblem,
   });
   final BainClient client;
@@ -27,6 +28,7 @@ class BainView extends StatefulWidget {
   final bool available;
   final ValueChanged<InstallationDraft> onReviewed, onModeChanged;
   final VoidCallback onInstall, onBack;
+  final String backLabel;
   final VoidCallback? onUpdate;
   final String? operationProblem;
   @override
@@ -351,9 +353,7 @@ class _BainViewState extends State<BainView> {
             Row(
               children: [
                 McIconAction(
-                  label: review
-                      ? 'Back to package folders'
-                      : 'Back to archives',
+                  label: review ? 'Back to package folders' : widget.backLabel,
                   icon: const Icon(Icons.arrow_back),
                   onPressed: review
                       ? (available ? () => unawaited(controller.back()) : null)

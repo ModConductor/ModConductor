@@ -45,7 +45,27 @@ module internal LibraryRows =
                     [ "$version", box (string version) ]
 
             match source.ExecuteScalar() with
-            | :? string as artifact -> VersionOrigin.Archive(Guid.Parse artifact)
+            | :? string as artifact ->
+                use query =
+                    Sqlite.command
+                        connection
+                        transaction
+                        "SELECT parent_digest,path_chain,digest_chain FROM bundle_version_origins WHERE version_id=$version"
+                        [ "$version", box (string version) ]
+
+                use reader = query.ExecuteReader()
+
+                if reader.Read() then
+                    VersionOrigin.Bundle(
+                        Guid.Parse artifact,
+                        reader.GetString 0,
+                        reader.GetString(1).Split('\001')
+                        |> Array.map LibraryEncoding.readPath
+                        |> Array.toList,
+                        reader.GetString(2).Split('\001') |> Array.toList
+                    )
+                else
+                    VersionOrigin.Archive(Guid.Parse artifact)
             | _ -> VersionOrigin.RegisteredSource
 
     let find connection transaction id =

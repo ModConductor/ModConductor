@@ -89,6 +89,13 @@
           "ModConductor.ArchiveInstallation": "[1.0.0, )"
         }
       },
+      "modconductor.bundleinstallation": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )",
+          "ModConductor.ArchiveInstallation": "[1.0.0, )"
+        }
+      },
       "modconductor.deployment": {
         "type": "Project",
         "dependencies": {

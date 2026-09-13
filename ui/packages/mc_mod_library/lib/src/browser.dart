@@ -452,7 +452,49 @@ class _ModLibraryBrowserState extends State<ModLibraryBrowser> {
           scrollController: _filesScroll,
           title: chosen?.metadata.name ?? 'Saved files',
           showTitle: !narrow || widget.filePanes.isEmpty,
-          filterActions: widget.savedFileActions,
+          filterActions: [
+            ...widget.savedFileActions,
+            if (controller.selectedVersionOrigin?.bundle case final origin?)
+              McIconAction(
+                label: 'Archive source',
+                icon: const Icon(Icons.inventory_2_outlined),
+                onPressed: () => showDialog<void>(
+                  context: context,
+                  builder: (c) => McDialog(
+                    title: 'Archive source',
+                    actions: [
+                      McAction(
+                        label: 'Close',
+                        onPressed: () => Navigator.pop(c),
+                      ),
+                    ],
+                    children: [
+                      for (final archive in origin.archives)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 16),
+                          child: SelectableText(archive.path.join('/')),
+                        ),
+                      ExpansionTile(
+                        title: const Text('Source details'),
+                        tilePadding: EdgeInsets.zero,
+                        children: [
+                          SelectableText(
+                            'Bundle SHA-256: ${origin.parentSha256}',
+                          ),
+                          for (final archive in origin.archives)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 16),
+                              child: SelectableText(
+                                '${archive.path.join('/')}\nSHA-256: ${archive.sha256}',
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
           filterLabel: controller.filesComplete || version == null
               ? 'Filter files'
               : 'Filter loaded files',

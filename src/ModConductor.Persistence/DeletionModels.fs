@@ -20,6 +20,7 @@ type internal DeletionPlan =
       Targets: Guid list
       Versions: Guid list
       Payloads: Guid list
+      BundleSources: (Guid * Guid) list
       RelatedArtifacts: Guid list
       PrivatePayloads: Guid list
       Artifacts: Guid list

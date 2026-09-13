@@ -152,6 +152,9 @@ let run args =
     builder.Services.AddSingleton<ModConductor.Engine.ArchiveInspectionService>()
     |> ignore
 
+    builder.Services.AddSingleton<ModConductor.Persistence.BundleStore>(store.Bundles)
+    |> ignore
+
     builder.Services.AddSingleton<ModConductor.Persistence.InstallationStore>(store.Installations)
     |> ignore
 
@@ -183,6 +186,9 @@ let run args =
             options.MaxSendMessageSize <- Nullable(16 * 1024 * 1024))
         .AddServiceOptions<ModConductor.Engine.DeletionService>(fun options ->
             options.MaxReceiveMessageSize <- Nullable 4096
+            options.MaxSendMessageSize <- Nullable(16 * 1024 * 1024))
+        .AddServiceOptions<ModConductor.Engine.BundleService>(fun options ->
+            options.MaxReceiveMessageSize <- Nullable(16 * 1024)
             options.MaxSendMessageSize <- Nullable(16 * 1024 * 1024))
         .AddServiceOptions<ModConductor.Engine.BainService>(fun options ->
             options.MaxReceiveMessageSize <- Nullable(16 * 1024)
@@ -253,6 +259,7 @@ let run args =
     app.MapGrpcService<ModConductor.Engine.InstallationService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.FomodService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.BainService>() |> ignore
+    app.MapGrpcService<ModConductor.Engine.BundleService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.UpdateService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.DeletionService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.DownloadService>() |> ignore

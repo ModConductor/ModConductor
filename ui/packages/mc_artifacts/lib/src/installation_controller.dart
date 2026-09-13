@@ -4,7 +4,15 @@ import 'package:flutter/foundation.dart';
 import 'package:mc_client/mc_client.dart';
 
 class InstallationController extends ChangeNotifier {
-  InstallationController(this.client, this.artifact, this.onCommitted);
+  InstallationController(
+    this.client,
+    this.artifact,
+    this.onCommitted, {
+    this.initialDraft,
+    this.initialStatus,
+  });
+  final InstallationDraft? initialDraft;
+  final InstallationStatus? initialStatus;
   final InstallationsClient client;
   final Artifact artifact;
   final VoidCallback onCommitted;
@@ -31,6 +39,14 @@ class InstallationController extends ChangeNotifier {
     problem = null;
     _notify();
     try {
+      if (initialStatus != null) {
+        _accept(initialStatus!);
+        return;
+      }
+      if (initialDraft != null) {
+        draft = initialDraft;
+        return;
+      }
       final recent = await client.recent(artifact.workspaceId);
       if (_disposed || epoch != _epoch) return;
       for (final entry in recent) {

@@ -21,6 +21,9 @@ class ArchiveInstallationView extends StatefulWidget {
     super.key,
     required this.artifact,
     required this.client,
+    this.initialDraft,
+    this.initialStatus,
+    this.backLabel = 'Back to archives',
     this.maintenance,
     this.fomod,
     this.bain,
@@ -30,6 +33,9 @@ class ArchiveInstallationView extends StatefulWidget {
     required this.onCommitted,
     required this.onOpenMods,
   });
+  final InstallationDraft? initialDraft;
+  final InstallationStatus? initialStatus;
+  final String backLabel;
   final Artifact artifact;
   final InstallationsClient client;
   final MaintenanceClient? maintenance;
@@ -50,6 +56,8 @@ class _ArchiveInstallationViewState extends State<ArchiveInstallationView> {
     widget.client,
     widget.artifact,
     widget.onCommitted,
+    initialDraft: widget.initialDraft,
+    initialStatus: widget.initialStatus,
   );
   bool manual = false, excluded = false, inspected = false;
   InstallationDraft? rendered;
@@ -160,6 +168,7 @@ class _ArchiveInstallationViewState extends State<ArchiveInstallationView> {
         return BainView(
           key: ValueKey((draft!.id, widget.bain)),
           client: widget.bain!,
+          backLabel: widget.backLabel,
           initial: draft,
           available: controller.canEdit,
           operationProblem: controller.problem,
@@ -181,6 +190,7 @@ class _ArchiveInstallationViewState extends State<ArchiveInstallationView> {
         return FomodView(
           key: ValueKey((draft!.id, widget.fomod)),
           client: widget.fomod!,
+          backLabel: widget.backLabel,
           packages: widget.bain,
           initial: draft,
           profileId: widget.profileId,
@@ -236,7 +246,7 @@ class _ArchiveInstallationViewState extends State<ArchiveInstallationView> {
                 McIconAction(
                   label: status == null && manual && draft?.canInstall == true
                       ? 'Back to review'
-                      : 'Back to archives',
+                      : widget.backLabel,
                   icon: const Icon(Icons.arrow_back),
                   onPressed:
                       status == null && manual && draft?.canInstall == true

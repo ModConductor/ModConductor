@@ -16,6 +16,7 @@
     <Compile Include="InstallationSchema.fs" />
     <Compile Include="MaintenanceSchema.fs" />
     <Compile Include="FomodSchema.fs" />
+    <Compile Include="BundleSchema.fs" />
     <Compile Include="Sqlite.fs" />
     <Compile Include="MaintenanceClaims.fs" />
     <Compile Include="LibraryEncoding.fs" />
@@ -83,10 +84,14 @@
     <Compile Include="FomodFacts.fs" />
     <Compile Include="FomodDrafts.fs" />
     <Compile Include="BainDrafts.fs" />
+    <Compile Include="BundleRows.fs" />
+    <Compile Include="BundleSources.fs" />
     <Compile Include="InstallationRows.fs" />
     <Compile Include="InstallationPayloads.fs" />
     <Compile Include="InstallationStore.fs" />
+    <Compile Include="BundleStore.fs" />
     <Compile Include="DeletionModels.fs" />
+    <Compile Include="BundleDeletion.fs" />
     <Compile Include="DeletionSnapshot.fs" />
     <Compile Include="DeletionPlanning.fs" />
     <Compile Include="DeletionRows.fs" />
@@ -97,6 +102,7 @@
     <ProjectReference Include="../ModConductor.HttpDownloads/ModConductor.HttpDownloads.fsproj" />
     <ProjectReference Include="../ModConductor.ArchiveInstallation/ModConductor.ArchiveInstallation.fsproj" />
     <ProjectReference Include="../ModConductor.Bain/ModConductor.Bain.fsproj" />
+    <ProjectReference Include="../ModConductor.BundleInstallation/ModConductor.BundleInstallation.fsproj" />
     <ProjectReference Include="../ModConductor.Fomod/ModConductor.Fomod.fsproj" />
     <ProjectReference Include="../ModConductor.ModMaintenance/ModConductor.ModMaintenance.fsproj" />
     <ProjectReference Include="../ModConductor.ArchiveInspection/ModConductor.ArchiveInspection.fsproj" />

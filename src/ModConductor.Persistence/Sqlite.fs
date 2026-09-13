@@ -80,7 +80,8 @@ module internal Sqlite =
         | 15L
         | 16L
         | 17L
-        | 18L -> ()
+        | 18L
+        | 19L -> ()
         | _ -> raise (InvalidOperationException("The state database uses an unsupported version."))
 
         if number connection transaction "PRAGMA user_version" [] = 3L then
@@ -146,6 +147,9 @@ module internal Sqlite =
 
         if number connection transaction "PRAGMA user_version" [] = 17L then
             execute connection transaction FomodSchema.sql []
+
+        if number connection transaction "PRAGMA user_version" [] = 18L then
+            execute connection transaction BundleSchema.sql []
 
         beforeCommit ()
         transaction.Commit()

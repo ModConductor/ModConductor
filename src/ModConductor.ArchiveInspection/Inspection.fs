@@ -8,27 +8,41 @@ open SharpCompress.Readers
 open SharpCompress.Common
 open ModConductor.ArtifactLibrary
 
-type Inspection(source: IArtifactSource, ?limits: ArchiveLimits) =
+type Inspection(source: IArtifactSource, ?limits: ArchiveLimits, ?nested: INestedArchiveSource) =
     let limits = defaultArg limits ArchiveLimits.Default
+
+    let read sha (file: Stream) token consume =
+        let mutable format = Nullable<ArchiveType>()
+
+        if not (ArchiveFactory.IsArchive(file, &format)) then
+            raise (NotSupportedException "Unknown archive format")
+
+        file.Position <- 0L
+        use archive = ArchiveFactory.OpenArchive(file, ReaderOptions.ForExternalStream)
+        consume (ArchiveContents(archive, sha, file.Length, limits, token))
+
+    member _.WithOwnedStream(sha, file: Stream, token, consume) = read sha file token consume
 
     member _.WithContents(reference, token: CancellationToken, consume: ArchiveContents -> 'a) =
         source.ReadVerified(
             reference,
             token,
-            fun (artifact, file) ->
-                let mutable format = Nullable<ArchiveType>()
-
-                if not (ArchiveFactory.IsArchive(file, &format)) then
-                    raise (NotSupportedException "Unknown archive format")
-
-                file.Position <- 0L
-                use archive = ArchiveFactory.OpenArchive(file, ReaderOptions.ForExternalStream)
-
-                let contents =
-                    ArchiveContents(archive, artifact.Sha256.Value, file.Length, limits, token)
-
-                consume contents
+            fun (artifact, file) -> read artifact.Sha256.Value file token consume
         )
+
+    member this.WithInput(reference: ArtifactRef, input: NestedArchiveRef option, token, consume) =
+        match input with
+        | None -> this.WithContents(reference, token, consume)
+        | Some input ->
+            match nested with
+            | Some owner ->
+                owner.ReadVerified(
+                    reference.WorkspaceId,
+                    input,
+                    token,
+                    fun file -> read input.Sha256 file token consume
+                )
+            | None -> invalidOp "Nested archive source is not connected."
 
     member this.Inspect(reference, token) =
         this.WithContents(reference, token, fun contents -> contents.Manifest)

@@ -22,6 +22,7 @@ module internal DeletionPlanning =
                  versions,
                  payloads,
                  temporary,
+                 bundleSources,
                  artifacts,
                  generations,
                  profiles,
@@ -128,6 +129,25 @@ module internal DeletionPlanning =
                                 file.Identity
                                 ("Temporary file: " + LogicalPath.display file.Destination)
 
+                        for source, shared in bundleSources do
+                            let label = "Temporary archive: " + LogicalPath.display source.Path
+
+                            if shared then
+                                files.Add
+                                    { Label = label
+                                      Kind = DeletionFileKind.Temporary
+                                      Bytes = source.Length
+                                      Shared = true }
+                            else
+                                add
+                                    DeletionFileKind.Temporary
+                                    host
+                                    library.Identity.Value
+                                    (LogicalPath.create [ BundleFiles.name source.Id ]
+                                     |> Result.defaultWith (string >> invalidOp))
+                                    source.Identity
+                                    label
+
                         for artifact, shared in artifacts do
                             let value = artifact.Artifact
 
@@ -151,7 +171,9 @@ module internal DeletionPlanning =
 
                             if value.OriginalPath <> "" then
                                 external.Add value.OriginalPath
-                    | _ when not payloads.IsEmpty || not temporary.IsEmpty ->
+                    | _ when
+                        not payloads.IsEmpty || not temporary.IsEmpty || not bundleSources.IsEmpty
+                        ->
                         blocked <- Some "The owned mod library is unavailable."
                     | _ -> ()
 
@@ -225,6 +247,10 @@ module internal DeletionPlanning =
                   Targets = targets
                   Versions = versions
                   Payloads = payloads |> List.map (fun (id, _, _, _, _) -> id)
+                  BundleSources =
+                    bundleSources
+                    |> List.choose (fun (s, shared) ->
+                        if shared then None else Some(s.BundleId, s.Id))
                   RelatedArtifacts =
                     artifacts |> List.map (fun (artifact, _) -> artifact.Artifact.Id)
                   PrivatePayloads =

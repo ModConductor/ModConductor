@@ -41,6 +41,22 @@ let main args =
                 args[7]
 
             0
+        elif args.Length = 4 && args[0] = "--bundle-worker" then
+            BundleFixtures.worker args[1] args[2] args[3]
+            0
+        elif args.Length = 2 && args[0] = "--bundle-files" then
+            BundleFixtures.create args[1]
+            0
+        elif args.Length = 2 && args[0] = "--bundles" then
+            use writer =
+                new Utf8JsonWriter(Console.OpenStandardOutput(), JsonWriterOptions(Indented = true))
+
+            writer.WriteStartObject()
+            writer.WriteBoolean("nativeAot", not RuntimeFeature.IsDynamicCodeSupported)
+            BundleFixtures.observe writer args[1]
+            writer.WriteEndObject()
+            writer.Flush()
+            0
         elif args.Length = 2 && args[0] = "--bain" then
             use writer =
                 new Utf8JsonWriter(Console.OpenStandardOutput(), JsonWriterOptions(Indented = true))

@@ -16,6 +16,7 @@ module internal InstallationWire =
                 let message =
                     match error with
                     | :? InstallationException
+                    | :? ModConductor.BundleInstallation.BundleException
                     | :? ModConductor.Fomod.FomodException -> Some error.Message
                     | _ -> ArchiveFailure.message error
 

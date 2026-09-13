@@ -67,6 +67,8 @@ module Layout =
         version
         (files: SelectedFile list)
         (target: InstallationTarget option)
+        (nested: NestedArchiveRef option)
+        (bundle: BundleDestination option)
         =
         use buffer = new MemoryStream()
         use writer = new BinaryWriter(buffer, Encoding.UTF8, true)
@@ -76,6 +78,20 @@ module Layout =
         writer.Write(sha: string)
         writer.Write(name: string)
         writer.Write(version: string)
+
+        match nested with
+        | None -> ()
+        | Some input ->
+            writer.Write(string input.BundleId)
+            writer.Write(string input.SourceId)
+            writer.Write(input.Sha256)
+
+        match bundle with
+        | None -> ()
+        | Some destination ->
+            writer.Write(string destination.BundleId)
+            writer.Write(string destination.ItemId)
+            writer.Write(string destination.ModId)
 
         for file in files |> List.sortBy (fun file -> file.Index, file.Destination) do
             writer.Write(file.Index)
@@ -140,6 +156,8 @@ module Layout =
                     metadata.Version
                     draft.Files
                     None
+                    draft.Nested
+                    draft.Bundle
 
             { draft with
                 Name = metadata.Name
@@ -147,6 +165,8 @@ module Layout =
                     Some
                         { Artifact = draft.Artifact
                           ArchiveName = draft.ArchiveName
+                          Nested = draft.Nested
+                          Bundle = draft.Bundle
                           Sha256 = draft.Manifest.Sha256
                           Name = metadata.Name
                           Version = metadata.Version
@@ -163,6 +183,8 @@ module Layout =
           Revision = 0L
           Artifact = reference
           ArchiveName = name
+          Nested = None
+          Bundle = None
           Manifest = manifest
           Root = defaultArg root []
           Files = root |> Option.map (rootFiles manifest) |> Option.defaultValue []
@@ -178,6 +200,13 @@ module Layout =
           Installer = InstallationMode.Manual
           AvailableInstallers = [ InstallationMode.Manual ]
           WizardScripts = [] }
+        |> finish
+
+    let forBundle (draft: InstallationDraft) nested destination name =
+        { draft with
+            Nested = Some nested
+            Bundle = Some destination
+            Name = name }
         |> finish
 
     let change (draft: InstallationDraft) change =
@@ -263,7 +292,11 @@ module Layout =
             Revision = draft.Revision + 1L
             Root = []
             Files = files
-            Name = if String.IsNullOrWhiteSpace name then draft.Name else name
+            Name =
+                if draft.Bundle.IsSome || String.IsNullOrWhiteSpace name then
+                    draft.Name
+                else
+                    name
             Version = version }
         |> finish
 
@@ -310,7 +343,15 @@ module Layout =
                 |> List.sumBy (fun file -> sizes[file.Index])
             Target = Some target
             Fingerprint =
-                fingerprint source.Artifact source.Sha256 name version selected (Some target) }
+                fingerprint
+                    source.Artifact
+                    source.Sha256
+                    name
+                    version
+                    selected
+                    (Some target)
+                    source.Nested
+                    source.Bundle }
 
     let confirm (plan: InstallationPlan) (manifest: ArchiveManifest) =
         if manifest.Sha256 <> plan.Sha256 then
@@ -338,7 +379,15 @@ module Layout =
 
         if
             bytes <> plan.Bytes
-            || fingerprint plan.Artifact plan.Sha256 plan.Name plan.Version plan.Files plan.Target
+            || fingerprint
+                plan.Artifact
+                plan.Sha256
+                plan.Name
+                plan.Version
+                plan.Files
+                plan.Target
+                plan.Nested
+                plan.Bundle
                <> plan.Fingerprint
         then
             refuse "The installation plan changed. Review it again."

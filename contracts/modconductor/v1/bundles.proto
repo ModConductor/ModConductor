@@ -1,0 +1,33 @@
+syntax = "proto3";
+package modconductor.v1;
+option csharp_namespace = "ModConductor.Protocol.V1";
+import "modconductor/v1/artifacts.proto";
+import "modconductor/v1/archive_installation.proto";
+service BundleInstallation {
+  rpc FindBundle(ArtifactReadRequest) returns (BundleFound);
+  rpc DiscoverBundle(ArtifactReference) returns (BundleDiscovery);
+  rpc CreateBundle(BundleSelection) returns (ModBundle);
+  rpc ReadBundle(BundleReference) returns (ModBundle);
+  rpc ConfigureBundleMod(BundleModRequest) returns (BundleConfiguration);
+  rpc ChooseNestedArchives(NestedBundleSelection) returns (ModBundle);
+  rpc RenameBundleMod(BundleModRename) returns (ModBundle);
+  rpc MoveBundleMod(BundleModMove) returns (ModBundle);
+  rpc ReadBundleModStatus(BundleModRequest) returns (ArchiveInstallationStatus);
+  rpc RetryBundleMod(BundleModRequest) returns (ModBundle);
+  rpc DeleteBundleTemporaryFiles(BundleReference) returns (BundleClosed);
+}
+message BundleReference { string workspace_id = 1; string id = 2; uint64 revision = 3; }
+message BundleFound { optional ModBundle bundle = 1; }
+message BundleArchive { uint32 index = 1; repeated string path = 2; uint64 bytes = 3; }
+message BundleDiscovery { ArchiveInstallationDraft draft = 1; repeated BundleArchive archives = 2; }
+message BundleSelection { InstallationDraftReference draft = 1; repeated uint32 entries = 2; }
+message BundleModRequest { BundleReference reference = 1; string mod = 2; }
+message NestedBundleSelection { BundleModRequest target = 1; InstallationDraftReference draft = 2; repeated uint32 entries = 3; }
+message BundleModRename { BundleModRequest target = 1; string name = 2; }
+message BundleModMove { BundleModRequest target = 1; bool earlier = 2; }
+message BundleConfiguration { ModBundle bundle = 1; BundleDiscovery prepared = 2; }
+enum BundleModState { BUNDLE_MOD_STATE_UNSPECIFIED = 0; BUNDLE_MOD_STATE_NEEDS_REVIEW = 1; BUNDLE_MOD_STATE_INSTALLED = 2; BUNDLE_MOD_STATE_FAILED = 3; BUNDLE_MOD_STATE_INSTALLING = 4; }
+message BundleArchivePath { repeated string components = 1; }
+message BundleMod { string id = 1; string source_id = 2; string mod_id = 3; string name = 4; uint32 order = 5; repeated BundleArchivePath archives = 6; uint64 bytes = 7; BundleModState state = 8; optional string attempt_id = 9; optional string problem = 10; bool incomplete_archive = 11; }
+message ModBundle { BundleReference reference = 1; ArtifactReference artifact = 2; string archive_name = 3; repeated BundleMod mods = 4; uint64 temporary_bytes = 5; optional string problem = 6; }
+message BundleClosed {}

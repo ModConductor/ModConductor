@@ -93,6 +93,13 @@
           "ModConductor.ArchiveInstallation": "[1.0.0, )"
         }
       },
+      "modconductor.bundleinstallation": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )",
+          "ModConductor.ArchiveInstallation": "[1.0.0, )"
+        }
+      },
       "modconductor.deployment": {
         "type": "Project",
         "dependencies": {
@@ -221,6 +228,7 @@
           "ModConductor.ArchiveInstallation": "[1.0.0, )",
           "ModConductor.ArtifactLibrary": "[1.0.0, )",
           "ModConductor.Bain": "[1.0.0, )",
+          "ModConductor.BundleInstallation": "[1.0.0, )",
           "ModConductor.Deployment": "[1.0.0, )",
           "ModConductor.DeploymentGenerations": "[1.0.0, )",
           "ModConductor.DeploymentRecovery": "[1.0.0, )",

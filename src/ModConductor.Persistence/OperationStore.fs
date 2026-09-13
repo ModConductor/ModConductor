@@ -15,13 +15,18 @@ type OperationStore(directory: string, ?downloadPolicy: ModConductor.HttpDownloa
             ?policy = downloadPolicy
         )
 
+    let bundleSources = BundleSources(database, modLibrary.Access)
+
     let archiveInspection =
         ModConductor.ArchiveInspection.Inspection(
-            artifacts :> ModConductor.ArtifactLibrary.IArtifactSource
+            artifacts :> ModConductor.ArtifactLibrary.IArtifactSource,
+            nested = (bundleSources :> ModConductor.ArchiveInspection.INestedArchiveSource)
         )
 
     let installations =
         InstallationStore(database, modLibrary.Access, artifacts, archiveInspection)
+
+    let bundles = BundleStore(database, installations, bundleSources, archiveInspection)
 
     let deletions = DeletionStore(database, modLibrary.Access)
 
@@ -161,6 +166,7 @@ type OperationStore(directory: string, ?downloadPolicy: ModConductor.HttpDownloa
     member _.ArtifactSource = artifacts :> ModConductor.ArtifactLibrary.IArtifactSource
     member _.ArchiveInspection = archiveInspection
     member _.Installations = installations
+    member _.Bundles = bundles
     member _.Deletions = deletions
     member _.Downloads = downloads
 

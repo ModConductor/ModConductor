@@ -15,6 +15,7 @@ import 'dart:core' as $core;
 import 'package:fixnum/fixnum.dart' as $fixnum;
 import 'package:protobuf/protobuf.dart' as $pb;
 
+import 'bundle_provenance.pb.dart' as $1;
 import 'mod_library.pbenum.dart';
 
 export 'package:protobuf/protobuf.dart' show GeneratedMessageGenericExtensions;
@@ -1662,10 +1663,12 @@ class ModVersionOrigin extends $pb.GeneratedMessage {
   factory ModVersionOrigin({
     $core.String? outputActionId,
     $core.String? archiveArtifactId,
+    $1.BundleProvenance? bundle,
   }) {
     final result = create();
     if (outputActionId != null) result.outputActionId = outputActionId;
     if (archiveArtifactId != null) result.archiveArtifactId = archiveArtifactId;
+    if (bundle != null) result.bundle = bundle;
     return result;
   }
 
@@ -1685,6 +1688,8 @@ class ModVersionOrigin extends $pb.GeneratedMessage {
       createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'outputActionId')
     ..aOS(2, _omitFieldNames ? '' : 'archiveArtifactId')
+    ..aOM<$1.BundleProvenance>(3, _omitFieldNames ? '' : 'bundle',
+        subBuilder: $1.BundleProvenance.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1723,6 +1728,17 @@ class ModVersionOrigin extends $pb.GeneratedMessage {
   $core.bool hasArchiveArtifactId() => $_has(1);
   @$pb.TagNumber(2)
   void clearArchiveArtifactId() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $1.BundleProvenance get bundle => $_getN(2);
+  @$pb.TagNumber(3)
+  set bundle($1.BundleProvenance value) => $_setField(3, value);
+  @$pb.TagNumber(3)
+  $core.bool hasBundle() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearBundle() => $_clearField(3);
+  @$pb.TagNumber(3)
+  $1.BundleProvenance ensureBundle() => $_ensure(2);
 }
 
 class ModVersionPage extends $pb.GeneratedMessage {

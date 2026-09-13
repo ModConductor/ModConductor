@@ -336,7 +336,7 @@ type internal ArtifactStore(database: StateDatabase, access: LibraryAccess) =
                         Sqlite.number
                             connection
                             transaction
-                            "SELECT count(*) FROM archive_installations WHERE artifact_id=$id AND state IN (0,1)"
+                            "SELECT (SELECT count(*) FROM archive_installations WHERE artifact_id=$id AND state IN (0,1)) + (SELECT count(*) FROM bundle_work WHERE artifact_id=$id)"
                             [ "$id", box (string reference.Id) ]
                         <> 0L
                     then

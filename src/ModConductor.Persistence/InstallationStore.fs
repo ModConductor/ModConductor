@@ -80,8 +80,9 @@ type InstallationStore
     let payloads = InstallationPayloads(database, access)
 
     let extract id (plan: InstallationPlan) token checkpoint =
-        inspection.WithContents(
+        inspection.WithInput(
             plan.Artifact,
+            plan.Nested,
             token,
             fun contents ->
                 Layout.confirm plan contents.Manifest
@@ -120,7 +121,15 @@ type InstallationStore
                         InstallationRows.stopped connection database.OwnerId id message)
         }
 
-    member _.Prepare(reference: ArtifactRef, token) =
+    member private _.PrepareInput
+        (
+            reference: ArtifactRef,
+            nested: NestedArchiveRef option,
+            destination: BundleDestination option,
+            archiveName: string option,
+            modName: string option,
+            token
+        ) =
         task {
             lock gate (fun () ->
                 if closing || preparing.Contains reference.WorkspaceId || preparing.Count >= 2 then
@@ -136,11 +145,22 @@ type InstallationStore
                 let artifact = artifactResult artifact
 
                 let! prepared =
-                    inspection.WithContents(
+                    inspection.WithInput(
                         reference,
+                        nested,
                         token,
                         fun contents ->
-                            Layout.prepare reference artifact.OriginalName contents.Manifest,
+                            (let draft =
+                                Layout.prepare
+                                    reference
+                                    (defaultArg archiveName artifact.OriginalName)
+                                    contents.Manifest
+
+                             match nested, destination with
+                             | Some source, Some destination ->
+                                 Layout.forBundle draft source destination modName.Value
+                             | None, None -> draft
+                             | _ -> invalidOp "Bundle draft source is incomplete."),
                             ModConductor.Fomod.ArchiveInput.read contents,
                             ModConductor.Bain.Detection.inspect contents.Manifest
                     )
@@ -195,6 +215,24 @@ type InstallationStore
                 lock gate (fun () -> preparing.Remove reference.WorkspaceId |> ignore)
         }
 
+    member this.Prepare(reference, token) =
+        this.PrepareInput(reference, None, None, None, None, token)
+
+    member internal this.PrepareNested
+        (reference, source, destination, archiveName, modName, token)
+        =
+        this.PrepareInput(
+            reference,
+            Some source,
+            Some destination,
+            Some archiveName,
+            Some modName,
+            token
+        )
+
+    member internal _.Draft(workspace, id, revision) =
+        lock gate (fun () -> draftReference (workspace, id, revision))
+
     member _.Fomod = choices
     member _.Bain = packages
 
@@ -234,6 +272,16 @@ type InstallationStore
                 drafts[workspace] <- next
                 next
             | _ -> refuse "The installation preview changed. Open it again.")
+
+    member _.CloseBundleDraft(workspace, bundle) =
+        lock gate (fun () ->
+            match drafts.TryGetValue workspace with
+            | true, draft when draft.Bundle |> Option.exists (fun b -> b.BundleId = bundle) ->
+                drafts.Remove workspace |> ignore
+                updates.Remove workspace |> ignore
+                choices.Close workspace
+                packages.Close workspace
+            | _ -> ())
 
     member _.CloseDraft(workspace, id) =
         lock gate (fun () ->
@@ -301,6 +349,10 @@ type InstallationStore
                     match drafts.TryGetValue workspace with
                     | true, draft when draft.Id = draftId && draft.Revision = revision -> draft
                     | _ -> refuse "The archive layout changed. Review it again.")
+
+            if draft.Bundle.IsSome then
+                refuse
+                    "Bundle installations create new mods. Open the archive separately to update a mod."
 
             let cached =
                 lock gate (fun () ->

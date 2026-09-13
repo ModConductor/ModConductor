@@ -44,6 +44,11 @@ type ModAction =
 type VersionOrigin =
     | RegisteredSource
     | Archive of artifactId: Guid
+    | Bundle of
+        artifactId: Guid *
+        parentDigest: string *
+        paths: LogicalPath list *
+        digests: string list
     | Outputs of action: Guid
 
 type ModEntry =

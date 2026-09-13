@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/ModConductor.Bain/ModConductor.Bain.fsproj" />
+  <Project Path="src/ModConductor.BundleInstallation/ModConductor.BundleInstallation.fsproj" />
     <Project Path="src/ModConductor.Fomod/ModConductor.Fomod.fsproj" />
     <Project Path="src/ModConductor.HttpDownloads/ModConductor.HttpDownloads.fsproj" />
     <Project Path="src/ModConductor.ProfileGameData/ModConductor.ProfileGameData.fsproj" />

@@ -21,6 +21,11 @@ type InstallationMode =
     | Fomod
     | Bain
 
+type BundleDestination =
+    { BundleId: Guid
+      ItemId: Guid
+      ModId: Guid }
+
 type InstallationTarget =
     { ModId: Guid
       Revision: int64
@@ -30,6 +35,8 @@ type InstallationTarget =
 type InstallationPlan =
     { Artifact: ArtifactRef
       ArchiveName: string
+      Nested: NestedArchiveRef option
+      Bundle: BundleDestination option
       Sha256: string
       Name: string
       Version: string
@@ -44,6 +51,8 @@ type InstallationDraft =
       Revision: int64
       Artifact: ArtifactRef
       ArchiveName: string
+      Nested: NestedArchiveRef option
+      Bundle: BundleDestination option
       Manifest: ArchiveManifest
       Root: string list
       Files: SelectedFile list

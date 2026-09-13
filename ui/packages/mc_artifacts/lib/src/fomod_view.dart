@@ -20,6 +20,7 @@ class FomodView extends StatefulWidget {
     required this.onInstall,
     required this.onBack,
     this.onUpdate,
+    this.backLabel = 'Back to archives',
     this.packages,
     this.operationProblem,
   });
@@ -30,6 +31,7 @@ class FomodView extends StatefulWidget {
   final bool available;
   final ValueChanged<InstallationDraft> onReviewed, onManual;
   final VoidCallback onInstall, onBack;
+  final String backLabel;
   final VoidCallback? onUpdate;
   @override
   State<FomodView> createState() => _FomodViewState();
@@ -227,7 +229,7 @@ class _FomodViewState extends State<FomodView> {
                 McIconAction(
                   label: value?.canBack == true
                       ? 'Previous step'
-                      : 'Back to archives',
+                      : widget.backLabel,
                   icon: const Icon(Icons.arrow_back),
                   onPressed: value?.canBack == true
                       ? (available ? () => unawaited(controller.back()) : null)

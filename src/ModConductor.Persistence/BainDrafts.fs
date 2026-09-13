@@ -176,8 +176,9 @@ type BainDrafts
                     draft, entry)
 
             let! result =
-                inspection.WithContents(
+                inspection.WithInput(
                     draft.Artifact,
+                    draft.Nested,
                     token,
                     fun contents ->
                         use output = new MemoryStream()

@@ -15,6 +15,7 @@ class ArtifactInspector extends StatelessWidget {
     required this.onClose,
     required this.onRead,
     this.onInstall,
+    this.onBundle,
     required this.onLocate,
     required this.onLink,
     required this.onCleanup,
@@ -22,7 +23,7 @@ class ArtifactInspector extends StatelessWidget {
   final ArtifactController controller;
   final VoidCallback onClose;
   final ValueChanged<Artifact> onRead;
-  final ValueChanged<Artifact>? onInstall;
+  final ValueChanged<Artifact>? onInstall, onBundle;
   final Future<void> Function(Artifact) onLocate, onLink;
   final Future<void> Function(Artifact, bool) onCleanup;
   Widget details(BuildContext c, Artifact artifact) => ExpansionTile(
@@ -70,6 +71,13 @@ class ArtifactInspector extends StatelessWidget {
                     icon: Icons.folder_open,
                     onPressed: controller.canEdit
                         ? () => onRead(artifact)
+                        : null,
+                  ),
+                if (onBundle != null)
+                  McAction(
+                    label: 'Open bundle',
+                    onPressed: controller.canEdit
+                        ? () => onBundle!(artifact)
                         : null,
                   ),
                 if (artifact.download != null)

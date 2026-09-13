@@ -24,3 +24,4 @@ export 'src/maintenance_client.dart';
 export 'src/fomod_client.dart';
 
 export 'src/bain_client.dart';
+export 'src/bundle_client.dart';

@@ -280,8 +280,9 @@ type FomodDrafts
             | Some bytes -> return bytes
             | None ->
                 let! loaded =
-                    inspection.WithContents(
+                    inspection.WithInput(
                         session.View.Draft.Artifact,
+                        session.View.Draft.Nested,
                         token,
                         fun contents ->
                             use output = new MemoryStream()

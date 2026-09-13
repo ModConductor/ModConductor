@@ -1,5 +1,6 @@
 import 'fomod_client.dart';
 import 'bain_client.dart';
+import 'bundle_client.dart';
 import 'maintenance_client.dart';
 import 'installation_client.dart';
 import 'artifact_client.dart';
@@ -73,6 +74,7 @@ class EngineOwner {
   SteamDiscoveryClient? get steamDiscovery =>
       _state is EngineConnected ? _session?.steamDiscovery : null;
   BainClient? get bain => _session?.bain;
+  BundlesClient? get bundles => _state is EngineConnected ? _session?.bundles : null;
   FomodClient? get fomod => _state is EngineConnected ? _session?.fomod : null;
   MaintenanceClient? get maintenance =>
       _state is EngineConnected ? _session?.maintenance : null;

@@ -6,6 +6,7 @@ import 'package:mc_ui_collections/mc_ui_collections.dart';
 import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 
 import 'controller.dart';
+import 'bundle_view.dart';
 import 'installation_view.dart';
 import 'contents_view.dart';
 import 'forms.dart';
@@ -25,6 +26,7 @@ class ArtifactBrowser extends StatefulWidget {
     this.maintenance,
     this.fomod,
     this.bain,
+    this.bundles,
     this.profileId,
     this.updateTargets,
     this.onInstalled,
@@ -37,6 +39,7 @@ class ArtifactBrowser extends StatefulWidget {
   final MaintenanceClient? maintenance;
   final FomodClient? fomod;
   final BainClient? bain;
+  final BundlesClient? bundles;
   final String? profileId;
   final Future<ModQueryPage> Function(ModQueryCursor?)? updateTargets;
   final Future<void> Function()? onInstalled;
@@ -51,7 +54,7 @@ class _ArtifactBrowserState extends State<ArtifactBrowser> {
   final addFocus = FocusNode(debugLabel: 'Add archive');
   final scroll = ScrollController();
   bool inspected = false;
-  Artifact? contents, installing;
+  Artifact? contents, installing, bundle;
   Future<void>? installationRefresh;
   ArtifactController get controller => widget.controller;
   @override
@@ -155,6 +158,12 @@ class _ArtifactBrowserState extends State<ArtifactBrowser> {
       pane.currentState?.closeEndDrawer();
       setState(() => contents = artifact);
     },
+    onBundle: widget.bundles == null || widget.installations == null
+        ? null
+        : (artifact) {
+            close();
+            setState(() => bundle = artifact);
+          },
     onInstall: widget.installations == null
         ? null
         : (artifact) {
@@ -173,6 +182,31 @@ class _ArtifactBrowserState extends State<ArtifactBrowser> {
       builder: (c, constraints) {
         final narrow =
             constraints.maxWidth < 1100 * MediaQuery.textScalerOf(c).scale(1);
+        if (bundle?.workspaceId != controller.workspaceId) bundle = null;
+        if (bundle != null &&
+            widget.bundles != null &&
+            widget.installations != null) {
+          return ModBundleView(
+            key: ValueKey((bundle!.id, widget.bundles)),
+            artifact: bundle!,
+            client: widget.bundles!,
+            installations: widget.installations!,
+            fomod: widget.fomod,
+            bain: widget.bain,
+            profileId: widget.profileId,
+            onBack: () => setState(() => bundle = null),
+            onCommitted: () {
+              installationRefresh = () async {
+                await controller.load();
+                if (mounted) await widget.onInstalled?.call();
+              }();
+            },
+            onOpenMods: () async {
+              await installationRefresh;
+              if (mounted) widget.onOpenMods?.call();
+            },
+          );
+        }
         if (contents?.workspaceId != controller.workspaceId) contents = null;
         if (installing?.workspaceId != controller.workspaceId)
           installing = null;

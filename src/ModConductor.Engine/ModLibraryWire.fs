@@ -77,6 +77,16 @@ module internal ModLibraryWire =
         match value with
         | VersionOrigin.RegisteredSource -> ()
         | VersionOrigin.Archive id -> result.ArchiveArtifactId <- id.ToString("N")
+        | VersionOrigin.Bundle(id, parent, paths, digests) ->
+            result.ArchiveArtifactId <- id.ToString("N")
+            let provenance = BundleProvenance(ParentSha256 = parent)
+
+            for path, digest in List.zip paths digests do
+                let source = BundleArchiveSource(Sha256 = digest)
+                source.Path.AddRange(LogicalPath.components path)
+                provenance.Archives.Add source
+
+            result.Bundle <- provenance
         | VersionOrigin.Outputs id -> result.OutputActionId <- id.ToString("N")
 
         result
