@@ -5,6 +5,7 @@ environment:
 workspace:
   - apps/mod_conductor
   - packages/mc_ui_foundation
+  - packages/mc_desktop
   - packages/mc_client
   - packages/mc_game_contexts
   - packages/mc_workspaces

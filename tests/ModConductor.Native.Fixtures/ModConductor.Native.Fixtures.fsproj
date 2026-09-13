@@ -19,6 +19,7 @@
     <Compile Include="CredentialFixtures.fs" />
     <Compile Include="NexusServer.fs" />
     <Compile Include="NexusFixtures.fs" />
+    <Compile Include="DesktopFixtures.fs" />
     <Compile Include="Program.fs"/>
     <ProjectReference Include="../../src/ModConductor.Engine/ModConductor.Engine.fsproj" />
     <ProjectReference Include="../../src/ModConductor.Credentials/ModConductor.Credentials.fsproj" />

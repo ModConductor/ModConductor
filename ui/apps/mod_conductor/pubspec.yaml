@@ -12,7 +12,8 @@ dependencies:
   flutter:
     sdk: flutter
 
-  file_selector: 1.1.0
+  mc_desktop:
+    path: ../../packages/mc_desktop
   mc_game_contexts:
     path: ../../packages/mc_game_contexts
 

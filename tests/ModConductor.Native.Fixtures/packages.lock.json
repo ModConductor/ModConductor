@@ -130,12 +130,20 @@
           "ModConductor.Platform": "[1.0.0, )"
         }
       },
+      "modconductor.desktop": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )",
+          "ModConductor.Platform": "[1.0.0, )"
+        }
+      },
       "modconductor.engine": {
         "type": "Project",
         "dependencies": {
           "FSharp.Core": "[10.1.400, )",
           "Grpc.AspNetCore.Server": "[2.83.0, )",
           "ModConductor.Credentials": "[1.0.0, )",
+          "ModConductor.Desktop": "[1.0.0, )",
           "ModConductor.ModMaintenance": "[1.0.0, )",
           "ModConductor.Nexus": "[1.0.0, )",
           "ModConductor.Operations": "[1.0.0, )",

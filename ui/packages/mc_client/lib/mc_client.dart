@@ -28,3 +28,5 @@ export 'src/bain_client.dart';
 export 'src/bundle_client.dart';
 
 export 'src/nexus_client.dart';
+
+export 'src/desktop_client.dart';

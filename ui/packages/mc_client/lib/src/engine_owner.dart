@@ -1,3 +1,4 @@
+import 'desktop_client.dart';
 import 'nexus_client.dart';
 import 'credential_client.dart';
 import 'fomod_client.dart';
@@ -76,6 +77,8 @@ class EngineOwner {
   SteamDiscoveryClient? get steamDiscovery =>
       _state is EngineConnected ? _session?.steamDiscovery : null;
   BainClient? get bain => _session?.bain;
+  DesktopClient? get desktop =>
+      _state is EngineConnected ? _session?.desktop : null;
   NexusClient? get nexus => _state is EngineConnected ? _session?.nexus : null;
   CredentialsClient? get credentials =>
       _state is EngineConnected ? _session?.credentials : null;

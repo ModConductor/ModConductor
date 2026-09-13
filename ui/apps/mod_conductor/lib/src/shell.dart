@@ -11,6 +11,8 @@ class _DesktopShell extends StatelessWidget {
     required this.quitFocus,
     required this.onToggleTheme,
     required this.child,
+    this.requests,
+    this.onRequests,
   });
   final DesktopStatus connectionStatus;
   final _Destination destination;
@@ -21,6 +23,8 @@ class _DesktopShell extends StatelessWidget {
   final FocusNode quitFocus;
   final VoidCallback onToggleTheme;
   final Widget child;
+  final DesktopRequests? requests;
+  final VoidCallback? onRequests;
   @override
   Widget build(BuildContext context) => Scaffold(
     body: Column(
@@ -112,6 +116,22 @@ class _DesktopShell extends StatelessWidget {
                           ),
                         ),
                       ),
+                    if (requests case final requests?)
+                      ListenableBuilder(
+                        listenable: requests,
+                        builder: (context, _) => TextButton.icon(
+                          onPressed: onRequests,
+                          icon: const Icon(
+                            Icons.move_to_inbox_outlined,
+                            size: 18,
+                          ),
+                          label: Text(
+                            requests.count == 0
+                                ? 'Open requests'
+                                : 'Open requests (${requests.count})',
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -127,11 +147,37 @@ class _DesktopShell extends StatelessWidget {
               top: BorderSide(color: Theme.of(context).dividerColor),
             ),
           ),
-          child: Text(switch (connectionStatus) {
-            DesktopConnected() => 'Connected',
-            DesktopConnecting() => 'Connection in progress',
-            DesktopDisconnected() || DesktopFailure() => 'Not connected',
-          }, style: Theme.of(context).textTheme.bodySmall),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(switch (connectionStatus) {
+                  DesktopConnected() => 'Connected',
+                  DesktopConnecting() => 'Connection in progress',
+                  DesktopDisconnected() || DesktopFailure() => 'Not connected',
+                }, style: Theme.of(context).textTheme.bodySmall),
+              ),
+              if (requests case final requests?)
+                ListenableBuilder(
+                  listenable: requests,
+                  builder: (context, _) => requests.available
+                      ? const SizedBox.shrink()
+                      : TextButton(
+                          onPressed: () => showDialog<void>(
+                            context: context,
+                            builder: (_) => const McDialog(
+                              title: 'Cannot open from other apps',
+                              children: [
+                                Text(
+                                  'Open workspaces and archives from this window.',
+                                ),
+                              ],
+                            ),
+                          ),
+                          child: const Text('Cannot open from other apps'),
+                        ),
+                ),
+            ],
+          ),
         ),
       ],
     ),

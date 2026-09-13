@@ -4,8 +4,9 @@
 
 #include "flutter/generated_plugin_registrant.h"
 
-FlutterWindow::FlutterWindow(const flutter::DartProject& project)
-    : project_(project) {}
+FlutterWindow::FlutterWindow(const flutter::DartProject& project,
+                             DesktopInstance& desktop)
+    : project_(project), desktop_(desktop) {}
 
 FlutterWindow::~FlutterWindow() {}
 
@@ -24,12 +25,11 @@ bool FlutterWindow::OnCreate() {
   if (!flutter_controller_->engine() || !flutter_controller_->view()) {
     return false;
   }
+  desktop_.Attach(flutter_controller_->engine()->messenger(), GetHandle());
   RegisterPlugins(flutter_controller_->engine());
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
 
-  flutter_controller_->engine()->SetNextFrameCallback([&]() {
-    this->Show();
-  });
+  flutter_controller_->engine()->SetNextFrameCallback([&]() { this->Show(); });
 
   // Flutter can complete the first frame before the "show window" callback is
   // registered. The following call ensures a frame is pending to ensure the
@@ -40,6 +40,7 @@ bool FlutterWindow::OnCreate() {
 }
 
 void FlutterWindow::OnDestroy() {
+  desktop_.Detach();
   if (flutter_controller_) {
     flutter_controller_ = nullptr;
   }
@@ -62,6 +63,9 @@ FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
   }
 
   switch (message) {
+    case DesktopInstance::kRequestMessage:
+      desktop_.Changed(wparam != 0);
+      return 0;
     case WM_FONTCHANGE:
       flutter_controller_->engine()->ReloadSystemFonts();
       break;

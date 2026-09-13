@@ -11,6 +11,7 @@ class DesktopHost extends StatefulWidget {
 
 class _DesktopHostState extends State<DesktopHost> with WidgetsBindingObserver {
   late final EngineOwner _owner;
+  late final DesktopRequests _requests;
   late final StreamSubscription<EngineState> _changes;
 
   @override
@@ -34,7 +35,9 @@ class _DesktopHostState extends State<DesktopHost> with WidgetsBindingObserver {
         ],
       ]),
     );
+    _requests = DesktopRequests();
     _changes = _owner.changes.listen((_) {
+      _requests.attach(_owner.desktop);
       if (mounted) setState(() {});
     });
     unawaited(_owner.connect());
@@ -47,6 +50,7 @@ class _DesktopHostState extends State<DesktopHost> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _requests.dispose();
     unawaited(_changes.cancel());
     unawaited(_owner.close());
     super.dispose();
@@ -54,6 +58,7 @@ class _DesktopHostState extends State<DesktopHost> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) => ModConductorApp(
+    desktopRequests: _requests,
     workspaces: _owner.workspaces,
     modLibrary: _owner.modLibrary,
     profileMods: _owner.profileMods,

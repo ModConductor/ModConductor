@@ -1,3 +1,4 @@
+import 'desktop_client.dart';
 import 'nexus_client.dart';
 import 'credential_client.dart';
 import 'fomod_client.dart';
@@ -42,6 +43,8 @@ class EngineSession {
   ProtonContextsClient get protonContexts => _protonContexts!;
   SteamDiscoveryClient? _steamDiscovery;
   SteamDiscoveryClient get steamDiscovery => _steamDiscovery!;
+  DesktopClient? _desktop;
+  DesktopClient get desktop => _desktop!;
   NexusClient? _nexus;
   NexusClient get nexus => _nexus!;
   CredentialsClient? _credentials;
@@ -134,6 +137,7 @@ class EngineSession {
       CallOptions(metadata: options.metadata),
     );
     _bain = GrpcBainClient(channel, CallOptions(metadata: options.metadata));
+    _desktop = GrpcDesktopClient(channel, options);
     _nexus = GrpcNexusClient(channel, CallOptions(metadata: options.metadata));
     _credentials = GrpcCredentialsClient(
       channel,

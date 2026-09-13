@@ -11,7 +11,8 @@ import 'dart:ui' show AppExitType, AppExitResponse;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:file_selector/file_selector.dart';
+import 'package:mc_desktop/mc_desktop.dart';
+import 'package:mc_desktop/mc_desktop.dart' as desktop;
 import 'package:mc_game_contexts/mc_game_contexts.dart';
 import 'package:mc_file_plans/mc_file_plans.dart';
 import 'package:mc_client/mc_client.dart';
@@ -23,22 +24,6 @@ part 'shell.dart';
 part 'preferences.dart';
 part 'status.dart';
 part 'desktop_host.dart';
-
-Future<String?> _chooseGameDirectory(String? initialPath) => getDirectoryPath(
-  initialDirectory: initialPath,
-  confirmButtonText: 'Choose folder',
-  canCreateDirectories: false,
-);
-
-Future<String?> _chooseExecutable(String? initial) async => (await openFile(
-  initialDirectory: initial == null ? null : File(initial).parent.path,
-))?.path;
-
-Future<ArchiveFile?> _chooseArchive() async {
-  final file = await openFile();
-  if (file == null) return null;
-  return ArchiveFile(file.path, await file.length());
-}
 
 void _quitDesktop() {
   ServicesBinding.instance.exitApplication(AppExitType.cancelable);
@@ -63,6 +48,7 @@ class ModConductorApp extends StatefulWidget {
   const ModConductorApp({
     super.key,
     this.onQuit,
+    this.desktopRequests,
     this.onRetry,
     this.status = const DesktopDisconnected(),
     this.workspaces,
@@ -84,13 +70,14 @@ class ModConductorApp extends StatefulWidget {
     this.credentials,
     this.nexus,
     this.bundles,
-    this.chooseArchive = _chooseArchive,
-    this.chooseExecutable = _chooseExecutable,
+    this.chooseArchive = desktop.chooseArchive,
+    this.chooseExecutable = desktop.chooseExecutable,
     this.steamDiscovery,
     this.protonContexts,
-    this.chooseGameDirectory = _chooseGameDirectory,
+    this.chooseGameDirectory = desktop.chooseGameDirectory,
     this.chooseDirectory = chooseWorkspaceDirectory,
   });
+  final DesktopRequests? desktopRequests;
   final DesktopStatus status;
   final WorkspacesClient? workspaces;
   final ModLibraryClient? modLibrary;
@@ -311,6 +298,30 @@ class _ModConductorAppState extends State<ModConductorApp> {
               widget.onQuit ?? _quitDesktop,
         },
         child: _DesktopShell(
+          requests: widget.desktopRequests,
+          onRequests: () async {
+            final requests = widget.desktopRequests;
+            if (requests == null) return;
+            final choice = await showDialog<DesktopRequestChoice>(
+              context: context,
+              builder: (_) => OpenRequestsDialog(
+                requests: requests,
+                workspaces: _workspaces,
+                onRetry: widget.onRetry,
+              ),
+            );
+            if (choice != null && context.mounted) {
+              await openDesktopRequest(
+                context,
+                choice,
+                requests: requests,
+                workspaces: _workspaces,
+                artifacts: _artifacts,
+                chooseFile: widget.chooseArchive,
+                onWorkspaceOpened: () => _navigate(_Destination.workspaces),
+              );
+            }
+          },
           connectionStatus: widget.status,
           destination: _destination,
           onNavigate: _navigate,

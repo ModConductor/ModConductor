@@ -50,6 +50,7 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
   final _createWorkspaceFocus = FocusNode(debugLabel: 'Create workspace');
   final _openWorkspaceFocus = FocusNode(debugLabel: 'Open workspace');
   final _createProfileFocus = FocusNode(debugLabel: 'Create profile');
+  int _archiveNavigation = 0;
   String? _shownId;
   _WorkspaceMode _mode = _WorkspaceMode.profiles;
   final _profilesFocus = FocusNode(debugLabel: 'Profiles');
@@ -95,6 +96,10 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
       _profiles.clear();
       _mode = _WorkspaceMode.profiles;
       _inspected = false;
+    }
+    if (_archiveNavigation != controller.archiveNavigation) {
+      _archiveNavigation = controller.archiveNavigation;
+      _mode = _WorkspaceMode.archives;
     }
     final page = controller.page;
     if (id != null && page != null && !identical(page, _shownPage)) {

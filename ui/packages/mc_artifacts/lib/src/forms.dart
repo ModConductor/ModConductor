@@ -19,7 +19,9 @@ class ArchiveFileForm extends StatefulWidget {
     required this.chooseFile,
     required this.workspacePath,
     this.original,
+    this.initialFile,
   });
+  final ArchiveFile? initialFile;
   final ArchiveChooser chooseFile;
   final String workspacePath;
   final Artifact? original;
@@ -28,7 +30,7 @@ class ArchiveFileForm extends StatefulWidget {
 }
 
 class _ArchiveFileFormState extends State<ArchiveFileForm> {
-  ArchiveFile? file;
+  late ArchiveFile? file = widget.initialFile;
   ArtifactStorage storage = ArtifactStorage.reference;
   String? problem;
   bool choosing = false;

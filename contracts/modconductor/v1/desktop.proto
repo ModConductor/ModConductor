@@ -1,0 +1,24 @@
+syntax = "proto3";
+package modconductor.v1;
+option csharp_namespace = "ModConductor.Protocol.V1";
+
+service DesktopOperations {
+  rpc ResolveDesktopRequest(ResolveDesktopRequestMessage) returns (DesktopRequestReply);
+}
+message ResolveDesktopRequestMessage { repeated string arguments = 1; }
+enum DesktopIntentKind {
+  DESKTOP_INTENT_KIND_UNSPECIFIED = 0;
+  DESKTOP_INTENT_KIND_SHOW = 1;
+  DESKTOP_INTENT_KIND_WORKSPACE = 2;
+  DESKTOP_INTENT_KIND_ARCHIVE = 3;
+  DESKTOP_INTENT_KIND_ARCHIVES = 4;
+}
+message DesktopIntent {
+  DesktopIntentKind kind = 1;
+  string path = 2;
+  string workspace_id = 3;
+  uint64 length = 4;
+}
+message DesktopRequestReply {
+  oneof outcome { DesktopIntent intent = 1; string problem = 2; }
+}

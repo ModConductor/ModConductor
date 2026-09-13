@@ -39,6 +39,8 @@ let runWithNexus registration (handoff: ModConductor.Nexus.IOAuthHandoff) args =
     use sessionKey = ModConductor.Engine.SessionKey.create ()
     use certificate = ModConductor.Engine.Bootstrap.createCertificate sessionKey.Rsa
 
+    use stateLease = ModConductor.Desktop.StateLease.acquire directory
+
     use credentials =
         new ModConductor.Credentials.CredentialSession(
             ModConductor.Credentials.CredentialStore.create ()
@@ -99,6 +101,7 @@ let runWithNexus registration (handoff: ModConductor.Nexus.IOAuthHandoff) args =
     |> ignore
 
     builder.Services.AddSingleton<ModConductor.Engine.NexusService>() |> ignore
+    builder.Services.AddSingleton<ModConductor.Engine.DesktopService>() |> ignore
 
     builder.Services.AddSingleton<IOperationStore>(store) |> ignore
 
@@ -234,6 +237,9 @@ let runWithNexus registration (handoff: ModConductor.Nexus.IOAuthHandoff) args =
         .AddServiceOptions<ModConductor.Engine.ArchiveInspectionService>(fun options ->
             options.MaxReceiveMessageSize <- Nullable(4 * 1024)
             options.MaxSendMessageSize <- Nullable(8 * 1024 * 1024))
+        .AddServiceOptions<ModConductor.Engine.DesktopService>(fun options ->
+            options.MaxReceiveMessageSize <- Nullable(40 * 1024)
+            options.MaxSendMessageSize <- Nullable(16 * 1024))
         .AddServiceOptions<ModConductor.Engine.NexusService>(fun options ->
             options.MaxReceiveMessageSize <- Nullable 4096
             options.MaxSendMessageSize <- Nullable(4 * 1024 * 1024))
@@ -299,6 +305,7 @@ let runWithNexus registration (handoff: ModConductor.Nexus.IOAuthHandoff) args =
     app.MapGrpcService<ModConductor.Engine.DeletionService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.CredentialService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.NexusService>() |> ignore
+    app.MapGrpcService<ModConductor.Engine.DesktopService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.DownloadService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.DeploymentService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.FilePlanService>() |> ignore

@@ -10,6 +10,12 @@ class WorkspaceController extends ChangeNotifier {
   bool _disposed = false;
   WorkspacePage? page;
   bool showingWorkspace = false;
+  int archiveNavigation = 0;
+  void showArchives() {
+    ++archiveNavigation;
+    _notify();
+  }
+
   List<WorkspaceInfo> recent = const [];
   String? nextWorkspace;
   String? problem;

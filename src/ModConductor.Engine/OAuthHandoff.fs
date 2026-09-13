@@ -1,7 +1,6 @@
 namespace ModConductor.Engine
 
 open System
-open System.Diagnostics
 open System.Net
 open System.Threading
 open System.Threading.Tasks
@@ -17,14 +16,7 @@ open ModConductor.Nexus
 
 type OAuthHandoff(openBrowser: Uri * CancellationToken -> Task) =
     static member SystemBrowser(uri: Uri, token: CancellationToken) : Task =
-        task {
-            token.ThrowIfCancellationRequested()
-
-            use browser =
-                Process.Start(ProcessStartInfo(uri.AbsoluteUri, UseShellExecute = true))
-
-            ()
-        }
+        ModConductor.Desktop.WebLink.openBrowser (uri, token)
 
     interface IOAuthHandoff with
         member _.Open(uri, token) = openBrowser (uri, token)
