@@ -17,6 +17,8 @@ type internal PluginInputs =
       Facts: PluginOrderFacts }
 
 module internal PluginInputs =
+    let fileName = "Plugins.txt"
+
     let private name (root: HeldDirectory) declared =
         match
             root.Names
@@ -94,8 +96,8 @@ module internal PluginInputs =
 
         let _, file, bytes =
             match root with
-            | Some root -> readFile root "plugins.txt" token
-            | None -> "plugins.txt", None, [||]
+            | Some root -> readFile root fileName token
+            | None -> fileName, None, [||]
 
         let binding = scope.Game.Binding.Value
 

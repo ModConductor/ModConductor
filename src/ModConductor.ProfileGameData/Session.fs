@@ -475,7 +475,7 @@ type ProfileGameDataSession
                         scope.Context |> Option.bind _.PluginObserved
                     with
                     | Some root, Some expectedFile ->
-                        let _, file, _ = PluginInputs.readFile root "plugins.txt" token
+                        let _, file, _ = PluginInputs.readFile root PluginInputs.fileName token
 
                         if file <> expectedFile then
                             raise (

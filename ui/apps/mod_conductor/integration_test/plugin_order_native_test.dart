@@ -264,7 +264,7 @@ void main() {
         await edited();
         expect(plugins().setting('QuietRivers.esp')!.enabled, isTrue);
         expect(Directory(local).existsSync(), isTrue);
-        expect(File('$local/plugins.txt').existsSync(), isFalse);
+        expect(File('$local/Plugins.txt').existsSync(), isFalse);
         await capture('saved-details');
         await tap(action('Close inspector'), up: true);
         await selected('RoadSigns.esp');
@@ -366,7 +366,7 @@ void main() {
             .controller;
         expect(play.problem, isNull);
         expect(play.run!.phase, ExecutableRunPhase.finished);
-        expect(File('$local/plugins.txt').existsSync(), isTrue);
+        expect(File('$local/Plugins.txt').existsSync(), isTrue);
         await capture('run-finished');
         await tap(action('Close'));
         await tap(action('Refresh plugins'));
@@ -374,13 +374,13 @@ void main() {
           () => !plugins().reading && plugins().order?.applied == true,
         );
         expect(plugins().problem, isNull);
-        final applied = await File('$local/plugins.txt').readAsString();
+        final applied = await File('$local/Plugins.txt').readAsString();
         expect(
           applied.indexOf('*RoadSigns.esp'),
           lessThan(applied.indexOf('*QuietRivers.esp')),
         );
         await capture('applied');
-        await File('$local/plugins.txt')
+        await File('$local/Plugins.txt')
             .writeAsString('# external entry\n', mode: FileMode.append);
         await tap(action('Refresh plugins'));
         await until(() => !plugins().reading);
@@ -390,7 +390,7 @@ void main() {
         await edited();
         expect(plugins().order!.externalChanged, isFalse);
         expect(
-          await File('$local/plugins.txt').readAsString(),
+          await File('$local/Plugins.txt').readAsString(),
           '$applied# external entry\n',
         );
         await capture('adopted');

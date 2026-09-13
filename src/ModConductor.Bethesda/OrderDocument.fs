@@ -67,6 +67,12 @@ module OrderDocument =
 
         let output = StringBuilder()
 
+        if order.Document.Length = 0 then
+            output
+                .Append("# This file is used by Skyrim to keep track of your downloaded content.\n")
+                .Append("# Please do not modify this file.\n")
+            |> ignore
+
         let append () =
             let row = pending.Dequeue()
 
@@ -76,7 +82,7 @@ module OrderDocument =
             if row.Enabled = Some true then
                 output.Append('*') |> ignore
 
-            output.Append(row.Name).Append("\r\n") |> ignore
+            output.Append(row.Name).Append("\n") |> ignore
 
         for text, ending in lines order.Document do
             match entry text with
@@ -86,7 +92,7 @@ module OrderDocument =
             | _ -> output.Append(text).Append(ending) |> ignore
 
         if pending.Count > 0 && output.Length > 0 && output[output.Length - 1] <> '\n' then
-            output.Append("\r\n") |> ignore
+            output.Append("\n") |> ignore
 
         while pending.Count > 0 do
             append ()

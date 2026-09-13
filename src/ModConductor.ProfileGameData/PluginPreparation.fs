@@ -29,7 +29,7 @@ module internal PluginPreparation =
                 let mutable context = initialContext
                 let mutable action = initialAction
                 let root = context.PluginRoot.Value
-                let actual, file, bytes = PluginInputs.readFile root "plugins.txt" token
+                let actual, file, bytes = PluginInputs.readFile root PluginInputs.fileName token
 
                 match context.PluginObserved with
                 | Some observed when file <> observed ->

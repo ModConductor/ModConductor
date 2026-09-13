@@ -342,4 +342,27 @@ module PluginOrderFixtures =
             staleFacts <- true
 
         check "fomodChoicesRefuseChangedPluginRevision" staleFacts
+
+        File.Delete file
+        headers <- scan first
+        view <- read first headers
+        view <- store.PluginOrders.UseGameOrder(view.Reference, headers.Id) |> wait |> result
+        view <- change view (PluginOrderChange.Enable([ "A.esp" ], true))
+        let createdList = apply view ignore
+        let gameList = Path.Combine(local, "Plugins.txt")
+        let beforeGame = File.ReadAllBytes gameList
+        let gameText = Encoding.Latin1.GetString(beforeGame).Replace("\r\n", "\n")
+        File.WriteAllText(gameList, gameText, Encoding.Latin1)
+        headers <- scan first
+        view <- read first headers
+        let afterGame = apply view ignore
+
+        check
+            "gameLineEndingsDoNotRequireAdoptionBeforeNextApplication"
+            (createdList.Complete
+             && not view.ExternalChanged
+             && afterGame.Complete
+             && afterGame.CompletedFiles = 0
+             && File.ReadAllBytes(gameList) = beforeGame)
+
         writer.WriteEndObject()
