@@ -1,0 +1,29 @@
+syntax = "proto3";
+package modconductor.v1;
+option csharp_namespace = "ModConductor.Protocol.V1";
+import "modconductor/v1/bethesda_plugins.proto";
+import "modconductor/v1/profile_data.proto";
+
+service PluginOrders {
+  rpc ReadPluginOrder(ReadPluginOrderRequest) returns (PluginOrderReply);
+  rpc ChangePluginOrder(ChangePluginOrderRequest) returns (PluginOrderReply);
+  rpc UseGamePluginOrder(UseGamePluginOrderRequest) returns (PluginOrderReply);
+}
+message ReadPluginOrderRequest { string workspace_id = 1; string profile_id = 2; string headers_id = 3; }
+message PluginOrderSetting {
+  string name = 1; optional bool enabled = 2; optional int32 locked_index = 3; bool required = 4;
+}
+message PluginOrderIssue { string name = 1; string detail = 2; }
+message ProfilePluginOrder {
+  ProfileDataRef reference = 1; BethesdaPluginSnapshot headers = 2;
+  repeated PluginOrderSetting entries = 3; repeated PluginOrderIssue issues = 4;
+  int32 full = 5; int32 light = 6; int32 full_limit = 7;
+  bool saved = 8; bool applied = 9; bool external_changed = 10; bool pending = 11; repeated PluginOrderSetting unknown = 12; string pending_problem = 13;
+}
+message ChangePluginOrderRequest {
+  ProfileDataRef expected = 1; string headers_id = 2;
+  repeated string names = 3;
+  oneof change { bool enabled = 4; bool move_up = 5; bool locked = 6; }
+}
+message UseGamePluginOrderRequest { ProfileDataRef expected = 1; string headers_id = 2; }
+message PluginOrderReply { oneof outcome { ProfilePluginOrder order = 1; ProfileDataProblem problem = 2; } }

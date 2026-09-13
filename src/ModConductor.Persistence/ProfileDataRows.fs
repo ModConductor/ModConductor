@@ -99,19 +99,26 @@ module internal ProfileDataRows =
             Sqlite.command
                 connection
                 transaction
-                "SELECT body,length(body) FROM profile_data_contexts WHERE documents_identity=$documents AND id<>$id"
-                [ "$documents", box (LibraryEncoding.identity expected.Documents.Identity)
-                  "$id", box (string expected.Id) ]
+                "SELECT body,length(body) FROM profile_data_contexts WHERE id<>$id"
+                [ "$id", box (string expected.Id) ]
 
         use reader = query.ExecuteReader()
 
         while reader.Read() do
             let other = ProfileDataEncoding.readContext (bytes reader 0)
 
-            if other.Applied.IsSome || other.Pending.IsSome then
+            let samePlugins =
+                match expected.PluginRoot, other.PluginRoot with
+                | Some expected, Some other -> expected.Identity = other.Identity
+                | _ -> false
+
+            if
+                (other.Documents.Identity = expected.Documents.Identity || samePlugins)
+                && (other.Applied.IsSome || other.Pending.IsSome)
+            then
                 fail (
                     ProfileDataError.Conflict
-                        "Another workspace is using these settings and saves. Restore it first."
+                        "Another workspace is using these settings, saves or plugin order. Restore it first."
                 )
 
     let checkProfile connection transaction workspace profile =

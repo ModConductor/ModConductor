@@ -19,6 +19,7 @@ type FomodDrafts
     internal
     (
         database: StateDatabase,
+        access: LibraryAccess,
         inspection: Inspection,
         gate: obj,
         getDraft: Guid * Guid * int64 -> InstallationDraft,
@@ -171,7 +172,7 @@ type FomodDrafts
 
                         view)
             | InstallerInput.Xml definition ->
-                let! facts = FomodFacts.capture database workspace profile definition
+                let! facts = FomodFacts.capture database access workspace profile definition
 
                 return
                     lock gate (fun () ->

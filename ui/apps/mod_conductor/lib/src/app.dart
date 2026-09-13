@@ -59,6 +59,7 @@ class ModConductorApp extends StatefulWidget {
     this.gameContexts,
     this.filePlans,
     this.bethesda,
+    this.pluginOrders,
     this.outputs,
     this.deployments,
     this.executables,
@@ -90,6 +91,7 @@ class ModConductorApp extends StatefulWidget {
   final GameContextsClient? gameContexts;
   final FilePlansClient? filePlans;
   final BethesdaClient? bethesda;
+  final PluginOrderClient? pluginOrders;
   final GeneratedOutputsClient? outputs;
   final DeploymentsClient? deployments;
   final ExecutablesClient? executables;
@@ -209,9 +211,16 @@ class _ModConductorAppState extends State<ModConductorApp> {
       _workspaces.workspace?.selectedProfile?.name,
       available: _workspaces.canEdit,
     );
+    _plugins.resumeAction = () => _profileData.resumeSelected(
+      widget.profileData,
+      _workspaces.workspace!.id,
+      _workspaces.workspace!.selectedProfile!.id,
+      available: _workspaces.canEdit,
+    );
     _plugins.attach(
       widget.bethesda,
       _workspaces.workspace?.selectedProfile?.id,
+      orders: widget.pluginOrders,
     );
     _files.attach(
       widget.filePlans,
@@ -240,7 +249,14 @@ class _ModConductorAppState extends State<ModConductorApp> {
     _mods.addListener(_modsChanged);
     _outputs.onChanged = _outputsChanged;
     _deployments.onChanged = _deploymentChanged;
-    _profileData.onChanged = _play.invalidate;
+    _plugins.onChanged = () {
+      _play.invalidate();
+      _profileData.invalidate();
+    };
+    _profileData.onChanged = () {
+      _play.invalidate();
+      _plugins.invalidate();
+    };
     _play.onDeploymentChanged = () {
       _profileData.invalidate();
       _deployments.invalidate();

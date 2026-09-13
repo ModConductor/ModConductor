@@ -12,12 +12,16 @@
     <Compile Include="Deletion.fs" />
     <Compile Include="SettingsPreparation.fs" />
     <Compile Include="Repository.fs" />
+    <Compile Include="PluginInputs.fs" />
     <Compile Include="Initialization.fs" />
+    <Compile Include="PluginOrders.fs" />
+    <Compile Include="PluginPreparation.fs" />
     <Compile Include="ActionPreparation.fs" />
     <Compile Include="Cloning.fs" />
     <Compile Include="Browsing.fs" />
     <Compile Include="Session.fs" />
     <ProjectReference Include="../ModConductor.GameContexts/ModConductor.GameContexts.fsproj" />
+    <ProjectReference Include="../ModConductor.Bethesda/ModConductor.Bethesda.fsproj" />
     <PackageReference Include="FSharp.Core" />
   </ItemGroup>
 </Project>

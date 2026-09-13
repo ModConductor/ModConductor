@@ -245,6 +245,7 @@
         "type": "Project",
         "dependencies": {
           "FSharp.Core": "[10.1.400, )",
+          "ModConductor.Bethesda": "[1.0.0, )",
           "ModConductor.GameContexts": "[1.0.0, )"
         }
       },

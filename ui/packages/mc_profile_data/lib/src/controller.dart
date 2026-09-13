@@ -173,9 +173,26 @@ class ProfileDataController extends ChangeNotifier {
   Future<void> restore() async {
     if (!canEdit || _client == null || state!.inUseProfileId == null) return;
     await _run(
-      'Restoring global settings and saves',
+      'Restoring settings, saves and plugin order',
       _client!.restore(newOperationId(), state!.reference),
     );
+  }
+
+  Future<String?> resumeSelected(
+    ProfileDataClient? client,
+    String workspace,
+    String profile, {
+    required bool available,
+  }) async {
+    if (busy || !available || client == null) {
+      return 'Wait for the current operation.';
+    }
+    attach(client, workspace, profile, available: false);
+    this.available = true;
+    await read();
+    if (needsRead || state == null) return problem;
+    await resume();
+    return problem ?? result?.problem;
   }
 
   Future<void> resume() async {
@@ -187,7 +204,7 @@ class ProfileDataController extends ChangeNotifier {
       return;
     }
     await _run(
-      'Continuing settings and saves',
+      'Continuing profile changes',
       _client!.resume(current.reference.workspaceId, current.pendingActionId!),
     );
   }

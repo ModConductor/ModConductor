@@ -88,6 +88,30 @@ type ProfileSavePage =
     { Entries: ProfileSaveEntry list
       Next: string option }
 
+type ProfilePluginOrder =
+    { Reference: ProfileDataRef
+      Headers: ModConductor.Bethesda.PluginSnapshot
+      Facts: ModConductor.Bethesda.PluginOrderFacts
+      View: ModConductor.Bethesda.PluginOrderView
+      Saved: bool
+      Applied: bool
+      ExternalChanged: bool
+      Pending: bool
+      Problem: string option }
+
+type IProfilePluginOrders =
+    abstract Read:
+        workspace: Guid * profile: Guid * headers: Guid ->
+            Task<Result<ProfilePluginOrder, ProfileDataError>>
+
+    abstract Change:
+        expected: ProfileDataRef * headers: Guid * ModConductor.Bethesda.PluginOrderChange ->
+            Task<Result<ProfilePluginOrder, ProfileDataError>>
+
+    abstract UseGameOrder:
+        expected: ProfileDataRef * headers: Guid ->
+            Task<Result<ProfilePluginOrder, ProfileDataError>>
+
 type IProfileGameData =
     abstract SaveFiles:
         workspace: Guid * profile: Guid * path: string list * after: string option ->

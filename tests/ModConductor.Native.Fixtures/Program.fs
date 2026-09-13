@@ -9,7 +9,20 @@ open ModConductor.Native.Fixtures
 [<EntryPoint>]
 let main args =
     try
-        if args.Length = 2 && args[0] = "--bethesda-files" then
+        if args.Length = 2 && args[0] = "--plugin-order-files" then
+            PluginOrderSamples.files args[1] |> Console.WriteLine
+            0
+        elif args.Length = 2 && args[0] = "--plugin-order" then
+            use writer =
+                new Utf8JsonWriter(Console.OpenStandardOutput(), JsonWriterOptions(Indented = true))
+
+            writer.WriteStartObject()
+            writer.WriteBoolean("nativeAot", not RuntimeFeature.IsDynamicCodeSupported)
+            PluginOrderFixtures.observe writer args[1]
+            writer.WriteEndObject()
+            writer.Flush()
+            0
+        elif args.Length = 2 && args[0] = "--bethesda-files" then
             BethesdaSamples.files args[1] |> Console.WriteLine
             0
         elif args.Length = 2 && args[0] = "--bethesda" then

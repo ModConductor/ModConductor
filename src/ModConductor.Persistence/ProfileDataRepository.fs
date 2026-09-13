@@ -164,6 +164,36 @@ type internal ProfileDataRepository(database: StateDatabase, access: LibraryAcce
                 ProfileDataRows.saveProfile connection transaction context profile
                 transaction.Commit())
 
+        member _.SaveOrder(context, profile, stamp) =
+            database.Enqueue(fun () ->
+                use transaction = connection.BeginTransaction(deferred = false)
+                let current = ensureContext transaction context.Id
+
+                if
+                    current.Revision <> context.Revision
+                    || FilePlanRows.stamp connection transaction profile.ProfileId <> Some stamp
+                then
+                    ProfileDataRows.fail ProfileDataError.Stale
+
+                if current.Pending.IsSome then
+                    ProfileDataRows.fail ProfileDataError.Busy
+
+                ProfileDataRows.checkProfile
+                    connection
+                    transaction
+                    current.WorkspaceId
+                    profile.ProfileId
+
+                ProfileDataRows.saveProfile connection transaction context.Id profile
+
+                ProfileDataRows.saveContext
+                    connection
+                    transaction
+                    { context with
+                        Revision = context.Revision + 1L }
+
+                transaction.Commit())
+
         member _.Profile(context, profile) =
             database.Enqueue(fun () -> ProfileDataRows.profile connection null context profile)
 
@@ -258,12 +288,29 @@ type internal ProfileDataRepository(database: StateDatabase, access: LibraryAcce
                 use transaction = connection.BeginTransaction(deferred = false)
                 pending transaction action |> ignore
 
+                let observed =
+                    action.Files
+                    |> List.tryFind (fun effect ->
+                        Some effect.Target = context.PluginRoot
+                        && effect.Change.Name.Equals(
+                            "plugins.txt",
+                            StringComparison.OrdinalIgnoreCase
+                        ))
+                    |> Option.map (fun effect ->
+                        effect.Change.Replacement
+                        |> Option.map (fun value ->
+                            { value with
+                                Root = effect.Target
+                                Name = effect.Change.Name }))
+                    |> Option.orElse context.PluginObserved
+
                 ProfileDataRows.saveContext
                     connection
                     transaction
                     { context with
                         Revision = context.Revision + 1L
                         Pending = None
+                        PluginObserved = observed
                         Applied = action.Proposed }
 
                 profile

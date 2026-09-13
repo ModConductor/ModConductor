@@ -122,6 +122,30 @@ module internal Ini =
 
         header, found
 
+    let testFiles bytes =
+        let _, text = decode bytes
+        let mutable general = false
+
+        [ for line in lines text do
+              match section line with
+              | Some name -> general <- name.Equals("General", StringComparison.OrdinalIgnoreCase)
+              | None when general ->
+                  let value = line.Trim()
+                  let split = value.IndexOf('=')
+
+                  if split > 0 && not (value.StartsWith(';') || value.StartsWith('#')) then
+                      let key = value.Substring(0, split).Trim()
+
+                      if key.StartsWith("sTestFile", StringComparison.OrdinalIgnoreCase) then
+                          match Int32.TryParse(key.Substring(9)) with
+                          | true, index when index >= 1 && index <= 10 ->
+                              let name = value.Substring(split + 1).Trim()
+
+                              if name <> "" then
+                                  yield name
+                          | _ -> ()
+              | None -> () ]
+
     let apply value (original: byte array option) =
         let bytes = original |> Option.defaultValue [||]
 

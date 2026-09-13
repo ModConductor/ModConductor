@@ -79,7 +79,8 @@ module internal ProfileCloning =
                       Settings = None
                       Saves = None
                       SettingsInitialized = false
-                      SavesInitialized = false }
+                      SavesInitialized = false
+                      PluginOrder = source.PluginOrder }
 
             let saveTarget () =
                 task {

@@ -49,7 +49,9 @@ class GrpcProfileDataClient implements ProfileDataClient {
         for (final entry in reply.page.entries)
           ProfileSaveEntry(entry.name, entry.directory, entry.bytes.toInt()),
       ], reply.page.hasNext() ? reply.page.next : null),
-      wire.ProfileSaveReply_Result.problem => throw _problem(reply.problem),
+      wire.ProfileSaveReply_Result.problem => throw decodeProfileDataProblem(
+        reply.problem,
+      ),
       wire.ProfileSaveReply_Result.notSet => throw const FormatException(
         'The save file page is missing.',
       ),
@@ -66,7 +68,9 @@ class GrpcProfileDataClient implements ProfileDataClient {
     );
     return switch (reply.whichResult()) {
       wire.ProfileDataReply_Result.state => _state(reply.state),
-      wire.ProfileDataReply_Result.problem => throw _problem(reply.problem),
+      wire.ProfileDataReply_Result.problem => throw decodeProfileDataProblem(
+        reply.problem,
+      ),
       wire.ProfileDataReply_Result.notSet => throw const FormatException(
         'The profile settings state is missing.',
       ),
@@ -157,7 +161,7 @@ ProfileDataState _state(wire.ProfileDataState value) {
   );
 }
 
-ProfileDataProblem _problem(wire.ProfileDataProblem value) =>
+ProfileDataProblem decodeProfileDataProblem(wire.ProfileDataProblem value) =>
     ProfileDataProblem(switch (value.kind) {
       wire.ProfileDataProblemKind.PROFILE_DATA_PROBLEM_NOT_FOUND =>
         ProfileDataProblemKind.notFound,
@@ -193,7 +197,9 @@ Stream<ProfileDataEvent> _events(Stream<wire.ProfileDataEvent> stream) =>
           completedFiles: event.result.completedFiles,
           problem: event.result.hasProblem() ? event.result.problem : null,
         ),
-        wire.ProfileDataEvent_Event.problem => throw _problem(event.problem),
+        wire.ProfileDataEvent_Event.problem => throw decodeProfileDataProblem(
+          event.problem,
+        ),
         wire.ProfileDataEvent_Event.notSet => throw const FormatException(
           'The profile settings event is missing.',
         ),

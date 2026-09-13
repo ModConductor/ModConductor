@@ -165,7 +165,7 @@ type PluginSession(repository: IFileCandidateRepository) =
                                         | issue -> Diagnostics.describe issue) }
         }
 
-    member _.Scan(profile, token: CancellationToken) =
+    member private _.ObserveCore(profile, token: CancellationToken, retain) =
         task {
             let entered =
                 lock gate (fun () ->
@@ -195,7 +195,8 @@ type PluginSession(repository: IFileCandidateRepository) =
                             )
 
                         match result with
-                        | Ok value -> lock gate (fun () -> saved <- Some value)
+                        | Ok value when retain -> lock gate (fun () -> saved <- Some value)
+                        | Ok _ -> ()
                         | Error _ -> ()
 
                         return result
@@ -213,6 +214,10 @@ type PluginSession(repository: IFileCandidateRepository) =
                         active <- false
                         idle.TrySetResult() |> ignore)
         }
+
+    member this.Scan(profile, token) = this.ObserveCore(profile, token, true)
+
+    member this.Observe(profile, token) = this.ObserveCore(profile, token, false)
 
     member _.Read id =
         task {

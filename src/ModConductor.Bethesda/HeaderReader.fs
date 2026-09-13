@@ -20,10 +20,6 @@ module HeaderReader =
     let private limit detail =
         raise (HeaderReadException(HeaderError.Limit detail))
 
-    // Windows-1252 has only this non-Latin-1 range. It does not depend on host encodings.
-    let private highCharacters =
-        "\u20ac\u0081\u201a\u0192\u201e\u2026\u2020\u2021\u02c6\u2030\u0160\u2039\u0152\u008d\u017d\u008f\u0090\u2018\u2019\u201c\u201d\u2022\u2013\u2014\u02dc\u2122\u0161\u203a\u0153\u009d\u017e\u0178"
-
     let private text (reader: BinaryReader) length =
         if length > maxStringBytes then
             limit "A header string exceeds the 64 KiB read limit."
@@ -34,18 +30,7 @@ module HeaderReader =
         if count < 0 then
             fail "A header string has no terminating zero."
 
-        let chars = Array.zeroCreate<char> count
-
-        for index in 0 .. count - 1 do
-            let value = int bytes[index]
-
-            chars[index] <-
-                if value >= 0x80 && value <= 0x9f then
-                    highCharacters[value - 0x80]
-                else
-                    char value
-
-        String chars
+        PluginText.decode bytes[.. count - 1]
 
     let read (name: string) (stream: Stream) (token: CancellationToken) =
         try

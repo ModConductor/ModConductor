@@ -9,6 +9,7 @@ open ModConductor.Platform
 
 type internal FomodFactSnapshot =
     { Stamp: SourceStamp
+      ProfileData: (Guid * int64) option
       WorkspaceRevision: int64
       Facts: Facts }
 
@@ -35,6 +36,16 @@ module internal FomodFacts =
                 "SELECT revision FROM workspaces WHERE id=$id"
                 [ "$id", box (string snapshot.Stamp.WorkspaceId) ]
 
+        snapshot.ProfileData
+        |> Option.iter (fun (context, revision) ->
+            let current =
+                ProfileDataRows.context connection transaction context
+                |> Option.map _.Revision
+                |> Option.defaultValue 0L
+
+            if current <> revision then
+                refuse "The plugin order changed. Reload the installer before continuing.")
+
         if
             revision <> snapshot.WorkspaceRevision
             || not selected
@@ -43,7 +54,7 @@ module internal FomodFacts =
         then
             refuse "The selected game or mods changed. Reload the installer before continuing."
 
-    let capture (database: StateDatabase) workspace profile definition =
+    let capture (database: StateDatabase) access workspace profile definition =
         task {
             let! sources =
                 database.EnqueueInternal(fun () ->
@@ -64,6 +75,83 @@ module internal FomodFacts =
                         [ "$id", box (string workspace) ])
 
             let paths = Conditions.filePaths definition
+
+            let! pluginOrder =
+                task {
+                    if paths |> List.exists plugin then
+                        let reader =
+                            ModConductor.Bethesda.PluginSession(
+                                FilePlanRepository(database, access)
+                            )
+
+                        try
+                            let! scanned = reader.Observe(profile, Threading.CancellationToken.None)
+
+                            match scanned with
+                            | Ok headers when not headers.Stale ->
+                                try
+                                    let repository =
+                                        ProfileDataRepository(database, access)
+                                        :> ModConductor.ProfileGameData.IProfileDataRepository
+
+                                    let! scope = repository.Read(workspace, profile)
+
+                                    let inputs =
+                                        ModConductor.ProfileGameData.PluginInputs.read
+                                            scope
+                                            headers.Entries
+                                            Threading.CancellationToken.None
+
+                                    return
+                                        Some(
+                                            ModConductor.ProfileGameData.PluginOrders.view
+                                                scope
+                                                headers
+                                                inputs
+                                        )
+                                with
+                                | ModConductor.ProfileGameData.ProfileDataException _ -> return None
+                                | :? IOException -> return None
+                                | :? UnauthorizedAccessException -> return None
+                            | _ -> return None
+                        finally
+                            reader.TryClose() |> ignore
+                    else
+                        return None
+                }
+
+            let pluginFact path =
+                let name = LogicalPath.display path
+
+                let unknown () =
+                    Fact.Unknown("MC cannot check whether " + name + " is active.")
+
+                match pluginOrder with
+                | Some order when
+                    not order.Pending
+                    && not order.ExternalChanged
+                    && order.View.Issues.IsEmpty
+                    && order.Headers.Problems.IsEmpty
+                    ->
+                    match
+                        order.Headers.Entries
+                        |> List.tryFind (fun entry ->
+                            entry.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
+                    with
+                    | Some entry when Result.isError entry.Header -> unknown ()
+                    | Some _ ->
+                        match
+                            order.View.Order.Entries
+                            |> List.tryFind (fun entry ->
+                                entry.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
+                        with
+                        | Some entry when entry.Enabled = Some true -> Fact.Known FileState.Active
+                        | Some entry when entry.Enabled = Some false ->
+                            Fact.Known FileState.Inactive
+                        | _ -> unknown ()
+                    | None -> Fact.Known FileState.Missing
+                | _ -> unknown ()
+
             let nonPlugin = paths |> List.filter (plugin >> not)
             let enabled = System.Collections.Generic.HashSet<string>()
             let disabled = System.Collections.Generic.HashSet<string>()
@@ -104,11 +192,7 @@ module internal FomodFacts =
 
                     let value =
                         if plugin path then
-                            Fact.Unknown(
-                                "MC cannot check whether "
-                                + LogicalPath.display path
-                                + " is active."
-                            )
+                            pluginFact path
                         elif enabled.Contains key then
                             Fact.Known FileState.Active
                         else
@@ -145,6 +229,9 @@ module internal FomodFacts =
 
             let snapshot =
                 { Stamp = sources.Stamp
+                  ProfileData =
+                    pluginOrder
+                    |> Option.map (fun value -> value.Reference.ContextId, value.Reference.Revision)
                   WorkspaceRevision = workspaceRevision
                   Facts = facts }
 

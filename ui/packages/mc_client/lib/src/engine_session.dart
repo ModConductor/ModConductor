@@ -1,3 +1,4 @@
+import 'plugin_order_client.dart';
 import 'bethesda_client.dart';
 import 'link_setup_client.dart';
 import 'nxm_client.dart';
@@ -81,6 +82,8 @@ class EngineSession {
   GeneratedOutputsClient get outputs => _outputs!;
   DeploymentsClient? _deployments;
   DeploymentsClient get deployments => _deployments!;
+  PluginOrderClient? _pluginOrders;
+  PluginOrderClient get pluginOrders => _pluginOrders!;
   BethesdaClient? _bethesda;
   BethesdaClient get bethesda => _bethesda!;
   FilePlansClient? _filePlans;
@@ -136,6 +139,10 @@ class EngineSession {
     _modLibrary = ModLibraryClient(channel, options);
     _profileMods = ProfileModsClient(channel, options);
     _modOrganization = ModOrganizationClient(channel, options);
+    _pluginOrders = GrpcPluginOrderClient(
+      channel,
+      CallOptions(metadata: options.metadata),
+    );
     _bethesda = GrpcBethesdaClient(
       channel,
       CallOptions(metadata: options.metadata),

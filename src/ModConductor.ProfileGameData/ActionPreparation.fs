@@ -64,6 +64,7 @@ module internal DataActionPreparation =
         context
         (action: ProfileDataActionRecord)
         (incoming: PrivateProfileData option)
+        desiredPlugins
         (token: CancellationToken)
         =
         task {
@@ -94,10 +95,20 @@ module internal DataActionPreparation =
                         action.DocumentsStage.Value
                         token
 
+                let! context, action, pluginEffects, proposed =
+                    PluginPreparation.prepare
+                        repository
+                        context
+                        action
+                        incoming
+                        desiredPlugins
+                        proposed
+                        token
+
                 let prepared =
                     { action with
                         Prepared = true
-                        Files = effects
+                        Files = effects @ pluginEffects
                         Link = link
                         Proposed = proposed }
 

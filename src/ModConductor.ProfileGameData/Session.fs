@@ -13,7 +13,8 @@ type ProfileGameDataSession
     (
         repository: IProfileDataRepository,
         enter: Guid -> IDisposable option,
-        stopped: GameContextState -> unit
+        stopped: GameContextState -> unit,
+        plugins: ModConductor.Bethesda.PluginSession
     ) =
 
     let gate = obj ()
@@ -237,6 +238,7 @@ type ProfileGameDataSession
           Prepared = false
           WorkspaceStage = None
           DocumentsStage = None
+          PluginStage = None
           Files = []
           CompletedFiles = 0
           Link = SaveLinkEffect.Unchanged
@@ -249,6 +251,7 @@ type ProfileGameDataSession
 
     let execute
         checkpoint
+        desiredPlugins
         (scope: ProfileDataScope)
         (context: ProfileDataContext)
         (initial: ProfileDataActionRecord)
@@ -324,7 +327,13 @@ type ProfileGameDataSession
                     stopped scope.Game
 
                     let! updatedContext, prepared =
-                        DataActionPreparation.prepare repository context action incoming token
+                        DataActionPreparation.prepare
+                            repository
+                            context
+                            action
+                            incoming
+                            desiredPlugins
+                            token
 
                     context <- updatedContext
                     action <- prepared
@@ -460,6 +469,23 @@ type ProfileGameDataSession
                 | None ->
                     let! scope = repository.Read(expected.WorkspaceId, expected.ProfileId)
                     check scope expected
+
+                    match
+                        scope.Context |> Option.bind _.PluginRoot,
+                        scope.Context |> Option.bind _.PluginObserved
+                    with
+                    | Some root, Some expectedFile ->
+                        let _, file, _ = PluginInputs.readFile root "plugins.txt" token
+
+                        if file <> expectedFile then
+                            raise (
+                                ProfileDataException(
+                                    ProfileDataError.Conflict
+                                        "The game plugin list changed. Use game order before restoring it."
+                                )
+                            )
+                    | _ -> ()
+
                     let! context = DataInitialization.context repository scope
 
                     let! action =
@@ -469,7 +495,7 @@ type ProfileGameDataSession
                         )
 
                     let! result =
-                        execute checkpoint scope context action token ignore (fun _ ->
+                        execute checkpoint None scope context action token ignore (fun _ ->
                             Task.FromResult())
 
                     return Ok result
@@ -501,64 +527,102 @@ type ProfileGameDataSession
                     return Ok(scope.Context |> Option.map _.Revision |> Option.defaultValue 0L)
             })
 
-    member _.ApplyForLaunch
-        (id, workspace, profile, expected, token, report: ProfileDataApplication -> Task<unit>)
-        =
+    member internal _.ApplyForLaunchAtCheckpoint
+        (
+            id,
+            workspace,
+            profile,
+            expected,
+            token,
+            report: ProfileDataApplication -> Task<unit>,
+            checkpoint
+        ) =
         protect (fun () ->
             task {
                 requireIds [ id; workspace; profile ]
-                let! exists = repository.HasData workspace
+                let! scope = repository.Read(workspace, profile)
+                let revision = scope.Context |> Option.map _.Revision |> Option.defaultValue 0L
 
-                if not exists then
-                    if expected <> 0L then
-                        return Error ProfileDataError.Stale
-                    else
-                        return Ok None
+                if revision <> expected then
+                    return Error ProfileDataError.Stale
                 else
-                    let! scope = repository.Read(workspace, profile)
-                    let revision = scope.Context |> Option.map _.Revision |> Option.defaultValue 0L
+                    let! desiredPlugins = PluginOrders.forLaunch plugins scope token
 
-                    if revision <> expected then
-                        return Error ProfileDataError.Stale
+                    let needed =
+                        (scope.Context |> Option.bind _.Applied).IsSome
+                        || (scope.Profile
+                            |> Option.exists (fun value ->
+                                value.Options.Settings
+                                || value.Options.Saves
+                                || value.PluginOrder.IsSome))
+
+                    if not needed then
+                        return Ok None
                     else
-                        let needed =
-                            (scope.Context |> Option.bind _.Applied).IsSome
-                            || (scope.Profile
-                                |> Option.exists (fun value ->
-                                    value.Options.Settings || value.Options.Saves))
+                        let! context = DataInitialization.context repository scope
 
-                        if not needed then
-                            return Ok None
-                        else
-                            let! context = DataInitialization.context repository scope
+                        let! action =
+                            repository.Claim(
+                                context,
+                                initial id context profile ProfileDataActionKind.Apply
+                            )
 
-                            let! action =
-                                repository.Claim(
-                                    context,
-                                    initial id context profile ProfileDataActionKind.Apply
-                                )
+                        let reportAction (value: ProfileDataActionRecord) =
+                            report
+                                { ReceiptId = value.Id
+                                  Revision = expected
+                                  CompletedFiles = value.CompletedFiles
+                                  Complete = value.Complete
+                                  Problem = value.Problem }
 
-                            let reportAction (value: ProfileDataActionRecord) =
-                                report
-                                    { ReceiptId = value.Id
+                        let! result =
+                            execute
+                                checkpoint
+                                desiredPlugins
+                                scope
+                                context
+                                action
+                                token
+                                ignore
+                                reportAction
+
+                        return
+                            Ok(
+                                Some
+                                    { ReceiptId = result.Id
                                       Revision = expected
-                                      CompletedFiles = value.CompletedFiles
-                                      Complete = value.Complete
-                                      Problem = value.Problem }
-
-                            let! result =
-                                execute ignore scope context action token ignore reportAction
-
-                            return
-                                Ok(
-                                    Some
-                                        { ReceiptId = result.Id
-                                          Revision = expected
-                                          CompletedFiles = result.CompletedFiles
-                                          Complete = result.Complete
-                                          Problem = result.Problem }
-                                )
+                                      CompletedFiles = result.CompletedFiles
+                                      Complete = result.Complete
+                                      Problem = result.Problem }
+                            )
             })
+
+    member this.ApplyForLaunch(id, workspace, profile, expected, token, report) =
+        this.ApplyForLaunchAtCheckpoint(id, workspace, profile, expected, token, report, ignore)
+
+    interface IProfilePluginOrders with
+        member _.Read(workspace, profile, headers) =
+            protect (fun () ->
+                task {
+                    let! value = PluginOrders.read repository plugins workspace profile headers
+                    return Ok value
+                })
+
+        member _.Change(expected, headers, change) =
+            run expected.WorkspaceId (fun () ->
+                task {
+                    let! value =
+                        PluginOrders.save repository plugins expected headers (Some change)
+
+                    return Ok value
+                })
+
+        member _.UseGameOrder(expected, headers) =
+            run expected.WorkspaceId (fun () ->
+                task {
+                    let! value = PluginOrders.save repository plugins expected headers None
+                    return Ok value
+                })
 
     interface IProfileGameData with
         member _.SaveFiles(workspace, profile, path, after) =
@@ -621,7 +685,7 @@ type ProfileGameDataSession
                             )
 
                         let! result =
-                            execute ignore scope context action token progress (fun _ ->
+                            execute ignore None scope context action token progress (fun _ ->
                                 Task.FromResult())
 
                         return Ok result
@@ -669,11 +733,27 @@ type ProfileGameDataSession
                             |> Option.defaultWith (fun () ->
                                 raise (ProfileDataException ProfileDataError.NotFound))
 
+                        let! desiredPlugins =
+                            if
+                                previous.Kind = ProfileDataActionKind.Apply
+                                && not previous.Prepared
+                            then
+                                PluginOrders.forLaunch plugins scope token
+                            else
+                                Task.FromResult None
+
                         let! action = repository.Claim(context, previous)
 
                         let! result =
-                            execute ignore scope context action token ignore (fun _ ->
-                                Task.FromResult())
+                            execute
+                                ignore
+                                desiredPlugins
+                                scope
+                                context
+                                action
+                                token
+                                ignore
+                                (fun _ -> Task.FromResult())
 
                         return Ok result
                 })

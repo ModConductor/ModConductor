@@ -16,10 +16,13 @@ module internal ProfileDataEncoding =
             option root writer value.Storage
             option root writer value.OriginalsRoot
             option applied writer value.Applied
-            option guid writer value.Pending)
+            option guid writer value.Pending
+            option root writer value.PluginRoot
+            option root writer value.PluginOriginals
+            option (option stored) writer value.PluginObserved)
 
     let readContext =
-        decode (fun reader ->
+        decode (fun version reader ->
             { Id = readGuid reader
               WorkspaceId = readGuid reader
               Revision = reader.ReadInt64()
@@ -27,8 +30,15 @@ module internal ProfileDataEncoding =
               Documents = readRoot reader
               Storage = readOption readRoot reader
               OriginalsRoot = readOption readRoot reader
-              Applied = readOption readApplied reader
-              Pending = readOption readGuid reader }
+              Applied = readOption (readApplied version) reader
+              Pending = readOption readGuid reader
+              PluginRoot = if version >= 2 then readOption readRoot reader else None
+              PluginOriginals = if version >= 2 then readOption readRoot reader else None
+              PluginObserved =
+                if version >= 2 then
+                    readOption (readOption readStored) reader
+                else
+                    None }
             : ProfileDataContext)
 
     let profile =
@@ -40,10 +50,11 @@ module internal ProfileDataEncoding =
             option root writer value.Settings
             option root writer value.Saves
             writer.Write value.SettingsInitialized
-            writer.Write value.SavesInitialized)
+            writer.Write value.SavesInitialized
+            option pluginOrder writer value.PluginOrder)
 
     let readProfile =
-        decode (fun reader ->
+        decode (fun version reader ->
             { ProfileId = readGuid reader
               Revision = reader.ReadInt64()
               Options = readOptions reader
@@ -51,7 +62,12 @@ module internal ProfileDataEncoding =
               Settings = readOption readRoot reader
               Saves = readOption readRoot reader
               SettingsInitialized = reader.ReadBoolean()
-              SavesInitialized = reader.ReadBoolean() }
+              SavesInitialized = reader.ReadBoolean()
+              PluginOrder =
+                if version >= 2 then
+                    readOption readPluginOrder reader
+                else
+                    None }
             : PrivateProfileData)
 
     let private change writer (value: ProfileDataFilesEffect) =
@@ -204,10 +220,11 @@ module internal ProfileDataEncoding =
             option identity writer value.LinkCreated
             option applied writer value.Proposed
             writer.Write value.Complete
-            option text writer value.Problem)
+            option text writer value.Problem
+            option root writer value.PluginStage)
 
     let readAction =
-        decode (fun reader ->
+        decode (fun version reader ->
             { Id = readGuid reader
               ContextId = readGuid reader
               ProfileId = readGuid reader
@@ -223,7 +240,8 @@ module internal ProfileDataEncoding =
               Link = readLink reader
               LinkRemoved = reader.ReadBoolean()
               LinkCreated = readOption readIdentity reader
-              Proposed = readOption readApplied reader
+              Proposed = readOption (readApplied version) reader
               Complete = reader.ReadBoolean()
-              Problem = readOption readText reader }
+              Problem = readOption readText reader
+              PluginStage = if version >= 2 then readOption readRoot reader else None }
             : ProfileDataActionRecord)

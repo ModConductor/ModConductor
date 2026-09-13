@@ -86,16 +86,16 @@ class GrpcBethesdaClient implements BethesdaClient {
     : _client = wire.BethesdaPluginsClient(channel, options: options);
   final wire.BethesdaPluginsClient _client;
   @override
-  Future<PluginSnapshot> scan(String profile) async => _reply(
+  Future<PluginSnapshot> scan(String profile) async => decode(
     await _client.scanPlugins(wire.ScanPluginsRequest(profileId: profile)),
   );
   @override
-  Future<PluginSnapshot> read(String snapshot) async => _reply(
+  Future<PluginSnapshot> read(String snapshot) async => decode(
     await _client.readPlugins(wire.ReadPluginsRequest(snapshotId: snapshot)),
   );
   static PluginSource _source(wire.BethesdaPluginSource s) =>
       PluginSource(s.name, s.version, s.path, s.modId, s.versionId, s.gameFile);
-  static PluginSnapshot _reply(wire.BethesdaPluginsReply reply) {
+  static PluginSnapshot decode(wire.BethesdaPluginsReply reply) {
     switch (reply.whichOutcome()) {
       case wire.BethesdaPluginsReply_Outcome.fault:
         faults.reject(reply.fault);

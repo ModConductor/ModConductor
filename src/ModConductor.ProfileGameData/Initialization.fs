@@ -25,7 +25,10 @@ module internal DataInitialization =
                                   Storage = None
                                   OriginalsRoot = None
                                   Applied = None
-                                  Pending = None }
+                                  Pending = None
+                                  PluginObserved = None
+                                  PluginRoot = None
+                                  PluginOriginals = None }
                 }
 
             match initial.Storage with
@@ -57,7 +60,8 @@ module internal DataInitialization =
                       Settings = None
                       Saves = None
                       SettingsInitialized = false
-                      SavesInitialized = false }
+                      SavesInitialized = false
+                      PluginOrder = None }
 
             if previous.IsNone then
                 do! repository.SaveProfile(context.Id, value)

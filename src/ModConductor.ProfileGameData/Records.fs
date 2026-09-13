@@ -13,18 +13,24 @@ type internal PrivateProfileData =
       Settings: DataRoot option
       Saves: DataRoot option
       SettingsInitialized: bool
-      SavesInitialized: bool }
+      SavesInitialized: bool
+      PluginOrder: ModConductor.Bethesda.PluginOrder option }
 
 type internal GlobalIni =
     { Name: string
       Original: StoredDataFile option }
+
+type internal AppliedPluginOrder =
+    { Original: StoredDataFile option
+      ProfileRevision: int64 }
 
 type internal AppliedProfileData =
     { ProfileId: Guid
       Options: ProfileDataOptions
       Originals: GlobalIni list
       SaveOverride: SavePathOverride option
-      SaveLink: FileIdentity option }
+      SaveLink: FileIdentity option
+      Plugins: AppliedPluginOrder option }
 
 type internal ProfileDataContext =
     { Id: Guid
@@ -35,7 +41,10 @@ type internal ProfileDataContext =
       Storage: DataRoot option
       OriginalsRoot: DataRoot option
       Applied: AppliedProfileData option
-      Pending: Guid option }
+      Pending: Guid option
+      PluginRoot: DataRoot option
+      PluginObserved: StoredDataFile option option
+      PluginOriginals: DataRoot option }
 
 type internal ProfileDataFilesEffect =
     { Target: DataRoot
@@ -79,6 +88,7 @@ type internal ProfileDataActionRecord =
       Prepared: bool
       WorkspaceStage: DataRoot option
       DocumentsStage: DataRoot option
+      PluginStage: DataRoot option
       Files: ProfileDataFilesEffect list
       CompletedFiles: int
       Link: SaveLinkEffect

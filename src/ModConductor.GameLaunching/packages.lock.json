@@ -14,6 +14,13 @@
         "resolved": "10.0.11",
         "contentHash": "IBf7lbovvjGWVWXZX5cJ/cO0WXbId0Zq4BuSeT94mGZuOAP66oMeH9PTBZ9Jpp3Jb6jtK0qm/NyUbPRo1gC/wQ=="
       },
+      "modconductor.bethesda": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )",
+          "ModConductor.FilePlanning": "[1.0.0, )"
+        }
+      },
       "modconductor.deployment": {
         "type": "Project",
         "dependencies": {
@@ -86,6 +93,7 @@
         "type": "Project",
         "dependencies": {
           "FSharp.Core": "[10.1.400, )",
+          "ModConductor.Bethesda": "[1.0.0, )",
           "ModConductor.GameContexts": "[1.0.0, )"
         }
       },

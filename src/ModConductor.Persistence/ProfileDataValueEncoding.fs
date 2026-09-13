@@ -105,24 +105,81 @@ module internal ProfileDataValueEncoding =
         { Name = readText reader
           Original = readOption readStored reader }
 
+    let pluginOrder (writer: BinaryWriter) (value: ModConductor.Bethesda.PluginOrder) =
+        writer.Write value.Document.Length
+        writer.Write value.Document
+
+        list
+            (fun writer (row: ModConductor.Bethesda.PluginSetting) ->
+                text writer row.Name
+
+                option
+                    (fun (writer: BinaryWriter) (enabled: bool) -> writer.Write enabled)
+                    writer
+                    row.Enabled
+
+                option
+                    (fun (writer: BinaryWriter) (index: int) -> writer.Write index)
+                    writer
+                    row.LockedIndex)
+            writer
+            value.Entries
+
+    let readPluginOrder (reader: BinaryReader) : ModConductor.Bethesda.PluginOrder =
+        let count = reader.ReadInt32()
+
+        if count < 0 || count > ModConductor.Bethesda.OrderDocument.maxBytes then
+            invalid ()
+
+        let bytes = reader.ReadBytes count
+
+        if bytes.Length <> count then
+            invalid ()
+
+        { Document = bytes
+          Entries =
+            readList
+                (fun reader ->
+                    { Name = readText reader
+                      Enabled =
+                        readOption (fun (reader: BinaryReader) -> reader.ReadBoolean()) reader
+                      LockedIndex =
+                        readOption (fun (reader: BinaryReader) -> reader.ReadInt32()) reader }
+                    : ModConductor.Bethesda.PluginSetting)
+                reader }
+
+    let appliedPlugins (writer: BinaryWriter) (value: AppliedPluginOrder) =
+        option stored writer value.Original
+        writer.Write value.ProfileRevision
+
+    let readAppliedPlugins (reader: BinaryReader) : AppliedPluginOrder =
+        { Original = readOption readStored reader
+          ProfileRevision = reader.ReadInt64() }
+
     let applied writer (value: AppliedProfileData) =
         guid writer value.ProfileId
         options writer value.Options
         list original writer value.Originals
         option patch writer value.SaveOverride
         option identity writer value.SaveLink
+        option appliedPlugins writer value.Plugins
 
-    let readApplied reader : AppliedProfileData =
+    let readApplied version reader : AppliedProfileData =
         { ProfileId = readGuid reader
           Options = readOptions reader
           Originals = readList readOriginal reader
           SaveOverride = readOption readPatch reader
-          SaveLink = readOption readIdentity reader }
+          SaveLink = readOption readIdentity reader
+          Plugins =
+            if version >= 2 then
+                readOption readAppliedPlugins reader
+            else
+                None }
 
     let encode write value =
         use stream = new MemoryStream()
         use writer = new BinaryWriter(stream, UTF8Encoding(false, true), true)
-        writer.Write 1
+        writer.Write 2
         write writer value
         writer.Flush()
 
@@ -138,10 +195,12 @@ module internal ProfileDataValueEncoding =
         use stream = new MemoryStream(bytes, false)
         use reader = new BinaryReader(stream, UTF8Encoding(false, true), true)
 
-        if reader.ReadInt32() <> 1 then
+        let version = reader.ReadInt32()
+
+        if version <> 1 && version <> 2 then
             invalid ()
 
-        let value = read reader
+        let value = read version reader
 
         if stream.Position <> stream.Length then
             invalid ()

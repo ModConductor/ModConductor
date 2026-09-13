@@ -196,7 +196,7 @@ class _ProfileSettingsInspectorState extends State<ProfileSettingsInspector> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => McDialog(
-        title: 'Restore global settings and saves?',
+        title: 'Restore settings, saves and plugin order?',
         actions: [
           McAction(label: 'Cancel', onPressed: () => Navigator.pop(context)),
           McAction(
@@ -207,7 +207,7 @@ class _ProfileSettingsInspectorState extends State<ProfileSettingsInspector> {
         ],
         children: [
           Text(
-            'Keep ${name(active)}’s changes in its profile and restore the global settings and save location.',
+            'Keep ${name(active)}’s profile data and restore the global settings, save location and any applied plugin order.',
           ),
           const SizedBox(height: 16),
           const Text('Local options stay enabled. Play can apply them again.'),
@@ -346,7 +346,7 @@ class _ProfileSettingsInspectorState extends State<ProfileSettingsInspector> {
               ),
             const SizedBox(height: 16),
             McAction(
-              label: 'Restore global settings and saves',
+              label: 'Restore',
               icon: Icons.restore,
               onPressed: controller.canEdit && active != null ? restore : null,
             ),

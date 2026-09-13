@@ -75,7 +75,8 @@ type OperationStore
         ModConductor.ProfileGameData.ProfileGameDataSession(
             ProfileDataRepository(database, modLibrary.Access),
             deploymentBackend.TryAcquireWorkspace,
-            ModConductor.Deployment.GameProcesses.validate >> ignore
+            ModConductor.Deployment.GameProcesses.validate >> ignore,
+            plugins
         )
 
     let profileMutations =
@@ -198,6 +199,9 @@ type OperationStore
     member _.Plugins = plugins
     member _.GeneratedOutputs = outputs :> ModConductor.GeneratedOutputs.IGeneratedOutputs
     member _.Deployments = deploymentBackend :> ModConductor.Deployment.IDeploymentBackend
+
+    member _.PluginOrders =
+        profileGameData :> ModConductor.ProfileGameData.IProfilePluginOrders
 
     member _.ProfileGameData =
         profileGameData :> ModConductor.ProfileGameData.IProfileGameData
@@ -345,6 +349,27 @@ type OperationStore
             token,
             checkpoint
         )
+
+    member internal _.ApplyProfileDataAtCheckpoint
+        (id, workspace, profile, expected, token, checkpoint)
+        =
+        task {
+            match deploymentBackend.TryAcquireWorkspace workspace with
+            | None -> return Error ModConductor.ProfileGameData.ProfileDataError.Busy
+            | Some lease ->
+                use lease = lease
+
+                return!
+                    profileGameData.ApplyForLaunchAtCheckpoint(
+                        id,
+                        workspace,
+                        profile,
+                        expected,
+                        token,
+                        (fun _ -> System.Threading.Tasks.Task.FromResult()),
+                        checkpoint
+                    )
+        }
 
     member internal _.RestoreProfileDataAtCheckpoint(id, expected, token, checkpoint) =
         profileGameData.RestoreAtCheckpoint(id, expected, token, checkpoint)

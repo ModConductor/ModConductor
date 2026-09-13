@@ -19,6 +19,11 @@ type internal IProfileDataRepository =
     abstract CreateContext: ProfileDataContext -> Task<ProfileDataContext>
     abstract SaveContext: ProfileDataContext -> Task<unit>
     abstract SaveProfile: context: Guid * PrivateProfileData -> Task<unit>
+
+    abstract SaveOrder:
+        ProfileDataContext * PrivateProfileData * ModConductor.FilePlanning.SourceStamp ->
+            Task<unit>
+
     abstract Profile: context: Guid * profile: Guid -> Task<PrivateProfileData option>
     abstract Claim: ProfileDataContext * ProfileDataActionRecord -> Task<ProfileDataActionRecord>
     abstract Action: workspace: Guid * id: Guid -> Task<ProfileDataActionRecord option>

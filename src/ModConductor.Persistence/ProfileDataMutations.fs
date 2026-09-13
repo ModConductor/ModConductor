@@ -57,6 +57,7 @@ type internal ProfileDataMutations
           Prepared = false
           WorkspaceStage = None
           DocumentsStage = None
+          PluginStage = None
           Files = []
           CompletedFiles = 0
           Link = SaveLinkEffect.Unchanged

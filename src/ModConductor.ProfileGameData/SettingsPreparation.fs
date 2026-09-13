@@ -207,13 +207,15 @@ module internal SettingsPreparation =
 
         let proposed =
             incoming
-            |> Option.filter (fun _ -> nextOptions.Settings || nextOptions.Saves)
+            |> Option.filter (fun _ ->
+                nextOptions.Settings || nextOptions.Saves || incoming.Value.PluginOrder.IsSome)
             |> Option.map (fun profile ->
                 { ProfileId = profile.ProfileId
                   Options = nextOptions
                   Originals = List.ofSeq originals
                   SaveOverride = nextPatch
-                  SaveLink = None })
+                  SaveLink = None
+                  Plugins = None })
 
         let previousLink = old |> Option.bind _.SaveLink
 

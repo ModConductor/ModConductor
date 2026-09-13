@@ -66,6 +66,7 @@ class _DesktopHostState extends State<DesktopHost> with WidgetsBindingObserver {
     gameContexts: _owner.gameContexts,
     filePlans: _owner.filePlans,
     bethesda: _owner.bethesda,
+    pluginOrders: _owner.pluginOrders,
     outputs: _owner.outputs,
     deployments: _owner.deployments,
     executables: _owner.executables,

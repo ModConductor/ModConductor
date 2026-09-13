@@ -78,7 +78,7 @@ class GamePlayDialog extends StatelessWidget {
         title = switch (run.phase) {
           ExecutableRunPhase.starting =>
             game?.preparation == GamePreparationPhase.profileData
-                ? 'Applying settings and saves…'
+                ? 'Applying $profile…'
                 : game?.preparation == GamePreparationPhase.applying
                 ? 'Applying $profile…'
                 : 'Preparing $profile…',
