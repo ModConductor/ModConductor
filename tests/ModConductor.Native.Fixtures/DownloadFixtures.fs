@@ -49,7 +49,7 @@ module DownloadFixtures =
         { Id = id
           WorkspaceId = workspace
           Name = "Textures — rivière.zip"
-          Sources = [ url ]
+          Sources = [ DownloadSource.Url url ]
           ExpectedLength = Some(4L * 1024L * 1024L)
           ExpectedSha256 = hash }
 
@@ -254,7 +254,9 @@ module DownloadFixtures =
 
             let mirrorRequest =
                 { request workspace mirror (server.Url + "/mirror-fail") (Some server.Checksum) with
-                    Sources = [ server.Url + "/mirror-fail"; server.Url + "/good" ] }
+                    Sources =
+                        [ DownloadSource.Url(server.Url + "/mirror-fail")
+                          DownloadSource.Url(server.Url + "/good") ] }
 
             store.Downloads.Start mirrorRequest |> wait |> result |> ignore
             let mirrorResult = until store workspace mirror terminal
@@ -270,7 +272,9 @@ module DownloadFixtures =
             store.Downloads.Start
                 { mirrorRequest with
                     Id = partialMirror
-                    Sources = [ server.Url + "/partial-fail"; server.Url + "/good" ] }
+                    Sources =
+                        [ DownloadSource.Url(server.Url + "/partial-fail")
+                          DownloadSource.Url(server.Url + "/good") ] }
             |> wait
             |> result
             |> ignore

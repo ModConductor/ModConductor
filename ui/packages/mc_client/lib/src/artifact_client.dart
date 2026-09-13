@@ -85,14 +85,14 @@ class GrpcArtifactsClient implements ArtifactsClient {
     }
   }
 
-  ArtifactLink _link(wire.ArtifactProvenance link) => ArtifactLink(
+  static ArtifactLink _link(wire.ArtifactProvenance link) => ArtifactLink(
     link.modId,
     link.versionId,
     link.modName,
     link.versionLabel,
     installed: link.installed,
   );
-  Artifact _artifact(wire.ArchiveArtifact a) => Artifact(
+  static Artifact decode(wire.ArchiveArtifact a) => Artifact(
     id: a.id,
     workspaceId: a.workspaceId,
     revision: a.revision.toInt(),
@@ -122,7 +122,7 @@ class GrpcArtifactsClient implements ArtifactsClient {
     links: List.unmodifiable(a.links.map(_link)),
     download: a.hasDownload() ? _download(a.download) : null,
   );
-  ArtifactDownload _download(model.ArchiveDownload d) => ArtifactDownload(
+  static ArtifactDownload _download(model.ArchiveDownload d) => ArtifactDownload(
     phase: switch (d.phase) {
       model.DownloadPhase.DOWNLOAD_PHASE_QUEUED => DownloadPhase.queued,
       model.DownloadPhase.DOWNLOAD_PHASE_RUNNING => DownloadPhase.running,
@@ -147,7 +147,7 @@ class GrpcArtifactsClient implements ArtifactsClient {
     String workspaceId,
     String id,
     ArchiveDownloadRequest request,
-  ) async => _artifact(
+  ) async => decode(
     await _call(
       _downloads.startDownload(
         transfer.DownloadStartRequest(
@@ -167,7 +167,7 @@ class GrpcArtifactsClient implements ArtifactsClient {
   Future<Artifact> controlDownload(
     Artifact artifact,
     DownloadAction action,
-  ) async => _artifact(
+  ) async => decode(
     await _call(
       _downloads.controlDownload(
         transfer.DownloadControlRequest(
@@ -193,7 +193,7 @@ class GrpcArtifactsClient implements ArtifactsClient {
     );
     try {
       await for (final artifact in call) {
-        yield _artifact(artifact);
+        yield decode(artifact);
       }
     } on GrpcError catch (error) {
       throw ArtifactProblem(
@@ -225,7 +225,7 @@ class GrpcArtifactsClient implements ArtifactsClient {
       ),
     );
     return ArtifactPage(
-      List.unmodifiable(page.entries.map(_artifact)),
+      List.unmodifiable(page.entries.map(decode)),
       page.hasNext() ? page.next : null,
     );
   }
@@ -247,7 +247,7 @@ class GrpcArtifactsClient implements ArtifactsClient {
   }
 
   @override
-  Future<Artifact> read(String workspaceId, String id) async => _artifact(
+  Future<Artifact> read(String workspaceId, String id) async => decode(
     await _call(
       _client.readArtifact(
         wire.ArtifactReadRequest(workspaceId: workspaceId, id: id),
@@ -260,7 +260,7 @@ class GrpcArtifactsClient implements ArtifactsClient {
     String id,
     String path,
     ArtifactStorage storage,
-  ) async => _artifact(
+  ) async => decode(
     await _call(
       _client.addArtifact(
         wire.ArtifactAddRequest(
@@ -276,9 +276,9 @@ class GrpcArtifactsClient implements ArtifactsClient {
   );
   @override
   Future<Artifact> retry(Artifact expected) async =>
-      _artifact(await _call(_client.retryArtifact(_ref(expected))));
+      decode(await _call(_client.retryArtifact(_ref(expected))));
   @override
-  Future<Artifact> locate(Artifact expected, String path) async => _artifact(
+  Future<Artifact> locate(Artifact expected, String path) async => decode(
     await _call(
       _client.locateArtifact(
         wire.ArtifactLocateRequest(expected: _ref(expected), path: path),
@@ -290,7 +290,7 @@ class GrpcArtifactsClient implements ArtifactsClient {
     Artifact expected,
     ArtifactLink link, {
     bool remove = false,
-  }) async => _artifact(
+  }) async => decode(
     await _call(
       _client.linkArtifact(
         wire.ArtifactLinkRequest(
@@ -304,7 +304,7 @@ class GrpcArtifactsClient implements ArtifactsClient {
   );
   @override
   Future<Artifact> deleteCopy(Artifact expected) async =>
-      _artifact(await _call(_client.deleteArtifactCopy(_ref(expected))));
+      decode(await _call(_client.deleteArtifactCopy(_ref(expected))));
   @override
   Future<void> remove(Artifact expected) async {
     await _call(_client.removeArtifact(_ref(expected)));

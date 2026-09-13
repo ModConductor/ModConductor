@@ -1,16 +1,21 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:mc_client/mc_client.dart';
 import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 
 class CredentialPreferences extends StatefulWidget {
-  const CredentialPreferences({super.key, required this.client});
+  const CredentialPreferences({super.key, required this.client, this.nexus});
   final CredentialsClient? client;
+  final NexusClient? nexus;
   @override
   State<CredentialPreferences> createState() => _CredentialPreferencesState();
 }
 
 class _CredentialPreferencesState extends State<CredentialPreferences> {
   CredentialStatus? _status;
+  NexusAccount? _account;
+  Timer? _poll;
   bool _busy = false, _connectionProblem = false;
   int _generation = 0;
   @override
@@ -22,10 +27,12 @@ class _CredentialPreferencesState extends State<CredentialPreferences> {
   @override
   void didUpdateWidget(CredentialPreferences oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.client != widget.client) {
+    if (oldWidget.client != widget.client || oldWidget.nexus != widget.nexus) {
       _generation++;
       _busy = false;
       _status = null;
+      _account = null;
+      _poll?.cancel();
       _refresh();
     }
   }
@@ -39,19 +46,59 @@ class _CredentialPreferencesState extends State<CredentialPreferences> {
     });
     try {
       final result = await action();
+      final account = await widget.nexus?.status();
       if (mounted && generation == _generation)
-        setState(() => _status = result);
+        setState(() {
+          _status = result;
+          _account = account;
+        });
     } catch (_) {
       if (mounted && generation == _generation)
         setState(() => _connectionProblem = true);
     } finally {
-      if (mounted && generation == _generation) setState(() => _busy = false);
+      if (mounted && generation == _generation) {
+        setState(() => _busy = false);
+        _poll?.cancel();
+        if (_account?.waiting == true)
+          _poll = Timer(const Duration(milliseconds: 500), _refresh);
+      }
     }
   }
 
   void _refresh() {
     final client = widget.client;
     if (client != null) _run(client.status);
+  }
+
+  @override
+  void dispose() {
+    _poll?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _nexus(Future<NexusAccount> Function() action) async {
+    final client = widget.client;
+    if (client == null) return;
+    await _run(() async {
+      await action();
+      return client.status();
+    });
+  }
+
+  Future<void> _disconnect() async {
+    if (!await _confirm(
+      title: 'Disconnect from Nexus Mods?',
+      action: 'Disconnect',
+      children: [
+        const Text(
+          'Nexus downloads will pause. Local files will not be deleted.',
+        ),
+        _gap,
+        const Text('Saved sign-in details will be removed.'),
+      ],
+    ))
+      return;
+    if (mounted && widget.client != null) await _run(widget.client!.remove);
   }
 
   Future<bool> _confirm({
@@ -135,11 +182,85 @@ class _CredentialPreferencesState extends State<CredentialPreferences> {
   @override
   Widget build(BuildContext context) {
     final status = _status;
+    final reconnect =
+        status?.saved == SavedCredentials.present &&
+        status?.mode != CredentialMode.sessionOnly &&
+        _account?.problem?.code != 'sign_in_required';
     final enabled = !_busy && widget.client != null;
     return McSection(
       title: 'Nexus Mods',
       children: [
-        const Text('Sign-in is not available in this build.'),
+        if (_account?.configured != true)
+          const Text('Sign-in is not configured in this build.')
+        else if (_account?.waiting == true)
+          const Text('Waiting for sign-in')
+        else if (_account?.name case final name?)
+          Row(
+            children: [
+              Expanded(child: Text('Connected as $name')),
+              if (_account?.premium == true) const Chip(label: Text('Premium')),
+            ],
+          )
+        else
+          Text(
+            status?.saved == SavedCredentials.present
+                ? 'Not connected'
+                : 'Not signed in',
+          ),
+        if (_account?.problem case final problem?) ...[
+          _gap,
+          McStatus(
+            title: problem.code == 'storage'
+                ? 'Sign-in details were not saved'
+                : problem.message,
+            detail: problem.code == 'storage' ? problem.message : null,
+            tone: McStatusTone.error,
+          ),
+        ],
+        if (_account?.configured == true && widget.nexus != null) ...[
+          _gap,
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              if (_account?.waiting == true)
+                McAction(
+                  label: 'Cancel sign-in',
+                  onPressed: enabled
+                      ? () => _nexus(widget.nexus!.cancel)
+                      : null,
+                )
+              else if (_account?.name != null) ...[
+                McAction(
+                  label: 'Check account',
+                  icon: Icons.refresh,
+                  onPressed: enabled ? () => _nexus(widget.nexus!.check) : null,
+                ),
+                McAction(
+                  label: 'Disconnect',
+                  icon: Icons.logout,
+                  onPressed: enabled ? _disconnect : null,
+                ),
+              ] else
+                McAction(
+                  label: _account?.problem?.code == 'sign_in_required'
+                      ? 'Sign in again'
+                      : reconnect
+                      ? 'Connect'
+                      : 'Sign in',
+                  icon: Icons.login,
+                  emphasis: McActionEmphasis.primary,
+                  onPressed: enabled
+                      ? () => _nexus(
+                          reconnect
+                              ? widget.nexus!.connect
+                              : widget.nexus!.signIn,
+                        )
+                      : null,
+                ),
+            ],
+          ),
+        ],
         _gap,
         if (widget.client == null || _connectionProblem) ...[
           const McStatus(
@@ -190,11 +311,12 @@ class _CredentialPreferencesState extends State<CredentialPreferences> {
           runSpacing: 12,
           children: [
             McAction(
-              label: 'Check again',
+              label: 'Check storage',
               icon: Icons.refresh,
               onPressed: enabled ? _refresh : null,
             ),
-            if (status != null &&
+            if (_account?.name == null &&
+                status != null &&
                 (status.saved == SavedCredentials.present ||
                     status.hasSession ||
                     status.removalProblem != null))

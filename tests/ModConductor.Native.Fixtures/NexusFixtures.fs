@@ -1,0 +1,407 @@
+namespace ModConductor.Native.Fixtures
+
+open System
+open System.IO
+open System.Text
+open System.Text.Json
+open System.Threading
+open System.Threading.Tasks
+open ModConductor.Credentials
+open ModConductor.Nexus
+open ModConductor.Engine
+open ModConductor.HttpDownloads
+open ModConductor.ArtifactLibrary
+open ModConductor.Persistence
+open ModConductor.Workspaces
+
+type private NexusMemoryStore() =
+    let mutable bytes: byte[] option = None
+    let mutable saves = 0
+    member _.Bytes = bytes |> Option.map Array.copy
+    member _.Saves = saves
+
+    interface ICredentialStore with
+        member _.Kind = StorageKind.SecretService
+
+        member _.Inspect _ =
+            { Saved =
+                (if bytes.IsSome then
+                     SavedPresence.Present
+                 else
+                     SavedPresence.Absent)
+              Problem = None }
+
+        member _.Save(value, token) =
+            token.ThrowIfCancellationRequested()
+            bytes <- Some(Array.copy value)
+            saves <- saves + 1
+            Ok()
+
+        member _.Read _ = Ok(bytes |> Option.map Array.copy)
+
+        member _.Delete token =
+            token.ThrowIfCancellationRequested()
+            bytes <- None
+            Ok()
+
+module NexusFixtures =
+    let private wait = StorageWorker.wait
+    let private result = StorageWorker.result
+    let private token = CancellationToken.None
+
+    let private until predicate =
+        let limit = DateTime.UtcNow.AddSeconds 15.
+
+        while not (predicate ()) && DateTime.UtcNow < limit do
+            Thread.Sleep 10
+
+        if not (predicate ()) then
+            failwith "The Nexus fixture did not reach the expected state."
+
+    let private signIn (session: NexusSession) =
+        session.SignIn() |> wait |> ignore
+        until (fun () -> not session.Status.Waiting)
+
+    let observe (writer: Utf8JsonWriter) primary =
+        let check (name: string) condition =
+            writer.WriteBoolean(name, condition)
+            writer.Flush()
+
+            if not condition then
+                failwith ("Nexus fixture failed: " + name)
+
+        writer.WriteStartObject("nexus")
+        use server = new NexusServer()
+        let memory = NexusMemoryStore()
+        use credentials = new CredentialSession(memory)
+
+        let pausedAccounts = ResizeArray<string>()
+
+        use session =
+            new NexusSession(
+                credentials,
+                Some server.Registration,
+                server.Handoff,
+                (fun subject ->
+                    pausedAccounts.Add subject
+                    Task.CompletedTask),
+                requestInterval = TimeSpan.FromMilliseconds 5.
+            )
+
+        server.Mode <- "state"
+        signIn session
+
+        check
+            "wrongStateCannotExchangeOrSave"
+            (server.TokenCount = 0
+             && memory.Saves = 0
+             && session.Status.Problem = Some NexusProblem.InvalidCallback)
+
+        server.Mode <- "issuer"
+        signIn session
+        check "suppliedWrongIssuerCannotExchangeOrSave" (server.TokenCount = 0 && memory.Saves = 0)
+        server.Mode <- "redirect"
+        signIn session
+        server.Mode <- "duplicate"
+        signIn session
+
+        check
+            "wrongRedirectAndDuplicateCallbackCannotExchange"
+            (server.TokenCount = 0 && memory.Saves = 0)
+
+        server.Mode <- "good"
+        server.TokenSeconds <- 1
+        signIn session
+
+        writer.WriteString(
+            "signInProblem",
+            session.Status.Problem
+            |> Option.map NexusProblem.message
+            |> Option.defaultValue "none"
+        )
+
+        writer.WriteNumber("signInTokenPosts", server.TokenCount)
+        writer.WriteNumber("signInSaves", memory.Saves)
+        writer.WriteNumber("userInfoRequests", server.Count "/userinfo")
+
+        check
+            "pkceCallbackUserinfoCommitsRefreshOnly"
+            (session.Status.Account |> Option.exists (fun a -> a.Subject = "42")
+             && (memory.Bytes
+                 |> Option.exists (fun bytes ->
+                     let text = Encoding.UTF8.GetString bytes in
+
+                     text.Contains("synthetic-refresh-secret")
+                     && not (text.Contains("synthetic-access-secret")))))
+
+        let before = server.TokenCount
+        let a = session.ReadMod("skyrimspecialedition", 64012L)
+        let b = session.ReadMod("skyrimspecialedition", 64012L)
+        Task.WhenAll(a, b) |> wait |> Array.iter (fun value -> result value |> ignore)
+        check "parallelReadsShareOneRefresh" (server.TokenCount = before + 1)
+        let saved = memory.Saves
+        server.Subject <- "99"
+        session.Connect() |> wait |> ignore
+
+        check
+            "refreshCannotChangeAccountOrReplaceSavedBinding"
+            (session.Status.Problem = Some NexusProblem.AccountChanged
+             && memory.Saves = saved)
+
+        session.Disconnect token |> wait |> ignore
+        check "disconnectRetainsAccountScopeAfterValidationFailure" (pausedAccounts.Contains "42")
+        server.Subject <- "42"
+        signIn session
+        let before = server.TokenCount
+        server.Mode <- "token-uncertain"
+        session.Connect() |> wait |> ignore
+
+        check
+            "uncertainRefreshPostIsNotRetried"
+            (server.TokenCount = before + 1
+             && session.Status.Problem = Some NexusProblem.Offline)
+
+        server.Mode <- "offline"
+        let beforeReads = server.Count "/api/games/skyrimspecialedition.json"
+        let unavailable = session.ReadMod("skyrimspecialedition", 64012L) |> wait
+
+        check
+            "transientReadsStopAfterThreeAttempts"
+            (server.Count "/api/games/skyrimspecialedition.json" = beforeReads + 3
+             && unavailable = Error NexusProblem.Offline)
+
+        server.Mode <- "rate"
+        let limited = session.ReadMod("skyrimspecialedition", 64012L) |> wait
+
+        check
+            "rateWaitIsStructuredAndContainsNoProviderBody"
+            (match limited with
+             | Error(NexusProblem.RateLimited _) -> true
+             | _ -> false)
+
+        server.Mode <- "good"
+        // A separate account session does not inherit a different instance's rate window.
+        use racer =
+            new NexusSession(
+                credentials,
+                Some server.Registration,
+                server.Handoff,
+                (fun _ -> Task.CompletedTask),
+                requestInterval = TimeSpan.Zero
+            )
+
+        racer.Connect() |> wait |> ignore
+        let before = server.TokenCount
+        let hold = server.HoldToken()
+        let connecting = racer.Connect()
+        until (fun () -> server.TokenCount > before)
+        let removed = racer.Disconnect token |> wait
+        hold.TrySetResult() |> ignore
+        connecting |> wait |> ignore
+
+        check
+            "disconnectPreventsLateRefreshResurrection"
+            (removed.Saved = SavedPresence.Absent
+             && memory.Bytes.IsNone
+             && racer.Status.Account.IsNone)
+
+        signIn racer
+        use cancelled = new CancellationTokenSource()
+        cancelled.Cancel()
+        let cancelledRemoval = racer.Disconnect cancelled.Token |> wait
+        racer.Connect() |> wait |> ignore
+
+        check
+            "cancelledRemovalDoesNotBlockExplicitReconnect"
+            (cancelledRemoval.Saved = SavedPresence.Present
+             && cancelledRemoval.RemovalProblem = Some StorageProblem.Cancelled
+             && racer.Status.Account.IsSome)
+
+        writer.WriteEndObject()
+
+        writer.WriteStartObject("nexusDownloads")
+        use server = new NexusServer()
+        let memory = NexusMemoryStore()
+        use credentials = new CredentialSession(memory)
+        let mutable storeRef: OperationStore option = None
+
+        use session =
+            new NexusSession(
+                credentials,
+                Some server.Registration,
+                server.Handoff,
+                (fun subject ->
+                    match storeRef with
+                    | Some store -> store.Downloads.PauseAccount(subject) :> Task
+                    | None -> Task.CompletedTask),
+                requestInterval = TimeSpan.Zero
+            )
+
+        signIn session
+
+        let area =
+            Directory.CreateDirectory(Path.Combine(primary, "nexus-downloads")).FullName
+
+        let state = Path.Combine(area, "state")
+        let root = Directory.CreateDirectory(Path.Combine(area, "workspace")).FullName
+        let workspace = Guid.NewGuid()
+
+        use store =
+            new OperationStore(
+                state,
+                nexusLinks = NexusDownloadLinks(session),
+                downloadPolicy =
+                    { DownloadPolicy.Default with
+                        CheckpointBytes = 16384L }
+            )
+
+        storeRef <- Some store
+
+        (store.Workspaces :> IWorkspaceState)
+            .Create(workspace, "Nexus fixture", StorageWorker.select root)
+        |> wait
+        |> result
+        |> ignore
+
+        let id = Guid.NewGuid()
+        server.Slow <- true
+
+        store.Downloads.Start
+            { Id = id
+              WorkspaceId = workspace
+              Name = "Quiet rivers.7z"
+              Sources =
+                [ DownloadSource.Nexus
+                      { Account = "42"
+                        Game = "skyrimspecialedition"
+                        ModId = 64012L
+                        FileId = 501L } ]
+              ExpectedLength = Some 1048576L
+              ExpectedSha256 = None }
+        |> wait
+        |> result
+        |> ignore
+
+        let read () =
+            store.Artifacts.Read(workspace, id) |> wait |> result
+
+        until (fun () -> (read ()).Download.Value.Bytes >= 32768L)
+        session.Disconnect token |> wait |> ignore
+        let paused = read ()
+
+        check
+            "disconnectPausesOwnedTransferAndRetainsBytes"
+            (paused.Download.Value.State = DownloadState.Paused
+             && paused.Download.Value.Bytes >= 32768L)
+
+        check "privateRequestHasNoBearerOrCookie" (not server.PrivateHeader)
+        server.Subject <- "99"
+        signIn session
+
+        store.Downloads.Control(workspace, id, DownloadAction.Resume)
+        |> wait
+        |> result
+        |> ignore
+
+        until (fun () -> (read ()).Download.Value.State = DownloadState.Failed)
+
+        check
+            "oldAccountTransferDoesNotClearNewValidAccount"
+            (session.Status.Account |> Option.exists (fun account -> account.Subject = "99")
+             && (read ()).Download.Value.Bytes = paused.Download.Value.Bytes)
+
+        session.Disconnect token |> wait |> ignore
+        server.Subject <- "42"
+        signIn session
+        server.DownloadKey <- "synthetic-signed-key-B"
+        server.Mode <- "link-refused"
+
+        store.Downloads.Control(workspace, id, DownloadAction.Resume)
+        |> wait
+        |> result
+        |> ignore
+
+        until (fun () -> (read ()).Download.Value.State = DownloadState.Failed)
+        let refused = read ()
+
+        let linkRequests =
+            server.Count "/api/games/skyrimspecialedition/mods/64012/files/501/download_link.json"
+
+        server.Mode <- "good"
+        server.DownloadKey <- "synthetic-signed-key-C"
+
+        store.Downloads.Control(workspace, id, DownloadAction.Resume)
+        |> wait
+        |> result
+        |> ignore
+
+        until (fun () -> (read ()).Download.Value.State = DownloadState.Failed)
+
+        check
+            "refusedLeaseIsDiscardedBeforeExplicitRetry"
+            (not refused.Download.Value.RestartRequired
+             && refused.Download.Value.Bytes = paused.Download.Value.Bytes
+             && server.Count
+                 "/api/games/skyrimspecialedition/mods/64012/files/501/download_link.json" = linkRequests
+                                                                                             + 1)
+
+        let changed = read ()
+
+        check
+            "changedLinkRequiresExplicitRestart"
+            (changed.Download.Value.RestartRequired
+             && changed.Download.Value.Bytes = paused.Download.Value.Bytes
+             && server.Ranges > 0)
+
+        server.Slow <- false
+
+        store.Downloads.Control(workspace, id, DownloadAction.Restart)
+        |> wait
+        |> result
+        |> ignore
+
+        until (fun () -> (read ()).Download.Value.State = DownloadState.Complete)
+        let complete = read ()
+
+        check
+            "restartPublishesThroughExistingArtifactOwner"
+            (complete.Length = Some 1048576L
+             && complete.Download.Value.Source = "Nexus Mods"
+             && complete.OriginalPath = "Nexus Mods")
+
+        use db =
+            new Microsoft.Data.Sqlite.SqliteConnection(
+                "Data Source=" + Path.Combine(state, "state.db")
+            )
+
+        db.Open()
+        use query = db.CreateCommand()
+
+        query.CommandText <-
+            "SELECT sources,effective_url FROM artifact_downloads WHERE artifact_id=$id"
+
+        query.Parameters.AddWithValue("$id", string id) |> ignore
+        use row = query.ExecuteReader()
+
+        if not (row.Read()) then
+            failwith "The Nexus transfer row is missing."
+
+        let durable = row.GetString(0) + row.GetString(1)
+
+        check
+            "durableTransferContainsReferenceAndFingerprintOnly"
+            (durable.Contains("nexus:/42/skyrimspecialedition/64012/501")
+             && not (durable.Contains("http"))
+             && not (durable.Contains("secret"))
+             && not (durable.Contains("signed-key")))
+
+        writer.WriteEndObject()
+
+    let engine state info =
+        use server = new NexusServer()
+        File.WriteAllText(info, server.Root)
+
+        ModConductor.Engine.Program.runWithNexus
+            (Some server.Registration)
+            server.Handoff
+            [| "--state-directory"; state |]

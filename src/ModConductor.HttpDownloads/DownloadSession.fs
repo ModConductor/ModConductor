@@ -9,7 +9,8 @@ open System.Threading
 open System.Threading.Tasks
 open ModConductor.ArtifactLibrary
 
-type DownloadSession(repository: IDownloadRepository, ?policy: DownloadPolicy) =
+type DownloadSession
+    (repository: IDownloadRepository, ?policy: DownloadPolicy, ?nexusLinks: INexusDownloadLinks) =
     let policy = defaultArg policy DownloadPolicy.Default
     let shutdown = new CancellationTokenSource()
     let gate = new SemaphoreSlim(1, 1)
@@ -29,6 +30,54 @@ type DownloadSession(repository: IDownloadRepository, ?policy: DownloadPolicy) =
         )
 
     let client = new HttpClient(handler, Timeout = Timeout.InfiniteTimeSpan)
+
+    let privateHandler =
+        new SocketsHttpHandler(
+            ConnectTimeout = policy.ConnectTimeout,
+            AutomaticDecompression = DecompressionMethods.None,
+            UseCookies = false,
+            AllowAutoRedirect = false
+        )
+
+    let privateClient =
+        new HttpClient(privateHandler, Timeout = Timeout.InfiniteTimeSpan)
+
+    let transfer work token =
+        task {
+            match work.Request.Sources[work.SourceIndex] with
+            | DownloadSource.Url source ->
+                do! HttpTransfer.run client None (Uri source) policy repository work token
+            | DownloadSource.Nexus reference ->
+                match nexusLinks with
+                | None ->
+                    raise (
+                        TransferFailure(
+                            "Sign in to Nexus Mods to download this file.",
+                            false,
+                            false,
+                            None
+                        )
+                    )
+                | Some resolver ->
+                    let! resolved = resolver.Resolve(reference, token)
+
+                    match resolved with
+                    | Error message -> raise (TransferFailure(message, false, false, None))
+                    | Ok source ->
+                        try
+                            do!
+                                HttpTransfer.run
+                                    privateClient
+                                    (Some source)
+                                    source.Url
+                                    policy
+                                    repository
+                                    work
+                                    token
+                        with :? TransferFailure as failure when failure.RejectedLink ->
+                            resolver.Reject(reference, source.Url)
+                            return raise failure
+        }
 
     let signal () =
         try
@@ -130,7 +179,7 @@ type DownloadSession(repository: IDownloadRepository, ?policy: DownloadPolicy) =
                     | Some(work, token, stopped) ->
                         try
                             try
-                                do! HttpTransfer.run client policy repository work token.Token
+                                do! transfer work token.Token
                             with error ->
                                 do! repository.Finish(work, outcome work error token.Token)
                         finally
@@ -199,6 +248,15 @@ type DownloadSession(repository: IDownloadRepository, ?policy: DownloadPolicy) =
                 return result
         }
 
+    member this.PauseAccount(subject) =
+        task {
+            let! ids = repository.AccountDownloads subject
+
+            for workspace, id in ids do
+                let! _ = this.Control(workspace, id, DownloadAction.Pause)
+                ()
+        }
+
     member _.Stop() =
         task {
             do!
@@ -229,6 +287,7 @@ type DownloadSession(repository: IDownloadRepository, ?policy: DownloadPolicy) =
         member this.Dispose() =
             this.Stop().GetAwaiter().GetResult()
             client.Dispose()
+            privateClient.Dispose()
             shutdown.Dispose()
             wake.Dispose()
             gate.Dispose()

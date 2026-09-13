@@ -219,6 +219,13 @@
           "ModConductor.ModLibrary": "[1.0.0, )"
         }
       },
+      "modconductor.nexus": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )",
+          "ModConductor.Credentials": "[1.0.0, )"
+        }
+      },
       "modconductor.operations": {
         "type": "Project",
         "dependencies": {

@@ -15,7 +15,7 @@ open Microsoft.Extensions.DependencyInjection
 open Microsoft.Extensions.Hosting
 open Microsoft.Extensions.Logging
 
-let run args =
+let runWithNexus registration (handoff: ModConductor.Nexus.IOAuthHandoff) args =
     let directory =
         match args with
         | [||] ->
@@ -44,7 +44,23 @@ let run args =
             ModConductor.Credentials.CredentialStore.create ()
         )
 
-    use store = new OperationStore(directory)
+    let mutable downloads: ModConductor.HttpDownloads.DownloadSession option = None
+
+    use nexus =
+        new ModConductor.Nexus.NexusSession(
+            credentials,
+            registration,
+            handoff,
+            fun subject ->
+                match downloads with
+                | Some value -> value.PauseAccount(subject) :> Task
+                | None -> Task.CompletedTask
+        )
+
+    use store =
+        new OperationStore(directory, nexusLinks = ModConductor.Engine.NexusDownloadLinks(nexus))
+
+    downloads <- Some store.Downloads
 
     let sqliteVersion = store.SqliteVersion
 
@@ -77,6 +93,12 @@ let run args =
     |> ignore
 
     builder.Services.AddSingleton<ModConductor.Engine.CredentialService>() |> ignore
+    builder.Services.AddSingleton<ModConductor.Nexus.NexusSession>(nexus) |> ignore
+
+    builder.Services.AddSingleton<ModConductor.Nexus.IOAuthHandoff>(handoff)
+    |> ignore
+
+    builder.Services.AddSingleton<ModConductor.Engine.NexusService>() |> ignore
 
     builder.Services.AddSingleton<IOperationStore>(store) |> ignore
 
@@ -212,6 +234,9 @@ let run args =
         .AddServiceOptions<ModConductor.Engine.ArchiveInspectionService>(fun options ->
             options.MaxReceiveMessageSize <- Nullable(4 * 1024)
             options.MaxSendMessageSize <- Nullable(8 * 1024 * 1024))
+        .AddServiceOptions<ModConductor.Engine.NexusService>(fun options ->
+            options.MaxReceiveMessageSize <- Nullable 4096
+            options.MaxSendMessageSize <- Nullable(4 * 1024 * 1024))
         .AddServiceOptions<ModConductor.Engine.DownloadService>(fun options ->
             options.MaxReceiveMessageSize <- Nullable(128 * 1024)
             options.MaxSendMessageSize <- Nullable(2 * 1024 * 1024))
@@ -273,6 +298,7 @@ let run args =
     app.MapGrpcService<ModConductor.Engine.UpdateService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.DeletionService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.CredentialService>() |> ignore
+    app.MapGrpcService<ModConductor.Engine.NexusService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.DownloadService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.DeploymentService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.FilePlanService>() |> ignore
@@ -314,6 +340,7 @@ let run args =
     store.Installations.Stop().GetAwaiter().GetResult()
     store.Deletions.Stop().GetAwaiter().GetResult()
     store.Downloads.Stop().GetAwaiter().GetResult()
+    nexus.Stop().GetAwaiter().GetResult()
     coordinator.Drain().GetAwaiter().GetResult()
     store.DrainOutputs().GetAwaiter().GetResult()
     store.CloseExecutables().GetAwaiter().GetResult()
@@ -322,6 +349,12 @@ let run args =
     store.ModLibrary.Drain().GetAwaiter().GetResult()
     store.Workspaces.Drain().GetAwaiter().GetResult()
     0
+
+let run args =
+    runWithNexus
+        None
+        (ModConductor.Engine.OAuthHandoff(ModConductor.Engine.OAuthHandoff.SystemBrowser))
+        args
 
 [<EntryPoint>]
 let main args =

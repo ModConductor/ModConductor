@@ -6,6 +6,7 @@ import 'package:mc_ui_collections/mc_ui_collections.dart';
 import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 
 import 'controller.dart';
+import 'nexus_view.dart';
 import 'bundle_view.dart';
 import 'installation_view.dart';
 import 'contents_view.dart';
@@ -23,6 +24,7 @@ class ArtifactBrowser extends StatefulWidget {
     required this.chooseFile,
     required this.workspacePath,
     this.installations,
+    this.nexus,
     this.maintenance,
     this.fomod,
     this.bain,
@@ -36,6 +38,7 @@ class ArtifactBrowser extends StatefulWidget {
   final ArchiveChooser chooseFile;
   final String workspacePath;
   final InstallationsClient? installations;
+  final NexusClient? nexus;
   final MaintenanceClient? maintenance;
   final FomodClient? fomod;
   final BainClient? bain;
@@ -54,6 +57,7 @@ class _ArtifactBrowserState extends State<ArtifactBrowser> {
   final addFocus = FocusNode(debugLabel: 'Add archive');
   final scroll = ScrollController();
   bool inspected = false;
+  bool nexus = false;
   Artifact? contents, installing, bundle;
   Future<void>? installationRefresh;
   ArtifactController get controller => widget.controller;
@@ -182,6 +186,30 @@ class _ArtifactBrowserState extends State<ArtifactBrowser> {
       builder: (c, constraints) {
         final narrow =
             constraints.maxWidth < 1100 * MediaQuery.textScalerOf(c).scale(1);
+        if (nexus && widget.nexus != null && controller.workspaceId != null) {
+          return NexusFilesView(
+            key: ValueKey((controller.workspaceId, widget.nexus)),
+            client: widget.nexus!,
+            workspace: controller.workspaceId!,
+            onBack: () => setState(() => nexus = false),
+            onDownloaded: (artifact) async {
+              if (!mounted || artifact.workspaceId != controller.workspaceId)
+                return;
+              final foreground = nexus;
+              controller.acceptDownload(artifact, select: foreground);
+              if (foreground) {
+                setState(() {
+                  nexus = false;
+                  inspected = true;
+                });
+                if (narrow)
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted) pane.currentState?.openEndDrawer();
+                  });
+              }
+            },
+          );
+        }
         if (bundle?.workspaceId != controller.workspaceId) bundle = null;
         if (bundle != null &&
             widget.bundles != null &&
@@ -284,8 +312,18 @@ class _ArtifactBrowserState extends State<ArtifactBrowser> {
                         onPressed: controller.canEdit ? download : null,
                       ),
                     ],
+                    if (narrow && widget.nexus != null)
+                      McAction(
+                        label: 'Nexus Mods',
+                        onPressed: () => setState(() => nexus = true),
+                      ),
                   ],
                   actions: [
+                    if (!narrow && widget.nexus != null)
+                      McAction(
+                        label: 'Nexus Mods',
+                        onPressed: () => setState(() => nexus = true),
+                      ),
                     if (!narrow)
                       McAction(
                         label: 'Add archive',

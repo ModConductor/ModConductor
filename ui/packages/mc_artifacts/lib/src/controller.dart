@@ -150,6 +150,17 @@ class ArtifactController extends ChangeNotifier {
     }
   }
 
+  void acceptDownload(Artifact artifact, {required bool select}) {
+    if (_disposed || artifact.workspaceId != workspaceId) return;
+    final previous = model[artifact.id];
+    if (previous == null || previous.revision < artifact.revision) {
+      model.apply(upserts: [artifact]);
+    }
+    if (select || model.selectedId == null) model.select(artifact.id);
+    observe();
+    _notify();
+  }
+
   Future<bool> change(
     String label,
     Future<Artifact?> Function(ArtifactsClient, String) action, {

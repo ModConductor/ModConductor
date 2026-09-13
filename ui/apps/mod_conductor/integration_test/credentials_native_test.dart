@@ -54,8 +54,8 @@ void main() {
 
       Future<void> ready() => until(
         () =>
-            action('Check again').evaluate().isNotEmpty &&
-            tester.widget<McAction>(action('Check again')).onPressed != null,
+            action('Check storage').evaluate().isNotEmpty &&
+            tester.widget<McAction>(action('Check storage')).onPressed != null,
       );
       Future<void> capture(String name) async {
         await tester.pumpAndSettle();
@@ -146,7 +146,7 @@ void main() {
           'array:objpath:/org/freedesktop/secrets/collection/login',
         ]);
         expect(locked.exitCode, 0);
-        await tap(action('Check again'));
+        await tap(action('Check storage'));
         await ready();
         expect(
           (await owner.credentials!.status()).problem,

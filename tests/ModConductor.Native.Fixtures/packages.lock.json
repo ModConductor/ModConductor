@@ -20,6 +20,14 @@
         "resolved": "10.0.11",
         "contentHash": "IBf7lbovvjGWVWXZX5cJ/cO0WXbId0Zq4BuSeT94mGZuOAP66oMeH9PTBZ9Jpp3Jb6jtK0qm/NyUbPRo1gC/wQ=="
       },
+      "Grpc.Net.Common": {
+        "type": "Transitive",
+        "resolved": "2.83.0",
+        "contentHash": "9w52xxORdIGu4Mm8lff3psMIlarenu+7TC4uIfiiW9AyaHZ6iPE/18gIkG1DD9byGDuhjuhnN9hiviBUAmCuZw==",
+        "dependencies": {
+          "Grpc.Core.Api": "2.83.0"
+        }
+      },
       "SQLite": {
         "type": "Transitive",
         "resolved": "3.53.4",
@@ -122,6 +130,21 @@
           "ModConductor.Platform": "[1.0.0, )"
         }
       },
+      "modconductor.engine": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )",
+          "Grpc.AspNetCore.Server": "[2.83.0, )",
+          "ModConductor.Credentials": "[1.0.0, )",
+          "ModConductor.ModMaintenance": "[1.0.0, )",
+          "ModConductor.Nexus": "[1.0.0, )",
+          "ModConductor.Operations": "[1.0.0, )",
+          "ModConductor.Persistence": "[1.0.0, )",
+          "ModConductor.Protocol": "[1.0.0, )",
+          "ModConductor.SteamDiscovery": "[1.0.0, )",
+          "ModConductor.Workspaces": "[1.0.0, )"
+        }
+      },
       "modconductor.executables": {
         "type": "Project",
         "dependencies": {
@@ -202,6 +225,13 @@
           "ModConductor.ModLibrary": "[1.0.0, )"
         }
       },
+      "modconductor.nexus": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )",
+          "ModConductor.Credentials": "[1.0.0, )"
+        }
+      },
       "modconductor.operations": {
         "type": "Project",
         "dependencies": {
@@ -253,6 +283,13 @@
           "ModConductor.GameContexts": "[1.0.0, )"
         }
       },
+      "modconductor.protocol": {
+        "type": "Project",
+        "dependencies": {
+          "Google.Protobuf": "[3.36.1, )",
+          "Grpc.Core.Api": "[2.83.0, )"
+        }
+      },
       "modconductor.protoncontexts": {
         "type": "Project",
         "dependencies": {
@@ -274,6 +311,27 @@
           "FSharp.Core": "[10.1.400, )",
           "ModConductor.Platform": "[1.0.0, )"
         }
+      },
+      "Google.Protobuf": {
+        "type": "CentralTransitive",
+        "requested": "[3.36.1, )",
+        "resolved": "3.36.1",
+        "contentHash": "77AqPEoaY1ODE+syYBHti0jXiwQq0J/fUr/fRyYhNlc9oKtH5dZZEr/OLKtdKNVG83PRnCYB2r8B80ZrObzOGQ=="
+      },
+      "Grpc.AspNetCore.Server": {
+        "type": "CentralTransitive",
+        "requested": "[2.83.0, )",
+        "resolved": "2.83.0",
+        "contentHash": "rWeSaXaSPIIerc82lhHKqmzlp/sgLnG+Zw1c3YEEVp/un+hJKPxJOXWuGUOS2cs3EvcZBZ2tliXsnAg5Mdk2Ew==",
+        "dependencies": {
+          "Grpc.Net.Common": "2.83.0"
+        }
+      },
+      "Grpc.Core.Api": {
+        "type": "CentralTransitive",
+        "requested": "[2.83.0, )",
+        "resolved": "2.83.0",
+        "contentHash": "xU8BT2bCw4Ct+/qIFJhhjkDEilKUbBOfp4US7l3Xa3hnlkN9l2LgISCbOw4PFYpW5jJFcK7FUAyWOFIQ94Hiqg=="
       },
       "Microsoft.Data.Sqlite.Core": {
         "type": "CentralTransitive",

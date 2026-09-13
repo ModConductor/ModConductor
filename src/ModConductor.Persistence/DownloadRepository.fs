@@ -50,12 +50,12 @@ type internal DownloadRepository(database: StateDatabase, access: LibraryAccess)
                     || request.Name.Length > 256
                     || request.Sources.IsEmpty
                     || request.Sources.Length > 8
-                    || (request.Sources
-                        |> List.exists (fun source ->
-                            not (DownloadSource.valid source)
-                            || source.Length > 8192
-                            || source.Contains('\n')
-                            || source.Contains('\r')))
+                    || (request.Sources |> List.exists (DownloadSource.valid >> not))
+                    || (request.Sources.Length > 1
+                        && request.Sources
+                           |> List.exists (function
+                               | DownloadSource.Nexus _ -> true
+                               | DownloadSource.Url _ -> false))
                     || (request.ExpectedLength |> Option.exists (fun n -> n < 0L))
                     || (request.ExpectedSha256
                         |> Option.exists (fun hash ->
@@ -113,7 +113,12 @@ type internal DownloadRepository(database: StateDatabase, access: LibraryAccess)
                                 tx
                                 "INSERT INTO artifact_downloads(artifact_id,sources,expected_length,expected_sha,state,bytes,total,source_index,attempt,restart_required,checksum_matched) VALUES($id,$sources,$length,$sha,0,0,$length,0,0,0,0)"
                                 [ "$id", box (string request.Id)
-                                  "$sources", box (String.concat "\n" request.Sources)
+                                  "$sources",
+                                  box (
+                                      request.Sources
+                                      |> List.map DownloadSource.encode
+                                      |> String.concat "\n"
+                                  )
                                   "$length", ArtifactRows.nullable request.ExpectedLength
                                   "$sha", ArtifactRows.nullable request.ExpectedSha256 ]
 
@@ -204,6 +209,38 @@ type internal DownloadRepository(database: StateDatabase, access: LibraryAccess)
             })
 
     interface IDownloadRepository with
+        member _.AccountDownloads subject =
+            db (fun () ->
+                use query =
+                    Sqlite.command
+                        connection
+                        null
+                        "SELECT artifact_id FROM artifact_downloads WHERE state IN (0,1,2)"
+                        []
+
+                use reader = query.ExecuteReader()
+                let ids = ResizeArray<Guid>()
+
+                while reader.Read() do
+                    ids.Add(Guid.Parse(reader.GetString 0))
+
+                reader.Close()
+
+                ids
+                |> Seq.choose (fun id ->
+                    DownloadRows.work connection null id
+                    |> Option.bind (fun work ->
+                        if
+                            work.Request.Sources
+                            |> List.exists (function
+                                | DownloadSource.Nexus value -> value.Account = subject
+                                | DownloadSource.Url _ -> false)
+                        then
+                            Some(work.Request.WorkspaceId, id)
+                        else
+                            None))
+                |> Seq.toList)
+
         member _.Read(workspace, id) =
             protect (fun () ->
                 task {

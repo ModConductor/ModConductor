@@ -27,7 +27,10 @@ module internal DownloadRows =
                     { Id = id
                       WorkspaceId = Guid.Parse(r.GetString 0)
                       Name = r.GetString 1
-                      Sources = (r.GetString 2).Split('\n') |> Array.toList
+                      Sources =
+                        (r.GetString 2).Split('\n')
+                        |> Array.map DownloadSource.decode
+                        |> Array.toList
                       ExpectedLength = optional r 3 r.GetInt64
                       ExpectedSha256 = optional r 4 r.GetString }
                   Bytes = r.GetInt64 5
@@ -65,7 +68,10 @@ module internal DownloadRows =
                         | _ -> invalidOp "The saved download state is invalid."
                   Bytes = r.GetInt64 1
                   Total = optional r 2 r.GetInt64
-                  Source = DownloadSource.display ((r.GetString 3).Split('\n')[r.GetInt32 4])
+                  Source =
+                    DownloadSource.display (
+                        DownloadSource.decode ((r.GetString 3).Split('\n')[r.GetInt32 4])
+                    )
                   ExpectedSha256 = optional r 5 r.GetString
                   ChecksumMatched = phase = 2 && r.GetBoolean 6
                   RestartRequired =

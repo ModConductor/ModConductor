@@ -9,7 +9,19 @@ open ModConductor.Native.Fixtures
 [<EntryPoint>]
 let main args =
     try
-        if args.Length = 2 && args[0] = "--credential-worker" then
+        if args.Length = 3 && args[0] = "--nexus-engine" then
+            NexusFixtures.engine args[1] args[2]
+        elif args.Length = 2 && args[0] = "--nexus" then
+            use writer =
+                new Utf8JsonWriter(Console.OpenStandardOutput(), JsonWriterOptions(Indented = true))
+
+            writer.WriteStartObject()
+            writer.WriteBoolean("nativeAot", not RuntimeFeature.IsDynamicCodeSupported)
+            NexusFixtures.observe writer args[1]
+            writer.WriteEndObject()
+            writer.Flush()
+            0
+        elif args.Length = 2 && args[0] = "--credential-worker" then
             CredentialFixtures.worker args[1]
             0
         elif args.Length = 2 && args[0] = "--credentials" then

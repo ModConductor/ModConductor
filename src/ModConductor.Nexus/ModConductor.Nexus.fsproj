@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><IsAotCompatible>true</IsAotCompatible></PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Contracts.fs" />
+    <Compile Include="Json.fs" />
+    <Compile Include="Transport.fs" />
+    <Compile Include="Session.fs" />
+    <ProjectReference Include="../ModConductor.Credentials/ModConductor.Credentials.fsproj" />
+    <PackageReference Include="FSharp.Core" />
+  </ItemGroup>
+</Project>

@@ -3,7 +3,12 @@ namespace ModConductor.Persistence
 open System
 open ModConductor.Operations
 
-type OperationStore(directory: string, ?downloadPolicy: ModConductor.HttpDownloads.DownloadPolicy) =
+type OperationStore
+    (
+        directory: string,
+        ?downloadPolicy: ModConductor.HttpDownloads.DownloadPolicy,
+        ?nexusLinks: ModConductor.HttpDownloads.INexusDownloadLinks
+    ) =
     let database = new StateDatabase(directory)
     let workspaceRoots = OwnedWorkspaceRootStore(database)
     let modLibrary = ModLibraryStore(database, workspaceRoots)
@@ -12,7 +17,8 @@ type OperationStore(directory: string, ?downloadPolicy: ModConductor.HttpDownloa
     let downloads =
         new ModConductor.HttpDownloads.DownloadSession(
             DownloadRepository(database, modLibrary.Access),
-            ?policy = downloadPolicy
+            ?policy = downloadPolicy,
+            ?nexusLinks = nexusLinks
         )
 
     let bundleSources = BundleSources(database, modLibrary.Access)

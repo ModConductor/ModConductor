@@ -6,21 +6,34 @@ open System.Net
 open System.Net.Http
 open System.Net.Http.Headers
 open System.Security.Cryptography
+open System.Text
 open System.Threading
 open System.Threading.Tasks
 
-type internal TransferFailure(message, retry: bool, restart: bool, retryAt: DateTimeOffset option) =
+type internal TransferFailure
+    (message, retry: bool, restart: bool, retryAt: DateTimeOffset option, ?rejectedLink: bool) =
     inherit Exception(message)
     member _.Retry = retry
     member _.Restart = restart
     member _.RetryAt = retryAt
+    member _.RejectedLink = defaultArg rejectedLink false
 
 module internal HttpTransfer =
     let private stop message restart =
         raise (TransferFailure(message, false, restart, None))
 
-    let private observation (work: DownloadWork) (response: HttpResponseMessage) =
-        let actual = response.RequestMessage.RequestUri.AbsoluteUri
+    let private observation privateSource (work: DownloadWork) (response: HttpResponseMessage) =
+        let url = response.RequestMessage.RequestUri.AbsoluteUri
+
+        let actual =
+            if privateSource then
+                Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes url))
+            else
+                url
+
+        if privateSource && work.Bytes > 0L && work.EffectiveUrl <> Some actual then
+            stop "The download link changed. Restart to download this file again." true
+
         let tag = response.Headers.ETag
 
         let entity =
@@ -85,7 +98,7 @@ module internal HttpTransfer =
           EntityTag = entity
           EffectiveUrl = actual }
 
-    let private checkStatus (response: HttpResponseMessage) =
+    let private checkStatus privateSource (response: HttpResponseMessage) =
         let code = int response.StatusCode
 
         if code = 408 || code = 429 || code >= 500 then
@@ -109,6 +122,16 @@ module internal HttpTransfer =
                     at
                 )
             )
+        elif privateSource && (code = 401 || code = 403) then
+            raise (
+                TransferFailure(
+                    "The download link was not accepted. Try again.",
+                    false,
+                    false,
+                    None,
+                    rejectedLink = true
+                )
+            )
         elif code >= 300 then
             stop
                 (if code = 416 then
@@ -117,8 +140,69 @@ module internal HttpTransfer =
                      "The server refused the download (HTTP " + code.ToString() + ").")
                 (code = 416)
 
+    let rec private send
+        (client: HttpClient)
+        (privateDownload: PrivateDownload option)
+        (work: DownloadWork)
+        (token: CancellationToken)
+        (uri: Uri)
+        redirects
+        =
+        task {
+            match privateDownload with
+            | Some source ->
+                if source.Expires <= DateTimeOffset.UtcNow then
+                    stop "The download link expired. Try again." false
+
+                if
+                    not (
+                        source.Origins
+                        |> List.exists (fun origin ->
+                            origin.GetLeftPart(UriPartial.Authority) = uri.GetLeftPart(
+                                UriPartial.Authority
+                            ))
+                    )
+                    || uri.UserInfo <> ""
+                    || uri.Fragment <> ""
+                then
+                    stop "Nexus Mods returned an unexpected download location." false
+            | None -> ()
+
+            use request = new HttpRequestMessage(HttpMethod.Get, uri)
+
+            request.Headers.AcceptEncoding.Add(StringWithQualityHeaderValue("identity"))
+
+            if work.Bytes > 0L then
+                request.Headers.Range <- RangeHeaderValue(Nullable work.Bytes, Nullable())
+
+                request.Headers.IfRange <-
+                    RangeConditionHeaderValue(EntityTagHeaderValue.Parse(work.EntityTag.Value))
+
+            let! response =
+                client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token)
+
+            let code = int response.StatusCode
+
+            if
+                privateDownload.IsSome
+                && (code = 301 || code = 302 || code = 303 || code = 307 || code = 308)
+            then
+                let location = response.Headers.Location
+                response.Dispose()
+
+                if redirects >= 5 || isNull location then
+                    stop "The download redirect could not be followed." false
+
+                return! send client privateDownload work token (Uri(uri, location)) (redirects + 1)
+            else
+                return response
+        }
+
+
     let run
         (client: HttpClient)
+        (privateDownload: PrivateDownload option)
+        (url: Uri)
         (policy: DownloadPolicy)
         (repository: IDownloadRepository)
         (work: DownloadWork)
@@ -134,36 +218,13 @@ module internal HttpTransfer =
             let! length, checksum =
                 task {
                     try
-                        use request =
-                            new HttpRequestMessage(
-                                HttpMethod.Get,
-                                work.Request.Sources[work.SourceIndex]
-                            )
-
-                        request.Headers.AcceptEncoding.Add(StringWithQualityHeaderValue("identity"))
-
-                        if work.Bytes > 0L then
-                            request.Headers.Range <-
-                                RangeHeaderValue(Nullable work.Bytes, Nullable())
-
-                            request.Headers.IfRange <-
-                                RangeConditionHeaderValue(
-                                    EntityTagHeaderValue.Parse(work.EntityTag.Value)
-                                )
-
                         use headers = CancellationTokenSource.CreateLinkedTokenSource token
                         headers.CancelAfter policy.HeaderTimeout
 
-                        use! response =
-                            client.SendAsync(
-                                request,
-                                HttpCompletionOption.ResponseHeadersRead,
-                                headers.Token
-                            )
-
+                        use! response = send client privateDownload work headers.Token url 0
                         headers.CancelAfter Timeout.InfiniteTimeSpan
-                        checkStatus response
-                        let observed = observation work response
+                        checkStatus privateDownload.IsSome response
+                        let observed = observation privateDownload.IsSome work response
                         do! target.Observe observed
                         use! body = response.Content.ReadAsStreamAsync token
                         let buffer = Array.zeroCreate<byte> 65536

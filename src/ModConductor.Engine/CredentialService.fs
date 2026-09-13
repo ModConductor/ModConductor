@@ -38,7 +38,7 @@ module private CredentialWire =
             DiagnosticReport = CredentialDiagnostics.report value
         )
 
-type CredentialService(session: CredentialSession) =
+type CredentialService(session: CredentialSession, nexus: ModConductor.Nexus.NexusSession) =
     inherit CredentialStorage.CredentialStorageBase()
 
     override _.ReadCredentialStatus(_, context) =
@@ -69,6 +69,6 @@ type CredentialService(session: CredentialSession) =
 
     override _.RemoveSavedCredentials(_, context) =
         task {
-            let! result = session.Remove context.CancellationToken
+            let! result = nexus.Disconnect context.CancellationToken
             return CredentialWire.status result
         }

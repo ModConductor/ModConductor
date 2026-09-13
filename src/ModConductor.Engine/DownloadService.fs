@@ -17,7 +17,7 @@ type DownloadService(downloads: DownloadSession, artifacts: IArtifactLibrary) =
                 { Id = ModLibraryWire.id request.Id
                   WorkspaceId = ModLibraryWire.id request.WorkspaceId
                   Name = request.Name
-                  Sources = request.Sources |> Seq.toList
+                  Sources = request.Sources |> Seq.map DownloadSource.Url |> Seq.toList
                   ExpectedLength =
                     if request.HasExpectedLength then
                         Some(ModLibraryWire.number request.ExpectedLength)

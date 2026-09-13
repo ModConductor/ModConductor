@@ -82,6 +82,7 @@ class ModConductorApp extends StatefulWidget {
     this.fomod,
     this.bain,
     this.credentials,
+    this.nexus,
     this.bundles,
     this.chooseArchive = _chooseArchive,
     this.chooseExecutable = _chooseExecutable,
@@ -108,6 +109,7 @@ class ModConductorApp extends StatefulWidget {
   final FomodClient? fomod;
   final BainClient? bain;
   final CredentialsClient? credentials;
+  final NexusClient? nexus;
   final BundlesClient? bundles;
   final ArchiveChooser chooseArchive;
   final ExecutablePathChooser chooseExecutable;
@@ -363,6 +365,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
                     artifactBuilder: widget.artifacts == null
                         ? null
                         : (context, workspace, openMods) => ArtifactBrowser(
+                            nexus: widget.nexus,
                             controller: _artifacts,
                             installations: widget.installations,
                             fomod: widget.fomod,
@@ -487,6 +490,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
                 excluding: _destination != _Destination.preferences,
                 child: _PreferencesPage(
                   credentials: widget.credentials,
+                  nexus: widget.nexus,
                   applied: _applied,
                   draft: _draft,
                   detailsFocus: _detailsFocus,
