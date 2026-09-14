@@ -716,11 +716,29 @@ const ModVersionOrigin$json = {
       '10': 'bundle',
       '17': true
     },
+    {
+      '1': 'edited_from_version_id',
+      '3': 4,
+      '4': 1,
+      '5': 9,
+      '9': 3,
+      '10': 'editedFromVersionId',
+      '17': true
+    },
+    {
+      '1': 'edited_path',
+      '3': 5,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.ModLogicalPath',
+      '10': 'editedPath'
+    },
   ],
   '8': [
     {'1': '_output_action_id'},
     {'1': '_archive_artifact_id'},
     {'1': '_bundle'},
+    {'1': '_edited_from_version_id'},
   ],
 };
 
@@ -729,8 +747,11 @@ final $typed_data.Uint8List modVersionOriginDescriptor = $convert.base64Decode(
     'ChBNb2RWZXJzaW9uT3JpZ2luEi0KEG91dHB1dF9hY3Rpb25faWQYASABKAlIAFIOb3V0cHV0QW'
     'N0aW9uSWSIAQESMwoTYXJjaGl2ZV9hcnRpZmFjdF9pZBgCIAEoCUgBUhFhcmNoaXZlQXJ0aWZh'
     'Y3RJZIgBARI+CgZidW5kbGUYAyABKAsyIS5tb2Rjb25kdWN0b3IudjEuQnVuZGxlUHJvdmVuYW'
-    '5jZUgCUgZidW5kbGWIAQFCEwoRX291dHB1dF9hY3Rpb25faWRCFgoUX2FyY2hpdmVfYXJ0aWZh'
-    'Y3RfaWRCCQoHX2J1bmRsZQ==');
+    '5jZUgCUgZidW5kbGWIAQESOAoWZWRpdGVkX2Zyb21fdmVyc2lvbl9pZBgEIAEoCUgDUhNlZGl0'
+    'ZWRGcm9tVmVyc2lvbklkiAEBEkAKC2VkaXRlZF9wYXRoGAUgASgLMh8ubW9kY29uZHVjdG9yLn'
+    'YxLk1vZExvZ2ljYWxQYXRoUgplZGl0ZWRQYXRoQhMKEV9vdXRwdXRfYWN0aW9uX2lkQhYKFF9h'
+    'cmNoaXZlX2FydGlmYWN0X2lkQgkKB19idW5kbGVCGQoXX2VkaXRlZF9mcm9tX3ZlcnNpb25faW'
+    'Q=');
 
 @$core.Deprecated('Use modVersionPageDescriptor instead')
 const ModVersionPage$json = {

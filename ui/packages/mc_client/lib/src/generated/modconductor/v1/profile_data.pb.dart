@@ -15,6 +15,7 @@ import 'dart:core' as $core;
 import 'package:fixnum/fixnum.dart' as $fixnum;
 import 'package:protobuf/protobuf.dart' as $pb;
 
+import 'file_plans.pb.dart' as $1;
 import 'profile_data.pbenum.dart';
 
 export 'package:protobuf/protobuf.dart' show GeneratedMessageGenericExtensions;
@@ -263,6 +264,7 @@ class ProfileDataState extends $pb.GeneratedMessage {
     $core.bool? pendingProfileChange,
     $core.bool? settingsInitialized,
     $core.bool? savesInitialized,
+    $core.String? pendingConfiguration,
   }) {
     final result = create();
     if (reference != null) result.reference = reference;
@@ -279,6 +281,8 @@ class ProfileDataState extends $pb.GeneratedMessage {
     if (settingsInitialized != null)
       result.settingsInitialized = settingsInitialized;
     if (savesInitialized != null) result.savesInitialized = savesInitialized;
+    if (pendingConfiguration != null)
+      result.pendingConfiguration = pendingConfiguration;
     return result;
   }
 
@@ -311,6 +315,7 @@ class ProfileDataState extends $pb.GeneratedMessage {
     ..aOB(10, _omitFieldNames ? '' : 'pendingProfileChange')
     ..aOB(11, _omitFieldNames ? '' : 'settingsInitialized')
     ..aOB(12, _omitFieldNames ? '' : 'savesInitialized')
+    ..aOS(13, _omitFieldNames ? '' : 'pendingConfiguration')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -443,6 +448,788 @@ class ProfileDataState extends $pb.GeneratedMessage {
   $core.bool hasSavesInitialized() => $_has(11);
   @$pb.TagNumber(12)
   void clearSavesInitialized() => $_clearField(12);
+
+  @$pb.TagNumber(13)
+  $core.String get pendingConfiguration => $_getSZ(12);
+  @$pb.TagNumber(13)
+  set pendingConfiguration($core.String value) => $_setString(12, value);
+  @$pb.TagNumber(13)
+  $core.bool hasPendingConfiguration() => $_has(12);
+  @$pb.TagNumber(13)
+  void clearPendingConfiguration() => $_clearField(13);
+}
+
+class ProfileConfigurationFile extends $pb.GeneratedMessage {
+  factory ProfileConfigurationFile({
+    $core.String? name,
+    $core.bool? exists,
+    $fixnum.Int64? bytes,
+  }) {
+    final result = create();
+    if (name != null) result.name = name;
+    if (exists != null) result.exists = exists;
+    if (bytes != null) result.bytes = bytes;
+    return result;
+  }
+
+  ProfileConfigurationFile._();
+
+  factory ProfileConfigurationFile.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ProfileConfigurationFile.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ProfileConfigurationFile',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'name')
+    ..aOB(2, _omitFieldNames ? '' : 'exists')
+    ..a<$fixnum.Int64>(3, _omitFieldNames ? '' : 'bytes', $pb.PbFieldType.OU6,
+        defaultOrMaker: $fixnum.Int64.ZERO)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ProfileConfigurationFile clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ProfileConfigurationFile copyWith(
+          void Function(ProfileConfigurationFile) updates) =>
+      super.copyWith((message) => updates(message as ProfileConfigurationFile))
+          as ProfileConfigurationFile;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ProfileConfigurationFile create() => ProfileConfigurationFile._();
+  @$core.override
+  ProfileConfigurationFile createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ProfileConfigurationFile getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ProfileConfigurationFile>(create);
+  static ProfileConfigurationFile? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get name => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set name($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasName() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearName() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.bool get exists => $_getBF(1);
+  @$pb.TagNumber(2)
+  set exists($core.bool value) => $_setBool(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasExists() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearExists() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get bytes => $_getI64(2);
+  @$pb.TagNumber(3)
+  set bytes($fixnum.Int64 value) => $_setInt64(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasBytes() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearBytes() => $_clearField(3);
+}
+
+class ProfileConfigurationListRequest extends $pb.GeneratedMessage {
+  factory ProfileConfigurationListRequest({
+    ProfileDataRef? expected,
+  }) {
+    final result = create();
+    if (expected != null) result.expected = expected;
+    return result;
+  }
+
+  ProfileConfigurationListRequest._();
+
+  factory ProfileConfigurationListRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ProfileConfigurationListRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ProfileConfigurationListRequest',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..aOM<ProfileDataRef>(1, _omitFieldNames ? '' : 'expected',
+        subBuilder: ProfileDataRef.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ProfileConfigurationListRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ProfileConfigurationListRequest copyWith(
+          void Function(ProfileConfigurationListRequest) updates) =>
+      super.copyWith(
+              (message) => updates(message as ProfileConfigurationListRequest))
+          as ProfileConfigurationListRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ProfileConfigurationListRequest create() =>
+      ProfileConfigurationListRequest._();
+  @$core.override
+  ProfileConfigurationListRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ProfileConfigurationListRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ProfileConfigurationListRequest>(
+          create);
+  static ProfileConfigurationListRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  ProfileDataRef get expected => $_getN(0);
+  @$pb.TagNumber(1)
+  set expected(ProfileDataRef value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasExpected() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearExpected() => $_clearField(1);
+  @$pb.TagNumber(1)
+  ProfileDataRef ensureExpected() => $_ensure(0);
+}
+
+class ProfileConfigurationList extends $pb.GeneratedMessage {
+  factory ProfileConfigurationList({
+    $core.Iterable<ProfileConfigurationFile>? files,
+  }) {
+    final result = create();
+    if (files != null) result.files.addAll(files);
+    return result;
+  }
+
+  ProfileConfigurationList._();
+
+  factory ProfileConfigurationList.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ProfileConfigurationList.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ProfileConfigurationList',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..pPM<ProfileConfigurationFile>(1, _omitFieldNames ? '' : 'files',
+        subBuilder: ProfileConfigurationFile.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ProfileConfigurationList clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ProfileConfigurationList copyWith(
+          void Function(ProfileConfigurationList) updates) =>
+      super.copyWith((message) => updates(message as ProfileConfigurationList))
+          as ProfileConfigurationList;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ProfileConfigurationList create() => ProfileConfigurationList._();
+  @$core.override
+  ProfileConfigurationList createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ProfileConfigurationList getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ProfileConfigurationList>(create);
+  static ProfileConfigurationList? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $pb.PbList<ProfileConfigurationFile> get files => $_getList(0);
+}
+
+enum ProfileConfigurationListReply_Result { files, problem, notSet }
+
+class ProfileConfigurationListReply extends $pb.GeneratedMessage {
+  factory ProfileConfigurationListReply({
+    ProfileConfigurationList? files,
+    ProfileDataProblem? problem,
+  }) {
+    final result = create();
+    if (files != null) result.files = files;
+    if (problem != null) result.problem = problem;
+    return result;
+  }
+
+  ProfileConfigurationListReply._();
+
+  factory ProfileConfigurationListReply.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ProfileConfigurationListReply.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static const $core.Map<$core.int, ProfileConfigurationListReply_Result>
+      _ProfileConfigurationListReply_ResultByTag = {
+    1: ProfileConfigurationListReply_Result.files,
+    2: ProfileConfigurationListReply_Result.problem,
+    0: ProfileConfigurationListReply_Result.notSet
+  };
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ProfileConfigurationListReply',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..oo(0, [1, 2])
+    ..aOM<ProfileConfigurationList>(1, _omitFieldNames ? '' : 'files',
+        subBuilder: ProfileConfigurationList.create)
+    ..aOM<ProfileDataProblem>(2, _omitFieldNames ? '' : 'problem',
+        subBuilder: ProfileDataProblem.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ProfileConfigurationListReply clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ProfileConfigurationListReply copyWith(
+          void Function(ProfileConfigurationListReply) updates) =>
+      super.copyWith(
+              (message) => updates(message as ProfileConfigurationListReply))
+          as ProfileConfigurationListReply;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ProfileConfigurationListReply create() =>
+      ProfileConfigurationListReply._();
+  @$core.override
+  ProfileConfigurationListReply createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ProfileConfigurationListReply getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ProfileConfigurationListReply>(create);
+  static ProfileConfigurationListReply? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  @$pb.TagNumber(2)
+  ProfileConfigurationListReply_Result whichResult() =>
+      _ProfileConfigurationListReply_ResultByTag[$_whichOneof(0)]!;
+  @$pb.TagNumber(1)
+  @$pb.TagNumber(2)
+  void clearResult() => $_clearField($_whichOneof(0));
+
+  @$pb.TagNumber(1)
+  ProfileConfigurationList get files => $_getN(0);
+  @$pb.TagNumber(1)
+  set files(ProfileConfigurationList value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasFiles() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearFiles() => $_clearField(1);
+  @$pb.TagNumber(1)
+  ProfileConfigurationList ensureFiles() => $_ensure(0);
+
+  @$pb.TagNumber(2)
+  ProfileDataProblem get problem => $_getN(1);
+  @$pb.TagNumber(2)
+  set problem(ProfileDataProblem value) => $_setField(2, value);
+  @$pb.TagNumber(2)
+  $core.bool hasProblem() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearProblem() => $_clearField(2);
+  @$pb.TagNumber(2)
+  ProfileDataProblem ensureProblem() => $_ensure(1);
+}
+
+class ProfileConfigurationReadRequest extends $pb.GeneratedMessage {
+  factory ProfileConfigurationReadRequest({
+    ProfileDataRef? expected,
+    $core.String? name,
+  }) {
+    final result = create();
+    if (expected != null) result.expected = expected;
+    if (name != null) result.name = name;
+    return result;
+  }
+
+  ProfileConfigurationReadRequest._();
+
+  factory ProfileConfigurationReadRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ProfileConfigurationReadRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ProfileConfigurationReadRequest',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..aOM<ProfileDataRef>(1, _omitFieldNames ? '' : 'expected',
+        subBuilder: ProfileDataRef.create)
+    ..aOS(2, _omitFieldNames ? '' : 'name')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ProfileConfigurationReadRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ProfileConfigurationReadRequest copyWith(
+          void Function(ProfileConfigurationReadRequest) updates) =>
+      super.copyWith(
+              (message) => updates(message as ProfileConfigurationReadRequest))
+          as ProfileConfigurationReadRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ProfileConfigurationReadRequest create() =>
+      ProfileConfigurationReadRequest._();
+  @$core.override
+  ProfileConfigurationReadRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ProfileConfigurationReadRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ProfileConfigurationReadRequest>(
+          create);
+  static ProfileConfigurationReadRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  ProfileDataRef get expected => $_getN(0);
+  @$pb.TagNumber(1)
+  set expected(ProfileDataRef value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasExpected() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearExpected() => $_clearField(1);
+  @$pb.TagNumber(1)
+  ProfileDataRef ensureExpected() => $_ensure(0);
+
+  @$pb.TagNumber(2)
+  $core.String get name => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set name($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasName() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearName() => $_clearField(2);
+}
+
+class ProfileConfigurationDocument extends $pb.GeneratedMessage {
+  factory ProfileConfigurationDocument({
+    $core.String? previewId,
+    ProfileDataRef? expected,
+    $core.String? name,
+    $core.bool? exists,
+    $fixnum.Int64? length,
+    $core.String? sha256,
+    $1.TextDocument? document,
+  }) {
+    final result = create();
+    if (previewId != null) result.previewId = previewId;
+    if (expected != null) result.expected = expected;
+    if (name != null) result.name = name;
+    if (exists != null) result.exists = exists;
+    if (length != null) result.length = length;
+    if (sha256 != null) result.sha256 = sha256;
+    if (document != null) result.document = document;
+    return result;
+  }
+
+  ProfileConfigurationDocument._();
+
+  factory ProfileConfigurationDocument.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ProfileConfigurationDocument.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ProfileConfigurationDocument',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'previewId')
+    ..aOM<ProfileDataRef>(2, _omitFieldNames ? '' : 'expected',
+        subBuilder: ProfileDataRef.create)
+    ..aOS(3, _omitFieldNames ? '' : 'name')
+    ..aOB(4, _omitFieldNames ? '' : 'exists')
+    ..a<$fixnum.Int64>(5, _omitFieldNames ? '' : 'length', $pb.PbFieldType.OU6,
+        defaultOrMaker: $fixnum.Int64.ZERO)
+    ..aOS(6, _omitFieldNames ? '' : 'sha256')
+    ..aOM<$1.TextDocument>(7, _omitFieldNames ? '' : 'document',
+        subBuilder: $1.TextDocument.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ProfileConfigurationDocument clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ProfileConfigurationDocument copyWith(
+          void Function(ProfileConfigurationDocument) updates) =>
+      super.copyWith(
+              (message) => updates(message as ProfileConfigurationDocument))
+          as ProfileConfigurationDocument;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ProfileConfigurationDocument create() =>
+      ProfileConfigurationDocument._();
+  @$core.override
+  ProfileConfigurationDocument createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ProfileConfigurationDocument getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ProfileConfigurationDocument>(create);
+  static ProfileConfigurationDocument? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get previewId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set previewId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasPreviewId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearPreviewId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  ProfileDataRef get expected => $_getN(1);
+  @$pb.TagNumber(2)
+  set expected(ProfileDataRef value) => $_setField(2, value);
+  @$pb.TagNumber(2)
+  $core.bool hasExpected() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearExpected() => $_clearField(2);
+  @$pb.TagNumber(2)
+  ProfileDataRef ensureExpected() => $_ensure(1);
+
+  @$pb.TagNumber(3)
+  $core.String get name => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set name($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasName() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearName() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.bool get exists => $_getBF(3);
+  @$pb.TagNumber(4)
+  set exists($core.bool value) => $_setBool(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasExists() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearExists() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $fixnum.Int64 get length => $_getI64(4);
+  @$pb.TagNumber(5)
+  set length($fixnum.Int64 value) => $_setInt64(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasLength() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearLength() => $_clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.String get sha256 => $_getSZ(5);
+  @$pb.TagNumber(6)
+  set sha256($core.String value) => $_setString(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasSha256() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearSha256() => $_clearField(6);
+
+  @$pb.TagNumber(7)
+  $1.TextDocument get document => $_getN(6);
+  @$pb.TagNumber(7)
+  set document($1.TextDocument value) => $_setField(7, value);
+  @$pb.TagNumber(7)
+  $core.bool hasDocument() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearDocument() => $_clearField(7);
+  @$pb.TagNumber(7)
+  $1.TextDocument ensureDocument() => $_ensure(6);
+}
+
+enum ProfileConfigurationReadReply_Result { document, problem, notSet }
+
+class ProfileConfigurationReadReply extends $pb.GeneratedMessage {
+  factory ProfileConfigurationReadReply({
+    ProfileConfigurationDocument? document,
+    ProfileDataProblem? problem,
+  }) {
+    final result = create();
+    if (document != null) result.document = document;
+    if (problem != null) result.problem = problem;
+    return result;
+  }
+
+  ProfileConfigurationReadReply._();
+
+  factory ProfileConfigurationReadReply.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ProfileConfigurationReadReply.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static const $core.Map<$core.int, ProfileConfigurationReadReply_Result>
+      _ProfileConfigurationReadReply_ResultByTag = {
+    1: ProfileConfigurationReadReply_Result.document,
+    2: ProfileConfigurationReadReply_Result.problem,
+    0: ProfileConfigurationReadReply_Result.notSet
+  };
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ProfileConfigurationReadReply',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..oo(0, [1, 2])
+    ..aOM<ProfileConfigurationDocument>(1, _omitFieldNames ? '' : 'document',
+        subBuilder: ProfileConfigurationDocument.create)
+    ..aOM<ProfileDataProblem>(2, _omitFieldNames ? '' : 'problem',
+        subBuilder: ProfileDataProblem.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ProfileConfigurationReadReply clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ProfileConfigurationReadReply copyWith(
+          void Function(ProfileConfigurationReadReply) updates) =>
+      super.copyWith(
+              (message) => updates(message as ProfileConfigurationReadReply))
+          as ProfileConfigurationReadReply;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ProfileConfigurationReadReply create() =>
+      ProfileConfigurationReadReply._();
+  @$core.override
+  ProfileConfigurationReadReply createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ProfileConfigurationReadReply getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ProfileConfigurationReadReply>(create);
+  static ProfileConfigurationReadReply? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  @$pb.TagNumber(2)
+  ProfileConfigurationReadReply_Result whichResult() =>
+      _ProfileConfigurationReadReply_ResultByTag[$_whichOneof(0)]!;
+  @$pb.TagNumber(1)
+  @$pb.TagNumber(2)
+  void clearResult() => $_clearField($_whichOneof(0));
+
+  @$pb.TagNumber(1)
+  ProfileConfigurationDocument get document => $_getN(0);
+  @$pb.TagNumber(1)
+  set document(ProfileConfigurationDocument value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasDocument() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearDocument() => $_clearField(1);
+  @$pb.TagNumber(1)
+  ProfileConfigurationDocument ensureDocument() => $_ensure(0);
+
+  @$pb.TagNumber(2)
+  ProfileDataProblem get problem => $_getN(1);
+  @$pb.TagNumber(2)
+  set problem(ProfileDataProblem value) => $_setField(2, value);
+  @$pb.TagNumber(2)
+  $core.bool hasProblem() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearProblem() => $_clearField(2);
+  @$pb.TagNumber(2)
+  ProfileDataProblem ensureProblem() => $_ensure(1);
+}
+
+class ProfileConfigurationSaveRequest extends $pb.GeneratedMessage {
+  factory ProfileConfigurationSaveRequest({
+    $core.String? id,
+    $core.String? previewId,
+    ProfileDataRef? expected,
+    $core.String? name,
+    $core.String? content,
+  }) {
+    final result = create();
+    if (id != null) result.id = id;
+    if (previewId != null) result.previewId = previewId;
+    if (expected != null) result.expected = expected;
+    if (name != null) result.name = name;
+    if (content != null) result.content = content;
+    return result;
+  }
+
+  ProfileConfigurationSaveRequest._();
+
+  factory ProfileConfigurationSaveRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ProfileConfigurationSaveRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ProfileConfigurationSaveRequest',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'id')
+    ..aOS(2, _omitFieldNames ? '' : 'previewId')
+    ..aOM<ProfileDataRef>(3, _omitFieldNames ? '' : 'expected',
+        subBuilder: ProfileDataRef.create)
+    ..aOS(4, _omitFieldNames ? '' : 'name')
+    ..aOS(5, _omitFieldNames ? '' : 'content')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ProfileConfigurationSaveRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ProfileConfigurationSaveRequest copyWith(
+          void Function(ProfileConfigurationSaveRequest) updates) =>
+      super.copyWith(
+              (message) => updates(message as ProfileConfigurationSaveRequest))
+          as ProfileConfigurationSaveRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ProfileConfigurationSaveRequest create() =>
+      ProfileConfigurationSaveRequest._();
+  @$core.override
+  ProfileConfigurationSaveRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ProfileConfigurationSaveRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ProfileConfigurationSaveRequest>(
+          create);
+  static ProfileConfigurationSaveRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get id => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set id($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get previewId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set previewId($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasPreviewId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearPreviewId() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  ProfileDataRef get expected => $_getN(2);
+  @$pb.TagNumber(3)
+  set expected(ProfileDataRef value) => $_setField(3, value);
+  @$pb.TagNumber(3)
+  $core.bool hasExpected() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearExpected() => $_clearField(3);
+  @$pb.TagNumber(3)
+  ProfileDataRef ensureExpected() => $_ensure(2);
+
+  @$pb.TagNumber(4)
+  $core.String get name => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set name($core.String value) => $_setString(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasName() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearName() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.String get content => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set content($core.String value) => $_setString(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasContent() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearContent() => $_clearField(5);
+}
+
+class ProfileConfigurationRestoreRequest extends $pb.GeneratedMessage {
+  factory ProfileConfigurationRestoreRequest({
+    $core.String? workspaceId,
+    $core.String? actionId,
+  }) {
+    final result = create();
+    if (workspaceId != null) result.workspaceId = workspaceId;
+    if (actionId != null) result.actionId = actionId;
+    return result;
+  }
+
+  ProfileConfigurationRestoreRequest._();
+
+  factory ProfileConfigurationRestoreRequest.fromBuffer(
+          $core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ProfileConfigurationRestoreRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ProfileConfigurationRestoreRequest',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'workspaceId')
+    ..aOS(2, _omitFieldNames ? '' : 'actionId')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ProfileConfigurationRestoreRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ProfileConfigurationRestoreRequest copyWith(
+          void Function(ProfileConfigurationRestoreRequest) updates) =>
+      super.copyWith((message) =>
+              updates(message as ProfileConfigurationRestoreRequest))
+          as ProfileConfigurationRestoreRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ProfileConfigurationRestoreRequest create() =>
+      ProfileConfigurationRestoreRequest._();
+  @$core.override
+  ProfileConfigurationRestoreRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ProfileConfigurationRestoreRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ProfileConfigurationRestoreRequest>(
+          create);
+  static ProfileConfigurationRestoreRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get workspaceId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set workspaceId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasWorkspaceId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearWorkspaceId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get actionId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set actionId($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasActionId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearActionId() => $_clearField(2);
 }
 
 class ProfileDataEditRequest extends $pb.GeneratedMessage {

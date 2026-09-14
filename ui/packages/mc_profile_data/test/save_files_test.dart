@@ -32,6 +32,29 @@ class SaveClient implements ProfileDataClient {
   String? inspectedName;
 
   @override
+  Future<List<ProfileConfigurationFile>> configurationFiles(
+    ProfileDataRef expected,
+  ) => throw UnimplementedError();
+  @override
+  Future<ProfileConfigurationDocument> readConfiguration(
+    ProfileDataRef expected,
+    String name,
+  ) => throw UnimplementedError();
+  @override
+  Stream<ProfileDataEvent> saveConfiguration(
+    String id,
+    String previewId,
+    ProfileDataRef expected,
+    String name,
+    String content,
+  ) => throw UnimplementedError();
+  @override
+  Stream<ProfileDataEvent> restoreConfiguration(
+    String workspaceId,
+    String actionId,
+  ) => throw UnimplementedError();
+
+  @override
   Future<ProfileSaveGroupPage> saveGroups(
     String workspaceId,
     String profileId,

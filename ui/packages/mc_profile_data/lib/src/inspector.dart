@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:mc_client/mc_client.dart';
+import 'package:mc_file_plans/mc_file_plans.dart';
 import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 
 import 'controller.dart';
@@ -36,6 +37,13 @@ class ProfileSettingsInspector extends StatefulWidget {
 
 class _ProfileSettingsInspectorState extends State<ProfileSettingsInspector> {
   ProfileDataController get controller => widget.controller;
+  final _filesButtonFocus = FocusNode();
+  final _editor = GlobalKey<TextEditorToolboxState>();
+  bool _showFiles = false, _loadingFiles = false;
+  List<ProfileConfigurationFile> _files = const [];
+  ProfileConfigurationDocument? _configuration;
+  String? _fileProblem;
+  int _fileEpoch = 0;
   @override
   void initState() {
     super.initState();
@@ -45,6 +53,10 @@ class _ProfileSettingsInspectorState extends State<ProfileSettingsInspector> {
   @override
   void didUpdateWidget(ProfileSettingsInspector oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.profile.id != widget.profile.id ||
+        oldWidget.client != widget.client) {
+      _closeFiles(restoreFocus: false);
+    }
     _attach();
   }
 
@@ -54,6 +66,73 @@ class _ProfileSettingsInspectorState extends State<ProfileSettingsInspector> {
     widget.profile.id,
     available: widget.available,
   );
+
+  Future<void> _openFiles() async {
+    final client = widget.client, state = controller.state;
+    if (client == null || state == null || !state.settingsInitialized) return;
+    final epoch = ++_fileEpoch;
+    setState(() {
+      _showFiles = true;
+      _loadingFiles = true;
+      _fileProblem = null;
+      _files = const [];
+    });
+    try {
+      final files = await client.configurationFiles(state.reference);
+      if (!mounted || epoch != _fileEpoch) return;
+      setState(() => _files = files);
+    } on Exception catch (error) {
+      if (!mounted || epoch != _fileEpoch) return;
+      setState(() {
+        _fileProblem = error is ProfileDataProblem
+            ? error.detail
+            : 'The profile files could not be read.';
+      });
+    } finally {
+      if (mounted && epoch == _fileEpoch) setState(() => _loadingFiles = false);
+    }
+  }
+
+  Future<void> _openConfiguration(String name) async {
+    final client = widget.client, state = controller.state;
+    if (client == null || state == null) return;
+    final epoch = ++_fileEpoch;
+    setState(() {
+      _loadingFiles = true;
+      _fileProblem = null;
+    });
+    try {
+      final value = await client.readConfiguration(state.reference, name);
+      if (!mounted || epoch != _fileEpoch) return;
+      setState(() => _configuration = value);
+    } on Exception catch (error) {
+      if (!mounted || epoch != _fileEpoch) return;
+      setState(() {
+        _fileProblem = error is ProfileDataProblem
+            ? error.detail
+            : 'The profile file could not be opened.';
+      });
+    } finally {
+      if (mounted && epoch == _fileEpoch) setState(() => _loadingFiles = false);
+    }
+  }
+
+  void _closeConfiguration() => setState(() => _configuration = null);
+
+  void _closeFiles({bool restoreFocus = true}) {
+    ++_fileEpoch;
+    if (mounted) {
+      setState(() {
+        _showFiles = false;
+        _loadingFiles = false;
+        _files = const [];
+        _configuration = null;
+        _fileProblem = null;
+      });
+      if (restoreFocus) _filesButtonFocus.requestFocus();
+    }
+  }
+
   String name(String id) =>
       widget.profiles.where((p) => p.id == id).firstOrNull?.name ??
       (widget.workspace.selectedProfile?.id == id
@@ -238,6 +317,65 @@ class _ProfileSettingsInspectorState extends State<ProfileSettingsInspector> {
       final problem = controller.problem ?? state?.problem;
       final pending = state?.pendingActionId;
       final active = state?.inUseProfileId;
+      if (_configuration case final document?) {
+        return McInspector(
+          title: 'Edit profile file',
+          onClose: () => unawaited(_editor.currentState?.requestClose()),
+          children: [
+            TextEditorToolbox(
+              key: _editor,
+              document: document.document,
+              name: document.name,
+              source: widget.profile.name,
+              saveLabel: 'Replace profile ${document.name}',
+              saving: controller.busy,
+              problem: controller.problem,
+              onClose: _closeConfiguration,
+              onReadAgain: () async {
+                _closeConfiguration();
+                await controller.read();
+                if (mounted && !controller.needsRead) {
+                  await _openConfiguration(document.name);
+                }
+              },
+              onSave: (content) async {
+                final saved = await controller.saveConfiguration(
+                  document,
+                  content,
+                );
+                if (saved && mounted) _closeFiles();
+                return saved;
+              },
+            ),
+          ],
+        );
+      }
+      if (_showFiles) {
+        return McInspector(
+          title: 'Profile files',
+          onClose: _closeFiles,
+          children: [
+            if (_loadingFiles) const LinearProgressIndicator(),
+            if (_fileProblem != null) ...[
+              McStatus(title: _fileProblem!, tone: McStatusTone.error),
+              const SizedBox(height: 12),
+              McAction(label: 'Read again', onPressed: _openFiles),
+            ],
+            for (final file in _files)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(file.name),
+                subtitle: Text(
+                  file.exists ? fileSize(file.bytes) : 'Not created',
+                ),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: _loadingFiles
+                    ? null
+                    : () => unawaited(_openConfiguration(file.name)),
+              ),
+          ],
+        );
+      }
       return McInspector(
         title: widget.profile.name,
         onClose: widget.onClose,
@@ -308,17 +446,32 @@ class _ProfileSettingsInspectorState extends State<ProfileSettingsInspector> {
           if (!controller.busy && pending != null)
             Padding(
               padding: const EdgeInsets.only(top: 12),
-              child: McAction(
-                label: 'Continue',
-                onPressed: !widget.available
-                    ? null
-                    : () => unawaited(
-                        state!.pendingProfileChange
-                            ? widget
-                                  .onResumeProfileChange(pending)
-                                  .then((_) => controller.read())
-                            : controller.resume(),
-                      ),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  McAction(
+                    label: state?.pendingConfiguration == null
+                        ? 'Continue'
+                        : 'Continue saving',
+                    onPressed: !widget.available
+                        ? null
+                        : () => unawaited(
+                            state!.pendingProfileChange
+                                ? widget
+                                      .onResumeProfileChange(pending)
+                                      .then((_) => controller.read())
+                                : controller.resume(),
+                          ),
+                  ),
+                  if (state?.pendingConfiguration != null)
+                    McAction(
+                      label: 'Restore original',
+                      onPressed: widget.available
+                          ? () => unawaited(controller.restoreConfiguration())
+                          : null,
+                    ),
+                ],
               ),
             ),
           const SizedBox(height: 24),
@@ -349,6 +502,17 @@ class _ProfileSettingsInspectorState extends State<ProfileSettingsInspector> {
                         ),
                       ),
               ),
+            if (state.settingsInitialized) ...[
+              const SizedBox(height: 12),
+              McAction(
+                label: 'Edit profile files',
+                icon: Icons.description_outlined,
+                focusNode: _filesButtonFocus,
+                onPressed: widget.client == null || !controller.canEdit
+                    ? null
+                    : _openFiles,
+              ),
+            ],
             const SizedBox(height: 16),
             McAction(
               label: 'Restore',
@@ -377,4 +541,11 @@ class _ProfileSettingsInspectorState extends State<ProfileSettingsInspector> {
       );
     },
   );
+
+  @override
+  void dispose() {
+    ++_fileEpoch;
+    _filesButtonFocus.dispose();
+    super.dispose();
+  }
 }

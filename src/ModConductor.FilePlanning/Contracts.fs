@@ -66,6 +66,8 @@ type FilePlanError =
     | ContextUnavailable of string
     | FileUnavailable of string
     | LimitExceeded of string
+    | Unsupported of string
+    | InvalidEdit of string
     | Cancelled
     | InvalidCopy
     | Blocked
@@ -83,7 +85,8 @@ type SourceStamp =
 type ModLabel =
     { Id: Guid
       Name: string
-      Version: string }
+      Version: string
+      Revision: int64 }
 
 type PlanSources =
     { Stamp: SourceStamp
@@ -182,7 +185,8 @@ type ManagedPreviewSource =
       Target: LogicalPath
       PayloadId: Guid
       Length: int64
-      Sha256: string }
+      Sha256: string
+      ModRevision: int64 }
 
 type CheckedGamePreviewSource =
     { SnapshotId: Guid
@@ -214,6 +218,35 @@ type FilePreviewRepresentation =
     | Text
     | Image
     | Hex
+
+[<RequireQualifiedAccess>]
+type TextDocumentEncoding =
+    | Utf8
+    | Utf8Bom
+    | Utf16Little
+    | Utf16Big
+
+[<RequireQualifiedAccess>]
+type TextDocumentNewline =
+    | NoLineBreaks
+    | Lf
+    | CrLf
+
+type TextDocument =
+    { Content: string
+      Encoding: TextDocumentEncoding
+      Newline: TextDocumentNewline
+      FinalTerminator: bool
+      Lines: int }
+
+type ManagedTextDocument =
+    { Source: ManagedPreviewSource
+      Document: TextDocument }
+
+type ManagedTextEdit =
+    { Id: Guid
+      VersionId: Guid
+      Source: ManagedPreviewSource }
 
 type TextPreview =
     { Content: string
@@ -310,6 +343,14 @@ type IFilePlans =
         Guid * FilePreviewSource * FilePreviewRepresentation * CancellationToken ->
             Task<Result<FilePreview, FilePlanError>>
 
+    abstract OpenManagedText:
+        Guid * ManagedPreviewSource * CancellationToken ->
+            Task<Result<ManagedTextDocument, FilePlanError>>
+
+    abstract SaveManagedText:
+        Guid * Guid * ManagedPreviewSource * string * CancellationToken ->
+            Task<Result<ManagedTextEdit, FilePlanError>>
+
 /// Candidate reads keep header inspection separate from full deployment acquisition.
 type IFileCandidateRepository =
     inherit IFilePlanRepository
@@ -320,6 +361,10 @@ type IFileCandidateRepository =
 
     abstract OpenManaged:
         Guid * SourcePin * CancellationToken -> Task<Result<System.IO.FileStream, FilePlanError>>
+
+    abstract PublishText:
+        SourceStamp * Guid * ManagedPreviewSource * byte array * CancellationToken ->
+            Task<Result<Guid, FilePlanError>>
 
 type CandidateObservation =
     { Sources: PlanSources

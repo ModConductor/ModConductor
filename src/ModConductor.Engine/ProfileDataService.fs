@@ -100,6 +100,84 @@ type ProfileDataService(profiles: IProfileGameData) =
         | ProfileSaveAction.CopyToProfile -> Protocol.V1.ProfileSaveAction.CopyToProfile
         | ProfileSaveAction.DeleteFromProfile -> Protocol.V1.ProfileSaveAction.DeleteFromProfile
 
+    override _.ListProfileConfigurations(request, context) =
+        task {
+            let! result =
+                profiles.ConfigurationFiles(
+                    ProfileDataWire.readReference request.Expected,
+                    context.CancellationToken
+                )
+
+            match result with
+            | Error error ->
+                return
+                    Protocol.V1.ProfileConfigurationListReply(
+                        Problem = ProfileDataWire.problem error
+                    )
+            | Ok files ->
+                let value = Protocol.V1.ProfileConfigurationList()
+
+                for file in files do
+                    value.Files.Add(
+                        Protocol.V1.ProfileConfigurationFile(
+                            Name = file.Name,
+                            Exists = file.Exists,
+                            Bytes = uint64 file.Bytes
+                        )
+                    )
+
+                return Protocol.V1.ProfileConfigurationListReply(Files = value)
+        }
+
+    override _.ReadProfileConfiguration(request, context) =
+        task {
+            let! result =
+                profiles.ReadConfiguration(
+                    ProfileDataWire.readReference request.Expected,
+                    request.Name,
+                    context.CancellationToken
+                )
+
+            match result with
+            | Error error ->
+                return
+                    Protocol.V1.ProfileConfigurationReadReply(
+                        Problem = ProfileDataWire.problem error
+                    )
+            | Ok document ->
+                let value =
+                    Protocol.V1.ProfileConfigurationDocument(
+                        PreviewId = document.PreviewId.ToString "N",
+                        Expected = ProfileDataWire.reference document.Expected,
+                        Name = document.Name,
+                        Exists = document.Exists,
+                        Length = uint64 document.Length,
+                        Document = ProfileDataWire.textDocument document.Document
+                    )
+
+                document.Sha256 |> Option.iter (fun digest -> value.Sha256 <- digest)
+                return Protocol.V1.ProfileConfigurationReadReply(Document = value)
+        }
+
+    override _.SaveProfileConfiguration(request, output, context) =
+        let edit =
+            { Id = ModLibraryWire.id request.Id
+              PreviewId = ModLibraryWire.id request.PreviewId
+              Expected = ProfileDataWire.readReference request.Expected
+              Name = request.Name
+              Content = request.Content }
+
+        send context output (fun progress ->
+            profiles.SaveConfiguration(edit, progress, context.CancellationToken))
+
+    override _.RestoreProfileConfiguration(request, output, context) =
+        send context output (fun _ ->
+            profiles.RestoreConfiguration(
+                ModLibraryWire.id request.WorkspaceId,
+                ModLibraryWire.id request.ActionId,
+                context.CancellationToken
+            ))
+
     override _.ListProfileSaves(request, _) =
         task {
             let! result =

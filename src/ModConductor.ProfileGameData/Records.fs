@@ -71,6 +71,12 @@ type internal SaveActionReceipt =
       ContextFingerprint: string
       Files: SaveMutationFile list }
 
+type internal ConfigurationEditReceipt =
+    { PreviewId: Guid
+      Name: string
+      Before: DataFile option
+      Bytes: byte array }
+
 [<RequireQualifiedAccess>]
 type internal SaveLinkEffect =
     | Unchanged
@@ -86,6 +92,7 @@ type internal ProfileDataActionKind =
     | ApplyArchives of ArchivePolicyApply
     | RestoreArchives
     | SaveFiles of SaveActionReceipt
+    | EditConfiguration of ConfigurationEditReceipt
     | Clone of target: Guid * name: string * workspaceRevision: int64
     | Delete of workspaceRevision: int64
 

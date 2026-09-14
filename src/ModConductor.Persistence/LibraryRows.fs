@@ -27,46 +27,65 @@ module internal LibraryRows =
             Some(read (reader.GetString column))
 
     let origin connection transaction version =
-        use query =
+        use edit =
             Sqlite.command
                 connection
                 transaction
-                "SELECT output_action FROM mod_version_origins WHERE version_id=$version"
+                "SELECT edit_id,source_version,path,digest FROM mod_edit_origins WHERE version_id=$version"
                 [ "$version", box (string version) ]
 
-        match query.ExecuteScalar() with
-        | :? string as action -> VersionOrigin.Outputs(Guid.Parse action)
-        | _ ->
-            use source =
+        use editReader = edit.ExecuteReader()
+
+        if editReader.Read() then
+            VersionOrigin.Edited(
+                Guid.Parse(editReader.GetString 0),
+                Guid.Parse(editReader.GetString 1),
+                LibraryEncoding.readPath (editReader.GetString 2),
+                editReader.GetString 3
+            )
+        else
+            editReader.Close()
+
+            use query =
                 Sqlite.command
                     connection
                     transaction
-                    "SELECT artifact_id FROM archive_version_origins WHERE version_id=$version"
+                    "SELECT output_action FROM mod_version_origins WHERE version_id=$version"
                     [ "$version", box (string version) ]
 
-            match source.ExecuteScalar() with
-            | :? string as artifact ->
-                use query =
+            match query.ExecuteScalar() with
+            | :? string as action -> VersionOrigin.Outputs(Guid.Parse action)
+            | _ ->
+                use source =
                     Sqlite.command
                         connection
                         transaction
-                        "SELECT parent_digest,path_chain,digest_chain FROM bundle_version_origins WHERE version_id=$version"
+                        "SELECT artifact_id FROM archive_version_origins WHERE version_id=$version"
                         [ "$version", box (string version) ]
 
-                use reader = query.ExecuteReader()
+                match source.ExecuteScalar() with
+                | :? string as artifact ->
+                    use query =
+                        Sqlite.command
+                            connection
+                            transaction
+                            "SELECT parent_digest,path_chain,digest_chain FROM bundle_version_origins WHERE version_id=$version"
+                            [ "$version", box (string version) ]
 
-                if reader.Read() then
-                    VersionOrigin.Bundle(
-                        Guid.Parse artifact,
-                        reader.GetString 0,
-                        reader.GetString(1).Split('\001')
-                        |> Array.map LibraryEncoding.readPath
-                        |> Array.toList,
-                        reader.GetString(2).Split('\001') |> Array.toList
-                    )
-                else
-                    VersionOrigin.Archive(Guid.Parse artifact)
-            | _ -> VersionOrigin.RegisteredSource
+                    use reader = query.ExecuteReader()
+
+                    if reader.Read() then
+                        VersionOrigin.Bundle(
+                            Guid.Parse artifact,
+                            reader.GetString 0,
+                            reader.GetString(1).Split('\001')
+                            |> Array.map LibraryEncoding.readPath
+                            |> Array.toList,
+                            reader.GetString(2).Split('\001') |> Array.toList
+                        )
+                    else
+                        VersionOrigin.Archive(Guid.Parse artifact)
+                | _ -> VersionOrigin.RegisteredSource
 
     let find connection transaction id =
         use statement =

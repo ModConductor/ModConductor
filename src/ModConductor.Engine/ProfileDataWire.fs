@@ -45,8 +45,13 @@ module internal ProfileDataWire =
         value.Pending
         |> Option.iter (fun id -> result.PendingActionId <- id.ToString("N"))
 
+        value.PendingConfiguration
+        |> Option.iter (fun name -> result.PendingConfiguration <- name)
+
         value.Problem |> Option.iter (fun text -> result.Problem <- text)
         result
+
+    let textDocument = FilePlanWire.textDocument
 
     let problem value =
         let kind, detail =

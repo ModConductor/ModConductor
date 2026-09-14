@@ -273,11 +273,21 @@ const ProfileDataState$json = {
       '5': 8,
       '10': 'savesInitialized'
     },
+    {
+      '1': 'pending_configuration',
+      '3': 13,
+      '4': 1,
+      '5': 9,
+      '9': 3,
+      '10': 'pendingConfiguration',
+      '17': true
+    },
   ],
   '8': [
     {'1': '_in_use_profile_id'},
     {'1': '_pending_action_id'},
     {'1': '_problem'},
+    {'1': '_pending_configuration'},
   ],
 };
 
@@ -293,8 +303,242 @@ final $typed_data.Uint8List profileDataStateDescriptor = $convert.base64Decode(
     'VtGAkgASgJSAJSB3Byb2JsZW2IAQESNAoWcGVuZGluZ19wcm9maWxlX2NoYW5nZRgKIAEoCFIU'
     'cGVuZGluZ1Byb2ZpbGVDaGFuZ2USMQoUc2V0dGluZ3NfaW5pdGlhbGl6ZWQYCyABKAhSE3NldH'
     'RpbmdzSW5pdGlhbGl6ZWQSKwoRc2F2ZXNfaW5pdGlhbGl6ZWQYDCABKAhSEHNhdmVzSW5pdGlh'
-    'bGl6ZWRCFAoSX2luX3VzZV9wcm9maWxlX2lkQhQKEl9wZW5kaW5nX2FjdGlvbl9pZEIKCghfcH'
-    'JvYmxlbQ==');
+    'bGl6ZWQSOAoVcGVuZGluZ19jb25maWd1cmF0aW9uGA0gASgJSANSFHBlbmRpbmdDb25maWd1cm'
+    'F0aW9uiAEBQhQKEl9pbl91c2VfcHJvZmlsZV9pZEIUChJfcGVuZGluZ19hY3Rpb25faWRCCgoI'
+    'X3Byb2JsZW1CGAoWX3BlbmRpbmdfY29uZmlndXJhdGlvbg==');
+
+@$core.Deprecated('Use profileConfigurationFileDescriptor instead')
+const ProfileConfigurationFile$json = {
+  '1': 'ProfileConfigurationFile',
+  '2': [
+    {'1': 'name', '3': 1, '4': 1, '5': 9, '10': 'name'},
+    {'1': 'exists', '3': 2, '4': 1, '5': 8, '10': 'exists'},
+    {'1': 'bytes', '3': 3, '4': 1, '5': 4, '10': 'bytes'},
+  ],
+};
+
+/// Descriptor for `ProfileConfigurationFile`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List profileConfigurationFileDescriptor =
+    $convert.base64Decode(
+        'ChhQcm9maWxlQ29uZmlndXJhdGlvbkZpbGUSEgoEbmFtZRgBIAEoCVIEbmFtZRIWCgZleGlzdH'
+        'MYAiABKAhSBmV4aXN0cxIUCgVieXRlcxgDIAEoBFIFYnl0ZXM=');
+
+@$core.Deprecated('Use profileConfigurationListRequestDescriptor instead')
+const ProfileConfigurationListRequest$json = {
+  '1': 'ProfileConfigurationListRequest',
+  '2': [
+    {
+      '1': 'expected',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.ProfileDataRef',
+      '10': 'expected'
+    },
+  ],
+};
+
+/// Descriptor for `ProfileConfigurationListRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List profileConfigurationListRequestDescriptor =
+    $convert.base64Decode(
+        'Ch9Qcm9maWxlQ29uZmlndXJhdGlvbkxpc3RSZXF1ZXN0EjsKCGV4cGVjdGVkGAEgASgLMh8ubW'
+        '9kY29uZHVjdG9yLnYxLlByb2ZpbGVEYXRhUmVmUghleHBlY3RlZA==');
+
+@$core.Deprecated('Use profileConfigurationListDescriptor instead')
+const ProfileConfigurationList$json = {
+  '1': 'ProfileConfigurationList',
+  '2': [
+    {
+      '1': 'files',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.modconductor.v1.ProfileConfigurationFile',
+      '10': 'files'
+    },
+  ],
+};
+
+/// Descriptor for `ProfileConfigurationList`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List profileConfigurationListDescriptor =
+    $convert.base64Decode(
+        'ChhQcm9maWxlQ29uZmlndXJhdGlvbkxpc3QSPwoFZmlsZXMYASADKAsyKS5tb2Rjb25kdWN0b3'
+        'IudjEuUHJvZmlsZUNvbmZpZ3VyYXRpb25GaWxlUgVmaWxlcw==');
+
+@$core.Deprecated('Use profileConfigurationListReplyDescriptor instead')
+const ProfileConfigurationListReply$json = {
+  '1': 'ProfileConfigurationListReply',
+  '2': [
+    {
+      '1': 'files',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.ProfileConfigurationList',
+      '9': 0,
+      '10': 'files'
+    },
+    {
+      '1': 'problem',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.ProfileDataProblem',
+      '9': 0,
+      '10': 'problem'
+    },
+  ],
+  '8': [
+    {'1': 'result'},
+  ],
+};
+
+/// Descriptor for `ProfileConfigurationListReply`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List profileConfigurationListReplyDescriptor = $convert.base64Decode(
+    'Ch1Qcm9maWxlQ29uZmlndXJhdGlvbkxpc3RSZXBseRJBCgVmaWxlcxgBIAEoCzIpLm1vZGNvbm'
+    'R1Y3Rvci52MS5Qcm9maWxlQ29uZmlndXJhdGlvbkxpc3RIAFIFZmlsZXMSPwoHcHJvYmxlbRgC'
+    'IAEoCzIjLm1vZGNvbmR1Y3Rvci52MS5Qcm9maWxlRGF0YVByb2JsZW1IAFIHcHJvYmxlbUIICg'
+    'ZyZXN1bHQ=');
+
+@$core.Deprecated('Use profileConfigurationReadRequestDescriptor instead')
+const ProfileConfigurationReadRequest$json = {
+  '1': 'ProfileConfigurationReadRequest',
+  '2': [
+    {
+      '1': 'expected',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.ProfileDataRef',
+      '10': 'expected'
+    },
+    {'1': 'name', '3': 2, '4': 1, '5': 9, '10': 'name'},
+  ],
+};
+
+/// Descriptor for `ProfileConfigurationReadRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List profileConfigurationReadRequestDescriptor =
+    $convert.base64Decode(
+        'Ch9Qcm9maWxlQ29uZmlndXJhdGlvblJlYWRSZXF1ZXN0EjsKCGV4cGVjdGVkGAEgASgLMh8ubW'
+        '9kY29uZHVjdG9yLnYxLlByb2ZpbGVEYXRhUmVmUghleHBlY3RlZBISCgRuYW1lGAIgASgJUgRu'
+        'YW1l');
+
+@$core.Deprecated('Use profileConfigurationDocumentDescriptor instead')
+const ProfileConfigurationDocument$json = {
+  '1': 'ProfileConfigurationDocument',
+  '2': [
+    {'1': 'preview_id', '3': 1, '4': 1, '5': 9, '10': 'previewId'},
+    {
+      '1': 'expected',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.ProfileDataRef',
+      '10': 'expected'
+    },
+    {'1': 'name', '3': 3, '4': 1, '5': 9, '10': 'name'},
+    {'1': 'exists', '3': 4, '4': 1, '5': 8, '10': 'exists'},
+    {'1': 'length', '3': 5, '4': 1, '5': 4, '10': 'length'},
+    {'1': 'sha256', '3': 6, '4': 1, '5': 9, '9': 0, '10': 'sha256', '17': true},
+    {
+      '1': 'document',
+      '3': 7,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.TextDocument',
+      '10': 'document'
+    },
+  ],
+  '8': [
+    {'1': '_sha256'},
+  ],
+};
+
+/// Descriptor for `ProfileConfigurationDocument`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List profileConfigurationDocumentDescriptor = $convert.base64Decode(
+    'ChxQcm9maWxlQ29uZmlndXJhdGlvbkRvY3VtZW50Eh0KCnByZXZpZXdfaWQYASABKAlSCXByZX'
+    'ZpZXdJZBI7CghleHBlY3RlZBgCIAEoCzIfLm1vZGNvbmR1Y3Rvci52MS5Qcm9maWxlRGF0YVJl'
+    'ZlIIZXhwZWN0ZWQSEgoEbmFtZRgDIAEoCVIEbmFtZRIWCgZleGlzdHMYBCABKAhSBmV4aXN0cx'
+    'IWCgZsZW5ndGgYBSABKARSBmxlbmd0aBIbCgZzaGEyNTYYBiABKAlIAFIGc2hhMjU2iAEBEjkK'
+    'CGRvY3VtZW50GAcgASgLMh0ubW9kY29uZHVjdG9yLnYxLlRleHREb2N1bWVudFIIZG9jdW1lbn'
+    'RCCQoHX3NoYTI1Ng==');
+
+@$core.Deprecated('Use profileConfigurationReadReplyDescriptor instead')
+const ProfileConfigurationReadReply$json = {
+  '1': 'ProfileConfigurationReadReply',
+  '2': [
+    {
+      '1': 'document',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.ProfileConfigurationDocument',
+      '9': 0,
+      '10': 'document'
+    },
+    {
+      '1': 'problem',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.ProfileDataProblem',
+      '9': 0,
+      '10': 'problem'
+    },
+  ],
+  '8': [
+    {'1': 'result'},
+  ],
+};
+
+/// Descriptor for `ProfileConfigurationReadReply`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List profileConfigurationReadReplyDescriptor = $convert.base64Decode(
+    'Ch1Qcm9maWxlQ29uZmlndXJhdGlvblJlYWRSZXBseRJLCghkb2N1bWVudBgBIAEoCzItLm1vZG'
+    'NvbmR1Y3Rvci52MS5Qcm9maWxlQ29uZmlndXJhdGlvbkRvY3VtZW50SABSCGRvY3VtZW50Ej8K'
+    'B3Byb2JsZW0YAiABKAsyIy5tb2Rjb25kdWN0b3IudjEuUHJvZmlsZURhdGFQcm9ibGVtSABSB3'
+    'Byb2JsZW1CCAoGcmVzdWx0');
+
+@$core.Deprecated('Use profileConfigurationSaveRequestDescriptor instead')
+const ProfileConfigurationSaveRequest$json = {
+  '1': 'ProfileConfigurationSaveRequest',
+  '2': [
+    {'1': 'id', '3': 1, '4': 1, '5': 9, '10': 'id'},
+    {'1': 'preview_id', '3': 2, '4': 1, '5': 9, '10': 'previewId'},
+    {
+      '1': 'expected',
+      '3': 3,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.ProfileDataRef',
+      '10': 'expected'
+    },
+    {'1': 'name', '3': 4, '4': 1, '5': 9, '10': 'name'},
+    {'1': 'content', '3': 5, '4': 1, '5': 9, '10': 'content'},
+  ],
+};
+
+/// Descriptor for `ProfileConfigurationSaveRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List profileConfigurationSaveRequestDescriptor =
+    $convert.base64Decode(
+        'Ch9Qcm9maWxlQ29uZmlndXJhdGlvblNhdmVSZXF1ZXN0Eg4KAmlkGAEgASgJUgJpZBIdCgpwcm'
+        'V2aWV3X2lkGAIgASgJUglwcmV2aWV3SWQSOwoIZXhwZWN0ZWQYAyABKAsyHy5tb2Rjb25kdWN0'
+        'b3IudjEuUHJvZmlsZURhdGFSZWZSCGV4cGVjdGVkEhIKBG5hbWUYBCABKAlSBG5hbWUSGAoHY2'
+        '9udGVudBgFIAEoCVIHY29udGVudA==');
+
+@$core.Deprecated('Use profileConfigurationRestoreRequestDescriptor instead')
+const ProfileConfigurationRestoreRequest$json = {
+  '1': 'ProfileConfigurationRestoreRequest',
+  '2': [
+    {'1': 'workspace_id', '3': 1, '4': 1, '5': 9, '10': 'workspaceId'},
+    {'1': 'action_id', '3': 2, '4': 1, '5': 9, '10': 'actionId'},
+  ],
+};
+
+/// Descriptor for `ProfileConfigurationRestoreRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List profileConfigurationRestoreRequestDescriptor =
+    $convert.base64Decode(
+        'CiJQcm9maWxlQ29uZmlndXJhdGlvblJlc3RvcmVSZXF1ZXN0EiEKDHdvcmtzcGFjZV9pZBgBIA'
+        'EoCVILd29ya3NwYWNlSWQSGwoJYWN0aW9uX2lkGAIgASgJUghhY3Rpb25JZA==');
 
 @$core.Deprecated('Use profileDataEditRequestDescriptor instead')
 const ProfileDataEditRequest$json = {

@@ -49,6 +49,7 @@ type ProfileDataState =
       SavesInitialized: bool
       Pending: Guid option
       PendingProfileChange: bool
+      PendingConfiguration: string option
       Problem: string option }
 
     member this.Reference =
@@ -78,6 +79,27 @@ type ProfileDataApplication =
       CompletedFiles: int
       Complete: bool
       Problem: string option }
+
+type ProfileConfigurationFile =
+    { Name: string
+      Exists: bool
+      Bytes: int64 }
+
+type ProfileConfigurationDocument =
+    { PreviewId: Guid
+      Expected: ProfileDataRef
+      Name: string
+      Exists: bool
+      Length: int64
+      Sha256: string option
+      Document: ModConductor.FilePlanning.TextDocument }
+
+type ProfileConfigurationEdit =
+    { Id: Guid
+      PreviewId: Guid
+      Expected: ProfileDataRef
+      Name: string
+      Content: string }
 
 type ProfileSaveEntry =
     { Name: string
@@ -201,8 +223,11 @@ type IProfileArchivePolicies =
             Task<Result<ProfileArchivePolicy, ProfileDataError>>
 
     abstract Apply:
-        id: Guid * expected: ProfileDataRef * snapshot: Guid *
-        (ProfileDataProgress -> unit) * CancellationToken ->
+        id: Guid *
+        expected: ProfileDataRef *
+        snapshot: Guid *
+        (ProfileDataProgress -> unit) *
+        CancellationToken ->
             Task<Result<ProfileDataResult, ProfileDataError>>
 
     abstract Restore:
@@ -216,6 +241,22 @@ type IProfileGameData =
 
     abstract Read:
         workspace: Guid * profile: Guid -> Task<Result<ProfileDataState, ProfileDataError>>
+
+    abstract ConfigurationFiles:
+        expected: ProfileDataRef * CancellationToken ->
+            Task<Result<ProfileConfigurationFile list, ProfileDataError>>
+
+    abstract ReadConfiguration:
+        expected: ProfileDataRef * name: string * CancellationToken ->
+            Task<Result<ProfileConfigurationDocument, ProfileDataError>>
+
+    abstract SaveConfiguration:
+        ProfileConfigurationEdit * (ProfileDataProgress -> unit) * CancellationToken ->
+            Task<Result<ProfileDataResult, ProfileDataError>>
+
+    abstract RestoreConfiguration:
+        workspace: Guid * action: Guid * CancellationToken ->
+            Task<Result<ProfileDataResult, ProfileDataError>>
 
     abstract SaveGroups:
         workspace: Guid * profile: Guid * source: ProfileSaveSource * after: string option ->

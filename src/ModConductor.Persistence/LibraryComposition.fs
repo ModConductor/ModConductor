@@ -3,6 +3,7 @@ namespace ModConductor.Persistence
 open System
 open System.IO
 open System.Collections.Generic
+open System.Security.Cryptography
 open System.Threading.Tasks
 open ModConductor.Platform
 open ModConductor.ModLibrary
@@ -13,12 +14,18 @@ type internal CompositionFile =
       RootIdentity: FileIdentity
       File: SourceFile }
 
+type internal CompositionBytes =
+    { Target: LogicalPath
+      Content: byte array
+      Sha256: string }
+
 type internal LibraryCompositionInput =
     { ActionId: Guid
       SourceVersion: Guid option
       VersionLabel: string
       Policy: TargetPolicy
-      Files: CompositionFile list }
+      Files: CompositionFile list
+      Bytes: CompositionBytes list }
 
 module internal LibraryComposition =
     let targets policy (previous: ManifestEntry list) (files: CompositionFile list) =
@@ -89,9 +96,40 @@ module internal LibraryComposition =
             if previous.Length > 100000 then
                 raise (SourceLimitException())
 
-            let retained, selected = targets input.Policy previous input.Files
+            let retainedFiles, selected = targets input.Policy previous input.Files
+            let inlineKeys = HashSet<string>(TargetPolicy.comparer input.Policy)
+            let fileKeys = HashSet<string>(TargetPolicy.comparer input.Policy)
 
-            if retained.Length + selected.Length > 100000 then
+            for file in input.Files do
+                fileKeys.Add(TargetPolicy.key input.Policy file.Target) |> ignore
+
+            let inlineFiles =
+                input.Bytes
+                |> List.map (fun item ->
+                    if
+                        not (TargetPolicy.problems input.Policy item.Target).IsEmpty
+                        || fileKeys.Contains(TargetPolicy.key input.Policy item.Target)
+                        || not (inlineKeys.Add(TargetPolicy.key input.Policy item.Target))
+                    then
+                        raise (SourceOverlapException())
+
+                    let prior =
+                        previous
+                        |> List.tryFind (fun entry ->
+                            (TargetPolicy.comparer input.Policy)
+                                .Equals(
+                                    TargetPolicy.key input.Policy entry.Path,
+                                    TargetPolicy.key input.Policy item.Target
+                                ))
+
+                    prior |> Option.map _.Path |> Option.defaultValue item.Target, item, prior)
+
+            let retained =
+                retainedFiles
+                |> List.filter (fun entry ->
+                    not (inlineKeys.Contains(TargetPolicy.key input.Policy entry.Path)))
+
+            if retained.Length + selected.Length + inlineFiles.Length > 100000 then
                 raise (SourceLimitException())
 
             do!
@@ -100,6 +138,15 @@ module internal LibraryComposition =
 
                     for entry in retained do
                         check ()
+
+                        let stored =
+                            (db (fun () ->
+                                LibraryRows.payload connection null entry.Payload.Id
+                                |> Option.defaultWith (fun () -> raise (SourceChangedException()))))
+                                .GetAwaiter()
+                                .GetResult()
+
+                        LibraryFiles.verify destination stored |> ignore
 
                         (db (fun () ->
                             Sqlite.execute
@@ -157,6 +204,81 @@ module internal LibraryComposition =
 
                                 use stream = stream
                                 SourceFiles.copy source file stream check
+                                afterEffect ()
+
+                                (db (fun () ->
+                                    Sqlite.execute
+                                        connection
+                                        null
+                                        "UPDATE mod_payloads SET identity=$identity,length=$length,digest=$digest WHERE id=$id"
+                                        [ "$identity", box (LibraryEncoding.identity identity)
+                                          "$length", box payload.Length
+                                          "$digest", box payload.Sha256
+                                          "$id", box (string payload.Id) ]))
+                                    .GetAwaiter()
+                                    .GetResult()
+
+                                payload
+
+                        (db (fun () ->
+                            Sqlite.execute
+                                connection
+                                null
+                                "INSERT INTO mod_manifest VALUES($version,$path,$payload)"
+                                [ "$version", box (string version)
+                                  "$path", box (LibraryEncoding.path target)
+                                  "$payload", box (string payload.Id) ]))
+                            .GetAwaiter()
+                            .GetResult()
+
+                    for target, item, prior in inlineFiles do
+                        check ()
+                        let digest = Convert.ToHexStringLower(SHA256.HashData item.Content)
+
+                        if digest <> item.Sha256 then
+                            raise (SourceChangedException())
+
+                        let reused =
+                            prior
+                            |> Option.filter (fun entry ->
+                                entry.Payload.Length = int64 item.Content.Length
+                                && entry.Payload.Sha256 = item.Sha256)
+
+                        let payload =
+                            match reused with
+                            | Some entry ->
+                                let stored =
+                                    (db (fun () ->
+                                        LibraryRows.payload connection null entry.Payload.Id
+                                        |> Option.get))
+                                        .GetAwaiter()
+                                        .GetResult()
+
+                                LibraryFiles.verify destination stored
+                                entry.Payload
+                            | None ->
+                                let payload =
+                                    { Id = Guid.NewGuid()
+                                      Length = int64 item.Content.Length
+                                      Sha256 = item.Sha256 }
+
+                                (db (fun () ->
+                                    Sqlite.execute
+                                        connection
+                                        null
+                                        "INSERT INTO mod_payloads(id,workspace_id,publication_id) VALUES($id,$workspace,$version)"
+                                        [ "$id", box (string payload.Id)
+                                          "$workspace", box (string workspace.Id)
+                                          "$version", box (string version) ]))
+                                    .GetAwaiter()
+                                    .GetResult()
+
+                                let stream, identity =
+                                    destination.Create(LibraryFiles.payloadName payload.Id)
+
+                                use stream = stream
+                                stream.Write item.Content
+                                stream.Flush true
                                 afterEffect ()
 
                                 (db (fun () ->

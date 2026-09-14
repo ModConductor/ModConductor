@@ -60,7 +60,16 @@ module internal PublicationRows =
                 let matchingOrigin =
                     match LibraryRows.origin connection transaction version, composition with
                     | VersionOrigin.RegisteredSource, None -> true
-                    | VersionOrigin.Outputs action, Some input -> action = input.ActionId
+                    | VersionOrigin.Outputs action, Some input ->
+                        action = input.ActionId && input.Bytes.IsEmpty
+                    | VersionOrigin.Edited(action, source, path, digest), Some input ->
+                        match input.SourceVersion, input.Files, input.Bytes with
+                        | Some expected, [], [ file ] ->
+                            action = input.ActionId
+                            && source = expected
+                            && path = file.Target
+                            && digest = file.Sha256
+                        | _ -> false
                     | _ -> false
 
                 if not matchingOrigin then
@@ -122,17 +131,39 @@ module internal PublicationRows =
 
                 composition
                 |> Option.iter (fun input ->
-                    Sqlite.execute
-                        connection
-                        transaction
-                        "INSERT INTO mod_version_origins VALUES($version,$action,$source,$label)"
-                        [ "$version", box (string version)
-                          "$action", box (string input.ActionId)
-                          "$source",
-                          input.SourceVersion
-                          |> Option.map (string >> box)
-                          |> Option.defaultValue (box DBNull.Value)
-                          "$label", box input.VersionLabel ])
+                    match input.SourceVersion, input.Files, input.Bytes with
+                    | Some source, [], [ file ] ->
+                        let previous =
+                            LibraryRows.version connection transaction source 0 100001
+                            |> Option.bind (fun value ->
+                                value.Entries
+                                |> List.tryFind (fun entry -> entry.Path = file.Target))
+                            |> Option.defaultWith (fun () -> raise (SourceChangedException()))
+
+                        Sqlite.execute
+                            connection
+                            transaction
+                            "INSERT INTO mod_edit_origins VALUES($version,$action,$source,$path,$payload,$content,$digest)"
+                            [ "$version", box (string version)
+                              "$action", box (string input.ActionId)
+                              "$source", box (string source)
+                              "$path", box (LibraryEncoding.path file.Target)
+                              "$payload", box (string previous.Payload.Id)
+                              "$content", box file.Content
+                              "$digest", box file.Sha256 ]
+                    | _, _, [] ->
+                        Sqlite.execute
+                            connection
+                            transaction
+                            "INSERT INTO mod_version_origins VALUES($version,$action,$source,$label)"
+                            [ "$version", box (string version)
+                              "$action", box (string input.ActionId)
+                              "$source",
+                              input.SourceVersion
+                              |> Option.map (string >> box)
+                              |> Option.defaultValue (box DBNull.Value)
+                              "$label", box input.VersionLabel ]
+                    | _ -> raise (SourceOverlapException()))
 
                 LibraryRows.setStatus connection transaction modId InventoryStatus.Publishing
                 Ok(row, Capture)
@@ -226,6 +257,12 @@ module internal PublicationRows =
                     transaction
                     "UPDATE mods SET current_version=$version,revision=revision+1,status=1,version_text=COALESCE((SELECT version_label FROM mod_version_origins WHERE version_id=$version),version_text) WHERE id=$mod"
                     [ "$version", box (string version); "$mod", box (string receipt.ModId) ]
+
+                Sqlite.execute
+                    connection
+                    transaction
+                    "UPDATE mod_edit_origins SET content=X'' WHERE version_id=$version"
+                    [ "$version", box (string version) ]
 
                 Ok (LibraryRows.find connection transaction receipt.ModId |> Option.get).Entry
 

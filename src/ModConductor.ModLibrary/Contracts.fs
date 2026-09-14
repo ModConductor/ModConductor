@@ -43,6 +43,7 @@ type ModAction =
 [<RequireQualifiedAccess>]
 type VersionOrigin =
     | RegisteredSource
+    | Edited of action: Guid * sourceVersion: Guid * path: LogicalPath * digest: string
     | Archive of artifactId: Guid
     | Bundle of
         artifactId: Guid *

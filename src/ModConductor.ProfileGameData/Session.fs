@@ -26,6 +26,8 @@ type ProfileGameDataSession
     let mutable savePreview: (ProfileSaveActionPreview * SaveActionReceipt) option =
         None
 
+    let mutable configurationPreview: ConfigurationPreview option = None
+
     let rememberSavePreview (preview: ProfileSaveActionPreview) (receipt: SaveActionReceipt) =
         lock previewGate (fun () -> savePreview <- Some(preview, receipt))
 
@@ -39,6 +41,21 @@ type ProfileGameDataSession
                 ->
                 savePreview <- None
                 Some(preview, receipt)
+            | _ -> None)
+
+    let rememberConfigurationPreview preview =
+        lock previewGate (fun () -> configurationPreview <- Some preview)
+
+    let claimConfigurationPreview id expected name =
+        lock previewGate (fun () ->
+            match configurationPreview with
+            | Some preview when
+                preview.Public.PreviewId = id
+                && preview.Public.Expected = expected
+                && preview.Public.Name.Equals(name, StringComparison.OrdinalIgnoreCase)
+                ->
+                configurationPreview <- None
+                Some preview
             | _ -> None)
 
     let mutable drained =
@@ -197,6 +214,7 @@ type ProfileGameDataSession
           SavesInitialized = profile |> Option.exists _.SavesInitialized
           Pending = scope.Context |> Option.bind _.Pending
           PendingProfileChange = false
+          PendingConfiguration = None
           Problem = problem }
         : ProfileDataState
 
@@ -218,6 +236,13 @@ type ProfileGameDataSession
                         | ProfileDataActionKind.Delete _ -> true
                         | _ -> false)
 
+                let pendingConfiguration =
+                    action
+                    |> Option.bind (fun value ->
+                        match value.Kind with
+                        | ProfileDataActionKind.EditConfiguration receipt -> Some receipt.Name
+                        | _ -> None)
+
                 let active =
                     match action with
                     | Some value when value.Deletion.IsSome ->
@@ -228,6 +253,7 @@ type ProfileGameDataSession
                     { state with
                         Problem = action |> Option.bind _.Problem |> Option.orElse state.Problem
                         PendingProfileChange = profileChange
+                        PendingConfiguration = pendingConfiguration
                         InUse = active }
         }
 
@@ -340,6 +366,13 @@ type ProfileGameDataSession
                                 DataInitialization.profile repository context action.ProfileId
 
                             return Some privateData
+                        | ProfileDataActionKind.EditConfiguration _ ->
+                            let privateData =
+                                scope.Profile
+                                |> Option.defaultWith (fun () ->
+                                    raise (ProfileDataException ProfileDataError.NotFound))
+
+                            return Some privateData
                         | ProfileDataActionKind.Clone _
                         | ProfileDataActionKind.Delete _ ->
                             return invalidOp "Use the profile mutation owner."
@@ -353,10 +386,18 @@ type ProfileGameDataSession
                             active.ProfileId = action.ProfileId
                             && ((active.Options.Settings && not options.Settings)
                                 || (active.Options.Saves && not options.Saves)))
+                    | ProfileDataActionKind.EditConfiguration _ -> false
                     | _ -> true
 
-                if affectsGame && action.Deletion.IsNone then
-                    stopped scope.Game
+                let appliesFiles =
+                    affectsGame
+                    || match action.Kind with
+                       | ProfileDataActionKind.EditConfiguration _ -> true
+                       | _ -> false
+
+                if appliesFiles && action.Deletion.IsNone then
+                    if affectsGame then
+                        stopped scope.Game
 
                     let! updatedContext, prepared =
                         match action.Kind with
@@ -378,6 +419,19 @@ type ProfileGameDataSession
                                 incoming.Value
                                 token
                                 progress
+                        | ProfileDataActionKind.EditConfiguration receipt ->
+                            task {
+                                let! prepared =
+                                    ConfigurationFiles.prepare
+                                        repository
+                                        context
+                                        action
+                                        incoming.Value
+                                        receipt
+                                        token
+
+                                return context, prepared
+                            }
                         | _ ->
                             DataActionPreparation.prepare
                                 repository
@@ -439,8 +493,7 @@ type ProfileGameDataSession
                                 SettingsInitialized =
                                     options.Settings && profile.SettingsInitialized
                                 SavesInitialized = options.Saves && profile.SavesInitialized
-                                ArchiveList =
-                                    if options.Settings then profile.ArchiveList else None }
+                                ArchiveList = if options.Settings then profile.ArchiveList else None }
                 | ProfileDataActionKind.SaveFiles receipt, Some _ when
                     receipt.Action = ProfileSaveAction.DeleteFromProfile
                     ->
@@ -762,8 +815,7 @@ type ProfileGameDataSession
 
                                     return scope, previous.Kind
                                 }
-                            | _ ->
-                                raise (ProfileDataException ProfileDataError.Stale)
+                            | _ -> raise (ProfileDataException ProfileDataError.Stale)
                         | None ->
                             task {
                                 let! scope, request =
@@ -778,12 +830,7 @@ type ProfileGameDataSession
                             }
 
                     let! replayed =
-                        replay
-                            expected.WorkspaceId
-                            expected.ProfileId
-                            id
-                            kind
-                            expected.Revision
+                        replay expected.WorkspaceId expected.ProfileId id kind expected.Revision
 
                     match replayed with
                     | Some result -> return Ok result
@@ -791,7 +838,8 @@ type ProfileGameDataSession
                         check scope expected
                         let! context = DataInitialization.context repository scope
 
-                        let! action = repository.Claim(context, initial id context scope.ProfileId kind)
+                        let! action =
+                            repository.Claim(context, initial id context scope.ProfileId kind)
 
                         let! result =
                             execute ignore None scope context action token progress (fun _ ->
@@ -807,12 +855,7 @@ type ProfileGameDataSession
                     let kind = ProfileDataActionKind.RestoreArchives
 
                     let! replayed =
-                        replay
-                            expected.WorkspaceId
-                            expected.ProfileId
-                            id
-                            kind
-                            expected.Revision
+                        replay expected.WorkspaceId expected.ProfileId id kind expected.Revision
 
                     match replayed with
                     | Some result -> return Ok result
@@ -830,7 +873,8 @@ type ProfileGameDataSession
 
                         let! context = DataInitialization.context repository scope
 
-                        let! action = repository.Claim(context, initial id context scope.ProfileId kind)
+                        let! action =
+                            repository.Claim(context, initial id context scope.ProfileId kind)
 
                         let! result =
                             execute ignore None scope context action token progress (fun _ ->
@@ -840,6 +884,196 @@ type ProfileGameDataSession
                 })
 
     interface IProfileGameData with
+        member _.ConfigurationFiles(expected, token) =
+            protect (fun () ->
+                task {
+                    requireIds [ expected.WorkspaceId; expected.ProfileId; expected.ContextId ]
+
+                    let! scope = repository.Read(expected.WorkspaceId, expected.ProfileId)
+                    check scope expected
+                    return Ok(ConfigurationFiles.list scope token)
+                })
+
+        member _.ReadConfiguration(expected, name, token) =
+            protect (fun () ->
+                task {
+                    requireIds [ expected.WorkspaceId; expected.ProfileId; expected.ContextId ]
+
+                    if String.IsNullOrWhiteSpace name then
+                        raise (
+                            ProfileDataException(
+                                ProfileDataError.Invalid "Choose a profile settings file first."
+                            )
+                        )
+
+                    let! scope = repository.Read(expected.WorkspaceId, expected.ProfileId)
+                    check scope expected
+                    let preview = ConfigurationFiles.read scope expected name token
+                    rememberConfigurationPreview preview
+                    return Ok preview.Public
+                })
+
+        member _.SaveConfiguration(request, progress, token) =
+            run request.Expected.WorkspaceId (fun () ->
+                task {
+                    requireIds
+                        [ request.Id
+                          request.PreviewId
+                          request.Expected.WorkspaceId
+                          request.Expected.ProfileId
+                          request.Expected.ContextId ]
+
+                    let! prior = repository.Action(request.Expected.WorkspaceId, request.Id)
+
+                    let! scope, kind =
+                        match prior with
+                        | Some previous ->
+                            match previous.Kind with
+                            | ProfileDataActionKind.EditConfiguration receipt when
+                                previous.ProfileId = request.Expected.ProfileId
+                                && previous.ExpectedRevision = request.Expected.Revision
+                                && receipt.PreviewId = request.PreviewId
+                                && receipt.Name.Equals(
+                                    request.Name,
+                                    StringComparison.OrdinalIgnoreCase
+                                )
+                                ->
+                                task {
+                                    let! scope =
+                                        repository.Read(
+                                            request.Expected.WorkspaceId,
+                                            request.Expected.ProfileId
+                                        )
+
+                                    return scope, previous.Kind
+                                }
+                            | _ -> raise (ProfileDataException ProfileDataError.Stale)
+                        | None ->
+                            task {
+                                let! scope =
+                                    repository.Read(
+                                        request.Expected.WorkspaceId,
+                                        request.Expected.ProfileId
+                                    )
+
+                                check scope request.Expected
+
+                                let preview =
+                                    claimConfigurationPreview
+                                        request.PreviewId
+                                        request.Expected
+                                        request.Name
+                                    |> Option.defaultWith (fun () ->
+                                        raise (ProfileDataException ProfileDataError.Stale))
+
+                                let bytes =
+                                    ModConductor.FilePlanning.TextDocuments.encode
+                                        preview.Public.Document
+                                        request.Content
+                                    |> Result.defaultWith (fun detail ->
+                                        raise (
+                                            ProfileDataException(ProfileDataError.Invalid detail)
+                                        ))
+
+                                ConfigurationFiles.check scope preview token
+
+                                if bytes = preview.Bytes then
+                                    raise (
+                                        ProfileDataException(
+                                            ProfileDataError.Invalid
+                                                "The file has no changes to save."
+                                        )
+                                    )
+
+                                return
+                                    scope,
+                                    ProfileDataActionKind.EditConfiguration
+                                        { PreviewId = preview.Public.PreviewId
+                                          Name = preview.Public.Name
+                                          Before = preview.Before
+                                          Bytes = bytes }
+                            }
+
+                    let! replayed =
+                        replay
+                            request.Expected.WorkspaceId
+                            request.Expected.ProfileId
+                            request.Id
+                            kind
+                            request.Expected.Revision
+
+                    match replayed with
+                    | Some result -> return Ok result
+                    | None ->
+                        check scope request.Expected
+
+                        let context =
+                            scope.Context
+                            |> Option.defaultWith (fun () ->
+                                raise (ProfileDataException ProfileDataError.NotFound))
+
+                        let! action =
+                            repository.Claim(
+                                context,
+                                initial request.Id context scope.ProfileId kind
+                            )
+
+                        let! result =
+                            execute ignore None scope context action token progress (fun _ ->
+                                Task.FromResult())
+
+                        return Ok result
+                })
+
+        member _.RestoreConfiguration(workspace, id, token) =
+            run workspace (fun () ->
+                task {
+                    requireIds [ workspace; id ]
+                    let! previous = repository.Action(workspace, id)
+
+                    let action =
+                        previous
+                        |> Option.defaultWith (fun () ->
+                            raise (ProfileDataException ProfileDataError.NotFound))
+
+                    if action.Complete then
+                        raise (
+                            ProfileDataException(
+                                ProfileDataError.Invalid
+                                    "This profile file edit has already completed."
+                            )
+                        )
+
+                    match action.Kind with
+                    | ProfileDataActionKind.EditConfiguration _ -> ()
+                    | _ ->
+                        raise (
+                            ProfileDataException(
+                                ProfileDataError.Invalid "This action is not a profile file edit."
+                            )
+                        )
+
+                    let! scope = repository.Read(workspace, action.ProfileId)
+
+                    let context =
+                        scope.Context
+                        |> Option.defaultWith (fun () ->
+                            raise (ProfileDataException ProfileDataError.NotFound))
+
+                    let! claimed = repository.Claim(context, action)
+                    ConfigurationFiles.restoreOriginal claimed token
+                    do! repository.Complete(context, None, claimed)
+                    let! state = read workspace action.ProfileId
+
+                    return
+                        Ok
+                            { Id = id
+                              State = state
+                              Complete = true
+                              CompletedFiles = 0
+                              Problem = None }
+                })
+
         member _.SaveFiles(workspace, profile, path, after) =
             protect (fun () ->
                 task {

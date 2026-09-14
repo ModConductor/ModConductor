@@ -16,6 +16,10 @@ class FileInspectorController extends ChangeNotifier {
   FilePreviewResult? preview;
   bool previewLoading = false;
   String? previewProblem;
+  ManagedTextDocument? textDocument;
+  bool openingText = false, savingText = false;
+  String? textProblem;
+  int _textEpoch = 0;
   int _previewEpoch = 0;
   bool get archiveMode => _artifact != null;
   List<String>? target;
@@ -53,6 +57,96 @@ class FileInspectorController extends ChangeNotifier {
     previewLoading = false;
   }
 
+  void closeTextEditor() {
+    ++_textEpoch;
+    textDocument = null;
+    openingText = false;
+    savingText = false;
+    textProblem = null;
+    if (!_disposed) notifyListeners();
+  }
+
+  bool get canEditText =>
+      !archiveMode &&
+      selected?.source is ManagedPreviewSource &&
+      selected?.historical == false &&
+      selected?.copy != null;
+
+  Future<void> openTextEditor() async {
+    final client = _client, snapshot = _snapshot, selected = this.selected;
+    if (_disposed ||
+        openingText ||
+        client == null ||
+        snapshot == null ||
+        selected == null ||
+        !canEditText) {
+      return;
+    }
+    final epoch = ++_textEpoch;
+    openingText = true;
+    textProblem = null;
+    notifyListeners();
+    try {
+      final document = await client.openManagedText(
+        snapshot,
+        selected.source as ManagedPreviewSource,
+      );
+      if (_disposed || epoch != _textEpoch || key(selected) != _selected) {
+        return;
+      }
+      textDocument = document;
+    } on Exception catch (error) {
+      if (!_disposed && epoch == _textEpoch) {
+        textProblem = error is FilePlanException
+            ? error.detail
+            : 'This text file could not be opened for editing.';
+      }
+    } finally {
+      if (!_disposed && epoch == _textEpoch) {
+        openingText = false;
+        notifyListeners();
+      }
+    }
+  }
+
+  Future<bool> saveText(String content) async {
+    final client = _client, snapshot = _snapshot, opened = textDocument;
+    if (_disposed ||
+        savingText ||
+        client == null ||
+        snapshot == null ||
+        opened == null) {
+      return false;
+    }
+    final epoch = _textEpoch;
+    savingText = true;
+    textProblem = null;
+    notifyListeners();
+    try {
+      await client.saveManagedText(
+        snapshot,
+        newOperationId(),
+        opened.source,
+        content,
+      );
+      if (_disposed || epoch != _textEpoch) return false;
+      textDocument = null;
+      return true;
+    } on Exception catch (error) {
+      if (!_disposed && epoch == _textEpoch) {
+        textProblem = error is FilePlanException
+            ? error.detail
+            : 'The new version could not be saved.';
+      }
+      return false;
+    } finally {
+      if (!_disposed && epoch == _textEpoch) {
+        savingText = false;
+        notifyListeners();
+      }
+    }
+  }
+
   void attach(
     FilePlansClient? client,
     FilePlanState? state, {
@@ -75,6 +169,7 @@ class FileInspectorController extends ChangeNotifier {
   }
 
   void close() {
+    closeTextEditor();
     _cancelPreview();
     ++_epoch;
     ++_historyEpoch;
@@ -181,6 +276,7 @@ class FileInspectorController extends ChangeNotifier {
   }
 
   void select(InspectedFileCopy copy) {
+    closeTextEditor();
     _selected = key(copy);
     _clearHistory();
     previewRepresentation = _initialRepresentation(copy.sourcePath.last);

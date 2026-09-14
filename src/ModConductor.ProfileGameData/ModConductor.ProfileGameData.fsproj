@@ -20,6 +20,7 @@
     <Compile Include="PluginPreparation.fs" />
     <Compile Include="ArchivePolicies.fs" />
     <Compile Include="ActionPreparation.fs" />
+    <Compile Include="ConfigurationFiles.fs" />
     <Compile Include="SavePreparation.fs" />
     <Compile Include="ArchivePreparation.fs" />
     <Compile Include="Cloning.fs" />
@@ -28,6 +29,7 @@
     <ProjectReference Include="../ModConductor.GameContexts/ModConductor.GameContexts.fsproj" />
     <ProjectReference Include="../ModConductor.Bethesda/ModConductor.Bethesda.fsproj" />
     <ProjectReference Include="../ModConductor.ArchiveInspection/ModConductor.ArchiveInspection.fsproj" />
+    <ProjectReference Include="../ModConductor.FilePlanning/ModConductor.FilePlanning.fsproj" />
     <PackageReference Include="FSharp.Core" />
   </ItemGroup>
 </Project>

@@ -105,6 +105,20 @@ class FilePlanOperationsClient extends $grpc.Client {
     return $createUnaryCall(_$previewFileSource, request, options: options);
   }
 
+  $grpc.ResponseFuture<$0.ManagedTextReply> openManagedText(
+    $0.OpenManagedTextRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$openManagedText, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.ManagedTextEditReply> saveManagedText(
+    $0.SaveManagedTextRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$saveManagedText, request, options: options);
+  }
+
   // method descriptors
 
   static final _$openFilePlan =
@@ -157,6 +171,16 @@ class FilePlanOperationsClient extends $grpc.Client {
           '/modconductor.v1.FilePlanOperations/PreviewFileSource',
           ($0.FilePreviewRequest value) => value.writeToBuffer(),
           $0.FilePreviewReply.fromBuffer);
+  static final _$openManagedText =
+      $grpc.ClientMethod<$0.OpenManagedTextRequest, $0.ManagedTextReply>(
+          '/modconductor.v1.FilePlanOperations/OpenManagedText',
+          ($0.OpenManagedTextRequest value) => value.writeToBuffer(),
+          $0.ManagedTextReply.fromBuffer);
+  static final _$saveManagedText =
+      $grpc.ClientMethod<$0.SaveManagedTextRequest, $0.ManagedTextEditReply>(
+          '/modconductor.v1.FilePlanOperations/SaveManagedText',
+          ($0.SaveManagedTextRequest value) => value.writeToBuffer(),
+          $0.ManagedTextEditReply.fromBuffer);
 }
 
 @$pb.GrpcServiceName('modconductor.v1.FilePlanOperations')
@@ -250,6 +274,24 @@ abstract class FilePlanOperationsServiceBase extends $grpc.Service {
         ($core.List<$core.int> value) =>
             $0.FilePreviewRequest.fromBuffer(value),
         ($0.FilePreviewReply value) => value.writeToBuffer()));
+    $addMethod(
+        $grpc.ServiceMethod<$0.OpenManagedTextRequest, $0.ManagedTextReply>(
+            'OpenManagedText',
+            openManagedText_Pre,
+            false,
+            false,
+            ($core.List<$core.int> value) =>
+                $0.OpenManagedTextRequest.fromBuffer(value),
+            ($0.ManagedTextReply value) => value.writeToBuffer()));
+    $addMethod(
+        $grpc.ServiceMethod<$0.SaveManagedTextRequest, $0.ManagedTextEditReply>(
+            'SaveManagedText',
+            saveManagedText_Pre,
+            false,
+            false,
+            ($core.List<$core.int> value) =>
+                $0.SaveManagedTextRequest.fromBuffer(value),
+            ($0.ManagedTextEditReply value) => value.writeToBuffer()));
   }
 
   $async.Future<$0.FilePlanReply> openFilePlan_Pre($grpc.ServiceCall $call,
@@ -339,4 +381,22 @@ abstract class FilePlanOperationsServiceBase extends $grpc.Service {
 
   $async.Future<$0.FilePreviewReply> previewFileSource(
       $grpc.ServiceCall call, $0.FilePreviewRequest request);
+
+  $async.Future<$0.ManagedTextReply> openManagedText_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.OpenManagedTextRequest> $request) async {
+    return openManagedText($call, await $request);
+  }
+
+  $async.Future<$0.ManagedTextReply> openManagedText(
+      $grpc.ServiceCall call, $0.OpenManagedTextRequest request);
+
+  $async.Future<$0.ManagedTextEditReply> saveManagedText_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.SaveManagedTextRequest> $request) async {
+    return saveManagedText($call, await $request);
+  }
+
+  $async.Future<$0.ManagedTextEditReply> saveManagedText(
+      $grpc.ServiceCall call, $0.SaveManagedTextRequest request);
 }

@@ -40,6 +40,16 @@ abstract interface class FilePlansClient {
     FilePreviewSource source,
     FilePreviewRepresentation representation,
   );
+  Future<ManagedTextDocument> openManagedText(
+    String snapshotId,
+    ManagedPreviewSource source,
+  );
+  Future<ManagedTextEdit> saveManagedText(
+    String snapshotId,
+    String id,
+    ManagedPreviewSource source,
+    String content,
+  );
   Future<FileVisibilityHistory> history(
     String snapshotId,
     ManagedFileCopy copy, {
@@ -204,6 +214,59 @@ class GrpcFilePlansClient implements FilePlansClient {
       options: CallOptions(timeout: const Duration(days: 1)),
     );
     return FilePreviewRead(call.then(mapping.preview), call.cancel);
+  }
+
+  @override
+  Future<ManagedTextDocument> openManagedText(
+    String snapshotId,
+    ManagedPreviewSource source,
+  ) async {
+    final encoded = mapping.encodeSource(source).managed;
+    final reply = await _client.openManagedText(
+      wire.OpenManagedTextRequest(snapshotId: snapshotId, source: encoded),
+    );
+    return switch (reply.whichOutcome()) {
+      wire.ManagedTextReply_Outcome.document => ManagedTextDocument(
+        mapping.decodeSource(
+          wire.FilePreviewSource(managed: reply.document.source),
+        ) as ManagedPreviewSource,
+        mapping.textDocument(reply.document.document),
+      ),
+      wire.ManagedTextReply_Outcome.fault => mapping.reject(reply.fault),
+      wire.ManagedTextReply_Outcome.notSet => throw const FormatException(
+        'Missing managed text document.',
+      ),
+    };
+  }
+
+  @override
+  Future<ManagedTextEdit> saveManagedText(
+    String snapshotId,
+    String id,
+    ManagedPreviewSource source,
+    String content,
+  ) async {
+    final encoded = mapping.encodeSource(source).managed;
+    final reply = await _client.saveManagedText(
+      wire.SaveManagedTextRequest(
+        snapshotId: snapshotId,
+        id: id,
+        source: encoded,
+        content: content,
+      ),
+    );
+    return switch (reply.whichOutcome()) {
+      wire.ManagedTextEditReply_Outcome.edit => ManagedTextEdit(
+        reply.edit.id,
+        reply.edit.versionId,
+        mapping.decodeSource(wire.FilePreviewSource(managed: reply.edit.source))
+            as ManagedPreviewSource,
+      ),
+      wire.ManagedTextEditReply_Outcome.fault => mapping.reject(reply.fault),
+      wire.ManagedTextEditReply_Outcome.notSet => throw const FormatException(
+        'Missing managed text edit.',
+      ),
+    };
   }
 
   @override

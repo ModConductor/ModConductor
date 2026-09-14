@@ -23,7 +23,8 @@ InventoryStatus inventoryStatus(wire.ModInventoryStatus value) =>
         InventoryStatus.unproved,
       wire.ModInventoryStatus.MOD_INVENTORY_STATUS_PUBLISHING =>
         InventoryStatus.publishing,
-      wire.ModInventoryStatus.MOD_INVENTORY_STATUS_DELETING => InventoryStatus.deleting,
+      wire.ModInventoryStatus.MOD_INVENTORY_STATUS_DELETING =>
+        InventoryStatus.deleting,
       _ => throw const FormatException('Unsupported library inventoryStatus.'),
     };
 
@@ -99,10 +100,24 @@ wire.InventoryModMetadata encodeMetadata(ModMetadata value) =>
       categories: value.categories.map(encodeCategory),
     );
 ModVersionOrigin origin(wire.ModVersionOrigin value) => ModVersionOrigin(
-  bundle: value.hasBundle() ? BundleVersionOrigin(value.bundle.parentSha256,[for(final a in value.bundle.archives) BundleArchiveOrigin(List.unmodifiable(a.path),a.sha256)]) : null,
+  bundle: value.hasBundle()
+      ? BundleVersionOrigin(value.bundle.parentSha256, [
+          for (final archive in value.bundle.archives)
+            BundleArchiveOrigin(
+              List.unmodifiable(archive.path),
+              archive.sha256,
+            ),
+        ])
+      : null,
   outputActionId: value.hasOutputActionId() ? value.outputActionId : null,
   archiveArtifactId: value.hasArchiveArtifactId()
       ? value.archiveArtifactId
+      : null,
+  editedFromVersionId: value.hasEditedFromVersionId()
+      ? value.editedFromVersionId
+      : null,
+  editedPath: value.hasEditedPath()
+      ? List.unmodifiable(value.editedPath.components)
       : null,
 );
 

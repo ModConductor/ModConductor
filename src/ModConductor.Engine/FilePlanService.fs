@@ -101,6 +101,42 @@ type FilePlanService(plans: IFilePlans) =
             return FilePlanWire.preview result
         }
 
+    override _.OpenManagedText(request, context) =
+        task {
+            let source = FilePlanWire.readSource (FilePreviewSource(Managed = request.Source))
+
+            match source with
+            | FilePreviewSource.ManagedCopy source ->
+                let! result =
+                    plans.OpenManagedText(
+                        ModLibraryWire.id request.SnapshotId,
+                        source,
+                        context.CancellationToken
+                    )
+
+                return FilePlanWire.managedText result
+            | _ -> return invalidOp "Managed source conversion failed."
+        }
+
+    override _.SaveManagedText(request, context) =
+        task {
+            let source = FilePlanWire.readSource (FilePreviewSource(Managed = request.Source))
+
+            match source with
+            | FilePreviewSource.ManagedCopy source ->
+                let! result =
+                    plans.SaveManagedText(
+                        ModLibraryWire.id request.SnapshotId,
+                        ModLibraryWire.id request.Id,
+                        source,
+                        request.Content,
+                        context.CancellationToken
+                    )
+
+                return FilePlanWire.managedTextEdit result
+            | _ -> return invalidOp "Managed source conversion failed."
+        }
+
     override _.ReadFileVisibilityHistory(request, _) =
         task {
             let before =

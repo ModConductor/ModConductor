@@ -45,7 +45,9 @@ type OperationStore
     let gameContexts = GameContextStore(database, workspaceRoots)
 
     let filePlans =
-        ModConductor.FilePlanning.FilePlanSession(FilePlanRepository(database, modLibrary.Access))
+        ModConductor.FilePlanning.FilePlanSession(
+            FilePlanRepository(database, modLibrary.Access, modLibrary.PublicationOwner)
+        )
 
     let plugins =
         ModConductor.Bethesda.PluginSession(FilePlanRepository(database, modLibrary.Access))

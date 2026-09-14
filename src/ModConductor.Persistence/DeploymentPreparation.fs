@@ -65,7 +65,9 @@ module internal DeploymentPreparation =
                     | FilePlanError.Cancelled -> raise (OperationCanceledException())
                     | FilePlanError.Busy -> raise (RecoveryException RecoveryError.Busy)
                     | FilePlanError.Blocked
-                    | FilePlanError.InvalidCopy ->
+                    | FilePlanError.InvalidCopy
+                    | FilePlanError.Unsupported _
+                    | FilePlanError.InvalidEdit _ ->
                         raise (RecoveryException RecoveryError.InvalidPlan)
                     | FilePlanError.NotFound -> raise (RecoveryException RecoveryError.NotFound)
                     | FilePlanError.LimitExceeded _ -> raise (RecoveryException RecoveryError.Limit)

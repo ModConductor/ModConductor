@@ -4,6 +4,7 @@
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="Contracts.fs" />
     <Compile Include="GameInventory.fs" />
+    <Compile Include="TextDocuments.fs" />
     <Compile Include="FilePreview.fs" />
     <Compile Include="GameFiles.fs" />
     <Compile Include="Diagnostics.fs" />

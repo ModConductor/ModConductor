@@ -14,6 +14,8 @@ service FilePlanOperations {
   rpc ChangeFileVisibility(ChangeFileVisibilityRequest) returns (FileVisibilityReply);
   rpc ReadFileVisibilityHistory(FileVisibilityHistoryRequest) returns (FileVisibilityHistoryReply);
   rpc PreviewFileSource(FilePreviewRequest) returns (FilePreviewReply);
+  rpc OpenManagedText(OpenManagedTextRequest) returns (ManagedTextReply);
+  rpc SaveManagedText(SaveManagedTextRequest) returns (ManagedTextEditReply);
 }
 message ManagedFileCopy { string mod_id = 1; string version_id = 2; ModLogicalPath path = 3; }
 
@@ -26,7 +28,7 @@ enum FileSourceStanding {
   FILE_SOURCE_STANDING_UNAVAILABLE = 5;
 }
 message ManagedPreviewSource {
-  ManagedFileCopy copy = 1; ModLogicalPath source_path = 2; ModLogicalPath target = 3; uint64 length = 4; string sha256 = 5; string payload_id = 6;
+  ManagedFileCopy copy = 1; ModLogicalPath source_path = 2; ModLogicalPath target = 3; uint64 length = 4; string sha256 = 5; string payload_id = 6; uint64 mod_revision = 7;
 }
 message CheckedGamePreviewSource {
   string snapshot_id = 1; string generation = 2; uint32 kind = 3; ModLogicalPath source_path = 4; ModLogicalPath target = 5;
@@ -61,6 +63,33 @@ message FilePreviewResult {
 }
 message FilePreviewRequest { string snapshot_id = 1; FilePreviewSource source = 2; FilePreviewRepresentation representation = 3; }
 message FilePreviewReply { oneof outcome { FilePreviewResult preview = 1; FilePlanFault fault = 2; } }
+
+enum TextDocumentEncoding {
+  TEXT_DOCUMENT_ENCODING_UNSPECIFIED = 0;
+  TEXT_DOCUMENT_ENCODING_UTF8 = 1;
+  TEXT_DOCUMENT_ENCODING_UTF8_BOM = 2;
+  TEXT_DOCUMENT_ENCODING_UTF16_LITTLE = 3;
+  TEXT_DOCUMENT_ENCODING_UTF16_BIG = 4;
+}
+enum TextDocumentNewline {
+  TEXT_DOCUMENT_NEWLINE_UNSPECIFIED = 0;
+  TEXT_DOCUMENT_NEWLINE_NO_LINE_BREAKS = 1;
+  TEXT_DOCUMENT_NEWLINE_LF = 2;
+  TEXT_DOCUMENT_NEWLINE_CRLF = 3;
+}
+message TextDocument {
+  string content = 1;
+  TextDocumentEncoding encoding = 2;
+  TextDocumentNewline newline = 3;
+  bool final_terminator = 4;
+  uint32 lines = 5;
+}
+message ManagedTextDocument { ManagedPreviewSource source = 1; TextDocument document = 2; }
+message ManagedTextEdit { string id = 1; string version_id = 2; ManagedPreviewSource source = 3; }
+message OpenManagedTextRequest { string snapshot_id = 1; ManagedPreviewSource source = 2; }
+message SaveManagedTextRequest { string snapshot_id = 1; string id = 2; ManagedPreviewSource source = 3; string content = 4; }
+message ManagedTextReply { oneof outcome { ManagedTextDocument document = 1; FilePlanFault fault = 2; } }
+message ManagedTextEditReply { oneof outcome { ManagedTextEdit edit = 1; FilePlanFault fault = 2; } }
 
 message FilePlanCursor { string identity = 1; uint32 offset = 2; }
 message OpenFilePlanRequest { string profile_id = 1; }
@@ -97,6 +126,7 @@ enum FilePlanFaultCode {
   FILE_PLAN_FAULT_UNSPECIFIED = 0; FILE_PLAN_FAULT_NOT_FOUND = 1; FILE_PLAN_FAULT_BUSY = 2; FILE_PLAN_FAULT_EXPIRED = 3;
   FILE_PLAN_FAULT_STALE = 4; FILE_PLAN_FAULT_CONTEXT_UNAVAILABLE = 5; FILE_PLAN_FAULT_FILE_UNAVAILABLE = 6;
   FILE_PLAN_FAULT_LIMIT_EXCEEDED = 7; FILE_PLAN_FAULT_CANCELLED = 8; FILE_PLAN_FAULT_INVALID_COPY = 9; FILE_PLAN_FAULT_BLOCKED = 10;
+  FILE_PLAN_FAULT_UNSUPPORTED = 11; FILE_PLAN_FAULT_INVALID_EDIT = 12;
 }
 message FilePlanFault { FilePlanFaultCode code = 1; string detail = 2; }
 message FilePlanReply { oneof outcome { FilePlanState state = 1; FilePlanFault fault = 2; } }

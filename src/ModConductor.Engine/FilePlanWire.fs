@@ -55,7 +55,8 @@ module internal FilePlanWire =
                         Target = ModLibraryWire.logical managed.Target,
                         Length = uint64 managed.Length,
                         Sha256 = managed.Sha256,
-                        PayloadId = managed.PayloadId.ToString "N"
+                        PayloadId = managed.PayloadId.ToString "N",
+                        ModRevision = uint64 managed.ModRevision
                     )
             )
         | ModConductor.FilePlanning.FilePreviewSource.CheckedGameFile game ->
@@ -100,7 +101,8 @@ module internal FilePlanWire =
                   Target = ModLibraryWire.path item.Target
                   PayloadId = ModLibraryWire.id item.PayloadId
                   Length = checkedLength item.Length
-                  Sha256 = checkedHash item.Sha256 }
+                  Sha256 = checkedHash item.Sha256
+                  ModRevision = ModLibraryWire.number item.ModRevision }
         | FilePreviewSource.SourceOneofCase.Game ->
             let item = value.Game
 
@@ -182,6 +184,10 @@ module internal FilePlanWire =
             FilePlanFault(Code = FilePlanFaultCode.FilePlanFaultFileUnavailable, Detail = detail)
         | FilePlanError.LimitExceeded detail ->
             FilePlanFault(Code = FilePlanFaultCode.FilePlanFaultLimitExceeded, Detail = detail)
+        | FilePlanError.Unsupported detail ->
+            FilePlanFault(Code = FilePlanFaultCode.FilePlanFaultUnsupported, Detail = detail)
+        | FilePlanError.InvalidEdit detail ->
+            FilePlanFault(Code = FilePlanFaultCode.FilePlanFaultInvalidEdit, Detail = detail)
         | FilePlanError.Cancelled ->
             FilePlanFault(
                 Code = FilePlanFaultCode.FilePlanFaultCancelled,
@@ -250,6 +256,61 @@ module internal FilePlanWire =
         function
         | Ok value -> FilePreviewReply(Preview = previewResult value)
         | Error error -> FilePreviewReply(Fault = fault error)
+
+    let textDocument (value: ModConductor.FilePlanning.TextDocument) =
+        TextDocument(
+            Content = value.Content,
+            Encoding =
+                (match value.Encoding with
+                 | ModConductor.FilePlanning.TextDocumentEncoding.Utf8 -> TextDocumentEncoding.Utf8
+                 | ModConductor.FilePlanning.TextDocumentEncoding.Utf8Bom ->
+                     TextDocumentEncoding.Utf8Bom
+                 | ModConductor.FilePlanning.TextDocumentEncoding.Utf16Little ->
+                     TextDocumentEncoding.Utf16Little
+                 | ModConductor.FilePlanning.TextDocumentEncoding.Utf16Big ->
+                     TextDocumentEncoding.Utf16Big),
+            Newline =
+                (match value.Newline with
+                 | ModConductor.FilePlanning.TextDocumentNewline.NoLineBreaks ->
+                     TextDocumentNewline.NoLineBreaks
+                 | ModConductor.FilePlanning.TextDocumentNewline.Lf -> TextDocumentNewline.Lf
+                 | ModConductor.FilePlanning.TextDocumentNewline.CrLf -> TextDocumentNewline.Crlf),
+            FinalTerminator = value.FinalTerminator,
+            Lines = uint32 value.Lines
+        )
+
+    let private managedSource value =
+        let wire = source (FilePreviewSource.ManagedCopy value)
+
+        if wire.SourceCase <> FilePreviewSource.SourceOneofCase.Managed then
+            invalidOp "Managed source conversion failed."
+
+        wire.Managed
+
+    let managedText =
+        function
+        | Ok(value: ModConductor.FilePlanning.ManagedTextDocument) ->
+            ManagedTextReply(
+                Document =
+                    ManagedTextDocument(
+                        Source = managedSource value.Source,
+                        Document = textDocument value.Document
+                    )
+            )
+        | Error error -> ManagedTextReply(Fault = fault error)
+
+    let managedTextEdit =
+        function
+        | Ok(value: ModConductor.FilePlanning.ManagedTextEdit) ->
+            ManagedTextEditReply(
+                Edit =
+                    ManagedTextEdit(
+                        Id = value.Id.ToString "N",
+                        VersionId = value.VersionId.ToString "N",
+                        Source = managedSource value.Source
+                    )
+            )
+        | Error error -> ManagedTextEditReply(Fault = fault error)
 
     let state (value: FilePlanSummary) =
         let result =

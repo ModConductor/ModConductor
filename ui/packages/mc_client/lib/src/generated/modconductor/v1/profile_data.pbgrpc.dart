@@ -77,6 +77,42 @@ class ProfileDataOperationsClient extends $grpc.Client {
     return $createUnaryCall(_$readProfileData, request, options: options);
   }
 
+  $grpc.ResponseFuture<$0.ProfileConfigurationListReply>
+      listProfileConfigurations(
+    $0.ProfileConfigurationListRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$listProfileConfigurations, request,
+        options: options);
+  }
+
+  $grpc.ResponseFuture<$0.ProfileConfigurationReadReply>
+      readProfileConfiguration(
+    $0.ProfileConfigurationReadRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$readProfileConfiguration, request,
+        options: options);
+  }
+
+  $grpc.ResponseStream<$0.ProfileDataEvent> saveProfileConfiguration(
+    $0.ProfileConfigurationSaveRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createStreamingCall(
+        _$saveProfileConfiguration, $async.Stream.fromIterable([request]),
+        options: options);
+  }
+
+  $grpc.ResponseStream<$0.ProfileDataEvent> restoreProfileConfiguration(
+    $0.ProfileConfigurationRestoreRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createStreamingCall(
+        _$restoreProfileConfiguration, $async.Stream.fromIterable([request]),
+        options: options);
+  }
+
   $grpc.ResponseStream<$0.ProfileDataEvent> editProfileData(
     $0.ProfileDataEditRequest request, {
     $grpc.CallOptions? options,
@@ -136,6 +172,26 @@ class ProfileDataOperationsClient extends $grpc.Client {
           '/modconductor.v1.ProfileDataOperations/ReadProfileData',
           ($0.ProfileDataReadRequest value) => value.writeToBuffer(),
           $0.ProfileDataReply.fromBuffer);
+  static final _$listProfileConfigurations = $grpc.ClientMethod<
+          $0.ProfileConfigurationListRequest, $0.ProfileConfigurationListReply>(
+      '/modconductor.v1.ProfileDataOperations/ListProfileConfigurations',
+      ($0.ProfileConfigurationListRequest value) => value.writeToBuffer(),
+      $0.ProfileConfigurationListReply.fromBuffer);
+  static final _$readProfileConfiguration = $grpc.ClientMethod<
+          $0.ProfileConfigurationReadRequest, $0.ProfileConfigurationReadReply>(
+      '/modconductor.v1.ProfileDataOperations/ReadProfileConfiguration',
+      ($0.ProfileConfigurationReadRequest value) => value.writeToBuffer(),
+      $0.ProfileConfigurationReadReply.fromBuffer);
+  static final _$saveProfileConfiguration = $grpc.ClientMethod<
+          $0.ProfileConfigurationSaveRequest, $0.ProfileDataEvent>(
+      '/modconductor.v1.ProfileDataOperations/SaveProfileConfiguration',
+      ($0.ProfileConfigurationSaveRequest value) => value.writeToBuffer(),
+      $0.ProfileDataEvent.fromBuffer);
+  static final _$restoreProfileConfiguration = $grpc.ClientMethod<
+          $0.ProfileConfigurationRestoreRequest, $0.ProfileDataEvent>(
+      '/modconductor.v1.ProfileDataOperations/RestoreProfileConfiguration',
+      ($0.ProfileConfigurationRestoreRequest value) => value.writeToBuffer(),
+      $0.ProfileDataEvent.fromBuffer);
   static final _$editProfileData =
       $grpc.ClientMethod<$0.ProfileDataEditRequest, $0.ProfileDataEvent>(
           '/modconductor.v1.ProfileDataOperations/EditProfileData',
@@ -211,6 +267,42 @@ abstract class ProfileDataOperationsServiceBase extends $grpc.Service {
             ($core.List<$core.int> value) =>
                 $0.ProfileDataReadRequest.fromBuffer(value),
             ($0.ProfileDataReply value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.ProfileConfigurationListRequest,
+            $0.ProfileConfigurationListReply>(
+        'ListProfileConfigurations',
+        listProfileConfigurations_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.ProfileConfigurationListRequest.fromBuffer(value),
+        ($0.ProfileConfigurationListReply value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.ProfileConfigurationReadRequest,
+            $0.ProfileConfigurationReadReply>(
+        'ReadProfileConfiguration',
+        readProfileConfiguration_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.ProfileConfigurationReadRequest.fromBuffer(value),
+        ($0.ProfileConfigurationReadReply value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.ProfileConfigurationSaveRequest,
+            $0.ProfileDataEvent>(
+        'SaveProfileConfiguration',
+        saveProfileConfiguration_Pre,
+        false,
+        true,
+        ($core.List<$core.int> value) =>
+            $0.ProfileConfigurationSaveRequest.fromBuffer(value),
+        ($0.ProfileDataEvent value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.ProfileConfigurationRestoreRequest,
+            $0.ProfileDataEvent>(
+        'RestoreProfileConfiguration',
+        restoreProfileConfiguration_Pre,
+        false,
+        true,
+        ($core.List<$core.int> value) =>
+            $0.ProfileConfigurationRestoreRequest.fromBuffer(value),
+        ($0.ProfileDataEvent value) => value.writeToBuffer()));
     $addMethod(
         $grpc.ServiceMethod<$0.ProfileDataEditRequest, $0.ProfileDataEvent>(
             'EditProfileData',
@@ -293,6 +385,42 @@ abstract class ProfileDataOperationsServiceBase extends $grpc.Service {
 
   $async.Future<$0.ProfileDataReply> readProfileData(
       $grpc.ServiceCall call, $0.ProfileDataReadRequest request);
+
+  $async.Future<$0.ProfileConfigurationListReply> listProfileConfigurations_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.ProfileConfigurationListRequest> $request) async {
+    return listProfileConfigurations($call, await $request);
+  }
+
+  $async.Future<$0.ProfileConfigurationListReply> listProfileConfigurations(
+      $grpc.ServiceCall call, $0.ProfileConfigurationListRequest request);
+
+  $async.Future<$0.ProfileConfigurationReadReply> readProfileConfiguration_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.ProfileConfigurationReadRequest> $request) async {
+    return readProfileConfiguration($call, await $request);
+  }
+
+  $async.Future<$0.ProfileConfigurationReadReply> readProfileConfiguration(
+      $grpc.ServiceCall call, $0.ProfileConfigurationReadRequest request);
+
+  $async.Stream<$0.ProfileDataEvent> saveProfileConfiguration_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.ProfileConfigurationSaveRequest> $request) async* {
+    yield* saveProfileConfiguration($call, await $request);
+  }
+
+  $async.Stream<$0.ProfileDataEvent> saveProfileConfiguration(
+      $grpc.ServiceCall call, $0.ProfileConfigurationSaveRequest request);
+
+  $async.Stream<$0.ProfileDataEvent> restoreProfileConfiguration_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.ProfileConfigurationRestoreRequest> $request) async* {
+    yield* restoreProfileConfiguration($call, await $request);
+  }
+
+  $async.Stream<$0.ProfileDataEvent> restoreProfileConfiguration(
+      $grpc.ServiceCall call, $0.ProfileConfigurationRestoreRequest request);
 
   $async.Stream<$0.ProfileDataEvent> editProfileData_Pre(
       $grpc.ServiceCall $call,

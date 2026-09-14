@@ -113,6 +113,68 @@ class FilePreviewStatus extends $pb.ProtobufEnum {
   const FilePreviewStatus._(super.value, super.name);
 }
 
+class TextDocumentEncoding extends $pb.ProtobufEnum {
+  static const TextDocumentEncoding TEXT_DOCUMENT_ENCODING_UNSPECIFIED =
+      TextDocumentEncoding._(
+          0, _omitEnumNames ? '' : 'TEXT_DOCUMENT_ENCODING_UNSPECIFIED');
+  static const TextDocumentEncoding TEXT_DOCUMENT_ENCODING_UTF8 =
+      TextDocumentEncoding._(
+          1, _omitEnumNames ? '' : 'TEXT_DOCUMENT_ENCODING_UTF8');
+  static const TextDocumentEncoding TEXT_DOCUMENT_ENCODING_UTF8_BOM =
+      TextDocumentEncoding._(
+          2, _omitEnumNames ? '' : 'TEXT_DOCUMENT_ENCODING_UTF8_BOM');
+  static const TextDocumentEncoding TEXT_DOCUMENT_ENCODING_UTF16_LITTLE =
+      TextDocumentEncoding._(
+          3, _omitEnumNames ? '' : 'TEXT_DOCUMENT_ENCODING_UTF16_LITTLE');
+  static const TextDocumentEncoding TEXT_DOCUMENT_ENCODING_UTF16_BIG =
+      TextDocumentEncoding._(
+          4, _omitEnumNames ? '' : 'TEXT_DOCUMENT_ENCODING_UTF16_BIG');
+
+  static const $core.List<TextDocumentEncoding> values = <TextDocumentEncoding>[
+    TEXT_DOCUMENT_ENCODING_UNSPECIFIED,
+    TEXT_DOCUMENT_ENCODING_UTF8,
+    TEXT_DOCUMENT_ENCODING_UTF8_BOM,
+    TEXT_DOCUMENT_ENCODING_UTF16_LITTLE,
+    TEXT_DOCUMENT_ENCODING_UTF16_BIG,
+  ];
+
+  static final $core.List<TextDocumentEncoding?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 4);
+  static TextDocumentEncoding? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const TextDocumentEncoding._(super.value, super.name);
+}
+
+class TextDocumentNewline extends $pb.ProtobufEnum {
+  static const TextDocumentNewline TEXT_DOCUMENT_NEWLINE_UNSPECIFIED =
+      TextDocumentNewline._(
+          0, _omitEnumNames ? '' : 'TEXT_DOCUMENT_NEWLINE_UNSPECIFIED');
+  static const TextDocumentNewline TEXT_DOCUMENT_NEWLINE_NO_LINE_BREAKS =
+      TextDocumentNewline._(
+          1, _omitEnumNames ? '' : 'TEXT_DOCUMENT_NEWLINE_NO_LINE_BREAKS');
+  static const TextDocumentNewline TEXT_DOCUMENT_NEWLINE_LF =
+      TextDocumentNewline._(
+          2, _omitEnumNames ? '' : 'TEXT_DOCUMENT_NEWLINE_LF');
+  static const TextDocumentNewline TEXT_DOCUMENT_NEWLINE_CRLF =
+      TextDocumentNewline._(
+          3, _omitEnumNames ? '' : 'TEXT_DOCUMENT_NEWLINE_CRLF');
+
+  static const $core.List<TextDocumentNewline> values = <TextDocumentNewline>[
+    TEXT_DOCUMENT_NEWLINE_UNSPECIFIED,
+    TEXT_DOCUMENT_NEWLINE_NO_LINE_BREAKS,
+    TEXT_DOCUMENT_NEWLINE_LF,
+    TEXT_DOCUMENT_NEWLINE_CRLF,
+  ];
+
+  static final $core.List<TextDocumentNewline?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 3);
+  static TextDocumentNewline? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const TextDocumentNewline._(super.value, super.name);
+}
+
 class PlannedFileDisposition extends $pb.ProtobufEnum {
   static const PlannedFileDisposition PLANNED_FILE_DISPOSITION_UNSPECIFIED =
       PlannedFileDisposition._(
@@ -175,6 +237,12 @@ class FilePlanFaultCode extends $pb.ProtobufEnum {
           9, _omitEnumNames ? '' : 'FILE_PLAN_FAULT_INVALID_COPY');
   static const FilePlanFaultCode FILE_PLAN_FAULT_BLOCKED =
       FilePlanFaultCode._(10, _omitEnumNames ? '' : 'FILE_PLAN_FAULT_BLOCKED');
+  static const FilePlanFaultCode FILE_PLAN_FAULT_UNSUPPORTED =
+      FilePlanFaultCode._(
+          11, _omitEnumNames ? '' : 'FILE_PLAN_FAULT_UNSUPPORTED');
+  static const FilePlanFaultCode FILE_PLAN_FAULT_INVALID_EDIT =
+      FilePlanFaultCode._(
+          12, _omitEnumNames ? '' : 'FILE_PLAN_FAULT_INVALID_EDIT');
 
   static const $core.List<FilePlanFaultCode> values = <FilePlanFaultCode>[
     FILE_PLAN_FAULT_UNSPECIFIED,
@@ -188,10 +256,12 @@ class FilePlanFaultCode extends $pb.ProtobufEnum {
     FILE_PLAN_FAULT_CANCELLED,
     FILE_PLAN_FAULT_INVALID_COPY,
     FILE_PLAN_FAULT_BLOCKED,
+    FILE_PLAN_FAULT_UNSUPPORTED,
+    FILE_PLAN_FAULT_INVALID_EDIT,
   ];
 
   static final $core.List<FilePlanFaultCode?> _byValue =
-      $pb.ProtobufEnum.$_initByValueList(values, 10);
+      $pb.ProtobufEnum.$_initByValueList(values, 12);
   static FilePlanFaultCode? valueOf($core.int value) =>
       value < 0 || value >= _byValue.length ? null : _byValue[value];
 

@@ -181,6 +181,7 @@ void main() {
                   payloadId: managed.payloadId,
                   length: managed.length,
                   sha256: '0' * 64,
+                  modRevision: managed.modRevision,
                 ),
                 FilePreviewRepresentation.text,
               )
@@ -263,6 +264,45 @@ void main() {
             copy,
           )).changes.single.id,
           audit.changes.single.id,
+        );
+        final currentCopy =
+            historical.focusedCopy!.source as ManagedPreviewSource;
+        final editable = await child.filePlans().openManagedText(
+          reopened.id,
+          currentCopy,
+        );
+        expect(editable.document.content, 'Mod copy');
+        final edit = await child.filePlans().saveManagedText(
+          reopened.id,
+          newOperationId(),
+          currentCopy,
+          'Edited through the file inspector\n',
+        );
+        final edited = await child.modLibrary().version(edit.versionId);
+        expect(edited.origin.editedFromVersionId, version);
+        expect(edited.origin.editedPath, ['shared.txt']);
+        final editedTail = await child.modLibrary().version(
+          edit.versionId,
+          offset: edited.nextOffset!,
+        );
+        final changedEntry = [...edited.entries, ...editedTail.entries]
+            .singleWhere(
+              (entry) =>
+                  entry.path.length == 1 && entry.path.single == 'shared.txt',
+            );
+        expect(
+          utf8.decode(
+            await child.modLibrary().readPayload(
+              edited.id,
+              changedEntry.payload.id,
+              count: changedEntry.payload.length,
+            ),
+          ),
+          'Edited through the file inspector\n',
+        );
+        expect(
+          await File('${root.path}/source/shared.txt').readAsString(),
+          'Mod copy',
         );
       } finally {
         await child.close();

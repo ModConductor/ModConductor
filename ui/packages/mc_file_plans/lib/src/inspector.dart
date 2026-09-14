@@ -7,6 +7,7 @@ import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 import 'controller.dart';
 import 'file_inspector_controller.dart';
 import 'preview_image.dart';
+import 'text_editor.dart';
 
 String fileSize(int bytes) => bytes >= 1024 * 1024 * 1024
     ? '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GiB'
@@ -56,6 +57,14 @@ class FileSourcesInspector extends StatelessWidget {
         !owner.reading &&
         !owner.needsRead &&
         !view.loading;
+    if (view.textDocument case final document?) {
+      return _ManagedTextEditorInspector(
+        controller: view,
+        owner: owner,
+        document: document,
+        onClose: onClose,
+      );
+    }
     String status(InspectedFileCopy copy) => [
       switch (copy.standing) {
         FileSourceStanding.winner => stale ? 'Previous winner' : 'Winner',
@@ -241,6 +250,24 @@ class FileSourcesInspector extends StatelessWidget {
             ),
           ] else if (view.preview != null)
             _PreviewBody(preview: view.preview!),
+          if (view.canEditText) ...[
+            const SizedBox(height: 12),
+            McAction(
+              label: 'Edit text',
+              icon: Icons.edit_outlined,
+              onPressed: available && !view.openingText
+                  ? () => unawaited(view.openTextEditor())
+                  : null,
+            ),
+          ],
+          if (view.openingText) ...[
+            const SizedBox(height: 12),
+            const LinearProgressIndicator(),
+          ],
+          if (view.textProblem != null) ...[
+            const SizedBox(height: 12),
+            McStatus(title: view.textProblem!, tone: McStatusTone.error),
+          ],
         ],
         if (selected != null)
           ExpansionTile(
@@ -317,6 +344,58 @@ class FileSourcesInspector extends StatelessWidget {
       ],
     );
   }
+}
+
+class _ManagedTextEditorInspector extends StatefulWidget {
+  const _ManagedTextEditorInspector({
+    required this.controller,
+    required this.owner,
+    required this.document,
+    required this.onClose,
+  });
+  final FileInspectorController controller;
+  final FilePlansController? owner;
+  final ManagedTextDocument document;
+  final VoidCallback onClose;
+
+  @override
+  State<_ManagedTextEditorInspector> createState() =>
+      _ManagedTextEditorInspectorState();
+}
+
+class _ManagedTextEditorInspectorState
+    extends State<_ManagedTextEditorInspector> {
+  final _editor = GlobalKey<TextEditorToolboxState>();
+
+  void closeEditor() => widget.controller.closeTextEditor();
+
+  @override
+  Widget build(BuildContext context) => McInspector(
+    title: 'Edit text',
+    onClose: () => unawaited(_editor.currentState?.requestClose()),
+    children: [
+      TextEditorToolbox(
+        key: _editor,
+        document: widget.document.document,
+        name: widget.document.source.target.last,
+        source: widget.document.source.target.join('/'),
+        saving: widget.controller.savingText,
+        problem: widget.controller.textProblem,
+        onClose: closeEditor,
+        onReadAgain: widget.owner == null
+            ? null
+            : () async {
+                widget.controller.closeTextEditor();
+                await widget.owner!.read();
+              },
+        onSave: (content) async {
+          final saved = await widget.controller.saveText(content);
+          if (saved) widget.owner?.invalidate();
+          return saved;
+        },
+      ),
+    ],
+  );
 }
 
 class _PreviewBody extends StatelessWidget {

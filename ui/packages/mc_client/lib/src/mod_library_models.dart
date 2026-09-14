@@ -1,6 +1,13 @@
 enum ModKind { regular, separator, backup, unmanaged, generatedOutput }
 
-enum InventoryStatus { ready, detached, changed, unproved, publishing, deleting }
+enum InventoryStatus {
+  ready,
+  detached,
+  changed,
+  unproved,
+  publishing,
+  deleting,
+}
 
 enum ModAction { editMetadata, publish, readVersion }
 
@@ -47,19 +54,28 @@ class ModMetadata {
 }
 
 class BundleArchiveOrigin {
-  const BundleArchiveOrigin(this.path,this.sha256);
+  const BundleArchiveOrigin(this.path, this.sha256);
   final List<String> path;
   final String sha256;
 }
+
 class BundleVersionOrigin {
-  const BundleVersionOrigin(this.parentSha256,this.archives);
+  const BundleVersionOrigin(this.parentSha256, this.archives);
   final String parentSha256;
   final List<BundleArchiveOrigin> archives;
 }
+
 class ModVersionOrigin {
-  const ModVersionOrigin({this.outputActionId, this.archiveArtifactId,this.bundle});
+  const ModVersionOrigin({
+    this.outputActionId,
+    this.archiveArtifactId,
+    this.bundle,
+    this.editedFromVersionId,
+    this.editedPath,
+  });
   final BundleVersionOrigin? bundle;
-  final String? outputActionId, archiveArtifactId;
+  final String? outputActionId, archiveArtifactId, editedFromVersionId;
+  final List<String>? editedPath;
 }
 
 class ModEntry {

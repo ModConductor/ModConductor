@@ -121,7 +121,8 @@ module internal FilePlanRows =
                             let label =
                                 { Id = id
                                   Name = row.Entry.Metadata.Name
-                                  Version = row.Entry.Metadata.Version }
+                                  Version = row.Entry.Metadata.Version
+                                  Revision = row.Entry.Revision }
 
                             bytes <-
                                 bytes

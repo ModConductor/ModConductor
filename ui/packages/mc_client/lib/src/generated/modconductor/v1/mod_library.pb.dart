@@ -1664,11 +1664,16 @@ class ModVersionOrigin extends $pb.GeneratedMessage {
     $core.String? outputActionId,
     $core.String? archiveArtifactId,
     $1.BundleProvenance? bundle,
+    $core.String? editedFromVersionId,
+    ModLogicalPath? editedPath,
   }) {
     final result = create();
     if (outputActionId != null) result.outputActionId = outputActionId;
     if (archiveArtifactId != null) result.archiveArtifactId = archiveArtifactId;
     if (bundle != null) result.bundle = bundle;
+    if (editedFromVersionId != null)
+      result.editedFromVersionId = editedFromVersionId;
+    if (editedPath != null) result.editedPath = editedPath;
     return result;
   }
 
@@ -1690,6 +1695,9 @@ class ModVersionOrigin extends $pb.GeneratedMessage {
     ..aOS(2, _omitFieldNames ? '' : 'archiveArtifactId')
     ..aOM<$1.BundleProvenance>(3, _omitFieldNames ? '' : 'bundle',
         subBuilder: $1.BundleProvenance.create)
+    ..aOS(4, _omitFieldNames ? '' : 'editedFromVersionId')
+    ..aOM<ModLogicalPath>(5, _omitFieldNames ? '' : 'editedPath',
+        subBuilder: ModLogicalPath.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1739,6 +1747,26 @@ class ModVersionOrigin extends $pb.GeneratedMessage {
   void clearBundle() => $_clearField(3);
   @$pb.TagNumber(3)
   $1.BundleProvenance ensureBundle() => $_ensure(2);
+
+  @$pb.TagNumber(4)
+  $core.String get editedFromVersionId => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set editedFromVersionId($core.String value) => $_setString(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasEditedFromVersionId() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearEditedFromVersionId() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  ModLogicalPath get editedPath => $_getN(4);
+  @$pb.TagNumber(5)
+  set editedPath(ModLogicalPath value) => $_setField(5, value);
+  @$pb.TagNumber(5)
+  $core.bool hasEditedPath() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearEditedPath() => $_clearField(5);
+  @$pb.TagNumber(5)
+  ModLogicalPath ensureEditedPath() => $_ensure(4);
 }
 
 class ModVersionPage extends $pb.GeneratedMessage {

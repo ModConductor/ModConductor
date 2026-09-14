@@ -76,6 +76,9 @@ module internal ModLibraryWire =
 
         match value with
         | VersionOrigin.RegisteredSource -> ()
+        | VersionOrigin.Edited(_, source, editedPath, _) ->
+            result.EditedFromVersionId <- source.ToString("N")
+            result.EditedPath <- logical editedPath
         | VersionOrigin.Archive id -> result.ArchiveArtifactId <- id.ToString("N")
         | VersionOrigin.Bundle(id, parent, paths, digests) ->
             result.ArchiveArtifactId <- id.ToString("N")

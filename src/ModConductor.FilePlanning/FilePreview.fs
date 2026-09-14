@@ -3,7 +3,6 @@ namespace ModConductor.FilePlanning
 open System
 open System.IO
 open System.Security.Cryptography
-open System.Text
 open System.Threading
 open ModConductor.Platform
 
@@ -216,42 +215,18 @@ module FilePreviewRendering =
                               Truncated = count < bytes.Length })
                         standing
                 | FilePreviewRepresentation.Text ->
-                    let encoding, offset, name =
-                        if bytes.Length >= 3 && bytes[0..2] = [| 0xEFuy; 0xBBuy; 0xBFuy |] then
-                            UTF8Encoding(false, true) :> Encoding, 3, "UTF-8"
-                        elif bytes.Length >= 2 && bytes[0..1] = [| 0xFFuy; 0xFEuy |] then
-                            UnicodeEncoding(false, true, true) :> Encoding, 2, "UTF-16 LE"
-                        elif bytes.Length >= 2 && bytes[0..1] = [| 0xFEuy; 0xFFuy |] then
-                            UnicodeEncoding(true, true, true) :> Encoding, 2, "UTF-16 BE"
-                        else
-                            UTF8Encoding(false, true) :> Encoding, 0, "UTF-8"
-
-                    try
-                        let content = encoding.GetString(bytes, offset, bytes.Length - offset)
-                        let mutable lines = if content.Length = 0 then 0 else 1
-                        let mutable invalid = false
-
-                        for c in content do
-                            if c = '\n' then
-                                lines <- lines + 1
-
-                            if Char.IsControl c && c <> '\r' && c <> '\n' && c <> '\t' then
-                                invalid <- true
-
-                        if invalid then
-                            unsupported source "This file does not contain supported text." standing
-                        elif lines > FilePreviewLimits.TextLines then
-                            tooLarge source "This text file has too many lines to preview." standing
-                        else
-                            ready
-                                source
-                                (FilePreviewContent.Text
-                                    { Content = content
-                                      Encoding = name
-                                      Lines = lines })
-                                standing
-                    with :? DecoderFallbackException ->
-                        unsupported source "This file does not contain supported text." standing
+                    match TextDocuments.decode bytes with
+                    | Error detail when detail.Contains("too many lines") ->
+                        tooLarge source "This text file has too many lines to preview." standing
+                    | Error detail -> unsupported source detail standing
+                    | Ok decoded ->
+                        ready
+                            source
+                            (FilePreviewContent.Text
+                                { Content = decoded.Content
+                                  Encoding = decoded.EncodingName
+                                  Lines = decoded.Lines })
+                            standing
                 | FilePreviewRepresentation.Image ->
                     let extension =
                         sourcePath source

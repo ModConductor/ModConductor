@@ -18,6 +18,7 @@
     <Compile Include="FomodSchema.fs" />
     <Compile Include="BundleSchema.fs" />
     <Compile Include="NexusMetadataSchema.fs" />
+    <Compile Include="EditSchema.fs" />
     <Compile Include="Sqlite.fs" />
     <Compile Include="MaintenanceClaims.fs" />
     <Compile Include="LibraryEncoding.fs" />

@@ -70,6 +70,18 @@ namespace ModConductor.Protocol.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.ProfileDataReply> __Marshaller_modconductor_v1_ProfileDataReply = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.ProfileDataReply.Parser));
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.ProfileConfigurationListRequest> __Marshaller_modconductor_v1_ProfileConfigurationListRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.ProfileConfigurationListRequest.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.ProfileConfigurationListReply> __Marshaller_modconductor_v1_ProfileConfigurationListReply = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.ProfileConfigurationListReply.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.ProfileConfigurationReadRequest> __Marshaller_modconductor_v1_ProfileConfigurationReadRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.ProfileConfigurationReadRequest.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.ProfileConfigurationReadReply> __Marshaller_modconductor_v1_ProfileConfigurationReadReply = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.ProfileConfigurationReadReply.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.ProfileConfigurationSaveRequest> __Marshaller_modconductor_v1_ProfileConfigurationSaveRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.ProfileConfigurationSaveRequest.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.ProfileConfigurationRestoreRequest> __Marshaller_modconductor_v1_ProfileConfigurationRestoreRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.ProfileConfigurationRestoreRequest.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.ProfileDataEditRequest> __Marshaller_modconductor_v1_ProfileDataEditRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.ProfileDataEditRequest.Parser));
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.ProfileDataRestoreRequest> __Marshaller_modconductor_v1_ProfileDataRestoreRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.ProfileDataRestoreRequest.Parser));
@@ -123,6 +135,38 @@ namespace ModConductor.Protocol.V1 {
         "ReadProfileData",
         __Marshaller_modconductor_v1_ProfileDataReadRequest,
         __Marshaller_modconductor_v1_ProfileDataReply);
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::ModConductor.Protocol.V1.ProfileConfigurationListRequest, global::ModConductor.Protocol.V1.ProfileConfigurationListReply> __Method_ListProfileConfigurations = new grpc::Method<global::ModConductor.Protocol.V1.ProfileConfigurationListRequest, global::ModConductor.Protocol.V1.ProfileConfigurationListReply>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "ListProfileConfigurations",
+        __Marshaller_modconductor_v1_ProfileConfigurationListRequest,
+        __Marshaller_modconductor_v1_ProfileConfigurationListReply);
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::ModConductor.Protocol.V1.ProfileConfigurationReadRequest, global::ModConductor.Protocol.V1.ProfileConfigurationReadReply> __Method_ReadProfileConfiguration = new grpc::Method<global::ModConductor.Protocol.V1.ProfileConfigurationReadRequest, global::ModConductor.Protocol.V1.ProfileConfigurationReadReply>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "ReadProfileConfiguration",
+        __Marshaller_modconductor_v1_ProfileConfigurationReadRequest,
+        __Marshaller_modconductor_v1_ProfileConfigurationReadReply);
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::ModConductor.Protocol.V1.ProfileConfigurationSaveRequest, global::ModConductor.Protocol.V1.ProfileDataEvent> __Method_SaveProfileConfiguration = new grpc::Method<global::ModConductor.Protocol.V1.ProfileConfigurationSaveRequest, global::ModConductor.Protocol.V1.ProfileDataEvent>(
+        grpc::MethodType.ServerStreaming,
+        __ServiceName,
+        "SaveProfileConfiguration",
+        __Marshaller_modconductor_v1_ProfileConfigurationSaveRequest,
+        __Marshaller_modconductor_v1_ProfileDataEvent);
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::ModConductor.Protocol.V1.ProfileConfigurationRestoreRequest, global::ModConductor.Protocol.V1.ProfileDataEvent> __Method_RestoreProfileConfiguration = new grpc::Method<global::ModConductor.Protocol.V1.ProfileConfigurationRestoreRequest, global::ModConductor.Protocol.V1.ProfileDataEvent>(
+        grpc::MethodType.ServerStreaming,
+        __ServiceName,
+        "RestoreProfileConfiguration",
+        __Marshaller_modconductor_v1_ProfileConfigurationRestoreRequest,
+        __Marshaller_modconductor_v1_ProfileDataEvent);
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Method<global::ModConductor.Protocol.V1.ProfileDataEditRequest, global::ModConductor.Protocol.V1.ProfileDataEvent> __Method_EditProfileData = new grpc::Method<global::ModConductor.Protocol.V1.ProfileDataEditRequest, global::ModConductor.Protocol.V1.ProfileDataEvent>(
@@ -190,6 +234,30 @@ namespace ModConductor.Protocol.V1 {
 
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V1.ProfileDataReply> ReadProfileData(global::ModConductor.Protocol.V1.ProfileDataReadRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V1.ProfileConfigurationListReply> ListProfileConfigurations(global::ModConductor.Protocol.V1.ProfileConfigurationListRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V1.ProfileConfigurationReadReply> ReadProfileConfiguration(global::ModConductor.Protocol.V1.ProfileConfigurationReadRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task SaveProfileConfiguration(global::ModConductor.Protocol.V1.ProfileConfigurationSaveRequest request, grpc::IServerStreamWriter<global::ModConductor.Protocol.V1.ProfileDataEvent> responseStream, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task RestoreProfileConfiguration(global::ModConductor.Protocol.V1.ProfileConfigurationRestoreRequest request, grpc::IServerStreamWriter<global::ModConductor.Protocol.V1.ProfileDataEvent> responseStream, grpc::ServerCallContext context)
       {
         throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
       }
@@ -352,6 +420,66 @@ namespace ModConductor.Protocol.V1 {
         return CallInvoker.AsyncUnaryCall(__Method_ReadProfileData, null, options, request);
       }
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V1.ProfileConfigurationListReply ListProfileConfigurations(global::ModConductor.Protocol.V1.ProfileConfigurationListRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return ListProfileConfigurations(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V1.ProfileConfigurationListReply ListProfileConfigurations(global::ModConductor.Protocol.V1.ProfileConfigurationListRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_ListProfileConfigurations, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.ProfileConfigurationListReply> ListProfileConfigurationsAsync(global::ModConductor.Protocol.V1.ProfileConfigurationListRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return ListProfileConfigurationsAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.ProfileConfigurationListReply> ListProfileConfigurationsAsync(global::ModConductor.Protocol.V1.ProfileConfigurationListRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_ListProfileConfigurations, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V1.ProfileConfigurationReadReply ReadProfileConfiguration(global::ModConductor.Protocol.V1.ProfileConfigurationReadRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return ReadProfileConfiguration(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V1.ProfileConfigurationReadReply ReadProfileConfiguration(global::ModConductor.Protocol.V1.ProfileConfigurationReadRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_ReadProfileConfiguration, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.ProfileConfigurationReadReply> ReadProfileConfigurationAsync(global::ModConductor.Protocol.V1.ProfileConfigurationReadRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return ReadProfileConfigurationAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.ProfileConfigurationReadReply> ReadProfileConfigurationAsync(global::ModConductor.Protocol.V1.ProfileConfigurationReadRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_ReadProfileConfiguration, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncServerStreamingCall<global::ModConductor.Protocol.V1.ProfileDataEvent> SaveProfileConfiguration(global::ModConductor.Protocol.V1.ProfileConfigurationSaveRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return SaveProfileConfiguration(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncServerStreamingCall<global::ModConductor.Protocol.V1.ProfileDataEvent> SaveProfileConfiguration(global::ModConductor.Protocol.V1.ProfileConfigurationSaveRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncServerStreamingCall(__Method_SaveProfileConfiguration, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncServerStreamingCall<global::ModConductor.Protocol.V1.ProfileDataEvent> RestoreProfileConfiguration(global::ModConductor.Protocol.V1.ProfileConfigurationRestoreRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return RestoreProfileConfiguration(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncServerStreamingCall<global::ModConductor.Protocol.V1.ProfileDataEvent> RestoreProfileConfiguration(global::ModConductor.Protocol.V1.ProfileConfigurationRestoreRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncServerStreamingCall(__Method_RestoreProfileConfiguration, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       public virtual grpc::AsyncServerStreamingCall<global::ModConductor.Protocol.V1.ProfileDataEvent> EditProfileData(global::ModConductor.Protocol.V1.ProfileDataEditRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
       {
         return EditProfileData(request, new grpc::CallOptions(headers, deadline, cancellationToken));
@@ -401,6 +529,10 @@ namespace ModConductor.Protocol.V1 {
           .AddMethod(__Method_PreviewSaveAction, serviceImpl.PreviewSaveAction)
           .AddMethod(__Method_ApplySaveAction, serviceImpl.ApplySaveAction)
           .AddMethod(__Method_ReadProfileData, serviceImpl.ReadProfileData)
+          .AddMethod(__Method_ListProfileConfigurations, serviceImpl.ListProfileConfigurations)
+          .AddMethod(__Method_ReadProfileConfiguration, serviceImpl.ReadProfileConfiguration)
+          .AddMethod(__Method_SaveProfileConfiguration, serviceImpl.SaveProfileConfiguration)
+          .AddMethod(__Method_RestoreProfileConfiguration, serviceImpl.RestoreProfileConfiguration)
           .AddMethod(__Method_EditProfileData, serviceImpl.EditProfileData)
           .AddMethod(__Method_RestoreProfileData, serviceImpl.RestoreProfileData)
           .AddMethod(__Method_ResumeProfileData, serviceImpl.ResumeProfileData).Build();
@@ -419,6 +551,10 @@ namespace ModConductor.Protocol.V1 {
       serviceBinder.AddMethod(__Method_PreviewSaveAction, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.ProfileSaveActionPreviewRequest, global::ModConductor.Protocol.V1.ProfileSaveActionPreviewReply>(serviceImpl.PreviewSaveAction));
       serviceBinder.AddMethod(__Method_ApplySaveAction, serviceImpl == null ? null : new grpc::ServerStreamingServerMethod<global::ModConductor.Protocol.V1.ProfileSaveActionApplyRequest, global::ModConductor.Protocol.V1.ProfileDataEvent>(serviceImpl.ApplySaveAction));
       serviceBinder.AddMethod(__Method_ReadProfileData, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.ProfileDataReadRequest, global::ModConductor.Protocol.V1.ProfileDataReply>(serviceImpl.ReadProfileData));
+      serviceBinder.AddMethod(__Method_ListProfileConfigurations, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.ProfileConfigurationListRequest, global::ModConductor.Protocol.V1.ProfileConfigurationListReply>(serviceImpl.ListProfileConfigurations));
+      serviceBinder.AddMethod(__Method_ReadProfileConfiguration, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.ProfileConfigurationReadRequest, global::ModConductor.Protocol.V1.ProfileConfigurationReadReply>(serviceImpl.ReadProfileConfiguration));
+      serviceBinder.AddMethod(__Method_SaveProfileConfiguration, serviceImpl == null ? null : new grpc::ServerStreamingServerMethod<global::ModConductor.Protocol.V1.ProfileConfigurationSaveRequest, global::ModConductor.Protocol.V1.ProfileDataEvent>(serviceImpl.SaveProfileConfiguration));
+      serviceBinder.AddMethod(__Method_RestoreProfileConfiguration, serviceImpl == null ? null : new grpc::ServerStreamingServerMethod<global::ModConductor.Protocol.V1.ProfileConfigurationRestoreRequest, global::ModConductor.Protocol.V1.ProfileDataEvent>(serviceImpl.RestoreProfileConfiguration));
       serviceBinder.AddMethod(__Method_EditProfileData, serviceImpl == null ? null : new grpc::ServerStreamingServerMethod<global::ModConductor.Protocol.V1.ProfileDataEditRequest, global::ModConductor.Protocol.V1.ProfileDataEvent>(serviceImpl.EditProfileData));
       serviceBinder.AddMethod(__Method_RestoreProfileData, serviceImpl == null ? null : new grpc::ServerStreamingServerMethod<global::ModConductor.Protocol.V1.ProfileDataRestoreRequest, global::ModConductor.Protocol.V1.ProfileDataEvent>(serviceImpl.RestoreProfileData));
       serviceBinder.AddMethod(__Method_ResumeProfileData, serviceImpl == null ? null : new grpc::ServerStreamingServerMethod<global::ModConductor.Protocol.V1.ProfileDataActionRequest, global::ModConductor.Protocol.V1.ProfileDataEvent>(serviceImpl.ResumeProfileData));

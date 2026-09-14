@@ -112,6 +112,7 @@ class ManagedPreviewSource extends $pb.GeneratedMessage {
     $fixnum.Int64? length,
     $core.String? sha256,
     $core.String? payloadId,
+    $fixnum.Int64? modRevision,
   }) {
     final result = create();
     if (copy != null) result.copy = copy;
@@ -120,6 +121,7 @@ class ManagedPreviewSource extends $pb.GeneratedMessage {
     if (length != null) result.length = length;
     if (sha256 != null) result.sha256 = sha256;
     if (payloadId != null) result.payloadId = payloadId;
+    if (modRevision != null) result.modRevision = modRevision;
     return result;
   }
 
@@ -147,6 +149,9 @@ class ManagedPreviewSource extends $pb.GeneratedMessage {
         defaultOrMaker: $fixnum.Int64.ZERO)
     ..aOS(5, _omitFieldNames ? '' : 'sha256')
     ..aOS(6, _omitFieldNames ? '' : 'payloadId')
+    ..a<$fixnum.Int64>(
+        7, _omitFieldNames ? '' : 'modRevision', $pb.PbFieldType.OU6,
+        defaultOrMaker: $fixnum.Int64.ZERO)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -227,6 +232,15 @@ class ManagedPreviewSource extends $pb.GeneratedMessage {
   $core.bool hasPayloadId() => $_has(5);
   @$pb.TagNumber(6)
   void clearPayloadId() => $_clearField(6);
+
+  @$pb.TagNumber(7)
+  $fixnum.Int64 get modRevision => $_getI64(6);
+  @$pb.TagNumber(7)
+  set modRevision($fixnum.Int64 value) => $_setInt64(6, value);
+  @$pb.TagNumber(7)
+  $core.bool hasModRevision() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearModRevision() => $_clearField(7);
 }
 
 class CheckedGamePreviewSource extends $pb.GeneratedMessage {
@@ -1213,6 +1227,612 @@ class FilePreviewReply extends $pb.GeneratedMessage {
   void clearPreview() => $_clearField(1);
   @$pb.TagNumber(1)
   FilePreviewResult ensurePreview() => $_ensure(0);
+
+  @$pb.TagNumber(2)
+  FilePlanFault get fault => $_getN(1);
+  @$pb.TagNumber(2)
+  set fault(FilePlanFault value) => $_setField(2, value);
+  @$pb.TagNumber(2)
+  $core.bool hasFault() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearFault() => $_clearField(2);
+  @$pb.TagNumber(2)
+  FilePlanFault ensureFault() => $_ensure(1);
+}
+
+class TextDocument extends $pb.GeneratedMessage {
+  factory TextDocument({
+    $core.String? content,
+    TextDocumentEncoding? encoding,
+    TextDocumentNewline? newline,
+    $core.bool? finalTerminator,
+    $core.int? lines,
+  }) {
+    final result = create();
+    if (content != null) result.content = content;
+    if (encoding != null) result.encoding = encoding;
+    if (newline != null) result.newline = newline;
+    if (finalTerminator != null) result.finalTerminator = finalTerminator;
+    if (lines != null) result.lines = lines;
+    return result;
+  }
+
+  TextDocument._();
+
+  factory TextDocument.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory TextDocument.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'TextDocument',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'content')
+    ..aE<TextDocumentEncoding>(2, _omitFieldNames ? '' : 'encoding',
+        enumValues: TextDocumentEncoding.values)
+    ..aE<TextDocumentNewline>(3, _omitFieldNames ? '' : 'newline',
+        enumValues: TextDocumentNewline.values)
+    ..aOB(4, _omitFieldNames ? '' : 'finalTerminator')
+    ..aI(5, _omitFieldNames ? '' : 'lines', fieldType: $pb.PbFieldType.OU3)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  TextDocument clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  TextDocument copyWith(void Function(TextDocument) updates) =>
+      super.copyWith((message) => updates(message as TextDocument))
+          as TextDocument;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static TextDocument create() => TextDocument._();
+  @$core.override
+  TextDocument createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static TextDocument getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<TextDocument>(create);
+  static TextDocument? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get content => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set content($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasContent() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearContent() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  TextDocumentEncoding get encoding => $_getN(1);
+  @$pb.TagNumber(2)
+  set encoding(TextDocumentEncoding value) => $_setField(2, value);
+  @$pb.TagNumber(2)
+  $core.bool hasEncoding() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearEncoding() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  TextDocumentNewline get newline => $_getN(2);
+  @$pb.TagNumber(3)
+  set newline(TextDocumentNewline value) => $_setField(3, value);
+  @$pb.TagNumber(3)
+  $core.bool hasNewline() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearNewline() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.bool get finalTerminator => $_getBF(3);
+  @$pb.TagNumber(4)
+  set finalTerminator($core.bool value) => $_setBool(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasFinalTerminator() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearFinalTerminator() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.int get lines => $_getIZ(4);
+  @$pb.TagNumber(5)
+  set lines($core.int value) => $_setUnsignedInt32(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasLines() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearLines() => $_clearField(5);
+}
+
+class ManagedTextDocument extends $pb.GeneratedMessage {
+  factory ManagedTextDocument({
+    ManagedPreviewSource? source,
+    TextDocument? document,
+  }) {
+    final result = create();
+    if (source != null) result.source = source;
+    if (document != null) result.document = document;
+    return result;
+  }
+
+  ManagedTextDocument._();
+
+  factory ManagedTextDocument.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ManagedTextDocument.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ManagedTextDocument',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..aOM<ManagedPreviewSource>(1, _omitFieldNames ? '' : 'source',
+        subBuilder: ManagedPreviewSource.create)
+    ..aOM<TextDocument>(2, _omitFieldNames ? '' : 'document',
+        subBuilder: TextDocument.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ManagedTextDocument clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ManagedTextDocument copyWith(void Function(ManagedTextDocument) updates) =>
+      super.copyWith((message) => updates(message as ManagedTextDocument))
+          as ManagedTextDocument;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ManagedTextDocument create() => ManagedTextDocument._();
+  @$core.override
+  ManagedTextDocument createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ManagedTextDocument getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ManagedTextDocument>(create);
+  static ManagedTextDocument? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  ManagedPreviewSource get source => $_getN(0);
+  @$pb.TagNumber(1)
+  set source(ManagedPreviewSource value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasSource() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearSource() => $_clearField(1);
+  @$pb.TagNumber(1)
+  ManagedPreviewSource ensureSource() => $_ensure(0);
+
+  @$pb.TagNumber(2)
+  TextDocument get document => $_getN(1);
+  @$pb.TagNumber(2)
+  set document(TextDocument value) => $_setField(2, value);
+  @$pb.TagNumber(2)
+  $core.bool hasDocument() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearDocument() => $_clearField(2);
+  @$pb.TagNumber(2)
+  TextDocument ensureDocument() => $_ensure(1);
+}
+
+class ManagedTextEdit extends $pb.GeneratedMessage {
+  factory ManagedTextEdit({
+    $core.String? id,
+    $core.String? versionId,
+    ManagedPreviewSource? source,
+  }) {
+    final result = create();
+    if (id != null) result.id = id;
+    if (versionId != null) result.versionId = versionId;
+    if (source != null) result.source = source;
+    return result;
+  }
+
+  ManagedTextEdit._();
+
+  factory ManagedTextEdit.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ManagedTextEdit.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ManagedTextEdit',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'id')
+    ..aOS(2, _omitFieldNames ? '' : 'versionId')
+    ..aOM<ManagedPreviewSource>(3, _omitFieldNames ? '' : 'source',
+        subBuilder: ManagedPreviewSource.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ManagedTextEdit clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ManagedTextEdit copyWith(void Function(ManagedTextEdit) updates) =>
+      super.copyWith((message) => updates(message as ManagedTextEdit))
+          as ManagedTextEdit;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ManagedTextEdit create() => ManagedTextEdit._();
+  @$core.override
+  ManagedTextEdit createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ManagedTextEdit getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ManagedTextEdit>(create);
+  static ManagedTextEdit? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get id => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set id($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get versionId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set versionId($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasVersionId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearVersionId() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  ManagedPreviewSource get source => $_getN(2);
+  @$pb.TagNumber(3)
+  set source(ManagedPreviewSource value) => $_setField(3, value);
+  @$pb.TagNumber(3)
+  $core.bool hasSource() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearSource() => $_clearField(3);
+  @$pb.TagNumber(3)
+  ManagedPreviewSource ensureSource() => $_ensure(2);
+}
+
+class OpenManagedTextRequest extends $pb.GeneratedMessage {
+  factory OpenManagedTextRequest({
+    $core.String? snapshotId,
+    ManagedPreviewSource? source,
+  }) {
+    final result = create();
+    if (snapshotId != null) result.snapshotId = snapshotId;
+    if (source != null) result.source = source;
+    return result;
+  }
+
+  OpenManagedTextRequest._();
+
+  factory OpenManagedTextRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory OpenManagedTextRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'OpenManagedTextRequest',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'snapshotId')
+    ..aOM<ManagedPreviewSource>(2, _omitFieldNames ? '' : 'source',
+        subBuilder: ManagedPreviewSource.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  OpenManagedTextRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  OpenManagedTextRequest copyWith(
+          void Function(OpenManagedTextRequest) updates) =>
+      super.copyWith((message) => updates(message as OpenManagedTextRequest))
+          as OpenManagedTextRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static OpenManagedTextRequest create() => OpenManagedTextRequest._();
+  @$core.override
+  OpenManagedTextRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static OpenManagedTextRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<OpenManagedTextRequest>(create);
+  static OpenManagedTextRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get snapshotId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set snapshotId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasSnapshotId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearSnapshotId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  ManagedPreviewSource get source => $_getN(1);
+  @$pb.TagNumber(2)
+  set source(ManagedPreviewSource value) => $_setField(2, value);
+  @$pb.TagNumber(2)
+  $core.bool hasSource() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearSource() => $_clearField(2);
+  @$pb.TagNumber(2)
+  ManagedPreviewSource ensureSource() => $_ensure(1);
+}
+
+class SaveManagedTextRequest extends $pb.GeneratedMessage {
+  factory SaveManagedTextRequest({
+    $core.String? snapshotId,
+    $core.String? id,
+    ManagedPreviewSource? source,
+    $core.String? content,
+  }) {
+    final result = create();
+    if (snapshotId != null) result.snapshotId = snapshotId;
+    if (id != null) result.id = id;
+    if (source != null) result.source = source;
+    if (content != null) result.content = content;
+    return result;
+  }
+
+  SaveManagedTextRequest._();
+
+  factory SaveManagedTextRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory SaveManagedTextRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'SaveManagedTextRequest',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'snapshotId')
+    ..aOS(2, _omitFieldNames ? '' : 'id')
+    ..aOM<ManagedPreviewSource>(3, _omitFieldNames ? '' : 'source',
+        subBuilder: ManagedPreviewSource.create)
+    ..aOS(4, _omitFieldNames ? '' : 'content')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SaveManagedTextRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SaveManagedTextRequest copyWith(
+          void Function(SaveManagedTextRequest) updates) =>
+      super.copyWith((message) => updates(message as SaveManagedTextRequest))
+          as SaveManagedTextRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SaveManagedTextRequest create() => SaveManagedTextRequest._();
+  @$core.override
+  SaveManagedTextRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static SaveManagedTextRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<SaveManagedTextRequest>(create);
+  static SaveManagedTextRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get snapshotId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set snapshotId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasSnapshotId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearSnapshotId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get id => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set id($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearId() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  ManagedPreviewSource get source => $_getN(2);
+  @$pb.TagNumber(3)
+  set source(ManagedPreviewSource value) => $_setField(3, value);
+  @$pb.TagNumber(3)
+  $core.bool hasSource() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearSource() => $_clearField(3);
+  @$pb.TagNumber(3)
+  ManagedPreviewSource ensureSource() => $_ensure(2);
+
+  @$pb.TagNumber(4)
+  $core.String get content => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set content($core.String value) => $_setString(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasContent() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearContent() => $_clearField(4);
+}
+
+enum ManagedTextReply_Outcome { document, fault, notSet }
+
+class ManagedTextReply extends $pb.GeneratedMessage {
+  factory ManagedTextReply({
+    ManagedTextDocument? document,
+    FilePlanFault? fault,
+  }) {
+    final result = create();
+    if (document != null) result.document = document;
+    if (fault != null) result.fault = fault;
+    return result;
+  }
+
+  ManagedTextReply._();
+
+  factory ManagedTextReply.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ManagedTextReply.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static const $core.Map<$core.int, ManagedTextReply_Outcome>
+      _ManagedTextReply_OutcomeByTag = {
+    1: ManagedTextReply_Outcome.document,
+    2: ManagedTextReply_Outcome.fault,
+    0: ManagedTextReply_Outcome.notSet
+  };
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ManagedTextReply',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..oo(0, [1, 2])
+    ..aOM<ManagedTextDocument>(1, _omitFieldNames ? '' : 'document',
+        subBuilder: ManagedTextDocument.create)
+    ..aOM<FilePlanFault>(2, _omitFieldNames ? '' : 'fault',
+        subBuilder: FilePlanFault.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ManagedTextReply clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ManagedTextReply copyWith(void Function(ManagedTextReply) updates) =>
+      super.copyWith((message) => updates(message as ManagedTextReply))
+          as ManagedTextReply;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ManagedTextReply create() => ManagedTextReply._();
+  @$core.override
+  ManagedTextReply createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ManagedTextReply getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ManagedTextReply>(create);
+  static ManagedTextReply? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  @$pb.TagNumber(2)
+  ManagedTextReply_Outcome whichOutcome() =>
+      _ManagedTextReply_OutcomeByTag[$_whichOneof(0)]!;
+  @$pb.TagNumber(1)
+  @$pb.TagNumber(2)
+  void clearOutcome() => $_clearField($_whichOneof(0));
+
+  @$pb.TagNumber(1)
+  ManagedTextDocument get document => $_getN(0);
+  @$pb.TagNumber(1)
+  set document(ManagedTextDocument value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasDocument() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearDocument() => $_clearField(1);
+  @$pb.TagNumber(1)
+  ManagedTextDocument ensureDocument() => $_ensure(0);
+
+  @$pb.TagNumber(2)
+  FilePlanFault get fault => $_getN(1);
+  @$pb.TagNumber(2)
+  set fault(FilePlanFault value) => $_setField(2, value);
+  @$pb.TagNumber(2)
+  $core.bool hasFault() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearFault() => $_clearField(2);
+  @$pb.TagNumber(2)
+  FilePlanFault ensureFault() => $_ensure(1);
+}
+
+enum ManagedTextEditReply_Outcome { edit, fault, notSet }
+
+class ManagedTextEditReply extends $pb.GeneratedMessage {
+  factory ManagedTextEditReply({
+    ManagedTextEdit? edit,
+    FilePlanFault? fault,
+  }) {
+    final result = create();
+    if (edit != null) result.edit = edit;
+    if (fault != null) result.fault = fault;
+    return result;
+  }
+
+  ManagedTextEditReply._();
+
+  factory ManagedTextEditReply.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ManagedTextEditReply.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static const $core.Map<$core.int, ManagedTextEditReply_Outcome>
+      _ManagedTextEditReply_OutcomeByTag = {
+    1: ManagedTextEditReply_Outcome.edit,
+    2: ManagedTextEditReply_Outcome.fault,
+    0: ManagedTextEditReply_Outcome.notSet
+  };
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ManagedTextEditReply',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..oo(0, [1, 2])
+    ..aOM<ManagedTextEdit>(1, _omitFieldNames ? '' : 'edit',
+        subBuilder: ManagedTextEdit.create)
+    ..aOM<FilePlanFault>(2, _omitFieldNames ? '' : 'fault',
+        subBuilder: FilePlanFault.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ManagedTextEditReply clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ManagedTextEditReply copyWith(void Function(ManagedTextEditReply) updates) =>
+      super.copyWith((message) => updates(message as ManagedTextEditReply))
+          as ManagedTextEditReply;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ManagedTextEditReply create() => ManagedTextEditReply._();
+  @$core.override
+  ManagedTextEditReply createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ManagedTextEditReply getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ManagedTextEditReply>(create);
+  static ManagedTextEditReply? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  @$pb.TagNumber(2)
+  ManagedTextEditReply_Outcome whichOutcome() =>
+      _ManagedTextEditReply_OutcomeByTag[$_whichOneof(0)]!;
+  @$pb.TagNumber(1)
+  @$pb.TagNumber(2)
+  void clearOutcome() => $_clearField($_whichOneof(0));
+
+  @$pb.TagNumber(1)
+  ManagedTextEdit get edit => $_getN(0);
+  @$pb.TagNumber(1)
+  set edit(ManagedTextEdit value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasEdit() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearEdit() => $_clearField(1);
+  @$pb.TagNumber(1)
+  ManagedTextEdit ensureEdit() => $_ensure(0);
 
   @$pb.TagNumber(2)
   FilePlanFault get fault => $_getN(1);

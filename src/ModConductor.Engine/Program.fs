@@ -315,7 +315,7 @@ let runWithNexus registration (handoff: ModConductor.Nexus.IOAuthHandoff) args =
             options.MaxReceiveMessageSize <- Nullable(128 * 1024)
             options.MaxSendMessageSize <- Nullable(2 * 1024 * 1024))
         .AddServiceOptions<ModConductor.Engine.ProfileDataService>(fun options ->
-            options.MaxReceiveMessageSize <- Nullable(256 * 1024)
+            options.MaxReceiveMessageSize <- Nullable(2 * 1024 * 1024)
             options.MaxSendMessageSize <- Nullable(2 * 1024 * 1024))
         .AddServiceOptions<ModConductor.Engine.GameLaunchService>(fun options ->
             options.MaxReceiveMessageSize <- Nullable(256 * 1024)
@@ -330,7 +330,7 @@ let runWithNexus registration (handoff: ModConductor.Nexus.IOAuthHandoff) args =
             options.MaxReceiveMessageSize <- Nullable 4096
             options.MaxSendMessageSize <- Nullable(256 * 1024))
         .AddServiceOptions<ModConductor.Engine.FilePlanService>(fun options ->
-            options.MaxReceiveMessageSize <- Nullable(256 * 1024)
+            options.MaxReceiveMessageSize <- Nullable(2 * 1024 * 1024)
             options.MaxSendMessageSize <- Nullable(9 * 1024 * 1024))
         .AddServiceOptions<ModConductor.Engine.ModLibraryService>(fun options ->
             options.MaxReceiveMessageSize <- Nullable 65536

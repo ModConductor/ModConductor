@@ -55,6 +55,7 @@ InspectedFileCopy inspected({bool hidden = false, ManagedFileCopy? id}) =>
         length: 10,
         sha256: 'a' * 64,
         payloadId: 'payload',
+        modRevision: 1,
       ),
       standing: hidden
           ? FileSourceStanding.unavailable
@@ -69,6 +70,18 @@ class FakePlans implements FilePlansClient {
   final stream = StreamController<FilePlanLoadEvent>.broadcast();
   Future<FilePlanPage> Function(String, List<String>?, String, FilePlanCursor?)?
   page;
+  @override
+  Future<ManagedTextDocument> openManagedText(
+    String snapshotId,
+    ManagedPreviewSource source,
+  ) => throw UnimplementedError();
+  @override
+  Future<ManagedTextEdit> saveManagedText(
+    String snapshotId,
+    String id,
+    ManagedPreviewSource source,
+    String content,
+  ) => throw UnimplementedError();
   @override
   Future<FilePlanState> open(String profileId) async {
     openedProfiles.add(profileId);

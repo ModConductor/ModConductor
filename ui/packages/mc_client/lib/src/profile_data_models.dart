@@ -1,3 +1,5 @@
+import 'file_plan_models.dart';
+
 class ProfileDataRef {
   const ProfileDataRef({
     required this.workspaceId,
@@ -50,13 +52,39 @@ class ProfileDataState {
     this.pendingProfileChange = false,
     this.settingsInitialized = false,
     this.savesInitialized = false,
+    this.pendingConfiguration,
   });
   final ProfileDataRef reference;
   final ProfileDataOptions options;
   final String settingsPath, savesPath;
   final int settingsFiles, saveFiles;
-  final String? inUseProfileId, pendingActionId, problem;
+  final String? inUseProfileId, pendingActionId, problem, pendingConfiguration;
   final bool pendingProfileChange, settingsInitialized, savesInitialized;
+}
+
+class ProfileConfigurationFile {
+  const ProfileConfigurationFile(this.name, this.exists, this.bytes);
+  final String name;
+  final bool exists;
+  final int bytes;
+}
+
+class ProfileConfigurationDocument {
+  const ProfileConfigurationDocument({
+    required this.previewId,
+    required this.expected,
+    required this.name,
+    required this.exists,
+    required this.length,
+    required this.document,
+    this.sha256,
+  });
+  final String previewId, name;
+  final ProfileDataRef expected;
+  final bool exists;
+  final int length;
+  final String? sha256;
+  final TextDocument document;
 }
 
 sealed class ProfileDataEvent {

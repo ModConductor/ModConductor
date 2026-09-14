@@ -23,6 +23,37 @@ enum FilePreviewRepresentation { text, image, hex }
 
 enum FilePreviewStatus { ready, unsupported, tooLarge, changed }
 
+enum TextDocumentEncoding { utf8, utf8Bom, utf16Little, utf16Big }
+
+enum TextDocumentNewline { noLineBreaks, lf, crlf }
+
+class TextDocument {
+  const TextDocument({
+    required this.content,
+    required this.encoding,
+    required this.newline,
+    required this.finalTerminator,
+    required this.lines,
+  });
+  final String content;
+  final TextDocumentEncoding encoding;
+  final TextDocumentNewline newline;
+  final bool finalTerminator;
+  final int lines;
+}
+
+class ManagedTextDocument {
+  const ManagedTextDocument(this.source, this.document);
+  final ManagedPreviewSource source;
+  final TextDocument document;
+}
+
+class ManagedTextEdit {
+  const ManagedTextEdit(this.id, this.versionId, this.source);
+  final String id, versionId;
+  final ManagedPreviewSource source;
+}
+
 sealed class FilePreviewSource {
   const FilePreviewSource({
     required this.target,
@@ -43,9 +74,11 @@ class ManagedPreviewSource extends FilePreviewSource {
     required super.length,
     required this.sha256,
     required this.payloadId,
+    required this.modRevision,
   });
   final ManagedFileCopy copy;
   final String sha256, payloadId;
+  final int modRevision;
   @override
   Object get id => copy;
   @override
@@ -300,6 +333,8 @@ enum FilePlanFailure {
   cancelled,
   invalidCopy,
   blocked,
+  unsupported,
+  invalidEdit,
 }
 
 class FilePlanException implements Exception {

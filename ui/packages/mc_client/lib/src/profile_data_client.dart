@@ -3,6 +3,7 @@ import 'package:grpc/grpc.dart';
 
 import 'completed_events.dart';
 import 'generated/modconductor/v1/profile_data.pbgrpc.dart' as wire;
+import 'file_plan_wire.dart' as file_mapping;
 import 'profile_data_models.dart';
 export 'profile_data_models.dart';
 
@@ -37,6 +38,24 @@ abstract interface class ProfileDataClient {
     String? after,
   });
   Future<ProfileDataState> read(String workspaceId, String profileId);
+  Future<List<ProfileConfigurationFile>> configurationFiles(
+    ProfileDataRef expected,
+  );
+  Future<ProfileConfigurationDocument> readConfiguration(
+    ProfileDataRef expected,
+    String name,
+  );
+  Stream<ProfileDataEvent> saveConfiguration(
+    String id,
+    String previewId,
+    ProfileDataRef expected,
+    String name,
+    String content,
+  );
+  Stream<ProfileDataEvent> restoreConfiguration(
+    String workspaceId,
+    String actionId,
+  );
   Stream<ProfileDataEvent> edit(
     String id,
     ProfileDataRef expected,
@@ -196,6 +215,86 @@ class GrpcProfileDataClient implements ProfileDataClient {
       ),
     };
   }
+
+  @override
+  Future<List<ProfileConfigurationFile>> configurationFiles(
+    ProfileDataRef expected,
+  ) async {
+    final reply = await _client.listProfileConfigurations(
+      wire.ProfileConfigurationListRequest(expected: _reference(expected)),
+    );
+    return switch (reply.whichResult()) {
+      wire.ProfileConfigurationListReply_Result.files => List.unmodifiable([
+        for (final file in reply.files.files)
+          ProfileConfigurationFile(file.name, file.exists, file.bytes.toInt()),
+      ]),
+      wire.ProfileConfigurationListReply_Result.problem =>
+        throw decodeProfileDataProblem(reply.problem),
+      wire.ProfileConfigurationListReply_Result.notSet =>
+        throw const FormatException('The profile file list is missing.'),
+    };
+  }
+
+  @override
+  Future<ProfileConfigurationDocument> readConfiguration(
+    ProfileDataRef expected,
+    String name,
+  ) async {
+    final reply = await _client.readProfileConfiguration(
+      wire.ProfileConfigurationReadRequest(
+        expected: _reference(expected),
+        name: name,
+      ),
+    );
+    return switch (reply.whichResult()) {
+      wire.ProfileConfigurationReadReply_Result.document =>
+        ProfileConfigurationDocument(
+          previewId: reply.document.previewId,
+          expected: _readReference(reply.document.expected),
+          name: reply.document.name,
+          exists: reply.document.exists,
+          length: reply.document.length.toInt(),
+          sha256: reply.document.hasSha256() ? reply.document.sha256 : null,
+          document: file_mapping.textDocument(reply.document.document),
+        ),
+      wire.ProfileConfigurationReadReply_Result.problem =>
+        throw decodeProfileDataProblem(reply.problem),
+      wire.ProfileConfigurationReadReply_Result.notSet =>
+        throw const FormatException('The profile file is missing.'),
+    };
+  }
+
+  @override
+  Stream<ProfileDataEvent> saveConfiguration(
+    String id,
+    String previewId,
+    ProfileDataRef expected,
+    String name,
+    String content,
+  ) => _events(
+    _client.saveProfileConfiguration(
+      wire.ProfileConfigurationSaveRequest(
+        id: id,
+        previewId: previewId,
+        expected: _reference(expected),
+        name: name,
+        content: content,
+      ),
+    ),
+  );
+
+  @override
+  Stream<ProfileDataEvent> restoreConfiguration(
+    String workspaceId,
+    String actionId,
+  ) => _events(
+    _client.restoreProfileConfiguration(
+      wire.ProfileConfigurationRestoreRequest(
+        workspaceId: workspaceId,
+        actionId: actionId,
+      ),
+    ),
+  );
 
   @override
   Stream<ProfileDataEvent> edit(
@@ -406,6 +505,9 @@ ProfileDataState _state(wire.ProfileDataState value) {
     pendingProfileChange: value.pendingProfileChange,
     settingsInitialized: value.settingsInitialized,
     savesInitialized: value.savesInitialized,
+    pendingConfiguration: value.hasPendingConfiguration()
+        ? value.pendingConfiguration
+        : null,
   );
 }
 

@@ -8,7 +8,8 @@ open ModConductor.ModLibrary
 open ModConductor.DeploymentPlanning
 
 /// This adapter does not scan game folders or select winning sources.
-type FilePlanRepository internal (database: StateDatabase, access: LibraryAccess) =
+type FilePlanRepository
+    internal (database: StateDatabase, access: LibraryAccess, ?publication: LibraryPublication) =
     let protect action =
         task {
             try
@@ -274,4 +275,110 @@ type FilePlanRepository internal (database: StateDatabase, access: LibraryAccess
                                     )
                             else
                                 return Ok stream
+                })
+
+        member _.PublishText(expected, action, source, bytes, token) =
+            protect (fun () ->
+                task {
+                    token.ThrowIfCancellationRequested()
+
+                    let owner =
+                        publication
+                        |> Option.defaultWith (fun () ->
+                            raise (InvalidOperationException "Text publication is unavailable."))
+
+                    let! prepared =
+                        transact false (fun c t ->
+                            if FilePlanRows.stamp c t expected.ProfileId <> Some expected then
+                                Error FilePlanError.Stale
+                            else
+                                match LibraryRows.find c t source.Copy.ModId with
+                                | Some row when
+                                    row.Entry.WorkspaceId = expected.WorkspaceId
+                                    && row.Entry.Kind = ModKind.Regular
+                                    && row.Entry.Revision = source.ModRevision
+                                    && row.Entry.CurrentVersion = Some source.Copy.VersionId
+                                    ->
+                                    match
+                                        FilePlanRows.savedCopy
+                                            c
+                                            t
+                                            expected.WorkspaceId
+                                            source.Copy
+                                    with
+                                    | Ok saved when
+                                        saved.Current
+                                        && saved.Entry.Path = source.SourcePath
+                                        && saved.Entry.Payload.Id = source.PayloadId
+                                        && saved.Entry.Payload.Length = source.Length
+                                        && saved.Entry.Payload.Sha256 = source.Sha256
+                                        ->
+                                        Ok(
+                                            source.ModRevision,
+                                            { ActionId = action
+                                              SourceVersion = Some source.Copy.VersionId
+                                              VersionLabel = row.Entry.Metadata.Version
+                                              Policy =
+                                                ModConductor.GameContexts.Skyrim.definition.TargetPolicy
+                                              Files = []
+                                              Bytes =
+                                                [ { Target = source.SourcePath
+                                                    Content = Array.copy bytes
+                                                    Sha256 =
+                                                      Convert.ToHexStringLower(
+                                                          System.Security.Cryptography.SHA256.HashData
+                                                              bytes
+                                                      ) } ] }
+                                        )
+                                    | _ -> Error FilePlanError.Stale
+                                | _ -> Error FilePlanError.Stale)
+
+                    match prepared with
+                    | Error error -> return Error error
+                    | Ok(revision, input) ->
+                        use cancellation =
+                            token.Register(fun () ->
+                                database
+                                    .EnqueueInternal(fun () ->
+                                        PublicationRows.cancel database.Connection action
+                                        |> ignore)
+                                    .GetAwaiter()
+                                    .GetResult())
+
+                        let! result =
+                            access.Run(fun () ->
+                                owner.Compose(
+                                    source.Copy.ModId,
+                                    revision,
+                                    action,
+                                    input,
+                                    token,
+                                    ignore,
+                                    ignore
+                                ))
+
+                        return
+                            match result with
+                            | Ok _ -> Ok action
+                            | Error LibraryError.NotFound -> Error FilePlanError.NotFound
+                            | Error LibraryError.Busy -> Error FilePlanError.Busy
+                            | Error LibraryError.StaleRevision
+                            | Error LibraryError.SourceChanged -> Error FilePlanError.Stale
+                            | Error LibraryError.Cancelled -> Error FilePlanError.Cancelled
+                            | Error LibraryError.LimitExceeded ->
+                                Error(
+                                    FilePlanError.LimitExceeded
+                                        "The edited mod exceeds the publication limits."
+                                )
+                            | Error LibraryError.InvalidMetadata
+                            | Error LibraryError.InvalidSource
+                            | Error LibraryError.IdentityConflict
+                            | Error LibraryError.UnsupportedAction ->
+                                Error(FilePlanError.InvalidEdit "This mod file cannot be edited.")
+                            | Error LibraryError.UnprovedOwnership
+                            | Error LibraryError.FileUnavailable ->
+                                Error(
+                                    FilePlanError.FileUnavailable
+                                        "The edited mod version could not be saved."
+                                )
                 })

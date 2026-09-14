@@ -2,6 +2,7 @@ namespace ModConductor.FilePlanning
 
 open System
 open System.IO
+open System.Security.Cryptography
 open System.Threading
 open System.Threading.Tasks
 open ModConductor.Platform
@@ -73,6 +74,68 @@ type FilePlanSession(repository: IFileCandidateRepository) =
 
     let describe stale snapshot =
         PlanSnapshot.summary (stale || cache.Stale snapshot) snapshot
+
+    let openManagedText (snapshot: PlanSnapshot) (managed: ManagedPreviewSource) token =
+        task {
+            if managed.Length < 0L || managed.Length > int64 TextDocuments.bytesLimit then
+                return Error(FilePlanError.LimitExceeded "This text file is too large to edit.")
+            else
+                let target = managed.Target
+
+                match InspectionProjection.inspect target None snapshot with
+                | Error error -> return Error error
+                | Ok(copies, _) ->
+                    match
+                        copies
+                        |> List.tryFind (fun row ->
+                            row.Source = FilePreviewSource.ManagedCopy managed)
+                    with
+                    | None -> return Error FilePlanError.Stale
+                    | Some _ ->
+                        let! saved =
+                            repository.Copy(snapshot.Sources.Stamp.WorkspaceId, managed.Copy)
+
+                        match saved with
+                        | Error error -> return Error error
+                        | Ok saved when
+                            not saved.Current
+                            || saved.Entry.Path <> managed.SourcePath
+                            || saved.Entry.Payload.Id <> managed.PayloadId
+                            || saved.Entry.Payload.Length <> managed.Length
+                            || saved.Entry.Payload.Sha256 <> managed.Sha256
+                            ->
+                            return Error FilePlanError.Stale
+                        | Ok saved ->
+                            let pin =
+                                SourcePin.Mod(
+                                    managed.Copy.ModId,
+                                    managed.Copy.VersionId,
+                                    saved.Entry
+                                )
+
+                            let! opened =
+                                repository.OpenManaged(
+                                    snapshot.Sources.Stamp.WorkspaceId,
+                                    pin,
+                                    token
+                                )
+
+                            match opened with
+                            | Error error -> return Error error
+                            | Ok stream ->
+                                use stream = stream
+                                let bytes = Array.zeroCreate<byte> (int managed.Length)
+                                stream.ReadExactly bytes
+                                token.ThrowIfCancellationRequested()
+                                let digest = Convert.ToHexStringLower(SHA256.HashData bytes)
+
+                                if stream.Length <> managed.Length || digest <> managed.Sha256 then
+                                    return Error FilePlanError.Stale
+                                else
+                                    return
+                                        TextDocuments.editable bytes
+                                        |> Result.mapError FilePlanError.Unsupported
+        }
 
     let keep fresh snapshot =
         cache.Put(snapshot, fresh)
@@ -213,16 +276,23 @@ type FilePlanSession(repository: IFileCandidateRepository) =
                                           FocusedCopy = None
                                           Copies =
                                             [ { Source =
-                                                    FilePreviewSource.ManagedCopy
-                                                        { Copy = copy
-                                                          SourcePath = copy.Path
-                                                          Target = copy.Path
-                                                          PayloadId = saved.Entry.Payload.Id
-                                                          Length = saved.Entry.Payload.Length
-                                                          Sha256 = saved.Entry.Payload.Sha256 }
+                                                  FilePreviewSource.ManagedCopy
+                                                      { Copy = copy
+                                                        SourcePath = copy.Path
+                                                        Target = copy.Path
+                                                        PayloadId = saved.Entry.Payload.Id
+                                                        Length = saved.Entry.Payload.Length
+                                                        Sha256 = saved.Entry.Payload.Sha256
+                                                        ModRevision =
+                                                          snapshot.Index.Labels
+                                                          |> Map.tryFind copy.ModId
+                                                          |> Option.map _.Revision
+                                                          |> Option.defaultValue 0L }
                                                 Standing =
-                                                    if saved.Current then FileSourceStanding.Unavailable
-                                                    else FileSourceStanding.Previous
+                                                  if saved.Current then
+                                                      FileSourceStanding.Unavailable
+                                                  else
+                                                      FileSourceStanding.Previous
                                                 Copy = Some copy
                                                 SourcePath = copy.Path
                                                 Name = saved.Name
@@ -380,12 +450,13 @@ type FilePlanSession(repository: IFileCandidateRepository) =
 
                                     match saved with
                                     | Error error -> return Error error
-                                    | Ok saved
-                                        when not saved.Current
-                                             || saved.Entry.Path <> managed.SourcePath
-                                             || saved.Entry.Payload.Id <> managed.PayloadId
-                                             || saved.Entry.Payload.Length <> managed.Length
-                                             || saved.Entry.Payload.Sha256 <> managed.Sha256 ->
+                                    | Ok saved when
+                                        not saved.Current
+                                        || saved.Entry.Path <> managed.SourcePath
+                                        || saved.Entry.Payload.Id <> managed.PayloadId
+                                        || saved.Entry.Payload.Length <> managed.Length
+                                        || saved.Entry.Payload.Sha256 <> managed.Sha256
+                                        ->
                                         return Error FilePlanError.Stale
                                     | Ok saved ->
                                         let pin =
@@ -434,6 +505,73 @@ type FilePlanSession(repository: IFileCandidateRepository) =
                                                         token)
                                 | FilePreviewSource.QualifiedArchiveEntry _ ->
                                     return Error FilePlanError.InvalidCopy
+                })
+
+        member _.OpenManagedText(id, source, token) =
+            run token (fun token ->
+                task {
+                    let! found = checkedSnapshot id
+
+                    match found with
+                    | Error error -> return Error error
+                    | Ok(_, true) -> return Error FilePlanError.Stale
+                    | Ok(snapshot, false) ->
+                        let! document = openManagedText snapshot source token
+
+                        return
+                            document
+                            |> Result.map (fun value -> { Source = source; Document = value })
+                })
+
+        member _.SaveManagedText(id, action, source, content, token) =
+            run token (fun token ->
+                task {
+                    if action = Guid.Empty then
+                        return Error FilePlanError.InvalidCopy
+                    else
+                        let! found = checkedSnapshot id
+
+                        match found with
+                        | Error error -> return Error error
+                        | Ok(_, true) -> return Error FilePlanError.Stale
+                        | Ok(snapshot, false) ->
+                            let! original = openManagedText snapshot source token
+
+                            match original with
+                            | Error error -> return Error error
+                            | Ok original ->
+                                match TextDocuments.encode original content with
+                                | Error detail -> return Error(FilePlanError.InvalidEdit detail)
+                                | Ok bytes ->
+                                    let digest = Convert.ToHexStringLower(SHA256.HashData bytes)
+
+                                    if
+                                        int64 bytes.Length = source.Length
+                                        && digest = source.Sha256
+                                    then
+                                        return
+                                            Error(
+                                                FilePlanError.InvalidEdit
+                                                    "The draft has no changes to save."
+                                            )
+                                    else
+                                        let! published =
+                                            repository.PublishText(
+                                                snapshot.Sources.Stamp,
+                                                action,
+                                                source,
+                                                bytes,
+                                                token
+                                            )
+
+                                        return
+                                            published
+                                            |> Result.map (fun version ->
+                                                cache.MarkStale snapshot
+
+                                                { Id = action
+                                                  VersionId = version
+                                                  Source = source })
                 })
 
         member _.History(id, copy, after) =

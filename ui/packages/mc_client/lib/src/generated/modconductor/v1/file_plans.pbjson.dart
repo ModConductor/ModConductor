@@ -73,6 +73,42 @@ final $typed_data.Uint8List filePreviewStatusDescriptor = $convert.base64Decode(
     'VU5TVVBQT1JURUQQAhIhCh1GSUxFX1BSRVZJRVdfU1RBVFVTX1RPT19MQVJHRRADEh8KG0ZJTE'
     'VfUFJFVklFV19TVEFUVVNfQ0hBTkdFRBAE');
 
+@$core.Deprecated('Use textDocumentEncodingDescriptor instead')
+const TextDocumentEncoding$json = {
+  '1': 'TextDocumentEncoding',
+  '2': [
+    {'1': 'TEXT_DOCUMENT_ENCODING_UNSPECIFIED', '2': 0},
+    {'1': 'TEXT_DOCUMENT_ENCODING_UTF8', '2': 1},
+    {'1': 'TEXT_DOCUMENT_ENCODING_UTF8_BOM', '2': 2},
+    {'1': 'TEXT_DOCUMENT_ENCODING_UTF16_LITTLE', '2': 3},
+    {'1': 'TEXT_DOCUMENT_ENCODING_UTF16_BIG', '2': 4},
+  ],
+};
+
+/// Descriptor for `TextDocumentEncoding`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List textDocumentEncodingDescriptor = $convert.base64Decode(
+    'ChRUZXh0RG9jdW1lbnRFbmNvZGluZxImCiJURVhUX0RPQ1VNRU5UX0VOQ09ESU5HX1VOU1BFQ0'
+    'lGSUVEEAASHwobVEVYVF9ET0NVTUVOVF9FTkNPRElOR19VVEY4EAESIwofVEVYVF9ET0NVTUVO'
+    'VF9FTkNPRElOR19VVEY4X0JPTRACEicKI1RFWFRfRE9DVU1FTlRfRU5DT0RJTkdfVVRGMTZfTE'
+    'lUVExFEAMSJAogVEVYVF9ET0NVTUVOVF9FTkNPRElOR19VVEYxNl9CSUcQBA==');
+
+@$core.Deprecated('Use textDocumentNewlineDescriptor instead')
+const TextDocumentNewline$json = {
+  '1': 'TextDocumentNewline',
+  '2': [
+    {'1': 'TEXT_DOCUMENT_NEWLINE_UNSPECIFIED', '2': 0},
+    {'1': 'TEXT_DOCUMENT_NEWLINE_NO_LINE_BREAKS', '2': 1},
+    {'1': 'TEXT_DOCUMENT_NEWLINE_LF', '2': 2},
+    {'1': 'TEXT_DOCUMENT_NEWLINE_CRLF', '2': 3},
+  ],
+};
+
+/// Descriptor for `TextDocumentNewline`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List textDocumentNewlineDescriptor = $convert.base64Decode(
+    'ChNUZXh0RG9jdW1lbnROZXdsaW5lEiUKIVRFWFRfRE9DVU1FTlRfTkVXTElORV9VTlNQRUNJRk'
+    'lFRBAAEigKJFRFWFRfRE9DVU1FTlRfTkVXTElORV9OT19MSU5FX0JSRUFLUxABEhwKGFRFWFRf'
+    'RE9DVU1FTlRfTkVXTElORV9MRhACEh4KGlRFWFRfRE9DVU1FTlRfTkVXTElORV9DUkxGEAM=');
+
 @$core.Deprecated('Use plannedFileDispositionDescriptor instead')
 const PlannedFileDisposition$json = {
   '1': 'PlannedFileDisposition',
@@ -107,6 +143,8 @@ const FilePlanFaultCode$json = {
     {'1': 'FILE_PLAN_FAULT_CANCELLED', '2': 8},
     {'1': 'FILE_PLAN_FAULT_INVALID_COPY', '2': 9},
     {'1': 'FILE_PLAN_FAULT_BLOCKED', '2': 10},
+    {'1': 'FILE_PLAN_FAULT_UNSUPPORTED', '2': 11},
+    {'1': 'FILE_PLAN_FAULT_INVALID_EDIT', '2': 12},
   ],
 };
 
@@ -118,7 +156,8 @@ final $typed_data.Uint8List filePlanFaultCodeDescriptor = $convert.base64Decode(
     'cKI0ZJTEVfUExBTl9GQVVMVF9DT05URVhUX1VOQVZBSUxBQkxFEAUSJAogRklMRV9QTEFOX0ZB'
     'VUxUX0ZJTEVfVU5BVkFJTEFCTEUQBhIiCh5GSUxFX1BMQU5fRkFVTFRfTElNSVRfRVhDRUVERU'
     'QQBxIdChlGSUxFX1BMQU5fRkFVTFRfQ0FOQ0VMTEVEEAgSIAocRklMRV9QTEFOX0ZBVUxUX0lO'
-    'VkFMSURfQ09QWRAJEhsKF0ZJTEVfUExBTl9GQVVMVF9CTE9DS0VEEAo=');
+    'VkFMSURfQ09QWRAJEhsKF0ZJTEVfUExBTl9GQVVMVF9CTE9DS0VEEAoSHwobRklMRV9QTEFOX0'
+    'ZBVUxUX1VOU1VQUE9SVEVEEAsSIAocRklMRV9QTEFOX0ZBVUxUX0lOVkFMSURfRURJVBAM');
 
 @$core.Deprecated('Use managedFileCopyDescriptor instead')
 const ManagedFileCopy$json = {
@@ -174,6 +213,7 @@ const ManagedPreviewSource$json = {
     {'1': 'length', '3': 4, '4': 1, '5': 4, '10': 'length'},
     {'1': 'sha256', '3': 5, '4': 1, '5': 9, '10': 'sha256'},
     {'1': 'payload_id', '3': 6, '4': 1, '5': 9, '10': 'payloadId'},
+    {'1': 'mod_revision', '3': 7, '4': 1, '5': 4, '10': 'modRevision'},
   ],
 };
 
@@ -184,7 +224,7 @@ final $typed_data.Uint8List managedPreviewSourceDescriptor = $convert.base64Deco
     'ci52MS5Nb2RMb2dpY2FsUGF0aFIKc291cmNlUGF0aBI3CgZ0YXJnZXQYAyABKAsyHy5tb2Rjb2'
     '5kdWN0b3IudjEuTW9kTG9naWNhbFBhdGhSBnRhcmdldBIWCgZsZW5ndGgYBCABKARSBmxlbmd0'
     'aBIWCgZzaGEyNTYYBSABKAlSBnNoYTI1NhIdCgpwYXlsb2FkX2lkGAYgASgJUglwYXlsb2FkSW'
-    'Q=');
+    'QSIQoMbW9kX3JldmlzaW9uGAcgASgEUgttb2RSZXZpc2lvbg==');
 
 @$core.Deprecated('Use checkedGamePreviewSourceDescriptor instead')
 const CheckedGamePreviewSource$json = {
@@ -498,6 +538,206 @@ final $typed_data.Uint8List filePreviewReplyDescriptor = $convert.base64Decode(
     'ChBGaWxlUHJldmlld1JlcGx5Ej4KB3ByZXZpZXcYASABKAsyIi5tb2Rjb25kdWN0b3IudjEuRm'
     'lsZVByZXZpZXdSZXN1bHRIAFIHcHJldmlldxI2CgVmYXVsdBgCIAEoCzIeLm1vZGNvbmR1Y3Rv'
     'ci52MS5GaWxlUGxhbkZhdWx0SABSBWZhdWx0QgkKB291dGNvbWU=');
+
+@$core.Deprecated('Use textDocumentDescriptor instead')
+const TextDocument$json = {
+  '1': 'TextDocument',
+  '2': [
+    {'1': 'content', '3': 1, '4': 1, '5': 9, '10': 'content'},
+    {
+      '1': 'encoding',
+      '3': 2,
+      '4': 1,
+      '5': 14,
+      '6': '.modconductor.v1.TextDocumentEncoding',
+      '10': 'encoding'
+    },
+    {
+      '1': 'newline',
+      '3': 3,
+      '4': 1,
+      '5': 14,
+      '6': '.modconductor.v1.TextDocumentNewline',
+      '10': 'newline'
+    },
+    {'1': 'final_terminator', '3': 4, '4': 1, '5': 8, '10': 'finalTerminator'},
+    {'1': 'lines', '3': 5, '4': 1, '5': 13, '10': 'lines'},
+  ],
+};
+
+/// Descriptor for `TextDocument`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List textDocumentDescriptor = $convert.base64Decode(
+    'CgxUZXh0RG9jdW1lbnQSGAoHY29udGVudBgBIAEoCVIHY29udGVudBJBCghlbmNvZGluZxgCIA'
+    'EoDjIlLm1vZGNvbmR1Y3Rvci52MS5UZXh0RG9jdW1lbnRFbmNvZGluZ1IIZW5jb2RpbmcSPgoH'
+    'bmV3bGluZRgDIAEoDjIkLm1vZGNvbmR1Y3Rvci52MS5UZXh0RG9jdW1lbnROZXdsaW5lUgduZX'
+    'dsaW5lEikKEGZpbmFsX3Rlcm1pbmF0b3IYBCABKAhSD2ZpbmFsVGVybWluYXRvchIUCgVsaW5l'
+    'cxgFIAEoDVIFbGluZXM=');
+
+@$core.Deprecated('Use managedTextDocumentDescriptor instead')
+const ManagedTextDocument$json = {
+  '1': 'ManagedTextDocument',
+  '2': [
+    {
+      '1': 'source',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.ManagedPreviewSource',
+      '10': 'source'
+    },
+    {
+      '1': 'document',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.TextDocument',
+      '10': 'document'
+    },
+  ],
+};
+
+/// Descriptor for `ManagedTextDocument`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List managedTextDocumentDescriptor = $convert.base64Decode(
+    'ChNNYW5hZ2VkVGV4dERvY3VtZW50Ej0KBnNvdXJjZRgBIAEoCzIlLm1vZGNvbmR1Y3Rvci52MS'
+    '5NYW5hZ2VkUHJldmlld1NvdXJjZVIGc291cmNlEjkKCGRvY3VtZW50GAIgASgLMh0ubW9kY29u'
+    'ZHVjdG9yLnYxLlRleHREb2N1bWVudFIIZG9jdW1lbnQ=');
+
+@$core.Deprecated('Use managedTextEditDescriptor instead')
+const ManagedTextEdit$json = {
+  '1': 'ManagedTextEdit',
+  '2': [
+    {'1': 'id', '3': 1, '4': 1, '5': 9, '10': 'id'},
+    {'1': 'version_id', '3': 2, '4': 1, '5': 9, '10': 'versionId'},
+    {
+      '1': 'source',
+      '3': 3,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.ManagedPreviewSource',
+      '10': 'source'
+    },
+  ],
+};
+
+/// Descriptor for `ManagedTextEdit`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List managedTextEditDescriptor = $convert.base64Decode(
+    'Cg9NYW5hZ2VkVGV4dEVkaXQSDgoCaWQYASABKAlSAmlkEh0KCnZlcnNpb25faWQYAiABKAlSCX'
+    'ZlcnNpb25JZBI9CgZzb3VyY2UYAyABKAsyJS5tb2Rjb25kdWN0b3IudjEuTWFuYWdlZFByZXZp'
+    'ZXdTb3VyY2VSBnNvdXJjZQ==');
+
+@$core.Deprecated('Use openManagedTextRequestDescriptor instead')
+const OpenManagedTextRequest$json = {
+  '1': 'OpenManagedTextRequest',
+  '2': [
+    {'1': 'snapshot_id', '3': 1, '4': 1, '5': 9, '10': 'snapshotId'},
+    {
+      '1': 'source',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.ManagedPreviewSource',
+      '10': 'source'
+    },
+  ],
+};
+
+/// Descriptor for `OpenManagedTextRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List openManagedTextRequestDescriptor = $convert.base64Decode(
+    'ChZPcGVuTWFuYWdlZFRleHRSZXF1ZXN0Eh8KC3NuYXBzaG90X2lkGAEgASgJUgpzbmFwc2hvdE'
+    'lkEj0KBnNvdXJjZRgCIAEoCzIlLm1vZGNvbmR1Y3Rvci52MS5NYW5hZ2VkUHJldmlld1NvdXJj'
+    'ZVIGc291cmNl');
+
+@$core.Deprecated('Use saveManagedTextRequestDescriptor instead')
+const SaveManagedTextRequest$json = {
+  '1': 'SaveManagedTextRequest',
+  '2': [
+    {'1': 'snapshot_id', '3': 1, '4': 1, '5': 9, '10': 'snapshotId'},
+    {'1': 'id', '3': 2, '4': 1, '5': 9, '10': 'id'},
+    {
+      '1': 'source',
+      '3': 3,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.ManagedPreviewSource',
+      '10': 'source'
+    },
+    {'1': 'content', '3': 4, '4': 1, '5': 9, '10': 'content'},
+  ],
+};
+
+/// Descriptor for `SaveManagedTextRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List saveManagedTextRequestDescriptor = $convert.base64Decode(
+    'ChZTYXZlTWFuYWdlZFRleHRSZXF1ZXN0Eh8KC3NuYXBzaG90X2lkGAEgASgJUgpzbmFwc2hvdE'
+    'lkEg4KAmlkGAIgASgJUgJpZBI9CgZzb3VyY2UYAyABKAsyJS5tb2Rjb25kdWN0b3IudjEuTWFu'
+    'YWdlZFByZXZpZXdTb3VyY2VSBnNvdXJjZRIYCgdjb250ZW50GAQgASgJUgdjb250ZW50');
+
+@$core.Deprecated('Use managedTextReplyDescriptor instead')
+const ManagedTextReply$json = {
+  '1': 'ManagedTextReply',
+  '2': [
+    {
+      '1': 'document',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.ManagedTextDocument',
+      '9': 0,
+      '10': 'document'
+    },
+    {
+      '1': 'fault',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.FilePlanFault',
+      '9': 0,
+      '10': 'fault'
+    },
+  ],
+  '8': [
+    {'1': 'outcome'},
+  ],
+};
+
+/// Descriptor for `ManagedTextReply`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List managedTextReplyDescriptor = $convert.base64Decode(
+    'ChBNYW5hZ2VkVGV4dFJlcGx5EkIKCGRvY3VtZW50GAEgASgLMiQubW9kY29uZHVjdG9yLnYxLk'
+    '1hbmFnZWRUZXh0RG9jdW1lbnRIAFIIZG9jdW1lbnQSNgoFZmF1bHQYAiABKAsyHi5tb2Rjb25k'
+    'dWN0b3IudjEuRmlsZVBsYW5GYXVsdEgAUgVmYXVsdEIJCgdvdXRjb21l');
+
+@$core.Deprecated('Use managedTextEditReplyDescriptor instead')
+const ManagedTextEditReply$json = {
+  '1': 'ManagedTextEditReply',
+  '2': [
+    {
+      '1': 'edit',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.ManagedTextEdit',
+      '9': 0,
+      '10': 'edit'
+    },
+    {
+      '1': 'fault',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.FilePlanFault',
+      '9': 0,
+      '10': 'fault'
+    },
+  ],
+  '8': [
+    {'1': 'outcome'},
+  ],
+};
+
+/// Descriptor for `ManagedTextEditReply`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List managedTextEditReplyDescriptor = $convert.base64Decode(
+    'ChRNYW5hZ2VkVGV4dEVkaXRSZXBseRI2CgRlZGl0GAEgASgLMiAubW9kY29uZHVjdG9yLnYxLk'
+    '1hbmFnZWRUZXh0RWRpdEgAUgRlZGl0EjYKBWZhdWx0GAIgASgLMh4ubW9kY29uZHVjdG9yLnYx'
+    'LkZpbGVQbGFuRmF1bHRIAFIFZmF1bHRCCQoHb3V0Y29tZQ==');
 
 @$core.Deprecated('Use filePlanCursorDescriptor instead')
 const FilePlanCursor$json = {

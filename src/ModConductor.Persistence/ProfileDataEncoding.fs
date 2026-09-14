@@ -74,9 +74,7 @@ module internal ProfileDataEncoding =
                     readOption readArchiveReceipt reader
                 elif version = 3 then
                     readOption readArchivePatch reader
-                    |> Option.map (fun profile ->
-                        { Profile = profile
-                          Documents = None })
+                    |> Option.map (fun profile -> { Profile = profile; Documents = None })
                 else
                     None }
             : PrivateProfileData)
@@ -160,6 +158,32 @@ module internal ProfileDataEncoding =
           ContextFingerprint = readText reader
           Files = readList readSaveMutation reader }
 
+    let private configurationReceipt (writer: BinaryWriter) (value: ConfigurationEditReceipt) =
+        guid writer value.PreviewId
+        text writer value.Name
+        option file writer value.Before
+        writer.Write value.Bytes.Length
+        writer.Write value.Bytes
+
+    let private readConfigurationReceipt (reader: BinaryReader) : ConfigurationEditReceipt =
+        let preview = readGuid reader
+        let name = readText reader
+        let before = readOption readFile reader
+        let length = reader.ReadInt32()
+
+        if length < 0 || length > ModConductor.FilePlanning.TextDocuments.bytesLimit then
+            invalid ()
+
+        let bytes = reader.ReadBytes length
+
+        if bytes.Length <> length then
+            invalid ()
+
+        { PreviewId = preview
+          Name = name
+          Before = before
+          Bytes = bytes }
+
     let private kind (writer: BinaryWriter) =
         function
         | ProfileDataActionKind.Edit(value, initial, files) ->
@@ -198,6 +222,9 @@ module internal ProfileDataEncoding =
         | ProfileDataActionKind.SaveFiles receipt ->
             writer.Write 7
             saveReceipt writer receipt
+        | ProfileDataActionKind.EditConfiguration receipt ->
+            writer.Write 8
+            configurationReceipt writer receipt
 
     let private readKind (reader: BinaryReader) =
         match reader.ReadInt32() with
@@ -233,6 +260,7 @@ module internal ProfileDataEncoding =
                   Ini = readOption readFile reader }
         | 6 -> ProfileDataActionKind.RestoreArchives
         | 7 -> ProfileDataActionKind.SaveFiles(readSaveReceipt reader)
+        | 8 -> ProfileDataActionKind.EditConfiguration(readConfigurationReceipt reader)
         | _ -> invalid ()
 
     let private writePrivate (writer: BinaryWriter) value =
@@ -314,9 +342,5 @@ module internal ProfileDataEncoding =
               Complete = reader.ReadBoolean()
               Problem = readOption readText reader
               PluginStage = if version >= 2 then readOption readRoot reader else None
-              ChangedProfile =
-                if version >= 3 then
-                    readOption readPrivate reader
-                else
-                    None }
+              ChangedProfile = if version >= 3 then readOption readPrivate reader else None }
             : ProfileDataActionRecord)

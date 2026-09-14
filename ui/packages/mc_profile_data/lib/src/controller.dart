@@ -178,6 +178,45 @@ class ProfileDataController extends ChangeNotifier {
     );
   }
 
+  Future<bool> saveConfiguration(
+    ProfileConfigurationDocument document,
+    String content,
+  ) async {
+    if (!canEdit ||
+        _client == null ||
+        state?.reference.revision != document.expected.revision) {
+      return false;
+    }
+    await _run(
+      'Saving ${document.name}',
+      _client!.saveConfiguration(
+        newOperationId(),
+        document.previewId,
+        document.expected,
+        document.name,
+        content,
+      ),
+    );
+    return result?.complete == true && problem == null;
+  }
+
+  Future<void> restoreConfiguration() async {
+    final current = state;
+    if (busy ||
+        _client == null ||
+        current?.pendingConfiguration == null ||
+        current!.pendingActionId == null) {
+      return;
+    }
+    await _run(
+      'Restoring ${current.pendingConfiguration}',
+      _client!.restoreConfiguration(
+        current.reference.workspaceId,
+        current.pendingActionId!,
+      ),
+    );
+  }
+
   Future<String?> resumeSelected(
     ProfileDataClient? client,
     String workspace,

@@ -53,7 +53,8 @@ module internal InspectionProjection =
                       Target = target
                       PayloadId = row.Entry.Payload.Id
                       Length = row.Entry.Payload.Length
-                      Sha256 = row.Entry.Payload.Sha256 }
+                      Sha256 = row.Entry.Payload.Sha256
+                      ModRevision = label.Revision }
               Standing =
                 if
                     not invalid

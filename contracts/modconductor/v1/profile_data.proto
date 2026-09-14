@@ -1,6 +1,7 @@
 syntax = "proto3";
 package modconductor.v1;
 option csharp_namespace = "ModConductor.Protocol.V1";
+import "modconductor/v1/file_plans.proto";
 
 service ProfileDataOperations {
   rpc ListProfileSaves(ProfileSaveRequest) returns (ProfileSaveReply);
@@ -9,6 +10,10 @@ service ProfileDataOperations {
   rpc PreviewSaveAction(ProfileSaveActionPreviewRequest) returns (ProfileSaveActionPreviewReply);
   rpc ApplySaveAction(ProfileSaveActionApplyRequest) returns (stream ProfileDataEvent);
   rpc ReadProfileData(ProfileDataReadRequest) returns (ProfileDataReply);
+  rpc ListProfileConfigurations(ProfileConfigurationListRequest) returns (ProfileConfigurationListReply);
+  rpc ReadProfileConfiguration(ProfileConfigurationReadRequest) returns (ProfileConfigurationReadReply);
+  rpc SaveProfileConfiguration(ProfileConfigurationSaveRequest) returns (stream ProfileDataEvent);
+  rpc RestoreProfileConfiguration(ProfileConfigurationRestoreRequest) returns (stream ProfileDataEvent);
   rpc EditProfileData(ProfileDataEditRequest) returns (stream ProfileDataEvent);
   rpc RestoreProfileData(ProfileDataRestoreRequest) returns (stream ProfileDataEvent);
   rpc ResumeProfileData(ProfileDataActionRequest) returns (stream ProfileDataEvent);
@@ -29,7 +34,23 @@ message ProfileDataState {
   bool pending_profile_change = 10;
   bool settings_initialized = 11;
   bool saves_initialized = 12;
+  optional string pending_configuration = 13;
 }
+
+message ProfileConfigurationFile { string name = 1; bool exists = 2; uint64 bytes = 3; }
+message ProfileConfigurationListRequest { ProfileDataRef expected = 1; }
+message ProfileConfigurationList { repeated ProfileConfigurationFile files = 1; }
+message ProfileConfigurationListReply { oneof result { ProfileConfigurationList files = 1; ProfileDataProblem problem = 2; } }
+message ProfileConfigurationReadRequest { ProfileDataRef expected = 1; string name = 2; }
+message ProfileConfigurationDocument {
+  string preview_id = 1; ProfileDataRef expected = 2; string name = 3; bool exists = 4;
+  uint64 length = 5; optional string sha256 = 6; TextDocument document = 7;
+}
+message ProfileConfigurationReadReply { oneof result { ProfileConfigurationDocument document = 1; ProfileDataProblem problem = 2; } }
+message ProfileConfigurationSaveRequest {
+  string id = 1; string preview_id = 2; ProfileDataRef expected = 3; string name = 4; string content = 5;
+}
+message ProfileConfigurationRestoreRequest { string workspace_id = 1; string action_id = 2; }
 enum InitialProfileSaves { INITIAL_PROFILE_SAVES_UNSPECIFIED = 0; INITIAL_PROFILE_SAVES_EMPTY = 1; INITIAL_PROFILE_SAVES_COPY_GLOBAL = 2; }
 enum DisabledProfileFiles { DISABLED_PROFILE_FILES_UNSPECIFIED = 0; DISABLED_PROFILE_FILES_KEEP = 1; DISABLED_PROFILE_FILES_DELETE = 2; }
 message ProfileDataEditRequest {

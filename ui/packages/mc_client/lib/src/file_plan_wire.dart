@@ -24,6 +24,7 @@ wire.FilePreviewSource encodeSource(FilePreviewSource source) =>
           length: Int64(value.length),
           sha256: value.sha256,
           payloadId: value.payloadId,
+          modRevision: Int64(value.modRevision),
         ),
       ),
       CheckedGamePreviewSource value => wire.FilePreviewSource(
@@ -59,6 +60,7 @@ FilePreviewSource decodeSource(wire.FilePreviewSource source) =>
         length: source.managed.length.toInt(),
         sha256: source.managed.sha256,
         payloadId: source.managed.payloadId,
+        modRevision: source.managed.modRevision.toInt(),
       ),
       wire.FilePreviewSource_Source.game => CheckedGamePreviewSource(
         snapshotId: source.game.snapshotId,
@@ -152,6 +154,31 @@ FilePreviewResult preview(wire.FilePreviewReply reply) =>
       ),
     };
 
+TextDocument textDocument(wire.TextDocument value) => TextDocument(
+  content: value.content,
+  encoding: switch (value.encoding) {
+    wire.TextDocumentEncoding.TEXT_DOCUMENT_ENCODING_UTF8 =>
+      TextDocumentEncoding.utf8,
+    wire.TextDocumentEncoding.TEXT_DOCUMENT_ENCODING_UTF8_BOM =>
+      TextDocumentEncoding.utf8Bom,
+    wire.TextDocumentEncoding.TEXT_DOCUMENT_ENCODING_UTF16_LITTLE =>
+      TextDocumentEncoding.utf16Little,
+    wire.TextDocumentEncoding.TEXT_DOCUMENT_ENCODING_UTF16_BIG =>
+      TextDocumentEncoding.utf16Big,
+    _ => throw const FormatException('Unknown text encoding.'),
+  },
+  newline: switch (value.newline) {
+    wire.TextDocumentNewline.TEXT_DOCUMENT_NEWLINE_NO_LINE_BREAKS =>
+      TextDocumentNewline.noLineBreaks,
+    wire.TextDocumentNewline.TEXT_DOCUMENT_NEWLINE_LF => TextDocumentNewline.lf,
+    wire.TextDocumentNewline.TEXT_DOCUMENT_NEWLINE_CRLF =>
+      TextDocumentNewline.crlf,
+    _ => throw const FormatException('Unknown text line endings.'),
+  },
+  finalTerminator: value.finalTerminator,
+  lines: value.lines,
+);
+
 wire.FilePlanCursor? encodeCursor(FilePlanCursor? cursor) => cursor == null
     ? null
     : wire.FilePlanCursor(identity: cursor.identity, offset: cursor.offset);
@@ -241,6 +268,10 @@ Never reject(
   wire.FilePlanFaultCode.FILE_PLAN_FAULT_INVALID_COPY =>
     FilePlanFailure.invalidCopy,
   wire.FilePlanFaultCode.FILE_PLAN_FAULT_BLOCKED => FilePlanFailure.blocked,
+  wire.FilePlanFaultCode.FILE_PLAN_FAULT_UNSUPPORTED =>
+    FilePlanFailure.unsupported,
+  wire.FilePlanFaultCode.FILE_PLAN_FAULT_INVALID_EDIT =>
+    FilePlanFailure.invalidEdit,
   _ => throw const FormatException('Unknown file planning failure.'),
 }, fault.detail);
 FilePlanState reply(wire.FilePlanReply reply) => switch (reply.whichOutcome()) {

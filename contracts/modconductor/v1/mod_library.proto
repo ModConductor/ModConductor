@@ -102,7 +102,9 @@ message ModPayload { string payload_id = 1; uint64 length = 2; string sha256 = 3
 message ModManifestEntry { ModLogicalPath path = 1; ModPayload payload = 2; }
 message ModVersionOrigin { optional string output_action_id = 1;
   optional string archive_artifact_id = 2;
-  optional BundleProvenance bundle = 3; }
+  optional BundleProvenance bundle = 3;
+  optional string edited_from_version_id = 4;
+  ModLogicalPath edited_path = 5; }
 message ModVersionPage {
   string version_id = 1; string mod_id = 2;
   repeated ModManifestEntry entries = 3; // At most 64; immutable original logical paths.
