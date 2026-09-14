@@ -34,6 +34,11 @@ type Inspection(source: IArtifactSource, ?limits: ArchiveLimits, ?nested: INeste
 
     member _.WithOwnedStream(sha, file: Stream, token, consume) = read sha file token consume
 
+    member _.IdentifyBethesdaOwnedStream(file: Stream) =
+        BethesdaArchive.tryIdentify file
+        |> Option.defaultWith (fun () ->
+            raise (NotSupportedException "Unknown Bethesda archive format"))
+
     member _.WithContents(reference, token: CancellationToken, consume: ArchiveContents -> 'a) =
         source.ReadVerified(
             reference,

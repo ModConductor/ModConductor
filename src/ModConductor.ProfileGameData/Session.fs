@@ -14,7 +14,8 @@ type ProfileGameDataSession
         repository: IProfileDataRepository,
         enter: Guid -> IDisposable option,
         stopped: GameContextState -> unit,
-        plugins: ModConductor.Bethesda.PluginSession
+        plugins: ModConductor.Bethesda.PluginSession,
+        archives: ModConductor.Bethesda.ArchivePolicySession
     ) =
 
     let gate = obj ()
@@ -239,6 +240,7 @@ type ProfileGameDataSession
           WorkspaceStage = None
           DocumentsStage = None
           PluginStage = None
+          ChangedProfile = None
           Files = []
           CompletedFiles = 0
           Link = SaveLinkEffect.Unchanged
@@ -308,6 +310,12 @@ type ProfileGameDataSession
 
                             return Some privateData
                         | ProfileDataActionKind.Restore -> return None
+                        | ProfileDataActionKind.ApplyArchives _
+                        | ProfileDataActionKind.RestoreArchives ->
+                            let! privateData =
+                                DataInitialization.profile repository context action.ProfileId
+
+                            return Some privateData
                         | ProfileDataActionKind.Clone _
                         | ProfileDataActionKind.Delete _ ->
                             return invalidOp "Use the profile mutation owner."
@@ -327,16 +335,32 @@ type ProfileGameDataSession
                     stopped scope.Game
 
                     let! updatedContext, prepared =
-                        DataActionPreparation.prepare
-                            repository
-                            context
-                            action
-                            incoming
-                            desiredPlugins
-                            token
+                        match action.Kind with
+                        | ProfileDataActionKind.ApplyArchives _
+                        | ProfileDataActionKind.RestoreArchives ->
+                            ArchivePreparation.prepare
+                                repository
+                                archives
+                                context
+                                action
+                                incoming.Value
+                                token
+                        | _ ->
+                            DataActionPreparation.prepare
+                                repository
+                                context
+                                action
+                                incoming
+                                desiredPlugins
+                                token
 
                     context <- updatedContext
                     action <- prepared
+
+                    match action.ChangedProfile with
+                    | Some profile -> changed <- Some profile
+                    | None -> ()
+
                     do! report action
 
                     let save current =
@@ -381,7 +405,9 @@ type ProfileGameDataSession
                             { profile with
                                 SettingsInitialized =
                                     options.Settings && profile.SettingsInitialized
-                                SavesInitialized = options.Saves && profile.SavesInitialized }
+                                SavesInitialized = options.Saves && profile.SavesInitialized
+                                ArchiveList =
+                                    if options.Settings then profile.ArchiveList else None }
                 | _ -> ()
 
                 do! repository.Complete(context, changed, action)
@@ -622,6 +648,138 @@ type ProfileGameDataSession
                 task {
                     let! value = PluginOrders.save repository plugins expected headers None
                     return Ok value
+                })
+
+    interface IProfileArchivePolicies with
+        member _.Scan(workspace, profile, headers, token) =
+            protect (fun () ->
+                task {
+                    requireIds [ workspace; profile; headers ]
+
+                    let! value =
+                        ArchivePolicies.scan
+                            repository
+                            plugins
+                            archives
+                            workspace
+                            profile
+                            headers
+                            token
+
+                    return Ok value
+                })
+
+        member _.Read(workspace, profile, snapshot, token) =
+            protect (fun () ->
+                task {
+                    requireIds [ workspace; profile; snapshot ]
+
+                    let! value =
+                        ArchivePolicies.read repository archives workspace profile snapshot token
+
+                    return Ok value
+                })
+
+        member _.Apply(id, expected, snapshot, progress, token) =
+            run expected.WorkspaceId (fun () ->
+                task {
+                    requireIds
+                        [ id
+                          expected.WorkspaceId
+                          expected.ProfileId
+                          expected.ContextId
+                          snapshot ]
+
+                    let! prior = repository.Action(expected.WorkspaceId, id)
+
+                    let! scope, kind =
+                        match prior with
+                        | Some previous ->
+                            match previous.Kind with
+                            | ProfileDataActionKind.ApplyArchives request when
+                                previous.ProfileId = expected.ProfileId
+                                && previous.ExpectedRevision = expected.Revision
+                                && request.SnapshotId = snapshot
+                                ->
+                                task {
+                                    let! scope =
+                                        repository.Read(expected.WorkspaceId, expected.ProfileId)
+
+                                    return scope, previous.Kind
+                                }
+                            | _ ->
+                                raise (ProfileDataException ProfileDataError.Stale)
+                        | None ->
+                            task {
+                                let! scope, request =
+                                    ArchivePolicies.prepareApply
+                                        repository
+                                        archives
+                                        expected
+                                        snapshot
+                                        token
+
+                                return scope, ProfileDataActionKind.ApplyArchives request
+                            }
+
+                    let! replayed =
+                        replay
+                            expected.WorkspaceId
+                            expected.ProfileId
+                            id
+                            kind
+                            expected.Revision
+
+                    match replayed with
+                    | Some result -> return Ok result
+                    | None ->
+                        check scope expected
+                        let! context = DataInitialization.context repository scope
+                        let! action = repository.Claim(context, initial id context scope.ProfileId kind)
+
+                        let! result =
+                            execute ignore None scope context action token progress (fun _ ->
+                                Task.FromResult())
+
+                        return Ok result
+                })
+
+        member _.Restore(id, expected, progress, token) =
+            run expected.WorkspaceId (fun () ->
+                task {
+                    requireIds [ id; expected.WorkspaceId; expected.ProfileId; expected.ContextId ]
+                    let kind = ProfileDataActionKind.RestoreArchives
+
+                    let! replayed =
+                        replay
+                            expected.WorkspaceId
+                            expected.ProfileId
+                            id
+                            kind
+                            expected.Revision
+
+                    match replayed with
+                    | Some result -> return Ok result
+                    | None ->
+                        let! scope = repository.Read(expected.WorkspaceId, expected.ProfileId)
+                        check scope expected
+
+                        if scope.Profile |> Option.bind _.ArchiveList |> Option.isNone then
+                            raise (
+                                ProfileDataException(
+                                    ProfileDataError.Invalid
+                                        "There are no archive changes to restore."
+                                )
+                            )
+
+                        let! context = DataInitialization.context repository scope
+                        let! action = repository.Claim(context, initial id context scope.ProfileId kind)
+
+                        let! result =
+                            execute ignore None scope context action token progress (fun _ ->
+                                Task.FromResult())
+
+                        return Ok result
                 })
 
     interface IProfileGameData with

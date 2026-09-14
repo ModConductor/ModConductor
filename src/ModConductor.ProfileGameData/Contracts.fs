@@ -99,6 +99,15 @@ type ProfilePluginOrder =
       Pending: bool
       Problem: string option }
 
+type ProfileArchivePolicy =
+    { Reference: ProfileDataRef
+      Snapshot: ModConductor.Bethesda.ArchivePolicySnapshot
+      IniName: string
+      Saved: bool
+      Applied: bool
+      Pending: bool
+      Problem: string option }
+
 type IProfilePluginOrders =
     abstract Read:
         workspace: Guid * profile: Guid * headers: Guid ->
@@ -111,6 +120,24 @@ type IProfilePluginOrders =
     abstract UseGameOrder:
         expected: ProfileDataRef * headers: Guid ->
             Task<Result<ProfilePluginOrder, ProfileDataError>>
+
+type IProfileArchivePolicies =
+    abstract Scan:
+        workspace: Guid * profile: Guid * headers: Guid * CancellationToken ->
+            Task<Result<ProfileArchivePolicy, ProfileDataError>>
+
+    abstract Read:
+        workspace: Guid * profile: Guid * snapshot: Guid * CancellationToken ->
+            Task<Result<ProfileArchivePolicy, ProfileDataError>>
+
+    abstract Apply:
+        id: Guid * expected: ProfileDataRef * snapshot: Guid *
+        (ProfileDataProgress -> unit) * CancellationToken ->
+            Task<Result<ProfileDataResult, ProfileDataError>>
+
+    abstract Restore:
+        id: Guid * expected: ProfileDataRef * (ProfileDataProgress -> unit) * CancellationToken ->
+            Task<Result<ProfileDataResult, ProfileDataError>>
 
 type IProfileGameData =
     abstract SaveFiles:

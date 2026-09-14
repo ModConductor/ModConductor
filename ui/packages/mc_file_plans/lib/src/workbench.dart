@@ -22,6 +22,7 @@ class FilePlanningWorkbench extends StatefulWidget {
     required this.chooseDirectory,
     this.profileName,
     this.plugins,
+    this.archives,
     this.maintenance,
     this.onOpenDeployment,
     this.onOpenNexus,
@@ -36,6 +37,7 @@ class FilePlanningWorkbench extends StatefulWidget {
   final Future<String?> Function(String?) chooseDirectory;
   final String? profileName;
   final PluginsController? plugins;
+  final ArchivePolicyController? archives;
   final void Function(ModEntry)? onOpenNexus;
   final MaintenanceClient? maintenance;
   final VoidCallback? onOpenDeployment;
@@ -100,6 +102,7 @@ class _FilePlanningWorkbenchState extends State<FilePlanningWorkbench> {
       _scaffold.currentState!.closeEndDrawer();
     } else {
       widget.plans.inspector.close();
+      widget.archives?.closeInspector();
       widget.onCloseAdditionalInspector?.call();
       _opener?.requestFocus();
     }
@@ -110,6 +113,7 @@ class _FilePlanningWorkbenchState extends State<FilePlanningWorkbench> {
     listenable: Listenable.merge([
       widget.plans,
       if (widget.plugins != null) widget.plugins!,
+      if (widget.archives != null) widget.archives!,
     ]),
     builder: (context, _) => LayoutBuilder(
       builder: (context, bounds) {
@@ -120,6 +124,11 @@ class _FilePlanningWorkbenchState extends State<FilePlanningWorkbench> {
         final version = widget.mods.selectedVersionId;
         Widget inspector() => widget.plugins?.inspecting == true
             ? PluginInspector(controller: widget.plugins!, onClose: _close)
+            : widget.archives?.inspecting == true
+            ? ArchivePolicyInspector(
+                controller: widget.archives!,
+                onClose: _close,
+              )
             : widget.additionalInspector?.call(_close) ??
                   FileSourcesInspector(
                     controller: widget.plans,
@@ -137,6 +146,7 @@ class _FilePlanningWorkbenchState extends State<FilePlanningWorkbench> {
             if (!open) {
               widget.plans.inspector.close();
               widget.plugins?.closeInspector();
+              widget.archives?.closeInspector();
               widget.onCloseAdditionalInspector?.call();
               _opener?.requestFocus();
             }
@@ -194,6 +204,22 @@ class _FilePlanningWorkbenchState extends State<FilePlanningWorkbench> {
                           },
                         ),
                       ),
+                    if (widget.archives case final archives?)
+                      ModFilePane(
+                        'bethesda-archives',
+                        'Archives',
+                        (context, narrow) => ArchivePolicyPane(
+                          controller: archives,
+                          narrow: narrow,
+                          onInspect: () {
+                            widget.plans.inspector.close();
+                            widget.plugins?.closeInspector();
+                            widget.onCloseAdditionalInspector?.call();
+                            _opener = FocusManager.instance.primaryFocus;
+                            _scaffold.currentState?.openEndDrawer();
+                          },
+                        ),
+                      ),
                     ModFilePane(
                       'skyrim-data',
                       'Skyrim Data',
@@ -220,6 +246,7 @@ class _FilePlanningWorkbenchState extends State<FilePlanningWorkbench> {
               ),
               if (!_compact &&
                   (widget.plans.inspector.visible ||
+                      widget.archives?.inspecting == true ||
                       widget.additionalInspector != null)) ...[
                 const SizedBox(width: 16),
                 SizedBox(width: 350, child: inspector()),

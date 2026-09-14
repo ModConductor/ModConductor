@@ -18,6 +18,7 @@ class DeploymentOutputsWorkbench extends StatelessWidget {
     required this.chooseDirectory,
     this.profileId,
     this.plugins,
+    this.archives,
     this.profileName,
     this.maintenance,
     this.onOpenDeployment,
@@ -28,6 +29,7 @@ class DeploymentOutputsWorkbench extends StatelessWidget {
   final ModLibraryController mods;
   final FilePlansController plans;
   final PluginsController? plugins;
+  final ArchivePolicyController? archives;
   final OutputController outputs;
   final String workspacePath;
   final Future<String?> Function(String?) chooseDirectory;
@@ -47,6 +49,7 @@ class DeploymentOutputsWorkbench extends StatelessWidget {
       onOpenDeployment: onOpenDeployment,
       plans: plans,
       plugins: plugins,
+      archives: archives,
       workspacePath: workspacePath,
       chooseDirectory: chooseDirectory,
       profileName: profileName,

@@ -51,7 +51,8 @@ module internal ProfileDataEncoding =
             option root writer value.Saves
             writer.Write value.SettingsInitialized
             writer.Write value.SavesInitialized
-            option pluginOrder writer value.PluginOrder)
+            option pluginOrder writer value.PluginOrder
+            option archivePatch writer value.ArchiveList)
 
     let readProfile =
         decode (fun version reader ->
@@ -66,6 +67,11 @@ module internal ProfileDataEncoding =
               PluginOrder =
                 if version >= 2 then
                     readOption readPluginOrder reader
+                else
+                    None
+              ArchiveList =
+                if version >= 3 then
+                    readOption readArchivePatch reader
                 else
                     None }
             : PrivateProfileData)
@@ -138,6 +144,14 @@ module internal ProfileDataEncoding =
         | ProfileDataActionKind.Delete revision ->
             writer.Write 4
             writer.Write revision
+        | ProfileDataActionKind.ApplyArchives request ->
+            writer.Write 5
+            guid writer request.SnapshotId
+            list text writer request.Names
+            sourceStamp writer request.Stamp
+            text writer request.IniName
+            option file writer request.Ini
+        | ProfileDataActionKind.RestoreArchives -> writer.Write 6
 
     let private readKind (reader: BinaryReader) =
         match reader.ReadInt32() with
@@ -164,6 +178,14 @@ module internal ProfileDataEncoding =
             let name = readText reader
             ProfileDataActionKind.Clone(id, name, reader.ReadInt64())
         | 4 -> ProfileDataActionKind.Delete(reader.ReadInt64())
+        | 5 ->
+            ProfileDataActionKind.ApplyArchives
+                { SnapshotId = readGuid reader
+                  Names = readList readText reader
+                  Stamp = readSourceStamp reader
+                  IniName = readText reader
+                  Ini = readOption readFile reader }
+        | 6 -> ProfileDataActionKind.RestoreArchives
         | _ -> invalid ()
 
     let private writePrivate (writer: BinaryWriter) value =
@@ -221,7 +243,8 @@ module internal ProfileDataEncoding =
             option applied writer value.Proposed
             writer.Write value.Complete
             option text writer value.Problem
-            option root writer value.PluginStage)
+            option root writer value.PluginStage
+            option writePrivate writer value.ChangedProfile)
 
     let readAction =
         decode (fun version reader ->
@@ -243,5 +266,10 @@ module internal ProfileDataEncoding =
               Proposed = readOption (readApplied version) reader
               Complete = reader.ReadBoolean()
               Problem = readOption readText reader
-              PluginStage = if version >= 2 then readOption readRoot reader else None }
+              PluginStage = if version >= 2 then readOption readRoot reader else None
+              ChangedProfile =
+                if version >= 3 then
+                    readOption readPrivate reader
+                else
+                    None }
             : ProfileDataActionRecord)

@@ -136,7 +136,8 @@ module internal PluginOrders =
                       Saves = None
                       SettingsInitialized = false
                       SavesInitialized = false
-                      PluginOrder = None }
+                      PluginOrder = None
+                      ArchiveList = None }
 
             let adopt (active: AppliedProfileData) =
                 if change.IsSome then

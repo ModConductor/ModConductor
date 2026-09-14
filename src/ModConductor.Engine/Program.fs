@@ -100,6 +100,14 @@ let runWithNexus registration (handoff: ModConductor.Nexus.IOAuthHandoff) args =
     builder.Services.AddSingleton<ModConductor.Engine.PluginOrderService>()
     |> ignore
 
+    builder.Services.AddSingleton<ModConductor.ProfileGameData.IProfileArchivePolicies>(
+        store.ArchivePolicies
+    )
+    |> ignore
+
+    builder.Services.AddSingleton<ModConductor.Engine.ArchivePolicyService>()
+    |> ignore
+
     builder.Services.AddSingleton<ModConductor.Bethesda.PluginSession>(store.Plugins)
     |> ignore
 
@@ -262,6 +270,9 @@ let runWithNexus registration (handoff: ModConductor.Nexus.IOAuthHandoff) args =
         .AddServiceOptions<ModConductor.Engine.PluginOrderService>(fun options ->
             options.MaxReceiveMessageSize <- Nullable(1024 * 1024)
             options.MaxSendMessageSize <- Nullable(17 * 1024 * 1024))
+        .AddServiceOptions<ModConductor.Engine.ArchivePolicyService>(fun options ->
+            options.MaxReceiveMessageSize <- Nullable(1024 * 1024)
+            options.MaxSendMessageSize <- Nullable(17 * 1024 * 1024))
         .AddServiceOptions<ModConductor.Engine.BethesdaPluginService>(fun options ->
             options.MaxReceiveMessageSize <- Nullable 4096
             options.MaxSendMessageSize <- Nullable(16 * 1024 * 1024))
@@ -362,6 +373,7 @@ let runWithNexus registration (handoff: ModConductor.Nexus.IOAuthHandoff) args =
     app.MapGrpcService<ModConductor.Engine.DownloadService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.DeploymentService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.PluginOrderService>() |> ignore
+    app.MapGrpcService<ModConductor.Engine.ArchivePolicyService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.BethesdaPluginService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.FilePlanService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.SteamDiscoveryService>() |> ignore

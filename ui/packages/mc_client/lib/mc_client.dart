@@ -40,3 +40,4 @@ export 'src/nexus_metadata_client.dart';
 export 'src/bethesda_client.dart';
 
 export 'src/plugin_order_client.dart';
+export 'src/archive_policy_client.dart';

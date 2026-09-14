@@ -9,7 +9,17 @@ open ModConductor.Native.Fixtures
 [<EntryPoint>]
 let main args =
     try
-        if args.Length = 2 && args[0] = "--plugin-order-files" then
+        if args.Length = 1 && args[0] = "--archive-policy" then
+            use writer =
+                new Utf8JsonWriter(Console.OpenStandardOutput(), JsonWriterOptions(Indented = true))
+
+            writer.WriteStartObject()
+            writer.WriteBoolean("nativeAot", not RuntimeFeature.IsDynamicCodeSupported)
+            ArchivePolicyFixtures.observe writer
+            writer.WriteEndObject()
+            writer.Flush()
+            0
+        elif args.Length = 2 && args[0] = "--plugin-order-files" then
             PluginOrderSamples.files args[1] |> Console.WriteLine
             0
         elif args.Length = 2 && args[0] = "--plugin-order" then

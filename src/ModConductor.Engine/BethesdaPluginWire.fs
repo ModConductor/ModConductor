@@ -15,7 +15,7 @@ module internal BethesdaPluginWire =
         | PluginKind.LightPlugin -> "Light plugin"
         | PluginKind.LightMaster -> "Light master"
 
-    let private source target (value: PluginSource) =
+    let source target (value: PluginSource) =
         let output = BethesdaPluginSource(Name = value.Name, Version = value.Version)
 
         match value.Source with

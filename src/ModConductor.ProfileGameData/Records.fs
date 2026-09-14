@@ -14,7 +14,8 @@ type internal PrivateProfileData =
       Saves: DataRoot option
       SettingsInitialized: bool
       SavesInitialized: bool
-      PluginOrder: ModConductor.Bethesda.PluginOrder option }
+      PluginOrder: ModConductor.Bethesda.PluginOrder option
+      ArchiveList: ArchiveListOverride option }
 
 type internal GlobalIni =
     { Name: string
@@ -51,6 +52,13 @@ type internal ProfileDataFilesEffect =
       Backups: DataRoot
       Change: PreparedFileChange }
 
+type internal ArchivePolicyApply =
+    { SnapshotId: Guid
+      Names: string list
+      Stamp: ModConductor.FilePlanning.SourceStamp
+      IniName: string
+      Ini: DataFile option }
+
 [<RequireQualifiedAccess>]
 type internal SaveLinkEffect =
     | Unchanged
@@ -63,6 +71,8 @@ type internal ProfileDataActionKind =
     | Edit of ProfileDataOptions * InitialSaves * DisabledFiles
     | Apply
     | Restore
+    | ApplyArchives of ArchivePolicyApply
+    | RestoreArchives
     | Clone of target: Guid * name: string * workspaceRevision: int64
     | Delete of workspaceRevision: int64
 
@@ -89,6 +99,7 @@ type internal ProfileDataActionRecord =
       WorkspaceStage: DataRoot option
       DocumentsStage: DataRoot option
       PluginStage: DataRoot option
+      ChangedProfile: PrivateProfileData option
       Files: ProfileDataFilesEffect list
       CompletedFiles: int
       Link: SaveLinkEffect

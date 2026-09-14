@@ -61,7 +61,8 @@ module internal DataInitialization =
                       Saves = None
                       SettingsInitialized = false
                       SavesInitialized = false
-                      PluginOrder = None }
+                      PluginOrder = None
+                      ArchiveList = None }
 
             if previous.IsNone then
                 do! repository.SaveProfile(context.Id, value)

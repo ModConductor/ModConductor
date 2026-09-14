@@ -16,12 +16,15 @@
     <Compile Include="Initialization.fs" />
     <Compile Include="PluginOrders.fs" />
     <Compile Include="PluginPreparation.fs" />
+    <Compile Include="ArchivePolicies.fs" />
     <Compile Include="ActionPreparation.fs" />
+    <Compile Include="ArchivePreparation.fs" />
     <Compile Include="Cloning.fs" />
     <Compile Include="Browsing.fs" />
     <Compile Include="Session.fs" />
     <ProjectReference Include="../ModConductor.GameContexts/ModConductor.GameContexts.fsproj" />
     <ProjectReference Include="../ModConductor.Bethesda/ModConductor.Bethesda.fsproj" />
+    <ProjectReference Include="../ModConductor.ArchiveInspection/ModConductor.ArchiveInspection.fsproj" />
     <PackageReference Include="FSharp.Core" />
   </ItemGroup>
 </Project>

@@ -1,4 +1,5 @@
 import 'plugin_order_client.dart';
+import 'archive_policy_client.dart';
 import 'bethesda_client.dart';
 import 'link_setup_client.dart';
 import 'nxm_client.dart';
@@ -113,6 +114,8 @@ class EngineOwner {
       _state is EngineConnected ? _session?.deployments : null;
   PluginOrderClient? get pluginOrders =>
       _state is EngineConnected ? _session?.pluginOrders : null;
+  ArchivePolicyClient? get archivePolicies =>
+      _state is EngineConnected ? _session?.archivePolicies : null;
   BethesdaClient? get bethesda =>
       _state is EngineConnected ? _session?.bethesda : null;
   FilePlansClient? get filePlans =>

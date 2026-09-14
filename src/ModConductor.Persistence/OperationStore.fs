@@ -50,6 +50,12 @@ type OperationStore
     let plugins =
         ModConductor.Bethesda.PluginSession(FilePlanRepository(database, modLibrary.Access))
 
+    let archivePolicies =
+        ModConductor.Bethesda.ArchivePolicySession(
+            FilePlanRepository(database, modLibrary.Access),
+            archiveInspection
+        )
+
     let deployment =
         ModConductor.DeploymentRecovery.Recovery(DeploymentRepository(database))
 
@@ -76,7 +82,8 @@ type OperationStore
             ProfileDataRepository(database, modLibrary.Access),
             deploymentBackend.TryAcquireWorkspace,
             ModConductor.Deployment.GameProcesses.validate >> ignore,
-            plugins
+            plugins,
+            archivePolicies
         )
 
     let profileMutations =
@@ -202,6 +209,9 @@ type OperationStore
 
     member _.PluginOrders =
         profileGameData :> ModConductor.ProfileGameData.IProfilePluginOrders
+
+    member _.ArchivePolicies =
+        profileGameData :> ModConductor.ProfileGameData.IProfileArchivePolicies
 
     member _.ProfileGameData =
         profileGameData :> ModConductor.ProfileGameData.IProfileGameData
@@ -379,6 +389,7 @@ type OperationStore
     member _.DrainDeployments() =
         task {
             do! plugins.Drain()
+            do! archivePolicies.Drain()
             do! deploymentBackend.Drain()
             do! profileGameData.Drain()
         }
@@ -391,6 +402,7 @@ type OperationStore
             if
                 not (
                     plugins.TryClose()
+                    && archivePolicies.TryClose()
                     && installations.TryClose()
                     && deletions.TryClose()
                     && downloads.TryClose()

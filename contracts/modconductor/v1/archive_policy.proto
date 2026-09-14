@@ -1,0 +1,57 @@
+syntax = "proto3";
+package modconductor.v1;
+option csharp_namespace = "ModConductor.Protocol.V1";
+import "modconductor/v1/bethesda_plugins.proto";
+import "modconductor/v1/profile_data.proto";
+
+service ArchivePolicies {
+  rpc ScanArchivePolicy(ScanArchivePolicyRequest) returns (ArchivePolicyReply);
+  rpc ReadArchivePolicy(ReadArchivePolicyRequest) returns (ArchivePolicyReply);
+  rpc ApplyArchivePolicy(ApplyArchivePolicyRequest) returns (stream ProfileDataEvent);
+  rpc RestoreArchivePolicy(RestoreArchivePolicyRequest) returns (stream ProfileDataEvent);
+}
+
+message ScanArchivePolicyRequest { string workspace_id = 1; string profile_id = 2; string headers_id = 3; }
+message ReadArchivePolicyRequest { string workspace_id = 1; string profile_id = 2; string snapshot_id = 3; }
+message ApplyArchivePolicyRequest { string id = 1; ProfileDataRef expected = 2; string snapshot_id = 3; }
+message RestoreArchivePolicyRequest { string id = 1; ProfileDataRef expected = 2; }
+
+enum ArchivePolicyState {
+  ARCHIVE_POLICY_STATE_UNSPECIFIED = 0;
+  ARCHIVE_POLICY_STATE_ACTIVE = 1;
+  ARCHIVE_POLICY_STATE_INACTIVE = 2;
+  ARCHIVE_POLICY_STATE_UNAVAILABLE = 3;
+  ARCHIVE_POLICY_STATE_UNSUPPORTED = 4;
+}
+
+message ArchivePolicyEntry {
+  string name = 1;
+  optional uint32 position = 2;
+  ArchivePolicyState state = 3;
+  bool required = 4;
+  bool explicit = 5;
+  string ini_key = 6;
+  optional uint32 ini_position = 7;
+  string associated_plugin = 8;
+  repeated string reasons = 9;
+  BethesdaPluginSource source = 10;
+  string format = 11;
+  string problem = 12;
+}
+
+message ArchivePolicyView {
+  ProfileDataRef reference = 1;
+  string snapshot_id = 2;
+  int64 observed_at_unix_ms = 3;
+  bool stale = 4;
+  repeated ArchivePolicyEntry entries = 5;
+  repeated string problems = 6;
+  repeated string blocking_problems = 7;
+  bool saved = 8;
+  bool applied = 9;
+  bool pending = 10;
+  string pending_problem = 11;
+  string invalidation = 12;
+}
+
+message ArchivePolicyReply { oneof outcome { ArchivePolicyView policy = 1; ProfileDataProblem problem = 2; } }

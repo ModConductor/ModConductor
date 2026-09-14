@@ -60,6 +60,7 @@ class ModConductorApp extends StatefulWidget {
     this.filePlans,
     this.bethesda,
     this.pluginOrders,
+    this.archivePolicies,
     this.outputs,
     this.deployments,
     this.executables,
@@ -92,6 +93,7 @@ class ModConductorApp extends StatefulWidget {
   final FilePlansClient? filePlans;
   final BethesdaClient? bethesda;
   final PluginOrderClient? pluginOrders;
+  final ArchivePolicyClient? archivePolicies;
   final GeneratedOutputsClient? outputs;
   final DeploymentsClient? deployments;
   final ExecutablesClient? executables;
@@ -132,6 +134,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
   final _game = GameContextController();
   final _files = FilePlansController();
   final _plugins = PluginsController();
+  final _archives = ArchivePolicyController();
   final _outputs = OutputController();
   final _artifacts = ArtifactController();
   final _nexusDetails = ModNexusController();
@@ -147,6 +150,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
         (_catalogueRevision != null &&
             _catalogueRevision != _mods.inventory.catalogueRevision)) {
       _plugins.invalidate();
+      _archives.invalidate();
       _deployments.invalidate();
       _play.invalidate();
     }
@@ -156,6 +160,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
 
   void _outputsChanged() {
     _plugins.invalidate();
+    _archives.invalidate();
     _files.invalidate();
     _deployments.invalidate();
     unawaited(_mods.inventory.refreshCatalogue());
@@ -163,6 +168,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
 
   void _deploymentChanged() {
     _plugins.invalidate();
+    _archives.invalidate();
     _files.invalidate();
     _outputs.invalidate();
   }
@@ -171,6 +177,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
     final revision = _game.state?.revision;
     if (_contextRevision != null && revision != _contextRevision) {
       _plugins.invalidate();
+      _archives.invalidate();
       _files.invalidate();
       _outputs.invalidate();
       _deployments.invalidate();
@@ -222,6 +229,13 @@ class _ModConductorAppState extends State<ModConductorApp> {
       _workspaces.workspace?.selectedProfile?.id,
       orders: widget.pluginOrders,
     );
+    _archives.resumeAction = _plugins.resumeAction;
+    _archives.attach(
+      widget.archivePolicies,
+      _plugins,
+      _workspaces.workspace?.id,
+      _workspaces.workspace?.selectedProfile?.id,
+    );
     _files.attach(
       widget.filePlans,
       _workspaces.workspace?.selectedProfile?.id,
@@ -252,10 +266,16 @@ class _ModConductorAppState extends State<ModConductorApp> {
     _plugins.onChanged = () {
       _play.invalidate();
       _profileData.invalidate();
+      _archives.invalidate();
+    };
+    _archives.onChanged = () {
+      _play.invalidate();
+      _profileData.invalidate();
     };
     _profileData.onChanged = () {
       _play.invalidate();
       _plugins.invalidate();
+      _archives.invalidate();
     };
     _play.onDeploymentChanged = () {
       _profileData.invalidate();
@@ -287,6 +307,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
     _play.dispose();
     _profileData.dispose();
     _plugins.dispose();
+    _archives.dispose();
     _files.dispose();
     _mods.dispose();
     _game.dispose();
@@ -546,6 +567,9 @@ class _ModConductorAppState extends State<ModConductorApp> {
                                   plugins: widget.bethesda == null
                                       ? null
                                       : _plugins,
+                                  archives: widget.archivePolicies == null
+                                      ? null
+                                      : _archives,
                                   workspacePath: workspace.path,
                                   chooseDirectory: widget.chooseDirectory,
                                   profileName: workspace.selectedProfile?.name,
@@ -579,6 +603,9 @@ class _ModConductorAppState extends State<ModConductorApp> {
                                   plugins: widget.bethesda == null
                                       ? null
                                       : _plugins,
+                                  archives: widget.archivePolicies == null
+                                      ? null
+                                      : _archives,
                                   outputs: _outputs,
                                   profileId: workspace.selectedProfile?.id,
                                   organization: widget.modOrganization,

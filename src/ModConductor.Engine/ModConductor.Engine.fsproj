@@ -38,6 +38,7 @@
     <Compile Include="GameLaunchService.fs" />
     <Compile Include="ProfileDataWire.fs" />
     <Compile Include="PluginOrderService.fs" />
+    <Compile Include="ArchivePolicyService.fs" />
     <Compile Include="ProfileDataService.fs" />
     <Compile Include="ArtifactService.fs" />
     <Compile Include="DownloadService.fs" />

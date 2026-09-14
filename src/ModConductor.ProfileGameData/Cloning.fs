@@ -80,7 +80,8 @@ module internal ProfileCloning =
                       Saves = None
                       SettingsInitialized = false
                       SavesInitialized = false
-                      PluginOrder = source.PluginOrder }
+                      PluginOrder = source.PluginOrder
+                      ArchiveList = source.ArchiveList }
 
             let saveTarget () =
                 task {

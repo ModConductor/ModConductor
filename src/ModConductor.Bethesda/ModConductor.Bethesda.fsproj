@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup><IsAotCompatible>true</IsAotCompatible></PropertyGroup>
   <ItemGroup>
+    <Compile Include="AssemblyInfo.fs" />
     <Compile Include="Contracts.fs" />
     <Compile Include="PluginText.fs" />
     <Compile Include="HeaderReader.fs" />
@@ -9,7 +10,12 @@
     <Compile Include="OrderDocument.fs" />
     <Compile Include="OrderRules.fs" />
     <Compile Include="PluginSession.fs" />
+    <Compile Include="ArchiveContracts.fs" />
+    <Compile Include="SkyrimArchivePolicy.fs" />
+    <Compile Include="ArchiveSession.fs" />
     <ProjectReference Include="../ModConductor.FilePlanning/ModConductor.FilePlanning.fsproj" />
+    <ProjectReference Include="../ModConductor.ArchiveInspection/ModConductor.ArchiveInspection.fsproj" />
+    <ProjectReference Include="../ModConductor.ArtifactLibrary/ModConductor.ArtifactLibrary.fsproj" />
     <PackageReference Include="FSharp.Core" />
   </ItemGroup>
 </Project>

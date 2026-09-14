@@ -97,6 +97,80 @@ module internal ProfileDataValueEncoding =
           AddedSeparator = reader.ReadBoolean()
           AbsentFile = reader.ReadBoolean() }
 
+    let archiveLine (writer: BinaryWriter) (value: ArchiveLineOverride) =
+        text writer value.Key
+        text writer value.Value
+        option text writer value.PreviousLine
+
+    let readArchiveLine (reader: BinaryReader) : ArchiveLineOverride =
+        { Key = readText reader
+          Value = readText reader
+          PreviousLine = readOption readText reader }
+
+    let archivePatch (writer: BinaryWriter) (value: ArchiveListOverride) =
+        list archiveLine writer value.Lines
+        writer.Write value.AddedSection
+
+        match value.Separator with
+        | IniSeparatorOverride.None -> writer.Write 0
+        | IniSeparatorOverride.SectionHeader previous ->
+            writer.Write 1
+            text writer previous
+        | IniSeparatorOverride.FileTail previous ->
+            writer.Write 2
+            text writer previous
+
+        writer.Write value.AbsentFile
+
+    let readArchivePatch (reader: BinaryReader) : ArchiveListOverride =
+        let lines = readList readArchiveLine reader
+        let added = reader.ReadBoolean()
+
+        let separator =
+            match reader.ReadInt32() with
+            | 0 -> IniSeparatorOverride.None
+            | 1 -> IniSeparatorOverride.SectionHeader(readText reader)
+            | 2 -> IniSeparatorOverride.FileTail(readText reader)
+            | _ -> invalid ()
+
+        { Lines = lines
+          AddedSection = added
+          Separator = separator
+          AbsentFile = reader.ReadBoolean() }
+
+    let sourceStamp
+        (writer: BinaryWriter)
+        (value: ModConductor.FilePlanning.SourceStamp)
+        =
+        guid writer value.WorkspaceId
+        guid writer value.ProfileId
+        writer.Write value.SelectionRevision
+        writer.Write value.ContextRevision
+        writer.Write value.ExclusionRevision
+        writer.Write value.OutputRevision
+
+        list
+            (fun writer (modId, version) ->
+                guid writer modId
+                option guid writer version)
+            writer
+            value.Versions
+
+        option text writer value.Deployment
+
+    let readSourceStamp (reader: BinaryReader) : ModConductor.FilePlanning.SourceStamp =
+        { WorkspaceId = readGuid reader
+          ProfileId = readGuid reader
+          SelectionRevision = reader.ReadInt64()
+          ContextRevision = reader.ReadInt64()
+          ExclusionRevision = reader.ReadInt64()
+          OutputRevision = reader.ReadInt64()
+          Versions =
+            readList
+                (fun reader -> readGuid reader, readOption readGuid reader)
+                reader
+          Deployment = readOption readText reader }
+
     let original writer (value: GlobalIni) =
         text writer value.Name
         option stored writer value.Original
@@ -179,7 +253,7 @@ module internal ProfileDataValueEncoding =
     let encode write value =
         use stream = new MemoryStream()
         use writer = new BinaryWriter(stream, UTF8Encoding(false, true), true)
-        writer.Write 2
+        writer.Write 3
         write writer value
         writer.Flush()
 
@@ -197,7 +271,7 @@ module internal ProfileDataValueEncoding =
 
         let version = reader.ReadInt32()
 
-        if version <> 1 && version <> 2 then
+        if version <> 1 && version <> 2 && version <> 3 then
             invalid ()
 
         let value = read version reader
