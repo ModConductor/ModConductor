@@ -17,11 +17,13 @@ class PlannedFiles extends StatelessWidget {
     required this.focusNode,
     this.narrow = false,
     this.archiveUnavailable = false,
+    this.onOpenProblems,
   });
   final FilePlansController controller;
   final ValueChanged<PlannedFileNode> onInspect;
   final FocusNode focusNode;
   final bool narrow, archiveUnavailable;
+  final VoidCallback? onOpenProblems;
   @override
   Widget build(BuildContext context) {
     final state = controller.state;
@@ -64,10 +66,13 @@ class PlannedFiles extends StatelessWidget {
             Align(
               alignment: Alignment.centerLeft,
               child: TextButton(
-                onPressed: () => showDialog<void>(
-                  context: context,
-                  builder: (_) => FileProblemsDialog(load: controller.problems),
-                ),
+                onPressed:
+                    onOpenProblems ??
+                    () => showDialog<void>(
+                      context: context,
+                      builder: (_) =>
+                          FileProblemsDialog(load: controller.problems),
+                    ),
                 child: const Text('Show problems'),
               ),
             ),

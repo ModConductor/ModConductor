@@ -1,3 +1,4 @@
+import 'diagnostics_client.dart';
 import 'plugin_order_client.dart';
 import 'loot_client.dart';
 import 'archive_policy_client.dart';
@@ -102,6 +103,8 @@ class EngineSession {
   ProfileModsClient get profileMods => _profileMods!;
   ModLibraryClient? _modLibrary;
   ModLibraryClient get modLibrary => _modLibrary!;
+  DiagnosticsClient? _diagnostics;
+  DiagnosticsClient get diagnostics => _diagnostics!;
   WorkspacesClient? _workspaces;
   WorkspacesClient get workspaces => _workspaces!;
   Future<void>? _closing;
@@ -141,6 +144,10 @@ class EngineSession {
       metadata: {'mc-session': capability},
     );
     _operations = OperationsClient(channel, options);
+    _diagnostics = GrpcDiagnosticsClient(
+      channel,
+      CallOptions(metadata: options.metadata),
+    );
     _workspaces = GrpcWorkspacesClient(channel, options);
     _modLibrary = ModLibraryClient(channel, options);
     _profileMods = ProfileModsClient(channel, options);

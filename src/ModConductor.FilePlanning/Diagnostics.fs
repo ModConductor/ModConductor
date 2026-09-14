@@ -56,3 +56,94 @@ module Diagnostics =
         match Visibility.original visibility with
         | PlanningResult.Ready _ -> []
         | PlanningResult.Blocked blocked -> blocked.Issues
+
+    let private code =
+        function
+        | PlanningIssue.IncompleteSelection -> "incomplete-selection"
+        | PlanningIssue.DuplicateRoot _ -> "duplicate-root"
+        | PlanningIssue.DuplicateLayer _ -> "duplicate-layer"
+        | PlanningIssue.MissingVersion _ -> "missing-version"
+        | PlanningIssue.WrongModVersion _ -> "wrong-version"
+        | PlanningIssue.IncompleteManifest _ -> "incomplete-manifest"
+        | PlanningIssue.IncompleteSnapshot _ -> "incomplete-game-files"
+        | PlanningIssue.InvalidContent _ -> "invalid-content"
+        | PlanningIssue.InconsistentPayload _ -> "inconsistent-content"
+        | PlanningIssue.MissingTargetRoot _ -> "missing-target"
+        | PlanningIssue.UnmappedFile _ -> "unmapped-file"
+        | PlanningIssue.AmbiguousMapping _ -> "ambiguous-mapping"
+        | PlanningIssue.FileMappedToRoot _ -> "file-at-root"
+        | PlanningIssue.InvalidTargetName _ -> "invalid-target-name"
+        | PlanningIssue.InvalidArchiveAnnotation _ -> "invalid-archive-source"
+        | PlanningIssue.TargetAlias _ -> "target-alias"
+        | PlanningIssue.PrecedenceTie _ -> "priority-tie"
+        | PlanningIssue.DirectorySpellingTie _ -> "directory-name-tie"
+        | PlanningIssue.FileDirectoryConflict _ -> "file-directory-conflict"
+        | PlanningIssue.WritableDirectorySpellingTie _ -> "writable-name-tie"
+        | PlanningIssue.DuplicateWritableId _ -> "duplicate-writable"
+        | PlanningIssue.OverlappingWritableTargets _ -> "overlapping-writable"
+        | PlanningIssue.WritableStructureConflict _ -> "writable-conflict"
+
+    let private targetPath =
+        function
+        | PlanningIssue.InvalidTargetName(value, _)
+        | PlanningIssue.TargetAlias(value, _)
+        | PlanningIssue.PrecedenceTie(value, _)
+        | PlanningIssue.DirectorySpellingTie(value, _)
+        | PlanningIssue.FileDirectoryConflict value
+        | PlanningIssue.WritableStructureConflict(_, value) -> Some value.Path
+        | PlanningIssue.InvalidContent(_, value)
+        | PlanningIssue.UnmappedFile(_, value)
+        | PlanningIssue.AmbiguousMapping(_, value)
+        | PlanningIssue.FileMappedToRoot(_, value)
+        | PlanningIssue.InvalidArchiveAnnotation(_, value) -> Some value
+        | PlanningIssue.IncompleteSelection
+        | PlanningIssue.DuplicateRoot _
+        | PlanningIssue.DuplicateLayer _
+        | PlanningIssue.MissingVersion _
+        | PlanningIssue.WrongModVersion _
+        | PlanningIssue.IncompleteManifest _
+        | PlanningIssue.IncompleteSnapshot _
+        | PlanningIssue.InconsistentPayload _
+        | PlanningIssue.MissingTargetRoot _
+        | PlanningIssue.WritableDirectorySpellingTie _
+        | PlanningIssue.DuplicateWritableId _
+        | PlanningIssue.OverlappingWritableTargets _ -> None
+
+    let private diagnosticSources (sources: PlanSources) =
+        function
+        | PlanningIssue.PrecedenceTie(_, contributions) ->
+            let labels = sources.Mods |> Seq.map (fun value -> value.Id, value) |> Map.ofSeq
+
+            contributions
+            |> List.choose (fun contribution ->
+                match contribution.Source with
+                | SourcePin.Snapshot _ -> None
+                | SourcePin.Mod(modId, versionId, entry) ->
+                    let copy =
+                        { ModId = modId
+                          VersionId = versionId
+                          Path = entry.Path }
+
+                    let label = labels |> Map.tryFind modId
+
+                    Some
+                        { Copy = copy
+                          Name = label |> Option.map _.Name |> Option.defaultValue "Saved mod"
+                          VersionLabel =
+                            label |> Option.map _.Version |> Option.defaultValue "Saved version"
+                          Priority = contribution.Precedence.Priority
+                          Hidden = sources.Hidden.Contains copy })
+        | _ -> []
+
+    let project sources issue =
+        let code = code issue
+        let path = targetPath issue
+
+        { Id =
+            match path with
+            | Some path -> code + ":" + LogicalPath.display path
+            | None -> code
+          Code = code
+          Title = describe issue
+          Target = path
+          Sources = diagnosticSources sources issue }

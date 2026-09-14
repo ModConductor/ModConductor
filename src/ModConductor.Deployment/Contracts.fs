@@ -84,6 +84,12 @@ type DeploymentReceipt =
       Total: int
       Detail: string }
 
+type DeploymentRecoveryPreview =
+    { ReceiptId: Guid
+      WorkspaceId: Guid
+      Revision: int64
+      Paths: string list }
+
 type IDeploymentBackend =
     abstract Read: profile: Guid -> Task<Result<DeploymentStatus, DeploymentError>>
 
@@ -121,6 +127,9 @@ type IDeploymentBackend =
             Task<Result<DeploymentReceipt, DeploymentError>>
 
     abstract Receipt: Guid -> Task<Result<DeploymentReceipt, DeploymentError>>
+
+    abstract PreviewRecovery:
+        receipt: Guid * revision: int64 -> Task<Result<DeploymentRecoveryPreview, DeploymentError>>
 
 type internal PreparedState =
     { View: PreparedDeployment

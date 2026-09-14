@@ -11,8 +11,14 @@ class WorkspaceController extends ChangeNotifier {
   WorkspacePage? page;
   bool showingWorkspace = false;
   int archiveNavigation = 0;
+  int helpNavigation = 0;
   void showArchives() {
     ++archiveNavigation;
+    _notify();
+  }
+
+  void showHelp() {
+    ++helpNavigation;
     _notify();
   }
 

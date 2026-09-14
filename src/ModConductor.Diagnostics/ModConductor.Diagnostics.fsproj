@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><IsAotCompatible>true</IsAotCompatible></PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Contracts.fs" />
+    <Compile Include="Checks.fs" />
+    <Compile Include="Remediation.fs" />
+    <Compile Include="SupportExport.fs" />
+    <Compile Include="Session.fs" />
+    <ProjectReference Include="../ModConductor.Workspaces/ModConductor.Workspaces.fsproj" />
+    <ProjectReference Include="../ModConductor.GameLaunching/ModConductor.GameLaunching.fsproj" />
+    <ProjectReference Include="../ModConductor.FilePlanning/ModConductor.FilePlanning.fsproj" />
+    <ProjectReference Include="../ModConductor.Deployment/ModConductor.Deployment.fsproj" />
+    <ProjectReference Include="../ModConductor.ProfileGameData/ModConductor.ProfileGameData.fsproj" />
+    <ProjectReference Include="../ModConductor.Operations/ModConductor.Operations.fsproj" />
+    <PackageReference Include="FSharp.Core" />
+  </ItemGroup>
+</Project>

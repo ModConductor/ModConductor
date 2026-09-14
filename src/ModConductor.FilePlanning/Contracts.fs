@@ -163,6 +163,20 @@ type FilePlanSummary =
       ProblemCount: int
       ObservedAt: DateTimeOffset option }
 
+type FileDiagnosticSource =
+    { Copy: ModFile
+      Name: string
+      VersionLabel: string
+      Priority: int
+      Hidden: bool }
+
+type FileDiagnosticProblem =
+    { Id: string
+      Code: string
+      Title: string
+      Target: LogicalPath option
+      Sources: FileDiagnosticSource list }
+
 type FileCursor = { Identity: string; Offset: int }
 
 type FilePage =
@@ -328,6 +342,9 @@ type IFilePlans =
 
     abstract Problems:
         Guid * FileCursor option -> Task<Result<string list * FileCursor option, FilePlanError>>
+
+    abstract DiagnosticProblems:
+        Guid -> Task<Result<FileDiagnosticProblem list, FilePlanError>>
 
     abstract Inspect:
         Guid * LogicalPath * FileCursor option -> Task<Result<FileInspection, FilePlanError>>

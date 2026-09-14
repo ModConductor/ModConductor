@@ -17,6 +17,7 @@ import 'package:mc_desktop/mc_desktop.dart' as desktop;
 import 'package:mc_game_contexts/mc_game_contexts.dart';
 import 'package:mc_file_plans/mc_file_plans.dart';
 import 'package:mc_client/mc_client.dart';
+import 'package:mc_ui_collections/mc_ui_collections.dart';
 import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 import 'package:mc_mod_library/mc_mod_library.dart';
 import 'package:mc_workspaces/mc_workspaces.dart';
@@ -25,6 +26,7 @@ part 'shell.dart';
 part 'preferences.dart';
 part 'status.dart';
 part 'desktop_host.dart';
+part 'help.dart';
 
 void _quitDesktop() {
   ServicesBinding.instance.exitApplication(AppExitType.cancelable);
@@ -58,6 +60,7 @@ class ModConductorApp extends StatefulWidget {
     this.modOrganization,
     this.gameContexts,
     this.filePlans,
+    this.diagnostics,
     this.bethesda,
     this.pluginOrders,
     this.loot,
@@ -92,6 +95,7 @@ class ModConductorApp extends StatefulWidget {
   final ModOrganizationClient? modOrganization;
   final GameContextsClient? gameContexts;
   final FilePlansClient? filePlans;
+  final DiagnosticsClient? diagnostics;
   final BethesdaClient? bethesda;
   final PluginOrderClient? pluginOrders;
   final LootClient? loot;
@@ -135,6 +139,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
   final _mods = ModLibraryController();
   final _game = GameContextController();
   final _files = FilePlansController();
+  final _diagnostics = DiagnosticsController();
   final _plugins = PluginsController();
   final _sortOrder = SortOrderController();
   final _archives = ArchivePolicyController();
@@ -174,6 +179,19 @@ class _ModConductorAppState extends State<ModConductorApp> {
     _archives.invalidate();
     _files.invalidate();
     _outputs.invalidate();
+    _diagnosticInputsChanged();
+  }
+
+  void _diagnosticInputsChanged() {
+    final receipt = _deployments.receipt;
+    _diagnostics.attach(
+      widget.diagnostics,
+      _workspaces.workspace?.id,
+      _workspaces.workspace?.selectedProfile?.id,
+      fileSnapshotId: _files.state?.id,
+      deploymentId: receipt?.id,
+      deploymentRevision: receipt?.revision,
+    );
   }
 
   void _gameChanged() {
@@ -249,6 +267,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
       _workspaces.workspace?.selectedProfile?.id,
       available: _workspaces.canEdit,
     );
+    _diagnosticInputsChanged();
     _game.attach(
       widget.gameContexts,
       workspaceId: _workspaces.workspace?.id,
@@ -269,6 +288,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
     super.initState();
     _game.addListener(_gameChanged);
     _mods.addListener(_modsChanged);
+    _files.addListener(_diagnosticInputsChanged);
     _outputs.onChanged = _outputsChanged;
     _deployments.onChanged = _deploymentChanged;
     _plugins.onChanged = () {
@@ -307,6 +327,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
     _workspaces.removeListener(_syncWorkspaceConsumers);
     _game.removeListener(_gameChanged);
     _mods.removeListener(_modsChanged);
+    _files.removeListener(_diagnosticInputsChanged);
     _outputs.dispose();
     _deployments.dispose();
     _artifacts.dispose();
@@ -318,6 +339,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
     _sortOrder.dispose();
     _archives.dispose();
     _files.dispose();
+    _diagnostics.dispose();
     _mods.dispose();
     _game.dispose();
     _workspaces.dispose();
@@ -482,6 +504,10 @@ class _ModConductorAppState extends State<ModConductorApp> {
                             chooseFile: widget.chooseArchive,
                             workspacePath: workspace.path,
                           ),
+                    helpBuilder: widget.diagnostics == null
+                        ? null
+                        : (context, workspace) =>
+                              HelpBrowser(controller: _diagnostics),
                     compactCloseAction:
                         widget.gameLaunching != null &&
                         MediaQuery.sizeOf(context).width < 950,
@@ -575,6 +601,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
                                           ),
                                         ),
                                   plans: _files,
+                                  onOpenProblems: _workspaces.showHelp,
                                   plugins: widget.bethesda == null
                                       ? null
                                       : _plugins,
@@ -614,6 +641,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
                                           ),
                                         ),
                                   plans: _files,
+                                  onOpenProblems: _workspaces.showHelp,
                                   plugins: widget.bethesda == null
                                       ? null
                                       : _plugins,

@@ -197,6 +197,20 @@ type FilePlanSession(repository: IFileCandidateRepository) =
                     | Some snapshot -> return PlanSnapshot.problems cursor snapshot
                 })
 
+        member _.DiagnosticProblems id =
+            run CancellationToken.None (fun _ ->
+                task {
+                    let! found = checkedSnapshot id
+
+                    return
+                        found
+                        |> Result.bind (fun (snapshot, stale) ->
+                            if stale then
+                                Error FilePlanError.Stale
+                            else
+                                Ok(PlanSnapshot.diagnosticProblems snapshot))
+                })
+
         member _.Inspect(id, target, cursor) =
             run CancellationToken.None (fun _ ->
                 task {

@@ -332,3 +332,36 @@ type DeploymentBackend internal (repository: IDeploymentRepository) =
                         |> Option.map (DeploymentReports.receipt >> Ok)
                         |> Option.defaultValue (Error DeploymentError.NotFound)
                 })
+
+        member _.PreviewRecovery(id, revision) =
+            protect (fun () ->
+                task {
+                    let! value = repository.Receipt id
+
+                    match value with
+                    | None -> return Error DeploymentError.NotFound
+                    | Some value when value.Revision <> revision ->
+                        return Error DeploymentError.Stale
+                    | Some value ->
+                        let paths =
+                            [ yield!
+                                  value.Changes
+                                  |> List.filter (fun change ->
+                                      change.Phase <> EntryPhase.Restored)
+                                  |> List.map (fun change ->
+                                      ModConductor.Platform.LogicalPath.display change.Target.Path)
+                              yield!
+                                  value.Parents
+                                  |> List.filter (fun change ->
+                                      change.Phase <> EntryPhase.Restored)
+                                  |> List.map (fun change ->
+                                      ModConductor.Platform.LogicalPath.display change.Target.Path) ]
+                            |> List.distinct
+
+                        return
+                            Ok
+                                { ReceiptId = value.Id
+                                  WorkspaceId = value.Context.Roots.Head.Root.Id
+                                  Revision = value.Revision
+                                  Paths = paths }
+                })

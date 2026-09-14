@@ -18,6 +18,7 @@ type internal PlanSnapshot =
       Index: FileIndex
       Planned: int
       Problems: string array
+      DiagnosticProblems: FileDiagnosticProblem array
       EncodedBytes: int64
       Queries: Dictionary<string, Map<LogicalPath option, LogicalPath array>> }
 
@@ -83,11 +84,26 @@ module internal PlanSnapshot =
 
         let index = FileIndex.build sources visibility
 
+        let issues = Diagnostics.issues visibility
+
         let problems =
             Array.ofList (
                 (contextProblem sources |> Option.toList)
-                @ (Diagnostics.issues visibility |> List.map Diagnostics.describe)
+                @ (issues |> List.map Diagnostics.describe)
             )
+
+        let diagnosticProblems =
+            [ yield!
+                  contextProblem sources
+                  |> Option.map (fun title ->
+                      { Id = "game-setup"
+                        Code = "game-setup"
+                        Title = title
+                        Target = None
+                        Sources = [] })
+                  |> Option.toList
+              yield! issues |> List.map (Diagnostics.project sources) ]
+            |> Array.ofList
 
         let bytes =
             (problems
@@ -128,6 +144,7 @@ module internal PlanSnapshot =
                   Visibility = visibility
                   Index = index
                   Problems = problems
+                  DiagnosticProblems = diagnosticProblems
                   Planned =
                     Visibility.files visibility
                     |> Map.toSeq
@@ -158,6 +175,19 @@ module internal PlanSnapshot =
                     { snapshot with
                         Id = Guid.NewGuid()
                         Sources = { snapshot.Sources with Mods = labels }
+                        DiagnosticProblems =
+                            snapshot.DiagnosticProblems
+                            |> Array.map (fun problem ->
+                                { problem with
+                                    Sources =
+                                        problem.Sources
+                                        |> List.map (fun source ->
+                                            match labels |> List.tryFind (fun row -> row.Id = source.Copy.ModId) with
+                                            | Some label ->
+                                                { source with
+                                                    Name = label.Name
+                                                    VersionLabel = label.Version }
+                                            | None -> source) })
                         Index =
                             { snapshot.Index with
                                 Labels = labels |> Seq.map (fun row -> row.Id, row) |> Map.ofSeq }
@@ -295,6 +325,9 @@ module internal PlanSnapshot =
             (fun text -> Encoding.UTF8.GetByteCount(text: string) + 8)
             snapshot.Problems.Length
             (fun index -> snapshot.Problems[index])
+
+    let diagnosticProblems (snapshot: PlanSnapshot) =
+        snapshot.DiagnosticProblems |> Array.truncate Limits.pageRows |> Array.toList
 
     let historyPage (changes: FileChange list) =
         let values = List.toArray changes

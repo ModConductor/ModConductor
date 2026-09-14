@@ -21,7 +21,7 @@ typedef ProfileInspectorBuilder = Widget Function(
   ValueChanged<ProfileNavigationGuard?>,
 );
 
-enum _WorkspaceMode { profiles, mods, game, tools, archives }
+enum _WorkspaceMode { profiles, mods, game, tools, archives, help }
 
 enum _ProfileAction { clone, rename, delete }
 
@@ -34,6 +34,7 @@ class WorkspaceBrowser extends StatefulWidget {
     this.gameContextBuilder,
     this.executableBuilder,
     this.artifactBuilder,
+    this.helpBuilder,
     this.headerActions,
     this.profileInspectorBuilder,
     this.compactCloseAction = false,
@@ -45,6 +46,7 @@ class WorkspaceBrowser extends StatefulWidget {
   final Widget Function(BuildContext, WorkspaceInfo)? executableBuilder;
   final Widget Function(BuildContext, WorkspaceInfo, VoidCallback)?
   artifactBuilder;
+  final Widget Function(BuildContext, WorkspaceInfo)? helpBuilder;
   final List<Widget> Function(BuildContext, WorkspaceInfo)? headerActions;
   final bool compactCloseAction;
   final ProfileInspectorBuilder? profileInspectorBuilder;
@@ -60,6 +62,7 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
   final _openWorkspaceFocus = FocusNode(debugLabel: 'Open workspace');
   final _createProfileFocus = FocusNode(debugLabel: 'Create profile');
   int _archiveNavigation = 0;
+  int _helpNavigation = 0;
   String? _shownId;
   _WorkspaceMode _mode = _WorkspaceMode.profiles;
   final _profilesFocus = FocusNode(debugLabel: 'Profiles');
@@ -191,6 +194,10 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
     if (_archiveNavigation != controller.archiveNavigation) {
       _archiveNavigation = controller.archiveNavigation;
       _mode = _WorkspaceMode.archives;
+    }
+    if (_helpNavigation != controller.helpNavigation) {
+      _helpNavigation = controller.helpNavigation;
+      _mode = _WorkspaceMode.help;
     }
     final page = controller.page;
     if (id != null && page != null && !identical(page, _shownPage)) {
@@ -458,7 +465,8 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
           if (widget.modLibraryBuilder != null ||
               widget.gameContextBuilder != null ||
               widget.executableBuilder != null ||
-              widget.artifactBuilder != null) ...[
+              widget.artifactBuilder != null ||
+              widget.helpBuilder != null) ...[
             Align(
               alignment: Alignment.centerLeft,
               child: SingleChildScrollView(
@@ -493,6 +501,12 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
                         value: _WorkspaceMode.archives,
                         label: Text("Archives"),
                         icon: Icon(Icons.inventory_2_outlined),
+                      ),
+                    if (widget.helpBuilder != null)
+                      ButtonSegment(
+                        value: _WorkspaceMode.help,
+                        label: Text("Help"),
+                        icon: Icon(Icons.help_center_outlined),
                       ),
                   ],
                   selected: {_mode},
@@ -540,6 +554,13 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
                       workspace,
                       () => setState(() => _mode = _WorkspaceMode.mods),
                     ),
+                  )
+                else
+                  const SizedBox.shrink(),
+                if (widget.helpBuilder != null)
+                  ExcludeFocus(
+                    excluding: _mode != _WorkspaceMode.help,
+                    child: widget.helpBuilder!(context, workspace),
                   )
                 else
                   const SizedBox.shrink(),

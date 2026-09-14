@@ -1,0 +1,93 @@
+syntax = "proto3";
+package modconductor.v1;
+option csharp_namespace = "ModConductor.Protocol.V1";
+
+service DiagnosticOperations {
+  rpc CheckDiagnostics(DiagnosticRequest) returns (DiagnosticSnapshotReply);
+  rpc PreviewDiagnosticChange(DiagnosticPreviewRequest) returns (DiagnosticPreviewReply);
+  rpc ApplyDiagnosticChange(DiagnosticApplyRequest) returns (DiagnosticApplyReply);
+  rpc ExportDiagnosticSupport(DiagnosticSnapshotReference) returns (DiagnosticSupportReply);
+}
+
+enum DiagnosticSeverity {
+  DIAGNOSTIC_SEVERITY_INFORMATION = 0;
+  DIAGNOSTIC_SEVERITY_WARNING = 1;
+  DIAGNOSTIC_SEVERITY_ERROR = 2;
+}
+
+enum DiagnosticFixability {
+  DIAGNOSTIC_FIXABILITY_NOT_FIXABLE = 0;
+  DIAGNOSTIC_FIXABILITY_PREVIEW_AVAILABLE = 1;
+  DIAGNOSTIC_FIXABILITY_READY = 2;
+  DIAGNOSTIC_FIXABILITY_REFUSED = 3;
+}
+
+enum DiagnosticFault {
+  DIAGNOSTIC_FAULT_NONE = 0;
+  DIAGNOSTIC_FAULT_NOT_FOUND = 1;
+  DIAGNOSTIC_FAULT_EXPIRED = 2;
+  DIAGNOSTIC_FAULT_STALE = 3;
+  DIAGNOSTIC_FAULT_FOREIGN = 4;
+  DIAGNOSTIC_FAULT_NOT_OWNED = 5;
+  DIAGNOSTIC_FAULT_BUSY = 6;
+  DIAGNOSTIC_FAULT_OVERSIZED = 7;
+  DIAGNOSTIC_FAULT_UNSUPPORTED = 8;
+  DIAGNOSTIC_FAULT_CANCELLED = 9;
+}
+
+message DiagnosticRequest {
+  string workspace_id = 1;
+  string profile_id = 2;
+  optional string file_snapshot_id = 3;
+  optional string deployment_id = 4;
+  optional uint64 deployment_revision = 5;
+  optional string operation_id = 6;
+}
+message DiagnosticSnapshotReference { string snapshot_id = 1; }
+message DiagnosticPreviewRequest { string snapshot_id = 1; string problem_id = 2; }
+message DiagnosticApplyRequest { string preview_id = 1; string action_id = 2; }
+message DiagnosticEvidence { string label = 1; string value = 2; }
+message DiagnosticCorrelation { string kind = 1; string id = 2; optional uint64 revision = 3; }
+message DiagnosticFinding {
+  string id = 1;
+  string code = 2;
+  DiagnosticSeverity severity = 3;
+  string workspace_name = 4;
+  string profile_name = 5;
+  string game_name = 6;
+  string title = 7;
+  string summary = 8;
+  string area = 9;
+  repeated DiagnosticEvidence evidence = 10;
+  string next_action = 11;
+  DiagnosticFixability fixability = 12;
+  string fix_detail = 13;
+  repeated DiagnosticCorrelation correlations = 14;
+  optional string detail = 15;
+}
+message DiagnosticSnapshot {
+  string id = 1;
+  string workspace_id = 2;
+  string profile_id = 3;
+  string captured_at = 4;
+  repeated DiagnosticFinding findings = 5;
+}
+message DiagnosticSnapshotReply { oneof outcome { DiagnosticSnapshot snapshot = 1; DiagnosticFault fault = 2; } }
+message DiagnosticPreview {
+  string id = 1;
+  string snapshot_id = 2;
+  string problem_id = 3;
+  string expires_at = 4;
+  repeated string paths = 5;
+  string result = 6;
+}
+message DiagnosticPreviewReply { oneof outcome { DiagnosticPreview preview = 1; DiagnosticFault fault = 2; } }
+message DiagnosticApplyResult {
+  string preview_id = 1;
+  bool complete = 2;
+  string result = 3;
+  optional string detail = 4;
+}
+message DiagnosticApplyReply { oneof outcome { DiagnosticApplyResult result = 1; DiagnosticFault fault = 2; } }
+message DiagnosticSupportReport { string file_name = 1; bytes content = 2; }
+message DiagnosticSupportReply { oneof outcome { DiagnosticSupportReport report = 1; DiagnosticFault fault = 2; } }

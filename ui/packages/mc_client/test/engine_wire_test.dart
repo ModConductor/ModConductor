@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mc_client/mc_client.dart';
 import 'package:mc_client/src/engine_session.dart';
 
 void main() {
@@ -72,6 +73,35 @@ void main() {
           expect(report.runtime.sqliteVersion, isNotEmpty);
           expect(report.heartbeats, greaterThan(0));
           expect((await engine.operations.state()).revision, 1);
+        } finally {
+          await engine.close();
+          expect(await engine.exited, 0);
+          await state.delete(recursive: true);
+        }
+      });
+
+      test('the diagnostics client maps a qualified refusal from the native engine', () async {
+        final state = await Directory.systemTemp.createTemp(
+          'mc-diagnostics-wire-',
+        );
+        final engine = EngineSession(
+          await Process.start(executable!, ['--state-directory', state.path]),
+        );
+        try {
+          await engine.connect();
+          await expectLater(
+            engine.diagnostics.check(
+              workspaceId: '11111111111111111111111111111111',
+              profileId: '22222222222222222222222222222222',
+            ),
+            throwsA(
+              isA<DiagnosticsException>().having(
+                (error) => error.fault,
+                'fault',
+                DiagnosticFault.notFound,
+              ),
+            ),
+          );
         } finally {
           await engine.close();
           expect(await engine.exited, 0);

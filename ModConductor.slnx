@@ -32,10 +32,12 @@
     <Project Path="src/ModConductor.Operations/ModConductor.Operations.fsproj" />
     <Project Path="src/ModConductor.Workspaces/ModConductor.Workspaces.fsproj" />
     <Project Path="src/ModConductor.Persistence/ModConductor.Persistence.fsproj" />
+    <Project Path="src/ModConductor.Diagnostics/ModConductor.Diagnostics.fsproj" />
     <Project Path="src/ModConductor.Engine/ModConductor.Engine.fsproj" />
     <Project Path="src/ModConductor.Protocol/ModConductor.Protocol.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/ModConductor.Diagnostics.Tests/ModConductor.Diagnostics.Tests.fsproj" />
     <Project Path="tests/ModConductor.Native.Fixtures/ModConductor.Native.Fixtures.fsproj" />
     <Project Path="tests/ModConductor.Native.Tests/ModConductor.Native.Tests.fsproj" />
   </Folder>

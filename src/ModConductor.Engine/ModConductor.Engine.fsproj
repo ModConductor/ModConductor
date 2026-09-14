@@ -9,6 +9,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../ModConductor.ModMaintenance/ModConductor.ModMaintenance.fsproj" />
+    <ProjectReference Include="../ModConductor.Diagnostics/ModConductor.Diagnostics.fsproj" />
     <Compile Include="SessionKey.fs" />
     <Compile Include="Bootstrap.fs" />
     <Compile Include="SessionAuthentication.fs" />
@@ -17,6 +18,8 @@
     <Compile Include="ProfileActionStream.fs" />
     <Compile Include="WorkspaceService.fs" />
     <Compile Include="ModLibraryWire.fs" />
+    <Compile Include="DiagnosticWire.fs" />
+    <Compile Include="DiagnosticService.fs" />
     <Compile Include="ModLibraryService.fs" />
     <Compile Include="ProfileModService.fs" />
     <Compile Include="OrganizationWire.fs" />

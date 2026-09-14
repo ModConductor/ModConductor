@@ -42,3 +42,5 @@ export 'src/bethesda_client.dart';
 export 'src/plugin_order_client.dart';
 export 'src/loot_client.dart';
 export 'src/archive_policy_client.dart';
+
+export 'src/diagnostics_client.dart';

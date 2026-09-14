@@ -42,10 +42,10 @@ dependencies:
 
   mc_ui_foundation:
     path: ../../packages/mc_ui_foundation
-
-dev_dependencies:
   mc_ui_collections:
     path: ../../packages/mc_ui_collections
+
+dev_dependencies:
   integration_test:
     sdk: flutter
   flutter_test:

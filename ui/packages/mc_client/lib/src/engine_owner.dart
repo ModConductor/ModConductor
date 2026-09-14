@@ -1,3 +1,4 @@
+import 'diagnostics_client.dart';
 import 'plugin_order_client.dart';
 import 'loot_client.dart';
 import 'archive_policy_client.dart';
@@ -130,6 +131,8 @@ class EngineOwner {
       _state is EngineConnected ? _session?.profileMods : null;
   ModLibraryClient? get modLibrary =>
       _state is EngineConnected ? _session?.modLibrary : null;
+  DiagnosticsClient? get diagnostics =>
+      _state is EngineConnected ? _session?.diagnostics : null;
   WorkspacesClient? get workspaces =>
       _state is EngineConnected ? _session?.workspaces : null;
   Stream<EngineState> get changes => _changes.stream;

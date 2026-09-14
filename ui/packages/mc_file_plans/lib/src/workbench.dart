@@ -27,6 +27,7 @@ class FilePlanningWorkbench extends StatefulWidget {
     this.maintenance,
     this.onOpenDeployment,
     this.onOpenNexus,
+    this.onOpenProblems,
     this.archiveUnavailable = false,
     this.additionalFilePanes,
     this.additionalInspector,
@@ -43,6 +44,7 @@ class FilePlanningWorkbench extends StatefulWidget {
   final void Function(ModEntry)? onOpenNexus;
   final MaintenanceClient? maintenance;
   final VoidCallback? onOpenDeployment;
+  final VoidCallback? onOpenProblems;
   final bool archiveUnavailable;
   final List<ModFilePane> Function(VoidCallback onInspect)? additionalFilePanes;
   final Widget Function(VoidCallback onClose)? additionalInspector;
@@ -297,6 +299,7 @@ class _FilePlanningWorkbenchState extends State<FilePlanningWorkbench> {
                         focusNode: _filesFocus,
                         narrow: narrow,
                         archiveUnavailable: widget.archiveUnavailable,
+                        onOpenProblems: widget.onOpenProblems,
                         onInspect: (row) {
                           widget.onCloseAdditionalInspector?.call();
                           _open();

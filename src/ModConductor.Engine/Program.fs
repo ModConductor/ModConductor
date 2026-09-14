@@ -185,6 +185,20 @@ let runWithNexus registration (handoff: ModConductor.Nexus.IOAuthHandoff) args =
 
     builder.Services.AddSingleton<ModConductor.Engine.FilePlanService>() |> ignore
 
+    builder.Services.AddSingleton<ModConductor.Diagnostics.IDiagnostics>(
+        ModConductor.Diagnostics.DiagnosticSession(
+            store.Workspaces,
+            store.FilePlans,
+            store.Deployments,
+            store.GameLaunching,
+            store.ProfileGameData,
+            store
+        )
+    )
+    |> ignore
+
+    builder.Services.AddSingleton<ModConductor.Engine.DiagnosticService>() |> ignore
+
     builder.Services.AddSingleton<ModConductor.Engine.ModLibraryService>() |> ignore
     builder.Services.AddSingleton<ModConductor.Engine.WorkspaceService>() |> ignore
 
@@ -332,6 +346,9 @@ let runWithNexus registration (handoff: ModConductor.Nexus.IOAuthHandoff) args =
         .AddServiceOptions<ModConductor.Engine.FilePlanService>(fun options ->
             options.MaxReceiveMessageSize <- Nullable(2 * 1024 * 1024)
             options.MaxSendMessageSize <- Nullable(9 * 1024 * 1024))
+        .AddServiceOptions<ModConductor.Engine.DiagnosticService>(fun options ->
+            options.MaxReceiveMessageSize <- Nullable(32 * 1024)
+            options.MaxSendMessageSize <- Nullable(320 * 1024))
         .AddServiceOptions<ModConductor.Engine.ModLibraryService>(fun options ->
             options.MaxReceiveMessageSize <- Nullable 65536
             options.MaxSendMessageSize <- Nullable(2 * 1024 * 1024))
@@ -382,6 +399,7 @@ let runWithNexus registration (handoff: ModConductor.Nexus.IOAuthHandoff) args =
     app.MapGrpcService<ModConductor.Engine.ArchivePolicyService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.BethesdaPluginService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.FilePlanService>() |> ignore
+    app.MapGrpcService<ModConductor.Engine.DiagnosticService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.SteamDiscoveryService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.ProtonContextService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.GameContextService>() |> ignore
