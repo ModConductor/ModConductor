@@ -113,7 +113,8 @@ module internal PluginOrders =
                         Entries = imported.Entries |> List.map keepLock }
 
             match change with
-            | Some(PluginOrderChange.Move _) ->
+            | Some(PluginOrderChange.Move _)
+            | Some(PluginOrderChange.Replace _) ->
                 let next = OrderRules.inspect input.Facts header.Entries order
 
                 next.Issues

@@ -1,0 +1,16 @@
+[package]
+name = "modconductor-loot-helper"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.89"
+publish = false
+license = "GPL-3.0-or-later"
+
+[dependencies]
+libloot = { git = "https://github.com/loot/libloot.git", rev = "136f3983c3eec7d377f83a7e7e0b0129aa5c8fe1" }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+[profile.release]
+lto = "thin"
+strip = true

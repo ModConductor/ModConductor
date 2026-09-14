@@ -650,6 +650,20 @@ type ProfileGameDataSession
                     return Ok value
                 })
 
+        member _.ApplyExactOrder(expected, headers, names) =
+            run expected.WorkspaceId (fun () ->
+                task {
+                    let! value =
+                        PluginOrders.save
+                            repository
+                            plugins
+                            expected
+                            headers
+                            (Some(ModConductor.Bethesda.PluginOrderChange.Replace names))
+
+                    return Ok value
+                })
+
     interface IProfileArchivePolicies with
         member _.Scan(workspace, profile, headers, token) =
             protect (fun () ->
@@ -735,6 +749,7 @@ type ProfileGameDataSession
                     | None ->
                         check scope expected
                         let! context = DataInitialization.context repository scope
+
                         let! action = repository.Claim(context, initial id context scope.ProfileId kind)
 
                         let! result =
@@ -773,6 +788,7 @@ type ProfileGameDataSession
                             )
 
                         let! context = DataInitialization.context repository scope
+
                         let! action = repository.Claim(context, initial id context scope.ProfileId kind)
 
                         let! result =

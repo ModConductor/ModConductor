@@ -125,6 +125,9 @@ module internal WindowsChildProcess =
     extern bool private TerminateProcess(nativeint childHandle, uint32 code)
 
     [<DllImport("kernel32.dll", SetLastError = true)>]
+    extern bool private TerminateJobObject(nativeint job, uint32 code)
+
+    [<DllImport("kernel32.dll", SetLastError = true)>]
     extern uint32 private WaitForSingleObject(nativeint handle, uint32 milliseconds)
 
     [<DllImport("kernel32.dll", SetLastError = true)>]
@@ -153,7 +156,7 @@ module internal WindowsChildProcess =
 
         text.Append('\\', slashes * 2).Append('"').ToString()
 
-    let start (request: NativeLaunch) =
+    let startWithStreams (streams: NativeStreamFiles option) (request: NativeLaunch) =
         let command =
             String.Join(" ", request.Executable :: request.Arguments |> List.map argument)
 
@@ -174,8 +177,16 @@ module internal WindowsChildProcess =
             let handles = ResizeArray<nativeint>()
 
             try
-                for access in [ 0x80000000u; 0x40000000u; 0x40000000u ] do
-                    let handle = CreateFileW("NUL", access, 3u, &security, 3u, 0u, 0n)
+                let files =
+                    match streams with
+                    | None -> [ "NUL", 0x80000000u; "NUL", 0x40000000u; "NUL", 0x40000000u ]
+                    | Some value ->
+                        [ value.Input, 0x80000000u
+                          value.Output, 0x40000000u
+                          value.Error, 0x40000000u ]
+
+                for name, access in files do
+                    let handle = CreateFileW(name, access, 3u, &security, 3u, 0u, 0n)
 
                     if handle = -1n then
                         raise (Win32Exception(Marshal.GetLastPInvokeError()))
@@ -279,6 +290,13 @@ module internal WindowsChildProcess =
                             member _.Scope = "Windows job"
                             member _.RootExit = exited
 
+                            member _.TerminateScope() =
+                                lock gate (fun () ->
+                                    if disposed then
+                                        raise (ObjectDisposedException "native run")
+
+                                    check (TerminateJobObject(job, 137u)))
+
                             member _.Observe() =
                                 lock gate (fun () ->
                                     if disposed then
@@ -332,3 +350,5 @@ module internal WindowsChildProcess =
         finally
             if not transferred then
                 close job
+
+    let start request = startWithStreams None request

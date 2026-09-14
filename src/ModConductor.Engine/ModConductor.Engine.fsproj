@@ -38,6 +38,7 @@
     <Compile Include="GameLaunchService.fs" />
     <Compile Include="ProfileDataWire.fs" />
     <Compile Include="PluginOrderService.fs" />
+    <Compile Include="LootService.fs" />
     <Compile Include="ArchivePolicyService.fs" />
     <Compile Include="ProfileDataService.fs" />
     <Compile Include="ArtifactService.fs" />
@@ -71,6 +72,7 @@
     <ProjectReference Include="../ModConductor.Credentials/ModConductor.Credentials.fsproj" />
     <ProjectReference Include="../ModConductor.SteamDiscovery/ModConductor.SteamDiscovery.fsproj" />
     <ProjectReference Include="../ModConductor.Persistence/ModConductor.Persistence.fsproj" />
+    <ProjectReference Include="../ModConductor.Loot/ModConductor.Loot.fsproj" />
     <ProjectReference Include="../ModConductor.Workspaces/ModConductor.Workspaces.fsproj" />
     <ProjectReference Include="../ModConductor.Operations/ModConductor.Operations.fsproj" />
     <ProjectReference Include="../ModConductor.Protocol/ModConductor.Protocol.csproj" />

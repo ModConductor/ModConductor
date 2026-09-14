@@ -113,6 +113,7 @@
     <ProjectReference Include="../ModConductor.ArchiveInspection/ModConductor.ArchiveInspection.fsproj" />
     <ProjectReference Include="../ModConductor.ArtifactLibrary/ModConductor.ArtifactLibrary.fsproj" />
     <ProjectReference Include="../ModConductor.ProfileGameData/ModConductor.ProfileGameData.fsproj" />
+    <ProjectReference Include="../ModConductor.Loot/ModConductor.Loot.fsproj" />
     <ProjectReference Include="../ModConductor.GeneratedOutputs/ModConductor.GeneratedOutputs.fsproj" />
     <ProjectReference Include="../ModConductor.Deployment/ModConductor.Deployment.fsproj" />
     <ProjectReference Include="../ModConductor.DeploymentGenerations/ModConductor.DeploymentGenerations.fsproj" />

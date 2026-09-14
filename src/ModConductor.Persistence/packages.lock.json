@@ -93,6 +93,8 @@
         "type": "Project",
         "dependencies": {
           "FSharp.Core": "[10.1.400, )",
+          "ModConductor.ArchiveInspection": "[1.0.0, )",
+          "ModConductor.ArtifactLibrary": "[1.0.0, )",
           "ModConductor.FilePlanning": "[1.0.0, )"
         }
       },
@@ -194,6 +196,15 @@
           "ModConductor.ArtifactLibrary": "[1.0.0, )"
         }
       },
+      "modconductor.loot": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )",
+          "ModConductor.FilePlanning": "[1.0.0, )",
+          "ModConductor.Platform": "[1.0.0, )",
+          "ModConductor.ProfileGameData": "[1.0.0, )"
+        }
+      },
       "modconductor.modlibrary": {
         "type": "Project",
         "dependencies": {
@@ -245,6 +256,7 @@
         "type": "Project",
         "dependencies": {
           "FSharp.Core": "[10.1.400, )",
+          "ModConductor.ArchiveInspection": "[1.0.0, )",
           "ModConductor.Bethesda": "[1.0.0, )",
           "ModConductor.GameContexts": "[1.0.0, )"
         }
@@ -276,13 +288,6 @@
         "requested": "[0.50.4, )",
         "resolved": "0.50.4",
         "contentHash": "/hxjUR7DEX6mky8/LQXyrnrKioOL6D6veAID1EZpro+q4s02x5dHEYBV3qjEN6lDYYilDoQQ76BcmQj+lRx51w=="
-      }
-    },
-    "net10.0/linux-x64": {
-      "SQLite": {
-        "type": "Transitive",
-        "resolved": "3.53.4",
-        "contentHash": "KN7jeWqgUPeBRe1FlcpZURzxomuKKEKHmBBQfg+Nx7NkY1LjKhzHvH+3ASkNvhayESE34nMBinL9CV21JfPRJw=="
       }
     }
   }

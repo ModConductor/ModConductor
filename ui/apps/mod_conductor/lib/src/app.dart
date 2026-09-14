@@ -60,6 +60,7 @@ class ModConductorApp extends StatefulWidget {
     this.filePlans,
     this.bethesda,
     this.pluginOrders,
+    this.loot,
     this.archivePolicies,
     this.outputs,
     this.deployments,
@@ -93,6 +94,7 @@ class ModConductorApp extends StatefulWidget {
   final FilePlansClient? filePlans;
   final BethesdaClient? bethesda;
   final PluginOrderClient? pluginOrders;
+  final LootClient? loot;
   final ArchivePolicyClient? archivePolicies;
   final GeneratedOutputsClient? outputs;
   final DeploymentsClient? deployments;
@@ -134,6 +136,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
   final _game = GameContextController();
   final _files = FilePlansController();
   final _plugins = PluginsController();
+  final _sortOrder = SortOrderController();
   final _archives = ArchivePolicyController();
   final _outputs = OutputController();
   final _artifacts = ArtifactController();
@@ -229,6 +232,11 @@ class _ModConductorAppState extends State<ModConductorApp> {
       _workspaces.workspace?.selectedProfile?.id,
       orders: widget.pluginOrders,
     );
+    _sortOrder.attach(
+      widget.loot,
+      _plugins,
+      _workspaces.workspace?.selectedProfile?.id,
+    );
     _archives.resumeAction = _plugins.resumeAction;
     _archives.attach(
       widget.archivePolicies,
@@ -307,6 +315,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
     _play.dispose();
     _profileData.dispose();
     _plugins.dispose();
+    _sortOrder.dispose();
     _archives.dispose();
     _files.dispose();
     _mods.dispose();
@@ -570,6 +579,9 @@ class _ModConductorAppState extends State<ModConductorApp> {
                                   archives: widget.archivePolicies == null
                                       ? null
                                       : _archives,
+                                  sortOrder: widget.loot == null
+                                      ? null
+                                      : _sortOrder,
                                   workspacePath: workspace.path,
                                   chooseDirectory: widget.chooseDirectory,
                                   profileName: workspace.selectedProfile?.name,
@@ -606,6 +618,9 @@ class _ModConductorAppState extends State<ModConductorApp> {
                                   archives: widget.archivePolicies == null
                                       ? null
                                       : _archives,
+                                  sortOrder: widget.loot == null
+                                      ? null
+                                      : _sortOrder,
                                   outputs: _outputs,
                                   profileId: workspace.selectedProfile?.id,
                                   organization: widget.modOrganization,

@@ -1,4 +1,5 @@
 import 'plugin_order_client.dart';
+import 'loot_client.dart';
 import 'archive_policy_client.dart';
 import 'bethesda_client.dart';
 import 'link_setup_client.dart';
@@ -85,6 +86,8 @@ class EngineSession {
   DeploymentsClient get deployments => _deployments!;
   PluginOrderClient? _pluginOrders;
   PluginOrderClient get pluginOrders => _pluginOrders!;
+  LootClient? _loot;
+  LootClient get loot => _loot!;
   ArchivePolicyClient? _archivePolicies;
   ArchivePolicyClient get archivePolicies => _archivePolicies!;
   BethesdaClient? _bethesda;
@@ -146,6 +149,7 @@ class EngineSession {
       channel,
       CallOptions(metadata: options.metadata),
     );
+    _loot = GrpcLootClient(channel, CallOptions(metadata: options.metadata));
     _archivePolicies = GrpcArchivePolicyClient(
       channel,
       CallOptions(metadata: options.metadata),

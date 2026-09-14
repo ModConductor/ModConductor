@@ -1,0 +1,15 @@
+<Project>
+  <PropertyGroup>
+    <HelperTarget Condition="'$(HelperTarget)' == '' and '$([MSBuild]::IsOSPlatform(`Windows`))' == 'true'">x86_64-pc-windows-msvc</HelperTarget>
+    <HelperTarget Condition="'$(HelperTarget)' == ''">x86_64-unknown-linux-gnu</HelperTarget>
+  </PropertyGroup>
+  <Target Name="Build">
+    <Exec Command="cargo build --locked --offline --release --target $(HelperTarget)" WorkingDirectory="$(MSBuildThisFileDirectory)" />
+  </Target>
+  <Target Name="Test">
+    <Exec Command="cargo test --locked --offline" WorkingDirectory="$(MSBuildThisFileDirectory)" />
+  </Target>
+  <Target Name="Publish" Returns="@(Nothing)">
+    <Error Text="The GPL helper is not authorised for product packaging or redistribution." />
+  </Target>
+</Project>

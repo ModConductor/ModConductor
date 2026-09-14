@@ -2,6 +2,7 @@ namespace ModConductor.Platform
 
 open System
 open System.Collections.Generic
+open System.Threading
 open System.Threading.Tasks
 
 type NativeLaunch =
@@ -21,6 +22,32 @@ type INativeRun =
     abstract Scope: string
     abstract RootExit: Task<int>
     abstract Observe: unit -> NativeRunObservation
+    abstract TerminateScope: unit -> unit
+
+type NativeToolLimits =
+    { InputBytes: int
+      OutputBytes: int
+      ErrorBytes: int
+      Timeout: TimeSpan }
+
+[<RequireQualifiedAccess>]
+type NativeToolError =
+    | Cancelled
+    | TimedOut
+    | OutputLimit
+    | ErrorLimit
+    | LaunchFailed of string
+
+type NativeToolResult =
+    { ExitCode: int
+      Output: byte array
+      Error: byte array
+      Scope: string }
+
+type internal NativeStreamFiles =
+    { Input: string
+      Output: string
+      Error: string }
 
 module internal ChildEnvironment =
     let build edits =

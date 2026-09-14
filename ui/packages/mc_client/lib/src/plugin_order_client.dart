@@ -82,7 +82,7 @@ class GrpcPluginOrderClient implements PluginOrderClient {
     String workspace,
     String profile,
     String headers,
-  ) async => _decode(
+  ) async => decode(
     await _client.readPluginOrder(
       wire.ReadPluginOrderRequest(
         workspaceId: workspace,
@@ -117,14 +117,14 @@ class GrpcPluginOrderClient implements PluginOrderClient {
       case PluginOrderAction.unlock:
         request.locked = false;
     }
-    return _decode(await _client.changePluginOrder(request));
+    return decode(await _client.changePluginOrder(request));
   }
 
   @override
   Future<ProfilePluginOrder> useGameOrder(
     ProfileDataRef expected,
     String headers,
-  ) async => _decode(
+  ) async => decode(
     await _client.useGamePluginOrder(
       wire.UseGamePluginOrderRequest(
         expected: _ref(expected),
@@ -132,7 +132,7 @@ class GrpcPluginOrderClient implements PluginOrderClient {
       ),
     ),
   );
-  static ProfilePluginOrder _decode(wire.PluginOrderReply reply) {
+  static ProfilePluginOrder decode(wire.PluginOrderReply reply) {
     switch (reply.whichOutcome()) {
       case wire.PluginOrderReply_Outcome.problem:
         throw decodeProfileDataProblem(reply.problem);

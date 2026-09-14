@@ -131,7 +131,7 @@ module internal LinuxChildProcess =
                     128 + (status &&& 127))
         )
 
-    let start (request: NativeLaunch) =
+    let startWithStreams (streams: NativeStreamFiles option) (request: NativeLaunch) =
         if RuntimeInformation.ProcessArchitecture <> Architecture.X64 then
             raise (
                 PlatformNotSupportedException
@@ -150,14 +150,19 @@ module internal LinuxChildProcess =
                 check (posix_spawnattr_setpgroup (&attributes, 0))
                 check (posix_spawn_file_actions_addchdir_np (&actions, request.WorkingDirectory))
 
+                let paths =
+                    match streams with
+                    | None -> [| "/dev/null"; "/dev/null"; "/dev/null" |]
+                    | Some value -> [| value.Input; value.Output; value.Error |]
+
                 for fd in 0..2 do
                     check (
                         posix_spawn_file_actions_addopen (
                             &actions,
                             fd,
-                            "/dev/null",
-                            (if fd = 0 then 0 else 1),
-                            0u
+                            paths[fd],
+                            (if fd = 0 then 0 else 577),
+                            (if fd = 0 then 0u else 384u)
                         )
                     )
 
@@ -190,6 +195,32 @@ module internal LinuxChildProcess =
                     member _.ProcessId = pid
                     member _.Scope = "Linux process group"
                     member _.RootExit = exited
+
+                    member _.TerminateScope() =
+                        if disposed then
+                            raise (ObjectDisposedException "native run")
+
+                        match identity with
+                        | Some expected ->
+                            try
+                                let _, _, born = stat pid
+
+                                if born <> expected then
+                                    raise (
+                                        IOException
+                                            "The original process group can no longer be identified."
+                                    )
+                            with
+                            | :? FileNotFoundException
+                            | :? DirectoryNotFoundException -> ()
+                        | None ->
+                            raise (IOException "The original process identity was not observed.")
+
+                        let result = kill (-pid, 9)
+                        let code = if result = 0 then 0 else Marshal.GetLastPInvokeError()
+
+                        if code <> 0 && code <> 3 then
+                            raise (Win32Exception code)
 
                     member _.Observe() =
                         if disposed then
@@ -258,3 +289,5 @@ module internal LinuxChildProcess =
                 posix_spawn_file_actions_destroy &actions |> ignore
         finally
             posix_spawnattr_destroy &attributes |> ignore
+
+    let start request = startWithStreams None request

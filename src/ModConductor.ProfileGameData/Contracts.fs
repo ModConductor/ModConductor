@@ -121,6 +121,10 @@ type IProfilePluginOrders =
         expected: ProfileDataRef * headers: Guid ->
             Task<Result<ProfilePluginOrder, ProfileDataError>>
 
+    abstract ApplyExactOrder:
+        expected: ProfileDataRef * headers: Guid * names: string list ->
+            Task<Result<ProfilePluginOrder, ProfileDataError>>
+
 type IProfileArchivePolicies =
     abstract Scan:
         workspace: Guid * profile: Guid * headers: Guid * CancellationToken ->

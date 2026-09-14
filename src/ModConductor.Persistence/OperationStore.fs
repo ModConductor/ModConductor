@@ -86,6 +86,23 @@ type OperationStore
             archivePolicies
         )
 
+    let loot =
+        let executable =
+            IO.Path.Combine(
+                AppContext.BaseDirectory,
+                if OperatingSystem.IsWindows() then
+                    "modconductor-loot-helper.exe"
+                else
+                    "modconductor-loot-helper"
+            )
+
+        ModConductor.Loot.LootSession(
+            FilePlanRepository(database, modLibrary.Access),
+            directory,
+            executable,
+            ModConductor.Deployment.GameProcesses.validate
+        )
+
     let profileMutations =
         ProfileDataMutations(database, modLibrary.Access, deploymentBackend.TryAcquireWorkspace)
 
@@ -209,6 +226,17 @@ type OperationStore
 
     member _.PluginOrders =
         profileGameData :> ModConductor.ProfileGameData.IProfilePluginOrders
+
+    member _.Loot = loot :> ModConductor.Loot.ILootSorting
+
+    member internal _.LootForFixture(helperPath, validator) =
+        ModConductor.Loot.LootSession(
+            FilePlanRepository(database, modLibrary.Access),
+            directory,
+            helperPath,
+            validator
+        )
+        :> ModConductor.Loot.ILootSorting
 
     member _.ArchivePolicies =
         profileGameData :> ModConductor.ProfileGameData.IProfileArchivePolicies

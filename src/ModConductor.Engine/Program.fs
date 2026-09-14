@@ -100,6 +100,11 @@ let runWithNexus registration (handoff: ModConductor.Nexus.IOAuthHandoff) args =
     builder.Services.AddSingleton<ModConductor.Engine.PluginOrderService>()
     |> ignore
 
+    builder.Services.AddSingleton<ModConductor.Loot.ILootSorting>(store.Loot)
+    |> ignore
+
+    builder.Services.AddSingleton<ModConductor.Engine.LootService>() |> ignore
+
     builder.Services.AddSingleton<ModConductor.ProfileGameData.IProfileArchivePolicies>(
         store.ArchivePolicies
     )
@@ -373,6 +378,7 @@ let runWithNexus registration (handoff: ModConductor.Nexus.IOAuthHandoff) args =
     app.MapGrpcService<ModConductor.Engine.DownloadService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.DeploymentService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.PluginOrderService>() |> ignore
+    app.MapGrpcService<ModConductor.Engine.LootService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.ArchivePolicyService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.BethesdaPluginService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.FilePlanService>() |> ignore

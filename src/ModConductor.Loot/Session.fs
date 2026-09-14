@@ -1,0 +1,539 @@
+namespace ModConductor.Loot
+
+open System
+open System.Collections.Generic
+open System.IO
+open System.Security.Cryptography
+open System.Text
+open System.Threading
+open ModConductor.Bethesda
+open ModConductor.DeploymentPlanning
+open ModConductor.FilePlanning
+open ModConductor.GameContexts
+open ModConductor.Platform
+open ModConductor.ProfileGameData
+
+type LootSession
+    (
+        repository: IFileCandidateRepository,
+        stateDirectory: string,
+        helperPath: string,
+        validateContext: GameContextState -> InstallationEvidence
+    ) =
+    let gate = obj ()
+    let cache = MetadataCache stateDirectory
+    let mutable busy = false
+    let mutable proposal: LootProposal option = None
+
+    let same (left: string) (right: string) =
+        String.Equals(left, right, StringComparison.OrdinalIgnoreCase)
+
+    let validPluginName (name: string) =
+        not (String.IsNullOrWhiteSpace name)
+        && name <> "."
+        && name <> ".."
+        && name = Path.GetFileName name
+        && not (name.Contains Path.DirectorySeparatorChar)
+        && not (name.Contains Path.AltDirectorySeparatorChar)
+        && not (name.Contains '/')
+        && not (name.Contains '\\')
+
+    let sourceFingerprint (value: ProfilePluginOrder) =
+        let stamp = value.Headers.Stamp
+
+        String.Join(
+            ":",
+            [ value.Reference.WorkspaceId.ToString("N")
+              value.Reference.ProfileId.ToString("N")
+              string value.Reference.Revision
+              value.Headers.Id.ToString("N")
+              string stamp.SelectionRevision
+              string stamp.ContextRevision
+              string stamp.ExclusionRevision
+              string stamp.OutputRevision
+              Option.defaultValue "" stamp.Deployment ]
+        )
+
+    let state () =
+        let metadata = cache.Current()
+        let helper = File.Exists helperPath
+
+        { CapabilityId = "skyrim-se-steam"
+          Available = helper && metadata.IsSome
+          Reason =
+            if not helper then
+                Some "The local LOOT helper has not been built."
+            elif metadata.IsNone then
+                Some "Refresh LOOT metadata before previewing a sort."
+            else
+                None
+          Metadata = metadata
+          Proposal = lock gate (fun () -> proposal) }
+
+    let copySource workspace (source: CandidateSource) destination token =
+        async {
+            let! opened =
+                match source with
+                | CandidateSource.Observed source ->
+                    async {
+                        try
+                            return Ok(CandidateFiles.openObserved source)
+                        with error ->
+                            return Error(FilePlanError.FileUnavailable error.Message)
+                    }
+                | CandidateSource.Pinned pin ->
+                    repository.OpenManaged(workspace, pin, token) |> Async.AwaitTask
+
+            match opened with
+            | Error error -> return Error error
+            | Ok stream ->
+                use stream = stream
+
+                use output =
+                    new FileStream(
+                        destination,
+                        FileMode.CreateNew,
+                        FileAccess.Write,
+                        FileShare.None
+                    )
+
+                do! stream.CopyToAsync(output, 1024 * 1024, token) |> Async.AwaitTask
+                return Ok stream.Length
+        }
+
+    let buildProjection
+        (value: ProfilePluginOrder)
+        (sources: PlanSources)
+        (token: CancellationToken)
+        =
+        async {
+            let evidence = validateContext sources.Context
+
+            if evidence.DefinitionId <> "skyrim-se-steam" then
+                return Error(LootError.Unsupported "LOOT sorting is not available for this game.")
+            else
+                let root =
+                    Path.Combine(stateDirectory, "loot-staging", Guid.NewGuid().ToString("N"))
+
+                let game = Directory.CreateDirectory(Path.Combine(root, "game")).FullName
+                let data = Directory.CreateDirectory(Path.Combine(game, "Data")).FullName
+                let local = Directory.CreateDirectory(Path.Combine(root, "local")).FullName
+
+                try
+                    let headers = Dictionary<string, PluginEntry>(StringComparer.OrdinalIgnoreCase)
+
+                    for entry in value.Headers.Entries do
+                        if not (headers.TryAdd(entry.Name, entry)) then
+                            raise (InvalidDataException "Plugin names differ only by case.")
+
+                    let mutable total = 0L
+
+                    for setting in value.View.Order.Entries do
+                        token.ThrowIfCancellationRequested()
+
+                        if not (validPluginName setting.Name) then
+                            raise (InvalidDataException "A plugin name is not a single file name.")
+
+                        match headers.TryGetValue setting.Name with
+                        | false, _ ->
+                            raise (
+                                InvalidDataException(
+                                    setting.Name + " does not have a checked projected source."
+                                )
+                            )
+                        | true, entry ->
+                            match entry.Ambiguity, entry.Winner with
+                            | Some _, _
+                            | _, None ->
+                                raise (
+                                    InvalidDataException(
+                                        setting.Name
+                                        + " does not have one checked projected source."
+                                    )
+                                )
+                            | None, Some winner ->
+                                let! copied =
+                                    copySource
+                                        value.Reference.WorkspaceId
+                                        winner.Source
+                                        (Path.Combine(data, setting.Name))
+                                        token
+
+                                match copied with
+                                | Error FilePlanError.Cancelled ->
+                                    raise (OperationCanceledException token)
+                                | Error _ ->
+                                    raise (
+                                        IOException(
+                                            setting.Name
+                                            + " could not be copied into the LOOT projection."
+                                        )
+                                    )
+                                | Ok length ->
+                                    total <- total + length
+
+                                    if total > 32L * 1024L * 1024L * 1024L then
+                                        raise (
+                                            InvalidDataException
+                                                "The LOOT projection exceeds its 32 GiB byte limit."
+                                        )
+
+                    let bytes = OrderDocument.write value.Facts.Early value.View.Order
+                    File.WriteAllBytes(Path.Combine(local, "Plugins.txt"), bytes)
+
+                    match evidence.Executable with
+                    | Some executable when executable.Length <= 1024L * 1024L * 1024L ->
+                        File.Copy(executable.Path, Path.Combine(game, Skyrim.definition.Executable))
+                    | Some _ ->
+                        raise (InvalidDataException "The checked game executable exceeds 1 GiB.")
+                    | None -> raise (InvalidDataException "The checked game executable is missing.")
+
+                    return Ok(root, game, local)
+                with
+                | :? OperationCanceledException as error ->
+                    try
+                        Directory.Delete(root, true)
+                    with _ ->
+                        ()
+
+                    return raise error
+                | error ->
+                    try
+                        Directory.Delete(root, true)
+                    with _ ->
+                        ()
+
+                    return Error(LootError.Unsupported error.Message)
+        }
+
+    let runHelper
+        (operation: string)
+        (root: string)
+        (game: string)
+        (local: string)
+        (metadata: LootMetadata)
+        (plugins: string list)
+        (fingerprint: string)
+        (correlation: string)
+        (token: CancellationToken)
+        =
+        async {
+            let request =
+                LootJson.request operation correlation root game local metadata plugins fingerprint
+
+            let limits =
+                { InputBytes = 4 * 1024 * 1024
+                  OutputBytes = 4 * 1024 * 1024
+                  ErrorBytes = 256 * 1024
+                  Timeout = TimeSpan.FromSeconds 120.0 }
+
+            let! result =
+                NativeToolLaunch.run
+                    { Executable = helperPath
+                      Arguments = []
+                      WorkingDirectory = root
+                      Environment = [ "http_proxy", None; "https_proxy", None; "all_proxy", None ] }
+                    request
+                    limits
+                    token
+                |> Async.AwaitTask
+
+            match result with
+            | Error NativeToolError.Cancelled -> return Error LootError.Cancelled
+            | Error NativeToolError.TimedOut ->
+                return Error(LootError.HelperUnavailable "The LOOT helper timed out.")
+            | Error NativeToolError.OutputLimit ->
+                return Error(LootError.InvalidResponse "The LOOT helper output exceeded 4 MiB.")
+            | Error NativeToolError.ErrorLimit ->
+                return
+                    Error(
+                        LootError.HelperUnavailable "The LOOT helper diagnostic exceeded 256 KiB."
+                    )
+            | Error(NativeToolError.LaunchFailed detail) ->
+                return Error(LootError.HelperUnavailable detail)
+            | Ok result when result.ExitCode <> 0 ->
+                let detail = Encoding.UTF8.GetString result.Error
+
+                return
+                    Error(
+                        LootError.HelperUnavailable(
+                            if String.IsNullOrWhiteSpace detail then
+                                "The LOOT helper exited with code " + string result.ExitCode + "."
+                            else
+                                detail.Trim()
+                        )
+                    )
+            | Ok result ->
+                try
+                    return Ok(LootJson.response result.Output)
+                with error ->
+                    return Error(LootError.InvalidResponse error.Message)
+        }
+
+    let validateResponse
+        (correlation: string)
+        (fingerprint: string)
+        (metadata: LootMetadata)
+        (current: string list)
+        (response: LootJson.Response)
+        =
+        let invalid detail = Error(LootError.InvalidResponse detail)
+
+        if response.Correlation <> correlation then
+            invalid "The LOOT helper returned another correlation ID."
+        elif response.Capability <> "skyrim-se-steam" then
+            invalid "The LOOT helper returned another game capability."
+        elif response.Fingerprint <> fingerprint then
+            invalid "The LOOT helper returned stale source evidence."
+        elif response.MetadataRevision <> metadata.Revision then
+            invalid "The LOOT helper returned another metadata revision."
+        elif
+            response.HelperRevision <> "0.1.0"
+            || response.LiblootVersion <> "0.29.6"
+            || response.LiblootRevision <> "136f3983"
+        then
+            invalid "The LOOT helper version is not the pinned version."
+        elif response.Current <> current then
+            invalid "The LOOT helper changed the current-order echo."
+        elif response.Sorted.Length <> current.Length then
+            invalid "The LOOT helper changed the plugin count."
+        else
+            let expected = HashSet<string>(current, StringComparer.OrdinalIgnoreCase)
+            let actual = HashSet<string>(response.Sorted, StringComparer.OrdinalIgnoreCase)
+
+            if expected.Count <> current.Length || actual.Count <> response.Sorted.Length then
+                invalid "The LOOT helper returned duplicate plugin names."
+            elif not (expected.SetEquals actual) then
+                invalid "The LOOT helper changed the plugin set."
+            elif response.Moves.Length > current.Length || response.Messages.Length > 4096 then
+                invalid "The LOOT helper response exceeds its entry limit."
+            elif
+                response.Moves
+                |> List.exists (fun (move: LootMove) ->
+                    move.Current < 1
+                    || move.Current > current.Length
+                    || move.Proposed < 1
+                    || move.Proposed > current.Length
+                    || not (same current[move.Current - 1] move.Plugin)
+                    || not (same response.Sorted[move.Proposed - 1] move.Plugin))
+            then
+                invalid "The LOOT helper returned an inconsistent move."
+            else
+                Ok response
+
+    let preview (value: ProfilePluginOrder) (token: CancellationToken) =
+        async {
+            let entered =
+                lock gate (fun () ->
+                    if busy then
+                        false
+                    else
+                        busy <- true
+                        true)
+
+            if not entered then
+                return Error LootError.Busy
+            else
+                try
+                    lock gate (fun () -> proposal <- None)
+
+                    try
+                        if not (File.Exists helperPath) then
+                            return
+                                Error(
+                                    LootError.HelperUnavailable
+                                        "The local LOOT helper has not been built."
+                                )
+                        else
+                            match cache.Current() with
+                            | None ->
+                                return
+                                    Error(
+                                        LootError.MetadataUnavailable
+                                            "Refresh LOOT metadata before previewing a sort."
+                                    )
+                            | Some metadata ->
+                                let! loaded =
+                                    repository.Read value.Reference.ProfileId |> Async.AwaitTask
+
+                                match loaded with
+                                | Error _ -> return Error LootError.Stale
+                                | Ok sources when sources.Stamp <> value.Headers.Stamp ->
+                                    return Error LootError.Stale
+                                | Ok sources ->
+                                    let! projected = buildProjection value sources token
+
+                                    match projected with
+                                    | Error error -> return Error error
+                                    | Ok(root, game, local) ->
+                                        try
+                                            let current =
+                                                value.View.Order.Entries |> List.map _.Name
+
+                                            let fingerprint = sourceFingerprint value
+                                            let correlation = Guid.NewGuid().ToString("N")
+
+                                            let! result =
+                                                runHelper
+                                                    "sort"
+                                                    root
+                                                    game
+                                                    local
+                                                    metadata
+                                                    current
+                                                    fingerprint
+                                                    correlation
+                                                    token
+
+                                            match result with
+                                            | Error error -> return Error error
+                                            | Ok response ->
+                                                match
+                                                    validateResponse
+                                                        correlation
+                                                        fingerprint
+                                                        metadata
+                                                        current
+                                                        response
+                                                with
+                                                | Error error -> return Error error
+                                                | Ok response ->
+                                                    let next =
+                                                        { Id = Guid.NewGuid()
+                                                          Expected = value.Reference
+                                                          HeadersId = value.Headers.Id
+                                                          SourceFingerprint = fingerprint
+                                                          CreatedAt = DateTimeOffset.UtcNow
+                                                          Current = current
+                                                          Sorted = response.Sorted
+                                                          Moves = response.Moves
+                                                          Messages = response.Messages
+                                                          Metadata = metadata
+                                                          HelperVersion = response.HelperRevision
+                                                          LiblootVersion = response.LiblootVersion
+                                                          LiblootRevision = response.LiblootRevision }
+
+                                                    lock gate (fun () -> proposal <- Some next)
+                                                    return Ok next
+                                        finally
+                                            try
+                                                Directory.Delete(root, true)
+                                            with _ ->
+                                                ()
+                    with
+                    | :? OperationCanceledException -> return Error LootError.Cancelled
+                    | error -> return Error(LootError.Unsupported error.Message)
+                finally
+                    lock gate (fun () -> busy <- false)
+        }
+
+    let refresh token =
+        let validateMetadata metadata =
+            async {
+                if not (File.Exists helperPath) then
+                    return
+                        Error(
+                            LootError.HelperUnavailable
+                                "Build the local LOOT helper before refreshing metadata."
+                        )
+                else
+                    let root =
+                        Directory.CreateDirectory(
+                            Path.Combine(
+                                stateDirectory,
+                                "loot-staging",
+                                Guid.NewGuid().ToString("N")
+                            )
+                        )
+                        |> _.FullName
+
+                    let game = Directory.CreateDirectory(Path.Combine(root, "game")).FullName
+                    Directory.CreateDirectory(Path.Combine(game, "Data")) |> ignore
+                    let local = Directory.CreateDirectory(Path.Combine(root, "local")).FullName
+
+                    try
+                        let correlation = Guid.NewGuid().ToString("N")
+
+                        let! result =
+                            runHelper
+                                "validateMetadata"
+                                root
+                                game
+                                local
+                                metadata
+                                []
+                                "metadata-refresh"
+                                correlation
+                                token
+
+                        match result with
+                        | Error error -> return Error error
+                        | Ok response when
+                            response.Correlation = correlation
+                            && response.MetadataRevision = metadata.Revision
+                            && response.HelperRevision = "0.1.0"
+                            && response.LiblootVersion = "0.29.6"
+                            && response.LiblootRevision = "136f3983"
+                            ->
+                            return Ok()
+                        | Ok _ ->
+                            return
+                                Error(
+                                    LootError.InvalidResponse
+                                        "The LOOT helper returned different metadata evidence."
+                                )
+                    finally
+                        try
+                            Directory.Delete(root, true)
+                        with _ ->
+                            ()
+            }
+
+        async {
+            let entered =
+                lock gate (fun () ->
+                    if busy then
+                        false
+                    else
+                        busy <- true
+                        true)
+
+            if not entered then
+                return Error LootError.Busy
+            else
+                try
+                    let! result = cache.Refresh(token, validateMetadata)
+
+                    match result with
+                    | Ok value ->
+                        lock gate (fun () -> proposal <- None)
+                        return Ok value
+                    | Error error -> return Error error
+                finally
+                    lock gate (fun () -> busy <- false)
+        }
+
+    interface ILootSorting with
+        member _.Read() = state ()
+        member _.Preview(value, token) = preview value token
+
+        member _.ValidateApply(id, expected, headers) =
+            lock gate (fun () ->
+                match proposal with
+                | Some value when
+                    value.Id = id && value.Expected = expected && value.HeadersId = headers
+                    ->
+                    Ok value.Sorted
+                | _ -> Error LootError.Stale)
+
+        member _.Applied id =
+            lock gate (fun () ->
+                if proposal |> Option.exists (fun value -> value.Id = id) then
+                    proposal <- None)
+
+        member _.Dismiss id =
+            lock gate (fun () ->
+                if proposal |> Option.exists (fun value -> value.Id = id) then
+                    proposal <- None)
+
+        member _.RefreshMetadata token = refresh token

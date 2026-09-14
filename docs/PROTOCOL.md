@@ -19,6 +19,7 @@ instruction. Preserve field identities and reserve removed fields.
 | `proton_contexts.proto` | Existing prefix/runtime choices, mapping observations and Windows user paths |
 | `file_plans.proto` | Observed Data files, planned sources, exact-copy visibility and history |
 | `generated_outputs.proto` | Context-owned output locations, checked files, immutable promotion and durable review results |
+| `loot_sort.proto` | Bounded LOOT metadata state, sort proposals, diagnostics and explicit saved-order apply |
 | `deployments.proto` | Current and saved deployment views, preparation, activation and receipt recovery |
 
 After locked restores, run `python3 tools/generate-protocol.py`. Use `--check` to

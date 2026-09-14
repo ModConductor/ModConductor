@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><IsAotCompatible>true</IsAotCompatible></PropertyGroup>
+  <ItemGroup>
+    <Compile Include="AssemblyInfo.fs" />
+    <Compile Include="Contracts.fs" />
+    <Compile Include="Json.fs" />
+    <Compile Include="Metadata.fs" />
+    <Compile Include="Session.fs" />
+    <ProjectReference Include="../ModConductor.ProfileGameData/ModConductor.ProfileGameData.fsproj" />
+    <ProjectReference Include="../ModConductor.FilePlanning/ModConductor.FilePlanning.fsproj" />
+    <ProjectReference Include="../ModConductor.Platform/ModConductor.Platform.fsproj" />
+    <PackageReference Include="FSharp.Core" />
+  </ItemGroup>
+</Project>

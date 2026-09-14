@@ -27,6 +27,8 @@
     <Compile Include="BethesdaFixtures.fs" />
     <Compile Include="PluginOrderSamples.fs" />
     <Compile Include="PluginOrderFixtures.fs" />
+    <Compile Include="NativeToolFixtures.fs" />
+    <Compile Include="LootFixtures.fs" />
     <Compile Include="ArchivePolicyFixtures.fs" />
     <Compile Include="Program.fs"/>
     <ProjectReference Include="../../src/ModConductor.Engine/ModConductor.Engine.fsproj" />

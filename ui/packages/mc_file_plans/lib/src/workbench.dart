@@ -23,6 +23,7 @@ class FilePlanningWorkbench extends StatefulWidget {
     this.profileName,
     this.plugins,
     this.archives,
+    this.sortOrder,
     this.maintenance,
     this.onOpenDeployment,
     this.onOpenNexus,
@@ -38,6 +39,7 @@ class FilePlanningWorkbench extends StatefulWidget {
   final String? profileName;
   final PluginsController? plugins;
   final ArchivePolicyController? archives;
+  final SortOrderController? sortOrder;
   final void Function(ModEntry)? onOpenNexus;
   final MaintenanceClient? maintenance;
   final VoidCallback? onOpenDeployment;
@@ -103,6 +105,7 @@ class _FilePlanningWorkbenchState extends State<FilePlanningWorkbench> {
     } else {
       widget.plans.inspector.close();
       widget.archives?.closeInspector();
+      widget.sortOrder?.closeInspector();
       widget.onCloseAdditionalInspector?.call();
       _opener?.requestFocus();
     }
@@ -114,6 +117,7 @@ class _FilePlanningWorkbenchState extends State<FilePlanningWorkbench> {
       widget.plans,
       if (widget.plugins != null) widget.plugins!,
       if (widget.archives != null) widget.archives!,
+      if (widget.sortOrder != null) widget.sortOrder!,
     ]),
     builder: (context, _) => LayoutBuilder(
       builder: (context, bounds) {
@@ -129,6 +133,8 @@ class _FilePlanningWorkbenchState extends State<FilePlanningWorkbench> {
                 controller: widget.archives!,
                 onClose: _close,
               )
+            : widget.sortOrder?.inspecting == true
+            ? SortOrderInspector(controller: widget.sortOrder!, onClose: _close)
             : widget.additionalInspector?.call(_close) ??
                   FileSourcesInspector(
                     controller: widget.plans,
@@ -147,6 +153,7 @@ class _FilePlanningWorkbenchState extends State<FilePlanningWorkbench> {
               widget.plans.inspector.close();
               widget.plugins?.closeInspector();
               widget.archives?.closeInspector();
+              widget.sortOrder?.closeInspector();
               widget.onCloseAdditionalInspector?.call();
               _opener?.requestFocus();
             }
@@ -220,6 +227,23 @@ class _FilePlanningWorkbenchState extends State<FilePlanningWorkbench> {
                           },
                         ),
                       ),
+                    if (widget.sortOrder case final sortOrder?)
+                      ModFilePane(
+                        'loot-sort-order',
+                        'Sort order',
+                        (context, narrow) => SortOrderPane(
+                          controller: sortOrder,
+                          narrow: narrow,
+                          onInspect: () {
+                            widget.plans.inspector.close();
+                            widget.plugins?.closeInspector();
+                            widget.archives?.closeInspector();
+                            widget.onCloseAdditionalInspector?.call();
+                            _opener = FocusManager.instance.primaryFocus;
+                            _scaffold.currentState?.openEndDrawer();
+                          },
+                        ),
+                      ),
                     ModFilePane(
                       'skyrim-data',
                       'Skyrim Data',
@@ -247,6 +271,7 @@ class _FilePlanningWorkbenchState extends State<FilePlanningWorkbench> {
               if (!_compact &&
                   (widget.plans.inspector.visible ||
                       widget.archives?.inspecting == true ||
+                      widget.sortOrder?.inspecting == true ||
                       widget.additionalInspector != null)) ...[
                 const SizedBox(width: 16),
                 SizedBox(width: 350, child: inspector()),

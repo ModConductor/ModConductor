@@ -9,7 +9,31 @@ open ModConductor.Native.Fixtures
 [<EntryPoint>]
 let main args =
     try
-        if args.Length = 1 && args[0] = "--archive-policy" then
+        if args.Length = 1 && args[0] = "--native-tool-grandchild" then
+            NativeToolFixtures.grandchild ()
+        elif args.Length = 2 && args[0] = "--native-tool-child" then
+            NativeToolFixtures.child args[1]
+        elif args.Length = 2 && args[0] = "--native-tool" then
+            use writer =
+                new Utf8JsonWriter(Console.OpenStandardOutput(), JsonWriterOptions(Indented = true))
+
+            writer.WriteStartObject()
+            writer.WriteBoolean("nativeAot", not RuntimeFeature.IsDynamicCodeSupported)
+            NativeToolFixtures.observe writer args[1]
+            writer.WriteEndObject()
+            writer.Flush()
+            0
+        elif args.Length = 5 && args[0] = "--loot" then
+            use writer =
+                new Utf8JsonWriter(Console.OpenStandardOutput(), JsonWriterOptions(Indented = true))
+
+            writer.WriteStartObject()
+            writer.WriteBoolean("nativeAot", not RuntimeFeature.IsDynamicCodeSupported)
+            LootFixtures.observe writer args[1] args[2] args[3] args[4]
+            writer.WriteEndObject()
+            writer.Flush()
+            0
+        elif args.Length = 1 && args[0] = "--archive-policy" then
             use writer =
                 new Utf8JsonWriter(Console.OpenStandardOutput(), JsonWriterOptions(Indented = true))
 

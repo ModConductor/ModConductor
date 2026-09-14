@@ -229,14 +229,22 @@ module OrderRules =
             match change with
             | PluginOrderChange.Enable(names, _)
             | PluginOrderChange.Move(names, _)
-            | PluginOrderChange.Lock(names, _) -> names
+            | PluginOrderChange.Lock(names, _)
+            | PluginOrderChange.Replace names -> names
 
         let selected = set names
         let known = order.Entries |> List.map _.Name |> set
         let early = set facts.Early
         let forced = set (facts.Early @ facts.Forced)
 
-        if selected.Count = 0 || selected |> Seq.exists (known.Contains >> not) then
+        if
+            selected.Count = 0
+            || selected |> Seq.exists (known.Contains >> not)
+            || (match change with
+                | PluginOrderChange.Replace names ->
+                    names.Length <> order.Entries.Length || selected.Count <> known.Count
+                | _ -> false)
+        then
             Error "Select current plugins first."
         else
             match change with
@@ -303,5 +311,11 @@ module OrderRules =
                                 rows[index] <- value
 
                         List.ofArray rows |> locked
+                    | PluginOrderChange.Replace names ->
+                        let index =
+                            Dictionary<string, PluginSetting>(StringComparer.OrdinalIgnoreCase)
+
+                        order.Entries |> List.iter (fun row -> index.Add(row.Name, row))
+                        names |> List.map (fun name -> index[name])
 
                 Ok { order with Entries = rows }

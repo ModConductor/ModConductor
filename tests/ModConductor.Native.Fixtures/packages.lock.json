@@ -88,6 +88,8 @@
         "type": "Project",
         "dependencies": {
           "FSharp.Core": "[10.1.400, )",
+          "ModConductor.ArchiveInspection": "[1.0.0, )",
+          "ModConductor.ArtifactLibrary": "[1.0.0, )",
           "ModConductor.FilePlanning": "[1.0.0, )"
         }
       },
@@ -151,6 +153,7 @@
           "Grpc.AspNetCore.Server": "[2.83.0, )",
           "ModConductor.Credentials": "[1.0.0, )",
           "ModConductor.Desktop": "[1.0.0, )",
+          "ModConductor.Loot": "[1.0.0, )",
           "ModConductor.ModMaintenance": "[1.0.0, )",
           "ModConductor.Nexus": "[1.0.0, )",
           "ModConductor.Operations": "[1.0.0, )",
@@ -210,6 +213,15 @@
         "dependencies": {
           "FSharp.Core": "[10.1.400, )",
           "ModConductor.ArtifactLibrary": "[1.0.0, )"
+        }
+      },
+      "modconductor.loot": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )",
+          "ModConductor.FilePlanning": "[1.0.0, )",
+          "ModConductor.Platform": "[1.0.0, )",
+          "ModConductor.ProfileGameData": "[1.0.0, )"
         }
       },
       "modconductor.modlibrary": {
@@ -274,6 +286,7 @@
           "ModConductor.GameLaunching": "[1.0.0, )",
           "ModConductor.GeneratedOutputs": "[1.0.0, )",
           "ModConductor.HttpDownloads": "[1.0.0, )",
+          "ModConductor.Loot": "[1.0.0, )",
           "ModConductor.ModLibrary": "[1.0.0, )",
           "ModConductor.ModMaintenance": "[1.0.0, )",
           "ModConductor.ModOrganization": "[1.0.0, )",
@@ -297,6 +310,7 @@
         "type": "Project",
         "dependencies": {
           "FSharp.Core": "[10.1.400, )",
+          "ModConductor.ArchiveInspection": "[1.0.0, )",
           "ModConductor.Bethesda": "[1.0.0, )",
           "ModConductor.GameContexts": "[1.0.0, )"
         }

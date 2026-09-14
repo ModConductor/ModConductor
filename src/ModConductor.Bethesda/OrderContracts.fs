@@ -29,3 +29,4 @@ type PluginOrderChange =
     | Enable of names: string list * enabled: bool
     | Move of names: string list * up: bool
     | Lock of names: string list * locked: bool
+    | Replace of names: string list

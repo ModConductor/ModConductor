@@ -1,0 +1,54 @@
+syntax = "proto3";
+package modconductor.v1;
+option csharp_namespace = "ModConductor.Protocol.V1";
+import "modconductor/v1/profile_data.proto";
+import "modconductor/v1/plugin_order.proto";
+
+service LootSorting {
+  rpc ReadLootState(ReadLootStateRequest) returns (LootStateReply);
+  rpc PreviewLootSort(PreviewLootSortRequest) returns (LootStateReply);
+  rpc ApplyLootSort(ApplyLootSortRequest) returns (PluginOrderReply);
+  rpc DismissLootSort(DismissLootSortRequest) returns (LootStateReply);
+  rpc RefreshLootMetadata(RefreshLootMetadataRequest) returns (LootStateReply);
+}
+
+message ReadLootStateRequest {}
+message PreviewLootSortRequest { string workspace_id = 1; string profile_id = 2; string headers_id = 3; }
+message ApplyLootSortRequest { string proposal_id = 1; ProfileDataRef expected = 2; string headers_id = 3; }
+message DismissLootSortRequest { string proposal_id = 1; }
+message RefreshLootMetadataRequest {}
+
+message LootMetadataState {
+  string revision = 1;
+  string masterlist_commit = 2;
+  string prelude_commit = 3;
+  string masterlist_sha256 = 4;
+  string prelude_sha256 = 5;
+  int64 fetched_unix_ms = 6;
+}
+message LootSortMove { string plugin = 1; int32 current = 2; int32 proposed = 3; string reason = 4; }
+message LootSortMessage { string plugin = 1; string level = 2; string text = 3; }
+message LootSortProposal {
+  string id = 1;
+  ProfileDataRef expected = 2;
+  string headers_id = 3;
+  int64 created_unix_ms = 4;
+  repeated string current = 5;
+  repeated string sorted = 6;
+  repeated LootSortMove moves = 7;
+  repeated LootSortMessage messages = 8;
+  LootMetadataState metadata = 9;
+  string helper_version = 10;
+  string libloot_version = 11;
+  string libloot_revision = 12;
+}
+message LootState {
+  string capability_id = 1;
+  bool available = 2;
+  string reason = 3;
+  LootMetadataState metadata = 4;
+  LootSortProposal proposal = 5;
+}
+enum LootProblemKind { LOOT_PROBLEM_KIND_UNSPECIFIED = 0; LOOT_PROBLEM_KIND_BUSY = 1; LOOT_PROBLEM_KIND_STALE = 2; LOOT_PROBLEM_KIND_CANCELLED = 3; LOOT_PROBLEM_KIND_UNSUPPORTED = 4; LOOT_PROBLEM_KIND_METADATA = 5; LOOT_PROBLEM_KIND_HELPER = 6; LOOT_PROBLEM_KIND_RESPONSE = 7; }
+message LootProblem { LootProblemKind kind = 1; string detail = 2; }
+message LootStateReply { oneof outcome { LootState state = 1; LootProblem problem = 2; } }

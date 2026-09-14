@@ -1,4 +1,5 @@
 import 'plugin_order_client.dart';
+import 'loot_client.dart';
 import 'archive_policy_client.dart';
 import 'bethesda_client.dart';
 import 'link_setup_client.dart';
@@ -114,6 +115,7 @@ class EngineOwner {
       _state is EngineConnected ? _session?.deployments : null;
   PluginOrderClient? get pluginOrders =>
       _state is EngineConnected ? _session?.pluginOrders : null;
+  LootClient? get loot => _state is EngineConnected ? _session?.loot : null;
   ArchivePolicyClient? get archivePolicies =>
       _state is EngineConnected ? _session?.archivePolicies : null;
   BethesdaClient? get bethesda =>
