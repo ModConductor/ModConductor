@@ -19,8 +19,31 @@ type ProfileGameDataSession
     ) =
 
     let gate = obj ()
+    let previewGate = obj ()
     let mutable active = 0
     let mutable closed = false
+
+    let savePreviews =
+        Collections.Generic.Dictionary<Guid, ProfileSaveActionPreview * SaveActionReceipt>()
+
+    let savePreviewOrder = Collections.Generic.Queue<Guid>()
+
+    let rememberSavePreview (preview: ProfileSaveActionPreview) (receipt: SaveActionReceipt) =
+        lock previewGate (fun () ->
+            while savePreviews.Count >= 64 do
+                savePreviews.Remove(savePreviewOrder.Dequeue()) |> ignore
+
+            savePreviews.Add(preview.Id, (preview, receipt))
+            savePreviewOrder.Enqueue preview.Id)
+
+    let findSavePreview id =
+        lock previewGate (fun () ->
+            match savePreviews.TryGetValue id with
+            | true, value -> Some value
+            | _ -> None)
+
+    let forgetSavePreview id =
+        lock previewGate (fun () -> savePreviews.Remove id |> ignore)
 
     let mutable drained =
         TaskCompletionSource<unit>(TaskCreationOptions.RunContinuationsAsynchronously)
@@ -267,7 +290,7 @@ type ProfileGameDataSession
                     Pending = Some initial.Id }
 
             let mutable action = { initial with Problem = None }
-            let mutable changed = None
+            let mutable changed = initial.ChangedProfile
 
             try
                 let! incoming =
@@ -316,6 +339,11 @@ type ProfileGameDataSession
                                 DataInitialization.profile repository context action.ProfileId
 
                             return Some privateData
+                        | ProfileDataActionKind.SaveFiles _ ->
+                            let! privateData =
+                                DataInitialization.profile repository context action.ProfileId
+
+                            return Some privateData
                         | ProfileDataActionKind.Clone _
                         | ProfileDataActionKind.Delete _ ->
                             return invalidOp "Use the profile mutation owner."
@@ -345,6 +373,15 @@ type ProfileGameDataSession
                                 action
                                 incoming.Value
                                 token
+                        | ProfileDataActionKind.SaveFiles _ ->
+                            SavePreparation.prepare
+                                repository
+                                scope
+                                context
+                                action
+                                incoming.Value
+                                token
+                                progress
                         | _ ->
                             DataActionPreparation.prepare
                                 repository
@@ -408,6 +445,11 @@ type ProfileGameDataSession
                                 SavesInitialized = options.Saves && profile.SavesInitialized
                                 ArchiveList =
                                     if options.Settings then profile.ArchiveList else None }
+                | ProfileDataActionKind.SaveFiles receipt, Some _ when
+                    receipt.Action = ProfileSaveAction.DeleteFromProfile
+                    ->
+                    let! deleted = ProfileDeletion.run action repository.SaveAction token progress
+                    action <- deleted
                 | _ -> ()
 
                 do! repository.Complete(context, changed, action)
@@ -814,6 +856,120 @@ type ProfileGameDataSession
                     requireIds [ workspace; profile ]
                     let! state = read workspace profile
                     return Ok state
+                })
+
+        member _.SaveGroups(workspace, profile, source, after) =
+            protect (fun () ->
+                task {
+                    requireIds [ workspace; profile ]
+                    let! scope = repository.Read(workspace, profile)
+                    return Ok(SaveGroups.page scope source after)
+                })
+
+        member _.InspectSave(workspace, profile, source, name, headers, token) =
+            protect (fun () ->
+                task {
+                    requireIds ([ workspace; profile ] @ (headers |> Option.toList))
+
+                    if String.IsNullOrWhiteSpace name then
+                        raise (
+                            ProfileDataException(
+                                ProfileDataError.Invalid "Choose a current save first."
+                            )
+                        )
+
+                    let! scope = repository.Read(workspace, profile)
+
+                    let! value =
+                        SaveGroups.inspect repository plugins scope source name headers token
+
+                    return Ok value
+                })
+
+        member _.PreviewSaveAction(expected, action, names, token) =
+            protect (fun () ->
+                task {
+                    requireIds [ expected.WorkspaceId; expected.ProfileId; expected.ContextId ]
+
+                    let! scope = repository.Read(expected.WorkspaceId, expected.ProfileId)
+                    check scope expected
+                    stopped scope.Game
+                    let id = Guid.NewGuid()
+
+                    let receipt, source, destination, files =
+                        SaveGroups.prepare id scope action names token
+
+                    let preview =
+                        { Id = id
+                          Expected = expected
+                          Action = action
+                          Source = source
+                          Destination = destination
+                          Files = files
+                          Bytes = files |> List.sumBy _.Bytes }
+
+                    rememberSavePreview preview receipt
+                    return Ok preview
+                })
+
+        member _.ApplySaveAction(id, previewId, expected, progress, token) =
+            run expected.WorkspaceId (fun () ->
+                task {
+                    requireIds
+                        [ id
+                          previewId
+                          expected.WorkspaceId
+                          expected.ProfileId
+                          expected.ContextId ]
+
+                    let! prior = repository.Action(expected.WorkspaceId, id)
+
+                    let receipt =
+                        match prior with
+                        | Some previous ->
+                            match previous.Kind with
+                            | ProfileDataActionKind.SaveFiles receipt when
+                                previous.ProfileId = expected.ProfileId
+                                && previous.ExpectedRevision = expected.Revision
+                                && receipt.PreviewId = previewId
+                                ->
+                                receipt
+                            | _ -> raise (ProfileDataException ProfileDataError.Stale)
+                        | None ->
+                            match findSavePreview previewId with
+                            | Some(preview, receipt) when
+                                preview.Id = previewId
+                                && preview.Expected = expected
+                                && preview.Action = receipt.Action
+                                ->
+                                receipt
+                            | _ -> raise (ProfileDataException ProfileDataError.Stale)
+
+                    let kind = ProfileDataActionKind.SaveFiles receipt
+
+                    let! replayed =
+                        replay expected.WorkspaceId expected.ProfileId id kind expected.Revision
+
+                    match replayed with
+                    | Some result -> return Ok result
+                    | None ->
+                        let! scope = repository.Read(expected.WorkspaceId, expected.ProfileId)
+                        check scope expected
+                        stopped scope.Game
+                        SaveGroups.checkReceipt scope receipt token
+                        let! context = DataInitialization.context repository scope
+
+                        let! action =
+                            repository.Claim(context, initial id context scope.ProfileId kind)
+
+                        let! result =
+                            execute ignore None scope context action token progress (fun _ ->
+                                Task.FromResult())
+
+                        if result.Complete then
+                            forgetSavePreview previewId
+
+                        return Ok result
                 })
 
         member _.Edit(request, progress, token) =

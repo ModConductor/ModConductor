@@ -122,6 +122,44 @@ module internal ProfileDataEncoding =
             SaveLinkEffect.Replace(previous, readRoot reader)
         | _ -> invalid ()
 
+    let private saveMutation writer (value: SaveMutationFile) =
+        root writer value.Target
+        text writer value.Name
+        option file writer value.Before
+        option stored writer value.Source
+
+    let private readSaveMutation reader : SaveMutationFile =
+        { Target = readRoot reader
+          Name = readText reader
+          Before = readOption readFile reader
+          Source = readOption readStored reader }
+
+    let private saveReceipt writer (value: SaveActionReceipt) =
+        guid writer value.PreviewId
+
+        writer.Write(
+            match value.Action with
+            | ProfileSaveAction.CopyToProfile -> 0
+            | ProfileSaveAction.DeleteFromProfile -> 1
+        )
+
+        text writer value.ContextFingerprint
+        list saveMutation writer value.Files
+
+    let private readSaveReceipt reader : SaveActionReceipt =
+        let preview = readGuid reader
+
+        let action =
+            match reader.ReadInt32() with
+            | 0 -> ProfileSaveAction.CopyToProfile
+            | 1 -> ProfileSaveAction.DeleteFromProfile
+            | _ -> invalid ()
+
+        { PreviewId = preview
+          Action = action
+          ContextFingerprint = readText reader
+          Files = readList readSaveMutation reader }
+
     let private kind (writer: BinaryWriter) =
         function
         | ProfileDataActionKind.Edit(value, initial, files) ->
@@ -157,6 +195,9 @@ module internal ProfileDataEncoding =
             text writer request.IniName
             option file writer request.Ini
         | ProfileDataActionKind.RestoreArchives -> writer.Write 6
+        | ProfileDataActionKind.SaveFiles receipt ->
+            writer.Write 7
+            saveReceipt writer receipt
 
     let private readKind (reader: BinaryReader) =
         match reader.ReadInt32() with
@@ -191,6 +232,7 @@ module internal ProfileDataEncoding =
                   IniName = readText reader
                   Ini = readOption readFile reader }
         | 6 -> ProfileDataActionKind.RestoreArchives
+        | 7 -> ProfileDataActionKind.SaveFiles(readSaveReceipt reader)
         | _ -> invalid ()
 
     let private writePrivate (writer: BinaryWriter) value =

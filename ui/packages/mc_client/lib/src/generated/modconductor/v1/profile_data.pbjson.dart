@@ -71,6 +71,90 @@ final $typed_data.Uint8List profileDataProblemKindDescriptor = $convert.base64De
     'SU5WQUxJRBAFEiQKIFBST0ZJTEVfREFUQV9QUk9CTEVNX1VOQVZBSUxBQkxFEAYSIQodUFJPRk'
     'lMRV9EQVRBX1BST0JMRU1fQ09ORkxJQ1QQBw==');
 
+@$core.Deprecated('Use profileSaveSourceDescriptor instead')
+const ProfileSaveSource$json = {
+  '1': 'ProfileSaveSource',
+  '2': [
+    {'1': 'PROFILE_SAVE_SOURCE_UNSPECIFIED', '2': 0},
+    {'1': 'PROFILE_SAVE_SOURCE_GLOBAL', '2': 1},
+    {'1': 'PROFILE_SAVE_SOURCE_PROFILE', '2': 2},
+  ],
+};
+
+/// Descriptor for `ProfileSaveSource`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List profileSaveSourceDescriptor = $convert.base64Decode(
+    'ChFQcm9maWxlU2F2ZVNvdXJjZRIjCh9QUk9GSUxFX1NBVkVfU09VUkNFX1VOU1BFQ0lGSUVEEA'
+    'ASHgoaUFJPRklMRV9TQVZFX1NPVVJDRV9HTE9CQUwQARIfChtQUk9GSUxFX1NBVkVfU09VUkNF'
+    'X1BST0ZJTEUQAg==');
+
+@$core.Deprecated('Use profileSaveEntryKindDescriptor instead')
+const ProfileSaveEntryKind$json = {
+  '1': 'ProfileSaveEntryKind',
+  '2': [
+    {'1': 'PROFILE_SAVE_ENTRY_KIND_UNSPECIFIED', '2': 0},
+    {'1': 'PROFILE_SAVE_ENTRY_KIND_SAVE', '2': 1},
+    {'1': 'PROFILE_SAVE_ENTRY_KIND_DIRECTORY', '2': 2},
+    {'1': 'PROFILE_SAVE_ENTRY_KIND_OTHER', '2': 3},
+  ],
+};
+
+/// Descriptor for `ProfileSaveEntryKind`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List profileSaveEntryKindDescriptor = $convert.base64Decode(
+    'ChRQcm9maWxlU2F2ZUVudHJ5S2luZBInCiNQUk9GSUxFX1NBVkVfRU5UUllfS0lORF9VTlNQRU'
+    'NJRklFRBAAEiAKHFBST0ZJTEVfU0FWRV9FTlRSWV9LSU5EX1NBVkUQARIlCiFQUk9GSUxFX1NB'
+    'VkVfRU5UUllfS0lORF9ESVJFQ1RPUlkQAhIhCh1QUk9GSUxFX1NBVkVfRU5UUllfS0lORF9PVE'
+    'hFUhAD');
+
+@$core.Deprecated('Use skyrimSaveCompressionDescriptor instead')
+const SkyrimSaveCompression$json = {
+  '1': 'SkyrimSaveCompression',
+  '2': [
+    {'1': 'SKYRIM_SAVE_COMPRESSION_UNSPECIFIED', '2': 0},
+    {'1': 'SKYRIM_SAVE_COMPRESSION_UNCOMPRESSED', '2': 1},
+    {'1': 'SKYRIM_SAVE_COMPRESSION_ZLIB', '2': 2},
+    {'1': 'SKYRIM_SAVE_COMPRESSION_LZ4', '2': 3},
+  ],
+};
+
+/// Descriptor for `SkyrimSaveCompression`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List skyrimSaveCompressionDescriptor = $convert.base64Decode(
+    'ChVTa3lyaW1TYXZlQ29tcHJlc3Npb24SJwojU0tZUklNX1NBVkVfQ09NUFJFU1NJT05fVU5TUE'
+    'VDSUZJRUQQABIoCiRTS1lSSU1fU0FWRV9DT01QUkVTU0lPTl9VTkNPTVBSRVNTRUQQARIgChxT'
+    'S1lSSU1fU0FWRV9DT01QUkVTU0lPTl9aTElCEAISHwobU0tZUklNX1NBVkVfQ09NUFJFU1NJT0'
+    '5fTFo0EAM=');
+
+@$core.Deprecated('Use savePluginStateDescriptor instead')
+const SavePluginState$json = {
+  '1': 'SavePluginState',
+  '2': [
+    {'1': 'SAVE_PLUGIN_STATE_UNSPECIFIED', '2': 0},
+    {'1': 'SAVE_PLUGIN_STATE_MISSING', '2': 1},
+    {'1': 'SAVE_PLUGIN_STATE_INACTIVE', '2': 2},
+  ],
+};
+
+/// Descriptor for `SavePluginState`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List savePluginStateDescriptor = $convert.base64Decode(
+    'Cg9TYXZlUGx1Z2luU3RhdGUSIQodU0FWRV9QTFVHSU5fU1RBVEVfVU5TUEVDSUZJRUQQABIdCh'
+    'lTQVZFX1BMVUdJTl9TVEFURV9NSVNTSU5HEAESHgoaU0FWRV9QTFVHSU5fU1RBVEVfSU5BQ1RJ'
+    'VkUQAg==');
+
+@$core.Deprecated('Use profileSaveActionDescriptor instead')
+const ProfileSaveAction$json = {
+  '1': 'ProfileSaveAction',
+  '2': [
+    {'1': 'PROFILE_SAVE_ACTION_UNSPECIFIED', '2': 0},
+    {'1': 'PROFILE_SAVE_ACTION_COPY_TO_PROFILE', '2': 1},
+    {'1': 'PROFILE_SAVE_ACTION_DELETE_FROM_PROFILE', '2': 2},
+  ],
+};
+
+/// Descriptor for `ProfileSaveAction`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List profileSaveActionDescriptor = $convert.base64Decode(
+    'ChFQcm9maWxlU2F2ZUFjdGlvbhIjCh9QUk9GSUxFX1NBVkVfQUNUSU9OX1VOU1BFQ0lGSUVEEA'
+    'ASJwojUFJPRklMRV9TQVZFX0FDVElPTl9DT1BZX1RPX1BST0ZJTEUQARIrCidQUk9GSUxFX1NB'
+    'VkVfQUNUSU9OX0RFTEVURV9GUk9NX1BST0ZJTEUQAg==');
+
 @$core.Deprecated('Use profileDataReadRequestDescriptor instead')
 const ProfileDataReadRequest$json = {
   '1': 'ProfileDataReadRequest',
@@ -542,3 +626,572 @@ final $typed_data.Uint8List profileSaveReplyDescriptor = $convert.base64Decode(
     'ChBQcm9maWxlU2F2ZVJlcGx5EjYKBHBhZ2UYASABKAsyIC5tb2Rjb25kdWN0b3IudjEuUHJvZm'
     'lsZVNhdmVQYWdlSABSBHBhZ2USPwoHcHJvYmxlbRgCIAEoCzIjLm1vZGNvbmR1Y3Rvci52MS5Q'
     'cm9maWxlRGF0YVByb2JsZW1IAFIHcHJvYmxlbUIICgZyZXN1bHQ=');
+
+@$core.Deprecated('Use profileSavePathDescriptor instead')
+const ProfileSavePath$json = {
+  '1': 'ProfileSavePath',
+  '2': [
+    {'1': 'host_path', '3': 1, '4': 1, '5': 9, '10': 'hostPath'},
+    {
+      '1': 'windows_path',
+      '3': 2,
+      '4': 1,
+      '5': 9,
+      '9': 0,
+      '10': 'windowsPath',
+      '17': true
+    },
+  ],
+  '8': [
+    {'1': '_windows_path'},
+  ],
+};
+
+/// Descriptor for `ProfileSavePath`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List profileSavePathDescriptor = $convert.base64Decode(
+    'Cg9Qcm9maWxlU2F2ZVBhdGgSGwoJaG9zdF9wYXRoGAEgASgJUghob3N0UGF0aBImCgx3aW5kb3'
+    'dzX3BhdGgYAiABKAlIAFILd2luZG93c1BhdGiIAQFCDwoNX3dpbmRvd3NfcGF0aA==');
+
+@$core.Deprecated('Use profileSaveGroupRequestDescriptor instead')
+const ProfileSaveGroupRequest$json = {
+  '1': 'ProfileSaveGroupRequest',
+  '2': [
+    {'1': 'workspace_id', '3': 1, '4': 1, '5': 9, '10': 'workspaceId'},
+    {'1': 'profile_id', '3': 2, '4': 1, '5': 9, '10': 'profileId'},
+    {
+      '1': 'source',
+      '3': 3,
+      '4': 1,
+      '5': 14,
+      '6': '.modconductor.v1.ProfileSaveSource',
+      '10': 'source'
+    },
+    {'1': 'after', '3': 4, '4': 1, '5': 9, '9': 0, '10': 'after', '17': true},
+  ],
+  '8': [
+    {'1': '_after'},
+  ],
+};
+
+/// Descriptor for `ProfileSaveGroupRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List profileSaveGroupRequestDescriptor = $convert.base64Decode(
+    'ChdQcm9maWxlU2F2ZUdyb3VwUmVxdWVzdBIhCgx3b3Jrc3BhY2VfaWQYASABKAlSC3dvcmtzcG'
+    'FjZUlkEh0KCnByb2ZpbGVfaWQYAiABKAlSCXByb2ZpbGVJZBI6CgZzb3VyY2UYAyABKA4yIi5t'
+    'b2Rjb25kdWN0b3IudjEuUHJvZmlsZVNhdmVTb3VyY2VSBnNvdXJjZRIZCgVhZnRlchgEIAEoCU'
+    'gAUgVhZnRlcogBAUIICgZfYWZ0ZXI=');
+
+@$core.Deprecated('Use profileSaveGroupEntryDescriptor instead')
+const ProfileSaveGroupEntry$json = {
+  '1': 'ProfileSaveGroupEntry',
+  '2': [
+    {'1': 'id', '3': 1, '4': 1, '5': 9, '10': 'id'},
+    {'1': 'name', '3': 2, '4': 1, '5': 9, '10': 'name'},
+    {
+      '1': 'kind',
+      '3': 3,
+      '4': 1,
+      '5': 14,
+      '6': '.modconductor.v1.ProfileSaveEntryKind',
+      '10': 'kind'
+    },
+    {'1': 'bytes', '3': 4, '4': 1, '5': 4, '10': 'bytes'},
+    {
+      '1': 'companion',
+      '3': 5,
+      '4': 1,
+      '5': 9,
+      '9': 0,
+      '10': 'companion',
+      '17': true
+    },
+    {'1': 'companion_bytes', '3': 6, '4': 1, '5': 4, '10': 'companionBytes'},
+    {'1': 'actionable', '3': 7, '4': 1, '5': 8, '10': 'actionable'},
+    {
+      '1': 'problem',
+      '3': 8,
+      '4': 1,
+      '5': 9,
+      '9': 1,
+      '10': 'problem',
+      '17': true
+    },
+  ],
+  '8': [
+    {'1': '_companion'},
+    {'1': '_problem'},
+  ],
+};
+
+/// Descriptor for `ProfileSaveGroupEntry`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List profileSaveGroupEntryDescriptor = $convert.base64Decode(
+    'ChVQcm9maWxlU2F2ZUdyb3VwRW50cnkSDgoCaWQYASABKAlSAmlkEhIKBG5hbWUYAiABKAlSBG'
+    '5hbWUSOQoEa2luZBgDIAEoDjIlLm1vZGNvbmR1Y3Rvci52MS5Qcm9maWxlU2F2ZUVudHJ5S2lu'
+    'ZFIEa2luZBIUCgVieXRlcxgEIAEoBFIFYnl0ZXMSIQoJY29tcGFuaW9uGAUgASgJSABSCWNvbX'
+    'BhbmlvbogBARInCg9jb21wYW5pb25fYnl0ZXMYBiABKARSDmNvbXBhbmlvbkJ5dGVzEh4KCmFj'
+    'dGlvbmFibGUYByABKAhSCmFjdGlvbmFibGUSHQoHcHJvYmxlbRgIIAEoCUgBUgdwcm9ibGVtiA'
+    'EBQgwKCl9jb21wYW5pb25CCgoIX3Byb2JsZW0=');
+
+@$core.Deprecated('Use profileSaveGroupPageDescriptor instead')
+const ProfileSaveGroupPage$json = {
+  '1': 'ProfileSaveGroupPage',
+  '2': [
+    {
+      '1': 'source',
+      '3': 1,
+      '4': 1,
+      '5': 14,
+      '6': '.modconductor.v1.ProfileSaveSource',
+      '10': 'source'
+    },
+    {
+      '1': 'path',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.ProfileSavePath',
+      '10': 'path'
+    },
+    {
+      '1': 'entries',
+      '3': 3,
+      '4': 3,
+      '5': 11,
+      '6': '.modconductor.v1.ProfileSaveGroupEntry',
+      '10': 'entries'
+    },
+    {'1': 'next', '3': 4, '4': 1, '5': 9, '9': 0, '10': 'next', '17': true},
+  ],
+  '8': [
+    {'1': '_next'},
+  ],
+};
+
+/// Descriptor for `ProfileSaveGroupPage`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List profileSaveGroupPageDescriptor = $convert.base64Decode(
+    'ChRQcm9maWxlU2F2ZUdyb3VwUGFnZRI6CgZzb3VyY2UYASABKA4yIi5tb2Rjb25kdWN0b3Iudj'
+    'EuUHJvZmlsZVNhdmVTb3VyY2VSBnNvdXJjZRI0CgRwYXRoGAIgASgLMiAubW9kY29uZHVjdG9y'
+    'LnYxLlByb2ZpbGVTYXZlUGF0aFIEcGF0aBJACgdlbnRyaWVzGAMgAygLMiYubW9kY29uZHVjdG'
+    '9yLnYxLlByb2ZpbGVTYXZlR3JvdXBFbnRyeVIHZW50cmllcxIXCgRuZXh0GAQgASgJSABSBG5l'
+    'eHSIAQFCBwoFX25leHQ=');
+
+@$core.Deprecated('Use profileSaveGroupReplyDescriptor instead')
+const ProfileSaveGroupReply$json = {
+  '1': 'ProfileSaveGroupReply',
+  '2': [
+    {
+      '1': 'page',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.ProfileSaveGroupPage',
+      '9': 0,
+      '10': 'page'
+    },
+    {
+      '1': 'problem',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.ProfileDataProblem',
+      '9': 0,
+      '10': 'problem'
+    },
+  ],
+  '8': [
+    {'1': 'result'},
+  ],
+};
+
+/// Descriptor for `ProfileSaveGroupReply`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List profileSaveGroupReplyDescriptor = $convert.base64Decode(
+    'ChVQcm9maWxlU2F2ZUdyb3VwUmVwbHkSOwoEcGFnZRgBIAEoCzIlLm1vZGNvbmR1Y3Rvci52MS'
+    '5Qcm9maWxlU2F2ZUdyb3VwUGFnZUgAUgRwYWdlEj8KB3Byb2JsZW0YAiABKAsyIy5tb2Rjb25k'
+    'dWN0b3IudjEuUHJvZmlsZURhdGFQcm9ibGVtSABSB3Byb2JsZW1CCAoGcmVzdWx0');
+
+@$core.Deprecated('Use skyrimSaveMetadataDescriptor instead')
+const SkyrimSaveMetadata$json = {
+  '1': 'SkyrimSaveMetadata',
+  '2': [
+    {'1': 'header_version', '3': 1, '4': 1, '5': 13, '10': 'headerVersion'},
+    {'1': 'form_version', '3': 2, '4': 1, '5': 13, '10': 'formVersion'},
+    {
+      '1': 'compression',
+      '3': 3,
+      '4': 1,
+      '5': 14,
+      '6': '.modconductor.v1.SkyrimSaveCompression',
+      '10': 'compression'
+    },
+    {'1': 'save_number', '3': 4, '4': 1, '5': 13, '10': 'saveNumber'},
+    {'1': 'character', '3': 5, '4': 1, '5': 9, '10': 'character'},
+    {'1': 'level', '3': 6, '4': 1, '5': 13, '10': 'level'},
+    {'1': 'location', '3': 7, '4': 1, '5': 9, '10': 'location'},
+    {'1': 'game_time', '3': 8, '4': 1, '5': 9, '10': 'gameTime'},
+    {'1': 'full_plugins', '3': 9, '4': 3, '5': 9, '10': 'fullPlugins'},
+    {'1': 'light_plugins', '3': 10, '4': 3, '5': 9, '10': 'lightPlugins'},
+  ],
+};
+
+/// Descriptor for `SkyrimSaveMetadata`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List skyrimSaveMetadataDescriptor = $convert.base64Decode(
+    'ChJTa3lyaW1TYXZlTWV0YWRhdGESJQoOaGVhZGVyX3ZlcnNpb24YASABKA1SDWhlYWRlclZlcn'
+    'Npb24SIQoMZm9ybV92ZXJzaW9uGAIgASgNUgtmb3JtVmVyc2lvbhJICgtjb21wcmVzc2lvbhgD'
+    'IAEoDjImLm1vZGNvbmR1Y3Rvci52MS5Ta3lyaW1TYXZlQ29tcHJlc3Npb25SC2NvbXByZXNzaW'
+    '9uEh8KC3NhdmVfbnVtYmVyGAQgASgNUgpzYXZlTnVtYmVyEhwKCWNoYXJhY3RlchgFIAEoCVIJ'
+    'Y2hhcmFjdGVyEhQKBWxldmVsGAYgASgNUgVsZXZlbBIaCghsb2NhdGlvbhgHIAEoCVIIbG9jYX'
+    'Rpb24SGwoJZ2FtZV90aW1lGAggASgJUghnYW1lVGltZRIhCgxmdWxsX3BsdWdpbnMYCSADKAlS'
+    'C2Z1bGxQbHVnaW5zEiMKDWxpZ2h0X3BsdWdpbnMYCiADKAlSDGxpZ2h0UGx1Z2lucw==');
+
+@$core.Deprecated('Use savePluginIssueDescriptor instead')
+const SavePluginIssue$json = {
+  '1': 'SavePluginIssue',
+  '2': [
+    {'1': 'name', '3': 1, '4': 1, '5': 9, '10': 'name'},
+    {
+      '1': 'state',
+      '3': 2,
+      '4': 1,
+      '5': 14,
+      '6': '.modconductor.v1.SavePluginState',
+      '10': 'state'
+    },
+    {'1': 'source', '3': 3, '4': 1, '5': 9, '9': 0, '10': 'source', '17': true},
+  ],
+  '8': [
+    {'1': '_source'},
+  ],
+};
+
+/// Descriptor for `SavePluginIssue`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List savePluginIssueDescriptor = $convert.base64Decode(
+    'Cg9TYXZlUGx1Z2luSXNzdWUSEgoEbmFtZRgBIAEoCVIEbmFtZRI2CgVzdGF0ZRgCIAEoDjIgLm'
+    '1vZGNvbmR1Y3Rvci52MS5TYXZlUGx1Z2luU3RhdGVSBXN0YXRlEhsKBnNvdXJjZRgDIAEoCUgA'
+    'UgZzb3VyY2WIAQFCCQoHX3NvdXJjZQ==');
+
+@$core.Deprecated('Use profileSaveInspectRequestDescriptor instead')
+const ProfileSaveInspectRequest$json = {
+  '1': 'ProfileSaveInspectRequest',
+  '2': [
+    {'1': 'workspace_id', '3': 1, '4': 1, '5': 9, '10': 'workspaceId'},
+    {'1': 'profile_id', '3': 2, '4': 1, '5': 9, '10': 'profileId'},
+    {
+      '1': 'source',
+      '3': 3,
+      '4': 1,
+      '5': 14,
+      '6': '.modconductor.v1.ProfileSaveSource',
+      '10': 'source'
+    },
+    {'1': 'name', '3': 4, '4': 1, '5': 9, '10': 'name'},
+    {
+      '1': 'headers_id',
+      '3': 5,
+      '4': 1,
+      '5': 9,
+      '9': 0,
+      '10': 'headersId',
+      '17': true
+    },
+  ],
+  '8': [
+    {'1': '_headers_id'},
+  ],
+};
+
+/// Descriptor for `ProfileSaveInspectRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List profileSaveInspectRequestDescriptor = $convert.base64Decode(
+    'ChlQcm9maWxlU2F2ZUluc3BlY3RSZXF1ZXN0EiEKDHdvcmtzcGFjZV9pZBgBIAEoCVILd29ya3'
+    'NwYWNlSWQSHQoKcHJvZmlsZV9pZBgCIAEoCVIJcHJvZmlsZUlkEjoKBnNvdXJjZRgDIAEoDjIi'
+    'Lm1vZGNvbmR1Y3Rvci52MS5Qcm9maWxlU2F2ZVNvdXJjZVIGc291cmNlEhIKBG5hbWUYBCABKA'
+    'lSBG5hbWUSIgoKaGVhZGVyc19pZBgFIAEoCUgAUgloZWFkZXJzSWSIAQFCDQoLX2hlYWRlcnNf'
+    'aWQ=');
+
+@$core.Deprecated('Use profileSaveInspectionDescriptor instead')
+const ProfileSaveInspection$json = {
+  '1': 'ProfileSaveInspection',
+  '2': [
+    {
+      '1': 'source',
+      '3': 1,
+      '4': 1,
+      '5': 14,
+      '6': '.modconductor.v1.ProfileSaveSource',
+      '10': 'source'
+    },
+    {
+      '1': 'path',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.ProfileSavePath',
+      '10': 'path'
+    },
+    {
+      '1': 'entry',
+      '3': 3,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.ProfileSaveGroupEntry',
+      '10': 'entry'
+    },
+    {
+      '1': 'metadata',
+      '3': 4,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.SkyrimSaveMetadata',
+      '9': 0,
+      '10': 'metadata',
+      '17': true
+    },
+    {
+      '1': 'metadata_problem',
+      '3': 5,
+      '4': 1,
+      '5': 9,
+      '9': 1,
+      '10': 'metadataProblem',
+      '17': true
+    },
+    {
+      '1': 'plugin_issues',
+      '3': 6,
+      '4': 3,
+      '5': 11,
+      '6': '.modconductor.v1.SavePluginIssue',
+      '10': 'pluginIssues'
+    },
+    {
+      '1': 'plugin_check_problem',
+      '3': 7,
+      '4': 1,
+      '5': 9,
+      '9': 2,
+      '10': 'pluginCheckProblem',
+      '17': true
+    },
+  ],
+  '8': [
+    {'1': '_metadata'},
+    {'1': '_metadata_problem'},
+    {'1': '_plugin_check_problem'},
+  ],
+};
+
+/// Descriptor for `ProfileSaveInspection`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List profileSaveInspectionDescriptor = $convert.base64Decode(
+    'ChVQcm9maWxlU2F2ZUluc3BlY3Rpb24SOgoGc291cmNlGAEgASgOMiIubW9kY29uZHVjdG9yLn'
+    'YxLlByb2ZpbGVTYXZlU291cmNlUgZzb3VyY2USNAoEcGF0aBgCIAEoCzIgLm1vZGNvbmR1Y3Rv'
+    'ci52MS5Qcm9maWxlU2F2ZVBhdGhSBHBhdGgSPAoFZW50cnkYAyABKAsyJi5tb2Rjb25kdWN0b3'
+    'IudjEuUHJvZmlsZVNhdmVHcm91cEVudHJ5UgVlbnRyeRJECghtZXRhZGF0YRgEIAEoCzIjLm1v'
+    'ZGNvbmR1Y3Rvci52MS5Ta3lyaW1TYXZlTWV0YWRhdGFIAFIIbWV0YWRhdGGIAQESLgoQbWV0YW'
+    'RhdGFfcHJvYmxlbRgFIAEoCUgBUg9tZXRhZGF0YVByb2JsZW2IAQESRQoNcGx1Z2luX2lzc3Vl'
+    'cxgGIAMoCzIgLm1vZGNvbmR1Y3Rvci52MS5TYXZlUGx1Z2luSXNzdWVSDHBsdWdpbklzc3Vlcx'
+    'I1ChRwbHVnaW5fY2hlY2tfcHJvYmxlbRgHIAEoCUgCUhJwbHVnaW5DaGVja1Byb2JsZW2IAQFC'
+    'CwoJX21ldGFkYXRhQhMKEV9tZXRhZGF0YV9wcm9ibGVtQhcKFV9wbHVnaW5fY2hlY2tfcHJvYm'
+    'xlbQ==');
+
+@$core.Deprecated('Use profileSaveInspectReplyDescriptor instead')
+const ProfileSaveInspectReply$json = {
+  '1': 'ProfileSaveInspectReply',
+  '2': [
+    {
+      '1': 'inspection',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.ProfileSaveInspection',
+      '9': 0,
+      '10': 'inspection'
+    },
+    {
+      '1': 'problem',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.ProfileDataProblem',
+      '9': 0,
+      '10': 'problem'
+    },
+  ],
+  '8': [
+    {'1': 'result'},
+  ],
+};
+
+/// Descriptor for `ProfileSaveInspectReply`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List profileSaveInspectReplyDescriptor = $convert.base64Decode(
+    'ChdQcm9maWxlU2F2ZUluc3BlY3RSZXBseRJICgppbnNwZWN0aW9uGAEgASgLMiYubW9kY29uZH'
+    'VjdG9yLnYxLlByb2ZpbGVTYXZlSW5zcGVjdGlvbkgAUgppbnNwZWN0aW9uEj8KB3Byb2JsZW0Y'
+    'AiABKAsyIy5tb2Rjb25kdWN0b3IudjEuUHJvZmlsZURhdGFQcm9ibGVtSABSB3Byb2JsZW1CCA'
+    'oGcmVzdWx0');
+
+@$core.Deprecated('Use profileSaveActionFileDescriptor instead')
+const ProfileSaveActionFile$json = {
+  '1': 'ProfileSaveActionFile',
+  '2': [
+    {'1': 'name', '3': 1, '4': 1, '5': 9, '10': 'name'},
+    {'1': 'bytes', '3': 2, '4': 1, '5': 4, '10': 'bytes'},
+  ],
+};
+
+/// Descriptor for `ProfileSaveActionFile`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List profileSaveActionFileDescriptor = $convert.base64Decode(
+    'ChVQcm9maWxlU2F2ZUFjdGlvbkZpbGUSEgoEbmFtZRgBIAEoCVIEbmFtZRIUCgVieXRlcxgCIA'
+    'EoBFIFYnl0ZXM=');
+
+@$core.Deprecated('Use profileSaveActionPreviewRequestDescriptor instead')
+const ProfileSaveActionPreviewRequest$json = {
+  '1': 'ProfileSaveActionPreviewRequest',
+  '2': [
+    {
+      '1': 'expected',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.ProfileDataRef',
+      '10': 'expected'
+    },
+    {
+      '1': 'action',
+      '3': 2,
+      '4': 1,
+      '5': 14,
+      '6': '.modconductor.v1.ProfileSaveAction',
+      '10': 'action'
+    },
+    {'1': 'names', '3': 3, '4': 3, '5': 9, '10': 'names'},
+  ],
+};
+
+/// Descriptor for `ProfileSaveActionPreviewRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List profileSaveActionPreviewRequestDescriptor =
+    $convert.base64Decode(
+        'Ch9Qcm9maWxlU2F2ZUFjdGlvblByZXZpZXdSZXF1ZXN0EjsKCGV4cGVjdGVkGAEgASgLMh8ubW'
+        '9kY29uZHVjdG9yLnYxLlByb2ZpbGVEYXRhUmVmUghleHBlY3RlZBI6CgZhY3Rpb24YAiABKA4y'
+        'Ii5tb2Rjb25kdWN0b3IudjEuUHJvZmlsZVNhdmVBY3Rpb25SBmFjdGlvbhIUCgVuYW1lcxgDIA'
+        'MoCVIFbmFtZXM=');
+
+@$core.Deprecated('Use profileSaveActionPreviewDescriptor instead')
+const ProfileSaveActionPreview$json = {
+  '1': 'ProfileSaveActionPreview',
+  '2': [
+    {'1': 'id', '3': 1, '4': 1, '5': 9, '10': 'id'},
+    {
+      '1': 'expected',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.ProfileDataRef',
+      '10': 'expected'
+    },
+    {
+      '1': 'action',
+      '3': 3,
+      '4': 1,
+      '5': 14,
+      '6': '.modconductor.v1.ProfileSaveAction',
+      '10': 'action'
+    },
+    {
+      '1': 'source',
+      '3': 4,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.ProfileSavePath',
+      '10': 'source'
+    },
+    {
+      '1': 'destination',
+      '3': 5,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.ProfileSavePath',
+      '9': 0,
+      '10': 'destination',
+      '17': true
+    },
+    {
+      '1': 'files',
+      '3': 6,
+      '4': 3,
+      '5': 11,
+      '6': '.modconductor.v1.ProfileSaveActionFile',
+      '10': 'files'
+    },
+    {'1': 'bytes', '3': 7, '4': 1, '5': 4, '10': 'bytes'},
+  ],
+  '8': [
+    {'1': '_destination'},
+  ],
+};
+
+/// Descriptor for `ProfileSaveActionPreview`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List profileSaveActionPreviewDescriptor = $convert.base64Decode(
+    'ChhQcm9maWxlU2F2ZUFjdGlvblByZXZpZXcSDgoCaWQYASABKAlSAmlkEjsKCGV4cGVjdGVkGA'
+    'IgASgLMh8ubW9kY29uZHVjdG9yLnYxLlByb2ZpbGVEYXRhUmVmUghleHBlY3RlZBI6CgZhY3Rp'
+    'b24YAyABKA4yIi5tb2Rjb25kdWN0b3IudjEuUHJvZmlsZVNhdmVBY3Rpb25SBmFjdGlvbhI4Cg'
+    'Zzb3VyY2UYBCABKAsyIC5tb2Rjb25kdWN0b3IudjEuUHJvZmlsZVNhdmVQYXRoUgZzb3VyY2US'
+    'RwoLZGVzdGluYXRpb24YBSABKAsyIC5tb2Rjb25kdWN0b3IudjEuUHJvZmlsZVNhdmVQYXRoSA'
+    'BSC2Rlc3RpbmF0aW9uiAEBEjwKBWZpbGVzGAYgAygLMiYubW9kY29uZHVjdG9yLnYxLlByb2Zp'
+    'bGVTYXZlQWN0aW9uRmlsZVIFZmlsZXMSFAoFYnl0ZXMYByABKARSBWJ5dGVzQg4KDF9kZXN0aW'
+    '5hdGlvbg==');
+
+@$core.Deprecated('Use profileSaveActionPreviewReplyDescriptor instead')
+const ProfileSaveActionPreviewReply$json = {
+  '1': 'ProfileSaveActionPreviewReply',
+  '2': [
+    {
+      '1': 'preview',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.ProfileSaveActionPreview',
+      '9': 0,
+      '10': 'preview'
+    },
+    {
+      '1': 'problem',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.ProfileDataProblem',
+      '9': 0,
+      '10': 'problem'
+    },
+  ],
+  '8': [
+    {'1': 'result'},
+  ],
+};
+
+/// Descriptor for `ProfileSaveActionPreviewReply`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List profileSaveActionPreviewReplyDescriptor = $convert.base64Decode(
+    'Ch1Qcm9maWxlU2F2ZUFjdGlvblByZXZpZXdSZXBseRJFCgdwcmV2aWV3GAEgASgLMikubW9kY2'
+    '9uZHVjdG9yLnYxLlByb2ZpbGVTYXZlQWN0aW9uUHJldmlld0gAUgdwcmV2aWV3Ej8KB3Byb2Js'
+    'ZW0YAiABKAsyIy5tb2Rjb25kdWN0b3IudjEuUHJvZmlsZURhdGFQcm9ibGVtSABSB3Byb2JsZW'
+    '1CCAoGcmVzdWx0');
+
+@$core.Deprecated('Use profileSaveActionApplyRequestDescriptor instead')
+const ProfileSaveActionApplyRequest$json = {
+  '1': 'ProfileSaveActionApplyRequest',
+  '2': [
+    {'1': 'id', '3': 1, '4': 1, '5': 9, '10': 'id'},
+    {'1': 'preview_id', '3': 2, '4': 1, '5': 9, '10': 'previewId'},
+    {
+      '1': 'expected',
+      '3': 3,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.ProfileDataRef',
+      '10': 'expected'
+    },
+  ],
+};
+
+/// Descriptor for `ProfileSaveActionApplyRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List profileSaveActionApplyRequestDescriptor =
+    $convert.base64Decode(
+        'Ch1Qcm9maWxlU2F2ZUFjdGlvbkFwcGx5UmVxdWVzdBIOCgJpZBgBIAEoCVICaWQSHQoKcHJldm'
+        'lld19pZBgCIAEoCVIJcHJldmlld0lkEjsKCGV4cGVjdGVkGAMgASgLMh8ubW9kY29uZHVjdG9y'
+        'LnYxLlByb2ZpbGVEYXRhUmVmUghleHBlY3RlZA==');

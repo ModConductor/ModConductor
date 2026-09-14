@@ -59,6 +59,18 @@ type internal ArchivePolicyApply =
       IniName: string
       Ini: DataFile option }
 
+type internal SaveMutationFile =
+    { Target: DataRoot
+      Name: string
+      Before: DataFile option
+      Source: StoredDataFile option }
+
+type internal SaveActionReceipt =
+    { PreviewId: Guid
+      Action: ProfileSaveAction
+      ContextFingerprint: string
+      Files: SaveMutationFile list }
+
 [<RequireQualifiedAccess>]
 type internal SaveLinkEffect =
     | Unchanged
@@ -73,6 +85,7 @@ type internal ProfileDataActionKind =
     | Restore
     | ApplyArchives of ArchivePolicyApply
     | RestoreArchives
+    | SaveFiles of SaveActionReceipt
     | Clone of target: Guid * name: string * workspaceRevision: int64
     | Delete of workspaceRevision: int64
 

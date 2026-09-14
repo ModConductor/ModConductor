@@ -4,6 +4,10 @@ option csharp_namespace = "ModConductor.Protocol.V1";
 
 service ProfileDataOperations {
   rpc ListProfileSaves(ProfileSaveRequest) returns (ProfileSaveReply);
+  rpc ListSaveGroups(ProfileSaveGroupRequest) returns (ProfileSaveGroupReply);
+  rpc InspectSave(ProfileSaveInspectRequest) returns (ProfileSaveInspectReply);
+  rpc PreviewSaveAction(ProfileSaveActionPreviewRequest) returns (ProfileSaveActionPreviewReply);
+  rpc ApplySaveAction(ProfileSaveActionApplyRequest) returns (stream ProfileDataEvent);
   rpc ReadProfileData(ProfileDataReadRequest) returns (ProfileDataReply);
   rpc EditProfileData(ProfileDataEditRequest) returns (stream ProfileDataEvent);
   rpc RestoreProfileData(ProfileDataRestoreRequest) returns (stream ProfileDataEvent);
@@ -63,3 +67,116 @@ message ProfileSaveRequest { string workspace_id = 1; string profile_id = 2; rep
 message ProfileSaveEntry { string name = 1; bool directory = 2; uint64 bytes = 3; }
 message ProfileSavePage { repeated ProfileSaveEntry entries = 1; optional string next = 2; }
 message ProfileSaveReply { oneof result { ProfileSavePage page = 1; ProfileDataProblem problem = 2; } }
+
+enum ProfileSaveSource {
+  PROFILE_SAVE_SOURCE_UNSPECIFIED = 0;
+  PROFILE_SAVE_SOURCE_GLOBAL = 1;
+  PROFILE_SAVE_SOURCE_PROFILE = 2;
+}
+enum ProfileSaveEntryKind {
+  PROFILE_SAVE_ENTRY_KIND_UNSPECIFIED = 0;
+  PROFILE_SAVE_ENTRY_KIND_SAVE = 1;
+  PROFILE_SAVE_ENTRY_KIND_DIRECTORY = 2;
+  PROFILE_SAVE_ENTRY_KIND_OTHER = 3;
+}
+message ProfileSavePath { string host_path = 1; optional string windows_path = 2; }
+message ProfileSaveGroupRequest {
+  string workspace_id = 1;
+  string profile_id = 2;
+  ProfileSaveSource source = 3;
+  optional string after = 4;
+}
+message ProfileSaveGroupEntry {
+  string id = 1;
+  string name = 2;
+  ProfileSaveEntryKind kind = 3;
+  uint64 bytes = 4;
+  optional string companion = 5;
+  uint64 companion_bytes = 6;
+  bool actionable = 7;
+  optional string problem = 8;
+}
+message ProfileSaveGroupPage {
+  ProfileSaveSource source = 1;
+  ProfileSavePath path = 2;
+  repeated ProfileSaveGroupEntry entries = 3;
+  optional string next = 4;
+}
+message ProfileSaveGroupReply {
+  oneof result { ProfileSaveGroupPage page = 1; ProfileDataProblem problem = 2; }
+}
+enum SkyrimSaveCompression {
+  SKYRIM_SAVE_COMPRESSION_UNSPECIFIED = 0;
+  SKYRIM_SAVE_COMPRESSION_UNCOMPRESSED = 1;
+  SKYRIM_SAVE_COMPRESSION_ZLIB = 2;
+  SKYRIM_SAVE_COMPRESSION_LZ4 = 3;
+}
+message SkyrimSaveMetadata {
+  uint32 header_version = 1;
+  uint32 form_version = 2;
+  SkyrimSaveCompression compression = 3;
+  uint32 save_number = 4;
+  string character = 5;
+  uint32 level = 6;
+  string location = 7;
+  string game_time = 8;
+  repeated string full_plugins = 9;
+  repeated string light_plugins = 10;
+}
+enum SavePluginState {
+  SAVE_PLUGIN_STATE_UNSPECIFIED = 0;
+  SAVE_PLUGIN_STATE_MISSING = 1;
+  SAVE_PLUGIN_STATE_INACTIVE = 2;
+}
+message SavePluginIssue {
+  string name = 1;
+  SavePluginState state = 2;
+  optional string source = 3;
+}
+message ProfileSaveInspectRequest {
+  string workspace_id = 1;
+  string profile_id = 2;
+  ProfileSaveSource source = 3;
+  string name = 4;
+  optional string headers_id = 5;
+}
+message ProfileSaveInspection {
+  ProfileSaveSource source = 1;
+  ProfileSavePath path = 2;
+  ProfileSaveGroupEntry entry = 3;
+  optional SkyrimSaveMetadata metadata = 4;
+  optional string metadata_problem = 5;
+  repeated SavePluginIssue plugin_issues = 6;
+  optional string plugin_check_problem = 7;
+}
+message ProfileSaveInspectReply {
+  oneof result { ProfileSaveInspection inspection = 1; ProfileDataProblem problem = 2; }
+}
+enum ProfileSaveAction {
+  PROFILE_SAVE_ACTION_UNSPECIFIED = 0;
+  PROFILE_SAVE_ACTION_COPY_TO_PROFILE = 1;
+  PROFILE_SAVE_ACTION_DELETE_FROM_PROFILE = 2;
+}
+message ProfileSaveActionFile { string name = 1; uint64 bytes = 2; }
+message ProfileSaveActionPreviewRequest {
+  ProfileDataRef expected = 1;
+  ProfileSaveAction action = 2;
+  repeated string names = 3;
+}
+message ProfileSaveActionPreview {
+  string id = 1;
+  ProfileDataRef expected = 2;
+  ProfileSaveAction action = 3;
+  ProfileSavePath source = 4;
+  optional ProfileSavePath destination = 5;
+  repeated ProfileSaveActionFile files = 6;
+  uint64 bytes = 7;
+}
+message ProfileSaveActionPreviewReply {
+  oneof result { ProfileSaveActionPreview preview = 1; ProfileDataProblem problem = 2; }
+}
+message ProfileSaveActionApplyRequest {
+  string id = 1;
+  string preview_id = 2;
+  ProfileDataRef expected = 3;
+}

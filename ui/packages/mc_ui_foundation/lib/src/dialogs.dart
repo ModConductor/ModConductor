@@ -8,17 +8,19 @@ class McDialog extends StatelessWidget {
     required this.title,
     required this.children,
     this.actions,
+    this.contentWidth = 460,
   });
   final String title;
   final List<Widget> children;
   final List<Widget>? actions;
+  final double contentWidth;
 
   @override
   Widget build(BuildContext context) => AlertDialog(
     scrollable: true,
     title: Text(title),
     content: SizedBox(
-      width: 460,
+      width: contentWidth,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,

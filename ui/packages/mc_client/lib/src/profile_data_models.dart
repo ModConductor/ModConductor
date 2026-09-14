@@ -95,3 +95,114 @@ class ProfileSavePage {
   final List<ProfileSaveEntry> entries;
   final String? next;
 }
+
+enum ProfileSaveSource { global, profile }
+
+enum ProfileSaveEntryKind { save, directory, other }
+
+class ProfileSavePath {
+  const ProfileSavePath(this.hostPath, this.windowsPath);
+  final String hostPath;
+  final String? windowsPath;
+}
+
+class ProfileSaveGroupEntry {
+  const ProfileSaveGroupEntry({
+    required this.id,
+    required this.name,
+    required this.kind,
+    required this.bytes,
+    required this.companionBytes,
+    required this.actionable,
+    this.companion,
+    this.problem,
+  });
+  final String id, name;
+  final ProfileSaveEntryKind kind;
+  final int bytes, companionBytes;
+  final bool actionable;
+  final String? companion, problem;
+}
+
+class ProfileSaveGroupPage {
+  const ProfileSaveGroupPage(this.source, this.path, this.entries, this.next);
+  final ProfileSaveSource source;
+  final ProfileSavePath path;
+  final List<ProfileSaveGroupEntry> entries;
+  final String? next;
+}
+
+enum SkyrimSaveCompression { uncompressed, zlib, lz4 }
+
+class SkyrimSaveMetadata {
+  const SkyrimSaveMetadata({
+    required this.headerVersion,
+    required this.formVersion,
+    required this.compression,
+    required this.saveNumber,
+    required this.character,
+    required this.level,
+    required this.location,
+    required this.gameTime,
+    required this.fullPlugins,
+    required this.lightPlugins,
+  });
+  final int headerVersion, formVersion, saveNumber, level;
+  final SkyrimSaveCompression compression;
+  final String character, location, gameTime;
+  final List<String> fullPlugins, lightPlugins;
+}
+
+enum SavePluginState { missing, inactive }
+
+class SavePluginIssue {
+  const SavePluginIssue(this.name, this.state, this.source);
+  final String name;
+  final SavePluginState state;
+  final String? source;
+}
+
+class ProfileSaveInspection {
+  const ProfileSaveInspection({
+    required this.source,
+    required this.path,
+    required this.entry,
+    required this.pluginIssues,
+    this.metadata,
+    this.metadataProblem,
+    this.pluginCheckProblem,
+  });
+  final ProfileSaveSource source;
+  final ProfileSavePath path;
+  final ProfileSaveGroupEntry entry;
+  final SkyrimSaveMetadata? metadata;
+  final String? metadataProblem, pluginCheckProblem;
+  final List<SavePluginIssue> pluginIssues;
+}
+
+enum ProfileSaveAction { copyToProfile, deleteFromProfile }
+
+class ProfileSaveActionFile {
+  const ProfileSaveActionFile(this.name, this.bytes);
+  final String name;
+  final int bytes;
+}
+
+class ProfileSaveActionPreview {
+  const ProfileSaveActionPreview({
+    required this.id,
+    required this.expected,
+    required this.action,
+    required this.source,
+    required this.files,
+    required this.bytes,
+    this.destination,
+  });
+  final String id;
+  final ProfileDataRef expected;
+  final ProfileSaveAction action;
+  final ProfileSavePath source;
+  final ProfileSavePath? destination;
+  final List<ProfileSaveActionFile> files;
+  final int bytes;
+}

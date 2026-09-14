@@ -1455,6 +1455,1517 @@ class ProfileSaveReply extends $pb.GeneratedMessage {
   ProfileDataProblem ensureProblem() => $_ensure(1);
 }
 
+class ProfileSavePath extends $pb.GeneratedMessage {
+  factory ProfileSavePath({
+    $core.String? hostPath,
+    $core.String? windowsPath,
+  }) {
+    final result = create();
+    if (hostPath != null) result.hostPath = hostPath;
+    if (windowsPath != null) result.windowsPath = windowsPath;
+    return result;
+  }
+
+  ProfileSavePath._();
+
+  factory ProfileSavePath.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ProfileSavePath.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ProfileSavePath',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'hostPath')
+    ..aOS(2, _omitFieldNames ? '' : 'windowsPath')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ProfileSavePath clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ProfileSavePath copyWith(void Function(ProfileSavePath) updates) =>
+      super.copyWith((message) => updates(message as ProfileSavePath))
+          as ProfileSavePath;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ProfileSavePath create() => ProfileSavePath._();
+  @$core.override
+  ProfileSavePath createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ProfileSavePath getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ProfileSavePath>(create);
+  static ProfileSavePath? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get hostPath => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set hostPath($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasHostPath() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearHostPath() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get windowsPath => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set windowsPath($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasWindowsPath() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearWindowsPath() => $_clearField(2);
+}
+
+class ProfileSaveGroupRequest extends $pb.GeneratedMessage {
+  factory ProfileSaveGroupRequest({
+    $core.String? workspaceId,
+    $core.String? profileId,
+    ProfileSaveSource? source,
+    $core.String? after,
+  }) {
+    final result = create();
+    if (workspaceId != null) result.workspaceId = workspaceId;
+    if (profileId != null) result.profileId = profileId;
+    if (source != null) result.source = source;
+    if (after != null) result.after = after;
+    return result;
+  }
+
+  ProfileSaveGroupRequest._();
+
+  factory ProfileSaveGroupRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ProfileSaveGroupRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ProfileSaveGroupRequest',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'workspaceId')
+    ..aOS(2, _omitFieldNames ? '' : 'profileId')
+    ..aE<ProfileSaveSource>(3, _omitFieldNames ? '' : 'source',
+        enumValues: ProfileSaveSource.values)
+    ..aOS(4, _omitFieldNames ? '' : 'after')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ProfileSaveGroupRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ProfileSaveGroupRequest copyWith(
+          void Function(ProfileSaveGroupRequest) updates) =>
+      super.copyWith((message) => updates(message as ProfileSaveGroupRequest))
+          as ProfileSaveGroupRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ProfileSaveGroupRequest create() => ProfileSaveGroupRequest._();
+  @$core.override
+  ProfileSaveGroupRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ProfileSaveGroupRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ProfileSaveGroupRequest>(create);
+  static ProfileSaveGroupRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get workspaceId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set workspaceId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasWorkspaceId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearWorkspaceId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get profileId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set profileId($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasProfileId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearProfileId() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  ProfileSaveSource get source => $_getN(2);
+  @$pb.TagNumber(3)
+  set source(ProfileSaveSource value) => $_setField(3, value);
+  @$pb.TagNumber(3)
+  $core.bool hasSource() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearSource() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get after => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set after($core.String value) => $_setString(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasAfter() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearAfter() => $_clearField(4);
+}
+
+class ProfileSaveGroupEntry extends $pb.GeneratedMessage {
+  factory ProfileSaveGroupEntry({
+    $core.String? id,
+    $core.String? name,
+    ProfileSaveEntryKind? kind,
+    $fixnum.Int64? bytes,
+    $core.String? companion,
+    $fixnum.Int64? companionBytes,
+    $core.bool? actionable,
+    $core.String? problem,
+  }) {
+    final result = create();
+    if (id != null) result.id = id;
+    if (name != null) result.name = name;
+    if (kind != null) result.kind = kind;
+    if (bytes != null) result.bytes = bytes;
+    if (companion != null) result.companion = companion;
+    if (companionBytes != null) result.companionBytes = companionBytes;
+    if (actionable != null) result.actionable = actionable;
+    if (problem != null) result.problem = problem;
+    return result;
+  }
+
+  ProfileSaveGroupEntry._();
+
+  factory ProfileSaveGroupEntry.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ProfileSaveGroupEntry.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ProfileSaveGroupEntry',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'id')
+    ..aOS(2, _omitFieldNames ? '' : 'name')
+    ..aE<ProfileSaveEntryKind>(3, _omitFieldNames ? '' : 'kind',
+        enumValues: ProfileSaveEntryKind.values)
+    ..a<$fixnum.Int64>(4, _omitFieldNames ? '' : 'bytes', $pb.PbFieldType.OU6,
+        defaultOrMaker: $fixnum.Int64.ZERO)
+    ..aOS(5, _omitFieldNames ? '' : 'companion')
+    ..a<$fixnum.Int64>(
+        6, _omitFieldNames ? '' : 'companionBytes', $pb.PbFieldType.OU6,
+        defaultOrMaker: $fixnum.Int64.ZERO)
+    ..aOB(7, _omitFieldNames ? '' : 'actionable')
+    ..aOS(8, _omitFieldNames ? '' : 'problem')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ProfileSaveGroupEntry clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ProfileSaveGroupEntry copyWith(
+          void Function(ProfileSaveGroupEntry) updates) =>
+      super.copyWith((message) => updates(message as ProfileSaveGroupEntry))
+          as ProfileSaveGroupEntry;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ProfileSaveGroupEntry create() => ProfileSaveGroupEntry._();
+  @$core.override
+  ProfileSaveGroupEntry createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ProfileSaveGroupEntry getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ProfileSaveGroupEntry>(create);
+  static ProfileSaveGroupEntry? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get id => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set id($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get name => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set name($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasName() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearName() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  ProfileSaveEntryKind get kind => $_getN(2);
+  @$pb.TagNumber(3)
+  set kind(ProfileSaveEntryKind value) => $_setField(3, value);
+  @$pb.TagNumber(3)
+  $core.bool hasKind() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearKind() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $fixnum.Int64 get bytes => $_getI64(3);
+  @$pb.TagNumber(4)
+  set bytes($fixnum.Int64 value) => $_setInt64(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasBytes() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearBytes() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.String get companion => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set companion($core.String value) => $_setString(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasCompanion() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearCompanion() => $_clearField(5);
+
+  @$pb.TagNumber(6)
+  $fixnum.Int64 get companionBytes => $_getI64(5);
+  @$pb.TagNumber(6)
+  set companionBytes($fixnum.Int64 value) => $_setInt64(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasCompanionBytes() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearCompanionBytes() => $_clearField(6);
+
+  @$pb.TagNumber(7)
+  $core.bool get actionable => $_getBF(6);
+  @$pb.TagNumber(7)
+  set actionable($core.bool value) => $_setBool(6, value);
+  @$pb.TagNumber(7)
+  $core.bool hasActionable() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearActionable() => $_clearField(7);
+
+  @$pb.TagNumber(8)
+  $core.String get problem => $_getSZ(7);
+  @$pb.TagNumber(8)
+  set problem($core.String value) => $_setString(7, value);
+  @$pb.TagNumber(8)
+  $core.bool hasProblem() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearProblem() => $_clearField(8);
+}
+
+class ProfileSaveGroupPage extends $pb.GeneratedMessage {
+  factory ProfileSaveGroupPage({
+    ProfileSaveSource? source,
+    ProfileSavePath? path,
+    $core.Iterable<ProfileSaveGroupEntry>? entries,
+    $core.String? next,
+  }) {
+    final result = create();
+    if (source != null) result.source = source;
+    if (path != null) result.path = path;
+    if (entries != null) result.entries.addAll(entries);
+    if (next != null) result.next = next;
+    return result;
+  }
+
+  ProfileSaveGroupPage._();
+
+  factory ProfileSaveGroupPage.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ProfileSaveGroupPage.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ProfileSaveGroupPage',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..aE<ProfileSaveSource>(1, _omitFieldNames ? '' : 'source',
+        enumValues: ProfileSaveSource.values)
+    ..aOM<ProfileSavePath>(2, _omitFieldNames ? '' : 'path',
+        subBuilder: ProfileSavePath.create)
+    ..pPM<ProfileSaveGroupEntry>(3, _omitFieldNames ? '' : 'entries',
+        subBuilder: ProfileSaveGroupEntry.create)
+    ..aOS(4, _omitFieldNames ? '' : 'next')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ProfileSaveGroupPage clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ProfileSaveGroupPage copyWith(void Function(ProfileSaveGroupPage) updates) =>
+      super.copyWith((message) => updates(message as ProfileSaveGroupPage))
+          as ProfileSaveGroupPage;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ProfileSaveGroupPage create() => ProfileSaveGroupPage._();
+  @$core.override
+  ProfileSaveGroupPage createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ProfileSaveGroupPage getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ProfileSaveGroupPage>(create);
+  static ProfileSaveGroupPage? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  ProfileSaveSource get source => $_getN(0);
+  @$pb.TagNumber(1)
+  set source(ProfileSaveSource value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasSource() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearSource() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  ProfileSavePath get path => $_getN(1);
+  @$pb.TagNumber(2)
+  set path(ProfileSavePath value) => $_setField(2, value);
+  @$pb.TagNumber(2)
+  $core.bool hasPath() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearPath() => $_clearField(2);
+  @$pb.TagNumber(2)
+  ProfileSavePath ensurePath() => $_ensure(1);
+
+  @$pb.TagNumber(3)
+  $pb.PbList<ProfileSaveGroupEntry> get entries => $_getList(2);
+
+  @$pb.TagNumber(4)
+  $core.String get next => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set next($core.String value) => $_setString(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasNext() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearNext() => $_clearField(4);
+}
+
+enum ProfileSaveGroupReply_Result { page, problem, notSet }
+
+class ProfileSaveGroupReply extends $pb.GeneratedMessage {
+  factory ProfileSaveGroupReply({
+    ProfileSaveGroupPage? page,
+    ProfileDataProblem? problem,
+  }) {
+    final result = create();
+    if (page != null) result.page = page;
+    if (problem != null) result.problem = problem;
+    return result;
+  }
+
+  ProfileSaveGroupReply._();
+
+  factory ProfileSaveGroupReply.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ProfileSaveGroupReply.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static const $core.Map<$core.int, ProfileSaveGroupReply_Result>
+      _ProfileSaveGroupReply_ResultByTag = {
+    1: ProfileSaveGroupReply_Result.page,
+    2: ProfileSaveGroupReply_Result.problem,
+    0: ProfileSaveGroupReply_Result.notSet
+  };
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ProfileSaveGroupReply',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..oo(0, [1, 2])
+    ..aOM<ProfileSaveGroupPage>(1, _omitFieldNames ? '' : 'page',
+        subBuilder: ProfileSaveGroupPage.create)
+    ..aOM<ProfileDataProblem>(2, _omitFieldNames ? '' : 'problem',
+        subBuilder: ProfileDataProblem.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ProfileSaveGroupReply clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ProfileSaveGroupReply copyWith(
+          void Function(ProfileSaveGroupReply) updates) =>
+      super.copyWith((message) => updates(message as ProfileSaveGroupReply))
+          as ProfileSaveGroupReply;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ProfileSaveGroupReply create() => ProfileSaveGroupReply._();
+  @$core.override
+  ProfileSaveGroupReply createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ProfileSaveGroupReply getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ProfileSaveGroupReply>(create);
+  static ProfileSaveGroupReply? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  @$pb.TagNumber(2)
+  ProfileSaveGroupReply_Result whichResult() =>
+      _ProfileSaveGroupReply_ResultByTag[$_whichOneof(0)]!;
+  @$pb.TagNumber(1)
+  @$pb.TagNumber(2)
+  void clearResult() => $_clearField($_whichOneof(0));
+
+  @$pb.TagNumber(1)
+  ProfileSaveGroupPage get page => $_getN(0);
+  @$pb.TagNumber(1)
+  set page(ProfileSaveGroupPage value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasPage() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearPage() => $_clearField(1);
+  @$pb.TagNumber(1)
+  ProfileSaveGroupPage ensurePage() => $_ensure(0);
+
+  @$pb.TagNumber(2)
+  ProfileDataProblem get problem => $_getN(1);
+  @$pb.TagNumber(2)
+  set problem(ProfileDataProblem value) => $_setField(2, value);
+  @$pb.TagNumber(2)
+  $core.bool hasProblem() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearProblem() => $_clearField(2);
+  @$pb.TagNumber(2)
+  ProfileDataProblem ensureProblem() => $_ensure(1);
+}
+
+class SkyrimSaveMetadata extends $pb.GeneratedMessage {
+  factory SkyrimSaveMetadata({
+    $core.int? headerVersion,
+    $core.int? formVersion,
+    SkyrimSaveCompression? compression,
+    $core.int? saveNumber,
+    $core.String? character,
+    $core.int? level,
+    $core.String? location,
+    $core.String? gameTime,
+    $core.Iterable<$core.String>? fullPlugins,
+    $core.Iterable<$core.String>? lightPlugins,
+  }) {
+    final result = create();
+    if (headerVersion != null) result.headerVersion = headerVersion;
+    if (formVersion != null) result.formVersion = formVersion;
+    if (compression != null) result.compression = compression;
+    if (saveNumber != null) result.saveNumber = saveNumber;
+    if (character != null) result.character = character;
+    if (level != null) result.level = level;
+    if (location != null) result.location = location;
+    if (gameTime != null) result.gameTime = gameTime;
+    if (fullPlugins != null) result.fullPlugins.addAll(fullPlugins);
+    if (lightPlugins != null) result.lightPlugins.addAll(lightPlugins);
+    return result;
+  }
+
+  SkyrimSaveMetadata._();
+
+  factory SkyrimSaveMetadata.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory SkyrimSaveMetadata.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'SkyrimSaveMetadata',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..aI(1, _omitFieldNames ? '' : 'headerVersion',
+        fieldType: $pb.PbFieldType.OU3)
+    ..aI(2, _omitFieldNames ? '' : 'formVersion',
+        fieldType: $pb.PbFieldType.OU3)
+    ..aE<SkyrimSaveCompression>(3, _omitFieldNames ? '' : 'compression',
+        enumValues: SkyrimSaveCompression.values)
+    ..aI(4, _omitFieldNames ? '' : 'saveNumber', fieldType: $pb.PbFieldType.OU3)
+    ..aOS(5, _omitFieldNames ? '' : 'character')
+    ..aI(6, _omitFieldNames ? '' : 'level', fieldType: $pb.PbFieldType.OU3)
+    ..aOS(7, _omitFieldNames ? '' : 'location')
+    ..aOS(8, _omitFieldNames ? '' : 'gameTime')
+    ..pPS(9, _omitFieldNames ? '' : 'fullPlugins')
+    ..pPS(10, _omitFieldNames ? '' : 'lightPlugins')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SkyrimSaveMetadata clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SkyrimSaveMetadata copyWith(void Function(SkyrimSaveMetadata) updates) =>
+      super.copyWith((message) => updates(message as SkyrimSaveMetadata))
+          as SkyrimSaveMetadata;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SkyrimSaveMetadata create() => SkyrimSaveMetadata._();
+  @$core.override
+  SkyrimSaveMetadata createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static SkyrimSaveMetadata getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<SkyrimSaveMetadata>(create);
+  static SkyrimSaveMetadata? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.int get headerVersion => $_getIZ(0);
+  @$pb.TagNumber(1)
+  set headerVersion($core.int value) => $_setUnsignedInt32(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasHeaderVersion() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearHeaderVersion() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.int get formVersion => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set formVersion($core.int value) => $_setUnsignedInt32(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasFormVersion() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearFormVersion() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  SkyrimSaveCompression get compression => $_getN(2);
+  @$pb.TagNumber(3)
+  set compression(SkyrimSaveCompression value) => $_setField(3, value);
+  @$pb.TagNumber(3)
+  $core.bool hasCompression() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearCompression() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.int get saveNumber => $_getIZ(3);
+  @$pb.TagNumber(4)
+  set saveNumber($core.int value) => $_setUnsignedInt32(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasSaveNumber() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearSaveNumber() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.String get character => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set character($core.String value) => $_setString(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasCharacter() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearCharacter() => $_clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.int get level => $_getIZ(5);
+  @$pb.TagNumber(6)
+  set level($core.int value) => $_setUnsignedInt32(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasLevel() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearLevel() => $_clearField(6);
+
+  @$pb.TagNumber(7)
+  $core.String get location => $_getSZ(6);
+  @$pb.TagNumber(7)
+  set location($core.String value) => $_setString(6, value);
+  @$pb.TagNumber(7)
+  $core.bool hasLocation() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearLocation() => $_clearField(7);
+
+  @$pb.TagNumber(8)
+  $core.String get gameTime => $_getSZ(7);
+  @$pb.TagNumber(8)
+  set gameTime($core.String value) => $_setString(7, value);
+  @$pb.TagNumber(8)
+  $core.bool hasGameTime() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearGameTime() => $_clearField(8);
+
+  @$pb.TagNumber(9)
+  $pb.PbList<$core.String> get fullPlugins => $_getList(8);
+
+  @$pb.TagNumber(10)
+  $pb.PbList<$core.String> get lightPlugins => $_getList(9);
+}
+
+class SavePluginIssue extends $pb.GeneratedMessage {
+  factory SavePluginIssue({
+    $core.String? name,
+    SavePluginState? state,
+    $core.String? source,
+  }) {
+    final result = create();
+    if (name != null) result.name = name;
+    if (state != null) result.state = state;
+    if (source != null) result.source = source;
+    return result;
+  }
+
+  SavePluginIssue._();
+
+  factory SavePluginIssue.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory SavePluginIssue.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'SavePluginIssue',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'name')
+    ..aE<SavePluginState>(2, _omitFieldNames ? '' : 'state',
+        enumValues: SavePluginState.values)
+    ..aOS(3, _omitFieldNames ? '' : 'source')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SavePluginIssue clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SavePluginIssue copyWith(void Function(SavePluginIssue) updates) =>
+      super.copyWith((message) => updates(message as SavePluginIssue))
+          as SavePluginIssue;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SavePluginIssue create() => SavePluginIssue._();
+  @$core.override
+  SavePluginIssue createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static SavePluginIssue getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<SavePluginIssue>(create);
+  static SavePluginIssue? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get name => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set name($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasName() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearName() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  SavePluginState get state => $_getN(1);
+  @$pb.TagNumber(2)
+  set state(SavePluginState value) => $_setField(2, value);
+  @$pb.TagNumber(2)
+  $core.bool hasState() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearState() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get source => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set source($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasSource() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearSource() => $_clearField(3);
+}
+
+class ProfileSaveInspectRequest extends $pb.GeneratedMessage {
+  factory ProfileSaveInspectRequest({
+    $core.String? workspaceId,
+    $core.String? profileId,
+    ProfileSaveSource? source,
+    $core.String? name,
+    $core.String? headersId,
+  }) {
+    final result = create();
+    if (workspaceId != null) result.workspaceId = workspaceId;
+    if (profileId != null) result.profileId = profileId;
+    if (source != null) result.source = source;
+    if (name != null) result.name = name;
+    if (headersId != null) result.headersId = headersId;
+    return result;
+  }
+
+  ProfileSaveInspectRequest._();
+
+  factory ProfileSaveInspectRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ProfileSaveInspectRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ProfileSaveInspectRequest',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'workspaceId')
+    ..aOS(2, _omitFieldNames ? '' : 'profileId')
+    ..aE<ProfileSaveSource>(3, _omitFieldNames ? '' : 'source',
+        enumValues: ProfileSaveSource.values)
+    ..aOS(4, _omitFieldNames ? '' : 'name')
+    ..aOS(5, _omitFieldNames ? '' : 'headersId')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ProfileSaveInspectRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ProfileSaveInspectRequest copyWith(
+          void Function(ProfileSaveInspectRequest) updates) =>
+      super.copyWith((message) => updates(message as ProfileSaveInspectRequest))
+          as ProfileSaveInspectRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ProfileSaveInspectRequest create() => ProfileSaveInspectRequest._();
+  @$core.override
+  ProfileSaveInspectRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ProfileSaveInspectRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ProfileSaveInspectRequest>(create);
+  static ProfileSaveInspectRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get workspaceId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set workspaceId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasWorkspaceId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearWorkspaceId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get profileId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set profileId($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasProfileId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearProfileId() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  ProfileSaveSource get source => $_getN(2);
+  @$pb.TagNumber(3)
+  set source(ProfileSaveSource value) => $_setField(3, value);
+  @$pb.TagNumber(3)
+  $core.bool hasSource() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearSource() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get name => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set name($core.String value) => $_setString(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasName() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearName() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.String get headersId => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set headersId($core.String value) => $_setString(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasHeadersId() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearHeadersId() => $_clearField(5);
+}
+
+class ProfileSaveInspection extends $pb.GeneratedMessage {
+  factory ProfileSaveInspection({
+    ProfileSaveSource? source,
+    ProfileSavePath? path,
+    ProfileSaveGroupEntry? entry,
+    SkyrimSaveMetadata? metadata,
+    $core.String? metadataProblem,
+    $core.Iterable<SavePluginIssue>? pluginIssues,
+    $core.String? pluginCheckProblem,
+  }) {
+    final result = create();
+    if (source != null) result.source = source;
+    if (path != null) result.path = path;
+    if (entry != null) result.entry = entry;
+    if (metadata != null) result.metadata = metadata;
+    if (metadataProblem != null) result.metadataProblem = metadataProblem;
+    if (pluginIssues != null) result.pluginIssues.addAll(pluginIssues);
+    if (pluginCheckProblem != null)
+      result.pluginCheckProblem = pluginCheckProblem;
+    return result;
+  }
+
+  ProfileSaveInspection._();
+
+  factory ProfileSaveInspection.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ProfileSaveInspection.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ProfileSaveInspection',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..aE<ProfileSaveSource>(1, _omitFieldNames ? '' : 'source',
+        enumValues: ProfileSaveSource.values)
+    ..aOM<ProfileSavePath>(2, _omitFieldNames ? '' : 'path',
+        subBuilder: ProfileSavePath.create)
+    ..aOM<ProfileSaveGroupEntry>(3, _omitFieldNames ? '' : 'entry',
+        subBuilder: ProfileSaveGroupEntry.create)
+    ..aOM<SkyrimSaveMetadata>(4, _omitFieldNames ? '' : 'metadata',
+        subBuilder: SkyrimSaveMetadata.create)
+    ..aOS(5, _omitFieldNames ? '' : 'metadataProblem')
+    ..pPM<SavePluginIssue>(6, _omitFieldNames ? '' : 'pluginIssues',
+        subBuilder: SavePluginIssue.create)
+    ..aOS(7, _omitFieldNames ? '' : 'pluginCheckProblem')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ProfileSaveInspection clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ProfileSaveInspection copyWith(
+          void Function(ProfileSaveInspection) updates) =>
+      super.copyWith((message) => updates(message as ProfileSaveInspection))
+          as ProfileSaveInspection;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ProfileSaveInspection create() => ProfileSaveInspection._();
+  @$core.override
+  ProfileSaveInspection createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ProfileSaveInspection getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ProfileSaveInspection>(create);
+  static ProfileSaveInspection? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  ProfileSaveSource get source => $_getN(0);
+  @$pb.TagNumber(1)
+  set source(ProfileSaveSource value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasSource() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearSource() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  ProfileSavePath get path => $_getN(1);
+  @$pb.TagNumber(2)
+  set path(ProfileSavePath value) => $_setField(2, value);
+  @$pb.TagNumber(2)
+  $core.bool hasPath() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearPath() => $_clearField(2);
+  @$pb.TagNumber(2)
+  ProfileSavePath ensurePath() => $_ensure(1);
+
+  @$pb.TagNumber(3)
+  ProfileSaveGroupEntry get entry => $_getN(2);
+  @$pb.TagNumber(3)
+  set entry(ProfileSaveGroupEntry value) => $_setField(3, value);
+  @$pb.TagNumber(3)
+  $core.bool hasEntry() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearEntry() => $_clearField(3);
+  @$pb.TagNumber(3)
+  ProfileSaveGroupEntry ensureEntry() => $_ensure(2);
+
+  @$pb.TagNumber(4)
+  SkyrimSaveMetadata get metadata => $_getN(3);
+  @$pb.TagNumber(4)
+  set metadata(SkyrimSaveMetadata value) => $_setField(4, value);
+  @$pb.TagNumber(4)
+  $core.bool hasMetadata() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearMetadata() => $_clearField(4);
+  @$pb.TagNumber(4)
+  SkyrimSaveMetadata ensureMetadata() => $_ensure(3);
+
+  @$pb.TagNumber(5)
+  $core.String get metadataProblem => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set metadataProblem($core.String value) => $_setString(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasMetadataProblem() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearMetadataProblem() => $_clearField(5);
+
+  @$pb.TagNumber(6)
+  $pb.PbList<SavePluginIssue> get pluginIssues => $_getList(5);
+
+  @$pb.TagNumber(7)
+  $core.String get pluginCheckProblem => $_getSZ(6);
+  @$pb.TagNumber(7)
+  set pluginCheckProblem($core.String value) => $_setString(6, value);
+  @$pb.TagNumber(7)
+  $core.bool hasPluginCheckProblem() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearPluginCheckProblem() => $_clearField(7);
+}
+
+enum ProfileSaveInspectReply_Result { inspection, problem, notSet }
+
+class ProfileSaveInspectReply extends $pb.GeneratedMessage {
+  factory ProfileSaveInspectReply({
+    ProfileSaveInspection? inspection,
+    ProfileDataProblem? problem,
+  }) {
+    final result = create();
+    if (inspection != null) result.inspection = inspection;
+    if (problem != null) result.problem = problem;
+    return result;
+  }
+
+  ProfileSaveInspectReply._();
+
+  factory ProfileSaveInspectReply.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ProfileSaveInspectReply.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static const $core.Map<$core.int, ProfileSaveInspectReply_Result>
+      _ProfileSaveInspectReply_ResultByTag = {
+    1: ProfileSaveInspectReply_Result.inspection,
+    2: ProfileSaveInspectReply_Result.problem,
+    0: ProfileSaveInspectReply_Result.notSet
+  };
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ProfileSaveInspectReply',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..oo(0, [1, 2])
+    ..aOM<ProfileSaveInspection>(1, _omitFieldNames ? '' : 'inspection',
+        subBuilder: ProfileSaveInspection.create)
+    ..aOM<ProfileDataProblem>(2, _omitFieldNames ? '' : 'problem',
+        subBuilder: ProfileDataProblem.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ProfileSaveInspectReply clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ProfileSaveInspectReply copyWith(
+          void Function(ProfileSaveInspectReply) updates) =>
+      super.copyWith((message) => updates(message as ProfileSaveInspectReply))
+          as ProfileSaveInspectReply;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ProfileSaveInspectReply create() => ProfileSaveInspectReply._();
+  @$core.override
+  ProfileSaveInspectReply createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ProfileSaveInspectReply getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ProfileSaveInspectReply>(create);
+  static ProfileSaveInspectReply? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  @$pb.TagNumber(2)
+  ProfileSaveInspectReply_Result whichResult() =>
+      _ProfileSaveInspectReply_ResultByTag[$_whichOneof(0)]!;
+  @$pb.TagNumber(1)
+  @$pb.TagNumber(2)
+  void clearResult() => $_clearField($_whichOneof(0));
+
+  @$pb.TagNumber(1)
+  ProfileSaveInspection get inspection => $_getN(0);
+  @$pb.TagNumber(1)
+  set inspection(ProfileSaveInspection value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasInspection() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearInspection() => $_clearField(1);
+  @$pb.TagNumber(1)
+  ProfileSaveInspection ensureInspection() => $_ensure(0);
+
+  @$pb.TagNumber(2)
+  ProfileDataProblem get problem => $_getN(1);
+  @$pb.TagNumber(2)
+  set problem(ProfileDataProblem value) => $_setField(2, value);
+  @$pb.TagNumber(2)
+  $core.bool hasProblem() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearProblem() => $_clearField(2);
+  @$pb.TagNumber(2)
+  ProfileDataProblem ensureProblem() => $_ensure(1);
+}
+
+class ProfileSaveActionFile extends $pb.GeneratedMessage {
+  factory ProfileSaveActionFile({
+    $core.String? name,
+    $fixnum.Int64? bytes,
+  }) {
+    final result = create();
+    if (name != null) result.name = name;
+    if (bytes != null) result.bytes = bytes;
+    return result;
+  }
+
+  ProfileSaveActionFile._();
+
+  factory ProfileSaveActionFile.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ProfileSaveActionFile.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ProfileSaveActionFile',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'name')
+    ..a<$fixnum.Int64>(2, _omitFieldNames ? '' : 'bytes', $pb.PbFieldType.OU6,
+        defaultOrMaker: $fixnum.Int64.ZERO)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ProfileSaveActionFile clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ProfileSaveActionFile copyWith(
+          void Function(ProfileSaveActionFile) updates) =>
+      super.copyWith((message) => updates(message as ProfileSaveActionFile))
+          as ProfileSaveActionFile;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ProfileSaveActionFile create() => ProfileSaveActionFile._();
+  @$core.override
+  ProfileSaveActionFile createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ProfileSaveActionFile getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ProfileSaveActionFile>(create);
+  static ProfileSaveActionFile? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get name => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set name($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasName() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearName() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get bytes => $_getI64(1);
+  @$pb.TagNumber(2)
+  set bytes($fixnum.Int64 value) => $_setInt64(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasBytes() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearBytes() => $_clearField(2);
+}
+
+class ProfileSaveActionPreviewRequest extends $pb.GeneratedMessage {
+  factory ProfileSaveActionPreviewRequest({
+    ProfileDataRef? expected,
+    ProfileSaveAction? action,
+    $core.Iterable<$core.String>? names,
+  }) {
+    final result = create();
+    if (expected != null) result.expected = expected;
+    if (action != null) result.action = action;
+    if (names != null) result.names.addAll(names);
+    return result;
+  }
+
+  ProfileSaveActionPreviewRequest._();
+
+  factory ProfileSaveActionPreviewRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ProfileSaveActionPreviewRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ProfileSaveActionPreviewRequest',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..aOM<ProfileDataRef>(1, _omitFieldNames ? '' : 'expected',
+        subBuilder: ProfileDataRef.create)
+    ..aE<ProfileSaveAction>(2, _omitFieldNames ? '' : 'action',
+        enumValues: ProfileSaveAction.values)
+    ..pPS(3, _omitFieldNames ? '' : 'names')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ProfileSaveActionPreviewRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ProfileSaveActionPreviewRequest copyWith(
+          void Function(ProfileSaveActionPreviewRequest) updates) =>
+      super.copyWith(
+              (message) => updates(message as ProfileSaveActionPreviewRequest))
+          as ProfileSaveActionPreviewRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ProfileSaveActionPreviewRequest create() =>
+      ProfileSaveActionPreviewRequest._();
+  @$core.override
+  ProfileSaveActionPreviewRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ProfileSaveActionPreviewRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ProfileSaveActionPreviewRequest>(
+          create);
+  static ProfileSaveActionPreviewRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  ProfileDataRef get expected => $_getN(0);
+  @$pb.TagNumber(1)
+  set expected(ProfileDataRef value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasExpected() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearExpected() => $_clearField(1);
+  @$pb.TagNumber(1)
+  ProfileDataRef ensureExpected() => $_ensure(0);
+
+  @$pb.TagNumber(2)
+  ProfileSaveAction get action => $_getN(1);
+  @$pb.TagNumber(2)
+  set action(ProfileSaveAction value) => $_setField(2, value);
+  @$pb.TagNumber(2)
+  $core.bool hasAction() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearAction() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $pb.PbList<$core.String> get names => $_getList(2);
+}
+
+class ProfileSaveActionPreview extends $pb.GeneratedMessage {
+  factory ProfileSaveActionPreview({
+    $core.String? id,
+    ProfileDataRef? expected,
+    ProfileSaveAction? action,
+    ProfileSavePath? source,
+    ProfileSavePath? destination,
+    $core.Iterable<ProfileSaveActionFile>? files,
+    $fixnum.Int64? bytes,
+  }) {
+    final result = create();
+    if (id != null) result.id = id;
+    if (expected != null) result.expected = expected;
+    if (action != null) result.action = action;
+    if (source != null) result.source = source;
+    if (destination != null) result.destination = destination;
+    if (files != null) result.files.addAll(files);
+    if (bytes != null) result.bytes = bytes;
+    return result;
+  }
+
+  ProfileSaveActionPreview._();
+
+  factory ProfileSaveActionPreview.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ProfileSaveActionPreview.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ProfileSaveActionPreview',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'id')
+    ..aOM<ProfileDataRef>(2, _omitFieldNames ? '' : 'expected',
+        subBuilder: ProfileDataRef.create)
+    ..aE<ProfileSaveAction>(3, _omitFieldNames ? '' : 'action',
+        enumValues: ProfileSaveAction.values)
+    ..aOM<ProfileSavePath>(4, _omitFieldNames ? '' : 'source',
+        subBuilder: ProfileSavePath.create)
+    ..aOM<ProfileSavePath>(5, _omitFieldNames ? '' : 'destination',
+        subBuilder: ProfileSavePath.create)
+    ..pPM<ProfileSaveActionFile>(6, _omitFieldNames ? '' : 'files',
+        subBuilder: ProfileSaveActionFile.create)
+    ..a<$fixnum.Int64>(7, _omitFieldNames ? '' : 'bytes', $pb.PbFieldType.OU6,
+        defaultOrMaker: $fixnum.Int64.ZERO)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ProfileSaveActionPreview clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ProfileSaveActionPreview copyWith(
+          void Function(ProfileSaveActionPreview) updates) =>
+      super.copyWith((message) => updates(message as ProfileSaveActionPreview))
+          as ProfileSaveActionPreview;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ProfileSaveActionPreview create() => ProfileSaveActionPreview._();
+  @$core.override
+  ProfileSaveActionPreview createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ProfileSaveActionPreview getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ProfileSaveActionPreview>(create);
+  static ProfileSaveActionPreview? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get id => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set id($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  ProfileDataRef get expected => $_getN(1);
+  @$pb.TagNumber(2)
+  set expected(ProfileDataRef value) => $_setField(2, value);
+  @$pb.TagNumber(2)
+  $core.bool hasExpected() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearExpected() => $_clearField(2);
+  @$pb.TagNumber(2)
+  ProfileDataRef ensureExpected() => $_ensure(1);
+
+  @$pb.TagNumber(3)
+  ProfileSaveAction get action => $_getN(2);
+  @$pb.TagNumber(3)
+  set action(ProfileSaveAction value) => $_setField(3, value);
+  @$pb.TagNumber(3)
+  $core.bool hasAction() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearAction() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  ProfileSavePath get source => $_getN(3);
+  @$pb.TagNumber(4)
+  set source(ProfileSavePath value) => $_setField(4, value);
+  @$pb.TagNumber(4)
+  $core.bool hasSource() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearSource() => $_clearField(4);
+  @$pb.TagNumber(4)
+  ProfileSavePath ensureSource() => $_ensure(3);
+
+  @$pb.TagNumber(5)
+  ProfileSavePath get destination => $_getN(4);
+  @$pb.TagNumber(5)
+  set destination(ProfileSavePath value) => $_setField(5, value);
+  @$pb.TagNumber(5)
+  $core.bool hasDestination() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearDestination() => $_clearField(5);
+  @$pb.TagNumber(5)
+  ProfileSavePath ensureDestination() => $_ensure(4);
+
+  @$pb.TagNumber(6)
+  $pb.PbList<ProfileSaveActionFile> get files => $_getList(5);
+
+  @$pb.TagNumber(7)
+  $fixnum.Int64 get bytes => $_getI64(6);
+  @$pb.TagNumber(7)
+  set bytes($fixnum.Int64 value) => $_setInt64(6, value);
+  @$pb.TagNumber(7)
+  $core.bool hasBytes() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearBytes() => $_clearField(7);
+}
+
+enum ProfileSaveActionPreviewReply_Result { preview, problem, notSet }
+
+class ProfileSaveActionPreviewReply extends $pb.GeneratedMessage {
+  factory ProfileSaveActionPreviewReply({
+    ProfileSaveActionPreview? preview,
+    ProfileDataProblem? problem,
+  }) {
+    final result = create();
+    if (preview != null) result.preview = preview;
+    if (problem != null) result.problem = problem;
+    return result;
+  }
+
+  ProfileSaveActionPreviewReply._();
+
+  factory ProfileSaveActionPreviewReply.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ProfileSaveActionPreviewReply.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static const $core.Map<$core.int, ProfileSaveActionPreviewReply_Result>
+      _ProfileSaveActionPreviewReply_ResultByTag = {
+    1: ProfileSaveActionPreviewReply_Result.preview,
+    2: ProfileSaveActionPreviewReply_Result.problem,
+    0: ProfileSaveActionPreviewReply_Result.notSet
+  };
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ProfileSaveActionPreviewReply',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..oo(0, [1, 2])
+    ..aOM<ProfileSaveActionPreview>(1, _omitFieldNames ? '' : 'preview',
+        subBuilder: ProfileSaveActionPreview.create)
+    ..aOM<ProfileDataProblem>(2, _omitFieldNames ? '' : 'problem',
+        subBuilder: ProfileDataProblem.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ProfileSaveActionPreviewReply clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ProfileSaveActionPreviewReply copyWith(
+          void Function(ProfileSaveActionPreviewReply) updates) =>
+      super.copyWith(
+              (message) => updates(message as ProfileSaveActionPreviewReply))
+          as ProfileSaveActionPreviewReply;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ProfileSaveActionPreviewReply create() =>
+      ProfileSaveActionPreviewReply._();
+  @$core.override
+  ProfileSaveActionPreviewReply createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ProfileSaveActionPreviewReply getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ProfileSaveActionPreviewReply>(create);
+  static ProfileSaveActionPreviewReply? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  @$pb.TagNumber(2)
+  ProfileSaveActionPreviewReply_Result whichResult() =>
+      _ProfileSaveActionPreviewReply_ResultByTag[$_whichOneof(0)]!;
+  @$pb.TagNumber(1)
+  @$pb.TagNumber(2)
+  void clearResult() => $_clearField($_whichOneof(0));
+
+  @$pb.TagNumber(1)
+  ProfileSaveActionPreview get preview => $_getN(0);
+  @$pb.TagNumber(1)
+  set preview(ProfileSaveActionPreview value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasPreview() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearPreview() => $_clearField(1);
+  @$pb.TagNumber(1)
+  ProfileSaveActionPreview ensurePreview() => $_ensure(0);
+
+  @$pb.TagNumber(2)
+  ProfileDataProblem get problem => $_getN(1);
+  @$pb.TagNumber(2)
+  set problem(ProfileDataProblem value) => $_setField(2, value);
+  @$pb.TagNumber(2)
+  $core.bool hasProblem() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearProblem() => $_clearField(2);
+  @$pb.TagNumber(2)
+  ProfileDataProblem ensureProblem() => $_ensure(1);
+}
+
+class ProfileSaveActionApplyRequest extends $pb.GeneratedMessage {
+  factory ProfileSaveActionApplyRequest({
+    $core.String? id,
+    $core.String? previewId,
+    ProfileDataRef? expected,
+  }) {
+    final result = create();
+    if (id != null) result.id = id;
+    if (previewId != null) result.previewId = previewId;
+    if (expected != null) result.expected = expected;
+    return result;
+  }
+
+  ProfileSaveActionApplyRequest._();
+
+  factory ProfileSaveActionApplyRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ProfileSaveActionApplyRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ProfileSaveActionApplyRequest',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'id')
+    ..aOS(2, _omitFieldNames ? '' : 'previewId')
+    ..aOM<ProfileDataRef>(3, _omitFieldNames ? '' : 'expected',
+        subBuilder: ProfileDataRef.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ProfileSaveActionApplyRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ProfileSaveActionApplyRequest copyWith(
+          void Function(ProfileSaveActionApplyRequest) updates) =>
+      super.copyWith(
+              (message) => updates(message as ProfileSaveActionApplyRequest))
+          as ProfileSaveActionApplyRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ProfileSaveActionApplyRequest create() =>
+      ProfileSaveActionApplyRequest._();
+  @$core.override
+  ProfileSaveActionApplyRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ProfileSaveActionApplyRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ProfileSaveActionApplyRequest>(create);
+  static ProfileSaveActionApplyRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get id => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set id($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get previewId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set previewId($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasPreviewId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearPreviewId() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  ProfileDataRef get expected => $_getN(2);
+  @$pb.TagNumber(3)
+  set expected(ProfileDataRef value) => $_setField(3, value);
+  @$pb.TagNumber(3)
+  $core.bool hasExpected() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearExpected() => $_clearField(3);
+  @$pb.TagNumber(3)
+  ProfileDataRef ensureExpected() => $_ensure(2);
+}
+
 const $core.bool _omitFieldNames =
     $core.bool.fromEnvironment('protobuf.omit_field_names');
 const $core.bool _omitMessageNames =

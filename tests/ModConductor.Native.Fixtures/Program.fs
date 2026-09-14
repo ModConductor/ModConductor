@@ -302,6 +302,34 @@ let main args =
             writer.WriteEndObject()
             writer.Flush()
             0
+        elif
+            args.Length = 2
+            && args[0] = "--save-management"
+            && Path.IsPathFullyQualified args[1]
+        then
+            use writer =
+                new Utf8JsonWriter(Console.OpenStandardOutput(), JsonWriterOptions(Indented = true))
+
+            writer.WriteStartObject()
+            writer.WriteBoolean("nativeAot", not RuntimeFeature.IsDynamicCodeSupported)
+            SaveFixtures.observe writer args[1]
+            writer.WriteEndObject()
+            writer.Flush()
+            0
+        elif
+            args.Length = 2
+            && args[0] = "--save-samples"
+            && Path.IsPathFullyQualified args[1]
+        then
+            use writer =
+                new Utf8JsonWriter(Console.OpenStandardOutput(), JsonWriterOptions(Indented = true))
+
+            writer.WriteStartObject()
+            writer.WriteBoolean("nativeAot", not RuntimeFeature.IsDynamicCodeSupported)
+            SaveFixtures.samples writer args[1]
+            writer.WriteEndObject()
+            writer.Flush()
+            0
         elif args.Length = 3 && args[0] = "--wine-check" then
             GameLaunchChild.wine args[1]
         elif args.Length >= 3 && args[0] = "--game-load" then

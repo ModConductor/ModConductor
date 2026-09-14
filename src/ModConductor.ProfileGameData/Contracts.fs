@@ -88,6 +88,72 @@ type ProfileSavePage =
     { Entries: ProfileSaveEntry list
       Next: string option }
 
+[<RequireQualifiedAccess>]
+type ProfileSaveSource =
+    | Global
+    | Profile
+
+[<RequireQualifiedAccess>]
+type ProfileSaveEntryKind =
+    | Save
+    | Directory
+    | Other
+
+type ProfileSaveGroupEntry =
+    { Id: string
+      Name: string
+      Kind: ProfileSaveEntryKind
+      Bytes: int64
+      Companion: string option
+      CompanionBytes: int64
+      Actionable: bool
+      Problem: string option }
+
+type ProfileSavePath =
+    { HostPath: string
+      WindowsPath: string option }
+
+type ProfileSaveGroupPage =
+    { Source: ProfileSaveSource
+      Path: ProfileSavePath
+      Entries: ProfileSaveGroupEntry list
+      Next: string option }
+
+[<RequireQualifiedAccess>]
+type SavePluginState =
+    | Missing
+    | Inactive
+
+type SavePluginIssue =
+    { Name: string
+      State: SavePluginState
+      Source: string option }
+
+type ProfileSaveInspection =
+    { Source: ProfileSaveSource
+      Path: ProfileSavePath
+      Entry: ProfileSaveGroupEntry
+      Metadata: ModConductor.Bethesda.SkyrimSaveMetadata option
+      MetadataProblem: string option
+      PluginIssues: SavePluginIssue list
+      PluginCheckProblem: string option }
+
+[<RequireQualifiedAccess>]
+type ProfileSaveAction =
+    | CopyToProfile
+    | DeleteFromProfile
+
+type ProfileSaveActionFile = { Name: string; Bytes: int64 }
+
+type ProfileSaveActionPreview =
+    { Id: Guid
+      Expected: ProfileDataRef
+      Action: ProfileSaveAction
+      Source: ProfileSavePath
+      Destination: ProfileSavePath option
+      Files: ProfileSaveActionFile list
+      Bytes: int64 }
+
 type ProfilePluginOrder =
     { Reference: ProfileDataRef
       Headers: ModConductor.Bethesda.PluginSnapshot
@@ -150,6 +216,34 @@ type IProfileGameData =
 
     abstract Read:
         workspace: Guid * profile: Guid -> Task<Result<ProfileDataState, ProfileDataError>>
+
+    abstract SaveGroups:
+        workspace: Guid * profile: Guid * source: ProfileSaveSource * after: string option ->
+            Task<Result<ProfileSaveGroupPage, ProfileDataError>>
+
+    abstract InspectSave:
+        workspace: Guid *
+        profile: Guid *
+        source: ProfileSaveSource *
+        name: string *
+        headers: Guid option *
+        CancellationToken ->
+            Task<Result<ProfileSaveInspection, ProfileDataError>>
+
+    abstract PreviewSaveAction:
+        expected: ProfileDataRef *
+        action: ProfileSaveAction *
+        names: string list *
+        CancellationToken ->
+            Task<Result<ProfileSaveActionPreview, ProfileDataError>>
+
+    abstract ApplySaveAction:
+        id: Guid *
+        preview: Guid *
+        expected: ProfileDataRef *
+        (ProfileDataProgress -> unit) *
+        CancellationToken ->
+            Task<Result<ProfileDataResult, ProfileDataError>>
 
     abstract Edit:
         ProfileDataEdit * (ProfileDataProgress -> unit) * CancellationToken ->

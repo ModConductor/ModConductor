@@ -48,6 +48,33 @@ class Client implements ProfileDataClient {
     List<String> path, {
     String? after,
   }) => throw UnimplementedError();
+  @override
+  Future<ProfileSaveGroupPage> saveGroups(
+    String workspaceId,
+    String profileId,
+    ProfileSaveSource source, {
+    String? after,
+  }) => throw UnimplementedError();
+  @override
+  Future<ProfileSaveInspection> inspectSave(
+    String workspaceId,
+    String profileId,
+    ProfileSaveSource source,
+    String name, {
+    String? headersId,
+  }) => throw UnimplementedError();
+  @override
+  Future<ProfileSaveActionPreview> previewSaveAction(
+    ProfileDataRef expected,
+    ProfileSaveAction action,
+    List<String> names,
+  ) => throw UnimplementedError();
+  @override
+  Stream<ProfileDataEvent> applySaveAction(
+    String id,
+    String previewId,
+    ProfileDataRef expected,
+  ) => throw UnimplementedError();
 }
 
 void main() {

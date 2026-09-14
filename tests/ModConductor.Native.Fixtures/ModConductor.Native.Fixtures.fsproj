@@ -27,6 +27,7 @@
     <Compile Include="BethesdaFixtures.fs" />
     <Compile Include="PluginOrderSamples.fs" />
     <Compile Include="PluginOrderFixtures.fs" />
+    <Compile Include="SaveFixtures.fs" />
     <Compile Include="NativeToolFixtures.fs" />
     <Compile Include="LootFixtures.fs" />
     <Compile Include="ArchivePolicyFixtures.fs" />
@@ -38,7 +39,7 @@
     <ProjectReference Include="../../src/ModConductor.DeploymentPlanning/ModConductor.DeploymentPlanning.fsproj"/>
     <ProjectReference Include="../../src/ModConductor.Persistence/ModConductor.Persistence.fsproj"/>
     <ProjectReference Include="../../src/ModConductor.SteamDiscovery/ModConductor.SteamDiscovery.fsproj"/>
-    <PackageReference Include="FSharp.Core"/>
+    <PackageReference Include="FSharp.Core"/><PackageReference Include="K4os.Compression.LZ4"/>
     <Content Include="../fixtures/archives/*.rar" Link="fixtures/archives/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest"/>
     <Content Include="../fixtures/state-v5.db" Link="fixtures/state-v5.db" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest"/>
     <Content Include="../fixtures/state-v4.db" Link="fixtures/state-v4.db" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest"/>

@@ -13,9 +13,12 @@
     <Compile Include="ArchiveContracts.fs" />
     <Compile Include="SkyrimArchivePolicy.fs" />
     <Compile Include="ArchiveSession.fs" />
+    <Compile Include="SaveContracts.fs" />
+    <Compile Include="SkyrimSaveReader.fs" />
     <ProjectReference Include="../ModConductor.FilePlanning/ModConductor.FilePlanning.fsproj" />
     <ProjectReference Include="../ModConductor.ArchiveInspection/ModConductor.ArchiveInspection.fsproj" />
     <ProjectReference Include="../ModConductor.ArtifactLibrary/ModConductor.ArtifactLibrary.fsproj" />
     <PackageReference Include="FSharp.Core" />
+    <PackageReference Include="K4os.Compression.LZ4" />
   </ItemGroup>
 </Project>

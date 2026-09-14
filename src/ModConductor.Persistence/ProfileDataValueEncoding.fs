@@ -261,7 +261,7 @@ module internal ProfileDataValueEncoding =
     let encode write value =
         use stream = new MemoryStream()
         use writer = new BinaryWriter(stream, UTF8Encoding(false, true), true)
-        writer.Write 4
+        writer.Write 5
         write writer value
         writer.Flush()
 
@@ -279,7 +279,7 @@ module internal ProfileDataValueEncoding =
 
         let version = reader.ReadInt32()
 
-        if version <> 1 && version <> 2 && version <> 3 && version <> 4 then
+        if version <> 1 && version <> 2 && version <> 3 && version <> 4 && version <> 5 then
             invalid ()
 
         let value = read version reader

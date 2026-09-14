@@ -444,6 +444,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
                                 onClose: close,
                                 onResumeProfileChange:
                                     _workspaces.resumeProfileChange,
+                                pluginHeadersId: _plugins.order?.headers.id,
                               ),
                     executableBuilder: widget.executables == null
                         ? null

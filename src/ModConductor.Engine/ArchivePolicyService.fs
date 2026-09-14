@@ -112,7 +112,7 @@ type ArchivePolicyService(policies: IProfileArchivePolicies) =
         ProfileActionStream.send
             context
             output
-            (fun value ->
+            (fun (value: ModConductor.ProfileGameData.ProfileDataProgress) ->
                 ProfileDataEvent(
                     Progress =
                         ModConductor.Protocol.V1.ProfileDataProgress(
@@ -134,7 +134,7 @@ type ArchivePolicyService(policies: IProfileArchivePolicies) =
         ProfileActionStream.send
             context
             output
-            (fun value ->
+            (fun (value: ModConductor.ProfileGameData.ProfileDataProgress) ->
                 ProfileDataEvent(
                     Progress =
                         ModConductor.Protocol.V1.ProfileDataProgress(

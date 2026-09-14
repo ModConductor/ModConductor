@@ -18,6 +18,7 @@ class ProfileSettingsInspector extends StatefulWidget {
     required this.available,
     required this.onClose,
     required this.onResumeProfileChange,
+    this.pluginHeadersId,
   });
   final ProfileDataController controller;
   final ProfileDataClient? client;
@@ -27,6 +28,7 @@ class ProfileSettingsInspector extends StatefulWidget {
   final bool available;
   final VoidCallback onClose;
   final Future<void> Function(String) onResumeProfileChange;
+  final String? pluginHeadersId;
   @override
   State<ProfileSettingsInspector> createState() =>
       _ProfileSettingsInspectorState();
@@ -341,6 +343,9 @@ class _ProfileSettingsInspectorState extends State<ProfileSettingsInspector> {
                           client: widget.client!,
                           workspace: widget.workspace.id,
                           profile: widget.profile,
+                          expected: state.reference,
+                          headersId: widget.pluginHeadersId,
+                          onChanged: controller.invalidate,
                         ),
                       ),
               ),

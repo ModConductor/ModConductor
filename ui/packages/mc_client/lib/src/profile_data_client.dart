@@ -7,6 +7,29 @@ import 'profile_data_models.dart';
 export 'profile_data_models.dart';
 
 abstract interface class ProfileDataClient {
+  Future<ProfileSaveGroupPage> saveGroups(
+    String workspaceId,
+    String profileId,
+    ProfileSaveSource source, {
+    String? after,
+  });
+  Future<ProfileSaveInspection> inspectSave(
+    String workspaceId,
+    String profileId,
+    ProfileSaveSource source,
+    String name, {
+    String? headersId,
+  });
+  Future<ProfileSaveActionPreview> previewSaveAction(
+    ProfileDataRef expected,
+    ProfileSaveAction action,
+    List<String> names,
+  );
+  Stream<ProfileDataEvent> applySaveAction(
+    String id,
+    String previewId,
+    ProfileDataRef expected,
+  );
   Future<ProfileSavePage> saveFiles(
     String workspaceId,
     String profileId,
@@ -29,6 +52,103 @@ class GrpcProfileDataClient implements ProfileDataClient {
   GrpcProfileDataClient(ClientChannel channel, CallOptions options)
     : _client = wire.ProfileDataOperationsClient(channel, options: options);
   final wire.ProfileDataOperationsClient _client;
+  @override
+  Future<ProfileSaveGroupPage> saveGroups(
+    String workspaceId,
+    String profileId,
+    ProfileSaveSource source, {
+    String? after,
+  }) async {
+    final reply = await _client.listSaveGroups(
+      wire.ProfileSaveGroupRequest(
+        workspaceId: workspaceId,
+        profileId: profileId,
+        source: _saveSource(source),
+        after: after,
+      ),
+    );
+    return switch (reply.whichResult()) {
+      wire.ProfileSaveGroupReply_Result.page => ProfileSaveGroupPage(
+        _readSaveSource(reply.page.source),
+        _savePath(reply.page.path),
+        [for (final entry in reply.page.entries) _saveGroup(entry)],
+        reply.page.hasNext() ? reply.page.next : null,
+      ),
+      wire.ProfileSaveGroupReply_Result.problem =>
+        throw decodeProfileDataProblem(reply.problem),
+      wire.ProfileSaveGroupReply_Result.notSet => throw const FormatException(
+        'The save group page is missing.',
+      ),
+    };
+  }
+
+  @override
+  Future<ProfileSaveInspection> inspectSave(
+    String workspaceId,
+    String profileId,
+    ProfileSaveSource source,
+    String name, {
+    String? headersId,
+  }) async {
+    final reply = await _client.inspectSave(
+      wire.ProfileSaveInspectRequest(
+        workspaceId: workspaceId,
+        profileId: profileId,
+        source: _saveSource(source),
+        name: name,
+        headersId: headersId,
+      ),
+    );
+    return switch (reply.whichResult()) {
+      wire.ProfileSaveInspectReply_Result.inspection => _saveInspection(
+        reply.inspection,
+      ),
+      wire.ProfileSaveInspectReply_Result.problem =>
+        throw decodeProfileDataProblem(reply.problem),
+      wire.ProfileSaveInspectReply_Result.notSet => throw const FormatException(
+        'The save inspection is missing.',
+      ),
+    };
+  }
+
+  @override
+  Future<ProfileSaveActionPreview> previewSaveAction(
+    ProfileDataRef expected,
+    ProfileSaveAction action,
+    List<String> names,
+  ) async {
+    final reply = await _client.previewSaveAction(
+      wire.ProfileSaveActionPreviewRequest(
+        expected: _reference(expected),
+        action: _saveAction(action),
+        names: names,
+      ),
+    );
+    return switch (reply.whichResult()) {
+      wire.ProfileSaveActionPreviewReply_Result.preview => _savePreview(
+        reply.preview,
+      ),
+      wire.ProfileSaveActionPreviewReply_Result.problem =>
+        throw decodeProfileDataProblem(reply.problem),
+      wire.ProfileSaveActionPreviewReply_Result.notSet =>
+        throw const FormatException('The save action preview is missing.'),
+    };
+  }
+
+  @override
+  Stream<ProfileDataEvent> applySaveAction(
+    String id,
+    String previewId,
+    ProfileDataRef expected,
+  ) => _events(
+    _client.applySaveAction(
+      wire.ProfileSaveActionApplyRequest(
+        id: id,
+        previewId: previewId,
+        expected: _reference(expected),
+      ),
+    ),
+  );
   @override
   Future<ProfileSavePage> saveFiles(
     String workspaceId,
@@ -133,17 +253,145 @@ wire.ProfileDataRef _reference(ProfileDataRef value) => wire.ProfileDataRef(
   revision: Int64(value.revision),
 );
 
+wire.ProfileSaveSource _saveSource(ProfileSaveSource value) => switch (value) {
+  ProfileSaveSource.global => wire.ProfileSaveSource.PROFILE_SAVE_SOURCE_GLOBAL,
+  ProfileSaveSource.profile =>
+    wire.ProfileSaveSource.PROFILE_SAVE_SOURCE_PROFILE,
+};
+
+ProfileSaveSource _readSaveSource(wire.ProfileSaveSource value) =>
+    switch (value) {
+      wire.ProfileSaveSource.PROFILE_SAVE_SOURCE_GLOBAL =>
+        ProfileSaveSource.global,
+      wire.ProfileSaveSource.PROFILE_SAVE_SOURCE_PROFILE =>
+        ProfileSaveSource.profile,
+      _ => throw const FormatException('The save source is unsupported.'),
+    };
+
+ProfileSavePath _savePath(wire.ProfileSavePath value) => ProfileSavePath(
+  value.hostPath,
+  value.hasWindowsPath() ? value.windowsPath : null,
+);
+
+ProfileSaveGroupEntry _saveGroup(wire.ProfileSaveGroupEntry value) =>
+    ProfileSaveGroupEntry(
+      id: value.id,
+      name: value.name,
+      kind: switch (value.kind) {
+        wire.ProfileSaveEntryKind.PROFILE_SAVE_ENTRY_KIND_SAVE =>
+          ProfileSaveEntryKind.save,
+        wire.ProfileSaveEntryKind.PROFILE_SAVE_ENTRY_KIND_DIRECTORY =>
+          ProfileSaveEntryKind.directory,
+        wire.ProfileSaveEntryKind.PROFILE_SAVE_ENTRY_KIND_OTHER =>
+          ProfileSaveEntryKind.other,
+        _ => throw const FormatException('The save entry kind is unsupported.'),
+      },
+      bytes: value.bytes.toInt(),
+      companion: value.hasCompanion() ? value.companion : null,
+      companionBytes: value.companionBytes.toInt(),
+      actionable: value.actionable,
+      problem: value.hasProblem() ? value.problem : null,
+    );
+
+SkyrimSaveMetadata _saveMetadata(wire.SkyrimSaveMetadata value) =>
+    SkyrimSaveMetadata(
+      headerVersion: value.headerVersion,
+      formVersion: value.formVersion,
+      compression: switch (value.compression) {
+        wire.SkyrimSaveCompression.SKYRIM_SAVE_COMPRESSION_UNCOMPRESSED =>
+          SkyrimSaveCompression.uncompressed,
+        wire.SkyrimSaveCompression.SKYRIM_SAVE_COMPRESSION_ZLIB =>
+          SkyrimSaveCompression.zlib,
+        wire.SkyrimSaveCompression.SKYRIM_SAVE_COMPRESSION_LZ4 =>
+          SkyrimSaveCompression.lz4,
+        _ => throw const FormatException(
+          'The save compression is unsupported.',
+        ),
+      },
+      saveNumber: value.saveNumber,
+      character: value.character,
+      level: value.level,
+      location: value.location,
+      gameTime: value.gameTime,
+      fullPlugins: List.unmodifiable(value.fullPlugins),
+      lightPlugins: List.unmodifiable(value.lightPlugins),
+    );
+
+ProfileSaveInspection _saveInspection(wire.ProfileSaveInspection value) {
+  if (!value.hasPath() || !value.hasEntry()) {
+    throw const FormatException('The save inspection is incomplete.');
+  }
+  return ProfileSaveInspection(
+    source: _readSaveSource(value.source),
+    path: _savePath(value.path),
+    entry: _saveGroup(value.entry),
+    metadata: value.hasMetadata() ? _saveMetadata(value.metadata) : null,
+    metadataProblem: value.hasMetadataProblem() ? value.metadataProblem : null,
+    pluginIssues: [
+      for (final issue in value.pluginIssues)
+        SavePluginIssue(issue.name, switch (issue.state) {
+          wire.SavePluginState.SAVE_PLUGIN_STATE_MISSING =>
+            SavePluginState.missing,
+          wire.SavePluginState.SAVE_PLUGIN_STATE_INACTIVE =>
+            SavePluginState.inactive,
+          _ => throw const FormatException(
+            'The save plugin state is unsupported.',
+          ),
+        }, issue.hasSource() ? issue.source : null),
+    ],
+    pluginCheckProblem: value.hasPluginCheckProblem()
+        ? value.pluginCheckProblem
+        : null,
+  );
+}
+
+wire.ProfileSaveAction _saveAction(ProfileSaveAction value) => switch (value) {
+  ProfileSaveAction.copyToProfile =>
+    wire.ProfileSaveAction.PROFILE_SAVE_ACTION_COPY_TO_PROFILE,
+  ProfileSaveAction.deleteFromProfile =>
+    wire.ProfileSaveAction.PROFILE_SAVE_ACTION_DELETE_FROM_PROFILE,
+};
+
+ProfileSaveAction _readSaveAction(wire.ProfileSaveAction value) =>
+    switch (value) {
+      wire.ProfileSaveAction.PROFILE_SAVE_ACTION_COPY_TO_PROFILE =>
+        ProfileSaveAction.copyToProfile,
+      wire.ProfileSaveAction.PROFILE_SAVE_ACTION_DELETE_FROM_PROFILE =>
+        ProfileSaveAction.deleteFromProfile,
+      _ => throw const FormatException('The save action is unsupported.'),
+    };
+
+ProfileSaveActionPreview _savePreview(wire.ProfileSaveActionPreview value) {
+  if (!value.hasExpected() || !value.hasSource()) {
+    throw const FormatException('The save action preview is incomplete.');
+  }
+  return ProfileSaveActionPreview(
+    id: value.id,
+    expected: _readReference(value.expected),
+    action: _readSaveAction(value.action),
+    source: _savePath(value.source),
+    destination: value.hasDestination() ? _savePath(value.destination) : null,
+    files: [
+      for (final file in value.files)
+        ProfileSaveActionFile(file.name, file.bytes.toInt()),
+    ],
+    bytes: value.bytes.toInt(),
+  );
+}
+
+ProfileDataRef _readReference(wire.ProfileDataRef value) => ProfileDataRef(
+  workspaceId: value.workspaceId,
+  profileId: value.profileId,
+  contextId: value.contextId,
+  revision: value.revision.toInt(),
+);
+
 ProfileDataState _state(wire.ProfileDataState value) {
   if (!value.hasReference() || !value.hasOptions()) {
     throw const FormatException('The profile settings state is incomplete.');
   }
   return ProfileDataState(
-    reference: ProfileDataRef(
-      workspaceId: value.reference.workspaceId,
-      profileId: value.reference.profileId,
-      contextId: value.reference.contextId,
-      revision: value.reference.revision.toInt(),
-    ),
+    reference: _readReference(value.reference),
     options: ProfileDataOptions(
       settings: value.options.settings,
       saves: value.options.saves,

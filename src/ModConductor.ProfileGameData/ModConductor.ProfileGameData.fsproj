@@ -15,9 +15,11 @@
     <Compile Include="PluginInputs.fs" />
     <Compile Include="Initialization.fs" />
     <Compile Include="PluginOrders.fs" />
+    <Compile Include="SaveGroups.fs" />
     <Compile Include="PluginPreparation.fs" />
     <Compile Include="ArchivePolicies.fs" />
     <Compile Include="ActionPreparation.fs" />
+    <Compile Include="SavePreparation.fs" />
     <Compile Include="ArchivePreparation.fs" />
     <Compile Include="Cloning.fs" />
     <Compile Include="Browsing.fs" />
