@@ -379,6 +379,47 @@ module BethesdaArchiveFixtures =
 
         textures
 
+    let private mixedRatioTexture path =
+        let compressedSource = Array.zeroCreate<byte> 1000
+        let compressed = zlib compressedSource
+        let raw = Array.init 20000 (fun index -> byte (index % 251))
+        let name = bytes "textures/mixed-ratio.dds"
+        let recordsEnd = 24 + 24 + 48
+        let compressedOffset = recordsEnd
+        let rawOffset = compressedOffset + compressed.Length
+        let namesOffset = rawOffset + raw.Length
+        use output = File.Create path
+        use writer = new BinaryWriter(output)
+        writer.Write(bytes "BTDX")
+        writer.Write 1u
+        writer.Write(bytes "DX10")
+        writer.Write 1u
+        writer.Write(uint64 namesOffset)
+        writer.Write(Array.zeroCreate<byte> 13)
+        writer.Write 2uy
+        writeU16 writer 24
+        writeU16 writer 8
+        writeU16 writer 8
+        writer.Write 2uy
+        writer.Write 71uy
+        writeU16 writer 2048
+        writer.Write(uint64 compressedOffset)
+        writer.Write(uint32 compressed.Length)
+        writer.Write(uint32 compressedSource.Length)
+        writeU16 writer 0
+        writeU16 writer 0
+        writer.Write 0xBAADF00Du
+        writer.Write(uint64 rawOffset)
+        writer.Write 0u
+        writer.Write(uint32 raw.Length)
+        writeU16 writer 1
+        writeU16 writer 1
+        writer.Write 0xBAADF00Du
+        writer.Write compressed
+        writer.Write raw
+        writeU16 writer name.Length
+        writer.Write name
+
     let observe
         (writer: Utf8JsonWriter)
         (area: string)
@@ -530,6 +571,33 @@ module BethesdaArchiveFixtures =
         )
 
         writer.WriteBoolean("BethesdaEntryLimitRefused", true)
+
+        let ratioPath = Path.Combine(area, "mixed-ratio.ba2")
+        mixedRatioTexture ratioPath
+        use ratioFile = File.OpenRead ratioPath
+
+        let ratioInspection =
+            Inspection(
+                Unchecked.defaultof<IArtifactSource>,
+                { ArchiveLimits.Default with
+                    Ratio = 2L }
+            )
+
+        let mutable published = false
+
+        check (
+            safe (fun () ->
+                ratioInspection.WithOwnedStream(
+                    hash ratioPath,
+                    ratioFile,
+                    token,
+                    fun _ -> published <- true
+                ))
+            |> Option.isSome
+        )
+
+        check (not published)
+        writer.WriteBoolean("MixedDx10CompressedPartRatioRefusedWithoutManifest", true)
 
         let changed = Path.Combine(area, "changed-v105.bsa")
         File.Copy(bsaPath, changed)

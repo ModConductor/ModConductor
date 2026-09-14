@@ -142,6 +142,16 @@ module internal BethesdaArchive =
                 if entry.Expanded > limits.TotalBytes - total then
                     refuse "The archive exceeds the expanded size limit."
 
+                for part in entry.Parts do
+                    match part.Codec with
+                    | Raw -> ()
+                    | _ when
+                        part.Stored <= 0L
+                        || decimal part.Expanded > decimal limits.Ratio * decimal part.Stored
+                        ->
+                        refuse "The archive exceeds the expansion ratio limit."
+                    | _ -> ()
+
                 total <- total + entry.Expanded
 
                 match entry.Compressed with
