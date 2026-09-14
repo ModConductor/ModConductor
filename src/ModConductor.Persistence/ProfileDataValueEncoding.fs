@@ -138,6 +138,14 @@ module internal ProfileDataValueEncoding =
           Separator = separator
           AbsentFile = reader.ReadBoolean() }
 
+    let archiveReceipt (writer: BinaryWriter) (value: ArchiveListReceipt) =
+        archivePatch writer value.Profile
+        option archivePatch writer value.Documents
+
+    let readArchiveReceipt (reader: BinaryReader) : ArchiveListReceipt =
+        { Profile = readArchivePatch reader
+          Documents = readOption readArchivePatch reader }
+
     let sourceStamp
         (writer: BinaryWriter)
         (value: ModConductor.FilePlanning.SourceStamp)
@@ -253,7 +261,7 @@ module internal ProfileDataValueEncoding =
     let encode write value =
         use stream = new MemoryStream()
         use writer = new BinaryWriter(stream, UTF8Encoding(false, true), true)
-        writer.Write 3
+        writer.Write 4
         write writer value
         writer.Flush()
 
@@ -271,7 +279,7 @@ module internal ProfileDataValueEncoding =
 
         let version = reader.ReadInt32()
 
-        if version <> 1 && version <> 2 && version <> 3 then
+        if version <> 1 && version <> 2 && version <> 3 && version <> 4 then
             invalid ()
 
         let value = read version reader

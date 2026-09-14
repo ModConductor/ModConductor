@@ -77,7 +77,7 @@ class _Archives implements ArchivePolicyClient {
     entries: const [
       ArchivePolicyEntry(
         name: 'Skyrim - Textures0.bsa',
-        position: 0,
+        position: 1,
         state: ArchiveState.active,
         required: true,
         explicit: true,
@@ -136,7 +136,7 @@ class _Archives implements ArchivePolicyClient {
 
 void main() {
   testWidgets(
-    'archive toolbox uses plain actions and keeps capability detail in the inspector',
+    'engine-shaped first archive stays order 1 through the pane and inspector',
     (tester) async {
       final bethesda = _Bethesda();
       final plugins = PluginsController()
@@ -164,6 +164,7 @@ void main() {
       );
       expect(find.text('Archive changes are ready'), findsOneWidget);
       expect(find.text('Apply archive changes'), findsOneWidget);
+      expect(find.text('1'), findsOneWidget);
       expect(find.textContaining('Archive invalidation'), findsNothing);
       await tester.tap(find.text('Apply archive changes'));
       await tester.pumpAndSettle();
@@ -178,6 +179,7 @@ void main() {
       );
       expect(find.text('Archive invalidation'), findsOneWidget);
       expect(find.text('Not available for this game.'), findsOneWidget);
+      expect(find.text('1'), findsOneWidget);
       expect(find.textContaining('dummy', findRichText: true), findsNothing);
       controller.dispose();
       plugins.dispose();

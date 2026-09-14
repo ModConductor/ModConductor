@@ -162,8 +162,7 @@ class _ArchivePolicyPaneState extends State<ArchivePolicyPane> {
               columns: [
                 McColumn(
                   'Order',
-                  (row) =>
-                      Text(row.position == null ? '—' : '${row.position! + 1}'),
+                  (row) => Text(row.position == null ? '—' : '${row.position}'),
                   width: 65,
                 ),
                 McColumn(

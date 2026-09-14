@@ -15,7 +15,7 @@ type internal PrivateProfileData =
       SettingsInitialized: bool
       SavesInitialized: bool
       PluginOrder: ModConductor.Bethesda.PluginOrder option
-      ArchiveList: ArchiveListOverride option }
+      ArchiveList: ArchiveListReceipt option }
 
 type internal GlobalIni =
     { Name: string

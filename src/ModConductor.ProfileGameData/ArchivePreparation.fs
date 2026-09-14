@@ -111,8 +111,10 @@ module internal ArchivePreparation =
                     raise (ProfileDataException ProfileDataError.Stale)
                 | _ -> ()
 
-                let desiredProfile, nextPatch =
-                    rewrite action.Kind incoming.ArchiveList profileBytes
+                let previousProfile = incoming.ArchiveList |> Option.map _.Profile
+
+                let desiredProfile, nextProfile =
+                    rewrite action.Kind previousProfile profileBytes
 
                 use workspace =
                     HeldDirectory.Open(
@@ -155,11 +157,21 @@ module internal ArchivePreparation =
                     |> Option.exists (fun value ->
                         value.ProfileId = incoming.ProfileId && value.Options.Settings)
 
+                let mutable nextDocuments = None
+
                 if active then
                     let globalName, globalBefore, globalBytes =
                         read context.Documents "Skyrim.ini" token
 
-                    let desiredGlobal, _ = rewrite action.Kind incoming.ArchiveList globalBytes
+                    let previousDocuments =
+                        incoming.ArchiveList
+                        |> Option.bind (fun receipt ->
+                            receipt.Documents |> Option.orElse (Some receipt.Profile))
+
+                    let desiredGlobal, patch =
+                        rewrite action.Kind previousDocuments globalBytes
+
+                    nextDocuments <- patch
 
                     if desiredGlobal <> globalBytes then
                         effects.Add
@@ -179,7 +191,11 @@ module internal ArchivePreparation =
                 let changed =
                     { incoming with
                         Revision = incoming.Revision + 1L
-                        ArchiveList = nextPatch }
+                        ArchiveList =
+                            nextProfile
+                            |> Option.map (fun profile ->
+                                { Profile = profile
+                                  Documents = nextDocuments }) }
 
                 let prepared =
                     { action with

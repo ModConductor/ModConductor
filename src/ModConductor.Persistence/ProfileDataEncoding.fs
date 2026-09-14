@@ -52,7 +52,7 @@ module internal ProfileDataEncoding =
             writer.Write value.SettingsInitialized
             writer.Write value.SavesInitialized
             option pluginOrder writer value.PluginOrder
-            option archivePatch writer value.ArchiveList)
+            option archiveReceipt writer value.ArchiveList)
 
     let readProfile =
         decode (fun version reader ->
@@ -70,8 +70,13 @@ module internal ProfileDataEncoding =
                 else
                     None
               ArchiveList =
-                if version >= 3 then
+                if version >= 4 then
+                    readOption readArchiveReceipt reader
+                elif version = 3 then
                     readOption readArchivePatch reader
+                    |> Option.map (fun profile ->
+                        { Profile = profile
+                          Documents = None })
                 else
                     None }
             : PrivateProfileData)

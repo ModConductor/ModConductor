@@ -81,7 +81,11 @@ module internal ProfileCloning =
                       SettingsInitialized = false
                       SavesInitialized = false
                       PluginOrder = source.PluginOrder
-                      ArchiveList = source.ArchiveList }
+                      ArchiveList =
+                        source.ArchiveList
+                        |> Option.map (fun receipt ->
+                            { receipt with
+                                Documents = None }) }
 
             let saveTarget () =
                 task {

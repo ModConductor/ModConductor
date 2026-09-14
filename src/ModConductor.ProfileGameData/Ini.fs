@@ -35,6 +35,10 @@ type internal ArchiveListOverride =
       Separator: IniSeparatorOverride
       AbsentFile: bool }
 
+type internal ArchiveListReceipt =
+    { Profile: ArchiveListOverride
+      Documents: ArchiveListOverride option }
+
 module internal Ini =
     let private encoding =
         function

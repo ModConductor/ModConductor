@@ -195,6 +195,14 @@ module ArchivePolicyFixtures =
                  && policy.BlockingProblems.IsEmpty)
         )
 
+        writer.WriteBoolean(
+            "effectiveArchivePositionsAreOneBased",
+            check
+                "effectiveArchivePositionsAreOneBased"
+                ((row SkyrimArchives.required.Head).Position = Some 1
+                 && (row SkyrimArchives.required[1]).Position = Some 2)
+        )
+
         let missingRequired =
             candidates
             |> List.filter (fun value ->
@@ -307,7 +315,8 @@ module ArchivePolicyFixtures =
                     "; original\n[Archive]\nSResourceArchiveList=QuietRivers.bsa\n[Display]\nfGamma=1.0\n"
                 )
 
-            File.WriteAllBytes(Path.Combine(documents, "Skyrim.ini"), originalIni)
+            let documentsIni = Path.Combine(documents, "Skyrim.ini")
+            File.WriteAllBytes(documentsIni, originalIni)
             let archivesTxt = Path.Combine(data, "archives.txt")
             File.WriteAllText(archivesTxt, "Bogus.bsa\n")
 
@@ -350,6 +359,29 @@ module ArchivePolicyFixtures =
             |> wait
             |> result
             |> ignore
+
+            let initialized = profileApi.Read(workspace, profile) |> wait |> result
+
+            store.ApplyProfileDataAtCheckpoint(
+                Guid.NewGuid(),
+                workspace,
+                profile,
+                initialized.Reference.Revision,
+                token,
+                ignore
+            )
+            |> wait
+            |> result
+            |> ignore
+
+            let globalOriginal =
+                Array.append
+                    (Encoding.Unicode.GetPreamble())
+                    (Encoding.Unicode.GetBytes(
+                        "; distinct global\r\n[Archive]\r\nSResourceArchiveList = GlobalOnly.bsa\r\n[Display]\r\nfGamma=1.25\r\n"
+                    ))
+
+            File.WriteAllBytes(documentsIni, globalOriginal)
 
             let headers = store.Plugins.Scan(profile, token) |> wait |> result
             let archiveApi = store.ArchivePolicies
@@ -398,10 +430,64 @@ module ArchivePolicyFixtures =
                 |> result
 
             writer.WriteBoolean(
-                "restoreReturnsExactPrivateOriginal",
+                "divergentActiveDocumentsAndProfileRestoreExactOriginals",
                 check
-                    "restoreReturnsExactPrivateOriginal"
-                    (restored.Complete && File.ReadAllBytes(privateIni) = originalIni)
+                    "divergentActiveDocumentsAndProfileRestoreExactOriginals"
+                    (restored.Complete
+                     && File.ReadAllBytes(privateIni) = originalIni
+                     && File.ReadAllBytes(documentsIni) = globalOriginal)
+            )
+
+            File.Delete documentsIni
+            let headers = store.Plugins.Scan(profile, token) |> wait |> result
+            let policy = archiveApi.Scan(workspace, profile, headers.Id, token) |> wait |> result
+
+            let createdGlobal =
+                archiveApi.Apply(Guid.NewGuid(), policy.Reference, policy.Snapshot.Id, ignore, token)
+                |> wait
+                |> result
+
+            let removedGlobal =
+                archiveApi.Restore(Guid.NewGuid(), createdGlobal.State.Reference, ignore, token)
+                |> wait
+                |> result
+
+            writer.WriteBoolean(
+                "absentActiveDocumentsIniIsRemovedOnRestore",
+                check
+                    "absentActiveDocumentsIniIsRemovedOnRestore"
+                    (createdGlobal.Complete && removedGlobal.Complete && not (File.Exists documentsIni))
+            )
+
+            let headers = store.Plugins.Scan(profile, token) |> wait |> result
+            let policy = archiveApi.Scan(workspace, profile, headers.Id, token) |> wait |> result
+
+            let changedGlobal =
+                archiveApi.Apply(Guid.NewGuid(), policy.Reference, policy.Snapshot.Id, ignore, token)
+                |> wait
+                |> result
+
+            let changedBytes =
+                File.ReadAllText(documentsIni).Replace(
+                    "SResourceArchiveList=",
+                    "SResourceArchiveList=ExternallyChanged.bsa, "
+                )
+                |> Encoding.UTF8.GetBytes
+
+            File.WriteAllBytes(documentsIni, changedBytes)
+
+            let refusedGlobalRestore =
+                archiveApi.Restore(Guid.NewGuid(), changedGlobal.State.Reference, ignore, token)
+                |> wait
+                |> result
+
+            writer.WriteBoolean(
+                "changedActiveDocumentsArchiveValueRefusesRestore",
+                check
+                    "changedActiveDocumentsArchiveValueRefusesRestore"
+                    (not refusedGlobalRestore.Complete
+                     && refusedGlobalRestore.Problem.IsSome
+                     && File.ReadAllBytes(documentsIni) = changedBytes)
             )
         finally
             if Directory.Exists area then

@@ -42,7 +42,7 @@ class ArchivePolicyInspector extends StatelessWidget {
             ],
             _fact(context, 'State', row.state.name),
             if (row.position case final position?)
-              _fact(context, 'Archive order', '${position + 1}'),
+              _fact(context, 'Archive order', '$position'),
             if (row.iniKey.isNotEmpty)
               _fact(
                 context,
