@@ -64,6 +64,7 @@ enum ExecutableRunPhase {
   waitingForChildren,
   finished,
   failed,
+  cancelled,
   detached,
   trackingUnavailable,
 }
@@ -107,6 +108,7 @@ class ExecutableRun {
     ExecutableRunPhase.waitingForChildren => false,
     ExecutableRunPhase.finished ||
     ExecutableRunPhase.failed ||
+    ExecutableRunPhase.cancelled ||
     ExecutableRunPhase.detached ||
     ExecutableRunPhase.trackingUnavailable => true,
   };

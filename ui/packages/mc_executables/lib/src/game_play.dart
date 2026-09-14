@@ -87,6 +87,7 @@ class GamePlayDialog extends StatelessWidget {
             'Waiting for child processes',
           ExecutableRunPhase.finished => 'Finished',
           ExecutableRunPhase.failed => '$name did not start',
+          ExecutableRunPhase.cancelled => '$name launch was canceled',
           ExecutableRunPhase.detached => 'Stopped waiting',
           ExecutableRunPhase.trackingUnavailable => 'Tracking unavailable',
         };
@@ -102,6 +103,7 @@ class GamePlayDialog extends StatelessWidget {
           ExecutableRunPhase.finished =>
             'Root exit code ${run.rootExitCode ?? 'unknown'}.',
           ExecutableRunPhase.failed => run.problem,
+          ExecutableRunPhase.cancelled => run.problem,
           ExecutableRunPhase.detached => 'The game can still be running.',
           ExecutableRunPhase.trackingUnavailable =>
             '${run.problem ?? 'The app no longer tracks this run.'} The game can still be active.',
@@ -109,6 +111,7 @@ class GamePlayDialog extends StatelessWidget {
         if (game?.files != null &&
             [
               ExecutableRunPhase.failed,
+              ExecutableRunPhase.cancelled,
               ExecutableRunPhase.detached,
             ].contains(run.phase)) {
           detail = '${detail ?? ''} $profile remains deployed.';

@@ -43,7 +43,6 @@ class FakeDiagnostics implements DiagnosticsClient {
     String? fileSnapshotId,
     String? deploymentId,
     int? deploymentRevision,
-    String? operationId,
   }) async =>
       checkResult ??
       DiagnosticSnapshot(
@@ -63,13 +62,22 @@ class FakeDiagnostics implements DiagnosticsClient {
       snapshotId,
       problemId,
       DateTime.utc(2026, 9, 14, 0, 5),
-      const ['meshes/marker.nif', 'First mod/meshes/marker.nif'],
+      const [
+        DiagnosticRemediationItem('Target file', 'meshes/marker.nif'),
+        DiagnosticRemediationItem('Saved copy', 'First mod · 1.0'),
+        DiagnosticRemediationItem('Profile setting', 'Hide this copy for Main'),
+      ],
+      const [
+        DiagnosticRemediationIdentifier('Mod ID', 'mod-id'),
+        DiagnosticRemediationIdentifier('Version ID', 'version-id'),
+        DiagnosticRemediationIdentifier('Profile ID', 'profile-id'),
+      ],
       'Mod Conductor will hide one file copy.',
     );
   }
 
   @override
-  Future<DiagnosticApplyResult> apply(String previewId, String actionId) async {
+  Future<DiagnosticApplyResult> apply(String previewId) async {
     applies++;
     return DiagnosticApplyResult(
       previewId,
@@ -128,6 +136,12 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Hide this file copy?'), findsOneWidget);
       expect(find.text('meshes/marker.nif'), findsWidgets);
+      expect(find.text('First mod · 1.0'), findsOneWidget);
+      expect(find.text('Hide this copy for Main'), findsOneWidget);
+      expect(find.text('mod-id'), findsNothing);
+      await tester.tap(find.text('Technical details').last);
+      await tester.pumpAndSettle();
+      expect(find.text('mod-id'), findsOneWidget);
       expect(client.applies, 0);
       await tester.sendKeyEvent(LogicalKeyboardKey.escape);
       await tester.pumpAndSettle();
@@ -222,6 +236,5 @@ class _SequencedDiagnostics extends FakeDiagnostics {
     String? fileSnapshotId,
     String? deploymentId,
     int? deploymentRevision,
-    String? operationId,
   }) => values[next++].future;
 }

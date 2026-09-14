@@ -36,16 +36,21 @@ enum DiagnosticFault {
 }
 
 message DiagnosticRequest {
+  reserved 6;
+  reserved "operation_id";
   string workspace_id = 1;
   string profile_id = 2;
   optional string file_snapshot_id = 3;
   optional string deployment_id = 4;
   optional uint64 deployment_revision = 5;
-  optional string operation_id = 6;
 }
 message DiagnosticSnapshotReference { string snapshot_id = 1; }
 message DiagnosticPreviewRequest { string snapshot_id = 1; string problem_id = 2; }
-message DiagnosticApplyRequest { string preview_id = 1; string action_id = 2; }
+message DiagnosticApplyRequest {
+  reserved 2;
+  reserved "action_id";
+  string preview_id = 1;
+}
 message DiagnosticEvidence { string label = 1; string value = 2; }
 message DiagnosticCorrelation { string kind = 1; string id = 2; optional uint64 revision = 3; }
 message DiagnosticFinding {
@@ -73,13 +78,18 @@ message DiagnosticSnapshot {
   repeated DiagnosticFinding findings = 5;
 }
 message DiagnosticSnapshotReply { oneof outcome { DiagnosticSnapshot snapshot = 1; DiagnosticFault fault = 2; } }
+message DiagnosticRemediationItem { string label = 1; string value = 2; }
+message DiagnosticRemediationIdentifier { string label = 1; string value = 2; }
 message DiagnosticPreview {
+  reserved 5;
+  reserved "paths";
   string id = 1;
   string snapshot_id = 2;
   string problem_id = 3;
   string expires_at = 4;
-  repeated string paths = 5;
   string result = 6;
+  repeated DiagnosticRemediationItem items = 7;
+  repeated DiagnosticRemediationIdentifier identifiers = 8;
 }
 message DiagnosticPreviewReply { oneof outcome { DiagnosticPreview preview = 1; DiagnosticFault fault = 2; } }
 message DiagnosticApplyResult {

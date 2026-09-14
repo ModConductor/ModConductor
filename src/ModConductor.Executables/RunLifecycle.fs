@@ -109,6 +109,8 @@ module internal RunLifecycle =
                                 let phase =
                                     if Option.isSome owner.Native then
                                         RunPhase.TrackingUnavailable
+                                    elif error :? OperationCanceledException then
+                                        RunPhase.Cancelled
                                     else
                                         RunPhase.Failed
 

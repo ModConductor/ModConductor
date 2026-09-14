@@ -19,6 +19,7 @@ type RunPhase =
     | WaitingForChildren
     | Finished
     | Failed
+    | Cancelled
     | Detached
     | TrackingUnavailable
 

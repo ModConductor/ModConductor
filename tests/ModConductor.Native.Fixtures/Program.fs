@@ -21,6 +21,17 @@ let main args =
             writer.WriteEndObject()
             writer.Flush()
             0
+        elif args.Length = 1 && args[0] = "--game-launch-cancellation" then
+            use writer =
+                new Utf8JsonWriter(Console.OpenStandardOutput(), JsonWriterOptions(Indented = true))
+
+            writer.WriteStartObject()
+            writer.WriteBoolean("nativeAot", not RuntimeFeature.IsDynamicCodeSupported)
+            GameLaunchCancellationFixture.sample ()
+            |> GameLaunchCancellationFixture.observe writer
+            writer.WriteEndObject()
+            writer.Flush()
+            0
         elif args.Length = 2 && args[0] = "--native-tool-child" then
             NativeToolFixtures.child args[1]
         elif args.Length = 2 && args[0] = "--native-tool" then

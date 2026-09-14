@@ -8,6 +8,7 @@ String executableRunLabel(ExecutableRun? run) => run == null
         ExecutableRunPhase.waitingForChildren => 'Waiting for children',
         ExecutableRunPhase.finished => 'Finished',
         ExecutableRunPhase.failed => 'Could not start',
+        ExecutableRunPhase.cancelled => 'Canceled',
         ExecutableRunPhase.detached => 'Stopped waiting',
         ExecutableRunPhase.trackingUnavailable => 'Tracking unavailable',
       };

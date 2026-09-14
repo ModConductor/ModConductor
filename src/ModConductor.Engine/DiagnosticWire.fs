@@ -68,7 +68,7 @@ module DiagnosticWire =
                 let result =
                     ModConductor.Protocol.V1.DiagnosticCorrelation(
                         Kind = correlationKind item.Kind,
-                        Id = item.Id
+                        Id = item.Id.ToString "N"
                     )
 
                 item.Revision |> Option.iter (fun revision -> result.Revision <- uint64 revision)
@@ -105,7 +105,23 @@ module DiagnosticWire =
                     Result = value.Result
                 )
 
-            preview.Paths.AddRange value.Paths
+            preview.Items.AddRange(
+                value.Items
+                |> Seq.map (fun item ->
+                    ModConductor.Protocol.V1.DiagnosticRemediationItem(
+                        Label = item.Label,
+                        Value = item.Value
+                    ))
+            )
+
+            preview.Identifiers.AddRange(
+                value.Identifiers
+                |> Seq.map (fun item ->
+                    ModConductor.Protocol.V1.DiagnosticRemediationIdentifier(
+                        Label = item.Label,
+                        Value = item.Value.ToString "N"
+                    ))
+            )
             ModConductor.Protocol.V1.DiagnosticPreviewReply(Preview = preview)
 
     let applyReply (result: Result<ModConductor.Diagnostics.RemediationResult, DiagnosticError>) =

@@ -15,8 +15,7 @@ module private DiagnosticRequest =
             if value.HasDeploymentId then
                 Some(ModLibraryWire.id value.DeploymentId, ModLibraryWire.number value.DeploymentRevision)
             else
-                None
-          OperationId = if value.HasOperationId then Some value.OperationId else None }
+                None }
 
 type DiagnosticService(diagnostics: IDiagnostics) =
     inherit DiagnosticOperations.DiagnosticOperationsBase()
@@ -44,7 +43,6 @@ type DiagnosticService(diagnostics: IDiagnostics) =
             let! result =
                 diagnostics.Apply(
                     ModLibraryWire.id request.PreviewId,
-                    ModLibraryWire.id request.ActionId,
                     context.CancellationToken
                 )
 

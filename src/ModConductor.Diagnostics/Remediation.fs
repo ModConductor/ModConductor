@@ -29,13 +29,23 @@ module internal Remediation =
         (target: LogicalPath)
         (plan: Guid)
         (copy: ModConductor.DeploymentPlanning.ModFile)
+        (copyName: string)
+        (versionLabel: string)
         (remainingName: string)
         (now: DateTimeOffset)
         =
-        let paths =
-            [ LogicalPath.display target
-              LogicalPath.display copy.Path
-              profileName + " hidden files" ]
+        let items: RemediationItem list =
+            [ { Label = "Target file"
+                Value = LogicalPath.display target }
+              { Label = "Saved copy"
+                Value = copyName + " · " + versionLabel }
+              { Label = "Profile setting"
+                Value = "Hide this copy for " + profileName } ]
+
+        let identifiers: RemediationIdentifier list =
+            [ { Label = "Mod ID"; Value = copy.ModId }
+              { Label = "Version ID"; Value = copy.VersionId }
+              { Label = "Profile ID"; Value = profileId } ]
 
         let view =
             { Id = Guid.NewGuid()
@@ -44,7 +54,8 @@ module internal Remediation =
               WorkspaceId = workspace
               ProfileId = profileId
               ExpiresAt = now.AddMinutes Limits.previewMinutes
-              Paths = paths
+              Items = items
+              Identifiers = identifiers
               Result = "Mod Conductor will hide one file copy." }
 
         { View = view
@@ -65,7 +76,14 @@ module internal Remediation =
               WorkspaceId = workspace
               ProfileId = profile
               ExpiresAt = now.AddMinutes Limits.previewMinutes
-              Paths = value.Paths
+              Items =
+                value.Paths
+                |> List.map (fun path ->
+                    { RemediationItem.Label = "Managed path"
+                      Value = path })
+              Identifiers =
+                [ { RemediationIdentifier.Label = "Deployment restore ID"
+                    Value = value.ReceiptId } ]
               Result = "Mod Conductor will continue the deployment restore." }
 
         { View = view

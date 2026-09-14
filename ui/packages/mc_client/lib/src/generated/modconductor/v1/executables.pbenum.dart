@@ -39,6 +39,9 @@ class ExecutableRunPhase extends $pb.ProtobufEnum {
   static const ExecutableRunPhase EXECUTABLE_RUN_PHASE_TRACKING_UNAVAILABLE =
       ExecutableRunPhase._(
           7, _omitEnumNames ? '' : 'EXECUTABLE_RUN_PHASE_TRACKING_UNAVAILABLE');
+  static const ExecutableRunPhase EXECUTABLE_RUN_PHASE_CANCELLED =
+      ExecutableRunPhase._(
+          8, _omitEnumNames ? '' : 'EXECUTABLE_RUN_PHASE_CANCELLED');
 
   static const $core.List<ExecutableRunPhase> values = <ExecutableRunPhase>[
     EXECUTABLE_RUN_PHASE_UNSPECIFIED,
@@ -49,10 +52,11 @@ class ExecutableRunPhase extends $pb.ProtobufEnum {
     EXECUTABLE_RUN_PHASE_FAILED,
     EXECUTABLE_RUN_PHASE_DETACHED,
     EXECUTABLE_RUN_PHASE_TRACKING_UNAVAILABLE,
+    EXECUTABLE_RUN_PHASE_CANCELLED,
   ];
 
   static final $core.List<ExecutableRunPhase?> _byValue =
-      $pb.ProtobufEnum.$_initByValueList(values, 7);
+      $pb.ProtobufEnum.$_initByValueList(values, 8);
   static ExecutableRunPhase? valueOf($core.int value) =>
       value < 0 || value >= _byValue.length ? null : _byValue[value];
 

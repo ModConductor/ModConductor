@@ -47,6 +47,7 @@ enum ExecutableRunPhase {
   EXECUTABLE_RUN_PHASE_FAILED = 5;
   EXECUTABLE_RUN_PHASE_DETACHED = 6;
   EXECUTABLE_RUN_PHASE_TRACKING_UNAVAILABLE = 7;
+  EXECUTABLE_RUN_PHASE_CANCELLED = 8;
 }
 message ExecutableRun {
   ExecutableRunRequest request = 1;

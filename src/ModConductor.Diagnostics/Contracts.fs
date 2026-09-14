@@ -61,7 +61,7 @@ type DiagnosticEvidence = { Label: string; Value: string }
 
 type DiagnosticCorrelation =
     { Kind: CorrelationKind
-      Id: string
+      Id: Guid
       Revision: int64 option }
 
 type DiagnosticFinding =
@@ -88,8 +88,7 @@ type DiagnosticRequest =
     { WorkspaceId: Guid
       ProfileId: Guid
       FileSnapshotId: Guid option
-      DeploymentReceipt: (Guid * int64) option
-      OperationId: string option }
+      DeploymentReceipt: (Guid * int64) option }
 
 type DiagnosticSnapshot =
     { Id: Guid
@@ -98,6 +97,10 @@ type DiagnosticSnapshot =
       CapturedAt: DateTimeOffset
       Findings: DiagnosticFinding list }
 
+type RemediationItem = { Label: string; Value: string }
+
+type RemediationIdentifier = { Label: string; Value: Guid }
+
 type RemediationPreview =
     { Id: Guid
       SnapshotId: Guid
@@ -105,7 +108,8 @@ type RemediationPreview =
       WorkspaceId: Guid
       ProfileId: Guid
       ExpiresAt: DateTimeOffset
-      Paths: string list
+      Items: RemediationItem list
+      Identifiers: RemediationIdentifier list
       Result: string }
 
 type RemediationResult =
@@ -121,5 +125,5 @@ type SupportReport =
 type IDiagnostics =
     abstract Check: DiagnosticRequest * CancellationToken -> Task<Result<DiagnosticSnapshot, DiagnosticError>>
     abstract Preview: Guid * string * CancellationToken -> Task<Result<RemediationPreview, DiagnosticError>>
-    abstract Apply: Guid * Guid * CancellationToken -> Task<Result<RemediationResult, DiagnosticError>>
+    abstract Apply: Guid * CancellationToken -> Task<Result<RemediationResult, DiagnosticError>>
     abstract Export: Guid * CancellationToken -> Task<Result<SupportReport, DiagnosticError>>

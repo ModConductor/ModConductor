@@ -7,6 +7,36 @@ open System.Text.Json
 open ModConductor.Executables
 
 module GameLaunchCancellationFixture =
+    let sample () =
+        let workspace, profile = Guid.NewGuid(), Guid.NewGuid()
+
+        let capture =
+            { Request =
+                { Id = Guid.NewGuid()
+                  WorkspaceId = workspace
+                  WorkspaceRevision = 1L
+                  ProfileId = profile
+                  ContextRevision = 1L
+                  SourceToken = "fixture" }
+              ContextId = Guid.NewGuid()
+              Name = "Skyrim Special Edition"
+              GameDirectory = "not-used"
+              Runtime = "Fixture"
+              Launch =
+                { Executable = "not-started"
+                  WorkingDirectory = "not-used"
+                  Arguments = []
+                  Environment = [] }
+              Preparation =
+                { Phase = GamePreparationPhase.Preparing
+                  Completed = 0
+                  Total = 2 }
+              Files = None
+              ProfileDataRevision = 0L
+              ProfileData = None }
+
+        capture
+
     let observe (writer: Utf8JsonWriter) (capture: GameRun) =
         let gate = obj ()
         let rows = Dictionary<Guid, ExecutableRun>()
@@ -107,7 +137,7 @@ module GameLaunchCancellationFixture =
             owner.BeginGame(pending, prepare) |> StorageWorker.wait |> StorageWorker.result
 
         let valid =
-            cancelled.Phase = RunPhase.Failed
+            cancelled.Phase = RunPhase.Cancelled
             && cancelled.ProcessId.IsNone
             && replay = cancelled
 

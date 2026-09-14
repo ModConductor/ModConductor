@@ -28,7 +28,6 @@ class DiagnosticRequest extends $pb.GeneratedMessage {
     $core.String? fileSnapshotId,
     $core.String? deploymentId,
     $fixnum.Int64? deploymentRevision,
-    $core.String? operationId,
   }) {
     final result = create();
     if (workspaceId != null) result.workspaceId = workspaceId;
@@ -37,7 +36,6 @@ class DiagnosticRequest extends $pb.GeneratedMessage {
     if (deploymentId != null) result.deploymentId = deploymentId;
     if (deploymentRevision != null)
       result.deploymentRevision = deploymentRevision;
-    if (operationId != null) result.operationId = operationId;
     return result;
   }
 
@@ -62,7 +60,6 @@ class DiagnosticRequest extends $pb.GeneratedMessage {
     ..a<$fixnum.Int64>(
         5, _omitFieldNames ? '' : 'deploymentRevision', $pb.PbFieldType.OU6,
         defaultOrMaker: $fixnum.Int64.ZERO)
-    ..aOS(6, _omitFieldNames ? '' : 'operationId')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -128,15 +125,6 @@ class DiagnosticRequest extends $pb.GeneratedMessage {
   $core.bool hasDeploymentRevision() => $_has(4);
   @$pb.TagNumber(5)
   void clearDeploymentRevision() => $_clearField(5);
-
-  @$pb.TagNumber(6)
-  $core.String get operationId => $_getSZ(5);
-  @$pb.TagNumber(6)
-  set operationId($core.String value) => $_setString(5, value);
-  @$pb.TagNumber(6)
-  $core.bool hasOperationId() => $_has(5);
-  @$pb.TagNumber(6)
-  void clearOperationId() => $_clearField(6);
 }
 
 class DiagnosticSnapshotReference extends $pb.GeneratedMessage {
@@ -268,11 +256,9 @@ class DiagnosticPreviewRequest extends $pb.GeneratedMessage {
 class DiagnosticApplyRequest extends $pb.GeneratedMessage {
   factory DiagnosticApplyRequest({
     $core.String? previewId,
-    $core.String? actionId,
   }) {
     final result = create();
     if (previewId != null) result.previewId = previewId;
-    if (actionId != null) result.actionId = actionId;
     return result;
   }
 
@@ -291,7 +277,6 @@ class DiagnosticApplyRequest extends $pb.GeneratedMessage {
           const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
       createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'previewId')
-    ..aOS(2, _omitFieldNames ? '' : 'actionId')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -322,15 +307,6 @@ class DiagnosticApplyRequest extends $pb.GeneratedMessage {
   $core.bool hasPreviewId() => $_has(0);
   @$pb.TagNumber(1)
   void clearPreviewId() => $_clearField(1);
-
-  @$pb.TagNumber(2)
-  $core.String get actionId => $_getSZ(1);
-  @$pb.TagNumber(2)
-  set actionId($core.String value) => $_setString(1, value);
-  @$pb.TagNumber(2)
-  $core.bool hasActionId() => $_has(1);
-  @$pb.TagNumber(2)
-  void clearActionId() => $_clearField(2);
 }
 
 class DiagnosticEvidence extends $pb.GeneratedMessage {
@@ -884,22 +860,163 @@ class DiagnosticSnapshotReply extends $pb.GeneratedMessage {
   void clearFault() => $_clearField(2);
 }
 
+class DiagnosticRemediationItem extends $pb.GeneratedMessage {
+  factory DiagnosticRemediationItem({
+    $core.String? label,
+    $core.String? value,
+  }) {
+    final result = create();
+    if (label != null) result.label = label;
+    if (value != null) result.value = value;
+    return result;
+  }
+
+  DiagnosticRemediationItem._();
+
+  factory DiagnosticRemediationItem.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory DiagnosticRemediationItem.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'DiagnosticRemediationItem',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'label')
+    ..aOS(2, _omitFieldNames ? '' : 'value')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  DiagnosticRemediationItem clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  DiagnosticRemediationItem copyWith(
+          void Function(DiagnosticRemediationItem) updates) =>
+      super.copyWith((message) => updates(message as DiagnosticRemediationItem))
+          as DiagnosticRemediationItem;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static DiagnosticRemediationItem create() => DiagnosticRemediationItem._();
+  @$core.override
+  DiagnosticRemediationItem createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static DiagnosticRemediationItem getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<DiagnosticRemediationItem>(create);
+  static DiagnosticRemediationItem? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get label => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set label($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasLabel() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearLabel() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get value => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set value($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasValue() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearValue() => $_clearField(2);
+}
+
+class DiagnosticRemediationIdentifier extends $pb.GeneratedMessage {
+  factory DiagnosticRemediationIdentifier({
+    $core.String? label,
+    $core.String? value,
+  }) {
+    final result = create();
+    if (label != null) result.label = label;
+    if (value != null) result.value = value;
+    return result;
+  }
+
+  DiagnosticRemediationIdentifier._();
+
+  factory DiagnosticRemediationIdentifier.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory DiagnosticRemediationIdentifier.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'DiagnosticRemediationIdentifier',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'label')
+    ..aOS(2, _omitFieldNames ? '' : 'value')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  DiagnosticRemediationIdentifier clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  DiagnosticRemediationIdentifier copyWith(
+          void Function(DiagnosticRemediationIdentifier) updates) =>
+      super.copyWith(
+              (message) => updates(message as DiagnosticRemediationIdentifier))
+          as DiagnosticRemediationIdentifier;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static DiagnosticRemediationIdentifier create() =>
+      DiagnosticRemediationIdentifier._();
+  @$core.override
+  DiagnosticRemediationIdentifier createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static DiagnosticRemediationIdentifier getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<DiagnosticRemediationIdentifier>(
+          create);
+  static DiagnosticRemediationIdentifier? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get label => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set label($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasLabel() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearLabel() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get value => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set value($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasValue() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearValue() => $_clearField(2);
+}
+
 class DiagnosticPreview extends $pb.GeneratedMessage {
   factory DiagnosticPreview({
     $core.String? id,
     $core.String? snapshotId,
     $core.String? problemId,
     $core.String? expiresAt,
-    $core.Iterable<$core.String>? paths,
     $core.String? result,
+    $core.Iterable<DiagnosticRemediationItem>? items,
+    $core.Iterable<DiagnosticRemediationIdentifier>? identifiers,
   }) {
     final result$ = create();
     if (id != null) result$.id = id;
     if (snapshotId != null) result$.snapshotId = snapshotId;
     if (problemId != null) result$.problemId = problemId;
     if (expiresAt != null) result$.expiresAt = expiresAt;
-    if (paths != null) result$.paths.addAll(paths);
     if (result != null) result$.result = result;
+    if (items != null) result$.items.addAll(items);
+    if (identifiers != null) result$.identifiers.addAll(identifiers);
     return result$;
   }
 
@@ -921,8 +1038,12 @@ class DiagnosticPreview extends $pb.GeneratedMessage {
     ..aOS(2, _omitFieldNames ? '' : 'snapshotId')
     ..aOS(3, _omitFieldNames ? '' : 'problemId')
     ..aOS(4, _omitFieldNames ? '' : 'expiresAt')
-    ..pPS(5, _omitFieldNames ? '' : 'paths')
     ..aOS(6, _omitFieldNames ? '' : 'result')
+    ..pPM<DiagnosticRemediationItem>(7, _omitFieldNames ? '' : 'items',
+        subBuilder: DiagnosticRemediationItem.create)
+    ..pPM<DiagnosticRemediationIdentifier>(
+        8, _omitFieldNames ? '' : 'identifiers',
+        subBuilder: DiagnosticRemediationIdentifier.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -980,17 +1101,20 @@ class DiagnosticPreview extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   void clearExpiresAt() => $_clearField(4);
 
-  @$pb.TagNumber(5)
-  $pb.PbList<$core.String> get paths => $_getList(4);
-
   @$pb.TagNumber(6)
-  $core.String get result => $_getSZ(5);
+  $core.String get result => $_getSZ(4);
   @$pb.TagNumber(6)
-  set result($core.String value) => $_setString(5, value);
+  set result($core.String value) => $_setString(4, value);
   @$pb.TagNumber(6)
-  $core.bool hasResult() => $_has(5);
+  $core.bool hasResult() => $_has(4);
   @$pb.TagNumber(6)
   void clearResult() => $_clearField(6);
+
+  @$pb.TagNumber(7)
+  $pb.PbList<DiagnosticRemediationItem> get items => $_getList(5);
+
+  @$pb.TagNumber(8)
+  $pb.PbList<DiagnosticRemediationIdentifier> get identifiers => $_getList(6);
 }
 
 enum DiagnosticPreviewReply_Outcome { preview, fault, notSet }

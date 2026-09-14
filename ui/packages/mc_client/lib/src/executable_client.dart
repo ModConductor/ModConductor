@@ -233,6 +233,8 @@ ExecutableRun readExecutableRun(wire.ExecutableRun value) {
         ExecutableRunPhase.finished,
       wire.ExecutableRunPhase.EXECUTABLE_RUN_PHASE_FAILED =>
         ExecutableRunPhase.failed,
+      wire.ExecutableRunPhase.EXECUTABLE_RUN_PHASE_CANCELLED =>
+        ExecutableRunPhase.cancelled,
       wire.ExecutableRunPhase.EXECUTABLE_RUN_PHASE_DETACHED =>
         ExecutableRunPhase.detached,
       wire.ExecutableRunPhase.EXECUTABLE_RUN_PHASE_TRACKING_UNAVAILABLE =>

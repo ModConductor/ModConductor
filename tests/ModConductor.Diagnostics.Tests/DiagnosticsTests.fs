@@ -6,12 +6,12 @@ open System.Text
 open System.Text.Json
 open System.Threading
 open System.Threading.Tasks
+open ModConductor.Deployment
 open ModConductor.DeploymentPlanning
 open ModConductor.Diagnostics
 open ModConductor.Executables
 open ModConductor.FilePlanning
 open ModConductor.GameLaunching
-open ModConductor.Operations
 open ModConductor.Persistence
 open ModConductor.Platform
 open ModConductor.Workspaces
@@ -102,7 +102,7 @@ type private FixturePlans(workspaceId: Guid, profileId: Guid) =
         member _.SaveManagedText(_, _, _, _, _) = unused ()
         member _.AbandonManagedText _ = unused ()
 
-type private FixtureLaunch(workspaceId: Guid, profileId: Guid) =
+type private FixtureLaunch(workspaceId: Guid, profileId: Guid, phase: RunPhase) =
     let runId = Guid.NewGuid()
 
     let run =
@@ -114,7 +114,7 @@ type private FixtureLaunch(workspaceId: Guid, profileId: Guid) =
                       WorkspaceRevision = 2L
                       ProfileId = profileId
                       ContextRevision = 4L
-                      SourceToken = "fixture-game-setup" }
+                      SourceToken = "https://token.example/access=secret /home/private ; run-command" }
                   ContextId = Guid.NewGuid()
                   Name = "Skyrim Special Edition"
                   GameDirectory = "redacted"
@@ -135,7 +135,7 @@ type private FixtureLaunch(workspaceId: Guid, profileId: Guid) =
           ProfileId = Some profileId
           ProfileName = Some "Main"
           RequestedAt = DateTimeOffset.UtcNow
-          Phase = RunPhase.Failed
+          Phase = phase
           ProcessId = None
           Scope = None
           RootExitCode = None
@@ -150,7 +150,7 @@ type private FixtureLaunch(workspaceId: Guid, profileId: Guid) =
                         { WorkspaceId = workspaceId
                           ProfileId = profileId
                           ContextRevision = 4L
-                          SourceToken = "fixture-game-setup"
+                          SourceToken = "https://token.example/access=secret /home/private ; run-command"
                           Name = "Skyrim Special Edition"
                           Runtime = "Fixture"
                           Problem = run.Problem
@@ -162,7 +162,81 @@ type private FixtureLaunch(workspaceId: Guid, profileId: Guid) =
         member _.Begin _ = Task.FromResult(Error ExecutableError.NotFound)
         member _.Cancel(_, _) = Task.FromResult(Error ExecutableError.NotFound)
 
-type private DiagnosticFixtureEnvironment() =
+type private FixtureDeployments(workspaceId: Guid, profileId: Guid) =
+    let receiptId = Guid.NewGuid()
+    let mutable statusProfile = profileId
+    let mutable recoveries = 0
+
+    let stamp profile =
+        { WorkspaceId = workspaceId
+          ProfileId = profile
+          SelectionRevision = 1L
+          ContextRevision = 1L
+          ExclusionRevision = 1L
+          OutputRevision = 1L
+          Versions = []
+          Deployment = None }
+
+    let receipt =
+        { Id = receiptId
+          WorkspaceId = workspaceId
+          Revision = 2L
+          Phase = DeploymentPhase.Blocked
+          Previous = None
+          Proposed = Guid.NewGuid()
+          Completed = 1
+          Total = 2
+          Detail = "Fixture restore" }
+
+    member _.ReceiptId = receiptId
+    member _.Revision = receipt.Revision
+    member _.Recoveries = recoveries
+    member _.SetStatusProfile(value) = statusProfile <- value
+
+    interface IDeploymentBackend with
+        member _.Read profile =
+            if profile <> profileId then
+                Task.FromResult(Error DeploymentError.NotFound)
+            else
+                Task.FromResult(
+                    Ok
+                        { WorkspaceId = workspaceId
+                          Revision = 1L
+                          ActiveGeneration = None
+                          Active = None
+                          PendingReceipt = Some receiptId
+                          Sources = stamp statusProfile }
+                )
+
+        member _.Saved(_, _) = Task.FromResult(Error DeploymentError.NotFound)
+        member _.Prepare(_, _, _, _) = Task.FromResult(Error DeploymentError.NotFound)
+        member _.PrepareRetained(_, _, _, _, _) = Task.FromResult(Error DeploymentError.NotFound)
+        member _.Activate(_, _, _, _) = Task.FromResult(Error DeploymentError.NotFound)
+
+        member _.Recover(id, revision, restore, _, _) =
+            if id = receiptId && revision = receipt.Revision && restore then
+                recoveries <- recoveries + 1
+                Task.FromResult(Ok receipt)
+            else
+                Task.FromResult(Error DeploymentError.Stale)
+
+        member _.Receipt id =
+            if id = receiptId then Task.FromResult(Ok receipt)
+            else Task.FromResult(Error DeploymentError.NotFound)
+
+        member _.PreviewRecovery(id, revision) =
+            if id = receiptId && revision = receipt.Revision then
+                Task.FromResult(
+                    Ok
+                        { ReceiptId = receiptId
+                          WorkspaceId = workspaceId
+                          Revision = revision
+                          Paths = [ "meshes/marker.nif" ] }
+                )
+            else
+                Task.FromResult(Error DeploymentError.Stale)
+
+type private DiagnosticFixtureEnvironment(?launchPhase: RunPhase, ?useFixtureDeployment: bool) =
     let directory =
         Path.Combine(Path.GetTempPath(), "mod-conductor-diagnostics-" + Guid.NewGuid().ToString "N")
 
@@ -193,16 +267,19 @@ type private DiagnosticFixtureEnvironment() =
         |> ignore
 
     let plans = FixturePlans(workspaceId, profileId)
-    let launches = FixtureLaunch(workspaceId, profileId)
+    let launches = FixtureLaunch(workspaceId, profileId, defaultArg launchPhase RunPhase.Failed)
+    let fixtureDeployments = FixtureDeployments(workspaceId, profileId)
+    let deploymentBackend =
+        if defaultArg useFixtureDeployment false then fixtureDeployments :> IDeploymentBackend
+        else store.Deployments
 
     let diagnostics =
         DiagnosticSession(
             workspaces,
             plans :> IFilePlans,
-            store.Deployments,
+            deploymentBackend,
             launches :> IGameLaunching,
-            store.ProfileGameData,
-            store :> IOperationStore
+            store.ProfileGameData
         )
         :> IDiagnostics
 
@@ -210,11 +287,11 @@ type private DiagnosticFixtureEnvironment() =
         { WorkspaceId = workspaceId
           ProfileId = profileId
           FileSnapshotId = Some plans.SnapshotId
-          DeploymentReceipt = None
-          OperationId = None }
+          DeploymentReceipt = None }
 
     member _.Diagnostics = diagnostics
     member _.Plans = plans
+    member _.Deployments = fixtureDeployments
     member _.Request = request
     member _.WorkspaceId = workspaceId
     member _.ProfileId = profileId
@@ -243,9 +320,19 @@ type DiagnosticsTests() =
 
         let preview = diagnostics.Preview(snapshot.Id, conflict.Id, CancellationToken.None) |> environment.Wait |> environment.Result
         Assert.That(environment.Plans.Changes, Is.Zero)
-        Assert.That(preview.Paths.Length = 3, Is.True)
+        Assert.That(preview.Items.Length, Is.EqualTo 3)
+        Assert.That(preview.Items[0].Label, Is.EqualTo "Target file")
+        Assert.That(preview.Items[0].Value, Is.EqualTo "meshes/marker.nif")
+        Assert.That(preview.Items[1].Label, Is.EqualTo "Saved copy")
+        Assert.That(preview.Items[1].Value, Is.EqualTo "First mod · 1.0")
+        Assert.That(preview.Items[2].Label, Is.EqualTo "Profile setting")
+        Assert.That(preview.Items[2].Value, Is.EqualTo "Hide this copy for Main")
+        Assert.That(
+            preview.Identifiers |> List.map _.Label = [ "Mod ID"; "Version ID"; "Profile ID" ],
+            Is.True
+        )
 
-        let applied = diagnostics.Apply(preview.Id, Guid.NewGuid(), CancellationToken.None) |> environment.Wait |> environment.Result
+        let applied = diagnostics.Apply(preview.Id, CancellationToken.None) |> environment.Wait |> environment.Result
         Assert.That(applied.Complete, Is.True)
         Assert.That(
             applied.Detail = Some "Second mod now supplies this file in the saved mod files.",
@@ -253,7 +340,7 @@ type DiagnosticsTests() =
         )
         Assert.That(environment.Plans.Changes, Is.EqualTo 1)
 
-        let repeated = diagnostics.Apply(preview.Id, Guid.NewGuid(), CancellationToken.None) |> environment.Wait
+        let repeated = diagnostics.Apply(preview.Id, CancellationToken.None) |> environment.Wait
         let repeatedRefused =
             match repeated with
             | Error DiagnosticError.Expired -> true
@@ -307,10 +394,19 @@ type DiagnosticsTests() =
             |> Seq.toArray
 
         Assert.That(ids.Length, Is.GreaterThanOrEqualTo 3)
-        Assert.That(ids |> Array.forall (fun item -> item.GetProperty("id").GetString() <> ""), Is.True)
+        Assert.That(
+            ids
+            |> Array.forall (fun item ->
+                match Guid.TryParseExact(item.GetProperty("id").GetString(), "N") with
+                | true, _ -> true
+                | _ -> false),
+            Is.True
+        )
         Assert.That(text, Does.Not.Contain "secret-value")
         Assert.That(text, Does.Not.Contain "/home/")
         Assert.That(text, Does.Not.Contain "token=")
+        Assert.That(text, Does.Not.Contain "token.example")
+        Assert.That(text, Does.Not.Contain "run-command")
         Assert.That(report.Content.Length, Is.LessThanOrEqualTo ModConductor.Diagnostics.Limits.exportBytes)
 
     [<Test>]
@@ -335,3 +431,51 @@ type DiagnosticsTests() =
 
         Assert.That(oldestExpired, Is.True)
         Assert.That(Result.isOk newest, Is.True)
+
+    [<Test>]
+    member _.``deployment receipt should require the selected profile owner at check preview and apply``() =
+        use environment = new DiagnosticFixtureEnvironment(useFixtureDeployment = true)
+        let diagnostics = environment.Diagnostics
+        let deployment = environment.Deployments
+        let request =
+            { environment.Request with
+                FileSnapshotId = None
+                DeploymentReceipt = Some(deployment.ReceiptId, deployment.Revision) }
+
+        let snapshot = diagnostics.Check(request, CancellationToken.None) |> environment.Wait |> environment.Result
+        let finding = snapshot.Findings |> List.find (fun value -> value.Code = "deployment-incomplete")
+        let preview = diagnostics.Preview(snapshot.Id, finding.Id, CancellationToken.None) |> environment.Wait |> environment.Result
+        Assert.That(preview.Items, Has.Length.EqualTo 1)
+
+        deployment.SetStatusProfile(Guid.NewGuid())
+        let apply = diagnostics.Apply(preview.Id, CancellationToken.None) |> environment.Wait
+        let applyRefused =
+            match apply with
+            | Error DiagnosticError.Foreign -> true
+            | _ -> false
+
+        Assert.That(applyRefused, Is.True)
+        Assert.That(deployment.Recoveries = 0, Is.True)
+
+        let refused = diagnostics.Check(request, CancellationToken.None) |> environment.Wait
+        let checkRefused =
+            match refused with
+            | Error DiagnosticError.Foreign -> true
+            | _ -> false
+
+        Assert.That(checkRefused, Is.True)
+
+    [<Test>]
+    member _.``cancelled launch should produce one bounded finding``() =
+        use environment = new DiagnosticFixtureEnvironment(launchPhase = RunPhase.Cancelled)
+        let snapshot =
+            environment.Diagnostics.Check(environment.Request, CancellationToken.None)
+            |> environment.Wait
+            |> environment.Result
+
+        let finding = snapshot.Findings |> List.find (fun value -> value.Code = "launch-cancelled")
+        Assert.That(finding.Title, Is.EqualTo "Mod Conductor canceled the Skyrim launch")
+        Assert.That(finding.Summary, Is.EqualTo "The game did not start.")
+        Assert.That(finding.NextAction, Is.EqualTo "When you are ready, select Play.")
+        Assert.That(finding.FixDetail, Is.EqualTo "You do not need to change anything.")
+        Assert.That(Option.isNone finding.Detail, Is.True)

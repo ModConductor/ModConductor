@@ -7,7 +7,6 @@ open System.Threading.Tasks
 open ModConductor.Deployment
 open ModConductor.FilePlanning
 open ModConductor.GameLaunching
-open ModConductor.Operations
 open ModConductor.ProfileGameData
 open ModConductor.Workspaces
 
@@ -22,8 +21,7 @@ type DiagnosticSession(
     plans: IFilePlans,
     deployments: IDeploymentBackend,
     launches: IGameLaunching,
-    profileData: IProfileGameData,
-    operations: IOperationStore
+    profileData: IProfileGameData
 ) =
     let gate = obj ()
     let snapshots = Dictionary<Guid, StoredSnapshot>()
@@ -116,6 +114,33 @@ type DiagnosticSession(
                     | _ -> Error DiagnosticError.Foreign
         }
 
+    let qualifiedDeployment workspace profile receipt revision =
+        task {
+            let! status = deployments.Read profile
+
+            match status with
+            | Error error -> return Error(mapDeploymentError error)
+            | Ok status when
+                status.WorkspaceId <> workspace
+                || status.Sources.ProfileId <> profile
+                || status.PendingReceipt <> Some receipt
+                ->
+                return Error DiagnosticError.Foreign
+            | Ok _ ->
+                let! value = deployments.Receipt receipt
+
+                return
+                    value
+                    |> Result.mapError mapDeploymentError
+                    |> Result.bind (fun value ->
+                        if value.WorkspaceId <> workspace then
+                            Error DiagnosticError.Foreign
+                        elif value.Revision <> revision then
+                            Error DiagnosticError.Stale
+                        else
+                            Ok value)
+        }
+
     interface IDiagnostics with
         member _.Check(request, token) =
             task {
@@ -161,14 +186,14 @@ type DiagnosticSession(
                                 | None -> Task.FromResult(Ok [])
                                 | Some(id, revision) ->
                                     task {
-                                        let! value = deployments.Receipt id
-                                        return
-                                            value
-                                            |> Result.mapError mapDeploymentError
-                                            |> Result.bind (fun receipt ->
-                                                if receipt.WorkspaceId <> workspace.Id then Error DiagnosticError.Foreign
-                                                elif receipt.Revision <> revision then Error DiagnosticError.Stale
-                                                else Ok(Checks.deployment workspace profile game receipt))
+                                        let! value =
+                                            qualifiedDeployment
+                                                workspace.Id
+                                                profile.Id
+                                                id
+                                                revision
+
+                                        return value |> Result.map (Checks.deployment workspace profile game)
                                     }
 
                             match deploymentFindings with
@@ -183,18 +208,12 @@ type DiagnosticSession(
                                             | _ -> []
                                     }
 
-                                let! operationFindings =
-                                    match request.OperationId with
-                                    | None -> Task.FromResult []
-                                    | Some id ->
-                                        task {
-                                            let! value = operations.Get id
-                                            return value |> Result.toOption |> Option.map (Checks.operation workspace profile game) |> Option.defaultValue []
-                                        }
-
                                 token.ThrowIfCancellationRequested()
                                 let findings =
-                                    (launchFindings @ fileFindings @ deploymentFindings @ profileFindings @ operationFindings)
+                                    (launchFindings
+                                     @ fileFindings
+                                     @ deploymentFindings
+                                     @ profileFindings)
                                     |> List.truncate Limits.findings
 
                                 let view =
@@ -238,6 +257,10 @@ type DiagnosticSession(
                                     match problem.Target with
                                     | None -> return Error DiagnosticError.NotOwned
                                     | Some target ->
+                                        let selectedSource =
+                                            problem.Sources
+                                            |> List.tryFind (fun source -> source.Copy = copy)
+
                                         let remainingName =
                                             problem.Sources
                                             |> List.tryFind (fun source ->
@@ -245,77 +268,115 @@ type DiagnosticSession(
                                             |> Option.map _.Name
                                             |> Option.defaultValue "The remaining mod"
 
-                                        let stored =
-                                            Remediation.filePreview
-                                                snapshotId
-                                                findingId
-                                                snapshot.View.WorkspaceId
-                                                profile.Id
-                                                profile.Name
-                                                target
-                                                plan
-                                                copy
-                                                remainingName
-                                                DateTimeOffset.UtcNow
+                                        match selectedSource with
+                                        | None -> return Error DiagnosticError.NotOwned
+                                        | Some selectedSource ->
+                                            let stored =
+                                                Remediation.filePreview
+                                                    snapshotId
+                                                    findingId
+                                                    snapshot.View.WorkspaceId
+                                                    profile.Id
+                                                    profile.Name
+                                                    target
+                                                    plan
+                                                    copy
+                                                    selectedSource.Name
+                                                    selectedSource.VersionLabel
+                                                    remainingName
+                                                    DateTimeOffset.UtcNow
 
-                                        rememberPreview stored
-                                        return Ok stored.View
+                                            rememberPreview stored
+                                            return Ok stored.View
                                 | Error error, _ -> return Error(mapFileError error)
                                 | _, Error error -> return Error(mapFileError error)
                                 | _ -> return Error DiagnosticError.Foreign
                             | DiagnosticAction.RecoverDeployment(receipt, revision) ->
-                                let! value = deployments.PreviewRecovery(receipt, revision)
+                                let! qualified =
+                                    qualifiedDeployment
+                                        snapshot.View.WorkspaceId
+                                        snapshot.View.ProfileId
+                                        receipt
+                                        revision
 
-                                match value with
-                                | Error error -> return Error(mapDeploymentError error)
-                                | Ok value when value.WorkspaceId <> snapshot.View.WorkspaceId -> return Error DiagnosticError.Foreign
-                                | Ok value when value.Paths.Length > Limits.recoveryPaths || Remediation.pathsBytes value.Paths > Limits.recoveryBytes ->
-                                    return Error DiagnosticError.Oversized
-                                | Ok value ->
-                                    let stored = Remediation.deploymentPreview snapshotId findingId snapshot.View.WorkspaceId profile.Id value DateTimeOffset.UtcNow
-                                    rememberPreview stored
-                                    return Ok stored.View
+                                match qualified with
+                                | Error error -> return Error error
+                                | Ok _ ->
+                                    let! value = deployments.PreviewRecovery(receipt, revision)
+
+                                    match value with
+                                    | Error error -> return Error(mapDeploymentError error)
+                                    | Ok value when value.WorkspaceId <> snapshot.View.WorkspaceId ->
+                                        return Error DiagnosticError.Foreign
+                                    | Ok value when
+                                        value.Paths.Length > Limits.recoveryPaths
+                                        || Remediation.pathsBytes value.Paths > Limits.recoveryBytes
+                                        ->
+                                        return Error DiagnosticError.Oversized
+                                    | Ok value ->
+                                        let stored =
+                                            Remediation.deploymentPreview
+                                                snapshotId
+                                                findingId
+                                                snapshot.View.WorkspaceId
+                                                profile.Id
+                                                value
+                                                DateTimeOffset.UtcNow
+
+                                        rememberPreview stored
+                                        return Ok stored.View
                             | _ -> return Error DiagnosticError.Unsupported
             }
 
-        member _.Apply(previewId, actionId, token) =
+        member _.Apply(previewId, token) =
             task {
-                if actionId = Guid.Empty then return Error DiagnosticError.NotOwned
-                else
-                    match claimPreview previewId with
+                match claimPreview previewId with
+                | None -> return Error DiagnosticError.Expired
+                | Some preview ->
+                    match readSnapshot preview.View.SnapshotId with
                     | None -> return Error DiagnosticError.Expired
-                    | Some preview ->
-                        match readSnapshot preview.View.SnapshotId with
-                        | None -> return Error DiagnosticError.Expired
-                        | Some snapshot ->
-                            let! current = currentWorkspace snapshot.Request
-                            match current with
-                            | Error error -> return Error error
-                            | Ok _ ->
-                                match preview.Command with
-                                | RemediationCommand.Hide(plan, copy, remainingName) ->
-                                    let! changed = plans.Change(plan, copy, true, token)
-                                    return
-                                        changed
-                                        |> Result.mapError mapFileError
-                                        |> Result.map (fun _ ->
-                                            { PreviewId = previewId
-                                              Complete = true
-                                              Result = "Mod Conductor updated the mod files"
-                                              Detail =
-                                                Some(
-                                                    remainingName
-                                                    + " now supplies this file in the saved mod files."
-                                                ) })
-                                | RemediationCommand.Recover(receipt, revision) ->
-                                    let! changed = deployments.Recover(receipt, revision, true, ignore, token)
+                    | Some snapshot ->
+                        let! current = currentWorkspace snapshot.Request
+                        match current with
+                        | Error error -> return Error error
+                        | Ok _ ->
+                            match preview.Command with
+                            | RemediationCommand.Hide(plan, copy, remainingName) ->
+                                let! changed = plans.Change(plan, copy, true, token)
+                                return
+                                    changed
+                                    |> Result.mapError mapFileError
+                                    |> Result.map (fun _ ->
+                                        { PreviewId = previewId
+                                          Complete = true
+                                          Result = "Mod Conductor updated the mod files"
+                                          Detail =
+                                            Some(
+                                                remainingName
+                                                + " now supplies this file in the saved mod files."
+                                            ) })
+                            | RemediationCommand.Recover(receipt, revision) ->
+                                let! qualified =
+                                    qualifiedDeployment
+                                        preview.View.WorkspaceId
+                                        preview.View.ProfileId
+                                        receipt
+                                        revision
+
+                                match qualified with
+                                | Error error -> return Error error
+                                | Ok _ ->
+                                    let! changed =
+                                        deployments.Recover(receipt, revision, true, ignore, token)
+
                                     return
                                         changed
                                         |> Result.mapError mapDeploymentError
                                         |> Result.map (fun _ ->
                                             { PreviewId = previewId
                                               Complete = true
-                                              Result = "Mod Conductor continued the deployment restore."
+                                              Result =
+                                                "Mod Conductor continued the deployment restore."
                                               Detail = None })
             }
 

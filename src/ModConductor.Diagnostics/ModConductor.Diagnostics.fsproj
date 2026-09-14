@@ -11,7 +11,6 @@
     <ProjectReference Include="../ModConductor.FilePlanning/ModConductor.FilePlanning.fsproj" />
     <ProjectReference Include="../ModConductor.Deployment/ModConductor.Deployment.fsproj" />
     <ProjectReference Include="../ModConductor.ProfileGameData/ModConductor.ProfileGameData.fsproj" />
-    <ProjectReference Include="../ModConductor.Operations/ModConductor.Operations.fsproj" />
     <PackageReference Include="FSharp.Core" />
   </ItemGroup>
 </Project>

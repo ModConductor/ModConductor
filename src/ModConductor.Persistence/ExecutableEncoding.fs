@@ -14,6 +14,7 @@ module internal ExecutableEncoding =
         | RunPhase.Failed -> 4
         | RunPhase.Detached -> 5
         | RunPhase.TrackingUnavailable -> 6
+        | RunPhase.Cancelled -> 7
 
     let readPhase =
         function
@@ -24,6 +25,7 @@ module internal ExecutableEncoding =
         | 4 -> RunPhase.Failed
         | 5 -> RunPhase.Detached
         | 6 -> RunPhase.TrackingUnavailable
+        | 7 -> RunPhase.Cancelled
         | _ -> raise (InvalidDataException "The executable run phase is invalid.")
 
     let private guid (w: BinaryWriter) (v: Guid) = w.Write(v.ToByteArray())

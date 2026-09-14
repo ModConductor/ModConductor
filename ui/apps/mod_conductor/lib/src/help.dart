@@ -218,7 +218,7 @@ class DiagnosticsController extends ChangeNotifier {
     problem = null;
     _notify();
     try {
-      final applied = await client.apply(value.id, newOperationId());
+      final applied = await client.apply(value.id);
       if (!_disposed && epoch == _epoch) {
         result = applied;
         preview = null;
@@ -403,16 +403,30 @@ class _HelpBrowserState extends State<HelpBrowser> {
                 : 'This change affects these items:',
           ),
           const SizedBox(height: 12),
-          _AffectedPaths(paths: preview.paths),
+          _AffectedItems(items: preview.items),
           const SizedBox(height: 12),
           McStatus(
             title: deployment
-                ? '${preview.paths.length} managed paths will change'
+                ? '${preview.items.length} managed paths will change'
                 : '1 profile setting will change',
             detail: deployment
                 ? null
                 : 'Mod Conductor will not delete a mod file or a game file.',
           ),
+          if (preview.identifiers.isNotEmpty)
+            ExpansionTile(
+              tilePadding: EdgeInsets.zero,
+              title: const Text('Technical details'),
+              children: [
+                for (final item in preview.identifiers)
+                  ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(item.label),
+                    subtitle: SelectableText(item.value),
+                  ),
+              ],
+            ),
         ],
       ),
     );
@@ -443,8 +457,8 @@ class _HelpBrowserState extends State<HelpBrowser> {
           _HelpBullets(
             values: [
               'Problems and their result types',
-              'Launch, mod file, game setup, and deployment IDs',
-              'Product, operating system, and capability versions',
+              'Launch, mod file, game setup, deployment, profile, and action IDs',
+              'Report format, operating system, and processor architecture',
             ],
           ),
           SizedBox(height: 14),
@@ -871,9 +885,9 @@ class _FindingFacts extends StatelessWidget {
   );
 }
 
-class _AffectedPaths extends StatelessWidget {
-  const _AffectedPaths({required this.paths});
-  final List<String> paths;
+class _AffectedItems extends StatelessWidget {
+  const _AffectedItems({required this.items});
+  final List<DiagnosticRemediationItem> items;
   @override
   Widget build(BuildContext context) => Container(
     width: double.infinity,
@@ -885,10 +899,28 @@ class _AffectedPaths extends StatelessWidget {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (final path in paths)
+        for (final item in items)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 3),
-            child: Text(path, style: Theme.of(context).textTheme.bodySmall),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: 116,
+                  child: Text(
+                    item.label,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: SelectableText(
+                    item.value,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
+              ],
+            ),
           ),
       ],
     ),

@@ -5,17 +5,16 @@ open ModConductor.Deployment
 open ModConductor.Executables
 open ModConductor.FilePlanning
 open ModConductor.GameLaunching
-open ModConductor.Operations
 open ModConductor.ProfileGameData
 open ModConductor.Workspaces
 
 module internal Checks =
-    let correlation kind id revision =
+    let correlation kind id revision : DiagnosticCorrelation =
         { Kind = kind
           Id = id
           Revision = revision }
 
-    let evidence label value = { Label = label; Value = value }
+    let evidence label value : DiagnosticEvidence = { Label = label; Value = value }
 
     let private baseFinding
         (workspace: Workspace)
@@ -56,12 +55,42 @@ module internal Checks =
 
     let launch (workspace: Workspace) (profile: Profile) (state: GameLaunchState) =
         match state.Latest, state.Problem with
-        | Some run, _ when run.Phase = RunPhase.Failed || run.Phase = RunPhase.TrackingUnavailable ->
-            let title, summary, code =
+        | Some run, _ when
+            run.Phase = RunPhase.Failed
+            || run.Phase = RunPhase.TrackingUnavailable
+            || run.Phase = RunPhase.Cancelled
+            ->
+            let title, summary, code, severity, next, fixDetail, action =
                 if run.Phase = RunPhase.TrackingUnavailable then
-                    "Mod Conductor cannot track the game", "The game process can still run.", "launch-tracking-unavailable"
+                    ("Mod Conductor cannot track the game",
+                     "The game process can still run.",
+                     "launch-tracking-unavailable",
+                     DiagnosticSeverity.Error,
+                     "Open Game. Check the current game process.",
+                     "Mod Conductor cannot track this process",
+                     DiagnosticAction.NavigateGame)
+                elif run.Phase = RunPhase.Cancelled then
+                    ("Mod Conductor canceled the Skyrim launch",
+                     "The game did not start.",
+                     "launch-cancelled",
+                     DiagnosticSeverity.Information,
+                     "When you are ready, select Play.",
+                     "You do not need to change anything.",
+                     DiagnosticAction.CheckAgain)
                 else
-                    "Skyrim did not start", "Mod Conductor cannot find the selected game file", "launch-failed"
+                    ("Skyrim did not start",
+                     "Mod Conductor cannot find the selected game file",
+                     "launch-failed",
+                     DiagnosticSeverity.Error,
+                     "Open Game. Select the installed Skyrim folder.",
+                     "Mod Conductor cannot fix this file location",
+                     DiagnosticAction.NavigateGame)
+
+            let gameSetup =
+                match run.Source with
+                | RunSource.Game game ->
+                    [ correlation CorrelationKind.GameSetup game.ContextId (Some state.ContextRevision) ]
+                | RunSource.Preset _ -> []
 
             [ baseFinding
                   workspace
@@ -69,7 +98,7 @@ module internal Checks =
                   state.Name
                   ("launch:" + run.Id.ToString "N")
                   code
-                  DiagnosticSeverity.Error
+                  severity
                   title
                   summary
                   (if run.Phase = RunPhase.Failed then
@@ -77,12 +106,11 @@ module internal Checks =
                    else
                        None)
                   (profile.Name + " launch")
-                  "Open Game. Select the installed Skyrim folder."
+                  next
                   Fixability.NotFixable
-                  "Mod Conductor cannot fix this file location"
-                  [ correlation CorrelationKind.Launch (run.Id.ToString "N") (Some run.Revision)
-                    correlation CorrelationKind.GameSetup state.SourceToken (Some state.ContextRevision) ]
-                  DiagnosticAction.NavigateGame
+                  fixDetail
+                  (correlation CorrelationKind.Launch run.Id (Some run.Revision) :: gameSetup)
+                  action
                   [ evidence "Workspace" workspace.Name
                     evidence "Profile" profile.Name
                     evidence "Game" state.Name
@@ -102,7 +130,7 @@ module internal Checks =
                   "Open Game. Check the saved game folder."
                   Fixability.NotFixable
                   "Mod Conductor cannot fix this game setup"
-                  [ correlation CorrelationKind.GameSetup state.SourceToken (Some state.ContextRevision) ]
+                  []
                   DiagnosticAction.NavigateGame
                   [ evidence "Workspace" workspace.Name; evidence "Profile" profile.Name; evidence "Game" state.Name ] ]
         | _ -> []
@@ -148,7 +176,7 @@ module internal Checks =
                 area next
                 (if action = DiagnosticAction.None then Fixability.NotFixable else Fixability.PreviewAvailable)
                 (if action = DiagnosticAction.None then "You need to fix this" else "Mod Conductor can fix this")
-                [ correlation CorrelationKind.ModFiles (summary.Id.ToString "N") None ] action
+                [ correlation CorrelationKind.ModFiles summary.Id None ] action
                 ([ evidence "Workspace" workspace.Name; evidence "Profile" profile.Name ]
                  @ (target |> Option.map (evidence "Target" >> List.singleton) |> Option.defaultValue [])
                  @ sourceEvidence))
@@ -159,7 +187,7 @@ module internal Checks =
                   DiagnosticSeverity.Error "Deployment did not finish" "Mod Conductor can continue the restore" None
                   (profile.Name + " deployment") "Preview the remaining paths. Then continue the restore."
                   Fixability.PreviewAvailable "Mod Conductor can restore this"
-                  [ correlation CorrelationKind.Deployment (receipt.Id.ToString "N") (Some receipt.Revision) ]
+                  [ correlation CorrelationKind.Deployment receipt.Id (Some receipt.Revision) ]
                   (DiagnosticAction.RecoverDeployment(receipt.Id, receipt.Revision))
                   [ evidence "Workspace" workspace.Name; evidence "Profile" profile.Name
                     evidence "Progress" (string receipt.Completed + " of " + string receipt.Total + " changes restored") ] ]
@@ -172,8 +200,8 @@ module internal Checks =
                   DiagnosticSeverity.Warning "A profile change did not finish" "Mod Conductor can continue the saved change." None
                   profile.Name "Open Profiles. Continue the saved change."
                   Fixability.NotFixable "Open the profile tools"
-                  [ correlation CorrelationKind.Profile (profile.Id.ToString "N") (Some state.Revision)
-                    correlation CorrelationKind.Action (action.ToString "N") None ]
+                  [ correlation CorrelationKind.Profile profile.Id (Some state.Revision)
+                    correlation CorrelationKind.Action action None ]
                   (DiagnosticAction.ResumeProfileData action)
                   [ evidence "Workspace" workspace.Name; evidence "Profile" profile.Name ] ]
         | None, Some _ ->
@@ -183,13 +211,3 @@ module internal Checks =
                   Fixability.NotFixable "You need to fix this" [] DiagnosticAction.None
                   [ evidence "Workspace" workspace.Name; evidence "Profile" profile.Name ] ]
         | _ -> []
-
-    let operation (workspace: Workspace) (profile: Profile) game (value: Snapshot) =
-        if value.Phase = Phase.Interrupted || value.Phase = Phase.Stale || value.Phase = Phase.Cancelled then
-            [ baseFinding workspace profile game ("action:" + value.Request.Id) "action-incomplete" DiagnosticSeverity.Warning
-                  "An action did not finish" "The saved action needs attention." None profile.Name
-                  "Run Diagnostics again after you continue or cancel the action."
-                  Fixability.NotFixable "Open the related tool"
-                  [ correlation CorrelationKind.Action value.Request.Id (Some value.ResultRevision) ] DiagnosticAction.None
-                  [ evidence "Workspace" workspace.Name; evidence "Profile" profile.Name; evidence "Progress" (string value.Progress + " of " + string value.Request.Count) ] ]
-        else []

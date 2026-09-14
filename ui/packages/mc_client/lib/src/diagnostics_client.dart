@@ -91,12 +91,24 @@ class DiagnosticPreview {
     this.snapshotId,
     this.problemId,
     this.expiresAt,
-    this.paths,
+    this.items,
+    this.identifiers,
     this.result,
   );
   final String id, snapshotId, problemId, result;
   final DateTime expiresAt;
-  final List<String> paths;
+  final List<DiagnosticRemediationItem> items;
+  final List<DiagnosticRemediationIdentifier> identifiers;
+}
+
+class DiagnosticRemediationItem {
+  const DiagnosticRemediationItem(this.label, this.value);
+  final String label, value;
+}
+
+class DiagnosticRemediationIdentifier {
+  const DiagnosticRemediationIdentifier(this.label, this.value);
+  final String label, value;
 }
 
 class DiagnosticApplyResult {
@@ -124,10 +136,9 @@ abstract interface class DiagnosticsClient {
     String? fileSnapshotId,
     String? deploymentId,
     int? deploymentRevision,
-    String? operationId,
   });
   Future<DiagnosticPreview> preview(String snapshotId, String problemId);
-  Future<DiagnosticApplyResult> apply(String previewId, String actionId);
+  Future<DiagnosticApplyResult> apply(String previewId);
   Future<DiagnosticSupportReport> export(String snapshotId);
 }
 
@@ -222,7 +233,6 @@ class GrpcDiagnosticsClient implements DiagnosticsClient {
     String? fileSnapshotId,
     String? deploymentId,
     int? deploymentRevision,
-    String? operationId,
   }) async {
     final request = wire.DiagnosticRequest(
       workspaceId: workspaceId,
@@ -233,7 +243,6 @@ class GrpcDiagnosticsClient implements DiagnosticsClient {
     if (deploymentRevision != null) {
       request.deploymentRevision = Int64(deploymentRevision);
     }
-    if (operationId != null) request.operationId = operationId;
     final reply = await _client.checkDiagnostics(request);
     return switch (reply.whichOutcome()) {
       wire.DiagnosticSnapshotReply_Outcome.snapshot => _snapshot(
@@ -259,7 +268,16 @@ class GrpcDiagnosticsClient implements DiagnosticsClient {
         reply.preview.snapshotId,
         reply.preview.problemId,
         DateTime.parse(reply.preview.expiresAt),
-        List.unmodifiable(reply.preview.paths),
+        List.unmodifiable(
+          reply.preview.items.map(
+            (item) => DiagnosticRemediationItem(item.label, item.value),
+          ),
+        ),
+        List.unmodifiable(
+          reply.preview.identifiers.map(
+            (item) => DiagnosticRemediationIdentifier(item.label, item.value),
+          ),
+        ),
         reply.preview.result,
       ),
       wire.DiagnosticPreviewReply_Outcome.fault => _reject(reply.fault),
@@ -270,9 +288,9 @@ class GrpcDiagnosticsClient implements DiagnosticsClient {
   }
 
   @override
-  Future<DiagnosticApplyResult> apply(String previewId, String actionId) async {
+  Future<DiagnosticApplyResult> apply(String previewId) async {
     final reply = await _client.applyDiagnosticChange(
-      wire.DiagnosticApplyRequest(previewId: previewId, actionId: actionId),
+      wire.DiagnosticApplyRequest(previewId: previewId),
     );
     return switch (reply.whichOutcome()) {
       wire.DiagnosticApplyReply_Outcome.result => DiagnosticApplyResult(

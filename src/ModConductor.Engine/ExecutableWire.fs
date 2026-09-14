@@ -132,6 +132,7 @@ module internal ExecutableWire =
         | RunPhase.WaitingForChildren -> Protocol.V1.ExecutableRunPhase.WaitingForChildren
         | RunPhase.Finished -> Protocol.V1.ExecutableRunPhase.Finished
         | RunPhase.Failed -> Protocol.V1.ExecutableRunPhase.Failed
+        | RunPhase.Cancelled -> Protocol.V1.ExecutableRunPhase.Cancelled
         | RunPhase.Detached -> Protocol.V1.ExecutableRunPhase.Detached
         | RunPhase.TrackingUnavailable -> Protocol.V1.ExecutableRunPhase.TrackingUnavailable
 

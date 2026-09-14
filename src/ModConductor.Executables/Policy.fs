@@ -68,5 +68,6 @@ module ExecutablePolicy =
         | RunPhase.WaitingForChildren -> false
         | RunPhase.Finished
         | RunPhase.Failed
+        | RunPhase.Cancelled
         | RunPhase.Detached
         | RunPhase.TrackingUnavailable -> true

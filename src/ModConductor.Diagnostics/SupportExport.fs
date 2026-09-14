@@ -41,7 +41,7 @@ module internal SupportExport =
             for value in finding.Correlations do
                 writer.WriteStartObject()
                 writer.WriteString("kind", correlation value.Kind)
-                writer.WriteString("id", value.Id)
+                writer.WriteString("id", value.Id.ToString "N")
                 value.Revision |> Option.iter (fun revision -> writer.WriteNumber("revision", revision))
                 writer.WriteEndObject()
 
