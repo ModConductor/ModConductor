@@ -14,12 +14,23 @@ type Inspection(source: IArtifactSource, ?limits: ArchiveLimits, ?nested: INeste
     let read sha (file: Stream) token consume =
         let mutable format = Nullable<ArchiveType>()
 
-        if not (ArchiveFactory.IsArchive(file, &format)) then
-            raise (NotSupportedException "Unknown archive format")
+        match BethesdaArchive.tryOpen file sha limits token with
+        | Some contents -> consume (ArchiveContents contents)
+        | None ->
+            file.Position <- 0L
 
-        file.Position <- 0L
-        use archive = ArchiveFactory.OpenArchive(file, ReaderOptions.ForExternalStream)
-        consume (ArchiveContents(archive, sha, file.Length, limits, token))
+            if not (ArchiveFactory.IsArchive(file, &format)) then
+                raise (NotSupportedException "Unknown archive format")
+
+            file.Position <- 0L
+            use archive = ArchiveFactory.OpenArchive(file, ReaderOptions.ForExternalStream)
+
+            consume (
+                ArchiveContents(
+                    SharpArchiveContents(archive, sha, file.Length, limits, token)
+                    :> IArchiveContents
+                )
+            )
 
     member _.WithOwnedStream(sha, file: Stream, token, consume) = read sha file token consume
 

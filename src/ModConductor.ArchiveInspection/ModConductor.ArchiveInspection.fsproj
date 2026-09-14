@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
 <PropertyGroup><IsAotCompatible>true</IsAotCompatible></PropertyGroup>
-<ItemGroup><Compile Include="Contracts.fs"/><Compile Include="ArchiveNames.fs"/><Compile Include="EntryRead.fs"/><Compile Include="ArchiveContents.fs"/><Compile Include="Inspection.fs"/></ItemGroup>
+<ItemGroup><Compile Include="Contracts.fs"/><Compile Include="ArchiveNames.fs"/><Compile Include="EntryRead.fs"/><Compile Include="BethesdaStreams.fs"/><Compile Include="Lz4Frame.fs"/><Compile Include="ArchiveContents.fs"/><Compile Include="BethesdaArchive.fs"/><Compile Include="Inspection.fs"/></ItemGroup>
 <ItemGroup><ProjectReference Include="../ModConductor.ArtifactLibrary/ModConductor.ArtifactLibrary.fsproj"/><ProjectReference Include="../ModConductor.Platform/ModConductor.Platform.fsproj"/><PackageReference Include="FSharp.Core"/><PackageReference Include="SharpCompress"/></ItemGroup>
 </Project>

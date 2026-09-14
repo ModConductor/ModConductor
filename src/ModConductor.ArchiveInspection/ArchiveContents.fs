@@ -10,7 +10,20 @@ open SharpCompress.Common.Rar
 open SharpCompress.Common.SevenZip
 open ModConductor.Platform
 
-type ArchiveContents
+type internal IArchiveContents =
+    abstract Manifest: ArchiveManifest
+    abstract ReadEntries: int list * (int * Stream -> unit) -> unit
+
+type ArchiveContents internal (contents: IArchiveContents) =
+    member _.Manifest = contents.Manifest
+
+    member _.ReadEntries(indices: int list, consume: int * Stream -> unit) =
+        contents.ReadEntries(indices, consume)
+
+    member this.ReadEntry(index: int, consume: Stream -> unit) =
+        this.ReadEntries([ index ], fun (_, stream) -> consume stream)
+
+type internal SharpArchiveContents
     internal
     (
         archive: IArchive,
@@ -121,56 +134,54 @@ type ArchiveContents
           Entries = entries
           TotalSize = total }
 
-    member _.Manifest = manifest
+    interface IArchiveContents with
+        member _.Manifest = manifest
 
-    member _.ReadEntries(indices: int list, consume: int * Stream -> unit) =
-        let selected = System.Collections.Generic.HashSet<int>(indices)
-
-        if
-            selected.Count <> indices.Length
-            || indices
-               |> List.exists (fun index ->
-                   index < 0 || index >= raw.Count || raw[index].IsDirectory)
-        then
-            invalidArg (nameof indices) "Choose file entries from this manifest."
-
-        let mutable decoded = 0L
-
-        let count n =
-            decoded <- decoded + n
+        member _.ReadEntries(indices: int list, consume: int * Stream -> unit) =
+            let selected = System.Collections.Generic.HashSet<int>(indices)
 
             if
-                decoded > limits.TotalBytes
-                || decimal decoded > decimal limits.Ratio * decimal (max 1L compressedLength)
+                selected.Count <> indices.Length
+                || indices
+                   |> List.exists (fun index ->
+                       index < 0 || index >= raw.Count || raw[index].IsDirectory)
             then
-                refuse "The archive entry read exceeds the expanded data limit."
+                invalidArg (nameof indices) "Choose file entries from this manifest."
 
-        let read (source: Stream) expected action =
-            use source = source
-            use bounded = new EntryRead(source, expected, count, token)
-            action (bounded :> Stream)
-            bounded.CopyTo Stream.Null
+            let mutable decoded = 0L
 
-        if archive.IsSolid && selected.Count > 0 then
-            let byName = entries |> List.map (fun e -> raw[e.Index].Key, e.Index) |> Map.ofList
-            use reader = archive.ExtractAllEntries()
+            let count n =
+                decoded <- decoded + n
 
-            while selected.Count > 0 && reader.MoveToNextEntry() do
-                token.ThrowIfCancellationRequested()
+                if
+                    decoded > limits.TotalBytes
+                    || decimal decoded > decimal limits.Ratio * decimal (max 1L compressedLength)
+                then
+                    refuse "The archive entry read exceeds the expanded data limit."
 
-                if not reader.Entry.IsDirectory then
-                    let index = byName |> Map.tryFind reader.Entry.Key
-                    let wanted = index |> Option.filter selected.Remove
+            let read (source: Stream) expected action =
+                use source = source
+                use bounded = new EntryRead(source, expected, count, token)
+                action (bounded :> Stream)
+                bounded.CopyTo Stream.Null
 
-                    read (reader.OpenEntryStream()) reader.Entry.Size (fun stream ->
-                        wanted |> Option.iter (fun index -> consume (index, stream)))
+            if archive.IsSolid && selected.Count > 0 then
+                let byName = entries |> List.map (fun e -> raw[e.Index].Key, e.Index) |> Map.ofList
+                use reader = archive.ExtractAllEntries()
 
-            if selected.Count <> 0 then
-                raise (InvalidDataException "An archive entry is missing.")
-        else
-            for index in indices |> List.sort do
-                read (raw[index].OpenEntryStream()) raw[index].Size (fun stream ->
-                    consume (index, stream))
+                while selected.Count > 0 && reader.MoveToNextEntry() do
+                    token.ThrowIfCancellationRequested()
 
-    member this.ReadEntry(index: int, consume: Stream -> unit) =
-        this.ReadEntries([ index ], fun (_, stream) -> consume stream)
+                    if not reader.Entry.IsDirectory then
+                        let index = byName |> Map.tryFind reader.Entry.Key
+                        let wanted = index |> Option.filter selected.Remove
+
+                        read (reader.OpenEntryStream()) reader.Entry.Size (fun stream ->
+                            wanted |> Option.iter (fun index -> consume (index, stream)))
+
+                if selected.Count <> 0 then
+                    raise (InvalidDataException "An archive entry is missing.")
+            else
+                for index in indices |> List.sort do
+                    read (raw[index].OpenEntryStream()) raw[index].Size (fun stream ->
+                        consume (index, stream))

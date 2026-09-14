@@ -108,6 +108,7 @@ module ArchiveInspectionFixtures =
                 ArchiveFailure.message error
 
         writer.WriteStartObject("archiveInspection")
+        BethesdaArchiveFixtures.observe writer area store.ArchiveInspection adopt
 
         for name in [ "textures.zip"; "textures.7z" ] do
             let path = Path.Combine(area, name)
