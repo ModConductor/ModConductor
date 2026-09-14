@@ -21,6 +21,125 @@ module internal FilePlanWire =
             Path = ModLibraryWire.logical value.Path
         )
 
+    let private checkedLength (value: uint64) =
+        if value > uint64 System.Int64.MaxValue then
+            ModLibraryWire.reject "The file length is invalid."
+
+        int64 value
+
+    let private checkedHash (value: string) =
+        if
+            value.Length <> 64
+            || value |> Seq.exists (fun c -> not (System.Uri.IsHexDigit c))
+        then
+            ModLibraryWire.reject "The file identity is invalid."
+
+        value.ToLowerInvariant()
+
+    let standing =
+        function
+        | ModConductor.FilePlanning.FileSourceStanding.Winner -> FileSourceStanding.Winner
+        | ModConductor.FilePlanning.FileSourceStanding.Alternative -> FileSourceStanding.Alternative
+        | ModConductor.FilePlanning.FileSourceStanding.Selected -> FileSourceStanding.Selected
+        | ModConductor.FilePlanning.FileSourceStanding.Previous -> FileSourceStanding.Previous
+        | ModConductor.FilePlanning.FileSourceStanding.Unavailable -> FileSourceStanding.Unavailable
+
+    let source (value: ModConductor.FilePlanning.FilePreviewSource) =
+        match value with
+        | ModConductor.FilePlanning.FilePreviewSource.ManagedCopy managed ->
+            FilePreviewSource(
+                Managed =
+                    ManagedPreviewSource(
+                        Copy = copy managed.Copy,
+                        SourcePath = ModLibraryWire.logical managed.SourcePath,
+                        Target = ModLibraryWire.logical managed.Target,
+                        Length = uint64 managed.Length,
+                        Sha256 = managed.Sha256,
+                        PayloadId = managed.PayloadId.ToString "N"
+                    )
+            )
+        | ModConductor.FilePlanning.FilePreviewSource.CheckedGameFile game ->
+            FilePreviewSource(
+                Game =
+                    CheckedGamePreviewSource(
+                        SnapshotId = game.SnapshotId.ToString "N",
+                        Generation = game.Generation,
+                        Kind = (if game.Kind = ReadOnlyLayerKind.Base then 1u else 2u),
+                        SourcePath = ModLibraryWire.logical game.SourcePath,
+                        Target = ModLibraryWire.logical game.Target,
+                        Length = uint64 game.Length,
+                        Sha256 = game.Sha256
+                    )
+            )
+        | ModConductor.FilePlanning.FilePreviewSource.QualifiedArchiveEntry archive ->
+            FilePreviewSource(
+                ArchiveEntry =
+                    QualifiedArchiveEntryPreviewSource(
+                        WorkspaceId = archive.WorkspaceId.ToString "N",
+                        ArtifactId = archive.ArtifactId.ToString "N",
+                        ArtifactRevision = uint64 archive.ArtifactRevision,
+                        ArchiveSha256 = archive.ArchiveSha256,
+                        Format = archive.Format,
+                        Index = uint32 archive.Index,
+                        Path = ModLibraryWire.logical archive.Path,
+                        Length = uint64 archive.Length
+                    )
+            )
+
+    let readSource (value: FilePreviewSource) =
+        if isNull value then
+            ModLibraryWire.reject "Select a file source."
+
+        match value.SourceCase with
+        | FilePreviewSource.SourceOneofCase.Managed ->
+            let item = value.Managed
+
+            ModConductor.FilePlanning.FilePreviewSource.ManagedCopy
+                { Copy = readCopy item.Copy
+                  SourcePath = ModLibraryWire.path item.SourcePath
+                  Target = ModLibraryWire.path item.Target
+                  PayloadId = ModLibraryWire.id item.PayloadId
+                  Length = checkedLength item.Length
+                  Sha256 = checkedHash item.Sha256 }
+        | FilePreviewSource.SourceOneofCase.Game ->
+            let item = value.Game
+
+            let kind =
+                match item.Kind with
+                | 1u -> ReadOnlyLayerKind.Base
+                | 2u -> ReadOnlyLayerKind.Secondary
+                | _ -> ModLibraryWire.reject "The checked game-file source is invalid."
+
+            ModConductor.FilePlanning.FilePreviewSource.CheckedGameFile
+                { SnapshotId = ModLibraryWire.id item.SnapshotId
+                  Generation = item.Generation
+                  Kind = kind
+                  SourcePath = ModLibraryWire.path item.SourcePath
+                  Target = ModLibraryWire.path item.Target
+                  Length = checkedLength item.Length
+                  Sha256 = checkedHash item.Sha256 }
+        | FilePreviewSource.SourceOneofCase.ArchiveEntry ->
+            let item = value.ArchiveEntry
+
+            ModConductor.FilePlanning.FilePreviewSource.QualifiedArchiveEntry
+                { WorkspaceId = ModLibraryWire.id item.WorkspaceId
+                  ArtifactId = ModLibraryWire.id item.ArtifactId
+                  ArtifactRevision = ModLibraryWire.number item.ArtifactRevision
+                  ArchiveSha256 = checkedHash item.ArchiveSha256
+                  Format = item.Format
+                  Index = ModLibraryWire.count item.Index
+                  Path = ModLibraryWire.path item.Path
+                  Length = checkedLength item.Length }
+        | _ -> ModLibraryWire.reject "Select a file source."
+
+    let readRepresentation =
+        function
+        | FilePreviewRepresentation.Text -> ModConductor.FilePlanning.FilePreviewRepresentation.Text
+        | FilePreviewRepresentation.Image ->
+            ModConductor.FilePlanning.FilePreviewRepresentation.Image
+        | FilePreviewRepresentation.Hex -> ModConductor.FilePlanning.FilePreviewRepresentation.Hex
+        | _ -> ModLibraryWire.reject "Select text, image or hex preview."
+
     let readCursor (value: FilePlanCursor) : FileCursor option =
         if isNull value then
             None
@@ -79,6 +198,58 @@ module internal FilePlanWire =
                 Detail =
                     "This file cannot be hidden until the file view is complete and its problems are resolved."
             )
+
+    let previewResult (value: ModConductor.FilePlanning.FilePreview) =
+        let result =
+            FilePreviewResult(
+                Source = source value.Source,
+                Standing = standing value.Standing,
+                Target = ModLibraryWire.logical value.Target
+            )
+
+        match value.Outcome with
+        | ModConductor.FilePlanning.FilePreviewOutcome.Ready content ->
+            result.Status <- FilePreviewStatus.Ready
+
+            match content with
+            | ModConductor.FilePlanning.FilePreviewContent.Text text ->
+                result.Text <-
+                    FilePreviewText(
+                        Content = text.Content,
+                        Encoding = text.Encoding,
+                        Lines = uint32 text.Lines
+                    )
+            | ModConductor.FilePlanning.FilePreviewContent.Image image ->
+                result.Image <-
+                    FilePreviewImage(
+                        Content = Google.Protobuf.ByteString.CopyFrom image.Content,
+                        Format = image.Format,
+                        Width = uint32 image.Width,
+                        Height = uint32 image.Height
+                    )
+            | ModConductor.FilePlanning.FilePreviewContent.Hex hex ->
+                result.Hex <-
+                    FilePreviewHex(
+                        Content = Google.Protobuf.ByteString.CopyFrom hex.Content,
+                        TotalLength = uint64 hex.TotalLength,
+                        Truncated = hex.Truncated
+                    )
+        | ModConductor.FilePlanning.FilePreviewOutcome.Unsupported detail ->
+            result.Status <- FilePreviewStatus.Unsupported
+            result.Detail <- detail
+        | ModConductor.FilePlanning.FilePreviewOutcome.TooLarge detail ->
+            result.Status <- FilePreviewStatus.TooLarge
+            result.Detail <- detail
+        | ModConductor.FilePlanning.FilePreviewOutcome.Changed detail ->
+            result.Status <- FilePreviewStatus.Changed
+            result.Detail <- detail
+
+        result
+
+    let preview =
+        function
+        | Ok value -> FilePreviewReply(Preview = previewResult value)
+        | Error error -> FilePreviewReply(Fault = fault error)
 
     let state (value: FilePlanSummary) =
         let result =
@@ -143,7 +314,9 @@ module internal FilePlanWire =
                 Length = uint64 value.Length,
                 Sha256 = value.Sha256,
                 CanHide = value.CanHide,
-                CanUnhide = value.CanUnhide
+                CanUnhide = value.CanUnhide,
+                Source = source value.Source,
+                Standing = standing value.Standing
             )
 
         value.Copy |> Option.iter (fun id -> result.Copy <- copy id)

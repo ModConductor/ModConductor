@@ -13,8 +13,55 @@ service FilePlanOperations {
   rpc InspectSavedFile(InspectSavedFileRequest) returns (FilePlanInspectionReply);
   rpc ChangeFileVisibility(ChangeFileVisibilityRequest) returns (FileVisibilityReply);
   rpc ReadFileVisibilityHistory(FileVisibilityHistoryRequest) returns (FileVisibilityHistoryReply);
+  rpc PreviewFileSource(FilePreviewRequest) returns (FilePreviewReply);
 }
 message ManagedFileCopy { string mod_id = 1; string version_id = 2; ModLogicalPath path = 3; }
+
+enum FileSourceStanding {
+  FILE_SOURCE_STANDING_UNSPECIFIED = 0;
+  FILE_SOURCE_STANDING_WINNER = 1;
+  FILE_SOURCE_STANDING_ALTERNATIVE = 2;
+  FILE_SOURCE_STANDING_SELECTED = 3;
+  FILE_SOURCE_STANDING_PREVIOUS = 4;
+  FILE_SOURCE_STANDING_UNAVAILABLE = 5;
+}
+message ManagedPreviewSource {
+  ManagedFileCopy copy = 1; ModLogicalPath source_path = 2; ModLogicalPath target = 3; uint64 length = 4; string sha256 = 5; string payload_id = 6;
+}
+message CheckedGamePreviewSource {
+  string snapshot_id = 1; string generation = 2; uint32 kind = 3; ModLogicalPath source_path = 4; ModLogicalPath target = 5;
+  uint64 length = 6; string sha256 = 7;
+}
+message QualifiedArchiveEntryPreviewSource {
+  string workspace_id = 1; string artifact_id = 2; uint64 artifact_revision = 3; string archive_sha256 = 4;
+  string format = 5; uint32 index = 6; ModLogicalPath path = 7; uint64 length = 8;
+}
+message FilePreviewSource {
+  oneof source { ManagedPreviewSource managed = 1; CheckedGamePreviewSource game = 2; QualifiedArchiveEntryPreviewSource archive_entry = 3; }
+}
+enum FilePreviewRepresentation {
+  FILE_PREVIEW_REPRESENTATION_UNSPECIFIED = 0;
+  FILE_PREVIEW_REPRESENTATION_TEXT = 1;
+  FILE_PREVIEW_REPRESENTATION_IMAGE = 2;
+  FILE_PREVIEW_REPRESENTATION_HEX = 3;
+}
+message FilePreviewText { string content = 1; string encoding = 2; uint32 lines = 3; }
+message FilePreviewImage { bytes content = 1; string format = 2; uint32 width = 3; uint32 height = 4; }
+message FilePreviewHex { bytes content = 1; uint64 total_length = 2; bool truncated = 3; }
+enum FilePreviewStatus {
+  FILE_PREVIEW_STATUS_UNSPECIFIED = 0;
+  FILE_PREVIEW_STATUS_READY = 1;
+  FILE_PREVIEW_STATUS_UNSUPPORTED = 2;
+  FILE_PREVIEW_STATUS_TOO_LARGE = 3;
+  FILE_PREVIEW_STATUS_CHANGED = 4;
+}
+message FilePreviewResult {
+  FilePreviewSource source = 1; FileSourceStanding standing = 2; ModLogicalPath target = 3; FilePreviewStatus status = 4;
+  string detail = 5; oneof content { FilePreviewText text = 6; FilePreviewImage image = 7; FilePreviewHex hex = 8; }
+}
+message FilePreviewRequest { string snapshot_id = 1; FilePreviewSource source = 2; FilePreviewRepresentation representation = 3; }
+message FilePreviewReply { oneof outcome { FilePreviewResult preview = 1; FilePlanFault fault = 2; } }
+
 message FilePlanCursor { string identity = 1; uint32 offset = 2; }
 message OpenFilePlanRequest { string profile_id = 1; }
 message AcquireFilePlanRequest { string profile_id = 1; bool refresh = 2; }
@@ -36,7 +83,7 @@ message PlannedFilePage { FilePlanState state = 1; repeated PlannedFileNode node
 message InspectedFileCopy {
   ManagedFileCopy copy = 1; ModLogicalPath source_path = 2; string name = 3; string version_label = 4; optional uint32 priority = 5;
   bool enabled = 6; bool hidden = 7; bool winner = 8; bool historical = 9; uint64 length = 10; string sha256 = 11;
-  bool can_hide = 12; bool can_unhide = 13;
+  bool can_hide = 12; bool can_unhide = 13; FilePreviewSource source = 14; FileSourceStanding standing = 15;
 }
 message PlannedFileInspection { FilePlanState state = 1; ModLogicalPath target = 2; repeated InspectedFileCopy copies = 3; FilePlanCursor next = 4; InspectedFileCopy focused_copy = 5; bool writable = 6; }
 message FileVisibilityChange { FilePlanState state = 1; PlannedFileNode changed = 2; }

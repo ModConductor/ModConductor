@@ -1,10 +1,10 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mc_client/mc_client.dart';
 import 'package:mc_file_plans/mc_file_plans.dart';
-import 'package:mc_file_plans/src/inspector.dart';
 import 'package:mc_file_plans/src/planned_files_controller.dart';
 import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 
@@ -48,6 +48,17 @@ InspectedFileCopy inspected({bool hidden = false, ManagedFileCopy? id}) =>
       sha256: 'a' * 64,
       canHide: !hidden,
       canUnhide: hidden,
+      source: ManagedPreviewSource(
+        copy: id ?? copy,
+        sourcePath: (id ?? copy).path,
+        target: copy.path,
+        length: 10,
+        sha256: 'a' * 64,
+        payloadId: 'payload',
+      ),
+      standing: hidden
+          ? FileSourceStanding.unavailable
+          : FileSourceStanding.winner,
     );
 
 class FakePlans implements FilePlansClient {
@@ -115,6 +126,24 @@ class FakePlans implements FilePlansClient {
   }
 
   @override
+  FilePreviewRead preview(
+    String snapshotId,
+    FilePreviewSource source,
+    FilePreviewRepresentation representation,
+  ) => FilePreviewRead(
+    Future.value(
+      FilePreviewResult(
+        source: source,
+        standing: FileSourceStanding.winner,
+        target: source.target,
+        status: FilePreviewStatus.ready,
+        content: const FilePreviewText('preview', 'UTF-8', 1),
+      ),
+    ),
+    () async {},
+  );
+
+  @override
   Future<FileVisibilityHistory> history(
     String snapshotId,
     ManagedFileCopy copy, {
@@ -128,6 +157,7 @@ class FakePlans implements FilePlansClient {
 }
 
 void main() {
+  previewSupersessionTests();
   test('cancelling acquisition completes its waiter and retains the previous snapshot', () async {
     final client = FakePlans();
     final controller = FilePlansController()..attach(client, 'profile');
@@ -318,4 +348,61 @@ void main() {
       await client.stream.close();
     },
   );
+}
+
+class _DelayedPreviewPlans extends FakePlans {
+  final requests = <Completer<FilePreviewResult>>[];
+  final cancelled = <int>[];
+
+  @override
+  FilePreviewRead preview(
+    String snapshotId,
+    FilePreviewSource source,
+    FilePreviewRepresentation representation,
+  ) {
+    final index = requests.length;
+    final request = Completer<FilePreviewResult>();
+    requests.add(request);
+    return FilePreviewRead(request.future, () async => cancelled.add(index));
+  }
+}
+
+void previewSupersessionTests() {
+  test('a superseded preview is cancelled and cannot overwrite the current source representation', () async {
+    final client = _DelayedPreviewPlans();
+    final controller = FileInspectorController();
+    controller.attach(client, state('first'));
+    await controller.showTarget(copy.path);
+    await Future<void>.delayed(Duration.zero);
+    expect(client.requests, hasLength(1));
+
+    controller.setPreviewRepresentation(FilePreviewRepresentation.text);
+    await Future<void>.delayed(Duration.zero);
+    expect(client.cancelled, [0]);
+    expect(client.requests, hasLength(2));
+
+    final source = controller.selected!.source;
+    client.requests[1].complete(
+      FilePreviewResult(
+        source: source,
+        standing: FileSourceStanding.winner,
+        target: source.target,
+        status: FilePreviewStatus.ready,
+        content: const FilePreviewText('new', 'UTF-8', 1),
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+    client.requests[0].complete(
+      FilePreviewResult(
+        source: source,
+        standing: FileSourceStanding.winner,
+        target: source.target,
+        status: FilePreviewStatus.ready,
+        content: FilePreviewHex(Uint8List.fromList([1, 2]), 2, false),
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+    expect((controller.preview!.content as FilePreviewText).content, 'new');
+    controller.dispose();
+  });
 }

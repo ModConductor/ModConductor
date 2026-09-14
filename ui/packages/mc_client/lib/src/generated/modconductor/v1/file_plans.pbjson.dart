@@ -15,6 +15,64 @@ import 'dart:convert' as $convert;
 import 'dart:core' as $core;
 import 'dart:typed_data' as $typed_data;
 
+@$core.Deprecated('Use fileSourceStandingDescriptor instead')
+const FileSourceStanding$json = {
+  '1': 'FileSourceStanding',
+  '2': [
+    {'1': 'FILE_SOURCE_STANDING_UNSPECIFIED', '2': 0},
+    {'1': 'FILE_SOURCE_STANDING_WINNER', '2': 1},
+    {'1': 'FILE_SOURCE_STANDING_ALTERNATIVE', '2': 2},
+    {'1': 'FILE_SOURCE_STANDING_SELECTED', '2': 3},
+    {'1': 'FILE_SOURCE_STANDING_PREVIOUS', '2': 4},
+    {'1': 'FILE_SOURCE_STANDING_UNAVAILABLE', '2': 5},
+  ],
+};
+
+/// Descriptor for `FileSourceStanding`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List fileSourceStandingDescriptor = $convert.base64Decode(
+    'ChJGaWxlU291cmNlU3RhbmRpbmcSJAogRklMRV9TT1VSQ0VfU1RBTkRJTkdfVU5TUEVDSUZJRU'
+    'QQABIfChtGSUxFX1NPVVJDRV9TVEFORElOR19XSU5ORVIQARIkCiBGSUxFX1NPVVJDRV9TVEFO'
+    'RElOR19BTFRFUk5BVElWRRACEiEKHUZJTEVfU09VUkNFX1NUQU5ESU5HX1NFTEVDVEVEEAMSIQ'
+    'odRklMRV9TT1VSQ0VfU1RBTkRJTkdfUFJFVklPVVMQBBIkCiBGSUxFX1NPVVJDRV9TVEFORElO'
+    'R19VTkFWQUlMQUJMRRAF');
+
+@$core.Deprecated('Use filePreviewRepresentationDescriptor instead')
+const FilePreviewRepresentation$json = {
+  '1': 'FilePreviewRepresentation',
+  '2': [
+    {'1': 'FILE_PREVIEW_REPRESENTATION_UNSPECIFIED', '2': 0},
+    {'1': 'FILE_PREVIEW_REPRESENTATION_TEXT', '2': 1},
+    {'1': 'FILE_PREVIEW_REPRESENTATION_IMAGE', '2': 2},
+    {'1': 'FILE_PREVIEW_REPRESENTATION_HEX', '2': 3},
+  ],
+};
+
+/// Descriptor for `FilePreviewRepresentation`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List filePreviewRepresentationDescriptor = $convert.base64Decode(
+    'ChlGaWxlUHJldmlld1JlcHJlc2VudGF0aW9uEisKJ0ZJTEVfUFJFVklFV19SRVBSRVNFTlRBVE'
+    'lPTl9VTlNQRUNJRklFRBAAEiQKIEZJTEVfUFJFVklFV19SRVBSRVNFTlRBVElPTl9URVhUEAES'
+    'JQohRklMRV9QUkVWSUVXX1JFUFJFU0VOVEFUSU9OX0lNQUdFEAISIwofRklMRV9QUkVWSUVXX1'
+    'JFUFJFU0VOVEFUSU9OX0hFWBAD');
+
+@$core.Deprecated('Use filePreviewStatusDescriptor instead')
+const FilePreviewStatus$json = {
+  '1': 'FilePreviewStatus',
+  '2': [
+    {'1': 'FILE_PREVIEW_STATUS_UNSPECIFIED', '2': 0},
+    {'1': 'FILE_PREVIEW_STATUS_READY', '2': 1},
+    {'1': 'FILE_PREVIEW_STATUS_UNSUPPORTED', '2': 2},
+    {'1': 'FILE_PREVIEW_STATUS_TOO_LARGE', '2': 3},
+    {'1': 'FILE_PREVIEW_STATUS_CHANGED', '2': 4},
+  ],
+};
+
+/// Descriptor for `FilePreviewStatus`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List filePreviewStatusDescriptor = $convert.base64Decode(
+    'ChFGaWxlUHJldmlld1N0YXR1cxIjCh9GSUxFX1BSRVZJRVdfU1RBVFVTX1VOU1BFQ0lGSUVEEA'
+    'ASHQoZRklMRV9QUkVWSUVXX1NUQVRVU19SRUFEWRABEiMKH0ZJTEVfUFJFVklFV19TVEFUVVNf'
+    'VU5TVVBQT1JURUQQAhIhCh1GSUxFX1BSRVZJRVdfU1RBVFVTX1RPT19MQVJHRRADEh8KG0ZJTE'
+    'VfUFJFVklFV19TVEFUVVNfQ0hBTkdFRBAE');
+
 @$core.Deprecated('Use plannedFileDispositionDescriptor instead')
 const PlannedFileDisposition$json = {
   '1': 'PlannedFileDisposition',
@@ -84,6 +142,362 @@ final $typed_data.Uint8List managedFileCopyDescriptor = $convert.base64Decode(
     'Cg9NYW5hZ2VkRmlsZUNvcHkSFQoGbW9kX2lkGAEgASgJUgVtb2RJZBIdCgp2ZXJzaW9uX2lkGA'
     'IgASgJUgl2ZXJzaW9uSWQSMwoEcGF0aBgDIAEoCzIfLm1vZGNvbmR1Y3Rvci52MS5Nb2RMb2dp'
     'Y2FsUGF0aFIEcGF0aA==');
+
+@$core.Deprecated('Use managedPreviewSourceDescriptor instead')
+const ManagedPreviewSource$json = {
+  '1': 'ManagedPreviewSource',
+  '2': [
+    {
+      '1': 'copy',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.ManagedFileCopy',
+      '10': 'copy'
+    },
+    {
+      '1': 'source_path',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.ModLogicalPath',
+      '10': 'sourcePath'
+    },
+    {
+      '1': 'target',
+      '3': 3,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.ModLogicalPath',
+      '10': 'target'
+    },
+    {'1': 'length', '3': 4, '4': 1, '5': 4, '10': 'length'},
+    {'1': 'sha256', '3': 5, '4': 1, '5': 9, '10': 'sha256'},
+    {'1': 'payload_id', '3': 6, '4': 1, '5': 9, '10': 'payloadId'},
+  ],
+};
+
+/// Descriptor for `ManagedPreviewSource`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List managedPreviewSourceDescriptor = $convert.base64Decode(
+    'ChRNYW5hZ2VkUHJldmlld1NvdXJjZRI0CgRjb3B5GAEgASgLMiAubW9kY29uZHVjdG9yLnYxLk'
+    '1hbmFnZWRGaWxlQ29weVIEY29weRJACgtzb3VyY2VfcGF0aBgCIAEoCzIfLm1vZGNvbmR1Y3Rv'
+    'ci52MS5Nb2RMb2dpY2FsUGF0aFIKc291cmNlUGF0aBI3CgZ0YXJnZXQYAyABKAsyHy5tb2Rjb2'
+    '5kdWN0b3IudjEuTW9kTG9naWNhbFBhdGhSBnRhcmdldBIWCgZsZW5ndGgYBCABKARSBmxlbmd0'
+    'aBIWCgZzaGEyNTYYBSABKAlSBnNoYTI1NhIdCgpwYXlsb2FkX2lkGAYgASgJUglwYXlsb2FkSW'
+    'Q=');
+
+@$core.Deprecated('Use checkedGamePreviewSourceDescriptor instead')
+const CheckedGamePreviewSource$json = {
+  '1': 'CheckedGamePreviewSource',
+  '2': [
+    {'1': 'snapshot_id', '3': 1, '4': 1, '5': 9, '10': 'snapshotId'},
+    {'1': 'generation', '3': 2, '4': 1, '5': 9, '10': 'generation'},
+    {'1': 'kind', '3': 3, '4': 1, '5': 13, '10': 'kind'},
+    {
+      '1': 'source_path',
+      '3': 4,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.ModLogicalPath',
+      '10': 'sourcePath'
+    },
+    {
+      '1': 'target',
+      '3': 5,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.ModLogicalPath',
+      '10': 'target'
+    },
+    {'1': 'length', '3': 6, '4': 1, '5': 4, '10': 'length'},
+    {'1': 'sha256', '3': 7, '4': 1, '5': 9, '10': 'sha256'},
+  ],
+};
+
+/// Descriptor for `CheckedGamePreviewSource`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List checkedGamePreviewSourceDescriptor = $convert.base64Decode(
+    'ChhDaGVja2VkR2FtZVByZXZpZXdTb3VyY2USHwoLc25hcHNob3RfaWQYASABKAlSCnNuYXBzaG'
+    '90SWQSHgoKZ2VuZXJhdGlvbhgCIAEoCVIKZ2VuZXJhdGlvbhISCgRraW5kGAMgASgNUgRraW5k'
+    'EkAKC3NvdXJjZV9wYXRoGAQgASgLMh8ubW9kY29uZHVjdG9yLnYxLk1vZExvZ2ljYWxQYXRoUg'
+    'pzb3VyY2VQYXRoEjcKBnRhcmdldBgFIAEoCzIfLm1vZGNvbmR1Y3Rvci52MS5Nb2RMb2dpY2Fs'
+    'UGF0aFIGdGFyZ2V0EhYKBmxlbmd0aBgGIAEoBFIGbGVuZ3RoEhYKBnNoYTI1NhgHIAEoCVIGc2'
+    'hhMjU2');
+
+@$core.Deprecated('Use qualifiedArchiveEntryPreviewSourceDescriptor instead')
+const QualifiedArchiveEntryPreviewSource$json = {
+  '1': 'QualifiedArchiveEntryPreviewSource',
+  '2': [
+    {'1': 'workspace_id', '3': 1, '4': 1, '5': 9, '10': 'workspaceId'},
+    {'1': 'artifact_id', '3': 2, '4': 1, '5': 9, '10': 'artifactId'},
+    {
+      '1': 'artifact_revision',
+      '3': 3,
+      '4': 1,
+      '5': 4,
+      '10': 'artifactRevision'
+    },
+    {'1': 'archive_sha256', '3': 4, '4': 1, '5': 9, '10': 'archiveSha256'},
+    {'1': 'format', '3': 5, '4': 1, '5': 9, '10': 'format'},
+    {'1': 'index', '3': 6, '4': 1, '5': 13, '10': 'index'},
+    {
+      '1': 'path',
+      '3': 7,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.ModLogicalPath',
+      '10': 'path'
+    },
+    {'1': 'length', '3': 8, '4': 1, '5': 4, '10': 'length'},
+  ],
+};
+
+/// Descriptor for `QualifiedArchiveEntryPreviewSource`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List qualifiedArchiveEntryPreviewSourceDescriptor = $convert.base64Decode(
+    'CiJRdWFsaWZpZWRBcmNoaXZlRW50cnlQcmV2aWV3U291cmNlEiEKDHdvcmtzcGFjZV9pZBgBIA'
+    'EoCVILd29ya3NwYWNlSWQSHwoLYXJ0aWZhY3RfaWQYAiABKAlSCmFydGlmYWN0SWQSKwoRYXJ0'
+    'aWZhY3RfcmV2aXNpb24YAyABKARSEGFydGlmYWN0UmV2aXNpb24SJQoOYXJjaGl2ZV9zaGEyNT'
+    'YYBCABKAlSDWFyY2hpdmVTaGEyNTYSFgoGZm9ybWF0GAUgASgJUgZmb3JtYXQSFAoFaW5kZXgY'
+    'BiABKA1SBWluZGV4EjMKBHBhdGgYByABKAsyHy5tb2Rjb25kdWN0b3IudjEuTW9kTG9naWNhbF'
+    'BhdGhSBHBhdGgSFgoGbGVuZ3RoGAggASgEUgZsZW5ndGg=');
+
+@$core.Deprecated('Use filePreviewSourceDescriptor instead')
+const FilePreviewSource$json = {
+  '1': 'FilePreviewSource',
+  '2': [
+    {
+      '1': 'managed',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.ManagedPreviewSource',
+      '9': 0,
+      '10': 'managed'
+    },
+    {
+      '1': 'game',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.CheckedGamePreviewSource',
+      '9': 0,
+      '10': 'game'
+    },
+    {
+      '1': 'archive_entry',
+      '3': 3,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.QualifiedArchiveEntryPreviewSource',
+      '9': 0,
+      '10': 'archiveEntry'
+    },
+  ],
+  '8': [
+    {'1': 'source'},
+  ],
+};
+
+/// Descriptor for `FilePreviewSource`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List filePreviewSourceDescriptor = $convert.base64Decode(
+    'ChFGaWxlUHJldmlld1NvdXJjZRJBCgdtYW5hZ2VkGAEgASgLMiUubW9kY29uZHVjdG9yLnYxLk'
+    '1hbmFnZWRQcmV2aWV3U291cmNlSABSB21hbmFnZWQSPwoEZ2FtZRgCIAEoCzIpLm1vZGNvbmR1'
+    'Y3Rvci52MS5DaGVja2VkR2FtZVByZXZpZXdTb3VyY2VIAFIEZ2FtZRJaCg1hcmNoaXZlX2VudH'
+    'J5GAMgASgLMjMubW9kY29uZHVjdG9yLnYxLlF1YWxpZmllZEFyY2hpdmVFbnRyeVByZXZpZXdT'
+    'b3VyY2VIAFIMYXJjaGl2ZUVudHJ5QggKBnNvdXJjZQ==');
+
+@$core.Deprecated('Use filePreviewTextDescriptor instead')
+const FilePreviewText$json = {
+  '1': 'FilePreviewText',
+  '2': [
+    {'1': 'content', '3': 1, '4': 1, '5': 9, '10': 'content'},
+    {'1': 'encoding', '3': 2, '4': 1, '5': 9, '10': 'encoding'},
+    {'1': 'lines', '3': 3, '4': 1, '5': 13, '10': 'lines'},
+  ],
+};
+
+/// Descriptor for `FilePreviewText`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List filePreviewTextDescriptor = $convert.base64Decode(
+    'Cg9GaWxlUHJldmlld1RleHQSGAoHY29udGVudBgBIAEoCVIHY29udGVudBIaCghlbmNvZGluZx'
+    'gCIAEoCVIIZW5jb2RpbmcSFAoFbGluZXMYAyABKA1SBWxpbmVz');
+
+@$core.Deprecated('Use filePreviewImageDescriptor instead')
+const FilePreviewImage$json = {
+  '1': 'FilePreviewImage',
+  '2': [
+    {'1': 'content', '3': 1, '4': 1, '5': 12, '10': 'content'},
+    {'1': 'format', '3': 2, '4': 1, '5': 9, '10': 'format'},
+    {'1': 'width', '3': 3, '4': 1, '5': 13, '10': 'width'},
+    {'1': 'height', '3': 4, '4': 1, '5': 13, '10': 'height'},
+  ],
+};
+
+/// Descriptor for `FilePreviewImage`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List filePreviewImageDescriptor = $convert.base64Decode(
+    'ChBGaWxlUHJldmlld0ltYWdlEhgKB2NvbnRlbnQYASABKAxSB2NvbnRlbnQSFgoGZm9ybWF0GA'
+    'IgASgJUgZmb3JtYXQSFAoFd2lkdGgYAyABKA1SBXdpZHRoEhYKBmhlaWdodBgEIAEoDVIGaGVp'
+    'Z2h0');
+
+@$core.Deprecated('Use filePreviewHexDescriptor instead')
+const FilePreviewHex$json = {
+  '1': 'FilePreviewHex',
+  '2': [
+    {'1': 'content', '3': 1, '4': 1, '5': 12, '10': 'content'},
+    {'1': 'total_length', '3': 2, '4': 1, '5': 4, '10': 'totalLength'},
+    {'1': 'truncated', '3': 3, '4': 1, '5': 8, '10': 'truncated'},
+  ],
+};
+
+/// Descriptor for `FilePreviewHex`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List filePreviewHexDescriptor = $convert.base64Decode(
+    'Cg5GaWxlUHJldmlld0hleBIYCgdjb250ZW50GAEgASgMUgdjb250ZW50EiEKDHRvdGFsX2xlbm'
+    'd0aBgCIAEoBFILdG90YWxMZW5ndGgSHAoJdHJ1bmNhdGVkGAMgASgIUgl0cnVuY2F0ZWQ=');
+
+@$core.Deprecated('Use filePreviewResultDescriptor instead')
+const FilePreviewResult$json = {
+  '1': 'FilePreviewResult',
+  '2': [
+    {
+      '1': 'source',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.FilePreviewSource',
+      '10': 'source'
+    },
+    {
+      '1': 'standing',
+      '3': 2,
+      '4': 1,
+      '5': 14,
+      '6': '.modconductor.v1.FileSourceStanding',
+      '10': 'standing'
+    },
+    {
+      '1': 'target',
+      '3': 3,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.ModLogicalPath',
+      '10': 'target'
+    },
+    {
+      '1': 'status',
+      '3': 4,
+      '4': 1,
+      '5': 14,
+      '6': '.modconductor.v1.FilePreviewStatus',
+      '10': 'status'
+    },
+    {'1': 'detail', '3': 5, '4': 1, '5': 9, '10': 'detail'},
+    {
+      '1': 'text',
+      '3': 6,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.FilePreviewText',
+      '9': 0,
+      '10': 'text'
+    },
+    {
+      '1': 'image',
+      '3': 7,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.FilePreviewImage',
+      '9': 0,
+      '10': 'image'
+    },
+    {
+      '1': 'hex',
+      '3': 8,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.FilePreviewHex',
+      '9': 0,
+      '10': 'hex'
+    },
+  ],
+  '8': [
+    {'1': 'content'},
+  ],
+};
+
+/// Descriptor for `FilePreviewResult`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List filePreviewResultDescriptor = $convert.base64Decode(
+    'ChFGaWxlUHJldmlld1Jlc3VsdBI6CgZzb3VyY2UYASABKAsyIi5tb2Rjb25kdWN0b3IudjEuRm'
+    'lsZVByZXZpZXdTb3VyY2VSBnNvdXJjZRI/CghzdGFuZGluZxgCIAEoDjIjLm1vZGNvbmR1Y3Rv'
+    'ci52MS5GaWxlU291cmNlU3RhbmRpbmdSCHN0YW5kaW5nEjcKBnRhcmdldBgDIAEoCzIfLm1vZG'
+    'NvbmR1Y3Rvci52MS5Nb2RMb2dpY2FsUGF0aFIGdGFyZ2V0EjoKBnN0YXR1cxgEIAEoDjIiLm1v'
+    'ZGNvbmR1Y3Rvci52MS5GaWxlUHJldmlld1N0YXR1c1IGc3RhdHVzEhYKBmRldGFpbBgFIAEoCV'
+    'IGZGV0YWlsEjYKBHRleHQYBiABKAsyIC5tb2Rjb25kdWN0b3IudjEuRmlsZVByZXZpZXdUZXh0'
+    'SABSBHRleHQSOQoFaW1hZ2UYByABKAsyIS5tb2Rjb25kdWN0b3IudjEuRmlsZVByZXZpZXdJbW'
+    'FnZUgAUgVpbWFnZRIzCgNoZXgYCCABKAsyHy5tb2Rjb25kdWN0b3IudjEuRmlsZVByZXZpZXdI'
+    'ZXhIAFIDaGV4QgkKB2NvbnRlbnQ=');
+
+@$core.Deprecated('Use filePreviewRequestDescriptor instead')
+const FilePreviewRequest$json = {
+  '1': 'FilePreviewRequest',
+  '2': [
+    {'1': 'snapshot_id', '3': 1, '4': 1, '5': 9, '10': 'snapshotId'},
+    {
+      '1': 'source',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.FilePreviewSource',
+      '10': 'source'
+    },
+    {
+      '1': 'representation',
+      '3': 3,
+      '4': 1,
+      '5': 14,
+      '6': '.modconductor.v1.FilePreviewRepresentation',
+      '10': 'representation'
+    },
+  ],
+};
+
+/// Descriptor for `FilePreviewRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List filePreviewRequestDescriptor = $convert.base64Decode(
+    'ChJGaWxlUHJldmlld1JlcXVlc3QSHwoLc25hcHNob3RfaWQYASABKAlSCnNuYXBzaG90SWQSOg'
+    'oGc291cmNlGAIgASgLMiIubW9kY29uZHVjdG9yLnYxLkZpbGVQcmV2aWV3U291cmNlUgZzb3Vy'
+    'Y2USUgoOcmVwcmVzZW50YXRpb24YAyABKA4yKi5tb2Rjb25kdWN0b3IudjEuRmlsZVByZXZpZX'
+    'dSZXByZXNlbnRhdGlvblIOcmVwcmVzZW50YXRpb24=');
+
+@$core.Deprecated('Use filePreviewReplyDescriptor instead')
+const FilePreviewReply$json = {
+  '1': 'FilePreviewReply',
+  '2': [
+    {
+      '1': 'preview',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.FilePreviewResult',
+      '9': 0,
+      '10': 'preview'
+    },
+    {
+      '1': 'fault',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.FilePlanFault',
+      '9': 0,
+      '10': 'fault'
+    },
+  ],
+  '8': [
+    {'1': 'outcome'},
+  ],
+};
+
+/// Descriptor for `FilePreviewReply`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List filePreviewReplyDescriptor = $convert.base64Decode(
+    'ChBGaWxlUHJldmlld1JlcGx5Ej4KB3ByZXZpZXcYASABKAsyIi5tb2Rjb25kdWN0b3IudjEuRm'
+    'lsZVByZXZpZXdSZXN1bHRIAFIHcHJldmlldxI2CgVmYXVsdBgCIAEoCzIeLm1vZGNvbmR1Y3Rv'
+    'ci52MS5GaWxlUGxhbkZhdWx0SABSBWZhdWx0QgkKB291dGNvbWU=');
 
 @$core.Deprecated('Use filePlanCursorDescriptor instead')
 const FilePlanCursor$json = {
@@ -456,6 +870,22 @@ const InspectedFileCopy$json = {
     {'1': 'sha256', '3': 11, '4': 1, '5': 9, '10': 'sha256'},
     {'1': 'can_hide', '3': 12, '4': 1, '5': 8, '10': 'canHide'},
     {'1': 'can_unhide', '3': 13, '4': 1, '5': 8, '10': 'canUnhide'},
+    {
+      '1': 'source',
+      '3': 14,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.FilePreviewSource',
+      '10': 'source'
+    },
+    {
+      '1': 'standing',
+      '3': 15,
+      '4': 1,
+      '5': 14,
+      '6': '.modconductor.v1.FileSourceStanding',
+      '10': 'standing'
+    },
   ],
   '8': [
     {'1': '_priority'},
@@ -471,8 +901,10 @@ final $typed_data.Uint8List inspectedFileCopyDescriptor = $convert.base64Decode(
     'cml0eYgBARIYCgdlbmFibGVkGAYgASgIUgdlbmFibGVkEhYKBmhpZGRlbhgHIAEoCFIGaGlkZG'
     'VuEhYKBndpbm5lchgIIAEoCFIGd2lubmVyEh4KCmhpc3RvcmljYWwYCSABKAhSCmhpc3Rvcmlj'
     'YWwSFgoGbGVuZ3RoGAogASgEUgZsZW5ndGgSFgoGc2hhMjU2GAsgASgJUgZzaGEyNTYSGQoIY2'
-    'FuX2hpZGUYDCABKAhSB2NhbkhpZGUSHQoKY2FuX3VuaGlkZRgNIAEoCFIJY2FuVW5oaWRlQgsK'
-    'CV9wcmlvcml0eQ==');
+    'FuX2hpZGUYDCABKAhSB2NhbkhpZGUSHQoKY2FuX3VuaGlkZRgNIAEoCFIJY2FuVW5oaWRlEjoK'
+    'BnNvdXJjZRgOIAEoCzIiLm1vZGNvbmR1Y3Rvci52MS5GaWxlUHJldmlld1NvdXJjZVIGc291cm'
+    'NlEj8KCHN0YW5kaW5nGA8gASgOMiMubW9kY29uZHVjdG9yLnYxLkZpbGVTb3VyY2VTdGFuZGlu'
+    'Z1IIc3RhbmRpbmdCCwoJX3ByaW9yaXR5');
 
 @$core.Deprecated('Use plannedFileInspectionDescriptor instead')
 const PlannedFileInspection$json = {

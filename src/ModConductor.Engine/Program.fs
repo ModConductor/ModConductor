@@ -300,8 +300,8 @@ let runWithNexus registration (handoff: ModConductor.Nexus.IOAuthHandoff) args =
             options.MaxReceiveMessageSize <- System.Nullable(16 * 1024 * 1024)
             options.MaxSendMessageSize <- System.Nullable(16 * 1024 * 1024))
         .AddServiceOptions<ModConductor.Engine.ArchiveInspectionService>(fun options ->
-            options.MaxReceiveMessageSize <- Nullable(4 * 1024)
-            options.MaxSendMessageSize <- Nullable(8 * 1024 * 1024))
+            options.MaxReceiveMessageSize <- Nullable(16 * 1024)
+            options.MaxSendMessageSize <- Nullable(9 * 1024 * 1024))
         .AddServiceOptions<ModConductor.Engine.DesktopService>(fun options ->
             options.MaxReceiveMessageSize <- Nullable(40 * 1024)
             options.MaxSendMessageSize <- Nullable(16 * 1024))
@@ -331,7 +331,7 @@ let runWithNexus registration (handoff: ModConductor.Nexus.IOAuthHandoff) args =
             options.MaxSendMessageSize <- Nullable(256 * 1024))
         .AddServiceOptions<ModConductor.Engine.FilePlanService>(fun options ->
             options.MaxReceiveMessageSize <- Nullable(256 * 1024)
-            options.MaxSendMessageSize <- Nullable(2 * 1024 * 1024))
+            options.MaxSendMessageSize <- Nullable(9 * 1024 * 1024))
         .AddServiceOptions<ModConductor.Engine.ModLibraryService>(fun options ->
             options.MaxReceiveMessageSize <- Nullable 65536
             options.MaxSendMessageSize <- Nullable(2 * 1024 * 1024))

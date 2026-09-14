@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:mc_client/mc_client.dart';
+import 'package:mc_file_plans/mc_file_plans.dart';
 import 'package:mc_ui_collections/mc_ui_collections.dart';
 import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 
@@ -31,6 +32,8 @@ class ArchiveContentsView extends StatefulWidget {
 
 class _ArchiveContentsViewState extends State<ArchiveContentsView> {
   final pane = GlobalKey<ScaffoldState>();
+  final filesFocus = FocusNode(debugLabel: 'Archive contents');
+  final sourceInspector = FileInspectorController();
   final model = McCollectionModel<String, _EntryRow>(
     idOf: (e) => e.path,
     labelOf: (e) => e.name,
@@ -67,13 +70,17 @@ class _ArchiveContentsViewState extends State<ArchiveContentsView> {
     final previous = pending;
     if (previous != null)
       unawaited(previous.cancel().onError<Exception>((_, _) {}));
+    sourceInspector.dispose();
+    filesFocus.dispose();
     model.dispose();
     super.dispose();
   }
 
   Future<void> load() async {
     final current = ++epoch;
+    sourceInspector.close();
     setState(() {
+      inspected = false;
       loading = true;
       problem = null;
     });
@@ -121,17 +128,22 @@ class _ArchiveContentsViewState extends State<ArchiveContentsView> {
 
   Widget inspector(BuildContext c, VoidCallback close) {
     final row = model.selected;
-    return McInspector(
-      title: row?.name ?? 'File',
-      onClose: close,
-      children: [
-        if (row != null) ...[
-          archiveFact(c, 'Path', row.path),
-          if (!row.directory)
-            archiveFact(c, 'Size', archiveSize(row.entry?.size)),
-          archiveFact(c, 'Archive', widget.artifact.originalName),
+    if (row == null || row.directory) {
+      return McInspector(
+        title: row?.name ?? 'File',
+        onClose: close,
+        children: [
+          if (row != null) ...[
+            archiveFact(c, 'Path', row.path),
+            archiveFact(c, 'Archive', widget.artifact.originalName),
+          ],
         ],
-      ],
+      );
+    }
+    return ListenableBuilder(
+      listenable: sourceInspector,
+      builder: (_, _) =>
+          FileSourcesInspector(inspector: sourceInspector, onClose: close),
     );
   }
 
@@ -147,6 +159,9 @@ class _ArchiveContentsViewState extends State<ArchiveContentsView> {
           width: 440,
           child: inspector(c, () => pane.currentState?.closeEndDrawer()),
         ),
+        onEndDrawerChanged: (open) {
+          if (!open) filesFocus.requestFocus();
+        },
         body: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -176,6 +191,7 @@ class _ArchiveContentsViewState extends State<ArchiveContentsView> {
                   Expanded(
                     child: McCollection<String, _EntryRow>(
                       model: model,
+                      focusNode: filesFocus,
                       title: 'Contents',
                       showTitle: !narrow,
                       showTree: true,
@@ -196,8 +212,20 @@ class _ArchiveContentsViewState extends State<ArchiveContentsView> {
                                 detail: problem,
                               ),
                             ),
-                      onSelect: (_) {
+                      onSelect: (row) {
                         setState(() => inspected = true);
+                        if (!row.directory && manifest != null) {
+                          unawaited(
+                            sourceInspector.showArchive(
+                              widget.client,
+                              widget.artifact,
+                              manifest!,
+                              row.entry!,
+                            ),
+                          );
+                        } else {
+                          sourceInspector.close();
+                        }
                         if (narrow) pane.currentState?.openEndDrawer();
                       },
                       columns: [
@@ -223,10 +251,10 @@ class _ArchiveContentsViewState extends State<ArchiveContentsView> {
                     const SizedBox(width: 16),
                     SizedBox(
                       width: 360,
-                      child: inspector(
-                        c,
-                        () => setState(() => inspected = false),
-                      ),
+                      child: inspector(c, () {
+                        setState(() => inspected = false);
+                        filesFocus.requestFocus();
+                      }),
                     ),
                   ],
                 ],

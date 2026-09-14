@@ -1,11 +1,23 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:mc_client/mc_client.dart';
-
-import 'planned_files_controller.dart';
 
 class FileInspectorController extends ChangeNotifier {
   FilePlansClient? _client;
   String? _snapshot;
+  ArtifactsClient? _archiveClient;
+  Artifact? _artifact;
+  InspectedArchive? _archiveManifest;
+  InspectedEntry? _archiveEntry;
+  FilePreviewRead? _previewRead;
+  FilePreviewRepresentation previewRepresentation =
+      FilePreviewRepresentation.text;
+  FilePreviewResult? preview;
+  bool previewLoading = false;
+  String? previewProblem;
+  int _previewEpoch = 0;
+  bool get archiveMode => _artifact != null;
   List<String>? target;
   ManagedFileCopy? requestedCopy;
   final _copies = <Object, InspectedFileCopy>{};
@@ -30,21 +42,40 @@ class FileInspectorController extends ChangeNotifier {
   bool get canLoad => _next != null;
   bool get canLoadHistory =>
       selected?.copy != null && (!historyLoaded || _before != null);
-  static Object key(InspectedFileCopy copy) =>
-      copy.copy ?? 'game:${filePathId(copy.sourcePath)}';
+  static Object key(InspectedFileCopy copy) => copy.source.id;
+  void _cancelPreview() {
+    ++_previewEpoch;
+    final read = _previewRead;
+    _previewRead = null;
+    if (read != null) {
+      unawaited(read.cancel().onError<Exception>((_, _) {}));
+    }
+    previewLoading = false;
+  }
+
   void attach(
     FilePlansClient? client,
     FilePlanState? state, {
     bool clear = false,
   }) {
+    if (_snapshot != state?.id || _client != client) {
+      _cancelPreview();
+      preview = null;
+      previewProblem = null;
+    }
     _client = client;
     _snapshot = state?.id;
+    _archiveClient = null;
+    _artifact = null;
+    _archiveManifest = null;
+    _archiveEntry = null;
     ++_epoch;
     loading = false;
     if (clear) close();
   }
 
   void close() {
+    _cancelPreview();
     ++_epoch;
     ++_historyEpoch;
     target = null;
@@ -56,6 +87,8 @@ class FileInspectorController extends ChangeNotifier {
     _next = null;
     loading = false;
     problem = null;
+    preview = null;
+    previewProblem = null;
     _clearHistory();
     if (!_disposed) notifyListeners();
   }
@@ -73,10 +106,86 @@ class FileInspectorController extends ChangeNotifier {
     return reload();
   }
 
+  Future<void> showArchive(
+    ArtifactsClient client,
+    Artifact artifact,
+    InspectedArchive manifest,
+    InspectedEntry entry,
+  ) async {
+    close();
+    _archiveClient = client;
+    _artifact = artifact;
+    _archiveManifest = manifest;
+    _archiveEntry = entry;
+    target = List.unmodifiable(entry.components);
+    previewRepresentation = _initialRepresentation(entry.components.last);
+    final source = QualifiedArchiveEntryPreviewSource(
+      workspaceId: artifact.workspaceId,
+      artifactId: artifact.id,
+      artifactRevision: artifact.revision,
+      archiveSha256: manifest.sha256,
+      format: manifest.format,
+      index: entry.index,
+      sourcePath: List.unmodifiable(entry.components),
+      length: entry.size,
+    );
+    final row = InspectedFileCopy(
+      sourcePath: source.sourcePath,
+      name: artifact.originalName,
+      versionLabel: manifest.format,
+      enabled: true,
+      hidden: false,
+      winner: false,
+      historical: false,
+      length: entry.size,
+      sha256: manifest.sha256,
+      canHide: false,
+      canUnhide: false,
+      source: source,
+      standing: FileSourceStanding.selected,
+    );
+    _copies[key(row)] = row;
+    _selected = key(row);
+    notifyListeners();
+    await loadPreview();
+  }
+
+  static FilePreviewRepresentation _initialRepresentation(String name) {
+    final lower = name.toLowerCase();
+    if (lower.endsWith('.png') ||
+        lower.endsWith('.jpg') ||
+        lower.endsWith('.jpeg')) {
+      return FilePreviewRepresentation.image;
+    }
+    const text = [
+      '.txt',
+      '.ini',
+      '.json',
+      '.xml',
+      '.html',
+      '.htm',
+      '.css',
+      '.js',
+      '.lua',
+      '.psc',
+      '.yaml',
+      '.yml',
+      '.toml',
+      '.md',
+      '.csv',
+      '.log',
+    ];
+    return text.any(lower.endsWith)
+        ? FilePreviewRepresentation.text
+        : FilePreviewRepresentation.hex;
+  }
+
   void select(InspectedFileCopy copy) {
     _selected = key(copy);
     _clearHistory();
+    previewRepresentation = _initialRepresentation(copy.sourcePath.last);
     notifyListeners();
+    unawaited(loadPreview());
   }
 
   void _clearHistory() {
@@ -89,6 +198,9 @@ class FileInspectorController extends ChangeNotifier {
   }
 
   Future<void> reload() async {
+    _cancelPreview();
+    preview = null;
+    previewProblem = null;
     ++_epoch;
     _next = null;
     _copies.clear();
@@ -143,6 +255,11 @@ class FileInspectorController extends ChangeNotifier {
           result.copies.where((copy) => copy.winner).firstOrNull == null
           ? (result.copies.isEmpty ? null : key(result.copies.first))
           : key(result.copies.firstWhere((copy) => copy.winner));
+      final chosen = selected;
+      if (chosen != null) {
+        previewRepresentation = _initialRepresentation(chosen.sourcePath.last);
+        unawaited(loadPreview());
+      }
     } on Exception catch (error) {
       if (!_disposed && epoch == _epoch) {
         problem = error is FilePlanException
@@ -152,6 +269,80 @@ class FileInspectorController extends ChangeNotifier {
     } finally {
       if (!_disposed && epoch == _epoch) {
         loading = false;
+        notifyListeners();
+      }
+    }
+  }
+
+  void cancelPreview() {
+    _cancelPreview();
+    previewProblem = 'Preview stopped.';
+    if (!_disposed) notifyListeners();
+  }
+
+  void setPreviewRepresentation(FilePreviewRepresentation value) {
+    if (previewRepresentation == value) return;
+    previewRepresentation = value;
+    notifyListeners();
+    unawaited(loadPreview());
+  }
+
+  Future<void> loadPreview() async {
+    final chosen = selected;
+    if (_disposed || chosen == null) return;
+    _cancelPreview();
+    final epoch = _previewEpoch;
+    preview = null;
+    previewProblem = null;
+    previewLoading = true;
+    notifyListeners();
+    final FilePreviewRead read;
+    if (archiveMode) {
+      final client = _archiveClient;
+      final artifact = _artifact;
+      final manifest = _archiveManifest;
+      final entry = _archiveEntry;
+      if (client == null ||
+          artifact == null ||
+          manifest == null ||
+          entry == null) {
+        previewLoading = false;
+        return;
+      }
+      read = client.previewEntry(
+        artifact,
+        manifest,
+        entry,
+        previewRepresentation,
+      );
+    } else {
+      final client = _client;
+      final snapshot = _snapshot;
+      if (client == null || snapshot == null) {
+        previewLoading = false;
+        return;
+      }
+      read = client.preview(snapshot, chosen.source, previewRepresentation);
+    }
+    _previewRead = read;
+    try {
+      final result = await read.result;
+      if (_disposed || epoch != _previewEpoch || key(chosen) != _selected) {
+        return;
+      }
+      preview = result;
+    } on Exception catch (error) {
+      if (!_disposed && epoch == _previewEpoch) {
+        previewProblem = error is FilePlanException
+            ? error.detail
+            : error is ArtifactProblem
+            ? error.detail
+            : 'Could not preview this source.';
+      }
+    } finally {
+      if (!_disposed && epoch == _previewEpoch) {
+        _previewRead = null;
+        previewLoading = false;
         notifyListeners();
       }
     }
@@ -194,6 +385,7 @@ class FileInspectorController extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    _cancelPreview();
     ++_epoch;
     ++_historyEpoch;
     super.dispose();

@@ -98,6 +98,13 @@ class FilePlanOperationsClient extends $grpc.Client {
         options: options);
   }
 
+  $grpc.ResponseFuture<$0.FilePreviewReply> previewFileSource(
+    $0.FilePreviewRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$previewFileSource, request, options: options);
+  }
+
   // method descriptors
 
   static final _$openFilePlan =
@@ -145,6 +152,11 @@ class FilePlanOperationsClient extends $grpc.Client {
       '/modconductor.v1.FilePlanOperations/ReadFileVisibilityHistory',
       ($0.FileVisibilityHistoryRequest value) => value.writeToBuffer(),
       $0.FileVisibilityHistoryReply.fromBuffer);
+  static final _$previewFileSource =
+      $grpc.ClientMethod<$0.FilePreviewRequest, $0.FilePreviewReply>(
+          '/modconductor.v1.FilePlanOperations/PreviewFileSource',
+          ($0.FilePreviewRequest value) => value.writeToBuffer(),
+          $0.FilePreviewReply.fromBuffer);
 }
 
 @$pb.GrpcServiceName('modconductor.v1.FilePlanOperations')
@@ -230,6 +242,14 @@ abstract class FilePlanOperationsServiceBase extends $grpc.Service {
         ($core.List<$core.int> value) =>
             $0.FileVisibilityHistoryRequest.fromBuffer(value),
         ($0.FileVisibilityHistoryReply value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.FilePreviewRequest, $0.FilePreviewReply>(
+        'PreviewFileSource',
+        previewFileSource_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.FilePreviewRequest.fromBuffer(value),
+        ($0.FilePreviewReply value) => value.writeToBuffer()));
   }
 
   $async.Future<$0.FilePlanReply> openFilePlan_Pre($grpc.ServiceCall $call,
@@ -310,4 +330,13 @@ abstract class FilePlanOperationsServiceBase extends $grpc.Service {
 
   $async.Future<$0.FileVisibilityHistoryReply> readFileVisibilityHistory(
       $grpc.ServiceCall call, $0.FileVisibilityHistoryRequest request);
+
+  $async.Future<$0.FilePreviewReply> previewFileSource_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.FilePreviewRequest> $request) async {
+    return previewFileSource($call, await $request);
+  }
+
+  $async.Future<$0.FilePreviewReply> previewFileSource(
+      $grpc.ServiceCall call, $0.FilePreviewRequest request);
 }

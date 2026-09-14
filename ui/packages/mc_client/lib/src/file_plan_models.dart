@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 class ManagedFileCopy {
   ManagedFileCopy(this.modId, this.versionId, List<String> path)
     : path = List.unmodifiable(path);
@@ -13,6 +15,126 @@ class ManagedFileCopy {
           .every((index) => path[index] == other.path[index]);
   @override
   int get hashCode => Object.hash(modId, versionId, Object.hashAll(path));
+}
+
+enum FileSourceStanding { winner, alternative, selected, previous, unavailable }
+
+enum FilePreviewRepresentation { text, image, hex }
+
+enum FilePreviewStatus { ready, unsupported, tooLarge, changed }
+
+sealed class FilePreviewSource {
+  const FilePreviewSource({
+    required this.target,
+    required this.sourcePath,
+    required this.length,
+  });
+  final List<String> target, sourcePath;
+  final int length;
+  Object get id;
+  String get kindLabel;
+}
+
+class ManagedPreviewSource extends FilePreviewSource {
+  ManagedPreviewSource({
+    required this.copy,
+    required super.sourcePath,
+    required super.target,
+    required super.length,
+    required this.sha256,
+    required this.payloadId,
+  });
+  final ManagedFileCopy copy;
+  final String sha256, payloadId;
+  @override
+  Object get id => copy;
+  @override
+  String get kindLabel => 'Managed copy';
+}
+
+class CheckedGamePreviewSource extends FilePreviewSource {
+  CheckedGamePreviewSource({
+    required this.snapshotId,
+    required this.generation,
+    required this.kind,
+    required super.sourcePath,
+    required super.target,
+    required super.length,
+    required this.sha256,
+  });
+  final String snapshotId, generation, sha256;
+  final int kind;
+  @override
+  Object get id => 'game:$snapshotId:$generation:${sourcePath.join('/')}';
+  @override
+  String get kindLabel => 'Game file';
+}
+
+class QualifiedArchiveEntryPreviewSource extends FilePreviewSource {
+  QualifiedArchiveEntryPreviewSource({
+    required this.workspaceId,
+    required this.artifactId,
+    required this.artifactRevision,
+    required this.archiveSha256,
+    required this.format,
+    required this.index,
+    required super.sourcePath,
+    required super.length,
+  }) : super(target: sourcePath);
+  final String workspaceId, artifactId, archiveSha256, format;
+  final int artifactRevision, index;
+  @override
+  Object get id =>
+      'archive:$workspaceId:$artifactId:$artifactRevision:$archiveSha256:$index';
+  @override
+  String get kindLabel => '$format archive entry';
+}
+
+sealed class FilePreviewContent {
+  const FilePreviewContent();
+}
+
+class FilePreviewText extends FilePreviewContent {
+  const FilePreviewText(this.content, this.encoding, this.lines);
+  final String content, encoding;
+  final int lines;
+}
+
+class FilePreviewImage extends FilePreviewContent {
+  const FilePreviewImage(this.content, this.format, this.width, this.height);
+  final Uint8List content;
+  final String format;
+  final int width, height;
+}
+
+class FilePreviewHex extends FilePreviewContent {
+  const FilePreviewHex(this.content, this.totalLength, this.truncated);
+  final Uint8List content;
+  final int totalLength;
+  final bool truncated;
+}
+
+class FilePreviewResult {
+  const FilePreviewResult({
+    required this.source,
+    required this.standing,
+    required this.target,
+    required this.status,
+    this.detail,
+    this.content,
+  });
+  final FilePreviewSource source;
+  final FileSourceStanding standing;
+  final List<String> target;
+  final FilePreviewStatus status;
+  final String? detail;
+  final FilePreviewContent? content;
+}
+
+class FilePreviewRead {
+  const FilePreviewRead(this.result, this.cancel);
+  final Future<FilePreviewResult> result;
+  final Future<void> Function() cancel;
 }
 
 class FilePlanCursor {
@@ -82,8 +204,12 @@ class InspectedFileCopy {
     required this.sha256,
     required this.canHide,
     required this.canUnhide,
+    required this.source,
+    required this.standing,
   });
   final ManagedFileCopy? copy;
+  final FilePreviewSource source;
+  final FileSourceStanding standing;
   final List<String> sourcePath;
   final String name, versionLabel, sha256;
   final int? priority;

@@ -190,3 +190,46 @@ module GameFiles =
 
     let acquire evidence rootId progress token =
         acquireProjected GameProjection.empty evidence rootId progress token
+
+    let readChecked
+        (observation: GameObservation)
+        (source: CheckedGamePreviewSource)
+        token
+        consume
+        =
+        protect (fun () ->
+            if
+                observation.Snapshot.Id <> source.SnapshotId
+                || observation.Snapshot.Generation <> source.Generation
+                || observation.Snapshot.Kind <> source.Kind
+            then
+                raise (ScanChangedException())
+
+            let entry =
+                observation.Entries
+                |> List.tryFind (fun entry ->
+                    not entry.Directory && entry.Path = source.SourcePath)
+                |> Option.defaultWith (fun () -> raise (ScanChangedException()))
+
+            if entry.Length <> source.Length then
+                raise (ScanChangedException())
+
+            use root = HeldDirectory.Open(observation.Root, observation.Identity)
+            let stream, _ = GameInventory.read root observation.Projection entry
+            use stream = stream
+
+            if
+                stream.Length <> entry.Length
+                || File.GetLastWriteTimeUtc stream.SafeFileHandle <> entry.Modified
+            then
+                raise (ScanChangedException())
+
+            let result = consume stream
+
+            if
+                stream.Length <> entry.Length
+                || File.GetLastWriteTimeUtc stream.SafeFileHandle <> entry.Modified
+            then
+                raise (ScanChangedException())
+
+            result)

@@ -167,8 +167,94 @@ type FilePage =
       Nodes: FileNode list
       Next: FileCursor option }
 
+
+[<RequireQualifiedAccess>]
+type FileSourceStanding =
+    | Winner
+    | Alternative
+    | Selected
+    | Previous
+    | Unavailable
+
+type ManagedPreviewSource =
+    { Copy: ModFile
+      SourcePath: LogicalPath
+      Target: LogicalPath
+      PayloadId: Guid
+      Length: int64
+      Sha256: string }
+
+type CheckedGamePreviewSource =
+    { SnapshotId: Guid
+      Generation: string
+      Kind: ReadOnlyLayerKind
+      SourcePath: LogicalPath
+      Target: LogicalPath
+      Length: int64
+      Sha256: string }
+
+type QualifiedArchiveEntryPreviewSource =
+    { WorkspaceId: Guid
+      ArtifactId: Guid
+      ArtifactRevision: int64
+      ArchiveSha256: string
+      Format: string
+      Index: int
+      Path: LogicalPath
+      Length: int64 }
+
+[<RequireQualifiedAccess>]
+type FilePreviewSource =
+    | ManagedCopy of ManagedPreviewSource
+    | CheckedGameFile of CheckedGamePreviewSource
+    | QualifiedArchiveEntry of QualifiedArchiveEntryPreviewSource
+
+[<RequireQualifiedAccess>]
+type FilePreviewRepresentation =
+    | Text
+    | Image
+    | Hex
+
+type TextPreview =
+    { Content: string
+      Encoding: string
+      Lines: int }
+
+type ImagePreview =
+    { Content: byte array
+      Format: string
+      Width: int
+      Height: int }
+
+type HexPreview =
+    { Content: byte array
+      TotalLength: int64
+      Truncated: bool }
+
+[<RequireQualifiedAccess>]
+type FilePreviewContent =
+    | Text of TextPreview
+    | Image of ImagePreview
+    | Hex of HexPreview
+
+[<RequireQualifiedAccess>]
+type FilePreviewOutcome =
+    | Ready of FilePreviewContent
+    | Unsupported of string
+    | TooLarge of string
+    | Changed of string
+
+
+type FilePreview =
+    { Source: FilePreviewSource
+      Standing: FileSourceStanding
+      Target: LogicalPath
+      Outcome: FilePreviewOutcome }
+
 type InspectedCopy =
-    { Copy: ModFile option
+    { Source: FilePreviewSource
+      Standing: FileSourceStanding
+      Copy: ModFile option
       SourcePath: LogicalPath
       Name: string
       VersionLabel: string
@@ -219,6 +305,10 @@ type IFilePlans =
         Guid * ModFile * bool * CancellationToken -> Task<Result<VisibilityChange, FilePlanError>>
 
     abstract History: Guid * ModFile * int64 option -> Task<Result<FileHistoryPage, FilePlanError>>
+
+    abstract Preview:
+        Guid * FilePreviewSource * FilePreviewRepresentation * CancellationToken ->
+            Task<Result<FilePreview, FilePlanError>>
 
 /// Candidate reads keep header inspection separate from full deployment acquisition.
 type IFileCandidateRepository =

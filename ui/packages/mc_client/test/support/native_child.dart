@@ -133,6 +133,11 @@ class NativeChild {
         ),
       );
 
+  ArtifactsClient artifacts({bool authenticate = true}) => GrpcArtifactsClient(
+    _localChannel(),
+    CallOptions(metadata: authenticate ? {'mc-session': capability} : const {}),
+  );
+
   FilePlansClient filePlans({bool authenticate = true}) => GrpcFilePlansClient(
     _localChannel(),
     CallOptions(metadata: authenticate ? {'mc-session': capability} : const {}),

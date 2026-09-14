@@ -26,21 +26,30 @@ namespace ModConductor.Protocol.V1 {
           string.Concat(
             "Cihtb2Rjb25kdWN0b3IvdjEvYXJjaGl2ZV9pbnNwZWN0aW9uLnByb3RvEg9t",
             "b2Rjb25kdWN0b3IudjEaH21vZGNvbmR1Y3Rvci92MS9hcnRpZmFjdHMucHJv",
-            "dG8ifwoQSW5zcGVjdGVkQXJjaGl2ZRIOCgZzaGEyNTYYASABKAkSDgoGZm9y",
-            "bWF0GAIgASgJEjcKB2VudHJpZXMYAyADKAsyJi5tb2Rjb25kdWN0b3IudjEu",
-            "SW5zcGVjdGVkQXJjaGl2ZUVudHJ5EhIKCnRvdGFsX3NpemUYBCABKAQijQEK",
-            "FUluc3BlY3RlZEFyY2hpdmVFbnRyeRINCgVpbmRleBgBIAEoDRISCgpjb21w",
-            "b25lbnRzGAIgAygJEhEKCWRpcmVjdG9yeRgDIAEoCBIMCgRzaXplGAQgASgE",
-            "EhwKD2NvbXByZXNzZWRfc2l6ZRgFIAEoBEgAiAEBQhIKEF9jb21wcmVzc2Vk",
-            "X3NpemUybAoRQXJjaGl2ZUluc3BlY3Rpb24SVwoOSW5zcGVjdEFyY2hpdmUS",
-            "Ii5tb2Rjb25kdWN0b3IudjEuQXJ0aWZhY3RSZWZlcmVuY2UaIS5tb2Rjb25k",
-            "dWN0b3IudjEuSW5zcGVjdGVkQXJjaGl2ZUIbqgIYTW9kQ29uZHVjdG9yLlBy",
-            "b3RvY29sLlYxYgZwcm90bzM="));
+            "dG8aIG1vZGNvbmR1Y3Rvci92MS9maWxlX3BsYW5zLnByb3RvIn8KEEluc3Bl",
+            "Y3RlZEFyY2hpdmUSDgoGc2hhMjU2GAEgASgJEg4KBmZvcm1hdBgCIAEoCRI3",
+            "CgdlbnRyaWVzGAMgAygLMiYubW9kY29uZHVjdG9yLnYxLkluc3BlY3RlZEFy",
+            "Y2hpdmVFbnRyeRISCgp0b3RhbF9zaXplGAQgASgEIo0BChVJbnNwZWN0ZWRB",
+            "cmNoaXZlRW50cnkSDQoFaW5kZXgYASABKA0SEgoKY29tcG9uZW50cxgCIAMo",
+            "CRIRCglkaXJlY3RvcnkYAyABKAgSDAoEc2l6ZRgEIAEoBBIcCg9jb21wcmVz",
+            "c2VkX3NpemUYBSABKARIAIgBAUISChBfY29tcHJlc3NlZF9zaXplIu0BChpQ",
+            "cmV2aWV3QXJjaGl2ZUVudHJ5UmVxdWVzdBI0CghhcnRpZmFjdBgBIAEoCzIi",
+            "Lm1vZGNvbmR1Y3Rvci52MS5BcnRpZmFjdFJlZmVyZW5jZRIOCgZzaGEyNTYY",
+            "AiABKAkSDgoGZm9ybWF0GAMgASgJEjUKBWVudHJ5GAQgASgLMiYubW9kY29u",
+            "ZHVjdG9yLnYxLkluc3BlY3RlZEFyY2hpdmVFbnRyeRJCCg5yZXByZXNlbnRh",
+            "dGlvbhgFIAEoDjIqLm1vZGNvbmR1Y3Rvci52MS5GaWxlUHJldmlld1JlcHJl",
+            "c2VudGF0aW9uMtMBChFBcmNoaXZlSW5zcGVjdGlvbhJXCg5JbnNwZWN0QXJj",
+            "aGl2ZRIiLm1vZGNvbmR1Y3Rvci52MS5BcnRpZmFjdFJlZmVyZW5jZRohLm1v",
+            "ZGNvbmR1Y3Rvci52MS5JbnNwZWN0ZWRBcmNoaXZlEmUKE1ByZXZpZXdBcmNo",
+            "aXZlRW50cnkSKy5tb2Rjb25kdWN0b3IudjEuUHJldmlld0FyY2hpdmVFbnRy",
+            "eVJlcXVlc3QaIS5tb2Rjb25kdWN0b3IudjEuRmlsZVByZXZpZXdSZXBseUIb",
+            "qgIYTW9kQ29uZHVjdG9yLlByb3RvY29sLlYxYgZwcm90bzM="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
-          new pbr::FileDescriptor[] { global::ModConductor.Protocol.V1.ArtifactsReflection.Descriptor, },
+          new pbr::FileDescriptor[] { global::ModConductor.Protocol.V1.ArtifactsReflection.Descriptor, global::ModConductor.Protocol.V1.FilePlansReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(null, null, new pbr::GeneratedClrTypeInfo[] {
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.InspectedArchive), global::ModConductor.Protocol.V1.InspectedArchive.Parser, new[]{ "Sha256", "Format", "Entries", "TotalSize" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.InspectedArchiveEntry), global::ModConductor.Protocol.V1.InspectedArchiveEntry.Parser, new[]{ "Index", "Components", "Directory", "Size", "CompressedSize" }, new[]{ "CompressedSize" }, null, null, null)
+            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.InspectedArchiveEntry), global::ModConductor.Protocol.V1.InspectedArchiveEntry.Parser, new[]{ "Index", "Components", "Directory", "Size", "CompressedSize" }, new[]{ "CompressedSize" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.PreviewArchiveEntryRequest), global::ModConductor.Protocol.V1.PreviewArchiveEntryRequest.Parser, new[]{ "Artifact", "Sha256", "Format", "Entry", "Representation" }, null, null, null, null)
           }));
     }
     #endregion
@@ -688,6 +697,370 @@ namespace ModConductor.Protocol.V1 {
           }
           case 40: {
             CompressedSize = input.ReadUInt64();
+            break;
+          }
+        }
+      }
+    }
+    #endif
+
+  }
+
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
+  public sealed partial class PreviewArchiveEntryRequest : pb::IMessage<PreviewArchiveEntryRequest>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
+    private static readonly pb::MessageParser<PreviewArchiveEntryRequest> _parser = new pb::MessageParser<PreviewArchiveEntryRequest>(() => new PreviewArchiveEntryRequest());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pb::MessageParser<PreviewArchiveEntryRequest> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::ModConductor.Protocol.V1.ArchiveInspectionReflection.Descriptor.MessageTypes[2]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public PreviewArchiveEntryRequest() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public PreviewArchiveEntryRequest(PreviewArchiveEntryRequest other) : this() {
+      artifact_ = other.artifact_ != null ? other.artifact_.Clone() : null;
+      sha256_ = other.sha256_;
+      format_ = other.format_;
+      entry_ = other.entry_ != null ? other.entry_.Clone() : null;
+      representation_ = other.representation_;
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public PreviewArchiveEntryRequest Clone() {
+      return new PreviewArchiveEntryRequest(this);
+    }
+
+    /// <summary>Field number for the "artifact" field.</summary>
+    public const int ArtifactFieldNumber = 1;
+    private global::ModConductor.Protocol.V1.ArtifactReference artifact_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public global::ModConductor.Protocol.V1.ArtifactReference Artifact {
+      get { return artifact_; }
+      set {
+        artifact_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "sha256" field.</summary>
+    public const int Sha256FieldNumber = 2;
+    private string sha256_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string Sha256 {
+      get { return sha256_; }
+      set {
+        sha256_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "format" field.</summary>
+    public const int FormatFieldNumber = 3;
+    private string format_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string Format {
+      get { return format_; }
+      set {
+        format_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "entry" field.</summary>
+    public const int EntryFieldNumber = 4;
+    private global::ModConductor.Protocol.V1.InspectedArchiveEntry entry_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public global::ModConductor.Protocol.V1.InspectedArchiveEntry Entry {
+      get { return entry_; }
+      set {
+        entry_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "representation" field.</summary>
+    public const int RepresentationFieldNumber = 5;
+    private global::ModConductor.Protocol.V1.FilePreviewRepresentation representation_ = global::ModConductor.Protocol.V1.FilePreviewRepresentation.Unspecified;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public global::ModConductor.Protocol.V1.FilePreviewRepresentation Representation {
+      get { return representation_; }
+      set {
+        representation_ = value;
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override bool Equals(object other) {
+      return Equals(other as PreviewArchiveEntryRequest);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool Equals(PreviewArchiveEntryRequest other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (!object.Equals(Artifact, other.Artifact)) return false;
+      if (Sha256 != other.Sha256) return false;
+      if (Format != other.Format) return false;
+      if (!object.Equals(Entry, other.Entry)) return false;
+      if (Representation != other.Representation) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (artifact_ != null) hash ^= Artifact.GetHashCode();
+      if (Sha256.Length != 0) hash ^= Sha256.GetHashCode();
+      if (Format.Length != 0) hash ^= Format.GetHashCode();
+      if (entry_ != null) hash ^= Entry.GetHashCode();
+      if (Representation != global::ModConductor.Protocol.V1.FilePreviewRepresentation.Unspecified) hash ^= Representation.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
+      if (artifact_ != null) {
+        output.WriteRawTag(10);
+        output.WriteMessage(Artifact);
+      }
+      if (Sha256.Length != 0) {
+        output.WriteRawTag(18);
+        output.WriteString(Sha256);
+      }
+      if (Format.Length != 0) {
+        output.WriteRawTag(26);
+        output.WriteString(Format);
+      }
+      if (entry_ != null) {
+        output.WriteRawTag(34);
+        output.WriteMessage(Entry);
+      }
+      if (Representation != global::ModConductor.Protocol.V1.FilePreviewRepresentation.Unspecified) {
+        output.WriteRawTag(40);
+        output.WriteEnum((int) Representation);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      if (artifact_ != null) {
+        output.WriteRawTag(10);
+        output.WriteMessage(Artifact);
+      }
+      if (Sha256.Length != 0) {
+        output.WriteRawTag(18);
+        output.WriteString(Sha256);
+      }
+      if (Format.Length != 0) {
+        output.WriteRawTag(26);
+        output.WriteString(Format);
+      }
+      if (entry_ != null) {
+        output.WriteRawTag(34);
+        output.WriteMessage(Entry);
+      }
+      if (Representation != global::ModConductor.Protocol.V1.FilePreviewRepresentation.Unspecified) {
+        output.WriteRawTag(40);
+        output.WriteEnum((int) Representation);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int CalculateSize() {
+      int size = 0;
+      if (artifact_ != null) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(Artifact);
+      }
+      if (Sha256.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(Sha256);
+      }
+      if (Format.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(Format);
+      }
+      if (entry_ != null) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(Entry);
+      }
+      if (Representation != global::ModConductor.Protocol.V1.FilePreviewRepresentation.Unspecified) {
+        size += 1 + pb::CodedOutputStream.ComputeEnumSize((int) Representation);
+      }
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(PreviewArchiveEntryRequest other) {
+      if (other == null) {
+        return;
+      }
+      if (other.artifact_ != null) {
+        if (artifact_ == null) {
+          Artifact = new global::ModConductor.Protocol.V1.ArtifactReference();
+        }
+        Artifact.MergeFrom(other.Artifact);
+      }
+      if (other.Sha256.Length != 0) {
+        Sha256 = other.Sha256;
+      }
+      if (other.Format.Length != 0) {
+        Format = other.Format;
+      }
+      if (other.entry_ != null) {
+        if (entry_ == null) {
+          Entry = new global::ModConductor.Protocol.V1.InspectedArchiveEntry();
+        }
+        Entry.MergeFrom(other.Entry);
+      }
+      if (other.Representation != global::ModConductor.Protocol.V1.FilePreviewRepresentation.Unspecified) {
+        Representation = other.Representation;
+      }
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 10: {
+            if (artifact_ == null) {
+              Artifact = new global::ModConductor.Protocol.V1.ArtifactReference();
+            }
+            input.ReadMessage(Artifact);
+            break;
+          }
+          case 18: {
+            Sha256 = input.ReadString();
+            break;
+          }
+          case 26: {
+            Format = input.ReadString();
+            break;
+          }
+          case 34: {
+            if (entry_ == null) {
+              Entry = new global::ModConductor.Protocol.V1.InspectedArchiveEntry();
+            }
+            input.ReadMessage(Entry);
+            break;
+          }
+          case 40: {
+            Representation = (global::ModConductor.Protocol.V1.FilePreviewRepresentation) input.ReadEnum();
+            break;
+          }
+        }
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 10: {
+            if (artifact_ == null) {
+              Artifact = new global::ModConductor.Protocol.V1.ArtifactReference();
+            }
+            input.ReadMessage(Artifact);
+            break;
+          }
+          case 18: {
+            Sha256 = input.ReadString();
+            break;
+          }
+          case 26: {
+            Format = input.ReadString();
+            break;
+          }
+          case 34: {
+            if (entry_ == null) {
+              Entry = new global::ModConductor.Protocol.V1.InspectedArchiveEntry();
+            }
+            input.ReadMessage(Entry);
+            break;
+          }
+          case 40: {
+            Representation = (global::ModConductor.Protocol.V1.FilePreviewRepresentation) input.ReadEnum();
             break;
           }
         }

@@ -68,3 +68,45 @@ final $typed_data.Uint8List inspectedArchiveEntryDescriptor = $convert.base64Dec
     'VudHMYAiADKAlSCmNvbXBvbmVudHMSHAoJZGlyZWN0b3J5GAMgASgIUglkaXJlY3RvcnkSEgoE'
     'c2l6ZRgEIAEoBFIEc2l6ZRIsCg9jb21wcmVzc2VkX3NpemUYBSABKARIAFIOY29tcHJlc3NlZF'
     'NpemWIAQFCEgoQX2NvbXByZXNzZWRfc2l6ZQ==');
+
+@$core.Deprecated('Use previewArchiveEntryRequestDescriptor instead')
+const PreviewArchiveEntryRequest$json = {
+  '1': 'PreviewArchiveEntryRequest',
+  '2': [
+    {
+      '1': 'artifact',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.ArtifactReference',
+      '10': 'artifact'
+    },
+    {'1': 'sha256', '3': 2, '4': 1, '5': 9, '10': 'sha256'},
+    {'1': 'format', '3': 3, '4': 1, '5': 9, '10': 'format'},
+    {
+      '1': 'entry',
+      '3': 4,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.InspectedArchiveEntry',
+      '10': 'entry'
+    },
+    {
+      '1': 'representation',
+      '3': 5,
+      '4': 1,
+      '5': 14,
+      '6': '.modconductor.v1.FilePreviewRepresentation',
+      '10': 'representation'
+    },
+  ],
+};
+
+/// Descriptor for `PreviewArchiveEntryRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List previewArchiveEntryRequestDescriptor = $convert.base64Decode(
+    'ChpQcmV2aWV3QXJjaGl2ZUVudHJ5UmVxdWVzdBI+CghhcnRpZmFjdBgBIAEoCzIiLm1vZGNvbm'
+    'R1Y3Rvci52MS5BcnRpZmFjdFJlZmVyZW5jZVIIYXJ0aWZhY3QSFgoGc2hhMjU2GAIgASgJUgZz'
+    'aGEyNTYSFgoGZm9ybWF0GAMgASgJUgZmb3JtYXQSPAoFZW50cnkYBCABKAsyJi5tb2Rjb25kdW'
+    'N0b3IudjEuSW5zcGVjdGVkQXJjaGl2ZUVudHJ5UgVlbnRyeRJSCg5yZXByZXNlbnRhdGlvbhgF'
+    'IAEoDjIqLm1vZGNvbmR1Y3Rvci52MS5GaWxlUHJldmlld1JlcHJlc2VudGF0aW9uUg5yZXByZX'
+    'NlbnRhdGlvbg==');

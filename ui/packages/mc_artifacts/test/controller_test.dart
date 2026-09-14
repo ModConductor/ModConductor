@@ -30,6 +30,13 @@ class Client implements ArtifactsClient {
   @override
   ArchiveRead readContents(Artifact artifact) => throw UnimplementedError();
   @override
+  FilePreviewRead previewEntry(
+    Artifact expected,
+    InspectedArchive manifest,
+    InspectedEntry entry,
+    FilePreviewRepresentation representation,
+  ) => throw UnimplementedError();
+  @override
   Future<Artifact> download(
     String workspaceId,
     String id,

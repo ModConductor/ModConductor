@@ -29,6 +29,16 @@ void main() {
           version = newOperationId();
       try {
         await child.workspaces().create(workspace, 'Files', root.path);
+        final archiveInput = await Directory('${area.path}/archives').create();
+        final archivePrepared = await Process.run(fixture, [
+          '--inspection-files',
+          archiveInput.path,
+        ]);
+        expect(
+          archivePrepared.exitCode,
+          0,
+          reason: '${archivePrepared.stderr}',
+        );
         await child.workspaces().createProfile(
           workspace,
           0,
@@ -84,6 +94,54 @@ void main() {
             ),
           ),
         );
+        final artifacts = child.artifacts();
+        final artifact = await artifacts.add(
+          workspace,
+          newOperationId(),
+          '${archiveInput.path}/textures.zip',
+          ArtifactStorage.reference,
+        );
+        final archiveRead = artifacts.readContents(artifact);
+        final archiveManifest = await archiveRead.result;
+        final archiveEntry = archiveManifest.entries.firstWhere(
+          (entry) => !entry.directory,
+        );
+        final archivePreview = await artifacts
+            .previewEntry(
+              artifact,
+              archiveManifest,
+              archiveEntry,
+              FilePreviewRepresentation.text,
+            )
+            .result;
+        expect(
+          archivePreview.source,
+          isA<QualifiedArchiveEntryPreviewSource>(),
+        );
+        expect(archivePreview.standing, FileSourceStanding.selected);
+        expect(
+          (archivePreview.content as FilePreviewText).content,
+          'MC032 synthetic archive contents.\n',
+        );
+        await File('${archiveInput.path}/textures.zip')
+            .writeAsBytes([0], mode: FileMode.append);
+        await expectLater(
+          artifacts
+              .previewEntry(
+                artifact,
+                archiveManifest,
+                archiveEntry,
+                FilePreviewRepresentation.text,
+              )
+              .result,
+          throwsA(
+            isA<FilePlanException>().having(
+              (error) => error.failure,
+              'changed archive',
+              FilePlanFailure.stale,
+            ),
+          ),
+        );
         final files = child.filePlans();
         expect((await files.open(profile)).loaded, isFalse);
         final events = await files.acquire(profile, refresh: true).toList();
@@ -93,7 +151,48 @@ void main() {
         final copy = ManagedFileCopy(mod, version, ['shared.txt']);
         final inspected = await files.inspectCopy(loaded.id, copy);
         expect(inspected.focusedCopy!.copy, copy);
-        expect(inspected.focusedCopy!.winner, isTrue);
+        expect(inspected.focusedCopy!.source, isA<ManagedPreviewSource>());
+        final managedPreview = files.preview(
+          loaded.id,
+          inspected.focusedCopy!.source,
+          FilePreviewRepresentation.text,
+        );
+        final managedResult = await managedPreview.result;
+        expect(managedResult.standing, FileSourceStanding.winner);
+        expect((managedResult.content as FilePreviewText).content, 'Mod copy');
+        final targetInspection = await files.inspect(loaded.id, ['shared.txt']);
+        final gameSource = targetInspection.copies
+            .singleWhere((row) => row.source is CheckedGamePreviewSource)
+            .source;
+        final gameResult = await files
+            .preview(loaded.id, gameSource, FilePreviewRepresentation.text)
+            .result;
+        expect(gameResult.standing, FileSourceStanding.alternative);
+        expect((gameResult.content as FilePreviewText).content, 'Game folder');
+        final managed = inspected.focusedCopy!.source as ManagedPreviewSource;
+        await expectLater(
+          files
+              .preview(
+                loaded.id,
+                ManagedPreviewSource(
+                  copy: managed.copy,
+                  sourcePath: managed.sourcePath,
+                  target: managed.target,
+                  payloadId: managed.payloadId,
+                  length: managed.length,
+                  sha256: '0' * 64,
+                ),
+                FilePreviewRepresentation.text,
+              )
+              .result,
+          throwsA(
+            isA<FilePlanException>().having(
+              (error) => error.failure,
+              'source identity',
+              FilePlanFailure.stale,
+            ),
+          ),
+        );
         final first = await files.children(loaded.id, parent: ['branch']);
         expect(first.next, isNotNull);
         final results = await Future.wait([

@@ -6,12 +6,20 @@ import 'generated/modconductor/v1/downloads.pbgrpc.dart' as transfer;
 import 'generated/modconductor/v1/download_models.pb.dart' as model;
 import 'artifact_models.dart';
 import 'archive_inspection_models.dart';
+import 'file_plan_models.dart';
+import 'file_plan_wire.dart' as filewire;
 import 'generated/modconductor/v1/archive_inspection.pbgrpc.dart' as inspection;
 export 'archive_inspection_models.dart';
 export 'artifact_models.dart';
 
 abstract interface class ArtifactsClient {
   ArchiveRead readContents(Artifact expected);
+  FilePreviewRead previewEntry(
+    Artifact expected,
+    InspectedArchive manifest,
+    InspectedEntry entry,
+    FilePreviewRepresentation representation,
+  );
   Future<ArtifactPage> list(
     String workspaceId, {
     String? after,
@@ -53,6 +61,37 @@ class GrpcArtifactsClient implements ArtifactsClient {
       );
   final inspection.ArchiveInspectionClient _inspection;
   final wire.ArtifactLibraryClient _client;
+  inspection.InspectedArchiveEntry _entry(InspectedEntry entry) =>
+      inspection.InspectedArchiveEntry(
+        index: entry.index,
+        components: entry.components,
+        directory: entry.directory,
+        size: Int64(entry.size),
+        compressedSize: entry.compressedSize == null
+            ? null
+            : Int64(entry.compressedSize!),
+      );
+
+  @override
+  FilePreviewRead previewEntry(
+    Artifact expected,
+    InspectedArchive manifest,
+    InspectedEntry entry,
+    FilePreviewRepresentation representation,
+  ) {
+    final call = _inspection.previewArchiveEntry(
+      inspection.PreviewArchiveEntryRequest(
+        artifact: _ref(expected),
+        sha256: manifest.sha256,
+        format: manifest.format,
+        entry: _entry(entry),
+        representation: filewire.encodeRepresentation(representation),
+      ),
+      options: CallOptions(timeout: const Duration(days: 1)),
+    );
+    return FilePreviewRead(_call(call).then(filewire.preview), call.cancel);
+  }
+
   @override
   ArchiveRead readContents(Artifact expected) {
     final call = _inspection.inspectArchive(
@@ -122,26 +161,27 @@ class GrpcArtifactsClient implements ArtifactsClient {
     links: List.unmodifiable(a.links.map(_link)),
     download: a.hasDownload() ? _download(a.download) : null,
   );
-  static ArtifactDownload _download(model.ArchiveDownload d) => ArtifactDownload(
-    phase: switch (d.phase) {
-      model.DownloadPhase.DOWNLOAD_PHASE_QUEUED => DownloadPhase.queued,
-      model.DownloadPhase.DOWNLOAD_PHASE_RUNNING => DownloadPhase.running,
-      model.DownloadPhase.DOWNLOAD_PHASE_WAITING => DownloadPhase.waiting,
-      model.DownloadPhase.DOWNLOAD_PHASE_PAUSED => DownloadPhase.paused,
-      model.DownloadPhase.DOWNLOAD_PHASE_FAILED => DownloadPhase.failed,
-      model.DownloadPhase.DOWNLOAD_PHASE_COMPLETE => DownloadPhase.complete,
-      _ => throw const FormatException('Unknown download state.'),
-    },
-    bytes: d.bytes.toInt(),
-    total: d.hasTotal() ? d.total.toInt() : null,
-    source: d.source,
-    expectedSha256: d.hasExpectedSha256() ? d.expectedSha256 : null,
-    checksumMatched: d.checksumMatched,
-    restartRequired: d.restartRequired,
-    retryAt: d.hasRetryAtUnixMs()
-        ? DateTime.fromMillisecondsSinceEpoch(d.retryAtUnixMs.toInt())
-        : null,
-  );
+  static ArtifactDownload _download(model.ArchiveDownload d) =>
+      ArtifactDownload(
+        phase: switch (d.phase) {
+          model.DownloadPhase.DOWNLOAD_PHASE_QUEUED => DownloadPhase.queued,
+          model.DownloadPhase.DOWNLOAD_PHASE_RUNNING => DownloadPhase.running,
+          model.DownloadPhase.DOWNLOAD_PHASE_WAITING => DownloadPhase.waiting,
+          model.DownloadPhase.DOWNLOAD_PHASE_PAUSED => DownloadPhase.paused,
+          model.DownloadPhase.DOWNLOAD_PHASE_FAILED => DownloadPhase.failed,
+          model.DownloadPhase.DOWNLOAD_PHASE_COMPLETE => DownloadPhase.complete,
+          _ => throw const FormatException('Unknown download state.'),
+        },
+        bytes: d.bytes.toInt(),
+        total: d.hasTotal() ? d.total.toInt() : null,
+        source: d.source,
+        expectedSha256: d.hasExpectedSha256() ? d.expectedSha256 : null,
+        checksumMatched: d.checksumMatched,
+        restartRequired: d.restartRequired,
+        retryAt: d.hasRetryAtUnixMs()
+            ? DateTime.fromMillisecondsSinceEpoch(d.retryAtUnixMs.toInt())
+            : null,
+      );
   @override
   Future<Artifact> download(
     String workspaceId,

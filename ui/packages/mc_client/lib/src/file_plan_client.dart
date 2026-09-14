@@ -35,6 +35,11 @@ abstract interface class FilePlansClient {
     ManagedFileCopy copy, {
     required bool hidden,
   });
+  FilePreviewRead preview(
+    String snapshotId,
+    FilePreviewSource source,
+    FilePreviewRepresentation representation,
+  );
   Future<FileVisibilityHistory> history(
     String snapshotId,
     ManagedFileCopy copy, {
@@ -182,6 +187,23 @@ class GrpcFilePlansClient implements FilePlansClient {
         'Missing file visibility result.',
       ),
     };
+  }
+
+  @override
+  FilePreviewRead preview(
+    String snapshotId,
+    FilePreviewSource source,
+    FilePreviewRepresentation representation,
+  ) {
+    final call = _client.previewFileSource(
+      wire.FilePreviewRequest(
+        snapshotId: snapshotId,
+        source: mapping.encodeSource(source),
+        representation: mapping.encodeRepresentation(representation),
+      ),
+      options: CallOptions(timeout: const Duration(days: 1)),
+    );
+    return FilePreviewRead(call.then(mapping.preview), call.cancel);
   }
 
   @override

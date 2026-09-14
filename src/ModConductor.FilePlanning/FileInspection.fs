@@ -46,7 +46,26 @@ module internal InspectionProjection =
             let label = snapshot.Index.Labels[id.ModId]
             let hidden = (Visibility.hidden snapshot.Visibility).Contains id
 
-            { Copy = Some id
+            { Source =
+                FilePreviewSource.ManagedCopy
+                    { Copy = id
+                      SourcePath = id.Path
+                      Target = target
+                      PayloadId = row.Entry.Payload.Id
+                      Length = row.Entry.Payload.Length
+                      Sha256 = row.Entry.Payload.Sha256 }
+              Standing =
+                if
+                    not invalid
+                    && not writable
+                    && winner = Some(SourcePin.Mod(id.ModId, id.VersionId, row.Entry))
+                then
+                    FileSourceStanding.Winner
+                elif hidden || not row.Enabled then
+                    FileSourceStanding.Unavailable
+                else
+                    FileSourceStanding.Alternative
+              Copy = Some id
               SourcePath = id.Path
               Name = label.Name
               VersionLabel = label.Version
@@ -66,7 +85,27 @@ module internal InspectionProjection =
                 && (TargetPolicy.problems Skyrim.definition.TargetPolicy id.Path).IsEmpty
               CanUnhide = hidden }
         | Choice2Of2(source, file) ->
-            { Copy = None
+            let snapshotId, generation, kind =
+                match source with
+                | SourcePin.Snapshot(id, generation, pinned) when pinned = file ->
+                    id, generation, ReadOnlyLayerKind.Base
+                | _ -> invalidOp "Expected a checked game-file source."
+
+            { Source =
+                FilePreviewSource.CheckedGameFile
+                    { SnapshotId = snapshotId
+                      Generation = generation
+                      Kind = kind
+                      SourcePath = file.Path
+                      Target = target
+                      Length = file.Length
+                      Sha256 = file.Sha256 }
+              Standing =
+                if not invalid && not writable && winner = Some source then
+                    FileSourceStanding.Winner
+                else
+                    FileSourceStanding.Alternative
+              Copy = None
               SourcePath = file.Path
               Name = "Game folder"
               VersionLabel = ""

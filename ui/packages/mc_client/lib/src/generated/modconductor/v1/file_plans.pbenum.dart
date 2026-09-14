@@ -14,6 +14,105 @@ import 'dart:core' as $core;
 
 import 'package:protobuf/protobuf.dart' as $pb;
 
+class FileSourceStanding extends $pb.ProtobufEnum {
+  static const FileSourceStanding FILE_SOURCE_STANDING_UNSPECIFIED =
+      FileSourceStanding._(
+          0, _omitEnumNames ? '' : 'FILE_SOURCE_STANDING_UNSPECIFIED');
+  static const FileSourceStanding FILE_SOURCE_STANDING_WINNER =
+      FileSourceStanding._(
+          1, _omitEnumNames ? '' : 'FILE_SOURCE_STANDING_WINNER');
+  static const FileSourceStanding FILE_SOURCE_STANDING_ALTERNATIVE =
+      FileSourceStanding._(
+          2, _omitEnumNames ? '' : 'FILE_SOURCE_STANDING_ALTERNATIVE');
+  static const FileSourceStanding FILE_SOURCE_STANDING_SELECTED =
+      FileSourceStanding._(
+          3, _omitEnumNames ? '' : 'FILE_SOURCE_STANDING_SELECTED');
+  static const FileSourceStanding FILE_SOURCE_STANDING_PREVIOUS =
+      FileSourceStanding._(
+          4, _omitEnumNames ? '' : 'FILE_SOURCE_STANDING_PREVIOUS');
+  static const FileSourceStanding FILE_SOURCE_STANDING_UNAVAILABLE =
+      FileSourceStanding._(
+          5, _omitEnumNames ? '' : 'FILE_SOURCE_STANDING_UNAVAILABLE');
+
+  static const $core.List<FileSourceStanding> values = <FileSourceStanding>[
+    FILE_SOURCE_STANDING_UNSPECIFIED,
+    FILE_SOURCE_STANDING_WINNER,
+    FILE_SOURCE_STANDING_ALTERNATIVE,
+    FILE_SOURCE_STANDING_SELECTED,
+    FILE_SOURCE_STANDING_PREVIOUS,
+    FILE_SOURCE_STANDING_UNAVAILABLE,
+  ];
+
+  static final $core.List<FileSourceStanding?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 5);
+  static FileSourceStanding? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const FileSourceStanding._(super.value, super.name);
+}
+
+class FilePreviewRepresentation extends $pb.ProtobufEnum {
+  static const FilePreviewRepresentation
+      FILE_PREVIEW_REPRESENTATION_UNSPECIFIED = FilePreviewRepresentation._(
+          0, _omitEnumNames ? '' : 'FILE_PREVIEW_REPRESENTATION_UNSPECIFIED');
+  static const FilePreviewRepresentation FILE_PREVIEW_REPRESENTATION_TEXT =
+      FilePreviewRepresentation._(
+          1, _omitEnumNames ? '' : 'FILE_PREVIEW_REPRESENTATION_TEXT');
+  static const FilePreviewRepresentation FILE_PREVIEW_REPRESENTATION_IMAGE =
+      FilePreviewRepresentation._(
+          2, _omitEnumNames ? '' : 'FILE_PREVIEW_REPRESENTATION_IMAGE');
+  static const FilePreviewRepresentation FILE_PREVIEW_REPRESENTATION_HEX =
+      FilePreviewRepresentation._(
+          3, _omitEnumNames ? '' : 'FILE_PREVIEW_REPRESENTATION_HEX');
+
+  static const $core.List<FilePreviewRepresentation> values =
+      <FilePreviewRepresentation>[
+    FILE_PREVIEW_REPRESENTATION_UNSPECIFIED,
+    FILE_PREVIEW_REPRESENTATION_TEXT,
+    FILE_PREVIEW_REPRESENTATION_IMAGE,
+    FILE_PREVIEW_REPRESENTATION_HEX,
+  ];
+
+  static final $core.List<FilePreviewRepresentation?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 3);
+  static FilePreviewRepresentation? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const FilePreviewRepresentation._(super.value, super.name);
+}
+
+class FilePreviewStatus extends $pb.ProtobufEnum {
+  static const FilePreviewStatus FILE_PREVIEW_STATUS_UNSPECIFIED =
+      FilePreviewStatus._(
+          0, _omitEnumNames ? '' : 'FILE_PREVIEW_STATUS_UNSPECIFIED');
+  static const FilePreviewStatus FILE_PREVIEW_STATUS_READY =
+      FilePreviewStatus._(1, _omitEnumNames ? '' : 'FILE_PREVIEW_STATUS_READY');
+  static const FilePreviewStatus FILE_PREVIEW_STATUS_UNSUPPORTED =
+      FilePreviewStatus._(
+          2, _omitEnumNames ? '' : 'FILE_PREVIEW_STATUS_UNSUPPORTED');
+  static const FilePreviewStatus FILE_PREVIEW_STATUS_TOO_LARGE =
+      FilePreviewStatus._(
+          3, _omitEnumNames ? '' : 'FILE_PREVIEW_STATUS_TOO_LARGE');
+  static const FilePreviewStatus FILE_PREVIEW_STATUS_CHANGED =
+      FilePreviewStatus._(
+          4, _omitEnumNames ? '' : 'FILE_PREVIEW_STATUS_CHANGED');
+
+  static const $core.List<FilePreviewStatus> values = <FilePreviewStatus>[
+    FILE_PREVIEW_STATUS_UNSPECIFIED,
+    FILE_PREVIEW_STATUS_READY,
+    FILE_PREVIEW_STATUS_UNSUPPORTED,
+    FILE_PREVIEW_STATUS_TOO_LARGE,
+    FILE_PREVIEW_STATUS_CHANGED,
+  ];
+
+  static final $core.List<FilePreviewStatus?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 4);
+  static FilePreviewStatus? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const FilePreviewStatus._(super.value, super.name);
+}
+
 class PlannedFileDisposition extends $pb.ProtobufEnum {
   static const PlannedFileDisposition PLANNED_FILE_DISPOSITION_UNSPECIFIED =
       PlannedFileDisposition._(

@@ -18,6 +18,7 @@ import 'package:protobuf/protobuf.dart' as $pb;
 
 import 'archive_inspection.pb.dart' as $1;
 import 'artifacts.pb.dart' as $0;
+import 'file_plans.pb.dart' as $2;
 
 export 'archive_inspection.pb.dart';
 
@@ -40,6 +41,13 @@ class ArchiveInspectionClient extends $grpc.Client {
     return $createUnaryCall(_$inspectArchive, request, options: options);
   }
 
+  $grpc.ResponseFuture<$2.FilePreviewReply> previewArchiveEntry(
+    $1.PreviewArchiveEntryRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$previewArchiveEntry, request, options: options);
+  }
+
   // method descriptors
 
   static final _$inspectArchive =
@@ -47,6 +55,11 @@ class ArchiveInspectionClient extends $grpc.Client {
           '/modconductor.v1.ArchiveInspection/InspectArchive',
           ($0.ArtifactReference value) => value.writeToBuffer(),
           $1.InspectedArchive.fromBuffer);
+  static final _$previewArchiveEntry =
+      $grpc.ClientMethod<$1.PreviewArchiveEntryRequest, $2.FilePreviewReply>(
+          '/modconductor.v1.ArchiveInspection/PreviewArchiveEntry',
+          ($1.PreviewArchiveEntryRequest value) => value.writeToBuffer(),
+          $2.FilePreviewReply.fromBuffer);
 }
 
 @$pb.GrpcServiceName('modconductor.v1.ArchiveInspection')
@@ -61,6 +74,15 @@ abstract class ArchiveInspectionServiceBase extends $grpc.Service {
         false,
         ($core.List<$core.int> value) => $0.ArtifactReference.fromBuffer(value),
         ($1.InspectedArchive value) => value.writeToBuffer()));
+    $addMethod(
+        $grpc.ServiceMethod<$1.PreviewArchiveEntryRequest, $2.FilePreviewReply>(
+            'PreviewArchiveEntry',
+            previewArchiveEntry_Pre,
+            false,
+            false,
+            ($core.List<$core.int> value) =>
+                $1.PreviewArchiveEntryRequest.fromBuffer(value),
+            ($2.FilePreviewReply value) => value.writeToBuffer()));
   }
 
   $async.Future<$1.InspectedArchive> inspectArchive_Pre($grpc.ServiceCall $call,
@@ -70,4 +92,13 @@ abstract class ArchiveInspectionServiceBase extends $grpc.Service {
 
   $async.Future<$1.InspectedArchive> inspectArchive(
       $grpc.ServiceCall call, $0.ArtifactReference request);
+
+  $async.Future<$2.FilePreviewReply> previewArchiveEntry_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$1.PreviewArchiveEntryRequest> $request) async {
+    return previewArchiveEntry($call, await $request);
+  }
+
+  $async.Future<$2.FilePreviewReply> previewArchiveEntry(
+      $grpc.ServiceCall call, $1.PreviewArchiveEntryRequest request);
 }

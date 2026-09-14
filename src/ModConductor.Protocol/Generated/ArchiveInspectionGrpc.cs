@@ -49,6 +49,10 @@ namespace ModConductor.Protocol.V1 {
     static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.ArtifactReference> __Marshaller_modconductor_v1_ArtifactReference = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.ArtifactReference.Parser));
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.InspectedArchive> __Marshaller_modconductor_v1_InspectedArchive = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.InspectedArchive.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.PreviewArchiveEntryRequest> __Marshaller_modconductor_v1_PreviewArchiveEntryRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.PreviewArchiveEntryRequest.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.FilePreviewReply> __Marshaller_modconductor_v1_FilePreviewReply = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.FilePreviewReply.Parser));
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Method<global::ModConductor.Protocol.V1.ArtifactReference, global::ModConductor.Protocol.V1.InspectedArchive> __Method_InspectArchive = new grpc::Method<global::ModConductor.Protocol.V1.ArtifactReference, global::ModConductor.Protocol.V1.InspectedArchive>(
@@ -57,6 +61,14 @@ namespace ModConductor.Protocol.V1 {
         "InspectArchive",
         __Marshaller_modconductor_v1_ArtifactReference,
         __Marshaller_modconductor_v1_InspectedArchive);
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::ModConductor.Protocol.V1.PreviewArchiveEntryRequest, global::ModConductor.Protocol.V1.FilePreviewReply> __Method_PreviewArchiveEntry = new grpc::Method<global::ModConductor.Protocol.V1.PreviewArchiveEntryRequest, global::ModConductor.Protocol.V1.FilePreviewReply>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "PreviewArchiveEntry",
+        __Marshaller_modconductor_v1_PreviewArchiveEntryRequest,
+        __Marshaller_modconductor_v1_FilePreviewReply);
 
     /// <summary>Service descriptor</summary>
     public static global::Google.Protobuf.Reflection.ServiceDescriptor Descriptor
@@ -70,6 +82,12 @@ namespace ModConductor.Protocol.V1 {
     {
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V1.InspectedArchive> InspectArchive(global::ModConductor.Protocol.V1.ArtifactReference request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V1.FilePreviewReply> PreviewArchiveEntry(global::ModConductor.Protocol.V1.PreviewArchiveEntryRequest request, grpc::ServerCallContext context)
       {
         throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
       }
@@ -123,6 +141,26 @@ namespace ModConductor.Protocol.V1 {
       {
         return CallInvoker.AsyncUnaryCall(__Method_InspectArchive, null, options, request);
       }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V1.FilePreviewReply PreviewArchiveEntry(global::ModConductor.Protocol.V1.PreviewArchiveEntryRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return PreviewArchiveEntry(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V1.FilePreviewReply PreviewArchiveEntry(global::ModConductor.Protocol.V1.PreviewArchiveEntryRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_PreviewArchiveEntry, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.FilePreviewReply> PreviewArchiveEntryAsync(global::ModConductor.Protocol.V1.PreviewArchiveEntryRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return PreviewArchiveEntryAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.FilePreviewReply> PreviewArchiveEntryAsync(global::ModConductor.Protocol.V1.PreviewArchiveEntryRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_PreviewArchiveEntry, null, options, request);
+      }
       /// <summary>Creates a new instance of client from given <c>ClientBaseConfiguration</c>.</summary>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       protected override ArchiveInspectionClient NewInstance(ClientBaseConfiguration configuration)
@@ -137,7 +175,8 @@ namespace ModConductor.Protocol.V1 {
     public static grpc::ServerServiceDefinition BindService(ArchiveInspectionBase serviceImpl)
     {
       return grpc::ServerServiceDefinition.CreateBuilder()
-          .AddMethod(__Method_InspectArchive, serviceImpl.InspectArchive).Build();
+          .AddMethod(__Method_InspectArchive, serviceImpl.InspectArchive)
+          .AddMethod(__Method_PreviewArchiveEntry, serviceImpl.PreviewArchiveEntry).Build();
     }
 
     /// <summary>Register service method with a service binder with or without implementation. Useful when customizing the service binding logic.
@@ -148,6 +187,7 @@ namespace ModConductor.Protocol.V1 {
     public static void BindService(grpc::ServiceBinderBase serviceBinder, ArchiveInspectionBase serviceImpl)
     {
       serviceBinder.AddMethod(__Method_InspectArchive, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.ArtifactReference, global::ModConductor.Protocol.V1.InspectedArchive>(serviceImpl.InspectArchive));
+      serviceBinder.AddMethod(__Method_PreviewArchiveEntry, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.PreviewArchiveEntryRequest, global::ModConductor.Protocol.V1.FilePreviewReply>(serviceImpl.PreviewArchiveEntry));
     }
 
   }

@@ -88,6 +88,19 @@ type FilePlanService(plans: IFilePlans) =
             return FilePlanWire.change result
         }
 
+    override _.PreviewFileSource(request, context) =
+        task {
+            let! result =
+                plans.Preview(
+                    ModLibraryWire.id request.SnapshotId,
+                    FilePlanWire.readSource request.Source,
+                    FilePlanWire.readRepresentation request.Representation,
+                    context.CancellationToken
+                )
+
+            return FilePlanWire.preview result
+        }
+
     override _.ReadFileVisibilityHistory(request, _) =
         task {
             let before =

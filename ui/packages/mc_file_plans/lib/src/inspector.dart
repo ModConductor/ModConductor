@@ -18,18 +18,21 @@ String fileSize(int bytes) => bytes >= 1024 * 1024 * 1024
 class FileSourcesInspector extends StatelessWidget {
   const FileSourcesInspector({
     super.key,
-    required this.controller,
+    this.controller,
+    this.inspector,
     required this.onClose,
     this.profileName,
-  });
-  final FilePlansController controller;
+  }) : assert(controller != null || inspector != null);
+  final FilePlansController? controller;
+  final FileInspectorController? inspector;
   final VoidCallback onClose;
   final String? profileName;
   @override
   Widget build(BuildContext context) {
-    final view = controller.inspector;
+    final owner = controller;
+    final view = inspector ?? owner!.inspector;
     final selected = view.selected;
-    final state = controller.state;
+    final state = owner?.state;
     final path = view.target ?? view.requestedCopy?.path ?? const <String>[];
     final copies = [...view.copies];
     final focused = view.focusedCopy;
@@ -43,29 +46,34 @@ class FileSourcesInspector extends StatelessWidget {
     }
     final winner = copies.where((copy) => copy.winner).firstOrNull;
     final blocked = (state?.problemCount ?? 0) > 0;
-    final stale = state?.stale == true || controller.needsRead;
+    final stale = state?.stale == true || owner?.needsRead == true;
     final available =
-        controller.connected &&
-        !controller.changing &&
-        !controller.loading &&
-        !controller.reading &&
-        !controller.needsRead &&
+        owner != null &&
+        owner.connected &&
+        !owner.changing &&
+        !owner.loading &&
+        !owner.reading &&
+        !owner.needsRead &&
         !view.loading;
     String status(InspectedFileCopy copy) => [
-      if (copy.historical) 'Previous saved version',
+      switch (copy.standing) {
+        FileSourceStanding.winner => stale ? 'Previous winner' : 'Winner',
+        FileSourceStanding.alternative =>
+          blocked ? 'Unresolved' : 'Alternative',
+        FileSourceStanding.selected => 'Selected source',
+        FileSourceStanding.previous => 'Previous saved version',
+        FileSourceStanding.unavailable => 'Unavailable',
+      },
       if (copy.hidden) 'Hidden',
       if (copy.copy != null && !copy.enabled && !copy.historical)
         profileName == null
             ? 'Disabled in this profile'
             : 'Disabled in $profileName',
-      if (copy.winner) stale ? 'Previous winner' : 'Winner',
-      if (!copy.winner && !copy.hidden && copy.enabled && !copy.historical)
-        blocked ? 'Unresolved' : 'Overridden',
     ].join(' · ');
     return McInspector(
       title: 'File sources',
       onClose: onClose,
-      footer: selected?.copy == null
+      footer: selected?.copy == null || owner == null
           ? null
           : Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -87,9 +95,7 @@ class FileSourcesInspector extends StatelessWidget {
                           (selected.hidden
                               ? selected.canUnhide
                               : selected.canHide)
-                      ? () => unawaited(
-                          controller.change(hidden: !selected.hidden),
-                        )
+                      ? () => unawaited(owner.change(hidden: !selected.hidden))
                       : null,
                 ),
               ],
@@ -164,7 +170,11 @@ class FileSourcesInspector extends StatelessWidget {
                       children: [
                         Text(
                           [
-                            if (copy.versionLabel.isNotEmpty) copy.versionLabel,
+                            copy.source.kindLabel,
+                            if (copy.versionLabel.isNotEmpty &&
+                                copy.source
+                                    is! QualifiedArchiveEntryPreviewSource)
+                              copy.versionLabel,
                             if (copy.priority != null)
                               'Priority ${copy.priority! + 1}',
                             fileSize(copy.length),
@@ -188,6 +198,49 @@ class FileSourcesInspector extends StatelessWidget {
             onPressed: view.loading ? null : () => unawaited(view.load()),
             child: const Text('Load more sources'),
           ),
+        if (selected != null) ...[
+          const SizedBox(height: 16),
+          SegmentedButton<FilePreviewRepresentation>(
+            segments: const [
+              ButtonSegment(
+                value: FilePreviewRepresentation.text,
+                label: Text('Text'),
+              ),
+              ButtonSegment(
+                value: FilePreviewRepresentation.image,
+                label: Text('Image'),
+              ),
+              ButtonSegment(
+                value: FilePreviewRepresentation.hex,
+                label: Text('Hex'),
+              ),
+            ],
+            selected: {view.previewRepresentation},
+            onSelectionChanged: (values) =>
+                view.setPreviewRepresentation(values.single),
+          ),
+          const SizedBox(height: 12),
+          if (view.previewLoading) ...[
+            const LinearProgressIndicator(),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton(
+                onPressed: view.cancelPreview,
+                child: const Text('Cancel preview'),
+              ),
+            ),
+          ] else if (view.previewProblem != null) ...[
+            McStatus(title: view.previewProblem!, tone: McStatusTone.error),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton(
+                onPressed: () => unawaited(view.loadPreview()),
+                child: const Text('Retry preview'),
+              ),
+            ),
+          ] else if (view.preview != null)
+            _PreviewBody(preview: view.preview!),
+        ],
         if (selected != null)
           ExpansionTile(
             key: ValueKey(FileInspectorController.key(selected)),
@@ -219,8 +272,12 @@ class FileSourcesInspector extends StatelessWidget {
                 style: Theme.of(context).textTheme.bodySmall,
               ),
               const SizedBox(height: 8),
+              Text(selected.source.kindLabel),
+              const SizedBox(height: 8),
               SelectableText(
-                'SHA-256 ${selected.sha256}',
+                selected.source is QualifiedArchiveEntryPreviewSource
+                    ? 'Archive SHA-256 ${selected.sha256}'
+                    : 'SHA-256 ${selected.sha256}',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
               if (selected.copy != null) ...[
@@ -258,5 +315,96 @@ class FileSourcesInspector extends StatelessWidget {
           ),
       ],
     );
+  }
+}
+
+class _PreviewBody extends StatelessWidget {
+  const _PreviewBody({required this.preview});
+  final FilePreviewResult preview;
+
+  @override
+  Widget build(BuildContext context) {
+    if (preview.status != FilePreviewStatus.ready) {
+      return McStatus(
+        title: preview.detail ?? 'This source cannot be previewed.',
+        tone: preview.status == FilePreviewStatus.changed
+            ? McStatusTone.error
+            : McStatusTone.neutral,
+      );
+    }
+    return switch (preview.content) {
+      FilePreviewText value => DecoratedBox(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 420),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(12),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: SelectableText(
+                value.content,
+                style: const TextStyle(fontFamily: 'monospace'),
+              ),
+            ),
+          ),
+        ),
+      ),
+      FilePreviewImage value => Semantics(
+        label:
+            '${value.format} image, ${value.width} by ${value.height} pixels',
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 420),
+          child: Image.memory(
+            value.content,
+            cacheWidth: value.width,
+            cacheHeight: value.height,
+            fit: BoxFit.contain,
+            filterQuality: FilterQuality.medium,
+            errorBuilder: (_, _, _) => const McStatus(
+              title: 'This image cannot be decoded safely.',
+              tone: McStatusTone.error,
+            ),
+          ),
+        ),
+      ),
+      FilePreviewHex value => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (value.truncated)
+            Text(
+              'Showing the first ${fileSize(value.content.length)} of ${fileSize(value.totalLength)}.',
+            ),
+          if (value.truncated) const SizedBox(height: 8),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 420),
+            child: SingleChildScrollView(
+              child: SelectableText(
+                _hex(value.content),
+                style: const TextStyle(fontFamily: 'monospace'),
+              ),
+            ),
+          ),
+        ],
+      ),
+      null => const McStatus(title: 'This source has no preview.'),
+    };
+  }
+
+  static String _hex(List<int> bytes) {
+    final output = StringBuffer();
+    for (var offset = 0; offset < bytes.length; offset += 16) {
+      output.write(offset.toRadixString(16).padLeft(8, '0'));
+      output.write('  ');
+      final end = (offset + 16).clamp(0, bytes.length);
+      for (var index = offset; index < end; ++index) {
+        output.write(bytes[index].toRadixString(16).padLeft(2, '0'));
+        output.write(index == offset + 7 ? '  ' : ' ');
+      }
+      output.writeln();
+    }
+    return output.toString();
   }
 }

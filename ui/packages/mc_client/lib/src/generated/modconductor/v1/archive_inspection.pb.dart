@@ -15,6 +15,9 @@ import 'dart:core' as $core;
 import 'package:fixnum/fixnum.dart' as $fixnum;
 import 'package:protobuf/protobuf.dart' as $pb;
 
+import 'artifacts.pb.dart' as $0;
+import 'file_plans.pbenum.dart' as $2;
+
 export 'package:protobuf/protobuf.dart' show GeneratedMessageGenericExtensions;
 
 class InspectedArchive extends $pb.GeneratedMessage {
@@ -204,6 +207,120 @@ class InspectedArchiveEntry extends $pb.GeneratedMessage {
   $core.bool hasCompressedSize() => $_has(4);
   @$pb.TagNumber(5)
   void clearCompressedSize() => $_clearField(5);
+}
+
+class PreviewArchiveEntryRequest extends $pb.GeneratedMessage {
+  factory PreviewArchiveEntryRequest({
+    $0.ArtifactReference? artifact,
+    $core.String? sha256,
+    $core.String? format,
+    InspectedArchiveEntry? entry,
+    $2.FilePreviewRepresentation? representation,
+  }) {
+    final result = create();
+    if (artifact != null) result.artifact = artifact;
+    if (sha256 != null) result.sha256 = sha256;
+    if (format != null) result.format = format;
+    if (entry != null) result.entry = entry;
+    if (representation != null) result.representation = representation;
+    return result;
+  }
+
+  PreviewArchiveEntryRequest._();
+
+  factory PreviewArchiveEntryRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory PreviewArchiveEntryRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'PreviewArchiveEntryRequest',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..aOM<$0.ArtifactReference>(1, _omitFieldNames ? '' : 'artifact',
+        subBuilder: $0.ArtifactReference.create)
+    ..aOS(2, _omitFieldNames ? '' : 'sha256')
+    ..aOS(3, _omitFieldNames ? '' : 'format')
+    ..aOM<InspectedArchiveEntry>(4, _omitFieldNames ? '' : 'entry',
+        subBuilder: InspectedArchiveEntry.create)
+    ..aE<$2.FilePreviewRepresentation>(
+        5, _omitFieldNames ? '' : 'representation',
+        enumValues: $2.FilePreviewRepresentation.values)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  PreviewArchiveEntryRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  PreviewArchiveEntryRequest copyWith(
+          void Function(PreviewArchiveEntryRequest) updates) =>
+      super.copyWith(
+              (message) => updates(message as PreviewArchiveEntryRequest))
+          as PreviewArchiveEntryRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static PreviewArchiveEntryRequest create() => PreviewArchiveEntryRequest._();
+  @$core.override
+  PreviewArchiveEntryRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static PreviewArchiveEntryRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<PreviewArchiveEntryRequest>(create);
+  static PreviewArchiveEntryRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $0.ArtifactReference get artifact => $_getN(0);
+  @$pb.TagNumber(1)
+  set artifact($0.ArtifactReference value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasArtifact() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearArtifact() => $_clearField(1);
+  @$pb.TagNumber(1)
+  $0.ArtifactReference ensureArtifact() => $_ensure(0);
+
+  @$pb.TagNumber(2)
+  $core.String get sha256 => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set sha256($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasSha256() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearSha256() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get format => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set format($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasFormat() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearFormat() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  InspectedArchiveEntry get entry => $_getN(3);
+  @$pb.TagNumber(4)
+  set entry(InspectedArchiveEntry value) => $_setField(4, value);
+  @$pb.TagNumber(4)
+  $core.bool hasEntry() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearEntry() => $_clearField(4);
+  @$pb.TagNumber(4)
+  InspectedArchiveEntry ensureEntry() => $_ensure(3);
+
+  @$pb.TagNumber(5)
+  $2.FilePreviewRepresentation get representation => $_getN(4);
+  @$pb.TagNumber(5)
+  set representation($2.FilePreviewRepresentation value) =>
+      $_setField(5, value);
+  @$pb.TagNumber(5)
+  $core.bool hasRepresentation() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearRepresentation() => $_clearField(5);
 }
 
 const $core.bool _omitFieldNames =

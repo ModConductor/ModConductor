@@ -77,6 +77,10 @@ namespace ModConductor.Protocol.V1 {
     static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.FileVisibilityHistoryRequest> __Marshaller_modconductor_v1_FileVisibilityHistoryRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.FileVisibilityHistoryRequest.Parser));
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.FileVisibilityHistoryReply> __Marshaller_modconductor_v1_FileVisibilityHistoryReply = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.FileVisibilityHistoryReply.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.FilePreviewRequest> __Marshaller_modconductor_v1_FilePreviewRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.FilePreviewRequest.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.FilePreviewReply> __Marshaller_modconductor_v1_FilePreviewReply = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.FilePreviewReply.Parser));
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Method<global::ModConductor.Protocol.V1.OpenFilePlanRequest, global::ModConductor.Protocol.V1.FilePlanReply> __Method_OpenFilePlan = new grpc::Method<global::ModConductor.Protocol.V1.OpenFilePlanRequest, global::ModConductor.Protocol.V1.FilePlanReply>(
@@ -150,6 +154,14 @@ namespace ModConductor.Protocol.V1 {
         __Marshaller_modconductor_v1_FileVisibilityHistoryRequest,
         __Marshaller_modconductor_v1_FileVisibilityHistoryReply);
 
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::ModConductor.Protocol.V1.FilePreviewRequest, global::ModConductor.Protocol.V1.FilePreviewReply> __Method_PreviewFileSource = new grpc::Method<global::ModConductor.Protocol.V1.FilePreviewRequest, global::ModConductor.Protocol.V1.FilePreviewReply>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "PreviewFileSource",
+        __Marshaller_modconductor_v1_FilePreviewRequest,
+        __Marshaller_modconductor_v1_FilePreviewReply);
+
     /// <summary>Service descriptor</summary>
     public static global::Google.Protobuf.Reflection.ServiceDescriptor Descriptor
     {
@@ -210,6 +222,12 @@ namespace ModConductor.Protocol.V1 {
 
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V1.FileVisibilityHistoryReply> ReadFileVisibilityHistory(global::ModConductor.Protocol.V1.FileVisibilityHistoryRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V1.FilePreviewReply> PreviewFileSource(global::ModConductor.Protocol.V1.FilePreviewRequest request, grpc::ServerCallContext context)
       {
         throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
       }
@@ -413,6 +431,26 @@ namespace ModConductor.Protocol.V1 {
       {
         return CallInvoker.AsyncUnaryCall(__Method_ReadFileVisibilityHistory, null, options, request);
       }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V1.FilePreviewReply PreviewFileSource(global::ModConductor.Protocol.V1.FilePreviewRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return PreviewFileSource(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V1.FilePreviewReply PreviewFileSource(global::ModConductor.Protocol.V1.FilePreviewRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_PreviewFileSource, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.FilePreviewReply> PreviewFileSourceAsync(global::ModConductor.Protocol.V1.FilePreviewRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return PreviewFileSourceAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.FilePreviewReply> PreviewFileSourceAsync(global::ModConductor.Protocol.V1.FilePreviewRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_PreviewFileSource, null, options, request);
+      }
       /// <summary>Creates a new instance of client from given <c>ClientBaseConfiguration</c>.</summary>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       protected override FilePlanOperationsClient NewInstance(ClientBaseConfiguration configuration)
@@ -435,7 +473,8 @@ namespace ModConductor.Protocol.V1 {
           .AddMethod(__Method_InspectFilePlanTarget, serviceImpl.InspectFilePlanTarget)
           .AddMethod(__Method_InspectSavedFile, serviceImpl.InspectSavedFile)
           .AddMethod(__Method_ChangeFileVisibility, serviceImpl.ChangeFileVisibility)
-          .AddMethod(__Method_ReadFileVisibilityHistory, serviceImpl.ReadFileVisibilityHistory).Build();
+          .AddMethod(__Method_ReadFileVisibilityHistory, serviceImpl.ReadFileVisibilityHistory)
+          .AddMethod(__Method_PreviewFileSource, serviceImpl.PreviewFileSource).Build();
     }
 
     /// <summary>Register service method with a service binder with or without implementation. Useful when customizing the service binding logic.
@@ -454,6 +493,7 @@ namespace ModConductor.Protocol.V1 {
       serviceBinder.AddMethod(__Method_InspectSavedFile, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.InspectSavedFileRequest, global::ModConductor.Protocol.V1.FilePlanInspectionReply>(serviceImpl.InspectSavedFile));
       serviceBinder.AddMethod(__Method_ChangeFileVisibility, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.ChangeFileVisibilityRequest, global::ModConductor.Protocol.V1.FileVisibilityReply>(serviceImpl.ChangeFileVisibility));
       serviceBinder.AddMethod(__Method_ReadFileVisibilityHistory, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.FileVisibilityHistoryRequest, global::ModConductor.Protocol.V1.FileVisibilityHistoryReply>(serviceImpl.ReadFileVisibilityHistory));
+      serviceBinder.AddMethod(__Method_PreviewFileSource, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.FilePreviewRequest, global::ModConductor.Protocol.V1.FilePreviewReply>(serviceImpl.PreviewFileSource));
     }
 
   }

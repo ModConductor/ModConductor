@@ -197,6 +197,44 @@ module FilePlanningFixtures =
                     |> List.exists (fun row -> row.Copy.IsNone && row.Sha256 = originalBase))
             )
 
+            let managedSource =
+                sources.Copies
+                |> List.find (fun row -> row.Copy = Some highCopy)
+                |> _.Source
+
+            let gameSource =
+                sources.Copies
+                |> List.find (fun row -> row.Copy.IsNone)
+                |> _.Source
+
+            let preview source =
+                plans.Preview(
+                    initial.Id,
+                    source,
+                    FilePreviewRepresentation.Text,
+                    CancellationToken.None
+                )
+                |> wait
+                |> result
+
+            writer.WriteBoolean(
+                "managedWinnerPreviewIsPinned",
+                match preview managedSource with
+                | { Standing = FileSourceStanding.Winner
+                    Outcome = FilePreviewOutcome.Ready(FilePreviewContent.Text text) } ->
+                    text.Content = "High content"
+                | _ -> false
+            )
+
+            writer.WriteBoolean(
+                "gameAlternativePreviewIsPinned",
+                match preview gameSource with
+                | { Standing = FileSourceStanding.Alternative
+                    Outcome = FilePreviewOutcome.Ready(FilePreviewContent.Text text) } ->
+                    text.Content = "game-folder copy"
+                | _ -> false
+            )
+
             writer.WriteBoolean(
                 "opaqueArchiveIsAFile",
                 (inspect initial (path "opaque.bsa")).Copies.Head.Sha256 =
@@ -274,6 +312,17 @@ module FilePlanningFixtures =
             )
 
             writer.WriteBoolean(
+                "staleSnapshotPreviewRefuses",
+                plans.Preview(
+                    initial.Id,
+                    managedSource,
+                    FilePreviewRepresentation.Text,
+                    CancellationToken.None
+                )
+                |> wait = Error FilePlanError.Stale
+            )
+
+            writer.WriteBoolean(
                 "hidePromotesNext",
                 (inspect hidden.Snapshot (path "shared.txt")).Copies
                 |> List.exists (fun row -> row.Copy = Some lowCopy && row.Winner)
@@ -339,6 +388,22 @@ module FilePlanningFixtures =
 
             let firstAgain = acquire first false
             File.WriteAllText(Path.Combine(data, "shared.txt"), "external fixture update")
+
+            let changedGameSource =
+                (inspect firstAgain (path "shared.txt")).Copies
+                |> List.find (fun row -> row.Copy.IsNone)
+                |> _.Source
+
+            writer.WriteBoolean(
+                "changedGamePreviewRefuses",
+                plans.Preview(
+                    firstAgain.Id,
+                    changedGameSource,
+                    FilePreviewRepresentation.Text,
+                    CancellationToken.None
+                )
+                |> wait = Error FilePlanError.Stale
+            )
 
             writer.WriteBoolean(
                 "changedGameRejectsHide",

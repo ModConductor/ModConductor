@@ -8,7 +8,7 @@ open ModConductor.Platform
 open ModConductor.DeploymentPlanning
 
 /// Owns the bounded background work and disposable snapshots used by the real file view.
-type FilePlanSession(repository: IFilePlanRepository) =
+type FilePlanSession(repository: IFileCandidateRepository) =
     let cache = SnapshotCache()
     let acquisition = SnapshotAcquisition(repository, cache)
     let gate = obj ()
@@ -212,7 +212,18 @@ type FilePlanSession(repository: IFilePlanRepository) =
                                           Next = None
                                           FocusedCopy = None
                                           Copies =
-                                            [ { Copy = Some copy
+                                            [ { Source =
+                                                    FilePreviewSource.ManagedCopy
+                                                        { Copy = copy
+                                                          SourcePath = copy.Path
+                                                          Target = copy.Path
+                                                          PayloadId = saved.Entry.Payload.Id
+                                                          Length = saved.Entry.Payload.Length
+                                                          Sha256 = saved.Entry.Payload.Sha256 }
+                                                Standing =
+                                                    if saved.Current then FileSourceStanding.Unavailable
+                                                    else FileSourceStanding.Previous
+                                                Copy = Some copy
                                                 SourcePath = copy.Path
                                                 Name = saved.Name
                                                 VersionLabel = saved.VersionLabel
@@ -335,6 +346,94 @@ type FilePlanSession(repository: IFilePlanRepository) =
                                                         )
                                                     else
                                                         None })
+                })
+
+        member _.Preview(id, source, representation, token) =
+            run token (fun token ->
+                task {
+                    let! found = checkedSnapshot id
+
+                    match found with
+                    | Error error -> return Error error
+                    | Ok(_, true) -> return Error FilePlanError.Stale
+                    | Ok(snapshot, false) ->
+                        let target = FilePreviewRendering.target source
+
+                        let rows =
+                            match InspectionProjection.inspect target None snapshot with
+                            | Error error -> Error error
+                            | Ok(copies, _) -> Ok copies
+
+                        match rows with
+                        | Error error -> return Error error
+                        | Ok copies ->
+                            match copies |> List.tryFind (fun row -> row.Source = source) with
+                            | None -> return Error FilePlanError.Stale
+                            | Some row ->
+                                match source with
+                                | FilePreviewSource.ManagedCopy managed ->
+                                    let! saved =
+                                        repository.Copy(
+                                            snapshot.Sources.Stamp.WorkspaceId,
+                                            managed.Copy
+                                        )
+
+                                    match saved with
+                                    | Error error -> return Error error
+                                    | Ok saved
+                                        when not saved.Current
+                                             || saved.Entry.Path <> managed.SourcePath
+                                             || saved.Entry.Payload.Id <> managed.PayloadId
+                                             || saved.Entry.Payload.Length <> managed.Length
+                                             || saved.Entry.Payload.Sha256 <> managed.Sha256 ->
+                                        return Error FilePlanError.Stale
+                                    | Ok saved ->
+                                        let pin =
+                                            SourcePin.Mod(
+                                                managed.Copy.ModId,
+                                                managed.Copy.VersionId,
+                                                saved.Entry
+                                            )
+
+                                        let! opened =
+                                            repository.OpenManaged(
+                                                snapshot.Sources.Stamp.WorkspaceId,
+                                                pin,
+                                                token
+                                            )
+
+                                        match opened with
+                                        | Error error -> return Error error
+                                        | Ok stream ->
+                                            use stream = stream
+
+                                            return
+                                                Ok(
+                                                    FilePreviewRendering.render
+                                                        source
+                                                        row.Standing
+                                                        representation
+                                                        stream
+                                                        token
+                                                )
+                                | FilePreviewSource.CheckedGameFile game ->
+                                    match snapshot.Game with
+                                    | None -> return Error FilePlanError.Stale
+                                    | Some observation ->
+                                        return
+                                            GameFiles.readChecked
+                                                observation
+                                                game
+                                                token
+                                                (fun stream ->
+                                                    FilePreviewRendering.render
+                                                        source
+                                                        row.Standing
+                                                        representation
+                                                        stream
+                                                        token)
+                                | FilePreviewSource.QualifiedArchiveEntry _ ->
+                                    return Error FilePlanError.InvalidCopy
                 })
 
         member _.History(id, copy, after) =
