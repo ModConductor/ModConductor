@@ -19,6 +19,7 @@ class ProfileSettingsInspector extends StatefulWidget {
     required this.available,
     required this.onClose,
     required this.onResumeProfileChange,
+    required this.onNavigationGuardChanged,
     this.pluginHeadersId,
   });
   final ProfileDataController controller;
@@ -29,6 +30,8 @@ class ProfileSettingsInspector extends StatefulWidget {
   final bool available;
   final VoidCallback onClose;
   final Future<void> Function(String) onResumeProfileChange;
+  final ValueChanged<Future<bool> Function(FutureOr<void> Function())?>
+  onNavigationGuardChanged;
   final String? pluginHeadersId;
   @override
   State<ProfileSettingsInspector> createState() =>
@@ -42,8 +45,10 @@ class _ProfileSettingsInspectorState extends State<ProfileSettingsInspector> {
   bool _showFiles = false, _loadingFiles = false;
   List<ProfileConfigurationFile> _files = const [];
   ProfileConfigurationDocument? _configuration;
+  String? _editingProfileName;
   String? _fileProblem;
   int _fileEpoch = 0;
+  bool _pendingAttachment = false, _guardingAttachment = false;
   @override
   void initState() {
     super.initState();
@@ -55,9 +60,34 @@ class _ProfileSettingsInspectorState extends State<ProfileSettingsInspector> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.profile.id != widget.profile.id ||
         oldWidget.client != widget.client) {
+      if (_configuration != null) {
+        _pendingAttachment = true;
+        _guardAttachment();
+        return;
+      }
       _closeFiles(restoreFocus: false);
     }
     _attach();
+  }
+
+  void _guardAttachment() {
+    if (_guardingAttachment) return;
+    _guardingAttachment = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final editor = _editor.currentState;
+      if (editor == null) {
+        _guardingAttachment = false;
+        return;
+      }
+      unawaited(
+        editor
+            .guardNavigation(() {
+              _closeFiles(restoreFocus: false);
+            })
+            .whenComplete(() => _guardingAttachment = false),
+      );
+    });
   }
 
   void _attach() => controller.attach(
@@ -104,7 +134,16 @@ class _ProfileSettingsInspectorState extends State<ProfileSettingsInspector> {
     try {
       final value = await client.readConfiguration(state.reference, name);
       if (!mounted || epoch != _fileEpoch) return;
-      setState(() => _configuration = value);
+      setState(() {
+        _configuration = value;
+        _editingProfileName = widget.profile.name;
+      });
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || _configuration != value) return;
+        widget.onNavigationGuardChanged(
+          (navigate) => _editor.currentState!.guardNavigation(navigate),
+        );
+      });
     } on Exception catch (error) {
       if (!mounted || epoch != _fileEpoch) return;
       setState(() {
@@ -117,18 +156,30 @@ class _ProfileSettingsInspectorState extends State<ProfileSettingsInspector> {
     }
   }
 
-  void _closeConfiguration() => setState(() => _configuration = null);
+  void _closeConfiguration() {
+    widget.onNavigationGuardChanged(null);
+    setState(() {
+      _configuration = null;
+      _editingProfileName = null;
+    });
+  }
 
   void _closeFiles({bool restoreFocus = true}) {
     ++_fileEpoch;
+    widget.onNavigationGuardChanged(null);
     if (mounted) {
       setState(() {
         _showFiles = false;
         _loadingFiles = false;
         _files = const [];
         _configuration = null;
+        _editingProfileName = null;
         _fileProblem = null;
       });
+      if (_pendingAttachment) {
+        _pendingAttachment = false;
+        _attach();
+      }
       if (restoreFocus) _filesButtonFocus.requestFocus();
     }
   }
@@ -326,7 +377,7 @@ class _ProfileSettingsInspectorState extends State<ProfileSettingsInspector> {
               key: _editor,
               document: document.document,
               name: document.name,
-              source: widget.profile.name,
+              source: _editingProfileName ?? widget.profile.name,
               saveLabel: 'Replace profile ${document.name}',
               saving: controller.busy,
               problem: controller.problem,
@@ -541,6 +592,7 @@ class _ProfileSettingsInspectorState extends State<ProfileSettingsInspector> {
   @override
   void dispose() {
     ++_fileEpoch;
+    widget.onNavigationGuardChanged(null);
     _filesButtonFocus.dispose();
     super.dispose();
   }

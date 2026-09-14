@@ -92,4 +92,125 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+
+  testWidgets('profile selection waits for the open editor navigation guard', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1400, 900);
+    addTearDown(tester.view.resetPhysicalSize);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final client = ProfilesClient();
+    final controller = WorkspaceController()..attach(client);
+    addTearDown(controller.dispose);
+    await controller.open('/workspace');
+    var allowNavigation = false, guardCalls = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: mcTheme(Brightness.light),
+        home: Scaffold(
+          body: WorkspaceBrowser(
+            controller: controller,
+            profileInspectorBuilder:
+                (context, workspace, profile, close, bindGuard) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    bindGuard((navigate) async {
+                      guardCalls++;
+                      if (!allowNavigation) return false;
+                      await navigate();
+                      return true;
+                    });
+                  });
+                  return Text('Inspecting ${profile.name}');
+                },
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey((profileId: 'a'))));
+    await tester.pump();
+    await tester.tap(find.text('Settings and saves'));
+    await tester.pumpAndSettle();
+    expect(find.text('Inspecting A profile'), findsOneWidget);
+    await controller.moreProfiles();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey((profileId: 'b'))));
+    await tester.pumpAndSettle();
+    final collection = tester.widget<McCollection<ProfileRowId, ProfileInfo>>(
+      find.byType(McCollection<ProfileRowId, ProfileInfo>),
+    );
+    expect(guardCalls, 1);
+    expect(collection.model.selectedId, (profileId: 'a'));
+    expect(find.text('Inspecting A profile'), findsOneWidget);
+
+    allowNavigation = true;
+    await tester.tap(find.byKey(const ValueKey((profileId: 'b'))));
+    await tester.pumpAndSettle();
+    expect(guardCalls, 2);
+    expect(collection.model.selectedId, (profileId: 'b'));
+    expect(find.text('Inspecting B profile'), findsOneWidget);
+    expect(collection.focusNode!.hasFocus, isTrue);
+  });
+
+  testWidgets('compact profile drawer dismissal uses the editor guard', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final client = ProfilesClient();
+    final controller = WorkspaceController()..attach(client);
+    addTearDown(controller.dispose);
+    await controller.open('/workspace');
+    var allowNavigation = false, guardCalls = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: mcTheme(Brightness.light),
+        home: Scaffold(
+          body: WorkspaceBrowser(
+            controller: controller,
+            profileInspectorBuilder:
+                (context, workspace, profile, close, bindGuard) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    bindGuard((navigate) async {
+                      guardCalls++;
+                      if (!allowNavigation) return false;
+                      await navigate();
+                      return true;
+                    });
+                  });
+                  return Text('Editing ${profile.name}');
+                },
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey((profileId: 'a'))));
+    await tester.pump();
+    await tester.tap(find.text('Settings and saves'));
+    await tester.pumpAndSettle();
+    final drawerScaffold = tester.state<ScaffoldState>(
+      find.byWidgetPredicate(
+        (widget) => widget is Scaffold && widget.endDrawer != null,
+      ),
+    );
+    expect(drawerScaffold.isEndDrawerOpen, isTrue);
+
+    drawerScaffold.closeEndDrawer();
+    await tester.pumpAndSettle();
+    expect(guardCalls, 1);
+    expect(drawerScaffold.isEndDrawerOpen, isTrue);
+    expect(find.text('Editing A profile'), findsOneWidget);
+
+    allowNavigation = true;
+    drawerScaffold.closeEndDrawer();
+    await tester.pumpAndSettle();
+    expect(guardCalls, 2);
+    expect(drawerScaffold.isEndDrawerOpen, isFalse);
+    expect(find.text('Editing A profile'), findsNothing);
+  });
 }

@@ -241,13 +241,59 @@ type OperationStore
             )
         )
 
+    member internal _.FilePlansAtTextObservation(afterObservation) =
+        ModConductor.FilePlanning.FilePlanSession(
+            FilePlanRepository(
+                database,
+                modLibrary.Access,
+                modLibrary.PublicationOwner,
+                afterTextObservation = afterObservation
+            )
+        )
+
     member internal _.EditTransientBytes action =
         database.Enqueue(fun () ->
             Sqlite.number
                 database.Connection
                 null
-                "SELECT COALESCE(length(content),-1) FROM mod_edit_origins WHERE edit_id=$id"
+                "SELECT COALESCE((SELECT length(content) FROM mod_edit_origins WHERE edit_id=$id),-1)"
                 [ "$id", box (string action) ])
+
+    member internal _.EditPublicationResidue action =
+        database.Enqueue(fun () ->
+            let scalar table column =
+                Sqlite.number
+                    database.Connection
+                    null
+                    ("SELECT count(*) FROM " + table + " WHERE " + column + "=$id")
+                    [ "$id", box (string action) ]
+
+            let version =
+                Sqlite.number
+                    database.Connection
+                    null
+                    "SELECT count(*) FROM mod_versions WHERE id=$id"
+                    [ "$id", box (string action) ]
+
+            use command =
+                Sqlite.command
+                    database.Connection
+                    null
+                    "SELECT id FROM mod_payloads WHERE publication_id=$id"
+                    [ "$id", box (string action) ]
+
+            use reader = command.ExecuteReader()
+
+            let payloads =
+                [ while reader.Read() do
+                      yield Guid.Parse(reader.GetString 0) ]
+
+            reader.Close()
+
+            version,
+            scalar "mod_edit_origins" "version_id",
+            scalar "mod_manifest" "version_id",
+            payloads)
 
     member internal _.ProfileDataActionBytes action =
         database.Enqueue(fun () ->

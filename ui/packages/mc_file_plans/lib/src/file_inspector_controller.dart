@@ -25,6 +25,7 @@ class FileInspectorController extends ChangeNotifier {
   int _textEpoch = 0;
   int _previewEpoch = 0;
   bool get archiveMode => _artifact != null;
+  bool get editingText => textDocument != null;
   List<String>? target;
   ManagedFileCopy? requestedCopy;
   final _copies = <Object, InspectedFileCopy>{};
@@ -200,19 +201,6 @@ class FileInspectorController extends ChangeNotifier {
     FilePlanState? state, {
     bool clear = false,
   }) {
-    if (clear && textDocument != null) {
-      _client = client;
-      _snapshot = state?.id;
-      _archiveClient = null;
-      _artifact = null;
-      _archiveManifest = null;
-      _archiveEntry = null;
-      _cancelPreview();
-      ++_epoch;
-      loading = false;
-      notifyListeners();
-      return;
-    }
     _attach(client, state, clear: clear);
   }
 

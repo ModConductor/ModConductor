@@ -39,6 +39,7 @@ class TextEditorToolboxState extends State<TextEditorToolbox> {
   late final TextEditingController _controller;
   late String _saved;
   final FocusNode _editorFocus = FocusNode();
+  bool _guardingNavigation = false;
 
   bool get dirty => _controller.text != _saved;
 
@@ -79,34 +80,43 @@ class TextEditorToolboxState extends State<TextEditorToolbox> {
   }
 
   Future<bool> guardNavigation(FutureOr<void> Function() navigate) async {
-    final choice = await _chooseNavigation();
+    if (_guardingNavigation) return false;
+    _guardingNavigation = true;
+    try {
+      final choice = await _chooseNavigation();
 
-    if (choice == _EditorNavigation.cancel) {
-      if (mounted) _editorFocus.requestFocus();
-      return false;
-    }
-
-    if (choice == _EditorNavigation.save) {
-      final content = _controller.text;
-      if (!await widget.onSave(content)) {
+      if (choice == _EditorNavigation.cancel) {
         if (mounted) _editorFocus.requestFocus();
         return false;
       }
 
-      if (!mounted) return false;
-      _saved = content;
-      setState(() {});
-    }
+      if (choice == _EditorNavigation.save) {
+        final content = _controller.text;
+        if (!await widget.onSave(content)) {
+          if (mounted) _editorFocus.requestFocus();
+          return false;
+        }
 
-    if (choice == _EditorNavigation.discard &&
-        widget.onDiscard != null &&
-        !await widget.onDiscard!()) {
-      if (mounted) _editorFocus.requestFocus();
-      return false;
-    }
+        if (!mounted) return false;
+        _saved = content;
+        setState(() {});
+      }
 
-    await navigate();
-    return true;
+      if (choice == _EditorNavigation.discard) {
+        if (widget.onDiscard != null && !await widget.onDiscard!()) {
+          if (mounted) _editorFocus.requestFocus();
+          return false;
+        }
+        if (!mounted) return false;
+        _saved = _controller.text;
+        setState(() {});
+      }
+
+      await navigate();
+      return true;
+    } finally {
+      _guardingNavigation = false;
+    }
   }
 
   Future<bool> requestClose() => guardNavigation(widget.onClose);

@@ -15,10 +15,12 @@ type FilePlanRepository
         access: LibraryAccess,
         ?publication: LibraryPublication,
         ?beforeTextEffect: unit -> unit,
-        ?afterTextEffect: unit -> unit
+        ?afterTextEffect: unit -> unit,
+        ?afterTextObservation: unit -> unit
     ) =
     let beforeTextEffect = defaultArg beforeTextEffect ignore
     let afterTextEffect = defaultArg afterTextEffect ignore
+    let afterTextObservation = defaultArg afterTextObservation ignore
 
     let protect action =
         task {
@@ -414,7 +416,7 @@ type FilePlanRepository
                                     input,
                                     token,
                                     afterTextEffect,
-                                    ignore,
+                                    afterTextObservation,
                                     beforeTextEffect
                                 ))
 
@@ -448,8 +450,9 @@ type FilePlanRepository
             protect (fun () ->
                 task {
                     let! result =
-                        database.Enqueue(fun () ->
-                            PublicationRows.abandon database.Connection action)
+                        match publication with
+                        | Some owner -> access.Run(fun () -> owner.Abandon(action))
+                        | None -> Task.FromResult(Error LibraryError.UnsupportedAction)
 
                     return
                         match result with

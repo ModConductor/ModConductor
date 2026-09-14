@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mc_client/mc_client.dart';
 import 'package:mc_file_plans/mc_file_plans.dart';
 import 'package:mc_file_plans/src/planned_files_controller.dart';
+import 'package:mc_mod_library/mc_mod_library.dart';
 import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 
 FilePlanState state(String id) => FilePlanState(
@@ -289,14 +290,115 @@ void main() {
     await controller.openTextEditor();
     client.failTextSave = true;
     expect(await controller.saveText('changed\n'), isFalse);
-    controller.attach(client, state('reopened'), clear: true);
-    expect(controller.textDocument, isNotNull);
     client.failTextSave = false;
     expect(await controller.saveText('changed\n'), isTrue);
     expect(client.textActions, hasLength(2));
     expect(client.textActions.first, client.textActions.last);
-    expect(client.textSnapshots, ['first', 'reopened']);
+    expect(client.textSnapshots, ['first', 'first']);
     controller.dispose();
+    await client.stream.close();
+  });
+
+  testWidgets(
+    'profile and client switch waits for Save Discard or Keep editing',
+    (tester) async {
+      final first = FakePlans(),
+          second = FakePlans()..current = state('second');
+      final plans = FilePlansController()..attach(first, 'first-profile');
+      await tester.pump();
+      await plans.inspector.showTarget(copy.path);
+      await plans.inspector.openTextEditor();
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: mcTheme(Brightness.light),
+          home: Scaffold(
+            body: FileSourcesInspector(controller: plans, onClose: () {}),
+          ),
+        ),
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('text-editor')),
+        'stay here\n',
+      );
+
+      plans.attach(second, 'second-profile');
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(OutlinedButton, 'Keep editing'));
+      await tester.pumpAndSettle();
+      expect(find.text('stay here\n'), findsOneWidget);
+      expect(second.openedProfiles, isEmpty);
+      expect(tester.testTextInput.isVisible, isTrue);
+
+      plans.attach(second, 'second-profile');
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(OutlinedButton, 'Discard').last);
+      await tester.pumpAndSettle();
+      expect(second.openedProfiles, ['second-profile']);
+      expect(plans.inspector.textDocument, isNull);
+      await tester.pumpWidget(const SizedBox());
+      plans.dispose();
+      await first.stream.close();
+      await second.stream.close();
+    },
+  );
+
+  testWidgets('compact drawer dismissal uses the editor navigation guard', (
+    tester,
+  ) async {
+    final client = FakePlans();
+    final plans = FilePlansController()..attach(client, 'profile');
+    final mods = ModLibraryController();
+    await tester.pump();
+    await plans.inspector.showTarget(copy.path);
+    await plans.inspector.openTextEditor();
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: mcTheme(Brightness.light),
+        home: SizedBox(
+          width: 800,
+          height: 700,
+          child: FilePlanningWorkbench(
+            mods: mods,
+            plans: plans,
+            workspacePath: '/workspace',
+            chooseDirectory: (_) async => null,
+          ),
+        ),
+      ),
+    );
+    final scaffold = tester.state<ScaffoldState>(
+      find
+          .descendant(
+            of: find.byType(FilePlanningWorkbench),
+            matching: find.byType(Scaffold),
+          )
+          .first,
+    );
+    scaffold.openEndDrawer();
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('text-editor')),
+      'drawer draft\n',
+    );
+
+    scaffold.closeEndDrawer();
+    await tester.pumpAndSettle();
+    expect(find.text('Save changes?'), findsOneWidget);
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Keep editing'));
+    await tester.pumpAndSettle();
+    expect(scaffold.isEndDrawerOpen, isTrue);
+    expect(find.text('drawer draft\n'), findsOneWidget);
+    expect(tester.testTextInput.isVisible, isTrue);
+
+    scaffold.closeEndDrawer();
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Discard').last);
+    await tester.pumpAndSettle();
+    expect(scaffold.isEndDrawerOpen, isFalse);
+    expect(plans.inspector.textDocument, isNull);
+    await tester.pumpWidget(const SizedBox());
+    plans.dispose();
+    mods.dispose();
     await client.stream.close();
   });
 

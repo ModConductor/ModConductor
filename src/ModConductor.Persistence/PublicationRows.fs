@@ -253,13 +253,6 @@ module internal PublicationRows =
                   "$owner", box owner
                   "$phase", box (if cancelled then 5 else 4) ]
 
-            if cancelled then
-                Sqlite.execute
-                    connection
-                    transaction
-                    "UPDATE mod_edit_origins SET content=X'' WHERE version_id=$version"
-                    [ "$version", box (string version) ]
-
             LibraryRows.setStatus connection transaction receipt.ModId InventoryStatus.Unproved
         | Some _
         | None -> ()
@@ -304,7 +297,7 @@ module internal PublicationRows =
         transaction.Commit()
         result
 
-    let abandon (connection: Microsoft.Data.Sqlite.SqliteConnection) action =
+    let claimAbandon (connection: Microsoft.Data.Sqlite.SqliteConnection) owner action =
         use transaction = connection.BeginTransaction(deferred = false)
 
         let result =
@@ -326,16 +319,57 @@ module internal PublicationRows =
                 Sqlite.execute
                     connection
                     transaction
-                    "UPDATE mod_versions SET phase=5,busy=0,cancelled=1 WHERE id=$id; UPDATE mod_edit_origins SET content=X'' WHERE version_id=$id"
-                    [ "$id", box (string persisted.VersionId) ]
-
-                LibraryRows.setStatus
-                    connection
-                    transaction
-                    persisted.ModId
-                    InventoryStatus.Unproved
+                    "UPDATE mod_versions SET owner=$owner,phase=5,busy=1,cancelled=1 WHERE id=$id"
+                    [ "$id", box (string persisted.VersionId); "$owner", box owner ]
 
                 Ok persisted.VersionId
+
+        transaction.Commit()
+        result
+
+    let releaseAbandon (connection: Microsoft.Data.Sqlite.SqliteConnection) owner version =
+        use transaction = connection.BeginTransaction(deferred = false)
+
+        match find connection transaction version with
+        | Some receipt when receipt.Phase <> PublicationPhase.Complete ->
+            Sqlite.execute
+                connection
+                transaction
+                "UPDATE mod_versions SET busy=0 WHERE id=$id AND owner=$owner"
+                [ "$id", box (string version); "$owner", box owner ]
+
+            LibraryRows.setStatus connection transaction receipt.ModId InventoryStatus.Unproved
+        | Some _
+        | None -> ()
+
+        transaction.Commit()
+
+    let removeIncomplete (connection: Microsoft.Data.Sqlite.SqliteConnection) version =
+        use transaction = connection.BeginTransaction(deferred = false)
+
+        let result =
+            match find connection transaction version with
+            | None -> Error LibraryError.NotFound
+            | Some receipt when receipt.Phase = PublicationPhase.Complete ->
+                Error LibraryError.UnsupportedAction
+            | Some receipt when
+                Sqlite.number
+                    connection
+                    transaction
+                    "SELECT count(*) FROM mods WHERE current_version=$id"
+                    [ "$id", box (string version) ]
+                <> 0L
+                ->
+                Error LibraryError.IdentityConflict
+            | Some receipt ->
+                Sqlite.execute
+                    connection
+                    transaction
+                    "DELETE FROM mod_manifest WHERE version_id=$id; DELETE FROM mod_edit_origins WHERE version_id=$id; DELETE FROM mod_payloads WHERE publication_id=$id; DELETE FROM mod_versions WHERE id=$id"
+                    [ "$id", box (string version) ]
+
+                LibraryRows.setStatus connection transaction receipt.ModId InventoryStatus.Ready
+                Ok version
 
         transaction.Commit()
         result

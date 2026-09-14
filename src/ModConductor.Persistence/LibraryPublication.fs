@@ -176,6 +176,81 @@ type internal LibraryPublication(database: StateDatabase, access: LibraryAccess)
                         [ "$version", box (string version) ])
         }
 
+    let cleanupIncomplete version =
+        task {
+            let! cleanup =
+                db (fun () ->
+                    match PublicationRows.find connection null version with
+                    | None -> Ok None
+                    | Some receipt when receipt.Phase = PublicationPhase.Complete ->
+                        Error LibraryError.UnsupportedAction
+                    | Some receipt ->
+                        match LibraryRows.find connection null receipt.ModId with
+                        | None -> Error LibraryError.NotFound
+                        | Some row ->
+                            use statement =
+                                Sqlite.command
+                                    connection
+                                    null
+                                    "SELECT id FROM mod_payloads WHERE publication_id=$version"
+                                    [ "$version", box (string version) ]
+
+                            use reader = statement.ExecuteReader()
+
+                            let payloads =
+                                [ while reader.Read() do
+                                      yield Guid.Parse(reader.GetString 0) ]
+
+                            Ok(Some(row.Entry.WorkspaceId, payloads)))
+
+            match cleanup with
+            | Error error -> return Error error
+            | Ok None -> return Ok version
+            | Ok(Some(workspace, payloads)) ->
+                let! filesRemoved =
+                    task {
+                        if payloads.IsEmpty then
+                            return Ok()
+                        else
+                            let! rootResult = access.Root workspace
+
+                            match rootResult with
+                            | Error error -> return Error error
+                            | Ok root ->
+                                let! library =
+                                    db (fun () -> LibraryRows.library connection null workspace)
+
+                                match library with
+                                | None -> return Error LibraryError.FileUnavailable
+                                | Some library ->
+                                    do!
+                                        Task.Run(fun () ->
+                                            use destination = LibraryFiles.openLibrary root library
+
+                                            for payload in payloads do
+                                                let name = LibraryFiles.payloadName payload
+
+                                                match destination.InspectEntry name with
+                                                | None -> ()
+                                                | Some entry when
+                                                    entry.Kind = EntryKind.RegularFile
+                                                    ->
+                                                    destination.RemoveFile(name, entry.Identity)
+                                                | Some _ ->
+                                                    raise (
+                                                        IOException(
+                                                            "The incomplete library file changed."
+                                                        )
+                                                    ))
+
+                                    return Ok()
+                    }
+
+                match filesRemoved with
+                | Error error -> return Error error
+                | Ok() -> return! db (fun () -> PublicationRows.removeIncomplete connection version)
+        }
+
     let verify root library version =
         task {
             let! payloads =
@@ -323,6 +398,16 @@ type internal LibraryPublication(database: StateDatabase, access: LibraryAccess)
                                         cancelled))
                                     .GetAwaiter()
                                     .GetResult()
+
+                                if cancelled then
+                                    match (cleanupIncomplete version).GetAwaiter().GetResult() with
+                                    | Ok _ -> ()
+                                    | Error _ ->
+                                        raise (
+                                            IOException(
+                                                "The cancelled publication could not be removed."
+                                            )
+                                        )
                             with _ ->
                                 access.Fail()
                                 reraise ()
@@ -361,3 +446,30 @@ type internal LibraryPublication(database: StateDatabase, access: LibraryAccess)
             afterObservation,
             beforeInlineEffect
         )
+
+    member _.Abandon(action) =
+        task {
+            let! claimed =
+                db (fun () -> PublicationRows.claimAbandon connection database.OwnerId action)
+
+            match claimed with
+            | Error error -> return Error error
+            | Ok version ->
+                try
+                    let! removed = cleanupIncomplete version
+
+                    match removed with
+                    | Ok _ -> return Ok version
+                    | Error error ->
+                        do!
+                            db (fun () ->
+                                PublicationRows.releaseAbandon connection database.OwnerId version)
+
+                        return Error error
+                with error ->
+                    do!
+                        db (fun () ->
+                            PublicationRows.releaseAbandon connection database.OwnerId version)
+
+                    return raise error
+        }

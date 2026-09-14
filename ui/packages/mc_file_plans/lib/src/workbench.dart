@@ -59,6 +59,7 @@ class _FilePlanningWorkbenchState extends State<FilePlanningWorkbench> {
   FocusNode? _opener;
   int? _selectionRevision, _catalogueRevision;
   bool _compact = false;
+  bool _allowDrawerClose = false, _guardingDrawerClose = false;
   @override
   void initState() {
     super.initState();
@@ -101,6 +102,7 @@ class _FilePlanningWorkbenchState extends State<FilePlanningWorkbench> {
 
   void _close() {
     if (_scaffold.currentState?.isEndDrawerOpen ?? false) {
+      _allowDrawerClose = true;
       _scaffold.currentState!.closeEndDrawer();
     } else {
       widget.plans.inspector.close();
@@ -109,6 +111,48 @@ class _FilePlanningWorkbenchState extends State<FilePlanningWorkbench> {
       widget.onCloseAdditionalInspector?.call();
       _opener?.requestFocus();
     }
+  }
+
+  void _finishDrawerClose() {
+    widget.plans.inspector.close();
+    widget.plugins?.closeInspector();
+    widget.archives?.closeInspector();
+    widget.sortOrder?.closeInspector();
+    widget.onCloseAdditionalInspector?.call();
+    _opener?.requestFocus();
+  }
+
+  void _guardDrawerClose() {
+    if (_guardingDrawerClose) return;
+    _guardingDrawerClose = true;
+    unawaited(
+      widget.plans.inspector
+          .guardTextNavigation(() {
+            _allowDrawerClose = true;
+            _scaffold.currentState?.closeEndDrawer();
+          })
+          .whenComplete(() => _guardingDrawerClose = false),
+    );
+  }
+
+  void _drawerChanged(bool open) {
+    if (open) return;
+    if (_allowDrawerClose) {
+      _allowDrawerClose = false;
+      _finishDrawerClose();
+      return;
+    }
+    if (!widget.plans.inspector.editingText) {
+      _finishDrawerClose();
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _scaffold.currentState?.openEndDrawer();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _guardDrawerClose();
+      });
+    });
   }
 
   void _changeInspector(VoidCallback change) {
@@ -148,20 +192,17 @@ class _FilePlanningWorkbenchState extends State<FilePlanningWorkbench> {
         return Scaffold(
           key: _scaffold,
           backgroundColor: Colors.transparent,
-          endDrawer: Drawer(
-            width: math.min(540, bounds.maxWidth),
-            child: inspector(),
+          endDrawer: PopScope(
+            canPop: _allowDrawerClose || !widget.plans.inspector.editingText,
+            onPopInvokedWithResult: (didPop, _) {
+              if (!didPop) _guardDrawerClose();
+            },
+            child: Drawer(
+              width: math.min(540, bounds.maxWidth),
+              child: inspector(),
+            ),
           ),
-          onEndDrawerChanged: (open) {
-            if (!open) {
-              widget.plans.inspector.close();
-              widget.plugins?.closeInspector();
-              widget.archives?.closeInspector();
-              widget.sortOrder?.closeInspector();
-              widget.onCloseAdditionalInspector?.call();
-              _opener?.requestFocus();
-            }
-          },
+          onEndDrawerChanged: _drawerChanged,
           body: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [

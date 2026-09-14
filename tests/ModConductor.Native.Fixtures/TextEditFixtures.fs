@@ -295,7 +295,7 @@ module TextEditFixtures =
     let private cancellationAndPayloadRace (writer: Utf8JsonWriter) area =
         let cancelledArea = Path.Combine(area, "publication-cancel")
 
-        let store, _, _, _, profile, modId, originalVersion, _ =
+        let store, _, cancelledRoot, _, profile, modId, originalVersion, _ =
             seedPublicationScenario cancelledArea
 
         use store = store
@@ -303,7 +303,7 @@ module TextEditFixtures =
         use release = new ManualResetEventSlim(false)
 
         let plansAtCancel =
-            store.FilePlansAtTextEffect(fun () ->
+            store.FilePlansAtTextObservation(fun () ->
                 entered.Set()
                 release.Wait())
             :> IFilePlans
@@ -322,10 +322,27 @@ module TextEditFixtures =
             )
 
         entered.Wait()
+
+        let beforeCancelVersion, beforeCancelOrigin, beforeCancelManifest, pendingPayloads =
+            store.EditPublicationResidue action |> wait
+
+        let pendingPaths =
+            pendingPayloads
+            |> List.map (fun payload ->
+                Directory.GetFiles(
+                    cancelledRoot,
+                    payload.ToString("N") + ".payload",
+                    SearchOption.AllDirectories
+                )
+                |> Array.exactlyOne)
+
         cancellation.Cancel()
         release.Set()
         let cancelled = pending |> wait
         let abandoned = plansAtCancel.AbandonManagedText action |> wait
+
+        let afterCancelVersion, afterCancelOrigin, afterCancelManifest, afterCancelPayloads =
+            store.EditPublicationResidue action |> wait
 
         let current =
             (InventoryObservations.read store profile).Entries
@@ -337,9 +354,95 @@ module TextEditFixtures =
             check
                 "publication cancellation"
                 (cancelled = Error FilePlanError.Cancelled
-                 && abandoned = Ok action
+                 && abandoned = Error FilePlanError.NotFound
                  && current = Some originalVersion
-                 && (store.EditTransientBytes action |> wait) = 0L)
+                 && beforeCancelVersion = 1L
+                 && beforeCancelOrigin = 1L
+                 && beforeCancelManifest > 0L
+                 && not pendingPayloads.IsEmpty
+                 && afterCancelVersion = 0L
+                 && afterCancelOrigin = 0L
+                 && afterCancelManifest = 0L
+                 && afterCancelPayloads.IsEmpty
+                 && (pendingPaths |> List.forall (File.Exists >> not))
+                 && (store.EditTransientBytes action |> wait) = -1L)
+        )
+
+        let abandonArea = Path.Combine(area, "publication-abandon")
+
+        let abandonStore, _, abandonRoot, _, abandonProfile, abandonMod, abandonCurrent, _ =
+            seedPublicationScenario abandonArea
+
+        use abandonStore = abandonStore
+
+        let interruptedPlans =
+            abandonStore.FilePlansAtTextObservation(fun () ->
+                raise (IOException "stop after publication effects"))
+            :> IFilePlans
+
+        let abandonSnapshot, abandonSource = managedSource interruptedPlans abandonProfile
+        let abandonAction = Guid.NewGuid()
+
+        let interrupted =
+            interruptedPlans.SaveManagedText(
+                abandonSnapshot.Id,
+                abandonAction,
+                abandonSource,
+                "abandoned\n",
+                token
+            )
+            |> wait
+
+        let beforeAbandonVersion, beforeAbandonOrigin, beforeAbandonManifest, abandonedPayloads =
+            abandonStore.EditPublicationResidue abandonAction |> wait
+
+        let abandonedPaths =
+            abandonedPayloads
+            |> List.map (fun payload ->
+                Directory.GetFiles(
+                    abandonRoot,
+                    payload.ToString("N") + ".payload",
+                    SearchOption.AllDirectories
+                )
+                |> Array.exactlyOne)
+
+        let abandoned = interruptedPlans.AbandonManagedText abandonAction |> wait
+
+        let afterAbandonVersion, afterAbandonOrigin, afterAbandonManifest, afterAbandonPayloads =
+            abandonStore.EditPublicationResidue abandonAction |> wait
+
+        let abandonCurrentAfter =
+            (InventoryObservations.read abandonStore abandonProfile).Entries
+            |> List.find (fun value -> value.Entry.Mod.Id = abandonMod)
+            |> _.Entry.Mod.CurrentVersion
+
+        let originalStillReadable =
+            let library = abandonStore.ModLibrary :> IModLibrary
+            let original = library.Version(abandonCurrent, 0) |> wait |> result
+
+            original.Entries
+            |> List.forall (fun entry ->
+                library.ReadPayload(abandonCurrent, entry.Payload.Id, 0L, 1024)
+                |> wait
+                |> Result.isOk)
+
+        writer.WriteBoolean(
+            "abandonedPublicationRemovesOwnedFilesAndRows",
+            check
+                "publication abandonment"
+                (Result.isError interrupted
+                 && beforeAbandonVersion = 1L
+                 && beforeAbandonOrigin = 1L
+                 && beforeAbandonManifest > 0L
+                 && not abandonedPayloads.IsEmpty
+                 && abandoned = Ok abandonAction
+                 && afterAbandonVersion = 0L
+                 && afterAbandonOrigin = 0L
+                 && afterAbandonManifest = 0L
+                 && afterAbandonPayloads.IsEmpty
+                 && (abandonedPaths |> List.forall (File.Exists >> not))
+                 && abandonCurrentAfter = Some abandonCurrent
+                 && originalStillReadable)
         )
 
         let raceArea = Path.Combine(area, "payload-race")

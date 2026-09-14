@@ -10,6 +10,16 @@ import 'controller.dart';
 import 'workspace_dialog.dart';
 
 typedef ProfileRowId = ({String profileId});
+typedef ProfileNavigationGuard = Future<bool> Function(
+  FutureOr<void> Function() navigate,
+);
+typedef ProfileInspectorBuilder = Widget Function(
+  BuildContext,
+  WorkspaceInfo,
+  ProfileInfo,
+  VoidCallback,
+  ValueChanged<ProfileNavigationGuard?>,
+);
 
 enum _WorkspaceMode { profiles, mods, game, tools, archives }
 
@@ -37,8 +47,7 @@ class WorkspaceBrowser extends StatefulWidget {
   artifactBuilder;
   final List<Widget> Function(BuildContext, WorkspaceInfo)? headerActions;
   final bool compactCloseAction;
-  final Widget Function(BuildContext, WorkspaceInfo, ProfileInfo, VoidCallback)?
-  profileInspectorBuilder;
+  final ProfileInspectorBuilder? profileInspectorBuilder;
 
   @override
   State<WorkspaceBrowser> createState() => _WorkspaceBrowserState();
@@ -63,6 +72,9 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
   bool _inspected = false,
       _compactProfile = false,
       _compactProfileActions = false;
+  ProfileNavigationGuard? _profileNavigationGuard;
+  String? _inspectedProfileId;
+  bool _allowProfileDrawerClose = false, _guardingProfileDrawerClose = false;
   void _inspectProfile() {
     setState(() => _inspected = true);
     if (_compactProfile) {
@@ -70,6 +82,85 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
         if (mounted) _profilePane.currentState?.openEndDrawer();
       });
     }
+  }
+
+  void _bindProfileNavigation(String profileId, ProfileNavigationGuard? guard) {
+    if (!mounted || _inspectedProfileId != profileId) return;
+    if (identical(_profileNavigationGuard, guard) ||
+        (_profileNavigationGuard != null && guard != null)) {
+      return;
+    }
+    setState(() => _profileNavigationGuard = guard);
+  }
+
+  void _selectProfile(ProfileInfo profile, [VoidCallback? after]) {
+    final guard = _profileNavigationGuard;
+    final prior = _inspectedProfileId;
+    void select() {
+      _profiles.select((profileId: profile.id));
+      _profilesFocus.requestFocus();
+      after?.call();
+    }
+
+    if (!_inspected || guard == null || prior == null || prior == profile.id) {
+      select();
+      return;
+    }
+
+    _profiles.select((profileId: prior));
+    unawaited(guard(select));
+  }
+
+  void _finishProfileDrawerClose() {
+    if (mounted) {
+      setState(() {
+        _inspected = false;
+        _profileNavigationGuard = null;
+        _inspectedProfileId = null;
+      });
+    }
+    _profilesFocus.requestFocus();
+  }
+
+  void _closeProfileInspector() {
+    if (_profilePane.currentState?.isEndDrawerOpen ?? false) {
+      _allowProfileDrawerClose = true;
+      _profilePane.currentState?.closeEndDrawer();
+    } else {
+      _finishProfileDrawerClose();
+    }
+  }
+
+  void _guardProfileDrawerClose() {
+    final guard = _profileNavigationGuard;
+    if (guard == null || _guardingProfileDrawerClose) return;
+    _guardingProfileDrawerClose = true;
+    unawaited(
+      guard(() {
+        _allowProfileDrawerClose = true;
+        _profilePane.currentState?.closeEndDrawer();
+      }).whenComplete(() => _guardingProfileDrawerClose = false),
+    );
+  }
+
+  void _profileDrawerChanged(bool open) {
+    if (open) return;
+    if (_allowProfileDrawerClose) {
+      _allowProfileDrawerClose = false;
+      _finishProfileDrawerClose();
+      return;
+    }
+    if (_profileNavigationGuard == null) {
+      _finishProfileDrawerClose();
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _profilePane.currentState?.openEndDrawer();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _guardProfileDrawerClose();
+      });
+    });
   }
 
   @override
@@ -505,12 +596,18 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
         _compactProfile =
             constraints.maxWidth <
             1100 * MediaQuery.textScalerOf(context).scale(1);
-        Widget inspector(VoidCallback close) => widget.profileInspectorBuilder!(
-          context,
-          controller.workspace!,
-          selected!,
-          close,
-        );
+        Widget inspector() {
+          final profile = selected!;
+          _inspectedProfileId = profile.id;
+          return widget.profileInspectorBuilder!(
+            context,
+            controller.workspace!,
+            profile,
+            _closeProfileInspector,
+            (guard) => _bindProfileNavigation(profile.id, guard),
+          );
+        }
+
         return Scaffold(
           key: _profilePane,
           backgroundColor: Colors.transparent,
@@ -518,13 +615,17 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
               _compactProfile &&
                   selected != null &&
                   widget.profileInspectorBuilder != null
-              ? Drawer(
-                  width: 440,
-                  child: inspector(
-                    () => _profilePane.currentState?.closeEndDrawer(),
-                  ),
+              ? PopScope(
+                  canPop:
+                      _allowProfileDrawerClose ||
+                      _profileNavigationGuard == null,
+                  onPopInvokedWithResult: (didPop, _) {
+                    if (!didPop) _guardProfileDrawerClose();
+                  },
+                  child: Drawer(width: 440, child: inspector()),
                 )
               : null,
+          onEndDrawerChanged: _profileDrawerChanged,
           body: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -534,10 +635,7 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
                   selected != null &&
                   widget.profileInspectorBuilder != null) ...[
                 const SizedBox(width: 16),
-                SizedBox(
-                  width: 390,
-                  child: inspector(() => setState(() => _inspected = false)),
-                ),
+                SizedBox(width: 390, child: inspector()),
               ],
             ],
           ),
@@ -578,6 +676,7 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
               countLabel:
                   '${_profiles.length} ${_profiles.length == 1 ? 'profile' : 'profiles'}${incomplete ? ' loaded' : ''}',
               empty: 'No profiles.',
+              onSelect: _selectProfile,
               onLoad: incomplete && controller.canEdit
                   ? () => unawaited(controller.moreProfiles())
                   : null,
@@ -618,18 +717,22 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
                     label: 'Options for ${row.name}',
                     enabled: controller.canEdit,
                     onSelected: (action) {
-                      _profiles.select((profileId: row.id));
-                      _profilesFocus.requestFocus();
-                      switch (action) {
-                        case _ProfileAction.clone:
-                          unawaited(_profileDialog(context, profile: row));
-                        case _ProfileAction.rename:
-                          unawaited(
-                            _profileDialog(context, profile: row, rename: true),
-                          );
-                        case _ProfileAction.delete:
-                          unawaited(_delete(context, row));
-                      }
+                      _selectProfile(row, () {
+                        switch (action) {
+                          case _ProfileAction.clone:
+                            unawaited(_profileDialog(context, profile: row));
+                          case _ProfileAction.rename:
+                            unawaited(
+                              _profileDialog(
+                                context,
+                                profile: row,
+                                rename: true,
+                              ),
+                            );
+                          case _ProfileAction.delete:
+                            unawaited(_delete(context, row));
+                        }
+                      });
                     },
                     itemBuilder: (_) => const [
                       PopupMenuItem(

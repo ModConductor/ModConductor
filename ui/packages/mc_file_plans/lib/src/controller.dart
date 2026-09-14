@@ -18,6 +18,8 @@ class FilePlansController extends ChangeNotifier {
   FilePlanState? state;
   FilePlanProgress? progress;
   bool loading = false, reading = false, changing = false, needsRead = false;
+  bool _guardingAttach = false;
+  (FilePlansClient?, String?, bool)? _pendingAttach;
   String? problem;
   bool get connected => _client != null && _profile != null && _available;
   FilePlansController() {
@@ -32,6 +34,36 @@ class FilePlansController extends ChangeNotifier {
     FilePlansClient? client,
     String? profileId, {
     bool available = true,
+  }) {
+    if (_guardingAttach) {
+      _pendingAttach = (client, profileId, available);
+      return;
+    }
+    final changed = !identical(client, _client) || profileId != _profile;
+    if (changed && inspector.editingText) {
+      _pendingAttach = (client, profileId, available);
+      _guardingAttach = true;
+      unawaited(
+        inspector
+            .guardTextNavigation(() {
+              final pending = _pendingAttach!;
+              _pendingAttach = null;
+              _applyAttach(pending.$1, pending.$2, available: pending.$3);
+            })
+            .whenComplete(() {
+              _guardingAttach = false;
+              _pendingAttach = null;
+            }),
+      );
+      return;
+    }
+    _applyAttach(client, profileId, available: available);
+  }
+
+  void _applyAttach(
+    FilePlansClient? client,
+    String? profileId, {
+    required bool available,
   }) {
     final becameAvailable = !_available && available;
     _available = available;

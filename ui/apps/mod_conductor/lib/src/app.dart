@@ -430,7 +430,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
                     controller: _workspaces,
                     profileInspectorBuilder: widget.profileData == null
                         ? null
-                        : (context, workspace, profile, close) =>
+                        : (context, workspace, profile, close, bindGuard) =>
                               ProfileSettingsInspector(
                                 controller: _profileData,
                                 client: widget.profileData,
@@ -442,6 +442,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
                                     _workspaces.canEdit &&
                                     _game.state?.binding?.needsCheck == false,
                                 onClose: close,
+                                onNavigationGuardChanged: bindGuard,
                                 onResumeProfileChange:
                                     _workspaces.resumeProfileChange,
                                 pluginHeadersId: _plugins.order?.headers.id,
