@@ -574,6 +574,13 @@ type FilePlanSession(repository: IFileCandidateRepository) =
                                                   Source = source })
                 })
 
+        member _.AbandonManagedText(action) =
+            run CancellationToken.None (fun _ ->
+                if action = Guid.Empty then
+                    Task.FromResult(Error FilePlanError.InvalidCopy)
+                else
+                    repository.AbandonText action)
+
         member _.History(id, copy, after) =
             run CancellationToken.None (fun _ ->
                 task {

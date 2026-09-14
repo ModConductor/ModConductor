@@ -1666,6 +1666,62 @@ class SaveManagedTextRequest extends $pb.GeneratedMessage {
   void clearContent() => $_clearField(4);
 }
 
+class AbandonManagedTextRequest extends $pb.GeneratedMessage {
+  factory AbandonManagedTextRequest({
+    $core.String? id,
+  }) {
+    final result = create();
+    if (id != null) result.id = id;
+    return result;
+  }
+
+  AbandonManagedTextRequest._();
+
+  factory AbandonManagedTextRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory AbandonManagedTextRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'AbandonManagedTextRequest',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'id')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  AbandonManagedTextRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  AbandonManagedTextRequest copyWith(
+          void Function(AbandonManagedTextRequest) updates) =>
+      super.copyWith((message) => updates(message as AbandonManagedTextRequest))
+          as AbandonManagedTextRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static AbandonManagedTextRequest create() => AbandonManagedTextRequest._();
+  @$core.override
+  AbandonManagedTextRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static AbandonManagedTextRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<AbandonManagedTextRequest>(create);
+  static AbandonManagedTextRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get id => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set id($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearId() => $_clearField(1);
+}
+
 enum ManagedTextReply_Outcome { document, fault, notSet }
 
 class ManagedTextReply extends $pb.GeneratedMessage {
@@ -1833,6 +1889,94 @@ class ManagedTextEditReply extends $pb.GeneratedMessage {
   void clearEdit() => $_clearField(1);
   @$pb.TagNumber(1)
   ManagedTextEdit ensureEdit() => $_ensure(0);
+
+  @$pb.TagNumber(2)
+  FilePlanFault get fault => $_getN(1);
+  @$pb.TagNumber(2)
+  set fault(FilePlanFault value) => $_setField(2, value);
+  @$pb.TagNumber(2)
+  $core.bool hasFault() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearFault() => $_clearField(2);
+  @$pb.TagNumber(2)
+  FilePlanFault ensureFault() => $_ensure(1);
+}
+
+enum ManagedTextAbandonReply_Outcome { abandonedId, fault, notSet }
+
+class ManagedTextAbandonReply extends $pb.GeneratedMessage {
+  factory ManagedTextAbandonReply({
+    $core.String? abandonedId,
+    FilePlanFault? fault,
+  }) {
+    final result = create();
+    if (abandonedId != null) result.abandonedId = abandonedId;
+    if (fault != null) result.fault = fault;
+    return result;
+  }
+
+  ManagedTextAbandonReply._();
+
+  factory ManagedTextAbandonReply.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ManagedTextAbandonReply.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static const $core.Map<$core.int, ManagedTextAbandonReply_Outcome>
+      _ManagedTextAbandonReply_OutcomeByTag = {
+    1: ManagedTextAbandonReply_Outcome.abandonedId,
+    2: ManagedTextAbandonReply_Outcome.fault,
+    0: ManagedTextAbandonReply_Outcome.notSet
+  };
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ManagedTextAbandonReply',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..oo(0, [1, 2])
+    ..aOS(1, _omitFieldNames ? '' : 'abandonedId')
+    ..aOM<FilePlanFault>(2, _omitFieldNames ? '' : 'fault',
+        subBuilder: FilePlanFault.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ManagedTextAbandonReply clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ManagedTextAbandonReply copyWith(
+          void Function(ManagedTextAbandonReply) updates) =>
+      super.copyWith((message) => updates(message as ManagedTextAbandonReply))
+          as ManagedTextAbandonReply;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ManagedTextAbandonReply create() => ManagedTextAbandonReply._();
+  @$core.override
+  ManagedTextAbandonReply createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ManagedTextAbandonReply getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ManagedTextAbandonReply>(create);
+  static ManagedTextAbandonReply? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  @$pb.TagNumber(2)
+  ManagedTextAbandonReply_Outcome whichOutcome() =>
+      _ManagedTextAbandonReply_OutcomeByTag[$_whichOneof(0)]!;
+  @$pb.TagNumber(1)
+  @$pb.TagNumber(2)
+  void clearOutcome() => $_clearField($_whichOneof(0));
+
+  @$pb.TagNumber(1)
+  $core.String get abandonedId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set abandonedId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasAbandonedId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearAbandonedId() => $_clearField(1);
 
   @$pb.TagNumber(2)
   FilePlanFault get fault => $_getN(1);

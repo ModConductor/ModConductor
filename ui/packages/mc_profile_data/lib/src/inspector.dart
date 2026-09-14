@@ -340,12 +340,7 @@ class _ProfileSettingsInspectorState extends State<ProfileSettingsInspector> {
                 }
               },
               onSave: (content) async {
-                final saved = await controller.saveConfiguration(
-                  document,
-                  content,
-                );
-                if (saved && mounted) _closeFiles();
-                return saved;
+                return controller.saveConfiguration(document, content);
               },
             ),
           ],

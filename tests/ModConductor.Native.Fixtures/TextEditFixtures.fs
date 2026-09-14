@@ -7,6 +7,8 @@ open System.Text
 open System.Text.Json
 open System.Threading
 open ModConductor.FilePlanning
+open ModConductor.Deployment
+open ModConductor.DeploymentRecovery
 open ModConductor.GameContexts
 open ModConductor.ModLibrary
 open ModConductor.ModSelection
@@ -106,6 +108,431 @@ module TextEditFixtures =
           Identity = identity }
         : DataRoot
 
+    let private managedSource (plans: IFilePlans) profile =
+        let snapshot = plans.Acquire(profile, true, ignore, token) |> wait |> result
+
+        let source =
+            plans.Inspect(snapshot.Id, path [ "edited.ini" ], None)
+            |> wait
+            |> result
+            |> _.Copies
+            |> List.find _.Winner
+            |> _.Source
+            |> function
+                | FilePreviewSource.ManagedCopy value -> value
+                | _ -> invalidOp "Expected managed source"
+
+        snapshot, source
+
+    let private seedPublicationScenario area =
+        let root = Directory.CreateDirectory(Path.Combine(area, "workspace")).FullName
+        let state = Directory.CreateDirectory(Path.Combine(area, "state")).FullName
+        let game, proton = ProtonFixtures.create (Path.Combine(area, "game"))
+
+        let workspace, profile, modId, version =
+            Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid()
+
+        let source = Directory.CreateDirectory(Path.Combine(root, "source")).FullName
+        File.WriteAllText(Path.Combine(source, "edited.ini"), "original\n")
+        File.WriteAllText(Path.Combine(source, "retained.txt"), "retained\n")
+        let store = new OperationStore(state)
+        let workspaces = store.Workspaces :> IWorkspaceState
+        let library = store.ModLibrary :> IModLibrary
+        let selections = store.ModSelection :> IModSelection
+        let contexts = store.GameContexts :> IGameContexts
+
+        let created =
+            workspaces.Create(workspace, "Publication recovery", StorageWorker.select root)
+            |> wait
+            |> result
+
+        workspaces.Edit(
+            workspace,
+            created.Workspace.Revision,
+            ProfileEdit.Create { Id = profile; Name = "Recovery" }
+        )
+        |> wait
+        |> result
+        |> ignore
+
+        let registered =
+            library.Register(
+                workspace,
+                modId,
+                metadata "Recovery mod",
+                Registration.Directory(ModKind.Regular, path [ "source" ])
+            )
+            |> wait
+            |> result
+
+        library.Publish(modId, registered.Revision, version) |> wait |> result |> ignore
+        let inventory = InventoryObservations.read store profile
+
+        selections.Change(
+            profile,
+            inventory.SelectionRevision,
+            [ modId ],
+            SelectionEdit.Enable true
+        )
+        |> wait
+        |> result
+        |> ignore
+
+        let context =
+            contexts.Save(
+                workspace,
+                0L,
+                { Path = game
+                  Proton = if OperatingSystem.IsLinux() then Some proton else None }
+            )
+            |> wait
+            |> result
+
+        store, state, root, workspace, profile, modId, version, context
+
+    let private publicationRecovery (writer: Utf8JsonWriter) area =
+        let scenario = Path.Combine(area, "publication-recovery")
+
+        let store, state, _, workspace, profile, modId, originalVersion, context =
+            seedPublicationScenario scenario
+
+        let deployment = store.Deployments
+        let deploymentState = deployment.Read profile |> wait |> result
+        let generationId = Guid.NewGuid()
+
+        deployment.Prepare(generationId, deploymentState.Sources, ignore, token)
+        |> wait
+        |> result
+        |> ignore
+
+        deployment.Activate(generationId, deploymentState.Sources, ignore, token)
+        |> wait
+        |> result
+        |> ignore
+
+        let contextId =
+            DeploymentContextId.create
+                workspace
+                (DeploymentContextId.fingerprint context.Binding.Value.Evidence)
+
+        let retainedBefore =
+            store.Deployment.Generation(contextId, generationId) |> wait |> Option.get
+
+        RecoveryFiles.verifyGeneration retainedBefore
+
+        let interruptedPlans =
+            store.FilePlansAtTextPublicationCheckpoint(
+                ignore,
+                (fun () -> raise (IOException "stop"))
+            )
+            :> IFilePlans
+
+        let snapshot, source = managedSource interruptedPlans profile
+        let action = Guid.NewGuid()
+
+        let stopped =
+            interruptedPlans.SaveManagedText(snapshot.Id, action, source, "continued\n", token)
+            |> wait
+
+        let noFalseCurrent =
+            (InventoryObservations.read store profile).Entries
+            |> List.find (fun value -> value.Entry.Mod.Id = modId)
+            |> _.Entry.Mod.CurrentVersion
+            |> (=) (Some originalVersion)
+
+        let persistedBeforeRestart = store.EditTransientBytes action |> wait
+        (store :> IDisposable).Dispose()
+
+        use reopened = new OperationStore(state)
+        let contexts = reopened.GameContexts :> IGameContexts
+        let staleContext = contexts.Read workspace |> wait |> result
+        contexts.Refresh(workspace, staleContext.Revision) |> wait |> result |> ignore
+        let resumedPlans = reopened.FilePlans :> IFilePlans
+        let resumedSnapshot, resumedSource = managedSource resumedPlans profile
+
+        let completed =
+            resumedPlans.SaveManagedText(
+                resumedSnapshot.Id,
+                action,
+                resumedSource,
+                "different client bytes\n",
+                token
+            )
+            |> wait
+            |> result
+
+        let library = reopened.ModLibrary :> IModLibrary
+        let completedVersion = library.Version(completed.VersionId, 0) |> wait |> result
+
+        let edited =
+            completedVersion.Entries
+            |> List.find (fun entry -> entry.Path = path [ "edited.ini" ])
+
+        let bytes =
+            library.ReadPayload(completed.VersionId, edited.Payload.Id, 0L, 1024)
+            |> wait
+            |> result
+
+        let retainedAfter =
+            reopened.Deployment.Generation(contextId, generationId) |> wait |> Option.get
+
+        RecoveryFiles.verifyGeneration retainedAfter
+
+        writer.WriteBoolean(
+            "interruptedPublicationRestartsSameReceipt",
+            check
+                "publication recovery"
+                (Result.isError stopped
+                 && noFalseCurrent
+                 && persistedBeforeRestart > 0L
+                 && completed.Id = action
+                 && completed.VersionId = action
+                 && Encoding.UTF8.GetString bytes = "continued\n"
+                 && (reopened.EditTransientBytes action |> wait) = 0L
+                 && retainedAfter = retainedBefore)
+        )
+
+    let private cancellationAndPayloadRace (writer: Utf8JsonWriter) area =
+        let cancelledArea = Path.Combine(area, "publication-cancel")
+
+        let store, _, _, _, profile, modId, originalVersion, _ =
+            seedPublicationScenario cancelledArea
+
+        use store = store
+        use entered = new ManualResetEventSlim(false)
+        use release = new ManualResetEventSlim(false)
+
+        let plansAtCancel =
+            store.FilePlansAtTextEffect(fun () ->
+                entered.Set()
+                release.Wait())
+            :> IFilePlans
+
+        let snapshot, source = managedSource plansAtCancel profile
+        let action = Guid.NewGuid()
+        use cancellation = new CancellationTokenSource()
+
+        let pending =
+            plansAtCancel.SaveManagedText(
+                snapshot.Id,
+                action,
+                source,
+                "cancelled\n",
+                cancellation.Token
+            )
+
+        entered.Wait()
+        cancellation.Cancel()
+        release.Set()
+        let cancelled = pending |> wait
+        let abandoned = plansAtCancel.AbandonManagedText action |> wait
+
+        let current =
+            (InventoryObservations.read store profile).Entries
+            |> List.find (fun value -> value.Entry.Mod.Id = modId)
+            |> _.Entry.Mod.CurrentVersion
+
+        writer.WriteBoolean(
+            "cancelledPublicationIsNotCurrentAndClearsInput",
+            check
+                "publication cancellation"
+                (cancelled = Error FilePlanError.Cancelled
+                 && abandoned = Ok action
+                 && current = Some originalVersion
+                 && (store.EditTransientBytes action |> wait) = 0L)
+        )
+
+        let raceArea = Path.Combine(area, "payload-race")
+
+        let raceStore, _, raceRoot, _, raceProfile, raceMod, raceVersion, _ =
+            seedPublicationScenario raceArea
+
+        use raceStore = raceStore
+        let basePlans = raceStore.FilePlans :> IFilePlans
+        let _, baseSource = managedSource basePlans raceProfile
+        let payloadName = baseSource.PayloadId.ToString("N") + ".payload"
+
+        let payloadPath =
+            Directory.GetFiles(raceRoot, payloadName, SearchOption.AllDirectories)
+            |> Array.exactlyOne
+
+        let racePlans =
+            raceStore.FilePlansAtTextEffect(fun () ->
+                let prior = File.ReadAllBytes payloadPath
+                prior[0] <- prior[0] ^^^ 1uy
+
+                if OperatingSystem.IsWindows() then
+                    File.SetAttributes(payloadPath, FileAttributes.Normal)
+                else
+                    File.SetUnixFileMode(
+                        payloadPath,
+                        UnixFileMode.UserRead ||| UnixFileMode.UserWrite
+                    )
+
+                File.WriteAllBytes(payloadPath, prior))
+            :> IFilePlans
+
+        let raceSnapshot, raceSource = managedSource racePlans raceProfile
+        let raceAction = Guid.NewGuid()
+
+        let refused =
+            racePlans.SaveManagedText(raceSnapshot.Id, raceAction, raceSource, "changed\n", token)
+            |> wait
+
+        let raceCurrent =
+            (InventoryObservations.read raceStore raceProfile).Entries
+            |> List.find (fun value -> value.Entry.Mod.Id = raceMod)
+            |> _.Entry.Mod.CurrentVersion
+
+        let noCompletedEdit =
+            (raceStore.ModLibrary :> IModLibrary).Version(raceAction, 0)
+            |> wait
+            |> Result.isError
+
+        let raceStale =
+            match refused with
+            | Error FilePlanError.Stale -> true
+            | _ -> false
+
+        writer.WriteBoolean(
+            "replacedPayloadRaceRefusesBeforeEffect",
+            check
+                "replaced payload race"
+                (raceStale && raceCurrent = Some raceVersion && noCompletedEdit)
+        )
+
+    let private persistedProfileRestoreConflict (writer: Utf8JsonWriter) area =
+        let root =
+            Directory.CreateDirectory(Path.Combine(area, "profile-public-workspace")).FullName
+
+        let state =
+            Directory.CreateDirectory(Path.Combine(area, "profile-public-state")).FullName
+
+        let game, proton = ProtonFixtures.create (Path.Combine(area, "profile-public-game"))
+        let workspace, profile, action = Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid()
+        let mutable interrupted = false
+
+        let checkpoint phase =
+            if phase = "file-recorded" && not interrupted then
+                interrupted <- true
+                raise (IOException "stop after the installed effect was recorded")
+
+        let store = new OperationStore(state, configurationCheckpoint = checkpoint)
+        let workspaces = store.Workspaces :> IWorkspaceState
+
+        let created =
+            workspaces.Create(workspace, "Profile restore conflict", StorageWorker.select root)
+            |> wait
+            |> result
+
+        workspaces.Edit(
+            workspace,
+            created.Workspace.Revision,
+            ProfileEdit.Create { Id = profile; Name = "Recovery" }
+        )
+        |> wait
+        |> result
+        |> ignore
+
+        let contexts = store.GameContexts :> IGameContexts
+
+        let context =
+            contexts.Save(
+                workspace,
+                0L,
+                { Path = game
+                  Proton = if OperatingSystem.IsLinux() then Some proton else None }
+            )
+            |> wait
+            |> result
+
+        let documents =
+            match context.Binding.Value.Evidence.Locations.Documents with
+            | Location.Located(value, _) -> value
+            | Location.Unavailable problem -> invalidOp problem
+
+        File.WriteAllText(Path.Combine(documents, "Skyrim.ini"), "[Archive]\noriginal=1\n")
+
+        let profileData = store.ProfileGameData
+        let initial = profileData.Read(workspace, profile) |> wait |> result
+
+        let enabled =
+            profileData.Edit(
+                { Id = Guid.NewGuid()
+                  Expected = initial.Reference
+                  Options = { Settings = true; Saves = false }
+                  InitialSaves = InitialSaves.Empty
+                  DisabledFiles = DisabledFiles.Keep },
+                ignore,
+                token
+            )
+            |> wait
+            |> result
+
+        let opened =
+            profileData.ReadConfiguration(enabled.State.Reference, "Skyrim.ini", token)
+            |> wait
+            |> result
+
+        let saved =
+            profileData.SaveConfiguration(
+                { Id = action
+                  PreviewId = opened.PreviewId
+                  Expected = opened.Expected
+                  Name = opened.Name
+                  Content = "[Archive]\nchanged=1\n" },
+                ignore,
+                token
+            )
+            |> wait
+            |> result
+
+        let target = Path.Combine(enabled.State.SettingsPath, "Skyrim.ini")
+
+        let stage =
+            Directory.GetFiles(root, "previous-Skyrim.ini", SearchOption.AllDirectories)
+            |> Array.find (fun candidate ->
+                candidate.Contains(action.ToString("N"), StringComparison.OrdinalIgnoreCase))
+
+        let backupBefore = File.ReadAllBytes stage
+        File.Delete target
+        (store :> IDisposable).Dispose()
+
+        use reopened = new OperationStore(state)
+        let actionBefore = reopened.ProfileDataActionBytes action |> wait
+
+        let resumed = reopened.ProfileGameData.Resume(workspace, action, token) |> wait
+
+        let restored =
+            reopened.ProfileGameData.RestoreConfiguration(workspace, action, token) |> wait
+
+        let after = reopened.ProfileGameData.Read(workspace, profile) |> wait |> result
+        let actionAfter = reopened.ProfileDataActionBytes action |> wait
+
+        let resumeConflict =
+            match resumed with
+            | Error(ProfileDataError.Conflict _) -> true
+            | _ -> false
+
+        let restoreConflict =
+            match restored with
+            | Error(ProfileDataError.Conflict _) -> true
+            | _ -> false
+
+        writer.WriteBoolean(
+            "persistedDeletedProfileEditRefusesResumeAndRestore",
+            check
+                "persisted deleted profile edit"
+                (not saved.Complete
+                 && saved.CompletedFiles = 1
+                 && resumeConflict
+                 && restoreConflict
+                 && after.Pending = Some action
+                 && not (File.Exists target)
+                 && File.ReadAllBytes stage = backupBefore
+                 && actionAfter = actionBefore)
+        )
+
     let private interruptedProfileRecovery (writer: Utf8JsonWriter) area =
         let targetPath =
             Directory.CreateDirectory(Path.Combine(area, "recovery-target")).FullName
@@ -181,12 +608,77 @@ module TextEditFixtures =
                  && not (File.Exists(Path.Combine(stagePath, "previous-Skyrim.ini"))))
         )
 
+        let deletedTargetPath =
+            Directory.CreateDirectory(Path.Combine(area, "deleted-recovery-target")).FullName
+
+        let deletedStagePath =
+            Directory.CreateDirectory(Path.Combine(area, "deleted-recovery-stage")).FullName
+
+        let deletedTargetRoot, deletedStageRoot =
+            rootOf deletedTargetPath, rootOf deletedStagePath
+
+        File.WriteAllBytes(Path.Combine(deletedTargetPath, "Skyrim.ini"), originalBytes)
+
+        use deletedTarget =
+            HeldDirectory.Open(deletedTargetRoot.Path, deletedTargetRoot.Identity)
+
+        use deletedStage =
+            HeldDirectory.Open(deletedStageRoot.Path, deletedStageRoot.Identity)
+
+        let deletedBefore = DataFiles.observe deletedTarget "Skyrim.ini" token |> Option.get
+
+        let deletedReplacement =
+            DataFiles.stage deletedStage "edit-Skyrim.ini" replacementBytes token
+
+        let deletedEffect =
+            { Target = deletedTargetRoot
+              Backups = deletedStageRoot
+              Change =
+                { Name = "Skyrim.ini"
+                  Before = Some deletedBefore
+                  Replacement =
+                    Some
+                        { Root = deletedStageRoot
+                          Name = "edit-Skyrim.ini"
+                          File = deletedReplacement }
+                  BackupName = "previous-Skyrim.ini" } }
+
+        DataFiles.apply deletedTarget deletedStage deletedEffect.Change token ignore
+        let installed = DataFiles.observe deletedTarget "Skyrim.ini" token |> Option.get
+        deletedTarget.RemoveFile("Skyrim.ini", installed.Identity)
+
+        let deletedAction =
+            { action with
+                Id = Guid.NewGuid()
+                Files = [ deletedEffect ]
+                CompletedFiles = 1 }
+
+        let deletionRefused =
+            try
+                ConfigurationFiles.restoreOriginal deletedAction token
+                false
+            with ProfileDataException(ProfileDataError.Conflict _) ->
+                true
+
+        writer.WriteBoolean(
+            "deletedInstalledProfileEditRefusesRestore",
+            check
+                "deleted installed profile edit"
+                (deletionRefused
+                 && not (File.Exists(Path.Combine(deletedTargetPath, "Skyrim.ini")))
+                 && File.ReadAllBytes(Path.Combine(deletedStagePath, "previous-Skyrim.ini")) = originalBytes
+                 && not (File.Exists(Path.Combine(deletedStagePath, "edit-Skyrim.ini"))))
+        )
+
     let observe (writer: Utf8JsonWriter) primary =
         writer.WriteStartObject("textEdits")
         encodingCases writer
 
         let area = Directory.CreateDirectory(Path.Combine(primary, "text-edits")).FullName
         interruptedProfileRecovery writer area
+        persistedProfileRestoreConflict writer area
+        publicationRecovery writer area
+        cancellationAndPayloadRace writer area
         let root = Directory.CreateDirectory(Path.Combine(area, "workspace")).FullName
         let state = Directory.CreateDirectory(Path.Combine(area, "state")).FullName
         let game, proton = ProtonFixtures.create (Path.Combine(area, "game"))

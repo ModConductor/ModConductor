@@ -111,6 +111,10 @@ class _FilePlanningWorkbenchState extends State<FilePlanningWorkbench> {
     }
   }
 
+  void _changeInspector(VoidCallback change) {
+    unawaited(widget.plans.inspector.guardTextNavigation(change));
+  }
+
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: Listenable.merge([
@@ -203,12 +207,12 @@ class _FilePlanningWorkbenchState extends State<FilePlanningWorkbench> {
                         (context, narrow) => PluginsPane(
                           controller: plugins,
                           narrow: narrow,
-                          onInspect: () {
+                          onInspect: () => _changeInspector(() {
                             widget.plans.inspector.close();
                             widget.onCloseAdditionalInspector?.call();
                             _opener = FocusManager.instance.primaryFocus;
                             _scaffold.currentState?.openEndDrawer();
-                          },
+                          }),
                         ),
                       ),
                     if (widget.archives case final archives?)
@@ -218,13 +222,13 @@ class _FilePlanningWorkbenchState extends State<FilePlanningWorkbench> {
                         (context, narrow) => ArchivePolicyPane(
                           controller: archives,
                           narrow: narrow,
-                          onInspect: () {
+                          onInspect: () => _changeInspector(() {
                             widget.plans.inspector.close();
                             widget.plugins?.closeInspector();
                             widget.onCloseAdditionalInspector?.call();
                             _opener = FocusManager.instance.primaryFocus;
                             _scaffold.currentState?.openEndDrawer();
-                          },
+                          }),
                         ),
                       ),
                     if (widget.sortOrder case final sortOrder?)
@@ -234,14 +238,14 @@ class _FilePlanningWorkbenchState extends State<FilePlanningWorkbench> {
                         (context, narrow) => SortOrderPane(
                           controller: sortOrder,
                           narrow: narrow,
-                          onInspect: () {
+                          onInspect: () => _changeInspector(() {
                             widget.plans.inspector.close();
                             widget.plugins?.closeInspector();
                             widget.archives?.closeInspector();
                             widget.onCloseAdditionalInspector?.call();
                             _opener = FocusManager.instance.primaryFocus;
                             _scaffold.currentState?.openEndDrawer();
-                          },
+                          }),
                         ),
                       ),
                     ModFilePane(
@@ -261,10 +265,12 @@ class _FilePlanningWorkbenchState extends State<FilePlanningWorkbench> {
                         },
                       ),
                     ),
-                    ...?widget.additionalFilePanes?.call(() {
-                      widget.plans.inspector.close();
-                      _open();
-                    }),
+                    ...?widget.additionalFilePanes?.call(
+                      () => _changeInspector(() {
+                        widget.plans.inspector.close();
+                        _open();
+                      }),
+                    ),
                   ],
                 ),
               ),

@@ -48,7 +48,7 @@ void main() {
     expect(find.text('Unsaved changes'), findsOneWidget);
     await tester.tap(find.widgetWithText(OutlinedButton, 'Discard'));
     await tester.pumpAndSettle();
-    expect(find.text('Discard changes?'), findsOneWidget);
+    expect(find.text('Save changes?'), findsOneWidget);
     await tester.tap(find.widgetWithText(OutlinedButton, 'Keep editing'));
     await tester.pumpAndSettle();
     expect(find.text('changed\n'), findsOneWidget);
@@ -79,5 +79,46 @@ void main() {
     await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
     await tester.pump();
     expect(saved, 'saved\n');
+  });
+
+  testWidgets(
+    'save from navigation guard awaits failure and keeps draft focus',
+    (tester) async {
+      final key = GlobalKey<TextEditorToolboxState>();
+      var navigated = false;
+      await tester.pumpWidget(host(key, save: (_) async => false));
+      await tester.enterText(
+        find.byKey(const ValueKey('text-editor')),
+        'stale\n',
+      );
+      final pending = key.currentState!.guardNavigation(() => navigated = true);
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.widgetWithText(FilledButton, 'Save as new mod version').last,
+      );
+      await tester.pumpAndSettle();
+      expect(await pending, isFalse);
+      expect(navigated, isFalse);
+      expect(find.text('stale\n'), findsOneWidget);
+      expect(tester.testTextInput.isVisible, isTrue);
+    },
+  );
+
+  testWidgets('discard from navigation guard performs the pending navigation', (
+    tester,
+  ) async {
+    final key = GlobalKey<TextEditorToolboxState>();
+    var navigated = false;
+    await tester.pumpWidget(host(key, save: (_) async => true));
+    await tester.enterText(
+      find.byKey(const ValueKey('text-editor')),
+      'discarded\n',
+    );
+    final pending = key.currentState!.guardNavigation(() => navigated = true);
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Discard').last);
+    await tester.pumpAndSettle();
+    expect(await pending, isTrue);
+    expect(navigated, isTrue);
   });
 }

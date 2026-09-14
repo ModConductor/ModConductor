@@ -351,6 +351,8 @@ type IFilePlans =
         Guid * Guid * ManagedPreviewSource * string * CancellationToken ->
             Task<Result<ManagedTextEdit, FilePlanError>>
 
+    abstract AbandonManagedText: Guid -> Task<Result<Guid, FilePlanError>>
+
 /// Candidate reads keep header inspection separate from full deployment acquisition.
 type IFileCandidateRepository =
     inherit IFilePlanRepository
@@ -365,6 +367,8 @@ type IFileCandidateRepository =
     abstract PublishText:
         SourceStamp * Guid * ManagedPreviewSource * byte array * CancellationToken ->
             Task<Result<Guid, FilePlanError>>
+
+    abstract AbandonText: Guid -> Task<Result<Guid, FilePlanError>>
 
 type CandidateObservation =
     { Sources: PlanSources

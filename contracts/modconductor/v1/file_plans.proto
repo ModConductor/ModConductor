@@ -16,6 +16,7 @@ service FilePlanOperations {
   rpc PreviewFileSource(FilePreviewRequest) returns (FilePreviewReply);
   rpc OpenManagedText(OpenManagedTextRequest) returns (ManagedTextReply);
   rpc SaveManagedText(SaveManagedTextRequest) returns (ManagedTextEditReply);
+  rpc AbandonManagedText(AbandonManagedTextRequest) returns (ManagedTextAbandonReply);
 }
 message ManagedFileCopy { string mod_id = 1; string version_id = 2; ModLogicalPath path = 3; }
 
@@ -88,8 +89,10 @@ message ManagedTextDocument { ManagedPreviewSource source = 1; TextDocument docu
 message ManagedTextEdit { string id = 1; string version_id = 2; ManagedPreviewSource source = 3; }
 message OpenManagedTextRequest { string snapshot_id = 1; ManagedPreviewSource source = 2; }
 message SaveManagedTextRequest { string snapshot_id = 1; string id = 2; ManagedPreviewSource source = 3; string content = 4; }
+message AbandonManagedTextRequest { string id = 1; }
 message ManagedTextReply { oneof outcome { ManagedTextDocument document = 1; FilePlanFault fault = 2; } }
 message ManagedTextEditReply { oneof outcome { ManagedTextEdit edit = 1; FilePlanFault fault = 2; } }
+message ManagedTextAbandonReply { oneof outcome { string abandoned_id = 1; FilePlanFault fault = 2; } }
 
 message FilePlanCursor { string identity = 1; uint32 offset = 2; }
 message OpenFilePlanRequest { string profile_id = 1; }

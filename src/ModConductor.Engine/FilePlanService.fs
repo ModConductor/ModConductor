@@ -137,6 +137,12 @@ type FilePlanService(plans: IFilePlans) =
             | _ -> return invalidOp "Managed source conversion failed."
         }
 
+    override _.AbandonManagedText(request, _) =
+        task {
+            let! result = plans.AbandonManagedText(ModLibraryWire.id request.Id)
+            return FilePlanWire.managedTextAbandon result
+        }
+
     override _.ReadFileVisibilityHistory(request, _) =
         task {
             let before =

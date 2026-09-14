@@ -368,6 +368,29 @@ class _ManagedTextEditorInspectorState
     extends State<_ManagedTextEditorInspector> {
   final _editor = GlobalKey<TextEditorToolboxState>();
 
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        widget.controller.bindTextNavigationGuard(
+          (navigate) => _editor.currentState!.guardNavigation(navigate),
+        );
+      }
+    });
+  }
+
+  @override
+  void didUpdateWidget(_ManagedTextEditorInspector oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller.bindTextNavigationGuard(null);
+      widget.controller.bindTextNavigationGuard(
+        (navigate) => _editor.currentState!.guardNavigation(navigate),
+      );
+    }
+  }
+
   void closeEditor() {
     widget.controller.closeTextEditor();
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -391,6 +414,7 @@ class _ManagedTextEditorInspectorState
         problem: widget.controller.textProblem,
         onClose: closeEditor,
         onExit: widget.onClose,
+        onDiscard: widget.controller.abandonPendingText,
         onReadAgain: widget.owner == null
             ? null
             : () async {
@@ -405,6 +429,12 @@ class _ManagedTextEditorInspectorState
       ),
     ],
   );
+
+  @override
+  void dispose() {
+    widget.controller.bindTextNavigationGuard(null);
+    super.dispose();
+  }
 }
 
 class _PreviewBody extends StatelessWidget {

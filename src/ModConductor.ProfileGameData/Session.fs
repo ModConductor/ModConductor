@@ -15,8 +15,11 @@ type ProfileGameDataSession
         enter: Guid -> IDisposable option,
         stopped: GameContextState -> unit,
         plugins: ModConductor.Bethesda.PluginSession,
-        archives: ModConductor.Bethesda.ArchivePolicySession
+        archives: ModConductor.Bethesda.ArchivePolicySession,
+        ?configurationCheckpoint: string -> unit
     ) =
+
+    let configurationCheckpoint = defaultArg configurationCheckpoint ignore
 
     let gate = obj ()
     let previewGate = obj ()
@@ -1007,6 +1010,9 @@ type ProfileGameDataSession
                     | None ->
                         check scope request.Expected
 
+                        prior
+                        |> Option.iter (fun action -> ConfigurationFiles.checkResume action token)
+
                         let context =
                             scope.Context
                             |> Option.defaultWith (fun () ->
@@ -1019,8 +1025,15 @@ type ProfileGameDataSession
                             )
 
                         let! result =
-                            execute ignore None scope context action token progress (fun _ ->
-                                Task.FromResult())
+                            execute
+                                configurationCheckpoint
+                                None
+                                scope
+                                context
+                                action
+                                token
+                                progress
+                                (fun _ -> Task.FromResult())
 
                         return Ok result
                 })
@@ -1061,8 +1074,14 @@ type ProfileGameDataSession
                             raise (ProfileDataException ProfileDataError.NotFound))
 
                     let! claimed = repository.Claim(context, action)
-                    ConfigurationFiles.restoreOriginal claimed token
-                    do! repository.Complete(context, None, claimed)
+
+                    try
+                        ConfigurationFiles.restoreOriginal claimed token
+                        do! repository.Complete(context, None, claimed)
+                    with error ->
+                        do! repository.Release claimed.Id
+                        raise error
+
                     let! state = read workspace action.ProfileId
 
                     return
@@ -1282,6 +1301,8 @@ type ProfileGameDataSession
                                   Problem = previous.Problem }
                     else
                         let! scope = repository.Read(workspace, previous.ProfileId)
+
+                        ConfigurationFiles.checkResume previous token
 
                         let context =
                             scope.Context

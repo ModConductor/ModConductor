@@ -50,6 +50,7 @@ abstract interface class FilePlansClient {
     ManagedPreviewSource source,
     String content,
   );
+  Future<void> abandonManagedText(String id);
   Future<FileVisibilityHistory> history(
     String snapshotId,
     ManagedFileCopy copy, {
@@ -267,6 +268,23 @@ class GrpcFilePlansClient implements FilePlansClient {
         'Missing managed text edit.',
       ),
     };
+  }
+
+  @override
+  Future<void> abandonManagedText(String id) async {
+    final reply = await _client.abandonManagedText(
+      wire.AbandonManagedTextRequest(id: id),
+    );
+    switch (reply.whichOutcome()) {
+      case wire.ManagedTextAbandonReply_Outcome.abandonedId:
+        if (reply.abandonedId != id) {
+          throw const FormatException('Wrong abandoned text edit.');
+        }
+      case wire.ManagedTextAbandonReply_Outcome.fault:
+        mapping.reject(reply.fault);
+      case wire.ManagedTextAbandonReply_Outcome.notSet:
+        throw const FormatException('Missing abandoned text edit result.');
+    }
   }
 
   @override

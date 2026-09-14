@@ -671,6 +671,19 @@ final $typed_data.Uint8List saveManagedTextRequestDescriptor = $convert.base64De
     'lkEg4KAmlkGAIgASgJUgJpZBI9CgZzb3VyY2UYAyABKAsyJS5tb2Rjb25kdWN0b3IudjEuTWFu'
     'YWdlZFByZXZpZXdTb3VyY2VSBnNvdXJjZRIYCgdjb250ZW50GAQgASgJUgdjb250ZW50');
 
+@$core.Deprecated('Use abandonManagedTextRequestDescriptor instead')
+const AbandonManagedTextRequest$json = {
+  '1': 'AbandonManagedTextRequest',
+  '2': [
+    {'1': 'id', '3': 1, '4': 1, '5': 9, '10': 'id'},
+  ],
+};
+
+/// Descriptor for `AbandonManagedTextRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List abandonManagedTextRequestDescriptor =
+    $convert.base64Decode(
+        'ChlBYmFuZG9uTWFuYWdlZFRleHRSZXF1ZXN0Eg4KAmlkGAEgASgJUgJpZA==');
+
 @$core.Deprecated('Use managedTextReplyDescriptor instead')
 const ManagedTextReply$json = {
   '1': 'ManagedTextReply',
@@ -738,6 +751,32 @@ final $typed_data.Uint8List managedTextEditReplyDescriptor = $convert.base64Deco
     'ChRNYW5hZ2VkVGV4dEVkaXRSZXBseRI2CgRlZGl0GAEgASgLMiAubW9kY29uZHVjdG9yLnYxLk'
     '1hbmFnZWRUZXh0RWRpdEgAUgRlZGl0EjYKBWZhdWx0GAIgASgLMh4ubW9kY29uZHVjdG9yLnYx'
     'LkZpbGVQbGFuRmF1bHRIAFIFZmF1bHRCCQoHb3V0Y29tZQ==');
+
+@$core.Deprecated('Use managedTextAbandonReplyDescriptor instead')
+const ManagedTextAbandonReply$json = {
+  '1': 'ManagedTextAbandonReply',
+  '2': [
+    {'1': 'abandoned_id', '3': 1, '4': 1, '5': 9, '9': 0, '10': 'abandonedId'},
+    {
+      '1': 'fault',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.FilePlanFault',
+      '9': 0,
+      '10': 'fault'
+    },
+  ],
+  '8': [
+    {'1': 'outcome'},
+  ],
+};
+
+/// Descriptor for `ManagedTextAbandonReply`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List managedTextAbandonReplyDescriptor = $convert.base64Decode(
+    'ChdNYW5hZ2VkVGV4dEFiYW5kb25SZXBseRIjCgxhYmFuZG9uZWRfaWQYASABKAlIAFILYWJhbm'
+    'RvbmVkSWQSNgoFZmF1bHQYAiABKAsyHi5tb2Rjb25kdWN0b3IudjEuRmlsZVBsYW5GYXVsdEgA'
+    'UgVmYXVsdEIJCgdvdXRjb21l');
 
 @$core.Deprecated('Use filePlanCursorDescriptor instead')
 const FilePlanCursor$json = {

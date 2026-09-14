@@ -7,7 +7,8 @@ type OperationStore
     (
         directory: string,
         ?downloadPolicy: ModConductor.HttpDownloads.DownloadPolicy,
-        ?nexusLinks: ModConductor.HttpDownloads.INexusDownloadLinks
+        ?nexusLinks: ModConductor.HttpDownloads.INexusDownloadLinks,
+        ?configurationCheckpoint: string -> unit
     ) =
     let database = new StateDatabase(directory)
     let workspaceRoots = OwnedWorkspaceRootStore(database)
@@ -85,7 +86,8 @@ type OperationStore
             deploymentBackend.TryAcquireWorkspace,
             ModConductor.Deployment.GameProcesses.validate >> ignore,
             plugins,
-            archivePolicies
+            archivePolicies,
+            ?configurationCheckpoint = configurationCheckpoint
         )
 
     let loot =
@@ -222,6 +224,42 @@ type OperationStore
 
     member _.GameContexts = gameContexts
     member _.FilePlans = filePlans
+
+    member internal _.FilePlansAtTextEffect(checkpoint) =
+        ModConductor.FilePlanning.FilePlanSession(
+            FilePlanRepository(database, modLibrary.Access, modLibrary.PublicationOwner, checkpoint)
+        )
+
+    member internal _.FilePlansAtTextPublicationCheckpoint(beforeEffect, afterEffect) =
+        ModConductor.FilePlanning.FilePlanSession(
+            FilePlanRepository(
+                database,
+                modLibrary.Access,
+                modLibrary.PublicationOwner,
+                beforeEffect,
+                afterEffect
+            )
+        )
+
+    member internal _.EditTransientBytes action =
+        database.Enqueue(fun () ->
+            Sqlite.number
+                database.Connection
+                null
+                "SELECT COALESCE(length(content),-1) FROM mod_edit_origins WHERE edit_id=$id"
+                [ "$id", box (string action) ])
+
+    member internal _.ProfileDataActionBytes action =
+        database.Enqueue(fun () ->
+            use command =
+                Sqlite.command
+                    database.Connection
+                    null
+                    "SELECT body FROM profile_data_actions WHERE id=$id"
+                    [ "$id", box (string action) ]
+
+            command.ExecuteScalar() :?> byte array)
+
     member _.Plugins = plugins
     member _.GeneratedOutputs = outputs :> ModConductor.GeneratedOutputs.IGeneratedOutputs
     member _.Deployments = deploymentBackend :> ModConductor.Deployment.IDeploymentBackend

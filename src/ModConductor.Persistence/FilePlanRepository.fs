@@ -9,7 +9,17 @@ open ModConductor.DeploymentPlanning
 
 /// This adapter does not scan game folders or select winning sources.
 type FilePlanRepository
-    internal (database: StateDatabase, access: LibraryAccess, ?publication: LibraryPublication) =
+    internal
+    (
+        database: StateDatabase,
+        access: LibraryAccess,
+        ?publication: LibraryPublication,
+        ?beforeTextEffect: unit -> unit,
+        ?afterTextEffect: unit -> unit
+    ) =
+    let beforeTextEffect = defaultArg beforeTextEffect ignore
+    let afterTextEffect = defaultArg afterTextEffect ignore
+
     let protect action =
         task {
             try
@@ -292,8 +302,56 @@ type FilePlanRepository
                             if FilePlanRows.stamp c t expected.ProfileId <> Some expected then
                                 Error FilePlanError.Stale
                             else
-                                match LibraryRows.find c t source.Copy.ModId with
-                                | Some row when
+                                match
+                                    LibraryRows.find c t source.Copy.ModId,
+                                    PublicationRows.edit c t action TextDocuments.bytesLimit
+                                with
+                                | _, Error LibraryError.LimitExceeded ->
+                                    Error(
+                                        FilePlanError.LimitExceeded
+                                            "The persisted edit is too large to continue."
+                                    )
+                                | _, Error _ -> Error FilePlanError.Stale
+                                | Some row, Ok(Some persisted) when
+                                    persisted.ModId = source.Copy.ModId
+                                    && persisted.SourceVersion = source.Copy.VersionId
+                                    && persisted.Path = source.SourcePath
+                                    && persisted.PreviousPayload = source.PayloadId
+                                    && persisted.ExpectedRevision = source.ModRevision
+                                    && persisted.VersionId = action
+                                    && persisted.Phase = PublicationPhase.Complete
+                                    ->
+                                    Ok(source.ModRevision, None)
+                                | Some row, Ok(Some persisted) when
+                                    persisted.ModId = source.Copy.ModId
+                                    && persisted.SourceVersion = source.Copy.VersionId
+                                    && persisted.Path = source.SourcePath
+                                    && persisted.PreviousPayload = source.PayloadId
+                                    && persisted.ExpectedRevision = source.ModRevision
+                                    && persisted.VersionId = action
+                                    && (persisted.Phase = PublicationPhase.Interrupted
+                                        || persisted.Phase = PublicationPhase.Observed)
+                                    && row.Entry.WorkspaceId = expected.WorkspaceId
+                                    && row.Entry.Kind = ModKind.Regular
+                                    && row.Entry.Revision = persisted.ExpectedRevision
+                                    && row.Entry.CurrentVersion = Some persisted.SourceVersion
+                                    ->
+                                    Ok(
+                                        persisted.ExpectedRevision,
+                                        Some
+                                            { ActionId = action
+                                              SourceVersion = Some persisted.SourceVersion
+                                              VersionLabel = row.Entry.Metadata.Version
+                                              Policy =
+                                                ModConductor.GameContexts.Skyrim.definition.TargetPolicy
+                                              Files = []
+                                              Bytes =
+                                                [ { Target = persisted.Path
+                                                    Content = Array.copy persisted.Content
+                                                    Sha256 = persisted.Digest } ] }
+                                    )
+                                | Some _, Ok(Some _) -> Error FilePlanError.Stale
+                                | Some row, Ok None when
                                     row.Entry.WorkspaceId = expected.WorkspaceId
                                     && row.Entry.Kind = ModKind.Regular
                                     && row.Entry.Revision = source.ModRevision
@@ -315,27 +373,29 @@ type FilePlanRepository
                                         ->
                                         Ok(
                                             source.ModRevision,
-                                            { ActionId = action
-                                              SourceVersion = Some source.Copy.VersionId
-                                              VersionLabel = row.Entry.Metadata.Version
-                                              Policy =
-                                                ModConductor.GameContexts.Skyrim.definition.TargetPolicy
-                                              Files = []
-                                              Bytes =
-                                                [ { Target = source.SourcePath
-                                                    Content = Array.copy bytes
-                                                    Sha256 =
-                                                      Convert.ToHexStringLower(
-                                                          System.Security.Cryptography.SHA256.HashData
-                                                              bytes
-                                                      ) } ] }
+                                            Some
+                                                { ActionId = action
+                                                  SourceVersion = Some source.Copy.VersionId
+                                                  VersionLabel = row.Entry.Metadata.Version
+                                                  Policy =
+                                                    ModConductor.GameContexts.Skyrim.definition.TargetPolicy
+                                                  Files = []
+                                                  Bytes =
+                                                    [ { Target = source.SourcePath
+                                                        Content = Array.copy bytes
+                                                        Sha256 =
+                                                          Convert.ToHexStringLower(
+                                                              System.Security.Cryptography.SHA256.HashData
+                                                                  bytes
+                                                          ) } ] }
                                         )
                                     | _ -> Error FilePlanError.Stale
                                 | _ -> Error FilePlanError.Stale)
 
                     match prepared with
                     | Error error -> return Error error
-                    | Ok(revision, input) ->
+                    | Ok(_, None) -> return Ok action
+                    | Ok(revision, Some input) ->
                         use cancellation =
                             token.Register(fun () ->
                                 database
@@ -353,8 +413,9 @@ type FilePlanRepository
                                     action,
                                     input,
                                     token,
+                                    afterTextEffect,
                                     ignore,
-                                    ignore
+                                    beforeTextEffect
                                 ))
 
                         return
@@ -381,4 +442,23 @@ type FilePlanRepository
                                     FilePlanError.FileUnavailable
                                         "The edited mod version could not be saved."
                                 )
+                })
+
+        member _.AbandonText(action) =
+            protect (fun () ->
+                task {
+                    let! result =
+                        database.Enqueue(fun () ->
+                            PublicationRows.abandon database.Connection action)
+
+                    return
+                        match result with
+                        | Ok id -> Ok id
+                        | Error LibraryError.NotFound -> Error FilePlanError.NotFound
+                        | Error LibraryError.Busy -> Error FilePlanError.Busy
+                        | Error _ ->
+                            Error(
+                                FilePlanError.InvalidEdit
+                                    "This interrupted edit cannot be abandoned."
+                            )
                 })

@@ -312,6 +312,11 @@ module internal FilePlanWire =
             )
         | Error error -> ManagedTextEditReply(Fault = fault error)
 
+    let managedTextAbandon =
+        function
+        | Ok(id: Guid) -> ManagedTextAbandonReply(AbandonedId = id.ToString "N")
+        | Error error -> ManagedTextAbandonReply(Fault = fault error)
+
     let state (value: FilePlanSummary) =
         let result =
             FilePlanState(

@@ -27,6 +27,8 @@ type internal LibraryCompositionInput =
       Files: CompositionFile list
       Bytes: CompositionBytes list }
 
+exception internal ReplacedPayloadChangedException
+
 module internal LibraryComposition =
     let targets policy (previous: ManifestEntry list) (files: CompositionFile list) =
         let prior = Dictionary<string, ManifestEntry>(TargetPolicy.comparer policy)
@@ -81,6 +83,7 @@ module internal LibraryComposition =
         check
         afterEffect
         afterObservation
+        beforeInlineEffect
         =
         task {
             let connection = database.Connection
@@ -238,6 +241,27 @@ module internal LibraryComposition =
                         if digest <> item.Sha256 then
                             raise (SourceChangedException())
 
+                        beforeInlineEffect ()
+                        check ()
+
+                        prior
+                        |> Option.iter (fun entry ->
+                            let stored =
+                                (db (fun () ->
+                                    LibraryRows.payload connection null entry.Payload.Id
+                                    |> Option.defaultWith (fun () ->
+                                        raise (SourceChangedException()))))
+                                    .GetAwaiter()
+                                    .GetResult()
+
+                            if stored.Payload <> entry.Payload then
+                                raise ReplacedPayloadChangedException
+
+                            try
+                                LibraryFiles.verify destination stored
+                            with :? IOException ->
+                                raise ReplacedPayloadChangedException)
+
                         let reused =
                             prior
                             |> Option.filter (fun entry ->
@@ -246,16 +270,7 @@ module internal LibraryComposition =
 
                         let payload =
                             match reused with
-                            | Some entry ->
-                                let stored =
-                                    (db (fun () ->
-                                        LibraryRows.payload connection null entry.Payload.Id
-                                        |> Option.get))
-                                        .GetAwaiter()
-                                        .GetResult()
-
-                                LibraryFiles.verify destination stored
-                                entry.Payload
+                            | Some entry -> entry.Payload
                             | None ->
                                 let payload =
                                     { Id = Guid.NewGuid()

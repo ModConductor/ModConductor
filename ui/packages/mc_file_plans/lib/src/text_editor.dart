@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mc_client/mc_client.dart';
@@ -16,6 +18,7 @@ class TextEditorToolbox extends StatefulWidget {
     this.saving = false,
     this.saveLabel = 'Save as new mod version',
     this.onReadAgain,
+    this.onDiscard,
   });
 
   final TextDocument document;
@@ -26,6 +29,7 @@ class TextEditorToolbox extends StatefulWidget {
   final VoidCallback onClose;
   final VoidCallback? onExit;
   final Future<void> Function()? onReadAgain;
+  final Future<bool> Function()? onDiscard;
 
   @override
   State<TextEditorToolbox> createState() => TextEditorToolboxState();
@@ -47,45 +51,72 @@ class TextEditorToolboxState extends State<TextEditorToolbox> {
 
   void _changed() => setState(() {});
 
-  Future<bool> confirmDiscard() async {
-    if (!dirty) return true;
-    final discard = await showDialog<bool>(
+  Future<_EditorNavigation> _chooseNavigation() async {
+    if (!dirty) return _EditorNavigation.discard;
+    final choice = await showDialog<_EditorNavigation>(
       context: context,
       builder: (context) => McDialog(
-        title: 'Discard changes?',
+        title: 'Save changes?',
         actions: [
           McAction(
             label: 'Keep editing',
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => Navigator.pop(context, _EditorNavigation.cancel),
           ),
           McAction(
             label: 'Discard',
+            onPressed: () => Navigator.pop(context, _EditorNavigation.discard),
+          ),
+          McAction(
+            label: widget.saveLabel,
             emphasis: McActionEmphasis.primary,
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => Navigator.pop(context, _EditorNavigation.save),
           ),
         ],
         children: [Text('Changes to ${widget.name} have not been saved.')],
       ),
     );
-    if (discard != true && mounted) _editorFocus.requestFocus();
-    return discard == true;
+    return choice ?? _EditorNavigation.cancel;
   }
 
-  Future<bool> requestClose() async {
-    if (!await confirmDiscard()) return false;
-    widget.onClose();
+  Future<bool> guardNavigation(FutureOr<void> Function() navigate) async {
+    final choice = await _chooseNavigation();
+
+    if (choice == _EditorNavigation.cancel) {
+      if (mounted) _editorFocus.requestFocus();
+      return false;
+    }
+
+    if (choice == _EditorNavigation.save) {
+      final content = _controller.text;
+      if (!await widget.onSave(content)) {
+        if (mounted) _editorFocus.requestFocus();
+        return false;
+      }
+
+      if (!mounted) return false;
+      _saved = content;
+      setState(() {});
+    }
+
+    if (choice == _EditorNavigation.discard &&
+        widget.onDiscard != null &&
+        !await widget.onDiscard!()) {
+      if (mounted) _editorFocus.requestFocus();
+      return false;
+    }
+
+    await navigate();
     return true;
   }
 
-  Future<bool> requestExit() async {
-    if (!await confirmDiscard()) return false;
-    (widget.onExit ?? widget.onClose)();
-    return true;
-  }
+  Future<bool> requestClose() => guardNavigation(widget.onClose);
+
+  Future<bool> requestExit() =>
+      guardNavigation(widget.onExit ?? widget.onClose);
 
   Future<void> _readAgain() async {
-    if (!await confirmDiscard()) return;
-    await widget.onReadAgain?.call();
+    final readAgain = widget.onReadAgain;
+    if (readAgain != null) await guardNavigation(readAgain);
   }
 
   Future<void> _save() async {
@@ -94,6 +125,7 @@ class TextEditorToolboxState extends State<TextEditorToolbox> {
     if (await widget.onSave(content) && mounted) {
       _saved = content;
       setState(() {});
+      widget.onClose();
     }
   }
 
@@ -188,3 +220,5 @@ class TextEditorToolboxState extends State<TextEditorToolbox> {
     super.dispose();
   }
 }
+
+enum _EditorNavigation { save, discard, cancel }

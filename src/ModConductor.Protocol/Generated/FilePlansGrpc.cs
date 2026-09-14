@@ -89,6 +89,10 @@ namespace ModConductor.Protocol.V1 {
     static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.SaveManagedTextRequest> __Marshaller_modconductor_v1_SaveManagedTextRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.SaveManagedTextRequest.Parser));
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.ManagedTextEditReply> __Marshaller_modconductor_v1_ManagedTextEditReply = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.ManagedTextEditReply.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.AbandonManagedTextRequest> __Marshaller_modconductor_v1_AbandonManagedTextRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.AbandonManagedTextRequest.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.ManagedTextAbandonReply> __Marshaller_modconductor_v1_ManagedTextAbandonReply = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.ManagedTextAbandonReply.Parser));
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Method<global::ModConductor.Protocol.V1.OpenFilePlanRequest, global::ModConductor.Protocol.V1.FilePlanReply> __Method_OpenFilePlan = new grpc::Method<global::ModConductor.Protocol.V1.OpenFilePlanRequest, global::ModConductor.Protocol.V1.FilePlanReply>(
@@ -186,6 +190,14 @@ namespace ModConductor.Protocol.V1 {
         __Marshaller_modconductor_v1_SaveManagedTextRequest,
         __Marshaller_modconductor_v1_ManagedTextEditReply);
 
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::ModConductor.Protocol.V1.AbandonManagedTextRequest, global::ModConductor.Protocol.V1.ManagedTextAbandonReply> __Method_AbandonManagedText = new grpc::Method<global::ModConductor.Protocol.V1.AbandonManagedTextRequest, global::ModConductor.Protocol.V1.ManagedTextAbandonReply>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "AbandonManagedText",
+        __Marshaller_modconductor_v1_AbandonManagedTextRequest,
+        __Marshaller_modconductor_v1_ManagedTextAbandonReply);
+
     /// <summary>Service descriptor</summary>
     public static global::Google.Protobuf.Reflection.ServiceDescriptor Descriptor
     {
@@ -264,6 +276,12 @@ namespace ModConductor.Protocol.V1 {
 
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V1.ManagedTextEditReply> SaveManagedText(global::ModConductor.Protocol.V1.SaveManagedTextRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V1.ManagedTextAbandonReply> AbandonManagedText(global::ModConductor.Protocol.V1.AbandonManagedTextRequest request, grpc::ServerCallContext context)
       {
         throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
       }
@@ -527,6 +545,26 @@ namespace ModConductor.Protocol.V1 {
       {
         return CallInvoker.AsyncUnaryCall(__Method_SaveManagedText, null, options, request);
       }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V1.ManagedTextAbandonReply AbandonManagedText(global::ModConductor.Protocol.V1.AbandonManagedTextRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return AbandonManagedText(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V1.ManagedTextAbandonReply AbandonManagedText(global::ModConductor.Protocol.V1.AbandonManagedTextRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_AbandonManagedText, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.ManagedTextAbandonReply> AbandonManagedTextAsync(global::ModConductor.Protocol.V1.AbandonManagedTextRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return AbandonManagedTextAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.ManagedTextAbandonReply> AbandonManagedTextAsync(global::ModConductor.Protocol.V1.AbandonManagedTextRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_AbandonManagedText, null, options, request);
+      }
       /// <summary>Creates a new instance of client from given <c>ClientBaseConfiguration</c>.</summary>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       protected override FilePlanOperationsClient NewInstance(ClientBaseConfiguration configuration)
@@ -552,7 +590,8 @@ namespace ModConductor.Protocol.V1 {
           .AddMethod(__Method_ReadFileVisibilityHistory, serviceImpl.ReadFileVisibilityHistory)
           .AddMethod(__Method_PreviewFileSource, serviceImpl.PreviewFileSource)
           .AddMethod(__Method_OpenManagedText, serviceImpl.OpenManagedText)
-          .AddMethod(__Method_SaveManagedText, serviceImpl.SaveManagedText).Build();
+          .AddMethod(__Method_SaveManagedText, serviceImpl.SaveManagedText)
+          .AddMethod(__Method_AbandonManagedText, serviceImpl.AbandonManagedText).Build();
     }
 
     /// <summary>Register service method with a service binder with or without implementation. Useful when customizing the service binding logic.
@@ -574,6 +613,7 @@ namespace ModConductor.Protocol.V1 {
       serviceBinder.AddMethod(__Method_PreviewFileSource, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.FilePreviewRequest, global::ModConductor.Protocol.V1.FilePreviewReply>(serviceImpl.PreviewFileSource));
       serviceBinder.AddMethod(__Method_OpenManagedText, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.OpenManagedTextRequest, global::ModConductor.Protocol.V1.ManagedTextReply>(serviceImpl.OpenManagedText));
       serviceBinder.AddMethod(__Method_SaveManagedText, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.SaveManagedTextRequest, global::ModConductor.Protocol.V1.ManagedTextEditReply>(serviceImpl.SaveManagedText));
+      serviceBinder.AddMethod(__Method_AbandonManagedText, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.AbandonManagedTextRequest, global::ModConductor.Protocol.V1.ManagedTextAbandonReply>(serviceImpl.AbandonManagedText));
     }
 
   }

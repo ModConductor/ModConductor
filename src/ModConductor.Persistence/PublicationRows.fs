@@ -2,12 +2,26 @@ namespace ModConductor.Persistence
 
 open System
 open System.IO
+open System.Security.Cryptography
 open ModConductor.ModLibrary
+open ModConductor.Platform
 
 type internal PublicationWork =
     | Replay
     | Capture
+    | RestartCapture
     | CommitObserved
+
+type internal PersistedEdit =
+    { VersionId: Guid
+      ModId: Guid
+      ExpectedRevision: int64
+      Phase: PublicationPhase
+      SourceVersion: Guid
+      Path: LogicalPath
+      PreviousPayload: Guid
+      Content: byte array
+      Digest: string }
 
 module internal PublicationRows =
     let readPhase =
@@ -37,6 +51,45 @@ module internal PublicationRows =
                   ModId = Guid.Parse(reader.GetString 0)
                   ExpectedRevision = reader.GetInt64 1
                   Phase = readPhase (reader.GetInt32 2) }
+
+    let edit connection transaction action limit =
+        use command =
+            Sqlite.command
+                connection
+                transaction
+                "SELECT e.version_id,v.mod_id,v.expected_revision,v.phase,e.source_version,e.path,e.previous_payload,e.content,e.digest FROM mod_edit_origins e JOIN mod_versions v ON v.id=e.version_id WHERE e.edit_id=$action"
+                [ "$action", box (string action) ]
+
+        use reader = command.ExecuteReader()
+
+        if not (reader.Read()) then
+            Ok None
+        else
+            let content = reader.GetFieldValue<byte array> 7
+            let digest = reader.GetString 8
+            let phase = readPhase (reader.GetInt32 3)
+
+            if content.Length > limit then
+                Error LibraryError.LimitExceeded
+            elif
+                phase <> PublicationPhase.Complete
+                && phase <> PublicationPhase.Cancelled
+                && Convert.ToHexStringLower(SHA256.HashData content) <> digest
+            then
+                Error LibraryError.SourceChanged
+            else
+                Ok(
+                    Some
+                        { VersionId = Guid.Parse(reader.GetString 0)
+                          ModId = Guid.Parse(reader.GetString 1)
+                          ExpectedRevision = reader.GetInt64 2
+                          Phase = phase
+                          SourceVersion = Guid.Parse(reader.GetString 4)
+                          Path = LibraryEncoding.readPath (reader.GetString 5)
+                          PreviousPayload = Guid.Parse(reader.GetString 6)
+                          Content = content
+                          Digest = digest }
+                )
 
     let prepare
         (connection: Microsoft.Data.Sqlite.SqliteConnection)
@@ -91,6 +144,22 @@ module internal PublicationRows =
                         [ "$owner", box owner; "$id", box (string version) ]
 
                     Ok(row, CommitObserved)
+                elif
+                    receipt.Phase = PublicationPhase.Interrupted
+                    && Sqlite.number
+                        connection
+                        transaction
+                        "SELECT count(*) FROM mod_versions WHERE mod_id=$mod AND busy=1"
+                        [ "$mod", box (string modId) ] = 0L
+                then
+                    Sqlite.execute
+                        connection
+                        transaction
+                        "UPDATE mod_versions SET owner=$owner,phase=1,busy=1,cancelled=0 WHERE id=$id"
+                        [ "$owner", box owner; "$id", box (string version) ]
+
+                    LibraryRows.setStatus connection transaction modId InventoryStatus.Publishing
+                    Ok(row, RestartCapture)
                 elif
                     receipt.Phase = PublicationPhase.Intent
                     || receipt.Phase = PublicationPhase.Observed
@@ -184,6 +253,13 @@ module internal PublicationRows =
                   "$owner", box owner
                   "$phase", box (if cancelled then 5 else 4) ]
 
+            if cancelled then
+                Sqlite.execute
+                    connection
+                    transaction
+                    "UPDATE mod_edit_origins SET content=X'' WHERE version_id=$version"
+                    [ "$version", box (string version) ]
+
             LibraryRows.setStatus connection transaction receipt.ModId InventoryStatus.Unproved
         | Some _
         | None -> ()
@@ -224,6 +300,42 @@ module internal PublicationRows =
                 Ok
                     { receipt with
                         Phase = PublicationPhase.Cancelled }
+
+        transaction.Commit()
+        result
+
+    let abandon (connection: Microsoft.Data.Sqlite.SqliteConnection) action =
+        use transaction = connection.BeginTransaction(deferred = false)
+
+        let result =
+            match edit connection transaction action Int32.MaxValue with
+            | Error error -> Error error
+            | Ok None -> Error LibraryError.NotFound
+            | Ok(Some persisted) when persisted.Phase = PublicationPhase.Complete ->
+                Error LibraryError.UnsupportedAction
+            | Ok(Some persisted) when
+                Sqlite.number
+                    connection
+                    transaction
+                    "SELECT busy FROM mod_versions WHERE id=$id"
+                    [ "$id", box (string persisted.VersionId) ]
+                <> 0L
+                ->
+                Error LibraryError.Busy
+            | Ok(Some persisted) ->
+                Sqlite.execute
+                    connection
+                    transaction
+                    "UPDATE mod_versions SET phase=5,busy=0,cancelled=1 WHERE id=$id; UPDATE mod_edit_origins SET content=X'' WHERE version_id=$id"
+                    [ "$id", box (string persisted.VersionId) ]
+
+                LibraryRows.setStatus
+                    connection
+                    transaction
+                    persisted.ModId
+                    InventoryStatus.Unproved
+
+                Ok persisted.VersionId
 
         transaction.Commit()
         result

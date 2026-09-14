@@ -119,6 +119,13 @@ class FilePlanOperationsClient extends $grpc.Client {
     return $createUnaryCall(_$saveManagedText, request, options: options);
   }
 
+  $grpc.ResponseFuture<$0.ManagedTextAbandonReply> abandonManagedText(
+    $0.AbandonManagedTextRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$abandonManagedText, request, options: options);
+  }
+
   // method descriptors
 
   static final _$openFilePlan =
@@ -181,6 +188,11 @@ class FilePlanOperationsClient extends $grpc.Client {
           '/modconductor.v1.FilePlanOperations/SaveManagedText',
           ($0.SaveManagedTextRequest value) => value.writeToBuffer(),
           $0.ManagedTextEditReply.fromBuffer);
+  static final _$abandonManagedText = $grpc.ClientMethod<
+          $0.AbandonManagedTextRequest, $0.ManagedTextAbandonReply>(
+      '/modconductor.v1.FilePlanOperations/AbandonManagedText',
+      ($0.AbandonManagedTextRequest value) => value.writeToBuffer(),
+      $0.ManagedTextAbandonReply.fromBuffer);
 }
 
 @$pb.GrpcServiceName('modconductor.v1.FilePlanOperations')
@@ -292,6 +304,15 @@ abstract class FilePlanOperationsServiceBase extends $grpc.Service {
             ($core.List<$core.int> value) =>
                 $0.SaveManagedTextRequest.fromBuffer(value),
             ($0.ManagedTextEditReply value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.AbandonManagedTextRequest,
+            $0.ManagedTextAbandonReply>(
+        'AbandonManagedText',
+        abandonManagedText_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.AbandonManagedTextRequest.fromBuffer(value),
+        ($0.ManagedTextAbandonReply value) => value.writeToBuffer()));
   }
 
   $async.Future<$0.FilePlanReply> openFilePlan_Pre($grpc.ServiceCall $call,
@@ -399,4 +420,13 @@ abstract class FilePlanOperationsServiceBase extends $grpc.Service {
 
   $async.Future<$0.ManagedTextEditReply> saveManagedText(
       $grpc.ServiceCall call, $0.SaveManagedTextRequest request);
+
+  $async.Future<$0.ManagedTextAbandonReply> abandonManagedText_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.AbandonManagedTextRequest> $request) async {
+    return abandonManagedText($call, await $request);
+  }
+
+  $async.Future<$0.ManagedTextAbandonReply> abandonManagedText(
+      $grpc.ServiceCall call, $0.AbandonManagedTextRequest request);
 }

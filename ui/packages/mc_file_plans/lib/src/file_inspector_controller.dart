@@ -20,6 +20,8 @@ class FileInspectorController extends ChangeNotifier {
   ManagedTextDocument? textDocument;
   bool openingText = false, savingText = false;
   String? textProblem;
+  String? _textActionId;
+  Future<bool> Function(FutureOr<void> Function())? _textNavigationGuard;
   int _textEpoch = 0;
   int _previewEpoch = 0;
   bool get archiveMode => _artifact != null;
@@ -64,8 +66,25 @@ class FileInspectorController extends ChangeNotifier {
     openingText = false;
     savingText = false;
     textProblem = null;
+    _textActionId = null;
     if (!_disposed) notifyListeners();
   }
+
+  void bindTextNavigationGuard(
+    Future<bool> Function(FutureOr<void> Function())? guard,
+  ) {
+    _textNavigationGuard = guard;
+  }
+
+  Future<bool> _guardTextNavigation(FutureOr<void> Function() navigate) async {
+    final guard = _textNavigationGuard;
+    if (guard != null) return guard(navigate);
+    await navigate();
+    return true;
+  }
+
+  Future<bool> guardTextNavigation(FutureOr<void> Function() navigate) =>
+      _guardTextNavigation(navigate);
 
   bool get canEditText =>
       !archiveMode &&
@@ -96,6 +115,7 @@ class FileInspectorController extends ChangeNotifier {
         return;
       }
       textDocument = document;
+      _textActionId = null;
     } on Exception catch (error) {
       if (!_disposed && epoch == _textEpoch) {
         textProblem = error is FilePlanException
@@ -124,20 +144,20 @@ class FileInspectorController extends ChangeNotifier {
     textProblem = null;
     notifyListeners();
     try {
-      await client.saveManagedText(
-        snapshot,
-        newOperationId(),
-        opened.source,
-        content,
-      );
+      final action = _textActionId ??= newOperationId();
+      await client.saveManagedText(snapshot, action, opened.source, content);
       if (_disposed || epoch != _textEpoch) return false;
-      textDocument = null;
+      _textActionId = null;
       return true;
     } on Exception catch (error) {
       if (!_disposed && epoch == _textEpoch) {
         textProblem = error is FilePlanException
             ? error.detail
             : 'The new version could not be saved.';
+        if (error is FilePlanException &&
+            error.failure == FilePlanFailure.cancelled) {
+          _textActionId = null;
+        }
       }
       return false;
     } finally {
@@ -148,10 +168,58 @@ class FileInspectorController extends ChangeNotifier {
     }
   }
 
+  Future<bool> abandonPendingText() async {
+    final action = _textActionId, client = _client;
+    if (action == null) return true;
+    if (_disposed || client == null || savingText) return false;
+    savingText = true;
+    textProblem = null;
+    notifyListeners();
+    try {
+      await client.abandonManagedText(action);
+      if (_disposed) return false;
+      _textActionId = null;
+      return true;
+    } on Exception catch (error) {
+      if (!_disposed) {
+        textProblem = error is FilePlanException
+            ? error.detail
+            : 'The interrupted edit could not be abandoned.';
+      }
+      return false;
+    } finally {
+      if (!_disposed) {
+        savingText = false;
+        notifyListeners();
+      }
+    }
+  }
+
   void attach(
     FilePlansClient? client,
     FilePlanState? state, {
     bool clear = false,
+  }) {
+    if (clear && textDocument != null) {
+      _client = client;
+      _snapshot = state?.id;
+      _archiveClient = null;
+      _artifact = null;
+      _archiveManifest = null;
+      _archiveEntry = null;
+      _cancelPreview();
+      ++_epoch;
+      loading = false;
+      notifyListeners();
+      return;
+    }
+    _attach(client, state, clear: clear);
+  }
+
+  void _attach(
+    FilePlansClient? client,
+    FilePlanState? state, {
+    required bool clear,
   }) {
     if (_snapshot != state?.id || _client != client) {
       _cancelPreview();
@@ -189,17 +257,21 @@ class FileInspectorController extends ChangeNotifier {
     if (!_disposed) notifyListeners();
   }
 
-  Future<void> showTarget(List<String> path) {
-    close();
-    target = List.unmodifiable(path);
-    return reload();
+  Future<void> showTarget(List<String> path) async {
+    await _guardTextNavigation(() async {
+      close();
+      target = List.unmodifiable(path);
+      await reload();
+    });
   }
 
-  Future<void> showCopy(ManagedFileCopy copy) {
-    close();
-    requestedCopy = copy;
-    _selected = copy;
-    return reload();
+  Future<void> showCopy(ManagedFileCopy copy) async {
+    await _guardTextNavigation(() async {
+      close();
+      requestedCopy = copy;
+      _selected = copy;
+      await reload();
+    });
   }
 
   Future<void> showArchive(
@@ -277,12 +349,16 @@ class FileInspectorController extends ChangeNotifier {
   }
 
   void select(InspectedFileCopy copy) {
-    closeTextEditor();
-    _selected = key(copy);
-    _clearHistory();
-    previewRepresentation = _initialRepresentation(copy.sourcePath.last);
-    notifyListeners();
-    unawaited(loadPreview());
+    unawaited(
+      _guardTextNavigation(() {
+        closeTextEditor();
+        _selected = key(copy);
+        _clearHistory();
+        previewRepresentation = _initialRepresentation(copy.sourcePath.last);
+        notifyListeners();
+        unawaited(loadPreview());
+      }),
+    );
   }
 
   void _clearHistory() {

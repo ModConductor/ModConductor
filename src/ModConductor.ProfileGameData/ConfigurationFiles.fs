@@ -204,11 +204,14 @@ module internal ConfigurationFiles =
                         ))
 
                 let staged = DataFiles.observe backups replacement.Name token
+                let replacementWasInstalled = action.CompletedFiles > 0 || staged.IsNone
 
-                match current with
-                | Some file when file = replacement.File -> ()
-                | None -> ()
-                | Some _ -> DataFiles.fail (change.Name + " changed. It was left untouched.")
+                match current, change.Before, replacementWasInstalled with
+                | Some file, _, _ when file = replacement.File -> ()
+                | None, Some _, true ->
+                    DataFiles.fail (change.Name + " changed. It was left untouched.")
+                | None, _, _ -> ()
+                | Some _, _, _ -> DataFiles.fail (change.Name + " changed. It was left untouched.")
 
                 match change.Before, backup with
                 | Some original, Some preserved when original = preserved -> ()
@@ -255,3 +258,28 @@ module internal ConfigurationFiles =
                     ProfileDataError.Invalid "This action is not a profile file edit."
                 )
             )
+
+    let checkResume (action: ProfileDataActionRecord) (token: CancellationToken) =
+        match action.Kind, action.Files with
+        | ProfileDataActionKind.EditConfiguration _, [ effect ] when action.CompletedFiles > 0 ->
+            use target = HeldDirectory.Open(effect.Target.Path, effect.Target.Identity)
+
+            let replacement =
+                effect.Change.Replacement
+                |> Option.defaultWith (fun () ->
+                    raise (
+                        ProfileDataException(
+                            ProfileDataError.Conflict "The profile file receipt is invalid."
+                        )
+                    ))
+
+            match DataFiles.observe target effect.Change.Name token with
+            | Some current when current = replacement.File -> ()
+            | _ -> DataFiles.fail (effect.Change.Name + " changed. It was left untouched.")
+        | ProfileDataActionKind.EditConfiguration _, _ when action.CompletedFiles > 0 ->
+            raise (
+                ProfileDataException(
+                    ProfileDataError.Conflict "The profile file receipt is invalid."
+                )
+            )
+        | _ -> ()

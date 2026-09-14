@@ -66,6 +66,10 @@ class FakePlans implements FilePlansClient {
   FilePlanState current = state('first');
   bool hidden = false, unknownChange = false;
   int changes = 0;
+  bool failTextSave = false;
+  final textActions = <String>[];
+  final textSnapshots = <String>[];
+  final abandonedTextActions = <String>[];
   final openedProfiles = <String>[];
   final stream = StreamController<FilePlanLoadEvent>.broadcast();
   Future<FilePlanPage> Function(String, List<String>?, String, FilePlanCursor?)?
@@ -74,14 +78,39 @@ class FakePlans implements FilePlansClient {
   Future<ManagedTextDocument> openManagedText(
     String snapshotId,
     ManagedPreviewSource source,
-  ) => throw UnimplementedError();
+  ) async => ManagedTextDocument(
+    source,
+    const TextDocument(
+      content: 'original\n',
+      encoding: TextDocumentEncoding.utf8,
+      newline: TextDocumentNewline.lf,
+      finalTerminator: true,
+      lines: 2,
+    ),
+  );
   @override
   Future<ManagedTextEdit> saveManagedText(
     String snapshotId,
     String id,
     ManagedPreviewSource source,
     String content,
-  ) => throw UnimplementedError();
+  ) async {
+    textActions.add(id);
+    textSnapshots.add(snapshotId);
+    if (failTextSave) {
+      throw const FilePlanException(
+        FilePlanFailure.stale,
+        'The source changed.',
+      );
+    }
+    return ManagedTextEdit(id, id, source);
+  }
+
+  @override
+  Future<void> abandonManagedText(String id) async {
+    abandonedTextActions.add(id);
+  }
+
   @override
   Future<FilePlanState> open(String profileId) async {
     openedProfiles.add(profileId);
@@ -251,6 +280,66 @@ void main() {
       await client.stream.close();
     },
   );
+
+  test('managed save retries retain the exact publication action', () async {
+    final client = FakePlans();
+    final controller = FileInspectorController()
+      ..attach(client, state('first'));
+    await controller.showTarget(copy.path);
+    await controller.openTextEditor();
+    client.failTextSave = true;
+    expect(await controller.saveText('changed\n'), isFalse);
+    controller.attach(client, state('reopened'), clear: true);
+    expect(controller.textDocument, isNotNull);
+    client.failTextSave = false;
+    expect(await controller.saveText('changed\n'), isTrue);
+    expect(client.textActions, hasLength(2));
+    expect(client.textActions.first, client.textActions.last);
+    expect(client.textSnapshots, ['first', 'reopened']);
+    controller.dispose();
+    await client.stream.close();
+  });
+
+  testWidgets('a stale save blocks a dirty inspected-target switch', (
+    tester,
+  ) async {
+    final client = FakePlans()..failTextSave = true;
+    final plans = FilePlansController()..attach(client, 'profile');
+    await tester.pump();
+    final controller = plans.inspector;
+    await controller.showTarget(copy.path);
+    await controller.openTextEditor();
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: mcTheme(Brightness.light),
+        home: Scaffold(
+          body: FileSourcesInspector(controller: plans, onClose: () {}),
+        ),
+      ),
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('text-editor')),
+      'changed\n',
+    );
+    final switchTarget = controller.showTarget(['other.ini']);
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.widgetWithText(FilledButton, 'Save as new mod version').last,
+    );
+    await tester.pumpAndSettle();
+    await switchTarget;
+    expect(controller.target, copy.path);
+    expect(find.text('changed\n'), findsOneWidget);
+    expect(tester.testTextInput.isVisible, isTrue);
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Discard'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Discard').last);
+    await tester.pumpAndSettle();
+    expect(client.abandonedTextActions, [client.textActions.single]);
+    await tester.pumpWidget(const SizedBox());
+    plans.dispose();
+    await client.stream.close();
+  });
 
   testWidgets('late filter pages cannot replace a newer query projection', (
     tester,

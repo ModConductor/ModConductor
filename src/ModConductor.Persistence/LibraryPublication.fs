@@ -138,6 +138,44 @@ type internal LibraryPublication(database: StateDatabase, access: LibraryAccess)
             afterObservation ()
         }
 
+    let clearCapture root library version =
+        task {
+            let! payloads =
+                db (fun () ->
+                    use statement =
+                        Sqlite.command
+                            connection
+                            null
+                            "SELECT id FROM mod_payloads WHERE publication_id=$version"
+                            [ "$version", box (string version) ]
+
+                    use reader = statement.ExecuteReader()
+
+                    [ while reader.Read() do
+                          yield Guid.Parse(reader.GetString 0) ])
+
+            do!
+                Task.Run(fun () ->
+                    use destination = LibraryFiles.openLibrary root library
+
+                    for payload in payloads do
+                        let name = LibraryFiles.payloadName payload
+
+                        match destination.InspectEntry name with
+                        | None -> ()
+                        | Some entry when entry.Kind = EntryKind.RegularFile ->
+                            destination.RemoveFile(name, entry.Identity)
+                        | Some _ -> raise (IOException("The incomplete library file changed.")))
+
+            do!
+                db (fun () ->
+                    Sqlite.execute
+                        connection
+                        null
+                        "DELETE FROM mod_manifest WHERE version_id=$version; DELETE FROM mod_payloads WHERE publication_id=$version"
+                        [ "$version", box (string version) ])
+        }
+
     let verify root library version =
         task {
             let! payloads =
@@ -177,7 +215,8 @@ type internal LibraryPublication(database: StateDatabase, access: LibraryAccess)
             composition,
             cancellation: System.Threading.CancellationToken,
             afterEffect,
-            afterObservation
+            afterObservation,
+            beforeInlineEffect
         ) =
         task {
             if version = Guid.Empty then
@@ -213,7 +252,11 @@ type internal LibraryPublication(database: StateDatabase, access: LibraryAccess)
                                 | Error error -> return Error error
                                 | Ok library ->
                                     match work with
-                                    | Capture ->
+                                    | Capture
+                                    | RestartCapture ->
+                                        if work = RestartCapture then
+                                            do! clearCapture root library version
+
                                         match composition with
                                         | None ->
                                             do!
@@ -237,6 +280,7 @@ type internal LibraryPublication(database: StateDatabase, access: LibraryAccess)
                                                         checkCancelled version ())
                                                     afterEffect
                                                     afterObservation
+                                                    beforeInlineEffect
                                     | CommitObserved -> ()
                                     | Replay ->
                                         invalidOp "A completed publication has no file work."
@@ -262,6 +306,7 @@ type internal LibraryPublication(database: StateDatabase, access: LibraryAccess)
                             return Error LibraryError.Cancelled
                         | :? SourceOverlapException -> return Error LibraryError.InvalidSource
                         | :? SourceChangedException -> return Error LibraryError.SourceChanged
+                        | ReplacedPayloadChangedException -> return Error LibraryError.SourceChanged
                         | :? SourceLimitException -> return Error LibraryError.LimitExceeded
                         | :? IOException
                         | :? UnauthorizedAccessException ->
@@ -291,8 +336,28 @@ type internal LibraryPublication(database: StateDatabase, access: LibraryAccess)
             None,
             System.Threading.CancellationToken.None,
             afterEffect,
-            afterObservation
+            afterObservation,
+            ignore
         )
 
-    member _.Compose(modId, expected, version, input, cancellation, afterEffect, afterObservation) =
-        this.Run(modId, expected, version, Some input, cancellation, afterEffect, afterObservation)
+    member _.Compose
+        (
+            modId,
+            expected,
+            version,
+            input,
+            cancellation,
+            afterEffect,
+            afterObservation,
+            beforeInlineEffect
+        ) =
+        this.Run(
+            modId,
+            expected,
+            version,
+            Some input,
+            cancellation,
+            afterEffect,
+            afterObservation,
+            beforeInlineEffect
+        )
