@@ -316,6 +316,66 @@ module SaveFixtures =
                 |> List.exists (fun issue ->
                     issue.Name = "Inactive.esp" && issue.State = SavePluginState.Inactive))
 
+        let order =
+            store.PluginOrders.Read(workspace, profile, headers.Id) |> wait |> result
+
+        let parsedMetadata =
+            match metadata saveBytes with
+            | Ok value -> value
+            | Error error -> invalidOp ("Synthetic save parse failed: " + error.ToString())
+
+        let ambiguousOrder =
+            { order with
+                Headers =
+                    { order.Headers with
+                        Entries =
+                            order.Headers.Entries
+                            |> List.map (fun entry ->
+                                if
+                                    entry.Name.Equals(
+                                        "Inactive.esp",
+                                        StringComparison.OrdinalIgnoreCase
+                                    )
+                                then
+                                    { entry with
+                                        Winner = None
+                                        Ambiguity = Some "The selected source is ambiguous." }
+                                else
+                                    entry) } }
+
+        let ambiguousIssues, ambiguousProblem =
+            SaveDiagnostics.check ambiguousOrder parsedMetadata
+
+        check
+            "ambiguousRelevantPluginSuppressesDiagnostics"
+            (ambiguousIssues.IsEmpty && ambiguousProblem.IsSome)
+
+        let indeterminateOrder =
+            { order with
+                View =
+                    { order.View with
+                        Order =
+                            { order.View.Order with
+                                Entries =
+                                    order.View.Order.Entries
+                                    |> List.map (fun entry ->
+                                        if
+                                            entry.Name.Equals(
+                                                "Inactive.esp",
+                                                StringComparison.OrdinalIgnoreCase
+                                            )
+                                        then
+                                            { entry with Enabled = None }
+                                        else
+                                            entry) } } }
+
+        let indeterminateIssues, indeterminateProblem =
+            SaveDiagnostics.check indeterminateOrder parsedMetadata
+
+        check
+            "indeterminateRelevantPluginSuppressesDiagnostics"
+            (indeterminateIssues.IsEmpty && indeterminateProblem.IsSome)
+
         let preview action names expected =
             api.PreviewSaveAction(expected, action, names, token) |> wait |> result
 
@@ -434,5 +494,40 @@ module SaveFixtures =
              && File.ReadAllText(Path.Combine(deleted.State.SavesPath, "profile-note.txt")) = "keep"
              && File.ReadAllText(Path.Combine(deleted.State.SavesPath, "steam_autocloud.vdf")) = "keep cloud marker"
              && File.ReadAllBytes(Path.Combine(globalPath, "transfer.ess")) = saveBytes)
+
+        let superseded =
+            preview ProfileSaveAction.CopyToProfile [ transfer.Name ] deleted.State.Reference
+
+        let current =
+            preview ProfileSaveAction.CopyToProfile [ transfer.Name ] deleted.State.Reference
+
+        let supersededResult = apply superseded deleted.State.Reference
+        let currentResult = apply current deleted.State.Reference |> result
+
+        check
+            "secondPreviewStalesFirstAndApplies"
+            (supersededResult = Error ProfileDataError.Stale
+             && currentResult.Complete
+             && File.ReadAllBytes(Path.Combine(currentResult.State.SavesPath, "transfer.ess")) = saveBytes
+             && store.RetainedProfileSavePreviewCount = 0)
+
+        let mutable repeated = currentResult
+
+        for index in 1..66 do
+            let action =
+                if index % 2 = 1 then
+                    ProfileSaveAction.DeleteFromProfile
+                else
+                    ProfileSaveAction.CopyToProfile
+
+            let next = preview action [ transfer.Name ] repeated.State.Reference
+            repeated <- apply next repeated.State.Reference |> result
+
+            if not repeated.Complete then
+                invalidOp "A repeated save action did not complete."
+
+        check
+            "repeatedCompletionKeepsPreviewStateBounded"
+            (store.RetainedProfileSavePreviewCount = 0)
 
         writer.WriteEndObject()

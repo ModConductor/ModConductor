@@ -23,27 +23,23 @@ type ProfileGameDataSession
     let mutable active = 0
     let mutable closed = false
 
-    let savePreviews =
-        Collections.Generic.Dictionary<Guid, ProfileSaveActionPreview * SaveActionReceipt>()
-
-    let savePreviewOrder = Collections.Generic.Queue<Guid>()
+    let mutable savePreview: (ProfileSaveActionPreview * SaveActionReceipt) option =
+        None
 
     let rememberSavePreview (preview: ProfileSaveActionPreview) (receipt: SaveActionReceipt) =
-        lock previewGate (fun () ->
-            while savePreviews.Count >= 64 do
-                savePreviews.Remove(savePreviewOrder.Dequeue()) |> ignore
+        lock previewGate (fun () -> savePreview <- Some(preview, receipt))
 
-            savePreviews.Add(preview.Id, (preview, receipt))
-            savePreviewOrder.Enqueue preview.Id)
-
-    let findSavePreview id =
+    let claimSavePreview id expected =
         lock previewGate (fun () ->
-            match savePreviews.TryGetValue id with
-            | true, value -> Some value
+            match savePreview with
+            | Some(preview, receipt) when
+                preview.Id = id
+                && preview.Expected = expected
+                && preview.Action = receipt.Action
+                ->
+                savePreview <- None
+                Some(preview, receipt)
             | _ -> None)
-
-    let forgetSavePreview id =
-        lock previewGate (fun () -> savePreviews.Remove id |> ignore)
 
     let mutable drained =
         TaskCompletionSource<unit>(TaskCreationOptions.RunContinuationsAsynchronously)
@@ -572,6 +568,9 @@ type ProfileGameDataSession
     member internal _.RestoreAtCheckpoint(id, expected, token, checkpoint) =
         restore id expected token checkpoint
 
+    member internal _.RetainedSavePreviewCount =
+        lock previewGate (fun () -> if savePreview.IsSome then 1 else 0)
+
     member _.Drain() = lock gate (fun () -> drained.Task)
 
     member _.TryClose(next: unit -> bool) =
@@ -936,13 +935,8 @@ type ProfileGameDataSession
                                 receipt
                             | _ -> raise (ProfileDataException ProfileDataError.Stale)
                         | None ->
-                            match findSavePreview previewId with
-                            | Some(preview, receipt) when
-                                preview.Id = previewId
-                                && preview.Expected = expected
-                                && preview.Action = receipt.Action
-                                ->
-                                receipt
+                            match claimSavePreview previewId expected with
+                            | Some(_, receipt) -> receipt
                             | _ -> raise (ProfileDataException ProfileDataError.Stale)
 
                     let kind = ProfileDataActionKind.SaveFiles receipt
@@ -965,9 +959,6 @@ type ProfileGameDataSession
                         let! result =
                             execute ignore None scope context action token progress (fun _ ->
                                 Task.FromResult())
-
-                        if result.Complete then
-                            forgetSavePreview previewId
 
                         return Ok result
                 })

@@ -244,6 +244,9 @@ type OperationStore
     member _.ProfileGameData =
         profileGameData :> ModConductor.ProfileGameData.IProfileGameData
 
+    member internal _.RetainedProfileSavePreviewCount =
+        profileGameData.RetainedSavePreviewCount
+
     member _.GameLaunching = gameLaunching :> ModConductor.GameLaunching.IGameLaunching
     member _.CloseExecutables() = executables.Close()
     member _.ExecutablesFailed = executables.Failed

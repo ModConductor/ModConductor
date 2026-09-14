@@ -295,50 +295,7 @@ module internal SaveGroups =
                     let! order =
                         PluginOrders.read repository plugins scope.WorkspaceId scope.ProfileId id
 
-                    if
-                        order.Headers.Stale
-                        || not order.Headers.Problems.IsEmpty
-                        || order.Pending
-                        || order.ExternalChanged
-                        || order.Problem.IsSome
-                    then
-                        return [], Some "Refresh plugins to check this save."
-                    else
-                        let entries =
-                            order.Headers.Entries
-                            |> List.filter (fun row -> row.Winner.IsSome && row.Ambiguity.IsNone)
-
-                        let settings = order.View.Order.Entries
-
-                        let issue name : SavePluginIssue option =
-                            match entries |> List.tryFind (fun row -> same row.Name name) with
-                            | None ->
-                                Some(
-                                    { Name = name
-                                      State = SavePluginState.Missing
-                                      Source = None }
-                                    : SavePluginIssue
-                                )
-                            | Some entry ->
-                                match settings |> List.tryFind (fun row -> same row.Name name) with
-                                | Some setting when setting.Enabled = Some false ->
-                                    Some(
-                                        { Name = name
-                                          State = SavePluginState.Inactive
-                                          Source =
-                                            entry.Winner
-                                            |> Option.map (fun (source: PluginSource) ->
-                                                if source.Version = "" then
-                                                    source.Name
-                                                else
-                                                    source.Name + " " + source.Version) }
-                                        : SavePluginIssue
-                                    )
-                                | _ -> None
-
-                        return
-                            (metadata.FullPlugins @ metadata.LightPlugins) |> List.choose issue,
-                            None
+                    return SaveDiagnostics.check order metadata
                 with ProfileDataException _ ->
                     return [], Some "Refresh plugins to check this save."
         }

@@ -15,6 +15,7 @@
     <Compile Include="PluginInputs.fs" />
     <Compile Include="Initialization.fs" />
     <Compile Include="PluginOrders.fs" />
+    <Compile Include="SaveDiagnostics.fs" />
     <Compile Include="SaveGroups.fs" />
     <Compile Include="PluginPreparation.fs" />
     <Compile Include="ArchivePolicies.fs" />
