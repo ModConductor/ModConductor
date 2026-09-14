@@ -16,6 +16,78 @@ module LootFixtures =
     let private wait = StorageWorker.wait
     let private result = StorageWorker.result
 
+    let validateMoves (writer: Utf8JsonWriter) =
+        writer.WriteStartObject "lootResponseValidation"
+
+        let check (name: string) (value: bool) =
+            writer.WriteBoolean(name, value)
+            writer.Flush()
+
+            if not value then
+                invalidOp ("LOOT response fixture failed: " + name)
+
+        let metadata =
+            { Revision = "metadata-fixture"
+              MasterlistCommit = "masterlist"
+              PreludeCommit = "prelude"
+              MasterlistSha256 = String.replicate 64 "1"
+              PreludeSha256 = String.replicate 64 "2"
+              MasterlistPath = "unused"
+              PreludePath = "unused"
+              FetchedAt = DateTimeOffset.UnixEpoch }
+
+        let first = "First.esp"
+        let second = "Second.esp"
+        let unchanged = "Unchanged.esp"
+        let current = [ first; second; unchanged ]
+        let sorted = [ second; first; unchanged ]
+
+        let move plugin before after =
+            { Plugin = plugin
+              Current = before
+              Proposed = after
+              Reason = "fixture" }
+
+        let response moves : LootJson.Response =
+            { Correlation = "move-validation"
+              Capability = "skyrim-se-steam"
+              Fingerprint = "move-fixture"
+              MetadataRevision = metadata.Revision
+              HelperRevision = "0.1.0"
+              LiblootVersion = "0.29.6"
+              LiblootRevision = "136f3983"
+              Current = current
+              Sorted = sorted
+              Moves = moves
+              Messages = [] }
+
+        let validate moves =
+            ResponseValidation.validate
+                "move-validation"
+                "move-fixture"
+                metadata
+                current
+                (response moves)
+
+        let refused moves =
+            match validate moves with
+            | Error(LootError.InvalidResponse _) -> true
+            | _ -> false
+
+        let correct = [ move first 1 2; move second 2 1 ]
+        check "exactMoveSetAccepted" (validate correct |> Result.isOk)
+        check "omittedMoveRefused" (refused [ move first 1 2 ])
+        check "duplicateMoveRefused" (refused [ move first 1 2; move first 1 2 ])
+
+        check "unchangedMoveRefused" (refused [ move first 1 2; move unchanged 3 3 ])
+
+        check "mismatchedMovePositionRefused" (refused [ move first 2 1; move second 2 1 ])
+
+        check "extraMoveRefused" (refused (correct @ [ move unchanged 3 3 ]))
+
+        writer.WriteEndObject()
+        writer.Flush()
+
     let observe (writer: Utf8JsonWriter) primary helper masterlist prelude =
         writer.WriteStartObject "loot"
 

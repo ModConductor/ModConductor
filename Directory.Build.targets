@@ -1,0 +1,9 @@
+<Project>
+  <Target
+    Name="BlockUnresolvedLootLicenceProductPublish"
+    BeforeTargets="PrepareForPublish"
+    Condition="'$(MSBuildProjectName)' == 'ModConductor.Engine' and '$(ModConductorLocalPublishVerificationOnly)' != 'true'"
+  >
+    <Error Text="Product publish is blocked until the LOOT helper licence decision is accepted. For local verification only, pass -p:ModConductorLocalPublishVerificationOnly=true; do not package or redistribute the output." />
+  </Target>
+</Project>

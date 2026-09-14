@@ -11,6 +11,16 @@ let main args =
     try
         if args.Length = 1 && args[0] = "--native-tool-grandchild" then
             NativeToolFixtures.grandchild ()
+        elif args.Length = 1 && args[0] = "--loot-response-validation" then
+            use writer =
+                new Utf8JsonWriter(Console.OpenStandardOutput(), JsonWriterOptions(Indented = true))
+
+            writer.WriteStartObject()
+            writer.WriteBoolean("nativeAot", not RuntimeFeature.IsDynamicCodeSupported)
+            LootFixtures.validateMoves writer
+            writer.WriteEndObject()
+            writer.Flush()
+            0
         elif args.Length = 2 && args[0] = "--native-tool-child" then
             NativeToolFixtures.child args[1]
         elif args.Length = 2 && args[0] = "--native-tool" then

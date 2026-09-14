@@ -5,6 +5,7 @@
     <Compile Include="Contracts.fs" />
     <Compile Include="Json.fs" />
     <Compile Include="Metadata.fs" />
+    <Compile Include="ResponseValidation.fs" />
     <Compile Include="Session.fs" />
     <ProjectReference Include="../ModConductor.ProfileGameData/ModConductor.ProfileGameData.fsproj" />
     <ProjectReference Include="../ModConductor.FilePlanning/ModConductor.FilePlanning.fsproj" />
