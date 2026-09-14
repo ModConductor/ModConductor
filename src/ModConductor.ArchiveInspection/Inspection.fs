@@ -46,6 +46,27 @@ type Inspection(source: IArtifactSource, ?limits: ArchiveLimits, ?nested: INeste
             fun (artifact, file) -> read artifact.Sha256.Value file token consume
         )
 
+    member _.WithRevalidatedContents
+        (reference, token: CancellationToken, consume: ArchiveContents -> 'a)
+        =
+        task {
+            let! consumed =
+                source.ReadVerified(
+                    reference,
+                    token,
+                    fun (artifact, file) -> read artifact.Sha256.Value file token consume
+                )
+
+            match consumed with
+            | Error error -> return Error error
+            | Ok value ->
+                token.ThrowIfCancellationRequested()
+
+                let! revalidated = source.ReadVerified(reference, token, fun (_, _) -> ())
+
+                return revalidated |> Result.map (fun () -> value)
+        }
+
     member this.WithInput(reference: ArtifactRef, input: NestedArchiveRef option, token, consume) =
         match input with
         | None -> this.WithContents(reference, token, consume)

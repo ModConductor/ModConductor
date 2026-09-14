@@ -43,6 +43,16 @@ let main args =
             writer.WriteEndObject()
             writer.Flush()
             0
+        elif args.Length = 1 && args[0] = "--archive-preview-race" then
+            use writer =
+                new Utf8JsonWriter(Console.OpenStandardOutput(), JsonWriterOptions(Indented = true))
+
+            writer.WriteStartObject()
+            writer.WriteBoolean("nativeAot", not RuntimeFeature.IsDynamicCodeSupported)
+            ArchivePreviewRaceFixtures.observe writer
+            writer.WriteEndObject()
+            writer.Flush()
+            0
         elif args.Length = 1 && args[0] = "--file-preview" then
             use writer =
                 new Utf8JsonWriter(Console.OpenStandardOutput(), JsonWriterOptions(Indented = true))

@@ -81,7 +81,7 @@ type ArchiveInspectionService(inspection: Inspection) =
                 let representation = FilePlanWire.readRepresentation request.Representation
 
                 let! preview =
-                    inspection.WithContents(
+                    inspection.WithRevalidatedContents(
                         reference,
                         context.CancellationToken,
                         fun contents ->

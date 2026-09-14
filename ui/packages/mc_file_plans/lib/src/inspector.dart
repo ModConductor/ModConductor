@@ -6,6 +6,7 @@ import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 
 import 'controller.dart';
 import 'file_inspector_controller.dart';
+import 'preview_image.dart';
 
 String fileSize(int bytes) => bytes >= 1024 * 1024 * 1024
     ? '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GiB'
@@ -352,24 +353,7 @@ class _PreviewBody extends StatelessWidget {
           ),
         ),
       ),
-      FilePreviewImage value => Semantics(
-        label:
-            '${value.format} image, ${value.width} by ${value.height} pixels',
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxHeight: 420),
-          child: Image.memory(
-            value.content,
-            cacheWidth: value.width,
-            cacheHeight: value.height,
-            fit: BoxFit.contain,
-            filterQuality: FilterQuality.medium,
-            errorBuilder: (_, _, _) => const McStatus(
-              title: 'This image cannot be decoded safely.',
-              tone: McStatusTone.error,
-            ),
-          ),
-        ),
-      ),
+      FilePreviewImage value => FilePreviewImageView(preview: value),
       FilePreviewHex value => Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
