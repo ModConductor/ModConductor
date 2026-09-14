@@ -11,6 +11,7 @@ class TextEditorToolbox extends StatefulWidget {
     required this.source,
     required this.onSave,
     required this.onClose,
+    this.onExit,
     this.problem,
     this.saving = false,
     this.saveLabel = 'Save as new mod version',
@@ -23,6 +24,7 @@ class TextEditorToolbox extends StatefulWidget {
   final bool saving;
   final Future<bool> Function(String) onSave;
   final VoidCallback onClose;
+  final VoidCallback? onExit;
   final Future<void> Function()? onReadAgain;
 
   @override
@@ -45,7 +47,7 @@ class TextEditorToolboxState extends State<TextEditorToolbox> {
 
   void _changed() => setState(() {});
 
-  Future<bool> _confirmDiscard() async {
+  Future<bool> confirmDiscard() async {
     if (!dirty) return true;
     final discard = await showDialog<bool>(
       context: context,
@@ -70,13 +72,19 @@ class TextEditorToolboxState extends State<TextEditorToolbox> {
   }
 
   Future<bool> requestClose() async {
-    if (!await _confirmDiscard()) return false;
+    if (!await confirmDiscard()) return false;
     widget.onClose();
     return true;
   }
 
+  Future<bool> requestExit() async {
+    if (!await confirmDiscard()) return false;
+    (widget.onExit ?? widget.onClose)();
+    return true;
+  }
+
   Future<void> _readAgain() async {
-    if (!await _confirmDiscard()) return;
+    if (!await confirmDiscard()) return;
     await widget.onReadAgain?.call();
   }
 
@@ -107,7 +115,7 @@ class TextEditorToolboxState extends State<TextEditorToolbox> {
     bindings: {
       const SingleActivator(LogicalKeyboardKey.keyS, control: true): _save,
       const SingleActivator(LogicalKeyboardKey.keyS, meta: true): _save,
-      const SingleActivator(LogicalKeyboardKey.escape): requestClose,
+      const SingleActivator(LogicalKeyboardKey.escape): requestExit,
     },
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,

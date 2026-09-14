@@ -255,6 +255,7 @@ class FileSourcesInspector extends StatelessWidget {
             McAction(
               label: 'Edit text',
               icon: Icons.edit_outlined,
+              focusNode: view.editTextFocus,
               onPressed: available && !view.openingText
                   ? () => unawaited(view.openTextEditor())
                   : null,
@@ -367,12 +368,19 @@ class _ManagedTextEditorInspectorState
     extends State<_ManagedTextEditorInspector> {
   final _editor = GlobalKey<TextEditorToolboxState>();
 
-  void closeEditor() => widget.controller.closeTextEditor();
+  void closeEditor() {
+    widget.controller.closeTextEditor();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (widget.controller.editTextFocus.canRequestFocus) {
+        widget.controller.editTextFocus.requestFocus();
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) => McInspector(
     title: 'Edit text',
-    onClose: () => unawaited(_editor.currentState?.requestClose()),
+    onClose: () => unawaited(_editor.currentState?.requestExit()),
     children: [
       TextEditorToolbox(
         key: _editor,
@@ -382,6 +390,7 @@ class _ManagedTextEditorInspectorState
         saving: widget.controller.savingText,
         problem: widget.controller.textProblem,
         onClose: closeEditor,
+        onExit: widget.onClose,
         onReadAgain: widget.owner == null
             ? null
             : () async {

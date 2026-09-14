@@ -320,7 +320,7 @@ class _ProfileSettingsInspectorState extends State<ProfileSettingsInspector> {
       if (_configuration case final document?) {
         return McInspector(
           title: 'Edit profile file',
-          onClose: () => unawaited(_editor.currentState?.requestClose()),
+          onClose: () => unawaited(_editor.currentState?.requestExit()),
           children: [
             TextEditorToolbox(
               key: _editor,
@@ -330,7 +330,8 @@ class _ProfileSettingsInspectorState extends State<ProfileSettingsInspector> {
               saveLabel: 'Replace profile ${document.name}',
               saving: controller.busy,
               problem: controller.problem,
-              onClose: _closeConfiguration,
+              onClose: _closeFiles,
+              onExit: widget.onClose,
               onReadAgain: () async {
                 _closeConfiguration();
                 await controller.read();

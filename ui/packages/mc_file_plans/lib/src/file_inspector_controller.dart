@@ -1,9 +1,10 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:mc_client/mc_client.dart';
 
 class FileInspectorController extends ChangeNotifier {
+  final editTextFocus = FocusNode();
   FilePlansClient? _client;
   String? _snapshot;
   ArtifactsClient? _archiveClient;
@@ -484,6 +485,7 @@ class FileInspectorController extends ChangeNotifier {
     _cancelPreview();
     ++_epoch;
     ++_historyEpoch;
+    editTextFocus.dispose();
     super.dispose();
   }
 }
