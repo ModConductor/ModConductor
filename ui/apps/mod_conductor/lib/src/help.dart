@@ -83,7 +83,7 @@ const _guideArticles = [
       'Select the profile name in the workspace header.',
       'Select another profile.',
       'Check the deployment status.',
-      'Select Play when the deployment is ready.',
+      'When the deployment is ready, select Play.',
     ],
   ),
 ];
@@ -147,7 +147,7 @@ class DiagnosticsController extends ChangeNotifier {
         'The selected information changed. Run Diagnostics again.',
       DiagnosticFault.foreign || DiagnosticFault.notOwned => 'This change belongs to another workspace. Mod Conductor changed no files.',
       DiagnosticFault.busy =>
-        'Another action is active. Try again after it finishes.',
+        'Another action is active. After the action finishes, try again.',
       DiagnosticFault.oversized =>
         'This change affects too many paths. Mod Conductor changed no files.',
       DiagnosticFault.cancelled =>

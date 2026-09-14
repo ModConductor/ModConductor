@@ -474,8 +474,12 @@ type DiagnosticsTests() =
             |> environment.Result
 
         let finding = snapshot.Findings |> List.find (fun value -> value.Code = "launch-cancelled")
-        Assert.That(finding.Title, Is.EqualTo "Mod Conductor canceled the Skyrim launch")
-        Assert.That(finding.Summary, Is.EqualTo "The game did not start.")
-        Assert.That(finding.NextAction, Is.EqualTo "When you are ready, select Play.")
-        Assert.That(finding.FixDetail, Is.EqualTo "You do not need to change anything.")
+        let launchFindings =
+            snapshot.Findings
+            |> List.filter (fun value -> value.Code.StartsWith("launch-", StringComparison.Ordinal))
+
+        Assert.That(launchFindings, Has.Length.EqualTo 1)
+        Assert.That(finding.Severity, Is.EqualTo DiagnosticSeverity.Information)
+        Assert.That(finding.Fixability, Is.EqualTo Fixability.NotFixable)
+        Assert.That(finding.Action, Is.EqualTo DiagnosticAction.CheckAgain)
         Assert.That(Option.isNone finding.Detail, Is.True)
