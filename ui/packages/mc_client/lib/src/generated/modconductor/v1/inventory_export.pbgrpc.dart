@@ -59,6 +59,13 @@ class InventoryExportOperationsClient extends $grpc.Client {
         options: options);
   }
 
+  $grpc.ResponseFuture<$0.CancelInventoryExportReply> cancelInventoryExport(
+    $0.CancelInventoryExportRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$cancelInventoryExport, request, options: options);
+  }
+
   $grpc.ResponseFuture<$0.DiscardInventoryExportReply> discardInventoryExport(
     $0.DiscardInventoryExportRequest request, {
     $grpc.CallOptions? options,
@@ -86,6 +93,11 @@ class InventoryExportOperationsClient extends $grpc.Client {
       '/modconductor.v1.InventoryExportOperations/WriteInventoryExport',
       ($0.WriteInventoryExportRequest value) => value.writeToBuffer(),
       $0.InventoryExportEvent.fromBuffer);
+  static final _$cancelInventoryExport = $grpc.ClientMethod<
+          $0.CancelInventoryExportRequest, $0.CancelInventoryExportReply>(
+      '/modconductor.v1.InventoryExportOperations/CancelInventoryExport',
+      ($0.CancelInventoryExportRequest value) => value.writeToBuffer(),
+      $0.CancelInventoryExportReply.fromBuffer);
   static final _$discardInventoryExport = $grpc.ClientMethod<
           $0.DiscardInventoryExportRequest, $0.DiscardInventoryExportReply>(
       '/modconductor.v1.InventoryExportOperations/DiscardInventoryExport',
@@ -126,6 +138,15 @@ abstract class InventoryExportOperationsServiceBase extends $grpc.Service {
         ($core.List<$core.int> value) =>
             $0.WriteInventoryExportRequest.fromBuffer(value),
         ($0.InventoryExportEvent value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.CancelInventoryExportRequest,
+            $0.CancelInventoryExportReply>(
+        'CancelInventoryExport',
+        cancelInventoryExport_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.CancelInventoryExportRequest.fromBuffer(value),
+        ($0.CancelInventoryExportReply value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$0.DiscardInventoryExportRequest,
             $0.DiscardInventoryExportReply>(
         'DiscardInventoryExport',
@@ -166,6 +187,15 @@ abstract class InventoryExportOperationsServiceBase extends $grpc.Service {
 
   $async.Stream<$0.InventoryExportEvent> writeInventoryExport(
       $grpc.ServiceCall call, $0.WriteInventoryExportRequest request);
+
+  $async.Future<$0.CancelInventoryExportReply> cancelInventoryExport_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.CancelInventoryExportRequest> $request) async {
+    return cancelInventoryExport($call, await $request);
+  }
+
+  $async.Future<$0.CancelInventoryExportReply> cancelInventoryExport(
+      $grpc.ServiceCall call, $0.CancelInventoryExportRequest request);
 
   $async.Future<$0.DiscardInventoryExportReply> discardInventoryExport_Pre(
       $grpc.ServiceCall $call,

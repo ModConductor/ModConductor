@@ -307,3 +307,153 @@ type InventoryExportTests() =
             tooLarge |> exportError InventoryExportError.LimitExceeded
         }
         :> Task
+
+    [<Test>]
+    member _.``cancellation at the replacement boundary should report the winning outcome``() =
+        let run cancelAfterReplacement =
+            task {
+                let directory =
+                    Directory.CreateDirectory(
+                        Path.Combine(
+                            Path.GetTempPath(),
+                            "mc-export-" + Guid.NewGuid().ToString("N")
+                        )
+                    )
+
+                use reached = new ManualResetEventSlim(false)
+                use release = new ManualResetEventSlim(false)
+
+                try
+                    let workspaceId, profileId = Guid.NewGuid(), Guid.NewGuid()
+
+                    let query =
+                        { Text = ""
+                          Mode = FilterMode.All
+                          Filters = []
+                          View = OrganizationView.Flat
+                          Sort = OrganizationSort.Priority }
+
+                    let identity = OrganizationPolicy.identity profileId query
+
+                    let workspace =
+                        { Id = workspaceId
+                          Name = "Export"
+                          Path = host directory.FullName
+                          Revision = 1L
+                          SelectedProfile = Some { Id = profileId; Name = "Profile" }
+                          PendingRoot = None }
+
+                    let workspaces =
+                        { new IWorkspaceState with
+                            member _.Read(_, _) =
+                                Task.FromResult(
+                                    Ok
+                                        { Workspace = workspace
+                                          Profiles = [ workspace.SelectedProfile.Value ]
+                                          NextProfile = None }
+                                )
+
+                            member _.Create(_, _, _) = raise (NotSupportedException())
+                            member _.Open _ = raise (NotSupportedException())
+                            member _.Edit(_, _, _) = raise (NotSupportedException())
+
+                            member _.EditWithProgress(_, _, _, _, _) =
+                                raise (NotSupportedException())
+
+                            member _.ResumeProfileEdit(_, _, _, _) = raise (NotSupportedException())
+
+                            member _.Check(_, _) = raise (NotSupportedException())
+                            member _.Recent _ = raise (NotSupportedException()) }
+
+                    let item = row (Guid.NewGuid()) "Mod" "" "" [] (SelectionState.Managed(0, true))
+
+                    let organization =
+                        { new IModOrganization with
+                            member _.Query(_, _, _, _) =
+                                Task.FromResult(
+                                    Ok
+                                        { CatalogueRevision = 1L
+                                          SelectionRevision = 1L
+                                          QueryIdentity = identity
+                                          Entries = [ item ]
+                                          Context = []
+                                          Inspected = None
+                                          Next = None
+                                          MatchingMods = 1
+                                          MatchingSeparators = 0
+                                          MatchingGroups = 0
+                                          TotalMods = 1
+                                          EnabledCount = 1 }
+                                )
+
+                            member _.Categories(_, _, _, _) = raise (NotSupportedException())
+                            member _.EditCategory(_, _, _) = raise (NotSupportedException()) }
+
+                    let pause () =
+                        reached.Set()
+
+                        if not (release.Wait(TimeSpan.FromSeconds 5.0)) then
+                            invalidOp "The boundary was not released."
+
+                    let boundary =
+                        if cancelAfterReplacement then
+                            { BeforeReplace = ignore
+                              AfterReplace = pause }
+                        else
+                            { BeforeReplace = pause
+                              AfterReplace = ignore }
+
+                    let session = InventoryExportSession(workspaces, organization, boundary)
+
+                    let! prepared =
+                        session.Prepare
+                            { WorkspaceId = workspaceId
+                              WorkspaceRevision = 1L
+                              ProfileId = profileId
+                              Scope = InventoryExportScope.All
+                              SelectedModIds = []
+                              Query = query
+                              QueryIdentity = identity
+                              CatalogueRevision = 1L
+                              SelectionRevision = 1L
+                              Fields = [ InventoryExportField.Name ] }
+
+                    let prepared = prepared |> value
+                    let path = Path.Combine(directory.FullName, "mods.csv")
+                    File.WriteAllText(path, "original", UTF8Encoding(false))
+                    let! destination = session.Inspect(prepared.Id, host path)
+                    let destination = destination |> value
+
+                    let writing =
+                        session.Write(
+                            prepared.Id,
+                            destination.Id,
+                            true,
+                            (fun _ -> Task.CompletedTask),
+                            CancellationToken.None
+                        )
+
+                    reached.Wait(TimeSpan.FromSeconds 5.0) |> should equal true
+                    session.Cancel prepared.Id |> should equal true
+                    release.Set()
+                    let! result = writing
+
+                    if cancelAfterReplacement then
+                        match result with
+                        | Ok completed ->
+                            completed.RowCount |> should equal 1
+                            File.ReadAllText path |> should startWith "\"name\"\r\n"
+                        | Error error -> Assert.Fail $"The committed export returned {error}."
+                    else
+                        result |> exportError InventoryExportError.Cancelled
+                        File.ReadAllText path |> should equal "original"
+                finally
+                    release.Set()
+                    directory.Delete true
+            }
+
+        task {
+            do! run false
+            do! run true
+        }
+        :> Task

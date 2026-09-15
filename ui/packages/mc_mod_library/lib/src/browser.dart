@@ -835,6 +835,7 @@ class _ModLibraryBrowserState extends State<ModLibraryBrowser> {
                   Expanded(
                     child: result.completed
                         ? McStatus(
+                            key: const ValueKey('export-completed-status'),
                             title:
                                 'Mod Conductor saved ${result.rowCount} rows to ${result.fileName}.',
                             detail: _folderProblem
@@ -845,6 +846,7 @@ class _ModLibraryBrowserState extends State<ModLibraryBrowser> {
                                 : McStatusTone.neutral,
                           )
                         : const McStatus(
+                            key: ValueKey('export-cancelled-status'),
                             title: 'You canceled the export.',
                             detail: 'The existing CSV file did not change.',
                           ),

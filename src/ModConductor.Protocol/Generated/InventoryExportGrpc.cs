@@ -58,6 +58,10 @@ namespace ModConductor.Protocol.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.InventoryExportEvent> __Marshaller_modconductor_v1_InventoryExportEvent = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.InventoryExportEvent.Parser));
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.CancelInventoryExportRequest> __Marshaller_modconductor_v1_CancelInventoryExportRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.CancelInventoryExportRequest.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.CancelInventoryExportReply> __Marshaller_modconductor_v1_CancelInventoryExportReply = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.CancelInventoryExportReply.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.DiscardInventoryExportRequest> __Marshaller_modconductor_v1_DiscardInventoryExportRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.DiscardInventoryExportRequest.Parser));
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.DiscardInventoryExportReply> __Marshaller_modconductor_v1_DiscardInventoryExportReply = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.DiscardInventoryExportReply.Parser));
@@ -85,6 +89,14 @@ namespace ModConductor.Protocol.V1 {
         "WriteInventoryExport",
         __Marshaller_modconductor_v1_WriteInventoryExportRequest,
         __Marshaller_modconductor_v1_InventoryExportEvent);
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::ModConductor.Protocol.V1.CancelInventoryExportRequest, global::ModConductor.Protocol.V1.CancelInventoryExportReply> __Method_CancelInventoryExport = new grpc::Method<global::ModConductor.Protocol.V1.CancelInventoryExportRequest, global::ModConductor.Protocol.V1.CancelInventoryExportReply>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "CancelInventoryExport",
+        __Marshaller_modconductor_v1_CancelInventoryExportRequest,
+        __Marshaller_modconductor_v1_CancelInventoryExportReply);
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Method<global::ModConductor.Protocol.V1.DiscardInventoryExportRequest, global::ModConductor.Protocol.V1.DiscardInventoryExportReply> __Method_DiscardInventoryExport = new grpc::Method<global::ModConductor.Protocol.V1.DiscardInventoryExportRequest, global::ModConductor.Protocol.V1.DiscardInventoryExportReply>(
@@ -118,6 +130,12 @@ namespace ModConductor.Protocol.V1 {
 
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       public virtual global::System.Threading.Tasks.Task WriteInventoryExport(global::ModConductor.Protocol.V1.WriteInventoryExportRequest request, grpc::IServerStreamWriter<global::ModConductor.Protocol.V1.InventoryExportEvent> responseStream, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V1.CancelInventoryExportReply> CancelInventoryExport(global::ModConductor.Protocol.V1.CancelInventoryExportRequest request, grpc::ServerCallContext context)
       {
         throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
       }
@@ -208,6 +226,26 @@ namespace ModConductor.Protocol.V1 {
         return CallInvoker.AsyncServerStreamingCall(__Method_WriteInventoryExport, null, options, request);
       }
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V1.CancelInventoryExportReply CancelInventoryExport(global::ModConductor.Protocol.V1.CancelInventoryExportRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return CancelInventoryExport(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V1.CancelInventoryExportReply CancelInventoryExport(global::ModConductor.Protocol.V1.CancelInventoryExportRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_CancelInventoryExport, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.CancelInventoryExportReply> CancelInventoryExportAsync(global::ModConductor.Protocol.V1.CancelInventoryExportRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return CancelInventoryExportAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.CancelInventoryExportReply> CancelInventoryExportAsync(global::ModConductor.Protocol.V1.CancelInventoryExportRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_CancelInventoryExport, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       public virtual global::ModConductor.Protocol.V1.DiscardInventoryExportReply DiscardInventoryExport(global::ModConductor.Protocol.V1.DiscardInventoryExportRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
       {
         return DiscardInventoryExport(request, new grpc::CallOptions(headers, deadline, cancellationToken));
@@ -244,6 +282,7 @@ namespace ModConductor.Protocol.V1 {
           .AddMethod(__Method_PrepareInventoryExport, serviceImpl.PrepareInventoryExport)
           .AddMethod(__Method_InspectInventoryExportDestination, serviceImpl.InspectInventoryExportDestination)
           .AddMethod(__Method_WriteInventoryExport, serviceImpl.WriteInventoryExport)
+          .AddMethod(__Method_CancelInventoryExport, serviceImpl.CancelInventoryExport)
           .AddMethod(__Method_DiscardInventoryExport, serviceImpl.DiscardInventoryExport).Build();
     }
 
@@ -257,6 +296,7 @@ namespace ModConductor.Protocol.V1 {
       serviceBinder.AddMethod(__Method_PrepareInventoryExport, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.PrepareInventoryExportRequest, global::ModConductor.Protocol.V1.PrepareInventoryExportReply>(serviceImpl.PrepareInventoryExport));
       serviceBinder.AddMethod(__Method_InspectInventoryExportDestination, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.InspectInventoryExportDestinationRequest, global::ModConductor.Protocol.V1.InspectInventoryExportDestinationReply>(serviceImpl.InspectInventoryExportDestination));
       serviceBinder.AddMethod(__Method_WriteInventoryExport, serviceImpl == null ? null : new grpc::ServerStreamingServerMethod<global::ModConductor.Protocol.V1.WriteInventoryExportRequest, global::ModConductor.Protocol.V1.InventoryExportEvent>(serviceImpl.WriteInventoryExport));
+      serviceBinder.AddMethod(__Method_CancelInventoryExport, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.CancelInventoryExportRequest, global::ModConductor.Protocol.V1.CancelInventoryExportReply>(serviceImpl.CancelInventoryExport));
       serviceBinder.AddMethod(__Method_DiscardInventoryExport, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.DiscardInventoryExportRequest, global::ModConductor.Protocol.V1.DiscardInventoryExportReply>(serviceImpl.DiscardInventoryExport));
     }
 

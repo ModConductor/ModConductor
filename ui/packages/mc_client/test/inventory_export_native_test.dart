@@ -229,6 +229,31 @@ void main() {
           'separator',
         );
 
+        final cancellable = await exports.prepare(
+          capture(InventoryExportScope.all, const ModQuery(), page),
+        );
+        final cancelledPath = '${output.path}/cancelled.csv';
+        final cancelledDestination = await exports.inspect(
+          cancellable.id,
+          cancelledPath,
+        );
+        expect(await exports.cancel(cancellable.id), isTrue);
+        await expectLater(
+          exports.write(
+            cancellable.id,
+            cancelledDestination.id,
+            replaceExisting: false,
+          ),
+          emitsError(
+            isA<InventoryExportException>().having(
+              (error) => error.fault,
+              'fault',
+              InventoryExportFault.cancelled,
+            ),
+          ),
+        );
+        expect(await File(cancelledPath).exists(), isFalse);
+
         await File(path).writeAsString('keep');
         final replacement = await exports.prepare(
           capture(

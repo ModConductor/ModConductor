@@ -38,7 +38,10 @@ class InventoryExportController extends ChangeNotifier {
     required this.client,
     required this.capture,
     required this.chooseLocation,
-  });
+    required this.selectedCount,
+  }) : scope = selectedCount == 0
+           ? InventoryExportScope.enabled
+           : InventoryExportScope.selected;
 
   static const defaultFields = {
     InventoryExportField.name,
@@ -52,18 +55,20 @@ class InventoryExportController extends ChangeNotifier {
   final InventoryExportClient client;
   final InventoryExportCapture capture;
   final InventoryExportLocationChooser chooseLocation;
-  InventoryExportScope scope = InventoryExportScope.selected;
+  final int selectedCount;
+  InventoryExportScope scope;
   final fields = Set<InventoryExportField>.of(defaultFields);
   InventoryExportView view = InventoryExportView.choices;
   PreparedInventoryExport? prepared;
   InventoryExportDestination? destination;
   String? destinationPath;
-  bool replacing = false, choosing = false;
+  bool replacing = false, choosing = false, canceling = false;
   int writtenRows = 0, totalRows = 0;
   StreamSubscription<InventoryExportEvent>? _write;
   bool _disposed = false;
 
   bool get busy => choosing || view == InventoryExportView.progress;
+  bool get selectedAvailable => selectedCount > 0;
   bool get hasIdentity =>
       fields.contains(InventoryExportField.name) ||
       fields.contains(InventoryExportField.modId);
@@ -75,6 +80,7 @@ class InventoryExportController extends ChangeNotifier {
 
   void changeScope(InventoryExportScope value) {
     if (busy || scope == value) return;
+    if (value == InventoryExportScope.selected && !selectedAvailable) return;
     scope = value;
     _invalidate();
   }
@@ -152,6 +158,8 @@ class InventoryExportController extends ChangeNotifier {
               case InventoryExportCompleted():
                 prepared = null;
                 destination = null;
+                canceling = false;
+                view = InventoryExportView.choices;
                 done.complete(
                   InventoryExportDialogResult.completed(
                     destinationPath!,
@@ -162,9 +170,20 @@ class InventoryExportController extends ChangeNotifier {
             }
           },
           onError: (Object error) {
-            if (error is InventoryExportException) {
+            if (error is InventoryExportException &&
+                error.fault == InventoryExportFault.cancelled) {
+              prepared = null;
+              destination = null;
+              canceling = false;
+              view = InventoryExportView.choices;
+              if (!done.isCompleted) {
+                done.complete(const InventoryExportDialogResult.cancelled());
+              }
+            } else if (error is InventoryExportException) {
+              canceling = false;
               _setFailure(error);
             } else {
+              canceling = false;
               view = InventoryExportView.failed;
             }
             if (!done.isCompleted) done.complete(null);
@@ -181,20 +200,23 @@ class InventoryExportController extends ChangeNotifier {
     return done.future;
   }
 
-  Future<InventoryExportDialogResult> cancel() async {
+  Future<InventoryExportDialogResult?> cancel() async {
     if (view == InventoryExportView.progress) {
-      final writing = _write;
-      _write = null;
-      unawaited(writing?.cancel());
-      view = InventoryExportView.choices;
+      final snapshot = prepared;
+      if (snapshot == null || canceling) return null;
+      canceling = true;
       _notify();
-    } else {
-      await _discardPrepared();
+      try {
+        await client.cancel(snapshot.id);
+      } on Exception {
+        canceling = false;
+        _notify();
+      }
+      return null;
     }
+    await _discardPrepared();
     return const InventoryExportDialogResult.cancelled();
   }
-
-  void useCurrentSelection() => view = InventoryExportView.stale;
 
   Future<void> chooseAgain() async {
     view = InventoryExportView.choices;

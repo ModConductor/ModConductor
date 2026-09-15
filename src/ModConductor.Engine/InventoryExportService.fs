@@ -91,29 +91,31 @@ type InventoryExportService(exports: InventoryExportSession) =
                     context.CancellationToken
                 )
 
-            if not context.CancellationToken.IsCancellationRequested then
-                match result with
-                | Error error ->
-                    do!
-                        output.WriteAsync(
-                            InventoryExportEvent(Fault = InventoryExportWire.fault error),
-                            context.CancellationToken
-                        )
-                | Ok value ->
-                    do!
-                        output.WriteAsync(
-                            InventoryExportEvent(
-                                Completed =
-                                    CompletedInventoryExport(
-                                        FileName = value.FileName,
-                                        RowCount = uint32 value.RowCount,
-                                        ByteCount = uint64 value.Length
-                                    )
-                            ),
-                            context.CancellationToken
-                        )
+            match result with
+            | Error error ->
+                do!
+                    output.WriteAsync(
+                        InventoryExportEvent(Fault = InventoryExportWire.fault error),
+                        context.CancellationToken
+                    )
+            | Ok value ->
+                do!
+                    output.WriteAsync(
+                        InventoryExportEvent(
+                            Completed =
+                                CompletedInventoryExport(
+                                    FileName = value.FileName,
+                                    RowCount = uint32 value.RowCount,
+                                    ByteCount = uint64 value.Length
+                                )
+                        ),
+                        context.CancellationToken
+                    )
         }
         :> Task
+
+    override _.CancelInventoryExport(request, _) =
+        Task.FromResult(CancelInventoryExportReply(Requested = exports.Cancel(id request.ExportId)))
 
     override _.DiscardInventoryExport(request, _) =
         Task.FromResult(

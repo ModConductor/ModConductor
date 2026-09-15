@@ -36,6 +36,10 @@ type AtomicOutputDestination =
 
 type AtomicOutputResult = { Path: HostPath; Length: int64 }
 
+type AtomicOutputCommitBoundary =
+    { BeforeReplace: unit -> unit
+      AfterReplace: unit -> unit }
+
 module AtomicOutput =
     let private readSample (stream: FileStream) =
         let buffer = Array.zeroCreate<byte> 65536
@@ -127,7 +131,8 @@ module AtomicOutput =
         | Ok actual -> actual = value.ExistingFingerprint
         | Error _ -> false
 
-    let write
+    let writeWithBoundary
+        (boundary: AtomicOutputCommitBoundary)
         (destination: AtomicOutputDestination)
         replace
         (writeContent: FileStream -> CancellationToken -> Task<int64>)
@@ -173,6 +178,9 @@ module AtomicOutput =
                                 preserveTemporary <- true
                                 return Error AtomicOutputError.DestinationChanged
                             else
+                                boundary.BeforeReplace()
+                                token.ThrowIfCancellationRequested()
+
                                 directory.ReplaceFile(
                                     temporaryName,
                                     identity,
@@ -181,6 +189,7 @@ module AtomicOutput =
                                 )
 
                                 committed <- true
+                                boundary.AfterReplace()
 
                                 return
                                     Ok
@@ -205,3 +214,12 @@ module AtomicOutput =
                         with _ ->
                             ()
         }
+
+    let write destination replace writeContent token =
+        writeWithBoundary
+            { BeforeReplace = ignore
+              AfterReplace = ignore }
+            destination
+            replace
+            writeContent
+            token

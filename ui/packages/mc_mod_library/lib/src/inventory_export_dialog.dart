@@ -44,6 +44,7 @@ class _InventoryExportDialogState extends State<InventoryExportDialog> {
       client: widget.client,
       capture: widget.capture,
       chooseLocation: widget.chooseLocation,
+      selectedCount: widget.selectedCount,
     )..addListener(_changed);
   }
 
@@ -60,7 +61,7 @@ class _InventoryExportDialogState extends State<InventoryExportDialog> {
 
   Future<void> _cancel() async {
     final result = await controller.cancel();
-    if (mounted) Navigator.pop(context, result);
+    if (mounted && result != null) Navigator.pop(context, result);
   }
 
   Future<void> _close() async {
@@ -127,7 +128,7 @@ class _InventoryExportDialogState extends State<InventoryExportDialog> {
         McAction(
           key: const ValueKey('export-cancel'),
           label: progress ? 'Cancel export' : 'Cancel',
-          onPressed: () => unawaited(_cancel()),
+          onPressed: controller.canceling ? null : () => unawaited(_cancel()),
         ),
         if (!progress)
           McAction(
@@ -156,8 +157,10 @@ class _InventoryExportDialogState extends State<InventoryExportDialog> {
                       _ScopeChoice(
                         choice: InventoryExportScope.selected,
                         title: 'Selected mods',
-                        detail:
-                            'The selection contains ${_modCount(widget.selectedCount)}. The filter hides ${widget.hiddenSelectedCount} selected ${widget.hiddenSelectedCount == 1 ? 'mod' : 'mods'}.',
+                        detail: widget.selectedCount == 0
+                            ? 'No mods are selected.'
+                            : 'The selection contains ${_modCount(widget.selectedCount)}. The filter hides ${widget.hiddenSelectedCount} selected ${widget.hiddenSelectedCount == 1 ? 'mod' : 'mods'}.',
+                        enabled: controller.selectedAvailable,
                       ),
                       _ScopeChoice(
                         choice: InventoryExportScope.enabled,
@@ -283,10 +286,12 @@ class _ScopeChoice extends StatelessWidget {
     required this.choice,
     required this.title,
     required this.detail,
+    this.enabled = true,
   });
 
   final InventoryExportScope choice;
   final String title, detail;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) => RadioListTile<InventoryExportScope>(
@@ -296,6 +301,7 @@ class _ScopeChoice extends StatelessWidget {
     value: choice,
     title: Text(title),
     subtitle: Text(detail),
+    enabled: enabled,
   );
 }
 

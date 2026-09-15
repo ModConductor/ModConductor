@@ -236,12 +236,25 @@ type private InventorySnapshot =
       Fields: InventoryExportField list
       Rows: OrganizedMod list
       Destinations: Dictionary<Guid, AtomicOutputDestination>
-      mutable Busy: bool }
+      mutable Busy: bool
+      mutable CancelRequested: bool
+      mutable Cancellation: CancellationTokenSource option }
 
-type InventoryExportSession(workspaces: IWorkspaceState, organization: IModOrganization) =
+type InventoryExportSession
+    (
+        workspaces: IWorkspaceState,
+        organization: IModOrganization,
+        ?commitBoundary: AtomicOutputCommitBoundary
+    ) =
     let gate = obj ()
     let snapshots = Dictionary<Guid, InventorySnapshot>()
     let lifetime = TimeSpan.FromMinutes 5.0
+
+    let boundary =
+        defaultArg
+            commitBoundary
+            { BeforeReplace = ignore
+              AfterReplace = ignore }
 
     let removeExpired now =
         snapshots.Values
@@ -377,6 +390,7 @@ type InventoryExportSession(workspaces: IWorkspaceState, organization: IModOrgan
                     && not (List.contains InventoryExportField.Name fields))
                 || capture.QueryIdentity.Length <> 64
                 || capture.SelectedModIds.Length > InventoryExportCsv.maximumRows
+                || (capture.Scope = InventoryExportScope.Selected && capture.SelectedModIds.IsEmpty)
             then
                 return Error InventoryExportError.InvalidRequest
             else
@@ -398,7 +412,9 @@ type InventoryExportSession(workspaces: IWorkspaceState, organization: IModOrgan
                                   Fields = fields
                                   Rows = rows
                                   Destinations = Dictionary()
-                                  Busy = false }
+                                  Busy = false
+                                  CancelRequested = false
+                                  Cancellation = None }
 
                             lock gate (fun () ->
                                 removeExpired DateTimeOffset.UtcNow
@@ -478,14 +494,22 @@ type InventoryExportSession(workspaces: IWorkspaceState, organization: IModOrgan
                     | Some snapshot when not snapshot.Busy ->
                         match snapshot.Destinations.TryGetValue destinationId with
                         | true, destination ->
+                            let cancellation =
+                                CancellationTokenSource.CreateLinkedTokenSource token
+
+                            snapshot.Cancellation <- Some cancellation
+
+                            if snapshot.CancelRequested then
+                                cancellation.Cancel()
+
                             snapshot.Busy <- true
-                            Some(snapshot, destination)
+                            Some(snapshot, destination, cancellation)
                         | _ -> None
                     | _ -> None)
 
             match claimed with
             | None -> return Error InventoryExportError.Busy
-            | Some(snapshot, destination) ->
+            | Some(snapshot, destination, cancellation) ->
                 let mutable terminal = false
 
                 try
@@ -503,7 +527,8 @@ type InventoryExportSession(workspaces: IWorkspaceState, organization: IModOrgan
                             return Error InventoryExportError.Stale
                         | Ok _ ->
                             let! result =
-                                AtomicOutput.write
+                                AtomicOutput.writeWithBoundary
+                                    boundary
                                     destination
                                     replace
                                     (fun output cancellation ->
@@ -513,7 +538,7 @@ type InventoryExportSession(workspaces: IWorkspaceState, organization: IModOrgan
                                             snapshot.Rows
                                             progress
                                             cancellation)
-                                    token
+                                    cancellation.Token
 
                             match result with
                             | Ok value ->
@@ -540,10 +565,28 @@ type InventoryExportSession(workspaces: IWorkspaceState, organization: IModOrgan
                 finally
                     lock gate (fun () ->
                         snapshot.Busy <- false
+                        snapshot.CancelRequested <- false
+                        snapshot.Cancellation <- None
 
                         if terminal then
                             snapshots.Remove snapshot.Id |> ignore)
+
+                    cancellation.Dispose()
         }
+
+    member _.Cancel id =
+        let found, cancellation =
+            lock gate (fun () ->
+                removeExpired DateTimeOffset.UtcNow
+
+                match snapshots.TryGetValue id with
+                | true, snapshot ->
+                    snapshot.CancelRequested <- true
+                    true, snapshot.Cancellation
+                | _ -> false, None)
+
+        cancellation |> Option.iter _.Cancel()
+        found
 
     member _.Discard id =
         lock gate (fun () ->

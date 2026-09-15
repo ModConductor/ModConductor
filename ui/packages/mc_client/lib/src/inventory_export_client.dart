@@ -17,6 +17,7 @@ abstract interface class InventoryExportClient {
     String destinationId, {
     required bool replaceExisting,
   });
+  Future<bool> cancel(String exportId);
   Future<bool> discard(String exportId);
 }
 
@@ -123,6 +124,13 @@ class GrpcInventoryExportClient implements InventoryExportClient {
             throw const FormatException('Missing export event.'),
         },
       );
+
+  @override
+  Future<bool> cancel(String exportId) async =>
+      (await _client.cancelInventoryExport(
+        wire.CancelInventoryExportRequest(exportId: exportId),
+        options: _options,
+      )).requested;
 
   @override
   Future<bool> discard(String exportId) async =>

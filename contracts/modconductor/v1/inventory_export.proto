@@ -8,6 +8,7 @@ service InventoryExportOperations {
   rpc PrepareInventoryExport(PrepareInventoryExportRequest) returns (PrepareInventoryExportReply);
   rpc InspectInventoryExportDestination(InspectInventoryExportDestinationRequest) returns (InspectInventoryExportDestinationReply);
   rpc WriteInventoryExport(WriteInventoryExportRequest) returns (stream InventoryExportEvent);
+  rpc CancelInventoryExport(CancelInventoryExportRequest) returns (CancelInventoryExportReply);
   rpc DiscardInventoryExport(DiscardInventoryExportRequest) returns (DiscardInventoryExportReply);
 }
 
@@ -123,5 +124,7 @@ message InventoryExportEvent {
   }
 }
 
+message CancelInventoryExportRequest { string export_id = 1; }
+message CancelInventoryExportReply { bool requested = 1; }
 message DiscardInventoryExportRequest { string export_id = 1; }
 message DiscardInventoryExportReply { bool discarded = 1; }

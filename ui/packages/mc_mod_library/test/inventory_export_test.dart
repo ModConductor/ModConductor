@@ -13,13 +13,31 @@ class ExportClient extends Fake implements InventoryExportClient {
   bool existing = false;
   Object? prepareError, writeError;
   StreamController<InventoryExportEvent>? pendingWrite;
-  int inspections = 0, discards = 0;
+  bool completeWhenCancelled = false;
+  int inspections = 0, discards = 0, cancellations = 0;
 
   @override
   Future<PreparedInventoryExport> prepare(InventoryExportCapture value) async {
     capture = value;
     if (prepareError case final error?) throw error;
     return PreparedInventoryExport('export', 2, value.fields);
+  }
+
+  @override
+  Future<bool> cancel(String exportId) async {
+    cancellations++;
+    if (completeWhenCancelled) {
+      pendingWrite?.add(const InventoryExportCompleted('mods.csv', 2, 120));
+    } else {
+      pendingWrite?.addError(
+        const InventoryExportException(
+          InventoryExportFault.cancelled,
+          'cancelled',
+        ),
+      );
+    }
+    unawaited(pendingWrite?.close());
+    return true;
   }
 
   @override
@@ -99,7 +117,6 @@ void main() {
       final exports = ExportClient()
         ..existing = true
         ..pendingWrite = StreamController();
-      addTearDown(() => exports.pendingWrite?.close());
       await pumpBrowser(tester, controller, exports);
       await tester.pumpAndSettle();
       controller.mods.select((modId: 'one'));
@@ -154,6 +171,15 @@ void main() {
       cancel.onPressed!();
       await tester.pump(const Duration(seconds: 1));
       expect(find.byKey(const ValueKey('export-progress')), findsNothing);
+      expect(exports.cancellations, 1);
+      expect(
+        find.byKey(const ValueKey('export-cancelled-status')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('export-completed-status')),
+        findsNothing,
+      );
       expect(controller.mods.selectedIds, {(modId: 'one'), (modId: 'two')});
       expect(FocusManager.instance.primaryFocus?.debugLabel, 'Installed mods');
       expect(tester.takeException(), isNull);
@@ -183,6 +209,12 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('export-csv')));
     await tester.pumpAndSettle();
+    final selectedScope = tester.widget<RadioListTile<InventoryExportScope>>(
+      find.byKey(
+        const ValueKey(('export-scope', InventoryExportScope.selected)),
+      ),
+    );
+    expect(selectedScope.enabled, isFalse);
     await tester.ensureVisible(
       find.byKey(const ValueKey('choose-export-location')),
     );
@@ -191,10 +223,61 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('export-submit')));
     await tester.pumpAndSettle();
 
+    expect(exports.capture!.scope, InventoryExportScope.enabled);
     expect(FocusManager.instance.primaryFocus?.debugLabel, 'Installed mods');
     await tester.tap(find.byKey(const ValueKey('open-export-folder')));
     await tester.pump();
     expect(opened, '/tmp/mods.csv');
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('completion after a cancel request reports the saved file', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1440, 1100);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final controller = browserController();
+    addTearDown(controller.dispose);
+    final exports = ExportClient()
+      ..completeWhenCancelled = true
+      ..pendingWrite = StreamController();
+    await pumpBrowser(
+      tester,
+      controller,
+      exports,
+      openFolder: (_) async => true,
+    );
+    await tester.pumpAndSettle();
+    controller.mods.select((modId: 'one'));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('export-csv')));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('choose-export-location')),
+    );
+    await tester.tap(find.byKey(const ValueKey('choose-export-location')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('export-submit')));
+    await tester.pump();
+    final cancel = tester.widget<OutlinedButton>(
+      find.descendant(
+        of: find.byKey(const ValueKey('export-cancel')),
+        matching: find.byType(OutlinedButton),
+      ),
+    );
+    cancel.onPressed!();
+    await tester.pumpAndSettle();
+
+    expect(exports.cancellations, 1);
+    expect(
+      find.byKey(const ValueKey('export-completed-status')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('export-cancelled-status')), findsNothing);
+    expect(find.byKey(const ValueKey('open-export-folder')), findsOneWidget);
+    expect(FocusManager.instance.primaryFocus?.debugLabel, 'Installed mods');
     expect(tester.takeException(), isNull);
   });
 

@@ -1027,6 +1027,121 @@ class InventoryExportEvent extends $pb.GeneratedMessage {
   InventoryExportFault ensureFault() => $_ensure(2);
 }
 
+class CancelInventoryExportRequest extends $pb.GeneratedMessage {
+  factory CancelInventoryExportRequest({
+    $core.String? exportId,
+  }) {
+    final result = create();
+    if (exportId != null) result.exportId = exportId;
+    return result;
+  }
+
+  CancelInventoryExportRequest._();
+
+  factory CancelInventoryExportRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory CancelInventoryExportRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'CancelInventoryExportRequest',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'exportId')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  CancelInventoryExportRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  CancelInventoryExportRequest copyWith(
+          void Function(CancelInventoryExportRequest) updates) =>
+      super.copyWith(
+              (message) => updates(message as CancelInventoryExportRequest))
+          as CancelInventoryExportRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CancelInventoryExportRequest create() =>
+      CancelInventoryExportRequest._();
+  @$core.override
+  CancelInventoryExportRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static CancelInventoryExportRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<CancelInventoryExportRequest>(create);
+  static CancelInventoryExportRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get exportId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set exportId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasExportId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearExportId() => $_clearField(1);
+}
+
+class CancelInventoryExportReply extends $pb.GeneratedMessage {
+  factory CancelInventoryExportReply({
+    $core.bool? requested,
+  }) {
+    final result = create();
+    if (requested != null) result.requested = requested;
+    return result;
+  }
+
+  CancelInventoryExportReply._();
+
+  factory CancelInventoryExportReply.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory CancelInventoryExportReply.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'CancelInventoryExportReply',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..aOB(1, _omitFieldNames ? '' : 'requested')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  CancelInventoryExportReply clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  CancelInventoryExportReply copyWith(
+          void Function(CancelInventoryExportReply) updates) =>
+      super.copyWith(
+              (message) => updates(message as CancelInventoryExportReply))
+          as CancelInventoryExportReply;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CancelInventoryExportReply create() => CancelInventoryExportReply._();
+  @$core.override
+  CancelInventoryExportReply createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static CancelInventoryExportReply getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<CancelInventoryExportReply>(create);
+  static CancelInventoryExportReply? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.bool get requested => $_getBF(0);
+  @$pb.TagNumber(1)
+  set requested($core.bool value) => $_setBool(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasRequested() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearRequested() => $_clearField(1);
+}
+
 class DiscardInventoryExportRequest extends $pb.GeneratedMessage {
   factory DiscardInventoryExportRequest({
     $core.String? exportId,

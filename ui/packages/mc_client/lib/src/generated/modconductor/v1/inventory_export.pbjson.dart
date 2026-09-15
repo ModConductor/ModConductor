@@ -409,6 +409,34 @@ final $typed_data.Uint8List inventoryExportEventDescriptor = $convert.base64Deco
     '9tcGxldGVkEj0KBWZhdWx0GAMgASgLMiUubW9kY29uZHVjdG9yLnYxLkludmVudG9yeUV4cG9y'
     'dEZhdWx0SABSBWZhdWx0QgkKB291dGNvbWU=');
 
+@$core.Deprecated('Use cancelInventoryExportRequestDescriptor instead')
+const CancelInventoryExportRequest$json = {
+  '1': 'CancelInventoryExportRequest',
+  '2': [
+    {'1': 'export_id', '3': 1, '4': 1, '5': 9, '10': 'exportId'},
+  ],
+};
+
+/// Descriptor for `CancelInventoryExportRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List cancelInventoryExportRequestDescriptor =
+    $convert.base64Decode(
+        'ChxDYW5jZWxJbnZlbnRvcnlFeHBvcnRSZXF1ZXN0EhsKCWV4cG9ydF9pZBgBIAEoCVIIZXhwb3'
+        'J0SWQ=');
+
+@$core.Deprecated('Use cancelInventoryExportReplyDescriptor instead')
+const CancelInventoryExportReply$json = {
+  '1': 'CancelInventoryExportReply',
+  '2': [
+    {'1': 'requested', '3': 1, '4': 1, '5': 8, '10': 'requested'},
+  ],
+};
+
+/// Descriptor for `CancelInventoryExportReply`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List cancelInventoryExportReplyDescriptor =
+    $convert.base64Decode(
+        'ChpDYW5jZWxJbnZlbnRvcnlFeHBvcnRSZXBseRIcCglyZXF1ZXN0ZWQYASABKAhSCXJlcXVlc3'
+        'RlZA==');
+
 @$core.Deprecated('Use discardInventoryExportRequestDescriptor instead')
 const DiscardInventoryExportRequest$json = {
   '1': 'DiscardInventoryExportRequest',
