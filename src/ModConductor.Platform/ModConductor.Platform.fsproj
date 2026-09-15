@@ -10,6 +10,7 @@
     <Compile Include="RootIdentityFile.fs" />
     <Compile Include="HeldEntries.fs" />
     <Compile Include="HeldDirectory.fs" />
+    <Compile Include="AtomicOutput.fs" />
     <Compile Include="GenerationStorage.fs" />
     <Compile Include="GameProcessObservation.fs" />
     <Compile Include="ChildProcess.fs" />

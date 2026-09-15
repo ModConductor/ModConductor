@@ -27,6 +27,9 @@ class DeploymentOutputsWorkbench extends StatelessWidget {
     this.onOpenNexus,
     this.organization,
     this.archiveUnavailable = false,
+    this.inventoryExports,
+    this.chooseExportLocation,
+    this.openExportFolder,
   });
   final ModLibraryController mods;
   final FilePlansController plans;
@@ -43,6 +46,9 @@ class DeploymentOutputsWorkbench extends StatelessWidget {
   final VoidCallback? onOpenProblems;
   final ModOrganizationClient? organization;
   final bool archiveUnavailable;
+  final InventoryExportClient? inventoryExports;
+  final InventoryExportLocationChooser? chooseExportLocation;
+  final InventoryExportFolderOpener? openExportFolder;
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: outputs,
@@ -60,6 +66,9 @@ class DeploymentOutputsWorkbench extends StatelessWidget {
       chooseDirectory: chooseDirectory,
       profileName: profileName,
       archiveUnavailable: archiveUnavailable,
+      inventoryExports: inventoryExports,
+      chooseExportLocation: chooseExportLocation,
+      openExportFolder: openExportFolder,
       additionalFilePanes: (onInspect) => [
         ModFilePane(
           'tool-outputs',

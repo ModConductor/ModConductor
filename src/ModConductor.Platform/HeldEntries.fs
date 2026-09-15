@@ -228,3 +228,46 @@ module internal HeldEntries =
             Directory.Move(path source name, path destination target)
         else
             File.Move(path source name, path destination target, false)
+
+    let replaceFile
+        (directory: SafeFileHandle)
+        sourceName
+        sourceIdentity
+        destinationName
+        (destination: HeldEntry option)
+        =
+        nameCheck sourceName
+        nameCheck destinationName
+
+        match inspect directory sourceName with
+        | Some source when
+            source.Kind = EntryKind.RegularFile && source.Identity = sourceIdentity
+            -> ()
+        | _ -> raise (IOException "The staged file changed.")
+
+        if inspect directory destinationName <> destination then
+            raise (IOException "The destination changed.")
+
+        if destination |> Option.exists (fun value -> value.Kind <> EntryKind.RegularFile) then
+            raise (IOException "The destination is not a regular file.")
+
+        if OperatingSystem.IsLinux() then
+            if
+                renameat2 (
+                    int (directory.DangerousGetHandle()),
+                    sourceName,
+                    int (directory.DangerousGetHandle()),
+                    destinationName,
+                    (if destination.IsNone then 1u else 0u)
+                )
+                <> 0
+            then
+                raise (IOException "The staged file could not replace the destination.")
+        elif OperatingSystem.IsWindows() then
+            File.Move(
+                path directory sourceName,
+                path directory destinationName,
+                destination.IsSome
+            )
+        else
+            raise (PlatformNotSupportedException())

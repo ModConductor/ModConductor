@@ -180,6 +180,16 @@ let runWithNexus registration (handoff: ModConductor.Nexus.IOAuthHandoff) args =
     builder.Services.AddSingleton<ModConductor.Engine.ModOrganizationService>()
     |> ignore
 
+    builder.Services.AddSingleton<ModConductor.ModOrganization.InventoryExportSession>(
+        ModConductor.ModOrganization.InventoryExportSession(
+            store.Workspaces,
+            store.ModOrganization
+        )
+    )
+    |> ignore
+
+    builder.Services.AddSingleton<ModConductor.Engine.InventoryExportService>() |> ignore
+
     builder.Services.AddSingleton<ModConductor.FilePlanning.IFilePlans>(store.FilePlans)
     |> ignore
 
@@ -354,6 +364,9 @@ let runWithNexus registration (handoff: ModConductor.Nexus.IOAuthHandoff) args =
         .AddServiceOptions<ModConductor.Engine.ModOrganizationService>(fun options ->
             options.MaxReceiveMessageSize <- Nullable 65536
             options.MaxSendMessageSize <- Nullable(2 * 1024 * 1024))
+        .AddServiceOptions<ModConductor.Engine.InventoryExportService>(fun options ->
+            options.MaxReceiveMessageSize <- Nullable(4 * 1024 * 1024)
+            options.MaxSendMessageSize <- Nullable 65536)
         .AddServiceOptions<ModConductor.Engine.ProfileModService>(fun options ->
             options.MaxReceiveMessageSize <- Nullable 65536
             options.MaxSendMessageSize <- Nullable(2 * 1024 * 1024))
@@ -405,6 +418,7 @@ let runWithNexus registration (handoff: ModConductor.Nexus.IOAuthHandoff) args =
     app.MapGrpcService<ModConductor.Engine.OperationService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.WorkspaceService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.ModOrganizationService>() |> ignore
+    app.MapGrpcService<ModConductor.Engine.InventoryExportService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.ModLibraryService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.ProfileModService>() |> ignore
     app.StartAsync().GetAwaiter().GetResult()

@@ -33,6 +33,13 @@
         "dependencies": {
           "FSharp.Core": "[10.1.400, )"
         }
+      },
+      "modconductor.workspaces": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )",
+          "ModConductor.Platform": "[1.0.0, )"
+        }
       }
     }
   }

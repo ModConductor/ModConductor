@@ -4,7 +4,9 @@
     <Compile Include="Contracts.fs" />
     <Compile Include="CategoryPolicy.fs" />
     <Compile Include="OrganizationPolicy.fs" />
+    <Compile Include="InventoryExport.fs" />
     <ProjectReference Include="../ModConductor.ModSelection/ModConductor.ModSelection.fsproj" />
+    <ProjectReference Include="../ModConductor.Workspaces/ModConductor.Workspaces.fsproj" />
     <PackageReference Include="FSharp.Core" />
   </ItemGroup>
 </Project>

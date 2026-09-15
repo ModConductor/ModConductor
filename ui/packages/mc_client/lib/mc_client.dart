@@ -5,6 +5,7 @@ export 'src/workspaces_client.dart';
 export 'src/mod_library_client.dart';
 export 'src/profile_mod_client.dart';
 export 'src/mod_organization_client.dart';
+export 'src/inventory_export_client.dart';
 
 export 'src/game_context_client.dart';
 export 'src/steam_discovery_client.dart';

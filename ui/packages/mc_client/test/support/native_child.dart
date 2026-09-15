@@ -133,6 +133,14 @@ class NativeChild {
         ),
       );
 
+  InventoryExportClient inventoryExports({bool authenticate = true}) =>
+      GrpcInventoryExportClient(
+        _localChannel(),
+        CallOptions(
+          metadata: authenticate ? {'mc-session': capability} : const {},
+        ),
+      );
+
   ArtifactsClient artifacts({bool authenticate = true}) => GrpcArtifactsClient(
     _localChannel(),
     CallOptions(metadata: authenticate ? {'mc-session': capability} : const {}),

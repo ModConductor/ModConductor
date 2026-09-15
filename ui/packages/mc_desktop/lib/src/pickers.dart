@@ -29,3 +29,32 @@ Future<bool> saveSupportReport(String fileName, Uint8List content) async {
   ).saveTo(location.path);
   return true;
 }
+
+Future<String?> chooseInventoryExportDestination() async =>
+    (await getSaveLocation(
+      suggestedName: 'mod-inventory.csv',
+      acceptedTypeGroups: const [
+        XTypeGroup(label: 'CSV', extensions: ['csv']),
+      ],
+    ))?.path;
+
+Future<bool> openInventoryExportFolder(String filePath) async {
+  final folder = File(filePath).parent.path;
+  try {
+    if (Platform.isWindows) {
+      await Process.start('explorer.exe', [
+        folder,
+      ], mode: ProcessStartMode.detached);
+      return true;
+    }
+    if (Platform.isLinux) {
+      await Process.start('xdg-open', [
+        folder,
+      ], mode: ProcessStartMode.detached);
+      return true;
+    }
+  } on ProcessException {
+    return false;
+  }
+  return false;
+}

@@ -14,6 +14,7 @@ class ProfileModsController extends ChangeNotifier {
   ModOrganizationClient? _organization;
   String? _workspace, _profile, _pendingFocus;
   ModQueryCursor? _next;
+  String? queryIdentity;
   ModQuery query = const ModQuery();
   int _epoch = 0, _request = 0;
   Timer? _debounce;
@@ -118,6 +119,7 @@ class ProfileModsController extends ChangeNotifier {
     loading = changing = _catalogueRefresh = false;
     if (newScope) {
       revision = catalogueRevision = null;
+      queryIdentity = null;
       total = enabledCount = matchingMods = matchingSeparators =
           matchingGroups = 0;
       _pendingFocus = null;
@@ -221,6 +223,7 @@ class ProfileModsController extends ChangeNotifier {
       }
       revision = page.selectionRevision;
       catalogueRevision = page.catalogueRevision;
+      queryIdentity = page.queryIdentity;
       total = page.totalMods;
       enabledCount = page.enabledCount;
       matchingMods = page.matchingMods;

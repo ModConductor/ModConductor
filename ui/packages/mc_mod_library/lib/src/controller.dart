@@ -41,6 +41,8 @@ class ModLibraryController extends ChangeNotifier {
   ModLibraryClient? _client;
   ModOrganizationClient? organization;
   String? get workspaceId => _workspace;
+  String? get profileId => _profile;
+  int? workspaceRevision;
   String? _workspace, _profile;
   int _epoch = 0, _fileRequest = 0;
   bool _disposed = false;
@@ -92,6 +94,7 @@ class ModLibraryController extends ChangeNotifier {
     ModOrganizationClient? organizationClient,
     String? workspaceId,
     String? profileId,
+    int? workspaceRevision,
     required bool editable,
   }) {
     organization = organizationClient;
@@ -106,6 +109,7 @@ class ModLibraryController extends ChangeNotifier {
       workspaceId,
       profileId,
     );
+    this.workspaceRevision = workspaceRevision;
     if (identical(client, _client) &&
         workspaceId == _workspace &&
         profileId == _profile) {

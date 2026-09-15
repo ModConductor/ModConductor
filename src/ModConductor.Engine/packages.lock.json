@@ -235,7 +235,8 @@
         "type": "Project",
         "dependencies": {
           "FSharp.Core": "[10.1.400, )",
-          "ModConductor.ModSelection": "[1.0.0, )"
+          "ModConductor.ModSelection": "[1.0.0, )",
+          "ModConductor.Workspaces": "[1.0.0, )"
         }
       },
       "modconductor.modselection": {

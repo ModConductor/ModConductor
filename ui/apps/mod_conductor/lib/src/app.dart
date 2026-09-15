@@ -58,6 +58,7 @@ class ModConductorApp extends StatefulWidget {
     this.modLibrary,
     this.profileMods,
     this.modOrganization,
+    this.inventoryExports,
     this.gameContexts,
     this.filePlans,
     this.diagnostics,
@@ -86,6 +87,8 @@ class ModConductorApp extends StatefulWidget {
     this.protonContexts,
     this.chooseGameDirectory = desktop.chooseGameDirectory,
     this.chooseDirectory = chooseWorkspaceDirectory,
+    this.chooseExportLocation = desktop.chooseInventoryExportDestination,
+    this.openExportFolder = desktop.openInventoryExportFolder,
   });
   final DesktopRequests? desktopRequests;
   final DesktopStatus status;
@@ -93,6 +96,7 @@ class ModConductorApp extends StatefulWidget {
   final ModLibraryClient? modLibrary;
   final ProfileModsClient? profileMods;
   final ModOrganizationClient? modOrganization;
+  final InventoryExportClient? inventoryExports;
   final GameContextsClient? gameContexts;
   final FilePlansClient? filePlans;
   final DiagnosticsClient? diagnostics;
@@ -121,6 +125,8 @@ class ModConductorApp extends StatefulWidget {
   final ProtonContextsClient? protonContexts;
   final GameDirectoryChooser chooseGameDirectory;
   final DirectoryChooser chooseDirectory;
+  final InventoryExportLocationChooser chooseExportLocation;
+  final InventoryExportFolderOpener openExportFolder;
   final VoidCallback? onQuit;
   final VoidCallback? onRetry;
   @override
@@ -279,6 +285,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
       organizationClient: widget.modOrganization,
       workspaceId: _workspaces.workspace?.id,
       profileId: _workspaces.workspace?.selectedProfile?.id,
+      workspaceRevision: _workspaces.workspace?.revision,
       editable: _workspaces.canEdit,
     );
   }
@@ -584,6 +591,11 @@ class _ModConductorAppState extends State<ModConductorApp> {
                                         ),
                                   workspacePath: workspace.path,
                                   chooseDirectory: widget.chooseDirectory,
+                                  inventoryExports: widget.inventoryExports,
+                                  chooseExportLocation:
+                                      widget.chooseExportLocation,
+                                  openExportFolder: widget.openExportFolder,
+                                  profileName: workspace.selectedProfile?.name,
                                 )
                               : widget.outputs == null
                               ? FilePlanningWorkbench(
@@ -614,6 +626,10 @@ class _ModConductorAppState extends State<ModConductorApp> {
                                   workspacePath: workspace.path,
                                   chooseDirectory: widget.chooseDirectory,
                                   profileName: workspace.selectedProfile?.name,
+                                  inventoryExports: widget.inventoryExports,
+                                  chooseExportLocation:
+                                      widget.chooseExportLocation,
+                                  openExportFolder: widget.openExportFolder,
                                   archiveUnavailable:
                                       _game
                                           .state
@@ -657,6 +673,10 @@ class _ModConductorAppState extends State<ModConductorApp> {
                                   workspacePath: workspace.path,
                                   chooseDirectory: widget.chooseDirectory,
                                   profileName: workspace.selectedProfile?.name,
+                                  inventoryExports: widget.inventoryExports,
+                                  chooseExportLocation:
+                                      widget.chooseExportLocation,
+                                  openExportFolder: widget.openExportFolder,
                                   archiveUnavailable:
                                       _game
                                           .state

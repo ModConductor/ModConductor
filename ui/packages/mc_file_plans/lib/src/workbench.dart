@@ -32,6 +32,9 @@ class FilePlanningWorkbench extends StatefulWidget {
     this.additionalFilePanes,
     this.additionalInspector,
     this.onCloseAdditionalInspector,
+    this.inventoryExports,
+    this.chooseExportLocation,
+    this.openExportFolder,
   });
   final ModLibraryController mods;
   final FilePlansController plans;
@@ -49,6 +52,9 @@ class FilePlanningWorkbench extends StatefulWidget {
   final List<ModFilePane> Function(VoidCallback onInspect)? additionalFilePanes;
   final Widget Function(VoidCallback onClose)? additionalInspector;
   final VoidCallback? onCloseAdditionalInspector;
+  final InventoryExportClient? inventoryExports;
+  final InventoryExportLocationChooser? chooseExportLocation;
+  final InventoryExportFolderOpener? openExportFolder;
 
   @override
   State<FilePlanningWorkbench> createState() => _FilePlanningWorkbenchState();
@@ -218,6 +224,10 @@ class _FilePlanningWorkbenchState extends State<FilePlanningWorkbench> {
                   workspacePath: widget.workspacePath,
                   chooseDirectory: widget.chooseDirectory,
                   singlePane: narrow,
+                  inventoryExports: widget.inventoryExports,
+                  chooseExportLocation: widget.chooseExportLocation,
+                  openExportFolder: widget.openExportFolder,
+                  profileName: widget.profileName,
                   savedFileActions: [
                     McIconAction(
                       label: 'Inspect file',

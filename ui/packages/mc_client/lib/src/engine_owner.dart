@@ -22,6 +22,7 @@ import 'output_client.dart';
 import 'deployment_client.dart';
 import 'file_plan_client.dart';
 import 'proton_context_client.dart';
+import 'inventory_export_client.dart';
 
 import 'dart:async';
 import 'dart:io';
@@ -127,6 +128,8 @@ class EngineOwner {
       _state is EngineConnected ? _session?.gameContexts : null;
   ModOrganizationClient? get modOrganization =>
       _state is EngineConnected ? _session?.modOrganization : null;
+  InventoryExportClient? get inventoryExports =>
+      _state is EngineConnected ? _session?.inventoryExports : null;
   ProfileModsClient? get profileMods =>
       _state is EngineConnected ? _session?.profileMods : null;
   ModLibraryClient? get modLibrary =>

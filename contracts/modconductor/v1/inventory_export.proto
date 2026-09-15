@@ -1,0 +1,127 @@
+syntax = "proto3";
+package modconductor.v1;
+option csharp_namespace = "ModConductor.Protocol.V1";
+
+import "modconductor/v1/mod_organization.proto";
+
+service InventoryExportOperations {
+  rpc PrepareInventoryExport(PrepareInventoryExportRequest) returns (PrepareInventoryExportReply);
+  rpc InspectInventoryExportDestination(InspectInventoryExportDestinationRequest) returns (InspectInventoryExportDestinationReply);
+  rpc WriteInventoryExport(WriteInventoryExportRequest) returns (stream InventoryExportEvent);
+  rpc DiscardInventoryExport(DiscardInventoryExportRequest) returns (DiscardInventoryExportReply);
+}
+
+enum InventoryExportScope {
+  INVENTORY_EXPORT_SCOPE_UNSPECIFIED = 0;
+  INVENTORY_EXPORT_SCOPE_SELECTED = 1;
+  INVENTORY_EXPORT_SCOPE_ENABLED = 2;
+  INVENTORY_EXPORT_SCOPE_CURRENT_QUERY = 3;
+  INVENTORY_EXPORT_SCOPE_ALL = 4;
+}
+
+enum InventoryExportField {
+  INVENTORY_EXPORT_FIELD_UNSPECIFIED = 0;
+  INVENTORY_EXPORT_FIELD_MOD_ID = 1;
+  INVENTORY_EXPORT_FIELD_NAME = 2;
+  INVENTORY_EXPORT_FIELD_KIND = 3;
+  INVENTORY_EXPORT_FIELD_STATUS = 4;
+  INVENTORY_EXPORT_FIELD_PRIORITY = 5;
+  INVENTORY_EXPORT_FIELD_ENABLED = 6;
+  INVENTORY_EXPORT_FIELD_VERSION = 7;
+  INVENTORY_EXPORT_FIELD_SOURCE = 8;
+  INVENTORY_EXPORT_FIELD_SOURCE_PATH = 9;
+  INVENTORY_EXPORT_FIELD_NOTES = 10;
+  INVENTORY_EXPORT_FIELD_COMMENT = 11;
+  INVENTORY_EXPORT_FIELD_CATEGORIES = 12;
+}
+
+enum InventoryExportFaultCode {
+  INVENTORY_EXPORT_FAULT_CODE_UNSPECIFIED = 0;
+  INVENTORY_EXPORT_FAULT_CODE_INVALID_REQUEST = 1;
+  INVENTORY_EXPORT_FAULT_CODE_NOT_FOUND = 2;
+  INVENTORY_EXPORT_FAULT_CODE_STALE = 3;
+  INVENTORY_EXPORT_FAULT_CODE_BUSY = 4;
+  INVENTORY_EXPORT_FAULT_CODE_LIMIT_EXCEEDED = 5;
+  INVENTORY_EXPORT_FAULT_CODE_DESTINATION_UNAVAILABLE = 6;
+  INVENTORY_EXPORT_FAULT_CODE_DESTINATION_CHANGED = 7;
+  INVENTORY_EXPORT_FAULT_CODE_REPLACEMENT_REQUIRED = 8;
+  INVENTORY_EXPORT_FAULT_CODE_CANCELLED = 9;
+  INVENTORY_EXPORT_FAULT_CODE_WRITE_FAILED = 10;
+}
+
+message InventoryExportFault {
+  InventoryExportFaultCode code = 1;
+  string detail = 2;
+}
+
+message PrepareInventoryExportRequest {
+  string workspace_id = 1;
+  uint64 workspace_revision = 2;
+  string profile_id = 3;
+  InventoryExportScope scope = 4;
+  repeated string selected_mod_ids = 5;
+  ModQueryDefinition query = 6;
+  string query_identity = 7;
+  uint64 catalogue_revision = 8;
+  uint64 selection_revision = 9;
+  repeated InventoryExportField fields = 10;
+}
+
+message PreparedInventoryExport {
+  string export_id = 1;
+  uint32 row_count = 2;
+  repeated InventoryExportField fields = 3;
+}
+
+message PrepareInventoryExportReply {
+  oneof outcome {
+    PreparedInventoryExport prepared = 1;
+    InventoryExportFault fault = 2;
+  }
+}
+
+message InspectInventoryExportDestinationRequest {
+  string export_id = 1;
+  string destination_path = 2;
+}
+
+message InventoryExportDestination {
+  string destination_id = 1;
+  string file_name = 2;
+  bool exists = 3;
+}
+
+message InspectInventoryExportDestinationReply {
+  oneof outcome {
+    InventoryExportDestination destination = 1;
+    InventoryExportFault fault = 2;
+  }
+}
+
+message WriteInventoryExportRequest {
+  string export_id = 1;
+  string destination_id = 2;
+  bool replace_existing = 3;
+}
+
+message InventoryExportWriteProgress {
+  uint32 written_rows = 1;
+  uint32 total_rows = 2;
+}
+
+message CompletedInventoryExport {
+  string file_name = 1;
+  uint32 row_count = 2;
+  uint64 byte_count = 3;
+}
+
+message InventoryExportEvent {
+  oneof outcome {
+    InventoryExportWriteProgress progress = 1;
+    CompletedInventoryExport completed = 2;
+    InventoryExportFault fault = 3;
+  }
+}
+
+message DiscardInventoryExportRequest { string export_id = 1; }
+message DiscardInventoryExportReply { bool discarded = 1; }

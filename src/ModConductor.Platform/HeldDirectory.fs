@@ -166,6 +166,9 @@ type HeldDirectory private (handle: SafeFileHandle) =
     member _.MoveOriginal(name, expected, destination: HeldDirectory, target) =
         HeldEntries.moveOriginal handle name destination.Handle target expected
 
+    member _.ReplaceFile(sourceName, sourceIdentity, destinationName, destination) =
+        HeldEntries.replaceFile handle sourceName sourceIdentity destinationName destination
+
     member _.Directory(name, expected: FileIdentity option) =
         let child = RelativeFile.openChild handle name true false
 

@@ -24,6 +24,8 @@
     <Compile Include="ProfileModService.fs" />
     <Compile Include="OrganizationWire.fs" />
     <Compile Include="ModOrganizationService.fs" />
+    <Compile Include="InventoryExportWire.fs" />
+    <Compile Include="InventoryExportService.fs" />
     <Compile Include="ProtonWire.fs" />
     <Compile Include="GameContextService.fs" />
     <Compile Include="SteamDiscoveryService.fs" />
