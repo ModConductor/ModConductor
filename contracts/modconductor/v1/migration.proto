@@ -2,56 +2,56 @@ syntax = "proto3";
 package modconductor.v1;
 option csharp_namespace = "ModConductor.Protocol.V1";
 
-enum Manager {
-  MANAGER_UNSPECIFIED = 0;
-  MANAGER_MOD_ORGANIZER = 1;
+enum MigrationManager {
+  MIGRATION_MANAGER_UNSPECIFIED = 0;
+  MIGRATION_MANAGER_MOD_ORGANIZER = 1;
 }
 
-message MigrateRequest {
+message MigrationRequest {
   string workspace_id = 1;
-  Manager manager = 2;
+  MigrationManager manager = 2;
   string source_folder = 3;
 }
 
-message MigrateProgress {
+message MigrationProgress {
   uint32 completed = 1;
   uint32 total = 2;
   string message = 3;
 }
 
-enum MigrateErrorCode {
-  MIGRATE_ERROR_CODE_UNSPECIFIED = 0;
-  MIGRATE_ERROR_CODE_INVALID_SOURCE = 1;
-  MIGRATE_ERROR_CODE_TARGET_NOT_EMPTY = 2;
-  MIGRATE_ERROR_CODE_UNSAFE_SOURCE = 3;
-  MIGRATE_ERROR_CODE_CASE_COLLISION = 4;
-  MIGRATE_ERROR_CODE_UNSUPPORTED_DATA = 5;
-  MIGRATE_ERROR_CODE_SOURCE_CHANGED = 6;
-  MIGRATE_ERROR_CODE_CANCELLED = 7;
-  MIGRATE_ERROR_CODE_BUSY = 8;
-  MIGRATE_ERROR_CODE_UNAVAILABLE = 9;
+enum MigrationErrorCode {
+  MIGRATION_ERROR_CODE_UNSPECIFIED = 0;
+  MIGRATION_ERROR_CODE_INVALID_SOURCE = 1;
+  MIGRATION_ERROR_CODE_TARGET_NOT_EMPTY = 2;
+  MIGRATION_ERROR_CODE_UNSAFE_SOURCE = 3;
+  MIGRATION_ERROR_CODE_CASE_COLLISION = 4;
+  MIGRATION_ERROR_CODE_UNSUPPORTED_DATA = 5;
+  MIGRATION_ERROR_CODE_SOURCE_CHANGED = 6;
+  MIGRATION_ERROR_CODE_CANCELLED = 7;
+  MIGRATION_ERROR_CODE_BUSY = 8;
+  MIGRATION_ERROR_CODE_UNAVAILABLE = 9;
 }
 
-message MigrateError {
-  MigrateErrorCode code = 1;
+message MigrationError {
+  MigrationErrorCode code = 1;
   string detail = 2;
 }
 
-message MigrateResult {
+message MigrationResult {
   string workspace_id = 1;
   uint32 profiles = 2;
   uint32 mods = 3;
   uint32 artifacts = 4;
 }
 
-message MigrateEvent {
+message MigrationEvent {
   oneof event {
-    MigrateProgress progress = 1;
-    MigrateError error = 2;
-    MigrateResult result = 3;
+    MigrationProgress progress = 1;
+    MigrationError error = 2;
+    MigrationResult result = 3;
   }
 }
 
 service MigrationOperations {
-  rpc Migrate(MigrateRequest) returns (stream MigrateEvent);
+  rpc Migrate(MigrationRequest) returns (stream MigrationEvent);
 }

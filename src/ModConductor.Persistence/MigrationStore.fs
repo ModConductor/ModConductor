@@ -10,7 +10,10 @@ open ModConductor.ModOrganization
 open ModConductor.Platform
 open ModConductor.Workspaces
 
-type internal MigrationStore(database: StateDatabase, roots: OwnedWorkspaceRootStore) =
+exception private MigrationTargetChanged
+
+type internal MigrationStore
+    (database: StateDatabase, roots: OwnedWorkspaceRootStore, commitCheckpoint: string -> unit) =
     let connection = database.Connection
 
     let workspacePath (workspace: WorkspaceRoot) name =
@@ -99,9 +102,44 @@ type internal MigrationStore(database: StateDatabase, roots: OwnedWorkspaceRootS
         Sqlite.number
             connection
             transaction
-            "SELECT (SELECT count(*) FROM profiles WHERE workspace_id=$workspace) + (SELECT count(*) FROM mods WHERE workspace_id=$workspace) + (SELECT count(*) FROM artifacts WHERE workspace_id=$workspace)"
+            """
+            SELECT
+              (SELECT count(*) FROM profiles WHERE workspace_id=$workspace) +
+              (SELECT count(*) FROM mods WHERE workspace_id=$workspace) +
+              (SELECT count(*) FROM artifacts WHERE workspace_id=$workspace) +
+              (SELECT count(*) FROM mod_libraries WHERE workspace_id=$workspace) +
+              (SELECT count(*) FROM categories WHERE workspace_id=$workspace) +
+              (SELECT count(*) FROM profile_mods s JOIN profiles p ON p.id=s.profile_id WHERE p.workspace_id=$workspace) +
+              (SELECT count(*) FROM mod_categories c JOIN mods m ON m.id=c.mod_id WHERE m.workspace_id=$workspace) +
+              (SELECT count(*) FROM hidden_mod_files WHERE workspace_id=$workspace) +
+              (SELECT count(*) FROM file_visibility_state WHERE workspace_id=$workspace) +
+              (SELECT count(*) FROM workspaces WHERE id=$workspace AND selected_profile IS NOT NULL)
+            """
             [ "$workspace", box (string workspace) ]
         <> 0L
+
+    let activeOperation transaction workspace allowed =
+        Sqlite.number
+            connection
+            transaction
+            """
+            SELECT
+              (SELECT count(*) FROM operations WHERE phase=1 AND id<>$allowed) +
+              (SELECT count(*) FROM archive_installations WHERE workspace_id=$workspace AND busy<>0) +
+              (SELECT count(*) FROM mod_deletions WHERE workspace_id=$workspace AND busy<>0) +
+              (SELECT count(*) FROM bundle_work WHERE workspace_id=$workspace AND busy<>0) +
+              (SELECT count(*) FROM output_actions WHERE workspace_id=$workspace AND complete=0) +
+              (SELECT count(*) FROM profile_data_actions a JOIN profile_data_contexts c ON c.id=a.context_id WHERE c.workspace_id=$workspace AND a.complete=0) +
+              (SELECT count(*) FROM executable_runs WHERE workspace_id=$workspace AND phase IN(0,1,2))
+            """
+            [ "$allowed", box (allowed |> Option.defaultValue "")
+              "$workspace", box (string workspace) ]
+        <> 0L
+
+    let targetFilesEmpty (workspace: WorkspaceRoot) allowed =
+        use root = HeldDirectory.Open(workspace.Path, workspace.Identity)
+        let accepted = Set.ofList (RootIdentityFile.name :: allowed)
+        root.Names |> Seq.forall accepted.Contains
 
     let migrationBusy transaction (workspace: WorkspaceRoot) =
         use command =
@@ -220,7 +258,11 @@ type internal MigrationStore(database: StateDatabase, roots: OwnedWorkspaceRootS
             Error Error.Busy
         elif current.Value.Receipt.Phase <> RootCreationPhase.Complete then
             Error(Error.Unavailable "The workspace folder is not ready.")
+        elif activeOperation transaction workspace (Some(target.ActionId.ToString("N"))) then
+            Error Error.Busy
         elif targetNotEmpty transaction workspace then
+            Error Error.TargetNotEmpty
+        elif not (targetFilesEmpty targetWorkspace [ target.FinalName ]) then
             Error Error.TargetNotEmpty
         else
             let summary =
@@ -400,7 +442,12 @@ type internal MigrationStore(database: StateDatabase, roots: OwnedWorkspaceRootS
                     "DELETE FROM operations WHERE id=$id AND owner=$owner"
                     [ "$id", box (target.ActionId.ToString("N")); "$owner", box database.OwnerId ]
 
+                if not (targetFilesEmpty targetWorkspace [ target.FinalName ]) then
+                    raise MigrationTargetChanged
+
+                commitCheckpoint "before-commit"
                 transaction.Commit()
+                commitCheckpoint "after-commit"
 
                 Ok
                     { WorkspaceId = workspace
@@ -431,6 +478,10 @@ type internal MigrationStore(database: StateDatabase, roots: OwnedWorkspaceRootS
                                     Error(Error.Unavailable "The workspace state is missing.")
                                 | Some _ when targetNotEmpty transaction workspace ->
                                     Error Error.TargetNotEmpty
+                                | Some _ when not (targetFilesEmpty creation.Workspace []) ->
+                                    Error Error.TargetNotEmpty
+                                | Some _ when activeOperation transaction workspace None ->
+                                    Error Error.Busy
                                 | Some current when migrationBusy transaction creation.Workspace ->
                                     Error Error.Busy
                                 | Some current ->
@@ -460,6 +511,74 @@ type internal MigrationStore(database: StateDatabase, roots: OwnedWorkspaceRootS
                             result)
             }
 
+        member _.Ready(value) =
+            task {
+                try
+                    return!
+                        database.Enqueue(fun () ->
+                            use transaction = connection.BeginTransaction(deferred = false)
+                            let workspace = targetRoot value
+
+                            let operation =
+                                Sqlite.number
+                                    connection
+                                    transaction
+                                    "SELECT count(*) FROM operations WHERE id=$id AND owner=$owner AND phase=1 AND migration_staged_path=$staged AND migration_final_path=$final"
+                                    [ "$id", box (value.ActionId.ToString("N"))
+                                      "$owner", box database.OwnerId
+                                      "$staged", box (workspacePath workspace value.StagedName)
+                                      "$final", box (workspacePath workspace value.FinalName) ]
+
+                            let result =
+                                match
+                                    WorkspaceRows.find connection transaction value.WorkspaceId
+                                with
+                                | None ->
+                                    Error(Error.Unavailable "The workspace state is missing.")
+                                | Some current when
+                                    current.Receipt.Phase <> RootCreationPhase.Complete
+                                    ->
+                                    Error(Error.Unavailable "The workspace folder is not ready.")
+                                | Some _ when operation <> 1L -> Error Error.Busy
+                                | Some _ when
+                                    activeOperation
+                                        transaction
+                                        value.WorkspaceId
+                                        (Some(value.ActionId.ToString("N")))
+                                    ->
+                                    Error Error.Busy
+                                | Some _ when targetNotEmpty transaction value.WorkspaceId ->
+                                    Error Error.TargetNotEmpty
+                                | Some current when
+                                    let summary =
+                                        WorkspaceProfiles.summary
+                                            connection
+                                            transaction
+                                            current.Receipt
+
+                                    summary
+                                    |> Option.forall (fun state ->
+                                        state.Revision <> value.ExpectedRevision)
+                                    ->
+                                    Error Error.TargetNotEmpty
+                                | Some _ when
+                                    not (
+                                        targetFilesEmpty
+                                            workspace
+                                            [ value.StagedName; value.FinalName ]
+                                    )
+                                    ->
+                                    Error Error.TargetNotEmpty
+                                | Some _ -> Ok()
+
+                            transaction.Commit()
+                            result)
+                with
+                | :? IOException -> return Error(Error.Unavailable "The workspace folder changed.")
+                | :? UnauthorizedAccessException ->
+                    return Error(Error.Unavailable "The workspace folder is unavailable.")
+            }
+
         member _.Complete(value) =
             task {
                 try
@@ -481,6 +600,7 @@ type internal MigrationStore(database: StateDatabase, roots: OwnedWorkspaceRootS
                     return Error(Error.Unavailable "The copied files are unavailable.")
                 | :? InvalidDataException as error ->
                     return Error(Error.InvalidSource error.Message)
+                | MigrationTargetChanged -> return Error Error.TargetNotEmpty
             }
 
         member _.Abandon(value) =

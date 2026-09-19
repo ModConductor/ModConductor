@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -66,13 +67,72 @@ void main() {
             .toList();
         expect(events.whereType<MigrationProgress>(), isNotEmpty);
         expect(events.last, isA<MigrationResult>());
+        expect(events.whereType<MigrationResult>(), hasLength(1));
+        expect(events.whereType<MigrationFailure>(), isEmpty);
         final workspace = await child.workspaces().read(id);
         expect(workspace.profiles.single.name, 'Default');
         final mods = await child.modLibrary().scan(id, candidateLimit: 100);
         expect(mods.entries.single.metadata.name, 'Example');
         expect(mods.entries.single.status, InventoryStatus.ready);
         expect((await child.operations().check()).runtime.nativeAot, isTrue);
+
+        final refused = await child
+            .migration()
+            .migrate(id, MigrationManager.modOrganizer, source.path)
+            .toList();
+        expect(refused, hasLength(1));
+        expect(refused.single, isA<MigrationFailure>());
       });
+
+      test(
+        'authenticated cancellation leaves one empty target state',
+        () async {
+          await File('${source.path}/mods/Example/data/large-a.bin')
+              .writeAsBytes(List<int>.filled(8 * 1024 * 1024, 7), flush: true);
+          await File('${source.path}/mods/Example/data/large-b.bin')
+              .writeAsBytes(List<int>.filled(8 * 1024 * 1024, 9), flush: true);
+          final child = await start();
+          final id = newOperationId();
+          await child.workspaces().create(id, 'Empty', root.path);
+          final cancelled = Completer<void>();
+          late StreamSubscription<MigrationEvent> operation;
+          operation = child
+              .migration()
+              .migrate(id, MigrationManager.modOrganizer, source.path)
+              .listen((event) {
+                if (event is MigrationProgress && !cancelled.isCompleted) {
+                  unawaited(
+                    operation.cancel().then((_) {
+                      if (!cancelled.isCompleted) cancelled.complete();
+                    }),
+                  );
+                }
+              });
+          await cancelled.future.timeout(const Duration(seconds: 10));
+
+          var empty = false;
+          for (var attempt = 0; attempt < 100 && !empty; attempt++) {
+            final workspace = await child.workspaces().read(id);
+            final mods = await child.modLibrary().scan(id, candidateLimit: 100);
+            final unmanaged = root
+                .listSync()
+                .where(
+                  (entry) =>
+                      entry.path.split(Platform.pathSeparator).last !=
+                      '.mod-conductor-root',
+                )
+                .toList();
+            empty =
+                workspace.profiles.isEmpty &&
+                mods.entries.isEmpty &&
+                unmanaged.isEmpty;
+            if (!empty) {
+              await Future<void>.delayed(const Duration(milliseconds: 25));
+            }
+          }
+          expect(empty, isTrue);
+        },
+      );
 
       test(
         'missing authentication rejects migration before target mutation',

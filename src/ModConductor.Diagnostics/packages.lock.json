@@ -110,6 +110,12 @@
           "ModConductor.Platform": "[1.0.0, )"
         }
       },
+      "modconductor.operations": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )"
+        }
+      },
       "modconductor.platform": {
         "type": "Project",
         "dependencies": {

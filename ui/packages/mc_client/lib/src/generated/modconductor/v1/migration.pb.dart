@@ -20,10 +20,10 @@ export 'package:protobuf/protobuf.dart' show GeneratedMessageGenericExtensions;
 
 export 'migration.pbenum.dart';
 
-class MigrateRequest extends $pb.GeneratedMessage {
-  factory MigrateRequest({
+class MigrationRequest extends $pb.GeneratedMessage {
+  factory MigrationRequest({
     $core.String? workspaceId,
-    Manager? manager,
+    MigrationManager? manager,
     $core.String? sourceFolder,
   }) {
     final result = create();
@@ -33,44 +33,44 @@ class MigrateRequest extends $pb.GeneratedMessage {
     return result;
   }
 
-  MigrateRequest._();
+  MigrationRequest._();
 
-  factory MigrateRequest.fromBuffer($core.List<$core.int> data,
+  factory MigrationRequest.fromBuffer($core.List<$core.int> data,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
       create()..mergeFromBuffer(data, registry);
-  factory MigrateRequest.fromJson($core.String json,
+  factory MigrationRequest.fromJson($core.String json,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
       create()..mergeFromJson(json, registry);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
-      _omitMessageNames ? '' : 'MigrateRequest',
+      _omitMessageNames ? '' : 'MigrationRequest',
       package:
           const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
       createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'workspaceId')
-    ..aE<Manager>(2, _omitFieldNames ? '' : 'manager',
-        enumValues: Manager.values)
+    ..aE<MigrationManager>(2, _omitFieldNames ? '' : 'manager',
+        enumValues: MigrationManager.values)
     ..aOS(3, _omitFieldNames ? '' : 'sourceFolder')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  MigrateRequest clone() => deepCopy();
+  MigrationRequest clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  MigrateRequest copyWith(void Function(MigrateRequest) updates) =>
-      super.copyWith((message) => updates(message as MigrateRequest))
-          as MigrateRequest;
+  MigrationRequest copyWith(void Function(MigrationRequest) updates) =>
+      super.copyWith((message) => updates(message as MigrationRequest))
+          as MigrationRequest;
 
   @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
-  static MigrateRequest create() => MigrateRequest._();
+  static MigrationRequest create() => MigrationRequest._();
   @$core.override
-  MigrateRequest createEmptyInstance() => create();
+  MigrationRequest createEmptyInstance() => create();
   @$core.pragma('dart2js:noInline')
-  static MigrateRequest getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<MigrateRequest>(create);
-  static MigrateRequest? _defaultInstance;
+  static MigrationRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<MigrationRequest>(create);
+  static MigrationRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get workspaceId => $_getSZ(0);
@@ -82,9 +82,9 @@ class MigrateRequest extends $pb.GeneratedMessage {
   void clearWorkspaceId() => $_clearField(1);
 
   @$pb.TagNumber(2)
-  Manager get manager => $_getN(1);
+  MigrationManager get manager => $_getN(1);
   @$pb.TagNumber(2)
-  set manager(Manager value) => $_setField(2, value);
+  set manager(MigrationManager value) => $_setField(2, value);
   @$pb.TagNumber(2)
   $core.bool hasManager() => $_has(1);
   @$pb.TagNumber(2)
@@ -100,8 +100,8 @@ class MigrateRequest extends $pb.GeneratedMessage {
   void clearSourceFolder() => $_clearField(3);
 }
 
-class MigrateProgress extends $pb.GeneratedMessage {
-  factory MigrateProgress({
+class MigrationProgress extends $pb.GeneratedMessage {
+  factory MigrationProgress({
     $core.int? completed,
     $core.int? total,
     $core.String? message,
@@ -113,17 +113,17 @@ class MigrateProgress extends $pb.GeneratedMessage {
     return result;
   }
 
-  MigrateProgress._();
+  MigrationProgress._();
 
-  factory MigrateProgress.fromBuffer($core.List<$core.int> data,
+  factory MigrationProgress.fromBuffer($core.List<$core.int> data,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
       create()..mergeFromBuffer(data, registry);
-  factory MigrateProgress.fromJson($core.String json,
+  factory MigrationProgress.fromJson($core.String json,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
       create()..mergeFromJson(json, registry);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
-      _omitMessageNames ? '' : 'MigrateProgress',
+      _omitMessageNames ? '' : 'MigrationProgress',
       package:
           const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
       createEmptyInstance: create)
@@ -133,23 +133,23 @@ class MigrateProgress extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  MigrateProgress clone() => deepCopy();
+  MigrationProgress clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  MigrateProgress copyWith(void Function(MigrateProgress) updates) =>
-      super.copyWith((message) => updates(message as MigrateProgress))
-          as MigrateProgress;
+  MigrationProgress copyWith(void Function(MigrationProgress) updates) =>
+      super.copyWith((message) => updates(message as MigrationProgress))
+          as MigrationProgress;
 
   @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
-  static MigrateProgress create() => MigrateProgress._();
+  static MigrationProgress create() => MigrationProgress._();
   @$core.override
-  MigrateProgress createEmptyInstance() => create();
+  MigrationProgress createEmptyInstance() => create();
   @$core.pragma('dart2js:noInline')
-  static MigrateProgress getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<MigrateProgress>(create);
-  static MigrateProgress? _defaultInstance;
+  static MigrationProgress getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<MigrationProgress>(create);
+  static MigrationProgress? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.int get completed => $_getIZ(0);
@@ -179,9 +179,9 @@ class MigrateProgress extends $pb.GeneratedMessage {
   void clearMessage() => $_clearField(3);
 }
 
-class MigrateError extends $pb.GeneratedMessage {
-  factory MigrateError({
-    MigrateErrorCode? code,
+class MigrationError extends $pb.GeneratedMessage {
+  factory MigrationError({
+    MigrationErrorCode? code,
     $core.String? detail,
   }) {
     final result = create();
@@ -190,48 +190,48 @@ class MigrateError extends $pb.GeneratedMessage {
     return result;
   }
 
-  MigrateError._();
+  MigrationError._();
 
-  factory MigrateError.fromBuffer($core.List<$core.int> data,
+  factory MigrationError.fromBuffer($core.List<$core.int> data,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
       create()..mergeFromBuffer(data, registry);
-  factory MigrateError.fromJson($core.String json,
+  factory MigrationError.fromJson($core.String json,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
       create()..mergeFromJson(json, registry);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
-      _omitMessageNames ? '' : 'MigrateError',
+      _omitMessageNames ? '' : 'MigrationError',
       package:
           const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
       createEmptyInstance: create)
-    ..aE<MigrateErrorCode>(1, _omitFieldNames ? '' : 'code',
-        enumValues: MigrateErrorCode.values)
+    ..aE<MigrationErrorCode>(1, _omitFieldNames ? '' : 'code',
+        enumValues: MigrationErrorCode.values)
     ..aOS(2, _omitFieldNames ? '' : 'detail')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  MigrateError clone() => deepCopy();
+  MigrationError clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  MigrateError copyWith(void Function(MigrateError) updates) =>
-      super.copyWith((message) => updates(message as MigrateError))
-          as MigrateError;
+  MigrationError copyWith(void Function(MigrationError) updates) =>
+      super.copyWith((message) => updates(message as MigrationError))
+          as MigrationError;
 
   @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
-  static MigrateError create() => MigrateError._();
+  static MigrationError create() => MigrationError._();
   @$core.override
-  MigrateError createEmptyInstance() => create();
+  MigrationError createEmptyInstance() => create();
   @$core.pragma('dart2js:noInline')
-  static MigrateError getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<MigrateError>(create);
-  static MigrateError? _defaultInstance;
+  static MigrationError getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<MigrationError>(create);
+  static MigrationError? _defaultInstance;
 
   @$pb.TagNumber(1)
-  MigrateErrorCode get code => $_getN(0);
+  MigrationErrorCode get code => $_getN(0);
   @$pb.TagNumber(1)
-  set code(MigrateErrorCode value) => $_setField(1, value);
+  set code(MigrationErrorCode value) => $_setField(1, value);
   @$pb.TagNumber(1)
   $core.bool hasCode() => $_has(0);
   @$pb.TagNumber(1)
@@ -247,8 +247,8 @@ class MigrateError extends $pb.GeneratedMessage {
   void clearDetail() => $_clearField(2);
 }
 
-class MigrateResult extends $pb.GeneratedMessage {
-  factory MigrateResult({
+class MigrationResult extends $pb.GeneratedMessage {
+  factory MigrationResult({
     $core.String? workspaceId,
     $core.int? profiles,
     $core.int? mods,
@@ -262,17 +262,17 @@ class MigrateResult extends $pb.GeneratedMessage {
     return result;
   }
 
-  MigrateResult._();
+  MigrationResult._();
 
-  factory MigrateResult.fromBuffer($core.List<$core.int> data,
+  factory MigrationResult.fromBuffer($core.List<$core.int> data,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
       create()..mergeFromBuffer(data, registry);
-  factory MigrateResult.fromJson($core.String json,
+  factory MigrationResult.fromJson($core.String json,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
       create()..mergeFromJson(json, registry);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
-      _omitMessageNames ? '' : 'MigrateResult',
+      _omitMessageNames ? '' : 'MigrationResult',
       package:
           const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
       createEmptyInstance: create)
@@ -283,23 +283,23 @@ class MigrateResult extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  MigrateResult clone() => deepCopy();
+  MigrationResult clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  MigrateResult copyWith(void Function(MigrateResult) updates) =>
-      super.copyWith((message) => updates(message as MigrateResult))
-          as MigrateResult;
+  MigrationResult copyWith(void Function(MigrationResult) updates) =>
+      super.copyWith((message) => updates(message as MigrationResult))
+          as MigrationResult;
 
   @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
-  static MigrateResult create() => MigrateResult._();
+  static MigrationResult create() => MigrationResult._();
   @$core.override
-  MigrateResult createEmptyInstance() => create();
+  MigrationResult createEmptyInstance() => create();
   @$core.pragma('dart2js:noInline')
-  static MigrateResult getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<MigrateResult>(create);
-  static MigrateResult? _defaultInstance;
+  static MigrationResult getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<MigrationResult>(create);
+  static MigrationResult? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get workspaceId => $_getSZ(0);
@@ -338,13 +338,13 @@ class MigrateResult extends $pb.GeneratedMessage {
   void clearArtifacts() => $_clearField(4);
 }
 
-enum MigrateEvent_Event { progress, error, result, notSet }
+enum MigrationEvent_Event { progress, error, result, notSet }
 
-class MigrateEvent extends $pb.GeneratedMessage {
-  factory MigrateEvent({
-    MigrateProgress? progress,
-    MigrateError? error,
-    MigrateResult? result,
+class MigrationEvent extends $pb.GeneratedMessage {
+  factory MigrationEvent({
+    MigrationProgress? progress,
+    MigrationError? error,
+    MigrationResult? result,
   }) {
     final result$ = create();
     if (progress != null) result$.progress = progress;
@@ -353,96 +353,97 @@ class MigrateEvent extends $pb.GeneratedMessage {
     return result$;
   }
 
-  MigrateEvent._();
+  MigrationEvent._();
 
-  factory MigrateEvent.fromBuffer($core.List<$core.int> data,
+  factory MigrationEvent.fromBuffer($core.List<$core.int> data,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
       create()..mergeFromBuffer(data, registry);
-  factory MigrateEvent.fromJson($core.String json,
+  factory MigrationEvent.fromJson($core.String json,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
       create()..mergeFromJson(json, registry);
 
-  static const $core.Map<$core.int, MigrateEvent_Event>
-      _MigrateEvent_EventByTag = {
-    1: MigrateEvent_Event.progress,
-    2: MigrateEvent_Event.error,
-    3: MigrateEvent_Event.result,
-    0: MigrateEvent_Event.notSet
+  static const $core.Map<$core.int, MigrationEvent_Event>
+      _MigrationEvent_EventByTag = {
+    1: MigrationEvent_Event.progress,
+    2: MigrationEvent_Event.error,
+    3: MigrationEvent_Event.result,
+    0: MigrationEvent_Event.notSet
   };
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
-      _omitMessageNames ? '' : 'MigrateEvent',
+      _omitMessageNames ? '' : 'MigrationEvent',
       package:
           const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
       createEmptyInstance: create)
     ..oo(0, [1, 2, 3])
-    ..aOM<MigrateProgress>(1, _omitFieldNames ? '' : 'progress',
-        subBuilder: MigrateProgress.create)
-    ..aOM<MigrateError>(2, _omitFieldNames ? '' : 'error',
-        subBuilder: MigrateError.create)
-    ..aOM<MigrateResult>(3, _omitFieldNames ? '' : 'result',
-        subBuilder: MigrateResult.create)
+    ..aOM<MigrationProgress>(1, _omitFieldNames ? '' : 'progress',
+        subBuilder: MigrationProgress.create)
+    ..aOM<MigrationError>(2, _omitFieldNames ? '' : 'error',
+        subBuilder: MigrationError.create)
+    ..aOM<MigrationResult>(3, _omitFieldNames ? '' : 'result',
+        subBuilder: MigrationResult.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  MigrateEvent clone() => deepCopy();
+  MigrationEvent clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  MigrateEvent copyWith(void Function(MigrateEvent) updates) =>
-      super.copyWith((message) => updates(message as MigrateEvent))
-          as MigrateEvent;
+  MigrationEvent copyWith(void Function(MigrationEvent) updates) =>
+      super.copyWith((message) => updates(message as MigrationEvent))
+          as MigrationEvent;
 
   @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
-  static MigrateEvent create() => MigrateEvent._();
+  static MigrationEvent create() => MigrationEvent._();
   @$core.override
-  MigrateEvent createEmptyInstance() => create();
+  MigrationEvent createEmptyInstance() => create();
   @$core.pragma('dart2js:noInline')
-  static MigrateEvent getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<MigrateEvent>(create);
-  static MigrateEvent? _defaultInstance;
+  static MigrationEvent getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<MigrationEvent>(create);
+  static MigrationEvent? _defaultInstance;
 
   @$pb.TagNumber(1)
   @$pb.TagNumber(2)
   @$pb.TagNumber(3)
-  MigrateEvent_Event whichEvent() => _MigrateEvent_EventByTag[$_whichOneof(0)]!;
+  MigrationEvent_Event whichEvent() =>
+      _MigrationEvent_EventByTag[$_whichOneof(0)]!;
   @$pb.TagNumber(1)
   @$pb.TagNumber(2)
   @$pb.TagNumber(3)
   void clearEvent() => $_clearField($_whichOneof(0));
 
   @$pb.TagNumber(1)
-  MigrateProgress get progress => $_getN(0);
+  MigrationProgress get progress => $_getN(0);
   @$pb.TagNumber(1)
-  set progress(MigrateProgress value) => $_setField(1, value);
+  set progress(MigrationProgress value) => $_setField(1, value);
   @$pb.TagNumber(1)
   $core.bool hasProgress() => $_has(0);
   @$pb.TagNumber(1)
   void clearProgress() => $_clearField(1);
   @$pb.TagNumber(1)
-  MigrateProgress ensureProgress() => $_ensure(0);
+  MigrationProgress ensureProgress() => $_ensure(0);
 
   @$pb.TagNumber(2)
-  MigrateError get error => $_getN(1);
+  MigrationError get error => $_getN(1);
   @$pb.TagNumber(2)
-  set error(MigrateError value) => $_setField(2, value);
+  set error(MigrationError value) => $_setField(2, value);
   @$pb.TagNumber(2)
   $core.bool hasError() => $_has(1);
   @$pb.TagNumber(2)
   void clearError() => $_clearField(2);
   @$pb.TagNumber(2)
-  MigrateError ensureError() => $_ensure(1);
+  MigrationError ensureError() => $_ensure(1);
 
   @$pb.TagNumber(3)
-  MigrateResult get result => $_getN(2);
+  MigrationResult get result => $_getN(2);
   @$pb.TagNumber(3)
-  set result(MigrateResult value) => $_setField(3, value);
+  set result(MigrationResult value) => $_setField(3, value);
   @$pb.TagNumber(3)
   $core.bool hasResult() => $_has(2);
   @$pb.TagNumber(3)
   void clearResult() => $_clearField(3);
   @$pb.TagNumber(3)
-  MigrateResult ensureResult() => $_ensure(2);
+  MigrationResult ensureResult() => $_ensure(2);
 }
 
 const $core.bool _omitFieldNames =

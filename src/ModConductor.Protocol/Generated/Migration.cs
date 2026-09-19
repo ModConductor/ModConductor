@@ -25,77 +25,79 @@ namespace ModConductor.Protocol.V1 {
       byte[] descriptorData = global::System.Convert.FromBase64String(
           string.Concat(
             "Ch9tb2Rjb25kdWN0b3IvdjEvbWlncmF0aW9uLnByb3RvEg9tb2Rjb25kdWN0",
-            "b3IudjEiaAoOTWlncmF0ZVJlcXVlc3QSFAoMd29ya3NwYWNlX2lkGAEgASgJ",
-            "EikKB21hbmFnZXIYAiABKA4yGC5tb2Rjb25kdWN0b3IudjEuTWFuYWdlchIV",
-            "Cg1zb3VyY2VfZm9sZGVyGAMgASgJIkQKD01pZ3JhdGVQcm9ncmVzcxIRCglj",
-            "b21wbGV0ZWQYASABKA0SDQoFdG90YWwYAiABKA0SDwoHbWVzc2FnZRgDIAEo",
-            "CSJPCgxNaWdyYXRlRXJyb3ISLwoEY29kZRgBIAEoDjIhLm1vZGNvbmR1Y3Rv",
-            "ci52MS5NaWdyYXRlRXJyb3JDb2RlEg4KBmRldGFpbBgCIAEoCSJYCg1NaWdy",
-            "YXRlUmVzdWx0EhQKDHdvcmtzcGFjZV9pZBgBIAEoCRIQCghwcm9maWxlcxgC",
-            "IAEoDRIMCgRtb2RzGAMgASgNEhEKCWFydGlmYWN0cxgEIAEoDSKvAQoMTWln",
-            "cmF0ZUV2ZW50EjQKCHByb2dyZXNzGAEgASgLMiAubW9kY29uZHVjdG9yLnYx",
-            "Lk1pZ3JhdGVQcm9ncmVzc0gAEi4KBWVycm9yGAIgASgLMh0ubW9kY29uZHVj",
-            "dG9yLnYxLk1pZ3JhdGVFcnJvckgAEjAKBnJlc3VsdBgDIAEoCzIeLm1vZGNv",
-            "bmR1Y3Rvci52MS5NaWdyYXRlUmVzdWx0SABCBwoFZXZlbnQqPQoHTWFuYWdl",
-            "chIXChNNQU5BR0VSX1VOU1BFQ0lGSUVEEAASGQoVTUFOQUdFUl9NT0RfT1JH",
-            "QU5JWkVSEAEqhgMKEE1pZ3JhdGVFcnJvckNvZGUSIgoeTUlHUkFURV9FUlJP",
-            "Ul9DT0RFX1VOU1BFQ0lGSUVEEAASJQohTUlHUkFURV9FUlJPUl9DT0RFX0lO",
-            "VkFMSURfU09VUkNFEAESJwojTUlHUkFURV9FUlJPUl9DT0RFX1RBUkdFVF9O",
-            "T1RfRU1QVFkQAhIkCiBNSUdSQVRFX0VSUk9SX0NPREVfVU5TQUZFX1NPVVJD",
-            "RRADEiUKIU1JR1JBVEVfRVJST1JfQ09ERV9DQVNFX0NPTExJU0lPThAEEicK",
-            "I01JR1JBVEVfRVJST1JfQ09ERV9VTlNVUFBPUlRFRF9EQVRBEAUSJQohTUlH",
-            "UkFURV9FUlJPUl9DT0RFX1NPVVJDRV9DSEFOR0VEEAYSIAocTUlHUkFURV9F",
-            "UlJPUl9DT0RFX0NBTkNFTExFRBAHEhsKF01JR1JBVEVfRVJST1JfQ09ERV9C",
-            "VVNZEAgSIgoeTUlHUkFURV9FUlJPUl9DT0RFX1VOQVZBSUxBQkxFEAkyYgoT",
-            "TWlncmF0aW9uT3BlcmF0aW9ucxJLCgdNaWdyYXRlEh8ubW9kY29uZHVjdG9y",
-            "LnYxLk1pZ3JhdGVSZXF1ZXN0Gh0ubW9kY29uZHVjdG9yLnYxLk1pZ3JhdGVF",
-            "dmVudDABQhuqAhhNb2RDb25kdWN0b3IuUHJvdG9jb2wuVjFiBnByb3RvMw=="));
+            "b3IudjEicwoQTWlncmF0aW9uUmVxdWVzdBIUCgx3b3Jrc3BhY2VfaWQYASAB",
+            "KAkSMgoHbWFuYWdlchgCIAEoDjIhLm1vZGNvbmR1Y3Rvci52MS5NaWdyYXRp",
+            "b25NYW5hZ2VyEhUKDXNvdXJjZV9mb2xkZXIYAyABKAkiRgoRTWlncmF0aW9u",
+            "UHJvZ3Jlc3MSEQoJY29tcGxldGVkGAEgASgNEg0KBXRvdGFsGAIgASgNEg8K",
+            "B21lc3NhZ2UYAyABKAkiUwoOTWlncmF0aW9uRXJyb3ISMQoEY29kZRgBIAEo",
+            "DjIjLm1vZGNvbmR1Y3Rvci52MS5NaWdyYXRpb25FcnJvckNvZGUSDgoGZGV0",
+            "YWlsGAIgASgJIloKD01pZ3JhdGlvblJlc3VsdBIUCgx3b3Jrc3BhY2VfaWQY",
+            "ASABKAkSEAoIcHJvZmlsZXMYAiABKA0SDAoEbW9kcxgDIAEoDRIRCglhcnRp",
+            "ZmFjdHMYBCABKA0itwEKDk1pZ3JhdGlvbkV2ZW50EjYKCHByb2dyZXNzGAEg",
+            "ASgLMiIubW9kY29uZHVjdG9yLnYxLk1pZ3JhdGlvblByb2dyZXNzSAASMAoF",
+            "ZXJyb3IYAiABKAsyHy5tb2Rjb25kdWN0b3IudjEuTWlncmF0aW9uRXJyb3JI",
+            "ABIyCgZyZXN1bHQYAyABKAsyIC5tb2Rjb25kdWN0b3IudjEuTWlncmF0aW9u",
+            "UmVzdWx0SABCBwoFZXZlbnQqWgoQTWlncmF0aW9uTWFuYWdlchIhCh1NSUdS",
+            "QVRJT05fTUFOQUdFUl9VTlNQRUNJRklFRBAAEiMKH01JR1JBVElPTl9NQU5B",
+            "R0VSX01PRF9PUkdBTklaRVIQASqcAwoSTWlncmF0aW9uRXJyb3JDb2RlEiQK",
+            "IE1JR1JBVElPTl9FUlJPUl9DT0RFX1VOU1BFQ0lGSUVEEAASJwojTUlHUkFU",
+            "SU9OX0VSUk9SX0NPREVfSU5WQUxJRF9TT1VSQ0UQARIpCiVNSUdSQVRJT05f",
+            "RVJST1JfQ09ERV9UQVJHRVRfTk9UX0VNUFRZEAISJgoiTUlHUkFUSU9OX0VS",
+            "Uk9SX0NPREVfVU5TQUZFX1NPVVJDRRADEicKI01JR1JBVElPTl9FUlJPUl9D",
+            "T0RFX0NBU0VfQ09MTElTSU9OEAQSKQolTUlHUkFUSU9OX0VSUk9SX0NPREVf",
+            "VU5TVVBQT1JURURfREFUQRAFEicKI01JR1JBVElPTl9FUlJPUl9DT0RFX1NP",
+            "VVJDRV9DSEFOR0VEEAYSIgoeTUlHUkFUSU9OX0VSUk9SX0NPREVfQ0FOQ0VM",
+            "TEVEEAcSHQoZTUlHUkFUSU9OX0VSUk9SX0NPREVfQlVTWRAIEiQKIE1JR1JB",
+            "VElPTl9FUlJPUl9DT0RFX1VOQVZBSUxBQkxFEAkyZgoTTWlncmF0aW9uT3Bl",
+            "cmF0aW9ucxJPCgdNaWdyYXRlEiEubW9kY29uZHVjdG9yLnYxLk1pZ3JhdGlv",
+            "blJlcXVlc3QaHy5tb2Rjb25kdWN0b3IudjEuTWlncmF0aW9uRXZlbnQwAUIb",
+            "qgIYTW9kQ29uZHVjdG9yLlByb3RvY29sLlYxYgZwcm90bzM="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { },
-          new pbr::GeneratedClrTypeInfo(new[] {typeof(global::ModConductor.Protocol.V1.Manager), typeof(global::ModConductor.Protocol.V1.MigrateErrorCode), }, null, new pbr::GeneratedClrTypeInfo[] {
-            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.MigrateRequest), global::ModConductor.Protocol.V1.MigrateRequest.Parser, new[]{ "WorkspaceId", "Manager", "SourceFolder" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.MigrateProgress), global::ModConductor.Protocol.V1.MigrateProgress.Parser, new[]{ "Completed", "Total", "Message" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.MigrateError), global::ModConductor.Protocol.V1.MigrateError.Parser, new[]{ "Code", "Detail" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.MigrateResult), global::ModConductor.Protocol.V1.MigrateResult.Parser, new[]{ "WorkspaceId", "Profiles", "Mods", "Artifacts" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.MigrateEvent), global::ModConductor.Protocol.V1.MigrateEvent.Parser, new[]{ "Progress", "Error", "Result" }, new[]{ "Event" }, null, null, null)
+          new pbr::GeneratedClrTypeInfo(new[] {typeof(global::ModConductor.Protocol.V1.MigrationManager), typeof(global::ModConductor.Protocol.V1.MigrationErrorCode), }, null, new pbr::GeneratedClrTypeInfo[] {
+            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.MigrationRequest), global::ModConductor.Protocol.V1.MigrationRequest.Parser, new[]{ "WorkspaceId", "Manager", "SourceFolder" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.MigrationProgress), global::ModConductor.Protocol.V1.MigrationProgress.Parser, new[]{ "Completed", "Total", "Message" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.MigrationError), global::ModConductor.Protocol.V1.MigrationError.Parser, new[]{ "Code", "Detail" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.MigrationResult), global::ModConductor.Protocol.V1.MigrationResult.Parser, new[]{ "WorkspaceId", "Profiles", "Mods", "Artifacts" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.MigrationEvent), global::ModConductor.Protocol.V1.MigrationEvent.Parser, new[]{ "Progress", "Error", "Result" }, new[]{ "Event" }, null, null, null)
           }));
     }
     #endregion
 
   }
   #region Enums
-  public enum Manager {
-    [pbr::OriginalName("MANAGER_UNSPECIFIED")] Unspecified = 0,
-    [pbr::OriginalName("MANAGER_MOD_ORGANIZER")] ModOrganizer = 1,
+  public enum MigrationManager {
+    [pbr::OriginalName("MIGRATION_MANAGER_UNSPECIFIED")] Unspecified = 0,
+    [pbr::OriginalName("MIGRATION_MANAGER_MOD_ORGANIZER")] ModOrganizer = 1,
   }
 
-  public enum MigrateErrorCode {
-    [pbr::OriginalName("MIGRATE_ERROR_CODE_UNSPECIFIED")] Unspecified = 0,
-    [pbr::OriginalName("MIGRATE_ERROR_CODE_INVALID_SOURCE")] InvalidSource = 1,
-    [pbr::OriginalName("MIGRATE_ERROR_CODE_TARGET_NOT_EMPTY")] TargetNotEmpty = 2,
-    [pbr::OriginalName("MIGRATE_ERROR_CODE_UNSAFE_SOURCE")] UnsafeSource = 3,
-    [pbr::OriginalName("MIGRATE_ERROR_CODE_CASE_COLLISION")] CaseCollision = 4,
-    [pbr::OriginalName("MIGRATE_ERROR_CODE_UNSUPPORTED_DATA")] UnsupportedData = 5,
-    [pbr::OriginalName("MIGRATE_ERROR_CODE_SOURCE_CHANGED")] SourceChanged = 6,
-    [pbr::OriginalName("MIGRATE_ERROR_CODE_CANCELLED")] Cancelled = 7,
-    [pbr::OriginalName("MIGRATE_ERROR_CODE_BUSY")] Busy = 8,
-    [pbr::OriginalName("MIGRATE_ERROR_CODE_UNAVAILABLE")] Unavailable = 9,
+  public enum MigrationErrorCode {
+    [pbr::OriginalName("MIGRATION_ERROR_CODE_UNSPECIFIED")] Unspecified = 0,
+    [pbr::OriginalName("MIGRATION_ERROR_CODE_INVALID_SOURCE")] InvalidSource = 1,
+    [pbr::OriginalName("MIGRATION_ERROR_CODE_TARGET_NOT_EMPTY")] TargetNotEmpty = 2,
+    [pbr::OriginalName("MIGRATION_ERROR_CODE_UNSAFE_SOURCE")] UnsafeSource = 3,
+    [pbr::OriginalName("MIGRATION_ERROR_CODE_CASE_COLLISION")] CaseCollision = 4,
+    [pbr::OriginalName("MIGRATION_ERROR_CODE_UNSUPPORTED_DATA")] UnsupportedData = 5,
+    [pbr::OriginalName("MIGRATION_ERROR_CODE_SOURCE_CHANGED")] SourceChanged = 6,
+    [pbr::OriginalName("MIGRATION_ERROR_CODE_CANCELLED")] Cancelled = 7,
+    [pbr::OriginalName("MIGRATION_ERROR_CODE_BUSY")] Busy = 8,
+    [pbr::OriginalName("MIGRATION_ERROR_CODE_UNAVAILABLE")] Unavailable = 9,
   }
 
   #endregion
 
   #region Messages
   [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
-  public sealed partial class MigrateRequest : pb::IMessage<MigrateRequest>
+  public sealed partial class MigrationRequest : pb::IMessage<MigrationRequest>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
   #endif
   {
-    private static readonly pb::MessageParser<MigrateRequest> _parser = new pb::MessageParser<MigrateRequest>(() => new MigrateRequest());
+    private static readonly pb::MessageParser<MigrationRequest> _parser = new pb::MessageParser<MigrationRequest>(() => new MigrationRequest());
     private pb::UnknownFieldSet _unknownFields;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public static pb::MessageParser<MigrateRequest> Parser { get { return _parser; } }
+    public static pb::MessageParser<MigrationRequest> Parser { get { return _parser; } }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
@@ -111,7 +113,7 @@ namespace ModConductor.Protocol.V1 {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public MigrateRequest() {
+    public MigrationRequest() {
       OnConstruction();
     }
 
@@ -119,7 +121,7 @@ namespace ModConductor.Protocol.V1 {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public MigrateRequest(MigrateRequest other) : this() {
+    public MigrationRequest(MigrationRequest other) : this() {
       workspaceId_ = other.workspaceId_;
       manager_ = other.manager_;
       sourceFolder_ = other.sourceFolder_;
@@ -128,8 +130,8 @@ namespace ModConductor.Protocol.V1 {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public MigrateRequest Clone() {
-      return new MigrateRequest(this);
+    public MigrationRequest Clone() {
+      return new MigrationRequest(this);
     }
 
     /// <summary>Field number for the "workspace_id" field.</summary>
@@ -146,10 +148,10 @@ namespace ModConductor.Protocol.V1 {
 
     /// <summary>Field number for the "manager" field.</summary>
     public const int ManagerFieldNumber = 2;
-    private global::ModConductor.Protocol.V1.Manager manager_ = global::ModConductor.Protocol.V1.Manager.Unspecified;
+    private global::ModConductor.Protocol.V1.MigrationManager manager_ = global::ModConductor.Protocol.V1.MigrationManager.Unspecified;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public global::ModConductor.Protocol.V1.Manager Manager {
+    public global::ModConductor.Protocol.V1.MigrationManager Manager {
       get { return manager_; }
       set {
         manager_ = value;
@@ -171,12 +173,12 @@ namespace ModConductor.Protocol.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
-      return Equals(other as MigrateRequest);
+      return Equals(other as MigrationRequest);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public bool Equals(MigrateRequest other) {
+    public bool Equals(MigrationRequest other) {
       if (ReferenceEquals(other, null)) {
         return false;
       }
@@ -194,7 +196,7 @@ namespace ModConductor.Protocol.V1 {
     public override int GetHashCode() {
       int hash = 1;
       if (WorkspaceId.Length != 0) hash ^= WorkspaceId.GetHashCode();
-      if (Manager != global::ModConductor.Protocol.V1.Manager.Unspecified) hash ^= Manager.GetHashCode();
+      if (Manager != global::ModConductor.Protocol.V1.MigrationManager.Unspecified) hash ^= Manager.GetHashCode();
       if (SourceFolder.Length != 0) hash ^= SourceFolder.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
@@ -218,7 +220,7 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(10);
         output.WriteString(WorkspaceId);
       }
-      if (Manager != global::ModConductor.Protocol.V1.Manager.Unspecified) {
+      if (Manager != global::ModConductor.Protocol.V1.MigrationManager.Unspecified) {
         output.WriteRawTag(16);
         output.WriteEnum((int) Manager);
       }
@@ -240,7 +242,7 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(10);
         output.WriteString(WorkspaceId);
       }
-      if (Manager != global::ModConductor.Protocol.V1.Manager.Unspecified) {
+      if (Manager != global::ModConductor.Protocol.V1.MigrationManager.Unspecified) {
         output.WriteRawTag(16);
         output.WriteEnum((int) Manager);
       }
@@ -261,7 +263,7 @@ namespace ModConductor.Protocol.V1 {
       if (WorkspaceId.Length != 0) {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(WorkspaceId);
       }
-      if (Manager != global::ModConductor.Protocol.V1.Manager.Unspecified) {
+      if (Manager != global::ModConductor.Protocol.V1.MigrationManager.Unspecified) {
         size += 1 + pb::CodedOutputStream.ComputeEnumSize((int) Manager);
       }
       if (SourceFolder.Length != 0) {
@@ -275,14 +277,14 @@ namespace ModConductor.Protocol.V1 {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public void MergeFrom(MigrateRequest other) {
+    public void MergeFrom(MigrationRequest other) {
       if (other == null) {
         return;
       }
       if (other.WorkspaceId.Length != 0) {
         WorkspaceId = other.WorkspaceId;
       }
-      if (other.Manager != global::ModConductor.Protocol.V1.Manager.Unspecified) {
+      if (other.Manager != global::ModConductor.Protocol.V1.MigrationManager.Unspecified) {
         Manager = other.Manager;
       }
       if (other.SourceFolder.Length != 0) {
@@ -312,7 +314,7 @@ namespace ModConductor.Protocol.V1 {
             break;
           }
           case 16: {
-            Manager = (global::ModConductor.Protocol.V1.Manager) input.ReadEnum();
+            Manager = (global::ModConductor.Protocol.V1.MigrationManager) input.ReadEnum();
             break;
           }
           case 26: {
@@ -343,7 +345,7 @@ namespace ModConductor.Protocol.V1 {
             break;
           }
           case 16: {
-            Manager = (global::ModConductor.Protocol.V1.Manager) input.ReadEnum();
+            Manager = (global::ModConductor.Protocol.V1.MigrationManager) input.ReadEnum();
             break;
           }
           case 26: {
@@ -358,16 +360,16 @@ namespace ModConductor.Protocol.V1 {
   }
 
   [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
-  public sealed partial class MigrateProgress : pb::IMessage<MigrateProgress>
+  public sealed partial class MigrationProgress : pb::IMessage<MigrationProgress>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
   #endif
   {
-    private static readonly pb::MessageParser<MigrateProgress> _parser = new pb::MessageParser<MigrateProgress>(() => new MigrateProgress());
+    private static readonly pb::MessageParser<MigrationProgress> _parser = new pb::MessageParser<MigrationProgress>(() => new MigrationProgress());
     private pb::UnknownFieldSet _unknownFields;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public static pb::MessageParser<MigrateProgress> Parser { get { return _parser; } }
+    public static pb::MessageParser<MigrationProgress> Parser { get { return _parser; } }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
@@ -383,7 +385,7 @@ namespace ModConductor.Protocol.V1 {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public MigrateProgress() {
+    public MigrationProgress() {
       OnConstruction();
     }
 
@@ -391,7 +393,7 @@ namespace ModConductor.Protocol.V1 {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public MigrateProgress(MigrateProgress other) : this() {
+    public MigrationProgress(MigrationProgress other) : this() {
       completed_ = other.completed_;
       total_ = other.total_;
       message_ = other.message_;
@@ -400,8 +402,8 @@ namespace ModConductor.Protocol.V1 {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public MigrateProgress Clone() {
-      return new MigrateProgress(this);
+    public MigrationProgress Clone() {
+      return new MigrationProgress(this);
     }
 
     /// <summary>Field number for the "completed" field.</summary>
@@ -443,12 +445,12 @@ namespace ModConductor.Protocol.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
-      return Equals(other as MigrateProgress);
+      return Equals(other as MigrationProgress);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public bool Equals(MigrateProgress other) {
+    public bool Equals(MigrationProgress other) {
       if (ReferenceEquals(other, null)) {
         return false;
       }
@@ -547,7 +549,7 @@ namespace ModConductor.Protocol.V1 {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public void MergeFrom(MigrateProgress other) {
+    public void MergeFrom(MigrationProgress other) {
       if (other == null) {
         return;
       }
@@ -630,16 +632,16 @@ namespace ModConductor.Protocol.V1 {
   }
 
   [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
-  public sealed partial class MigrateError : pb::IMessage<MigrateError>
+  public sealed partial class MigrationError : pb::IMessage<MigrationError>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
   #endif
   {
-    private static readonly pb::MessageParser<MigrateError> _parser = new pb::MessageParser<MigrateError>(() => new MigrateError());
+    private static readonly pb::MessageParser<MigrationError> _parser = new pb::MessageParser<MigrationError>(() => new MigrationError());
     private pb::UnknownFieldSet _unknownFields;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public static pb::MessageParser<MigrateError> Parser { get { return _parser; } }
+    public static pb::MessageParser<MigrationError> Parser { get { return _parser; } }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
@@ -655,7 +657,7 @@ namespace ModConductor.Protocol.V1 {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public MigrateError() {
+    public MigrationError() {
       OnConstruction();
     }
 
@@ -663,7 +665,7 @@ namespace ModConductor.Protocol.V1 {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public MigrateError(MigrateError other) : this() {
+    public MigrationError(MigrationError other) : this() {
       code_ = other.code_;
       detail_ = other.detail_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
@@ -671,16 +673,16 @@ namespace ModConductor.Protocol.V1 {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public MigrateError Clone() {
-      return new MigrateError(this);
+    public MigrationError Clone() {
+      return new MigrationError(this);
     }
 
     /// <summary>Field number for the "code" field.</summary>
     public const int CodeFieldNumber = 1;
-    private global::ModConductor.Protocol.V1.MigrateErrorCode code_ = global::ModConductor.Protocol.V1.MigrateErrorCode.Unspecified;
+    private global::ModConductor.Protocol.V1.MigrationErrorCode code_ = global::ModConductor.Protocol.V1.MigrationErrorCode.Unspecified;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public global::ModConductor.Protocol.V1.MigrateErrorCode Code {
+    public global::ModConductor.Protocol.V1.MigrationErrorCode Code {
       get { return code_; }
       set {
         code_ = value;
@@ -702,12 +704,12 @@ namespace ModConductor.Protocol.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
-      return Equals(other as MigrateError);
+      return Equals(other as MigrationError);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public bool Equals(MigrateError other) {
+    public bool Equals(MigrationError other) {
       if (ReferenceEquals(other, null)) {
         return false;
       }
@@ -723,7 +725,7 @@ namespace ModConductor.Protocol.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override int GetHashCode() {
       int hash = 1;
-      if (Code != global::ModConductor.Protocol.V1.MigrateErrorCode.Unspecified) hash ^= Code.GetHashCode();
+      if (Code != global::ModConductor.Protocol.V1.MigrationErrorCode.Unspecified) hash ^= Code.GetHashCode();
       if (Detail.Length != 0) hash ^= Detail.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
@@ -743,7 +745,7 @@ namespace ModConductor.Protocol.V1 {
     #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       output.WriteRawMessage(this);
     #else
-      if (Code != global::ModConductor.Protocol.V1.MigrateErrorCode.Unspecified) {
+      if (Code != global::ModConductor.Protocol.V1.MigrationErrorCode.Unspecified) {
         output.WriteRawTag(8);
         output.WriteEnum((int) Code);
       }
@@ -761,7 +763,7 @@ namespace ModConductor.Protocol.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
-      if (Code != global::ModConductor.Protocol.V1.MigrateErrorCode.Unspecified) {
+      if (Code != global::ModConductor.Protocol.V1.MigrationErrorCode.Unspecified) {
         output.WriteRawTag(8);
         output.WriteEnum((int) Code);
       }
@@ -779,7 +781,7 @@ namespace ModConductor.Protocol.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int CalculateSize() {
       int size = 0;
-      if (Code != global::ModConductor.Protocol.V1.MigrateErrorCode.Unspecified) {
+      if (Code != global::ModConductor.Protocol.V1.MigrationErrorCode.Unspecified) {
         size += 1 + pb::CodedOutputStream.ComputeEnumSize((int) Code);
       }
       if (Detail.Length != 0) {
@@ -793,11 +795,11 @@ namespace ModConductor.Protocol.V1 {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public void MergeFrom(MigrateError other) {
+    public void MergeFrom(MigrationError other) {
       if (other == null) {
         return;
       }
-      if (other.Code != global::ModConductor.Protocol.V1.MigrateErrorCode.Unspecified) {
+      if (other.Code != global::ModConductor.Protocol.V1.MigrationErrorCode.Unspecified) {
         Code = other.Code;
       }
       if (other.Detail.Length != 0) {
@@ -823,7 +825,7 @@ namespace ModConductor.Protocol.V1 {
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
           case 8: {
-            Code = (global::ModConductor.Protocol.V1.MigrateErrorCode) input.ReadEnum();
+            Code = (global::ModConductor.Protocol.V1.MigrationErrorCode) input.ReadEnum();
             break;
           }
           case 18: {
@@ -850,7 +852,7 @@ namespace ModConductor.Protocol.V1 {
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
           case 8: {
-            Code = (global::ModConductor.Protocol.V1.MigrateErrorCode) input.ReadEnum();
+            Code = (global::ModConductor.Protocol.V1.MigrationErrorCode) input.ReadEnum();
             break;
           }
           case 18: {
@@ -865,16 +867,16 @@ namespace ModConductor.Protocol.V1 {
   }
 
   [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
-  public sealed partial class MigrateResult : pb::IMessage<MigrateResult>
+  public sealed partial class MigrationResult : pb::IMessage<MigrationResult>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
   #endif
   {
-    private static readonly pb::MessageParser<MigrateResult> _parser = new pb::MessageParser<MigrateResult>(() => new MigrateResult());
+    private static readonly pb::MessageParser<MigrationResult> _parser = new pb::MessageParser<MigrationResult>(() => new MigrationResult());
     private pb::UnknownFieldSet _unknownFields;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public static pb::MessageParser<MigrateResult> Parser { get { return _parser; } }
+    public static pb::MessageParser<MigrationResult> Parser { get { return _parser; } }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
@@ -890,7 +892,7 @@ namespace ModConductor.Protocol.V1 {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public MigrateResult() {
+    public MigrationResult() {
       OnConstruction();
     }
 
@@ -898,7 +900,7 @@ namespace ModConductor.Protocol.V1 {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public MigrateResult(MigrateResult other) : this() {
+    public MigrationResult(MigrationResult other) : this() {
       workspaceId_ = other.workspaceId_;
       profiles_ = other.profiles_;
       mods_ = other.mods_;
@@ -908,8 +910,8 @@ namespace ModConductor.Protocol.V1 {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public MigrateResult Clone() {
-      return new MigrateResult(this);
+    public MigrationResult Clone() {
+      return new MigrationResult(this);
     }
 
     /// <summary>Field number for the "workspace_id" field.</summary>
@@ -963,12 +965,12 @@ namespace ModConductor.Protocol.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
-      return Equals(other as MigrateResult);
+      return Equals(other as MigrationResult);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public bool Equals(MigrateResult other) {
+    public bool Equals(MigrationResult other) {
       if (ReferenceEquals(other, null)) {
         return false;
       }
@@ -1080,7 +1082,7 @@ namespace ModConductor.Protocol.V1 {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public void MergeFrom(MigrateResult other) {
+    public void MergeFrom(MigrationResult other) {
       if (other == null) {
         return;
       }
@@ -1174,16 +1176,16 @@ namespace ModConductor.Protocol.V1 {
   }
 
   [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
-  public sealed partial class MigrateEvent : pb::IMessage<MigrateEvent>
+  public sealed partial class MigrationEvent : pb::IMessage<MigrationEvent>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
   #endif
   {
-    private static readonly pb::MessageParser<MigrateEvent> _parser = new pb::MessageParser<MigrateEvent>(() => new MigrateEvent());
+    private static readonly pb::MessageParser<MigrationEvent> _parser = new pb::MessageParser<MigrationEvent>(() => new MigrationEvent());
     private pb::UnknownFieldSet _unknownFields;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public static pb::MessageParser<MigrateEvent> Parser { get { return _parser; } }
+    public static pb::MessageParser<MigrationEvent> Parser { get { return _parser; } }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
@@ -1199,7 +1201,7 @@ namespace ModConductor.Protocol.V1 {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public MigrateEvent() {
+    public MigrationEvent() {
       OnConstruction();
     }
 
@@ -1207,7 +1209,7 @@ namespace ModConductor.Protocol.V1 {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public MigrateEvent(MigrateEvent other) : this() {
+    public MigrationEvent(MigrationEvent other) : this() {
       switch (other.EventCase) {
         case EventOneofCase.Progress:
           Progress = other.Progress.Clone();
@@ -1225,16 +1227,16 @@ namespace ModConductor.Protocol.V1 {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public MigrateEvent Clone() {
-      return new MigrateEvent(this);
+    public MigrationEvent Clone() {
+      return new MigrationEvent(this);
     }
 
     /// <summary>Field number for the "progress" field.</summary>
     public const int ProgressFieldNumber = 1;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public global::ModConductor.Protocol.V1.MigrateProgress Progress {
-      get { return eventCase_ == EventOneofCase.Progress ? (global::ModConductor.Protocol.V1.MigrateProgress) event_ : null; }
+    public global::ModConductor.Protocol.V1.MigrationProgress Progress {
+      get { return eventCase_ == EventOneofCase.Progress ? (global::ModConductor.Protocol.V1.MigrationProgress) event_ : null; }
       set {
         event_ = value;
         eventCase_ = value == null ? EventOneofCase.None : EventOneofCase.Progress;
@@ -1245,8 +1247,8 @@ namespace ModConductor.Protocol.V1 {
     public const int ErrorFieldNumber = 2;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public global::ModConductor.Protocol.V1.MigrateError Error {
-      get { return eventCase_ == EventOneofCase.Error ? (global::ModConductor.Protocol.V1.MigrateError) event_ : null; }
+    public global::ModConductor.Protocol.V1.MigrationError Error {
+      get { return eventCase_ == EventOneofCase.Error ? (global::ModConductor.Protocol.V1.MigrationError) event_ : null; }
       set {
         event_ = value;
         eventCase_ = value == null ? EventOneofCase.None : EventOneofCase.Error;
@@ -1257,8 +1259,8 @@ namespace ModConductor.Protocol.V1 {
     public const int ResultFieldNumber = 3;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public global::ModConductor.Protocol.V1.MigrateResult Result {
-      get { return eventCase_ == EventOneofCase.Result ? (global::ModConductor.Protocol.V1.MigrateResult) event_ : null; }
+    public global::ModConductor.Protocol.V1.MigrationResult Result {
+      get { return eventCase_ == EventOneofCase.Result ? (global::ModConductor.Protocol.V1.MigrationResult) event_ : null; }
       set {
         event_ = value;
         eventCase_ = value == null ? EventOneofCase.None : EventOneofCase.Result;
@@ -1290,12 +1292,12 @@ namespace ModConductor.Protocol.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
-      return Equals(other as MigrateEvent);
+      return Equals(other as MigrationEvent);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public bool Equals(MigrateEvent other) {
+    public bool Equals(MigrationEvent other) {
       if (ReferenceEquals(other, null)) {
         return false;
       }
@@ -1396,26 +1398,26 @@ namespace ModConductor.Protocol.V1 {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public void MergeFrom(MigrateEvent other) {
+    public void MergeFrom(MigrationEvent other) {
       if (other == null) {
         return;
       }
       switch (other.EventCase) {
         case EventOneofCase.Progress:
           if (Progress == null) {
-            Progress = new global::ModConductor.Protocol.V1.MigrateProgress();
+            Progress = new global::ModConductor.Protocol.V1.MigrationProgress();
           }
           Progress.MergeFrom(other.Progress);
           break;
         case EventOneofCase.Error:
           if (Error == null) {
-            Error = new global::ModConductor.Protocol.V1.MigrateError();
+            Error = new global::ModConductor.Protocol.V1.MigrationError();
           }
           Error.MergeFrom(other.Error);
           break;
         case EventOneofCase.Result:
           if (Result == null) {
-            Result = new global::ModConductor.Protocol.V1.MigrateResult();
+            Result = new global::ModConductor.Protocol.V1.MigrationResult();
           }
           Result.MergeFrom(other.Result);
           break;
@@ -1441,7 +1443,7 @@ namespace ModConductor.Protocol.V1 {
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
           case 10: {
-            global::ModConductor.Protocol.V1.MigrateProgress subBuilder = new global::ModConductor.Protocol.V1.MigrateProgress();
+            global::ModConductor.Protocol.V1.MigrationProgress subBuilder = new global::ModConductor.Protocol.V1.MigrationProgress();
             if (eventCase_ == EventOneofCase.Progress) {
               subBuilder.MergeFrom(Progress);
             }
@@ -1450,7 +1452,7 @@ namespace ModConductor.Protocol.V1 {
             break;
           }
           case 18: {
-            global::ModConductor.Protocol.V1.MigrateError subBuilder = new global::ModConductor.Protocol.V1.MigrateError();
+            global::ModConductor.Protocol.V1.MigrationError subBuilder = new global::ModConductor.Protocol.V1.MigrationError();
             if (eventCase_ == EventOneofCase.Error) {
               subBuilder.MergeFrom(Error);
             }
@@ -1459,7 +1461,7 @@ namespace ModConductor.Protocol.V1 {
             break;
           }
           case 26: {
-            global::ModConductor.Protocol.V1.MigrateResult subBuilder = new global::ModConductor.Protocol.V1.MigrateResult();
+            global::ModConductor.Protocol.V1.MigrationResult subBuilder = new global::ModConductor.Protocol.V1.MigrationResult();
             if (eventCase_ == EventOneofCase.Result) {
               subBuilder.MergeFrom(Result);
             }
@@ -1487,7 +1489,7 @@ namespace ModConductor.Protocol.V1 {
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
           case 10: {
-            global::ModConductor.Protocol.V1.MigrateProgress subBuilder = new global::ModConductor.Protocol.V1.MigrateProgress();
+            global::ModConductor.Protocol.V1.MigrationProgress subBuilder = new global::ModConductor.Protocol.V1.MigrationProgress();
             if (eventCase_ == EventOneofCase.Progress) {
               subBuilder.MergeFrom(Progress);
             }
@@ -1496,7 +1498,7 @@ namespace ModConductor.Protocol.V1 {
             break;
           }
           case 18: {
-            global::ModConductor.Protocol.V1.MigrateError subBuilder = new global::ModConductor.Protocol.V1.MigrateError();
+            global::ModConductor.Protocol.V1.MigrationError subBuilder = new global::ModConductor.Protocol.V1.MigrationError();
             if (eventCase_ == EventOneofCase.Error) {
               subBuilder.MergeFrom(Error);
             }
@@ -1505,7 +1507,7 @@ namespace ModConductor.Protocol.V1 {
             break;
           }
           case 26: {
-            global::ModConductor.Protocol.V1.MigrateResult subBuilder = new global::ModConductor.Protocol.V1.MigrateResult();
+            global::ModConductor.Protocol.V1.MigrationResult subBuilder = new global::ModConductor.Protocol.V1.MigrationResult();
             if (eventCase_ == EventOneofCase.Result) {
               subBuilder.MergeFrom(Result);
             }

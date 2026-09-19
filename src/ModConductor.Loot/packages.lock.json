@@ -81,7 +81,6 @@
           "FSharp.Core": "[10.1.400, )",
           "ModConductor.ArchiveInspection": "[1.0.0, )",
           "ModConductor.Bethesda": "[1.0.0, )",
-          "ModConductor.FilePlanning": "[1.0.0, )",
           "ModConductor.GameContexts": "[1.0.0, )"
         }
       },

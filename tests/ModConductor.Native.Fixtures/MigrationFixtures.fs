@@ -6,6 +6,7 @@ open System.Security.Cryptography
 open System.Text
 open System.Text.Json
 open System.Threading
+open Microsoft.Data.Sqlite
 open ModConductor.ArtifactLibrary
 open ModConductor.Migration
 open ModConductor.ModLibrary
@@ -42,7 +43,7 @@ module MigrationFixtures =
 
         write
             (Path.Combine(alpha, "meta.ini"))
-            "[General]\nversion=1.2\nnotes=Useful notes\ncomments=Migration comment\ncategory=2\ninstallationFile=alpha.zip\nnexus_api_key=do-not-migrate\n"
+            "[General]\nversion=1.2\nnotes=Useful notes\ncomments=Migration comment\ncategory=2\ninstallationFile=legacy.zip\nnexus_api_key=do-not-migrate\n[installedFiles]\n1\\modid=42\n1\\fileid=7\nsize=1\n"
 
         write (Path.Combine(alpha, "textures", "alpha.txt")) "alpha payload"
         Directory.CreateDirectory(Path.Combine(mods, "Divider_separator")) |> ignore
@@ -63,7 +64,7 @@ module MigrationFixtures =
 
         write
             (Path.Combine(downloads, "alpha.zip.meta"))
-            "[General]\ninstalled=true\nurl=https://example.invalid/alpha.zip?token=do-not-migrate\nauthor=Example\napiKey=do-not-migrate\n"
+            "[General]\ninstalled=false\nmodID=42\nfileID=7\nurl=https://example.invalid/alpha.zip?token=do-not-migrate\nauthor=Example\napiKey=do-not-migrate\n"
 
         bytes (Path.Combine(downloads, "partial.zip.unfinished")) [| 1uy; 2uy; 3uy |]
 
@@ -105,11 +106,11 @@ module MigrationFixtures =
         page.Profiles.IsEmpty && mods.Entries.IsEmpty && artifacts.Entries.IsEmpty
 
     let worker (mode: string) (state: string) (source: string) (workspace: string) =
-        use store = new OperationStore(state)
-
         let checkpoint value =
             if value = mode then
                 StorageWorker.pause ()
+
+        use store = new OperationStore(state, migrationCheckpoint = checkpoint)
 
         store.MigrateAtCheckpoint(
             { WorkspaceId = Guid.Parse workspace
@@ -154,7 +155,40 @@ module MigrationFixtures =
             |> Seq.filter (fun name -> name <> ".mod-conductor-root")
             |> Seq.toList
 
-        empty recovered workspace && owned.IsEmpty
+        if mode = "after-commit" then
+            not (empty recovered workspace)
+            && owned.Length = 1
+            && owned[0].StartsWith(".mod-conductor-library-", StringComparison.Ordinal)
+        else
+            empty recovered workspace && owned.IsEmpty
+
+    let private existingLibrary state workspace =
+        use connection =
+            new SqliteConnection("Data Source=" + Path.Combine(state, "state.db"))
+
+        connection.Open()
+        use command = connection.CreateCommand()
+
+        command.CommandText <-
+            "INSERT INTO mod_libraries(workspace_id,directory,owner,phase,identity) VALUES($workspace,'existing-library','fixture',2,NULL)"
+
+        command.Parameters.AddWithValue("$workspace", string workspace) |> ignore
+        command.ExecuteNonQuery() |> ignore
+
+    let private emptyCounts state workspace =
+        use connection =
+            new SqliteConnection("Data Source=" + Path.Combine(state, "state.db"))
+
+        connection.Open()
+        use command = connection.CreateCommand()
+
+        command.CommandText <-
+            "SELECT (SELECT count(*) FROM profiles WHERE workspace_id=$workspace) + (SELECT count(*) FROM mods WHERE workspace_id=$workspace) + (SELECT count(*) FROM artifacts WHERE workspace_id=$workspace), (SELECT count(*) FROM mod_libraries WHERE workspace_id=$workspace)"
+
+        command.Parameters.AddWithValue("$workspace", string workspace) |> ignore
+        use reader = command.ExecuteReader()
+        reader.Read() |> ignore
+        reader.GetInt64(0), reader.GetInt64(1)
 
     let private migrate
         (store: OperationStore)
@@ -323,6 +357,140 @@ module MigrationFixtures =
                 && empty store cancelWorkspace
             )
 
+        let changedSource action name =
+            let changedArea = Directory.CreateDirectory(Path.Combine(area, name)).FullName
+            let changedRoot = source changedArea "source"
+
+            let changedState =
+                Directory.CreateDirectory(Path.Combine(changedArea, "state")).FullName
+
+            let changedWorkspace =
+                use store = new OperationStore(changedState)
+                createWorkspace store changedArea "workspace" |> fst
+
+            use store = new OperationStore(changedState)
+
+            let outcome =
+                store.MigrateAtCheckpoint(
+                    { WorkspaceId = changedWorkspace
+                      SourceFolder = changedRoot },
+                    ignore,
+                    CancellationToken.None,
+                    fun checkpoint ->
+                        if checkpoint = "before-source-recheck" then
+                            action changedRoot
+                )
+                |> wait
+
+            (match outcome with
+             | Error Error.SourceChanged -> true
+             | _ -> false)
+            && empty store changedWorkspace
+
+        let addedSource =
+            changedSource
+                (fun root -> write (Path.Combine(root, "mods", "Alpha", "added.txt")) "added")
+                "source-added"
+
+        let removedSource =
+            changedSource
+                (fun root -> File.Delete(Path.Combine(root, "downloads", "alpha.zip")))
+                "source-removed"
+
+        writer.WriteBoolean("sourceManifestChanged", addedSource && removedSource)
+
+        let foreignArea =
+            Directory.CreateDirectory(Path.Combine(area, "foreign-root")).FullName
+
+        let foreignState =
+            Directory.CreateDirectory(Path.Combine(foreignArea, "state")).FullName
+
+        let foreignWorkspace, foreignRoot =
+            use store = new OperationStore(foreignState)
+            createWorkspace store foreignArea "workspace"
+
+        write (Path.Combine(foreignRoot, "foreign.txt")) "not managed"
+
+        do
+            use store = new OperationStore(foreignState)
+
+            writer.WriteBoolean(
+                "foreignRootGuard",
+                (match migrate store foreignWorkspace sourceRoot CancellationToken.None ignore with
+                 | Error Error.TargetNotEmpty -> true
+                 | _ -> false)
+                && empty store foreignWorkspace
+            )
+
+        let changedTargetArea =
+            Directory.CreateDirectory(Path.Combine(area, "changed-target")).FullName
+
+        let changedTargetState =
+            Directory.CreateDirectory(Path.Combine(changedTargetArea, "state")).FullName
+
+        let changedTargetWorkspace, changedTargetRoot =
+            use store = new OperationStore(changedTargetState)
+            createWorkspace store changedTargetArea "workspace"
+
+        do
+            use store = new OperationStore(changedTargetState)
+
+            let outcome =
+                store.MigrateAtCheckpoint(
+                    { WorkspaceId = changedTargetWorkspace
+                      SourceFolder = sourceRoot },
+                    ignore,
+                    CancellationToken.None,
+                    fun checkpoint ->
+                        if checkpoint = "before-publication" then
+                            write (Path.Combine(changedTargetRoot, "foreign.txt")) "not managed"
+                )
+                |> wait
+
+            let published =
+                Directory.EnumerateFileSystemEntries changedTargetRoot
+                |> Seq.map Path.GetFileName
+                |> Seq.exists (fun name ->
+                    name.StartsWith(".mod-conductor-library-", StringComparison.Ordinal))
+
+            writer.WriteBoolean(
+                "targetRecheck",
+                (match outcome with
+                 | Error Error.TargetNotEmpty -> true
+                 | _ -> false)
+                && not published
+                && empty store changedTargetWorkspace
+            )
+
+        let libraryArea =
+            Directory.CreateDirectory(Path.Combine(area, "empty-library")).FullName
+
+        let libraryState =
+            Directory.CreateDirectory(Path.Combine(libraryArea, "state")).FullName
+
+        let libraryWorkspace =
+            use store = new OperationStore(libraryState)
+            createWorkspace store libraryArea "workspace" |> fst
+
+        existingLibrary libraryState libraryWorkspace
+
+        do
+            use store = new OperationStore(libraryState)
+
+            let outcome =
+                migrate store libraryWorkspace sourceRoot CancellationToken.None ignore
+
+            let data, libraries = emptyCounts libraryState libraryWorkspace
+
+            writer.WriteBoolean(
+                "emptyLibraryGuard",
+                (match outcome with
+                 | Error Error.TargetNotEmpty -> true
+                 | _ -> false)
+                && data = 0L
+                && libraries = 1L
+            )
+
         let unsupportedArea =
             Directory.CreateDirectory(Path.Combine(area, "unsupported")).FullName
 
@@ -430,4 +598,6 @@ module MigrationFixtures =
 
         writer.WriteBoolean("crashBeforePublication", crashWindow area "before-publication")
         writer.WriteBoolean("crashAfterPublication", crashWindow area "after-publication")
+        writer.WriteBoolean("crashBeforeCommit", crashWindow area "before-commit")
+        writer.WriteBoolean("crashAfterCommit", crashWindow area "after-commit")
         writer.WriteEndObject()

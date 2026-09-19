@@ -46,17 +46,17 @@ namespace ModConductor.Protocol.V1 {
     }
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.MigrateRequest> __Marshaller_modconductor_v1_MigrateRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.MigrateRequest.Parser));
+    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.MigrationRequest> __Marshaller_modconductor_v1_MigrationRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.MigrationRequest.Parser));
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.MigrateEvent> __Marshaller_modconductor_v1_MigrateEvent = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.MigrateEvent.Parser));
+    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.MigrationEvent> __Marshaller_modconductor_v1_MigrationEvent = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.MigrationEvent.Parser));
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-    static readonly grpc::Method<global::ModConductor.Protocol.V1.MigrateRequest, global::ModConductor.Protocol.V1.MigrateEvent> __Method_Migrate = new grpc::Method<global::ModConductor.Protocol.V1.MigrateRequest, global::ModConductor.Protocol.V1.MigrateEvent>(
+    static readonly grpc::Method<global::ModConductor.Protocol.V1.MigrationRequest, global::ModConductor.Protocol.V1.MigrationEvent> __Method_Migrate = new grpc::Method<global::ModConductor.Protocol.V1.MigrationRequest, global::ModConductor.Protocol.V1.MigrationEvent>(
         grpc::MethodType.ServerStreaming,
         __ServiceName,
         "Migrate",
-        __Marshaller_modconductor_v1_MigrateRequest,
-        __Marshaller_modconductor_v1_MigrateEvent);
+        __Marshaller_modconductor_v1_MigrationRequest,
+        __Marshaller_modconductor_v1_MigrationEvent);
 
     /// <summary>Service descriptor</summary>
     public static global::Google.Protobuf.Reflection.ServiceDescriptor Descriptor
@@ -69,7 +69,7 @@ namespace ModConductor.Protocol.V1 {
     public abstract partial class MigrationOperationsBase
     {
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual global::System.Threading.Tasks.Task Migrate(global::ModConductor.Protocol.V1.MigrateRequest request, grpc::IServerStreamWriter<global::ModConductor.Protocol.V1.MigrateEvent> responseStream, grpc::ServerCallContext context)
+      public virtual global::System.Threading.Tasks.Task Migrate(global::ModConductor.Protocol.V1.MigrationRequest request, grpc::IServerStreamWriter<global::ModConductor.Protocol.V1.MigrationEvent> responseStream, grpc::ServerCallContext context)
       {
         throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
       }
@@ -104,12 +104,12 @@ namespace ModConductor.Protocol.V1 {
       }
 
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual grpc::AsyncServerStreamingCall<global::ModConductor.Protocol.V1.MigrateEvent> Migrate(global::ModConductor.Protocol.V1.MigrateRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      public virtual grpc::AsyncServerStreamingCall<global::ModConductor.Protocol.V1.MigrationEvent> Migrate(global::ModConductor.Protocol.V1.MigrationRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
       {
         return Migrate(request, new grpc::CallOptions(headers, deadline, cancellationToken));
       }
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual grpc::AsyncServerStreamingCall<global::ModConductor.Protocol.V1.MigrateEvent> Migrate(global::ModConductor.Protocol.V1.MigrateRequest request, grpc::CallOptions options)
+      public virtual grpc::AsyncServerStreamingCall<global::ModConductor.Protocol.V1.MigrationEvent> Migrate(global::ModConductor.Protocol.V1.MigrationRequest request, grpc::CallOptions options)
       {
         return CallInvoker.AsyncServerStreamingCall(__Method_Migrate, null, options, request);
       }
@@ -137,7 +137,7 @@ namespace ModConductor.Protocol.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     public static void BindService(grpc::ServiceBinderBase serviceBinder, MigrationOperationsBase serviceImpl)
     {
-      serviceBinder.AddMethod(__Method_Migrate, serviceImpl == null ? null : new grpc::ServerStreamingServerMethod<global::ModConductor.Protocol.V1.MigrateRequest, global::ModConductor.Protocol.V1.MigrateEvent>(serviceImpl.Migrate));
+      serviceBinder.AddMethod(__Method_Migrate, serviceImpl == null ? null : new grpc::ServerStreamingServerMethod<global::ModConductor.Protocol.V1.MigrationRequest, global::ModConductor.Protocol.V1.MigrationEvent>(serviceImpl.Migrate));
     }
 
   }

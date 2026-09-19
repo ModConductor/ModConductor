@@ -14,75 +14,78 @@ import 'dart:core' as $core;
 
 import 'package:protobuf/protobuf.dart' as $pb;
 
-class Manager extends $pb.ProtobufEnum {
-  static const Manager MANAGER_UNSPECIFIED =
-      Manager._(0, _omitEnumNames ? '' : 'MANAGER_UNSPECIFIED');
-  static const Manager MANAGER_MOD_ORGANIZER =
-      Manager._(1, _omitEnumNames ? '' : 'MANAGER_MOD_ORGANIZER');
+class MigrationManager extends $pb.ProtobufEnum {
+  static const MigrationManager MIGRATION_MANAGER_UNSPECIFIED =
+      MigrationManager._(
+          0, _omitEnumNames ? '' : 'MIGRATION_MANAGER_UNSPECIFIED');
+  static const MigrationManager MIGRATION_MANAGER_MOD_ORGANIZER =
+      MigrationManager._(
+          1, _omitEnumNames ? '' : 'MIGRATION_MANAGER_MOD_ORGANIZER');
 
-  static const $core.List<Manager> values = <Manager>[
-    MANAGER_UNSPECIFIED,
-    MANAGER_MOD_ORGANIZER,
+  static const $core.List<MigrationManager> values = <MigrationManager>[
+    MIGRATION_MANAGER_UNSPECIFIED,
+    MIGRATION_MANAGER_MOD_ORGANIZER,
   ];
 
-  static final $core.List<Manager?> _byValue =
+  static final $core.List<MigrationManager?> _byValue =
       $pb.ProtobufEnum.$_initByValueList(values, 1);
-  static Manager? valueOf($core.int value) =>
+  static MigrationManager? valueOf($core.int value) =>
       value < 0 || value >= _byValue.length ? null : _byValue[value];
 
-  const Manager._(super.value, super.name);
+  const MigrationManager._(super.value, super.name);
 }
 
-class MigrateErrorCode extends $pb.ProtobufEnum {
-  static const MigrateErrorCode MIGRATE_ERROR_CODE_UNSPECIFIED =
-      MigrateErrorCode._(
-          0, _omitEnumNames ? '' : 'MIGRATE_ERROR_CODE_UNSPECIFIED');
-  static const MigrateErrorCode MIGRATE_ERROR_CODE_INVALID_SOURCE =
-      MigrateErrorCode._(
-          1, _omitEnumNames ? '' : 'MIGRATE_ERROR_CODE_INVALID_SOURCE');
-  static const MigrateErrorCode MIGRATE_ERROR_CODE_TARGET_NOT_EMPTY =
-      MigrateErrorCode._(
-          2, _omitEnumNames ? '' : 'MIGRATE_ERROR_CODE_TARGET_NOT_EMPTY');
-  static const MigrateErrorCode MIGRATE_ERROR_CODE_UNSAFE_SOURCE =
-      MigrateErrorCode._(
-          3, _omitEnumNames ? '' : 'MIGRATE_ERROR_CODE_UNSAFE_SOURCE');
-  static const MigrateErrorCode MIGRATE_ERROR_CODE_CASE_COLLISION =
-      MigrateErrorCode._(
-          4, _omitEnumNames ? '' : 'MIGRATE_ERROR_CODE_CASE_COLLISION');
-  static const MigrateErrorCode MIGRATE_ERROR_CODE_UNSUPPORTED_DATA =
-      MigrateErrorCode._(
-          5, _omitEnumNames ? '' : 'MIGRATE_ERROR_CODE_UNSUPPORTED_DATA');
-  static const MigrateErrorCode MIGRATE_ERROR_CODE_SOURCE_CHANGED =
-      MigrateErrorCode._(
-          6, _omitEnumNames ? '' : 'MIGRATE_ERROR_CODE_SOURCE_CHANGED');
-  static const MigrateErrorCode MIGRATE_ERROR_CODE_CANCELLED =
-      MigrateErrorCode._(
-          7, _omitEnumNames ? '' : 'MIGRATE_ERROR_CODE_CANCELLED');
-  static const MigrateErrorCode MIGRATE_ERROR_CODE_BUSY =
-      MigrateErrorCode._(8, _omitEnumNames ? '' : 'MIGRATE_ERROR_CODE_BUSY');
-  static const MigrateErrorCode MIGRATE_ERROR_CODE_UNAVAILABLE =
-      MigrateErrorCode._(
-          9, _omitEnumNames ? '' : 'MIGRATE_ERROR_CODE_UNAVAILABLE');
+class MigrationErrorCode extends $pb.ProtobufEnum {
+  static const MigrationErrorCode MIGRATION_ERROR_CODE_UNSPECIFIED =
+      MigrationErrorCode._(
+          0, _omitEnumNames ? '' : 'MIGRATION_ERROR_CODE_UNSPECIFIED');
+  static const MigrationErrorCode MIGRATION_ERROR_CODE_INVALID_SOURCE =
+      MigrationErrorCode._(
+          1, _omitEnumNames ? '' : 'MIGRATION_ERROR_CODE_INVALID_SOURCE');
+  static const MigrationErrorCode MIGRATION_ERROR_CODE_TARGET_NOT_EMPTY =
+      MigrationErrorCode._(
+          2, _omitEnumNames ? '' : 'MIGRATION_ERROR_CODE_TARGET_NOT_EMPTY');
+  static const MigrationErrorCode MIGRATION_ERROR_CODE_UNSAFE_SOURCE =
+      MigrationErrorCode._(
+          3, _omitEnumNames ? '' : 'MIGRATION_ERROR_CODE_UNSAFE_SOURCE');
+  static const MigrationErrorCode MIGRATION_ERROR_CODE_CASE_COLLISION =
+      MigrationErrorCode._(
+          4, _omitEnumNames ? '' : 'MIGRATION_ERROR_CODE_CASE_COLLISION');
+  static const MigrationErrorCode MIGRATION_ERROR_CODE_UNSUPPORTED_DATA =
+      MigrationErrorCode._(
+          5, _omitEnumNames ? '' : 'MIGRATION_ERROR_CODE_UNSUPPORTED_DATA');
+  static const MigrationErrorCode MIGRATION_ERROR_CODE_SOURCE_CHANGED =
+      MigrationErrorCode._(
+          6, _omitEnumNames ? '' : 'MIGRATION_ERROR_CODE_SOURCE_CHANGED');
+  static const MigrationErrorCode MIGRATION_ERROR_CODE_CANCELLED =
+      MigrationErrorCode._(
+          7, _omitEnumNames ? '' : 'MIGRATION_ERROR_CODE_CANCELLED');
+  static const MigrationErrorCode MIGRATION_ERROR_CODE_BUSY =
+      MigrationErrorCode._(
+          8, _omitEnumNames ? '' : 'MIGRATION_ERROR_CODE_BUSY');
+  static const MigrationErrorCode MIGRATION_ERROR_CODE_UNAVAILABLE =
+      MigrationErrorCode._(
+          9, _omitEnumNames ? '' : 'MIGRATION_ERROR_CODE_UNAVAILABLE');
 
-  static const $core.List<MigrateErrorCode> values = <MigrateErrorCode>[
-    MIGRATE_ERROR_CODE_UNSPECIFIED,
-    MIGRATE_ERROR_CODE_INVALID_SOURCE,
-    MIGRATE_ERROR_CODE_TARGET_NOT_EMPTY,
-    MIGRATE_ERROR_CODE_UNSAFE_SOURCE,
-    MIGRATE_ERROR_CODE_CASE_COLLISION,
-    MIGRATE_ERROR_CODE_UNSUPPORTED_DATA,
-    MIGRATE_ERROR_CODE_SOURCE_CHANGED,
-    MIGRATE_ERROR_CODE_CANCELLED,
-    MIGRATE_ERROR_CODE_BUSY,
-    MIGRATE_ERROR_CODE_UNAVAILABLE,
+  static const $core.List<MigrationErrorCode> values = <MigrationErrorCode>[
+    MIGRATION_ERROR_CODE_UNSPECIFIED,
+    MIGRATION_ERROR_CODE_INVALID_SOURCE,
+    MIGRATION_ERROR_CODE_TARGET_NOT_EMPTY,
+    MIGRATION_ERROR_CODE_UNSAFE_SOURCE,
+    MIGRATION_ERROR_CODE_CASE_COLLISION,
+    MIGRATION_ERROR_CODE_UNSUPPORTED_DATA,
+    MIGRATION_ERROR_CODE_SOURCE_CHANGED,
+    MIGRATION_ERROR_CODE_CANCELLED,
+    MIGRATION_ERROR_CODE_BUSY,
+    MIGRATION_ERROR_CODE_UNAVAILABLE,
   ];
 
-  static final $core.List<MigrateErrorCode?> _byValue =
+  static final $core.List<MigrationErrorCode?> _byValue =
       $pb.ProtobufEnum.$_initByValueList(values, 9);
-  static MigrateErrorCode? valueOf($core.int value) =>
+  static MigrationErrorCode? valueOf($core.int value) =>
       value < 0 || value >= _byValue.length ? null : _byValue[value];
 
-  const MigrateErrorCode._(super.value, super.name);
+  const MigrationErrorCode._(super.value, super.name);
 }
 
 const $core.bool _omitEnumNames =

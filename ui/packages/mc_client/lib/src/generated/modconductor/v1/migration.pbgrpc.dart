@@ -32,8 +32,8 @@ class MigrationOperationsClient extends $grpc.Client {
 
   MigrationOperationsClient(super.channel, {super.options, super.interceptors});
 
-  $grpc.ResponseStream<$0.MigrateEvent> migrate(
-    $0.MigrateRequest request, {
+  $grpc.ResponseStream<$0.MigrationEvent> migrate(
+    $0.MigrationRequest request, {
     $grpc.CallOptions? options,
   }) {
     return $createStreamingCall(
@@ -44,10 +44,10 @@ class MigrationOperationsClient extends $grpc.Client {
   // method descriptors
 
   static final _$migrate =
-      $grpc.ClientMethod<$0.MigrateRequest, $0.MigrateEvent>(
+      $grpc.ClientMethod<$0.MigrationRequest, $0.MigrationEvent>(
           '/modconductor.v1.MigrationOperations/Migrate',
-          ($0.MigrateRequest value) => value.writeToBuffer(),
-          $0.MigrateEvent.fromBuffer);
+          ($0.MigrationRequest value) => value.writeToBuffer(),
+          $0.MigrationEvent.fromBuffer);
 }
 
 @$pb.GrpcServiceName('modconductor.v1.MigrationOperations')
@@ -55,20 +55,20 @@ abstract class MigrationOperationsServiceBase extends $grpc.Service {
   $core.String get $name => 'modconductor.v1.MigrationOperations';
 
   MigrationOperationsServiceBase() {
-    $addMethod($grpc.ServiceMethod<$0.MigrateRequest, $0.MigrateEvent>(
+    $addMethod($grpc.ServiceMethod<$0.MigrationRequest, $0.MigrationEvent>(
         'Migrate',
         migrate_Pre,
         false,
         true,
-        ($core.List<$core.int> value) => $0.MigrateRequest.fromBuffer(value),
-        ($0.MigrateEvent value) => value.writeToBuffer()));
+        ($core.List<$core.int> value) => $0.MigrationRequest.fromBuffer(value),
+        ($0.MigrationEvent value) => value.writeToBuffer()));
   }
 
-  $async.Stream<$0.MigrateEvent> migrate_Pre($grpc.ServiceCall $call,
-      $async.Future<$0.MigrateRequest> $request) async* {
+  $async.Stream<$0.MigrationEvent> migrate_Pre($grpc.ServiceCall $call,
+      $async.Future<$0.MigrationRequest> $request) async* {
     yield* migrate($call, await $request);
   }
 
-  $async.Stream<$0.MigrateEvent> migrate(
-      $grpc.ServiceCall call, $0.MigrateRequest request);
+  $async.Stream<$0.MigrationEvent> migrate(
+      $grpc.ServiceCall call, $0.MigrationRequest request);
 }

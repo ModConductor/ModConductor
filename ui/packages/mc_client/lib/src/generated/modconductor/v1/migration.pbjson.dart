@@ -15,51 +15,51 @@ import 'dart:convert' as $convert;
 import 'dart:core' as $core;
 import 'dart:typed_data' as $typed_data;
 
-@$core.Deprecated('Use managerDescriptor instead')
-const Manager$json = {
-  '1': 'Manager',
+@$core.Deprecated('Use migrationManagerDescriptor instead')
+const MigrationManager$json = {
+  '1': 'MigrationManager',
   '2': [
-    {'1': 'MANAGER_UNSPECIFIED', '2': 0},
-    {'1': 'MANAGER_MOD_ORGANIZER', '2': 1},
+    {'1': 'MIGRATION_MANAGER_UNSPECIFIED', '2': 0},
+    {'1': 'MIGRATION_MANAGER_MOD_ORGANIZER', '2': 1},
   ],
 };
 
-/// Descriptor for `Manager`. Decode as a `google.protobuf.EnumDescriptorProto`.
-final $typed_data.Uint8List managerDescriptor = $convert.base64Decode(
-    'CgdNYW5hZ2VyEhcKE01BTkFHRVJfVU5TUEVDSUZJRUQQABIZChVNQU5BR0VSX01PRF9PUkdBTk'
-    'laRVIQAQ==');
+/// Descriptor for `MigrationManager`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List migrationManagerDescriptor = $convert.base64Decode(
+    'ChBNaWdyYXRpb25NYW5hZ2VyEiEKHU1JR1JBVElPTl9NQU5BR0VSX1VOU1BFQ0lGSUVEEAASIw'
+    'ofTUlHUkFUSU9OX01BTkFHRVJfTU9EX09SR0FOSVpFUhAB');
 
-@$core.Deprecated('Use migrateErrorCodeDescriptor instead')
-const MigrateErrorCode$json = {
-  '1': 'MigrateErrorCode',
+@$core.Deprecated('Use migrationErrorCodeDescriptor instead')
+const MigrationErrorCode$json = {
+  '1': 'MigrationErrorCode',
   '2': [
-    {'1': 'MIGRATE_ERROR_CODE_UNSPECIFIED', '2': 0},
-    {'1': 'MIGRATE_ERROR_CODE_INVALID_SOURCE', '2': 1},
-    {'1': 'MIGRATE_ERROR_CODE_TARGET_NOT_EMPTY', '2': 2},
-    {'1': 'MIGRATE_ERROR_CODE_UNSAFE_SOURCE', '2': 3},
-    {'1': 'MIGRATE_ERROR_CODE_CASE_COLLISION', '2': 4},
-    {'1': 'MIGRATE_ERROR_CODE_UNSUPPORTED_DATA', '2': 5},
-    {'1': 'MIGRATE_ERROR_CODE_SOURCE_CHANGED', '2': 6},
-    {'1': 'MIGRATE_ERROR_CODE_CANCELLED', '2': 7},
-    {'1': 'MIGRATE_ERROR_CODE_BUSY', '2': 8},
-    {'1': 'MIGRATE_ERROR_CODE_UNAVAILABLE', '2': 9},
+    {'1': 'MIGRATION_ERROR_CODE_UNSPECIFIED', '2': 0},
+    {'1': 'MIGRATION_ERROR_CODE_INVALID_SOURCE', '2': 1},
+    {'1': 'MIGRATION_ERROR_CODE_TARGET_NOT_EMPTY', '2': 2},
+    {'1': 'MIGRATION_ERROR_CODE_UNSAFE_SOURCE', '2': 3},
+    {'1': 'MIGRATION_ERROR_CODE_CASE_COLLISION', '2': 4},
+    {'1': 'MIGRATION_ERROR_CODE_UNSUPPORTED_DATA', '2': 5},
+    {'1': 'MIGRATION_ERROR_CODE_SOURCE_CHANGED', '2': 6},
+    {'1': 'MIGRATION_ERROR_CODE_CANCELLED', '2': 7},
+    {'1': 'MIGRATION_ERROR_CODE_BUSY', '2': 8},
+    {'1': 'MIGRATION_ERROR_CODE_UNAVAILABLE', '2': 9},
   ],
 };
 
-/// Descriptor for `MigrateErrorCode`. Decode as a `google.protobuf.EnumDescriptorProto`.
-final $typed_data.Uint8List migrateErrorCodeDescriptor = $convert.base64Decode(
-    'ChBNaWdyYXRlRXJyb3JDb2RlEiIKHk1JR1JBVEVfRVJST1JfQ09ERV9VTlNQRUNJRklFRBAAEi'
-    'UKIU1JR1JBVEVfRVJST1JfQ09ERV9JTlZBTElEX1NPVVJDRRABEicKI01JR1JBVEVfRVJST1Jf'
-    'Q09ERV9UQVJHRVRfTk9UX0VNUFRZEAISJAogTUlHUkFURV9FUlJPUl9DT0RFX1VOU0FGRV9TT1'
-    'VSQ0UQAxIlCiFNSUdSQVRFX0VSUk9SX0NPREVfQ0FTRV9DT0xMSVNJT04QBBInCiNNSUdSQVRF'
-    'X0VSUk9SX0NPREVfVU5TVVBQT1JURURfREFUQRAFEiUKIU1JR1JBVEVfRVJST1JfQ09ERV9TT1'
-    'VSQ0VfQ0hBTkdFRBAGEiAKHE1JR1JBVEVfRVJST1JfQ09ERV9DQU5DRUxMRUQQBxIbChdNSUdS'
-    'QVRFX0VSUk9SX0NPREVfQlVTWRAIEiIKHk1JR1JBVEVfRVJST1JfQ09ERV9VTkFWQUlMQUJMRR'
-    'AJ');
+/// Descriptor for `MigrationErrorCode`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List migrationErrorCodeDescriptor = $convert.base64Decode(
+    'ChJNaWdyYXRpb25FcnJvckNvZGUSJAogTUlHUkFUSU9OX0VSUk9SX0NPREVfVU5TUEVDSUZJRU'
+    'QQABInCiNNSUdSQVRJT05fRVJST1JfQ09ERV9JTlZBTElEX1NPVVJDRRABEikKJU1JR1JBVElP'
+    'Tl9FUlJPUl9DT0RFX1RBUkdFVF9OT1RfRU1QVFkQAhImCiJNSUdSQVRJT05fRVJST1JfQ09ERV'
+    '9VTlNBRkVfU09VUkNFEAMSJwojTUlHUkFUSU9OX0VSUk9SX0NPREVfQ0FTRV9DT0xMSVNJT04Q'
+    'BBIpCiVNSUdSQVRJT05fRVJST1JfQ09ERV9VTlNVUFBPUlRFRF9EQVRBEAUSJwojTUlHUkFUSU'
+    '9OX0VSUk9SX0NPREVfU09VUkNFX0NIQU5HRUQQBhIiCh5NSUdSQVRJT05fRVJST1JfQ09ERV9D'
+    'QU5DRUxMRUQQBxIdChlNSUdSQVRJT05fRVJST1JfQ09ERV9CVVNZEAgSJAogTUlHUkFUSU9OX0'
+    'VSUk9SX0NPREVfVU5BVkFJTEFCTEUQCQ==');
 
-@$core.Deprecated('Use migrateRequestDescriptor instead')
-const MigrateRequest$json = {
-  '1': 'MigrateRequest',
+@$core.Deprecated('Use migrationRequestDescriptor instead')
+const MigrationRequest$json = {
+  '1': 'MigrationRequest',
   '2': [
     {'1': 'workspace_id', '3': 1, '4': 1, '5': 9, '10': 'workspaceId'},
     {
@@ -67,22 +67,22 @@ const MigrateRequest$json = {
       '3': 2,
       '4': 1,
       '5': 14,
-      '6': '.modconductor.v1.Manager',
+      '6': '.modconductor.v1.MigrationManager',
       '10': 'manager'
     },
     {'1': 'source_folder', '3': 3, '4': 1, '5': 9, '10': 'sourceFolder'},
   ],
 };
 
-/// Descriptor for `MigrateRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List migrateRequestDescriptor = $convert.base64Decode(
-    'Cg5NaWdyYXRlUmVxdWVzdBIhCgx3b3Jrc3BhY2VfaWQYASABKAlSC3dvcmtzcGFjZUlkEjIKB2'
-    '1hbmFnZXIYAiABKA4yGC5tb2Rjb25kdWN0b3IudjEuTWFuYWdlclIHbWFuYWdlchIjCg1zb3Vy'
-    'Y2VfZm9sZGVyGAMgASgJUgxzb3VyY2VGb2xkZXI=');
+/// Descriptor for `MigrationRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List migrationRequestDescriptor = $convert.base64Decode(
+    'ChBNaWdyYXRpb25SZXF1ZXN0EiEKDHdvcmtzcGFjZV9pZBgBIAEoCVILd29ya3NwYWNlSWQSOw'
+    'oHbWFuYWdlchgCIAEoDjIhLm1vZGNvbmR1Y3Rvci52MS5NaWdyYXRpb25NYW5hZ2VyUgdtYW5h'
+    'Z2VyEiMKDXNvdXJjZV9mb2xkZXIYAyABKAlSDHNvdXJjZUZvbGRlcg==');
 
-@$core.Deprecated('Use migrateProgressDescriptor instead')
-const MigrateProgress$json = {
-  '1': 'MigrateProgress',
+@$core.Deprecated('Use migrationProgressDescriptor instead')
+const MigrationProgress$json = {
+  '1': 'MigrationProgress',
   '2': [
     {'1': 'completed', '3': 1, '4': 1, '5': 13, '10': 'completed'},
     {'1': 'total', '3': 2, '4': 1, '5': 13, '10': 'total'},
@@ -90,35 +90,35 @@ const MigrateProgress$json = {
   ],
 };
 
-/// Descriptor for `MigrateProgress`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List migrateProgressDescriptor = $convert.base64Decode(
-    'Cg9NaWdyYXRlUHJvZ3Jlc3MSHAoJY29tcGxldGVkGAEgASgNUgljb21wbGV0ZWQSFAoFdG90YW'
-    'wYAiABKA1SBXRvdGFsEhgKB21lc3NhZ2UYAyABKAlSB21lc3NhZ2U=');
+/// Descriptor for `MigrationProgress`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List migrationProgressDescriptor = $convert.base64Decode(
+    'ChFNaWdyYXRpb25Qcm9ncmVzcxIcCgljb21wbGV0ZWQYASABKA1SCWNvbXBsZXRlZBIUCgV0b3'
+    'RhbBgCIAEoDVIFdG90YWwSGAoHbWVzc2FnZRgDIAEoCVIHbWVzc2FnZQ==');
 
-@$core.Deprecated('Use migrateErrorDescriptor instead')
-const MigrateError$json = {
-  '1': 'MigrateError',
+@$core.Deprecated('Use migrationErrorDescriptor instead')
+const MigrationError$json = {
+  '1': 'MigrationError',
   '2': [
     {
       '1': 'code',
       '3': 1,
       '4': 1,
       '5': 14,
-      '6': '.modconductor.v1.MigrateErrorCode',
+      '6': '.modconductor.v1.MigrationErrorCode',
       '10': 'code'
     },
     {'1': 'detail', '3': 2, '4': 1, '5': 9, '10': 'detail'},
   ],
 };
 
-/// Descriptor for `MigrateError`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List migrateErrorDescriptor = $convert.base64Decode(
-    'CgxNaWdyYXRlRXJyb3ISNQoEY29kZRgBIAEoDjIhLm1vZGNvbmR1Y3Rvci52MS5NaWdyYXRlRX'
-    'Jyb3JDb2RlUgRjb2RlEhYKBmRldGFpbBgCIAEoCVIGZGV0YWls');
+/// Descriptor for `MigrationError`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List migrationErrorDescriptor = $convert.base64Decode(
+    'Cg5NaWdyYXRpb25FcnJvchI3CgRjb2RlGAEgASgOMiMubW9kY29uZHVjdG9yLnYxLk1pZ3JhdG'
+    'lvbkVycm9yQ29kZVIEY29kZRIWCgZkZXRhaWwYAiABKAlSBmRldGFpbA==');
 
-@$core.Deprecated('Use migrateResultDescriptor instead')
-const MigrateResult$json = {
-  '1': 'MigrateResult',
+@$core.Deprecated('Use migrationResultDescriptor instead')
+const MigrationResult$json = {
+  '1': 'MigrationResult',
   '2': [
     {'1': 'workspace_id', '3': 1, '4': 1, '5': 9, '10': 'workspaceId'},
     {'1': 'profiles', '3': 2, '4': 1, '5': 13, '10': 'profiles'},
@@ -127,22 +127,22 @@ const MigrateResult$json = {
   ],
 };
 
-/// Descriptor for `MigrateResult`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List migrateResultDescriptor = $convert.base64Decode(
-    'Cg1NaWdyYXRlUmVzdWx0EiEKDHdvcmtzcGFjZV9pZBgBIAEoCVILd29ya3NwYWNlSWQSGgoIcH'
-    'JvZmlsZXMYAiABKA1SCHByb2ZpbGVzEhIKBG1vZHMYAyABKA1SBG1vZHMSHAoJYXJ0aWZhY3Rz'
-    'GAQgASgNUglhcnRpZmFjdHM=');
+/// Descriptor for `MigrationResult`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List migrationResultDescriptor = $convert.base64Decode(
+    'Cg9NaWdyYXRpb25SZXN1bHQSIQoMd29ya3NwYWNlX2lkGAEgASgJUgt3b3Jrc3BhY2VJZBIaCg'
+    'hwcm9maWxlcxgCIAEoDVIIcHJvZmlsZXMSEgoEbW9kcxgDIAEoDVIEbW9kcxIcCglhcnRpZmFj'
+    'dHMYBCABKA1SCWFydGlmYWN0cw==');
 
-@$core.Deprecated('Use migrateEventDescriptor instead')
-const MigrateEvent$json = {
-  '1': 'MigrateEvent',
+@$core.Deprecated('Use migrationEventDescriptor instead')
+const MigrationEvent$json = {
+  '1': 'MigrationEvent',
   '2': [
     {
       '1': 'progress',
       '3': 1,
       '4': 1,
       '5': 11,
-      '6': '.modconductor.v1.MigrateProgress',
+      '6': '.modconductor.v1.MigrationProgress',
       '9': 0,
       '10': 'progress'
     },
@@ -151,7 +151,7 @@ const MigrateEvent$json = {
       '3': 2,
       '4': 1,
       '5': 11,
-      '6': '.modconductor.v1.MigrateError',
+      '6': '.modconductor.v1.MigrationError',
       '9': 0,
       '10': 'error'
     },
@@ -160,7 +160,7 @@ const MigrateEvent$json = {
       '3': 3,
       '4': 1,
       '5': 11,
-      '6': '.modconductor.v1.MigrateResult',
+      '6': '.modconductor.v1.MigrationResult',
       '9': 0,
       '10': 'result'
     },
@@ -170,9 +170,9 @@ const MigrateEvent$json = {
   ],
 };
 
-/// Descriptor for `MigrateEvent`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List migrateEventDescriptor = $convert.base64Decode(
-    'CgxNaWdyYXRlRXZlbnQSPgoIcHJvZ3Jlc3MYASABKAsyIC5tb2Rjb25kdWN0b3IudjEuTWlncm'
-    'F0ZVByb2dyZXNzSABSCHByb2dyZXNzEjUKBWVycm9yGAIgASgLMh0ubW9kY29uZHVjdG9yLnYx'
-    'Lk1pZ3JhdGVFcnJvckgAUgVlcnJvchI4CgZyZXN1bHQYAyABKAsyHi5tb2Rjb25kdWN0b3Iudj'
-    'EuTWlncmF0ZVJlc3VsdEgAUgZyZXN1bHRCBwoFZXZlbnQ=');
+/// Descriptor for `MigrationEvent`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List migrationEventDescriptor = $convert.base64Decode(
+    'Cg5NaWdyYXRpb25FdmVudBJACghwcm9ncmVzcxgBIAEoCzIiLm1vZGNvbmR1Y3Rvci52MS5NaW'
+    'dyYXRpb25Qcm9ncmVzc0gAUghwcm9ncmVzcxI3CgVlcnJvchgCIAEoCzIfLm1vZGNvbmR1Y3Rv'
+    'ci52MS5NaWdyYXRpb25FcnJvckgAUgVlcnJvchI6CgZyZXN1bHQYAyABKAsyIC5tb2Rjb25kdW'
+    'N0b3IudjEuTWlncmF0aW9uUmVzdWx0SABSBnJlc3VsdEIHCgVldmVudA==');

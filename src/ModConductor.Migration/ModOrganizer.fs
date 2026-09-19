@@ -25,6 +25,12 @@ module ModOrganizer =
           Length: int64
           Sha256: string }
 
+    type private Manifest =
+        { Path: string
+          RootIdentity: FileIdentity
+          Entries: (string * EntryKind * EntryKind * Observation<FileIdentity>) list
+          Diagnostics: PathDiagnostic list }
+
     type private SourceFile = { Stamp: Stamp; Path: LogicalPath }
 
     type private SourceMod =
@@ -34,6 +40,7 @@ module ModOrganizer =
           Kind: ModKind
           Metadata: ModMetadata
           CategorySourceIds: int list
+          InstalledFiles: (int * int) list
           Files: SourceFile list }
 
     type private SourceProfile =
@@ -56,7 +63,9 @@ module ModOrganizer =
           Profiles: SourceProfile list
           SelectedProfile: Guid
           Artifacts: SourceArtifact list
-          Stamps: Stamp list }
+          Stamps: Stamp list
+          Manifests: Manifest list
+          AbsentPaths: string list }
 
     exception private Refused of Error
 
@@ -245,6 +254,34 @@ module ModOrganizer =
 
         values
 
+    let private qsettingsArray section (values: Dictionary<string * string, string>) =
+        let size =
+            match values.TryGetValue((section, "size")) with
+            | false, _ -> 0
+            | true, value ->
+                match Int32.TryParse value with
+                | true, count when count >= 0 && count <= maxEntries -> count
+                | _ ->
+                    refuse (
+                        Error.InvalidSource("A Mod Organizer metadata array has an invalid size.")
+                    )
+
+        [ for index in 1..size do
+              let prefix = string index + "\\"
+
+              yield
+                  values
+                  |> Seq.choose (fun item ->
+                      let itemSection, key = item.Key
+
+                      if
+                          itemSection = section && key.StartsWith(prefix, StringComparison.Ordinal)
+                      then
+                          Some(key.Substring(prefix.Length), item.Value)
+                      else
+                          None)
+                  |> Map.ofSeq ]
+
     let private trySetting section name (values: Dictionary<string * string, string>) =
         match values.TryGetValue((section, name)) with
         | true, value -> Some value
@@ -270,7 +307,7 @@ module ModOrganizer =
         else
             Path.GetFullPath(Path.Combine(basePath, normalized))
 
-    let private scanRoot path =
+    let private inspectRoot path =
         let root = selectedRoot path
 
         let result =
@@ -280,6 +317,24 @@ module ModOrganizer =
                   Diagnostics = 64 }
                 TargetPolicy.windows
                 root
+
+        let manifest =
+            { Path = Path.GetFullPath path
+              RootIdentity = rootIdentity root
+              Entries =
+                result.Entries
+                |> List.map (fun entry ->
+                    LogicalPath.display entry.Logical,
+                    entry.Kind,
+                    entry.TargetKind,
+                    entry.Facts.File)
+                |> List.sortBy (fun (path, _, _, _) -> path)
+              Diagnostics = result.Diagnostics |> List.sortBy (fun item -> item.Path) }
+
+        root, result, manifest
+
+    let private scanRoot path =
+        let root, result, manifest = inspectRoot path
 
         result.Diagnostics
         |> List.tryFind (fun item ->
@@ -301,7 +356,28 @@ module ModOrganizer =
                 )
             ))
 
-        root, result.Entries
+        root, result.Entries, manifest
+
+    let private verifyManifest (expected: Manifest) =
+        let current =
+            try
+                let _, _, value = inspectRoot expected.Path
+                Some value
+            with
+            | :? IOException
+            | :? UnauthorizedAccessException
+            | Refused _ -> None
+
+        if current <> Some expected then
+            refuse Error.SourceChanged
+
+    let private pathExists (path: string) =
+        try
+            File.GetAttributes path |> ignore
+            true
+        with
+        | :? FileNotFoundException
+        | :? DirectoryNotFoundException -> false
 
     let private stamp root (entry: PathEntry) =
         match entry.Facts.File with
@@ -330,15 +406,16 @@ module ModOrganizer =
             let value = line.Trim()
             value <> "" && not (value.StartsWith('#')) && not (value.StartsWith(';')))
 
-    let private categoryData (sourceFolder: string) (basePath: string) =
+    let private categoryPaths (sourceFolder: string) (basePath: string) =
         [ Path.Combine(sourceFolder, "categories.dat")
           Path.Combine(basePath, "categories.dat") ]
         |> List.distinct
-        |> List.tryFind File.Exists
 
     let private readCategories (sourceFolder: string) (basePath: string) =
-        match categoryData sourceFolder basePath with
-        | None -> [], []
+        let candidates = categoryPaths sourceFolder basePath
+
+        match candidates |> List.tryFind File.Exists with
+        | None -> [], [], candidates
         | Some path ->
             let categoryStamp = directFile path
             let mutable categories = []
@@ -383,6 +460,11 @@ module ModOrganizer =
             let stamps = ResizeArray<Stamp>()
             stamps.Add categoryStamp
 
+            let absent =
+                candidates
+                |> List.filter (fun candidate -> not (pathExists candidate))
+                |> fun values -> if pathExists mapping then values else mapping :: values
+
             if File.Exists mapping then
                 let mappingStamp = directFile mapping
                 stamps.Add mappingStamp
@@ -402,7 +484,7 @@ module ModOrganizer =
                         then
                             refuse (Error.InvalidSource "nexuscatmap.dat contains an invalid row.")
 
-            List.rev categories, List.ofSeq stamps
+            List.rev categories, List.ofSeq stamps, absent
 
     let private categoryIds (value: string) =
         value.Split(',', StringSplitOptions.RemoveEmptyEntries ||| StringSplitOptions.TrimEntries)
@@ -470,6 +552,19 @@ module ModOrganizer =
             let categories = get "category" |> categoryIds
             let installationFile = get "installationFile"
 
+            let installedFiles =
+                qsettingsArray "installedFiles" meta
+                |> List.map (fun item ->
+                    let number key =
+                        match item |> Map.tryFind key with
+                        | Some value ->
+                            match Int32.TryParse value with
+                            | true, parsed -> parsed
+                            | _ -> 0
+                        | None -> 0
+
+                    number "modid", number "fileid")
+
             if installationFile <> "" then
                 installationFiles[Path.GetFileName installationFile] <- id
 
@@ -519,9 +614,22 @@ module ModOrganizer =
                   Kind = kind
                   Metadata = metadata
                   CategorySourceIds = categories
+                  InstalledFiles = installedFiles
                   Files = files }
 
-        List.ofSeq mods, List.ofSeq stamps, installationFiles
+        let installedIds = Dictionary<string, Guid option>(StringComparer.Ordinal)
+
+        for item in mods do
+            for modId, fileId in item.InstalledFiles do
+                if modId > 0 && fileId > 0 then
+                    let key = string modId + ":" + string fileId
+
+                    match installedIds.TryGetValue key with
+                    | true, Some existing when existing <> item.Id -> installedIds[key] <- None
+                    | true, _ -> ()
+                    | false, _ -> installedIds.Add(key, Some item.Id)
+
+        List.ofSeq mods, List.ofSeq stamps, installationFiles, installedIds
 
     let private readProfiles root entries (mods: SourceMod list) selectedName =
         let directories =
@@ -699,7 +807,12 @@ module ModOrganizer =
             Some(builder.Uri.AbsoluteUri)
         | _ -> None
 
-    let private readArtifacts root entries (installationFiles: Dictionary<string, Guid>) =
+    let private readArtifacts
+        root
+        entries
+        (installationFiles: Dictionary<string, Guid>)
+        (installedIds: Dictionary<string, Guid option>)
+        =
         let extensions =
             set
                 [ ".001"
@@ -744,7 +857,7 @@ module ModOrganizer =
                     let fileStamp = stamp root entry
                     stamps.Add fileStamp
 
-                    let sources, installed, paused =
+                    let sources, installed, paused, providerMod, providerFile =
                         match byName.TryGetValue(name + ".meta") with
                         | true, sidecar ->
                             let sidecarStamp = stamp root sidecar
@@ -764,8 +877,14 @@ module ModOrganizer =
 
                             let installed = boolSetting "installed" values
                             let paused = boolSetting "paused" values
-                            urls, installed, paused
-                        | _ -> [], false, false
+
+                            let number name =
+                                match Int32.TryParse(setting "General" name "0" values) with
+                                | true, parsed -> parsed
+                                | _ -> 0
+
+                            urls, installed, paused, number "modID", number "fileID"
+                        | _ -> [], false, false, 0, 0
 
                     let partial = unfinished || paused
 
@@ -779,12 +898,21 @@ module ModOrganizer =
                         )
 
                     let installedMod =
-                        if not installed then
-                            None
-                        else
+                        let byProvider =
+                            let key = string providerMod + ":" + string providerFile
+
+                            match installedIds.TryGetValue key with
+                            | true, value -> value
+                            | _ -> None
+
+                        if byProvider.IsSome then
+                            byProvider
+                        elif installed then
                             match installationFiles.TryGetValue originalName with
                             | true, id -> Some id
                             | _ -> None
+                        else
+                            None
 
                     let logical =
                         LogicalPath.create [ originalName ]
@@ -824,20 +952,26 @@ module ModOrganizer =
         if String.IsNullOrWhiteSpace selected then
             refuse (Error.InvalidSource "ModOrganizer.ini does not select a profile.")
 
-        let categories, categoryStamps = readCategories sourceFolder basePath
-        let modsRoot, modEntries = scanRoot modsPath
-        let mods, modStamps, installationFiles = readMods modsRoot modEntries
-        let profileRoot, profileEntries = scanRoot profilesPath
+        let categories, categoryStamps, categoryAbsent =
+            readCategories sourceFolder basePath
+
+        let modsRoot, modEntries, modsManifest = scanRoot modsPath
+        let mods, modStamps, installationFiles, installedIds = readMods modsRoot modEntries
+        let profileRoot, profileEntries, profilesManifest = scanRoot profilesPath
 
         let profiles, selectedProfile, profileStamps =
             readProfiles profileRoot profileEntries mods selected
 
-        let artifacts, artifactStamps =
-            if Directory.Exists downloadsPath then
-                let downloadRoot, downloadEntries = scanRoot downloadsPath
-                readArtifacts downloadRoot downloadEntries installationFiles
+        let artifacts, artifactStamps, downloadManifest, downloadAbsent =
+            if pathExists downloadsPath then
+                let downloadRoot, downloadEntries, manifest = scanRoot downloadsPath
+
+                let artifacts, stamps =
+                    readArtifacts downloadRoot downloadEntries installationFiles installedIds
+
+                artifacts, stamps, Some manifest, []
             else
-                [], []
+                [], [], None, [ downloadsPath ]
 
         let knownCategories = categories |> List.map _.SourceId |> Set.ofList
 
@@ -852,7 +986,9 @@ module ModOrganizer =
           Profiles = profiles
           SelectedProfile = selectedProfile
           Artifacts = artifacts
-          Stamps = iniStamp :: (categoryStamps @ modStamps @ profileStamps @ artifactStamps) }
+          Stamps = iniStamp :: (categoryStamps @ modStamps @ profileStamps @ artifactStamps)
+          Manifests = modsManifest :: profilesManifest :: (downloadManifest |> Option.toList)
+          AbsentPaths = categoryAbsent @ downloadAbsent }
 
     let private copy (stamp: Stamp) (destination: FileStream) (token: CancellationToken) =
         let source, identity = openEntry stamp.Root stamp.Path stamp.Identity
@@ -890,9 +1026,19 @@ module ModOrganizer =
         read, sha
 
     let private verify stamp =
-        let observed = observe stamp.Root stamp.Path stamp.Identity
+        let observed =
+            try
+                Some(observe stamp.Root stamp.Path stamp.Identity)
+            with
+            | :? IOException
+            | :? UnauthorizedAccessException
+            | Refused _ -> None
 
-        if observed.Length <> stamp.Length || observed.Sha256 <> stamp.Sha256 then
+        if
+            observed
+            |> Option.forall (fun value ->
+                value.Length <> stamp.Length || value.Sha256 <> stamp.Sha256)
+        then
             refuse Error.SourceChanged
 
     let private remove path =
@@ -1005,6 +1151,18 @@ module ModOrganizer =
                               Total = total
                               Message = "Copying downloads" }
 
+                    checkpoint "before-source-recheck"
+
+                    for manifest in source.Manifests do
+                        token.ThrowIfCancellationRequested()
+                        verifyManifest manifest
+
+                    for path in source.AbsentPaths do
+                        token.ThrowIfCancellationRequested()
+
+                        if pathExists path then
+                            refuse Error.SourceChanged
+
                     for stamp in source.Stamps do
                         token.ThrowIfCancellationRequested()
                         verify stamp
@@ -1012,9 +1170,17 @@ module ModOrganizer =
                     checkpoint "before-publication"
                     token.ThrowIfCancellationRequested()
 
+                    let! ready = store.Ready targetValue
+                    ready |> Result.defaultWith (fun error -> refuse error)
+                    token.ThrowIfCancellationRequested()
+
                     let stagedEntry =
-                        root.InspectEntry staged
-                        |> Option.defaultWith (fun () -> refuse Error.SourceChanged)
+                        match root.InspectEntry staged with
+                        | Some entry when
+                            entry.Kind = EntryKind.Directory && entry.Identity = stage.Identity
+                            ->
+                            entry
+                        | _ -> refuse Error.SourceChanged
 
                     root.MoveOriginal(staged, stagedEntry, root, final)
                     published <- true

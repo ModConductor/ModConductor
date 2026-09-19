@@ -8,7 +8,8 @@ type OperationStore
         directory: string,
         ?downloadPolicy: ModConductor.HttpDownloads.DownloadPolicy,
         ?nexusLinks: ModConductor.HttpDownloads.INexusDownloadLinks,
-        ?configurationCheckpoint: string -> unit
+        ?configurationCheckpoint: string -> unit,
+        ?migrationCheckpoint: string -> unit
     ) =
     let database = new StateDatabase(directory)
     let workspaceRoots = OwnedWorkspaceRootStore(database)
@@ -118,7 +119,8 @@ type OperationStore
             profileMutations.Resume
         )
 
-    let migrations = MigrationStore(database, workspaceRoots)
+    let migrations =
+        MigrationStore(database, workspaceRoots, defaultArg migrationCheckpoint ignore)
 
     let executables =
         ModConductor.Executables.ExecutableSession(ExecutableRepository(database))

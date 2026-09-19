@@ -48,26 +48,29 @@ final class GrpcMigrationClient implements MigrationClient {
     String sourceFolder,
   ) => _wire
       .migrate(
-        wire.MigrateRequest(
+        wire.MigrationRequest(
           workspaceId: workspaceId,
           manager: switch (manager) {
-            MigrationManager.modOrganizer => wire.Manager.MANAGER_MOD_ORGANIZER,
+            MigrationManager.modOrganizer =>
+              wire.MigrationManager.MIGRATION_MANAGER_MOD_ORGANIZER,
           },
           sourceFolder: sourceFolder,
         ),
       )
       .map(
         (event) => switch (event.whichEvent()) {
-          wire.MigrateEvent_Event.progress => MigrationProgress(
+          wire.MigrationEvent_Event.progress => MigrationProgress(
             event.progress.completed,
             event.progress.total,
             event.progress.message,
           ),
-          wire.MigrateEvent_Event.error => MigrationFailure(event.error.detail),
-          wire.MigrateEvent_Event.result => MigrationResult(
+          wire.MigrationEvent_Event.error => MigrationFailure(
+            event.error.detail,
+          ),
+          wire.MigrationEvent_Event.result => MigrationResult(
             event.result.workspaceId,
           ),
-          wire.MigrateEvent_Event.notSet => const MigrationFailure(
+          wire.MigrationEvent_Event.notSet => const MigrationFailure(
             'Migration did not return a result.',
           ),
         },

@@ -32,6 +32,10 @@ type MigrationTests() =
         =
         flag "emptyTargetGuard" |> should equal true
         flag "cancellation" |> should equal true
+        flag "sourceManifestChanged" |> should equal true
+        flag "foreignRootGuard" |> should equal true
+        flag "targetRecheck" |> should equal true
+        flag "emptyLibraryGuard" |> should equal true
         flag "unsupportedBeforeMutation" |> should equal true
         flag "missingFile" |> should equal true
         flag "caseCollision" |> should equal true
@@ -41,3 +45,5 @@ type MigrationTests() =
     member _.``process loss on both sides of file publication should recover an empty target``() =
         flag "crashBeforePublication" |> should equal true
         flag "crashAfterPublication" |> should equal true
+        flag "crashBeforeCommit" |> should equal true
+        flag "crashAfterCommit" |> should equal true

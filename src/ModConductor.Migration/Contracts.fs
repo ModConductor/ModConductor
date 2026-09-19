@@ -90,6 +90,8 @@ type IStore =
     abstract Begin:
         Guid * Guid * string * string -> Task<Microsoft.FSharp.Core.Result<Target, Error>>
 
+    abstract Ready: Target -> Task<Microsoft.FSharp.Core.Result<unit, Error>>
+
     abstract Complete: Commit -> Task<Microsoft.FSharp.Core.Result<Result, Error>>
 
     abstract Abandon: Target -> Task<unit>

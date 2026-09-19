@@ -9,28 +9,27 @@ module private MigrationWire =
     let private error value =
         let code, detail =
             match value with
-            | Error.InvalidSource detail -> MigrateErrorCode.InvalidSource, detail
+            | Error.InvalidSource detail -> MigrationErrorCode.InvalidSource, detail
             | Error.TargetNotEmpty ->
-                MigrateErrorCode.TargetNotEmpty,
-                "The current workspace must have no profiles, mods, or downloads."
-            | Error.UnsafeSource detail -> MigrateErrorCode.UnsafeSource, detail
+                MigrationErrorCode.TargetNotEmpty, "The current workspace must be empty."
+            | Error.UnsafeSource detail -> MigrationErrorCode.UnsafeSource, detail
             | Error.CaseCollision path ->
-                MigrateErrorCode.CaseCollision,
+                MigrationErrorCode.CaseCollision,
                 "Two source entries use the same name with different letter case: " + path
-            | Error.UnsupportedData detail -> MigrateErrorCode.UnsupportedData, detail
+            | Error.UnsupportedData detail -> MigrationErrorCode.UnsupportedData, detail
             | Error.SourceChanged ->
-                MigrateErrorCode.SourceChanged,
+                MigrationErrorCode.SourceChanged,
                 "The Mod Organizer files changed during migration. No data was migrated."
-            | Error.Cancelled -> MigrateErrorCode.Cancelled, "Migration was cancelled."
-            | Error.Busy -> MigrateErrorCode.Busy, "Another workspace change is in progress."
-            | Error.Unavailable detail -> MigrateErrorCode.Unavailable, detail
+            | Error.Cancelled -> MigrationErrorCode.Cancelled, "Migration was cancelled."
+            | Error.Busy -> MigrationErrorCode.Busy, "Another workspace change is in progress."
+            | Error.Unavailable detail -> MigrationErrorCode.Unavailable, detail
 
-        MigrateEvent(Error = MigrateError(Code = code, Detail = detail))
+        MigrationEvent(Error = MigrationError(Code = code, Detail = detail))
 
     let progress (value: Progress) =
-        MigrateEvent(
+        MigrationEvent(
             Progress =
-                MigrateProgress(
+                MigrationProgress(
                     Completed = uint32 value.Completed,
                     Total = uint32 value.Total,
                     Message = value.Message
@@ -40,9 +39,9 @@ module private MigrationWire =
     let result =
         function
         | Ok(value: ModConductor.Migration.Result) ->
-            MigrateEvent(
+            MigrationEvent(
                 Result =
-                    MigrateResult(
+                    MigrationResult(
                         WorkspaceId = value.WorkspaceId.ToString("N"),
                         Profiles = uint32 value.Profiles,
                         Mods = uint32 value.Mods,
@@ -56,7 +55,7 @@ type MigrationService(store: IStore) =
 
     override _.Migrate(request, response, context) =
         task {
-            if request.Manager <> Manager.ModOrganizer then
+            if request.Manager <> MigrationManager.ModOrganizer then
                 do!
                     response.WriteAsync(
                         MigrationWire.result (

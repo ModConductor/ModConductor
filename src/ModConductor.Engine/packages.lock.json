@@ -156,17 +156,6 @@
           "ModConductor.Platform": "[1.0.0, )"
         }
       },
-      "modconductor.diagnostics": {
-        "type": "Project",
-        "dependencies": {
-          "FSharp.Core": "[10.1.400, )",
-          "ModConductor.Deployment": "[1.0.0, )",
-          "ModConductor.FilePlanning": "[1.0.0, )",
-          "ModConductor.GameLaunching": "[1.0.0, )",
-          "ModConductor.ProfileGameData": "[1.0.0, )",
-          "ModConductor.Workspaces": "[1.0.0, )"
-        }
-      },
       "modconductor.executables": {
         "type": "Project",
         "dependencies": {
@@ -327,7 +316,6 @@
           "FSharp.Core": "[10.1.400, )",
           "ModConductor.ArchiveInspection": "[1.0.0, )",
           "ModConductor.Bethesda": "[1.0.0, )",
-          "ModConductor.FilePlanning": "[1.0.0, )",
           "ModConductor.GameContexts": "[1.0.0, )"
         }
       },
