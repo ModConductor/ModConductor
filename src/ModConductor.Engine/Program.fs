@@ -201,7 +201,9 @@ let runWithNexus registration (handoff: ModConductor.Nexus.IOAuthHandoff) args =
             store.FilePlans,
             store.Deployments,
             store.GameLaunching,
-            store.ProfileGameData
+            store.ProfileGameData,
+            store.GameContexts,
+            store.PluginOrders
         )
     )
     |> ignore

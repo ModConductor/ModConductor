@@ -19,6 +19,7 @@ module internal SupportExport =
         | CorrelationKind.Deployment -> "deployment"
         | CorrelationKind.Profile -> "profile"
         | CorrelationKind.Action -> "action"
+        | CorrelationKind.PluginSnapshot -> "plugin-snapshot"
 
     let write (snapshot: DiagnosticSnapshot) =
         let bytes = ArrayBufferWriter<byte>()

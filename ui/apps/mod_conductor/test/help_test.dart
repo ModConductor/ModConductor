@@ -41,6 +41,7 @@ class FakeDiagnostics implements DiagnosticsClient {
     required String workspaceId,
     required String profileId,
     String? fileSnapshotId,
+    String? pluginSnapshotId,
     String? deploymentId,
     int? deploymentRevision,
   }) async =>
@@ -234,6 +235,7 @@ class _SequencedDiagnostics extends FakeDiagnostics {
     required String workspaceId,
     required String profileId,
     String? fileSnapshotId,
+    String? pluginSnapshotId,
     String? deploymentId,
     int? deploymentRevision,
   }) => values[next++].future;

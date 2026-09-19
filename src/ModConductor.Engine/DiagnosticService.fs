@@ -11,6 +11,11 @@ module private DiagnosticRequest =
         { WorkspaceId = ModLibraryWire.id value.WorkspaceId
           ProfileId = ModLibraryWire.id value.ProfileId
           FileSnapshotId = if value.HasFileSnapshotId then Some(ModLibraryWire.id value.FileSnapshotId) else None
+          PluginSnapshotId =
+            if value.HasPluginSnapshotId then
+                Some(ModLibraryWire.id value.PluginSnapshotId)
+            else
+                None
           DeploymentReceipt =
             if value.HasDeploymentId then
                 Some(ModLibraryWire.id value.DeploymentId, ModLibraryWire.number value.DeploymentRevision)

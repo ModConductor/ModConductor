@@ -134,6 +134,7 @@ abstract interface class DiagnosticsClient {
     required String workspaceId,
     required String profileId,
     String? fileSnapshotId,
+    String? pluginSnapshotId,
     String? deploymentId,
     int? deploymentRevision,
   });
@@ -231,6 +232,7 @@ class GrpcDiagnosticsClient implements DiagnosticsClient {
     required String workspaceId,
     required String profileId,
     String? fileSnapshotId,
+    String? pluginSnapshotId,
     String? deploymentId,
     int? deploymentRevision,
   }) async {
@@ -239,6 +241,7 @@ class GrpcDiagnosticsClient implements DiagnosticsClient {
       profileId: profileId,
     );
     if (fileSnapshotId != null) request.fileSnapshotId = fileSnapshotId;
+    if (pluginSnapshotId != null) request.pluginSnapshotId = pluginSnapshotId;
     if (deploymentId != null) request.deploymentId = deploymentId;
     if (deploymentRevision != null) {
       request.deploymentRevision = Int64(deploymentRevision);

@@ -47,6 +47,7 @@ type CorrelationKind =
     | Deployment
     | Profile
     | Action
+    | PluginSnapshot
 
 [<RequireQualifiedAccess>]
 type DiagnosticAction =
@@ -88,6 +89,7 @@ type DiagnosticRequest =
     { WorkspaceId: Guid
       ProfileId: Guid
       FileSnapshotId: Guid option
+      PluginSnapshotId: Guid option
       DeploymentReceipt: (Guid * int64) option }
 
 type DiagnosticSnapshot =

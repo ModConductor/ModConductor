@@ -43,6 +43,7 @@ message DiagnosticRequest {
   optional string file_snapshot_id = 3;
   optional string deployment_id = 4;
   optional uint64 deployment_revision = 5;
+  optional string plugin_snapshot_id = 7;
 }
 message DiagnosticSnapshotReference { string snapshot_id = 1; }
 message DiagnosticPreviewRequest { string snapshot_id = 1; string problem_id = 2; }

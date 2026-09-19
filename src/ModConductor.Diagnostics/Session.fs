@@ -7,6 +7,7 @@ open System.Threading.Tasks
 open ModConductor.Deployment
 open ModConductor.FilePlanning
 open ModConductor.GameLaunching
+open ModConductor.GameContexts
 open ModConductor.ProfileGameData
 open ModConductor.Workspaces
 
@@ -21,7 +22,9 @@ type DiagnosticSession(
     plans: IFilePlans,
     deployments: IDeploymentBackend,
     launches: IGameLaunching,
-    profileData: IProfileGameData
+    profileData: IProfileGameData,
+    gameContexts: IGameContexts,
+    pluginOrders: IProfilePluginOrders
 ) =
     let gate = obj ()
     let snapshots = Dictionary<Guid, StoredSnapshot>()
@@ -92,6 +95,14 @@ type DiagnosticSession(
         | FilePlanError.NotFound -> DiagnosticError.NotFound
         | _ -> DiagnosticError.Unsupported
 
+    let mapProfileError =
+        function
+        | ProfileDataError.NotFound -> DiagnosticError.NotFound
+        | ProfileDataError.Busy -> DiagnosticError.Busy
+        | ProfileDataError.Stale -> DiagnosticError.Stale
+        | ProfileDataError.Cancelled -> DiagnosticError.Cancelled
+        | _ -> DiagnosticError.Unsupported
+
     let mapDeploymentError =
         function
         | DeploymentError.NotFound -> DiagnosticError.NotFound
@@ -141,6 +152,115 @@ type DiagnosticSession(
                             Ok value)
         }
 
+    let supportedContext workspace =
+        task {
+            let! context = gameContexts.Read workspace
+
+            return
+                context
+                |> Result.toOption
+                |> Option.bind (fun state ->
+                    state.Binding
+                    |> Option.filter (fun binding ->
+                        binding.Evidence.DefinitionId = Skyrim.definition.Id
+                        && binding.Evidence.Valid
+                        && not binding.NeedsCheck
+                        && (binding.Evidence.Platform = ContextPlatform.Windows
+                            || binding.Evidence.Platform = ContextPlatform.Proton))
+                    |> Option.map (fun binding -> state, binding))
+        }
+
+    let skseFindings
+        (request: DiagnosticRequest)
+        (workspace: Workspace)
+        (profile: Profile)
+        (launch: Result<GameLaunchState, ModConductor.Executables.ExecutableError>)
+        (state: GameContextState)
+        (binding: GameBinding)
+        token
+        =
+        task {
+            let log =
+                match binding.Evidence.Locations.Documents with
+                | Location.Located(documents, _) ->
+                    let launchedAt =
+                        launch
+                        |> Result.toOption
+                        |> Option.bind _.Latest
+                        |> Option.map _.RequestedAt
+
+                    SkyrimChecks.readLog documents launchedAt token
+                | Location.Unavailable detail -> SkseLogResult.Malformed detail
+
+            let mutable owners = Map.empty
+
+            match log, request.FileSnapshotId with
+            | SkseLogResult.Current issues, Some snapshotId ->
+                for issue in issues do
+                    let target =
+                        ModConductor.Platform.LogicalPath.create
+                            [ "SKSE"; "Plugins"; issue.Name ]
+
+                    match target with
+                    | Error _ -> ()
+                    | Ok target ->
+                        let! inspected = plans.Inspect(snapshotId, target, None)
+
+                        inspected
+                        |> Result.toOption
+                        |> Option.bind (fun value ->
+                            value.Copies
+                            |> List.tryFind (fun copy -> copy.Winner && copy.Enabled)
+                            |> Option.bind (fun copy ->
+                                match copy.Source with
+                                | FilePreviewSource.ManagedCopy _ -> Some copy.Name
+                                | _ -> None))
+                        |> Option.iter (fun owner ->
+                            owners <- owners.Add(issue.Name.ToLowerInvariant(), owner))
+            | _ -> ()
+
+            return
+                Checks.skseLog
+                    workspace
+                    profile
+                    binding.Id
+                    state.Revision
+                    log
+                    owners
+        }
+
+    let oldFormFindings
+        (workspace: Workspace)
+        (profile: Profile)
+        (state: GameContextState)
+        (binding: GameBinding)
+        snapshotId
+        =
+        task {
+            let! order = pluginOrders.Read(workspace.Id, profile.Id, snapshotId)
+
+            return
+                order
+                |> Result.mapError mapProfileError
+                |> Result.bind (fun order ->
+                    if
+                        order.Reference.WorkspaceId <> workspace.Id
+                        || order.Reference.ProfileId <> profile.Id
+                        || order.Headers.Id <> snapshotId
+                        || order.Headers.Stale
+                    then
+                        Error DiagnosticError.Foreign
+                    else
+                        SkyrimChecks.oldPluginFormats order.Headers order.View.Order.Entries
+                        |> Checks.oldPluginFormats
+                            workspace
+                            profile
+                            binding.Id
+                            state.Revision
+                            snapshotId
+                        |> Ok)
+        }
+
     interface IDiagnostics with
         member _.Check(request, token) =
             task {
@@ -162,6 +282,8 @@ type DiagnosticSession(
                             |> Option.map (Checks.launch workspace profile)
                             |> Option.defaultValue []
 
+                        let! gameContext = supportedContext workspace.Id
+
                         let! fileFindings =
                             match request.FileSnapshotId with
                             | None -> Task.FromResult(Ok [])
@@ -181,50 +303,67 @@ type DiagnosticSession(
                         match fileFindings with
                         | Error error -> return Error error
                         | Ok fileFindings ->
-                            let! deploymentFindings =
-                                match request.DeploymentReceipt with
-                                | None -> Task.FromResult(Ok [])
-                                | Some(id, revision) ->
-                                    task {
-                                        let! value =
-                                            qualifiedDeployment
-                                                workspace.Id
-                                                profile.Id
-                                                id
-                                                revision
+                            let! skyrimFindings =
+                                match gameContext with
+                                | None -> Task.FromResult []
+                                | Some(state, binding) ->
+                                    skseFindings request workspace profile launch state binding token
 
-                                        return value |> Result.map (Checks.deployment workspace profile game)
-                                    }
+                            let! oldForms =
+                                match gameContext, request.PluginSnapshotId with
+                                | Some(state, binding), Some snapshotId ->
+                                    oldFormFindings workspace profile state binding snapshotId
+                                | _ -> Task.FromResult(Ok [])
 
-                            match deploymentFindings with
+                            match oldForms with
                             | Error error -> return Error error
-                            | Ok deploymentFindings ->
-                                let! profileFindings =
-                                    task {
-                                        let! value = profileData.Read(workspace.Id, profile.Id)
-                                        return
-                                            match value with
-                                            | Ok state when state.WorkspaceId = workspace.Id && state.ProfileId = profile.Id -> Checks.profileData workspace profile game state
-                                            | _ -> []
-                                    }
+                            | Ok oldFormFindings ->
+                                let! deploymentFindings =
+                                    match request.DeploymentReceipt with
+                                    | None -> Task.FromResult(Ok [])
+                                    | Some(id, revision) ->
+                                        task {
+                                            let! value =
+                                                qualifiedDeployment
+                                                    workspace.Id
+                                                    profile.Id
+                                                    id
+                                                    revision
 
-                                token.ThrowIfCancellationRequested()
-                                let findings =
-                                    (launchFindings
-                                     @ fileFindings
-                                     @ deploymentFindings
-                                     @ profileFindings)
-                                    |> List.truncate Limits.findings
+                                            return value |> Result.map (Checks.deployment workspace profile game)
+                                        }
 
-                                let view =
-                                    { Id = Guid.NewGuid()
-                                      WorkspaceId = workspace.Id
-                                      ProfileId = profile.Id
-                                      CapturedAt = DateTimeOffset.UtcNow
-                                      Findings = findings }
+                                match deploymentFindings with
+                                | Error error -> return Error error
+                                | Ok deploymentFindings ->
+                                    let! profileFindings =
+                                        task {
+                                            let! value = profileData.Read(workspace.Id, profile.Id)
+                                            return
+                                                match value with
+                                                | Ok state when state.WorkspaceId = workspace.Id && state.ProfileId = profile.Id -> Checks.profileData workspace profile game state
+                                                | _ -> []
+                                        }
 
-                                rememberSnapshot view request
-                                return Ok view
+                                    token.ThrowIfCancellationRequested()
+                                    let findings =
+                                        (launchFindings
+                                         @ fileFindings
+                                         @ skyrimFindings
+                                         @ oldFormFindings
+                                         @ deploymentFindings
+                                         @ profileFindings)
+                                        |> List.truncate Limits.findings
+
+                                    let view =
+                                        { Id = Guid.NewGuid()
+                                          WorkspaceId = workspace.Id
+                                          ProfileId = profile.Id
+                                          CapturedAt = DateTimeOffset.UtcNow
+                                          Findings = findings }
+
+                                    rememberSnapshot view request
+                                    return Ok view
             }
 
         member _.Preview(snapshotId, findingId, token) =

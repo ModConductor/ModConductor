@@ -211,3 +211,151 @@ module internal Checks =
                   Fixability.NotFixable "You need to fix this" [] DiagnosticAction.None
                   [ evidence "Workspace" workspace.Name; evidence "Profile" profile.Name ] ]
         | _ -> []
+    let skseLog
+        (workspace: Workspace)
+        (profile: Profile)
+        contextId
+        contextRevision
+        (result: SkseLogResult)
+        (owners: Map<string, string>)
+        =
+        let area = profile.Name + " script extender"
+
+        let correlations =
+            [ correlation CorrelationKind.GameSetup contextId (Some contextRevision) ]
+
+        let commonEvidence =
+            [ evidence "Workspace" workspace.Name; evidence "Profile" profile.Name ]
+
+        match result with
+        | SkseLogResult.Missing ->
+            [ baseFinding
+                  workspace
+                  profile
+                  "Skyrim Special Edition"
+                  "skse-log:missing"
+                  "skse-log-missing"
+                  DiagnosticSeverity.Warning
+                  "SKSE log was not found"
+                  "Mod Conductor cannot check the installed SKSE plugins."
+                  None
+                  area
+                  "Start Skyrim through SKSE. Then run Diagnostics again."
+                  Fixability.NotFixable
+                  "Start Skyrim to create the log"
+                  correlations
+                  DiagnosticAction.CheckAgain
+                  commonEvidence ]
+        | SkseLogResult.Stale modified ->
+            [ baseFinding
+                  workspace
+                  profile
+                  "Skyrim Special Edition"
+                  "skse-log:stale"
+                  "skse-log-stale"
+                  DiagnosticSeverity.Warning
+                  "SKSE log is out of date"
+                  "The log is older than the latest Skyrim launch."
+                  None
+                  area
+                  "Start Skyrim through SKSE. Then run Diagnostics again."
+                  Fixability.NotFixable
+                  "Start Skyrim to update the log"
+                  correlations
+                  DiagnosticAction.CheckAgain
+                  (commonEvidence @ [ evidence "Log date" (modified.ToString "O") ]) ]
+        | SkseLogResult.Malformed detail ->
+            [ baseFinding
+                  workspace
+                  profile
+                  "Skyrim Special Edition"
+                  "skse-log:malformed"
+                  "skse-log-malformed"
+                  DiagnosticSeverity.Warning
+                  "SKSE log cannot be read"
+                  "Mod Conductor cannot check the installed SKSE plugins."
+                  (Some detail)
+                  area
+                  "Start Skyrim through SKSE. Then run Diagnostics again."
+                  Fixability.NotFixable
+                  "Create a new SKSE log"
+                  correlations
+                  DiagnosticAction.CheckAgain
+                  commonEvidence ]
+        | SkseLogResult.Current issues ->
+            issues
+            |> List.map (fun issue ->
+                let incompatible = issue.Problem = SksePluginProblem.Incompatible
+                let owner = owners |> Map.tryFind (issue.Name.ToLowerInvariant())
+
+                let title =
+                    if incompatible then
+                        "SKSE plugin is incompatible"
+                    else
+                        "SKSE plugin did not load"
+
+                let summary =
+                    if incompatible then
+                        issue.Name + " is not compatible with the current Skyrim runtime."
+                    else
+                        issue.Name + " did not load."
+
+                baseFinding
+                    workspace
+                    profile
+                    "Skyrim Special Edition"
+                    ("skse-plugin:" + issue.Name.ToLowerInvariant())
+                    (if incompatible then
+                         "skse-plugin-incompatible"
+                     else
+                         "skse-plugin-load-failed")
+                    DiagnosticSeverity.Error
+                    title
+                    summary
+                    None
+                    area
+                    "Update or disable this SKSE plugin. Then run Diagnostics again."
+                    Fixability.NotFixable
+                    "You need to update or disable this plugin"
+                    correlations
+                    DiagnosticAction.CheckAgain
+                    (commonEvidence
+                     @ [ evidence "DLL" issue.Name ]
+                     @ (owner
+                        |> Option.map (evidence "Mod" >> List.singleton)
+                        |> Option.defaultValue [])))
+
+    let oldPluginFormats
+        (workspace: Workspace)
+        (profile: Profile)
+        contextId
+        contextRevision
+        snapshotId
+        (plugins: OldPluginFormat list)
+        =
+        plugins
+        |> List.map (fun plugin ->
+            baseFinding
+                workspace
+                profile
+                "Skyrim Special Edition"
+                ("old-plugin-form:" + plugin.Name.ToLowerInvariant())
+                "skyrim-plugin-old-form"
+                DiagnosticSeverity.Warning
+                "Plugin uses an old form version"
+                (plugin.Name + " uses form version " + string plugin.FormVersion + ".")
+                None
+                (profile.Name + " plugins")
+                "Get an updated plugin, or update it with the Creation Kit."
+                Fixability.NotFixable
+                "Mod Conductor will not change this plugin"
+                [ correlation CorrelationKind.GameSetup contextId (Some contextRevision)
+                  correlation CorrelationKind.PluginSnapshot snapshotId None ]
+                DiagnosticAction.None
+                ([ evidence "Workspace" workspace.Name
+                   evidence "Profile" profile.Name
+                   evidence "Plugin" plugin.Name
+                   evidence "Form version" (string plugin.FormVersion) ]
+                 @ (plugin.Owner
+                    |> Option.map (evidence "Mod" >> List.singleton)
+                    |> Option.defaultValue [])))

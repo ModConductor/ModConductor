@@ -6,12 +6,15 @@ open System.Text
 open System.Text.Json
 open System.Threading
 open System.Threading.Tasks
+open ModConductor.Bethesda
 open ModConductor.Deployment
 open ModConductor.DeploymentPlanning
 open ModConductor.Diagnostics
 open ModConductor.Executables
 open ModConductor.FilePlanning
 open ModConductor.GameLaunching
+open ModConductor.GameContexts
+open ModConductor.ModLibrary
 open ModConductor.Persistence
 open ModConductor.Platform
 open ModConductor.Workspaces
@@ -23,6 +26,15 @@ type private FixturePlans(workspaceId: Guid, profileId: Guid) =
     let target =
         LogicalPath.create [ "meshes"; "marker.nif" ]
         |> Result.defaultWith (string >> invalidOp)
+
+    let dllTarget =
+        LogicalPath.create [ "SKSE"; "Plugins"; "Failed.dll" ]
+        |> Result.defaultWith (string >> invalidOp)
+
+    let dllCopy =
+        { ModId = Guid.NewGuid()
+          VersionId = Guid.NewGuid()
+          Path = dllTarget }
 
     let copies =
         [ for name in [ "First mod"; "Second mod" ] do
@@ -84,7 +96,40 @@ type private FixturePlans(workspaceId: Guid, profileId: Guid) =
             elif stale then Task.FromResult(Error FilePlanError.Stale)
             else Task.FromResult(Ok [ problem ])
 
-        member _.Inspect(_, _, _) = unused ()
+        member _.Inspect(id, requested, _) =
+            if id <> snapshotId then Task.FromResult(Error FilePlanError.NotFound)
+            elif requested <> dllTarget then
+                Task.FromResult(Ok { Writable = false; Snapshot = summary; Target = requested; Copies = []; FocusedCopy = None; Next = None })
+            else
+                let source =
+                    FilePreviewSource.ManagedCopy
+                        { Copy = dllCopy
+                          SourcePath = dllTarget
+                          Target = dllTarget
+                          PayloadId = Guid.NewGuid()
+                          Length = 1L
+                          Sha256 = String.replicate 64 "0"
+                          ModRevision = 1L }
+
+                let copy =
+                    { Source = source
+                      Standing = FileSourceStanding.Winner
+                      Copy = Some dllCopy
+                      SourcePath = dllTarget
+                      Name = "Failed plugin mod"
+                      VersionLabel = "1.0"
+                      Priority = Some 10
+                      Enabled = true
+                      Hidden = false
+                      Winner = true
+                      Historical = false
+                      Length = 1L
+                      Sha256 = String.replicate 64 "0"
+                      CanHide = false
+                      CanUnhide = false }
+
+                Task.FromResult(Ok { Writable = false; Snapshot = summary; Target = requested; Copies = [ copy ]; FocusedCopy = None; Next = None })
+
         member _.InspectCopy(_, _) = unused ()
 
         member _.Change(id, copy, hidden, _) =
@@ -236,7 +281,65 @@ type private FixtureDeployments(workspaceId: Guid, profileId: Guid) =
             else
                 Task.FromResult(Error DeploymentError.Stale)
 
-type private DiagnosticFixtureEnvironment(?launchPhase: RunPhase, ?useFixtureDeployment: bool) =
+type private FixtureGameContexts(workspaceId: Guid, documents: string) =
+    let identity =
+        { Device = DeviceIdentity.LinuxDevice(1u, 1u)
+          Low = 1UL
+          High = 1UL }
+
+    let evidence =
+        { DefinitionId = Skyrim.definition.Id
+          DefinitionRevision = Skyrim.definition.Revision
+          Platform = ContextPlatform.Proton
+          RootPath = documents
+          RootIdentity = Some identity
+          DataPath = Some documents
+          DataIdentity = Some identity
+          Executable =
+            Some
+                { Path = Path.Combine(documents, Skyrim.definition.Executable)
+                  Identity = identity
+                  Length = 1L
+                  Sha256 = String.replicate 64 "0"
+                  FileVersion = "1.0"
+                  ProductVersion = "1.0" }
+          LauncherPath = None
+          Locations =
+            { Documents = Location.Located(documents, true)
+              Saves = Location.Located(documents, true)
+              LocalAppData = Location.Located(documents, true) }
+          Proton = None
+          Problems = []
+          CheckedAt = DateTimeOffset.UtcNow
+          Fingerprint = "fixture-context" }
+
+    let state =
+        { WorkspaceId = workspaceId
+          Revision = 4L
+          Binding =
+            Some
+                { Id = Guid.NewGuid()
+                  Path = documents
+                  Proton = None
+                  Evidence = evidence
+                  NeedsCheck = false
+                  Failure = None } }
+
+    interface IGameContexts with
+        member _.Read workspace =
+            if workspace = workspaceId then
+                Task.FromResult(Ok state)
+            else
+                Task.FromResult(Error ContextError.NotFound)
+
+        member _.Save(_, _, _) =
+            Task.FromResult(Error ContextError.NotFound)
+
+        member _.Refresh(_, _) =
+            Task.FromResult(Error ContextError.NotFound)
+
+
+type private DiagnosticFixtureEnvironment(?launchPhase: RunPhase, ?useFixtureDeployment: bool, ?documents: string) =
     let directory =
         Path.Combine(Path.GetTempPath(), "mod-conductor-diagnostics-" + Guid.NewGuid().ToString "N")
 
@@ -273,13 +376,20 @@ type private DiagnosticFixtureEnvironment(?launchPhase: RunPhase, ?useFixtureDep
         if defaultArg useFixtureDeployment false then fixtureDeployments :> IDeploymentBackend
         else store.Deployments
 
+    let gameContexts =
+        documents
+        |> Option.map (fun path -> FixtureGameContexts(workspaceId, path) :> IGameContexts)
+        |> Option.defaultValue store.GameContexts
+
     let diagnostics =
         DiagnosticSession(
             workspaces,
             plans :> IFilePlans,
             deploymentBackend,
             launches :> IGameLaunching,
-            store.ProfileGameData
+            store.ProfileGameData,
+            gameContexts,
+            store.PluginOrders
         )
         :> IDiagnostics
 
@@ -287,6 +397,7 @@ type private DiagnosticFixtureEnvironment(?launchPhase: RunPhase, ?useFixtureDep
         { WorkspaceId = workspaceId
           ProfileId = profileId
           FileSnapshotId = Some plans.SnapshotId
+          PluginSnapshotId = None
           DeploymentReceipt = None }
 
     member _.Diagnostics = diagnostics
@@ -368,7 +479,8 @@ type DiagnosticsTests() =
         let foreignRequest =
             { environment.Request with
                 ProfileId = Guid.NewGuid()
-                FileSnapshotId = None }
+                FileSnapshotId = None
+                PluginSnapshotId = None }
 
         let foreign = diagnostics.Check(foreignRequest, CancellationToken.None) |> environment.Wait
         let foreignRefused =
@@ -440,6 +552,7 @@ type DiagnosticsTests() =
         let request =
             { environment.Request with
                 FileSnapshotId = None
+                PluginSnapshotId = None
                 DeploymentReceipt = Some(deployment.ReceiptId, deployment.Revision) }
 
         let snapshot = diagnostics.Check(request, CancellationToken.None) |> environment.Wait |> environment.Result
@@ -483,3 +596,181 @@ type DiagnosticsTests() =
         Assert.That(finding.Fixability, Is.EqualTo Fixability.NotFixable)
         Assert.That(finding.Action, Is.EqualTo DiagnosticAction.CheckAgain)
         Assert.That(Option.isNone finding.Detail, Is.True)
+
+[<TestFixture>]
+type SkyrimDiagnosticSessionTests() =
+    [<Test>]
+    member _.``SKSE plugin findings should use known mod origins and keep unknown origins``() =
+        let documents =
+            Path.Combine(
+                Path.GetTempPath(),
+                "mod-conductor-skse-session-" + Guid.NewGuid().ToString "N"
+            )
+
+        let directory = Directory.CreateDirectory(Path.Combine(documents, "SKSE")).FullName
+
+        let log = Path.Combine(directory, "skse64.log")
+
+        File.WriteAllText(
+            log,
+            "couldn't load plugin C:\\mods\\Failed.dll\n"
+            + "couldn't load plugin C:\\mods\\Unknown.dll\n"
+        )
+
+        try
+            use environment = new DiagnosticFixtureEnvironment(documents = documents)
+            File.SetLastWriteTimeUtc(log, DateTime.UtcNow.AddMinutes 1.)
+
+            let snapshot =
+                environment.Diagnostics.Check(environment.Request, CancellationToken.None)
+                |> environment.Wait
+                |> environment.Result
+
+            let failed =
+                snapshot.Findings
+                |> List.find (fun finding -> finding.Id = "skse-plugin:failed.dll")
+
+            let unknown =
+                snapshot.Findings
+                |> List.find (fun finding -> finding.Id = "skse-plugin:unknown.dll")
+
+            Assert.That(
+                failed.Evidence
+                |> List.exists (fun value ->
+                    value.Label = "Mod" && value.Value = "Failed plugin mod"),
+                Is.True
+            )
+
+            Assert.That(
+                unknown.Evidence |> List.exists (fun value -> value.Label = "Mod"),
+                Is.False
+            )
+        finally
+            Directory.Delete(documents, true)
+
+
+[<TestFixture>]
+type SkyrimCheckTests() =
+    let path name =
+        LogicalPath.create [ name ] |> Result.defaultWith (string >> invalidOp)
+
+    let header (name: string) form =
+        { Extension = Path.GetExtension(name).ToLowerInvariant()
+          Flags = 0u
+          FormVersion = form
+          HeaderVersion = 1.7f
+          DeclaredRecords = 1u
+          Kind = PluginKind.Plugin
+          Localized = false
+          Author = None
+          Description = None
+          Masters = [] }
+
+    let source name =
+        { Source =
+            CandidateSource.Pinned(
+                SourcePin.Mod(
+                    Guid.NewGuid(),
+                    Guid.NewGuid(),
+                    { Path = path name
+                      Payload =
+                        { Id = Guid.NewGuid()
+                          Length = 1L
+                          Sha256 = String.replicate 64 "0" } }
+                )
+            )
+          Name = "Known mod"
+          Version = "1.0" }
+
+    let entry name form winner =
+        { Name = name
+          Path = path name
+          Winner = winner
+          Alternatives = []
+          Header = Ok(header name form)
+          Ambiguity = None
+          Masters = [] }
+
+    [<Test>]
+    member _.``current missing stale and malformed SKSE logs should remain distinct``() =
+        let root =
+            Path.Combine(Path.GetTempPath(), "mod-conductor-skse-" + Guid.NewGuid().ToString "N")
+
+        let directory = Directory.CreateDirectory(Path.Combine(root, "SKSE")).FullName
+        let log = Path.Combine(directory, "skse64.log")
+
+        try
+            match SkyrimChecks.readLog root None CancellationToken.None with
+            | SkseLogResult.Missing -> ()
+            | value -> Assert.Fail("Expected a missing log, got " + string value)
+
+            File.WriteAllText(
+                log,
+                "plugin C:\\mods\\Good.dll loaded correctly\n"
+                + "couldn't load plugin C:\\mods\\Failed.dll\n"
+                + "plugin C:\\mods\\Old.dll reported as incompatible during query\n"
+            )
+
+            match SkyrimChecks.readLog root None CancellationToken.None with
+            | SkseLogResult.Current issues ->
+                Assert.That(issues, Has.Length.EqualTo 2)
+                Assert.That(issues[0].Name, Is.EqualTo "Failed.dll")
+                Assert.That(issues[0].Problem, Is.EqualTo SksePluginProblem.Failed)
+                Assert.That(issues[1].Name, Is.EqualTo "Old.dll")
+                Assert.That(issues[1].Problem, Is.EqualTo SksePluginProblem.Incompatible)
+            | value -> Assert.Fail("Expected a current log, got " + string value)
+
+            let old = DateTime.UtcNow.AddMinutes -10.
+            File.SetLastWriteTimeUtc(log, old)
+
+            match
+                SkyrimChecks.readLog root (Some(DateTimeOffset.UtcNow)) CancellationToken.None
+            with
+            | SkseLogResult.Stale modified -> Assert.That(modified.UtcDateTime, Is.EqualTo old)
+            | value -> Assert.Fail("Expected a stale log, got " + string value)
+
+            File.WriteAllBytes(log, [||])
+
+            match SkyrimChecks.readLog root None CancellationToken.None with
+            | SkseLogResult.Malformed _ -> ()
+            | value -> Assert.Fail("Expected a malformed log, got " + string value)
+        finally
+            Directory.Delete(root, true)
+
+    [<Test>]
+    member _.``old form check should report only enabled ESM and ESP entries below form 44``() =
+        let known = source "Old.esp"
+
+        let snapshot =
+            { Id = Guid.NewGuid()
+              Stamp =
+                { WorkspaceId = Guid.NewGuid()
+                  ProfileId = Guid.NewGuid()
+                  SelectionRevision = 1L
+                  ContextRevision = 1L
+                  ExclusionRevision = 1L
+                  OutputRevision = 1L
+                  Versions = []
+                  Deployment = None }
+              ObservedAt = DateTimeOffset.UtcNow
+              Stale = false
+              Entries =
+                [ entry "Old.esp" 43us (Some known)
+                  entry "Disabled.esm" 1us (Some(source "Disabled.esm"))
+                  entry "Current.esp" 44us (Some(source "Current.esp"))
+                  entry "Future.esm" 45us (Some(source "Future.esm"))
+                  entry "Old.esl" 1us (Some(source "Old.esl"))
+                  entry "Unknown.esp" 42us None ]
+              Problems = [] }
+
+        let settings =
+            snapshot.Entries
+            |> List.map (fun plugin ->
+                { Name = plugin.Name
+                  Enabled = Some(plugin.Name <> "Disabled.esm")
+                  LockedIndex = None })
+
+        let findings = SkyrimChecks.oldPluginFormats snapshot settings
+        Assert.That((findings |> List.map _.Name) = [ "Old.esp"; "Unknown.esp" ], Is.True)
+        Assert.That(findings.Head.Owner, Is.EqualTo(Some "Known mod"))
+        Assert.That(findings[1].Owner, Is.EqualTo None)

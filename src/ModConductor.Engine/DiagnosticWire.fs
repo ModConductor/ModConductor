@@ -37,6 +37,7 @@ module DiagnosticWire =
         | ModConductor.Diagnostics.CorrelationKind.Deployment -> "deployment"
         | ModConductor.Diagnostics.CorrelationKind.Profile -> "profile"
         | ModConductor.Diagnostics.CorrelationKind.Action -> "action"
+        | ModConductor.Diagnostics.CorrelationKind.PluginSnapshot -> "plugin-snapshot"
 
     let finding (value: ModConductor.Diagnostics.DiagnosticFinding) =
         let result =

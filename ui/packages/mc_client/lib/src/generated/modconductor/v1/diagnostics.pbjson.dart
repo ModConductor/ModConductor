@@ -108,11 +108,21 @@ const DiagnosticRequest$json = {
       '10': 'deploymentRevision',
       '17': true
     },
+    {
+      '1': 'plugin_snapshot_id',
+      '3': 7,
+      '4': 1,
+      '5': 9,
+      '9': 3,
+      '10': 'pluginSnapshotId',
+      '17': true
+    },
   ],
   '8': [
     {'1': '_file_snapshot_id'},
     {'1': '_deployment_id'},
     {'1': '_deployment_revision'},
+    {'1': '_plugin_snapshot_id'},
   ],
   '9': [
     {'1': 6, '2': 7},
@@ -126,8 +136,9 @@ final $typed_data.Uint8List diagnosticRequestDescriptor = $convert.base64Decode(
     '0KCnByb2ZpbGVfaWQYAiABKAlSCXByb2ZpbGVJZBItChBmaWxlX3NuYXBzaG90X2lkGAMgASgJ'
     'SABSDmZpbGVTbmFwc2hvdElkiAEBEigKDWRlcGxveW1lbnRfaWQYBCABKAlIAVIMZGVwbG95bW'
     'VudElkiAEBEjQKE2RlcGxveW1lbnRfcmV2aXNpb24YBSABKARIAlISZGVwbG95bWVudFJldmlz'
-    'aW9uiAEBQhMKEV9maWxlX3NuYXBzaG90X2lkQhAKDl9kZXBsb3ltZW50X2lkQhYKFF9kZXBsb3'
-    'ltZW50X3JldmlzaW9uSgQIBhAHUgxvcGVyYXRpb25faWQ=');
+    'aW9uiAEBEjEKEnBsdWdpbl9zbmFwc2hvdF9pZBgHIAEoCUgDUhBwbHVnaW5TbmFwc2hvdElkiA'
+    'EBQhMKEV9maWxlX3NuYXBzaG90X2lkQhAKDl9kZXBsb3ltZW50X2lkQhYKFF9kZXBsb3ltZW50'
+    'X3JldmlzaW9uQhUKE19wbHVnaW5fc25hcHNob3RfaWRKBAgGEAdSDG9wZXJhdGlvbl9pZA==');
 
 @$core.Deprecated('Use diagnosticSnapshotReferenceDescriptor instead')
 const DiagnosticSnapshotReference$json = {

@@ -198,6 +198,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
       _workspaces.workspace?.id,
       _workspaces.workspace?.selectedProfile?.id,
       fileSnapshotId: _files.state?.id,
+      pluginSnapshotId: _plugins.order?.headers.id,
       deploymentId: receipt?.id,
       deploymentRevision: receipt?.revision,
     );
@@ -299,6 +300,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
     _game.addListener(_gameChanged);
     _mods.addListener(_modsChanged);
     _files.addListener(_diagnosticInputsChanged);
+    _plugins.addListener(_diagnosticInputsChanged);
     _outputs.onChanged = _outputsChanged;
     _deployments.onChanged = _deploymentChanged;
     _plugins.onChanged = () {
@@ -338,6 +340,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
     _game.removeListener(_gameChanged);
     _mods.removeListener(_modsChanged);
     _files.removeListener(_diagnosticInputsChanged);
+    _plugins.removeListener(_diagnosticInputsChanged);
     _outputs.dispose();
     _deployments.dispose();
     _artifacts.dispose();

@@ -90,7 +90,11 @@ const _guideArticles = [
 
 class DiagnosticsController extends ChangeNotifier {
   DiagnosticsClient? _client;
-  String? _workspaceId, _profileId, _fileSnapshotId, _deploymentId;
+  String? _workspaceId,
+      _profileId,
+      _fileSnapshotId,
+      _pluginSnapshotId,
+      _deploymentId;
   int? _deploymentRevision;
   int _epoch = 0;
   bool _disposed = false;
@@ -105,6 +109,7 @@ class DiagnosticsController extends ChangeNotifier {
     String? workspaceId,
     String? profileId, {
     String? fileSnapshotId,
+    String? pluginSnapshotId,
     String? deploymentId,
     int? deploymentRevision,
   }) {
@@ -112,6 +117,7 @@ class DiagnosticsController extends ChangeNotifier {
         workspaceId == _workspaceId &&
         profileId == _profileId &&
         fileSnapshotId == _fileSnapshotId &&
+        pluginSnapshotId == _pluginSnapshotId &&
         deploymentId == _deploymentId &&
         deploymentRevision == _deploymentRevision) {
       return;
@@ -120,6 +126,7 @@ class DiagnosticsController extends ChangeNotifier {
     _workspaceId = workspaceId;
     _profileId = profileId;
     _fileSnapshotId = fileSnapshotId;
+    _pluginSnapshotId = pluginSnapshotId;
     _deploymentId = deploymentId;
     _deploymentRevision = deploymentRevision;
     ++_epoch;
@@ -172,6 +179,7 @@ class DiagnosticsController extends ChangeNotifier {
         workspaceId: workspace,
         profileId: profile,
         fileSnapshotId: _fileSnapshotId,
+        pluginSnapshotId: _pluginSnapshotId,
         deploymentId: _deploymentId,
         deploymentRevision: _deploymentRevision,
       );
@@ -605,6 +613,7 @@ class _HelpBrowserState extends State<HelpBrowser> {
     'deployment' => 'Deployment restore ID',
     'profile' => 'Profile ID',
     'action' => 'Action ID',
+    'plugin-snapshot' => 'Plugin check ID',
     _ => 'Support ID',
   };
 

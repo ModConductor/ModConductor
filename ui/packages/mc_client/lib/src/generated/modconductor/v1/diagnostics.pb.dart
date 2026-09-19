@@ -28,6 +28,7 @@ class DiagnosticRequest extends $pb.GeneratedMessage {
     $core.String? fileSnapshotId,
     $core.String? deploymentId,
     $fixnum.Int64? deploymentRevision,
+    $core.String? pluginSnapshotId,
   }) {
     final result = create();
     if (workspaceId != null) result.workspaceId = workspaceId;
@@ -36,6 +37,7 @@ class DiagnosticRequest extends $pb.GeneratedMessage {
     if (deploymentId != null) result.deploymentId = deploymentId;
     if (deploymentRevision != null)
       result.deploymentRevision = deploymentRevision;
+    if (pluginSnapshotId != null) result.pluginSnapshotId = pluginSnapshotId;
     return result;
   }
 
@@ -60,6 +62,7 @@ class DiagnosticRequest extends $pb.GeneratedMessage {
     ..a<$fixnum.Int64>(
         5, _omitFieldNames ? '' : 'deploymentRevision', $pb.PbFieldType.OU6,
         defaultOrMaker: $fixnum.Int64.ZERO)
+    ..aOS(7, _omitFieldNames ? '' : 'pluginSnapshotId')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -125,6 +128,15 @@ class DiagnosticRequest extends $pb.GeneratedMessage {
   $core.bool hasDeploymentRevision() => $_has(4);
   @$pb.TagNumber(5)
   void clearDeploymentRevision() => $_clearField(5);
+
+  @$pb.TagNumber(7)
+  $core.String get pluginSnapshotId => $_getSZ(5);
+  @$pb.TagNumber(7)
+  set pluginSnapshotId($core.String value) => $_setString(5, value);
+  @$pb.TagNumber(7)
+  $core.bool hasPluginSnapshotId() => $_has(5);
+  @$pb.TagNumber(7)
+  void clearPluginSnapshotId() => $_clearField(7);
 }
 
 class DiagnosticSnapshotReference extends $pb.GeneratedMessage {
