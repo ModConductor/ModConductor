@@ -9,7 +9,8 @@ import 'support/native_child.dart';
 
 void main() {
   final executable = Platform.environment['MC_ENGINE_PATH'];
-  late Directory fixture, state, root, source;
+  late Directory fixture, state, root, source, staging, downloads;
+  late File backup;
   final children = <NativeChild>[];
 
   Future<NativeChild> start() async {
@@ -41,6 +42,30 @@ void main() {
       'profiles_directory=%BASE_DIR%/profiles\n'
       'download_directory=%BASE_DIR%/downloads\n',
     );
+    staging = await Directory('${fixture.path}/vortex-staging').create();
+    downloads = await Directory('${fixture.path}/vortex-downloads').create();
+    await Directory('${staging.path}/Example/data').create(recursive: true);
+    await File('${staging.path}/Example/data/file.txt')
+        .writeAsString('migrated Vortex payload');
+    await File('${downloads.path}/example.zip')
+        .writeAsBytes([80, 75, 3, 4, 1, 2]);
+    backup = File('${fixture.path}/vortex-backup.json');
+    await backup.writeAsString(r'''
+{
+  "app":{"appVersion":"2.6.3"},
+  "user":{"multiUser":false},
+  "settings":{},
+  "persistent":{
+    "profiles":{
+      "selected":{"id":"selected","gameId":"game","name":"Selected","modState":{"example":{"enabled":true,"enabledTime":1}},"lastActivated":1},
+      "other":{"id":"other","gameId":"game","name":"Other","modState":{"example":{"enabled":false,"enabledTime":1}},"lastActivated":1}
+    },
+    "mods":{"game":{"example":{"id":"example","state":"installed","type":"","archiveId":"archive","installationPath":"Example","attributes":{"name":"Example","version":"1.0"},"rules":[]}}},
+    "categories":{"game":{}},
+    "downloads":{"files":{"archive":{"id":"archive","state":"finished","urls":[],"localPath":"example.zip","game":["game"],"modInfo":{},"fileMD5":"e5f822a8e1837f9eff4854714fae1bf8","size":6,"received":6,"verified":6}}}
+  }
+}
+''');
   });
 
   tearDown(() async {
@@ -126,6 +151,89 @@ void main() {
                 workspace.profiles.isEmpty &&
                 mods.entries.isEmpty &&
                 unmanaged.isEmpty;
+            if (!empty) {
+              await Future<void>.delayed(const Duration(milliseconds: 25));
+            }
+          }
+          expect(empty, isTrue);
+        },
+      );
+
+      test('authenticated Vortex profile discovery and migration use engine parsing', () async {
+        final child = await start();
+        final profiles = await child.migration().profiles(
+          MigrationManager.vortex,
+          backup.path,
+        );
+        expect(profiles.map((profile) => profile.id), ['other', 'selected']);
+
+        final id = newOperationId();
+        await child.workspaces().create(id, 'Empty', root.path);
+        final events = await child
+            .migration()
+            .migrate(
+              id,
+              MigrationManager.vortex,
+              backup.path,
+              profileId: 'selected',
+              stagingRoot: staging.path,
+              downloadRoot: downloads.path,
+            )
+            .toList();
+        expect(events.whereType<MigrationProgress>(), isNotEmpty);
+        expect(events.last, isA<MigrationResult>());
+        expect(
+          (await child.workspaces().read(id)).profiles.single.name,
+          'Selected',
+        );
+        expect(
+          (await child.modLibrary().scan(
+            id,
+            candidateLimit: 100,
+          )).entries.single.metadata.name,
+          'Example',
+        );
+        expect((await child.operations().check()).runtime.nativeAot, isTrue);
+      });
+
+      test(
+        'authenticated Vortex cancellation leaves the target empty',
+        () async {
+          await File('${staging.path}/Example/data/large-a.bin')
+              .writeAsBytes(List<int>.filled(8 * 1024 * 1024, 7), flush: true);
+          await File('${staging.path}/Example/data/large-b.bin')
+              .writeAsBytes(List<int>.filled(8 * 1024 * 1024, 9), flush: true);
+          final child = await start();
+          final id = newOperationId();
+          await child.workspaces().create(id, 'Empty', root.path);
+          final cancelled = Completer<void>();
+          late StreamSubscription<MigrationEvent> operation;
+          operation = child
+              .migration()
+              .migrate(
+                id,
+                MigrationManager.vortex,
+                backup.path,
+                profileId: 'selected',
+                stagingRoot: staging.path,
+                downloadRoot: downloads.path,
+              )
+              .listen((event) {
+                if (event is MigrationProgress && !cancelled.isCompleted) {
+                  unawaited(
+                    operation.cancel().then((_) {
+                      if (!cancelled.isCompleted) cancelled.complete();
+                    }),
+                  );
+                }
+              });
+          await cancelled.future.timeout(const Duration(seconds: 10));
+
+          var empty = false;
+          for (var attempt = 0; attempt < 100 && !empty; attempt++) {
+            final workspace = await child.workspaces().read(id);
+            final mods = await child.modLibrary().scan(id, candidateLimit: 100);
+            empty = workspace.profiles.isEmpty && mods.entries.isEmpty;
             if (!empty) {
               await Future<void>.delayed(const Duration(milliseconds: 25));
             }

@@ -218,6 +218,14 @@ type OperationStore
             token
             checkpoint
 
+    member internal _.MigrateVortexAtCheckpoint(request, progress, token, checkpoint) =
+        ModConductor.Migration.Vortex.migrateAtCheckpoint
+            (migrations :> ModConductor.Migration.IStore)
+            request
+            progress
+            token
+            checkpoint
+
     member _.ModLibrary = modLibrary
     member _.ArtifactSource = artifacts :> ModConductor.ArtifactLibrary.IArtifactSource
     member _.ArchiveInspection = archiveInspection

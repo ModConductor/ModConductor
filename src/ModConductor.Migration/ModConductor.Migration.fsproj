@@ -3,7 +3,9 @@
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="Contracts.fs" />
+    <Compile Include="Direct.fs" />
     <Compile Include="ModOrganizer.fs" />
+    <Compile Include="Vortex.fs" />
     <ProjectReference Include="../ModConductor.Platform/ModConductor.Platform.fsproj" />
     <ProjectReference Include="../ModConductor.ModLibrary/ModConductor.ModLibrary.fsproj" />
     <ProjectReference Include="../ModConductor.ModSelection/ModConductor.ModSelection.fsproj" />

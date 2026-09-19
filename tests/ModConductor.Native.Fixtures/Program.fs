@@ -27,8 +27,10 @@ let main args =
 
             writer.WriteStartObject()
             writer.WriteBoolean("nativeAot", not RuntimeFeature.IsDynamicCodeSupported)
+
             GameLaunchCancellationFixture.sample ()
             |> GameLaunchCancellationFixture.observe writer
+
             writer.WriteEndObject()
             writer.Flush()
             0
@@ -527,6 +529,9 @@ let main args =
         elif args.Length = 5 && args[0] = "--migration-worker" then
             MigrationFixtures.worker args[1] args[2] args[3] args[4]
             0
+        elif args.Length = 8 && args[0] = "--vortex-migration-worker" then
+            VortexMigrationFixtures.worker args[1] args[2] args[3] args[4] args[5] args[6] args[7]
+            0
         else
             let filePlansOnly = args.Length = 2 && args[0] = "--file-plans"
             let protonOnly = args.Length = 2 && args[0] = "--proton-contexts"
@@ -585,9 +590,11 @@ let main args =
                 LibraryRecoveryFixtures.observe writer primary
                 LibraryIdentityFixtures.observe writer primary
                 MigrationFixtures.observe writer primary
+                VortexMigrationFixtures.observe writer primary
 
             if migrationOnly then
                 MigrationFixtures.observe writer primary
+                VortexMigrationFixtures.observe writer primary
 
             if
                 not filePlansOnly

@@ -1,8 +1,20 @@
 import 'package:grpc/grpc.dart';
+import 'package:mc_client/src/generated/modconductor/v1/migration.pbgrpc.dart'
+    as wire;
 
-import 'generated/modconductor/v1/migration.pbgrpc.dart' as wire;
+enum MigrationManager { modOrganizer, vortex }
 
-enum MigrationManager { modOrganizer }
+final class BackupProfile {
+  const BackupProfile({
+    required this.id,
+    required this.name,
+    required this.gameId,
+  });
+
+  final String id;
+  final String name;
+  final String gameId;
+}
 
 sealed class MigrationEvent {
   const MigrationEvent();
@@ -10,7 +22,8 @@ sealed class MigrationEvent {
 
 final class MigrationProgress extends MigrationEvent {
   const MigrationProgress(this.completed, this.total, this.message);
-  final int completed, total;
+  final int completed;
+  final int total;
   final String message;
 }
 
@@ -25,11 +38,19 @@ final class MigrationFailure extends MigrationEvent implements Exception {
 }
 
 abstract interface class MigrationClient {
+  Future<List<BackupProfile>> profiles(
+    MigrationManager manager,
+    String sourceFile,
+  );
+
   Stream<MigrationEvent> migrate(
     String workspaceId,
     MigrationManager manager,
-    String sourceFolder,
-  );
+    String sourcePath, {
+    String profileId = '',
+    String stagingRoot = '',
+    String downloadRoot = '',
+  });
 }
 
 final class GrpcMigrationClient implements MigrationClient {
@@ -41,20 +62,50 @@ final class GrpcMigrationClient implements MigrationClient {
 
   final wire.MigrationOperationsClient _wire;
 
+  static wire.MigrationManager _manager(MigrationManager manager) =>
+      switch (manager) {
+        MigrationManager.modOrganizer =>
+          wire.MigrationManager.MIGRATION_MANAGER_MOD_ORGANIZER,
+        MigrationManager.vortex =>
+          wire.MigrationManager.MIGRATION_MANAGER_VORTEX,
+      };
+
+  @override
+  Future<List<BackupProfile>> profiles(
+    MigrationManager manager,
+    String sourceFile,
+  ) async {
+    final response = await _wire.profiles(
+      wire.ProfileRequest(manager: _manager(manager), sourceFile: sourceFile),
+    );
+    if (response.hasError()) throw MigrationFailure(response.error.detail);
+    return [
+      for (final profile in response.profiles)
+        BackupProfile(
+          id: profile.id,
+          name: profile.name,
+          gameId: profile.gameId,
+        ),
+    ];
+  }
+
   @override
   Stream<MigrationEvent> migrate(
     String workspaceId,
     MigrationManager manager,
-    String sourceFolder,
-  ) => _wire
+    String sourcePath, {
+    String profileId = '',
+    String stagingRoot = '',
+    String downloadRoot = '',
+  }) => _wire
       .migrate(
         wire.MigrationRequest(
           workspaceId: workspaceId,
-          manager: switch (manager) {
-            MigrationManager.modOrganizer =>
-              wire.MigrationManager.MIGRATION_MANAGER_MOD_ORGANIZER,
-          },
-          sourceFolder: sourceFolder,
+          manager: _manager(manager),
+          sourceFolder: sourcePath,
+          profileId: profileId,
+          stagingRoot: stagingRoot,
+          downloadRoot: downloadRoot,
         ),
       )
       .map(

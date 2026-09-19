@@ -46,9 +46,21 @@ namespace ModConductor.Protocol.V1 {
     }
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.ProfileRequest> __Marshaller_modconductor_v1_ProfileRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.ProfileRequest.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.ProfileList> __Marshaller_modconductor_v1_ProfileList = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.ProfileList.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.MigrationRequest> __Marshaller_modconductor_v1_MigrationRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.MigrationRequest.Parser));
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.MigrationEvent> __Marshaller_modconductor_v1_MigrationEvent = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.MigrationEvent.Parser));
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::ModConductor.Protocol.V1.ProfileRequest, global::ModConductor.Protocol.V1.ProfileList> __Method_Profiles = new grpc::Method<global::ModConductor.Protocol.V1.ProfileRequest, global::ModConductor.Protocol.V1.ProfileList>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "Profiles",
+        __Marshaller_modconductor_v1_ProfileRequest,
+        __Marshaller_modconductor_v1_ProfileList);
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Method<global::ModConductor.Protocol.V1.MigrationRequest, global::ModConductor.Protocol.V1.MigrationEvent> __Method_Migrate = new grpc::Method<global::ModConductor.Protocol.V1.MigrationRequest, global::ModConductor.Protocol.V1.MigrationEvent>(
@@ -68,6 +80,12 @@ namespace ModConductor.Protocol.V1 {
     [grpc::BindServiceMethod(typeof(MigrationOperations), "BindService")]
     public abstract partial class MigrationOperationsBase
     {
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V1.ProfileList> Profiles(global::ModConductor.Protocol.V1.ProfileRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       public virtual global::System.Threading.Tasks.Task Migrate(global::ModConductor.Protocol.V1.MigrationRequest request, grpc::IServerStreamWriter<global::ModConductor.Protocol.V1.MigrationEvent> responseStream, grpc::ServerCallContext context)
       {
@@ -104,6 +122,26 @@ namespace ModConductor.Protocol.V1 {
       }
 
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V1.ProfileList Profiles(global::ModConductor.Protocol.V1.ProfileRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return Profiles(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V1.ProfileList Profiles(global::ModConductor.Protocol.V1.ProfileRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_Profiles, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.ProfileList> ProfilesAsync(global::ModConductor.Protocol.V1.ProfileRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return ProfilesAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.ProfileList> ProfilesAsync(global::ModConductor.Protocol.V1.ProfileRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_Profiles, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       public virtual grpc::AsyncServerStreamingCall<global::ModConductor.Protocol.V1.MigrationEvent> Migrate(global::ModConductor.Protocol.V1.MigrationRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
       {
         return Migrate(request, new grpc::CallOptions(headers, deadline, cancellationToken));
@@ -127,6 +165,7 @@ namespace ModConductor.Protocol.V1 {
     public static grpc::ServerServiceDefinition BindService(MigrationOperationsBase serviceImpl)
     {
       return grpc::ServerServiceDefinition.CreateBuilder()
+          .AddMethod(__Method_Profiles, serviceImpl.Profiles)
           .AddMethod(__Method_Migrate, serviceImpl.Migrate).Build();
     }
 
@@ -137,6 +176,7 @@ namespace ModConductor.Protocol.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     public static void BindService(grpc::ServiceBinderBase serviceBinder, MigrationOperationsBase serviceImpl)
     {
+      serviceBinder.AddMethod(__Method_Profiles, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.ProfileRequest, global::ModConductor.Protocol.V1.ProfileList>(serviceImpl.Profiles));
       serviceBinder.AddMethod(__Method_Migrate, serviceImpl == null ? null : new grpc::ServerStreamingServerMethod<global::ModConductor.Protocol.V1.MigrationRequest, global::ModConductor.Protocol.V1.MigrationEvent>(serviceImpl.Migrate));
     }
 

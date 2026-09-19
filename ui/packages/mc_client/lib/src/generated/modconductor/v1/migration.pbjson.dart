@@ -21,13 +21,15 @@ const MigrationManager$json = {
   '2': [
     {'1': 'MIGRATION_MANAGER_UNSPECIFIED', '2': 0},
     {'1': 'MIGRATION_MANAGER_MOD_ORGANIZER', '2': 1},
+    {'1': 'MIGRATION_MANAGER_VORTEX', '2': 2},
   ],
 };
 
 /// Descriptor for `MigrationManager`. Decode as a `google.protobuf.EnumDescriptorProto`.
 final $typed_data.Uint8List migrationManagerDescriptor = $convert.base64Decode(
     'ChBNaWdyYXRpb25NYW5hZ2VyEiEKHU1JR1JBVElPTl9NQU5BR0VSX1VOU1BFQ0lGSUVEEAASIw'
-    'ofTUlHUkFUSU9OX01BTkFHRVJfTU9EX09SR0FOSVpFUhAB');
+    'ofTUlHUkFUSU9OX01BTkFHRVJfTU9EX09SR0FOSVpFUhABEhwKGE1JR1JBVElPTl9NQU5BR0VS'
+    'X1ZPUlRFWBAC');
 
 @$core.Deprecated('Use migrationErrorCodeDescriptor instead')
 const MigrationErrorCode$json = {
@@ -71,6 +73,9 @@ const MigrationRequest$json = {
       '10': 'manager'
     },
     {'1': 'source_folder', '3': 3, '4': 1, '5': 9, '10': 'sourceFolder'},
+    {'1': 'profile_id', '3': 4, '4': 1, '5': 9, '10': 'profileId'},
+    {'1': 'staging_root', '3': 5, '4': 1, '5': 9, '10': 'stagingRoot'},
+    {'1': 'download_root', '3': 6, '4': 1, '5': 9, '10': 'downloadRoot'},
   ],
 };
 
@@ -78,7 +83,74 @@ const MigrationRequest$json = {
 final $typed_data.Uint8List migrationRequestDescriptor = $convert.base64Decode(
     'ChBNaWdyYXRpb25SZXF1ZXN0EiEKDHdvcmtzcGFjZV9pZBgBIAEoCVILd29ya3NwYWNlSWQSOw'
     'oHbWFuYWdlchgCIAEoDjIhLm1vZGNvbmR1Y3Rvci52MS5NaWdyYXRpb25NYW5hZ2VyUgdtYW5h'
-    'Z2VyEiMKDXNvdXJjZV9mb2xkZXIYAyABKAlSDHNvdXJjZUZvbGRlcg==');
+    'Z2VyEiMKDXNvdXJjZV9mb2xkZXIYAyABKAlSDHNvdXJjZUZvbGRlchIdCgpwcm9maWxlX2lkGA'
+    'QgASgJUglwcm9maWxlSWQSIQoMc3RhZ2luZ19yb290GAUgASgJUgtzdGFnaW5nUm9vdBIjCg1k'
+    'b3dubG9hZF9yb290GAYgASgJUgxkb3dubG9hZFJvb3Q=');
+
+@$core.Deprecated('Use profileRequestDescriptor instead')
+const ProfileRequest$json = {
+  '1': 'ProfileRequest',
+  '2': [
+    {
+      '1': 'manager',
+      '3': 1,
+      '4': 1,
+      '5': 14,
+      '6': '.modconductor.v1.MigrationManager',
+      '10': 'manager'
+    },
+    {'1': 'source_file', '3': 2, '4': 1, '5': 9, '10': 'sourceFile'},
+  ],
+};
+
+/// Descriptor for `ProfileRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List profileRequestDescriptor = $convert.base64Decode(
+    'Cg5Qcm9maWxlUmVxdWVzdBI7CgdtYW5hZ2VyGAEgASgOMiEubW9kY29uZHVjdG9yLnYxLk1pZ3'
+    'JhdGlvbk1hbmFnZXJSB21hbmFnZXISHwoLc291cmNlX2ZpbGUYAiABKAlSCnNvdXJjZUZpbGU=');
+
+@$core.Deprecated('Use backupProfileDescriptor instead')
+const BackupProfile$json = {
+  '1': 'BackupProfile',
+  '2': [
+    {'1': 'id', '3': 1, '4': 1, '5': 9, '10': 'id'},
+    {'1': 'name', '3': 2, '4': 1, '5': 9, '10': 'name'},
+    {'1': 'game_id', '3': 3, '4': 1, '5': 9, '10': 'gameId'},
+  ],
+};
+
+/// Descriptor for `BackupProfile`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List backupProfileDescriptor = $convert.base64Decode(
+    'Cg1CYWNrdXBQcm9maWxlEg4KAmlkGAEgASgJUgJpZBISCgRuYW1lGAIgASgJUgRuYW1lEhcKB2'
+    'dhbWVfaWQYAyABKAlSBmdhbWVJZA==');
+
+@$core.Deprecated('Use profileListDescriptor instead')
+const ProfileList$json = {
+  '1': 'ProfileList',
+  '2': [
+    {
+      '1': 'profiles',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.modconductor.v1.BackupProfile',
+      '10': 'profiles'
+    },
+    {
+      '1': 'error',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.MigrationError',
+      '10': 'error'
+    },
+  ],
+};
+
+/// Descriptor for `ProfileList`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List profileListDescriptor = $convert.base64Decode(
+    'CgtQcm9maWxlTGlzdBI6Cghwcm9maWxlcxgBIAMoCzIeLm1vZGNvbmR1Y3Rvci52MS5CYWNrdX'
+    'BQcm9maWxlUghwcm9maWxlcxI1CgVlcnJvchgCIAEoCzIfLm1vZGNvbmR1Y3Rvci52MS5NaWdy'
+    'YXRpb25FcnJvclIFZXJyb3I=');
 
 @$core.Deprecated('Use migrationProgressDescriptor instead')
 const MigrationProgress$json = {

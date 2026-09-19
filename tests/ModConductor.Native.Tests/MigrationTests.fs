@@ -47,3 +47,45 @@ type MigrationTests() =
         flag "crashAfterPublication" |> should equal true
         flag "crashBeforeCommit" |> should equal true
         flag "crashAfterCommit" |> should equal true
+
+[<TestFixture>]
+type VortexMigrationTests() =
+    let data () =
+        NativeObservations.report.RootElement.GetProperty "vortexMigration"
+
+    let flag (name: string) =
+        (data ()).GetProperty(name).GetBoolean()
+
+    [<Test>]
+    member _.``vortex migration should map one selected profile through existing owners``() =
+        flag "profiles" |> should equal true
+        flag "counts" |> should equal true
+        flag "selectedProfile" |> should equal true
+        flag "metadata" |> should equal true
+        flag "loadOrder" |> should equal true
+        flag "rules" |> should equal true
+        flag "categories" |> should equal true
+        flag "artifact" |> should equal true
+        flag "restart" |> should equal true
+
+    [<Test>]
+    member _.``vortex migration should preserve source data and refuse unsafe or incomplete input``
+        ()
+        =
+        flag "sourceUnchanged" |> should equal true
+        flag "excluded" |> should equal true
+        flag "targetGuard" |> should equal true
+        flag "missingDownload" |> should equal true
+        flag "unfinishedDownload" |> should equal true
+        flag "unsupportedRule" |> should equal true
+        flag "sourceChanged" |> should equal true
+        flag "caseCollision" |> should equal true
+        flag "unsafeLink" |> should equal true
+        flag "cancellation" |> should equal true
+
+    [<Test>]
+    member _.``vortex migration should recover around publication and commit``() =
+        flag "crashBeforePublication" |> should equal true
+        flag "crashAfterPublication" |> should equal true
+        flag "crashBeforeCommit" |> should equal true
+        flag "crashAfterCommit" |> should equal true

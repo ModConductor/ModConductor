@@ -27,6 +27,7 @@
     <Compile Include="BethesdaFixtures.fs" />
     <Compile Include="PluginOrderSamples.fs" />
     <Compile Include="PluginOrderFixtures.fs" />
+    <Compile Include="VortexMigrationFixtures.fs" />
     <Compile Include="MigrationFixtures.fs" />
     <Compile Include="SaveFixtures.fs" />
     <Compile Include="NativeToolFixtures.fs" />

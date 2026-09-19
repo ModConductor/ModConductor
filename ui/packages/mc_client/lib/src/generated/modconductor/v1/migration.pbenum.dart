@@ -21,14 +21,17 @@ class MigrationManager extends $pb.ProtobufEnum {
   static const MigrationManager MIGRATION_MANAGER_MOD_ORGANIZER =
       MigrationManager._(
           1, _omitEnumNames ? '' : 'MIGRATION_MANAGER_MOD_ORGANIZER');
+  static const MigrationManager MIGRATION_MANAGER_VORTEX =
+      MigrationManager._(2, _omitEnumNames ? '' : 'MIGRATION_MANAGER_VORTEX');
 
   static const $core.List<MigrationManager> values = <MigrationManager>[
     MIGRATION_MANAGER_UNSPECIFIED,
     MIGRATION_MANAGER_MOD_ORGANIZER,
+    MIGRATION_MANAGER_VORTEX,
   ];
 
   static final $core.List<MigrationManager?> _byValue =
-      $pb.ProtobufEnum.$_initByValueList(values, 1);
+      $pb.ProtobufEnum.$_initByValueList(values, 2);
   static MigrationManager? valueOf($core.int value) =>
       value < 0 || value >= _byValue.length ? null : _byValue[value];
 

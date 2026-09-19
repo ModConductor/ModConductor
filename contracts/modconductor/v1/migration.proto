@@ -5,12 +5,32 @@ option csharp_namespace = "ModConductor.Protocol.V1";
 enum MigrationManager {
   MIGRATION_MANAGER_UNSPECIFIED = 0;
   MIGRATION_MANAGER_MOD_ORGANIZER = 1;
+  MIGRATION_MANAGER_VORTEX = 2;
 }
 
 message MigrationRequest {
   string workspace_id = 1;
   MigrationManager manager = 2;
   string source_folder = 3;
+  string profile_id = 4;
+  string staging_root = 5;
+  string download_root = 6;
+}
+
+message ProfileRequest {
+  MigrationManager manager = 1;
+  string source_file = 2;
+}
+
+message BackupProfile {
+  string id = 1;
+  string name = 2;
+  string game_id = 3;
+}
+
+message ProfileList {
+  repeated BackupProfile profiles = 1;
+  MigrationError error = 2;
 }
 
 message MigrationProgress {
@@ -53,5 +73,6 @@ message MigrationEvent {
 }
 
 service MigrationOperations {
+  rpc Profiles(ProfileRequest) returns (ProfileList);
   rpc Migrate(MigrationRequest) returns (stream MigrationEvent);
 }

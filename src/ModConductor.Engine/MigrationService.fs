@@ -6,7 +6,7 @@ open ModConductor.Migration
 open ModConductor.Protocol.V1
 
 module private MigrationWire =
-    let private error value =
+    let error value =
         let code, detail =
             match value with
             | Error.InvalidSource detail -> MigrationErrorCode.InvalidSource, detail
@@ -19,12 +19,12 @@ module private MigrationWire =
             | Error.UnsupportedData detail -> MigrationErrorCode.UnsupportedData, detail
             | Error.SourceChanged ->
                 MigrationErrorCode.SourceChanged,
-                "The Mod Organizer files changed during migration. No data was migrated."
+                "The source files changed during migration. No data was migrated."
             | Error.Cancelled -> MigrationErrorCode.Cancelled, "Migration was cancelled."
             | Error.Busy -> MigrationErrorCode.Busy, "Another workspace change is in progress."
             | Error.Unavailable detail -> MigrationErrorCode.Unavailable, detail
 
-        MigrationEvent(Error = MigrationError(Code = code, Detail = detail))
+        MigrationError(Code = code, Detail = detail)
 
     let progress (value: Progress) =
         MigrationEvent(
@@ -48,44 +48,81 @@ module private MigrationWire =
                         Artifacts = uint32 value.Artifacts
                     )
             )
-        | Error value -> error value
+        | Error value -> MigrationEvent(Error = error value)
 
 type MigrationService(store: IStore) =
     inherit MigrationOperations.MigrationOperationsBase()
 
-    override _.Migrate(request, response, context) =
+    override _.Profiles(request, _) =
         task {
-            if request.Manager <> MigrationManager.ModOrganizer then
-                do!
-                    response.WriteAsync(
-                        MigrationWire.result (
-                            Error(Error.InvalidSource "Choose Mod Organizer as the source manager.")
-                        )
+            let response = ProfileList()
+
+            if request.Manager <> MigrationManager.Vortex then
+                response.Error <-
+                    MigrationWire.error (
+                        Error.InvalidSource "Choose Vortex before selecting a profile."
                     )
             else
-                let mutable writes = System.Threading.Tasks.Task.CompletedTask
+                match Vortex.profiles request.SourceFile with
+                | Error error -> response.Error <- MigrationWire.error error
+                | Ok profiles ->
+                    for profile in profiles do
+                        response.Profiles.Add(
+                            BackupProfile(
+                                Id = profile.Id,
+                                Name = profile.Name,
+                                GameId = profile.GameId
+                            )
+                        )
 
-                let progress value =
-                    writes <-
-                        task {
-                            do! writes
-                            do! response.WriteAsync(MigrationWire.progress value)
-                        }
+            return response
+        }
 
-                let parsed =
-                    match Guid.TryParse request.WorkspaceId with
-                    | true, value when value <> Guid.Empty ->
-                        Ok
-                            { Request.WorkspaceId = value
-                              SourceFolder = request.SourceFolder }
-                    | _ -> Error(Error.InvalidSource "The workspace ID is invalid.")
+    override _.Migrate(request, response, context) =
+        task {
+            let mutable writes = System.Threading.Tasks.Task.CompletedTask
 
-                match parsed with
-                | Error error -> do! response.WriteAsync(MigrationWire.result (Error error))
-                | Ok value ->
-                    let! result =
-                        ModOrganizer.migrate store value progress context.CancellationToken
+            let progress value =
+                writes <-
+                    task {
+                        do! writes
+                        do! response.WriteAsync(MigrationWire.progress value)
+                    }
 
-                    do! writes
-                    do! response.WriteAsync(MigrationWire.result result)
+            let workspace =
+                match Guid.TryParse request.WorkspaceId with
+                | true, value when value <> Guid.Empty -> Ok value
+                | _ -> Error(Error.InvalidSource "The workspace ID is invalid.")
+
+            let! result =
+                match workspace, request.Manager with
+                | Error error, _ -> task { return Error error }
+                | Ok value, MigrationManager.ModOrganizer ->
+                    ModOrganizer.migrate
+                        store
+                        { Request.WorkspaceId = value
+                          SourceFolder = request.SourceFolder }
+                        progress
+                        context.CancellationToken
+                | Ok value, MigrationManager.Vortex ->
+                    Vortex.migrate
+                        store
+                        { Vortex.Request.WorkspaceId = value
+                          BackupFile = request.SourceFolder
+                          ProfileId = request.ProfileId
+                          StagingRoot = request.StagingRoot
+                          DownloadRoot = request.DownloadRoot }
+                        progress
+                        context.CancellationToken
+                | Ok _, _ ->
+                    task {
+                        return
+                            Error(
+                                Error.InvalidSource
+                                    "Choose Mod Organizer or Vortex as the source manager."
+                            )
+                    }
+
+            do! writes
+            do! response.WriteAsync(MigrationWire.result result)
         }
