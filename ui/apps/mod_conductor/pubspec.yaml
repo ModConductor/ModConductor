@@ -26,6 +26,8 @@ dependencies:
     path: ../../packages/mc_credentials
   mc_artifacts:
     path: ../../packages/mc_artifacts
+  mc_migration:
+    path: ../../packages/mc_migration
   mc_profile_data:
     path: ../../packages/mc_profile_data
   mc_executables:

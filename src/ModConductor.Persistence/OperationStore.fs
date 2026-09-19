@@ -118,6 +118,8 @@ type OperationStore
             profileMutations.Resume
         )
 
+    let migrations = MigrationStore(database, workspaceRoots)
+
     let executables =
         ModConductor.Executables.ExecutableSession(ExecutableRepository(database))
 
@@ -203,6 +205,16 @@ type OperationStore
     member _.WorkspaceRoots = workspaceRoots
 
     member _.Workspaces = workspaces
+
+    member _.Migrations = migrations :> ModConductor.Migration.IStore
+
+    member internal _.MigrateAtCheckpoint(request, progress, token, checkpoint) =
+        ModConductor.Migration.ModOrganizer.migrateAtCheckpoint
+            (migrations :> ModConductor.Migration.IStore)
+            request
+            progress
+            token
+            checkpoint
 
     member _.ModLibrary = modLibrary
     member _.ArtifactSource = artifacts :> ModConductor.ArtifactLibrary.IArtifactSource

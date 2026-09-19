@@ -524,6 +524,9 @@ let main args =
         elif args.Length = 5 && args[0] = "--selection-worker" then
             SelectionFixtures.worker args[1] args[2] args[3] args[4]
             0
+        elif args.Length = 5 && args[0] = "--migration-worker" then
+            MigrationFixtures.worker args[1] args[2] args[3] args[4]
+            0
         else
             let filePlansOnly = args.Length = 2 && args[0] = "--file-plans"
             let protonOnly = args.Length = 2 && args[0] = "--proton-contexts"
@@ -532,6 +535,7 @@ let main args =
             let plannerOnly = args.Length = 2 && args[0] = "--planner"
             let organizationOnly = args.Length = 2 && args[0] = "--organization"
             let selectionOnly = args.Length = 2 && args[0] = "--selection"
+            let migrationOnly = args.Length = 2 && args[0] = "--migration"
 
             let primary, secondary =
                 match args with
@@ -542,6 +546,8 @@ let main args =
                 | [| "--planner"; primary |]
                 | [| "--organization"; primary |]
                 | [| "--selection"; primary |] when Path.IsPathFullyQualified primary ->
+                    primary, None
+                | [| "--migration"; primary |] when Path.IsPathFullyQualified primary ->
                     primary, None
                 | [| primary |] when Path.IsPathFullyQualified primary -> primary, None
                 | [| primary; secondary |] when
@@ -570,6 +576,7 @@ let main args =
                 && not contextsOnly
                 && not steamOnly
                 && not protonOnly
+                && not migrationOnly
             then
                 Fixtures.observe writer primary secondary
                 StorageFixtures.observe writer primary
@@ -577,6 +584,10 @@ let main args =
                 LibraryFixtures.observe writer primary
                 LibraryRecoveryFixtures.observe writer primary
                 LibraryIdentityFixtures.observe writer primary
+                MigrationFixtures.observe writer primary
+
+            if migrationOnly then
+                MigrationFixtures.observe writer primary
 
             if
                 not filePlansOnly
@@ -585,6 +596,7 @@ let main args =
                 && not contextsOnly
                 && not steamOnly
                 && not protonOnly
+                && not migrationOnly
             then
                 SelectionFixtures.observe writer primary
 
@@ -595,6 +607,7 @@ let main args =
                 && not contextsOnly
                 && not steamOnly
                 && not protonOnly
+                && not migrationOnly
             then
                 OrganizationFixtures.observe writer primary
                 OrganizationMigration.observe writer primary
@@ -606,6 +619,7 @@ let main args =
                 && not contextsOnly
                 && not steamOnly
                 && not protonOnly
+                && not migrationOnly
             then
                 PlanningFixtures.observe writer
 

@@ -29,6 +29,7 @@
     <Project Path="src/ModConductor.ModLibrary/ModConductor.ModLibrary.fsproj" />
     <Project Path="src/ModConductor.ModOrganization/ModConductor.ModOrganization.fsproj" />
     <Project Path="src/ModConductor.ModSelection/ModConductor.ModSelection.fsproj" />
+    <Project Path="src/ModConductor.Migration/ModConductor.Migration.fsproj" />
     <Project Path="src/ModConductor.Operations/ModConductor.Operations.fsproj" />
     <Project Path="src/ModConductor.Workspaces/ModConductor.Workspaces.fsproj" />
     <Project Path="src/ModConductor.Persistence/ModConductor.Persistence.fsproj" />

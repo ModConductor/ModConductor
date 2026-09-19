@@ -156,6 +156,17 @@
           "ModConductor.Platform": "[1.0.0, )"
         }
       },
+      "modconductor.diagnostics": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )",
+          "ModConductor.Deployment": "[1.0.0, )",
+          "ModConductor.FilePlanning": "[1.0.0, )",
+          "ModConductor.GameLaunching": "[1.0.0, )",
+          "ModConductor.ProfileGameData": "[1.0.0, )",
+          "ModConductor.Workspaces": "[1.0.0, )"
+        }
+      },
       "modconductor.executables": {
         "type": "Project",
         "dependencies": {
@@ -215,6 +226,15 @@
           "ModConductor.FilePlanning": "[1.0.0, )",
           "ModConductor.Platform": "[1.0.0, )",
           "ModConductor.ProfileGameData": "[1.0.0, )"
+        }
+      },
+      "modconductor.migration": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )",
+          "ModConductor.ModLibrary": "[1.0.0, )",
+          "ModConductor.ModSelection": "[1.0.0, )",
+          "ModConductor.Platform": "[1.0.0, )"
         }
       },
       "modconductor.modlibrary": {
@@ -281,6 +301,7 @@
           "ModConductor.GeneratedOutputs": "[1.0.0, )",
           "ModConductor.HttpDownloads": "[1.0.0, )",
           "ModConductor.Loot": "[1.0.0, )",
+          "ModConductor.Migration": "[1.0.0, )",
           "ModConductor.ModLibrary": "[1.0.0, )",
           "ModConductor.ModMaintenance": "[1.0.0, )",
           "ModConductor.ModOrganization": "[1.0.0, )",
@@ -306,6 +327,7 @@
           "FSharp.Core": "[10.1.400, )",
           "ModConductor.ArchiveInspection": "[1.0.0, )",
           "ModConductor.Bethesda": "[1.0.0, )",
+          "ModConductor.FilePlanning": "[1.0.0, )",
           "ModConductor.GameContexts": "[1.0.0, )"
         }
       },

@@ -23,6 +23,7 @@ import 'deployment_client.dart';
 import 'file_plan_client.dart';
 import 'proton_context_client.dart';
 import 'inventory_export_client.dart';
+import 'migration_client.dart';
 
 import 'dart:async';
 import 'dart:convert';
@@ -110,6 +111,8 @@ class EngineSession {
   DiagnosticsClient get diagnostics => _diagnostics!;
   WorkspacesClient? _workspaces;
   WorkspacesClient get workspaces => _workspaces!;
+  MigrationClient? _migration;
+  MigrationClient get migration => _migration!;
   Future<void>? _closing;
 
   Future<int> get exited => _process.exitCode;
@@ -152,6 +155,7 @@ class EngineSession {
       CallOptions(metadata: options.metadata),
     );
     _workspaces = GrpcWorkspacesClient(channel, options);
+    _migration = GrpcMigrationClient(channel, options);
     _modLibrary = ModLibraryClient(channel, options);
     _profileMods = ProfileModsClient(channel, options);
     _modOrganization = ModOrganizationClient(channel, options);

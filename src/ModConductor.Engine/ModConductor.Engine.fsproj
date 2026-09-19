@@ -17,6 +17,7 @@
     <Compile Include="OperationService.fs" />
     <Compile Include="ProfileActionStream.fs" />
     <Compile Include="WorkspaceService.fs" />
+    <Compile Include="MigrationService.fs" />
     <Compile Include="ModLibraryWire.fs" />
     <Compile Include="DiagnosticWire.fs" />
     <Compile Include="DiagnosticService.fs" />
@@ -77,6 +78,7 @@
     <ProjectReference Include="../ModConductor.Credentials/ModConductor.Credentials.fsproj" />
     <ProjectReference Include="../ModConductor.SteamDiscovery/ModConductor.SteamDiscovery.fsproj" />
     <ProjectReference Include="../ModConductor.Persistence/ModConductor.Persistence.fsproj" />
+    <ProjectReference Include="../ModConductor.Migration/ModConductor.Migration.fsproj" />
     <ProjectReference Include="../ModConductor.Loot/ModConductor.Loot.fsproj" />
     <ProjectReference Include="../ModConductor.Workspaces/ModConductor.Workspaces.fsproj" />
     <ProjectReference Include="../ModConductor.Operations/ModConductor.Operations.fsproj" />

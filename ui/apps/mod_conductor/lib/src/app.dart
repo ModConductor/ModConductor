@@ -4,6 +4,7 @@ import 'package:mc_artifacts/mc_artifacts.dart';
 import 'package:mc_generated_outputs/mc_generated_outputs.dart';
 import 'package:mc_executables/mc_executables.dart';
 import 'package:mc_profile_data/mc_profile_data.dart';
+import 'package:mc_migration/mc_migration.dart';
 
 import 'dart:async';
 import 'dart:io';
@@ -81,6 +82,7 @@ class ModConductorApp extends StatefulWidget {
     this.nexusMetadata,
     this.linkSetup,
     this.bundles,
+    this.migration,
     this.chooseArchive = desktop.chooseArchive,
     this.chooseExecutable = desktop.chooseExecutable,
     this.steamDiscovery,
@@ -119,6 +121,7 @@ class ModConductorApp extends StatefulWidget {
   final NexusMetadataClient? nexusMetadata;
   final LinkSetupClient? linkSetup;
   final BundlesClient? bundles;
+  final MigrationClient? migration;
   final ArchiveChooser chooseArchive;
   final ExecutablePathChooser chooseExecutable;
   final SteamDiscoveryClient? steamDiscovery;
@@ -518,18 +521,30 @@ class _ModConductorAppState extends State<ModConductorApp> {
                     compactCloseAction:
                         widget.gameLaunching != null &&
                         MediaQuery.sizeOf(context).width < 950,
-                    headerActions: widget.deployments == null
+                    headerActions:
+                        widget.deployments == null && widget.migration == null
                         ? null
                         : (context, workspace) => [
-                            SizedBox(
-                              width:
-                                  widget.gameLaunching != null &&
-                                      MediaQuery.sizeOf(context).width < 950
-                                  ? 250
-                                  : null,
-                              child: DeploymentAction(controller: _deployments),
-                            ),
-                            if (widget.gameLaunching != null)
+                            if (widget.migration != null)
+                              MigrationAction(
+                                client: widget.migration!,
+                                workspaceId: workspace.id,
+                                chooseDirectory: widget.chooseDirectory,
+                                onComplete: _workspaces.refresh,
+                              ),
+                            if (widget.deployments != null)
+                              SizedBox(
+                                width:
+                                    widget.gameLaunching != null &&
+                                        MediaQuery.sizeOf(context).width < 950
+                                    ? 250
+                                    : null,
+                                child: DeploymentAction(
+                                  controller: _deployments,
+                                ),
+                              ),
+                            if (widget.gameLaunching != null &&
+                                widget.deployments != null)
                               GamePlayActions(controller: _play),
                           ],
                     gameContextBuilder: (context, workspace) =>

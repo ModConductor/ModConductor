@@ -56,6 +56,7 @@ type NativeObservationSetup() =
         | "planner" -> info.ArgumentList.Add "--planner"
         | "organization" -> info.ArgumentList.Add "--organization"
         | "selection" -> info.ArgumentList.Add "--selection"
+        | "migration" -> info.ArgumentList.Add "--migration"
         | null
         | "" -> ()
         | _ -> invalidOp "Unknown native fixture scope."

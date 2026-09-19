@@ -18,5 +18,6 @@ workspace:
   - packages/mc_profile_data
   - packages/mc_credentials
   - packages/mc_artifacts
+  - packages/mc_migration
 dev_dependencies:
   protoc_plugin: 25.0.0

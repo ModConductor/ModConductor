@@ -113,6 +113,11 @@ class NativeChild {
         ),
       );
 
+  MigrationClient migration({bool authenticate = true}) => GrpcMigrationClient(
+    _localChannel(),
+    CallOptions(metadata: authenticate ? {'mc-session': capability} : const {}),
+  );
+
   ModLibraryClient modLibrary({bool authenticate = true, String? token}) =>
       ModLibraryClient(
         _localChannel(),

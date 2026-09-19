@@ -103,6 +103,7 @@
     <Compile Include="DeletionFiles.fs" />
     <Compile Include="DeletionCompletion.fs" />
     <Compile Include="DeletionStore.fs" />
+    <Compile Include="MigrationStore.fs" />
     <Compile Include="OperationStore.fs" />
     <ProjectReference Include="../ModConductor.Nexus/ModConductor.Nexus.fsproj" />
     <ProjectReference Include="../ModConductor.HttpDownloads/ModConductor.HttpDownloads.fsproj" />
@@ -129,6 +130,7 @@
     <ProjectReference Include="../ModConductor.Operations/ModConductor.Operations.fsproj" />
     <ProjectReference Include="../ModConductor.Platform/ModConductor.Platform.fsproj" />
     <ProjectReference Include="../ModConductor.Workspaces/ModConductor.Workspaces.fsproj" />
+    <ProjectReference Include="../ModConductor.Migration/ModConductor.Migration.fsproj" />
     <ProjectReference Include="../ModConductor.GameLaunching/ModConductor.GameLaunching.fsproj" />
     <ProjectReference Include="../ModConductor.Executables/ModConductor.Executables.fsproj" />
     <PackageReference Include="FSharp.Core" />
