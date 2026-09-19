@@ -46,10 +46,18 @@ void main() {
           isTrue,
         );
         expect(
+          empty.definition.capability(GameCapabilityId.archiveInspection)?.kind,
+          GameCapabilityKind.gameAdapter,
+        );
+        expect(
           empty.definition
-              .capability(GameCapabilityId.legacyExtensionAbi)
+              .capability(GameCapabilityId.archiveInspection)
               ?.disposition,
-          GameCapabilityDisposition.unsupported,
+          GameCapabilityDisposition.available,
+        );
+        expect(
+          empty.definition.capability(GameCapabilityId.legacyExtensionAbi),
+          isNull,
         );
         await expectLater(
           child

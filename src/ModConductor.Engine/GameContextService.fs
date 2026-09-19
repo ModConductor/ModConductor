@@ -107,7 +107,7 @@ module private GameContextWire =
                         )
                 )
 
-            let capabilities = CapabilityPolicy.forDefinition d.Id
+            let capabilities = CapabilityPolicy.forUsers d.Id
             state.Definition.Capabilities.AddRange(capabilities |> Seq.map capability)
 
             state.Definition.UnavailableCapabilities.AddRange(

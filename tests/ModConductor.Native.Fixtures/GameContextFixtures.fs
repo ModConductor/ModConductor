@@ -98,6 +98,11 @@ module GameContextFixtures =
         let legacyCapability =
             CapabilityPolicy.tryFind Skyrim.definition.Id CapabilityId.LegacyExtensionAbi
 
+        let archiveCapability =
+            CapabilityPolicy.tryFind Skyrim.definition.Id CapabilityId.ArchiveInspection
+
+        let userCapabilities = CapabilityPolicy.forUsers Skyrim.definition.Id
+
         writer.WriteBoolean(
             "compiledCapabilitySupportsBothContexts",
             installationCapability
@@ -114,9 +119,27 @@ module GameContextFixtures =
             "obsoleteExtensionMechanismUnsupported",
             legacyCapability
             |> Option.exists (fun capability ->
-                match capability.Kind, capability.Disposition with
-                | CapabilityKind.ObsoleteMechanism, CapabilityDisposition.Unsupported _ -> true
+                match capability.Kind, capability.Audience, capability.Disposition with
+                | CapabilityKind.ObsoleteMechanism,
+                  CapabilityAudience.PolicyOnly,
+                  CapabilityDisposition.Unsupported _ -> true
                 | _ -> false)
+        )
+
+        writer.WriteBoolean(
+            "archiveInspectionAvailable",
+            archiveCapability
+            |> Option.exists (fun capability ->
+                capability.Kind = CapabilityKind.GameAdapter
+                && capability.Audience = CapabilityAudience.User
+                && capability.Disposition = CapabilityDisposition.Available)
+        )
+
+        writer.WriteBoolean(
+            "policyOnlyCapabilityHiddenFromUsers",
+            userCapabilities
+            |> List.exists (fun capability -> capability.Id = CapabilityId.LegacyExtensionAbi)
+            |> not
         )
 
         writer.WriteBoolean(

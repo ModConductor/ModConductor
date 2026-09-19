@@ -30,6 +30,11 @@ type CapabilityDisposition =
     | Unavailable of reason: string
     | Unsupported of reason: string
 
+[<RequireQualifiedAccess>]
+type CapabilityAudience =
+    | User
+    | PolicyOnly
+
 type CapabilityContext =
     { DefinitionId: string
       Platforms: ContextPlatform list }
@@ -39,6 +44,7 @@ type CompiledCapability =
       Revision: int
       Name: string
       Kind: CapabilityKind
+      Audience: CapabilityAudience
       Contexts: CapabilityContext list
       Disposition: CapabilityDisposition }
 
@@ -52,25 +58,28 @@ module CapabilityPolicy =
             Revision = 1
             Name = "Game installation checks"
             Kind = CapabilityKind.CoreOutcome
+            Audience = CapabilityAudience.User
             Contexts = skyrimBothPlatforms
             Disposition = CapabilityDisposition.Available }
           { Id = CapabilityId.SkyrimSpecialEdition
             Revision = 1
             Name = "Skyrim Special Edition support"
             Kind = CapabilityKind.GameAdapter
+            Audience = CapabilityAudience.User
             Contexts = skyrimBothPlatforms
             Disposition = CapabilityDisposition.Available }
           { Id = CapabilityId.ArchiveInspection
             Revision = 1
             Name = "Game archive inspection"
-            Kind = CapabilityKind.OptionalLegacy
+            Kind = CapabilityKind.GameAdapter
+            Audience = CapabilityAudience.User
             Contexts = skyrimBothPlatforms
-            Disposition =
-              CapabilityDisposition.Unavailable "Game archive contents are not available." }
+            Disposition = CapabilityDisposition.Available }
           { Id = CapabilityId.IndividualSaveEditing
             Revision = 1
             Name = "Individual save editing"
             Kind = CapabilityKind.OptionalLegacy
+            Audience = CapabilityAudience.User
             Contexts = skyrimBothPlatforms
             Disposition =
               CapabilityDisposition.Unavailable "Individual save editing is not available." }
@@ -78,6 +87,7 @@ module CapabilityPolicy =
             Revision = 1
             Name = "Old extension loading"
             Kind = CapabilityKind.ObsoleteMechanism
+            Audience = CapabilityAudience.PolicyOnly
             Contexts = skyrimBothPlatforms
             Disposition =
               CapabilityDisposition.Unsupported(
@@ -93,6 +103,10 @@ module CapabilityPolicy =
     let tryFind definitionId capabilityId =
         forDefinition definitionId
         |> List.tryFind (fun capability -> capability.Id = capabilityId)
+
+    let forUsers definitionId =
+        forDefinition definitionId
+        |> List.filter (fun capability -> capability.Audience = CapabilityAudience.User)
 
     let supports definitionId platform capability =
         capability.Contexts

@@ -9,10 +9,9 @@ void main() {
         id: GameCapabilityId.archiveInspection,
         revision: 1,
         name: 'Files inside game archives',
-        kind: GameCapabilityKind.optionalLegacy,
+        kind: GameCapabilityKind.gameAdapter,
         contexts: [],
-        disposition: GameCapabilityDisposition.unavailable,
-        reason: 'Not available.',
+        disposition: GameCapabilityDisposition.available,
       );
       const definition = GameDefinitionInfo(
         id: 'skyrim-se-steam',
@@ -25,7 +24,7 @@ void main() {
 
       expect(
         definition.unavailable(GameCapabilityId.archiveInspection),
-        isTrue,
+        isFalse,
       );
       expect(
         definition.unavailable(GameCapabilityId.individualSaveEditing),
@@ -35,6 +34,28 @@ void main() {
       final futureId = GameCapabilityId.fromWire('future-capability');
       expect(futureId.value, 'future-capability');
       expect(definition.unavailable(futureId), isFalse);
+
+      const unavailableArchive = GameDefinitionInfo(
+        id: 'skyrim-se-steam',
+        revision: 1,
+        name: 'Skyrim Special Edition',
+        storefront: 'Steam',
+        declaredSteamAppId: 489830,
+        capabilities: [
+          GameCapability(
+            id: GameCapabilityId.archiveInspection,
+            revision: 2,
+            name: 'Another display name',
+            kind: GameCapabilityKind.gameAdapter,
+            contexts: [],
+            disposition: GameCapabilityDisposition.unavailable,
+          ),
+        ],
+      );
+      expect(
+        unavailableArchive.unavailable(GameCapabilityId.archiveInspection),
+        isTrue,
+      );
     },
   );
 }

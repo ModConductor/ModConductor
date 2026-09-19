@@ -17,6 +17,8 @@ type GameContextTests() =
         =
         flag "compiledCapabilitySupportsBothContexts" |> should equal true
         flag "obsoleteExtensionMechanismUnsupported" |> should equal true
+        flag "archiveInspectionAvailable" |> should equal true
+        flag "policyOnlyCapabilityHiddenFromUsers" |> should equal true
 
     [<Test>]
     member _.``portable version checks should parse fixed resources without writes or string fallbacks``
