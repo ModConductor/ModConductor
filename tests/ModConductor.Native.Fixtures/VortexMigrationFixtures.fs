@@ -106,7 +106,8 @@ module VortexMigrationFixtures =
     },
     "mods":{"game":{
       "alpha":{"id":"alpha","state":"installed","type":"","archiveId":"archive-alpha","installationPath":"Alpha","attributes":{"name":"Alpha Mod","version":"1.2","source":"nexus","fileName":"alpha.zip","fileSize":ARCHIVE_LENGTH,"fileMD5":"ARCHIVE_MD5","modId":42,"fileId":7,"category":"1"},"rules":[{"type":"RULE_TYPE","reference":{"id":"beta"}}]},
-      "beta":{"id":"beta","state":"installed","type":"","installationPath":"Beta","attributes":{"name":"Beta Mod","version":"2.0","category":1},"rules":[]}
+      "beta":{"id":"beta","state":"installed","type":"","installationPath":"Beta","attributes":{"name":"Beta Mod","version":"2.0","category":1},"rules":[]},
+      "gamma":{"id":"gamma","state":"installed","type":"","installationPath":"Gamma","attributes":{"name":"Gamma Mod","version":"3.0"},"rules":[]}
     }},
     LOAD_ORDER
     "categories":{"game":{"1":{"name":"Visuals","parentCategory":"0","order":0}}},
@@ -132,6 +133,7 @@ module VortexMigrationFixtures =
         let game = Directory.CreateDirectory(Path.Combine(root, "game")).FullName
         write (Path.Combine(staging, "Alpha", "textures", "alpha.txt")) "alpha payload"
         write (Path.Combine(staging, "Beta", "beta.txt")) "beta payload"
+        write (Path.Combine(staging, "Gamma", "gamma.txt")) "gamma payload"
         let archive = [| 80uy; 75uy; 3uy; 4uy; 1uy; 2uy |]
         bytes (Path.Combine(downloads, "alpha.zip")) archive
         write (Path.Combine(game, "game.exe")) "game unchanged"
@@ -300,7 +302,7 @@ module VortexMigrationFixtures =
 
             writer.WriteBoolean(
                 "counts",
-                migrated.Profiles = 1 && migrated.Mods = 2 && migrated.Artifacts = 1
+                migrated.Profiles = 1 && migrated.Mods = 3 && migrated.Artifacts = 1
             )
 
             let page =
@@ -337,10 +339,16 @@ module VortexMigrationFixtures =
 
             writer.WriteBoolean(
                 "loadOrder",
-                order.Entries.Length = 2
+                order.Entries.Length = 3
                 && order.Entries[0].Entry.Mod.Metadata.Name = "Beta Mod"
                 && order.Entries[0].Entry.Selection = SelectionState.Managed(0, false)
                 && order.Entries[1].Entry.Selection = SelectionState.Managed(1, true)
+            )
+
+            writer.WriteBoolean(
+                "missingProfileState",
+                order.Entries[2].Entry.Mod.Metadata.Name = "Gamma Mod"
+                && order.Entries[2].Entry.Selection = SelectionState.Managed(2, false)
             )
 
             let categories =
@@ -433,10 +441,12 @@ module VortexMigrationFixtures =
                     |> wait
                     |> result
 
-                value.Mods = 2
-                && order.Entries.Length = 2
+                value.Mods = 3
+                && order.Entries.Length = 3
                 && order.Entries[0].Entry.Mod.Metadata.Name = "Alpha Mod"
                 && order.Entries[1].Entry.Mod.Metadata.Name = "Beta Mod"
+                && order.Entries[2].Entry.Mod.Metadata.Name = "Gamma Mod"
+                && order.Entries[2].Entry.Selection = SelectionState.Managed(2, false)
 
         writer.WriteBoolean("rules", rulesOk)
 

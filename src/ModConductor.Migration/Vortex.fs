@@ -618,28 +618,34 @@ module Vortex =
 
     let private parseMods persistent profile stagingRoot stagingEntries =
         let gameId = text "gameId" profile
-        let states = property "modState" profile |> objectEntries "profile mods"
+        let stateEntries = property "modState" profile |> objectEntries "profile mods"
         let allGames = property "mods" persistent
         let gameMods = property gameId allGames
 
-        let modEntries =
-            objectEntries "mods" gameMods
-            |> Seq.map (fun item -> item.Name, item.Value)
-            |> dict
+        let modEntries = objectEntries "mods" gameMods
+
+        let modsById = modEntries |> Seq.map (fun item -> item.Name, item.Value) |> dict
+
+        let states = stateEntries |> Seq.map (fun item -> item.Name, item.Value) |> dict
+
+        for state in stateEntries do
+            if not (modsById.ContainsKey state.Name) then
+                invalid ("The selected profile refers to a missing mod: " + state.Name + ".")
+
+            boolean "enabled" state.Value |> ignore
 
         let stamps = ResizeArray<Stamp>()
 
         let mods =
-            states
-            |> List.map (fun state ->
-                let sourceId = state.Name
-                let enabled = boolean "enabled" state.Value
+            modEntries
+            |> List.map (fun entry ->
+                let sourceId = entry.Name
+                let value = entry.Value
 
-                let value =
-                    match modEntries.TryGetValue sourceId with
-                    | true, item -> item
-                    | _ ->
-                        invalid ("The selected profile refers to a missing mod: " + sourceId + ".")
+                let enabled =
+                    match states.TryGetValue sourceId with
+                    | true, state -> boolean "enabled" state
+                    | _ -> false
 
                 if text "id" value <> sourceId then
                     invalid "A Vortex mod ID does not match its backup key."

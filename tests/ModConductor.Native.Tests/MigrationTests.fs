@@ -63,6 +63,7 @@ type VortexMigrationTests() =
         flag "selectedProfile" |> should equal true
         flag "metadata" |> should equal true
         flag "loadOrder" |> should equal true
+        flag "missingProfileState" |> should equal true
         flag "rules" |> should equal true
         flag "categories" |> should equal true
         flag "artifact" |> should equal true
