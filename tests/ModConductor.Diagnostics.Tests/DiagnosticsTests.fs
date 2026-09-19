@@ -147,7 +147,13 @@ type private FixturePlans(workspaceId: Guid, profileId: Guid) =
         member _.SaveManagedText(_, _, _, _, _) = unused ()
         member _.AbandonManagedText _ = unused ()
 
-type private FixtureLaunch(workspaceId: Guid, profileId: Guid, phase: RunPhase) =
+type private FixtureLaunch(
+    workspaceId: Guid,
+    profileId: Guid,
+    phase: RunPhase,
+    contextId: Guid,
+    latestContextRevision: int64
+) =
     let runId = Guid.NewGuid()
 
     let run =
@@ -158,9 +164,9 @@ type private FixtureLaunch(workspaceId: Guid, profileId: Guid, phase: RunPhase) 
                       WorkspaceId = workspaceId
                       WorkspaceRevision = 2L
                       ProfileId = profileId
-                      ContextRevision = 4L
+                      ContextRevision = latestContextRevision
                       SourceToken = "https://token.example/access=secret /home/private ; run-command" }
-                  ContextId = Guid.NewGuid()
+                  ContextId = contextId
                   Name = "Skyrim Special Edition"
                   GameDirectory = "redacted"
                   Runtime = "Fixture"
@@ -281,7 +287,11 @@ type private FixtureDeployments(workspaceId: Guid, profileId: Guid) =
             else
                 Task.FromResult(Error DeploymentError.Stale)
 
-type private FixtureGameContexts(workspaceId: Guid, documents: string) =
+type private FixtureGameContexts(
+    workspaceId: Guid,
+    root: string,
+    documents: Location
+) =
     let identity =
         { Device = DeviceIdentity.LinuxDevice(1u, 1u)
           Low = 1UL
@@ -291,13 +301,13 @@ type private FixtureGameContexts(workspaceId: Guid, documents: string) =
         { DefinitionId = Skyrim.definition.Id
           DefinitionRevision = Skyrim.definition.Revision
           Platform = ContextPlatform.Proton
-          RootPath = documents
+          RootPath = root
           RootIdentity = Some identity
-          DataPath = Some documents
+          DataPath = Some root
           DataIdentity = Some identity
           Executable =
             Some
-                { Path = Path.Combine(documents, Skyrim.definition.Executable)
+                { Path = Path.Combine(root, Skyrim.definition.Executable)
                   Identity = identity
                   Length = 1L
                   Sha256 = String.replicate 64 "0"
@@ -305,9 +315,9 @@ type private FixtureGameContexts(workspaceId: Guid, documents: string) =
                   ProductVersion = "1.0" }
           LauncherPath = None
           Locations =
-            { Documents = Location.Located(documents, true)
-              Saves = Location.Located(documents, true)
-              LocalAppData = Location.Located(documents, true) }
+            { Documents = documents
+              Saves = Location.Located(root, true)
+              LocalAppData = Location.Located(root, true) }
           Proton = None
           Problems = []
           CheckedAt = DateTimeOffset.UtcNow
@@ -319,11 +329,14 @@ type private FixtureGameContexts(workspaceId: Guid, documents: string) =
           Binding =
             Some
                 { Id = Guid.NewGuid()
-                  Path = documents
+                  Path = root
                   Proton = None
                   Evidence = evidence
                   NeedsCheck = false
                   Failure = None } }
+
+    member _.BindingId = state.Binding.Value.Id
+    member _.State = state
 
     interface IGameContexts with
         member _.Read workspace =
@@ -339,7 +352,13 @@ type private FixtureGameContexts(workspaceId: Guid, documents: string) =
             Task.FromResult(Error ContextError.NotFound)
 
 
-type private DiagnosticFixtureEnvironment(?launchPhase: RunPhase, ?useFixtureDeployment: bool, ?documents: string) =
+type private DiagnosticFixtureEnvironment(
+    ?launchPhase: RunPhase,
+    ?useFixtureDeployment: bool,
+    ?documents: string,
+    ?unavailableDocuments: string,
+    ?latestContextRevision: int64
+) =
     let directory =
         Path.Combine(Path.GetTempPath(), "mod-conductor-diagnostics-" + Guid.NewGuid().ToString "N")
 
@@ -370,16 +389,37 @@ type private DiagnosticFixtureEnvironment(?launchPhase: RunPhase, ?useFixtureDep
         |> ignore
 
     let plans = FixturePlans(workspaceId, profileId)
-    let launches = FixtureLaunch(workspaceId, profileId, defaultArg launchPhase RunPhase.Failed)
     let fixtureDeployments = FixtureDeployments(workspaceId, profileId)
     let deploymentBackend =
         if defaultArg useFixtureDeployment false then fixtureDeployments :> IDeploymentBackend
         else store.Deployments
 
+    let fixtureGameContexts =
+        match documents, unavailableDocuments with
+        | Some path, _ ->
+            Some(FixtureGameContexts(workspaceId, path, Location.Located(path, true)))
+        | None, Some detail ->
+            Some(FixtureGameContexts(workspaceId, root, Location.Unavailable detail))
+        | None, None -> None
+
     let gameContexts =
-        documents
-        |> Option.map (fun path -> FixtureGameContexts(workspaceId, path) :> IGameContexts)
+        fixtureGameContexts
+        |> Option.map (fun fixture -> fixture :> IGameContexts)
         |> Option.defaultValue store.GameContexts
+
+    let contextId =
+        fixtureGameContexts
+        |> Option.map _.BindingId
+        |> Option.defaultWith (fun () -> Guid.NewGuid())
+
+    let launches =
+        FixtureLaunch(
+            workspaceId,
+            profileId,
+            defaultArg launchPhase RunPhase.Failed,
+            contextId,
+            defaultArg latestContextRevision 4L
+        )
 
     let diagnostics =
         DiagnosticSession(
@@ -600,6 +640,44 @@ type DiagnosticsTests() =
 [<TestFixture>]
 type SkyrimDiagnosticSessionTests() =
     [<Test>]
+    member _.``skyrim diagnostics should require an available compiled capability``() =
+        let workspaceId = Guid.NewGuid()
+
+        let context =
+            FixtureGameContexts(
+                workspaceId,
+                "fixture",
+                Location.Located("fixture", false)
+            )
+
+        Assert.That(
+            DiagnosticAdmission.tryBinding
+                workspaceId
+                CapabilityId.SkyrimSpecialEdition
+                context.State
+            |> Option.isSome,
+            Is.True
+        )
+
+        Assert.That(
+            DiagnosticAdmission.tryBinding
+                workspaceId
+                CapabilityId.IndividualSaveEditing
+                context.State
+            |> Option.isNone,
+            Is.True
+        )
+
+        Assert.That(
+            DiagnosticAdmission.tryBinding
+                workspaceId
+                CapabilityId.LegacyExtensionAbi
+                context.State
+            |> Option.isNone,
+            Is.True
+        )
+
+    [<Test>]
     member _.``SKSE plugin findings should use known mod origins and keep unknown origins``() =
         let documents =
             Path.Combine(
@@ -647,6 +725,77 @@ type SkyrimDiagnosticSessionTests() =
             )
         finally
             Directory.Delete(documents, true)
+
+    [<Test>]
+    member _.``skse log date should ignore a launch from an older context revision``() =
+        let documents =
+            Path.Combine(
+                Path.GetTempPath(),
+                "mod-conductor-skse-context-" + Guid.NewGuid().ToString "N"
+            )
+
+        let directory = Directory.CreateDirectory(Path.Combine(documents, "SKSE")).FullName
+        let log = Path.Combine(directory, "skse64.log")
+        File.WriteAllText(log, "couldn't load plugin C:\\mods\\Failed.dll\n")
+        File.SetLastWriteTimeUtc(log, DateTime.UtcNow.AddHours -1.)
+
+        try
+            use environment =
+                new DiagnosticFixtureEnvironment(
+                    documents = documents,
+                    latestContextRevision = 3L
+                )
+
+            let snapshot =
+                environment.Diagnostics.Check(environment.Request, CancellationToken.None)
+                |> environment.Wait
+                |> environment.Result
+
+            Assert.That(
+                snapshot.Findings
+                |> List.exists (fun finding -> finding.Id = "skse-plugin:failed.dll"),
+                Is.True
+            )
+
+            Assert.That(
+                snapshot.Findings
+                |> List.exists (fun finding -> finding.Code = "skse-log-stale"),
+                Is.False
+            )
+        finally
+            Directory.Delete(documents, true)
+
+    [<Test>]
+    member _.``unavailable documents detail should not reach diagnostics or support output``() =
+        let disclosed = "/home/private/secret-documents token=secret-value"
+
+        use environment =
+            new DiagnosticFixtureEnvironment(unavailableDocuments = disclosed)
+
+        let snapshot =
+            environment.Diagnostics.Check(environment.Request, CancellationToken.None)
+            |> environment.Wait
+            |> environment.Result
+
+        let finding =
+            snapshot.Findings
+            |> List.find (fun value -> value.Code = "skse-log-malformed")
+
+        Assert.That(
+            finding.Detail,
+            Is.EqualTo(Some "The SKSE log folder is unavailable.")
+        )
+
+        let report =
+            environment.Diagnostics.Export(snapshot.Id, CancellationToken.None)
+            |> environment.Wait
+            |> environment.Result
+            |> _.Content
+            |> Encoding.UTF8.GetString
+
+        Assert.That(report, Does.Not.Contain disclosed)
+        Assert.That(report, Does.Not.Contain "/home/private")
+        Assert.That(report, Does.Not.Contain "secret-value")
 
 
 [<TestFixture>]
@@ -734,6 +883,26 @@ type SkyrimCheckTests() =
             match SkyrimChecks.readLog root None CancellationToken.None with
             | SkseLogResult.Malformed _ -> ()
             | value -> Assert.Fail("Expected a malformed log, got " + string value)
+        finally
+            Directory.Delete(root, true)
+
+    [<Test>]
+    member _.``unreadable skse log should use fixed user text``() =
+        let root =
+            Path.Combine(Path.GetTempPath(), "mod-conductor-skse-read-" + Guid.NewGuid().ToString "N")
+
+        let directory = Directory.CreateDirectory(Path.Combine(root, "SKSE")).FullName
+        let log = Path.Combine(directory, "skse64.log")
+        File.WriteAllText(log, "plugin C:\\mods\\Good.dll loaded correctly\n")
+
+        try
+            use locked = File.Open(log, FileMode.Open, FileAccess.ReadWrite, FileShare.None)
+
+            match SkyrimChecks.readLog root None CancellationToken.None with
+            | SkseLogResult.Malformed detail ->
+                Assert.That(detail, Is.EqualTo "The SKSE log cannot be read.")
+                Assert.That(detail, Does.Not.Contain log)
+            | value -> Assert.Fail("Expected an unreadable log, got " + string value)
         finally
             Directory.Delete(root, true)
 

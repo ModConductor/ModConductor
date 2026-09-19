@@ -16,6 +16,43 @@ type private StoredSnapshot =
     { View: DiagnosticSnapshot
       Request: DiagnosticRequest }
 
+module internal DiagnosticAdmission =
+    let tryBinding workspaceId capabilityId (state: GameContextState) =
+        if state.WorkspaceId <> workspaceId then
+            None
+        else
+            state.Binding
+            |> Option.filter (fun binding ->
+                binding.Evidence.Valid
+                && not binding.NeedsCheck
+                && (CapabilityPolicy.tryFind
+                        binding.Evidence.DefinitionId
+                        capabilityId
+                    |> Option.exists (fun capability ->
+                        capability.Disposition = CapabilityDisposition.Available
+                        && CapabilityPolicy.supports
+                            binding.Evidence.DefinitionId
+                            binding.Evidence.Platform
+                            capability)))
+
+    let qualifiedLaunchTime
+        (state: GameContextState)
+        (binding: GameBinding)
+        (launch: Result<GameLaunchState, ModConductor.Executables.ExecutableError>)
+        =
+        launch
+        |> Result.toOption
+        |> Option.filter (fun value -> value.ContextRevision = state.Revision)
+        |> Option.bind _.Latest
+        |> Option.bind (fun run ->
+            match run.Source with
+            | ModConductor.Executables.RunSource.Game game when
+                game.ContextId = binding.Id
+                && game.Request.ContextRevision = state.Revision
+                ->
+                Some run.RequestedAt
+            | _ -> None)
+
 /// Owns short-lived diagnostic and remediation views. Product owners remain the only writers.
 type DiagnosticSession(
     workspaces: IWorkspaceState,
@@ -160,13 +197,10 @@ type DiagnosticSession(
                 context
                 |> Result.toOption
                 |> Option.bind (fun state ->
-                    state.Binding
-                    |> Option.filter (fun binding ->
-                        binding.Evidence.DefinitionId = Skyrim.definition.Id
-                        && binding.Evidence.Valid
-                        && not binding.NeedsCheck
-                        && (binding.Evidence.Platform = ContextPlatform.Windows
-                            || binding.Evidence.Platform = ContextPlatform.Proton))
+                    DiagnosticAdmission.tryBinding
+                        workspace
+                        CapabilityId.SkyrimSpecialEdition
+                        state
                     |> Option.map (fun binding -> state, binding))
         }
 
@@ -184,13 +218,14 @@ type DiagnosticSession(
                 match binding.Evidence.Locations.Documents with
                 | Location.Located(documents, _) ->
                     let launchedAt =
-                        launch
-                        |> Result.toOption
-                        |> Option.bind _.Latest
-                        |> Option.map _.RequestedAt
+                        DiagnosticAdmission.qualifiedLaunchTime
+                            state
+                            binding
+                            launch
 
                     SkyrimChecks.readLog documents launchedAt token
-                | Location.Unavailable detail -> SkseLogResult.Malformed detail
+                | Location.Unavailable _ ->
+                    SkseLogResult.Malformed "The SKSE log folder is unavailable."
 
             let mutable owners = Map.empty
 

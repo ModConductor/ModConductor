@@ -184,7 +184,7 @@ module internal SkyrimChecks =
         with
         | :? FileNotFoundException
         | :? DirectoryNotFoundException -> SkseLogResult.Missing
-        | :? IOException as error -> SkseLogResult.Malformed error.Message
+        | :? IOException -> SkseLogResult.Malformed "The SKSE log cannot be read."
         | :? UnauthorizedAccessException -> SkseLogResult.Malformed "The SKSE log cannot be read."
 
     let oldPluginFormats (snapshot: PluginSnapshot) (settings: PluginSetting list) =
