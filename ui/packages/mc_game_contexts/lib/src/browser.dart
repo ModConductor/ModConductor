@@ -71,6 +71,15 @@ class _GameContextBrowserState extends State<GameContextBrowser> {
   };
   String checkedAt(DateTime time) =>
       MaterialLocalizations.of(context).formatFullDate(time.toLocal());
+  McCapabilityDisposition capabilityDisposition(
+    GameCapabilityDisposition value,
+  ) => switch (value) {
+    GameCapabilityDisposition.available => McCapabilityDisposition.available,
+    GameCapabilityDisposition.unavailable =>
+      McCapabilityDisposition.unavailable,
+    GameCapabilityDisposition.unsupported =>
+      McCapabilityDisposition.unsupported,
+  };
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: widget.controller,
@@ -249,15 +258,28 @@ class _GameContextBrowserState extends State<GameContextBrowser> {
                               location(evidence.localAppData),
                             ),
                           ],
-                          fact(
-                            'Unavailable features',
-                            state.definition.unavailableCapabilities
-                                .map((capability) => capability.name)
-                                .join(', '),
-                          ),
                         ],
                       ),
                     ),
+                  ],
+                ),
+              ),
+              Material(
+                color: Colors.transparent,
+                child: ExpansionTile(
+                  key: PageStorageKey(('capabilities', state.workspaceId)),
+                  tilePadding: EdgeInsets.zero,
+                  title: const Text('Capabilities'),
+                  children: [
+                    for (final capability in state.definition.capabilities)
+                      McCapabilityState(
+                        key: ValueKey(('capability', capability.id.value)),
+                        title: capability.name,
+                        disposition: capabilityDisposition(
+                          capability.disposition,
+                        ),
+                        reason: capability.reason,
+                      ),
                   ],
                 ),
               ),

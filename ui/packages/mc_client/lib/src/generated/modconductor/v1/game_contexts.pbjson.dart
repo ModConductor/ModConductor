@@ -31,6 +31,44 @@ final $typed_data.Uint8List gameContextPlatformDescriptor = $convert.base64Decod
     'lFRBAAEiEKHUdBTUVfQ09OVEVYVF9QTEFURk9STV9XSU5ET1dTEAESIAocR0FNRV9DT05URVhU'
     'X1BMQVRGT1JNX1BST1RPThAC');
 
+@$core.Deprecated('Use gameCapabilityKindDescriptor instead')
+const GameCapabilityKind$json = {
+  '1': 'GameCapabilityKind',
+  '2': [
+    {'1': 'GAME_CAPABILITY_KIND_UNSPECIFIED', '2': 0},
+    {'1': 'GAME_CAPABILITY_KIND_CORE_OUTCOME', '2': 1},
+    {'1': 'GAME_CAPABILITY_KIND_GAME_ADAPTER', '2': 2},
+    {'1': 'GAME_CAPABILITY_KIND_OPTIONAL_LEGACY', '2': 3},
+    {'1': 'GAME_CAPABILITY_KIND_OBSOLETE_MECHANISM', '2': 4},
+  ],
+};
+
+/// Descriptor for `GameCapabilityKind`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List gameCapabilityKindDescriptor = $convert.base64Decode(
+    'ChJHYW1lQ2FwYWJpbGl0eUtpbmQSJAogR0FNRV9DQVBBQklMSVRZX0tJTkRfVU5TUEVDSUZJRU'
+    'QQABIlCiFHQU1FX0NBUEFCSUxJVFlfS0lORF9DT1JFX09VVENPTUUQARIlCiFHQU1FX0NBUEFC'
+    'SUxJVFlfS0lORF9HQU1FX0FEQVBURVIQAhIoCiRHQU1FX0NBUEFCSUxJVFlfS0lORF9PUFRJT0'
+    '5BTF9MRUdBQ1kQAxIrCidHQU1FX0NBUEFCSUxJVFlfS0lORF9PQlNPTEVURV9NRUNIQU5JU00Q'
+    'BA==');
+
+@$core.Deprecated('Use gameCapabilityDispositionDescriptor instead')
+const GameCapabilityDisposition$json = {
+  '1': 'GameCapabilityDisposition',
+  '2': [
+    {'1': 'GAME_CAPABILITY_DISPOSITION_UNSPECIFIED', '2': 0},
+    {'1': 'GAME_CAPABILITY_DISPOSITION_AVAILABLE', '2': 1},
+    {'1': 'GAME_CAPABILITY_DISPOSITION_UNAVAILABLE', '2': 2},
+    {'1': 'GAME_CAPABILITY_DISPOSITION_UNSUPPORTED', '2': 3},
+  ],
+};
+
+/// Descriptor for `GameCapabilityDisposition`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List gameCapabilityDispositionDescriptor = $convert.base64Decode(
+    'ChlHYW1lQ2FwYWJpbGl0eURpc3Bvc2l0aW9uEisKJ0dBTUVfQ0FQQUJJTElUWV9ESVNQT1NJVE'
+    'lPTl9VTlNQRUNJRklFRBAAEikKJUdBTUVfQ0FQQUJJTElUWV9ESVNQT1NJVElPTl9BVkFJTEFC'
+    'TEUQARIrCidHQU1FX0NBUEFCSUxJVFlfRElTUE9TSVRJT05fVU5BVkFJTEFCTEUQAhIrCidHQU'
+    '1FX0NBUEFCSUxJVFlfRElTUE9TSVRJT05fVU5TVVBQT1JURUQQAw==');
+
 @$core.Deprecated('Use gameContextFaultCodeDescriptor instead')
 const GameContextFaultCode$json = {
   '1': 'GameContextFaultCode',
@@ -141,6 +179,14 @@ const GameDefinitionInfo$json = {
       '6': '.modconductor.v1.UnavailableGameCapability',
       '10': 'unavailableCapabilities'
     },
+    {
+      '1': 'capabilities',
+      '3': 7,
+      '4': 3,
+      '5': 11,
+      '6': '.modconductor.v1.GameCapabilityInfo',
+      '10': 'capabilities'
+    },
   ],
 };
 
@@ -151,7 +197,8 @@ final $typed_data.Uint8List gameDefinitionInfoDescriptor = $convert.base64Decode
     'b3JlZnJvbnQYBCABKAlSCnN0b3JlZnJvbnQSMQoVZGVjbGFyZWRfc3RlYW1fYXBwX2lkGAUgAS'
     'gNUhJkZWNsYXJlZFN0ZWFtQXBwSWQSZQoYdW5hdmFpbGFibGVfY2FwYWJpbGl0aWVzGAYgAygL'
     'MioubW9kY29uZHVjdG9yLnYxLlVuYXZhaWxhYmxlR2FtZUNhcGFiaWxpdHlSF3VuYXZhaWxhYm'
-    'xlQ2FwYWJpbGl0aWVz');
+    'xlQ2FwYWJpbGl0aWVzEkcKDGNhcGFiaWxpdGllcxgHIAMoCzIjLm1vZGNvbmR1Y3Rvci52MS5H'
+    'YW1lQ2FwYWJpbGl0eUluZm9SDGNhcGFiaWxpdGllcw==');
 
 @$core.Deprecated('Use unavailableGameCapabilityDescriptor instead')
 const UnavailableGameCapability$json = {
@@ -167,6 +214,76 @@ final $typed_data.Uint8List unavailableGameCapabilityDescriptor =
     $convert.base64Decode(
         'ChlVbmF2YWlsYWJsZUdhbWVDYXBhYmlsaXR5EhIKBG5hbWUYASABKAlSBG5hbWUSFgoGcmVhc2'
         '9uGAIgASgJUgZyZWFzb24=');
+
+@$core.Deprecated('Use gameCapabilityContextDescriptor instead')
+const GameCapabilityContext$json = {
+  '1': 'GameCapabilityContext',
+  '2': [
+    {'1': 'definition_id', '3': 1, '4': 1, '5': 9, '10': 'definitionId'},
+    {
+      '1': 'platforms',
+      '3': 2,
+      '4': 3,
+      '5': 14,
+      '6': '.modconductor.v1.GameContextPlatform',
+      '10': 'platforms'
+    },
+  ],
+};
+
+/// Descriptor for `GameCapabilityContext`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List gameCapabilityContextDescriptor = $convert.base64Decode(
+    'ChVHYW1lQ2FwYWJpbGl0eUNvbnRleHQSIwoNZGVmaW5pdGlvbl9pZBgBIAEoCVIMZGVmaW5pdG'
+    'lvbklkEkIKCXBsYXRmb3JtcxgCIAMoDjIkLm1vZGNvbmR1Y3Rvci52MS5HYW1lQ29udGV4dFBs'
+    'YXRmb3JtUglwbGF0Zm9ybXM=');
+
+@$core.Deprecated('Use gameCapabilityInfoDescriptor instead')
+const GameCapabilityInfo$json = {
+  '1': 'GameCapabilityInfo',
+  '2': [
+    {'1': 'capability_id', '3': 1, '4': 1, '5': 9, '10': 'capabilityId'},
+    {'1': 'revision', '3': 2, '4': 1, '5': 13, '10': 'revision'},
+    {'1': 'name', '3': 3, '4': 1, '5': 9, '10': 'name'},
+    {
+      '1': 'kind',
+      '3': 4,
+      '4': 1,
+      '5': 14,
+      '6': '.modconductor.v1.GameCapabilityKind',
+      '10': 'kind'
+    },
+    {
+      '1': 'contexts',
+      '3': 5,
+      '4': 3,
+      '5': 11,
+      '6': '.modconductor.v1.GameCapabilityContext',
+      '10': 'contexts'
+    },
+    {
+      '1': 'disposition',
+      '3': 6,
+      '4': 1,
+      '5': 14,
+      '6': '.modconductor.v1.GameCapabilityDisposition',
+      '10': 'disposition'
+    },
+    {'1': 'reason', '3': 7, '4': 1, '5': 9, '9': 0, '10': 'reason', '17': true},
+  ],
+  '8': [
+    {'1': '_reason'},
+  ],
+};
+
+/// Descriptor for `GameCapabilityInfo`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List gameCapabilityInfoDescriptor = $convert.base64Decode(
+    'ChJHYW1lQ2FwYWJpbGl0eUluZm8SIwoNY2FwYWJpbGl0eV9pZBgBIAEoCVIMY2FwYWJpbGl0eU'
+    'lkEhoKCHJldmlzaW9uGAIgASgNUghyZXZpc2lvbhISCgRuYW1lGAMgASgJUgRuYW1lEjcKBGtp'
+    'bmQYBCABKA4yIy5tb2Rjb25kdWN0b3IudjEuR2FtZUNhcGFiaWxpdHlLaW5kUgRraW5kEkIKCG'
+    'NvbnRleHRzGAUgAygLMiYubW9kY29uZHVjdG9yLnYxLkdhbWVDYXBhYmlsaXR5Q29udGV4dFII'
+    'Y29udGV4dHMSTAoLZGlzcG9zaXRpb24YBiABKA4yKi5tb2Rjb25kdWN0b3IudjEuR2FtZUNhcG'
+    'FiaWxpdHlEaXNwb3NpdGlvblILZGlzcG9zaXRpb24SGwoGcmVhc29uGAcgASgJSABSBnJlYXNv'
+    'bogBAUIJCgdfcmVhc29u');
 
 @$core.Deprecated('Use gameLocationDescriptor instead')
 const GameLocation$json = {

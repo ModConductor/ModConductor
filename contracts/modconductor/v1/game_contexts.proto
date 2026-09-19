@@ -18,9 +18,36 @@ message GameDefinitionInfo {
   string storefront = 4;
   uint32 declared_steam_app_id = 5;
   repeated UnavailableGameCapability unavailable_capabilities = 6;
+  repeated GameCapabilityInfo capabilities = 7;
 }
 message UnavailableGameCapability { string name = 1; string reason = 2; }
 enum GameContextPlatform { GAME_CONTEXT_PLATFORM_UNSPECIFIED = 0; GAME_CONTEXT_PLATFORM_WINDOWS = 1; GAME_CONTEXT_PLATFORM_PROTON = 2; }
+enum GameCapabilityKind {
+  GAME_CAPABILITY_KIND_UNSPECIFIED = 0;
+  GAME_CAPABILITY_KIND_CORE_OUTCOME = 1;
+  GAME_CAPABILITY_KIND_GAME_ADAPTER = 2;
+  GAME_CAPABILITY_KIND_OPTIONAL_LEGACY = 3;
+  GAME_CAPABILITY_KIND_OBSOLETE_MECHANISM = 4;
+}
+enum GameCapabilityDisposition {
+  GAME_CAPABILITY_DISPOSITION_UNSPECIFIED = 0;
+  GAME_CAPABILITY_DISPOSITION_AVAILABLE = 1;
+  GAME_CAPABILITY_DISPOSITION_UNAVAILABLE = 2;
+  GAME_CAPABILITY_DISPOSITION_UNSUPPORTED = 3;
+}
+message GameCapabilityContext {
+  string definition_id = 1;
+  repeated GameContextPlatform platforms = 2;
+}
+message GameCapabilityInfo {
+  string capability_id = 1;
+  uint32 revision = 2;
+  string name = 3;
+  GameCapabilityKind kind = 4;
+  repeated GameCapabilityContext contexts = 5;
+  GameCapabilityDisposition disposition = 6;
+  optional string reason = 7;
+}
 message GameLocation {
   oneof result { LocatedGameFolder located = 1; string unavailable_reason = 2; }
 }

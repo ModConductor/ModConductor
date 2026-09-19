@@ -39,6 +39,69 @@ class GameContextPlatform extends $pb.ProtobufEnum {
   const GameContextPlatform._(super.value, super.name);
 }
 
+class GameCapabilityKind extends $pb.ProtobufEnum {
+  static const GameCapabilityKind GAME_CAPABILITY_KIND_UNSPECIFIED =
+      GameCapabilityKind._(
+          0, _omitEnumNames ? '' : 'GAME_CAPABILITY_KIND_UNSPECIFIED');
+  static const GameCapabilityKind GAME_CAPABILITY_KIND_CORE_OUTCOME =
+      GameCapabilityKind._(
+          1, _omitEnumNames ? '' : 'GAME_CAPABILITY_KIND_CORE_OUTCOME');
+  static const GameCapabilityKind GAME_CAPABILITY_KIND_GAME_ADAPTER =
+      GameCapabilityKind._(
+          2, _omitEnumNames ? '' : 'GAME_CAPABILITY_KIND_GAME_ADAPTER');
+  static const GameCapabilityKind GAME_CAPABILITY_KIND_OPTIONAL_LEGACY =
+      GameCapabilityKind._(
+          3, _omitEnumNames ? '' : 'GAME_CAPABILITY_KIND_OPTIONAL_LEGACY');
+  static const GameCapabilityKind GAME_CAPABILITY_KIND_OBSOLETE_MECHANISM =
+      GameCapabilityKind._(
+          4, _omitEnumNames ? '' : 'GAME_CAPABILITY_KIND_OBSOLETE_MECHANISM');
+
+  static const $core.List<GameCapabilityKind> values = <GameCapabilityKind>[
+    GAME_CAPABILITY_KIND_UNSPECIFIED,
+    GAME_CAPABILITY_KIND_CORE_OUTCOME,
+    GAME_CAPABILITY_KIND_GAME_ADAPTER,
+    GAME_CAPABILITY_KIND_OPTIONAL_LEGACY,
+    GAME_CAPABILITY_KIND_OBSOLETE_MECHANISM,
+  ];
+
+  static final $core.List<GameCapabilityKind?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 4);
+  static GameCapabilityKind? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const GameCapabilityKind._(super.value, super.name);
+}
+
+class GameCapabilityDisposition extends $pb.ProtobufEnum {
+  static const GameCapabilityDisposition
+      GAME_CAPABILITY_DISPOSITION_UNSPECIFIED = GameCapabilityDisposition._(
+          0, _omitEnumNames ? '' : 'GAME_CAPABILITY_DISPOSITION_UNSPECIFIED');
+  static const GameCapabilityDisposition GAME_CAPABILITY_DISPOSITION_AVAILABLE =
+      GameCapabilityDisposition._(
+          1, _omitEnumNames ? '' : 'GAME_CAPABILITY_DISPOSITION_AVAILABLE');
+  static const GameCapabilityDisposition
+      GAME_CAPABILITY_DISPOSITION_UNAVAILABLE = GameCapabilityDisposition._(
+          2, _omitEnumNames ? '' : 'GAME_CAPABILITY_DISPOSITION_UNAVAILABLE');
+  static const GameCapabilityDisposition
+      GAME_CAPABILITY_DISPOSITION_UNSUPPORTED = GameCapabilityDisposition._(
+          3, _omitEnumNames ? '' : 'GAME_CAPABILITY_DISPOSITION_UNSUPPORTED');
+
+  static const $core.List<GameCapabilityDisposition> values =
+      <GameCapabilityDisposition>[
+    GAME_CAPABILITY_DISPOSITION_UNSPECIFIED,
+    GAME_CAPABILITY_DISPOSITION_AVAILABLE,
+    GAME_CAPABILITY_DISPOSITION_UNAVAILABLE,
+    GAME_CAPABILITY_DISPOSITION_UNSUPPORTED,
+  ];
+
+  static final $core.List<GameCapabilityDisposition?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 3);
+  static GameCapabilityDisposition? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const GameCapabilityDisposition._(super.value, super.name);
+}
+
 class GameContextFaultCode extends $pb.ProtobufEnum {
   static const GameContextFaultCode GAME_CONTEXT_FAULT_UNSPECIFIED =
       GameContextFaultCode._(

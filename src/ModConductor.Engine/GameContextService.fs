@@ -4,6 +4,11 @@ open ModConductor.GameContexts
 open ModConductor.Protocol.V1
 
 module private GameContextWire =
+    let platform =
+        function
+        | ContextPlatform.Windows -> GameContextPlatform.Windows
+        | ContextPlatform.Proton -> GameContextPlatform.Proton
+
     let location =
         function
         | Location.Located(path, exists) ->
@@ -15,10 +20,7 @@ module private GameContextWire =
             GameInstallationEvidence(
                 DefinitionId = value.DefinitionId,
                 DefinitionRevision = uint32 value.DefinitionRevision,
-                Platform =
-                    (match value.Platform with
-                     | ContextPlatform.Windows -> GameContextPlatform.Windows
-                     | ContextPlatform.Proton -> GameContextPlatform.Proton),
+                Platform = platform value.Platform,
                 RootPath = value.RootPath,
                 Documents = location value.Locations.Documents,
                 Saves = location value.Locations.Saves,
@@ -49,6 +51,43 @@ module private GameContextWire =
 
         result
 
+    let capability (value: CompiledCapability) =
+        let kind =
+            match value.Kind with
+            | CapabilityKind.CoreOutcome -> GameCapabilityKind.CoreOutcome
+            | CapabilityKind.GameAdapter -> GameCapabilityKind.GameAdapter
+            | CapabilityKind.OptionalLegacy -> GameCapabilityKind.OptionalLegacy
+            | CapabilityKind.ObsoleteMechanism -> GameCapabilityKind.ObsoleteMechanism
+
+        let disposition, reason =
+            match value.Disposition with
+            | CapabilityDisposition.Available -> GameCapabilityDisposition.Available, None
+            | CapabilityDisposition.Unavailable reason ->
+                GameCapabilityDisposition.Unavailable, Some reason
+            | CapabilityDisposition.Unsupported reason ->
+                GameCapabilityDisposition.Unsupported, Some reason
+
+        let result =
+            GameCapabilityInfo(
+                CapabilityId = CapabilityId.value value.Id,
+                Revision = uint32 value.Revision,
+                Name = value.Name,
+                Kind = kind,
+                Disposition = disposition
+            )
+
+        reason |> Option.iter (fun text -> result.Reason <- text)
+
+        result.Contexts.AddRange(
+            value.Contexts
+            |> Seq.map (fun supported ->
+                let context = GameCapabilityContext(DefinitionId = supported.DefinitionId)
+                context.Platforms.AddRange(supported.Platforms |> Seq.map platform)
+                context)
+        )
+
+        result
+
     let reply =
         function
         | Ok(value: ModConductor.GameContexts.GameContextState) ->
@@ -68,9 +107,17 @@ module private GameContextWire =
                         )
                 )
 
+            let capabilities = CapabilityPolicy.forDefinition d.Id
+            state.Definition.Capabilities.AddRange(capabilities |> Seq.map capability)
+
             state.Definition.UnavailableCapabilities.AddRange(
-                d.UnavailableCapabilities
-                |> Seq.map (fun c -> UnavailableGameCapability(Name = c.Name, Reason = c.Reason))
+                capabilities
+                |> Seq.choose (fun item ->
+                    match item.Disposition with
+                    | CapabilityDisposition.Available -> None
+                    | CapabilityDisposition.Unavailable reason
+                    | CapabilityDisposition.Unsupported reason ->
+                        Some(UnavailableGameCapability(Name = item.Name, Reason = reason)))
             )
 
             value.Binding

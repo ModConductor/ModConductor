@@ -253,6 +253,7 @@ class GameDefinitionInfo extends $pb.GeneratedMessage {
     $core.String? storefront,
     $core.int? declaredSteamAppId,
     $core.Iterable<UnavailableGameCapability>? unavailableCapabilities,
+    $core.Iterable<GameCapabilityInfo>? capabilities,
   }) {
     final result = create();
     if (definitionId != null) result.definitionId = definitionId;
@@ -263,6 +264,7 @@ class GameDefinitionInfo extends $pb.GeneratedMessage {
       result.declaredSteamAppId = declaredSteamAppId;
     if (unavailableCapabilities != null)
       result.unavailableCapabilities.addAll(unavailableCapabilities);
+    if (capabilities != null) result.capabilities.addAll(capabilities);
     return result;
   }
 
@@ -289,6 +291,8 @@ class GameDefinitionInfo extends $pb.GeneratedMessage {
     ..pPM<UnavailableGameCapability>(
         6, _omitFieldNames ? '' : 'unavailableCapabilities',
         subBuilder: UnavailableGameCapability.create)
+    ..pPM<GameCapabilityInfo>(7, _omitFieldNames ? '' : 'capabilities',
+        subBuilder: GameCapabilityInfo.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -358,6 +362,9 @@ class GameDefinitionInfo extends $pb.GeneratedMessage {
   @$pb.TagNumber(6)
   $pb.PbList<UnavailableGameCapability> get unavailableCapabilities =>
       $_getList(5);
+
+  @$pb.TagNumber(7)
+  $pb.PbList<GameCapabilityInfo> get capabilities => $_getList(6);
 }
 
 class UnavailableGameCapability extends $pb.GeneratedMessage {
@@ -426,6 +433,196 @@ class UnavailableGameCapability extends $pb.GeneratedMessage {
   $core.bool hasReason() => $_has(1);
   @$pb.TagNumber(2)
   void clearReason() => $_clearField(2);
+}
+
+class GameCapabilityContext extends $pb.GeneratedMessage {
+  factory GameCapabilityContext({
+    $core.String? definitionId,
+    $core.Iterable<GameContextPlatform>? platforms,
+  }) {
+    final result = create();
+    if (definitionId != null) result.definitionId = definitionId;
+    if (platforms != null) result.platforms.addAll(platforms);
+    return result;
+  }
+
+  GameCapabilityContext._();
+
+  factory GameCapabilityContext.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory GameCapabilityContext.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'GameCapabilityContext',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'definitionId')
+    ..pc<GameContextPlatform>(
+        2, _omitFieldNames ? '' : 'platforms', $pb.PbFieldType.KE,
+        valueOf: GameContextPlatform.valueOf,
+        enumValues: GameContextPlatform.values,
+        defaultEnumValue: GameContextPlatform.GAME_CONTEXT_PLATFORM_UNSPECIFIED)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GameCapabilityContext clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GameCapabilityContext copyWith(
+          void Function(GameCapabilityContext) updates) =>
+      super.copyWith((message) => updates(message as GameCapabilityContext))
+          as GameCapabilityContext;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GameCapabilityContext create() => GameCapabilityContext._();
+  @$core.override
+  GameCapabilityContext createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static GameCapabilityContext getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<GameCapabilityContext>(create);
+  static GameCapabilityContext? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get definitionId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set definitionId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasDefinitionId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearDefinitionId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $pb.PbList<GameContextPlatform> get platforms => $_getList(1);
+}
+
+class GameCapabilityInfo extends $pb.GeneratedMessage {
+  factory GameCapabilityInfo({
+    $core.String? capabilityId,
+    $core.int? revision,
+    $core.String? name,
+    GameCapabilityKind? kind,
+    $core.Iterable<GameCapabilityContext>? contexts,
+    GameCapabilityDisposition? disposition,
+    $core.String? reason,
+  }) {
+    final result = create();
+    if (capabilityId != null) result.capabilityId = capabilityId;
+    if (revision != null) result.revision = revision;
+    if (name != null) result.name = name;
+    if (kind != null) result.kind = kind;
+    if (contexts != null) result.contexts.addAll(contexts);
+    if (disposition != null) result.disposition = disposition;
+    if (reason != null) result.reason = reason;
+    return result;
+  }
+
+  GameCapabilityInfo._();
+
+  factory GameCapabilityInfo.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory GameCapabilityInfo.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'GameCapabilityInfo',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'capabilityId')
+    ..aI(2, _omitFieldNames ? '' : 'revision', fieldType: $pb.PbFieldType.OU3)
+    ..aOS(3, _omitFieldNames ? '' : 'name')
+    ..aE<GameCapabilityKind>(4, _omitFieldNames ? '' : 'kind',
+        enumValues: GameCapabilityKind.values)
+    ..pPM<GameCapabilityContext>(5, _omitFieldNames ? '' : 'contexts',
+        subBuilder: GameCapabilityContext.create)
+    ..aE<GameCapabilityDisposition>(6, _omitFieldNames ? '' : 'disposition',
+        enumValues: GameCapabilityDisposition.values)
+    ..aOS(7, _omitFieldNames ? '' : 'reason')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GameCapabilityInfo clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GameCapabilityInfo copyWith(void Function(GameCapabilityInfo) updates) =>
+      super.copyWith((message) => updates(message as GameCapabilityInfo))
+          as GameCapabilityInfo;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GameCapabilityInfo create() => GameCapabilityInfo._();
+  @$core.override
+  GameCapabilityInfo createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static GameCapabilityInfo getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<GameCapabilityInfo>(create);
+  static GameCapabilityInfo? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get capabilityId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set capabilityId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasCapabilityId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearCapabilityId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.int get revision => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set revision($core.int value) => $_setUnsignedInt32(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasRevision() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearRevision() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get name => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set name($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasName() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearName() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  GameCapabilityKind get kind => $_getN(3);
+  @$pb.TagNumber(4)
+  set kind(GameCapabilityKind value) => $_setField(4, value);
+  @$pb.TagNumber(4)
+  $core.bool hasKind() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearKind() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $pb.PbList<GameCapabilityContext> get contexts => $_getList(4);
+
+  @$pb.TagNumber(6)
+  GameCapabilityDisposition get disposition => $_getN(5);
+  @$pb.TagNumber(6)
+  set disposition(GameCapabilityDisposition value) => $_setField(6, value);
+  @$pb.TagNumber(6)
+  $core.bool hasDisposition() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearDisposition() => $_clearField(6);
+
+  @$pb.TagNumber(7)
+  $core.String get reason => $_getSZ(6);
+  @$pb.TagNumber(7)
+  set reason($core.String value) => $_setString(6, value);
+  @$pb.TagNumber(7)
+  $core.bool hasReason() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearReason() => $_clearField(7);
 }
 
 enum GameLocation_Result { located, unavailableReason, notSet }

@@ -9,8 +9,6 @@ type ContextPlatform =
     | Windows
     | Proton
 
-type UnavailableCapability = { Name: string; Reason: string }
-
 type GameDefinition =
     { Id: string
       Revision: int
@@ -24,8 +22,7 @@ type GameDefinition =
       Saves: string list
       LocalAppData: string list
       IniFiles: string list
-      TargetPolicy: TargetPolicy
-      UnavailableCapabilities: UnavailableCapability list }
+      TargetPolicy: TargetPolicy }
 
 module Skyrim =
     let definition =
@@ -41,12 +38,7 @@ module Skyrim =
           Saves = [ "My Games"; "Skyrim Special Edition"; "Saves" ]
           LocalAppData = [ "Skyrim Special Edition" ]
           IniFiles = [ "Skyrim.ini"; "SkyrimPrefs.ini"; "SkyrimCustom.ini" ]
-          TargetPolicy = TargetPolicy.windows
-          UnavailableCapabilities =
-            [ { Name = "Archive inspection"
-                Reason = "Archive inspection is not implemented." }
-              { Name = "Individual save editing"
-                Reason = "Individual save editing is not implemented." } ] }
+          TargetPolicy = TargetPolicy.windows }
 
 [<RequireQualifiedAccess>]
 type Location =

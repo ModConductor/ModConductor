@@ -12,6 +12,13 @@ type GameContextTests() =
             .GetBoolean()
 
     [<Test>]
+    member _.``compiled capability policy should distinguish supported contexts from obsolete extension mechanisms``
+        ()
+        =
+        flag "compiledCapabilitySupportsBothContexts" |> should equal true
+        flag "obsoleteExtensionMechanismUnsupported" |> should equal true
+
+    [<Test>]
     member _.``portable version checks should parse fixed resources without writes or string fallbacks``
         ()
         =

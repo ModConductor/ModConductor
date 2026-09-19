@@ -107,6 +107,58 @@ GameInstallationEvidence _evidence(wire.GameInstallationEvidence e) =>
       ),
       fingerprint: e.fingerprint,
     );
+
+GameContextPlatform? _platform(wire.GameContextPlatform value) =>
+    switch (value) {
+      wire.GameContextPlatform.GAME_CONTEXT_PLATFORM_WINDOWS =>
+        GameContextPlatform.windows,
+      wire.GameContextPlatform.GAME_CONTEXT_PLATFORM_PROTON =>
+        GameContextPlatform.proton,
+      _ => null,
+    };
+
+GameCapability _capability(wire.GameCapabilityInfo value) => GameCapability(
+  id: GameCapabilityId.fromWire(value.capabilityId),
+  revision: value.revision,
+  name: value.name,
+  kind: switch (value.kind) {
+    wire.GameCapabilityKind.GAME_CAPABILITY_KIND_CORE_OUTCOME =>
+      GameCapabilityKind.coreOutcome,
+    wire.GameCapabilityKind.GAME_CAPABILITY_KIND_GAME_ADAPTER =>
+      GameCapabilityKind.gameAdapter,
+    wire.GameCapabilityKind.GAME_CAPABILITY_KIND_OPTIONAL_LEGACY =>
+      GameCapabilityKind.optionalLegacy,
+    wire.GameCapabilityKind.GAME_CAPABILITY_KIND_OBSOLETE_MECHANISM =>
+      GameCapabilityKind.obsolete,
+    _ => GameCapabilityKind.unknown,
+  },
+  contexts: List.unmodifiable(
+    value.contexts.map(
+      (context) => GameCapabilityContext(
+        definitionId: context.definitionId,
+        platforms: List.unmodifiable(context.platforms.map(_platform).nonNulls),
+      ),
+    ),
+  ),
+  disposition: switch (value.disposition) {
+    wire.GameCapabilityDisposition.GAME_CAPABILITY_DISPOSITION_AVAILABLE =>
+      GameCapabilityDisposition.available,
+    wire.GameCapabilityDisposition.GAME_CAPABILITY_DISPOSITION_UNAVAILABLE =>
+      GameCapabilityDisposition.unavailable,
+    wire.GameCapabilityDisposition.GAME_CAPABILITY_DISPOSITION_UNSUPPORTED =>
+      GameCapabilityDisposition.unsupported,
+    _ => GameCapabilityDisposition.unsupported,
+  },
+  reason: value.hasReason()
+      ? value.reason
+      : value.disposition ==
+            wire
+                .GameCapabilityDisposition
+                .GAME_CAPABILITY_DISPOSITION_UNSPECIFIED
+      ? 'This capability is not supported by this version of Mod Conductor.'
+      : null,
+);
+
 GameContextState _reply(wire.GameContextReply reply) {
   switch (reply.whichOutcome()) {
     case wire.GameContextReply_Outcome.state:
@@ -121,11 +173,7 @@ GameContextState _reply(wire.GameContextReply reply) {
           name: d.name,
           storefront: d.storefront,
           declaredSteamAppId: d.declaredSteamAppId,
-          unavailableCapabilities: List.unmodifiable(
-            d.unavailableCapabilities.map(
-              (c) => UnavailableGameCapability(c.name, c.reason),
-            ),
-          ),
+          capabilities: List.unmodifiable(d.capabilities.map(_capability)),
         ),
         binding: s.hasBinding()
             ? GameBindingInfo(

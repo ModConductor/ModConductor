@@ -24,6 +24,33 @@ void main() {
         await child.workspaces().create(workspace, 'Game', root.path);
         final client = child.gameContexts();
         final empty = await client.read(workspace);
+        final installationCapability = empty.definition.capability(
+          GameCapabilityId.gameInstallationValidation,
+        );
+        expect(
+          installationCapability?.disposition,
+          GameCapabilityDisposition.available,
+        );
+        expect(
+          installationCapability?.supports(
+            empty.definition.id,
+            GameContextPlatform.windows,
+          ),
+          isTrue,
+        );
+        expect(
+          installationCapability?.supports(
+            empty.definition.id,
+            GameContextPlatform.proton,
+          ),
+          isTrue,
+        );
+        expect(
+          empty.definition
+              .capability(GameCapabilityId.legacyExtensionAbi)
+              ?.disposition,
+          GameCapabilityDisposition.unsupported,
+        );
         await expectLater(
           child
               .gameContexts(authenticate: false)

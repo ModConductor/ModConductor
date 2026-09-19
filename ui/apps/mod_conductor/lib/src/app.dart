@@ -646,15 +646,9 @@ class _ModConductorAppState extends State<ModConductorApp> {
                                       widget.chooseExportLocation,
                                   openExportFolder: widget.openExportFolder,
                                   archiveUnavailable:
-                                      _game
-                                          .state
-                                          ?.definition
-                                          .unavailableCapabilities
-                                          .any(
-                                            (capability) =>
-                                                capability.name ==
-                                                'Archive inspection',
-                                          ) ??
+                                      _game.state?.definition.unavailable(
+                                        GameCapabilityId.archiveInspection,
+                                      ) ??
                                       false,
                                 )
                               : DeploymentOutputsWorkbench(
@@ -693,15 +687,9 @@ class _ModConductorAppState extends State<ModConductorApp> {
                                       widget.chooseExportLocation,
                                   openExportFolder: widget.openExportFolder,
                                   archiveUnavailable:
-                                      _game
-                                          .state
-                                          ?.definition
-                                          .unavailableCapabilities
-                                          .any(
-                                            (capability) =>
-                                                capability.name ==
-                                                'Archive inspection',
-                                          ) ??
+                                      _game.state?.definition.unavailable(
+                                        GameCapabilityId.archiveInspection,
+                                      ) ??
                                       false,
                                 ),
                         ),

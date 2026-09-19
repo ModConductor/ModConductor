@@ -92,6 +92,33 @@ module GameContextFixtures =
         let inspected = InstallationValidation.inspect game
         writer.WriteStartObject("gameContexts")
 
+        let installationCapability =
+            CapabilityPolicy.tryFind Skyrim.definition.Id CapabilityId.GameInstallationValidation
+
+        let legacyCapability =
+            CapabilityPolicy.tryFind Skyrim.definition.Id CapabilityId.LegacyExtensionAbi
+
+        writer.WriteBoolean(
+            "compiledCapabilitySupportsBothContexts",
+            installationCapability
+            |> Option.exists (fun capability ->
+                capability.Disposition = CapabilityDisposition.Available
+                && CapabilityPolicy.supports
+                    Skyrim.definition.Id
+                    ContextPlatform.Windows
+                    capability
+                && CapabilityPolicy.supports Skyrim.definition.Id ContextPlatform.Proton capability)
+        )
+
+        writer.WriteBoolean(
+            "obsoleteExtensionMechanismUnsupported",
+            legacyCapability
+            |> Option.exists (fun capability ->
+                match capability.Kind, capability.Disposition with
+                | CapabilityKind.ObsoleteMechanism, CapabilityDisposition.Unsupported _ -> true
+                | _ -> false)
+        )
+
         writer.WriteBoolean(
             "structuredVersion",
             inspected.Valid && inspected.Executable.Value.FileVersion = "1.7.104.0"

@@ -13,7 +13,7 @@ const definition = GameDefinitionInfo(
   name: 'Skyrim Special Edition',
   storefront: 'Steam',
   declaredSteamAppId: 489830,
-  unavailableCapabilities: [],
+  capabilities: [],
 );
 GameContextState snapshot(
   String workspace,

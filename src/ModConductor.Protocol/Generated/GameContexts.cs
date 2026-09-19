@@ -32,73 +32,95 @@ namespace ModConductor.Protocol.V1 {
             "GAMgASgJEjQKBnByb3RvbhgEIAEoCzIkLm1vZGNvbmR1Y3Rvci52MS5Qcm90",
             "b25TZWxlY3Rpb25JbmZvIkwKGVJlZnJlc2hHYW1lQ29udGV4dFJlcXVlc3QS",
             "FAoMd29ya3NwYWNlX2lkGAEgASgJEhkKEWV4cGVjdGVkX3JldmlzaW9uGAIg",
-            "ASgEIswBChJHYW1lRGVmaW5pdGlvbkluZm8SFQoNZGVmaW5pdGlvbl9pZBgB",
+            "ASgEIocCChJHYW1lRGVmaW5pdGlvbkluZm8SFQoNZGVmaW5pdGlvbl9pZBgB",
             "IAEoCRIQCghyZXZpc2lvbhgCIAEoDRIMCgRuYW1lGAMgASgJEhIKCnN0b3Jl",
             "ZnJvbnQYBCABKAkSHQoVZGVjbGFyZWRfc3RlYW1fYXBwX2lkGAUgASgNEkwK",
             "GHVuYXZhaWxhYmxlX2NhcGFiaWxpdGllcxgGIAMoCzIqLm1vZGNvbmR1Y3Rv",
-            "ci52MS5VbmF2YWlsYWJsZUdhbWVDYXBhYmlsaXR5IjkKGVVuYXZhaWxhYmxl",
-            "R2FtZUNhcGFiaWxpdHkSDAoEbmFtZRgBIAEoCRIOCgZyZWFzb24YAiABKAki",
-            "bQoMR2FtZUxvY2F0aW9uEjUKB2xvY2F0ZWQYASABKAsyIi5tb2Rjb25kdWN0",
-            "b3IudjEuTG9jYXRlZEdhbWVGb2xkZXJIABIcChJ1bmF2YWlsYWJsZV9yZWFz",
-            "b24YAiABKAlIAEIICgZyZXN1bHQiMQoRTG9jYXRlZEdhbWVGb2xkZXISDAoE",
-            "cGF0aBgBIAEoCRIOCgZleGlzdHMYAiABKAgidQoWR2FtZUV4ZWN1dGFibGVF",
-            "dmlkZW5jZRIMCgRwYXRoGAEgASgJEg4KBnNoYTI1NhgCIAEoCRIOCgZsZW5n",
-            "dGgYAyABKAQSFAoMZmlsZV92ZXJzaW9uGAQgASgJEhcKD3Byb2R1Y3RfdmVy",
-            "c2lvbhgFIAEoCSI1ChVHYW1lVmFsaWRhdGlvblByb2JsZW0SDAoEcGF0aBgB",
-            "IAEoCRIOCgZkZXRhaWwYAiABKAki5AQKGEdhbWVJbnN0YWxsYXRpb25Fdmlk",
-            "ZW5jZRI2CghwbGF0Zm9ybRgBIAEoDjIkLm1vZGNvbmR1Y3Rvci52MS5HYW1l",
-            "Q29udGV4dFBsYXRmb3JtEhEKCXJvb3RfcGF0aBgCIAEoCRIWCglkYXRhX3Bh",
-            "dGgYAyABKAlIAIgBARI7CgpleGVjdXRhYmxlGAQgASgLMicubW9kY29uZHVj",
-            "dG9yLnYxLkdhbWVFeGVjdXRhYmxlRXZpZGVuY2USGgoNbGF1bmNoZXJfcGF0",
-            "aBgFIAEoCUgBiAEBEjAKCWRvY3VtZW50cxgGIAEoCzIdLm1vZGNvbmR1Y3Rv",
-            "ci52MS5HYW1lTG9jYXRpb24SLAoFc2F2ZXMYByABKAsyHS5tb2Rjb25kdWN0",
-            "b3IudjEuR2FtZUxvY2F0aW9uEjUKDmxvY2FsX2FwcF9kYXRhGAggASgLMh0u",
-            "bW9kY29uZHVjdG9yLnYxLkdhbWVMb2NhdGlvbhI4Cghwcm9ibGVtcxgJIAMo",
-            "CzImLm1vZGNvbmR1Y3Rvci52MS5HYW1lVmFsaWRhdGlvblByb2JsZW0SGgoS",
-            "Y2hlY2tlZF9hdF91bml4X21zGAogASgDEhMKC2ZpbmdlcnByaW50GAsgASgJ",
-            "EhUKDWRlZmluaXRpb25faWQYDCABKAkSGwoTZGVmaW5pdGlvbl9yZXZpc2lv",
-            "bhgNIAEoDRI2CgZwcm90b24YDiABKAsyJi5tb2Rjb25kdWN0b3IudjEuUHJv",
-            "dG9uQ29udGV4dEV2aWRlbmNlQgwKCl9kYXRhX3BhdGhCEAoOX2xhdW5jaGVy",
-            "X3BhdGgi3QEKD0dhbWVCaW5kaW5nSW5mbxISCgpiaW5kaW5nX2lkGAEgASgJ",
-            "EgwKBHBhdGgYAiABKAkSOwoIZXZpZGVuY2UYAyABKAsyKS5tb2Rjb25kdWN0",
-            "b3IudjEuR2FtZUluc3RhbGxhdGlvbkV2aWRlbmNlEhMKC25lZWRzX2NoZWNr",
-            "GAQgASgIEhQKB2ZhaWx1cmUYBSABKAlIAIgBARI0CgZwcm90b24YBiABKAsy",
-            "JC5tb2Rjb25kdWN0b3IudjEuUHJvdG9uU2VsZWN0aW9uSW5mb0IKCghfZmFp",
-            "bHVyZSKmAQoQR2FtZUNvbnRleHRTdGF0ZRIUCgx3b3Jrc3BhY2VfaWQYASAB",
-            "KAkSEAoIcmV2aXNpb24YAiABKAQSNwoKZGVmaW5pdGlvbhgDIAEoCzIjLm1v",
-            "ZGNvbmR1Y3Rvci52MS5HYW1lRGVmaW5pdGlvbkluZm8SMQoHYmluZGluZxgE",
-            "IAEoCzIgLm1vZGNvbmR1Y3Rvci52MS5HYW1lQmluZGluZ0luZm8ilQEKEEdh",
-            "bWVDb250ZXh0RmF1bHQSMwoEY29kZRgBIAEoDjIlLm1vZGNvbmR1Y3Rvci52",
-            "MS5HYW1lQ29udGV4dEZhdWx0Q29kZRIOCgZkZXRhaWwYAiABKAkSPAoJY2Fu",
-            "ZGlkYXRlGAMgASgLMikubW9kY29uZHVjdG9yLnYxLkdhbWVJbnN0YWxsYXRp",
-            "b25FdmlkZW5jZSKFAQoQR2FtZUNvbnRleHRSZXBseRIyCgVzdGF0ZRgBIAEo",
-            "CzIhLm1vZGNvbmR1Y3Rvci52MS5HYW1lQ29udGV4dFN0YXRlSAASMgoFZmF1",
-            "bHQYAiABKAsyIS5tb2Rjb25kdWN0b3IudjEuR2FtZUNvbnRleHRGYXVsdEgA",
-            "QgkKB291dGNvbWUqgQEKE0dhbWVDb250ZXh0UGxhdGZvcm0SJQohR0FNRV9D",
-            "T05URVhUX1BMQVRGT1JNX1VOU1BFQ0lGSUVEEAASIQodR0FNRV9DT05URVhU",
-            "X1BMQVRGT1JNX1dJTkRPV1MQARIgChxHQU1FX0NPTlRFWFRfUExBVEZPUk1f",
-            "UFJPVE9OEAIq+wEKFEdhbWVDb250ZXh0RmF1bHRDb2RlEiIKHkdBTUVfQ09O",
-            "VEVYVF9GQVVMVF9VTlNQRUNJRklFRBAAEiAKHEdBTUVfQ09OVEVYVF9GQVVM",
-            "VF9OT1RfRk9VTkQQARIlCiFHQU1FX0NPTlRFWFRfRkFVTFRfU1RBTEVfUkVW",
-            "SVNJT04QAhIsCihHQU1FX0NPTlRFWFRfRkFVTFRfV09SS1NQQUNFX1VOQVZB",
-            "SUxBQkxFEAMSKwonR0FNRV9DT05URVhUX0ZBVUxUX0lOVkFMSURfSU5TVEFM",
-            "TEFUSU9OEAQSGwoXR0FNRV9DT05URVhUX0ZBVUxUX0JVU1kQBTK6AgoVR2Ft",
-            "ZUNvbnRleHRPcGVyYXRpb25zEl0KD1JlYWRHYW1lQ29udGV4dBInLm1vZGNv",
-            "bmR1Y3Rvci52MS5SZWFkR2FtZUNvbnRleHRSZXF1ZXN0GiEubW9kY29uZHVj",
-            "dG9yLnYxLkdhbWVDb250ZXh0UmVwbHkSXQoPU2F2ZUdhbWVDb250ZXh0Eicu",
-            "bW9kY29uZHVjdG9yLnYxLlNhdmVHYW1lQ29udGV4dFJlcXVlc3QaIS5tb2Rj",
-            "b25kdWN0b3IudjEuR2FtZUNvbnRleHRSZXBseRJjChJSZWZyZXNoR2FtZUNv",
-            "bnRleHQSKi5tb2Rjb25kdWN0b3IudjEuUmVmcmVzaEdhbWVDb250ZXh0UmVx",
-            "dWVzdBohLm1vZGNvbmR1Y3Rvci52MS5HYW1lQ29udGV4dFJlcGx5QhuqAhhN",
-            "b2RDb25kdWN0b3IuUHJvdG9jb2wuVjFiBnByb3RvMw=="));
+            "ci52MS5VbmF2YWlsYWJsZUdhbWVDYXBhYmlsaXR5EjkKDGNhcGFiaWxpdGll",
+            "cxgHIAMoCzIjLm1vZGNvbmR1Y3Rvci52MS5HYW1lQ2FwYWJpbGl0eUluZm8i",
+            "OQoZVW5hdmFpbGFibGVHYW1lQ2FwYWJpbGl0eRIMCgRuYW1lGAEgASgJEg4K",
+            "BnJlYXNvbhgCIAEoCSJnChVHYW1lQ2FwYWJpbGl0eUNvbnRleHQSFQoNZGVm",
+            "aW5pdGlvbl9pZBgBIAEoCRI3CglwbGF0Zm9ybXMYAiADKA4yJC5tb2Rjb25k",
+            "dWN0b3IudjEuR2FtZUNvbnRleHRQbGF0Zm9ybSKZAgoSR2FtZUNhcGFiaWxp",
+            "dHlJbmZvEhUKDWNhcGFiaWxpdHlfaWQYASABKAkSEAoIcmV2aXNpb24YAiAB",
+            "KA0SDAoEbmFtZRgDIAEoCRIxCgRraW5kGAQgASgOMiMubW9kY29uZHVjdG9y",
+            "LnYxLkdhbWVDYXBhYmlsaXR5S2luZBI4Cghjb250ZXh0cxgFIAMoCzImLm1v",
+            "ZGNvbmR1Y3Rvci52MS5HYW1lQ2FwYWJpbGl0eUNvbnRleHQSPwoLZGlzcG9z",
+            "aXRpb24YBiABKA4yKi5tb2Rjb25kdWN0b3IudjEuR2FtZUNhcGFiaWxpdHlE",
+            "aXNwb3NpdGlvbhITCgZyZWFzb24YByABKAlIAIgBAUIJCgdfcmVhc29uIm0K",
+            "DEdhbWVMb2NhdGlvbhI1Cgdsb2NhdGVkGAEgASgLMiIubW9kY29uZHVjdG9y",
+            "LnYxLkxvY2F0ZWRHYW1lRm9sZGVySAASHAoSdW5hdmFpbGFibGVfcmVhc29u",
+            "GAIgASgJSABCCAoGcmVzdWx0IjEKEUxvY2F0ZWRHYW1lRm9sZGVyEgwKBHBh",
+            "dGgYASABKAkSDgoGZXhpc3RzGAIgASgIInUKFkdhbWVFeGVjdXRhYmxlRXZp",
+            "ZGVuY2USDAoEcGF0aBgBIAEoCRIOCgZzaGEyNTYYAiABKAkSDgoGbGVuZ3Ro",
+            "GAMgASgEEhQKDGZpbGVfdmVyc2lvbhgEIAEoCRIXCg9wcm9kdWN0X3ZlcnNp",
+            "b24YBSABKAkiNQoVR2FtZVZhbGlkYXRpb25Qcm9ibGVtEgwKBHBhdGgYASAB",
+            "KAkSDgoGZGV0YWlsGAIgASgJIuQEChhHYW1lSW5zdGFsbGF0aW9uRXZpZGVu",
+            "Y2USNgoIcGxhdGZvcm0YASABKA4yJC5tb2Rjb25kdWN0b3IudjEuR2FtZUNv",
+            "bnRleHRQbGF0Zm9ybRIRCglyb290X3BhdGgYAiABKAkSFgoJZGF0YV9wYXRo",
+            "GAMgASgJSACIAQESOwoKZXhlY3V0YWJsZRgEIAEoCzInLm1vZGNvbmR1Y3Rv",
+            "ci52MS5HYW1lRXhlY3V0YWJsZUV2aWRlbmNlEhoKDWxhdW5jaGVyX3BhdGgY",
+            "BSABKAlIAYgBARIwCglkb2N1bWVudHMYBiABKAsyHS5tb2Rjb25kdWN0b3Iu",
+            "djEuR2FtZUxvY2F0aW9uEiwKBXNhdmVzGAcgASgLMh0ubW9kY29uZHVjdG9y",
+            "LnYxLkdhbWVMb2NhdGlvbhI1Cg5sb2NhbF9hcHBfZGF0YRgIIAEoCzIdLm1v",
+            "ZGNvbmR1Y3Rvci52MS5HYW1lTG9jYXRpb24SOAoIcHJvYmxlbXMYCSADKAsy",
+            "Ji5tb2Rjb25kdWN0b3IudjEuR2FtZVZhbGlkYXRpb25Qcm9ibGVtEhoKEmNo",
+            "ZWNrZWRfYXRfdW5peF9tcxgKIAEoAxITCgtmaW5nZXJwcmludBgLIAEoCRIV",
+            "Cg1kZWZpbml0aW9uX2lkGAwgASgJEhsKE2RlZmluaXRpb25fcmV2aXNpb24Y",
+            "DSABKA0SNgoGcHJvdG9uGA4gASgLMiYubW9kY29uZHVjdG9yLnYxLlByb3Rv",
+            "bkNvbnRleHRFdmlkZW5jZUIMCgpfZGF0YV9wYXRoQhAKDl9sYXVuY2hlcl9w",
+            "YXRoIt0BCg9HYW1lQmluZGluZ0luZm8SEgoKYmluZGluZ19pZBgBIAEoCRIM",
+            "CgRwYXRoGAIgASgJEjsKCGV2aWRlbmNlGAMgASgLMikubW9kY29uZHVjdG9y",
+            "LnYxLkdhbWVJbnN0YWxsYXRpb25FdmlkZW5jZRITCgtuZWVkc19jaGVjaxgE",
+            "IAEoCBIUCgdmYWlsdXJlGAUgASgJSACIAQESNAoGcHJvdG9uGAYgASgLMiQu",
+            "bW9kY29uZHVjdG9yLnYxLlByb3RvblNlbGVjdGlvbkluZm9CCgoIX2ZhaWx1",
+            "cmUipgEKEEdhbWVDb250ZXh0U3RhdGUSFAoMd29ya3NwYWNlX2lkGAEgASgJ",
+            "EhAKCHJldmlzaW9uGAIgASgEEjcKCmRlZmluaXRpb24YAyABKAsyIy5tb2Rj",
+            "b25kdWN0b3IudjEuR2FtZURlZmluaXRpb25JbmZvEjEKB2JpbmRpbmcYBCAB",
+            "KAsyIC5tb2Rjb25kdWN0b3IudjEuR2FtZUJpbmRpbmdJbmZvIpUBChBHYW1l",
+            "Q29udGV4dEZhdWx0EjMKBGNvZGUYASABKA4yJS5tb2Rjb25kdWN0b3IudjEu",
+            "R2FtZUNvbnRleHRGYXVsdENvZGUSDgoGZGV0YWlsGAIgASgJEjwKCWNhbmRp",
+            "ZGF0ZRgDIAEoCzIpLm1vZGNvbmR1Y3Rvci52MS5HYW1lSW5zdGFsbGF0aW9u",
+            "RXZpZGVuY2UihQEKEEdhbWVDb250ZXh0UmVwbHkSMgoFc3RhdGUYASABKAsy",
+            "IS5tb2Rjb25kdWN0b3IudjEuR2FtZUNvbnRleHRTdGF0ZUgAEjIKBWZhdWx0",
+            "GAIgASgLMiEubW9kY29uZHVjdG9yLnYxLkdhbWVDb250ZXh0RmF1bHRIAEIJ",
+            "CgdvdXRjb21lKoEBChNHYW1lQ29udGV4dFBsYXRmb3JtEiUKIUdBTUVfQ09O",
+            "VEVYVF9QTEFURk9STV9VTlNQRUNJRklFRBAAEiEKHUdBTUVfQ09OVEVYVF9Q",
+            "TEFURk9STV9XSU5ET1dTEAESIAocR0FNRV9DT05URVhUX1BMQVRGT1JNX1BS",
+            "T1RPThACKt8BChJHYW1lQ2FwYWJpbGl0eUtpbmQSJAogR0FNRV9DQVBBQklM",
+            "SVRZX0tJTkRfVU5TUEVDSUZJRUQQABIlCiFHQU1FX0NBUEFCSUxJVFlfS0lO",
+            "RF9DT1JFX09VVENPTUUQARIlCiFHQU1FX0NBUEFCSUxJVFlfS0lORF9HQU1F",
+            "X0FEQVBURVIQAhIoCiRHQU1FX0NBUEFCSUxJVFlfS0lORF9PUFRJT05BTF9M",
+            "RUdBQ1kQAxIrCidHQU1FX0NBUEFCSUxJVFlfS0lORF9PQlNPTEVURV9NRUNI",
+            "QU5JU00QBCrNAQoZR2FtZUNhcGFiaWxpdHlEaXNwb3NpdGlvbhIrCidHQU1F",
+            "X0NBUEFCSUxJVFlfRElTUE9TSVRJT05fVU5TUEVDSUZJRUQQABIpCiVHQU1F",
+            "X0NBUEFCSUxJVFlfRElTUE9TSVRJT05fQVZBSUxBQkxFEAESKwonR0FNRV9D",
+            "QVBBQklMSVRZX0RJU1BPU0lUSU9OX1VOQVZBSUxBQkxFEAISKwonR0FNRV9D",
+            "QVBBQklMSVRZX0RJU1BPU0lUSU9OX1VOU1VQUE9SVEVEEAMq+wEKFEdhbWVD",
+            "b250ZXh0RmF1bHRDb2RlEiIKHkdBTUVfQ09OVEVYVF9GQVVMVF9VTlNQRUNJ",
+            "RklFRBAAEiAKHEdBTUVfQ09OVEVYVF9GQVVMVF9OT1RfRk9VTkQQARIlCiFH",
+            "QU1FX0NPTlRFWFRfRkFVTFRfU1RBTEVfUkVWSVNJT04QAhIsCihHQU1FX0NP",
+            "TlRFWFRfRkFVTFRfV09SS1NQQUNFX1VOQVZBSUxBQkxFEAMSKwonR0FNRV9D",
+            "T05URVhUX0ZBVUxUX0lOVkFMSURfSU5TVEFMTEFUSU9OEAQSGwoXR0FNRV9D",
+            "T05URVhUX0ZBVUxUX0JVU1kQBTK6AgoVR2FtZUNvbnRleHRPcGVyYXRpb25z",
+            "El0KD1JlYWRHYW1lQ29udGV4dBInLm1vZGNvbmR1Y3Rvci52MS5SZWFkR2Ft",
+            "ZUNvbnRleHRSZXF1ZXN0GiEubW9kY29uZHVjdG9yLnYxLkdhbWVDb250ZXh0",
+            "UmVwbHkSXQoPU2F2ZUdhbWVDb250ZXh0EicubW9kY29uZHVjdG9yLnYxLlNh",
+            "dmVHYW1lQ29udGV4dFJlcXVlc3QaIS5tb2Rjb25kdWN0b3IudjEuR2FtZUNv",
+            "bnRleHRSZXBseRJjChJSZWZyZXNoR2FtZUNvbnRleHQSKi5tb2Rjb25kdWN0",
+            "b3IudjEuUmVmcmVzaEdhbWVDb250ZXh0UmVxdWVzdBohLm1vZGNvbmR1Y3Rv",
+            "ci52MS5HYW1lQ29udGV4dFJlcGx5QhuqAhhNb2RDb25kdWN0b3IuUHJvdG9j",
+            "b2wuVjFiBnByb3RvMw=="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::ModConductor.Protocol.V1.ProtonContextsReflection.Descriptor, },
-          new pbr::GeneratedClrTypeInfo(new[] {typeof(global::ModConductor.Protocol.V1.GameContextPlatform), typeof(global::ModConductor.Protocol.V1.GameContextFaultCode), }, null, new pbr::GeneratedClrTypeInfo[] {
+          new pbr::GeneratedClrTypeInfo(new[] {typeof(global::ModConductor.Protocol.V1.GameContextPlatform), typeof(global::ModConductor.Protocol.V1.GameCapabilityKind), typeof(global::ModConductor.Protocol.V1.GameCapabilityDisposition), typeof(global::ModConductor.Protocol.V1.GameContextFaultCode), }, null, new pbr::GeneratedClrTypeInfo[] {
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ReadGameContextRequest), global::ModConductor.Protocol.V1.ReadGameContextRequest.Parser, new[]{ "WorkspaceId" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.SaveGameContextRequest), global::ModConductor.Protocol.V1.SaveGameContextRequest.Parser, new[]{ "WorkspaceId", "ExpectedRevision", "Path", "Proton" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.RefreshGameContextRequest), global::ModConductor.Protocol.V1.RefreshGameContextRequest.Parser, new[]{ "WorkspaceId", "ExpectedRevision" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.GameDefinitionInfo), global::ModConductor.Protocol.V1.GameDefinitionInfo.Parser, new[]{ "DefinitionId", "Revision", "Name", "Storefront", "DeclaredSteamAppId", "UnavailableCapabilities" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.GameDefinitionInfo), global::ModConductor.Protocol.V1.GameDefinitionInfo.Parser, new[]{ "DefinitionId", "Revision", "Name", "Storefront", "DeclaredSteamAppId", "UnavailableCapabilities", "Capabilities" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.UnavailableGameCapability), global::ModConductor.Protocol.V1.UnavailableGameCapability.Parser, new[]{ "Name", "Reason" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.GameCapabilityContext), global::ModConductor.Protocol.V1.GameCapabilityContext.Parser, new[]{ "DefinitionId", "Platforms" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.GameCapabilityInfo), global::ModConductor.Protocol.V1.GameCapabilityInfo.Parser, new[]{ "CapabilityId", "Revision", "Name", "Kind", "Contexts", "Disposition", "Reason" }, new[]{ "Reason" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.GameLocation), global::ModConductor.Protocol.V1.GameLocation.Parser, new[]{ "Located", "UnavailableReason" }, new[]{ "Result" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.LocatedGameFolder), global::ModConductor.Protocol.V1.LocatedGameFolder.Parser, new[]{ "Path", "Exists" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.GameExecutableEvidence), global::ModConductor.Protocol.V1.GameExecutableEvidence.Parser, new[]{ "Path", "Sha256", "Length", "FileVersion", "ProductVersion" }, null, null, null, null),
@@ -118,6 +140,21 @@ namespace ModConductor.Protocol.V1 {
     [pbr::OriginalName("GAME_CONTEXT_PLATFORM_UNSPECIFIED")] Unspecified = 0,
     [pbr::OriginalName("GAME_CONTEXT_PLATFORM_WINDOWS")] Windows = 1,
     [pbr::OriginalName("GAME_CONTEXT_PLATFORM_PROTON")] Proton = 2,
+  }
+
+  public enum GameCapabilityKind {
+    [pbr::OriginalName("GAME_CAPABILITY_KIND_UNSPECIFIED")] Unspecified = 0,
+    [pbr::OriginalName("GAME_CAPABILITY_KIND_CORE_OUTCOME")] CoreOutcome = 1,
+    [pbr::OriginalName("GAME_CAPABILITY_KIND_GAME_ADAPTER")] GameAdapter = 2,
+    [pbr::OriginalName("GAME_CAPABILITY_KIND_OPTIONAL_LEGACY")] OptionalLegacy = 3,
+    [pbr::OriginalName("GAME_CAPABILITY_KIND_OBSOLETE_MECHANISM")] ObsoleteMechanism = 4,
+  }
+
+  public enum GameCapabilityDisposition {
+    [pbr::OriginalName("GAME_CAPABILITY_DISPOSITION_UNSPECIFIED")] Unspecified = 0,
+    [pbr::OriginalName("GAME_CAPABILITY_DISPOSITION_AVAILABLE")] Available = 1,
+    [pbr::OriginalName("GAME_CAPABILITY_DISPOSITION_UNAVAILABLE")] Unavailable = 2,
+    [pbr::OriginalName("GAME_CAPABILITY_DISPOSITION_UNSUPPORTED")] Unsupported = 3,
   }
 
   public enum GameContextFaultCode {
@@ -924,6 +961,7 @@ namespace ModConductor.Protocol.V1 {
       storefront_ = other.storefront_;
       declaredSteamAppId_ = other.declaredSteamAppId_;
       unavailableCapabilities_ = other.unavailableCapabilities_.Clone();
+      capabilities_ = other.capabilities_.Clone();
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -1004,6 +1042,17 @@ namespace ModConductor.Protocol.V1 {
       get { return unavailableCapabilities_; }
     }
 
+    /// <summary>Field number for the "capabilities" field.</summary>
+    public const int CapabilitiesFieldNumber = 7;
+    private static readonly pb::FieldCodec<global::ModConductor.Protocol.V1.GameCapabilityInfo> _repeated_capabilities_codec
+        = pb::FieldCodec.ForMessage(58, global::ModConductor.Protocol.V1.GameCapabilityInfo.Parser);
+    private readonly pbc::RepeatedField<global::ModConductor.Protocol.V1.GameCapabilityInfo> capabilities_ = new pbc::RepeatedField<global::ModConductor.Protocol.V1.GameCapabilityInfo>();
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public pbc::RepeatedField<global::ModConductor.Protocol.V1.GameCapabilityInfo> Capabilities {
+      get { return capabilities_; }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -1025,6 +1074,7 @@ namespace ModConductor.Protocol.V1 {
       if (Storefront != other.Storefront) return false;
       if (DeclaredSteamAppId != other.DeclaredSteamAppId) return false;
       if(!unavailableCapabilities_.Equals(other.unavailableCapabilities_)) return false;
+      if(!capabilities_.Equals(other.capabilities_)) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -1038,6 +1088,7 @@ namespace ModConductor.Protocol.V1 {
       if (Storefront.Length != 0) hash ^= Storefront.GetHashCode();
       if (DeclaredSteamAppId != 0) hash ^= DeclaredSteamAppId.GetHashCode();
       hash ^= unavailableCapabilities_.GetHashCode();
+      hash ^= capabilities_.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -1077,6 +1128,7 @@ namespace ModConductor.Protocol.V1 {
         output.WriteUInt32(DeclaredSteamAppId);
       }
       unavailableCapabilities_.WriteTo(output, _repeated_unavailableCapabilities_codec);
+      capabilities_.WriteTo(output, _repeated_capabilities_codec);
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -1108,6 +1160,7 @@ namespace ModConductor.Protocol.V1 {
         output.WriteUInt32(DeclaredSteamAppId);
       }
       unavailableCapabilities_.WriteTo(ref output, _repeated_unavailableCapabilities_codec);
+      capabilities_.WriteTo(ref output, _repeated_capabilities_codec);
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -1134,6 +1187,7 @@ namespace ModConductor.Protocol.V1 {
         size += 1 + pb::CodedOutputStream.ComputeUInt32Size(DeclaredSteamAppId);
       }
       size += unavailableCapabilities_.CalculateSize(_repeated_unavailableCapabilities_codec);
+      size += capabilities_.CalculateSize(_repeated_capabilities_codec);
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
       }
@@ -1162,6 +1216,7 @@ namespace ModConductor.Protocol.V1 {
         DeclaredSteamAppId = other.DeclaredSteamAppId;
       }
       unavailableCapabilities_.Add(other.unavailableCapabilities_);
+      capabilities_.Add(other.capabilities_);
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
 
@@ -1205,6 +1260,10 @@ namespace ModConductor.Protocol.V1 {
             unavailableCapabilities_.AddEntriesFrom(input, _repeated_unavailableCapabilities_codec);
             break;
           }
+          case 58: {
+            capabilities_.AddEntriesFrom(input, _repeated_capabilities_codec);
+            break;
+          }
         }
       }
     #endif
@@ -1246,6 +1305,10 @@ namespace ModConductor.Protocol.V1 {
           }
           case 50: {
             unavailableCapabilities_.AddEntriesFrom(ref input, _repeated_unavailableCapabilities_codec);
+            break;
+          }
+          case 58: {
+            capabilities_.AddEntriesFrom(ref input, _repeated_capabilities_codec);
             break;
           }
         }
@@ -1491,6 +1554,655 @@ namespace ModConductor.Protocol.V1 {
   }
 
   [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
+  public sealed partial class GameCapabilityContext : pb::IMessage<GameCapabilityContext>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
+    private static readonly pb::MessageParser<GameCapabilityContext> _parser = new pb::MessageParser<GameCapabilityContext>(() => new GameCapabilityContext());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pb::MessageParser<GameCapabilityContext> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::ModConductor.Protocol.V1.GameContextsReflection.Descriptor.MessageTypes[5]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public GameCapabilityContext() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public GameCapabilityContext(GameCapabilityContext other) : this() {
+      definitionId_ = other.definitionId_;
+      platforms_ = other.platforms_.Clone();
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public GameCapabilityContext Clone() {
+      return new GameCapabilityContext(this);
+    }
+
+    /// <summary>Field number for the "definition_id" field.</summary>
+    public const int DefinitionIdFieldNumber = 1;
+    private string definitionId_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string DefinitionId {
+      get { return definitionId_; }
+      set {
+        definitionId_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "platforms" field.</summary>
+    public const int PlatformsFieldNumber = 2;
+    private static readonly pb::FieldCodec<global::ModConductor.Protocol.V1.GameContextPlatform> _repeated_platforms_codec
+        = pb::FieldCodec.ForEnum(18, x => (int) x, x => (global::ModConductor.Protocol.V1.GameContextPlatform) x);
+    private readonly pbc::RepeatedField<global::ModConductor.Protocol.V1.GameContextPlatform> platforms_ = new pbc::RepeatedField<global::ModConductor.Protocol.V1.GameContextPlatform>();
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public pbc::RepeatedField<global::ModConductor.Protocol.V1.GameContextPlatform> Platforms {
+      get { return platforms_; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override bool Equals(object other) {
+      return Equals(other as GameCapabilityContext);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool Equals(GameCapabilityContext other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (DefinitionId != other.DefinitionId) return false;
+      if(!platforms_.Equals(other.platforms_)) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (DefinitionId.Length != 0) hash ^= DefinitionId.GetHashCode();
+      hash ^= platforms_.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
+      if (DefinitionId.Length != 0) {
+        output.WriteRawTag(10);
+        output.WriteString(DefinitionId);
+      }
+      platforms_.WriteTo(output, _repeated_platforms_codec);
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      if (DefinitionId.Length != 0) {
+        output.WriteRawTag(10);
+        output.WriteString(DefinitionId);
+      }
+      platforms_.WriteTo(ref output, _repeated_platforms_codec);
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int CalculateSize() {
+      int size = 0;
+      if (DefinitionId.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(DefinitionId);
+      }
+      size += platforms_.CalculateSize(_repeated_platforms_codec);
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(GameCapabilityContext other) {
+      if (other == null) {
+        return;
+      }
+      if (other.DefinitionId.Length != 0) {
+        DefinitionId = other.DefinitionId;
+      }
+      platforms_.Add(other.platforms_);
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 10: {
+            DefinitionId = input.ReadString();
+            break;
+          }
+          case 18:
+          case 16: {
+            platforms_.AddEntriesFrom(input, _repeated_platforms_codec);
+            break;
+          }
+        }
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 10: {
+            DefinitionId = input.ReadString();
+            break;
+          }
+          case 18:
+          case 16: {
+            platforms_.AddEntriesFrom(ref input, _repeated_platforms_codec);
+            break;
+          }
+        }
+      }
+    }
+    #endif
+
+  }
+
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
+  public sealed partial class GameCapabilityInfo : pb::IMessage<GameCapabilityInfo>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
+    private static readonly pb::MessageParser<GameCapabilityInfo> _parser = new pb::MessageParser<GameCapabilityInfo>(() => new GameCapabilityInfo());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pb::MessageParser<GameCapabilityInfo> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::ModConductor.Protocol.V1.GameContextsReflection.Descriptor.MessageTypes[6]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public GameCapabilityInfo() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public GameCapabilityInfo(GameCapabilityInfo other) : this() {
+      capabilityId_ = other.capabilityId_;
+      revision_ = other.revision_;
+      name_ = other.name_;
+      kind_ = other.kind_;
+      contexts_ = other.contexts_.Clone();
+      disposition_ = other.disposition_;
+      reason_ = other.reason_;
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public GameCapabilityInfo Clone() {
+      return new GameCapabilityInfo(this);
+    }
+
+    /// <summary>Field number for the "capability_id" field.</summary>
+    public const int CapabilityIdFieldNumber = 1;
+    private string capabilityId_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string CapabilityId {
+      get { return capabilityId_; }
+      set {
+        capabilityId_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "revision" field.</summary>
+    public const int RevisionFieldNumber = 2;
+    private uint revision_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public uint Revision {
+      get { return revision_; }
+      set {
+        revision_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "name" field.</summary>
+    public const int NameFieldNumber = 3;
+    private string name_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string Name {
+      get { return name_; }
+      set {
+        name_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "kind" field.</summary>
+    public const int KindFieldNumber = 4;
+    private global::ModConductor.Protocol.V1.GameCapabilityKind kind_ = global::ModConductor.Protocol.V1.GameCapabilityKind.Unspecified;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public global::ModConductor.Protocol.V1.GameCapabilityKind Kind {
+      get { return kind_; }
+      set {
+        kind_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "contexts" field.</summary>
+    public const int ContextsFieldNumber = 5;
+    private static readonly pb::FieldCodec<global::ModConductor.Protocol.V1.GameCapabilityContext> _repeated_contexts_codec
+        = pb::FieldCodec.ForMessage(42, global::ModConductor.Protocol.V1.GameCapabilityContext.Parser);
+    private readonly pbc::RepeatedField<global::ModConductor.Protocol.V1.GameCapabilityContext> contexts_ = new pbc::RepeatedField<global::ModConductor.Protocol.V1.GameCapabilityContext>();
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public pbc::RepeatedField<global::ModConductor.Protocol.V1.GameCapabilityContext> Contexts {
+      get { return contexts_; }
+    }
+
+    /// <summary>Field number for the "disposition" field.</summary>
+    public const int DispositionFieldNumber = 6;
+    private global::ModConductor.Protocol.V1.GameCapabilityDisposition disposition_ = global::ModConductor.Protocol.V1.GameCapabilityDisposition.Unspecified;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public global::ModConductor.Protocol.V1.GameCapabilityDisposition Disposition {
+      get { return disposition_; }
+      set {
+        disposition_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "reason" field.</summary>
+    public const int ReasonFieldNumber = 7;
+    private readonly static string ReasonDefaultValue = "";
+
+    private string reason_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string Reason {
+      get { return reason_ ?? ReasonDefaultValue; }
+      set {
+        reason_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+    /// <summary>Gets whether the "reason" field is set</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool HasReason {
+      get { return reason_ != null; }
+    }
+    /// <summary>Clears the value of the "reason" field</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void ClearReason() {
+      reason_ = null;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override bool Equals(object other) {
+      return Equals(other as GameCapabilityInfo);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool Equals(GameCapabilityInfo other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (CapabilityId != other.CapabilityId) return false;
+      if (Revision != other.Revision) return false;
+      if (Name != other.Name) return false;
+      if (Kind != other.Kind) return false;
+      if(!contexts_.Equals(other.contexts_)) return false;
+      if (Disposition != other.Disposition) return false;
+      if (Reason != other.Reason) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (CapabilityId.Length != 0) hash ^= CapabilityId.GetHashCode();
+      if (Revision != 0) hash ^= Revision.GetHashCode();
+      if (Name.Length != 0) hash ^= Name.GetHashCode();
+      if (Kind != global::ModConductor.Protocol.V1.GameCapabilityKind.Unspecified) hash ^= Kind.GetHashCode();
+      hash ^= contexts_.GetHashCode();
+      if (Disposition != global::ModConductor.Protocol.V1.GameCapabilityDisposition.Unspecified) hash ^= Disposition.GetHashCode();
+      if (HasReason) hash ^= Reason.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
+      if (CapabilityId.Length != 0) {
+        output.WriteRawTag(10);
+        output.WriteString(CapabilityId);
+      }
+      if (Revision != 0) {
+        output.WriteRawTag(16);
+        output.WriteUInt32(Revision);
+      }
+      if (Name.Length != 0) {
+        output.WriteRawTag(26);
+        output.WriteString(Name);
+      }
+      if (Kind != global::ModConductor.Protocol.V1.GameCapabilityKind.Unspecified) {
+        output.WriteRawTag(32);
+        output.WriteEnum((int) Kind);
+      }
+      contexts_.WriteTo(output, _repeated_contexts_codec);
+      if (Disposition != global::ModConductor.Protocol.V1.GameCapabilityDisposition.Unspecified) {
+        output.WriteRawTag(48);
+        output.WriteEnum((int) Disposition);
+      }
+      if (HasReason) {
+        output.WriteRawTag(58);
+        output.WriteString(Reason);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      if (CapabilityId.Length != 0) {
+        output.WriteRawTag(10);
+        output.WriteString(CapabilityId);
+      }
+      if (Revision != 0) {
+        output.WriteRawTag(16);
+        output.WriteUInt32(Revision);
+      }
+      if (Name.Length != 0) {
+        output.WriteRawTag(26);
+        output.WriteString(Name);
+      }
+      if (Kind != global::ModConductor.Protocol.V1.GameCapabilityKind.Unspecified) {
+        output.WriteRawTag(32);
+        output.WriteEnum((int) Kind);
+      }
+      contexts_.WriteTo(ref output, _repeated_contexts_codec);
+      if (Disposition != global::ModConductor.Protocol.V1.GameCapabilityDisposition.Unspecified) {
+        output.WriteRawTag(48);
+        output.WriteEnum((int) Disposition);
+      }
+      if (HasReason) {
+        output.WriteRawTag(58);
+        output.WriteString(Reason);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int CalculateSize() {
+      int size = 0;
+      if (CapabilityId.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(CapabilityId);
+      }
+      if (Revision != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeUInt32Size(Revision);
+      }
+      if (Name.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(Name);
+      }
+      if (Kind != global::ModConductor.Protocol.V1.GameCapabilityKind.Unspecified) {
+        size += 1 + pb::CodedOutputStream.ComputeEnumSize((int) Kind);
+      }
+      size += contexts_.CalculateSize(_repeated_contexts_codec);
+      if (Disposition != global::ModConductor.Protocol.V1.GameCapabilityDisposition.Unspecified) {
+        size += 1 + pb::CodedOutputStream.ComputeEnumSize((int) Disposition);
+      }
+      if (HasReason) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(Reason);
+      }
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(GameCapabilityInfo other) {
+      if (other == null) {
+        return;
+      }
+      if (other.CapabilityId.Length != 0) {
+        CapabilityId = other.CapabilityId;
+      }
+      if (other.Revision != 0) {
+        Revision = other.Revision;
+      }
+      if (other.Name.Length != 0) {
+        Name = other.Name;
+      }
+      if (other.Kind != global::ModConductor.Protocol.V1.GameCapabilityKind.Unspecified) {
+        Kind = other.Kind;
+      }
+      contexts_.Add(other.contexts_);
+      if (other.Disposition != global::ModConductor.Protocol.V1.GameCapabilityDisposition.Unspecified) {
+        Disposition = other.Disposition;
+      }
+      if (other.HasReason) {
+        Reason = other.Reason;
+      }
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 10: {
+            CapabilityId = input.ReadString();
+            break;
+          }
+          case 16: {
+            Revision = input.ReadUInt32();
+            break;
+          }
+          case 26: {
+            Name = input.ReadString();
+            break;
+          }
+          case 32: {
+            Kind = (global::ModConductor.Protocol.V1.GameCapabilityKind) input.ReadEnum();
+            break;
+          }
+          case 42: {
+            contexts_.AddEntriesFrom(input, _repeated_contexts_codec);
+            break;
+          }
+          case 48: {
+            Disposition = (global::ModConductor.Protocol.V1.GameCapabilityDisposition) input.ReadEnum();
+            break;
+          }
+          case 58: {
+            Reason = input.ReadString();
+            break;
+          }
+        }
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 10: {
+            CapabilityId = input.ReadString();
+            break;
+          }
+          case 16: {
+            Revision = input.ReadUInt32();
+            break;
+          }
+          case 26: {
+            Name = input.ReadString();
+            break;
+          }
+          case 32: {
+            Kind = (global::ModConductor.Protocol.V1.GameCapabilityKind) input.ReadEnum();
+            break;
+          }
+          case 42: {
+            contexts_.AddEntriesFrom(ref input, _repeated_contexts_codec);
+            break;
+          }
+          case 48: {
+            Disposition = (global::ModConductor.Protocol.V1.GameCapabilityDisposition) input.ReadEnum();
+            break;
+          }
+          case 58: {
+            Reason = input.ReadString();
+            break;
+          }
+        }
+      }
+    }
+    #endif
+
+  }
+
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class GameLocation : pb::IMessage<GameLocation>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
@@ -1505,7 +2217,7 @@ namespace ModConductor.Protocol.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::ModConductor.Protocol.V1.GameContextsReflection.Descriptor.MessageTypes[5]; }
+      get { return global::ModConductor.Protocol.V1.GameContextsReflection.Descriptor.MessageTypes[7]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -1800,7 +2512,7 @@ namespace ModConductor.Protocol.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::ModConductor.Protocol.V1.GameContextsReflection.Descriptor.MessageTypes[6]; }
+      get { return global::ModConductor.Protocol.V1.GameContextsReflection.Descriptor.MessageTypes[8]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -2035,7 +2747,7 @@ namespace ModConductor.Protocol.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::ModConductor.Protocol.V1.GameContextsReflection.Descriptor.MessageTypes[7]; }
+      get { return global::ModConductor.Protocol.V1.GameContextsReflection.Descriptor.MessageTypes[9]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -2381,7 +3093,7 @@ namespace ModConductor.Protocol.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::ModConductor.Protocol.V1.GameContextsReflection.Descriptor.MessageTypes[8]; }
+      get { return global::ModConductor.Protocol.V1.GameContextsReflection.Descriptor.MessageTypes[10]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -2616,7 +3328,7 @@ namespace ModConductor.Protocol.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::ModConductor.Protocol.V1.GameContextsReflection.Descriptor.MessageTypes[9]; }
+      get { return global::ModConductor.Protocol.V1.GameContextsReflection.Descriptor.MessageTypes[11]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -3357,7 +4069,7 @@ namespace ModConductor.Protocol.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::ModConductor.Protocol.V1.GameContextsReflection.Descriptor.MessageTypes[10]; }
+      get { return global::ModConductor.Protocol.V1.GameContextsReflection.Descriptor.MessageTypes[12]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -3772,7 +4484,7 @@ namespace ModConductor.Protocol.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::ModConductor.Protocol.V1.GameContextsReflection.Descriptor.MessageTypes[11]; }
+      get { return global::ModConductor.Protocol.V1.GameContextsReflection.Descriptor.MessageTypes[13]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -4099,7 +4811,7 @@ namespace ModConductor.Protocol.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::ModConductor.Protocol.V1.GameContextsReflection.Descriptor.MessageTypes[12]; }
+      get { return global::ModConductor.Protocol.V1.GameContextsReflection.Descriptor.MessageTypes[14]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -4380,7 +5092,7 @@ namespace ModConductor.Protocol.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::ModConductor.Protocol.V1.GameContextsReflection.Descriptor.MessageTypes[13]; }
+      get { return global::ModConductor.Protocol.V1.GameContextsReflection.Descriptor.MessageTypes[15]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]

@@ -4,6 +4,59 @@ import 'theme.dart';
 
 enum McStatusTone { neutral, error }
 
+enum McCapabilityDisposition { available, unavailable, unsupported }
+
+class McCapabilityState extends StatelessWidget {
+  const McCapabilityState({
+    super.key,
+    required this.title,
+    required this.disposition,
+    this.reason,
+  });
+
+  final String title;
+  final McCapabilityDisposition disposition;
+  final String? reason;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final icon = switch (disposition) {
+      McCapabilityDisposition.available => Icons.check_circle_outline,
+      McCapabilityDisposition.unavailable => Icons.schedule,
+      McCapabilityDisposition.unsupported => Icons.block,
+    };
+    final color = switch (disposition) {
+      McCapabilityDisposition.available => colors.primary,
+      McCapabilityDisposition.unavailable => colors.onSurfaceVariant,
+      McCapabilityDisposition.unsupported => colors.error,
+    };
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: McSpacing.small),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 20, color: color),
+          const SizedBox(width: McSpacing.small),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: Theme.of(context).textTheme.titleMedium),
+                if (reason case final detail?) ...[
+                  const SizedBox(height: 2),
+                  Text(detail, style: Theme.of(context).textTheme.bodySmall),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class McStatus extends StatelessWidget {
   const McStatus({
     super.key,
