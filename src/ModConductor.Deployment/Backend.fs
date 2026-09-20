@@ -145,8 +145,18 @@ type DeploymentBackend internal (repository: IDeploymentRepository) =
         match abandoned with
         | None -> false
         | Some values ->
-            values |> List.iter abandon
-            true
+            let mutable failure = None
+
+            for value in values do
+                try
+                    abandon value
+                with error ->
+                    if failure.IsNone then
+                        failure <- Some error
+
+            match failure with
+            | Some error -> raise error
+            | None -> true
 
     member internal _.TryAcquireWorkspace(workspace) =
         if not (enter workspace) then

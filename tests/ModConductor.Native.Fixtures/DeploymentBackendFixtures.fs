@@ -19,6 +19,85 @@ module DeploymentBackendFixtures =
     let private result = StorageWorker.result
     let private path = DeploymentFixtureData.path
 
+    let private mixedStoreClose primary =
+        let area =
+            Directory.CreateDirectory(Path.Combine(primary, "backend-close")).FullName
+
+        let workspacePath =
+            Directory.CreateDirectory(Path.Combine(area, "workspace")).FullName
+
+        let game, proton = ProtonFixtures.create (Path.Combine(area, "game"))
+        let workspace, profile = Guid.NewGuid(), Guid.NewGuid()
+        let store = new OperationStore(Path.Combine(area, "state"))
+        let workspaces = store.Workspaces :> IWorkspaceState
+
+        let created =
+            workspaces.Create(workspace, "Close cleanup", StorageWorker.select workspacePath)
+            |> wait
+            |> result
+
+        workspaces.Edit(
+            workspace,
+            created.Workspace.Revision,
+            ProfileEdit.Create { Id = profile; Name = "Selected" }
+        )
+        |> wait
+        |> result
+        |> ignore
+
+        (store.GameContexts :> IGameContexts)
+            .Save(
+                workspace,
+                0L,
+                { Path = game
+                  Proton = if OperatingSystem.IsLinux() then Some proton else None }
+            )
+        |> wait
+        |> result
+        |> ignore
+
+        let backend = store.Deployments
+        let state = backend.Read profile |> wait |> result
+
+        backend.Prepare(Guid.NewGuid(), state.Sources, ignore, CancellationToken.None)
+        |> wait
+        |> result
+        |> ignore
+
+        let protectedDirectory =
+            Directory.GetDirectories(game, ".modconductor-originals-*") |> Array.exactlyOne
+
+        backend.Prepare(Guid.NewGuid(), state.Sources, ignore, CancellationToken.None)
+        |> wait
+        |> result
+        |> ignore
+
+        let removable =
+            Directory.GetDirectories(game, ".modconductor-originals-*")
+            |> Array.except [| protectedDirectory |]
+            |> Array.exactlyOne
+
+        let foreign = Path.Combine(protectedDirectory, "foreign.txt")
+        File.WriteAllText(foreign, "foreign")
+
+        let closeReportedProtectedFailure =
+            try
+                (store :> IDisposable).Dispose()
+                false
+            with RecoveryException(RecoveryError.Mismatch _) ->
+                true
+
+        let outcome =
+            closeReportedProtectedFailure
+            && File.ReadAllText(foreign) = "foreign"
+            && Directory.Exists protectedDirectory
+            && not (Directory.Exists removable)
+
+        File.Delete foreign
+        Directory.Delete protectedDirectory
+        (store :> IDisposable).Dispose()
+        outcome
+
     let observe (writer: Utf8JsonWriter) primary =
         let area = Directory.CreateDirectory(Path.Combine(primary, "backend")).FullName
 
@@ -197,6 +276,7 @@ module DeploymentBackendFixtures =
         writer.WriteBoolean("cancelledPreparationNoReceipt", cancelledSafe)
         writer.WriteBoolean("stalePreparationNoEffects", staleSafe)
         writer.WriteBoolean("cacheEvictionRemovedOriginalStore", cacheEvictionRemovedOriginalStore)
+        writer.WriteBoolean("mixedStoreCloseCleansEveryPreparedState", mixedStoreClose primary)
 
         writer.WriteBoolean(
             "contextDerivedTarget",
