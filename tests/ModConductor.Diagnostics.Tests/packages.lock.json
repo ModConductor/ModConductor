@@ -220,12 +220,23 @@
         "type": "Project",
         "dependencies": {
           "FSharp.Core": "[10.1.400, )",
+          "ModConductor.Bethesda": "[1.0.0, )",
           "ModConductor.Deployment": "[1.0.0, )",
           "ModConductor.FilePlanning": "[1.0.0, )",
+          "ModConductor.GameContexts": "[1.0.0, )",
           "ModConductor.GameLaunching": "[1.0.0, )",
-          "ModConductor.Operations": "[1.0.0, )",
           "ModConductor.ProfileGameData": "[1.0.0, )",
           "ModConductor.Workspaces": "[1.0.0, )"
+        }
+      },
+      "modconductor.enb": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )",
+          "ModConductor.ArchiveInspection": "[1.0.0, )",
+          "ModConductor.ArchiveInstallation": "[1.0.0, )",
+          "ModConductor.DeploymentPlanning": "[1.0.0, )",
+          "ModConductor.Nexus": "[1.0.0, )"
         }
       },
       "modconductor.executables": {
@@ -241,6 +252,18 @@
           "FSharp.Core": "[10.1.400, )",
           "ModConductor.DeploymentPlanning": "[1.0.0, )",
           "ModConductor.GameContexts": "[1.0.0, )"
+        }
+      },
+      "modconductor.fnis": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )",
+          "ModConductor.ArchiveInspection": "[1.0.0, )",
+          "ModConductor.ArchiveInstallation": "[1.0.0, )",
+          "ModConductor.DeploymentPlanning": "[1.0.0, )",
+          "ModConductor.GameContexts": "[1.0.0, )",
+          "ModConductor.Nexus": "[1.0.0, )",
+          "ModConductor.Platform": "[1.0.0, )"
         }
       },
       "modconductor.fomod": {
@@ -289,6 +312,15 @@
           "ModConductor.ProfileGameData": "[1.0.0, )"
         }
       },
+      "modconductor.migration": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )",
+          "ModConductor.ModLibrary": "[1.0.0, )",
+          "ModConductor.ModSelection": "[1.0.0, )",
+          "ModConductor.Platform": "[1.0.0, )"
+        }
+      },
       "modconductor.modlibrary": {
         "type": "Project",
         "dependencies": {
@@ -307,7 +339,8 @@
         "type": "Project",
         "dependencies": {
           "FSharp.Core": "[10.1.400, )",
-          "ModConductor.ModSelection": "[1.0.0, )"
+          "ModConductor.ModSelection": "[1.0.0, )",
+          "ModConductor.Workspaces": "[1.0.0, )"
         }
       },
       "modconductor.modselection": {
@@ -344,14 +377,17 @@
           "ModConductor.Deployment": "[1.0.0, )",
           "ModConductor.DeploymentGenerations": "[1.0.0, )",
           "ModConductor.DeploymentRecovery": "[1.0.0, )",
+          "ModConductor.Enb": "[1.0.0, )",
           "ModConductor.Executables": "[1.0.0, )",
           "ModConductor.FilePlanning": "[1.0.0, )",
+          "ModConductor.Fnis": "[1.0.0, )",
           "ModConductor.Fomod": "[1.0.0, )",
           "ModConductor.GameContexts": "[1.0.0, )",
           "ModConductor.GameLaunching": "[1.0.0, )",
           "ModConductor.GeneratedOutputs": "[1.0.0, )",
           "ModConductor.HttpDownloads": "[1.0.0, )",
           "ModConductor.Loot": "[1.0.0, )",
+          "ModConductor.Migration": "[1.0.0, )",
           "ModConductor.ModLibrary": "[1.0.0, )",
           "ModConductor.ModMaintenance": "[1.0.0, )",
           "ModConductor.ModOrganization": "[1.0.0, )",
@@ -361,6 +397,7 @@
           "ModConductor.Platform": "[1.0.0, )",
           "ModConductor.ProfileGameData": "[1.0.0, )",
           "ModConductor.ProtonContexts": "[1.0.0, )",
+          "ModConductor.Skse": "[1.0.0, )",
           "ModConductor.Workspaces": "[1.0.0, )",
           "SQLitePCLRaw.bundle_e_sqlite3": "[3.0.5, )"
         }
@@ -387,6 +424,17 @@
           "FSharp.Core": "[10.1.400, )",
           "ModConductor.GameContexts": "[1.0.0, )",
           "ModConductor.SteamDiscovery": "[1.0.0, )"
+        }
+      },
+      "modconductor.skse": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )",
+          "ModConductor.ArchiveInspection": "[1.0.0, )",
+          "ModConductor.ArchiveInstallation": "[1.0.0, )",
+          "ModConductor.DeploymentPlanning": "[1.0.0, )",
+          "ModConductor.GameContexts": "[1.0.0, )",
+          "ModConductor.Nexus": "[1.0.0, )"
         }
       },
       "modconductor.steamdiscovery": {
