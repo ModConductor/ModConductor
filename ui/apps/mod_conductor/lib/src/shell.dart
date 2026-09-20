@@ -10,6 +10,7 @@ class _DesktopShell extends StatelessWidget {
     required this.preferencesFocus,
     required this.quitFocus,
     required this.onToggleTheme,
+    required this.labels,
     required this.child,
     this.requests,
     this.onRequests,
@@ -22,6 +23,7 @@ class _DesktopShell extends StatelessWidget {
   final FocusNode preferencesFocus;
   final FocusNode quitFocus;
   final VoidCallback onToggleTheme;
+  final AppLocalizations labels;
   final Widget child;
   final DesktopRequests? requests;
   final VoidCallback? onRequests;
@@ -30,7 +32,7 @@ class _DesktopShell extends StatelessWidget {
     body: Column(
       children: [
         Container(
-          padding: const EdgeInsets.fromLTRB(24, 12, 24, 8),
+          padding: const EdgeInsetsDirectional.fromSTEB(24, 12, 24, 8),
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surface,
             border: Border(
@@ -57,20 +59,20 @@ class _DesktopShell extends StatelessWidget {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      'Mod Conductor',
+                      labels.appTitle,
                       style: Theme.of(context).textTheme.titleMedium
                           ?.copyWith(fontSize: 17),
                     ),
                   ),
                   McIconAction(
                     key: const ValueKey('quick-theme'),
-                    label: 'Change appearance',
+                    label: labels.changeAppearance,
                     onPressed: onToggleTheme,
                     icon: const Icon(Icons.brightness_6_outlined),
                   ),
                   McAction(
                     key: const ValueKey('quit'),
-                    label: 'Quit',
+                    label: labels.quit,
                     icon: Icons.close,
                     focusNode: quitFocus,
                     onPressed: onQuit,
@@ -79,7 +81,7 @@ class _DesktopShell extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Align(
-                alignment: Alignment.centerLeft,
+                alignment: AlignmentDirectional.centerStart,
                 child: Wrap(
                   spacing: 8,
                   children: [
@@ -111,8 +113,8 @@ class _DesktopShell extends StatelessWidget {
                           ),
                           label: Text(
                             item == _Destination.workspaces
-                                ? 'Workspaces'
-                                : 'Preferences',
+                                ? labels.workspaces
+                                : labels.preferences,
                           ),
                         ),
                       ),
@@ -125,11 +127,7 @@ class _DesktopShell extends StatelessWidget {
                             Icons.move_to_inbox_outlined,
                             size: 18,
                           ),
-                          label: Text(
-                            requests.count == 0
-                                ? 'Open requests'
-                                : 'Open requests (${requests.count})',
-                          ),
+                          label: Text(labels.openRequests(requests.count)),
                         ),
                       ),
                   ],
@@ -151,9 +149,10 @@ class _DesktopShell extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(switch (connectionStatus) {
-                  DesktopConnected() => 'Connected',
-                  DesktopConnecting() => 'Connection in progress',
-                  DesktopDisconnected() || DesktopFailure() => 'Not connected',
+                  DesktopConnected() => labels.connected,
+                  DesktopConnecting() => labels.connecting,
+                  DesktopDisconnected() ||
+                  DesktopFailure() => labels.notConnected,
                 }, style: Theme.of(context).textTheme.bodySmall),
               ),
               if (requests case final requests?)
@@ -164,16 +163,12 @@ class _DesktopShell extends StatelessWidget {
                       : TextButton(
                           onPressed: () => showDialog<void>(
                             context: context,
-                            builder: (_) => const McDialog(
-                              title: 'Cannot open from other apps',
-                              children: [
-                                Text(
-                                  'Open workspaces and archives from this window.',
-                                ),
-                              ],
+                            builder: (_) => McDialog(
+                              title: labels.cannotOpenFromOtherApps,
+                              children: [Text(labels.openFromThisWindow)],
                             ),
                           ),
-                          child: const Text('Cannot open from other apps'),
+                          child: Text(labels.cannotOpenFromOtherApps),
                         ),
                 ),
             ],

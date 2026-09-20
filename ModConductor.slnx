@@ -16,6 +16,8 @@
     <Project Path="src/ModConductor.Loot/ModConductor.Loot.fsproj" />
     <Project Path="src/ModConductor.FilePlanning/ModConductor.FilePlanning.fsproj" />
     <Project Path="src/ModConductor.GameContexts/ModConductor.GameContexts.fsproj" />
+    <Project Path="src/ModConductor.Settings.Serialization/ModConductor.Settings.Serialization.csproj" />
+    <Project Path="src/ModConductor.Settings/ModConductor.Settings.fsproj" />
     <Project Path="src/ModConductor.SteamDiscovery/ModConductor.SteamDiscovery.fsproj" />
     <Project Path="src/ModConductor.Deployment/ModConductor.Deployment.fsproj" />
     <Project Path="src/ModConductor.DeploymentGenerations/ModConductor.DeploymentGenerations.fsproj" />
@@ -42,5 +44,6 @@
     <Project Path="tests/ModConductor.Diagnostics.Tests/ModConductor.Diagnostics.Tests.fsproj" />
     <Project Path="tests/ModConductor.Native.Fixtures/ModConductor.Native.Fixtures.fsproj" />
     <Project Path="tests/ModConductor.Native.Tests/ModConductor.Native.Tests.fsproj" />
+    <Project Path="tests/ModConductor.Settings.Tests/ModConductor.Settings.Tests.fsproj" />
   </Folder>
 </Solution>

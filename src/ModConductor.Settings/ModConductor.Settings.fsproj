@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><IsAotCompatible>true</IsAotCompatible></PropertyGroup>
+  <ItemGroup>
+    <Compile Include="AssemblyInfo.fs" />
+    <Compile Include="Settings.fs" />
+    <ProjectReference Include="../ModConductor.Settings.Serialization/ModConductor.Settings.Serialization.csproj" />
+    <PackageReference Include="FSharp.Core" />
+  </ItemGroup>
+</Project>

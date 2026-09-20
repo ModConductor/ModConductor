@@ -13,6 +13,9 @@ dependencies:
     path: ../../packages/mc_bethesda
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  intl: 0.20.3
 
   mc_desktop:
     path: ../../packages/mc_desktop
@@ -55,4 +58,5 @@ dev_dependencies:
   flutter_lints: 6.0.0
 
 flutter:
+  generate: true
   uses-material-design: true

@@ -29,7 +29,7 @@ class McCollection<I extends Object, T extends Object> extends StatefulWidget {
     required this.columns,
     required this.filterLabel,
     required this.countLabel,
-    this.empty = 'No items.',
+    this.empty,
     this.emptyContent,
     this.actions = const [],
     this.onSelect,
@@ -59,7 +59,8 @@ class McCollection<I extends Object, T extends Object> extends StatefulWidget {
     this.onMoveDown,
   });
   final McCollectionModel<I, T> model;
-  final String title, filterLabel, countLabel, empty;
+  final String title, filterLabel, countLabel;
+  final String? empty;
   final bool showTitle;
   final List<McColumn<T>> columns;
   final List<Widget> actions;
@@ -200,7 +201,14 @@ class _McCollectionState<I extends Object, T extends Object>
       return KeyEventResult.handled;
     }
     final id = current == null ? visible.first : visible[current];
-    if (key == LogicalKeyboardKey.arrowRight && model.branch(id)) {
+    final rtl = Directionality.of(context) == TextDirection.rtl;
+    final expandKey = rtl
+        ? LogicalKeyboardKey.arrowLeft
+        : LogicalKeyboardKey.arrowRight;
+    final collapseKey = rtl
+        ? LogicalKeyboardKey.arrowRight
+        : LogicalKeyboardKey.arrowLeft;
+    if (key == expandKey && model.branch(id)) {
       if (!model.expanded(id)) {
         model.toggle(id);
       } else if (current != null && current + 1 < visible.length) {
@@ -209,7 +217,7 @@ class _McCollectionState<I extends Object, T extends Object>
       }
       return KeyEventResult.handled;
     }
-    if (key == LogicalKeyboardKey.arrowLeft && model.parentOf != null) {
+    if (key == collapseKey && model.parentOf != null) {
       if (model.branch(id) && model.expanded(id)) {
         model.toggle(id);
       } else {
@@ -238,6 +246,7 @@ class _McCollectionState<I extends Object, T extends Object>
     listenable: Listenable.merge([model, _focus]),
     builder: (context, _) {
       final colors = Theme.of(context).colorScheme;
+      final labels = McUiLocalization.labelsOf(context);
       final scale = MediaQuery.textScalerOf(context).scale(1);
       _extent = 48 * scale.clamp(1, 3);
       Widget cell(Widget child, double? width) => width == null
@@ -261,7 +270,7 @@ class _McCollectionState<I extends Object, T extends Object>
           children: [
             if (widget.showTitle || widget.actions.isNotEmpty)
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+                padding: const EdgeInsetsDirectional.fromSTEB(16, 14, 16, 10),
                 child: Row(
                   children: [
                     if (widget.showTitle)
@@ -283,7 +292,7 @@ class _McCollectionState<I extends Object, T extends Object>
                 ),
               ),
             Padding(
-              padding: EdgeInsets.fromLTRB(
+              padding: EdgeInsetsDirectional.fromSTEB(
                 12,
                 !showingFilter
                     ? 0
@@ -310,7 +319,7 @@ class _McCollectionState<I extends Object, T extends Object>
                   if (widget.compactFilter) ...[
                     McIconAction(
                       label: showingFilter
-                          ? 'Close filter'
+                          ? labels.closeFilter
                           : widget.filterLabel,
                       icon: Icon(showingFilter ? Icons.close : Icons.search),
                       onPressed: () => setState(() {
@@ -329,7 +338,7 @@ class _McCollectionState<I extends Object, T extends Object>
             ),
             if (widget.toolbar != null)
               Padding(
-                padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                padding: const EdgeInsetsDirectional.fromSTEB(12, 0, 12, 8),
                 child: widget.toolbar!,
               ),
             Container(
@@ -352,7 +361,7 @@ class _McCollectionState<I extends Object, T extends Object>
                               ),
                             )
                           : Align(
-                              alignment: Alignment.centerLeft,
+                              alignment: AlignmentDirectional.centerStart,
                               child: TextButton(
                                 onPressed: () {
                                   if (widget.onSort != null) {
@@ -398,8 +407,8 @@ class _McCollectionState<I extends Object, T extends Object>
                                 widget.emptyContent ??
                                 Text(
                                   model.query.isNotEmpty
-                                      ? 'No matches in loaded items.'
-                                      : widget.empty,
+                                      ? labels.noMatches
+                                      : widget.empty ?? labels.noItems,
                                 ),
                           ),
                         )
@@ -431,8 +440,8 @@ class _McCollectionState<I extends Object, T extends Object>
                                       model.labelOf(row),
                                   if (branch)
                                     model.expanded(id)
-                                        ? 'Expanded'
-                                        : 'Collapsed',
+                                        ? labels.expanded
+                                        : labels.collapsed,
                                 ].join(', '),
                                 onTap: () => _select(id),
                                 onFocus: () => _select(id),
@@ -449,8 +458,8 @@ class _McCollectionState<I extends Object, T extends Object>
                                         : null,
                                     child: Container(
                                       decoration: BoxDecoration(
-                                        border: Border(
-                                          left: BorderSide(
+                                        border: BorderDirectional(
+                                          start: BorderSide(
                                             width: 3,
                                             color: selected
                                                 ? colors.primary
@@ -545,18 +554,18 @@ class _McCollectionState<I extends Object, T extends Object>
                   if (widget.loading)
                     TextButton(
                       onPressed: widget.onCancel,
-                      child: const Text('Cancel load'),
+                      child: Text(labels.cancelLoad),
                     )
                   else if (widget.onLoad != null)
                     TextButton(
                       onPressed: widget.onLoad,
                       child: Text(
-                        widget.problem == null ? 'Load more' : 'Retry',
+                        widget.problem == null ? labels.loadMore : labels.retry,
                       ),
                     ),
                   if (widget.onRefresh != null)
                     McIconAction(
-                      label: 'Refresh ${widget.title}',
+                      label: labels.refreshCollection(widget.title),
                       onPressed: widget.onRefresh,
                       icon: const Icon(Icons.refresh, size: 18),
                     ),
@@ -607,14 +616,23 @@ class McCollectionExpander<I extends Object, T extends Object>
   final I id;
   final String? label;
   @override
-  Widget build(BuildContext context) => McIconAction(
-    padding: EdgeInsets.zero,
-    label:
-        '${model.expanded(id) ? 'Collapse' : 'Expand'} ${label ?? model.labelOf(model[id]!)}',
-    onPressed: () => model.toggle(id),
-    icon: Icon(
-      model.expanded(id) ? Icons.keyboard_arrow_down : Icons.chevron_right,
-      size: 20,
-    ),
-  );
+  Widget build(BuildContext context) {
+    final labels = McUiLocalization.labelsOf(context);
+    final item = label ?? model.labelOf(model[id]!);
+    final expanded = model.expanded(id);
+    final direction = Directionality.of(context);
+    return McIconAction(
+      padding: EdgeInsets.zero,
+      label: expanded ? labels.collapseItem(item) : labels.expandItem(item),
+      onPressed: () => model.toggle(id),
+      icon: Icon(
+        expanded
+            ? Icons.keyboard_arrow_down
+            : direction == TextDirection.rtl
+            ? Icons.chevron_left
+            : Icons.chevron_right,
+        size: 20,
+      ),
+    );
+  }
 }

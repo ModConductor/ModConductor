@@ -118,6 +118,11 @@ class NativeChild {
     CallOptions(metadata: authenticate ? {'mc-session': capability} : const {}),
   );
 
+  SettingsClient settings({bool authenticate = true}) => GrpcSettingsClient(
+    _localChannel(),
+    CallOptions(metadata: authenticate ? {'mc-session': capability} : const {}),
+  );
+
   ModLibraryClient modLibrary({bool authenticate = true, String? token}) =>
       ModLibraryClient(
         _localChannel(),

@@ -184,6 +184,42 @@ void main() {
     },
   );
 
+  testWidgets('RTL tree keys expand and collapse in the reading direction', (
+    tester,
+  ) async {
+    final rows = model();
+    final focus = FocusNode();
+    addTearDown(rows.dispose);
+    addTearDown(focus.dispose);
+    rows.apply(upserts: [item(1, folder: true), item(2, parent: 1)]);
+    rows.select(1);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Directionality(
+          textDirection: TextDirection.rtl,
+          child: Scaffold(
+            body: McCollection<int, Item>(
+              model: rows,
+              title: 'Records',
+              filterLabel: 'Filter',
+              countLabel: '2 records',
+              focusNode: focus,
+              columns: [McColumn('Name', (row) => Text(row.name))],
+            ),
+          ),
+        ),
+      ),
+    );
+    focus.requestFocus();
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
+    await tester.pump();
+    expect(rows.expanded(1), isTrue);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.pump();
+    expect(rows.expanded(1), isFalse);
+  });
+
   for (final scale in [1.0, 1.5]) {
     testWidgets(
       'keyboard follows stable IDs across virtual pages and preserves dialog focus at $scale text',

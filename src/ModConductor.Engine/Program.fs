@@ -213,6 +213,13 @@ let runWithNexus registration (handoff: ModConductor.Nexus.IOAuthHandoff) args =
     builder.Services.AddSingleton<ModConductor.Engine.ModLibraryService>() |> ignore
     builder.Services.AddSingleton<ModConductor.Engine.WorkspaceService>() |> ignore
 
+    builder.Services.AddSingleton<ModConductor.Settings.SettingsOwner>(
+        ModConductor.Settings.SettingsOwner(directory)
+    )
+    |> ignore
+
+    builder.Services.AddSingleton<ModConductor.Engine.SettingsService>() |> ignore
+
     builder.Services.AddSingleton<ModConductor.Migration.IStore>(store.Migrations)
     |> ignore
 
@@ -424,6 +431,7 @@ let runWithNexus registration (handoff: ModConductor.Nexus.IOAuthHandoff) args =
     app.MapGrpcService<ModConductor.Engine.GameContextService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.OperationService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.WorkspaceService>() |> ignore
+    app.MapGrpcService<ModConductor.Engine.SettingsService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.MigrationService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.ModOrganizationService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.InventoryExportService>() |> ignore

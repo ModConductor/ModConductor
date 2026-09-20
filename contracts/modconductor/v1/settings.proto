@@ -1,0 +1,67 @@
+syntax = "proto3";
+package modconductor.v1;
+option csharp_namespace = "ModConductor.Protocol.V1";
+
+service SettingsOperations {
+  rpc ReadSettings(ReadSettingsRequest) returns (SettingsReply);
+  rpc SaveSettings(SaveSettingsRequest) returns (SettingsReply);
+}
+
+message SettingsTarget {
+  oneof target {
+    bool application = 1;
+    string workspace_id = 2;
+  }
+}
+
+enum AppearancePreference {
+  APPEARANCE_PREFERENCE_UNSPECIFIED = 0;
+  APPEARANCE_PREFERENCE_SYSTEM = 1;
+  APPEARANCE_PREFERENCE_LIGHT = 2;
+  APPEARANCE_PREFERENCE_DARK = 3;
+}
+
+enum ContrastPreference {
+  CONTRAST_PREFERENCE_UNSPECIFIED = 0;
+  CONTRAST_PREFERENCE_SYSTEM = 1;
+  CONTRAST_PREFERENCE_STANDARD = 2;
+  CONTRAST_PREFERENCE_HIGH = 3;
+}
+
+message PresentationSettings {
+  AppearancePreference appearance = 1;
+  double text_scale = 2;
+  ContrastPreference contrast = 3;
+}
+
+message SettingsSnapshot {
+  PresentationSettings presentation = 1;
+  bool inherits_application = 2;
+}
+
+enum SettingsFaultCode {
+  SETTINGS_FAULT_CODE_UNSPECIFIED = 0;
+  SETTINGS_FAULT_CODE_INVALID_SCOPE = 1;
+  SETTINGS_FAULT_CODE_INVALID_DOCUMENT = 2;
+  SETTINGS_FAULT_CODE_UNSUPPORTED_VERSION = 3;
+  SETTINGS_FAULT_CODE_INVALID_VALUE = 4;
+  SETTINGS_FAULT_CODE_UNAVAILABLE = 5;
+  SETTINGS_FAULT_CODE_WORKSPACE_NOT_FOUND = 6;
+}
+
+message SettingsFault {
+  SettingsFaultCode code = 1;
+  string detail = 2;
+}
+
+message ReadSettingsRequest { SettingsTarget target = 1; }
+message SaveSettingsRequest {
+  SettingsTarget target = 1;
+  SettingsSnapshot settings = 2;
+}
+message SettingsReply {
+  oneof outcome {
+    SettingsSnapshot settings = 1;
+    SettingsFault fault = 2;
+  }
+}

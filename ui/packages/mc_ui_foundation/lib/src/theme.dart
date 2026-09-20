@@ -7,7 +7,7 @@ abstract final class McSpacing {
   static const double page = 32;
 }
 
-ThemeData mcTheme(Brightness brightness) {
+ThemeData mcTheme(Brightness brightness, {bool highContrast = false}) {
   final dark = brightness == Brightness.dark;
   final colors =
       ColorScheme.fromSeed(
@@ -19,9 +19,19 @@ ThemeData mcTheme(Brightness brightness) {
         onSurfaceVariant: dark
             ? const Color(0xff9ba5b9)
             : const Color(0xff667086),
-        primary: dark ? const Color(0xffb8acff) : const Color(0xff6551bd),
+        primary: highContrast
+            ? dark
+                  ? const Color(0xffd6ceff)
+                  : const Color(0xff49349f)
+            : dark
+            ? const Color(0xffb8acff)
+            : const Color(0xff6551bd),
         outlineVariant: dark
-            ? const Color(0xff303646)
+            ? highContrast
+                  ? const Color(0xffaeb7ca)
+                  : const Color(0xff303646)
+            : highContrast
+            ? const Color(0xff4f586c)
             : const Color(0xffe3e6ee),
       );
   final shape = RoundedRectangleBorder(borderRadius: BorderRadius.circular(8));
@@ -84,5 +94,6 @@ ThemeData mcTheme(Brightness brightness) {
     tooltipTheme: const TooltipThemeData(
       waitDuration: Duration(milliseconds: 450),
     ),
+    focusColor: highContrast ? colors.primary.withValues(alpha: .34) : null,
   );
 }

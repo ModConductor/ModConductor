@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'actions.dart';
 import 'theme.dart';
+import 'localization.dart';
 
 class McInspector extends StatelessWidget {
   const McInspector({
@@ -39,7 +40,7 @@ class McInspector extends StatelessWidget {
                       ),
                     ),
                     McIconAction(
-                      label: 'Close inspector',
+                      label: McUiLocalization.labelsOf(context).closeInspector,
                       onPressed: onClose,
                       icon: const Icon(Icons.close),
                     ),

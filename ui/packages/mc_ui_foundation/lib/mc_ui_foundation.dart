@@ -5,3 +5,4 @@ export 'src/theme.dart';
 export 'src/dialogs.dart';
 
 export 'src/inspector.dart';
+export 'src/localization.dart';

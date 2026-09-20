@@ -13,6 +13,10 @@ import 'dart:ui' show AppExitType, AppExitResponse;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+
+import '../l10n/app_localizations.dart';
+
 import 'package:mc_desktop/mc_desktop.dart';
 import 'package:mc_desktop/mc_desktop.dart' as desktop;
 import 'package:mc_game_contexts/mc_game_contexts.dart';
@@ -40,13 +44,65 @@ void startDesktop() {
 
 enum _Destination { workspaces, preferences }
 
-typedef _Preferences = ({ThemeMode theme, double scale});
+enum _PreferenceScope { application, workspace }
 
-String _themeLabel(ThemeMode mode) => switch (mode) {
-  ThemeMode.system => 'Use system appearance',
-  ThemeMode.light => 'Light',
-  ThemeMode.dark => 'Dark',
+typedef _Preferences = ({
+  AppearancePreference appearance,
+  double scale,
+  ContrastPreference contrast,
+});
+
+const _defaultPreferences = (
+  appearance: AppearancePreference.system,
+  scale: 1.0,
+  contrast: ContrastPreference.system,
+);
+
+ThemeMode _themeMode(AppearancePreference value) => switch (value) {
+  AppearancePreference.system => ThemeMode.system,
+  AppearancePreference.light => ThemeMode.light,
+  AppearancePreference.dark => ThemeMode.dark,
 };
+
+_Preferences _preferences(SettingsSnapshot value) => (
+  appearance: value.presentation.appearance,
+  scale: value.presentation.textScale,
+  contrast: value.presentation.contrast,
+);
+
+SettingsSnapshot _snapshot(_Preferences value, {required bool inherits}) =>
+    SettingsSnapshot(
+      presentation: PresentationPreferences(
+        appearance: value.appearance,
+        textScale: value.scale,
+        contrast: value.contrast,
+      ),
+      inheritsApplication: inherits,
+    );
+
+McUiLabels _uiLabels(AppLocalizations text) => McUiLabels(
+  close: text.close,
+  cancel: text.cancel,
+  name: text.name,
+  enterName: text.enterName,
+  closeInspector: text.closeInspector,
+  closeFilter: text.closeFilter,
+  noItems: text.noItems,
+  noMatches: text.noMatches,
+  expanded: text.expanded,
+  collapsed: text.collapsed,
+  cancelLoad: text.cancelLoad,
+  loadMore: text.loadMore,
+  retry: text.retry,
+  refreshCollection: text.refreshCollection,
+  collapseItem: text.collapseItem,
+  expandItem: text.expandItem,
+  available: text.statusAvailable,
+  unavailable: text.statusUnavailable,
+  unsupported: text.statusUnsupported,
+  information: text.statusInformation,
+  error: text.statusError,
+);
 
 class ModConductorApp extends StatefulWidget {
   const ModConductorApp({
@@ -83,6 +139,7 @@ class ModConductorApp extends StatefulWidget {
     this.linkSetup,
     this.bundles,
     this.migration,
+    this.settings,
     this.chooseArchive = desktop.chooseArchive,
     this.chooseExecutable = desktop.chooseExecutable,
     this.steamDiscovery,
@@ -122,6 +179,7 @@ class ModConductorApp extends StatefulWidget {
   final LinkSetupClient? linkSetup;
   final BundlesClient? bundles;
   final MigrationClient? migration;
+  final SettingsClient? settings;
   final ArchiveChooser chooseArchive;
   final ExecutablePathChooser chooseExecutable;
   final SteamDiscoveryClient? steamDiscovery;
@@ -138,8 +196,19 @@ class ModConductorApp extends StatefulWidget {
 
 class _ModConductorAppState extends State<ModConductorApp> {
   _Destination _destination = _Destination.workspaces;
-  _Preferences _applied = (theme: ThemeMode.system, scale: 1);
-  _Preferences _draft = (theme: ThemeMode.system, scale: 1);
+  _PreferenceScope _preferenceScope = _PreferenceScope.application;
+  _Preferences _applicationApplied = _defaultPreferences;
+  _Preferences _applicationDraft = _defaultPreferences;
+  _Preferences _workspaceApplied = _defaultPreferences;
+  _Preferences _workspaceDraft = _defaultPreferences;
+  bool _workspaceInheritsApplied = true;
+  bool _workspaceInheritsDraft = true;
+  bool _settingsBusy = false;
+  String? _settingsProblem;
+  String? _settingsWorkspaceId;
+  DateTime? _settingsSavedAt;
+  int _applicationSettingsGeneration = 0;
+  int _workspaceSettingsGeneration = 0;
   final _workspacesFocus = FocusNode(debugLabel: 'Workspaces navigation');
   final _preferencesFocus = FocusNode(debugLabel: 'Preferences navigation');
   final _detailsFocus = FocusNode(debugLabel: 'Active preferences');
@@ -292,7 +361,159 @@ class _ModConductorAppState extends State<ModConductorApp> {
       workspaceRevision: _workspaces.workspace?.revision,
       editable: _workspaces.canEdit,
     );
+    _loadWorkspaceSettings(_workspaces.workspace?.id);
   }
+
+  _Preferences get _effectivePreferences =>
+      _settingsWorkspaceId != null && !_workspaceInheritsApplied
+      ? _workspaceApplied
+      : _applicationApplied;
+
+  _Preferences get _selectedApplied =>
+      _preferenceScope == _PreferenceScope.application
+      ? _applicationApplied
+      : _workspaceInheritsApplied
+      ? _applicationApplied
+      : _workspaceApplied;
+
+  _Preferences get _selectedDraft =>
+      _preferenceScope == _PreferenceScope.application
+      ? _applicationDraft
+      : _workspaceInheritsDraft
+      ? _applicationApplied
+      : _workspaceDraft;
+
+  bool get _selectedInherits =>
+      _preferenceScope == _PreferenceScope.workspace && _workspaceInheritsDraft;
+
+  Future<void> _loadApplicationSettings() async {
+    final client = widget.settings;
+    if (client == null) return;
+    final generation = ++_applicationSettingsGeneration;
+    try {
+      final loaded = await client.readApplication();
+      if (!mounted || generation != _applicationSettingsGeneration) return;
+      setState(() {
+        _applicationApplied = _preferences(loaded);
+        _applicationDraft = _applicationApplied;
+        _settingsProblem = null;
+      });
+    } on Exception {
+      if (!mounted || generation != _applicationSettingsGeneration) return;
+      setState(() => _settingsProblem = 'load');
+    }
+  }
+
+  Future<void> _loadWorkspaceSettings(String? workspaceId) async {
+    if (_settingsWorkspaceId == workspaceId) return;
+    _settingsWorkspaceId = workspaceId;
+    _workspaceApplied = _workspaceDraft = _applicationApplied;
+    _workspaceInheritsApplied = _workspaceInheritsDraft = true;
+    final generation = ++_workspaceSettingsGeneration;
+    if (workspaceId == null) {
+      if (mounted) {
+        setState(() {
+          if (_preferenceScope == _PreferenceScope.workspace) {
+            _preferenceScope = _PreferenceScope.application;
+          }
+        });
+      }
+      return;
+    }
+    final client = widget.settings;
+    if (client == null) return;
+    try {
+      final loaded = await client.readWorkspace(workspaceId);
+      if (!mounted || generation != _workspaceSettingsGeneration) return;
+      setState(() {
+        _workspaceApplied = _preferences(loaded);
+        _workspaceDraft = _workspaceApplied;
+        _workspaceInheritsApplied = loaded.inheritsApplication;
+        _workspaceInheritsDraft = loaded.inheritsApplication;
+        _settingsProblem = null;
+      });
+    } on Exception {
+      if (!mounted || generation != _workspaceSettingsGeneration) return;
+      setState(() => _settingsProblem = 'load');
+    }
+  }
+
+  void _selectPreferenceScope(_PreferenceScope value) => setState(() {
+    _preferenceScope = value;
+    if (value == _PreferenceScope.application) {
+      _applicationDraft = _applicationApplied;
+    } else {
+      _workspaceDraft = _workspaceApplied;
+      _workspaceInheritsDraft = _workspaceInheritsApplied;
+    }
+  });
+
+  void _changePreferenceDraft(_Preferences value) => setState(() {
+    if (_preferenceScope == _PreferenceScope.application) {
+      _applicationDraft = value;
+    } else {
+      _workspaceDraft = value;
+    }
+  });
+
+  Future<bool> _persistPreferences(
+    _PreferenceScope scope,
+    _Preferences value, {
+    required bool inherits,
+  }) async {
+    final client = widget.settings;
+    SettingsSnapshot saved;
+    if (client == null) {
+      saved = _snapshot(value, inherits: inherits);
+    } else {
+      try {
+        saved = scope == _PreferenceScope.application
+            ? await client.saveApplication(_snapshot(value, inherits: false))
+            : await client.saveWorkspace(
+                _settingsWorkspaceId!,
+                _snapshot(value, inherits: inherits),
+              );
+      } on Exception {
+        if (mounted) setState(() => _settingsProblem = 'save');
+        return false;
+      }
+    }
+    if (!mounted) return false;
+    setState(() {
+      final applied = _preferences(saved);
+      if (scope == _PreferenceScope.application) {
+        _applicationApplied = _applicationDraft = applied;
+      } else {
+        _workspaceApplied = _workspaceDraft = applied;
+        _workspaceInheritsApplied = _workspaceInheritsDraft =
+            saved.inheritsApplication;
+      }
+      _settingsProblem = null;
+      _settingsSavedAt = DateTime.now();
+    });
+    return true;
+  }
+
+  Future<void> _savePreferences() async {
+    if (_settingsBusy) return;
+    setState(() => _settingsBusy = true);
+    await _persistPreferences(
+      _preferenceScope,
+      _selectedDraft,
+      inherits: _selectedInherits,
+    );
+    if (mounted) setState(() => _settingsBusy = false);
+  }
+
+  void _cancelPreferences() => setState(() {
+    if (_preferenceScope == _PreferenceScope.application) {
+      _applicationDraft = _applicationApplied;
+    } else {
+      _workspaceDraft = _workspaceApplied;
+      _workspaceInheritsDraft = _workspaceInheritsApplied;
+    }
+    _settingsProblem = null;
+  });
 
   @override
   void initState() {
@@ -325,6 +546,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
     _workspaces.addListener(_syncWorkspaceConsumers);
     _workspaces.attach(widget.workspaces);
     _syncWorkspaceConsumers();
+    unawaited(_loadApplicationSettings());
   }
 
   @override
@@ -332,6 +554,11 @@ class _ModConductorAppState extends State<ModConductorApp> {
     super.didUpdateWidget(oldWidget);
     _workspaces.attach(widget.workspaces);
     _syncWorkspaceConsumers();
+    if (oldWidget.settings != widget.settings) {
+      unawaited(_loadApplicationSettings());
+      _settingsWorkspaceId = null;
+      unawaited(_loadWorkspaceSettings(_workspaces.workspace?.id));
+    }
   }
 
   @override
@@ -376,348 +603,412 @@ class _ModConductorAppState extends State<ModConductorApp> {
         .requestFocus();
   }
 
-  void _quickTheme(ThemeMode value) => setState(() {
-    _applied = (theme: value, scale: _applied.scale);
-    _draft = (theme: value, scale: _draft.scale);
-  });
+  Future<void> _quickTheme(AppearancePreference value) async {
+    final scope = _settingsWorkspaceId != null && !_workspaceInheritsApplied
+        ? _PreferenceScope.workspace
+        : _PreferenceScope.application;
+    final current = scope == _PreferenceScope.application
+        ? _applicationApplied
+        : _workspaceApplied;
+    await _persistPreferences(scope, (
+      appearance: value,
+      scale: current.scale,
+      contrast: current.contrast,
+    ), inherits: false);
+  }
 
   @override
-  Widget build(BuildContext context) => MaterialApp(
-    title: 'Mod Conductor',
-    debugShowCheckedModeBanner: false,
-    theme: mcTheme(Brightness.light),
-    darkTheme: mcTheme(Brightness.dark),
-    themeMode: _applied.theme,
-    builder: (context, child) => MediaQuery(
-      data: MediaQuery.of(context)
-          .copyWith(textScaler: TextScaler.linear(_applied.scale)),
-      child: child!,
-    ),
-    home: Builder(
-      builder: (context) => CallbackShortcuts(
-        bindings: {
-          const SingleActivator(LogicalKeyboardKey.comma, control: true): () =>
-              _navigate(_Destination.preferences),
-          const SingleActivator(LogicalKeyboardKey.digit1, alt: true): () =>
-              _navigate(_Destination.workspaces),
-          const SingleActivator(LogicalKeyboardKey.digit2, alt: true): () =>
-              _navigate(_Destination.preferences),
-          const SingleActivator(LogicalKeyboardKey.keyQ, control: true):
-              widget.onQuit ?? _quitDesktop,
-        },
-        child: _DesktopShell(
-          requests: widget.desktopRequests,
-          onRequests: () async {
-            final requests = widget.desktopRequests;
-            if (requests == null) return;
-            if (!requests.hasWorkspaceSelection) {
-              requests.selectWorkspace(_workspaces.workspace?.id);
-            } else {
-              unawaited(requests.recheck());
-            }
-            final choice = await showDialog<DesktopRequestChoice>(
-              context: context,
-              builder: (_) => OpenRequestsDialog(
-                requests: requests,
-                workspaces: _workspaces,
-                onRetry: widget.onRetry,
-                onPreferences: () => _navigate(_Destination.preferences),
-              ),
-            );
-            if (choice != null && context.mounted) {
-              await openDesktopRequest(
-                context,
-                choice,
-                requests: requests,
-                workspaces: _workspaces,
-                artifacts: _artifacts,
-                chooseFile: widget.chooseArchive,
-                onWorkspaceOpened: () => _navigate(_Destination.workspaces),
-              );
-            }
-          },
-          connectionStatus: widget.status,
-          destination: _destination,
-          onNavigate: _navigate,
-          onQuit: widget.onQuit ?? _quitDesktop,
-          workspacesFocus: _workspacesFocus,
-          preferencesFocus: _preferencesFocus,
-          quitFocus: _quitFocus,
-          onToggleTheme: () => _quickTheme(
-            Theme.of(context).brightness == Brightness.dark
-                ? ThemeMode.light
-                : ThemeMode.dark,
+  Widget build(BuildContext context) {
+    final preferences = _effectivePreferences;
+    final explicitHigh = preferences.contrast == ContrastPreference.high;
+    final systemContrast = preferences.contrast == ContrastPreference.system;
+    final allowPlatformHighContrast =
+        preferences.contrast != ContrastPreference.standard;
+    return MaterialApp(
+      onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
+      debugShowCheckedModeBanner: false,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: AppLocalizations.supportedLocales,
+      theme: mcTheme(Brightness.light, highContrast: explicitHigh),
+      darkTheme: mcTheme(Brightness.dark, highContrast: explicitHigh),
+      highContrastTheme: mcTheme(
+        Brightness.light,
+        highContrast: allowPlatformHighContrast,
+      ),
+      highContrastDarkTheme: mcTheme(
+        Brightness.dark,
+        highContrast: allowPlatformHighContrast,
+      ),
+      themeMode: _themeMode(preferences.appearance),
+      builder: (context, child) {
+        final media = MediaQuery.of(context);
+        return McUiLocalization(
+          labels: _uiLabels(AppLocalizations.of(context)),
+          child: MediaQuery(
+            data: media.copyWith(
+              textScaler: TextScaler.linear(preferences.scale),
+              highContrast: systemContrast ? media.highContrast : explicitHigh,
+            ),
+            child: child!,
           ),
-          child: IndexedStack(
-            index: _destination.index,
-            children: [
-              ExcludeFocus(
-                excluding: _destination != _Destination.workspaces,
-                child: switch (widget.status) {
-                  DesktopFailure(:final reason) => _FailurePage(
-                    reason: reason,
-                    onRetry: widget.onRetry,
-                    onPreferences: () => _navigate(_Destination.preferences),
-                  ),
-                  DesktopDisconnected() ||
-                  DesktopConnecting() ||
-                  DesktopConnected() => WorkspaceBrowser(
-                    controller: _workspaces,
-                    profileInspectorBuilder: widget.profileData == null
-                        ? null
-                        : (context, workspace, profile, close, bindGuard) =>
-                              ProfileSettingsInspector(
-                                controller: _profileData,
-                                client: widget.profileData,
-                                workspace: workspace,
-                                profile: profile,
-                                profiles:
-                                    _workspaces.page?.profiles ?? const [],
-                                available:
-                                    _workspaces.canEdit &&
-                                    _game.state?.binding?.needsCheck == false,
-                                onClose: close,
-                                onNavigationGuardChanged: bindGuard,
-                                onResumeProfileChange:
-                                    _workspaces.resumeProfileChange,
-                                pluginHeadersId: _plugins.order?.headers.id,
-                              ),
-                    executableBuilder: widget.executables == null
-                        ? null
-                        : (context, workspace) => ExecutablesBrowser(
-                            controller: _executables,
-                            chooseExecutable: widget.chooseExecutable,
+        );
+      },
+      home: Builder(
+        builder: (context) => CallbackShortcuts(
+          bindings: {
+            const SingleActivator(
+              LogicalKeyboardKey.comma,
+              control: true,
+            ): () =>
+                _navigate(_Destination.preferences),
+            const SingleActivator(LogicalKeyboardKey.digit1, alt: true): () =>
+                _navigate(_Destination.workspaces),
+            const SingleActivator(LogicalKeyboardKey.digit2, alt: true): () =>
+                _navigate(_Destination.preferences),
+            const SingleActivator(LogicalKeyboardKey.keyQ, control: true):
+                widget.onQuit ?? _quitDesktop,
+          },
+          child: _DesktopShell(
+            requests: widget.desktopRequests,
+            onRequests: () async {
+              final requests = widget.desktopRequests;
+              if (requests == null) return;
+              if (!requests.hasWorkspaceSelection) {
+                requests.selectWorkspace(_workspaces.workspace?.id);
+              } else {
+                unawaited(requests.recheck());
+              }
+              final choice = await showDialog<DesktopRequestChoice>(
+                context: context,
+                builder: (_) => OpenRequestsDialog(
+                  requests: requests,
+                  workspaces: _workspaces,
+                  onRetry: widget.onRetry,
+                  onPreferences: () => _navigate(_Destination.preferences),
+                ),
+              );
+              if (choice != null && context.mounted) {
+                await openDesktopRequest(
+                  context,
+                  choice,
+                  requests: requests,
+                  workspaces: _workspaces,
+                  artifacts: _artifacts,
+                  chooseFile: widget.chooseArchive,
+                  onWorkspaceOpened: () => _navigate(_Destination.workspaces),
+                );
+              }
+            },
+            connectionStatus: widget.status,
+            destination: _destination,
+            onNavigate: _navigate,
+            onQuit: widget.onQuit ?? _quitDesktop,
+            workspacesFocus: _workspacesFocus,
+            preferencesFocus: _preferencesFocus,
+            quitFocus: _quitFocus,
+            labels: AppLocalizations.of(context),
+            onToggleTheme: () => unawaited(
+              _quickTheme(
+                Theme.of(context).brightness == Brightness.dark
+                    ? AppearancePreference.light
+                    : AppearancePreference.dark,
+              ),
+            ),
+            child: IndexedStack(
+              index: _destination.index,
+              children: [
+                ExcludeFocus(
+                  excluding: _destination != _Destination.workspaces,
+                  child: switch (widget.status) {
+                    DesktopFailure(:final reason) => _FailurePage(
+                      labels: AppLocalizations.of(context),
+                      reason: reason,
+                      onRetry: widget.onRetry,
+                      onPreferences: () => _navigate(_Destination.preferences),
+                    ),
+                    DesktopDisconnected() ||
+                    DesktopConnecting() ||
+                    DesktopConnected() => WorkspaceBrowser(
+                      controller: _workspaces,
+                      profileInspectorBuilder: widget.profileData == null
+                          ? null
+                          : (context, workspace, profile, close, bindGuard) =>
+                                ProfileSettingsInspector(
+                                  controller: _profileData,
+                                  client: widget.profileData,
+                                  workspace: workspace,
+                                  profile: profile,
+                                  profiles:
+                                      _workspaces.page?.profiles ?? const [],
+                                  available:
+                                      _workspaces.canEdit &&
+                                      _game.state?.binding?.needsCheck == false,
+                                  onClose: close,
+                                  onNavigationGuardChanged: bindGuard,
+                                  onResumeProfileChange:
+                                      _workspaces.resumeProfileChange,
+                                  pluginHeadersId: _plugins.order?.headers.id,
+                                ),
+                      executableBuilder: widget.executables == null
+                          ? null
+                          : (context, workspace) => ExecutablesBrowser(
+                              controller: _executables,
+                              chooseExecutable: widget.chooseExecutable,
+                              chooseDirectory: widget.chooseGameDirectory,
+                            ),
+                      artifactBuilder: widget.artifacts == null
+                          ? null
+                          : (context, workspace, openMods) => ArtifactBrowser(
+                              nexus: widget.nexus,
+                              controller: _artifacts,
+                              installations: widget.installations,
+                              fomod: widget.fomod,
+                              bain: widget.bain,
+                              bundles: widget.bundles,
+                              profileId: workspace.selectedProfile?.id,
+                              maintenance: widget.maintenance,
+                              updateTargets:
+                                  widget.modOrganization == null ||
+                                      workspace.selectedProfile == null
+                                  ? null
+                                  : (cursor) => widget.modOrganization!.query(
+                                      workspace.selectedProfile!.id,
+                                      const ModQuery(
+                                        filters: [KindFilter(ModKind.regular)],
+                                        sort: OrganizationSort.name,
+                                      ),
+                                      cursor: cursor,
+                                    ),
+                              onOpenMods: openMods,
+                              onInstalled: _mods.inventory.refreshCatalogue,
+                              chooseFile: widget.chooseArchive,
+                              workspacePath: workspace.path,
+                            ),
+                      helpBuilder: widget.diagnostics == null
+                          ? null
+                          : (context, workspace) =>
+                                HelpBrowser(controller: _diagnostics),
+                      compactCloseAction:
+                          widget.gameLaunching != null &&
+                          MediaQuery.sizeOf(context).width < 950,
+                      headerActions:
+                          widget.deployments == null && widget.migration == null
+                          ? null
+                          : (context, workspace) => [
+                              if (widget.migration != null)
+                                MigrationAction(
+                                  client: widget.migration!,
+                                  workspaceId: workspace.id,
+                                  chooseDirectory: widget.chooseDirectory,
+                                  onComplete: _workspaces.refresh,
+                                ),
+                              if (widget.deployments != null)
+                                SizedBox(
+                                  width:
+                                      widget.gameLaunching != null &&
+                                          MediaQuery.sizeOf(context).width < 950
+                                      ? 250
+                                      : null,
+                                  child: DeploymentAction(
+                                    controller: _deployments,
+                                  ),
+                                ),
+                              if (widget.gameLaunching != null &&
+                                  widget.deployments != null)
+                                GamePlayActions(controller: _play),
+                            ],
+                      gameContextBuilder: (context, workspace) =>
+                          GameContextBrowser(
+                            controller: _game,
+                            steamDiscovery: widget.steamDiscovery,
+                            protonContexts: widget.protonContexts,
                             chooseDirectory: widget.chooseGameDirectory,
                           ),
-                    artifactBuilder: widget.artifacts == null
-                        ? null
-                        : (context, workspace, openMods) => ArtifactBrowser(
-                            nexus: widget.nexus,
-                            controller: _artifacts,
-                            installations: widget.installations,
-                            fomod: widget.fomod,
-                            bain: widget.bain,
-                            bundles: widget.bundles,
-                            profileId: workspace.selectedProfile?.id,
-                            maintenance: widget.maintenance,
-                            updateTargets:
-                                widget.modOrganization == null ||
-                                    workspace.selectedProfile == null
-                                ? null
-                                : (cursor) => widget.modOrganization!.query(
-                                    workspace.selectedProfile!.id,
-                                    const ModQuery(
-                                      filters: [KindFilter(ModKind.regular)],
-                                      sort: OrganizationSort.name,
-                                    ),
-                                    cursor: cursor,
+                      modLibraryBuilder: (context, workspace) =>
+                          ListenableBuilder(
+                            listenable: _nexusDetails,
+                            builder: (context, _) => _nexusDetails.viewing
+                                ? ModNexusView(
+                                    controller: _nexusDetails,
+                                    onMapped: _mods.inventory.refreshCatalogue,
+                                    organization: widget.modOrganization,
+                                    localCategories:
+                                        _mods.selected?.metadata.categories ??
+                                        const [],
+                                    onDownloaded:
+                                        (artifact, details, version) async {
+                                          await _artifacts.load();
+                                          _artifacts.model.select(artifact.id);
+                                          final target = _mods.selected;
+                                          if (target?.id ==
+                                                  details.reference.mod &&
+                                              target?.currentVersionId ==
+                                                  details.reference.version) {
+                                            _artifacts.reviewUpdate(
+                                              artifact,
+                                              target!,
+                                              version: version,
+                                              open:
+                                                  artifact.state ==
+                                                      ArtifactState.ready ||
+                                                  artifact.state ==
+                                                      ArtifactState.installed,
+                                            );
+                                          }
+                                          _nexusDetails.close();
+                                          _workspaces.showArchives();
+                                        },
+                                  )
+                                : widget.filePlans == null
+                                ? ModLibraryBrowser(
+                                    controller: _mods,
+                                    onOpenNexus: widget.nexusMetadata == null
+                                        ? null
+                                        : _nexusDetails.open,
+                                    maintenance: widget.maintenance,
+                                    onOpenDeployment: widget.deployments == null
+                                        ? null
+                                        : () => showDialog<void>(
+                                            context: context,
+                                            builder: (_) => DeploymentDialog(
+                                              controller: _deployments,
+                                            ),
+                                          ),
+                                    workspacePath: workspace.path,
+                                    chooseDirectory: widget.chooseDirectory,
+                                    inventoryExports: widget.inventoryExports,
+                                    chooseExportLocation:
+                                        widget.chooseExportLocation,
+                                    openExportFolder: widget.openExportFolder,
+                                    profileName:
+                                        workspace.selectedProfile?.name,
+                                  )
+                                : widget.outputs == null
+                                ? FilePlanningWorkbench(
+                                    mods: _mods,
+                                    onOpenNexus: widget.nexusMetadata == null
+                                        ? null
+                                        : _nexusDetails.open,
+                                    maintenance: widget.maintenance,
+                                    onOpenDeployment: widget.deployments == null
+                                        ? null
+                                        : () => showDialog<void>(
+                                            context: context,
+                                            builder: (_) => DeploymentDialog(
+                                              controller: _deployments,
+                                            ),
+                                          ),
+                                    plans: _files,
+                                    onOpenProblems: _workspaces.showHelp,
+                                    plugins: widget.bethesda == null
+                                        ? null
+                                        : _plugins,
+                                    archives: widget.archivePolicies == null
+                                        ? null
+                                        : _archives,
+                                    sortOrder: widget.loot == null
+                                        ? null
+                                        : _sortOrder,
+                                    workspacePath: workspace.path,
+                                    chooseDirectory: widget.chooseDirectory,
+                                    profileName:
+                                        workspace.selectedProfile?.name,
+                                    inventoryExports: widget.inventoryExports,
+                                    chooseExportLocation:
+                                        widget.chooseExportLocation,
+                                    openExportFolder: widget.openExportFolder,
+                                    archiveUnavailable:
+                                        _game.state?.definition.unavailable(
+                                          GameCapabilityId.archiveInspection,
+                                        ) ??
+                                        false,
+                                  )
+                                : DeploymentOutputsWorkbench(
+                                    mods: _mods,
+                                    onOpenNexus: widget.nexusMetadata == null
+                                        ? null
+                                        : _nexusDetails.open,
+                                    maintenance: widget.maintenance,
+                                    onOpenDeployment: widget.deployments == null
+                                        ? null
+                                        : () => showDialog<void>(
+                                            context: context,
+                                            builder: (_) => DeploymentDialog(
+                                              controller: _deployments,
+                                            ),
+                                          ),
+                                    plans: _files,
+                                    onOpenProblems: _workspaces.showHelp,
+                                    plugins: widget.bethesda == null
+                                        ? null
+                                        : _plugins,
+                                    archives: widget.archivePolicies == null
+                                        ? null
+                                        : _archives,
+                                    sortOrder: widget.loot == null
+                                        ? null
+                                        : _sortOrder,
+                                    outputs: _outputs,
+                                    profileId: workspace.selectedProfile?.id,
+                                    organization: widget.modOrganization,
+                                    workspacePath: workspace.path,
+                                    chooseDirectory: widget.chooseDirectory,
+                                    profileName:
+                                        workspace.selectedProfile?.name,
+                                    inventoryExports: widget.inventoryExports,
+                                    chooseExportLocation:
+                                        widget.chooseExportLocation,
+                                    openExportFolder: widget.openExportFolder,
+                                    archiveUnavailable:
+                                        _game.state?.definition.unavailable(
+                                          GameCapabilityId.archiveInspection,
+                                        ) ??
+                                        false,
                                   ),
-                            onOpenMods: openMods,
-                            onInstalled: _mods.inventory.refreshCatalogue,
-                            chooseFile: widget.chooseArchive,
-                            workspacePath: workspace.path,
                           ),
-                    helpBuilder: widget.diagnostics == null
-                        ? null
-                        : (context, workspace) =>
-                              HelpBrowser(controller: _diagnostics),
-                    compactCloseAction:
-                        widget.gameLaunching != null &&
-                        MediaQuery.sizeOf(context).width < 950,
-                    headerActions:
-                        widget.deployments == null && widget.migration == null
-                        ? null
-                        : (context, workspace) => [
-                            if (widget.migration != null)
-                              MigrationAction(
-                                client: widget.migration!,
-                                workspaceId: workspace.id,
-                                chooseDirectory: widget.chooseDirectory,
-                                onComplete: _workspaces.refresh,
-                              ),
-                            if (widget.deployments != null)
-                              SizedBox(
-                                width:
-                                    widget.gameLaunching != null &&
-                                        MediaQuery.sizeOf(context).width < 950
-                                    ? 250
-                                    : null,
-                                child: DeploymentAction(
-                                  controller: _deployments,
-                                ),
-                              ),
-                            if (widget.gameLaunching != null &&
-                                widget.deployments != null)
-                              GamePlayActions(controller: _play),
-                          ],
-                    gameContextBuilder: (context, workspace) =>
-                        GameContextBrowser(
-                          controller: _game,
-                          steamDiscovery: widget.steamDiscovery,
-                          protonContexts: widget.protonContexts,
-                          chooseDirectory: widget.chooseGameDirectory,
-                        ),
-                    modLibraryBuilder: (context, workspace) =>
-                        ListenableBuilder(
-                          listenable: _nexusDetails,
-                          builder: (context, _) => _nexusDetails.viewing
-                              ? ModNexusView(
-                                  controller: _nexusDetails,
-                                  onMapped: _mods.inventory.refreshCatalogue,
-                                  organization: widget.modOrganization,
-                                  localCategories:
-                                      _mods.selected?.metadata.categories ??
-                                      const [],
-                                  onDownloaded:
-                                      (artifact, details, version) async {
-                                        await _artifacts.load();
-                                        _artifacts.model.select(artifact.id);
-                                        final target = _mods.selected;
-                                        if (target?.id ==
-                                                details.reference.mod &&
-                                            target?.currentVersionId ==
-                                                details.reference.version) {
-                                          _artifacts.reviewUpdate(
-                                            artifact,
-                                            target!,
-                                            version: version,
-                                            open:
-                                                artifact.state ==
-                                                    ArtifactState.ready ||
-                                                artifact.state ==
-                                                    ArtifactState.installed,
-                                          );
-                                        }
-                                        _nexusDetails.close();
-                                        _workspaces.showArchives();
-                                      },
-                                )
-                              : widget.filePlans == null
-                              ? ModLibraryBrowser(
-                                  controller: _mods,
-                                  onOpenNexus: widget.nexusMetadata == null
-                                      ? null
-                                      : _nexusDetails.open,
-                                  maintenance: widget.maintenance,
-                                  onOpenDeployment: widget.deployments == null
-                                      ? null
-                                      : () => showDialog<void>(
-                                          context: context,
-                                          builder: (_) => DeploymentDialog(
-                                            controller: _deployments,
-                                          ),
-                                        ),
-                                  workspacePath: workspace.path,
-                                  chooseDirectory: widget.chooseDirectory,
-                                  inventoryExports: widget.inventoryExports,
-                                  chooseExportLocation:
-                                      widget.chooseExportLocation,
-                                  openExportFolder: widget.openExportFolder,
-                                  profileName: workspace.selectedProfile?.name,
-                                )
-                              : widget.outputs == null
-                              ? FilePlanningWorkbench(
-                                  mods: _mods,
-                                  onOpenNexus: widget.nexusMetadata == null
-                                      ? null
-                                      : _nexusDetails.open,
-                                  maintenance: widget.maintenance,
-                                  onOpenDeployment: widget.deployments == null
-                                      ? null
-                                      : () => showDialog<void>(
-                                          context: context,
-                                          builder: (_) => DeploymentDialog(
-                                            controller: _deployments,
-                                          ),
-                                        ),
-                                  plans: _files,
-                                  onOpenProblems: _workspaces.showHelp,
-                                  plugins: widget.bethesda == null
-                                      ? null
-                                      : _plugins,
-                                  archives: widget.archivePolicies == null
-                                      ? null
-                                      : _archives,
-                                  sortOrder: widget.loot == null
-                                      ? null
-                                      : _sortOrder,
-                                  workspacePath: workspace.path,
-                                  chooseDirectory: widget.chooseDirectory,
-                                  profileName: workspace.selectedProfile?.name,
-                                  inventoryExports: widget.inventoryExports,
-                                  chooseExportLocation:
-                                      widget.chooseExportLocation,
-                                  openExportFolder: widget.openExportFolder,
-                                  archiveUnavailable:
-                                      _game.state?.definition.unavailable(
-                                        GameCapabilityId.archiveInspection,
-                                      ) ??
-                                      false,
-                                )
-                              : DeploymentOutputsWorkbench(
-                                  mods: _mods,
-                                  onOpenNexus: widget.nexusMetadata == null
-                                      ? null
-                                      : _nexusDetails.open,
-                                  maintenance: widget.maintenance,
-                                  onOpenDeployment: widget.deployments == null
-                                      ? null
-                                      : () => showDialog<void>(
-                                          context: context,
-                                          builder: (_) => DeploymentDialog(
-                                            controller: _deployments,
-                                          ),
-                                        ),
-                                  plans: _files,
-                                  onOpenProblems: _workspaces.showHelp,
-                                  plugins: widget.bethesda == null
-                                      ? null
-                                      : _plugins,
-                                  archives: widget.archivePolicies == null
-                                      ? null
-                                      : _archives,
-                                  sortOrder: widget.loot == null
-                                      ? null
-                                      : _sortOrder,
-                                  outputs: _outputs,
-                                  profileId: workspace.selectedProfile?.id,
-                                  organization: widget.modOrganization,
-                                  workspacePath: workspace.path,
-                                  chooseDirectory: widget.chooseDirectory,
-                                  profileName: workspace.selectedProfile?.name,
-                                  inventoryExports: widget.inventoryExports,
-                                  chooseExportLocation:
-                                      widget.chooseExportLocation,
-                                  openExportFolder: widget.openExportFolder,
-                                  archiveUnavailable:
-                                      _game.state?.definition.unavailable(
-                                        GameCapabilityId.archiveInspection,
-                                      ) ??
-                                      false,
-                                ),
-                        ),
-                    chooseDirectory: widget.chooseDirectory,
-                  ),
-                },
-              ),
-              ExcludeFocus(
-                excluding: _destination != _Destination.preferences,
-                child: _PreferencesPage(
-                  credentials: widget.credentials,
-                  nexus: widget.nexus,
-                  linkSetup: widget.linkSetup,
-                  applied: _applied,
-                  draft: _draft,
-                  detailsFocus: _detailsFocus,
-                  onDraft: (value) => setState(() => _draft = value),
-                  onSave: () => setState(() => _applied = _draft),
-                  onCancel: () => setState(() => _draft = _applied),
+                      chooseDirectory: widget.chooseDirectory,
+                    ),
+                  },
                 ),
-              ),
-            ],
+                ExcludeFocus(
+                  excluding: _destination != _Destination.preferences,
+                  child: _PreferencesPage(
+                    labels: AppLocalizations.of(context),
+                    credentials: widget.credentials,
+                    nexus: widget.nexus,
+                    linkSetup: widget.linkSetup,
+                    scope: _preferenceScope,
+                    onScope: _selectPreferenceScope,
+                    workspaceAvailable: _settingsWorkspaceId != null,
+                    inheritsApplication: _workspaceInheritsDraft,
+                    inheritsApplicationApplied: _workspaceInheritsApplied,
+                    onInheritsApplication: (value) => setState(() {
+                      _workspaceInheritsDraft = value;
+                      _workspaceDraft = value || _workspaceInheritsApplied
+                          ? _applicationApplied
+                          : _workspaceApplied;
+                    }),
+                    applied: _selectedApplied,
+                    draft: _selectedDraft,
+                    busy: _settingsBusy,
+                    problem: _settingsProblem,
+                    savedAt: _settingsSavedAt,
+                    detailsFocus: _detailsFocus,
+                    onDraft: _changePreferenceDraft,
+                    onSave: () => unawaited(_savePreferences()),
+                    onCancel: _cancelPreferences,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }

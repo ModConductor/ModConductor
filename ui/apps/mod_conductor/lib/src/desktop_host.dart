@@ -61,6 +61,7 @@ class _DesktopHostState extends State<DesktopHost> with WidgetsBindingObserver {
     desktopRequests: _requests,
     workspaces: _owner.workspaces,
     migration: _owner.migration,
+    settings: _owner.settings,
     modLibrary: _owner.modLibrary,
     profileMods: _owner.profileMods,
     modOrganization: _owner.modOrganization,

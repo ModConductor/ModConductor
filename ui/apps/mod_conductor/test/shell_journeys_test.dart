@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mc_ui_foundation/mc_ui_foundation.dart';
+import 'package:mc_client/mc_client.dart';
 import 'package:mod_conductor/src/app.dart';
 
 Finder keyed(String value) => find.byKey(ValueKey(value));
@@ -10,6 +11,7 @@ Future<void> mount(
   WidgetTester tester, {
   VoidCallback? onQuit,
   DesktopStatus status = const DesktopDisconnected(),
+  SettingsClient? settings,
 }) async {
   tester.view.devicePixelRatio = 1;
   tester.view.physicalSize = const Size(1280, 800);
@@ -17,8 +19,44 @@ Future<void> mount(
   addTearDown(tester.view.resetDevicePixelRatio);
   tester.platformDispatcher.platformBrightnessTestValue = Brightness.light;
   addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
-  await tester.pumpWidget(ModConductorApp(onQuit: onQuit, status: status));
+  await tester.pumpWidget(
+    ModConductorApp(onQuit: onQuit, status: status, settings: settings),
+  );
   await tester.pumpAndSettle();
+}
+
+class _SettingsFake implements SettingsClient {
+  SettingsSnapshot application = const SettingsSnapshot(
+    presentation: PresentationPreferences(
+      appearance: AppearancePreference.system,
+      textScale: 1,
+      contrast: ContrastPreference.system,
+    ),
+    inheritsApplication: false,
+  );
+  int applicationSaves = 0;
+
+  @override
+  Future<SettingsSnapshot> readApplication() async => application;
+
+  @override
+  Future<SettingsSnapshot> readWorkspace(String workspaceId) async =>
+      SettingsSnapshot(
+        presentation: application.presentation,
+        inheritsApplication: true,
+      );
+
+  @override
+  Future<SettingsSnapshot> saveApplication(SettingsSnapshot settings) async {
+    applicationSaves++;
+    return application = settings;
+  }
+
+  @override
+  Future<SettingsSnapshot> saveWorkspace(
+    String workspaceId,
+    SettingsSnapshot settings,
+  ) async => settings;
 }
 
 Future<void> choose(WidgetTester tester, String field, String option) async {
@@ -56,14 +94,17 @@ void main() {
         .focusNode!;
     expect(preferences.hasFocus, true);
     await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
     await tester.sendKeyEvent(LogicalKeyboardKey.enter);
     await tester.pumpAndSettle();
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
     await tester.sendKeyEvent(LogicalKeyboardKey.enter);
     await tester.pumpAndSettle();
     expect(
-      tester.widget<McChoice<ThemeMode>>(keyed('preferences-theme')).value,
-      ThemeMode.light,
+      tester
+          .widget<McChoice<AppearancePreference>>(keyed('preferences-theme'))
+          .value,
+      AppearancePreference.light,
     );
   });
 
@@ -79,8 +120,10 @@ void main() {
       tester.view.physicalSize = const Size(680, 600);
       await tester.pumpAndSettle();
       expect(
-        tester.widget<McChoice<ThemeMode>>(keyed('preferences-theme')).value,
-        ThemeMode.dark,
+        tester
+            .widget<McChoice<AppearancePreference>>(keyed('preferences-theme'))
+            .value,
+        AppearancePreference.dark,
       );
       await activate(tester, 'apply-preferences');
       expect(brightness(tester), Brightness.dark);
@@ -93,11 +136,100 @@ void main() {
       await choose(tester, 'preferences-theme', 'Light');
       await activate(tester, 'cancel-preferences');
       expect(
-        tester.widget<McChoice<ThemeMode>>(keyed('preferences-theme')).value,
-        ThemeMode.dark,
+        tester
+            .widget<McChoice<AppearancePreference>>(keyed('preferences-theme'))
+            .value,
+        AppearancePreference.dark,
       );
       expect(brightness(tester), Brightness.dark);
       expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('apply persists display settings and cancel does not write', (
+    tester,
+  ) async {
+    final settings = _SettingsFake();
+    await mount(tester, settings: settings);
+    await activate(tester, 'nav-preferences');
+    await choose(tester, 'preferences-theme', 'Dark');
+    await activate(tester, 'cancel-preferences');
+    expect(settings.applicationSaves, 0);
+    await choose(tester, 'preferences-theme', 'Dark');
+    await choose(tester, 'preferences-contrast', 'High contrast');
+    await activate(tester, 'apply-preferences');
+    expect(settings.applicationSaves, 1);
+    expect(
+      settings.application.presentation.appearance,
+      AppearancePreference.dark,
+    );
+    expect(settings.application.presentation.contrast, ContrastPreference.high);
+    expect(MediaQuery.highContrastOf(tester.element(keyed('quit'))), isTrue);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await mount(tester, settings: settings);
+    expect(brightness(tester), Brightness.dark);
+    expect(MediaQuery.highContrastOf(tester.element(keyed('quit'))), isTrue);
+  });
+
+  testWidgets('standard contrast overrides platform high contrast', (
+    tester,
+  ) async {
+    tester.platformDispatcher.accessibilityFeaturesTestValue =
+        const FakeAccessibilityFeatures(highContrast: true);
+    addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
+    await mount(tester, settings: _SettingsFake());
+    final systemOutline = Theme.of(tester.element(keyed('quit')))
+        .colorScheme
+        .outlineVariant;
+    expect(MediaQuery.highContrastOf(tester.element(keyed('quit'))), isTrue);
+
+    await activate(tester, 'nav-preferences');
+    await choose(tester, 'preferences-contrast', 'Standard');
+    await activate(tester, 'apply-preferences');
+
+    expect(MediaQuery.highContrastOf(tester.element(keyed('quit'))), isFalse);
+    expect(
+      Theme.of(tester.element(keyed('quit'))).colorScheme.outlineVariant,
+      isNot(systemOutline),
+    );
+  });
+
+  testWidgets(
+    'Arabic direction, large text, high contrast and status semantics stay operable',
+    (tester) async {
+      tester.platformDispatcher.localesTestValue = const [Locale('ar')];
+      addTearDown(tester.platformDispatcher.clearLocalesTestValue);
+      final semantics = tester.ensureSemantics();
+      await mount(tester, settings: _SettingsFake());
+      await activate(tester, 'nav-preferences');
+      expect(
+        Directionality.of(tester.element(keyed('quit'))),
+        TextDirection.rtl,
+      );
+
+      tester
+          .widget<McChoice<double>>(keyed('preferences-scale'))
+          .onChanged(1.5);
+      await tester.pump();
+      tester
+          .widget<McChoice<ContrastPreference>>(keyed('preferences-contrast'))
+          .onChanged(ContrastPreference.high);
+      await tester.pump();
+      await activate(tester, 'apply-preferences');
+      tester.view.physicalSize = const Size(640, 700);
+      await tester.pumpAndSettle();
+
+      expect(
+        MediaQuery.textScalerOf(tester.element(keyed('quit'))).scale(1),
+        1.5,
+      );
+      expect(MediaQuery.highContrastOf(tester.element(keyed('quit'))), isTrue);
+      final status = tester.getSemantics(find.byType(McStatus).first);
+      expect(status.getSemanticsData().label, isNotEmpty);
+      expect(keyed('quit'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      semantics.dispose();
     },
   );
 
@@ -126,8 +258,10 @@ void main() {
       await tester.pumpAndSettle();
       expect(focus.hasFocus, true);
       expect(
-        tester.widget<McChoice<ThemeMode>>(keyed('preferences-theme')).value,
-        ThemeMode.dark,
+        tester
+            .widget<McChoice<AppearancePreference>>(keyed('preferences-theme'))
+            .value,
+        AppearancePreference.dark,
       );
       await tester.sendKeyEvent(LogicalKeyboardKey.enter);
       await tester.pumpAndSettle();

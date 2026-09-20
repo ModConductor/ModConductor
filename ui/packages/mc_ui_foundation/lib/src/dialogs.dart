@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'actions.dart';
+import 'localization.dart';
 
 class McDialog extends StatelessWidget {
   const McDialog({
@@ -29,7 +30,12 @@ class McDialog extends StatelessWidget {
     ),
     actions:
         actions ??
-        [McAction(label: 'Close', onPressed: () => Navigator.pop(context))],
+        [
+          McAction(
+            label: McUiLocalization.labelsOf(context).close,
+            onPressed: () => Navigator.pop(context),
+          ),
+        ],
   );
 }
 
@@ -55,7 +61,7 @@ class McFormDialog extends StatelessWidget {
       title: title,
       actions: [
         McAction(
-          label: 'Cancel',
+          label: McUiLocalization.labelsOf(context).cancel,
           onPressed: canCancel ? () => Navigator.pop(context) : null,
         ),
         McAction(
@@ -88,11 +94,14 @@ class McNameField extends StatelessWidget {
     controller: controller,
     autofocus: true,
     onFieldSubmitted: (_) => onSubmit(),
-    decoration: const InputDecoration(labelText: 'Name'),
+    decoration: InputDecoration(
+      labelText: McUiLocalization.labelsOf(context).name,
+    ),
     validator:
         validator ??
-        (value) =>
-            value == null || value.trim().isEmpty ? 'Enter a name.' : null,
+        (value) => value == null || value.trim().isEmpty
+            ? McUiLocalization.labelsOf(context).enterName
+            : null,
   );
 }
 

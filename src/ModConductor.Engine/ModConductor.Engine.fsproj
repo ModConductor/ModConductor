@@ -17,6 +17,7 @@
     <Compile Include="OperationService.fs" />
     <Compile Include="ProfileActionStream.fs" />
     <Compile Include="WorkspaceService.fs" />
+    <Compile Include="SettingsService.fs" />
     <Compile Include="MigrationService.fs" />
     <Compile Include="ModLibraryWire.fs" />
     <Compile Include="DiagnosticWire.fs" />
@@ -81,6 +82,7 @@
     <ProjectReference Include="../ModConductor.Migration/ModConductor.Migration.fsproj" />
     <ProjectReference Include="../ModConductor.Loot/ModConductor.Loot.fsproj" />
     <ProjectReference Include="../ModConductor.Workspaces/ModConductor.Workspaces.fsproj" />
+    <ProjectReference Include="../ModConductor.Settings/ModConductor.Settings.fsproj" />
     <ProjectReference Include="../ModConductor.Operations/ModConductor.Operations.fsproj" />
     <ProjectReference Include="../ModConductor.Protocol/ModConductor.Protocol.csproj" />
     <PackageReference Include="FSharp.Core" />
