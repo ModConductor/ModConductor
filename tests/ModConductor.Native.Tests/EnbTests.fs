@@ -24,6 +24,7 @@ type EnbTests() =
     [<Test>]
     member _.``author acquisition should remain explicit durable and cancellable``() =
         flag "authorPageWaitCancelRestart" |> should equal true
+        flag "productionAdoptionGateBlocksAcquisition" |> should equal true
 
     [<Test>]
     member _.``Lean ENB should retain exact component provenance and prior values``() =
@@ -45,3 +46,15 @@ type EnbTests() =
         flag "setupPublishesReadyGeneration" |> should equal true
         flag "interruptedUpdateRestoresActiveGeneration" |> should equal true
         flag "removalRestoresPriorFilesAndConfiguration" |> should equal true
+
+    [<Test>]
+    member _.``authenticated coordinator should complete direct and NXM setup orchestration``() =
+        flag "authenticatedGrpcDirectAcquisitionReachesReadyAndUpdates"
+        |> should equal true
+
+        flag "nxmAcquisitionReachesReady" |> should equal true
+
+    [<Test>]
+    member _.``configuration removal should remain recoverable and preserve later edits``() =
+        flag "configurationFailureRemainsRecoverable" |> should equal true
+        flag "compareBeforeRestorePreservesConflictAndRecovers" |> should equal true

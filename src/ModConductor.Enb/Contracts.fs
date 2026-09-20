@@ -21,6 +21,7 @@ type EnbComponentPin =
 
 type EnbCompatibilityRow =
     { Id: string
+      TermsApproved: bool
       Runtime: EnbComponentPin
       Preset: EnbComponentPin
       Companions: EnbComponentPin list
@@ -28,6 +29,7 @@ type EnbCompatibilityRow =
 
 [<RequireQualifiedAccess>]
 type EnbProblem =
+    | AdoptionBlocked
     | GameUnavailable
     | UnsupportedStorefront
     | SignInRequired
@@ -68,6 +70,8 @@ type EnbOwnership =
 module EnbProblem =
     let message =
         function
+        | EnbProblem.AdoptionBlocked ->
+            "Lean ENB setup is disabled until its installation and integration terms are approved."
         | EnbProblem.GameUnavailable -> "Select and refresh the Skyrim installation."
         | EnbProblem.UnsupportedStorefront ->
             "ENB setup supports Skyrim Special Edition from Steam."

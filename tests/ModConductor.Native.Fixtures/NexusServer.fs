@@ -51,6 +51,7 @@ type NexusServer() =
     let mutable lastVersion = ""
     let mutable premium = true
     let mutable skseFiles: (int64 * string * string * string) list = []
+    let mutable enbFiles: Map<int64, int64 * string * string * byte array> = Map.empty
 
 
     let send (context: HttpListenerContext) =
@@ -188,12 +189,25 @@ type NexusServer() =
                             do! write 403 "{\"error\":\"synthetic-signed-secret\"}"
                         else
                             do!
+                                let modId =
+                                    path.Split('/')
+                                    |> Array.tryFindIndex ((=) "mods")
+                                    |> Option.bind (fun index ->
+                                        if index + 1 < path.Split('/').Length then
+                                            match Int64.TryParse(path.Split('/')[index + 1]) with
+                                            | true, value -> Some value
+                                            | _ -> None
+                                        else
+                                            None)
+
                                 write
                                     200
                                     (("[{"
                                       + "\"name\":\"Fixture CDN\",\"short_name\":\"fixture\",\"URI\":\""
                                       + root
-                                      + "payload?key="
+                                      + "payload?mod="
+                                      + (modId |> Option.map string |> Option.defaultValue "")
+                                      + "&key="
                                       + downloadKey
                                       + "\"}"
                                       + "]"))
@@ -260,6 +274,24 @@ type NexusServer() =
                             write
                                 200
                                 """{"id":1704,"domain_name":"skyrimspecialedition","categories":[{"category_id":29,"name":"Visuals and Graphics"}]}"""
+                    elif
+                        enbFiles
+                        |> Map.exists (fun modId _ ->
+                            path.EndsWith("/mods/" + string modId + ".json"))
+                    then
+                        let modId =
+                            enbFiles
+                            |> Map.toSeq
+                            |> Seq.map fst
+                            |> Seq.find (fun modId ->
+                                path.EndsWith("/mods/" + string modId + ".json"))
+
+                        do!
+                            write
+                                200
+                                ("{\"mod_id\":"
+                                 + string modId
+                                 + ",\"game_id\":1704,\"name\":\"ENB fixture\",\"summary\":\"ENB fixture\",\"version\":\"fixture\",\"author\":\"fixture\",\"uploaded_by\":\"fixture\",\"category_id\":29,\"updated_timestamp\":1789238400,\"allow_rating\":true,\"available\":true}")
                     elif path.EndsWith "/mods/30379.json" then
                         match metadataHold with
                         | Some hold -> do! hold.Task.WaitAsync(stop.Token)
@@ -301,7 +333,44 @@ type NexusServer() =
                              + string payload.Length
                              + "}")
 
-                        if path.Contains "/mods/30379/" && path.EndsWith "/files.json" then
+                        let enbMod =
+                            enbFiles
+                            |> Map.toSeq
+                            |> Seq.map fst
+                            |> Seq.tryFind (fun modId ->
+                                path.Contains("/mods/" + string modId + "/"))
+
+                        if enbMod.IsSome && path.EndsWith "/files.json" then
+                            let fileId, fileName, version, bytes = enbFiles[enbMod.Value]
+
+                            do!
+                                write
+                                    200
+                                    ("{\"files\":[{\"file_id\":"
+                                     + string fileId
+                                     + ",\"file_name\":\""
+                                     + fileName
+                                     + "\",\"version\":\""
+                                     + version
+                                     + "\",\"category_name\":\"Main files\",\"category_id\":1,\"uploaded_timestamp\":1789238400,\"description\":\"ENB fixture\",\"size_in_bytes\":"
+                                     + string bytes.Length
+                                     + "}],\"file_updates\":[]}")
+                        elif enbMod.IsSome && path.Contains "/files/" && path.EndsWith ".json" then
+                            let fileId, fileName, version, bytes = enbFiles[enbMod.Value]
+
+                            do!
+                                write
+                                    200
+                                    ("{\"file_id\":"
+                                     + string fileId
+                                     + ",\"file_name\":\""
+                                     + fileName
+                                     + "\",\"version\":\""
+                                     + version
+                                     + "\",\"category_name\":\"Main files\",\"category_id\":1,\"uploaded_timestamp\":1789238400,\"description\":\"ENB fixture\",\"size_in_bytes\":"
+                                     + string bytes.Length
+                                     + "}")
+                        elif path.Contains "/mods/30379/" && path.EndsWith "/files.json" then
                             let entry
                                 (id: int64, name: string, version: string, description: string)
                                 =
@@ -414,6 +483,13 @@ type NexusServer() =
                     then
                         privateHeader <- true
 
+                    let selectedPayload =
+                        match Int64.TryParse(request.QueryString["mod"]) with
+                        | true, modId when enbFiles.ContainsKey modId ->
+                            let _, _, _, bytes = enbFiles[modId]
+                            bytes
+                        | _ -> payload
+
                     let range = request.Headers["Range"]
 
                     let offset =
@@ -425,23 +501,26 @@ type NexusServer() =
 
                     response.StatusCode <- (if offset = 0 then 200 else 206)
                     response.Headers["ETag"] <- "\"fixture-entity\""
-                    response.ContentLength64 <- int64 (payload.Length - offset)
+                    response.ContentLength64 <- int64 (selectedPayload.Length - offset)
 
                     if offset > 0 then
                         response.Headers["Content-Range"] <-
                             ("bytes "
                              + (offset).ToString(System.Globalization.CultureInfo.InvariantCulture)
                              + "-"
-                             + (payload.Length - 1)
+                             + (selectedPayload.Length - 1)
                                  .ToString(System.Globalization.CultureInfo.InvariantCulture)
                              + "/"
-                             + (payload.Length)
+                             + (selectedPayload.Length)
                                  .ToString(System.Globalization.CultureInfo.InvariantCulture))
 
-                    for start in [ offset..16384 .. payload.Length - 1 ] do
+                    for start in [ offset..16384 .. selectedPayload.Length - 1 ] do
                         do!
                             response.OutputStream.WriteAsync(
-                                payload.AsMemory(start, min 16384 (payload.Length - start)),
+                                selectedPayload.AsMemory(
+                                    start,
+                                    min 16384 (selectedPayload.Length - start)
+                                ),
                                 stop.Token
                             )
 
@@ -513,6 +592,10 @@ type NexusServer() =
     member _.SkseFiles
         with get () = skseFiles
         and set value = skseFiles <- value
+
+    member _.EnbFiles
+        with get () = enbFiles
+        and set value = enbFiles <- value
 
     member _.TokenSeconds
         with set value = expires <- value

@@ -129,7 +129,7 @@ void main() {
         }
       });
 
-      test('the authenticated ENB service reports an unavailable game without changing files', () async {
+      test('the authenticated ENB service reports the adoption gate without changing files', () async {
         final state = await Directory.systemTemp.createTemp('mc-enb-wire-');
         final engine = EngineSession(
           await Process.start(executable!, ['--state-directory', state.path]),
@@ -140,7 +140,8 @@ void main() {
             '11111111111111111111111111111111',
             '22222222222222222222222222222222',
           );
-          expect(result.phase, EnbStatusPhase.unavailable);
+          expect(result.phase, EnbStatusPhase.blocked);
+          expect(result.canOpenAuthorPage, isFalse);
           expect(result.canSelectArchive, isFalse);
         } finally {
           await engine.close();

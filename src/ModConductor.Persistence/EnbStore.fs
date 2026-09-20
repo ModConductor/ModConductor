@@ -39,6 +39,17 @@ type internal StoredEnbStatus =
       ArchiveSha256: string option
       CheckedAt: DateTimeOffset }
 
+type internal StoredEnbConfigurationOperation =
+    { ReceiptId: Guid
+      WorkspaceId: Guid
+      ProfileId: Guid
+      GenerationId: Guid option
+      Kind: string
+      Phase: string
+      Values: string
+      ActionId: Guid option
+      Detail: string }
+
 type internal EnbStore(database: StateDatabase) =
     let optional (reader: Microsoft.Data.Sqlite.SqliteDataReader) index =
         if reader.IsDBNull index then
@@ -178,6 +189,14 @@ type internal EnbStore(database: StateDatabase) =
 
             transaction.Commit())
 
+    member _.RemoveSelection(receipt: Guid) =
+        database.EnqueueInternal(fun () ->
+            Sqlite.execute
+                database.Connection
+                null
+                "DELETE FROM enb_selection_intents WHERE receipt_id=$receipt"
+                [ "$receipt", box (string receipt) ])
+
     member _.Components(workspace: Guid, profile: Guid, generation: Guid option) =
         database.Enqueue(fun () ->
             match generation with
@@ -300,6 +319,81 @@ type internal EnbStore(database: StateDatabase) =
                     )
                 else
                     None)
+
+    member _.StageConfiguration(value: StoredEnbConfigurationOperation) =
+        database.EnqueueInternal(fun () ->
+            Sqlite.execute
+                database.Connection
+                null
+                "INSERT INTO enb_configuration_operations VALUES($receipt,$workspace,$profile,$generation,$kind,$phase,$values,$action,$detail)"
+                [ "$receipt", box (string value.ReceiptId)
+                  "$workspace", box (string value.WorkspaceId)
+                  "$profile", box (string value.ProfileId)
+                  "$generation",
+                  value.GenerationId
+                  |> Option.map (string >> box)
+                  |> Option.defaultValue (box DBNull.Value)
+                  "$kind", box value.Kind
+                  "$phase", box value.Phase
+                  "$values", box value.Values
+                  "$action",
+                  value.ActionId
+                  |> Option.map (string >> box)
+                  |> Option.defaultValue (box DBNull.Value)
+                  "$detail", box value.Detail ])
+
+    member _.UpdateConfiguration(receipt: Guid, phase, action: Guid option, detail) =
+        database.EnqueueInternal(fun () ->
+            Sqlite.execute
+                database.Connection
+                null
+                "UPDATE enb_configuration_operations SET phase=$phase,action_id=COALESCE($action,action_id),detail=$detail WHERE receipt_id=$receipt"
+                [ "$receipt", box (string receipt)
+                  "$phase", box phase
+                  "$action",
+                  action |> Option.map (string >> box) |> Option.defaultValue (box DBNull.Value)
+                  "$detail", box detail ])
+
+    member _.ConfigurationOperation(workspace: Guid, profile: Guid) =
+        database.Enqueue(fun () ->
+            use query =
+                Sqlite.command
+                    database.Connection
+                    null
+                    "SELECT receipt_id,generation_id,kind,phase,values_text,action_id,detail FROM enb_configuration_operations WHERE workspace_id=$workspace AND profile_id=$profile ORDER BY rowid DESC LIMIT 1"
+                    [ "$workspace", box (string workspace); "$profile", box (string profile) ]
+
+            use reader = query.ExecuteReader()
+
+            if reader.Read() then
+                Some
+                    { ReceiptId = Guid.Parse(reader.GetString 0)
+                      WorkspaceId = workspace
+                      ProfileId = profile
+                      GenerationId =
+                        if reader.IsDBNull 1 then
+                            None
+                        else
+                            Some(Guid.Parse(reader.GetString 1))
+                      Kind = reader.GetString 2
+                      Phase = reader.GetString 3
+                      Values = reader.GetString 4
+                      ActionId =
+                        if reader.IsDBNull 5 then
+                            None
+                        else
+                            Some(Guid.Parse(reader.GetString 5))
+                      Detail = reader.GetString 6 }
+            else
+                None)
+
+    member _.RemoveConfiguration(receipt: Guid) =
+        database.EnqueueInternal(fun () ->
+            Sqlite.execute
+                database.Connection
+                null
+                "DELETE FROM enb_configuration_operations WHERE receipt_id=$receipt"
+                [ "$receipt", box (string receipt) ])
 
     member _.Owner(workspace: Guid, generation: Guid option) =
         database.Enqueue(fun () ->

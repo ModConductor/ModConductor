@@ -71,7 +71,18 @@ module internal EnbSchema =
       enabled INTEGER NOT NULL,
       PRIMARY KEY(receipt_id,mod_id)
     );
-    PRAGMA user_version=26;
+    CREATE TABLE enb_configuration_operations(
+      receipt_id TEXT PRIMARY KEY,
+      workspace_id TEXT NOT NULL REFERENCES workspaces(id),
+      profile_id TEXT NOT NULL UNIQUE REFERENCES profiles(id) ON DELETE CASCADE,
+      generation_id TEXT,
+      kind TEXT NOT NULL,
+      phase TEXT NOT NULL,
+      values_text TEXT NOT NULL,
+      action_id TEXT,
+      detail TEXT NOT NULL
+    );
+    PRAGMA user_version=27;
     """
 
     let correction =
@@ -96,5 +107,20 @@ module internal EnbSchema =
       receipt_id TEXT NOT NULL, profile_id TEXT NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
       workspace_id TEXT NOT NULL REFERENCES workspaces(id), expected_revision INTEGER NOT NULL,
       mod_id TEXT NOT NULL, enabled INTEGER NOT NULL, PRIMARY KEY(receipt_id,mod_id));
-    PRAGMA user_version=26;
+    CREATE TABLE enb_configuration_operations(
+      receipt_id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL REFERENCES workspaces(id),
+      profile_id TEXT NOT NULL UNIQUE REFERENCES profiles(id) ON DELETE CASCADE,
+      generation_id TEXT, kind TEXT NOT NULL, phase TEXT NOT NULL,
+      values_text TEXT NOT NULL, action_id TEXT, detail TEXT NOT NULL);
+    PRAGMA user_version=27;
+    """
+
+    let durableConfiguration =
+        """
+    CREATE TABLE enb_configuration_operations(
+      receipt_id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL REFERENCES workspaces(id),
+      profile_id TEXT NOT NULL UNIQUE REFERENCES profiles(id) ON DELETE CASCADE,
+      generation_id TEXT, kind TEXT NOT NULL, phase TEXT NOT NULL,
+      values_text TEXT NOT NULL, action_id TEXT, detail TEXT NOT NULL);
+    PRAGMA user_version=27;
     """

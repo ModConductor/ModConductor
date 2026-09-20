@@ -7,6 +7,8 @@ open System.Text
 open System.Text.Json
 open System.Threading
 open System.Threading.Tasks
+open Grpc.Core
+open Grpc.Core.Interceptors
 open ModConductor.ArchiveInspection
 open ModConductor.ArtifactLibrary
 open ModConductor.Credentials
@@ -24,6 +26,73 @@ open ModConductor.Workspaces
 module EnbFixtures =
     let private wait = StorageWorker.wait
     let private result = StorageWorker.result
+
+    type private GrpcContext(headers: Metadata) =
+        inherit ServerCallContext()
+        let mutable status = Status.DefaultSuccess
+        let mutable writeOptions = null
+        let trailers = Metadata()
+        override _.MethodCore = "/modconductor.v1.EnbOperations/fixture"
+        override _.HostCore = "localhost"
+        override _.PeerCore = "fixture"
+        override _.DeadlineCore = DateTime.MaxValue
+        override _.RequestHeadersCore = headers
+        override _.CancellationTokenCore = CancellationToken.None
+        override _.ResponseTrailersCore = trailers
+
+        override _.StatusCore
+            with get () = status
+            and set value = status <- value
+
+        override _.WriteOptionsCore
+            with get () = writeOptions
+            and set value = writeOptions <- value
+
+        override _.AuthContextCore = Unchecked.defaultof<AuthContext>
+
+        override _.CreatePropagationTokenCore _ =
+            Unchecked.defaultof<ContextPropagationToken>
+
+        override _.WriteResponseHeadersAsyncCore _ = Task.CompletedTask
+
+    let private authenticated (capability: string) request continuation =
+        let headers = Metadata()
+        headers.Add("mc-session", capability)
+        let context = GrpcContext(headers)
+        let authentication = SessionAuthentication(Encoding.ASCII.GetBytes capability)
+        let handler = UnaryServerMethod<_, _>(continuation)
+        authentication.UnaryServerHandler(request, context, handler) |> wait
+
+    let private rejectsMissingCapability (capability: string) request continuation =
+        let context = GrpcContext(Metadata())
+        let authentication = SessionAuthentication(Encoding.ASCII.GetBytes capability)
+        let handler = UnaryServerMethod<_, _>(continuation)
+
+        try
+            authentication.UnaryServerHandler(request, context, handler) |> wait |> ignore
+            false
+        with :? RpcException as error ->
+            error.StatusCode = StatusCode.Unauthenticated
+
+    let private until label read predicate =
+        let deadline = DateTime.UtcNow.AddSeconds 30.
+        let mutable value = read ()
+
+        while not (predicate value) && DateTime.UtcNow < deadline do
+            Thread.Sleep 20
+            value <- read ()
+
+        if not (predicate value) then
+            failwith ("Timed out waiting for " + label + ".")
+
+        value
+
+    let private signIn (session: NexusSession) =
+        session.SignIn() |> wait |> ignore
+
+        until "Nexus sign-in" (fun () -> session.Status) (fun status ->
+            not status.Waiting && status.Account.IsSome)
+        |> ignore
 
     let private check (writer: Utf8JsonWriter) (name: string) (value: bool) =
         writer.WriteBoolean(name, value)
@@ -120,6 +189,18 @@ module EnbFixtures =
             let bytes = Encoding.UTF8.GetBytes value
             target.Write bytes
 
+    let private archiveBytes (entries: (string * string) list) =
+        use output = new MemoryStream()
+        use zip = new ZipArchive(output, ZipArchiveMode.Create, true)
+
+        for name, value in entries do
+            use target = zip.CreateEntry(name).Open()
+            let bytes = Encoding.UTF8.GetBytes value
+            target.Write bytes
+
+        zip.Dispose()
+        output.ToArray()
+
     let private artifact (store: OperationStore) workspace path =
         store.Artifacts.Add(
             { Id = Guid.NewGuid()
@@ -190,6 +271,206 @@ module EnbFixtures =
         with _ ->
             true
 
+    let private coordinatorEvidence
+        (writer: Utf8JsonWriter)
+        (area: string)
+        (row: EnbCompatibilityRow)
+        =
+        let policy =
+            { ModConductor.HttpDownloads.DownloadPolicy.Default with
+                Attempts = 1
+                RetryDelay = TimeSpan.Zero
+                CheckpointBytes = 4096L }
+
+        let runtimeEntries =
+            [ "WrapperVersion/d3d11.dll", "runtime"
+              "WrapperVersion/d3dcompiler_46e.dll", "compiler" ]
+
+        let presetBytes =
+            archiveBytes
+                [ "Lean ENB/enbseries.ini", "preset"
+                  "Lean ENB/enblocal.ini", "local"
+                  "Lean ENB/enbseries/enbeffect.fx", "effect" ]
+
+        let companionBytes =
+            archiveBytes
+                [ "Cathedral Weathers/Data/Cathedral Weathers.esp", "plugin"
+                  "Cathedral Weathers/Data/Textures/sky.dds", "texture" ]
+
+        let run (premium: bool) (name: string) =
+            let scenario = Directory.CreateDirectory(Path.Combine(area, name)).FullName
+            use server = new NexusServer()
+            server.Premium <- premium
+
+            server.EnbFiles <-
+                Map.ofList
+                    [ EnbCatalogue.LeanModId, (7001L, "lean-enb.zip", "1.0.0", presetBytes)
+                      EnbCatalogue.CathedralModId, (7002L, "cathedral.zip", "2.50", companionBytes) ]
+
+            use credentials = new CredentialSession(NexusMemoryStore())
+
+            use nexus =
+                new NexusSession(
+                    credentials,
+                    Some server.Registration,
+                    server.Handoff,
+                    (fun _ -> Task.CompletedTask),
+                    requestInterval = TimeSpan.Zero
+                )
+
+            signIn nexus
+
+            let mutable deploymentInterrupt = false
+
+            use store =
+                new OperationStore(
+                    Path.Combine(scenario, "state"),
+                    nexusLinks = NexusDownloadLinks(nexus),
+                    downloadPolicy = policy,
+                    enbCheckpoint =
+                        (fun boundary _ ->
+                            if deploymentInterrupt && boundary = "install-intent" then
+                                raise (OperationCanceledException("fixture interruption")))
+                )
+
+            let workspace, profile, _, _ = createWorkspace store scenario
+            let runtimePath = Path.Combine(scenario, "enbseries_skyrimse_v0505.zip")
+            archive runtimePath runtimeEntries
+
+            use coordinator =
+                new EnbCoordinator(
+                    nexus,
+                    store.Downloads,
+                    store,
+                    server.Handoff,
+                    row,
+                    eligibilityOverride = (fun _ -> Task.FromResult(Ok()))
+                )
+
+            let request =
+                ModConductor.Protocol.V1.EnbRequest(
+                    WorkspaceId = workspace.ToString("N"),
+                    ProfileId = profile.ToString("N")
+                )
+
+            let service = EnbService(coordinator)
+            let capability = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+
+            let waiting =
+                authenticated capability request (fun input context ->
+                    service.OpenEnbAuthorPage(input, context))
+
+            let unauthenticatedRejected =
+                rejectsMissingCapability capability request (fun input context ->
+                    service.ReadEnb(input, context))
+
+            let selecting =
+                authenticated
+                    capability
+                    (ModConductor.Protocol.V1.EnbArchiveRequest(
+                        WorkspaceId = workspace.ToString("N"),
+                        ProfileId = profile.ToString("N"),
+                        OperationId = Guid.NewGuid().ToString("N"),
+                        Path = runtimePath
+                    ))
+                    (fun input context -> service.SelectEnbArchive(input, context))
+
+            if not premium then
+                let accept modId fileId =
+                    let id = Guid.NewGuid()
+                    let expiry = DateTimeOffset.UtcNow.AddMinutes(5.).ToUnixTimeSeconds()
+
+                    let link =
+                        "nxm://skyrimspecialedition/mods/"
+                        + string modId
+                        + "/files/"
+                        + string fileId
+                        + "?key=synthetic-nxm-private-grant&expires="
+                        + string expiry
+                        + "&user_id=42"
+
+                    if not (nexus.AcceptNxm(id, link)) then
+                        failwith "The ENB NXM fixture link was not admitted."
+
+                    coordinator.AcceptNxm id
+
+                accept EnbCatalogue.LeanModId 7001L
+
+                until
+                    "Cathedral NXM handoff"
+                    (fun () -> coordinator.Read(workspace, profile) |> wait)
+                    (fun value ->
+                        value.Phase = ModConductor.Protocol.V1.EnbPhase.Ready
+                        || value.Detail.Contains("cathedral", StringComparison.OrdinalIgnoreCase))
+                |> ignore
+
+                accept EnbCatalogue.CathedralModId 7002L
+
+            let ready =
+                until
+                    (name + " ENB coordinator")
+                    (fun () ->
+                        authenticated capability request (fun input context ->
+                            service.ReadEnb(input, context)))
+                    (fun value ->
+                        value.Phase = ModConductor.Protocol.V1.EnbPhase.Ready
+                        || value.Phase = ModConductor.Protocol.V1.EnbPhase.Failed
+                        || value.Phase = ModConductor.Protocol.V1.EnbPhase.Conflict)
+
+            let deployed = store.Deployments.Read profile |> wait |> result
+            let initial = deployed.ActiveGeneration
+
+            let interrupted =
+                if premium then
+                    deploymentInterrupt <- true
+
+                    let failed =
+                        authenticated capability request (fun input context ->
+                            service.UpdateEnb(input, context))
+
+                    deploymentInterrupt <- false
+                    let preserved = store.Deployments.Read profile |> wait |> result
+
+                    failed.Phase = ModConductor.Protocol.V1.EnbPhase.Failed
+                    && preserved.ActiveGeneration = initial
+                    && preserved.PendingReceipt.IsNone
+                else
+                    true
+
+            let updated =
+                if premium then
+                    authenticated capability request (fun input context ->
+                        service.UpdateEnb(input, context))
+                    |> ignore
+
+                    until
+                        "ENB coordinator update"
+                        (fun () ->
+                            authenticated capability request (fun input context ->
+                                service.ReadEnb(input, context)))
+                        (fun value ->
+                            value.Phase = ModConductor.Protocol.V1.EnbPhase.Ready
+                            || value.Phase = ModConductor.Protocol.V1.EnbPhase.Failed)
+                else
+                    ready
+
+            let afterUpdate = store.Deployments.Read profile |> wait |> result
+
+            let outcome =
+                waiting.Phase = ModConductor.Protocol.V1.EnbPhase.WaitingForArchive
+                && selecting.Phase = ModConductor.Protocol.V1.EnbPhase.Acquiring
+                && ready.Phase = ModConductor.Protocol.V1.EnbPhase.Ready
+                && updated.Phase = ModConductor.Protocol.V1.EnbPhase.Ready
+                && initial.IsSome
+                && interrupted
+                && unauthenticatedRejected
+                && (not premium || afterUpdate.ActiveGeneration <> initial)
+
+            outcome
+
+        check writer "authenticatedGrpcDirectAcquisitionReachesReadyAndUpdates" (run true "direct")
+        check writer "nxmAcquisitionReachesReady" (run false "nxm")
+
     let observe (writer: Utf8JsonWriter) primary =
         writer.WriteStartObject("enb")
         let area = Directory.CreateDirectory(Path.Combine(primary, "enb")).FullName
@@ -201,6 +482,7 @@ module EnbFixtures =
 
         let row =
             { catalogue with
+                TermsApproved = true
                 Runtime = EnbCatalogue.withHash runtimeHash catalogue.Runtime
                 Preset = EnbCatalogue.withHash presetHash catalogue.Preset
                 Companions = catalogue.Companions |> List.map (EnbCatalogue.withHash companionHash) }
@@ -359,13 +641,17 @@ module EnbFixtures =
         check writer "profileAndForeignConflictsRefused" (foreignConflict && profileConflict)
 
         let mutable interrupt = false
+        let mutable configurationFailure = false
 
         use store =
             new OperationStore(
                 Path.Combine(area, "state"),
                 enbCheckpoint =
                     (fun name _ ->
-                        if interrupt && name = "install-intent" then
+                        if
+                            (interrupt && name = "install-intent")
+                            || (configurationFailure && name = "configuration-restore")
+                        then
                             raise (OperationCanceledException()))
             )
 
@@ -376,6 +662,37 @@ module EnbFixtures =
         use nexus =
             new NexusSession(credentials, None, handoff, (fun _ -> Task.CompletedTask))
 
+        use blocked =
+            new EnbCoordinator(
+                nexus,
+                store.Downloads,
+                store,
+                handoff,
+                EnbCatalogue.lean,
+                eligibilityOverride = (fun _ -> Task.FromResult(Ok()))
+            )
+
+        let blockedRead = blocked.Read(workspace, profile) |> wait
+        let blockedOpen = blocked.OpenAuthorPage(workspace, profile) |> wait
+
+        let blockedSelection =
+            blocked.SelectArchive(
+                workspace,
+                profile,
+                Guid.NewGuid(),
+                Path.Combine(area, "not-read.zip"),
+                CancellationToken.None
+            )
+            |> wait
+
+        check
+            writer
+            "productionAdoptionGateBlocksAcquisition"
+            (blockedRead.Phase = ModConductor.Protocol.V1.EnbPhase.Blocked
+             && blockedOpen.Phase = ModConductor.Protocol.V1.EnbPhase.Blocked
+             && blockedSelection.Phase = ModConductor.Protocol.V1.EnbPhase.Blocked
+             && handoff.Opened.IsEmpty)
+
         use coordinator =
             new EnbCoordinator(
                 nexus,
@@ -384,6 +701,17 @@ module EnbFixtures =
                 handoff,
                 row,
                 eligibilityOverride = (fun _ -> Task.FromResult(Ok()))
+            )
+
+        let coordinatorService = EnbService(coordinator)
+
+        let coordinatorCapability =
+            "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"
+
+        let coordinatorRequest =
+            ModConductor.Protocol.V1.EnbRequest(
+                WorkspaceId = workspace.ToString("N"),
+                ProfileId = profile.ToString("N")
             )
 
         let opened = coordinator.OpenAuthorPage(workspace, profile) |> wait
@@ -529,13 +857,87 @@ module EnbFixtures =
             && afterInterruption.ActiveGeneration = Some installedGeneration
             && afterInterruption.PendingReceipt.IsNone
 
-        store.RemoveEnb(workspace, profile, CancellationToken.None) |> wait |> ignore
+        let currentPrefs () =
+            let state = store.ProfileGameData.Read(workspace, profile) |> wait |> result
+            Path.Combine(state.SettingsPath, "SkyrimPrefs.ini")
+
+        configurationFailure <- true
+
+        let failedRemoval =
+            authenticated coordinatorCapability coordinatorRequest (fun input context ->
+                coordinatorService.RemoveEnb(input, context))
+
+        let durableFailure =
+            store.EnbSetups.ConfigurationOperation(workspace, profile) |> wait
+
+        configurationFailure <- false
+
+        let recoveredRemoval =
+            authenticated coordinatorCapability coordinatorRequest (fun input context ->
+                coordinatorService.RecoverEnb(input, context))
+
         let removedState = store.Deployments.Read profile |> wait |> result
 
         let removedEndToEnd =
             removedState.ActiveGeneration <> Some installedGeneration
             && not (File.Exists(Path.Combine(game, "d3d11.dll")))
-            && File.ReadAllText(prefs).Contains("bSAOEnable=1")
+            && File.ReadAllText(currentPrefs ()).Contains("bSAOEnable=1")
+
+        check
+            writer
+            "configurationFailureRemainsRecoverable"
+            (failedRemoval.Phase = ModConductor.Protocol.V1.EnbPhase.Failed
+             && durableFailure.IsSome
+             && recoveredRemoval.Phase = ModConductor.Protocol.V1.EnbPhase.Available
+             && removedEndToEnd)
+
+        let _ =
+            store.InstallEnb(
+                workspace,
+                profile,
+                EnbCatalogue.lean,
+                runtimeArtifact,
+                [ EnbCatalogue.lean.Preset, presetFile, presetArtifact
+                  EnbCatalogue.lean.Companions.Head, companionFile, companionArtifact ],
+                CancellationToken.None
+            )
+            |> wait
+
+        let conflictPrefs = currentPrefs ()
+
+        File.WriteAllText(
+            conflictPrefs,
+            File.ReadAllText(conflictPrefs).Replace("bSAOEnable=0", "bSAOEnable=2")
+        )
+
+        let conflictRemoval =
+            authenticated coordinatorCapability coordinatorRequest (fun input context ->
+                coordinatorService.RemoveEnb(input, context))
+
+        let preservedEdit = File.ReadAllText(currentPrefs ()).Contains("bSAOEnable=2")
+
+        let conflictOperation =
+            store.EnbSetups.ConfigurationOperation(workspace, profile) |> wait
+
+        let recoveryPrefs = currentPrefs ()
+
+        File.WriteAllText(
+            recoveryPrefs,
+            File.ReadAllText(recoveryPrefs).Replace("bSAOEnable=2", "bSAOEnable=0")
+        )
+
+        let conflictRecovery =
+            authenticated coordinatorCapability coordinatorRequest (fun input context ->
+                coordinatorService.RecoverEnb(input, context))
+
+        check
+            writer
+            "compareBeforeRestorePreservesConflictAndRecovers"
+            (conflictRemoval.Phase = ModConductor.Protocol.V1.EnbPhase.Conflict
+             && preservedEdit
+             && (conflictOperation |> Option.exists (fun value -> value.Phase = "conflict"))
+             && conflictRecovery.Phase = ModConductor.Protocol.V1.EnbPhase.Available
+             && File.ReadAllText(currentPrefs ()).Contains("bSAOEnable=1"))
 
         check writer "setupPublishesReadyGeneration" installedEndToEnd
         check writer "interruptedUpdateRestoresActiveGeneration" recovered
@@ -579,6 +981,12 @@ module EnbFixtures =
             writer
             "generationScopedUpdateRemovalRecovery"
             (firstMatches && secondMatches && removed.IsNone)
+
+        coordinatorEvidence
+            writer
+            area
+            { EnbCatalogue.lean with
+                TermsApproved = true }
 
         writer.WriteEndObject()
         GenerationCleanup.normalize area

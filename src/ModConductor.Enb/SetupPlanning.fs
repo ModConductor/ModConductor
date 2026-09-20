@@ -136,10 +136,12 @@ module EnbSetupPlanning =
 
         result, prior
 
-    let restoreSkyrimPrefs (content: string) (prior: Map<string, string option>) =
+    let restoreSkyrimPrefs (content: string) (owned: Map<string, string * string option>) =
         let lines = content.Replace("\r\n", "\n").Split('\n') |> ResizeArray
         let mutable current = ""
         let remove = ResizeArray<int>()
+        let conflicts = ResizeArray<string>()
+        let found = Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase)
 
         for index in 0 .. lines.Count - 1 do
             let trimmed = lines[index].Trim()
@@ -152,12 +154,31 @@ module EnbSetupPlanning =
                 if split > 0 then
                     let key = lines[index].Substring(0, split).Trim()
 
-                    prior.TryFind key
-                    |> Option.iter (function
-                        | Some value -> lines[index] <- key + "=" + value
-                        | None -> remove.Add index)
+                    owned.TryFind key
+                    |> Option.iter (fun (applied, prior) ->
+                        found.Add key |> ignore
+                        let currentValue = lines[index].Substring(split + 1).Trim()
+
+                        if String.Equals(currentValue, applied, StringComparison.Ordinal) then
+                            match prior with
+                            | Some value -> lines[index] <- key + "=" + value
+                            | None -> remove.Add index
+                        elif
+                            prior
+                            |> Option.exists (fun value ->
+                                String.Equals(currentValue, value, StringComparison.Ordinal))
+                        then
+                            ()
+                        else
+                            conflicts.Add key)
+
+        for KeyValue(key, (_, prior)) in owned do
+            if not (found.Contains key) then
+                match prior with
+                | None -> ()
+                | Some _ -> conflicts.Add key
 
         for index in remove |> Seq.sortDescending do
             lines.RemoveAt index
 
-        String.Join("\n", lines)
+        String.Join("\n", lines), List.ofSeq conflicts

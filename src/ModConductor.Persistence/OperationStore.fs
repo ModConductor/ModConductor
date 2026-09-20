@@ -3,6 +3,25 @@ namespace ModConductor.Persistence
 open System
 open ModConductor.Operations
 
+module private EnbConfigurationEncoding =
+    let values (prior: Map<string * string * string, string option>) =
+        prior
+        |> Map.toList
+        |> List.map (fun ((file, section, key), value) ->
+            String.concat "|" [ file; section; key; "0"; value |> Option.defaultValue "<missing>" ])
+        |> String.concat "\n"
+
+    let parse (text: string) =
+        text.Split('\n', StringSplitOptions.RemoveEmptyEntries)
+        |> Array.choose (fun line ->
+            match line.Split('|') with
+            | [| _; _; key; applied; "<missing>" |] -> Some(key, (applied, None))
+            | [| _; _; key; applied; prior |] -> Some(key, (applied, Some prior))
+            | [| _; _; key; "<missing>" |] -> Some(key, ("0", None))
+            | [| _; _; key; prior |] -> Some(key, ("0", Some prior))
+            | _ -> None)
+        |> Map.ofArray
+
 type OperationStore
     (
         directory: string,
@@ -539,6 +558,142 @@ type OperationStore
 
     member internal _.Deployment = deployment
     member internal _.Generations = generations
+
+    member internal _.EnbConfigurationDeploymentState(receipt: Guid) =
+        task {
+            let! value = deployment.Read receipt
+
+            return
+                value
+                |> Option.map (fun receipt ->
+                    match receipt.Phase with
+                    | ModConductor.DeploymentRecovery.ReceiptPhase.Complete -> "complete"
+                    | ModConductor.DeploymentRecovery.ReceiptPhase.Restored -> "restored"
+                    | _ -> "pending")
+        }
+
+    member internal _.RecoverEnbConfigurationAction
+        (operation: StoredEnbConfigurationOperation, token: Threading.CancellationToken)
+        =
+        task {
+            match operation.ActionId with
+            | Some action ->
+                let profiles = profileGameData :> ModConductor.ProfileGameData.IProfileGameData
+                let! restored = profiles.RestoreConfiguration(operation.WorkspaceId, action, token)
+
+                return
+                    match restored with
+                    | Ok _
+                    | Error ModConductor.ProfileGameData.ProfileDataError.NotFound -> Ok()
+                    | Error _ ->
+                        Error "The interrupted Skyrim settings change still needs recovery."
+            | _ -> return Ok()
+        }
+
+    member internal _.RestoreEnbConfiguration
+        (operation: StoredEnbConfigurationOperation, token: Threading.CancellationToken)
+        =
+        task {
+            let fail detail = Error detail
+            let profiles = profileGameData :> ModConductor.ProfileGameData.IProfileGameData
+
+            let! state = profiles.Read(operation.WorkspaceId, operation.ProfileId)
+
+            match state with
+            | Error _ ->
+                let detail = "The previous Skyrim settings could not be read."
+
+                do!
+                    enbSetups.UpdateConfiguration(
+                        operation.ReceiptId,
+                        "restore_pending",
+                        None,
+                        detail
+                    )
+
+                return fail detail
+            | Ok state ->
+                let! document =
+                    profiles.ReadConfiguration(state.Reference, "SkyrimPrefs.ini", token)
+
+                match document with
+                | Error _ ->
+                    let detail = "The previous Skyrim settings could not be read."
+
+                    do!
+                        enbSetups.UpdateConfiguration(
+                            operation.ReceiptId,
+                            "restore_pending",
+                            None,
+                            detail
+                        )
+
+                    return fail detail
+                | Ok document ->
+                    let restored, conflicts =
+                        ModConductor.Enb.EnbSetupPlanning.restoreSkyrimPrefs
+                            document.Document.Content
+                            (EnbConfigurationEncoding.parse operation.Values)
+
+                    match conflicts with
+                    | _ :: _ ->
+                        let detail =
+                            "SkyrimPrefs.ini changed after MC applied ENB settings. MC preserved: "
+                            + String.concat ", " conflicts
+
+                        do!
+                            enbSetups.UpdateConfiguration(
+                                operation.ReceiptId,
+                                "conflict",
+                                None,
+                                detail
+                            )
+
+                        return fail detail
+                    | [] when restored = document.Document.Content ->
+                        do! enbSetups.RemoveConfiguration operation.ReceiptId
+                        return Ok()
+                    | [] ->
+                        let action = Guid.NewGuid()
+
+                        do!
+                            enbSetups.UpdateConfiguration(
+                                operation.ReceiptId,
+                                "restore_pending",
+                                Some action,
+                                "Restoring previous Skyrim settings."
+                            )
+
+                        defaultArg enbCheckpoint (fun _ _ -> ()) "configuration-restore" -1
+
+                        let! saved =
+                            profiles.SaveConfiguration(
+                                { Id = action
+                                  PreviewId = document.PreviewId
+                                  Expected = document.Expected
+                                  Name = document.Name
+                                  Content = restored },
+                                ignore,
+                                token
+                            )
+
+                        match saved with
+                        | Ok _ ->
+                            do! enbSetups.RemoveConfiguration operation.ReceiptId
+                            return Ok()
+                        | Error _ ->
+                            let detail = "The previous Skyrim settings still need recovery."
+
+                            do!
+                                enbSetups.UpdateConfiguration(
+                                    operation.ReceiptId,
+                                    "restore_pending",
+                                    None,
+                                    detail
+                                )
+
+                            return fail detail
+        }
 
     member internal _.PrepareComponents
         (
@@ -1085,50 +1240,82 @@ type OperationStore
                           Enabled = selected.Enabled })
                   Hidden = sources.Hidden }
 
+            let deploymentId = Guid.NewGuid()
             let! previousConfiguration = enbSetups.ConfigurationPlan(workspace, profile, active)
             let previousAction = previousConfiguration |> Option.bind snd
             let mutable configurationAction = previousAction
             let mutable priorValues = Map.empty
-
-            if previousAction.IsNone then
-                let profiles = profileGameData :> ModConductor.ProfileGameData.IProfileGameData
-                let! state = profiles.Read(workspace, profile)
-                let state = state |> Result.defaultWith (fun error -> fail (string error))
-
-                let! document =
-                    profiles.ReadConfiguration(state.Reference, "SkyrimPrefs.ini", token)
-
-                let document =
-                    document
-                    |> Result.defaultWith (fun _ ->
-                        fail "Turn on local game settings before setting up ENB.")
-
-                let content, previous =
-                    ModConductor.Enb.EnbSetupPlanning.configureSkyrimPrefs document.Document.Content
-
-                let action = Guid.NewGuid()
-
-                let! saved =
-                    profiles.SaveConfiguration(
-                        { Id = action
-                          PreviewId = document.PreviewId
-                          Expected = document.Expected
-                          Name = document.Name
-                          Content = content },
-                        ignore,
-                        token
-                    )
-
-                saved
-                |> Result.defaultWith (fun _ ->
-                    fail "Skyrim graphics settings could not be applied.")
-                |> ignore
-
-                configurationAction <- Some action
-                priorValues <- previous
+            let mutable configurationStaged = false
 
             try
-                let deploymentId = Guid.NewGuid()
+                if previousAction.IsNone then
+                    let profiles = profileGameData :> ModConductor.ProfileGameData.IProfileGameData
+                    let! state = profiles.Read(workspace, profile)
+                    let state = state |> Result.defaultWith (fun error -> fail (string error))
+
+                    let! document =
+                        profiles.ReadConfiguration(state.Reference, "SkyrimPrefs.ini", token)
+
+                    let document =
+                        document
+                        |> Result.defaultWith (fun _ ->
+                            fail "Turn on local game settings before setting up ENB.")
+
+                    let content, previous =
+                        ModConductor.Enb.EnbSetupPlanning.configureSkyrimPrefs
+                            document.Document.Content
+
+                    priorValues <- previous
+                    let values = EnbConfigurationEncoding.values previous
+
+                    do!
+                        enbSetups.StageConfiguration
+                            { ReceiptId = deploymentId
+                              WorkspaceId = workspace
+                              ProfileId = profile
+                              GenerationId = active
+                              Kind = "install"
+                              Phase = "configuration_pending"
+                              Values = values
+                              ActionId = None
+                              Detail = "" }
+
+                    configurationStaged <- true
+                    let action = Guid.NewGuid()
+
+                    do!
+                        enbSetups.UpdateConfiguration(
+                            deploymentId,
+                            "configuration_pending",
+                            Some action,
+                            "Applying Skyrim graphics settings."
+                        )
+
+                    let! saved =
+                        profiles.SaveConfiguration(
+                            { Id = action
+                              PreviewId = document.PreviewId
+                              Expected = document.Expected
+                              Name = document.Name
+                              Content = content },
+                            ignore,
+                            token
+                        )
+
+                    saved
+                    |> Result.defaultWith (fun _ ->
+                        fail "Skyrim graphics settings could not be applied.")
+                    |> ignore
+
+                    do!
+                        enbSetups.UpdateConfiguration(
+                            deploymentId,
+                            "configuration_applied",
+                            Some action,
+                            ""
+                        )
+
+                    configurationAction <- Some action
 
                 let! prepared =
                     task {
@@ -1188,13 +1375,7 @@ type OperationStore
                     if priorValues.IsEmpty then
                         previousConfiguration |> Option.map fst |> Option.defaultValue ""
                     else
-                        priorValues
-                        |> Map.toList
-                        |> List.map (fun ((file, section, key), value) ->
-                            String.concat
-                                "|"
-                                [ file; section; key; value |> Option.defaultValue "<missing>" ])
-                        |> String.concat "\n"
+                        EnbConfigurationEncoding.values priorValues
 
                 do! enbSetups.SaveGeneration(workspace, profile, generation, records)
 
@@ -1244,7 +1425,11 @@ type OperationStore
                     )
 
                 match completed with
-                | Ok value -> return value.Proposed
+                | Ok value ->
+                    if configurationStaged then
+                        do! enbSetups.RemoveConfiguration deploymentId
+
+                    return value.Proposed
                 | Error _ ->
                     let! pending = deployment.Read(receipt.Id)
 
@@ -1263,51 +1448,48 @@ type OperationStore
                         ()
                     | None -> ()
 
-                    return
-                        fail "The ENB deployment did not complete. The previous setup was restored."
+                    return fail "The ENB deployment did not complete."
             with error ->
-                if previousAction.IsNone then
-                    let prior =
-                        priorValues
-                        |> Map.toList
-                        |> List.map (fun ((_, _, key), value) -> key, value)
-                        |> Map.ofList
+                let mutable restorationFailure = None
+                do! enbSetups.RemoveSelection deploymentId
 
-                    let profiles = profileGameData :> ModConductor.ProfileGameData.IProfileGameData
-                    let! state = profiles.Read(workspace, profile)
+                if configurationStaged then
+                    let! operation = enbSetups.ConfigurationOperation(workspace, profile)
 
-                    match state with
-                    | Ok state ->
-                        let! document =
-                            profiles.ReadConfiguration(
-                                state.Reference,
-                                "SkyrimPrefs.ini",
+                    match operation with
+                    | Some operation when operation.ReceiptId = deploymentId ->
+                        do!
+                            enbSetups.UpdateConfiguration(
+                                deploymentId,
+                                "restore_pending",
+                                None,
+                                error.Message
+                            )
+
+                        let! actionRecovered =
+                            this.RecoverEnbConfigurationAction(
+                                operation,
                                 Threading.CancellationToken.None
                             )
 
-                        match document with
-                        | Ok document ->
-                            let content =
-                                ModConductor.Enb.EnbSetupPlanning.restoreSkyrimPrefs
-                                    document.Document.Content
-                                    prior
-
-                            let! _ =
-                                profiles.SaveConfiguration(
-                                    { Id = Guid.NewGuid()
-                                      PreviewId = document.PreviewId
-                                      Expected = document.Expected
-                                      Name = document.Name
-                                      Content = content },
-                                    ignore,
+                        let! restored =
+                            match actionRecovered with
+                            | Ok() ->
+                                this.RestoreEnbConfiguration(
+                                    operation,
                                     Threading.CancellationToken.None
                                 )
+                            | Error detail -> Threading.Tasks.Task.FromResult(Error detail)
 
-                            ()
-                        | Error _ -> ()
-                    | Error _ -> ()
+                        match restored with
+                        | Error detail -> restorationFailure <- Some detail
+                        | Ok() -> ()
+                    | _ -> ()
 
-                return raise error
+                return
+                    match restorationFailure with
+                    | Some detail -> raise (IO.IOException(error.Message + " " + detail, error))
+                    | None -> raise error
         }
 
     member internal this.RemoveEnb
@@ -1378,6 +1560,21 @@ type OperationStore
                         retainedProfile = retained
                     )
 
+                let! configuration = enbSetups.ConfigurationPlan(workspace, profile, active)
+                let values = configuration |> Option.map fst |> Option.defaultValue ""
+
+                do!
+                    enbSetups.StageConfiguration
+                        { ReceiptId = deploymentId
+                          WorkspaceId = workspace
+                          ProfileId = profile
+                          GenerationId = active
+                          Kind = "remove"
+                          Phase = "deployment_pending"
+                          Values = values
+                          ActionId = None
+                          Detail = "" }
+
                 do!
                     enbSetups.StageSelection(
                         deploymentId,
@@ -1390,7 +1587,16 @@ type OperationStore
                 let! started = generations.Start(prepared, [], cancellation = token)
 
                 let receipt =
-                    started |> Result.defaultWith (fun _ -> fail "ENB removal could not start.")
+                    match started with
+                    | Ok receipt -> receipt
+                    | Error _ ->
+                        enbSetups.RemoveSelection deploymentId
+                        |> fun pending -> pending.GetAwaiter().GetResult()
+
+                        enbSetups.RemoveConfiguration deploymentId
+                        |> fun pending -> pending.GetAwaiter().GetResult()
+
+                        fail "ENB removal could not start."
 
                 let! result =
                     generations.Run(receipt.Id, receipt.Revision, false, token, (fun _ _ -> ()), [])
@@ -1399,58 +1605,13 @@ type OperationStore
                     result
                     |> Result.defaultWith (fun _ -> fail "ENB removal needs deployment recovery.")
 
-                let! configuration = enbSetups.ConfigurationPlan(workspace, profile, active)
+                do! enbSetups.UpdateConfiguration(deploymentId, "restore_pending", None, "")
 
-                match configuration with
-                | Some(previous, _) when not (String.IsNullOrWhiteSpace previous) ->
-                    let prior =
-                        previous.Split('\n', StringSplitOptions.RemoveEmptyEntries)
-                        |> Array.choose (fun line ->
-                            match line.Split('|') with
-                            | [| _; _; key; "<missing>" |] -> Some(key, None)
-                            | [| _; _; key; value |] -> Some(key, Some value)
-                            | _ -> None)
-                        |> Map.ofArray
+                let! operation = enbSetups.ConfigurationOperation(workspace, profile)
+                let operation = operation |> Option.get
+                let! restored = this.RestoreEnbConfiguration(operation, token)
 
-                    let profiles = profileGameData :> ModConductor.ProfileGameData.IProfileGameData
-                    let! state = profiles.Read(workspace, profile)
-
-                    let state =
-                        state
-                        |> Result.defaultWith (fun _ ->
-                            fail "The previous Skyrim settings could not be read.")
-
-                    let! document =
-                        profiles.ReadConfiguration(state.Reference, "SkyrimPrefs.ini", token)
-
-                    let document =
-                        document
-                        |> Result.defaultWith (fun _ ->
-                            fail "The previous Skyrim settings could not be read.")
-
-                    let restoredContent =
-                        ModConductor.Enb.EnbSetupPlanning.restoreSkyrimPrefs
-                            document.Document.Content
-                            prior
-
-                    let! restored =
-                        profiles.SaveConfiguration(
-                            { Id = Guid.NewGuid()
-                              PreviewId = document.PreviewId
-                              Expected = document.Expected
-                              Name = document.Name
-                              Content = restoredContent },
-                            ignore,
-                            token
-                        )
-
-                    restored
-                    |> Result.defaultWith (fun _ ->
-                        fail
-                            "ENB files were removed, but the previous Skyrim settings still need recovery.")
-                    |> ignore
-                | None -> ()
-                | Some _ -> ()
+                restored |> Result.defaultWith fail
 
                 return Some completed.Proposed
         }

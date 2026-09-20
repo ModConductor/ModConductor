@@ -8,6 +8,7 @@
     <ILLinkTreatWarningsAsErrors>true</ILLinkTreatWarningsAsErrors>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="AssemblyInfo.fs" />
     <ProjectReference Include="../ModConductor.ModMaintenance/ModConductor.ModMaintenance.fsproj" />
     <ProjectReference Include="../ModConductor.Diagnostics/ModConductor.Diagnostics.fsproj" />
     <Compile Include="SessionKey.fs" />

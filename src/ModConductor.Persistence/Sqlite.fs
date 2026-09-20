@@ -88,7 +88,8 @@ module internal Sqlite =
         | 23L
         | 24L
         | 25L
-        | 26L -> ()
+        | 26L
+        | 27L -> ()
         | _ -> raise (InvalidOperationException("The state database uses an unsupported version."))
 
         if number connection transaction "PRAGMA user_version" [] = 3L then
@@ -182,6 +183,9 @@ module internal Sqlite =
 
         if number connection transaction "PRAGMA user_version" [] = 25L then
             execute connection transaction EnbSchema.correction []
+
+        if number connection transaction "PRAGMA user_version" [] = 26L then
+            execute connection transaction EnbSchema.durableConfiguration []
 
         beforeCommit ()
         transaction.Commit()

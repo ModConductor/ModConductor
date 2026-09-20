@@ -27,6 +27,7 @@ module EnbCatalogue =
 
     let lean =
         { Id = "lean-enb-1.0.0-enbseries-0.505-cathedral-2.50"
+          TermsApproved = false
           Runtime =
             pin
                 EnbComponentKind.Runtime
