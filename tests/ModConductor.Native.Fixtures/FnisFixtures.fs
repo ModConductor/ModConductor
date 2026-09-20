@@ -255,6 +255,7 @@ module FnisFixtures =
 
         signIn session
         let failurePoint = ref ""
+        let failureReached = ref false
 
         let store =
             new OperationStore(
@@ -263,7 +264,16 @@ module FnisFixtures =
                 downloadPolicy = policy,
                 fnisCheckpoint =
                     (fun name _ ->
-                        if name = lock failurePoint (fun () -> failurePoint.Value) then
+                        let fail =
+                            lock failurePoint (fun () ->
+                                let selected = name = failurePoint.Value
+
+                                if selected then
+                                    failureReached.Value <- true
+
+                                selected)
+
+                        if fail then
                             raise (OperationCanceledException("fixture " + name)))
             )
 
@@ -335,7 +345,10 @@ module FnisFixtures =
                 |> fun (_, _, value) -> value |> Option.exists (fun item -> item.NexusFileId = 702L))
 
         configure server 703L (archive "rollback" true 0)
-        lock failurePoint (fun () -> failurePoint.Value <- "install-intent")
+        lock failurePoint (fun () ->
+            failurePoint.Value <- "publication"
+            failureReached.Value <- false)
+
         coordinator.Update(workspace, profile) |> wait |> ignore
 
         let recovery =
@@ -345,7 +358,13 @@ module FnisFixtures =
                 (fun value -> value.Phase = FnisPhase.RecoveryRequired)
 
         let beforeRecovery = active store workspace profile
-        lock failurePoint (fun () -> failurePoint.Value <- "")
+
+        let reachedPublication =
+            lock failurePoint (fun () ->
+                failurePoint.Value <- ""
+                failureReached.Value)
+
+        check writer "failedReplacementInterruptionReachedPublication" reachedPublication
 
         let recovered =
             coordinator.Recover(workspace, profile, CancellationToken.None) |> wait

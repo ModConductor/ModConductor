@@ -26,6 +26,7 @@ type FnisTests() =
     member _.``cancel retry failure and recovery should preserve the active setup``() =
         flag "cancelledUpdatePreservesPriorGeneration" |> should equal true
         flag "retryResumesAndPublishesSelectedUpdate" |> should equal true
+        flag "failedReplacementInterruptionReachedPublication" |> should equal true
         flag "failedReplacementRecoveryPreservesActiveSetup" |> should equal true
 
     [<Test>]
