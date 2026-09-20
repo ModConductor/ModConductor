@@ -506,7 +506,7 @@ module FnisFixtures =
             "#!/usr/bin/python3\nimport os,sys,time,subprocess\nmode_path="
             + "r'"
             + mode.Replace("'", "\\'")
-            + "'\nmode=open(mode_path).read().strip()\ntarget=next(a.split('=',1)[1] for a in sys.argv if a.startswith('RedirectFiles='))\ngenerator=next((a for a in sys.argv if a.lower().endswith('generatefnisforusers.exe')), '')\nlogs=os.path.join(os.path.dirname(generator),'temporary_logs')\nif mode=='shutdownchild':\n child=subprocess.Popen(['sleep','30'])\n open(mode_path+'.childpid','w').write(str(child.pid))\n time.sleep(30)\nif mode in ('cancel','timeout'): time.sleep(30)\nif mode=='fail':\n print('synthetic failure', file=sys.stderr)\n sys.exit(7)\nif mode=='outputlimit':\n print('x'*300000)\n sys.exit(0)\nif mode=='successlog':\n os.makedirs(logs,exist_ok=True)\n open(os.path.join(logs,'GenerateFNIS_LogFile.txt'),'wb').write(b'\\xffmalformed FNIS log')\n open(os.path.join(logs,'NewFNIS.log'),'wb').write(b'new temporary log')\nos.makedirs(os.path.join(target,'meshes','actors','character','behaviors'),exist_ok=True)\nopen(os.path.join(target,'meshes','actors','character','behaviors','generated.hkx'),'wb').write(('generated-'+mode).encode())\nprint(' '.join(sys.argv[1:]))\n"
+            + "'\nmode=open(mode_path).read().strip()\ntarget=next(a.split('=',1)[1] for a in sys.argv if a.startswith('RedirectFiles='))\ngenerator=next((a for a in sys.argv if a.lower().endswith('generatefnisforusers.exe')), '')\nlogs=os.path.join(os.path.dirname(generator),'temporary_logs')\nif mode=='shutdownchild':\n child=subprocess.Popen(['sleep','30'])\n open(mode_path+'.childpid','w').write(str(child.pid))\n time.sleep(30)\nif mode in ('cancel','timeout'): time.sleep(30)\nif mode=='fail':\n print('synthetic failure', file=sys.stderr)\n sys.exit(7)\nif mode=='outputlimit':\n print('x'*300000)\n sys.exit(0)\nif mode in ('successlog','successlognew'):\n parent=os.path.dirname(generator)\n os.chmod(parent,0o700)\n os.makedirs(logs,exist_ok=True)\n os.chmod(logs,0o700)\n existing=os.path.join(logs,'GenerateFNIS_LogFile.txt')\n if os.path.exists(existing): os.chmod(existing,0o600)\n open(existing,'wb').write(b'\\xffmalformed FNIS log')\n newlog=os.path.join(logs,'NewFNIS.log')\n open(newlog,'wb').write(b'new temporary log')\n os.chmod(existing,0o000)\n os.chmod(newlog,0o000)\n os.chmod(logs,0o000)\n os.chmod(parent,0o500)\nos.makedirs(os.path.join(target,'meshes','actors','character','behaviors'),exist_ok=True)\nopen(os.path.join(target,'meshes','actors','character','behaviors','generated.hkx'),'wb').write(('generated-'+mode).encode())\nprint(' '.join(sys.argv[1:]))\n"
         )
 
         File.SetUnixFileMode(
@@ -567,6 +567,24 @@ module FnisFixtures =
             File.SetUnixFileMode(generatorDirectory, mode)
         else
             Directory.CreateDirectory temporaryLogs |> ignore
+
+        let pathMetadata (path: string) =
+            File.GetLastAccessTimeUtc path,
+            File.GetLastWriteTimeUtc path,
+            File.GetAttributes path,
+            (if OperatingSystem.IsWindows() then None else Some(File.GetUnixFileMode path))
+
+        let treeContents (root: string) =
+            Directory.EnumerateFileSystemEntries(root, "*", SearchOption.AllDirectories)
+            |> Seq.map (fun path ->
+                let relative = Path.GetRelativePath(root, path)
+
+                if Directory.Exists path then
+                    relative + "/"
+                else
+                    relative + ":" + Convert.ToHexString(SHA256.HashData(File.ReadAllBytes path)))
+            |> Seq.sortWith (fun left right -> StringComparer.Ordinal.Compare(left, right))
+            |> Seq.toList
 
         use runner = new FnisRunner(store)
         let execution = runner :> IFnisExecution
@@ -837,6 +855,26 @@ module FnisFixtures =
         let existingLog = Path.Combine(temporaryLogs, "GenerateFNIS_LogFile.txt")
         let newLog = Path.Combine(temporaryLogs, "NewFNIS.log")
         File.WriteAllText(existingLog, "original temporary log")
+        let expectedGeneratorTree = treeContents generatorDirectory
+
+        let originalParentMode = File.GetUnixFileMode generatorDirectory
+        let parentAccess = DateTime(2026, 1, 2, 3, 4, 5, DateTimeKind.Utc)
+        let parentWrite = DateTime(2026, 1, 2, 3, 4, 6, DateTimeKind.Utc)
+        let directoryAccess = DateTime(2026, 1, 2, 3, 4, 7, DateTimeKind.Utc)
+        let directoryWrite = DateTime(2026, 1, 2, 3, 4, 8, DateTimeKind.Utc)
+        let fileAccess = DateTime(2026, 1, 2, 3, 4, 9, DateTimeKind.Utc)
+        let fileWrite = DateTime(2026, 1, 2, 3, 4, 10, DateTimeKind.Utc)
+        File.SetLastAccessTimeUtc(generatorDirectory, parentAccess)
+        File.SetLastWriteTimeUtc(generatorDirectory, parentWrite)
+        File.SetLastAccessTimeUtc(temporaryLogs, directoryAccess)
+        File.SetLastWriteTimeUtc(temporaryLogs, directoryWrite)
+        File.SetLastAccessTimeUtc(existingLog, fileAccess)
+        File.SetLastWriteTimeUtc(existingLog, fileWrite)
+        File.SetUnixFileMode(existingLog, UnixFileMode.UserRead)
+        File.SetUnixFileMode(temporaryLogs, UnixFileMode.UserRead ||| UnixFileMode.UserExecute)
+        let expectedParentMetadata = pathMetadata generatorDirectory
+        let expectedDirectoryMetadata = pathMetadata temporaryLogs
+        let expectedFileMetadata = pathMetadata existingLog
         File.WriteAllText(mode, "successlog")
         let logId = Guid.NewGuid()
         execution.Run({ Id = logId; WorkspaceId = workspace; ProfileId = profile }, CancellationToken.None)
@@ -844,6 +882,10 @@ module FnisFixtures =
         |> result
         |> ignore
         let logged = waitForRun logId ModConductor.Fnis.FnisOutputPhase.Current
+        let restoredParentMetadata = pathMetadata generatorDirectory
+        let restoredDirectoryMetadata = pathMetadata temporaryLogs
+        let restoredFileMetadata = pathMetadata existingLog
+        let restoredGeneratorTree = treeContents generatorDirectory
 
         check
             writer
@@ -852,6 +894,14 @@ module FnisFixtures =
              && Encoding.UTF8.GetByteCount logged.RunLog <= 256 * 1024
              && File.ReadAllText(existingLog) = "original temporary log"
              && not (File.Exists newLog))
+
+        check
+            writer
+            "restrictiveTemporaryLogTreeRestoresContentMetadataModesAndTimestamps"
+            (restoredGeneratorTree = expectedGeneratorTree
+             && restoredParentMetadata = expectedParentMetadata
+             && restoredDirectoryMetadata = expectedDirectoryMetadata
+             && restoredFileMetadata = expectedFileMetadata)
 
         check
             writer
@@ -866,6 +916,40 @@ module FnisFixtures =
         |> ignore
         let missingLog = waitForRun missingLogId ModConductor.Fnis.FnisOutputPhase.Current
         check writer "missingTemporaryLogIsAnEmptyOwnedRecord" (missingLog.RunLog = "")
+
+        File.SetUnixFileMode(generatorDirectory, originalParentMode ||| UnixFileMode.UserWrite)
+        File.SetUnixFileMode(temporaryLogs, UnixFileMode.UserRead ||| UnixFileMode.UserWrite ||| UnixFileMode.UserExecute)
+        File.SetUnixFileMode(existingLog, UnixFileMode.UserRead ||| UnixFileMode.UserWrite)
+        Directory.Delete(temporaryLogs, true)
+        File.SetUnixFileMode(generatorDirectory, originalParentMode)
+        let expectedTreeWithoutTemporaryLogs = treeContents generatorDirectory
+        let newParentAccess = DateTime(2026, 2, 3, 4, 5, 6, DateTimeKind.Utc)
+        let newParentWrite = DateTime(2026, 2, 3, 4, 5, 7, DateTimeKind.Utc)
+        File.SetLastAccessTimeUtc(generatorDirectory, newParentAccess)
+        File.SetLastWriteTimeUtc(generatorDirectory, newParentWrite)
+        let expectedNewParentMetadata = pathMetadata generatorDirectory
+        File.WriteAllText(mode, "successlognew")
+        let newLogDirectoryId = Guid.NewGuid()
+        execution.Run(
+            { Id = newLogDirectoryId; WorkspaceId = workspace; ProfileId = profile },
+            CancellationToken.None
+        )
+        |> wait
+        |> result
+        |> ignore
+        let newDirectoryLog =
+            waitForRun newLogDirectoryId ModConductor.Fnis.FnisOutputPhase.Current
+        let restoredNewParentMetadata = pathMetadata generatorDirectory
+        let restoredTreeWithoutTemporaryLogs = treeContents generatorDirectory
+
+        check
+            writer
+            "newRestrictiveTemporaryLogDirectoryIsCapturedAndRemoved"
+            (newDirectoryLog.RunLog.Contains("malformed FNIS log")
+             && not (Directory.Exists temporaryLogs)
+             && restoredTreeWithoutTemporaryLogs = expectedTreeWithoutTemporaryLogs
+             && restoredNewParentMetadata = expectedNewParentMetadata
+             && SHA256.HashData(File.ReadAllBytes installedGenerator.Executable) = generatorBeforeLogs)
 
         let beforeStale = outputEntry () |> Option.get
         let mutable changedForRace = false

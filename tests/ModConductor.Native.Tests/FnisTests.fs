@@ -54,6 +54,10 @@ type FnisTests() =
         flag "launchFailureRetainsDetailAndRemovesStage" |> should equal true
         flag "malformedTemporaryLogIsCapturedBoundedInOwnedState" |> should equal true
         flag "temporaryLogCleanupPreservesImmutableGenerator" |> should equal true
+        flag "restrictiveTemporaryLogTreeRestoresContentMetadataModesAndTimestamps"
+        |> should equal true
+        flag "newRestrictiveTemporaryLogDirectoryIsCapturedAndRemoved"
+        |> should equal true
         flag "missingTemporaryLogIsAnEmptyOwnedRecord" |> should equal true
         flag "stalePublicationRollsBackVersionAndSelectionAtomically" |> should equal true
         flag "firstStalePublicationRemovesOutputAndProfileShells" |> should equal true

@@ -15,15 +15,20 @@ type private ActiveFnisRun =
     { Cancellation: CancellationTokenSource
       Completion: TaskCompletionSource<unit> }
 
-type private FnisLogFileSnapshot =
-    { Content: byte array
+type private FnisPathMetadata =
+    { LastAccessUtc: DateTime
       LastWriteUtc: DateTime
       Attributes: FileAttributes
       UnixMode: UnixFileMode option }
 
+type private FnisLogFileSnapshot =
+    { Content: byte array
+      Metadata: FnisPathMetadata }
+
 type private FnisLogSnapshot =
     { Directory: string
-      TemporaryDirectoryExisted: bool
+      DirectoryMetadata: FnisPathMetadata
+      TemporaryDirectoryMetadata: FnisPathMetadata option
       Files: Map<string, FnisLogFileSnapshot> }
 
 type FnisRunner
@@ -60,44 +65,67 @@ type FnisRunner
             return Error(FnisExecutionError.Unavailable detail)
         }
 
+    let metadata (path: string) =
+        { LastAccessUtc = File.GetLastAccessTimeUtc path
+          LastWriteUtc = File.GetLastWriteTimeUtc path
+          Attributes = File.GetAttributes path
+          UnixMode =
+            if OperatingSystem.IsWindows() then
+                None
+            else
+                Some(File.GetUnixFileMode path) }
+
+    let makeWritable (path: string) (directory: bool) =
+        if OperatingSystem.IsWindows() then
+            let attributes = File.GetAttributes path
+
+            if attributes.HasFlag FileAttributes.ReadOnly then
+                File.SetAttributes(path, attributes &&& (~~~FileAttributes.ReadOnly))
+        else
+            let required =
+                if directory then
+                    UnixFileMode.UserRead ||| UnixFileMode.UserWrite ||| UnixFileMode.UserExecute
+                else
+                    UnixFileMode.UserRead ||| UnixFileMode.UserWrite
+
+            File.SetUnixFileMode(path, File.GetUnixFileMode(path) ||| required)
+
+    let restoreMetadata (path: string) (value: FnisPathMetadata) =
+        File.SetLastAccessTimeUtc(path, value.LastAccessUtc)
+        File.SetLastWriteTimeUtc(path, value.LastWriteUtc)
+
+        if OperatingSystem.IsWindows() then
+            File.SetAttributes(path, value.Attributes)
+        else
+            value.UnixMode |> Option.iter (fun mode -> File.SetUnixFileMode(path, mode))
+
     let logPaths (generator: string) =
         let directory = Path.GetDirectoryName generator
 
-        if String.IsNullOrWhiteSpace directory || not (Directory.Exists directory) then
-            []
-        else
-            let logLike (path: string) =
-                let name = Path.GetFileName path
-                let extension = Path.GetExtension path
+        let logLike (path: string) =
+            let name = Path.GetFileName path
+            let extension = Path.GetExtension path
 
-                name.Contains("log", StringComparison.OrdinalIgnoreCase)
-                || String.Equals(extension, ".log", StringComparison.OrdinalIgnoreCase)
+            name.Contains("log", StringComparison.OrdinalIgnoreCase)
+            || String.Equals(extension, ".log", StringComparison.OrdinalIgnoreCase)
 
-            let direct =
-                try
-                    Directory.EnumerateFiles(directory, "*", SearchOption.TopDirectoryOnly)
-                    |> Seq.filter logLike
-                    |> Seq.toList
-                with
-                | :? IOException
-                | :? UnauthorizedAccessException -> []
+        let direct =
+            Directory.EnumerateFiles(directory, "*", SearchOption.TopDirectoryOnly)
+            |> Seq.filter logLike
+            |> Seq.toList
 
-            let temporary = Path.Combine(directory, "temporary_logs")
+        let temporary = Path.Combine(directory, "temporary_logs")
 
-            let nested =
-                try
-                    if Directory.Exists temporary then
-                        Directory.EnumerateFiles(temporary, "*", SearchOption.TopDirectoryOnly)
-                        |> Seq.toList
-                    else
-                        []
-                with
-                | :? IOException
-                | :? UnauthorizedAccessException -> []
+        let nested =
+            if Directory.Exists temporary then
+                Directory.EnumerateFiles(temporary, "*", SearchOption.TopDirectoryOnly)
+                |> Seq.toList
+            else
+                []
 
-            direct @ nested
-            |> List.distinct
-            |> List.sortWith (fun left right -> StringComparer.OrdinalIgnoreCase.Compare(left, right))
+        direct @ nested
+        |> List.distinct
+        |> List.sortWith (fun left right -> StringComparer.OrdinalIgnoreCase.Compare(left, right))
 
     let readBounded path limit =
         use stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite ||| FileShare.Delete)
@@ -128,41 +156,69 @@ type FnisRunner
     let logSnapshot (generator: string) =
         let directory = Path.GetDirectoryName generator
         let temporary = Path.Combine(directory, "temporary_logs")
-        let mutable remaining = logLimit
-
-        let paths = logPaths generator
-
-        if paths.Length > 32 then
-            raise (InvalidDataException "FNIS has more than 32 temporary logs.")
-
-        let files =
-            paths
-            |> List.map (fun path ->
-                let content = readBounded path remaining
-                remaining <- remaining - content.Length
-
-                path,
-                { Content = content
-                  LastWriteUtc = File.GetLastWriteTimeUtc path
-                  Attributes = File.GetAttributes path
-                  UnixMode =
-                    if OperatingSystem.IsWindows() then
-                        None
-                    else
-                        Some(File.GetUnixFileMode path) })
-            |> Map.ofList
-
-        { Directory = directory
-          TemporaryDirectoryExisted = Directory.Exists temporary
-          Files = files }
-
-    let captureAndRestoreLogs (generator: string) (before: FnisLogSnapshot) =
-        let builder = StringBuilder()
-        let mutable remaining = logLimit
-        let afterPaths = logPaths generator
+        let directoryMetadata = metadata directory
+        let temporaryMetadata =
+            if Directory.Exists temporary then Some(metadata temporary) else None
 
         try
+            let paths = logPaths generator
+
+            if paths.Length > 32 then
+                raise (InvalidDataException "FNIS has more than 32 temporary logs.")
+
+            let fileMetadata = paths |> List.map (fun path -> path, metadata path) |> Map.ofList
+
+            try
+                let mutable remaining = logLimit
+
+                let files =
+                    paths
+                    |> List.map (fun path ->
+                        let content = readBounded path remaining
+                        remaining <- remaining - content.Length
+
+                        path,
+                        { Content = content
+                          Metadata = fileMetadata[path] })
+                    |> Map.ofList
+
+                { Directory = directory
+                  DirectoryMetadata = directoryMetadata
+                  TemporaryDirectoryMetadata = temporaryMetadata
+                  Files = files }
+            finally
+                for KeyValue(path, value) in fileMetadata do
+                    restoreMetadata path value
+        finally
+            temporaryMetadata |> Option.iter (fun value -> restoreMetadata temporary value)
+            restoreMetadata directory directoryMetadata
+
+    let captureAndRestoreLogs (generator: string) (before: FnisLogSnapshot) =
+        let temporary = Path.Combine(before.Directory, "temporary_logs")
+        let builder = StringBuilder()
+        let mutable remaining = logLimit
+        let mutable afterPaths = []
+        let mutable cleanupError: exn option = None
+
+        let attempt action =
+            try
+                action ()
+            with error ->
+                if cleanupError.IsNone then
+                    cleanupError <- Some error
+
+        try
+            makeWritable before.Directory true
+
+            if Directory.Exists temporary then
+                makeWritable temporary true
+
+            afterPaths <- logPaths generator
+
             for path in afterPaths do
+                makeWritable path false
+
+            for path in afterPaths |> List.truncate 32 do
                 let existing = before.Files |> Map.tryFind path
                 let length = FileInfo(path).Length
                 let count = min remaining (int (min (int64 remaining) length))
@@ -186,35 +242,37 @@ type FnisRunner
         finally
             for path in afterPaths do
                 match before.Files |> Map.tryFind path with
-                | None -> File.Delete path
-                | Some prior ->
-                    let changed =
-                        not (File.Exists path)
-                        || FileInfo(path).Length <> int64 prior.Content.Length
-                        || readBounded path prior.Content.Length <> prior.Content
-
-                    if changed then
-                        File.WriteAllBytes(path, prior.Content)
-
-                    File.SetAttributes(path, prior.Attributes)
-                    prior.UnixMode |> Option.iter (fun mode -> File.SetUnixFileMode(path, mode))
-                    File.SetLastWriteTimeUtc(path, prior.LastWriteUtc)
+                | None -> attempt (fun () -> File.Delete path)
+                | Some prior -> attempt (fun () -> File.WriteAllBytes(path, prior.Content))
 
             for KeyValue(path, prior) in before.Files do
                 if not (File.Exists path) then
-                    File.WriteAllBytes(path, prior.Content)
-                    File.SetAttributes(path, prior.Attributes)
-                    prior.UnixMode |> Option.iter (fun mode -> File.SetUnixFileMode(path, mode))
-                    File.SetLastWriteTimeUtc(path, prior.LastWriteUtc)
+                    let parent = Path.GetDirectoryName path
+                    attempt (fun () -> Directory.CreateDirectory parent |> ignore)
 
-            let temporary = Path.Combine(before.Directory, "temporary_logs")
+                    if Directory.Exists parent then
+                        attempt (fun () -> makeWritable parent true)
 
-            if
-                not before.TemporaryDirectoryExisted
-                && Directory.Exists temporary
-                && (Directory.EnumerateFileSystemEntries temporary |> Seq.isEmpty)
-            then
-                Directory.Delete temporary
+                    attempt (fun () -> File.WriteAllBytes(path, prior.Content))
+
+                if File.Exists path then
+                    attempt (fun () -> restoreMetadata path prior.Metadata)
+
+            match before.TemporaryDirectoryMetadata with
+            | Some value ->
+                if not (Directory.Exists temporary) then
+                    attempt (fun () -> Directory.CreateDirectory temporary |> ignore)
+
+                if Directory.Exists temporary then
+                    attempt (fun () -> restoreMetadata temporary value)
+            | None when Directory.Exists temporary ->
+                attempt (fun () -> makeWritable temporary true)
+                attempt (fun () -> Directory.Delete(temporary, true))
+            | None -> ()
+
+            attempt (fun () -> restoreMetadata before.Directory before.DirectoryMetadata)
+
+        cleanupError |> Option.iter raise
 
         let bytes = Encoding.UTF8.GetBytes(builder.ToString())
         if bytes.Length <= logLimit then bytes else bytes[.. logLimit - 1]
