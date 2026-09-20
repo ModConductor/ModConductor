@@ -30,16 +30,18 @@ namespace ModConductor.Protocol.V1 {
             "b2Rjb25kdWN0b3IudjEuU2tzZVBoYXNlEhQKDGdhbWVfdmVyc2lvbhgCIAEo",
             "CRIZChFjb21wb25lbnRfdmVyc2lvbhgDIAEoCRIOCgZzdGF0dXMYBCABKAkS",
             "DgoGZGV0YWlsGAUgASgJEhoKDW5leHVzX2ZpbGVfaWQYBiABKANIAIgBAUIQ",
-            "Cg5fbmV4dXNfZmlsZV9pZCrjAQoJU2tzZVBoYXNlEhoKFlNLU0VfUEhBU0Vf",
+            "Cg5fbmV4dXNfZmlsZV9pZCrEAgoJU2tzZVBoYXNlEhoKFlNLU0VfUEhBU0Vf",
             "VU5TUEVDSUZJRUQQABIaChZTS1NFX1BIQVNFX1VOQVZBSUxBQkxFEAESGAoU",
             "U0tTRV9QSEFTRV9BVkFJTEFCTEUQAhIgChxTS1NFX1BIQVNFX1dBSVRJTkdf",
             "Rk9SX05FWFVTEAMSGgoWU0tTRV9QSEFTRV9ET1dOTE9BRElORxAEEhkKFVNL",
             "U0VfUEhBU0VfSU5TVEFMTElORxAFEhQKEFNLU0VfUEhBU0VfUkVBRFkQBhIV",
-            "ChFTS1NFX1BIQVNFX0ZBSUxFRBAHMp0BCg5Ta3NlT3BlcmF0aW9ucxJECghS",
-            "ZWFkU2tzZRIcLm1vZGNvbmR1Y3Rvci52MS5Ta3NlUmVxdWVzdBoaLm1vZGNv",
-            "bmR1Y3Rvci52MS5Ta3NlU3RhdGUSRQoJU3RhcnRTa3NlEhwubW9kY29uZHVj",
-            "dG9yLnYxLlNrc2VSZXF1ZXN0GhoubW9kY29uZHVjdG9yLnYxLlNrc2VTdGF0",
-            "ZUIbqgIYTW9kQ29uZHVjdG9yLlByb3RvY29sLlYxYgZwcm90bzM="));
+            "ChFTS1NFX1BIQVNFX0ZBSUxFRBAHEh8KG1NLU0VfUEhBU0VfVVBEQVRFX0FW",
+            "QUlMQUJMRRAIEhsKF1NLU0VfUEhBU0VfSU5DT01QQVRJQkxFEAkSIQodU0tT",
+            "RV9QSEFTRV9TT1VSQ0VfVU5BVkFJTEFCTEUQCjKdAQoOU2tzZU9wZXJhdGlv",
+            "bnMSRAoIUmVhZFNrc2USHC5tb2Rjb25kdWN0b3IudjEuU2tzZVJlcXVlc3Qa",
+            "Gi5tb2Rjb25kdWN0b3IudjEuU2tzZVN0YXRlEkUKCVN0YXJ0U2tzZRIcLm1v",
+            "ZGNvbmR1Y3Rvci52MS5Ta3NlUmVxdWVzdBoaLm1vZGNvbmR1Y3Rvci52MS5T",
+            "a3NlU3RhdGVCG6oCGE1vZENvbmR1Y3Rvci5Qcm90b2NvbC5WMWIGcHJvdG8z"));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { },
           new pbr::GeneratedClrTypeInfo(new[] {typeof(global::ModConductor.Protocol.V1.SksePhase), }, null, new pbr::GeneratedClrTypeInfo[] {
@@ -60,6 +62,9 @@ namespace ModConductor.Protocol.V1 {
     [pbr::OriginalName("SKSE_PHASE_INSTALLING")] Installing = 5,
     [pbr::OriginalName("SKSE_PHASE_READY")] Ready = 6,
     [pbr::OriginalName("SKSE_PHASE_FAILED")] Failed = 7,
+    [pbr::OriginalName("SKSE_PHASE_UPDATE_AVAILABLE")] UpdateAvailable = 8,
+    [pbr::OriginalName("SKSE_PHASE_INCOMPATIBLE")] Incompatible = 9,
+    [pbr::OriginalName("SKSE_PHASE_SOURCE_UNAVAILABLE")] SourceUnavailable = 10,
   }
 
   #endregion

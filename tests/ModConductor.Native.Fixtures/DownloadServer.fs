@@ -15,8 +15,10 @@ type DownloadRequestSeen =
       Validator: string
       At: DateTimeOffset }
 
-type DownloadServer() =
-    let payload = Array.init (4 * 1024 * 1024) (fun n -> byte (n % 251))
+type DownloadServer(?content: byte array) =
+    let payload =
+        defaultArg content (Array.init (4 * 1024 * 1024) (fun n -> byte (n % 251)))
+
     let checksum = Convert.ToHexString(SHA256.HashData payload).ToLowerInvariant()
     let probe = new TcpListener(IPAddress.Loopback, 0)
     do probe.Start()

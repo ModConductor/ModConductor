@@ -519,6 +519,7 @@ module internal DeploymentPreparation =
         sources
         existing
         reviewed
+        retainedProfile
         progress
         token
         =
@@ -534,6 +535,6 @@ module internal DeploymentPreparation =
             sources
             existing
             false
-            None
+            retainedProfile
             progress
             token

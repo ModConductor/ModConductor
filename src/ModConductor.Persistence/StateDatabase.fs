@@ -111,6 +111,12 @@ type internal StateDatabase(directory: string) =
 
             Sqlite.migrate connection
             OwnerLease.recover owners ownerId abandonOwner
+
+            Sqlite.execute
+                connection
+                null
+                "DELETE FROM skse_replacement_intents WHERE NOT EXISTS(SELECT 1 FROM deployment_receipts WHERE id=receipt_id)"
+                []
         with _ ->
             connection.Dispose()
             File.Delete ownerPath

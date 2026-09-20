@@ -31,6 +31,12 @@ class SksePhase extends $pb.ProtobufEnum {
       SksePhase._(6, _omitEnumNames ? '' : 'SKSE_PHASE_READY');
   static const SksePhase SKSE_PHASE_FAILED =
       SksePhase._(7, _omitEnumNames ? '' : 'SKSE_PHASE_FAILED');
+  static const SksePhase SKSE_PHASE_UPDATE_AVAILABLE =
+      SksePhase._(8, _omitEnumNames ? '' : 'SKSE_PHASE_UPDATE_AVAILABLE');
+  static const SksePhase SKSE_PHASE_INCOMPATIBLE =
+      SksePhase._(9, _omitEnumNames ? '' : 'SKSE_PHASE_INCOMPATIBLE');
+  static const SksePhase SKSE_PHASE_SOURCE_UNAVAILABLE =
+      SksePhase._(10, _omitEnumNames ? '' : 'SKSE_PHASE_SOURCE_UNAVAILABLE');
 
   static const $core.List<SksePhase> values = <SksePhase>[
     SKSE_PHASE_UNSPECIFIED,
@@ -41,10 +47,13 @@ class SksePhase extends $pb.ProtobufEnum {
     SKSE_PHASE_INSTALLING,
     SKSE_PHASE_READY,
     SKSE_PHASE_FAILED,
+    SKSE_PHASE_UPDATE_AVAILABLE,
+    SKSE_PHASE_INCOMPATIBLE,
+    SKSE_PHASE_SOURCE_UNAVAILABLE,
   ];
 
   static final $core.List<SksePhase?> _byValue =
-      $pb.ProtobufEnum.$_initByValueList(values, 7);
+      $pb.ProtobufEnum.$_initByValueList(values, 10);
   static SksePhase? valueOf($core.int value) =>
       value < 0 || value >= _byValue.length ? null : _byValue[value];
 

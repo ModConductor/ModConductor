@@ -12,7 +12,7 @@ open ModConductor.Persistence
 open ModConductor.Protocol.V1
 open ModConductor.Skse
 
-type internal SkseView =
+type SkseView =
     { Phase: SksePhase
       GameVersion: string
       ComponentVersion: string
@@ -20,7 +20,7 @@ type internal SkseView =
       Detail: string
       FileId: int64 option }
 
-type internal SkseCoordinator
+type SkseCoordinator
     (
         nexus: NexusSession,
         downloads: DownloadSession,
@@ -29,20 +29,101 @@ type internal SkseCoordinator
         handoff: IOAuthHandoff
     ) =
     let lifetime = new CancellationTokenSource()
-    let phases = ConcurrentDictionary<Guid * Guid, SkseView>()
     let workers = ConcurrentDictionary<Guid * Guid, Task>()
-    let pending =
-        ConcurrentDictionary<Guid * Guid, ModConductor.GameContexts.GameContextState * SkseRelease>()
 
-    let unavailable problem =
-        { Phase = SksePhase.Unavailable
-          GameVersion = ""
-          ComponentVersion = ""
-          Status = SkseProblem.message problem
-          Detail = ""
-          FileId = None }
+    let phaseName (value: SksePhase) =
+        match value with
+        | SksePhase.Available -> "available"
+        | SksePhase.WaitingForNexus -> "waiting"
+        | SksePhase.Downloading -> "downloading"
+        | SksePhase.Installing -> "installing"
+        | SksePhase.Ready -> "current"
+        | SksePhase.Failed -> "failed"
+        | SksePhase.UpdateAvailable -> "update"
+        | SksePhase.Incompatible -> "incompatible"
+        | SksePhase.SourceUnavailable -> "source-unavailable"
+        | _ -> "unavailable"
 
-    let resolve workspace =
+    let phase (value: string) =
+        match value with
+        | "available" -> SksePhase.Available
+        | "waiting" -> SksePhase.WaitingForNexus
+        | "downloading" -> SksePhase.Downloading
+        | "installing" -> SksePhase.Installing
+        | "current" -> SksePhase.Ready
+        | "failed" -> SksePhase.Failed
+        | "update" -> SksePhase.UpdateAvailable
+        | "incompatible" -> SksePhase.Incompatible
+        | "source-unavailable" -> SksePhase.SourceUnavailable
+        | _ -> SksePhase.Unavailable
+
+    let fromStored (value: StoredSkseStatus) : SkseView =
+        { Phase = phase value.Phase
+          GameVersion = value.GameVersion
+          ComponentVersion = value.ComponentVersion
+          Status = value.Status
+          Detail = value.Detail
+          FileId = value.NexusFileId }
+
+    let persist (workspace, profile) (value: SkseView) =
+        task {
+            do!
+                store.SkseLoaders.SaveStatus
+                    { WorkspaceId = workspace
+                      ProfileId = profile
+                      Phase = phaseName value.Phase
+                      GameVersion = value.GameVersion
+                      ComponentVersion = value.ComponentVersion
+                      Status = value.Status
+                      Detail = value.Detail
+                      NexusFileId = value.FileId
+                      CheckedAt = DateTimeOffset.UtcNow }
+
+            return value
+        }
+
+    let unavailable key problem =
+        persist
+            key
+            { Phase = SksePhase.Unavailable
+              GameVersion = ""
+              ComponentVersion = ""
+              Status = SkseProblem.message problem
+              Detail = ""
+              FileId = None }
+
+    let failed key game componentVersion file status detail =
+        persist
+            key
+            { Phase = SksePhase.Failed
+              GameVersion = game
+              ComponentVersion = componentVersion
+              Status = status
+              Detail = detail
+              FileId = file }
+
+    let facts (context: ModConductor.GameContexts.GameContextState) =
+        let executable = context.Binding.Value.Evidence.Executable.Value
+        executable.FileVersion, executable.Sha256
+
+    let storedSelection
+        workspace
+        profile
+        (context: ModConductor.GameContexts.GameContextState)
+        (selection: SkseSelection)
+        : StoredSkseSelection =
+        let gameVersion, gameSha256 = facts context
+
+        { ArtifactId = None
+          WorkspaceId = workspace
+          ProfileId = Some profile
+          AccountId = nexus.Status.Account.Value.Subject
+          GameVersion = gameVersion
+          GameSha256 = gameSha256
+          Selection = selection
+          CheckedAt = DateTimeOffset.UtcNow }
+
+    let resolve workspace profile =
         task {
             let! context = games.Read workspace
 
@@ -55,283 +136,568 @@ type internal SkseCoordinator
                     source
                     |> Result.mapError (NexusProblem.message >> SkseProblem.SourceUnavailable)
                     |> Result.bind (fun source ->
-                        SkseResolver.select context (SkseResolver.releases source) nexus.Status.Account
-                        |> Result.map (fun selection -> context, selection))
+                        SkseResolver.select
+                            context
+                            (SkseResolver.releases source)
+                            nexus.Status.Account)
+                    |> Result.map (fun selection ->
+                        context, storedSelection workspace profile context selection)
         }
+
+    let reference (selection: StoredSkseSelection) keyed =
+        let release = selection.Selection.Release
+
+        { Account = selection.AccountId
+          Game = "skyrimspecialedition"
+          ModId = release.ModId
+          FileId = release.File.Id
+          Keyed = keyed
+          Version = Some release.File.Version }
+
+    let cacheFor (context: ModConductor.GameContexts.GameContextState) workspace =
+        task {
+            match nexus.Status.Account with
+            | None -> return None
+            | Some account ->
+                let _, gameSha256 = facts context
+                return! store.SkseLoaders.Cached(workspace, account.Subject, gameSha256)
+        }
+
+    let saveArtifact artifact selection =
+        store.SkseLoaders.SaveArtifactSelection(
+            artifact,
+            { selection with
+                ArtifactId = Some artifact.Id }
+        )
 
     let monitor
         key
         (context: ModConductor.GameContexts.GameContextState)
-        (release: SkseRelease)
+        (selection: StoredSkseSelection)
         (artifact: Artifact)
         =
         workers.GetOrAdd(
             key,
             fun _ ->
                 task {
+                    let gameVersion, _ = facts context
+                    let release = selection.Selection.Release
+
                     try
-                        let workspace, profile = key
                         let mutable current = artifact
                         let mutable waiting = true
 
                         while waiting && not lifetime.IsCancellationRequested do
                             match current.State, current.Download with
-                            | ArtifactState.Ready, _ -> waiting <- false
+                            | (ArtifactState.Ready | ArtifactState.Installed), _ -> waiting <- false
                             | ArtifactState.Incomplete, Some download when
                                 download.State = DownloadState.Failed
                                 || download.State = DownloadState.Paused
                                 ->
                                 waiting <- false
-                                raise (IO.IOException(current.Problem |> Option.defaultValue "The SKSE download stopped."))
+
+                                raise (
+                                    IO.IOException(
+                                        current.Problem
+                                        |> Option.defaultValue "The SKSE download stopped."
+                                    )
+                                )
                             | _ ->
                                 do! Task.Delay(100, lifetime.Token)
-                                let! read = (store.Artifacts).Read(workspace, current.Id)
+                                let! read = store.Artifacts.Read(fst key, current.Id)
+
                                 current <-
                                     read
                                     |> Result.defaultWith (fun _ ->
                                         raise (IO.IOException "The SKSE archive is unavailable."))
 
                         if not lifetime.IsCancellationRequested then
-                            phases[key] <-
-                                { Phase = SksePhase.Installing
-                                  GameVersion = context.Binding.Value.Evidence.Executable.Value.FileVersion
-                                  ComponentVersion = string release.ComponentVersion
-                                  Status = "Installing SKSE"
-                                  Detail = ""
-                                  FileId = Some release.File.Id }
-                            pending.TryRemove key |> ignore
+                            do! saveArtifact current selection
 
-                            let! _ = store.InstallSkse(workspace, profile, release, current, lifetime.Token)
+                            let! _ =
+                                persist
+                                    key
+                                    { Phase = SksePhase.Installing
+                                      GameVersion = gameVersion
+                                      ComponentVersion = string release.ComponentVersion
+                                      Status = "Installing SKSE"
+                                      Detail = ""
+                                      FileId = Some release.File.Id }
 
-                            phases[key] <-
-                                { Phase = SksePhase.Ready
-                                  GameVersion = context.Binding.Value.Evidence.Executable.Value.FileVersion
-                                  ComponentVersion = string release.ComponentVersion
-                                  Status = "SKSE is ready"
-                                  Detail = "Play uses the installed SKSE loader."
-                                  FileId = Some release.File.Id }
+                            let! _ =
+                                store.InstallSkse(
+                                    fst key,
+                                    snd key,
+                                    release,
+                                    current,
+                                    selection.CheckedAt,
+                                    lifetime.Token
+                                )
+
+                            let! _ =
+                                persist
+                                    key
+                                    { Phase = SksePhase.Ready
+                                      GameVersion = gameVersion
+                                      ComponentVersion = string release.ComponentVersion
+                                      Status = "SKSE is current"
+                                      Detail = "Play uses the installed SKSE loader."
+                                      FileId = Some release.File.Id }
+
+                            ()
                     with
                     | :? OperationCanceledException when lifetime.IsCancellationRequested -> ()
                     | error ->
-                        phases[key] <-
-                            { Phase = SksePhase.Failed
-                              GameVersion = context.Binding.Value.Evidence.Executable.Value.FileVersion
-                              ComponentVersion = string release.ComponentVersion
-                              Status = "SKSE setup failed"
-                              Detail = error.Message
-                              FileId = Some release.File.Id }
-                        pending.TryRemove key |> ignore
+                        failed
+                            key
+                            gameVersion
+                            (string release.ComponentVersion)
+                            (Some release.File.Id)
+                            "SKSE setup failed"
+                            error.Message
+                        |> fun pending -> pending.GetAwaiter().GetResult() |> ignore
+
                     workers.TryRemove key |> ignore
                 }
                 :> Task
         )
         |> ignore
 
+    let prepareArtifact
+        key
+        (context: ModConductor.GameContexts.GameContextState)
+        (selection: StoredSkseSelection)
+        (artifact: Artifact)
+        (label: string)
+        =
+        task {
+            do! saveArtifact artifact selection
+            monitor key context selection artifact
+            let gameVersion, _ = facts context
+
+            return!
+                persist
+                    key
+                    { Phase = SksePhase.Downloading
+                      GameVersion = gameVersion
+                      ComponentVersion = string selection.Selection.Release.ComponentVersion
+                      Status = label
+                      Detail = ""
+                      FileId = Some selection.Selection.Release.File.Id }
+        }
+
+    let installedState
+        key
+        (context: ModConductor.GameContexts.GameContextState)
+        (loader: StoredSkseLoader)
+        =
+        task {
+            let gameVersion, gameSha256 = facts context
+            let! current = resolve (fst key) (snd key)
+
+            match current with
+            | Error SkseProblem.UnknownCompatibility ->
+                return!
+                    persist
+                        key
+                        { Phase = SksePhase.Incompatible
+                          GameVersion = gameVersion
+                          ComponentVersion = loader.Loader.ComponentVersion
+                          Status = "Installed SKSE is incompatible"
+                          Detail =
+                            "No author release declares support for the checked Skyrim version. The working setup was not replaced."
+                          FileId = Some loader.NexusFileId }
+            | Error problem ->
+                return!
+                    persist
+                        key
+                        { Phase = SksePhase.SourceUnavailable
+                          GameVersion = gameVersion
+                          ComponentVersion = loader.Loader.ComponentVersion
+                          Status = "SKSE update check unavailable"
+                          Detail =
+                            SkseProblem.message problem + " The installed setup was not replaced."
+                          FileId = Some loader.NexusFileId }
+            | Ok(_, selection) when loader.Loader.GameSha256 <> gameSha256 ->
+                return!
+                    persist
+                        key
+                        { Phase = SksePhase.Incompatible
+                          GameVersion = gameVersion
+                          ComponentVersion = loader.Loader.ComponentVersion
+                          Status = "Skyrim changed"
+                          Detail =
+                            "The installed SKSE loader was validated for a different game build. The working setup was not replaced."
+                          FileId = Some loader.NexusFileId }
+            | Ok(_, selection) when
+                selection.Selection.Release.File.Id <> loader.NexusFileId
+                || string selection.Selection.Release.ComponentVersion
+                   <> loader.Loader.ComponentVersion
+                ->
+                return!
+                    persist
+                        key
+                        { Phase = SksePhase.UpdateAvailable
+                          GameVersion = gameVersion
+                          ComponentVersion = string selection.Selection.Release.ComponentVersion
+                          Status = "SKSE update available"
+                          Detail =
+                            "The installed version remains selected until you choose Set up SKSE."
+                          FileId = Some selection.Selection.Release.File.Id }
+            | Ok _ ->
+                return!
+                    persist
+                        key
+                        { Phase = SksePhase.Ready
+                          GameVersion = gameVersion
+                          ComponentVersion = loader.Loader.ComponentVersion
+                          Status = "SKSE is current"
+                          Detail = "Play uses the installed SKSE loader."
+                          FileId = Some loader.NexusFileId }
+        }
+
     member _.Read(workspace, profile) =
         task {
-            match phases.TryGetValue((workspace, profile)) with
-            | true, value -> return value
-            | _ ->
-                let! contextResult = games.Read workspace
-                let! deployed = store.Deployments.Read profile
+            let key = workspace, profile
+            let! contextResult = games.Read workspace
+            let! deployed = store.Deployments.Read profile
 
-                match contextResult with
-                | Ok context when context.Binding.IsSome ->
-                    let! loader =
-                        (store.SkseLoaders :> ModConductor.GameLaunching.IComponentLoaderSelection).Read(
-                            workspace,
-                            profile,
-                            deployed |> Result.toOption |> Option.bind _.ActiveGeneration
-                        )
+            match contextResult, deployed with
+            | Ok context, Ok deployed when
+                context.Binding.IsSome && deployed.WorkspaceId = workspace
+                ->
+                let! loader =
+                    store.SkseLoaders.ReadStored(workspace, profile, deployed.ActiveGeneration)
 
-                    match loader with
-                    | Some loader when loader.GameSha256 = context.Binding.Value.Evidence.Executable.Value.Sha256 ->
-                        return
-                            { Phase = SksePhase.Ready
-                              GameVersion = context.Binding.Value.Evidence.Executable.Value.FileVersion
-                              ComponentVersion = loader.ComponentVersion
-                              Status = "SKSE is ready"
-                              Detail = "Play uses the installed SKSE loader."
-                              FileId = None }
+                match loader with
+                | Some loader -> return! installedState key context loader
+                | None ->
+                    let! saved = store.SkseLoaders.ReadStatus(workspace, profile)
+
+                    match saved with
+                    | Some status when status.Phase = "waiting" || status.Phase = "failed" ->
+                        return fromStored status
                     | _ ->
-                        let! resolved = resolve workspace
+                        let! resolved = resolve workspace profile
 
                         match resolved with
-                        | Error problem -> return unavailable problem
                         | Ok(context, selection) ->
-                            let account = nexus.Status.Account.Value
-                            let release = selection.Release
                             let! existing =
-                                downloads.FindNexus(
-                                    workspace,
-                                    { Account = account.Subject
-                                      Game = "skyrimspecialedition"
-                                      ModId = release.ModId
-                                      FileId = release.File.Id
-                                      Keyed = false
-                                      Version = Some release.File.Version }
-                                )
+                                downloads.FindNexus(workspace, reference selection false)
 
                             match existing with
                             | Some artifact ->
-                                monitor (workspace, profile) context release artifact
-                                return
-                                    { Phase = SksePhase.Downloading
-                                      GameVersion = context.Binding.Value.Evidence.Executable.Value.FileVersion
-                                      ComponentVersion = string release.ComponentVersion
-                                      Status = "Preparing SKSE"
-                                      Detail = ""
-                                      FileId = Some release.File.Id }
+                                return!
+                                    prepareArtifact key context selection artifact "Preparing SKSE"
                             | None ->
-                                return
-                                    { Phase = SksePhase.Available
-                                      GameVersion = context.Binding.Value.Evidence.Executable.Value.FileVersion
-                                      ComponentVersion = string release.ComponentVersion
-                                      Status = "Matching SKSE found"
-                                      Detail =
-                                        if selection.Acquisition = SkseAcquisition.Direct then
-                                            "Download and setup can finish in Mod Conductor."
-                                        else
-                                            "Nexus Mods requires Mod Manager Download before setup can continue."
-                                      FileId = Some release.File.Id }
-                | _ -> return unavailable SkseProblem.GameUnavailable
+                                let gameVersion, _ = facts context
+
+                                return!
+                                    persist
+                                        key
+                                        { Phase = SksePhase.Available
+                                          GameVersion = gameVersion
+                                          ComponentVersion =
+                                            string selection.Selection.Release.ComponentVersion
+                                          Status = "Matching SKSE found"
+                                          Detail =
+                                            if
+                                                selection.Selection.Acquisition = SkseAcquisition.Direct
+                                            then
+                                                "Download and setup can finish in Mod Conductor."
+                                            else
+                                                "Nexus Mods requires Mod Manager Download before setup can continue."
+                                          FileId = Some selection.Selection.Release.File.Id }
+                        | Error liveProblem ->
+                            let! cached = cacheFor context workspace
+
+                            match cached with
+                            | Some cached ->
+                                let! artifact =
+                                    store.Artifacts.Read(workspace, cached.ArtifactId.Value)
+
+                                match artifact with
+                                | Ok artifact ->
+                                    return!
+                                        prepareArtifact
+                                            key
+                                            context
+                                            { cached with ProfileId = Some profile }
+                                            artifact
+                                            "Installing cached SKSE"
+                                | Error _ -> return! unavailable key liveProblem
+                            | None -> return! unavailable key liveProblem
+            | _ -> return! unavailable key SkseProblem.GameUnavailable
         }
 
     member _.Start(workspace, profile) =
         task {
-            let! resolved = resolve workspace
+            let key = workspace, profile
+            let! resolved = resolve workspace profile
 
             match resolved with
-            | Error problem -> return unavailable problem
-            | Ok(context, selection) ->
-                let account = nexus.Status.Account.Value
-                let release = selection.Release
-                let reference =
-                    { Account = account.Subject
-                      Game = "skyrimspecialedition"
-                      ModId = release.ModId
-                      FileId = release.File.Id
-                      Keyed = false
-                      Version = Some release.File.Version }
+            | Error liveProblem ->
+                let! context = games.Read workspace
 
-                let! existing = downloads.FindNexus(workspace, reference)
+                match context with
+                | Ok context when context.Binding.IsSome ->
+                    let! cached = cacheFor context workspace
+
+                    match cached with
+                    | Some cached ->
+                        let! artifact = store.Artifacts.Read(workspace, cached.ArtifactId.Value)
+
+                        match artifact with
+                        | Ok artifact ->
+                            return!
+                                prepareArtifact
+                                    key
+                                    context
+                                    { cached with ProfileId = Some profile }
+                                    artifact
+                                    "Installing cached SKSE"
+                        | Error _ -> return! unavailable key liveProblem
+                    | None -> return! unavailable key liveProblem
+                | _ -> return! unavailable key liveProblem
+            | Ok(context, selection) ->
+                let release = selection.Selection.Release
+                let! existing = downloads.FindNexus(workspace, reference selection false)
 
                 match existing with
                 | Some artifact ->
-                    monitor (workspace, profile) context release artifact
-                    return
-                        { Phase = SksePhase.Downloading
-                          GameVersion = context.Binding.Value.Evidence.Executable.Value.FileVersion
-                          ComponentVersion = string release.ComponentVersion
-                          Status = "Preparing SKSE"
-                          Detail = ""
-                          FileId = Some release.File.Id }
-                | None when selection.Acquisition = SkseAcquisition.NexusPage ->
-                    do!
-                        handoff.Open(
-                            Uri("https://www.nexusmods.com/skyrimspecialedition/mods/" + string release.ModId + "?tab=files&file_id=" + string release.File.Id),
-                            lifetime.Token
+                    return! prepareArtifact key context selection artifact "Preparing SKSE"
+                | None when selection.Selection.Acquisition = SkseAcquisition.NexusPage ->
+                    try
+                        do!
+                            handoff.Open(
+                                Uri(
+                                    "https://www.nexusmods.com/skyrimspecialedition/mods/"
+                                    + string release.ModId
+                                    + "?tab=files&file_id="
+                                    + string release.File.Id
+                                ),
+                                lifetime.Token
+                            )
+
+                        do! store.SkseLoaders.SavePending selection
+                        let gameVersion, _ = facts context
+
+                        return!
+                            persist
+                                key
+                                { Phase = SksePhase.WaitingForNexus
+                                  GameVersion = gameVersion
+                                  ComponentVersion = string release.ComponentVersion
+                                  Status = "Waiting for Nexus Mods"
+                                  Detail = "Select Mod Manager Download for the matching SKSE file."
+                                  FileId = Some release.File.Id }
+                    with error ->
+                        return!
+                            failed
+                                key
+                                selection.GameVersion
+                                (string release.ComponentVersion)
+                                (Some release.File.Id)
+                                "Nexus Mods could not be opened"
+                                error.Message
+                | None ->
+                    let! lease =
+                        nexus.Resolve(
+                            "skyrimspecialedition",
+                            release.ModId,
+                            release.File.Id,
+                            selection.AccountId
                         )
 
-                    let value =
-                        { Phase = SksePhase.WaitingForNexus
-                          GameVersion = context.Binding.Value.Evidence.Executable.Value.FileVersion
-                          ComponentVersion = string release.ComponentVersion
-                          Status = "Waiting for Nexus Mods"
-                          Detail = "Select Mod Manager Download for the matching SKSE file."
-                          FileId = Some release.File.Id }
-
-                    phases[(workspace, profile)] <- value
-                    pending[(workspace, profile)] <- context, release
-                    return value
-                | None ->
-                    let! lease = nexus.Resolve("skyrimspecialedition", release.ModId, release.File.Id, account.Subject)
-
                     match lease with
-                    | Error problem -> return unavailable (SkseProblem.SourceUnavailable(NexusProblem.message problem))
+                    | Error problem ->
+                        return!
+                            failed
+                                key
+                                selection.GameVersion
+                                (string release.ComponentVersion)
+                                (Some release.File.Id)
+                                "SKSE source unavailable"
+                                (NexusProblem.message problem)
                     | Ok _ ->
                         let! started =
                             downloads.Start
                                 { Id = Guid.NewGuid()
                                   WorkspaceId = workspace
                                   Name = release.File.Name
-                                  Sources = [ DownloadSource.Nexus reference ]
+                                  Sources = [ DownloadSource.Nexus(reference selection false) ]
                                   ExpectedLength = release.File.Bytes
                                   ExpectedSha256 = None }
 
                         match started with
-                        | Error _ -> return unavailable (SkseProblem.TransferFailed "The SKSE download could not start.")
+                        | Error problem ->
+                            return!
+                                failed
+                                    key
+                                    selection.GameVersion
+                                    (string release.ComponentVersion)
+                                    (Some release.File.Id)
+                                    "SKSE download could not start"
+                                    (string problem)
                         | Ok artifact ->
-                            monitor (workspace, profile) context release artifact
-                            return
-                                { Phase = SksePhase.Downloading
-                                  GameVersion = context.Binding.Value.Evidence.Executable.Value.FileVersion
-                                  ComponentVersion = string release.ComponentVersion
-                                  Status = "Downloading SKSE"
-                                  Detail = ""
-                                  FileId = Some release.File.Id }
+                            return!
+                                prepareArtifact key context selection artifact "Downloading SKSE"
         }
 
     member _.AcceptNxm(id: Guid) =
         Task.Run(fun () ->
             task {
-                match nexus.Status.Account, nexus.ReadNxm id with
-                | Some account, Ok file ->
-                    match
+                let! pending = store.SkseLoaders.Pending()
+
+                let failPending title detail (values: StoredSkseSelection list) =
+                    task {
+                        for selection in values do
+                            let key = selection.WorkspaceId, selection.ProfileId.Value
+
+                            let! _ =
+                                failed
+                                    key
+                                    selection.GameVersion
+                                    (string selection.Selection.Release.ComponentVersion)
+                                    (Some selection.Selection.Release.File.Id)
+                                    title
+                                    detail
+
+                            do! store.SkseLoaders.RemovePending(selection.ProfileId.Value)
+                    }
+
+                match nexus.ReadNxm id with
+                | Error problem -> do! failPending problem.Title problem.Detail pending
+                | Ok file ->
+                    let matches =
                         pending
-                        |> Seq.tryFind (fun entry ->
-                            let _, release = entry.Value
+                        |> List.filter (fun selection ->
+                            let release = selection.Selection.Release
+
                             file.Game = "skyrimspecialedition"
                             && file.ModId = release.ModId
                             && file.FileId = release.File.Id)
-                    with
-                    | None -> ()
-                    | Some entry ->
+
+                    match matches, nexus.Status.Account with
+                    | [], _ ->
+                        do!
+                            failPending
+                                "This Nexus link is not the expected SKSE file"
+                                "Use Mod Manager Download for the matching SKSE file shown by Mod Conductor."
+                                pending
+                    | _, None ->
+                        do!
+                            failPending
+                                "Sign in to Nexus Mods"
+                                "Use the Nexus account that started this SKSE setup."
+                                matches
+                    | _, Some account ->
                         match nexus.AdmitNxm(id, account.Subject) with
-                        | Error _ -> ()
+                        | Error problem -> do! failPending problem.Title problem.Detail matches
                         | Ok admitted ->
                             use admitted = admitted
-                            let context, release = entry.Value
+                            let selection = matches.Head
+                            let key = selection.WorkspaceId, selection.ProfileId.Value
                             let! metadata = nexus.ReadFile(file.Game, file.ModId, file.FileId)
 
                             match metadata with
-                            | Error _ -> ()
+                            | Error problem ->
+                                do!
+                                    failPending
+                                        "SKSE file details are unavailable"
+                                        (NexusProblem.message problem)
+                                        matches
                             | Ok metadata ->
+                                let selection =
+                                    { selection with
+                                        Selection =
+                                            { selection.Selection with
+                                                Release =
+                                                    { selection.Selection.Release with
+                                                        File = metadata } }
+                                        CheckedAt = DateTimeOffset.UtcNow }
+
                                 let! started =
                                     downloads.Start
                                         { Id = Guid.NewGuid()
-                                          WorkspaceId = fst entry.Key
+                                          WorkspaceId = selection.WorkspaceId
                                           Name = metadata.Name
                                           Sources =
-                                            [ DownloadSource.Nexus
-                                                  { Account = account.Subject
-                                                    Game = file.Game
-                                                    ModId = file.ModId
-                                                    FileId = file.FileId
-                                                    Keyed = file.Keyed
-                                                    Version = Some metadata.Version } ]
+                                            [ DownloadSource.Nexus(reference selection file.Keyed) ]
                                           ExpectedLength = metadata.Bytes
                                           ExpectedSha256 = None }
 
                                 match started with
+                                | Error problem ->
+                                    do!
+                                        failPending
+                                            "SKSE download could not start"
+                                            (string problem)
+                                            matches
                                 | Ok artifact ->
                                     admitted.Complete()
-                                    phases[entry.Key] <-
-                                        { Phase = SksePhase.Downloading
-                                          GameVersion = context.Binding.Value.Evidence.Executable.Value.FileVersion
-                                          ComponentVersion = string release.ComponentVersion
-                                          Status = "Downloading SKSE"
-                                          Detail = ""
-                                          FileId = Some release.File.Id }
-                                    monitor entry.Key context release artifact
-                                | Error _ -> ()
-                | _ -> ()
+                                    do! store.SkseLoaders.RemovePending(selection.ProfileId.Value)
+                                    let! context = games.Read selection.WorkspaceId
+
+                                    match context with
+                                    | Ok context when context.Binding.IsSome ->
+                                        let! _ =
+                                            prepareArtifact
+                                                key
+                                                context
+                                                selection
+                                                artifact
+                                                "Downloading SKSE"
+
+                                        ()
+                                    | _ ->
+                                        let! _ =
+                                            failed
+                                                key
+                                                selection.GameVersion
+                                                (string
+                                                    selection.Selection.Release.ComponentVersion)
+                                                (Some selection.Selection.Release.File.Id)
+                                                "Skyrim is unavailable"
+                                                "Refresh the selected Skyrim installation."
+
+                                        ()
             }
             :> Task)
         |> ignore
 
+    member _.CheckBeforePlay(workspace, profile) =
+        task {
+            let! deployed = store.Deployments.Read profile
+
+            match deployed with
+            | Error _ -> return Ok()
+            | Ok deployed ->
+                let! loader =
+                    store.SkseLoaders.ReadStored(workspace, profile, deployed.ActiveGeneration)
+
+                match loader with
+                | None -> return Ok()
+                | Some loader ->
+                    let! context = games.Read workspace
+
+                    match context with
+                    | Error _ ->
+                        return Error "Refresh the selected Skyrim installation before Play."
+                    | Ok context ->
+                        let! state = installedState (workspace, profile) context loader
+
+                        return
+                            if state.Phase = SksePhase.Ready then
+                                Ok()
+                            else
+                                Error(state.Status + ". " + state.Detail)
+        }
+
     interface IDisposable with
-        member _.Dispose() = lifetime.Cancel(); lifetime.Dispose()
+        member _.Dispose() =
+            lifetime.Cancel()
+            lifetime.Dispose()
 
 type internal SkseService(coordinator: SkseCoordinator) =
     inherit SkseOperations.SkseOperationsBase()

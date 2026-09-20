@@ -76,7 +76,9 @@ class _SkseSectionState extends State<SkseSection> {
     final value = status;
     final failed =
         value?.phase == SkseStatusPhase.failed ||
-        value?.phase == SkseStatusPhase.unavailable;
+        value?.phase == SkseStatusPhase.unavailable ||
+        value?.phase == SkseStatusPhase.incompatible ||
+        value?.phase == SkseStatusPhase.sourceUnavailable;
     return McSection(
       title: 'Skyrim Script Extender',
       children: [
@@ -100,7 +102,9 @@ class _SkseSectionState extends State<SkseSection> {
               icon: Icons.refresh,
               onPressed: busy ? null : load,
             ),
-            if (value?.phase == SkseStatusPhase.available || failed)
+            if (value?.phase == SkseStatusPhase.available ||
+                value?.phase == SkseStatusPhase.updateAvailable ||
+                value?.phase == SkseStatusPhase.failed)
               McAction(
                 label: 'Set up SKSE',
                 icon: Icons.download,

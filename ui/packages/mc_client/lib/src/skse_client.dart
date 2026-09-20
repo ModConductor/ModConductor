@@ -10,6 +10,9 @@ enum SkseStatusPhase {
   installing,
   ready,
   failed,
+  updateAvailable,
+  incompatible,
+  sourceUnavailable,
 }
 
 class SkseStatus {
@@ -40,6 +43,11 @@ class SkseClient {
       wire.SksePhase.SKSE_PHASE_INSTALLING => SkseStatusPhase.installing,
       wire.SksePhase.SKSE_PHASE_READY => SkseStatusPhase.ready,
       wire.SksePhase.SKSE_PHASE_FAILED => SkseStatusPhase.failed,
+      wire.SksePhase.SKSE_PHASE_UPDATE_AVAILABLE =>
+        SkseStatusPhase.updateAvailable,
+      wire.SksePhase.SKSE_PHASE_INCOMPATIBLE => SkseStatusPhase.incompatible,
+      wire.SksePhase.SKSE_PHASE_SOURCE_UNAVAILABLE =>
+        SkseStatusPhase.sourceUnavailable,
       _ => SkseStatusPhase.unavailable,
     },
     value.gameVersion,

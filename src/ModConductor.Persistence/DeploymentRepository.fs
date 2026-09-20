@@ -147,6 +147,13 @@ type internal DeploymentRepository(database: StateDatabase) =
                 checkClaim transaction receipt.Id receipt.Revision |> ignore
                 DeploymentRows.writeContext connection transaction context
                 let next = DeploymentRows.update connection transaction receipt
+
+                SkseRows.completeReplacement
+                    connection
+                    transaction
+                    receipt.Id
+                    (receipt.Phase = ReceiptPhase.Complete)
+
                 transaction.Commit()
                 next)
 
