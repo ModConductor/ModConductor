@@ -2,6 +2,30 @@ namespace ModConductor.Persistence
 
 open System
 open ModConductor.GameLaunching
+open ModConductor.Nexus
+
+type internal StoredEnbComponent =
+    { Kind: string
+      ModId: Guid
+      VersionId: Guid
+      Version: string
+      Sha256: string
+      NexusModId: int64 option
+      NexusFileId: int64 option
+      Source: string
+      Terms: string
+      CheckedAt: DateTimeOffset }
+
+type internal StoredEnbPendingSource =
+    { WorkspaceId: Guid
+      ProfileId: Guid
+      RuntimeArtifactId: Guid
+      RuntimeSha256: string
+      Kind: string
+      NexusModId: int64
+      File: NexusFile
+      AccountId: string
+      CheckedAt: DateTimeOffset }
 
 type internal StoredEnbStatus =
     { WorkspaceId: Guid
@@ -82,13 +106,14 @@ type internal EnbStore(database: StateDatabase) =
             companions,
             overrides,
             selectedRuntime,
-            previousValues
+            previousValues,
+            configurationAction: Guid option
         ) =
         database.EnqueueInternal(fun () ->
             Sqlite.execute
                 database.Connection
                 null
-                "INSERT INTO enb_launch_plans VALUES($profile,$workspace,$generation,$game,$runtime,$preset,$runtimeHash,$presetHash,$companions,$overrides,$selectedRuntime,$previous)"
+                "INSERT INTO enb_launch_plans VALUES($profile,$workspace,$generation,$game,$runtime,$preset,$runtimeHash,$presetHash,$companions,$overrides,$selectedRuntime,$previous,$configuration)"
                 [ "$profile", box (string profile)
                   "$workspace", box (string workspace)
                   "$generation", box (string generation)
@@ -100,7 +125,198 @@ type internal EnbStore(database: StateDatabase) =
                   "$companions", box companions
                   "$overrides", box overrides
                   "$selectedRuntime", box selectedRuntime
-                  "$previous", box previousValues ])
+                  "$previous", box previousValues
+                  "$configuration",
+                  configurationAction
+                  |> Option.map (string >> box)
+                  |> Option.defaultValue (box DBNull.Value) ])
+
+    member _.SaveGeneration(workspace, profile, generation, components: StoredEnbComponent list) =
+        database.EnqueueInternal(fun () ->
+            use transaction = database.Connection.BeginTransaction(deferred = false)
+
+            for value in components do
+                Sqlite.execute
+                    database.Connection
+                    transaction
+                    "INSERT INTO enb_generation_components VALUES($profile,$workspace,$generation,$kind,$mod,$versionId,$version,$hash,$nexusMod,$nexusFile,$source,$terms,$checked)"
+                    [ "$profile", box (string profile)
+                      "$workspace", box (string workspace)
+                      "$generation", box (string generation)
+                      "$kind", box value.Kind
+                      "$mod", box (string value.ModId)
+                      "$versionId", box (string value.VersionId)
+                      "$version", box value.Version
+                      "$hash", box value.Sha256
+                      "$nexusMod",
+                      value.NexusModId |> Option.map box |> Option.defaultValue (box DBNull.Value)
+                      "$nexusFile",
+                      value.NexusFileId |> Option.map box |> Option.defaultValue (box DBNull.Value)
+                      "$source", box value.Source
+                      "$terms", box value.Terms
+                      "$checked", box (value.CheckedAt.ToString("O")) ]
+
+            transaction.Commit())
+
+    member _.StageSelection
+        (receipt, workspace, profile, expectedRevision, values: (Guid * bool) list)
+        =
+        database.EnqueueInternal(fun () ->
+            use transaction = database.Connection.BeginTransaction(deferred = false)
+
+            for modId, enabled in values do
+                Sqlite.execute
+                    database.Connection
+                    transaction
+                    "INSERT INTO enb_selection_intents VALUES($receipt,$profile,$workspace,$revision,$mod,$enabled)"
+                    [ "$receipt", box (string receipt)
+                      "$profile", box (string profile)
+                      "$workspace", box (string workspace)
+                      "$revision", box expectedRevision
+                      "$mod", box (string modId)
+                      "$enabled", box enabled ]
+
+            transaction.Commit())
+
+    member _.Components(workspace: Guid, profile: Guid, generation: Guid option) =
+        database.Enqueue(fun () ->
+            match generation with
+            | None -> []
+            | Some generation ->
+                use query =
+                    Sqlite.command
+                        database.Connection
+                        null
+                        "SELECT kind,mod_id,version_id,component_version,archive_sha256,nexus_mod,nexus_file,source_url,terms_url,checked_at FROM enb_generation_components WHERE profile_id=$profile AND workspace_id=$workspace AND generation_id=$generation ORDER BY kind"
+                        [ "$profile", box (string profile)
+                          "$workspace", box (string workspace)
+                          "$generation", box (string generation) ]
+
+                use reader = query.ExecuteReader()
+
+                [ while reader.Read() do
+                      yield
+                          { Kind = reader.GetString 0
+                            ModId = Guid.Parse(reader.GetString 1)
+                            VersionId = Guid.Parse(reader.GetString 2)
+                            Version = reader.GetString 3
+                            Sha256 = reader.GetString 4
+                            NexusModId =
+                              if reader.IsDBNull 5 then None else Some(reader.GetInt64 5)
+                            NexusFileId =
+                              if reader.IsDBNull 6 then None else Some(reader.GetInt64 6)
+                            Source = reader.GetString 7
+                            Terms = reader.GetString 8
+                            CheckedAt = DateTimeOffset.Parse(reader.GetString 9) } ])
+
+    member _.SavePending(value: StoredEnbPendingSource) =
+        database.EnqueueInternal(fun () ->
+            Sqlite.execute
+                database.Connection
+                null
+                "INSERT INTO enb_pending_sources VALUES($profile,$workspace,$runtime,$runtimeHash,$kind,$nexusMod,$nexusFile,$name,$version,$bytes,$account,$checked) ON CONFLICT(profile_id,kind) DO UPDATE SET runtime_artifact_id=excluded.runtime_artifact_id,runtime_sha256=excluded.runtime_sha256,nexus_mod=excluded.nexus_mod,nexus_file=excluded.nexus_file,file_name=excluded.file_name,file_version=excluded.file_version,file_bytes=excluded.file_bytes,account_id=excluded.account_id,checked_at=excluded.checked_at"
+                [ "$profile", box (string value.ProfileId)
+                  "$workspace", box (string value.WorkspaceId)
+                  "$runtime", box (string value.RuntimeArtifactId)
+                  "$runtimeHash", box value.RuntimeSha256
+                  "$kind", box value.Kind
+                  "$nexusMod", box value.NexusModId
+                  "$nexusFile", box value.File.Id
+                  "$name", box value.File.Name
+                  "$version", box value.File.Version
+                  "$bytes",
+                  value.File.Bytes |> Option.map box |> Option.defaultValue (box DBNull.Value)
+                  "$account", box value.AccountId
+                  "$checked", box (value.CheckedAt.ToString("O")) ])
+
+    member _.Pending() =
+        database.Enqueue(fun () ->
+            use query =
+                Sqlite.command
+                    database.Connection
+                    null
+                    "SELECT workspace_id,profile_id,runtime_artifact_id,runtime_sha256,kind,nexus_mod,nexus_file,file_name,file_version,file_bytes,account_id,checked_at FROM enb_pending_sources ORDER BY checked_at"
+                    []
+
+            use reader = query.ExecuteReader()
+
+            [ while reader.Read() do
+                  yield
+                      { WorkspaceId = Guid.Parse(reader.GetString 0)
+                        ProfileId = Guid.Parse(reader.GetString 1)
+                        RuntimeArtifactId = Guid.Parse(reader.GetString 2)
+                        RuntimeSha256 = reader.GetString 3
+                        Kind = reader.GetString 4
+                        NexusModId = reader.GetInt64 5
+                        File =
+                          { Id = reader.GetInt64 6
+                            Name = reader.GetString 7
+                            Version = reader.GetString 8
+                            Category = "MAIN"
+                            Description = ""
+                            Bytes = if reader.IsDBNull 9 then None else Some(reader.GetInt64 9) }
+                        AccountId = reader.GetString 10
+                        CheckedAt = DateTimeOffset.Parse(reader.GetString 11) } ])
+
+    member _.RemovePending(profile: Guid, kind: string option) =
+        database.EnqueueInternal(fun () ->
+            match kind with
+            | Some kind ->
+                Sqlite.execute
+                    database.Connection
+                    null
+                    "DELETE FROM enb_pending_sources WHERE profile_id=$profile AND kind=$kind"
+                    [ "$profile", box (string profile); "$kind", box kind ]
+            | None ->
+                Sqlite.execute
+                    database.Connection
+                    null
+                    "DELETE FROM enb_pending_sources WHERE profile_id=$profile"
+                    [ "$profile", box (string profile) ])
+
+    member _.ConfigurationPlan(workspace: Guid, profile: Guid, generation: Guid option) =
+        database.Enqueue(fun () ->
+            match generation with
+            | None -> None
+            | Some generation ->
+                use query =
+                    Sqlite.command
+                        database.Connection
+                        null
+                        "SELECT previous_values,configuration_action FROM enb_launch_plans WHERE profile_id=$profile AND workspace_id=$workspace AND generation_id=$generation"
+                        [ "$profile", box (string profile)
+                          "$workspace", box (string workspace)
+                          "$generation", box (string generation) ]
+
+                use reader = query.ExecuteReader()
+
+                if reader.Read() then
+                    Some(
+                        reader.GetString 0,
+                        if reader.IsDBNull 1 then
+                            None
+                        else
+                            Some(Guid.Parse(reader.GetString 1))
+                    )
+                else
+                    None)
+
+    member _.Owner(workspace: Guid, generation: Guid option) =
+        database.Enqueue(fun () ->
+            match generation with
+            | None -> None
+            | Some generation ->
+                use query =
+                    Sqlite.command
+                        database.Connection
+                        null
+                        "SELECT profile_id FROM enb_launch_plans WHERE workspace_id=$workspace AND generation_id=$generation"
+                        [ "$workspace", box (string workspace)
+                          "$generation", box (string generation) ]
+
+                match query.ExecuteScalar() with
+                | :? string as value -> Some(Guid.Parse value)
+                | _ -> None)
 
     interface IComponentLaunchConfigurationSelection with
         member _.Read(workspace, profile, activeGeneration) =
@@ -126,3 +342,67 @@ type internal EnbStore(database: StateDatabase) =
                               Environment = [ "WINEDLLOVERRIDES", Some(reader.GetString 1) ] }
                     else
                         None)
+
+module internal EnbRows =
+    let completeReplacement connection transaction receiptId publish =
+        use query =
+            Sqlite.command
+                connection
+                transaction
+                "SELECT profile_id,workspace_id,expected_revision,mod_id,enabled FROM enb_selection_intents WHERE receipt_id=$receipt ORDER BY mod_id"
+                [ "$receipt", box (string receiptId) ]
+
+        use reader = query.ExecuteReader()
+
+        let rows =
+            [ while reader.Read() do
+                  yield
+                      Guid.Parse(reader.GetString 0),
+                      Guid.Parse(reader.GetString 1),
+                      reader.GetInt64 2,
+                      Guid.Parse(reader.GetString 3),
+                      reader.GetBoolean 4 ]
+
+        reader.Close()
+
+        match rows with
+        | [] -> ()
+        | (profile, workspace, expected, _, _) :: _ when publish ->
+            match SelectionRows.profile connection transaction profile with
+            | Some(owner, revision) when owner = workspace && revision = expected -> ()
+            | _ ->
+                raise (
+                    ModConductor.DeploymentRecovery.RecoveryException
+                        ModConductor.DeploymentRecovery.RecoveryError.Stale
+                )
+
+            let desired =
+                rows |> List.map (fun (_, _, _, id, enabled) -> id, enabled) |> Map.ofList
+
+            let current = SelectionRows.all connection transaction profile
+
+            let changed =
+                current
+                |> List.map (fun row ->
+                    desired.TryFind row.Id
+                    |> Option.map (fun enabled -> { row with Enabled = Some enabled })
+                    |> Option.defaultValue row)
+
+            if
+                desired
+                |> Map.forall (fun id _ -> current |> List.exists (fun row -> row.Id = id))
+                |> not
+            then
+                raise (
+                    ModConductor.DeploymentRecovery.RecoveryException
+                        ModConductor.DeploymentRecovery.RecoveryError.Stale
+                )
+
+            SelectionRows.apply connection transaction profile changed
+        | _ -> ()
+
+        Sqlite.execute
+            connection
+            transaction
+            "DELETE FROM enb_selection_intents WHERE receipt_id=$receipt"
+            [ "$receipt", box (string receiptId) ]

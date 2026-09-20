@@ -25,10 +25,14 @@ class EnbStatus {
     required this.canOpenAuthorPage,
     required this.canSelectArchive,
     required this.canCancel,
+    required this.canUpdate,
+    required this.canRemove,
+    required this.canRecover,
   });
   final EnbStatusPhase phase;
   final String status, detail, runtimeVersion, presetVersion;
   final bool canOpenAuthorPage, canSelectArchive, canCancel;
+  final bool canUpdate, canRemove, canRecover;
   bool get active =>
       phase == EnbStatusPhase.validating ||
       phase == EnbStatusPhase.acquiring ||
@@ -60,6 +64,9 @@ class EnbClient {
     canOpenAuthorPage: value.canOpenAuthorPage,
     canSelectArchive: value.canSelectArchive,
     canCancel: value.canCancel,
+    canUpdate: value.canUpdate,
+    canRemove: value.canRemove,
+    canRecover: value.canRecover,
   );
 
   wire.EnbRequest _request(String workspace, String profile) =>
@@ -73,6 +80,15 @@ class EnbClient {
 
   Future<EnbStatus> cancel(String workspace, String profile) async =>
       _decode(await _client.cancelEnbWait(_request(workspace, profile)));
+
+  Future<EnbStatus> update(String workspace, String profile) async =>
+      _decode(await _client.updateEnb(_request(workspace, profile)));
+
+  Future<EnbStatus> remove(String workspace, String profile) async =>
+      _decode(await _client.removeEnb(_request(workspace, profile)));
+
+  Future<EnbStatus> recover(String workspace, String profile) async =>
+      _decode(await _client.recoverEnb(_request(workspace, profile)));
 
   Future<EnbStatus> selectArchive(
     String workspace,

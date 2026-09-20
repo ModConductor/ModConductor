@@ -28,6 +28,7 @@ type EnbTests() =
     [<Test>]
     member _.``Lean ENB should retain exact component provenance and prior values``() =
         flag "pinnedPresetProvenance" |> should equal true
+        flag "approvedCatalogueResolvesHashesAtAcquisition" |> should equal true
         flag "runtimePlanPreservesPriorValues" |> should equal true
 
     [<Test>]
@@ -36,3 +37,11 @@ type EnbTests() =
         =
         flag "profileAndForeignConflictsRefused" |> should equal true
         flag "generationScopedUpdateRemovalRecovery" |> should equal true
+
+    [<Test>]
+    member _.``setup update interruption and removal should use recoverable component generations``
+        ()
+        =
+        flag "setupPublishesReadyGeneration" |> should equal true
+        flag "interruptedUpdateRestoresActiveGeneration" |> should equal true
+        flag "removalRestoresPriorFilesAndConfiguration" |> should equal true

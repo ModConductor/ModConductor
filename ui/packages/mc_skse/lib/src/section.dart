@@ -176,6 +176,13 @@ class _EnbPanel extends StatefulWidget {
 class _EnbPanelState extends State<_EnbPanel> {
   EnbStatus? status;
   bool busy = false;
+  Timer? timer;
+
+  @override
+  void dispose() {
+    timer?.cancel();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -196,7 +203,13 @@ class _EnbPanelState extends State<_EnbPanel> {
     setState(() => busy = true);
     try {
       final value = await action();
-      if (mounted) setState(() => status = value);
+      if (mounted) {
+        setState(() => status = value);
+        timer?.cancel();
+        if (value.active) {
+          timer = Timer(const Duration(seconds: 1), () => unawaited(load()));
+        }
+      }
     } on Exception {
       if (mounted) {
         setState(
@@ -209,6 +222,9 @@ class _EnbPanelState extends State<_EnbPanel> {
             canOpenAuthorPage: false,
             canSelectArchive: false,
             canCancel: false,
+            canUpdate: false,
+            canRemove: false,
+            canRecover: false,
           ),
         );
       }
@@ -299,6 +315,45 @@ class _EnbPanelState extends State<_EnbPanel> {
                     ? null
                     : () => change(
                         () => widget.client.cancel(
+                          widget.workspaceId,
+                          widget.profileId,
+                        ),
+                      ),
+              ),
+            if (value?.canUpdate == true)
+              McAction(
+                label: 'Update Lean ENB',
+                icon: Icons.update,
+                onPressed: busy
+                    ? null
+                    : () => change(
+                        () => widget.client.update(
+                          widget.workspaceId,
+                          widget.profileId,
+                        ),
+                      ),
+              ),
+            if (value?.canRemove == true)
+              McAction(
+                label: 'Remove ENB setup',
+                icon: Icons.delete_outline,
+                onPressed: busy
+                    ? null
+                    : () => change(
+                        () => widget.client.remove(
+                          widget.workspaceId,
+                          widget.profileId,
+                        ),
+                      ),
+              ),
+            if (value?.canRecover == true)
+              McAction(
+                label: 'Recover previous setup',
+                icon: Icons.restore,
+                onPressed: busy
+                    ? null
+                    : () => change(
+                        () => widget.client.recover(
                           widget.workspaceId,
                           widget.profileId,
                         ),

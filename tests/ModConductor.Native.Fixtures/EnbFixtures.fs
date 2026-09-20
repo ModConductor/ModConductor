@@ -9,9 +9,13 @@ open System.Threading
 open System.Threading.Tasks
 open ModConductor.ArchiveInspection
 open ModConductor.ArtifactLibrary
+open ModConductor.Credentials
 open ModConductor.Enb
 open ModConductor.Engine
 open ModConductor.GameLaunching
+open ModConductor.GameContexts
+open ModConductor.DeploymentRecovery
+open ModConductor.ProfileGameData
 open ModConductor.Nexus
 open ModConductor.Persistence
 open ModConductor.Platform
@@ -60,7 +64,72 @@ module EnbFixtures =
         |> result
         |> ignore
 
-        workspace, profile
+        let game, proton = ProtonFixtures.create (Path.Combine(area, "installation"))
+
+        if OperatingSystem.IsLinux() then
+            let launcher = Path.Combine(proton.RuntimeDirectory, "proton")
+            File.WriteAllText(launcher, "#!/bin/sh\nexit 0\n")
+
+            File.SetUnixFileMode(
+                launcher,
+                UnixFileMode.UserRead ||| UnixFileMode.UserWrite ||| UnixFileMode.UserExecute
+            )
+
+            File.WriteAllText(
+                Path.Combine(proton.RuntimeDirectory, "toolmanifest.vdf"),
+                "manifest { version 2 commandline \"/proton %verb%\" }"
+            )
+
+        (store.GameContexts :> IGameContexts)
+            .Save(
+                workspace,
+                0L,
+                { Path = game
+                  Proton = if OperatingSystem.IsLinux() then Some proton else None }
+            )
+        |> wait
+        |> result
+        |> ignore
+
+        let data = store.ProfileGameData
+        let current = data.Read(workspace, profile) |> wait |> result
+
+        let enabled =
+            data.Edit(
+                { Id = Guid.NewGuid()
+                  Expected = current.Reference
+                  Options = { Settings = true; Saves = false }
+                  InitialSaves = InitialSaves.Empty
+                  DisabledFiles = DisabledFiles.Keep },
+                ignore,
+                CancellationToken.None
+            )
+            |> wait
+            |> result
+
+        let prefs = Path.Combine(enabled.State.SettingsPath, "SkyrimPrefs.ini")
+        File.WriteAllText(prefs, "[Display]\nbSAOEnable=1\nbEnableImprovedSnow=1\n")
+        workspace, profile, game, prefs
+
+    let private archive path (entries: (string * string) list) =
+        use output = File.Create path
+        use zip = new ZipArchive(output, ZipArchiveMode.Create)
+
+        for name, value in entries do
+            use target = zip.CreateEntry(name).Open()
+            let bytes = Encoding.UTF8.GetBytes value
+            target.Write bytes
+
+    let private artifact (store: OperationStore) workspace path =
+        store.Artifacts.Add(
+            { Id = Guid.NewGuid()
+              WorkspaceId = workspace
+              Path = path
+              Storage = ArtifactStorage.Reference },
+            CancellationToken.None
+        )
+        |> wait
+        |> result
 
     type private Handoff() =
         let opened = ResizeArray<Uri>()
@@ -72,6 +141,18 @@ module EnbFixtures =
             member _.Open(uri, _) =
                 opened.Add uri
                 Task.CompletedTask
+
+    type private EmptyCredentialStore() =
+        interface ICredentialStore with
+            member _.Kind = StorageKind.Unavailable
+
+            member _.Inspect _ =
+                { Saved = SavedPresence.Absent
+                  Problem = None }
+
+            member _.Save(_, _) = Ok()
+            member _.Read _ = Ok None
+            member _.Delete _ = Ok()
 
     let private unsafeArchive path entryName =
         use output = File.Create path
@@ -116,8 +197,13 @@ module EnbFixtures =
         let presetHash = String.replicate 64 "b"
         let companionHash = String.replicate 64 "c"
 
+        let catalogue = EnbCatalogue.lean
+
         let row =
-            EnbCatalogue.lean (Some runtimeHash) (Some presetHash) (Some companionHash) true
+            { catalogue with
+                Runtime = EnbCatalogue.withHash runtimeHash catalogue.Runtime
+                Preset = EnbCatalogue.withHash presetHash catalogue.Preset
+                Companions = catalogue.Companions |> List.map (EnbCatalogue.withHash companionHash) }
 
         let runtimeManifest =
             manifest
@@ -204,7 +290,7 @@ module EnbFixtures =
                 [ { Id = 100L
                     Name = "Lean ENB"
                     Version = "1.0.0"
-                    Category = "MAIN"
+                    Category = "Main files"
                     Description = ""
                     Bytes = Some 100L }
                   { Id = 101L
@@ -222,6 +308,16 @@ module EnbFixtures =
              && row.Companions.Head.NexusModId = Some EnbCatalogue.CathedralModId
              && row.Preset.ExpectedSha256 = Some presetHash
              && row.Companions.Head.ExpectedSha256 = Some companionHash)
+
+        check
+            writer
+            "approvedCatalogueResolvesHashesAtAcquisition"
+            (EnbCatalogue.lean.Runtime.Terms.AbsoluteUri = EnbCatalogue.OfficialTerms
+             && EnbCatalogue.lean.Preset.Terms.Query = "?tab=description"
+             && EnbCatalogue.lean.Companions.Head.Terms.Query = "?tab=description"
+             && EnbCatalogue.lean.Runtime.ExpectedSha256.IsNone
+             && EnbCatalogue.lean.Preset.ExpectedSha256.IsNone
+             && EnbCatalogue.lean.Companions.Head.ExpectedSha256.IsNone)
 
         let previous =
             Map.ofList
@@ -262,12 +358,28 @@ module EnbFixtures =
 
         check writer "profileAndForeignConflictsRefused" (foreignConflict && profileConflict)
 
-        use store = new OperationStore(Path.Combine(area, "state"))
-        let workspace, profile = createWorkspace store area
+        let mutable interrupt = false
+
+        use store =
+            new OperationStore(
+                Path.Combine(area, "state"),
+                enbCheckpoint =
+                    (fun name _ ->
+                        if interrupt && name = "install-intent" then
+                            raise (OperationCanceledException()))
+            )
+
+        let workspace, profile, game, prefs = createWorkspace store area
         let handoff = Handoff()
+        use credentials = new CredentialSession(EmptyCredentialStore())
+
+        use nexus =
+            new NexusSession(credentials, None, handoff, (fun _ -> Task.CompletedTask))
 
         use coordinator =
             new EnbCoordinator(
+                nexus,
+                store.Downloads,
                 store,
                 handoff,
                 row,
@@ -301,6 +413,134 @@ module EnbFixtures =
         check writer "traversalArchiveRejected" (inspectFails store workspace traversal)
         check writer "corruptArchiveRejected" (inspectFails store workspace corrupt)
 
+        let runtimePath = Path.Combine(area, "enbseries_skyrimse_v0505.zip")
+
+        archive
+            runtimePath
+            [ "WrapperVersion/d3d11.dll", "runtime"
+              "WrapperVersion/d3dcompiler_46e.dll", "compiler" ]
+
+        let presetPath = Path.Combine(area, "lean-enb.zip")
+
+        archive
+            presetPath
+            [ "Lean ENB/enbseries.ini", "preset"
+              "Lean ENB/enblocal.ini", "local"
+              "Lean ENB/enbseries/enbeffect.fx", "effect" ]
+
+        let companionPath = Path.Combine(area, "cathedral.zip")
+
+        archive
+            companionPath
+            [ "Cathedral Weathers/Data/Cathedral Weathers.esp", "plugin"
+              "Cathedral Weathers/Data/Textures/sky.dds", "texture" ]
+
+        let runtimeArtifact = artifact store workspace runtimePath
+        let presetArtifact = artifact store workspace presetPath
+        let companionArtifact = artifact store workspace companionPath
+
+        let presetFile =
+            { Id = 100L
+              Name = "Lean ENB"
+              Version = "1.0.0"
+              Category = "MAIN"
+              Description = ""
+              Bytes = presetArtifact.Length }
+
+        let companionFile =
+            { Id = 200L
+              Name = "Cathedral Weathers"
+              Version = "2.50"
+              Category = "MAIN"
+              Description = ""
+              Bytes = companionArtifact.Length }
+
+        let installedGeneration =
+            store.InstallEnb(
+                workspace,
+                profile,
+                EnbCatalogue.lean,
+                runtimeArtifact,
+                [ EnbCatalogue.lean.Preset, presetFile, presetArtifact
+                  EnbCatalogue.lean.Companions.Head, companionFile, companionArtifact ],
+                CancellationToken.None
+            )
+            |> wait
+
+        let installedState = store.Deployments.Read profile |> wait |> result
+
+        let installedComponents =
+            store.EnbSetups.Components(workspace, profile, installedState.ActiveGeneration)
+            |> wait
+
+        let launch = store.GameLaunching.Read(workspace, profile) |> wait |> result
+
+        let installedEndToEnd =
+            installedState.ActiveGeneration = Some installedGeneration
+            && File.Exists(Path.Combine(game, "d3d11.dll"))
+            && File.Exists(Path.Combine(game, "Data", "Cathedral Weathers.esp"))
+            && File.ReadAllText(prefs).Contains("bSAOEnable=0")
+            && launch.Problem.IsNone
+            && installedComponents.Length = 3
+            && installedComponents
+               |> List.forall (fun value -> value.Sha256.Length = 64 && value.Terms <> "")
+
+        writer.WriteBoolean(
+            "setupActiveGeneration",
+            installedState.ActiveGeneration = Some installedGeneration
+        )
+
+        writer.WriteBoolean("setupRootDll", File.Exists(Path.Combine(game, "d3d11.dll")))
+
+        writer.WriteBoolean(
+            "setupDataCompanion",
+            File.Exists(Path.Combine(game, "Data", "Cathedral Weathers.esp"))
+        )
+
+        writer.WriteBoolean("setupConfiguration", File.ReadAllText(prefs).Contains("bSAOEnable=0"))
+        writer.WriteBoolean("setupLaunch", launch.Problem.IsNone)
+        writer.WriteString("setupLaunchProblem", launch.Problem |> Option.defaultValue "")
+
+        interrupt <- true
+
+        let interrupted =
+            try
+                store.InstallEnb(
+                    workspace,
+                    profile,
+                    EnbCatalogue.lean,
+                    runtimeArtifact,
+                    [ EnbCatalogue.lean.Preset, presetFile, presetArtifact
+                      EnbCatalogue.lean.Companions.Head, companionFile, companionArtifact ],
+                    CancellationToken.None
+                )
+                |> wait
+                |> ignore
+
+                false
+            with _ ->
+                true
+
+        interrupt <- false
+        let afterInterruption = store.Deployments.Read profile |> wait |> result
+
+        let recovered =
+            interrupted
+            && afterInterruption.ActiveGeneration = Some installedGeneration
+            && afterInterruption.PendingReceipt.IsNone
+
+        store.RemoveEnb(workspace, profile, CancellationToken.None) |> wait |> ignore
+        let removedState = store.Deployments.Read profile |> wait |> result
+
+        let removedEndToEnd =
+            removedState.ActiveGeneration <> Some installedGeneration
+            && not (File.Exists(Path.Combine(game, "d3d11.dll")))
+            && File.ReadAllText(prefs).Contains("bSAOEnable=1")
+
+        check writer "setupPublishesReadyGeneration" installedEndToEnd
+        check writer "interruptedUpdateRestoresActiveGeneration" recovered
+        check writer "removalRestoresPriorFilesAndConfiguration" removedEndToEnd
+
         let firstGeneration, secondGeneration = Guid.NewGuid(), Guid.NewGuid()
 
         let save generation game =
@@ -316,7 +556,8 @@ module EnbFixtures =
                 "cathedral:" + companionHash,
                 row.DllOverrides,
                 "GE-Proton",
-                "bSAOEnable=1"
+                "bSAOEnable=1",
+                None
             )
             |> wait
 
@@ -340,3 +581,4 @@ module EnbFixtures =
             (firstMatches && secondMatches && removed.IsNone)
 
         writer.WriteEndObject()
+        GenerationCleanup.normalize area

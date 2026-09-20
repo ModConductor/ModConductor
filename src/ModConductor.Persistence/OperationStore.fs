@@ -10,7 +10,8 @@ type OperationStore
         ?nexusLinks: ModConductor.HttpDownloads.INexusDownloadLinks,
         ?configurationCheckpoint: string -> unit,
         ?migrationCheckpoint: string -> unit,
-        ?skseCheckpoint: string -> int -> unit
+        ?skseCheckpoint: string -> int -> unit,
+        ?enbCheckpoint: string -> int -> unit
     ) =
     let database = new StateDatabase(directory)
     let workspaceRoots = OwnedWorkspaceRootStore(database)
@@ -823,6 +824,635 @@ type OperationStore
                     fail "The SKSE deployment did not complete. The previous setup was restored."
 
             return completed.Proposed
+        }
+
+    member internal this.InstallEnb
+        (
+            workspace: Guid,
+            profile: Guid,
+            row: ModConductor.Enb.EnbCompatibilityRow,
+            runtimeArtifact: ModConductor.ArtifactLibrary.Artifact,
+            acquired:
+                (ModConductor.Enb.EnbComponentPin *
+                ModConductor.Nexus.NexusFile *
+                ModConductor.ArtifactLibrary.Artifact) list,
+            token: Threading.CancellationToken
+        ) =
+        task {
+            let fail detail = raise (IO.IOException detail)
+
+            let! contextResult =
+                (gameContexts :> ModConductor.GameContexts.IGameContexts).Read workspace
+
+            let context =
+                contextResult
+                |> Result.defaultWith (fun _ ->
+                    fail "The checked Skyrim installation is unavailable.")
+
+            let evidence =
+                context.Binding
+                |> Option.map _.Evidence
+                |> Option.defaultWith (fun () ->
+                    fail "The checked Skyrim installation is unavailable.")
+
+            let gameRoot =
+                ModConductor.GameContexts.ComponentRoots.gameRootId workspace evidence
+                |> Result.defaultWith fail
+
+            let! sources, existing =
+                (deploymentRepository :> ModConductor.Deployment.IDeploymentRepository).Read profile
+
+            if sources.Stamp.WorkspaceId <> workspace then
+                fail "The profile deployment is unavailable."
+
+            let active = existing |> Option.bind _.Active
+            let! owner = enbSetups.Owner(workspace, active)
+
+            if owner |> Option.exists ((<>) profile) then
+                fail "Another profile owns the active renderer targets. Remove its ENB setup first."
+
+            let! priorComponents = enbSetups.Components(workspace, profile, active)
+
+            if priorComponents.IsEmpty then
+                for name in
+                    [ "d3d11.dll"
+                      "d3dcompiler_46e.dll"
+                      "dxgi.dll"
+                      IO.Path.Combine("Data", "SKSE", "Plugins", "CommunityShaders.dll") ] do
+                    if IO.File.Exists(IO.Path.Combine(evidence.RootPath, name)) then
+                        fail (
+                            ModConductor.Enb.EnbProblem.message (
+                                ModConductor.Enb.EnbProblem.ForeignDllConflict name
+                            )
+                        )
+
+            let install
+                (pin: ModConductor.Enb.EnbComponentPin)
+                fileId
+                (artifact: ModConductor.ArtifactLibrary.Artifact)
+                =
+                task {
+                    let! current =
+                        (artifacts :> ModConductor.ArtifactLibrary.IArtifactLibrary)
+                            .Read(workspace, artifact.Id)
+
+                    let artifact =
+                        current
+                        |> Result.defaultWith (fun _ ->
+                            fail (pin.Name + " archive is unavailable."))
+
+                    if
+                        artifact.State <> ModConductor.ArtifactLibrary.ArtifactState.Ready
+                        && artifact.State <> ModConductor.ArtifactLibrary.ArtifactState.Installed
+                    then
+                        fail (pin.Name + " archive is not ready.")
+
+                    let hash =
+                        artifact.Sha256
+                        |> Option.defaultWith (fun () ->
+                            fail (pin.Name + " archive has no verified hash."))
+
+                    let pinned = ModConductor.Enb.EnbCatalogue.withHash hash pin
+
+                    let reference: ModConductor.ArtifactLibrary.ArtifactRef =
+                        { WorkspaceId = workspace
+                          Id = artifact.Id
+                          Revision = artifact.Revision }
+
+                    let! draft = installations.Prepare(reference, token)
+
+                    let layout =
+                        match pin.Kind with
+                        | ModConductor.Enb.EnbComponentKind.Runtime ->
+                            ModConductor.Enb.EnbArchiveLayouts.runtime pinned draft.Manifest
+                        | ModConductor.Enb.EnbComponentKind.Preset ->
+                            ModConductor.Enb.EnbArchiveLayouts.leanPreset pinned draft.Manifest
+                        | ModConductor.Enb.EnbComponentKind.Companion ->
+                            ModConductor.Enb.EnbArchiveLayouts.dataCompanion pinned draft.Manifest
+                        |> Result.defaultWith (ModConductor.Enb.EnbProblem.message >> fail)
+
+                    let reviewed =
+                        installations.SelectReviewed(
+                            workspace,
+                            draft.Id,
+                            draft.Revision,
+                            pin.Name,
+                            pin.Version,
+                            layout.Files
+                        )
+
+                    let installationId = Guid.NewGuid()
+
+                    let mutable installed =
+                        installations.Start(
+                            workspace,
+                            reviewed.Id,
+                            reviewed.Revision,
+                            installationId
+                        )
+
+                    while installed.State = ModConductor.ArchiveInstallation.InstallationState.Running do
+                        do! Threading.Tasks.Task.Delay(25, token)
+                        let! current = installations.Read(workspace, installationId)
+                        installed <- current
+
+                    if
+                        installed.State
+                        <> ModConductor.ArchiveInstallation.InstallationState.Complete
+                        || installed.ModId.IsNone
+                        || installed.VersionId.IsNone
+                    then
+                        fail (
+                            installed.Problem
+                            |> Option.defaultValue (pin.Name + " installation did not complete.")
+                        )
+
+                    let! version =
+                        database.Enqueue(fun () ->
+                            LibraryRows.version
+                                database.Connection
+                                null
+                                installed.VersionId.Value
+                                0
+                                20001
+                            |> Option.map (fun value -> { value with NextOffset = None }))
+
+                    let version =
+                        version
+                        |> Option.defaultWith (fun () ->
+                            fail (pin.Name + " installed version is unavailable."))
+
+                    let reviewedComponent =
+                        ModConductor.DeploymentPlanning.ComponentManifests.review
+                            workspace
+                            gameRoot
+                            ModConductor.GameContexts.Skyrim.definition.TargetPolicy
+                            { ModId = installed.ModId.Value
+                              Version = version
+                              Priority = 0
+                              Files = layout.ComponentFiles }
+                        |> Result.defaultWith (fun _ ->
+                            fail (pin.Name + " no longer matches its reviewed archive layout."))
+
+                    let stored: StoredEnbComponent =
+                        { Kind =
+                            match pin.Kind with
+                            | ModConductor.Enb.EnbComponentKind.Runtime -> "runtime"
+                            | ModConductor.Enb.EnbComponentKind.Preset -> "preset"
+                            | ModConductor.Enb.EnbComponentKind.Companion ->
+                                "companion:"
+                                + (pin.NexusModId
+                                   |> Option.map string
+                                   |> Option.defaultValue pin.Name)
+                          ModId = installed.ModId.Value
+                          VersionId = installed.VersionId.Value
+                          Version = pin.Version
+                          Sha256 = hash
+                          NexusModId = pin.NexusModId
+                          NexusFileId = fileId
+                          Source = pin.Source.AbsoluteUri
+                          Terms = pin.Terms.AbsoluteUri
+                          CheckedAt = DateTimeOffset.UtcNow }
+
+                    return reviewedComponent, stored
+                }
+
+            let! runtime = install row.Runtime None runtimeArtifact
+            let mutable installed = [ runtime ]
+
+            for pin, file, artifact in acquired do
+                let! value = install pin (Some file.Id) artifact
+                installed <- installed @ [ value ]
+
+            let components = installed |> List.map fst
+            let records = installed |> List.map snd
+
+            let! sources, existing =
+                (deploymentRepository :> ModConductor.Deployment.IDeploymentRepository)
+                    .Read(profile)
+
+            if
+                sources.Stamp.WorkspaceId <> workspace
+                || (existing |> Option.bind _.Active) <> active
+            then
+                fail "The profile deployment changed while ENB components were installed."
+
+            let previousIds = priorComponents |> List.map _.ModId |> Set.ofList
+            let nextIds = records |> List.map _.ModId |> Set.ofList
+
+            let desired =
+                ((previousIds - nextIds) |> Set.toList |> List.map (fun id -> id, false))
+                @ (nextIds |> Set.toList |> List.map (fun id -> id, true))
+
+            let stagedMods =
+                sources.Profile.Mods
+                |> List.map (fun selected ->
+                    match desired |> List.tryFind (fst >> (=) selected.ModId) with
+                    | Some(_, enabled) -> { selected with Enabled = enabled }
+                    | None -> selected)
+
+            if
+                nextIds
+                |> Set.forall (fun id ->
+                    stagedMods |> List.exists (fun selected -> selected.ModId = id))
+                |> not
+            then
+                fail "An installed ENB component is unavailable to this profile."
+
+            let! profileName =
+                database.Enqueue(fun () ->
+                    use query =
+                        Sqlite.command
+                            database.Connection
+                            null
+                            "SELECT name FROM profiles WHERE id=$id"
+                            [ "$id", box (string profile) ]
+
+                    match query.ExecuteScalar() with
+                    | :? string as value -> value
+                    | _ -> fail "The selected profile is unavailable.")
+
+            let retained: ModConductor.DeploymentRecovery.SavedProfile =
+                { Id = profile
+                  Name = profileName
+                  Revision = sources.Profile.Revision
+                  Mods =
+                    stagedMods
+                    |> List.map (fun selected ->
+                        { ModId = selected.ModId
+                          VersionId = selected.Version |> Option.map _.Id
+                          Priority = selected.Priority
+                          Enabled = selected.Enabled })
+                  Hidden = sources.Hidden }
+
+            let! previousConfiguration = enbSetups.ConfigurationPlan(workspace, profile, active)
+            let previousAction = previousConfiguration |> Option.bind snd
+            let mutable configurationAction = previousAction
+            let mutable priorValues = Map.empty
+
+            if previousAction.IsNone then
+                let profiles = profileGameData :> ModConductor.ProfileGameData.IProfileGameData
+                let! state = profiles.Read(workspace, profile)
+                let state = state |> Result.defaultWith (fun error -> fail (string error))
+
+                let! document =
+                    profiles.ReadConfiguration(state.Reference, "SkyrimPrefs.ini", token)
+
+                let document =
+                    document
+                    |> Result.defaultWith (fun _ ->
+                        fail "Turn on local game settings before setting up ENB.")
+
+                let content, previous =
+                    ModConductor.Enb.EnbSetupPlanning.configureSkyrimPrefs document.Document.Content
+
+                let action = Guid.NewGuid()
+
+                let! saved =
+                    profiles.SaveConfiguration(
+                        { Id = action
+                          PreviewId = document.PreviewId
+                          Expected = document.Expected
+                          Name = document.Name
+                          Content = content },
+                        ignore,
+                        token
+                    )
+
+                saved
+                |> Result.defaultWith (fun _ ->
+                    fail "Skyrim graphics settings could not be applied.")
+                |> ignore
+
+                configurationAction <- Some action
+                priorValues <- previous
+
+            try
+                let deploymentId = Guid.NewGuid()
+
+                let! prepared =
+                    task {
+                        try
+                            return!
+                                this.PrepareComponents(
+                                    deploymentId,
+                                    sources.Stamp,
+                                    components,
+                                    ignore,
+                                    token,
+                                    retainedProfile = retained
+                                )
+                        with ModConductor.DeploymentRecovery.RecoveryException error ->
+                            return
+                                fail (
+                                    match error with
+                                    | ModConductor.DeploymentRecovery.RecoveryError.InvalidPlan ->
+                                        "The ENB component generation was not a valid deployment plan."
+                                    | ModConductor.DeploymentRecovery.RecoveryError.Stale ->
+                                        "The profile changed while the ENB generation was prepared."
+                                    | ModConductor.DeploymentRecovery.RecoveryError.Busy ->
+                                        "Another deployment is using this profile."
+                                    | ModConductor.DeploymentRecovery.RecoveryError.NotFound ->
+                                        "The profile deployment is unavailable."
+                                    | ModConductor.DeploymentRecovery.RecoveryError.Limit ->
+                                        "The ENB generation exceeds a deployment limit."
+                                    | ModConductor.DeploymentRecovery.RecoveryError.Mismatch detail
+                                    | ModConductor.DeploymentRecovery.RecoveryError.Unavailable detail
+                                    | ModConductor.DeploymentRecovery.RecoveryError.Corrupt detail ->
+                                        detail
+                                )
+                    }
+
+                let generation = prepared.Switch.Generation.Id
+
+                let runtimeName =
+                    evidence.Proton |> Option.map _.RuntimeName |> Option.defaultValue "Windows"
+
+                let previousPresent =
+                    priorValues
+                    |> Map.toList
+                    |> List.choose (fun (key, value) -> value |> Option.map (fun item -> key, item))
+                    |> Map.ofList
+
+                let launch =
+                    ModConductor.Enb.EnbSetupPlanning.runtime
+                        generation
+                        evidence.Executable.Value.Sha256
+                        runtimeName
+                        row.DllOverrides
+                        previousPresent
+                    |> ModConductor.Enb.EnbSetupPlanning.validate
+                    |> Result.defaultWith (ModConductor.Enb.EnbProblem.message >> fail)
+
+                let previousText =
+                    if priorValues.IsEmpty then
+                        previousConfiguration |> Option.map fst |> Option.defaultValue ""
+                    else
+                        priorValues
+                        |> Map.toList
+                        |> List.map (fun ((file, section, key), value) ->
+                            String.concat
+                                "|"
+                                [ file; section; key; value |> Option.defaultValue "<missing>" ])
+                        |> String.concat "\n"
+
+                do! enbSetups.SaveGeneration(workspace, profile, generation, records)
+
+                do!
+                    enbSetups.SaveLaunchPlan(
+                        workspace,
+                        profile,
+                        generation,
+                        launch.GameSha256,
+                        row.Runtime.Version,
+                        row.Preset.Version,
+                        records |> List.find (fun value -> value.Kind = "runtime") |> _.Sha256,
+                        records |> List.find (fun value -> value.Kind = "preset") |> _.Sha256,
+                        records
+                        |> List.filter (fun value -> value.Kind.StartsWith("companion:"))
+                        |> List.map (fun value -> value.Kind + ":" + value.Sha256)
+                        |> String.concat ";",
+                        row.DllOverrides,
+                        runtimeName,
+                        previousText,
+                        configurationAction
+                    )
+
+                do!
+                    enbSetups.StageSelection(
+                        deploymentId,
+                        workspace,
+                        profile,
+                        sources.Profile.Revision,
+                        desired
+                    )
+
+                let! receipt = generations.Start(prepared, [], cancellation = token)
+
+                let receipt =
+                    receipt
+                    |> Result.defaultWith (fun _ -> fail "The ENB deployment could not start.")
+
+                let! completed =
+                    generations.Run(
+                        receipt.Id,
+                        receipt.Revision,
+                        false,
+                        token,
+                        defaultArg enbCheckpoint (fun _ _ -> ()),
+                        []
+                    )
+
+                match completed with
+                | Ok value -> return value.Proposed
+                | Error _ ->
+                    let! pending = deployment.Read(receipt.Id)
+
+                    match pending with
+                    | Some pending ->
+                        let! _ =
+                            generations.Run(
+                                pending.Id,
+                                pending.Revision,
+                                true,
+                                Threading.CancellationToken.None,
+                                (fun _ _ -> ()),
+                                []
+                            )
+
+                        ()
+                    | None -> ()
+
+                    return
+                        fail "The ENB deployment did not complete. The previous setup was restored."
+            with error ->
+                if previousAction.IsNone then
+                    let prior =
+                        priorValues
+                        |> Map.toList
+                        |> List.map (fun ((_, _, key), value) -> key, value)
+                        |> Map.ofList
+
+                    let profiles = profileGameData :> ModConductor.ProfileGameData.IProfileGameData
+                    let! state = profiles.Read(workspace, profile)
+
+                    match state with
+                    | Ok state ->
+                        let! document =
+                            profiles.ReadConfiguration(
+                                state.Reference,
+                                "SkyrimPrefs.ini",
+                                Threading.CancellationToken.None
+                            )
+
+                        match document with
+                        | Ok document ->
+                            let content =
+                                ModConductor.Enb.EnbSetupPlanning.restoreSkyrimPrefs
+                                    document.Document.Content
+                                    prior
+
+                            let! _ =
+                                profiles.SaveConfiguration(
+                                    { Id = Guid.NewGuid()
+                                      PreviewId = document.PreviewId
+                                      Expected = document.Expected
+                                      Name = document.Name
+                                      Content = content },
+                                    ignore,
+                                    Threading.CancellationToken.None
+                                )
+
+                            ()
+                        | Error _ -> ()
+                    | Error _ -> ()
+
+                return raise error
+        }
+
+    member internal this.RemoveEnb
+        (workspace: Guid, profile: Guid, token: Threading.CancellationToken)
+        =
+        task {
+            let fail detail = raise (IO.IOException detail)
+
+            let! sources, existing =
+                (deploymentRepository :> ModConductor.Deployment.IDeploymentRepository).Read profile
+
+            if sources.Stamp.WorkspaceId <> workspace then
+                fail "The profile deployment is unavailable."
+
+            let active = existing |> Option.bind _.Active
+            let! components = enbSetups.Components(workspace, profile, active)
+
+            if components.IsEmpty then
+                return active
+            else
+                let removed = components |> List.map (fun value -> value.ModId, false)
+
+                let staged =
+                    sources.Profile.Mods
+                    |> List.map (fun selected ->
+                        if
+                            components |> List.exists (fun value -> value.ModId = selected.ModId)
+                        then
+                            { selected with Enabled = false }
+                        else
+                            selected)
+
+                let! profileName =
+                    database.Enqueue(fun () ->
+                        use query =
+                            Sqlite.command
+                                database.Connection
+                                null
+                                "SELECT name FROM profiles WHERE id=$id"
+                                [ "$id", box (string profile) ]
+
+                        match query.ExecuteScalar() with
+                        | :? string as value -> value
+                        | _ -> fail "The selected profile is unavailable.")
+
+                let retained: ModConductor.DeploymentRecovery.SavedProfile =
+                    { Id = profile
+                      Name = profileName
+                      Revision = sources.Profile.Revision
+                      Mods =
+                        staged
+                        |> List.map (fun selected ->
+                            { ModId = selected.ModId
+                              VersionId = selected.Version |> Option.map _.Id
+                              Priority = selected.Priority
+                              Enabled = selected.Enabled })
+                      Hidden = sources.Hidden }
+
+                let deploymentId = Guid.NewGuid()
+
+                let! prepared =
+                    this.PrepareComponents(
+                        deploymentId,
+                        sources.Stamp,
+                        [],
+                        ignore,
+                        token,
+                        retainedProfile = retained
+                    )
+
+                do!
+                    enbSetups.StageSelection(
+                        deploymentId,
+                        workspace,
+                        profile,
+                        sources.Profile.Revision,
+                        removed
+                    )
+
+                let! started = generations.Start(prepared, [], cancellation = token)
+
+                let receipt =
+                    started |> Result.defaultWith (fun _ -> fail "ENB removal could not start.")
+
+                let! result =
+                    generations.Run(receipt.Id, receipt.Revision, false, token, (fun _ _ -> ()), [])
+
+                let completed =
+                    result
+                    |> Result.defaultWith (fun _ -> fail "ENB removal needs deployment recovery.")
+
+                let! configuration = enbSetups.ConfigurationPlan(workspace, profile, active)
+
+                match configuration with
+                | Some(previous, _) when not (String.IsNullOrWhiteSpace previous) ->
+                    let prior =
+                        previous.Split('\n', StringSplitOptions.RemoveEmptyEntries)
+                        |> Array.choose (fun line ->
+                            match line.Split('|') with
+                            | [| _; _; key; "<missing>" |] -> Some(key, None)
+                            | [| _; _; key; value |] -> Some(key, Some value)
+                            | _ -> None)
+                        |> Map.ofArray
+
+                    let profiles = profileGameData :> ModConductor.ProfileGameData.IProfileGameData
+                    let! state = profiles.Read(workspace, profile)
+
+                    let state =
+                        state
+                        |> Result.defaultWith (fun _ ->
+                            fail "The previous Skyrim settings could not be read.")
+
+                    let! document =
+                        profiles.ReadConfiguration(state.Reference, "SkyrimPrefs.ini", token)
+
+                    let document =
+                        document
+                        |> Result.defaultWith (fun _ ->
+                            fail "The previous Skyrim settings could not be read.")
+
+                    let restoredContent =
+                        ModConductor.Enb.EnbSetupPlanning.restoreSkyrimPrefs
+                            document.Document.Content
+                            prior
+
+                    let! restored =
+                        profiles.SaveConfiguration(
+                            { Id = Guid.NewGuid()
+                              PreviewId = document.PreviewId
+                              Expected = document.Expected
+                              Name = document.Name
+                              Content = restoredContent },
+                            ignore,
+                            token
+                        )
+
+                    restored
+                    |> Result.defaultWith (fun _ ->
+                        fail
+                            "ENB files were removed, but the previous Skyrim settings still need recovery.")
+                    |> ignore
+                | None -> ()
+                | Some _ -> ()
+
+                return Some completed.Proposed
         }
 
     interface IDisposable with

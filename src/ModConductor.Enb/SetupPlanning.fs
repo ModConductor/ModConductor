@@ -1,6 +1,7 @@
 namespace ModConductor.Enb
 
 open System
+open System.Text
 
 module EnbSetupPlanning =
     let private ownedDlls = set [ "d3d11.dll"; "d3dcompiler_46e.dll" ]
@@ -70,3 +71,93 @@ module EnbSetupPlanning =
             )
         else
             Ok plan
+
+    let configureSkyrimPrefs (content: string) =
+        let required = [ "bSAOEnable", "0"; "bEnableImprovedSnow", "0" ]
+
+        let lines = content.Replace("\r\n", "\n").Split('\n') |> ResizeArray
+        let section = "Display"
+        let mutable current = ""
+
+        let found =
+            Collections.Generic.Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+
+        let previous =
+            Collections.Generic.Dictionary<string, string option>(StringComparer.OrdinalIgnoreCase)
+
+        let mutable displayEnd = -1
+
+        for index in 0 .. lines.Count - 1 do
+            let trimmed = lines[index].Trim()
+
+            if trimmed.StartsWith("[") && trimmed.EndsWith("]") then
+                if String.Equals(current, section, StringComparison.OrdinalIgnoreCase) then
+                    displayEnd <- index
+
+                current <- trimmed.Substring(1, trimmed.Length - 2).Trim()
+            elif String.Equals(current, section, StringComparison.OrdinalIgnoreCase) then
+                let split = lines[index].IndexOf('=')
+
+                if split > 0 then
+                    let key = lines[index].Substring(0, split).Trim()
+
+                    required
+                    |> List.tryFind (fun (wanted, _) ->
+                        String.Equals(key, wanted, StringComparison.OrdinalIgnoreCase))
+                    |> Option.iter (fun (wanted, value) ->
+                        if found.ContainsKey wanted then
+                            invalidOp (wanted + " occurs more than once in SkyrimPrefs.ini.")
+
+                        found.Add(wanted, index)
+                        previous.Add(wanted, Some(lines[index].Substring(split + 1).Trim()))
+                        lines[index] <- key + "=" + value)
+
+        if String.Equals(current, section, StringComparison.OrdinalIgnoreCase) then
+            displayEnd <- lines.Count
+
+        if displayEnd < 0 then
+            if lines.Count > 0 && lines[lines.Count - 1] <> "" then
+                lines.Add ""
+
+            lines.Add("[" + section + "]")
+            displayEnd <- lines.Count
+
+        for key, value in required |> List.rev do
+            if not (found.ContainsKey key) then
+                lines.Insert(displayEnd, key + "=" + value)
+                previous.Add(key, None)
+
+        let result = String.Join("\n", lines)
+
+        let prior =
+            required
+            |> List.map (fun (key, _) -> ("SkyrimPrefs.ini", section, key), previous[key])
+            |> Map.ofList
+
+        result, prior
+
+    let restoreSkyrimPrefs (content: string) (prior: Map<string, string option>) =
+        let lines = content.Replace("\r\n", "\n").Split('\n') |> ResizeArray
+        let mutable current = ""
+        let remove = ResizeArray<int>()
+
+        for index in 0 .. lines.Count - 1 do
+            let trimmed = lines[index].Trim()
+
+            if trimmed.StartsWith("[") && trimmed.EndsWith("]") then
+                current <- trimmed.Substring(1, trimmed.Length - 2).Trim()
+            elif String.Equals(current, "Display", StringComparison.OrdinalIgnoreCase) then
+                let split = lines[index].IndexOf('=')
+
+                if split > 0 then
+                    let key = lines[index].Substring(0, split).Trim()
+
+                    prior.TryFind key
+                    |> Option.iter (function
+                        | Some value -> lines[index] <- key + "=" + value
+                        | None -> remove.Add index)
+
+        for index in remove |> Seq.sortDescending do
+            lines.RemoveAt index
+
+        String.Join("\n", lines)

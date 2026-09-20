@@ -28,32 +28,38 @@ namespace ModConductor.Protocol.V1 {
             "NgoKRW5iUmVxdWVzdBIUCgx3b3Jrc3BhY2VfaWQYASABKAkSEgoKcHJvZmls",
             "ZV9pZBgCIAEoCSJhChFFbmJBcmNoaXZlUmVxdWVzdBIUCgx3b3Jrc3BhY2Vf",
             "aWQYASABKAkSEgoKcHJvZmlsZV9pZBgCIAEoCRIUCgxvcGVyYXRpb25faWQY",
-            "AyABKAkSDAoEcGF0aBgEIAEoCSLTAQoIRW5iU3RhdGUSKAoFcGhhc2UYASAB",
+            "AyABKAkSDAoEcGF0aBgEIAEoCSKQAgoIRW5iU3RhdGUSKAoFcGhhc2UYASAB",
             "KA4yGS5tb2Rjb25kdWN0b3IudjEuRW5iUGhhc2USDgoGc3RhdHVzGAIgASgJ",
             "Eg4KBmRldGFpbBgDIAEoCRIXCg9ydW50aW1lX3ZlcnNpb24YBCABKAkSFgoO",
             "cHJlc2V0X3ZlcnNpb24YBSABKAkSHAoUY2FuX29wZW5fYXV0aG9yX3BhZ2UY",
             "BiABKAgSGgoSY2FuX3NlbGVjdF9hcmNoaXZlGAcgASgIEhIKCmNhbl9jYW5j",
-            "ZWwYCCABKAgqowIKCEVuYlBoYXNlEhkKFUVOQl9QSEFTRV9VTlNQRUNJRklF",
-            "RBAAEhkKFUVOQl9QSEFTRV9VTkFWQUlMQUJMRRABEhUKEUVOQl9QSEFTRV9C",
-            "TE9DS0VEEAISFwoTRU5CX1BIQVNFX0FWQUlMQUJMRRADEiEKHUVOQl9QSEFT",
-            "RV9XQUlUSU5HX0ZPUl9BUkNISVZFEAQSGAoURU5CX1BIQVNFX1ZBTElEQVRJ",
-            "TkcQBRIXChNFTkJfUEhBU0VfQUNRVUlSSU5HEAYSGAoURU5CX1BIQVNFX0lO",
-            "U1RBTExJTkcQBxITCg9FTkJfUEhBU0VfUkVBRFkQCBIUChBFTkJfUEhBU0Vf",
-            "RkFJTEVEEAkSFgoSRU5CX1BIQVNFX0NPTkZMSUNUEAoyuwIKDUVuYk9wZXJh",
-            "dGlvbnMSQQoHUmVhZEVuYhIbLm1vZGNvbmR1Y3Rvci52MS5FbmJSZXF1ZXN0",
-            "GhkubW9kY29uZHVjdG9yLnYxLkVuYlN0YXRlEksKEU9wZW5FbmJBdXRob3JQ",
-            "YWdlEhsubW9kY29uZHVjdG9yLnYxLkVuYlJlcXVlc3QaGS5tb2Rjb25kdWN0",
-            "b3IudjEuRW5iU3RhdGUSUQoQU2VsZWN0RW5iQXJjaGl2ZRIiLm1vZGNvbmR1",
-            "Y3Rvci52MS5FbmJBcmNoaXZlUmVxdWVzdBoZLm1vZGNvbmR1Y3Rvci52MS5F",
-            "bmJTdGF0ZRJHCg1DYW5jZWxFbmJXYWl0EhsubW9kY29uZHVjdG9yLnYxLkVu",
-            "YlJlcXVlc3QaGS5tb2Rjb25kdWN0b3IudjEuRW5iU3RhdGVCG6oCGE1vZENv",
-            "bmR1Y3Rvci5Qcm90b2NvbC5WMWIGcHJvdG8z"));
+            "ZWwYCCABKAgSEgoKY2FuX3VwZGF0ZRgJIAEoCBISCgpjYW5fcmVtb3ZlGAog",
+            "ASgIEhMKC2Nhbl9yZWNvdmVyGAsgASgIKqMCCghFbmJQaGFzZRIZChVFTkJf",
+            "UEhBU0VfVU5TUEVDSUZJRUQQABIZChVFTkJfUEhBU0VfVU5BVkFJTEFCTEUQ",
+            "ARIVChFFTkJfUEhBU0VfQkxPQ0tFRBACEhcKE0VOQl9QSEFTRV9BVkFJTEFC",
+            "TEUQAxIhCh1FTkJfUEhBU0VfV0FJVElOR19GT1JfQVJDSElWRRAEEhgKFEVO",
+            "Ql9QSEFTRV9WQUxJREFUSU5HEAUSFwoTRU5CX1BIQVNFX0FDUVVJUklORxAG",
+            "EhgKFEVOQl9QSEFTRV9JTlNUQUxMSU5HEAcSEwoPRU5CX1BIQVNFX1JFQURZ",
+            "EAgSFAoQRU5CX1BIQVNFX0ZBSUxFRBAJEhYKEkVOQl9QSEFTRV9DT05GTElD",
+            "VBAKMosECg1FbmJPcGVyYXRpb25zEkEKB1JlYWRFbmISGy5tb2Rjb25kdWN0",
+            "b3IudjEuRW5iUmVxdWVzdBoZLm1vZGNvbmR1Y3Rvci52MS5FbmJTdGF0ZRJL",
+            "ChFPcGVuRW5iQXV0aG9yUGFnZRIbLm1vZGNvbmR1Y3Rvci52MS5FbmJSZXF1",
+            "ZXN0GhkubW9kY29uZHVjdG9yLnYxLkVuYlN0YXRlElEKEFNlbGVjdEVuYkFy",
+            "Y2hpdmUSIi5tb2Rjb25kdWN0b3IudjEuRW5iQXJjaGl2ZVJlcXVlc3QaGS5t",
+            "b2Rjb25kdWN0b3IudjEuRW5iU3RhdGUSRwoNQ2FuY2VsRW5iV2FpdBIbLm1v",
+            "ZGNvbmR1Y3Rvci52MS5FbmJSZXF1ZXN0GhkubW9kY29uZHVjdG9yLnYxLkVu",
+            "YlN0YXRlEkMKCVVwZGF0ZUVuYhIbLm1vZGNvbmR1Y3Rvci52MS5FbmJSZXF1",
+            "ZXN0GhkubW9kY29uZHVjdG9yLnYxLkVuYlN0YXRlEkMKCVJlbW92ZUVuYhIb",
+            "Lm1vZGNvbmR1Y3Rvci52MS5FbmJSZXF1ZXN0GhkubW9kY29uZHVjdG9yLnYx",
+            "LkVuYlN0YXRlEkQKClJlY292ZXJFbmISGy5tb2Rjb25kdWN0b3IudjEuRW5i",
+            "UmVxdWVzdBoZLm1vZGNvbmR1Y3Rvci52MS5FbmJTdGF0ZUIbqgIYTW9kQ29u",
+            "ZHVjdG9yLlByb3RvY29sLlYxYgZwcm90bzM="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { },
           new pbr::GeneratedClrTypeInfo(new[] {typeof(global::ModConductor.Protocol.V1.EnbPhase), }, null, new pbr::GeneratedClrTypeInfo[] {
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.EnbRequest), global::ModConductor.Protocol.V1.EnbRequest.Parser, new[]{ "WorkspaceId", "ProfileId" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.EnbArchiveRequest), global::ModConductor.Protocol.V1.EnbArchiveRequest.Parser, new[]{ "WorkspaceId", "ProfileId", "OperationId", "Path" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.EnbState), global::ModConductor.Protocol.V1.EnbState.Parser, new[]{ "Phase", "Status", "Detail", "RuntimeVersion", "PresetVersion", "CanOpenAuthorPage", "CanSelectArchive", "CanCancel" }, null, null, null, null)
+            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.EnbState), global::ModConductor.Protocol.V1.EnbState.Parser, new[]{ "Phase", "Status", "Detail", "RuntimeVersion", "PresetVersion", "CanOpenAuthorPage", "CanSelectArchive", "CanCancel", "CanUpdate", "CanRemove", "CanRecover" }, null, null, null, null)
           }));
     }
     #endregion
@@ -664,6 +670,9 @@ namespace ModConductor.Protocol.V1 {
       canOpenAuthorPage_ = other.canOpenAuthorPage_;
       canSelectArchive_ = other.canSelectArchive_;
       canCancel_ = other.canCancel_;
+      canUpdate_ = other.canUpdate_;
+      canRemove_ = other.canRemove_;
+      canRecover_ = other.canRecover_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -769,6 +778,42 @@ namespace ModConductor.Protocol.V1 {
       }
     }
 
+    /// <summary>Field number for the "can_update" field.</summary>
+    public const int CanUpdateFieldNumber = 9;
+    private bool canUpdate_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool CanUpdate {
+      get { return canUpdate_; }
+      set {
+        canUpdate_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "can_remove" field.</summary>
+    public const int CanRemoveFieldNumber = 10;
+    private bool canRemove_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool CanRemove {
+      get { return canRemove_; }
+      set {
+        canRemove_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "can_recover" field.</summary>
+    public const int CanRecoverFieldNumber = 11;
+    private bool canRecover_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool CanRecover {
+      get { return canRecover_; }
+      set {
+        canRecover_ = value;
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -792,6 +837,9 @@ namespace ModConductor.Protocol.V1 {
       if (CanOpenAuthorPage != other.CanOpenAuthorPage) return false;
       if (CanSelectArchive != other.CanSelectArchive) return false;
       if (CanCancel != other.CanCancel) return false;
+      if (CanUpdate != other.CanUpdate) return false;
+      if (CanRemove != other.CanRemove) return false;
+      if (CanRecover != other.CanRecover) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -807,6 +855,9 @@ namespace ModConductor.Protocol.V1 {
       if (CanOpenAuthorPage != false) hash ^= CanOpenAuthorPage.GetHashCode();
       if (CanSelectArchive != false) hash ^= CanSelectArchive.GetHashCode();
       if (CanCancel != false) hash ^= CanCancel.GetHashCode();
+      if (CanUpdate != false) hash ^= CanUpdate.GetHashCode();
+      if (CanRemove != false) hash ^= CanRemove.GetHashCode();
+      if (CanRecover != false) hash ^= CanRecover.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -857,6 +908,18 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(64);
         output.WriteBool(CanCancel);
       }
+      if (CanUpdate != false) {
+        output.WriteRawTag(72);
+        output.WriteBool(CanUpdate);
+      }
+      if (CanRemove != false) {
+        output.WriteRawTag(80);
+        output.WriteBool(CanRemove);
+      }
+      if (CanRecover != false) {
+        output.WriteRawTag(88);
+        output.WriteBool(CanRecover);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -899,6 +962,18 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(64);
         output.WriteBool(CanCancel);
       }
+      if (CanUpdate != false) {
+        output.WriteRawTag(72);
+        output.WriteBool(CanUpdate);
+      }
+      if (CanRemove != false) {
+        output.WriteRawTag(80);
+        output.WriteBool(CanRemove);
+      }
+      if (CanRecover != false) {
+        output.WriteRawTag(88);
+        output.WriteBool(CanRecover);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -931,6 +1006,15 @@ namespace ModConductor.Protocol.V1 {
         size += 1 + 1;
       }
       if (CanCancel != false) {
+        size += 1 + 1;
+      }
+      if (CanUpdate != false) {
+        size += 1 + 1;
+      }
+      if (CanRemove != false) {
+        size += 1 + 1;
+      }
+      if (CanRecover != false) {
         size += 1 + 1;
       }
       if (_unknownFields != null) {
@@ -968,6 +1052,15 @@ namespace ModConductor.Protocol.V1 {
       }
       if (other.CanCancel != false) {
         CanCancel = other.CanCancel;
+      }
+      if (other.CanUpdate != false) {
+        CanUpdate = other.CanUpdate;
+      }
+      if (other.CanRemove != false) {
+        CanRemove = other.CanRemove;
+      }
+      if (other.CanRecover != false) {
+        CanRecover = other.CanRecover;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -1020,6 +1113,18 @@ namespace ModConductor.Protocol.V1 {
             CanCancel = input.ReadBool();
             break;
           }
+          case 72: {
+            CanUpdate = input.ReadBool();
+            break;
+          }
+          case 80: {
+            CanRemove = input.ReadBool();
+            break;
+          }
+          case 88: {
+            CanRecover = input.ReadBool();
+            break;
+          }
         }
       }
     #endif
@@ -1069,6 +1174,18 @@ namespace ModConductor.Protocol.V1 {
           }
           case 64: {
             CanCancel = input.ReadBool();
+            break;
+          }
+          case 72: {
+            CanUpdate = input.ReadBool();
+            break;
+          }
+          case 80: {
+            CanRemove = input.ReadBool();
+            break;
+          }
+          case 88: {
+            CanRecover = input.ReadBool();
             break;
           }
         }

@@ -75,9 +75,11 @@ let runWithNexus registration (handoff: ModConductor.Nexus.IOAuthHandoff) args =
 
     use enb =
         new ModConductor.Engine.EnbCoordinator(
+            nexus,
+            store.Downloads,
             store,
             handoff,
-            ModConductor.Enb.EnbCatalogue.lean None None None false
+            ModConductor.Enb.EnbCatalogue.lean
         )
 
     use nxmIngress =
@@ -86,7 +88,18 @@ let runWithNexus registration (handoff: ModConductor.Nexus.IOAuthHandoff) args =
                 let accepted = nexus.AcceptNxm(id, input)
 
                 if accepted then
-                    skse.AcceptNxm id
+                    match nexus.ReadNxm id with
+                    | Ok file when file.ModId = ModConductor.Skse.SkseResolver.NexusModId ->
+                        skse.AcceptNxm id
+                    | Ok file when
+                        file.ModId = ModConductor.Enb.EnbCatalogue.LeanModId
+                        || file.ModId = ModConductor.Enb.EnbCatalogue.CathedralModId
+                        ->
+                        enb.AcceptNxm id
+                    | Ok _ -> ()
+                    | Error _ ->
+                        skse.AcceptNxm id
+                        enb.AcceptNxm id
 
                 accepted),
             nexus.DismissNxm

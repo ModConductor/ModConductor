@@ -104,6 +104,9 @@ const EnbState$json = {
       '10': 'canSelectArchive'
     },
     {'1': 'can_cancel', '3': 8, '4': 1, '5': 8, '10': 'canCancel'},
+    {'1': 'can_update', '3': 9, '4': 1, '5': 8, '10': 'canUpdate'},
+    {'1': 'can_remove', '3': 10, '4': 1, '5': 8, '10': 'canRemove'},
+    {'1': 'can_recover', '3': 11, '4': 1, '5': 8, '10': 'canRecover'},
   ],
 };
 
@@ -114,4 +117,6 @@ final $typed_data.Uint8List enbStateDescriptor = $convert.base64Decode(
     'cnVudGltZV92ZXJzaW9uGAQgASgJUg5ydW50aW1lVmVyc2lvbhIlCg5wcmVzZXRfdmVyc2lvbh'
     'gFIAEoCVINcHJlc2V0VmVyc2lvbhIvChRjYW5fb3Blbl9hdXRob3JfcGFnZRgGIAEoCFIRY2Fu'
     'T3BlbkF1dGhvclBhZ2USLAoSY2FuX3NlbGVjdF9hcmNoaXZlGAcgASgIUhBjYW5TZWxlY3RBcm'
-    'NoaXZlEh0KCmNhbl9jYW5jZWwYCCABKAhSCWNhbkNhbmNlbA==');
+    'NoaXZlEh0KCmNhbl9jYW5jZWwYCCABKAhSCWNhbkNhbmNlbBIdCgpjYW5fdXBkYXRlGAkgASgI'
+    'UgljYW5VcGRhdGUSHQoKY2FuX3JlbW92ZRgKIAEoCFIJY2FuUmVtb3ZlEh8KC2Nhbl9yZWNvdm'
+    'VyGAsgASgIUgpjYW5SZWNvdmVy');

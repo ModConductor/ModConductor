@@ -28,6 +28,7 @@ class _EnbFixtureClient extends EnbClient {
 
   EnbStatus current;
   int opens = 0, selections = 0, cancels = 0;
+  int updates = 0, removals = 0, recoveries = 0;
   String? selectedPath;
 
   @override
@@ -56,6 +57,24 @@ class _EnbFixtureClient extends EnbClient {
     cancels++;
     return current = _enb(EnbStatusPhase.available, open: true);
   }
+
+  @override
+  Future<EnbStatus> update(String workspace, String profile) async {
+    updates++;
+    return current;
+  }
+
+  @override
+  Future<EnbStatus> remove(String workspace, String profile) async {
+    removals++;
+    return current;
+  }
+
+  @override
+  Future<EnbStatus> recover(String workspace, String profile) async {
+    recoveries++;
+    return current;
+  }
 }
 
 EnbStatus _enb(
@@ -63,6 +82,9 @@ EnbStatus _enb(
   bool open = false,
   bool select = false,
   bool cancel = false,
+  bool update = false,
+  bool remove = false,
+  bool recover = false,
 }) => EnbStatus(
   phase: phase,
   status: 'ENB status',
@@ -72,6 +94,9 @@ EnbStatus _enb(
   canOpenAuthorPage: open,
   canSelectArchive: select,
   canCancel: cancel,
+  canUpdate: update,
+  canRemove: remove,
+  canRecover: recover,
 );
 
 Widget _section(_SkseFixtureClient client) => MaterialApp(
@@ -204,5 +229,63 @@ void main() {
     expect(enb.cancels, 1);
     expect(enb.selections, 0);
     expect(find.byIcon(Icons.open_in_browser), findsOneWidget);
+  });
+
+  testWidgets('ready setup exposes explicit update and removal actions', (
+    tester,
+  ) async {
+    final skse = _SkseFixtureClient(
+      const SkseStatus(SkseStatusPhase.ready, '', '', 'SKSE is current', ''),
+    );
+    final enb = _EnbFixtureClient(
+      _enb(EnbStatusPhase.ready, update: true, remove: true),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SkyrimSetupSection(
+            skse: skse,
+            enb: enb,
+            workspaceId: 'workspace',
+            profileId: 'profile',
+            chooseArchive: () async => null,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Update Lean ENB'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Remove ENB setup'));
+    await tester.pumpAndSettle();
+    expect(enb.updates, 1);
+    expect(enb.removals, 1);
+  });
+
+  testWidgets('failed setup exposes deployment recovery', (tester) async {
+    final skse = _SkseFixtureClient(
+      const SkseStatus(SkseStatusPhase.ready, '', '', 'SKSE is current', ''),
+    );
+    final enb = _EnbFixtureClient(_enb(EnbStatusPhase.failed, recover: true));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SkyrimSetupSection(
+            skse: skse,
+            enb: enb,
+            workspaceId: 'workspace',
+            profileId: 'profile',
+            chooseArchive: () async => null,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Recover previous setup'));
+    await tester.pumpAndSettle();
+    expect(enb.recoveries, 1);
   });
 }

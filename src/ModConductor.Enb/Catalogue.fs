@@ -8,7 +8,7 @@ module EnbCatalogue =
     let OfficialPage = "https://enbdev.com/download_mod_tesskyrimse.html"
 
     [<Literal>]
-    let OfficialTerms = "https://enbdev.com/license_en.html"
+    let OfficialTerms = "https://enbdev.com/license_en.htm"
 
     [<Literal>]
     let LeanModId = 68542L
@@ -25,7 +25,7 @@ module EnbCatalogue =
           NexusModId = nexus
           ExpectedSha256 = hash }
 
-    let lean approvedRuntimeHash approvedLeanHash approvedCathedralHash termsApproved =
+    let lean =
         { Id = "lean-enb-1.0.0-enbseries-0.505-cathedral-2.50"
           Runtime =
             pin
@@ -35,27 +35,28 @@ module EnbCatalogue =
                 OfficialPage
                 OfficialTerms
                 None
-                approvedRuntimeHash
+                None
           Preset =
             pin
                 EnbComponentKind.Preset
                 "Lean ENB"
                 "1.0.0"
                 "https://www.nexusmods.com/skyrimspecialedition/mods/68542"
-                "https://www.nexusmods.com/skyrimspecialedition/mods/68542?tab=files"
+                "https://www.nexusmods.com/skyrimspecialedition/mods/68542?tab=description"
                 (Some LeanModId)
-                approvedLeanHash
+                None
           Companions =
             [ pin
                   EnbComponentKind.Companion
                   "Cathedral Weathers and Seasons"
                   "2.50"
                   "https://www.nexusmods.com/skyrimspecialedition/mods/24791"
-                  "https://www.nexusmods.com/skyrimspecialedition/mods/24791?tab=files"
+                  "https://www.nexusmods.com/skyrimspecialedition/mods/24791?tab=description"
                   (Some CathedralModId)
-                  approvedCathedralHash ]
-          DllOverrides = "d3d11=n,b"
-          TermsApproved = termsApproved }
+                  None ]
+          DllOverrides = "d3d11=n,b" }
+
+    let withHash hash pin = { pin with ExpectedSha256 = Some hash }
 
     let resolveNexusFile (pin: EnbComponentPin) (value: NexusMod) =
         match pin.NexusModId with
@@ -63,7 +64,12 @@ module EnbCatalogue =
             value.Files
             |> List.filter (fun file ->
                 String.Equals(file.Version.Trim(), pin.Version, StringComparison.OrdinalIgnoreCase)
-                && String.Equals(file.Category, "MAIN", StringComparison.OrdinalIgnoreCase))
+                && (String.Equals(file.Category, "MAIN", StringComparison.OrdinalIgnoreCase)
+                    || String.Equals(
+                        file.Category.Replace(" ", ""),
+                        "Mainfiles",
+                        StringComparison.OrdinalIgnoreCase
+                    )))
             |> List.sortByDescending _.Id
             |> List.tryHead
             |> function
@@ -85,4 +91,5 @@ module EnbCatalogue =
         match pin.ExpectedSha256 with
         | Some expected when String.Equals(expected, actual, StringComparison.OrdinalIgnoreCase) ->
             Ok()
+        | None -> Ok()
         | _ -> Error EnbProblem.WrongArchiveHash

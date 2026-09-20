@@ -280,11 +280,17 @@ module internal DeploymentPreparation =
             let writable = if gameFolderOnly then [] else sources.Writable
 
             let enabledComponents =
-                components
-                |> List.filter (fun reviewed ->
-                    sources.Profile.Mods
-                    |> List.exists (fun selected ->
-                        selected.ModId = reviewed.Mod.ModId && selected.Enabled))
+                let enabled =
+                    retainedProfile
+                    |> Option.map (fun saved ->
+                        saved.Mods |> List.filter _.Enabled |> List.map _.ModId |> Set.ofList)
+                    |> Option.defaultWith (fun () ->
+                        sources.Profile.Mods
+                        |> List.filter _.Enabled
+                        |> List.map _.ModId
+                        |> Set.ofList)
+
+                components |> List.filter (fun reviewed -> enabled.Contains reviewed.Mod.ModId)
 
             let! outputWorking =
                 if gameFolderOnly then

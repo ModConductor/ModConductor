@@ -187,6 +187,9 @@ class EnbState extends $pb.GeneratedMessage {
     $core.bool? canOpenAuthorPage,
     $core.bool? canSelectArchive,
     $core.bool? canCancel,
+    $core.bool? canUpdate,
+    $core.bool? canRemove,
+    $core.bool? canRecover,
   }) {
     final result = create();
     if (phase != null) result.phase = phase;
@@ -197,6 +200,9 @@ class EnbState extends $pb.GeneratedMessage {
     if (canOpenAuthorPage != null) result.canOpenAuthorPage = canOpenAuthorPage;
     if (canSelectArchive != null) result.canSelectArchive = canSelectArchive;
     if (canCancel != null) result.canCancel = canCancel;
+    if (canUpdate != null) result.canUpdate = canUpdate;
+    if (canRemove != null) result.canRemove = canRemove;
+    if (canRecover != null) result.canRecover = canRecover;
     return result;
   }
 
@@ -223,6 +229,9 @@ class EnbState extends $pb.GeneratedMessage {
     ..aOB(6, _omitFieldNames ? '' : 'canOpenAuthorPage')
     ..aOB(7, _omitFieldNames ? '' : 'canSelectArchive')
     ..aOB(8, _omitFieldNames ? '' : 'canCancel')
+    ..aOB(9, _omitFieldNames ? '' : 'canUpdate')
+    ..aOB(10, _omitFieldNames ? '' : 'canRemove')
+    ..aOB(11, _omitFieldNames ? '' : 'canRecover')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -314,6 +323,33 @@ class EnbState extends $pb.GeneratedMessage {
   $core.bool hasCanCancel() => $_has(7);
   @$pb.TagNumber(8)
   void clearCanCancel() => $_clearField(8);
+
+  @$pb.TagNumber(9)
+  $core.bool get canUpdate => $_getBF(8);
+  @$pb.TagNumber(9)
+  set canUpdate($core.bool value) => $_setBool(8, value);
+  @$pb.TagNumber(9)
+  $core.bool hasCanUpdate() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearCanUpdate() => $_clearField(9);
+
+  @$pb.TagNumber(10)
+  $core.bool get canRemove => $_getBF(9);
+  @$pb.TagNumber(10)
+  set canRemove($core.bool value) => $_setBool(9, value);
+  @$pb.TagNumber(10)
+  $core.bool hasCanRemove() => $_has(9);
+  @$pb.TagNumber(10)
+  void clearCanRemove() => $_clearField(10);
+
+  @$pb.TagNumber(11)
+  $core.bool get canRecover => $_getBF(10);
+  @$pb.TagNumber(11)
+  set canRecover($core.bool value) => $_setBool(10, value);
+  @$pb.TagNumber(11)
+  $core.bool hasCanRecover() => $_has(10);
+  @$pb.TagNumber(11)
+  void clearCanRecover() => $_clearField(11);
 }
 
 const $core.bool _omitFieldNames =

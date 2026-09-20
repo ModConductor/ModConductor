@@ -84,6 +84,30 @@ namespace ModConductor.Protocol.V1 {
         __Marshaller_modconductor_v1_EnbRequest,
         __Marshaller_modconductor_v1_EnbState);
 
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::ModConductor.Protocol.V1.EnbRequest, global::ModConductor.Protocol.V1.EnbState> __Method_UpdateEnb = new grpc::Method<global::ModConductor.Protocol.V1.EnbRequest, global::ModConductor.Protocol.V1.EnbState>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "UpdateEnb",
+        __Marshaller_modconductor_v1_EnbRequest,
+        __Marshaller_modconductor_v1_EnbState);
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::ModConductor.Protocol.V1.EnbRequest, global::ModConductor.Protocol.V1.EnbState> __Method_RemoveEnb = new grpc::Method<global::ModConductor.Protocol.V1.EnbRequest, global::ModConductor.Protocol.V1.EnbState>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "RemoveEnb",
+        __Marshaller_modconductor_v1_EnbRequest,
+        __Marshaller_modconductor_v1_EnbState);
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::ModConductor.Protocol.V1.EnbRequest, global::ModConductor.Protocol.V1.EnbState> __Method_RecoverEnb = new grpc::Method<global::ModConductor.Protocol.V1.EnbRequest, global::ModConductor.Protocol.V1.EnbState>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "RecoverEnb",
+        __Marshaller_modconductor_v1_EnbRequest,
+        __Marshaller_modconductor_v1_EnbState);
+
     /// <summary>Service descriptor</summary>
     public static global::Google.Protobuf.Reflection.ServiceDescriptor Descriptor
     {
@@ -114,6 +138,24 @@ namespace ModConductor.Protocol.V1 {
 
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V1.EnbState> CancelEnbWait(global::ModConductor.Protocol.V1.EnbRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V1.EnbState> UpdateEnb(global::ModConductor.Protocol.V1.EnbRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V1.EnbState> RemoveEnb(global::ModConductor.Protocol.V1.EnbRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V1.EnbState> RecoverEnb(global::ModConductor.Protocol.V1.EnbRequest request, grpc::ServerCallContext context)
       {
         throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
       }
@@ -227,6 +269,66 @@ namespace ModConductor.Protocol.V1 {
       {
         return CallInvoker.AsyncUnaryCall(__Method_CancelEnbWait, null, options, request);
       }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V1.EnbState UpdateEnb(global::ModConductor.Protocol.V1.EnbRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return UpdateEnb(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V1.EnbState UpdateEnb(global::ModConductor.Protocol.V1.EnbRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_UpdateEnb, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.EnbState> UpdateEnbAsync(global::ModConductor.Protocol.V1.EnbRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return UpdateEnbAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.EnbState> UpdateEnbAsync(global::ModConductor.Protocol.V1.EnbRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_UpdateEnb, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V1.EnbState RemoveEnb(global::ModConductor.Protocol.V1.EnbRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return RemoveEnb(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V1.EnbState RemoveEnb(global::ModConductor.Protocol.V1.EnbRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_RemoveEnb, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.EnbState> RemoveEnbAsync(global::ModConductor.Protocol.V1.EnbRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return RemoveEnbAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.EnbState> RemoveEnbAsync(global::ModConductor.Protocol.V1.EnbRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_RemoveEnb, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V1.EnbState RecoverEnb(global::ModConductor.Protocol.V1.EnbRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return RecoverEnb(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V1.EnbState RecoverEnb(global::ModConductor.Protocol.V1.EnbRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_RecoverEnb, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.EnbState> RecoverEnbAsync(global::ModConductor.Protocol.V1.EnbRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return RecoverEnbAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.EnbState> RecoverEnbAsync(global::ModConductor.Protocol.V1.EnbRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_RecoverEnb, null, options, request);
+      }
       /// <summary>Creates a new instance of client from given <c>ClientBaseConfiguration</c>.</summary>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       protected override EnbOperationsClient NewInstance(ClientBaseConfiguration configuration)
@@ -244,7 +346,10 @@ namespace ModConductor.Protocol.V1 {
           .AddMethod(__Method_ReadEnb, serviceImpl.ReadEnb)
           .AddMethod(__Method_OpenEnbAuthorPage, serviceImpl.OpenEnbAuthorPage)
           .AddMethod(__Method_SelectEnbArchive, serviceImpl.SelectEnbArchive)
-          .AddMethod(__Method_CancelEnbWait, serviceImpl.CancelEnbWait).Build();
+          .AddMethod(__Method_CancelEnbWait, serviceImpl.CancelEnbWait)
+          .AddMethod(__Method_UpdateEnb, serviceImpl.UpdateEnb)
+          .AddMethod(__Method_RemoveEnb, serviceImpl.RemoveEnb)
+          .AddMethod(__Method_RecoverEnb, serviceImpl.RecoverEnb).Build();
     }
 
     /// <summary>Register service method with a service binder with or without implementation. Useful when customizing the service binding logic.
@@ -258,6 +363,9 @@ namespace ModConductor.Protocol.V1 {
       serviceBinder.AddMethod(__Method_OpenEnbAuthorPage, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.EnbRequest, global::ModConductor.Protocol.V1.EnbState>(serviceImpl.OpenEnbAuthorPage));
       serviceBinder.AddMethod(__Method_SelectEnbArchive, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.EnbArchiveRequest, global::ModConductor.Protocol.V1.EnbState>(serviceImpl.SelectEnbArchive));
       serviceBinder.AddMethod(__Method_CancelEnbWait, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.EnbRequest, global::ModConductor.Protocol.V1.EnbState>(serviceImpl.CancelEnbWait));
+      serviceBinder.AddMethod(__Method_UpdateEnb, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.EnbRequest, global::ModConductor.Protocol.V1.EnbState>(serviceImpl.UpdateEnb));
+      serviceBinder.AddMethod(__Method_RemoveEnb, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.EnbRequest, global::ModConductor.Protocol.V1.EnbState>(serviceImpl.RemoveEnb));
+      serviceBinder.AddMethod(__Method_RecoverEnb, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.EnbRequest, global::ModConductor.Protocol.V1.EnbState>(serviceImpl.RecoverEnb));
     }
 
   }

@@ -60,6 +60,27 @@ class EnbOperationsClient extends $grpc.Client {
     return $createUnaryCall(_$cancelEnbWait, request, options: options);
   }
 
+  $grpc.ResponseFuture<$0.EnbState> updateEnb(
+    $0.EnbRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$updateEnb, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.EnbState> removeEnb(
+    $0.EnbRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$removeEnb, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.EnbState> recoverEnb(
+    $0.EnbRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$recoverEnb, request, options: options);
+  }
+
   // method descriptors
 
   static final _$readEnb = $grpc.ClientMethod<$0.EnbRequest, $0.EnbState>(
@@ -78,6 +99,18 @@ class EnbOperationsClient extends $grpc.Client {
           $0.EnbState.fromBuffer);
   static final _$cancelEnbWait = $grpc.ClientMethod<$0.EnbRequest, $0.EnbState>(
       '/modconductor.v1.EnbOperations/CancelEnbWait',
+      ($0.EnbRequest value) => value.writeToBuffer(),
+      $0.EnbState.fromBuffer);
+  static final _$updateEnb = $grpc.ClientMethod<$0.EnbRequest, $0.EnbState>(
+      '/modconductor.v1.EnbOperations/UpdateEnb',
+      ($0.EnbRequest value) => value.writeToBuffer(),
+      $0.EnbState.fromBuffer);
+  static final _$removeEnb = $grpc.ClientMethod<$0.EnbRequest, $0.EnbState>(
+      '/modconductor.v1.EnbOperations/RemoveEnb',
+      ($0.EnbRequest value) => value.writeToBuffer(),
+      $0.EnbState.fromBuffer);
+  static final _$recoverEnb = $grpc.ClientMethod<$0.EnbRequest, $0.EnbState>(
+      '/modconductor.v1.EnbOperations/RecoverEnb',
       ($0.EnbRequest value) => value.writeToBuffer(),
       $0.EnbState.fromBuffer);
 }
@@ -115,6 +148,27 @@ abstract class EnbOperationsServiceBase extends $grpc.Service {
         false,
         ($core.List<$core.int> value) => $0.EnbRequest.fromBuffer(value),
         ($0.EnbState value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.EnbRequest, $0.EnbState>(
+        'UpdateEnb',
+        updateEnb_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.EnbRequest.fromBuffer(value),
+        ($0.EnbState value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.EnbRequest, $0.EnbState>(
+        'RemoveEnb',
+        removeEnb_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.EnbRequest.fromBuffer(value),
+        ($0.EnbState value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.EnbRequest, $0.EnbState>(
+        'RecoverEnb',
+        recoverEnb_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.EnbRequest.fromBuffer(value),
+        ($0.EnbState value) => value.writeToBuffer()));
   }
 
   $async.Future<$0.EnbState> readEnb_Pre(
@@ -147,5 +201,29 @@ abstract class EnbOperationsServiceBase extends $grpc.Service {
   }
 
   $async.Future<$0.EnbState> cancelEnbWait(
+      $grpc.ServiceCall call, $0.EnbRequest request);
+
+  $async.Future<$0.EnbState> updateEnb_Pre(
+      $grpc.ServiceCall $call, $async.Future<$0.EnbRequest> $request) async {
+    return updateEnb($call, await $request);
+  }
+
+  $async.Future<$0.EnbState> updateEnb(
+      $grpc.ServiceCall call, $0.EnbRequest request);
+
+  $async.Future<$0.EnbState> removeEnb_Pre(
+      $grpc.ServiceCall $call, $async.Future<$0.EnbRequest> $request) async {
+    return removeEnb($call, await $request);
+  }
+
+  $async.Future<$0.EnbState> removeEnb(
+      $grpc.ServiceCall call, $0.EnbRequest request);
+
+  $async.Future<$0.EnbState> recoverEnb_Pre(
+      $grpc.ServiceCall $call, $async.Future<$0.EnbRequest> $request) async {
+    return recoverEnb($call, await $request);
+  }
+
+  $async.Future<$0.EnbState> recoverEnb(
       $grpc.ServiceCall call, $0.EnbRequest request);
 }

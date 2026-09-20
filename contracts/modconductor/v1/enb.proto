@@ -7,6 +7,9 @@ service EnbOperations {
   rpc OpenEnbAuthorPage(EnbRequest) returns (EnbState);
   rpc SelectEnbArchive(EnbArchiveRequest) returns (EnbState);
   rpc CancelEnbWait(EnbRequest) returns (EnbState);
+  rpc UpdateEnb(EnbRequest) returns (EnbState);
+  rpc RemoveEnb(EnbRequest) returns (EnbState);
+  rpc RecoverEnb(EnbRequest) returns (EnbState);
 }
 
 message EnbRequest { string workspace_id = 1; string profile_id = 2; }
@@ -38,4 +41,7 @@ message EnbState {
   bool can_open_author_page = 6;
   bool can_select_archive = 7;
   bool can_cancel = 8;
+  bool can_update = 9;
+  bool can_remove = 10;
+  bool can_recover = 11;
 }

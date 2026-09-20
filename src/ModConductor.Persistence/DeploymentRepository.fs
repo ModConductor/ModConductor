@@ -154,6 +154,12 @@ type internal DeploymentRepository(database: StateDatabase) =
                     receipt.Id
                     (receipt.Phase = ReceiptPhase.Complete)
 
+                EnbRows.completeReplacement
+                    connection
+                    transaction
+                    receipt.Id
+                    (receipt.Phase = ReceiptPhase.Complete)
+
                 transaction.Commit()
                 next)
 

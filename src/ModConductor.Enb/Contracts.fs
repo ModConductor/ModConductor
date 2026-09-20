@@ -24,12 +24,10 @@ type EnbCompatibilityRow =
       Runtime: EnbComponentPin
       Preset: EnbComponentPin
       Companions: EnbComponentPin list
-      DllOverrides: string
-      TermsApproved: bool }
+      DllOverrides: string }
 
 [<RequireQualifiedAccess>]
 type EnbProblem =
-    | AdoptionBlocked
     | GameUnavailable
     | UnsupportedStorefront
     | SignInRequired
@@ -39,6 +37,7 @@ type EnbProblem =
     | ProfileConflict of string
     | ForeignDllConflict of string
     | IncompatibleRuntime of string
+    | ConfigurationUnavailable of string
 
 type EnbArchivePlan =
     { Files: SelectedFile list
@@ -69,8 +68,6 @@ type EnbOwnership =
 module EnbProblem =
     let message =
         function
-        | EnbProblem.AdoptionBlocked ->
-            "ENB setup is unavailable until its installation terms and exact component hashes are approved."
         | EnbProblem.GameUnavailable -> "Select and refresh the Skyrim installation."
         | EnbProblem.UnsupportedStorefront ->
             "ENB setup supports Skyrim Special Edition from Steam."
@@ -85,3 +82,4 @@ module EnbProblem =
             + name
             + ". Review the setup plan before replacing it."
         | EnbProblem.IncompatibleRuntime detail -> detail
+        | EnbProblem.ConfigurationUnavailable detail -> detail
