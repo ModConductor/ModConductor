@@ -37,7 +37,8 @@ type DeploymentBackendTests() =
               "removedParentRestored"
               "unknownCreatedParentRefused"
               "cancelledPreparationNoReceipt"
-              "stalePreparationNoEffects" ] do
+              "stalePreparationNoEffects"
+              "cacheEvictionRemovedOriginalStore" ] do
             flag "deploymentBackend" name |> should equal true
 
     [<Test>]

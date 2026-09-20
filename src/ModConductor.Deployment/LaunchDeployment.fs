@@ -31,26 +31,33 @@ module internal LaunchDeployment =
                 token.ThrowIfCancellationRequested()
                 GameProcesses.validate sources.Context |> ignore
                 let! prepared = repository.Prepare(id, sources, context, progress, token)
-                let! current = repository.Current expected
-                let! checkedContext = repository.Context expected.WorkspaceId
-                token.ThrowIfCancellationRequested()
+                let mutable durable = false
 
-                if not current || checkedContext <> prepared.Context then
-                    return Error DeploymentError.Stale
-                else
-                    GameProcesses.validate checkedContext |> ignore
-                    let! started = repository.Start(prepared.Switch, token)
+                try
+                    let! current = repository.Current expected
+                    let! checkedContext = repository.Context expected.WorkspaceId
+                    token.ThrowIfCancellationRequested()
 
-                    match started with
-                    | Error error -> return Error(DeploymentReports.error error)
-                    | Ok receipt ->
-                        let! finished = execute receipt false progress token
+                    if not current || checkedContext <> prepared.Context then
+                        return Error DeploymentError.Stale
+                    else
+                        GameProcesses.validate checkedContext |> ignore
+                        let! started = repository.Start(prepared, token)
 
-                        return
-                            finished
-                            |> Result.bind (fun receipt ->
-                                if receipt.Phase = DeploymentPhase.Complete then
-                                    Ok(prepared.View, receipt)
-                                else
-                                    Error(DeploymentError.Blocked receipt.Detail))
+                        match started with
+                        | Error error -> return Error(DeploymentReports.error error)
+                        | Ok receipt ->
+                            durable <- true
+                            let! finished = execute receipt false progress token
+
+                            return
+                                finished
+                                |> Result.bind (fun receipt ->
+                                    if receipt.Phase = DeploymentPhase.Complete then
+                                        Ok(prepared.View, receipt)
+                                    else
+                                        Error(DeploymentError.Blocked receipt.Detail))
+                finally
+                    if not durable then
+                        PreparedState.abandon prepared
         }

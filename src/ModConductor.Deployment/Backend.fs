@@ -15,6 +15,36 @@ type DeploymentBackend internal (repository: IDeploymentRepository) =
     let order = Queue<Guid>()
     let mutable closed = false
 
+    let abandon value = PreparedState.abandon value
+
+    let cache id value =
+        lock gate (fun () ->
+            match prepared.TryGetValue id with
+            | true, previous ->
+                prepared.Remove id |> ignore
+                abandon previous
+            | _ -> ()
+
+            while prepared.Count >= 2 do
+                let candidate = order.Dequeue()
+
+                match prepared.TryGetValue candidate with
+                | true, evicted ->
+                    prepared.Remove candidate |> ignore
+                    abandon evicted
+                | _ -> ()
+
+            prepared[id] <- value
+            order.Enqueue id)
+
+    let take id =
+        lock gate (fun () ->
+            match prepared.TryGetValue id with
+            | true, value ->
+                prepared.Remove id |> ignore
+                Some value
+            | _ -> None)
+
     let mutable drained =
         new System.Threading.Tasks.TaskCompletionSource<unit>(
             System.Threading.Tasks.TaskCreationOptions.RunContinuationsAsynchronously
@@ -101,13 +131,22 @@ type DeploymentBackend internal (repository: IDeploymentRepository) =
     member _.Drain() = lock gate (fun () -> drained.Task)
 
     member internal _.TryClose(next: unit -> bool) =
-        lock gate (fun () ->
-            if active.Count <> 0 || not (next ()) then
-                false
-            else
-                closed <- true
-                prepared.Clear()
-                true)
+        let abandoned =
+            lock gate (fun () ->
+                if active.Count <> 0 || not (next ()) then
+                    None
+                else
+                    closed <- true
+                    let values = prepared.Values |> Seq.toList
+                    prepared.Clear()
+                    order.Clear()
+                    Some values)
+
+        match abandoned with
+        | None -> false
+        | Some values ->
+            values |> List.iter abandon
+            true
 
     member internal _.TryAcquireWorkspace(workspace) =
         if not (enter workspace) then
@@ -203,20 +242,21 @@ type DeploymentBackend internal (repository: IDeploymentRepository) =
                         token.ThrowIfCancellationRequested()
                         GameProcesses.validate sources.Context |> ignore
                         let! value = repository.Prepare(id, sources, context, progress, token)
-                        let! current = repository.Current expected
-                        token.ThrowIfCancellationRequested()
+                        let mutable retained = false
 
-                        if not current then
-                            return Error DeploymentError.Stale
-                        else
-                            lock gate (fun () ->
-                                while prepared.Count >= 2 do
-                                    prepared.Remove(order.Dequeue()) |> ignore
+                        try
+                            let! current = repository.Current expected
+                            token.ThrowIfCancellationRequested()
 
-                                prepared[id] <- value
-                                order.Enqueue id)
-
-                            return Ok value.View
+                            if not current then
+                                return Error DeploymentError.Stale
+                            else
+                                cache id value
+                                retained <- true
+                                return Ok value.View
+                        finally
+                            if not retained then
+                                abandon value
                 })
 
         member _.PrepareRetained(id, expected, generation, progress, token) =
@@ -247,50 +287,54 @@ type DeploymentBackend internal (repository: IDeploymentRepository) =
                                         token
                                     )
 
-                                let! current = repository.Current expected
-                                token.ThrowIfCancellationRequested()
+                                let mutable retained = false
 
-                                if not current then
-                                    return Error DeploymentError.Stale
-                                else
-                                    lock gate (fun () ->
-                                        while prepared.Count >= 2 do
-                                            prepared.Remove(order.Dequeue()) |> ignore
+                                try
+                                    let! current = repository.Current expected
+                                    token.ThrowIfCancellationRequested()
 
-                                        prepared[id] <- value
-                                        order.Enqueue id)
-
-                                    return Ok value.View
+                                    if not current then
+                                        return Error DeploymentError.Stale
+                                    else
+                                        cache id value
+                                        retained <- true
+                                        return Ok value.View
+                                finally
+                                    if not retained then
+                                        abandon value
                 })
 
         member _.Activate(id, expected, progress, token) =
             run expected.WorkspaceId (fun () ->
                 task {
-                    let value =
-                        lock gate (fun () ->
-                            match prepared.TryGetValue id with
-                            | true, value -> Some value
-                            | _ -> None)
+                    let value = take id
 
                     match value with
                     | None -> return Error DeploymentError.NotFound
-                    | Some value when value.View.Sources <> expected ->
-                        return Error DeploymentError.Stale
                     | Some value ->
-                        let! context = repository.Context expected.WorkspaceId
+                        let mutable durable = false
 
-                        if context <> value.Context then
-                            return Error DeploymentError.Stale
-                        else
-                            GameProcesses.validate context |> ignore
-                            token.ThrowIfCancellationRequested()
-                            let! started = repository.Start(value.Switch, token)
+                        try
+                            if value.View.Sources <> expected then
+                                return Error DeploymentError.Stale
+                            else
+                                let! context = repository.Context expected.WorkspaceId
 
-                            match started with
-                            | Error error -> return Error(DeploymentReports.error error)
-                            | Ok receipt ->
-                                lock gate (fun () -> prepared.Remove id |> ignore)
-                                return! execute receipt false progress token
+                                if context <> value.Context then
+                                    return Error DeploymentError.Stale
+                                else
+                                    GameProcesses.validate context |> ignore
+                                    token.ThrowIfCancellationRequested()
+                                    let! started = repository.Start(value, token)
+
+                                    match started with
+                                    | Error error -> return Error(DeploymentReports.error error)
+                                    | Ok receipt ->
+                                        durable <- true
+                                        return! execute receipt false progress token
+                        finally
+                            if not durable then
+                                abandon value
                 })
 
         member _.Recover(id, revision, restore, progress, token) =

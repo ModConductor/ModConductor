@@ -172,8 +172,8 @@ type internal DeploymentBackendRepository
                 GameContextRows.read database.Connection null database.OwnerId workspace
                 |> Result.defaultWith (fun _ -> raise (RecoveryException RecoveryError.NotFound)))
 
-        member _.Start(request, token) =
-            generations.Start(request, [], cancellation = token)
+        member _.Start(prepared, token) =
+            generations.Start(prepared, [], cancellation = token)
 
         member _.Run(id, revision, restore, token, checkpoint) =
             generations.Run(id, revision, restore, token, checkpoint, [])

@@ -228,6 +228,15 @@ module internal DeploymentPreparation =
                   | Some id -> yield id, game
                   | None -> () ]
 
+            let mutable originalStorage: PreparedOriginalStorage option = None
+            let mutable retainOriginalStorage = false
+
+            use originalStorageGuard =
+                { new IDisposable with
+                    member _.Dispose() =
+                        if not retainOriginalStorage then
+                            originalStorage |> Option.iter Preparation.abandonOriginalStorage }
+
             let roots =
                 match existing with
                 | Some(context: Context) ->
@@ -246,6 +255,8 @@ module internal DeploymentPreparation =
                 | None ->
                     let originals =
                         child game (".modconductor-originals-" + Guid.NewGuid().ToString("N"))
+
+                    originalStorage <- Some { Parent = game; Directory = originals }
 
                     expectedLocations
                     |> List.map (fun (root, directory) ->
@@ -459,10 +470,13 @@ module internal DeploymentPreparation =
                   CopiedBytes = built.Measurements.CopiedBytes
                   RequiredBytes = built.Measurements.RequiredBytes }
 
+            retainOriginalStorage <- true
+
             return
                 { View = view
                   Context = sources.Context
-                  Switch = switch }
+                  Switch = switch
+                  OriginalStorage = originalStorage }
         }
 
     let prepare

@@ -42,6 +42,33 @@ module internal Preparation =
                     (HostPath.value second.Directory.Path)
                     (HostPath.value first.Directory.Path)))
 
+    let abandonOriginalStorage (prepared: PreparedOriginalStorage) =
+        let directoryPath = HostPath.value prepared.Directory.Path
+        let name = Path.GetFileName directoryPath
+
+        if
+            String.IsNullOrWhiteSpace name
+            || Path.GetDirectoryName directoryPath <> HostPath.value prepared.Parent.Path
+        then
+            RecoveryFiles.fail "Prepared original storage has an invalid location."
+
+        use parent = HeldDirectory.Open(prepared.Parent.Path, prepared.Parent.Identity)
+
+        match parent.InspectEntry name with
+        | None -> ()
+        | Some entry when
+            entry.Kind = EntryKind.Directory && entry.Identity = prepared.Directory.Identity
+            ->
+            let empty =
+                use directory = parent.Directory(name, Some prepared.Directory.Identity)
+                directory.Names |> Seq.isEmpty
+
+            if empty then
+                parent.RemoveDirectory(name, prepared.Directory.Identity)
+            else
+                RecoveryFiles.fail "Prepared original storage is not empty."
+        | Some _ -> RecoveryFiles.fail "Prepared original storage changed."
+
     let private checkLocations
         (roots: RootBinding list)
         (boundaries: TargetFile list)

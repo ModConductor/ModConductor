@@ -27,6 +27,15 @@ module DeploymentBackendFixtures =
 
         let game, proton = ProtonFixtures.create (Path.Combine(area, "game"))
         let data = Path.Combine(game, "Data")
+
+        let originalStores () =
+            Directory.EnumerateDirectories(
+                game,
+                ".modconductor-originals-*",
+                SearchOption.TopDirectoryOnly
+            )
+            |> Seq.length
+
         let mixed = Directory.CreateDirectory(Path.Combine(data, "Mixed")).FullName
         let original = Path.Combine(mixed, "Original.TXT")
         File.WriteAllText(original, "original game bytes")
@@ -117,11 +126,24 @@ module DeploymentBackendFixtures =
         let cancelledSafe =
             cancelledResult = Error DeploymentError.Cancelled
             && (store.Deployment.Read cancelledId |> wait).IsNone
+            && originalStores () = 0
+
+        let evictedPlan =
+            backend.Prepare(Guid.NewGuid(), state.Sources, ignore, CancellationToken.None)
+            |> wait
+            |> result
 
         let stalePlan =
             backend.Prepare(Guid.NewGuid(), state.Sources, ignore, CancellationToken.None)
             |> wait
             |> result
+
+        let retainedPlan =
+            backend.Prepare(Guid.NewGuid(), state.Sources, ignore, CancellationToken.None)
+            |> wait
+            |> result
+
+        let cacheEvictionRemovedOriginalStore = originalStores () = 2
 
         let oldSelection = InventoryObservations.read store profile
 
@@ -135,10 +157,21 @@ module DeploymentBackendFixtures =
             backend.Activate(stalePlan.Id, stalePlan.Sources, ignore, CancellationToken.None)
             |> wait
 
+        let retainedStale =
+            backend.Activate(retainedPlan.Id, retainedPlan.Sources, ignore, CancellationToken.None)
+            |> wait
+
+        let evicted =
+            backend.Activate(evictedPlan.Id, evictedPlan.Sources, ignore, CancellationToken.None)
+            |> wait
+
         let staleSafe =
             stale = Error DeploymentError.Stale
+            && retainedStale = Error DeploymentError.Stale
+            && evicted = Error DeploymentError.NotFound
             && (store.Deployment.Read stalePlan.Id |> wait).IsNone
             && File.ReadAllText original = "original game bytes"
+            && originalStores () = 0
 
         let oldSelection = InventoryObservations.read store profile
 
@@ -163,6 +196,7 @@ module DeploymentBackendFixtures =
         writer.WriteStartObject("deploymentBackend")
         writer.WriteBoolean("cancelledPreparationNoReceipt", cancelledSafe)
         writer.WriteBoolean("stalePreparationNoEffects", staleSafe)
+        writer.WriteBoolean("cacheEvictionRemovedOriginalStore", cacheEvictionRemovedOriginalStore)
 
         writer.WriteBoolean(
             "contextDerivedTarget",

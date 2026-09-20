@@ -9,6 +9,10 @@ type internal Location =
     { Path: HostPath
       Identity: FileIdentity }
 
+type internal PreparedOriginalStorage =
+    { Parent: Location
+      Directory: Location }
+
 type internal RootBinding =
     { Root: TargetRoot
       Directory: Location

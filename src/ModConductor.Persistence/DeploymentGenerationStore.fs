@@ -162,6 +162,22 @@ type internal DeploymentGenerationStore
                         return Error RecoveryError.Stale
             })
 
+    member this.Start(prepared: ModConductor.Deployment.PreparedState, processes, ?cancellation) =
+        task {
+            let mutable retained = false
+
+            try
+                let! result = this.Start(prepared.Switch, processes, ?cancellation = cancellation)
+
+                if Result.isOk result then
+                    retained <- true
+
+                return result
+            finally
+                if not retained then
+                    ModConductor.Deployment.PreparedState.abandon prepared
+        }
+
     member _.Run(id, revision, restore, cancellation, afterEffect, processes) =
         protect (fun () ->
             task {

@@ -12,6 +12,7 @@ open ModConductor.Workspaces
 open ModConductor.GameContexts
 open ModConductor.DeploymentPlanning
 open ModConductor.DeploymentRecovery
+open ModConductor.Deployment
 open ModConductor.Persistence
 
 module internal ComponentFixtures =
@@ -80,6 +81,15 @@ module internal ComponentFixtures =
 
         let game, proton = ProtonFixtures.create (Path.Combine(area, "game"))
         let data = Path.Combine(game, "Data")
+
+        let originalStores () =
+            Directory.EnumerateDirectories(
+                game,
+                ".modconductor-originals-*",
+                SearchOption.TopDirectoryOnly
+            )
+            |> Seq.map Path.GetFullPath
+            |> Set.ofSeq
 
         let source =
             Directory.CreateDirectory(Path.Combine(workspacePath, "Component")).FullName
@@ -232,13 +242,30 @@ module internal ComponentFixtures =
             )
             |> wait
 
+        let abandonedPreparation = prepare profileOne first
+        PreparedState.abandon abandonedPreparation
+        let abandonedPreparationClean = originalStores().IsEmpty
+
+        let cancelledPreparation = prepare profileOne first
+        use cancelled = new CancellationTokenSource()
+        cancelled.Cancel()
+
+        let cancelledStart =
+            store.Generations.Start(cancelledPreparation, [], cancellation = cancelled.Token)
+            |> wait
+
+        let cancelledStartClean = Result.isError cancelledStart && originalStores().IsEmpty
+
         let blockedPreparation = prepare profileOne first
-        let blockedStart = store.Generations.Start(blockedPreparation.Switch, []) |> wait
-        let foreignLinkRefused = Result.isError blockedStart && File.Exists blocked
+        let blockedStart = store.Generations.Start(blockedPreparation, []) |> wait
+
+        let foreignLinkRefused =
+            Result.isError blockedStart && File.Exists blocked && originalStores().IsEmpty
+
         File.Delete blocked
 
         let preparedOne = prepare profileOne first
-        let receiptOne = store.Generations.Start(preparedOne.Switch, []) |> wait |> result
+        let receiptOne = store.Generations.Start(preparedOne, []) |> wait |> result
 
         let interrupted =
             store.Generations.Run(
@@ -270,7 +297,7 @@ module internal ComponentFixtures =
         File.WriteAllText(Path.Combine(game, "enblocal.ini"), "profile-one")
         let firstGeneration = preparedOne.Switch.Generation
         let preparedTwo = prepare profileTwo second
-        let receiptTwo = store.Generations.Start(preparedTwo.Switch, []) |> wait |> result
+        let receiptTwo = store.Generations.Start(preparedTwo, []) |> wait |> result
 
         store.Generations.Run(
             receiptTwo.Id,
@@ -289,7 +316,7 @@ module internal ComponentFixtures =
             && File.ReadAllText(Path.Combine(game, "enblocal.ini")) = "config-v1"
 
         let preparedBack = prepare profileOne first
-        let back = store.Generations.Start(preparedBack.Switch, []) |> wait |> result
+        let back = store.Generations.Start(preparedBack, []) |> wait |> result
 
         store.Generations.Run(
             back.Id,
@@ -320,7 +347,7 @@ module internal ComponentFixtures =
         |> ignore
 
         let removal = prepare profileOne first
-        let removalReceipt = store.Generations.Start(removal.Switch, []) |> wait |> result
+        let removalReceipt = store.Generations.Start(removal, []) |> wait |> result
 
         store.Generations.Run(
             removalReceipt.Id,
@@ -338,6 +365,16 @@ module internal ComponentFixtures =
             library.ReadPayload(versionOne, firstVersion.Entries.Head.Payload.Id, 0L, 64)
             |> wait
             |> result
+
+        let persistedContext =
+            store.Deployment.Context(preparedOne.Switch.ContextId) |> wait |> Option.get
+
+        let persistedOriginalStores =
+            persistedContext.Roots
+            |> List.map (fun root -> HostPath.value root.Originals.Path |> Path.GetFullPath)
+            |> Set.ofList
+
+        let finalOriginalStoresOwned = originalStores () = persistedOriginalStores
 
         let invalidRoot =
             let version =
@@ -384,6 +421,9 @@ module internal ComponentFixtures =
         writer.WriteStartObject("components")
         writer.WriteBoolean("stableDistinctRoots", gameRoot <> workspace)
         writer.WriteBoolean("foreignLinkRefused", foreignLinkRefused)
+        writer.WriteBoolean("abandonedPreparationClean", abandonedPreparationClean)
+        writer.WriteBoolean("cancelledStartClean", cancelledStartClean)
+        writer.WriteBoolean("finalOriginalStoresOwned", finalOriginalStoresOwned)
         writer.WriteBoolean("interruptedActivationRecovered", Result.isError interrupted)
         writer.WriteBoolean("profileVersionsIndependent", secondSelected && firstRestored)
         writer.WriteBoolean("sharedPayloadRetained", sharedPayloads.Length = 3)

@@ -134,7 +134,12 @@ type IDeploymentBackend =
 type internal PreparedState =
     { View: PreparedDeployment
       Context: GameContextState
-      Switch: SwitchRequest }
+      Switch: SwitchRequest
+      OriginalStorage: PreparedOriginalStorage option }
+
+module internal PreparedState =
+    let abandon value =
+        value.OriginalStorage |> Option.iter Preparation.abandonOriginalStorage
 
 type internal IDeploymentRepository =
     abstract Read: Guid -> Task<PlanSources * Context option>
@@ -156,7 +161,7 @@ type internal IDeploymentRepository =
 
     abstract Current: SourceStamp -> Task<bool>
     abstract Context: Guid -> Task<GameContextState>
-    abstract Start: SwitchRequest * CancellationToken -> Task<Result<Receipt, RecoveryError>>
+    abstract Start: PreparedState * CancellationToken -> Task<Result<Receipt, RecoveryError>>
 
     abstract Run:
         Guid * int64 * bool * CancellationToken * (string -> int -> unit) ->

@@ -34,6 +34,9 @@ type ComponentTests() =
         ()
         =
         flag "foreignLinkRefused" |> should equal true
+        flag "abandonedPreparationClean" |> should equal true
+        flag "cancelledStartClean" |> should equal true
+        flag "finalOriginalStoresOwned" |> should equal true
         flag "interruptedActivationRecovered" |> should equal true
         flag "rootOriginalRestored" |> should equal true
         flag "dataLinkRemoved" |> should equal true
