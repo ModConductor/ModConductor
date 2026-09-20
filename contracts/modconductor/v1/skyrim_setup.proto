@@ -1,0 +1,72 @@
+syntax = "proto3";
+package modconductor.v1;
+option csharp_namespace = "ModConductor.Protocol.V1";
+
+service SkyrimSetupOperations {
+  rpc ReadSkyrimSetup(ReadSkyrimSetupRequest) returns (SkyrimSetupState);
+  rpc StartSkyrimSetup(StartSkyrimSetupRequest) returns (SkyrimSetupState);
+  rpc ContinueSkyrimSetup(SkyrimSetupRequest) returns (SkyrimSetupState);
+  rpc SelectSkyrimSetupEnbArchive(SkyrimSetupArchiveRequest) returns (SkyrimSetupState);
+}
+
+message SkyrimSetupRequest { string workspace_id = 1; string profile_id = 2; }
+message ReadSkyrimSetupRequest {
+  string workspace_id = 1;
+  string profile_id = 2;
+  bool include_fnis = 3;
+}
+message StartSkyrimSetupRequest {
+  string workspace_id = 1;
+  string profile_id = 2;
+  bool include_fnis = 3;
+  string plan_token = 4;
+  bool change_plan_confirmed = 5;
+}
+message SkyrimSetupArchiveRequest {
+  string workspace_id = 1;
+  string profile_id = 2;
+  string operation_id = 3;
+  string path = 4;
+}
+
+enum SkyrimSetupPhase {
+  SKYRIM_SETUP_PHASE_UNSPECIFIED = 0;
+  SKYRIM_SETUP_PHASE_UNAVAILABLE = 1;
+  SKYRIM_SETUP_PHASE_NEEDS_CONSENT = 2;
+  SKYRIM_SETUP_PHASE_PREPARING_DEPLOYMENT = 3;
+  SKYRIM_SETUP_PHASE_SETTING_UP_SKSE = 4;
+  SKYRIM_SETUP_PHASE_WAITING_FOR_SKSE = 5;
+  SKYRIM_SETUP_PHASE_WAITING_FOR_ENB_ARCHIVE = 6;
+  SKYRIM_SETUP_PHASE_SETTING_UP_ENB = 7;
+  SKYRIM_SETUP_PHASE_SETTING_UP_FNIS = 8;
+  SKYRIM_SETUP_PHASE_FNIS_STALE = 9;
+  SKYRIM_SETUP_PHASE_FNIS_RUNNING = 10;
+  SKYRIM_SETUP_PHASE_READY = 11;
+  SKYRIM_SETUP_PHASE_RECOVERY_REQUIRED = 12;
+  SKYRIM_SETUP_PHASE_FAILED = 13;
+}
+
+message SkyrimSetupChange { string title = 1; string detail = 2; }
+message SkyrimSetupComponent {
+  string name = 1;
+  string status = 2;
+  string detail = 3;
+  bool ready = 4;
+  bool active = 5;
+  bool blocked = 6;
+}
+message SkyrimSetupState {
+  SkyrimSetupPhase phase = 1;
+  string status = 2;
+  string detail = 3;
+  string plan_token = 4;
+  repeated SkyrimSetupChange changes = 5;
+  repeated SkyrimSetupComponent components = 6;
+  bool include_fnis = 7;
+  bool consent_recorded = 8;
+  bool can_start = 9;
+  bool can_continue = 10;
+  bool can_select_enb_archive = 11;
+  bool active = 12;
+  bool ready = 13;
+}

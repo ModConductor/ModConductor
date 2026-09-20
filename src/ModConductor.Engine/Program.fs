@@ -87,6 +87,17 @@ let runWithNexus registration (handoff: ModConductor.Nexus.IOAuthHandoff) args =
 
     use fnisRunner = new ModConductor.Engine.FnisRunner(store)
 
+    let skyrimSetup =
+        ModConductor.Engine.SkyrimSetupCoordinator(
+            store,
+            skse,
+            enb,
+            fnis,
+            fnisRunner,
+            store.GameLaunching,
+            store.PluginOrders
+        )
+
     use nxmIngress =
         new ModConductor.Desktop.PrivateIngress(
             (fun (id, input) ->
@@ -206,6 +217,12 @@ let runWithNexus registration (handoff: ModConductor.Nexus.IOAuthHandoff) args =
     |> ignore
 
     builder.Services.AddSingleton<ModConductor.Engine.FnisService>() |> ignore
+
+    builder.Services.AddSingleton<ModConductor.Engine.SkyrimSetupCoordinator>(skyrimSetup)
+    |> ignore
+
+    builder.Services.AddSingleton<ModConductor.Engine.SkyrimSetupService>()
+    |> ignore
 
     builder.Services.AddSingleton<ModConductor.Nexus.NexusModDetails>(
         ModConductor.Nexus.NexusModDetails(nexus, store.NexusMetadata)
@@ -507,6 +524,7 @@ let runWithNexus registration (handoff: ModConductor.Nexus.IOAuthHandoff) args =
     app.MapGrpcService<ModConductor.Engine.SkseService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.EnbService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.FnisService>() |> ignore
+    app.MapGrpcService<ModConductor.Engine.SkyrimSetupService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.LinkSetupService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.DesktopService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.DownloadService>() |> ignore

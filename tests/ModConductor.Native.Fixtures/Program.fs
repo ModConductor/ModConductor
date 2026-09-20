@@ -146,6 +146,16 @@ let main args =
             0
         elif args.Length = 2 && args[0] = "--desktop-engine" then
             ModConductor.Engine.Program.run [| "--state-directory"; args[1] |]
+        elif args.Length = 2 && args[0] = "--skyrim-setup" then
+            use writer =
+                new Utf8JsonWriter(Console.OpenStandardOutput(), JsonWriterOptions(Indented = true))
+
+            writer.WriteStartObject()
+            writer.WriteBoolean("nativeAot", not RuntimeFeature.IsDynamicCodeSupported)
+            SkyrimSetupFixtures.observe writer args[1]
+            writer.WriteEndObject()
+            writer.Flush()
+            0
         elif args.Length = 2 && args[0] = "--desktop-lease" then
             DesktopFixtures.tryLease args[1]
         elif args.Length = 2 && args[0] = "--desktop" then

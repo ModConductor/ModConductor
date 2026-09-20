@@ -28,6 +28,7 @@ import 'settings_client.dart';
 import 'skse_client.dart';
 import 'enb_client.dart';
 import 'fnis_client.dart';
+import 'skyrim_setup_client.dart';
 
 import 'dart:async';
 import 'dart:convert';
@@ -125,6 +126,8 @@ class EngineSession {
   EnbClient get enb => _enb!;
   FnisClient? _fnis;
   FnisClient get fnis => _fnis!;
+  SkyrimSetupClient? _skyrimSetup;
+  SkyrimSetupClient get skyrimSetup => _skyrimSetup!;
   Future<void>? _closing;
 
   Future<int> get exited => _process.exitCode;
@@ -250,6 +253,10 @@ class EngineSession {
     _skse = SkseClient(channel, CallOptions(metadata: options.metadata));
     _enb = EnbClient(channel, CallOptions(metadata: options.metadata));
     _fnis = FnisClient(channel, CallOptions(metadata: options.metadata));
+    _skyrimSetup = SkyrimSetupClient.grpc(
+      channel,
+      CallOptions(metadata: options.metadata),
+    );
   }
 
   Future<ConnectionReport> check() => operations.check();

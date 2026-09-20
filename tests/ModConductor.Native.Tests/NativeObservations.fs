@@ -50,6 +50,7 @@ type NativeObservationSetup() =
         | "skse" -> info.ArgumentList.Add "--skse"
         | "enb" -> info.ArgumentList.Add "--enb"
         | "fnis" -> info.ArgumentList.Add "--fnis"
+        | "skyrim-setup" -> info.ArgumentList.Add "--skyrim-setup"
         | "generations" -> info.ArgumentList.Add "--generations"
         | "storage" -> info.ArgumentList.Add "--storage"
         | "deployment-recovery" -> info.ArgumentList.Add "--deployment-recovery"

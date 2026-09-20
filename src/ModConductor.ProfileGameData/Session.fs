@@ -724,6 +724,15 @@ type ProfileGameDataSession
         this.ApplyForLaunchAtCheckpoint(id, workspace, profile, expected, token, report, ignore)
 
     interface IProfilePluginOrders with
+        member _.PreflightForLaunch(workspace, profile, token) =
+            protect (fun () ->
+                task {
+                    requireIds [ workspace; profile ]
+                    let! scope = repository.Read(workspace, profile)
+                    let! _ = PluginOrders.forLaunch plugins scope token
+                    return Ok()
+                })
+
         member _.Read(workspace, profile, headers) =
             protect (fun () ->
                 task {

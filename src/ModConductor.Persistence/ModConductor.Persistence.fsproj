@@ -22,6 +22,7 @@
     <Compile Include="SkseSchema.fs" />
     <Compile Include="EnbSchema.fs" />
     <Compile Include="FnisSchema.fs" />
+    <Compile Include="SkyrimSetupSchema.fs" />
     <Compile Include="Sqlite.fs" />
     <Compile Include="MaintenanceClaims.fs" />
     <Compile Include="LibraryEncoding.fs" />
@@ -39,6 +40,7 @@
     <Compile Include="SkseLoaderStore.fs" />
     <Compile Include="EnbStore.fs" />
     <Compile Include="FnisStore.fs" />
+    <Compile Include="SkyrimSetupStore.fs" />
     <Compile Include="NexusOriginRows.fs" />
     <Compile Include="NexusMetadataRows.fs" />
     <Compile Include="NexusMetadataStore.fs" />

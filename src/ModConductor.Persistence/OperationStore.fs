@@ -145,9 +145,16 @@ type OperationStore
     let skseLoaders = SkseLoaderStore(database)
     let enbSetups = EnbStore(database)
     let fnisSetups = FnisStore(database)
+    let skyrimSetups = SkyrimSetupStore(database)
 
     let fnisExecution =
-        FnisExecutionStore(directory, database, modLibrary.Access, modLibrary.PublicationOwner, fnisSetups)
+        FnisExecutionStore(
+            directory,
+            database,
+            modLibrary.Access,
+            modLibrary.PublicationOwner,
+            fnisSetups
+        )
 
     let gameLaunching =
         ModConductor.GameLaunching.GameLaunchSession(
@@ -265,6 +272,7 @@ type OperationStore
     member _.Artifacts = artifacts :> ModConductor.ArtifactLibrary.IArtifactLibrary
     member internal _.EnbSetups = enbSetups
     member internal _.FnisSetups = fnisSetups
+    member internal _.SkyrimSetups = skyrimSetups
     member internal _.FnisExecution = fnisExecution
 
     member internal _.AddArtifactAtCheckpoint(request, token, checkpoint) =
@@ -385,7 +393,10 @@ type OperationStore
         profileGameData.RetainedSavePreviewCount
 
     member _.GameLaunching = gameLaunching :> ModConductor.GameLaunching.IGameLaunching
-    member internal _.ToolLaunching = gameLaunching :> ModConductor.GameLaunching.IToolLaunchProjection
+
+    member internal _.ToolLaunching =
+        gameLaunching :> ModConductor.GameLaunching.IToolLaunchProjection
+
     member internal _.SkseLoaders = skseLoaders
     member _.CloseExecutables() = executables.Close()
     member _.ExecutablesFailed = executables.Failed

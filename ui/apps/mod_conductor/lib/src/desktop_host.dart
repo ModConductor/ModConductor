@@ -93,6 +93,7 @@ class _DesktopHostState extends State<DesktopHost> with WidgetsBindingObserver {
     skse: _owner.skse,
     enb: _owner.enb,
     fnis: _owner.fnis,
+    skyrimSetup: _owner.skyrimSetup,
     status: switch (_owner.state) {
       EngineIdle() => const DesktopDisconnected(),
       EngineConnecting() => const DesktopConnecting(),

@@ -170,6 +170,30 @@ void main() {
           await state.delete(recursive: true);
         }
       });
+
+      test('the authenticated Skyrim setup service reports its blocked installation step', () async {
+        final state = await Directory.systemTemp.createTemp(
+          'mc-skyrim-setup-wire-',
+        );
+        final engine = EngineSession(
+          await Process.start(executable!, ['--state-directory', state.path]),
+        );
+        try {
+          await engine.connect();
+          final result = await engine.skyrimSetup.read(
+            '11111111111111111111111111111111',
+            '22222222222222222222222222222222',
+            includeFnis: true,
+          );
+          expect(result.phase, SkyrimSetupStatusPhase.unavailable);
+          expect(result.canStart, isFalse);
+          expect(result.components.single.blocked, isTrue);
+        } finally {
+          await engine.close();
+          expect(await engine.exited, 0);
+          await state.delete(recursive: true);
+        }
+      });
     },
   );
 }

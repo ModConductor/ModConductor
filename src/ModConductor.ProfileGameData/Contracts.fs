@@ -197,6 +197,9 @@ type ProfileArchivePolicy =
       Problem: string option }
 
 type IProfilePluginOrders =
+    abstract PreflightForLaunch:
+        workspace: Guid * profile: Guid * CancellationToken -> Task<Result<unit, ProfileDataError>>
+
     abstract Read:
         workspace: Guid * profile: Guid * headers: Guid ->
             Task<Result<ProfilePluginOrder, ProfileDataError>>
