@@ -482,7 +482,6 @@ module EnbFixtures =
 
         let row =
             { catalogue with
-                TermsApproved = true
                 Runtime = EnbCatalogue.withHash runtimeHash catalogue.Runtime
                 Preset = EnbCatalogue.withHash presetHash catalogue.Preset
                 Companions = catalogue.Companions |> List.map (EnbCatalogue.withHash companionHash) }
@@ -662,13 +661,17 @@ module EnbFixtures =
         use nexus =
             new NexusSession(credentials, None, handoff, (fun _ -> Task.CompletedTask))
 
+        let blockedRow =
+            { EnbCatalogue.lean with
+                TermsApproved = false }
+
         use blocked =
             new EnbCoordinator(
                 nexus,
                 store.Downloads,
                 store,
                 handoff,
-                EnbCatalogue.lean,
+                blockedRow,
                 eligibilityOverride = (fun _ -> Task.FromResult(Ok()))
             )
 
@@ -687,7 +690,7 @@ module EnbFixtures =
 
         check
             writer
-            "productionAdoptionGateBlocksAcquisition"
+            "unapprovedCatalogueBlocksAcquisition"
             (blockedRead.Phase = ModConductor.Protocol.V1.EnbPhase.Blocked
              && blockedOpen.Phase = ModConductor.Protocol.V1.EnbPhase.Blocked
              && blockedSelection.Phase = ModConductor.Protocol.V1.EnbPhase.Blocked
@@ -982,11 +985,7 @@ module EnbFixtures =
             "generationScopedUpdateRemovalRecovery"
             (firstMatches && secondMatches && removed.IsNone)
 
-        coordinatorEvidence
-            writer
-            area
-            { EnbCatalogue.lean with
-                TermsApproved = true }
+        coordinatorEvidence writer area EnbCatalogue.lean
 
         writer.WriteEndObject()
         GenerationCleanup.normalize area

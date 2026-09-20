@@ -24,7 +24,7 @@ type EnbTests() =
     [<Test>]
     member _.``author acquisition should remain explicit durable and cancellable``() =
         flag "authorPageWaitCancelRestart" |> should equal true
-        flag "productionAdoptionGateBlocksAcquisition" |> should equal true
+        flag "unapprovedCatalogueBlocksAcquisition" |> should equal true
 
     [<Test>]
     member _.``Lean ENB should retain exact component provenance and prior values``() =
