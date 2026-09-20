@@ -49,3 +49,4 @@ export 'src/migration_client.dart';
 export 'src/settings_client.dart';
 export 'src/skse_client.dart';
 export 'src/enb_client.dart';
+export 'src/fnis_client.dart';

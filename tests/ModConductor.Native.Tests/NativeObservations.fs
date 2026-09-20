@@ -49,6 +49,7 @@ type NativeObservationSetup() =
         | "components" -> info.ArgumentList.Add "--components"
         | "skse" -> info.ArgumentList.Add "--skse"
         | "enb" -> info.ArgumentList.Add "--enb"
+        | "fnis" -> info.ArgumentList.Add "--fnis"
         | "generations" -> info.ArgumentList.Add "--generations"
         | "storage" -> info.ArgumentList.Add "--storage"
         | "deployment-recovery" -> info.ArgumentList.Add "--deployment-recovery"

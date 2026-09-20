@@ -20,6 +20,7 @@
     <Compile Include="NexusServer.fs" />
     <Compile Include="NexusFixtures.fs" />
     <Compile Include="EnbFixtures.fs" />
+    <Compile Include="FnisFixtures.fs" />
     <Compile Include="SkseCoordinatorFixtures.fs" />
     <Compile Include="NexusMetadataFixtures.fs" />
     <Compile Include="NxmFixtures.fs" />
@@ -43,6 +44,7 @@
     <ProjectReference Include="../../src/ModConductor.DeploymentPlanning/ModConductor.DeploymentPlanning.fsproj"/>
     <ProjectReference Include="../../src/ModConductor.Skse/ModConductor.Skse.fsproj"/>
     <ProjectReference Include="../../src/ModConductor.Enb/ModConductor.Enb.fsproj"/>
+    <ProjectReference Include="../../src/ModConductor.Fnis/ModConductor.Fnis.fsproj"/>
     <ProjectReference Include="../../src/ModConductor.Persistence/ModConductor.Persistence.fsproj"/>
     <ProjectReference Include="../../src/ModConductor.Migration/ModConductor.Migration.fsproj"/>
     <ProjectReference Include="../../src/ModConductor.SteamDiscovery/ModConductor.SteamDiscovery.fsproj"/>

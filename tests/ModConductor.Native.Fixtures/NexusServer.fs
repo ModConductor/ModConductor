@@ -51,6 +51,7 @@ type NexusServer() =
     let mutable lastVersion = ""
     let mutable premium = true
     let mutable skseFiles: (int64 * string * string * string) list = []
+    let mutable fnisFiles: (int64 * string * string * string) list = []
     let mutable enbFiles: Map<int64, int64 * string * string * byte array> = Map.empty
 
 
@@ -306,6 +307,14 @@ type NexusServer() =
                                     ("""{"mod_id":30379,"game_id":1704,"name":"Skyrim Script Extender","summary":"Fixture SKSE metadata","version":"fixture","author":"SKSE team","uploaded_by":"SKSE team","category_id":1,"updated_timestamp":1789238400,"allow_rating":true,"available":"""
                                      + (if mode = "unavailable" then "false" else "true")
                                      + "}")
+                    elif path.EndsWith "/mods/3038.json" then
+                        if mode = "metadata-error" then
+                            do! write 404 "{}"
+                        else
+                            do!
+                                write
+                                    200
+                                    """{"mod_id":3038,"game_id":1704,"name":"FNIS Behavior SE","summary":"Fixture FNIS metadata","version":"7.6","author":"fore","uploaded_by":"fore","category_id":1,"updated_timestamp":1789238400,"allow_rating":true,"available":true}"""
                     elif path.EndsWith "/mods/64012.json" then
                         match metadataHold with
                         | Some hold -> do! hold.Task.WaitAsync(stop.Token)
@@ -424,6 +433,57 @@ type NexusServer() =
                                                  + payload.Length.ToString(
                                                      Globalization.CultureInfo.InvariantCulture
                                                  )
+                                                 + "}")
+                                    | None -> do! write 404 "{}"
+                                | _ -> do! write 404 "{}"
+                        elif path.Contains "/mods/3038/" && path.EndsWith "/files.json" then
+                            let entry
+                                (id: int64, name: string, version: string, description: string)
+                                =
+                                "{\"file_id\":"
+                                + string id
+                                + ",\"file_name\":\""
+                                + name
+                                + "\",\"version\":\""
+                                + version
+                                + "\",\"category_name\":\"Main files\",\"category_id\":1,\"uploaded_timestamp\":1789238400,\"description\":\""
+                                + description
+                                + "\",\"size_in_bytes\":"
+                                + string payload.Length
+                                + "}"
+
+                            do!
+                                write
+                                    200
+                                    ("{\"files\":["
+                                     + (fnisFiles |> List.map entry |> String.concat ",")
+                                     + "],\"file_updates\":[]}")
+                        elif path.Contains "/mods/3038/files/" && path.EndsWith ".json" then
+                            let name = Path.GetFileNameWithoutExtension path
+
+                            if mode = "metadata-error" then
+                                do! write 404 "{}"
+                            else
+                                match Int64.TryParse name with
+                                | true, id ->
+                                    match
+                                        fnisFiles
+                                        |> List.tryFind (fun (value, _, _, _) -> value = id)
+                                    with
+                                    | Some(id, fileName, version, description) ->
+                                        do!
+                                            write
+                                                200
+                                                ("{\"file_id\":"
+                                                 + string id
+                                                 + ",\"file_name\":\""
+                                                 + fileName
+                                                 + "\",\"version\":\""
+                                                 + version
+                                                 + "\",\"category_name\":\"Main files\",\"category_id\":1,\"uploaded_timestamp\":1789238400,\"description\":\""
+                                                 + description
+                                                 + "\",\"size_in_bytes\":"
+                                                 + string payload.Length
                                                  + "}")
                                     | None -> do! write 404 "{}"
                                 | _ -> do! write 404 "{}"
@@ -592,6 +652,10 @@ type NexusServer() =
     member _.SkseFiles
         with get () = skseFiles
         and set value = skseFiles <- value
+
+    member _.FnisFiles
+        with get () = fnisFiles
+        and set value = fnisFiles <- value
 
     member _.EnbFiles
         with get () = enbFiles

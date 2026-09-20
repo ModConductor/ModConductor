@@ -117,6 +117,12 @@ type internal StateDatabase(directory: string) =
                 null
                 "DELETE FROM skse_replacement_intents WHERE NOT EXISTS(SELECT 1 FROM deployment_receipts WHERE id=receipt_id)"
                 []
+
+            Sqlite.execute
+                connection
+                null
+                "DELETE FROM fnis_publication_intents WHERE NOT EXISTS(SELECT 1 FROM deployment_receipts WHERE id=receipt_id)"
+                []
         with _ ->
             connection.Dispose()
             File.Delete ownerPath

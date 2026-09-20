@@ -82,6 +82,9 @@ let runWithNexus registration (handoff: ModConductor.Nexus.IOAuthHandoff) args =
             ModConductor.Enb.EnbCatalogue.lean
         )
 
+    use fnis =
+        new ModConductor.Engine.FnisCoordinator(nexus, store.Downloads, store, handoff)
+
     use nxmIngress =
         new ModConductor.Desktop.PrivateIngress(
             (fun (id, input) ->
@@ -96,10 +99,13 @@ let runWithNexus registration (handoff: ModConductor.Nexus.IOAuthHandoff) args =
                         || file.ModId = ModConductor.Enb.EnbCatalogue.CathedralModId
                         ->
                         enb.AcceptNxm id
+                    | Ok file when file.ModId = ModConductor.Fnis.FnisCatalogue.NexusModId ->
+                        fnis.AcceptNxm id
                     | Ok _ -> ()
                     | Error _ ->
                         skse.AcceptNxm id
                         enb.AcceptNxm id
+                        fnis.AcceptNxm id
 
                 accepted),
             nexus.DismissNxm
@@ -187,6 +193,11 @@ let runWithNexus registration (handoff: ModConductor.Nexus.IOAuthHandoff) args =
     builder.Services.AddSingleton<ModConductor.Engine.SkseService>() |> ignore
     builder.Services.AddSingleton<ModConductor.Engine.EnbCoordinator>(enb) |> ignore
     builder.Services.AddSingleton<ModConductor.Engine.EnbService>() |> ignore
+
+    builder.Services.AddSingleton<ModConductor.Engine.FnisCoordinator>(fnis)
+    |> ignore
+
+    builder.Services.AddSingleton<ModConductor.Engine.FnisService>() |> ignore
 
     builder.Services.AddSingleton<ModConductor.Nexus.NexusModDetails>(
         ModConductor.Nexus.NexusModDetails(nexus, store.NexusMetadata)
@@ -458,6 +469,7 @@ let runWithNexus registration (handoff: ModConductor.Nexus.IOAuthHandoff) args =
     app.MapGrpcService<ModConductor.Engine.NxmService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.SkseService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.EnbService>() |> ignore
+    app.MapGrpcService<ModConductor.Engine.FnisService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.LinkSetupService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.DesktopService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.DownloadService>() |> ignore

@@ -170,6 +170,7 @@ class ModConductorApp extends StatefulWidget {
     this.protonContexts,
     this.skse,
     this.enb,
+    this.fnis,
     this.chooseGameDirectory = desktop.chooseGameDirectory,
     this.chooseDirectory = chooseWorkspaceDirectory,
     this.chooseExportLocation = desktop.chooseInventoryExportDestination,
@@ -212,6 +213,7 @@ class ModConductorApp extends StatefulWidget {
   final ProtonContextsClient? protonContexts;
   final SkseClient? skse;
   final EnbClient? enb;
+  final FnisClient? fnis;
   final GameDirectoryChooser chooseGameDirectory;
   final DirectoryChooser chooseDirectory;
   final InventoryExportLocationChooser chooseExportLocation;
@@ -887,6 +889,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
                             footer:
                                 widget.skse == null ||
                                     widget.enb == null ||
+                                    widget.fnis == null ||
                                     workspace.selectedProfile == null
                                 ? null
                                 : Padding(
@@ -896,6 +899,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
                                     child: SkyrimSetupSection(
                                       skse: widget.skse!,
                                       enb: widget.enb!,
+                                      fnis: widget.fnis!,
                                       chooseArchive: widget.chooseArchive,
                                       workspaceId: workspace.id,
                                       profileId: workspace.selectedProfile!.id,

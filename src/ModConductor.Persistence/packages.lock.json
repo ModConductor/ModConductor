@@ -327,6 +327,18 @@
         "requested": "[0.50.4, )",
         "resolved": "0.50.4",
         "contentHash": "/hxjUR7DEX6mky8/LQXyrnrKioOL6D6veAID1EZpro+q4s02x5dHEYBV3qjEN6lDYYilDoQQ76BcmQj+lRx51w=="
+      },
+      "modconductor.fnis": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )",
+          "ModConductor.ArchiveInspection": "[1.0.0, )",
+          "ModConductor.ArchiveInstallation": "[1.0.0, )",
+          "ModConductor.DeploymentPlanning": "[1.0.0, )",
+          "ModConductor.GameContexts": "[1.0.0, )",
+          "ModConductor.Nexus": "[1.0.0, )",
+          "ModConductor.Platform": "[1.0.0, )"
+        }
       }
     }
   }

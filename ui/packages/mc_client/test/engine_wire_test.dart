@@ -149,6 +149,27 @@ void main() {
           await state.delete(recursive: true);
         }
       });
+
+      test('the authenticated FNIS service refuses an unavailable game without acquisition', () async {
+        final state = await Directory.systemTemp.createTemp('mc-fnis-wire-');
+        final engine = EngineSession(
+          await Process.start(executable!, ['--state-directory', state.path]),
+        );
+        try {
+          await engine.connect();
+          final result = await engine.fnis.read(
+            '11111111111111111111111111111111',
+            '22222222222222222222222222222222',
+          );
+          expect(result.phase, FnisStatusPhase.unavailable);
+          expect(result.canInstall, isFalse);
+          expect(result.canRemove, isFalse);
+        } finally {
+          await engine.close();
+          expect(await engine.exited, 0);
+          await state.delete(recursive: true);
+        }
+      });
     },
   );
 }

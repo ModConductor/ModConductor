@@ -27,6 +27,7 @@ import 'migration_client.dart';
 import 'settings_client.dart';
 import 'skse_client.dart';
 import 'enb_client.dart';
+import 'fnis_client.dart';
 
 import 'dart:async';
 import 'dart:io';
@@ -148,6 +149,7 @@ class EngineOwner {
       _state is EngineConnected ? _session?.settings : null;
   SkseClient? get skse => _state is EngineConnected ? _session?.skse : null;
   EnbClient? get enb => _state is EngineConnected ? _session?.enb : null;
+  FnisClient? get fnis => _state is EngineConnected ? _session?.fnis : null;
   Stream<EngineState> get changes => _changes.stream;
 
   void _set(EngineState state) {

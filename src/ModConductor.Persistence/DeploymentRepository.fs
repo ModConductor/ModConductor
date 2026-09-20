@@ -160,6 +160,12 @@ type internal DeploymentRepository(database: StateDatabase) =
                     receipt.Id
                     (receipt.Phase = ReceiptPhase.Complete)
 
+                FnisRows.completePublication
+                    connection
+                    transaction
+                    receipt.Id
+                    (receipt.Phase = ReceiptPhase.Complete)
+
                 transaction.Commit()
                 next)
 

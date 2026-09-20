@@ -125,6 +125,7 @@ class SkyrimSetupSection extends StatelessWidget {
     super.key,
     required this.skse,
     required this.enb,
+    required this.fnis,
     required this.chooseArchive,
     required this.workspaceId,
     required this.profileId,
@@ -132,6 +133,7 @@ class SkyrimSetupSection extends StatelessWidget {
 
   final SkseClient skse;
   final EnbClient enb;
+  final FnisClient fnis;
   final ArchiveChooser chooseArchive;
   final String workspaceId, profileId;
 
@@ -139,23 +141,223 @@ class SkyrimSetupSection extends StatelessWidget {
   Widget build(BuildContext context) => McSection(
     title: 'Skyrim setup',
     children: [
-      SkseSection(
-        client: skse,
-        workspaceId: workspaceId,
-        profileId: profileId,
-        embedded: true,
-      ),
-      const SizedBox(height: McSpacing.large),
-      const Divider(),
-      const SizedBox(height: McSpacing.medium),
-      _EnbPanel(
-        client: enb,
-        chooseArchive: chooseArchive,
-        workspaceId: workspaceId,
-        profileId: profileId,
+      Flexible(
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SkseSection(
+                client: skse,
+                workspaceId: workspaceId,
+                profileId: profileId,
+                embedded: true,
+              ),
+              const SizedBox(height: McSpacing.large),
+              const Divider(),
+              const SizedBox(height: McSpacing.medium),
+              _EnbPanel(
+                client: enb,
+                chooseArchive: chooseArchive,
+                workspaceId: workspaceId,
+                profileId: profileId,
+              ),
+              const SizedBox(height: McSpacing.large),
+              const Divider(),
+              const SizedBox(height: McSpacing.medium),
+              _FnisPanel(
+                client: fnis,
+                workspaceId: workspaceId,
+                profileId: profileId,
+              ),
+            ],
+          ),
+        ),
       ),
     ],
   );
+}
+
+class _FnisPanel extends StatefulWidget {
+  const _FnisPanel({
+    required this.client,
+    required this.workspaceId,
+    required this.profileId,
+  });
+  final FnisClient client;
+  final String workspaceId, profileId;
+
+  @override
+  State<_FnisPanel> createState() => _FnisPanelState();
+}
+
+class _FnisPanelState extends State<_FnisPanel> {
+  FnisStatus? status;
+  bool busy = false;
+  Timer? timer;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(load());
+  }
+
+  @override
+  void didUpdateWidget(covariant _FnisPanel old) {
+    super.didUpdateWidget(old);
+    if (old.workspaceId != widget.workspaceId ||
+        old.profileId != widget.profileId) {
+      unawaited(load());
+    }
+  }
+
+  @override
+  void dispose() {
+    timer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> change(Future<FnisStatus> Function() action) async {
+    if (busy) return;
+    setState(() => busy = true);
+    try {
+      final value = await action();
+      if (!mounted) return;
+      setState(() => status = value);
+      timer?.cancel();
+      if (value.active || value.phase == FnisStatusPhase.waiting) {
+        timer = Timer(const Duration(seconds: 1), () => unawaited(load()));
+      }
+    } on Exception {
+      if (mounted) {
+        setState(
+          () => status = const FnisStatus(
+            phase: FnisStatusPhase.failed,
+            version: '',
+            status: 'FNIS status is unavailable',
+            detail: 'Check the engine connection.',
+            canInstall: false,
+            canCancel: false,
+            canUpdate: false,
+            canRemove: false,
+            canRecover: false,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
+  Future<void> load() =>
+      change(() => widget.client.read(widget.workspaceId, widget.profileId));
+
+  @override
+  Widget build(BuildContext context) {
+    final value = status;
+    final failed =
+        value?.phase == FnisStatusPhase.failed ||
+        value?.phase == FnisStatusPhase.unavailable ||
+        value?.phase == FnisStatusPhase.recoveryRequired ||
+        value?.phase == FnisStatusPhase.sourceUnavailable;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        McStatus(
+          title:
+              value?.status ??
+              (busy ? 'Checking FNIS' : 'FNIS status is unavailable'),
+          detail: value?.detail.isEmpty == false ? value!.detail : null,
+          tone: failed ? McStatusTone.error : McStatusTone.neutral,
+        ),
+        if (busy) ...[
+          const SizedBox(height: McSpacing.medium),
+          const LinearProgressIndicator(),
+        ],
+        if (value != null && value.version.isNotEmpty) ...[
+          const SizedBox(height: McSpacing.medium),
+          Text('FNIS Behavior SE ${value.version} · Windows generator'),
+        ],
+        const SizedBox(height: McSpacing.large),
+        Wrap(
+          spacing: McSpacing.medium,
+          runSpacing: McSpacing.medium,
+          children: [
+            McAction(
+              label: 'Refresh',
+              icon: Icons.refresh,
+              onPressed: busy ? null : load,
+            ),
+            if (value?.canInstall == true)
+              McAction(
+                label: 'Install FNIS',
+                icon: Icons.download,
+                emphasis: McActionEmphasis.primary,
+                onPressed: busy
+                    ? null
+                    : () => change(
+                        () => widget.client.install(
+                          widget.workspaceId,
+                          widget.profileId,
+                        ),
+                      ),
+              ),
+            if (value?.canCancel == true)
+              McAction(
+                label: 'Cancel',
+                onPressed: busy
+                    ? null
+                    : () => change(
+                        () => widget.client.cancel(
+                          widget.workspaceId,
+                          widget.profileId,
+                        ),
+                      ),
+              ),
+            if (value?.canUpdate == true)
+              McAction(
+                label: 'Update FNIS',
+                icon: Icons.update,
+                onPressed: busy
+                    ? null
+                    : () => change(
+                        () => widget.client.update(
+                          widget.workspaceId,
+                          widget.profileId,
+                        ),
+                      ),
+              ),
+            if (value?.canRemove == true)
+              McAction(
+                label: 'Remove FNIS',
+                icon: Icons.delete_outline,
+                onPressed: busy
+                    ? null
+                    : () => change(
+                        () => widget.client.remove(
+                          widget.workspaceId,
+                          widget.profileId,
+                        ),
+                      ),
+              ),
+            if (value?.canRecover == true)
+              McAction(
+                label: 'Recover previous setup',
+                icon: Icons.restore,
+                onPressed: busy
+                    ? null
+                    : () => change(
+                        () => widget.client.recover(
+                          widget.workspaceId,
+                          widget.profileId,
+                        ),
+                      ),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
 }
 
 class _EnbPanel extends StatefulWidget {

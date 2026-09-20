@@ -21,6 +21,7 @@
     <Compile Include="EditSchema.fs" />
     <Compile Include="SkseSchema.fs" />
     <Compile Include="EnbSchema.fs" />
+    <Compile Include="FnisSchema.fs" />
     <Compile Include="Sqlite.fs" />
     <Compile Include="MaintenanceClaims.fs" />
     <Compile Include="LibraryEncoding.fs" />
@@ -37,6 +38,7 @@
     <Compile Include="StateDatabase.fs" />
     <Compile Include="SkseLoaderStore.fs" />
     <Compile Include="EnbStore.fs" />
+    <Compile Include="FnisStore.fs" />
     <Compile Include="NexusOriginRows.fs" />
     <Compile Include="NexusMetadataRows.fs" />
     <Compile Include="NexusMetadataStore.fs" />
@@ -138,6 +140,7 @@
     <ProjectReference Include="../ModConductor.Workspaces/ModConductor.Workspaces.fsproj" />
     <ProjectReference Include="../ModConductor.Migration/ModConductor.Migration.fsproj" />
     <ProjectReference Include="../ModConductor.GameLaunching/ModConductor.GameLaunching.fsproj" />
+    <ProjectReference Include="../ModConductor.Fnis/ModConductor.Fnis.fsproj" />
     <ProjectReference Include="../ModConductor.Executables/ModConductor.Executables.fsproj" />
     <PackageReference Include="FSharp.Core" />
     <PackageReference Include="Microsoft.Data.Sqlite.Core" />

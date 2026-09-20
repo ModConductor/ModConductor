@@ -195,7 +195,8 @@
           "ModConductor.Settings": "[1.0.0, )",
           "ModConductor.Skse": "[1.0.0, )",
           "ModConductor.SteamDiscovery": "[1.0.0, )",
-          "ModConductor.Workspaces": "[1.0.0, )"
+          "ModConductor.Workspaces": "[1.0.0, )",
+          "ModConductor.Fnis": "[1.0.0, )"
         }
       },
       "modconductor.executables": {
@@ -345,7 +346,8 @@
           "ModConductor.ProtonContexts": "[1.0.0, )",
           "ModConductor.Skse": "[1.0.0, )",
           "ModConductor.Workspaces": "[1.0.0, )",
-          "SQLitePCLRaw.bundle_e_sqlite3": "[3.0.5, )"
+          "SQLitePCLRaw.bundle_e_sqlite3": "[3.0.5, )",
+          "ModConductor.Fnis": "[1.0.0, )"
         }
       },
       "modconductor.platform": {
@@ -468,6 +470,18 @@
         "requested": "[2.10.1, )",
         "resolved": "2.10.1",
         "contentHash": "ykjOY3IpYmC4SpPcAZRTl/w2jTmhPMDydHq8xcV7tTBAQ22nKBsOkPqauIrZlMjHm03cmKfV23UOPscKp+J4Og=="
+      },
+      "modconductor.fnis": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )",
+          "ModConductor.ArchiveInspection": "[1.0.0, )",
+          "ModConductor.ArchiveInstallation": "[1.0.0, )",
+          "ModConductor.DeploymentPlanning": "[1.0.0, )",
+          "ModConductor.GameContexts": "[1.0.0, )",
+          "ModConductor.Nexus": "[1.0.0, )",
+          "ModConductor.Platform": "[1.0.0, )"
+        }
       }
     },
     "net10.0/linux-x64": {

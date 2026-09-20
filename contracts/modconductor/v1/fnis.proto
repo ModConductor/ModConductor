@@ -1,0 +1,39 @@
+syntax = "proto3";
+package modconductor.v1;
+option csharp_namespace = "ModConductor.Protocol.V1";
+
+service FnisOperations {
+  rpc ReadFnis(FnisRequest) returns (FnisState);
+  rpc InstallFnis(FnisRequest) returns (FnisState);
+  rpc CancelFnis(FnisRequest) returns (FnisState);
+  rpc UpdateFnis(FnisRequest) returns (FnisState);
+  rpc RemoveFnis(FnisRequest) returns (FnisState);
+  rpc RecoverFnis(FnisRequest) returns (FnisState);
+}
+
+message FnisRequest { string workspace_id = 1; string profile_id = 2; }
+enum FnisPhase {
+  FNIS_PHASE_UNSPECIFIED = 0;
+  FNIS_PHASE_UNAVAILABLE = 1;
+  FNIS_PHASE_AVAILABLE = 2;
+  FNIS_PHASE_WAITING_FOR_NEXUS = 3;
+  FNIS_PHASE_DOWNLOADING = 4;
+  FNIS_PHASE_INSTALLING = 5;
+  FNIS_PHASE_READY = 6;
+  FNIS_PHASE_FAILED = 7;
+  FNIS_PHASE_UPDATE_AVAILABLE = 8;
+  FNIS_PHASE_RECOVERY_REQUIRED = 9;
+  FNIS_PHASE_SOURCE_UNAVAILABLE = 10;
+}
+message FnisState {
+  FnisPhase phase = 1;
+  string version = 2;
+  string status = 3;
+  string detail = 4;
+  optional int64 nexus_file_id = 5;
+  bool can_install = 6;
+  bool can_cancel = 7;
+  bool can_update = 8;
+  bool can_remove = 9;
+  bool can_recover = 10;
+}

@@ -77,6 +77,69 @@ class _EnbFixtureClient extends EnbClient {
   }
 }
 
+class _FnisFixtureClient extends FnisClient {
+  _FnisFixtureClient(this.current)
+    : super(ClientChannel('127.0.0.1', port: 1), CallOptions());
+
+  FnisStatus current;
+  int installs = 0, cancels = 0, updates = 0, removals = 0, recoveries = 0;
+
+  @override
+  Future<FnisStatus> read(String workspace, String profile) async => current;
+
+  @override
+  Future<FnisStatus> install(String workspace, String profile) async {
+    installs++;
+    return current;
+  }
+
+  @override
+  Future<FnisStatus> cancel(String workspace, String profile) async {
+    cancels++;
+    return current;
+  }
+
+  @override
+  Future<FnisStatus> update(String workspace, String profile) async {
+    updates++;
+    return current;
+  }
+
+  @override
+  Future<FnisStatus> remove(String workspace, String profile) async {
+    removals++;
+    return current;
+  }
+
+  @override
+  Future<FnisStatus> recover(String workspace, String profile) async {
+    recoveries++;
+    return current;
+  }
+}
+
+FnisStatus _fnis(
+  FnisStatusPhase phase, {
+  bool install = false,
+  bool cancel = false,
+  bool update = false,
+  bool remove = false,
+  bool recover = false,
+}) => FnisStatus(
+  phase: phase,
+  version: '7.6',
+  status: 'FNIS status',
+  detail: '',
+  canInstall: install,
+  canCancel: cancel,
+  canUpdate: update,
+  canRemove: remove,
+  canRecover: recover,
+);
+
+_FnisFixtureClient _idleFnis() =>
+    _FnisFixtureClient(_fnis(FnisStatusPhase.available));
+
 EnbStatus _enb(
   EnbStatusPhase phase, {
   bool open = false,
@@ -173,6 +236,7 @@ void main() {
             body: SkyrimSetupSection(
               skse: skse,
               enb: enb,
+              fnis: _idleFnis(),
               workspaceId: 'workspace',
               profileId: 'profile',
               chooseArchive: () async {
@@ -215,6 +279,7 @@ void main() {
           body: SkyrimSetupSection(
             skse: skse,
             enb: enb,
+            fnis: _idleFnis(),
             workspaceId: 'workspace',
             profileId: 'profile',
             chooseArchive: () async => null,
@@ -247,6 +312,7 @@ void main() {
           body: SkyrimSetupSection(
             skse: skse,
             enb: enb,
+            fnis: _idleFnis(),
             workspaceId: 'workspace',
             profileId: 'profile',
             chooseArchive: () async => null,
@@ -276,6 +342,7 @@ void main() {
           body: SkyrimSetupSection(
             skse: skse,
             enb: enb,
+            fnis: _idleFnis(),
             workspaceId: 'workspace',
             profileId: 'profile',
             chooseArchive: () async => null,
@@ -287,5 +354,37 @@ void main() {
     await tester.tap(find.text('Recover previous setup'));
     await tester.pumpAndSettle();
     expect(enb.recoveries, 1);
+  });
+
+  testWidgets('FNIS setup does not claim generator execution', (tester) async {
+    final skse = _SkseFixtureClient(
+      const SkseStatus(SkseStatusPhase.ready, '', '', 'SKSE is current', ''),
+    );
+    final enb = _EnbFixtureClient(_enb(EnbStatusPhase.ready));
+    final fnis = _FnisFixtureClient(
+      _fnis(FnisStatusPhase.available, install: true),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SkyrimSetupSection(
+            skse: skse,
+            enb: enb,
+            fnis: fnis,
+            workspaceId: 'workspace',
+            profileId: 'profile',
+            chooseArchive: () async => null,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Windows generator'), findsOneWidget);
+    expect(find.textContaining('Run FNIS'), findsNothing);
+    await tester.tap(find.text('Install FNIS'));
+    await tester.pumpAndSettle();
+    expect(fnis.installs, 1);
   });
 }

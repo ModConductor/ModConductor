@@ -27,6 +27,7 @@ import 'migration_client.dart';
 import 'settings_client.dart';
 import 'skse_client.dart';
 import 'enb_client.dart';
+import 'fnis_client.dart';
 
 import 'dart:async';
 import 'dart:convert';
@@ -122,6 +123,8 @@ class EngineSession {
   SkseClient get skse => _skse!;
   EnbClient? _enb;
   EnbClient get enb => _enb!;
+  FnisClient? _fnis;
+  FnisClient get fnis => _fnis!;
   Future<void>? _closing;
 
   Future<int> get exited => _process.exitCode;
@@ -246,6 +249,7 @@ class EngineSession {
     _protonContexts = GrpcProtonContextsClient(channel, options);
     _skse = SkseClient(channel, CallOptions(metadata: options.metadata));
     _enb = EnbClient(channel, CallOptions(metadata: options.metadata));
+    _fnis = FnisClient(channel, CallOptions(metadata: options.metadata));
   }
 
   Future<ConnectionReport> check() => operations.check();
