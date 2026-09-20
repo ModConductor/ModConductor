@@ -9,6 +9,7 @@ open ModConductor.Deployment
 open ModConductor.Engine
 open ModConductor.Enb
 open ModConductor.Executables
+open ModConductor.FilePlanning
 open ModConductor.Fnis
 open ModConductor.GameContexts
 open ModConductor.GameLaunching
@@ -44,6 +45,133 @@ module SkyrimSetupFixtures =
 
         if not value then
             failwith ("Skyrim setup fixture failed: " + name)
+
+    let private stageRolloverEvidence (writer: Utf8JsonWriter) =
+        let workspace, profile = Guid.NewGuid(), Guid.NewGuid()
+        let existingMod, existingVersion = Guid.NewGuid(), Guid.NewGuid()
+        let childMod, childVersion = Guid.NewGuid(), Guid.NewGuid()
+        let companionMod, companionVersion = Guid.NewGuid(), Guid.NewGuid()
+        let unrelatedMod, unrelatedVersion = Guid.NewGuid(), Guid.NewGuid()
+        let beforeGeneration, afterGeneration = Guid.NewGuid(), Guid.NewGuid()
+
+        let sources: SourceStamp =
+            { WorkspaceId = workspace
+              ProfileId = profile
+              SelectionRevision = 7L
+              ContextRevision = 11L
+              ExclusionRevision = 13L
+              OutputRevision = 17L
+              Versions = [ existingMod, Some existingVersion ]
+              Deployment = Some "fixture-deployment" }
+
+        let before =
+            { Sources = sources
+              ActiveGeneration = Some beforeGeneration }
+
+        let expected (versions: (Guid * Guid) list) (generation: Guid option) =
+            { Sources =
+                { sources with
+                    SelectionRevision = sources.SelectionRevision + int64 versions.Length + 1L
+                    Versions =
+                        sources.Versions
+                        @ (versions |> List.map (fun (modId, versionId) -> modId, Some versionId)) }
+              ActiveGeneration = generation }
+
+        let deploymentBefore = { before with ActiveGeneration = None }
+
+        let deploymentAfter =
+            { deploymentBefore with
+                ActiveGeneration = Some afterGeneration }
+
+        let skseAfter = expected [ childMod, childVersion ] (Some afterGeneration)
+
+        let enbAfter =
+            expected
+                [ childMod, childVersion; companionMod, companionVersion ]
+                (Some afterGeneration)
+
+        let fnisInstallAfter = expected [ childMod, childVersion ] (Some afterGeneration)
+        let fnisRunAfter = expected [ childMod, childVersion ] (Some beforeGeneration)
+
+        let accepted =
+            [ SkyrimSetupPlan.permits
+                  deploymentBefore
+                  deploymentAfter
+                  (SkyrimSetupStageChange.Deployment afterGeneration)
+              SkyrimSetupPlan.permits
+                  before
+                  skseAfter
+                  (SkyrimSetupStageChange.ComponentDeployment(
+                      afterGeneration,
+                      [ childMod, childVersion ]
+                  ))
+              SkyrimSetupPlan.permits
+                  before
+                  enbAfter
+                  (SkyrimSetupStageChange.ComponentDeployment(
+                      afterGeneration,
+                      [ childMod, childVersion; companionMod, companionVersion ]
+                  ))
+              SkyrimSetupPlan.permits
+                  before
+                  fnisInstallAfter
+                  (SkyrimSetupStageChange.ComponentDeployment(
+                      afterGeneration,
+                      [ childMod, childVersion ]
+                  ))
+              SkyrimSetupPlan.permits
+                  before
+                  fnisRunAfter
+                  (SkyrimSetupStageChange.FnisOutput(childMod, childVersion)) ]
+
+        let withUnrelatedVersion (snapshot: SkyrimSetupPlanSnapshot) =
+            { snapshot with
+                Sources =
+                    { snapshot.Sources with
+                        Versions =
+                            snapshot.Sources.Versions @ [ unrelatedMod, Some unrelatedVersion ] } }
+
+        let rejected =
+            [ SkyrimSetupPlan.permits
+                  deploymentBefore
+                  (withUnrelatedVersion deploymentAfter)
+                  (SkyrimSetupStageChange.Deployment afterGeneration)
+              SkyrimSetupPlan.permits
+                  before
+                  (withUnrelatedVersion skseAfter)
+                  (SkyrimSetupStageChange.ComponentDeployment(
+                      afterGeneration,
+                      [ childMod, childVersion ]
+                  ))
+              SkyrimSetupPlan.permits
+                  before
+                  { enbAfter with
+                      Sources =
+                          { enbAfter.Sources with
+                              ContextRevision = enbAfter.Sources.ContextRevision + 1L } }
+                  (SkyrimSetupStageChange.ComponentDeployment(
+                      afterGeneration,
+                      [ childMod, childVersion; companionMod, companionVersion ]
+                  ))
+              SkyrimSetupPlan.permits
+                  before
+                  { fnisInstallAfter with
+                      ActiveGeneration = Some(Guid.NewGuid()) }
+                  (SkyrimSetupStageChange.ComponentDeployment(
+                      afterGeneration,
+                      [ childMod, childVersion ]
+                  ))
+              SkyrimSetupPlan.permits
+                  before
+                  (withUnrelatedVersion fnisRunAfter)
+                  (SkyrimSetupStageChange.FnisOutput(childMod, childVersion)) ]
+
+        check writer "expectedChildOnlyDeltasAdvanceEveryRollover" (accepted |> List.forall id)
+
+        check
+            writer
+            "combinedChildAndUnrelatedDeltasInvalidateEveryRollover"
+            (rejected |> List.forall not)
 
     let private prepareProton runtimeDirectory =
         if OperatingSystem.IsLinux() then
@@ -413,6 +541,7 @@ module SkyrimSetupFixtures =
         let mutable completedToken = ""
 
         writer.WriteStartObject("skyrimSetup")
+        stageRolloverEvidence writer
 
         do
             use store = new OperationStore(state)

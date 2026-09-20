@@ -56,6 +56,9 @@ type EnbTests() =
 
         flag "nxmAcquisitionReachesReady" |> should equal true
 
+        flag "authenticatedGrpcCombinedCancellationUsesProductionEnbOwner"
+        |> should equal true
+
     [<Test>]
     member _.``configuration removal should remain recoverable and preserve later edits``() =
         flag "configurationFailureRemainsRecoverable" |> should equal true

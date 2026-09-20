@@ -2,12 +2,14 @@ namespace ModConductor.Engine
 
 open System
 open System.Collections.Concurrent
+open System.IO
 open System.Security.Cryptography
 open System.Text
 open System.Threading
 open System.Threading.Tasks
 open ModConductor.Deployment
 open ModConductor.Executables
+open ModConductor.FilePlanning
 open ModConductor.Fnis
 open ModConductor.GameContexts
 open ModConductor.GameLaunching
@@ -40,6 +42,227 @@ type SkyrimSetupView =
       Active: bool
       CanCancel: bool
       Ready: bool }
+
+type internal SkyrimSetupPlanSnapshot =
+    { Sources: SourceStamp
+      ActiveGeneration: Guid option }
+
+[<RequireQualifiedAccess>]
+type internal SkyrimSetupStageChange =
+    | Deployment of generation: Guid
+    | ComponentDeployment of generation: Guid * versions: (Guid * Guid) list
+    | FnisOutput of modId: Guid * versionId: Guid
+
+module internal SkyrimSetupPlan =
+    let private writeSnapshot (snapshot: SkyrimSetupPlanSnapshot) =
+        use stream = new MemoryStream()
+        use writer = new BinaryWriter(stream, Encoding.UTF8, true)
+        let sources = snapshot.Sources
+        writer.Write 1uy
+        writer.Write(sources.WorkspaceId.ToByteArray())
+        writer.Write(sources.ProfileId.ToByteArray())
+        writer.Write sources.SelectionRevision
+        writer.Write sources.ContextRevision
+        writer.Write sources.ExclusionRevision
+        writer.Write sources.OutputRevision
+        writer.Write sources.Versions.Length
+
+        for modId, versionId in sources.Versions do
+            writer.Write(modId.ToByteArray())
+            writer.Write versionId.IsSome
+            versionId |> Option.iter (fun value -> writer.Write(value.ToByteArray()))
+
+        writer.Write sources.Deployment.IsSome
+        sources.Deployment |> Option.iter writer.Write
+        writer.Write snapshot.ActiveGeneration.IsSome
+
+        snapshot.ActiveGeneration
+        |> Option.iter (fun value -> writer.Write(value.ToByteArray()))
+
+        writer.Flush()
+        stream.ToArray()
+
+    let private readGuid (reader: BinaryReader) =
+        let bytes = reader.ReadBytes 16
+
+        if bytes.Length <> 16 then
+            raise (EndOfStreamException())
+
+        Guid bytes
+
+    let private readSnapshot (bytes: byte array) =
+        try
+            use stream = new MemoryStream(bytes, false)
+            use reader = new BinaryReader(stream, Encoding.UTF8, true)
+
+            if reader.ReadByte() <> 1uy then
+                None
+            else
+                let workspace = readGuid reader
+                let profile = readGuid reader
+                let selection = reader.ReadInt64()
+                let context = reader.ReadInt64()
+                let exclusion = reader.ReadInt64()
+                let output = reader.ReadInt64()
+                let count = reader.ReadInt32()
+
+                if count < 0 || count > 100000 then
+                    None
+                else
+                    let versions =
+                        [ for _ in 1..count do
+                              let modId = readGuid reader
+
+                              let versionId =
+                                  if reader.ReadBoolean() then Some(readGuid reader) else None
+
+                              yield modId, versionId ]
+
+                    let deployment =
+                        if reader.ReadBoolean() then
+                            Some(reader.ReadString())
+                        else
+                            None
+
+                    let generation = if reader.ReadBoolean() then Some(readGuid reader) else None
+
+                    if stream.Position <> stream.Length then
+                        None
+                    else
+                        Some
+                            { Sources =
+                                { WorkspaceId = workspace
+                                  ProfileId = profile
+                                  SelectionRevision = selection
+                                  ContextRevision = context
+                                  ExclusionRevision = exclusion
+                                  OutputRevision = output
+                                  Versions = versions
+                                  Deployment = deployment }
+                              ActiveGeneration = generation }
+        with
+        | :? EndOfStreamException
+        | :? IOException
+        | :? FormatException -> None
+
+    let private base64 (bytes: byte array) =
+        Convert.ToBase64String bytes
+        |> fun value -> value.TrimEnd('=').Replace('+', '-').Replace('/', '_')
+
+    let private tryBase64 (value: string) =
+        try
+            let padded = value.Replace('-', '+').Replace('_', '/')
+            let padded = padded + String.replicate ((4 - padded.Length % 4) % 4) "="
+            Some(Convert.FromBase64String padded)
+        with :? FormatException ->
+            None
+
+    let private hash
+        (workspace: Guid)
+        (profile: Guid)
+        includeFnis
+        contextRevision
+        (payload: byte array)
+        =
+        use incremental = IncrementalHash.CreateHash HashAlgorithmName.SHA256
+        incremental.AppendData(Encoding.UTF8.GetBytes "mc-skyrim-setup-v2")
+        incremental.AppendData(workspace.ToByteArray())
+        incremental.AppendData(profile.ToByteArray())
+        incremental.AppendData([| if includeFnis then 1uy else 0uy |])
+        let revision = Array.zeroCreate<byte> 8
+        Buffers.Binary.BinaryPrimitives.WriteInt64LittleEndian(revision, contextRevision)
+        incremental.AppendData revision
+        incremental.AppendData payload
+        Convert.ToHexStringLower(incremental.GetHashAndReset())
+
+    let token workspace profile includeFnis contextRevision snapshot =
+        let payload = writeSnapshot snapshot
+
+        hash workspace profile includeFnis contextRevision payload
+        + "."
+        + base64 payload
+
+    let snapshot workspace profile includeFnis contextRevision (value: string) =
+        match value.Split('.', 2) with
+        | [| expected; encoded |] ->
+            match tryBase64 encoded with
+            | Some payload when
+                CryptographicOperations.FixedTimeEquals(
+                    Encoding.ASCII.GetBytes expected,
+                    Encoding.ASCII.GetBytes(
+                        hash workspace profile includeFnis contextRevision payload
+                    )
+                )
+                ->
+                readSnapshot payload
+            | _ -> None
+        | _ -> None
+
+    let private stableSourceData (before: SourceStamp) (after: SourceStamp) =
+        before.WorkspaceId = after.WorkspaceId
+        && before.ProfileId = after.ProfileId
+        && before.ContextRevision = after.ContextRevision
+        && before.ExclusionRevision = after.ExclusionRevision
+        && before.OutputRevision = after.OutputRevision
+
+    let private stableSources (before: SourceStamp) (after: SourceStamp) =
+        stableSourceData before after && before.Deployment = after.Deployment
+
+    let private versionChanges expected before after =
+        let before = before |> Map.ofList
+        let after = after |> Map.ofList
+
+        let changed =
+            Set.union (before |> Map.keys |> Set.ofSeq) (after |> Map.keys |> Set.ofSeq)
+            |> Set.filter (fun key -> before.TryFind key <> after.TryFind key)
+
+        let expectedIds = expected |> List.map fst |> Set.ofList
+
+        if
+            not changed.IsEmpty
+            && changed.IsSubsetOf expectedIds
+            && (expected
+                |> List.forall (fun (modId, versionId) ->
+                    after.TryFind modId = Some(Some versionId)))
+        then
+            Some changed.Count
+        else
+            None
+
+    let permits (before: SkyrimSetupPlanSnapshot) (after: SkyrimSetupPlanSnapshot) change =
+        match change with
+        | SkyrimSetupStageChange.Deployment generation ->
+            stableSourceData before.Sources after.Sources
+            && before.ActiveGeneration.IsNone
+            && after.ActiveGeneration = Some generation
+            && after.Sources.Deployment.IsSome
+            && before.Sources.SelectionRevision = after.Sources.SelectionRevision
+            && before.Sources.Versions = after.Sources.Versions
+        | SkyrimSetupStageChange.ComponentDeployment(generation, versions) ->
+            stableSources before.Sources after.Sources
+            && after.ActiveGeneration = Some generation
+            && (match versionChanges versions before.Sources.Versions after.Sources.Versions with
+                | Some count ->
+                    after.Sources.SelectionRevision = before.Sources.SelectionRevision
+                                                      + int64 count
+                                                      + 1L
+                | None -> false)
+        | SkyrimSetupStageChange.FnisOutput(modId, versionId) ->
+            stableSources before.Sources after.Sources
+            && after.ActiveGeneration = before.ActiveGeneration
+            && (match
+                    versionChanges
+                        [ modId, versionId ]
+                        before.Sources.Versions
+                        after.Sources.Versions
+                with
+                | Some _ ->
+                    let alreadyRegistered =
+                        before.Sources.Versions |> List.exists (fun (id, _) -> id = modId)
+
+                    after.Sources.SelectionRevision = before.Sources.SelectionRevision
+                                                      + (if alreadyRegistered then 1L else 2L)
+                | None -> false)
 
 
 type internal SkyrimSetupDependencies =
@@ -158,20 +381,13 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
         contextRevision
         (deployment: DeploymentStatus)
         =
-        let input =
-            String.concat
-                ":"
-                [ "mc-skyrim-setup-v1"
-                  workspace.ToString("N")
-                  profile.ToString("N")
-                  string includeFnis
-                  string contextRevision
-                  SourceIdentity.token deployment.Sources
-                  deployment.ActiveGeneration
-                  |> Option.map (fun id -> id.ToString("N"))
-                  |> Option.defaultValue "" ]
-
-        SHA256.HashData(Encoding.UTF8.GetBytes input) |> Convert.ToHexStringLower
+        SkyrimSetupPlan.token
+            workspace
+            profile
+            includeFnis
+            contextRevision
+            { Sources = deployment.Sources
+              ActiveGeneration = deployment.ActiveGeneration }
 
     let componentView name status detail ready active blocked =
         { Name = name
@@ -412,6 +628,10 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                         let tokenValue =
                             planToken workspace profile includeFnis context.Revision deployed
 
+                        let currentSnapshot =
+                            { Sources = deployed.Sources
+                              ActiveGeneration = deployed.ActiveGeneration }
+
                         let planned = changes includeFnis deployed.ActiveGeneration.IsSome
 
                         let recorded = intent |> Option.filter (fun value -> not value.Cancelled)
@@ -425,6 +645,16 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                             recorded
                             |> Option.exists (fun value ->
                                 value.ContextRevision <> context.Revision)
+
+                        let permitsStageChange (value: StoredSkyrimSetupIntent) change =
+                            SkyrimSetupPlan.snapshot
+                                workspace
+                                profile
+                                includeFnis
+                                value.ContextRevision
+                                value.PlanToken
+                            |> Option.exists (fun before ->
+                                SkyrimSetupPlan.permits before currentSnapshot change)
 
                         let stalePlan components =
                             view
@@ -620,6 +850,9 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                                     | Ok receipt, Some active ->
                                         receipt.Phase = ModConductor.Deployment.DeploymentPhase.Complete
                                         && receipt.Proposed = active
+                                        && permitsStageChange
+                                            value
+                                            (SkyrimSetupStageChange.Deployment active)
                                     | _ -> false
 
                                 if caused then
@@ -700,7 +933,16 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                                                     deployed.ActiveGeneration
                                                 )
 
-                                            return installed.IsSome
+                                            return
+                                                match installed, recorded with
+                                                | Some installed, Some intent ->
+                                                    permitsStageChange
+                                                        intent
+                                                        (SkyrimSetupStageChange.ComponentDeployment(
+                                                            installed.Loader.GenerationId,
+                                                            [ installed.ModId, installed.VersionId ]
+                                                        ))
+                                                | _ -> false
                                         }
                                     else
                                         Task.FromResult false
@@ -795,13 +1037,35 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                                                         deployed.ActiveGeneration
                                                     )
 
+                                                let! components =
+                                                    store.EnbSetups.Components(
+                                                        workspace,
+                                                        profile,
+                                                        deployed.ActiveGeneration
+                                                    )
+
                                                 return
                                                     match
                                                         configured,
-                                                        recorded |> Option.bind _.ActionId
+                                                        recorded |> Option.bind _.ActionId,
+                                                        recorded,
+                                                        deployed.ActiveGeneration
                                                     with
-                                                    | Some(_, Some observed), Some expected ->
+                                                    | Some(_, Some observed),
+                                                      Some expected,
+                                                      Some intent,
+                                                      Some generation ->
                                                         observed = expected
+                                                        && not components.IsEmpty
+                                                        && permitsStageChange
+                                                            intent
+                                                            (SkyrimSetupStageChange
+                                                                .ComponentDeployment(
+                                                                    generation,
+                                                                    components
+                                                                    |> List.map (fun item ->
+                                                                        item.ModId, item.VersionId)
+                                                                ))
                                                     | _ -> false
                                             }
                                         else
@@ -933,19 +1197,53 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                                                         deployed.ActiveGeneration
                                                     )
 
-                                                return installed.IsSome
+                                                return
+                                                    match installed, recorded with
+                                                    | Some installed, Some intent ->
+                                                        permitsStageChange
+                                                            intent
+                                                            (SkyrimSetupStageChange
+                                                                .ComponentDeployment(
+                                                                    installed.GenerationId,
+                                                                    [ installed.ModId,
+                                                                      installed.VersionId ]
+                                                                ))
+                                                    | _ -> false
                                             }
                                         else
                                             Task.FromResult false
 
-                                    let fnisRunTransition =
-                                        tokenChanged
-                                        && stage = "fnis-run"
-                                        && fnisReady
-                                        && (match recorded |> Option.bind _.ActionId, output with
-                                            | Some expected, Some observed ->
-                                                observed.LatestRunId = Some expected
-                                            | _ -> false)
+                                    let! fnisRunTransition =
+                                        if tokenChanged && stage = "fnis-run" && fnisReady then
+                                            task {
+                                                match
+                                                    recorded |> Option.bind _.ActionId,
+                                                    output,
+                                                    recorded
+                                                with
+                                                | Some expected, Some observed, Some intent when
+                                                    observed.LatestRunId = Some expected
+                                                    ->
+                                                    let! published =
+                                                        store.FnisSetups.PublishedOutput(
+                                                            workspace,
+                                                            profile,
+                                                            expected
+                                                        )
+
+                                                    return
+                                                        published
+                                                        |> Option.exists (fun (modId, versionId) ->
+                                                            permitsStageChange
+                                                                intent
+                                                                (SkyrimSetupStageChange.FnisOutput(
+                                                                    modId,
+                                                                    versionId
+                                                                )))
+                                                | _ -> return false
+                                            }
+                                        else
+                                            Task.FromResult false
 
                                     match recorded with
                                     | Some value when

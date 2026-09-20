@@ -603,8 +603,25 @@ module EnbFixtures =
         |> ignore
 
         let combined = new SkyrimSetupCoordinator(store, combinedEnbDependencies owner)
+        let combinedService = SkyrimSetupService combined
 
-        let cancelled = combined.Cancel(workspace, profile, CancellationToken.None) |> wait
+        let combinedCapability =
+            Convert.ToBase64String(Array.init 32 (fun index -> byte (index + 61)))
+
+        let combinedRequest =
+            SkyrimSetupRequest(
+                WorkspaceId = workspace.ToString("N"),
+                ProfileId = profile.ToString("N")
+            )
+
+        let unauthenticatedCombinedCancellationRejected =
+            rejectsMissingCapability combinedCapability combinedRequest (fun input context ->
+                combinedService.CancelSkyrimSetup(input, context))
+
+        let cancelled =
+            authenticated combinedCapability combinedRequest (fun input context ->
+                combinedService.CancelSkyrimSetup(input, context))
+
         server.ReleaseMetadata()
         selecting |> wait |> ignore
 
@@ -652,6 +669,12 @@ module EnbFixtures =
              && (cancelledIntent
                  |> Option.exists (fun value ->
                      value.Cancelled && not value.CancelRequested && value.ActionId.IsNone)))
+
+        check
+            writer
+            "authenticatedGrpcCombinedCancellationUsesProductionEnbOwner"
+            (unauthenticatedCombinedCancellationRejected
+             && cancelled.Phase = SkyrimSetupPhase.Cancelled)
 
         check
             writer

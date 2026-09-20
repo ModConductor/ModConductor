@@ -52,6 +52,7 @@ class SetupFixtureClient extends SkyrimSetupClient {
   bool? startedWithFnis;
   String? selectedPath;
   Completer<SkyrimSetupStatus>? blockedSelection;
+  SkyrimSetupStatus? nextContinue;
 
   @override
   Future<SkyrimSetupStatus> read(
@@ -84,6 +85,11 @@ class SetupFixtureClient extends SkyrimSetupClient {
     String profile,
   ) async {
     continues++;
+    final resumed = nextContinue;
+    if (resumed != null) {
+      nextContinue = null;
+      return current = resumed;
+    }
     return current = setupStatus(
       phase: SkyrimSetupStatusPhase.waitingForEnbArchive,
       consent: true,
@@ -305,4 +311,31 @@ void main() {
     selection.complete(client.current);
     await tester.pumpAndSettle();
   });
+
+  testWidgets(
+    'recreated shared setup resumes a recorded pending cancellation',
+    (tester) async {
+      final client = SetupFixtureClient(
+        setupStatus(
+          phase: SkyrimSetupStatusPhase.recoveryRequired,
+          consent: true,
+          canStart: false,
+          canContinue: true,
+          includeFnis: true,
+        ),
+      );
+      client.nextContinue = setupStatus(
+        phase: SkyrimSetupStatusPhase.cancelled,
+        canStart: true,
+        includeFnis: true,
+      );
+
+      await tester.pumpWidget(section(client));
+      await tester.pumpAndSettle();
+
+      expect(client.continues, 1);
+      expect(client.current.phase, SkyrimSetupStatusPhase.cancelled);
+      expect(client.current.includeFnis, isTrue);
+    },
+  );
 }

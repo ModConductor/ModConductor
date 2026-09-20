@@ -1282,6 +1282,23 @@ module FnisFixtures =
 
         Directory.CreateDirectory(abandonedStage.Directory) |> ignore
         File.WriteAllText(Path.Combine(abandonedStage.Directory, "partial.log"), "partial")
+
+        store.SkyrimSetups.Save
+            { WorkspaceId = workspace
+              ProfileId = profile
+              IncludeFnis = true
+              PlanToken = "production-fnis-pending-restart"
+              Cancelled = false
+              Completed = false
+              Stage = "fnis-run"
+              ContextRevision = context.Revision
+              ActionId = Some abandonedId
+              ArchivePath = None
+              CancelRequested = true
+              CancelDetail = "Cancellation was recorded before the engine stopped."
+              RequestedAt = DateTimeOffset.UtcNow }
+        |> wait
+
         (store :> IDisposable).Dispose()
 
         use reopened =
@@ -1308,6 +1325,9 @@ module FnisFixtures =
         let combinedAfterRestart =
             restartedCombined.Read(workspace, profile, true, CancellationToken.None) |> wait
 
+        let combinedCancellationCompleted =
+            restartedCombined.Continue(workspace, profile, CancellationToken.None) |> wait
+
         let abandoned =
             restarted.Inspect(workspace, profile, CancellationToken.None) |> wait |> result
 
@@ -1332,9 +1352,14 @@ module FnisFixtures =
 
         check
             writer
-            "combinedFnisCancellationSurvivesOwnerRestart"
-            (combinedAfterRestart.Phase = SkyrimSetupPhase.Cancelled
-             && combinedAfterRestart.IncludeFnis)
+            "pendingCombinedFnisCancellationCompletesThroughProductionOwnerAfterRestart"
+            (combinedAfterRestart.Phase = SkyrimSetupPhase.RecoveryRequired
+             && combinedAfterRestart.IncludeFnis
+             && combinedCancellationCompleted.Phase = SkyrimSetupPhase.Cancelled
+             && combinedCancellationCompleted.Detail.Contains(
+                 "interrupted",
+                 StringComparison.OrdinalIgnoreCase
+             ))
 
     let private nxmEvidence writer area =
         let scenario = Directory.CreateDirectory(Path.Combine(area, "nxm")).FullName

@@ -47,7 +47,10 @@ type FnisTests() =
         flag "failedRunPreservesPriorOutputAndBoundedExitEvidence" |> should equal true
         flag "cancelledRunTerminatesAndPreservesPriorOutput" |> should equal true
         flag "combinedCancelUsesProductionFnisOwner" |> should equal true
-        flag "combinedFnisCancellationSurvivesOwnerRestart" |> should equal true
+
+        flag "pendingCombinedFnisCancellationCompletesThroughProductionOwnerAfterRestart"
+        |> should equal true
+
         flag "runReturnsWhileCancellationIsReachable" |> should equal true
         flag "activeGeneratedOutputIsExcludedFromEffectiveInputs" |> should equal true
         flag "addedEffectiveInputMakesFnisStale" |> should equal true

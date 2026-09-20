@@ -35,6 +35,11 @@ type SkyrimSetupTests() =
         flag "changedGenerationRequiresNewPlan" |> should equal true
         flag "changedContextRequiresNewPlan" |> should equal true
         flag "externalChangesInvalidateEveryRolloverPath" |> should equal true
+        flag "expectedChildOnlyDeltasAdvanceEveryRollover" |> should equal true
+
+        flag "combinedChildAndUnrelatedDeltasInvalidateEveryRollover"
+        |> should equal true
+
         flag "externalChangeInvalidatesActiveChildConsent" |> should equal true
 
         flag "activeChildOutcomeKeepsCancellationDurableUntilTerminal"

@@ -269,6 +269,24 @@ type internal FnisStore(database: StateDatabase) =
                 else
                     None)
 
+    member _.PublishedOutput(workspace: Guid, profile: Guid, run: Guid) =
+        database.Enqueue(fun () ->
+            use command =
+                Sqlite.command
+                    database.Connection
+                    null
+                    "SELECT mod_id,version_id FROM fnis_outputs WHERE workspace_id=$workspace AND profile_id=$profile AND run_id=$run"
+                    [ "$workspace", box (string workspace)
+                      "$profile", box (string profile)
+                      "$run", box (string run) ]
+
+            use reader = command.ExecuteReader()
+
+            if reader.Read() then
+                Some(Guid.Parse(reader.GetString 0), Guid.Parse(reader.GetString 1))
+            else
+                None)
+
     member _.ReadStored(workspace: Guid, profile: Guid, activeGeneration: Guid option) =
         database.Enqueue(fun () ->
             match activeGeneration with
