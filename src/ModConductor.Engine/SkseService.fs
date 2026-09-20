@@ -29,7 +29,7 @@ type SkseCoordinator
         handoff: IOAuthHandoff
     ) =
     let lifetime = new CancellationTokenSource()
-    let workers = ConcurrentDictionary<Guid * Guid, Task>()
+    let workers = ConcurrentDictionary<Guid * Guid, byte>()
 
     let phaseName (value: SksePhase) =
         match value with
@@ -176,92 +176,98 @@ type SkseCoordinator
         (selection: StoredSkseSelection)
         (artifact: Artifact)
         =
-        workers.GetOrAdd(
-            key,
-            fun _ ->
-                task {
-                    let gameVersion, _ = facts context
-                    let release = selection.Selection.Release
+        if workers.TryAdd(key, 0uy) then
+            (task {
+                let gameVersion, _ = facts context
+                let release = selection.Selection.Release
 
-                    try
-                        let mutable current = artifact
-                        let mutable waiting = true
+                try
+                    let waitForArtifact () =
+                        Task.Run(fun () ->
+                            let mutable current = artifact
+                            let mutable waiting = true
 
-                        while waiting && not lifetime.IsCancellationRequested do
-                            match current.State, current.Download with
-                            | (ArtifactState.Ready | ArtifactState.Installed), _ -> waiting <- false
-                            | ArtifactState.Incomplete, Some download when
-                                download.State = DownloadState.Failed
-                                || download.State = DownloadState.Paused
-                                ->
-                                waiting <- false
-
-                                raise (
-                                    IO.IOException(
-                                        current.Problem
-                                        |> Option.defaultValue "The SKSE download stopped."
+                            while waiting && not lifetime.IsCancellationRequested do
+                                match current.State, current.Download with
+                                | (ArtifactState.Ready | ArtifactState.Installed), _ ->
+                                    waiting <- false
+                                | ArtifactState.Incomplete, Some download when
+                                    download.State = DownloadState.Failed
+                                    || download.State = DownloadState.Paused
+                                    ->
+                                    raise (
+                                        IO.IOException(
+                                            current.Problem
+                                            |> Option.defaultValue "The SKSE download stopped."
+                                        )
                                     )
-                                )
-                            | _ ->
-                                do! Task.Delay(100, lifetime.Token)
-                                let! read = store.Artifacts.Read(fst key, current.Id)
+                                | _ ->
+                                    Task.Delay(100, lifetime.Token).GetAwaiter().GetResult()
 
-                                current <-
-                                    read
-                                    |> Result.defaultWith (fun _ ->
-                                        raise (IO.IOException "The SKSE archive is unavailable."))
+                                    current <-
+                                        store.Artifacts
+                                            .Read(fst key, current.Id)
+                                            .GetAwaiter()
+                                            .GetResult()
+                                        |> Result.defaultWith (fun _ ->
+                                            raise (
+                                                IO.IOException "The SKSE archive is unavailable."
+                                            ))
 
-                        if not lifetime.IsCancellationRequested then
-                            do! saveArtifact current selection
+                            current)
 
-                            let! _ =
-                                persist
-                                    key
-                                    { Phase = SksePhase.Installing
-                                      GameVersion = gameVersion
-                                      ComponentVersion = string release.ComponentVersion
-                                      Status = "Installing SKSE"
-                                      Detail = ""
-                                      FileId = Some release.File.Id }
+                    let! current = waitForArtifact ()
 
-                            let! _ =
-                                store.InstallSkse(
-                                    fst key,
-                                    snd key,
-                                    release,
-                                    current,
-                                    selection.CheckedAt,
-                                    lifetime.Token
-                                )
+                    if not lifetime.IsCancellationRequested then
+                        do! saveArtifact current selection
 
-                            let! _ =
-                                persist
-                                    key
-                                    { Phase = SksePhase.Ready
-                                      GameVersion = gameVersion
-                                      ComponentVersion = string release.ComponentVersion
-                                      Status = "SKSE is current"
-                                      Detail = "Play uses the installed SKSE loader."
-                                      FileId = Some release.File.Id }
+                        let! _ =
+                            persist
+                                key
+                                { Phase = SksePhase.Installing
+                                  GameVersion = gameVersion
+                                  ComponentVersion = string release.ComponentVersion
+                                  Status = "Installing SKSE"
+                                  Detail = ""
+                                  FileId = Some release.File.Id }
 
-                            ()
-                    with
-                    | :? OperationCanceledException when lifetime.IsCancellationRequested -> ()
-                    | error ->
-                        failed
-                            key
-                            gameVersion
-                            (string release.ComponentVersion)
-                            (Some release.File.Id)
-                            "SKSE setup failed"
-                            error.Message
-                        |> fun pending -> pending.GetAwaiter().GetResult() |> ignore
+                        let! _ =
+                            store.InstallSkse(
+                                fst key,
+                                snd key,
+                                release,
+                                current,
+                                selection.CheckedAt,
+                                lifetime.Token
+                            )
 
-                    workers.TryRemove key |> ignore
-                }
-                :> Task
-        )
-        |> ignore
+                        let! _ =
+                            persist
+                                key
+                                { Phase = SksePhase.Ready
+                                  GameVersion = gameVersion
+                                  ComponentVersion = string release.ComponentVersion
+                                  Status = "SKSE is current"
+                                  Detail = "Play uses the installed SKSE loader."
+                                  FileId = Some release.File.Id }
+
+                        ()
+                with
+                | :? OperationCanceledException when lifetime.IsCancellationRequested -> ()
+                | error ->
+                    failed
+                        key
+                        gameVersion
+                        (string release.ComponentVersion)
+                        (Some release.File.Id)
+                        "SKSE setup failed"
+                        error.Message
+                    |> fun pending -> pending.GetAwaiter().GetResult() |> ignore
+
+                workers.TryRemove key |> ignore
+            }
+            :> Task)
+            |> ignore
 
     let prepareArtifact
         key
@@ -272,10 +278,9 @@ type SkseCoordinator
         =
         task {
             do! saveArtifact artifact selection
-            monitor key context selection artifact
             let gameVersion, _ = facts context
 
-            return!
+            let! view =
                 persist
                     key
                     { Phase = SksePhase.Downloading
@@ -284,6 +289,9 @@ type SkseCoordinator
                       Status = label
                       Detail = ""
                       FileId = Some selection.Selection.Release.File.Id }
+
+            monitor key context selection artifact
+            return view
         }
 
     let installedState
@@ -366,18 +374,18 @@ type SkseCoordinator
             | Ok context, Ok deployed when
                 context.Binding.IsSome && deployed.WorkspaceId = workspace
                 ->
-                let! loader =
-                    store.SkseLoaders.ReadStored(workspace, profile, deployed.ActiveGeneration)
+                let! saved = store.SkseLoaders.ReadStatus(workspace, profile)
 
-                match loader with
-                | Some loader -> return! installedState key context loader
-                | None ->
-                    let! saved = store.SkseLoaders.ReadStatus(workspace, profile)
+                match saved with
+                | Some status when status.Phase = "waiting" || status.Phase = "failed" ->
+                    return fromStored status
+                | _ ->
+                    let! loader =
+                        store.SkseLoaders.ReadStored(workspace, profile, deployed.ActiveGeneration)
 
-                    match saved with
-                    | Some status when status.Phase = "waiting" || status.Phase = "failed" ->
-                        return fromStored status
-                    | _ ->
+                    match loader with
+                    | Some loader -> return! installedState key context loader
+                    | None ->
                         let! resolved = resolve workspace profile
 
                         match resolved with

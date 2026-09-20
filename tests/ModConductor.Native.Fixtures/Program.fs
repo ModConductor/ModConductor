@@ -428,6 +428,7 @@ let main args =
             writer.WriteStartObject()
             writer.WriteBoolean("nativeAot", not RuntimeFeature.IsDynamicCodeSupported)
             SkseFixtures.observe writer args[1]
+            SkseCoordinatorFixtures.observe writer args[1]
             writer.WriteEndObject()
             writer.Flush()
             0

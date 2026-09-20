@@ -226,6 +226,8 @@ type internal Recovery(repository: IRecoveryRepository) =
                                              receipt.Originals)
                                     Pending = None }
 
+                            boundary "publication" -1
+
                             let! finished =
                                 repository.Finish(
                                     { receipt with

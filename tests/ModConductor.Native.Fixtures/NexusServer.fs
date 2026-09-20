@@ -49,6 +49,8 @@ type NexusServer() =
     let mutable writes = 0
     let mutable metadataHold: TaskCompletionSource<unit> option = None
     let mutable lastVersion = ""
+    let mutable premium = true
+    let mutable skseFiles: (int64 * string * string * string) list = []
 
 
     let send (context: HttpListenerContext) =
@@ -164,7 +166,9 @@ type NexusServer() =
                                 (("{"
                                   + "\"sub\":\""
                                   + subject
-                                  + "\",\"name\":\"Rowan\",\"membership_roles\":[\"premium\"]}"))
+                                  + "\",\"name\":\"Rowan\",\"membership_roles\":"
+                                  + (if premium then "[\"premium\"]" else "[]")
+                                  + "}"))
                 elif path.StartsWith "/api/" then
                     if mode = "rate" then
                         response.Headers["Retry-After"] <- "15"
@@ -256,6 +260,20 @@ type NexusServer() =
                             write
                                 200
                                 """{"id":1704,"domain_name":"skyrimspecialedition","categories":[{"category_id":29,"name":"Visuals and Graphics"}]}"""
+                    elif path.EndsWith "/mods/30379.json" then
+                        match metadataHold with
+                        | Some hold -> do! hold.Task.WaitAsync(stop.Token)
+                        | None -> ()
+
+                        if mode = "metadata-error" then
+                            do! write 404 "{}"
+                        else
+                            do!
+                                write
+                                    200
+                                    ("""{"mod_id":30379,"game_id":1704,"name":"Skyrim Script Extender","summary":"Fixture SKSE metadata","version":"fixture","author":"SKSE team","uploaded_by":"SKSE team","category_id":1,"updated_timestamp":1789238400,"allow_rating":true,"available":"""
+                                     + (if mode = "unavailable" then "false" else "true")
+                                     + "}")
                     elif path.EndsWith "/mods/64012.json" then
                         match metadataHold with
                         | Some hold -> do! hold.Task.WaitAsync(stop.Token)
@@ -283,7 +301,64 @@ type NexusServer() =
                              + string payload.Length
                              + "}")
 
-                        if metadata && path.EndsWith "/files.json" then
+                        if path.Contains "/mods/30379/" && path.EndsWith "/files.json" then
+                            let entry
+                                (id: int64, name: string, version: string, description: string)
+                                =
+                                "{\"file_id\":"
+                                + id.ToString(Globalization.CultureInfo.InvariantCulture)
+                                + ",\"file_name\":\""
+                                + name
+                                + "\",\"version\":\""
+                                + version
+                                + "\",\"category_name\":\"Main files\",\"category_id\":1,\"uploaded_timestamp\":1789238400,\"description\":\""
+                                + description
+                                + "\",\"size_in_bytes\":"
+                                + payload.Length.ToString(
+                                    Globalization.CultureInfo.InvariantCulture
+                                )
+                                + "}"
+
+                            do!
+                                write
+                                    200
+                                    ("{\"files\":["
+                                     + (skseFiles |> List.map entry |> String.concat ",")
+                                     + "],\"file_updates\":[]}")
+                        elif path.Contains "/mods/30379/files/" && path.EndsWith ".json" then
+                            let name = Path.GetFileNameWithoutExtension path
+
+                            if mode = "metadata-error" then
+                                do! write 404 "{}"
+                            else
+                                match Int64.TryParse name with
+                                | true, id ->
+                                    match
+                                        skseFiles
+                                        |> List.tryFind (fun (value, _, _, _) -> value = id)
+                                    with
+                                    | Some(id, fileName, version, description) ->
+                                        do!
+                                            write
+                                                200
+                                                ("{\"file_id\":"
+                                                 + id.ToString(
+                                                     Globalization.CultureInfo.InvariantCulture
+                                                 )
+                                                 + ",\"file_name\":\""
+                                                 + fileName
+                                                 + "\",\"version\":\""
+                                                 + version
+                                                 + "\",\"category_name\":\"Main files\",\"category_id\":1,\"uploaded_timestamp\":1789238400,\"description\":\""
+                                                 + description
+                                                 + "\",\"size_in_bytes\":"
+                                                 + payload.Length.ToString(
+                                                     Globalization.CultureInfo.InvariantCulture
+                                                 )
+                                                 + "}")
+                                    | None -> do! write 404 "{}"
+                                | _ -> do! write 404 "{}"
+                        elif metadata && path.EndsWith "/files.json" then
                             let entry (id: int) (name: string) (version: string) (category: int) =
                                 "{\"file_id\":"
                                 + id.ToString(Globalization.CultureInfo.InvariantCulture)
@@ -430,6 +505,14 @@ type NexusServer() =
     member _.Subject
         with get () = subject
         and set value = subject <- value
+
+    member _.Premium
+        with get () = premium
+        and set value = premium <- value
+
+    member _.SkseFiles
+        with get () = skseFiles
+        and set value = skseFiles <- value
 
     member _.TokenSeconds
         with set value = expires <- value

@@ -164,7 +164,7 @@ module internal SkseRows =
             Sqlite.execute
                 connection
                 transaction
-                "INSERT INTO skse_loader_selections VALUES($profile,$workspace,$mod,$version,$generation,$executable,$component,$runtime,$game,$archive,$nexusMod,$nexusFile,$checked)"
+                "INSERT OR IGNORE INTO skse_loader_selections VALUES($profile,$workspace,$mod,$version,$generation,$executable,$component,$runtime,$game,$archive,$nexusMod,$nexusFile,$checked)"
                 [ "$profile", box (string profile)
                   "$workspace", box (string workspace)
                   "$mod", box (string modId)

@@ -11,6 +11,12 @@ type SkseTests() =
             .GetProperty(name: string)
             .GetBoolean()
 
+    let coordinatorFlag name =
+        NativeObservations.report.RootElement
+            .GetProperty("skseCoordinator")
+            .GetProperty(name: string)
+            .GetBoolean()
+
     [<Test>]
     member _.``compatibility should use the exact game runtime and ordinary Nexus entitlement``() =
         flag "exactRuntimeWins" |> should equal true
@@ -41,3 +47,33 @@ type SkseTests() =
     member _.``cold restart should retain compatible cache and every generation loader``() =
         flag "coldRestartRetainsCacheAndLoaderProvenance" |> should equal true
         flag "nxmWaitingAndFailureAreDurable" |> should equal true
+
+    [<Test>]
+    member _.``NXM handoff should complete or publish each durable coordinator failure``() =
+        coordinatorFlag "acceptNxmCompletesExpectedHandoff" |> should equal true
+        coordinatorFlag "acceptNxmWrongAccountIsDurable" |> should equal true
+        coordinatorFlag "acceptNxmExpiredIsDurable" |> should equal true
+        coordinatorFlag "acceptNxmMetadataFailureIsDurable" |> should equal true
+        coordinatorFlag "acceptNxmRateLimitIsDurable" |> should equal true
+        coordinatorFlag "acceptNxmOutageIsDurable" |> should equal true
+        coordinatorFlag "acceptNxmDownloadStartFailureIsDurable" |> should equal true
+
+    [<Test>]
+    member _.``cold coordinator should install validated cache while source is offline``() =
+        coordinatorFlag "coldCoordinatorInstallsValidatedCacheWhileSourceOffline"
+        |> should equal true
+
+    [<Test>]
+    member _.``launch gates should follow real game and source evidence``() =
+        coordinatorFlag "coordinatorLaunchGatesCurrentUpdateIncompatibleAndUnavailable"
+        |> should equal true
+
+    [<Test>]
+    member _.``failed replacements should preserve the installed setup at every boundary``() =
+        coordinatorFlag "failedReplacementBoundariesPreserveInstalledSetup"
+        |> should equal true
+
+    [<Test>]
+    member _.``retained generation rollback should restore its loader after restart``() =
+        coordinatorFlag "retainedGenerationRollbackRestoresLoaderAfterRestart"
+        |> should equal true
