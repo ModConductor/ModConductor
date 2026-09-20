@@ -94,3 +94,39 @@ module internal FnisSchema =
     );
     PRAGMA user_version=28;
     """
+
+    let execution =
+        """
+    CREATE TABLE fnis_runs(
+      id TEXT PRIMARY KEY,
+      workspace_id TEXT NOT NULL REFERENCES workspaces(id),
+      profile_id TEXT NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+      owner TEXT NOT NULL,
+      busy INTEGER NOT NULL CHECK(busy IN(0,1)),
+      phase INTEGER NOT NULL CHECK(phase BETWEEN 0 AND 7),
+      generation_id TEXT NOT NULL,
+      generator TEXT NOT NULL,
+      input_fingerprint TEXT NOT NULL,
+      expected_selection_revision INTEGER,
+      output_mod_id TEXT NOT NULL,
+      output_version_id TEXT NOT NULL,
+      exit_code INTEGER,
+      stdout BLOB NOT NULL,
+      stderr BLOB NOT NULL,
+      problem TEXT,
+      requested_at TEXT NOT NULL,
+      completed_at TEXT
+    );
+    CREATE UNIQUE INDEX fnis_active_run ON fnis_runs(profile_id) WHERE busy=1;
+    CREATE INDEX fnis_run_history ON fnis_runs(profile_id,requested_at DESC);
+    CREATE TABLE fnis_outputs(
+      profile_id TEXT PRIMARY KEY REFERENCES profiles(id) ON DELETE CASCADE,
+      workspace_id TEXT NOT NULL REFERENCES workspaces(id),
+      mod_id TEXT NOT NULL REFERENCES mods(id),
+      version_id TEXT NOT NULL REFERENCES mod_versions(id),
+      run_id TEXT NOT NULL REFERENCES fnis_runs(id),
+      input_fingerprint TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+    PRAGMA user_version=29;
+    """

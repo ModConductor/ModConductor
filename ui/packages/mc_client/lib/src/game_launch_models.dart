@@ -76,9 +76,14 @@ class GameLaunchState {
     required this.runtime,
     required this.problem,
     required this.latest,
+    this.fnisStale = false,
+    this.fnisStatus = '',
+    this.canRunFnis = false,
   });
   final String workspaceId, profileId, sourceToken, name, runtime;
   final int contextRevision;
   final String? problem;
   final ExecutableRun? latest;
+  final bool fnisStale, canRunFnis;
+  final String fnisStatus;
 }

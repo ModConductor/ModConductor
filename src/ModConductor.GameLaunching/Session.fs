@@ -166,3 +166,32 @@ type GameLaunchSession
             }
 
         member _.Cancel(workspace, run) = executables.CancelGame(workspace, run)
+
+    interface IToolLaunchProjection with
+        member _.Project(workspace, profile, generation, executable, arguments) =
+            task {
+                let! state = context workspace
+                let! deployed = deployments.Read profile
+
+                match state, deployed with
+                | Ok state, Ok deployed when
+                    deployed.WorkspaceId = workspace
+                    && deployed.ActiveGeneration = Some generation
+                    ->
+                    let! loader = loaders.Read(workspace, profile, Some generation)
+                    let! launch = launchConfiguration workspace profile (Some generation)
+
+                    return
+                        Descriptor.createToolWith
+                            state
+                            loader
+                            launch
+                            generation
+                            executable
+                            arguments
+                        |> Result.mapError ExecutableError.Unavailable
+                | Error error, _ -> return Error error
+                | _, Error error ->
+                    return Error(ExecutableError.Unavailable(Preparation.error error))
+                | _ -> return Error ExecutableError.StaleRevision
+            }

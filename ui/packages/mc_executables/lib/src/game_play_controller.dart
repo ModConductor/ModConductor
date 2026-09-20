@@ -6,6 +6,7 @@ import 'package:mc_client/mc_client.dart';
 class GamePlayController extends ChangeNotifier {
   GameLaunchingClient? client;
   ExecutablesClient? executions;
+  FnisClient? fnis;
   WorkspaceInfo? workspace;
   GameLaunchState? state;
   ExecutableRun? run;
@@ -34,10 +35,12 @@ class GamePlayController extends ChangeNotifier {
     ExecutablesClient? runs,
     WorkspaceInfo? value, {
     required bool available,
+    FnisClient? fnis,
   }) {
     final same =
         identical(client, api) &&
         identical(executions, runs) &&
+        identical(this.fnis, fnis) &&
         workspace?.id == value?.id;
     final changedProfile =
         workspace?.selectedProfile?.id != value?.selectedProfile?.id;
@@ -57,6 +60,7 @@ class GamePlayController extends ChangeNotifier {
     _watchId = null;
     client = api;
     executions = runs;
+    this.fnis = fnis;
     state = null;
     run = null;
     pending = null;
@@ -140,7 +144,7 @@ class GamePlayController extends ChangeNotifier {
     }
   }
 
-  Future<void> play() async {
+  Future<void> play({bool continueStaleFnis = false}) async {
     final api = client, ws = workspace, profile = workspace?.selectedProfile;
     if (!canPlay || api == null || ws == null || profile == null) return;
     final epoch = _epoch;
@@ -159,6 +163,11 @@ class GamePlayController extends ChangeNotifier {
         problem = latest.problem;
         return;
       }
+      if (latest.fnisStale && !continueStaleFnis) {
+        problem =
+            '${latest.fnisStatus}. Run FNIS or explicitly continue without it.';
+        return;
+      }
       if (workspace?.revision != ws.revision ||
           workspace?.selectedProfile?.id != profile.id) {
         problem = 'The selected profile changed. Play again when ready.';
@@ -173,7 +182,10 @@ class GamePlayController extends ChangeNotifier {
         sourceToken: latest.sourceToken,
       );
       pending = request;
-      final value = await api.play(request);
+      final value = await api.play(
+        request,
+        continueStaleFnis: continueStaleFnis,
+      );
       if (epoch != _epoch) return;
       pending = null;
       uncertain = false;
@@ -193,6 +205,32 @@ class GamePlayController extends ChangeNotifier {
     } finally {
       if (epoch == _epoch) {
         changing = starting = false;
+        _notify();
+      }
+    }
+  }
+
+  Future<void> runFnis() async {
+    final api = fnis, ws = workspace, profile = workspace?.selectedProfile;
+    if (!canPlay || api == null || ws == null || profile == null) return;
+    final epoch = _epoch;
+    changing = true;
+    problem = null;
+    _notify();
+    try {
+      final result = await api.run(ws.id, profile.id, newOperationId());
+      if (epoch != _epoch) return;
+      if (result.outputPhase != FnisOutputStatusPhase.current) {
+        problem = result.outputDetail.isEmpty
+            ? result.outputStatus
+            : result.outputDetail;
+      }
+      await readState();
+    } on Object catch (error) {
+      if (epoch == _epoch) problem = _message(error);
+    } finally {
+      if (epoch == _epoch) {
+        changing = false;
         _notify();
       }
     }

@@ -6,6 +6,7 @@ import "modconductor/v1/executables.proto";
 service GameLaunchOperations {
   rpc ReadGameLaunch(GameLaunchStateRequest) returns (GameLaunchStateReply);
   rpc PlayGame(GameRunRequest) returns (ExecutableRunReply);
+  rpc PlayGameContinuingFnis(GameRunRequest) returns (ExecutableRunReply);
   rpc CancelGameLaunch(ExecutableRunRef) returns (ExecutableRunReply);
 }
 message GameLaunchStateRequest { string workspace_id = 1; string profile_id = 2; }
@@ -18,5 +19,8 @@ message GameLaunchState {
   string runtime = 6;
   optional string problem = 7;
   ExecutableRun latest = 8;
+  bool fnis_stale = 9;
+  string fnis_status = 10;
+  bool can_run_fnis = 11;
 }
 message GameLaunchStateReply { oneof result { GameLaunchState state = 1; ExecutableProblem problem = 2; } }

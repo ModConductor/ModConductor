@@ -99,6 +99,15 @@ type DiagnosticSnapshot =
       CapturedAt: DateTimeOffset
       Findings: DiagnosticFinding list }
 
+type FnisDiagnosticState =
+    { Stale: bool
+      Status: string
+      Detail: string
+      Fingerprint: string }
+
+type FnisDiagnosticSource =
+    Guid -> Guid -> CancellationToken -> Task<FnisDiagnosticState option>
+
 type RemediationItem = { Label: string; Value: string }
 
 type RemediationIdentifier = { Label: string; Value: Guid }

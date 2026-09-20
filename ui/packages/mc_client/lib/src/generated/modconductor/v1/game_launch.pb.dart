@@ -97,6 +97,9 @@ class GameLaunchState extends $pb.GeneratedMessage {
     $core.String? runtime,
     $core.String? problem,
     $1.ExecutableRun? latest,
+    $core.bool? fnisStale,
+    $core.String? fnisStatus,
+    $core.bool? canRunFnis,
   }) {
     final result = create();
     if (workspaceId != null) result.workspaceId = workspaceId;
@@ -107,6 +110,9 @@ class GameLaunchState extends $pb.GeneratedMessage {
     if (runtime != null) result.runtime = runtime;
     if (problem != null) result.problem = problem;
     if (latest != null) result.latest = latest;
+    if (fnisStale != null) result.fnisStale = fnisStale;
+    if (fnisStatus != null) result.fnisStatus = fnisStatus;
+    if (canRunFnis != null) result.canRunFnis = canRunFnis;
     return result;
   }
 
@@ -135,6 +141,9 @@ class GameLaunchState extends $pb.GeneratedMessage {
     ..aOS(7, _omitFieldNames ? '' : 'problem')
     ..aOM<$1.ExecutableRun>(8, _omitFieldNames ? '' : 'latest',
         subBuilder: $1.ExecutableRun.create)
+    ..aOB(9, _omitFieldNames ? '' : 'fnisStale')
+    ..aOS(10, _omitFieldNames ? '' : 'fnisStatus')
+    ..aOB(11, _omitFieldNames ? '' : 'canRunFnis')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -229,6 +238,33 @@ class GameLaunchState extends $pb.GeneratedMessage {
   void clearLatest() => $_clearField(8);
   @$pb.TagNumber(8)
   $1.ExecutableRun ensureLatest() => $_ensure(7);
+
+  @$pb.TagNumber(9)
+  $core.bool get fnisStale => $_getBF(8);
+  @$pb.TagNumber(9)
+  set fnisStale($core.bool value) => $_setBool(8, value);
+  @$pb.TagNumber(9)
+  $core.bool hasFnisStale() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearFnisStale() => $_clearField(9);
+
+  @$pb.TagNumber(10)
+  $core.String get fnisStatus => $_getSZ(9);
+  @$pb.TagNumber(10)
+  set fnisStatus($core.String value) => $_setString(9, value);
+  @$pb.TagNumber(10)
+  $core.bool hasFnisStatus() => $_has(9);
+  @$pb.TagNumber(10)
+  void clearFnisStatus() => $_clearField(10);
+
+  @$pb.TagNumber(11)
+  $core.bool get canRunFnis => $_getBF(10);
+  @$pb.TagNumber(11)
+  set canRunFnis($core.bool value) => $_setBool(10, value);
+  @$pb.TagNumber(11)
+  $core.bool hasCanRunFnis() => $_has(10);
+  @$pb.TagNumber(11)
+  void clearCanRunFnis() => $_clearField(11);
 }
 
 enum GameLaunchStateReply_Result { state, problem, notSet }

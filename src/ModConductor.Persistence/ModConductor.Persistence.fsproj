@@ -67,6 +67,7 @@
     <Compile Include="OutputActionRows.fs" />
     <Compile Include="OutputRepository.fs" />
     <Compile Include="FilePlanRows.fs" />
+    <Compile Include="FnisExecutionStore.fs" />
     <Compile Include="DeploymentRepository.fs" />
     <Compile Include="DeploymentProjection.fs" />
     <Compile Include="FilePlanRepository.fs" />

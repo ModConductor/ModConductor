@@ -74,6 +74,20 @@ class FnisOperationsClient extends $grpc.Client {
     return $createUnaryCall(_$recoverFnis, request, options: options);
   }
 
+  $grpc.ResponseFuture<$0.FnisState> runFnis(
+    $0.FnisRunRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$runFnis, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.FnisState> cancelFnisRun(
+    $0.FnisRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$cancelFnisRun, request, options: options);
+  }
+
   // method descriptors
 
   static final _$readFnis = $grpc.ClientMethod<$0.FnisRequest, $0.FnisState>(
@@ -100,6 +114,15 @@ class FnisOperationsClient extends $grpc.Client {
       '/modconductor.v1.FnisOperations/RecoverFnis',
       ($0.FnisRequest value) => value.writeToBuffer(),
       $0.FnisState.fromBuffer);
+  static final _$runFnis = $grpc.ClientMethod<$0.FnisRunRequest, $0.FnisState>(
+      '/modconductor.v1.FnisOperations/RunFnis',
+      ($0.FnisRunRequest value) => value.writeToBuffer(),
+      $0.FnisState.fromBuffer);
+  static final _$cancelFnisRun =
+      $grpc.ClientMethod<$0.FnisRequest, $0.FnisState>(
+          '/modconductor.v1.FnisOperations/CancelFnisRun',
+          ($0.FnisRequest value) => value.writeToBuffer(),
+          $0.FnisState.fromBuffer);
 }
 
 @$pb.GrpcServiceName('modconductor.v1.FnisOperations')
@@ -145,6 +168,20 @@ abstract class FnisOperationsServiceBase extends $grpc.Service {
     $addMethod($grpc.ServiceMethod<$0.FnisRequest, $0.FnisState>(
         'RecoverFnis',
         recoverFnis_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.FnisRequest.fromBuffer(value),
+        ($0.FnisState value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.FnisRunRequest, $0.FnisState>(
+        'RunFnis',
+        runFnis_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.FnisRunRequest.fromBuffer(value),
+        ($0.FnisState value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.FnisRequest, $0.FnisState>(
+        'CancelFnisRun',
+        cancelFnisRun_Pre,
         false,
         false,
         ($core.List<$core.int> value) => $0.FnisRequest.fromBuffer(value),
@@ -197,5 +234,21 @@ abstract class FnisOperationsServiceBase extends $grpc.Service {
   }
 
   $async.Future<$0.FnisState> recoverFnis(
+      $grpc.ServiceCall call, $0.FnisRequest request);
+
+  $async.Future<$0.FnisState> runFnis_Pre($grpc.ServiceCall $call,
+      $async.Future<$0.FnisRunRequest> $request) async {
+    return runFnis($call, await $request);
+  }
+
+  $async.Future<$0.FnisState> runFnis(
+      $grpc.ServiceCall call, $0.FnisRunRequest request);
+
+  $async.Future<$0.FnisState> cancelFnisRun_Pre(
+      $grpc.ServiceCall $call, $async.Future<$0.FnisRequest> $request) async {
+    return cancelFnisRun($call, await $request);
+  }
+
+  $async.Future<$0.FnisState> cancelFnisRun(
       $grpc.ServiceCall call, $0.FnisRequest request);
 }

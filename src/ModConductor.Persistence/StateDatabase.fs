@@ -89,6 +89,13 @@ type internal StateDatabase(directory: string) =
         Sqlite.execute
             connection
             null
+            "UPDATE fnis_runs SET phase=7,busy=0,problem='FNIS stopped when the app closed. The previous generated output remains active.',completed_at=$completed WHERE owner=$owner AND busy=1"
+            [ "$owner", box owner
+              "$completed", box (DateTimeOffset.UtcNow.ToString("O")) ]
+
+        Sqlite.execute
+            connection
+            null
             "UPDATE profile_data_actions SET busy=0 WHERE owner=$owner"
             [ "$owner", box owner ]
 

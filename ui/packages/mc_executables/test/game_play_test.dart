@@ -44,6 +44,7 @@ class Games implements GameLaunchingClient {
   Games(this.runs);
   final native.FakeExecutables runs;
   int starts = 0, cancels = 0;
+  bool staleFnis = false, continuedStaleFnis = false;
   bool loseResponse = false;
   Completer<GameLaunchState>? nextRead;
   GameLaunchState state(String profile) => GameLaunchState(
@@ -55,13 +56,20 @@ class Games implements GameLaunchingClient {
     runtime: 'Selected Proton',
     problem: null,
     latest: runs.recorded,
+    fnisStale: staleFnis,
+    fnisStatus: staleFnis ? 'FNIS output is stale' : '',
+    canRunFnis: staleFnis,
   );
   @override
   Future<GameLaunchState> read(String workspaceId, String profileId) =>
       nextRead?.future ?? Future.value(state(profileId));
   @override
-  Future<ExecutableRun> play(GameRunRequest request) async {
+  Future<ExecutableRun> play(
+    GameRunRequest request, {
+    bool continueStaleFnis = false,
+  }) async {
     ++starts;
+    continuedStaleFnis = continueStaleFnis;
     runs.recorded = gameRun(request);
     if (loseResponse) throw StateError('response lost after admission');
     return runs.recorded!;
@@ -79,6 +87,21 @@ class Games implements GameLaunchingClient {
 }
 
 void main() {
+  test('stale FNIS requires an explicit continue before Play', () async {
+    final runs = native.FakeExecutables(), controller = GamePlayController();
+    final games = Games(runs)..staleFnis = true;
+    controller.attach(games, runs, native.workspace, available: true);
+    await native.settleController();
+    await controller.play();
+    expect(games.starts, 0);
+    expect(controller.problem, contains('Run FNIS'));
+    await controller.play(continueStaleFnis: true);
+    expect(games.starts, 1);
+    expect(games.continuedStaleFnis, isTrue);
+    controller.dispose();
+    await runs.changes.close();
+  });
+
   test(
     'lost Play reply is reconciled by run identity without launching again',
     () async {

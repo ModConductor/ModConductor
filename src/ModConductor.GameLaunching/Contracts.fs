@@ -40,3 +40,18 @@ type IGameLaunching =
     abstract Read: workspace: Guid * profile: Guid -> Task<Result<GameLaunchState, ExecutableError>>
     abstract Begin: GameRunRequest -> Task<Result<ExecutableRun, ExecutableError>>
     abstract Cancel: workspace: Guid * run: Guid -> Task<Result<ExecutableRun, ExecutableError>>
+
+type ToolLaunchDescriptor =
+    { ContextId: Guid
+      Runtime: string
+      GenerationId: Guid
+      Launch: ModConductor.Platform.NativeLaunch }
+
+type IToolLaunchProjection =
+    abstract Project:
+        workspace: Guid *
+        profile: Guid *
+        generation: Guid *
+        executable: string *
+        arguments: string list ->
+            Task<Result<ToolLaunchDescriptor, ExecutableError>>

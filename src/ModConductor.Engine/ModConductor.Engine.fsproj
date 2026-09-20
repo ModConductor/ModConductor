@@ -45,6 +45,7 @@
     <Compile Include="ExecutableService.fs" />
     <Compile Include="SkseService.fs" />
     <Compile Include="EnbService.fs" />
+    <Compile Include="FnisRunner.fs" />
     <Compile Include="FnisService.fs" />
     <Compile Include="GameLaunchService.fs" />
     <Compile Include="ProfileDataWire.fs" />

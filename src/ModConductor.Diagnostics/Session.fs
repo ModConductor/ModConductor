@@ -61,7 +61,8 @@ type DiagnosticSession(
     launches: IGameLaunching,
     profileData: IProfileGameData,
     gameContexts: IGameContexts,
-    pluginOrders: IProfilePluginOrders
+    pluginOrders: IProfilePluginOrders,
+    ?fnis: FnisDiagnosticSource
 ) =
     let gate = obj ()
     let snapshots = Dictionary<Guid, StoredSnapshot>()
@@ -202,6 +203,40 @@ type DiagnosticSession(
                         CapabilityId.SkyrimSpecialEdition
                         state
                     |> Option.map (fun binding -> state, binding))
+        }
+
+    let fnisFindings (workspace: Workspace) (profile: Profile) token =
+        task {
+            match fnis with
+            | None -> return []
+            | Some owner ->
+                let! result = owner workspace.Id profile.Id token
+
+                return
+                    match result with
+                    | Some value when value.Stale ->
+                        [ { Id = "fnis-output"
+                            Code = "fnis-output-stale"
+                            Severity = DiagnosticSeverity.Warning
+                            WorkspaceId = workspace.Id
+                            ProfileId = profile.Id
+                            WorkspaceName = workspace.Name
+                            ProfileName = profile.Name
+                            GameName = "Skyrim Special Edition"
+                            Title = value.Status
+                            Summary = value.Detail
+                            Detail = None
+                            Area = "FNIS"
+                            Evidence = [ { Label = "Input fingerprint"; Value = value.Fingerprint } ]
+                            NextAction = "Run FNIS"
+                            Fixability = Fixability.NotFixable
+                            FixDetail = "Run FNIS from Skyrim setup or the Play check."
+                            Correlations =
+                                [ { Kind = CorrelationKind.Profile
+                                    Id = profile.Id
+                                    Revision = None } ]
+                            Action = DiagnosticAction.None } ]
+                    | _ -> []
         }
 
     let skseFindings
@@ -380,6 +415,8 @@ type DiagnosticSession(
                                                 | _ -> []
                                         }
 
+                                    let! fnisOutputFindings = fnisFindings workspace profile token
+
                                     token.ThrowIfCancellationRequested()
                                     let findings =
                                         (launchFindings
@@ -387,7 +424,8 @@ type DiagnosticSession(
                                          @ skyrimFindings
                                          @ oldFormFindings
                                          @ deploymentFindings
-                                         @ profileFindings)
+                                         @ profileFindings
+                                         @ fnisOutputFindings)
                                         |> List.truncate Limits.findings
 
                                     let view =

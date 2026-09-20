@@ -131,6 +131,22 @@ class GamePlayDialog extends StatelessWidget {
               label: c.preparing ? 'Cancel' : 'Stop waiting',
               icon: c.preparing ? null : Icons.link_off,
               onPressed: c.changing ? null : () => unawaited(c.stop()),
+            ),
+          if (!c.active &&
+              c.state?.fnisStale == true &&
+              c.state?.canRunFnis == true)
+            McAction(
+              label: 'Run FNIS',
+              icon: Icons.play_arrow,
+              emphasis: McActionEmphasis.primary,
+              onPressed: c.changing ? null : () => unawaited(c.runFnis()),
+            ),
+          if (!c.active && c.state?.fnisStale == true)
+            McAction(
+              label: 'Continue without FNIS',
+              onPressed: c.canPlay
+                  ? () => unawaited(c.play(continueStaleFnis: true))
+                  : null,
             )
           else if (run != null || c.problem != null)
             McAction(

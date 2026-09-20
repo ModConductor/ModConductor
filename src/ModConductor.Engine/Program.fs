@@ -85,6 +85,8 @@ let runWithNexus registration (handoff: ModConductor.Nexus.IOAuthHandoff) args =
     use fnis =
         new ModConductor.Engine.FnisCoordinator(nexus, store.Downloads, store, handoff)
 
+    let fnisRunner = ModConductor.Engine.FnisRunner(store)
+
     use nxmIngress =
         new ModConductor.Desktop.PrivateIngress(
             (fun (id, input) ->
@@ -197,6 +199,12 @@ let runWithNexus registration (handoff: ModConductor.Nexus.IOAuthHandoff) args =
     builder.Services.AddSingleton<ModConductor.Engine.FnisCoordinator>(fnis)
     |> ignore
 
+    builder.Services.AddSingleton<ModConductor.Fnis.IFnisExecution>(fnisRunner)
+    |> ignore
+
+    builder.Services.AddSingleton<ModConductor.Fnis.IFnisInspection>(fnisRunner)
+    |> ignore
+
     builder.Services.AddSingleton<ModConductor.Engine.FnisService>() |> ignore
 
     builder.Services.AddSingleton<ModConductor.Nexus.NexusModDetails>(
@@ -254,7 +262,35 @@ let runWithNexus registration (handoff: ModConductor.Nexus.IOAuthHandoff) args =
             store.GameLaunching,
             store.ProfileGameData,
             store.GameContexts,
-            store.PluginOrders
+            store.PluginOrders,
+            fnis =
+                (fun workspace profile token ->
+                    task {
+                        let! value =
+                            (fnisRunner :> ModConductor.Fnis.IFnisInspection)
+                                .Inspect(workspace, profile, token)
+
+                        return
+                            value
+                            |> Result.toOption
+                            |> Option.map (fun value ->
+                                let stale =
+                                    match value.Phase with
+                                    | ModConductor.Fnis.FnisOutputPhase.Missing
+                                    | ModConductor.Fnis.FnisOutputPhase.Stale
+                                    | ModConductor.Fnis.FnisOutputPhase.Failed
+                                    | ModConductor.Fnis.FnisOutputPhase.Cancelled
+                                    | ModConductor.Fnis.FnisOutputPhase.Abandoned -> true
+                                    | _ -> false
+
+                                let diagnostic: ModConductor.Diagnostics.FnisDiagnosticState =
+                                    { Stale = stale
+                                      Status = value.Status
+                                      Detail = value.Detail
+                                      Fingerprint = value.Fingerprint }
+
+                                diagnostic)
+                    })
         )
     )
     |> ignore

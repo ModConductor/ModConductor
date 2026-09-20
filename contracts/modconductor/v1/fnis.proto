@@ -9,9 +9,12 @@ service FnisOperations {
   rpc UpdateFnis(FnisRequest) returns (FnisState);
   rpc RemoveFnis(FnisRequest) returns (FnisState);
   rpc RecoverFnis(FnisRequest) returns (FnisState);
+  rpc RunFnis(FnisRunRequest) returns (FnisState);
+  rpc CancelFnisRun(FnisRequest) returns (FnisState);
 }
 
 message FnisRequest { string workspace_id = 1; string profile_id = 2; }
+message FnisRunRequest { string id = 1; string workspace_id = 2; string profile_id = 3; }
 enum FnisPhase {
   FNIS_PHASE_UNSPECIFIED = 0;
   FNIS_PHASE_UNAVAILABLE = 1;
@@ -25,6 +28,17 @@ enum FnisPhase {
   FNIS_PHASE_RECOVERY_REQUIRED = 9;
   FNIS_PHASE_SOURCE_UNAVAILABLE = 10;
 }
+enum FnisOutputPhase {
+  FNIS_OUTPUT_PHASE_UNSPECIFIED = 0;
+  FNIS_OUTPUT_PHASE_UNAVAILABLE = 1;
+  FNIS_OUTPUT_PHASE_MISSING = 2;
+  FNIS_OUTPUT_PHASE_STALE = 3;
+  FNIS_OUTPUT_PHASE_CURRENT = 4;
+  FNIS_OUTPUT_PHASE_RUNNING = 5;
+  FNIS_OUTPUT_PHASE_FAILED = 6;
+  FNIS_OUTPUT_PHASE_CANCELLED = 7;
+  FNIS_OUTPUT_PHASE_ABANDONED = 8;
+}
 message FnisState {
   FnisPhase phase = 1;
   string version = 2;
@@ -36,4 +50,13 @@ message FnisState {
   bool can_update = 8;
   bool can_remove = 9;
   bool can_recover = 10;
+  FnisOutputPhase output_phase = 11;
+  string output_status = 12;
+  string output_detail = 13;
+  bool can_run = 14;
+  bool can_cancel_run = 15;
+  optional string run_id = 16;
+  optional int32 exit_code = 17;
+  string standard_output = 18;
+  string standard_error = 19;
 }

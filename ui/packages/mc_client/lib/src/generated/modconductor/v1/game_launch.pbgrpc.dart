@@ -48,6 +48,14 @@ class GameLaunchOperationsClient extends $grpc.Client {
     return $createUnaryCall(_$playGame, request, options: options);
   }
 
+  $grpc.ResponseFuture<$1.ExecutableRunReply> playGameContinuingFnis(
+    $1.GameRunRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$playGameContinuingFnis, request,
+        options: options);
+  }
+
   $grpc.ResponseFuture<$1.ExecutableRunReply> cancelGameLaunch(
     $1.ExecutableRunRef request, {
     $grpc.CallOptions? options,
@@ -65,6 +73,11 @@ class GameLaunchOperationsClient extends $grpc.Client {
   static final _$playGame =
       $grpc.ClientMethod<$1.GameRunRequest, $1.ExecutableRunReply>(
           '/modconductor.v1.GameLaunchOperations/PlayGame',
+          ($1.GameRunRequest value) => value.writeToBuffer(),
+          $1.ExecutableRunReply.fromBuffer);
+  static final _$playGameContinuingFnis =
+      $grpc.ClientMethod<$1.GameRunRequest, $1.ExecutableRunReply>(
+          '/modconductor.v1.GameLaunchOperations/PlayGameContinuingFnis',
           ($1.GameRunRequest value) => value.writeToBuffer(),
           $1.ExecutableRunReply.fromBuffer);
   static final _$cancelGameLaunch =
@@ -95,6 +108,13 @@ abstract class GameLaunchOperationsServiceBase extends $grpc.Service {
         false,
         ($core.List<$core.int> value) => $1.GameRunRequest.fromBuffer(value),
         ($1.ExecutableRunReply value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$1.GameRunRequest, $1.ExecutableRunReply>(
+        'PlayGameContinuingFnis',
+        playGameContinuingFnis_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $1.GameRunRequest.fromBuffer(value),
+        ($1.ExecutableRunReply value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$1.ExecutableRunRef, $1.ExecutableRunReply>(
         'CancelGameLaunch',
         cancelGameLaunch_Pre,
@@ -119,6 +139,15 @@ abstract class GameLaunchOperationsServiceBase extends $grpc.Service {
   }
 
   $async.Future<$1.ExecutableRunReply> playGame(
+      $grpc.ServiceCall call, $1.GameRunRequest request);
+
+  $async.Future<$1.ExecutableRunReply> playGameContinuingFnis_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$1.GameRunRequest> $request) async {
+    return playGameContinuingFnis($call, await $request);
+  }
+
+  $async.Future<$1.ExecutableRunReply> playGameContinuingFnis(
       $grpc.ServiceCall call, $1.GameRunRequest request);
 
   $async.Future<$1.ExecutableRunReply> cancelGameLaunch_Pre(

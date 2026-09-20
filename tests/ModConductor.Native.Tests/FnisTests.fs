@@ -18,6 +18,13 @@ type FnisTests() =
         flag "catalogueSelectsReviewedSkyrimSeMainFile" |> should equal true
 
     [<Test>]
+    member _.``effective FNIS inputs should be stable by path and content``() =
+        flag "effectiveInputFingerprintIgnoresEnumerationOrder" |> should equal true
+        flag "effectiveInputFingerprintChangesWithAnimationContent" |> should equal true
+        flag "effectiveInputFilterRejectsUnrelatedFiles" |> should equal true
+        flag "effectiveInputFilterIncludesSkeletons" |> should equal true
+
+    [<Test>]
     member _.``direct acquisition should retain complete generator provenance``() =
         flag "directAcquisitionPublishesImmutableGenerationAndProvenance"
         |> should equal true
@@ -28,6 +35,12 @@ type FnisTests() =
         flag "retryResumesAndPublishesSelectedUpdate" |> should equal true
         flag "failedReplacementInterruptionReachedPublication" |> should equal true
         flag "failedReplacementRecoveryPreservesActiveSetup" |> should equal true
+
+    [<Test>]
+    member _.``FNIS execution should publish only successful output``() =
+        flag "successfulRunPublishesAndSelectsOneCurrentOutput" |> should equal true
+        flag "failedRunPreservesPriorOutputAndBoundedExitEvidence" |> should equal true
+        flag "cancelledRunTerminatesAndPreservesPriorOutput" |> should equal true
 
     [<Test>]
     member _.``removal and restart should preserve foreign files and retained provenance``() =

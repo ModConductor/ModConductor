@@ -26,36 +26,54 @@ namespace ModConductor.Protocol.V1 {
           string.Concat(
             "Chptb2Rjb25kdWN0b3IvdjEvZm5pcy5wcm90bxIPbW9kY29uZHVjdG9yLnYx",
             "IjcKC0ZuaXNSZXF1ZXN0EhQKDHdvcmtzcGFjZV9pZBgBIAEoCRISCgpwcm9m",
-            "aWxlX2lkGAIgASgJIvsBCglGbmlzU3RhdGUSKQoFcGhhc2UYASABKA4yGi5t",
-            "b2Rjb25kdWN0b3IudjEuRm5pc1BoYXNlEg8KB3ZlcnNpb24YAiABKAkSDgoG",
-            "c3RhdHVzGAMgASgJEg4KBmRldGFpbBgEIAEoCRIaCg1uZXh1c19maWxlX2lk",
-            "GAUgASgDSACIAQESEwoLY2FuX2luc3RhbGwYBiABKAgSEgoKY2FuX2NhbmNl",
-            "bBgHIAEoCBISCgpjYW5fdXBkYXRlGAggASgIEhIKCmNhbl9yZW1vdmUYCSAB",
-            "KAgSEwoLY2FuX3JlY292ZXIYCiABKAhCEAoOX25leHVzX2ZpbGVfaWQqyQIK",
-            "CUZuaXNQaGFzZRIaChZGTklTX1BIQVNFX1VOU1BFQ0lGSUVEEAASGgoWRk5J",
-            "U19QSEFTRV9VTkFWQUlMQUJMRRABEhgKFEZOSVNfUEhBU0VfQVZBSUxBQkxF",
-            "EAISIAocRk5JU19QSEFTRV9XQUlUSU5HX0ZPUl9ORVhVUxADEhoKFkZOSVNf",
-            "UEhBU0VfRE9XTkxPQURJTkcQBBIZChVGTklTX1BIQVNFX0lOU1RBTExJTkcQ",
-            "BRIUChBGTklTX1BIQVNFX1JFQURZEAYSFQoRRk5JU19QSEFTRV9GQUlMRUQQ",
-            "BxIfChtGTklTX1BIQVNFX1VQREFURV9BVkFJTEFCTEUQCBIgChxGTklTX1BI",
-            "QVNFX1JFQ09WRVJZX1JFUVVJUkVEEAkSIQodRk5JU19QSEFTRV9TT1VSQ0Vf",
-            "VU5BVkFJTEFCTEUQCjLAAwoORm5pc09wZXJhdGlvbnMSRAoIUmVhZEZuaXMS",
-            "HC5tb2Rjb25kdWN0b3IudjEuRm5pc1JlcXVlc3QaGi5tb2Rjb25kdWN0b3Iu",
-            "djEuRm5pc1N0YXRlEkcKC0luc3RhbGxGbmlzEhwubW9kY29uZHVjdG9yLnYx",
-            "LkZuaXNSZXF1ZXN0GhoubW9kY29uZHVjdG9yLnYxLkZuaXNTdGF0ZRJGCgpD",
-            "YW5jZWxGbmlzEhwubW9kY29uZHVjdG9yLnYxLkZuaXNSZXF1ZXN0GhoubW9k",
-            "Y29uZHVjdG9yLnYxLkZuaXNTdGF0ZRJGCgpVcGRhdGVGbmlzEhwubW9kY29u",
-            "ZHVjdG9yLnYxLkZuaXNSZXF1ZXN0GhoubW9kY29uZHVjdG9yLnYxLkZuaXNT",
-            "dGF0ZRJGCgpSZW1vdmVGbmlzEhwubW9kY29uZHVjdG9yLnYxLkZuaXNSZXF1",
-            "ZXN0GhoubW9kY29uZHVjdG9yLnYxLkZuaXNTdGF0ZRJHCgtSZWNvdmVyRm5p",
-            "cxIcLm1vZGNvbmR1Y3Rvci52MS5GbmlzUmVxdWVzdBoaLm1vZGNvbmR1Y3Rv",
-            "ci52MS5GbmlzU3RhdGVCG6oCGE1vZENvbmR1Y3Rvci5Qcm90b2NvbC5WMWIG",
-            "cHJvdG8z"));
+            "aWxlX2lkGAIgASgJIkYKDkZuaXNSdW5SZXF1ZXN0EgoKAmlkGAEgASgJEhQK",
+            "DHdvcmtzcGFjZV9pZBgCIAEoCRISCgpwcm9maWxlX2lkGAMgASgJIoEECglG",
+            "bmlzU3RhdGUSKQoFcGhhc2UYASABKA4yGi5tb2Rjb25kdWN0b3IudjEuRm5p",
+            "c1BoYXNlEg8KB3ZlcnNpb24YAiABKAkSDgoGc3RhdHVzGAMgASgJEg4KBmRl",
+            "dGFpbBgEIAEoCRIaCg1uZXh1c19maWxlX2lkGAUgASgDSACIAQESEwoLY2Fu",
+            "X2luc3RhbGwYBiABKAgSEgoKY2FuX2NhbmNlbBgHIAEoCBISCgpjYW5fdXBk",
+            "YXRlGAggASgIEhIKCmNhbl9yZW1vdmUYCSABKAgSEwoLY2FuX3JlY292ZXIY",
+            "CiABKAgSNgoMb3V0cHV0X3BoYXNlGAsgASgOMiAubW9kY29uZHVjdG9yLnYx",
+            "LkZuaXNPdXRwdXRQaGFzZRIVCg1vdXRwdXRfc3RhdHVzGAwgASgJEhUKDW91",
+            "dHB1dF9kZXRhaWwYDSABKAkSDwoHY2FuX3J1bhgOIAEoCBIWCg5jYW5fY2Fu",
+            "Y2VsX3J1bhgPIAEoCBITCgZydW5faWQYECABKAlIAYgBARIWCglleGl0X2Nv",
+            "ZGUYESABKAVIAogBARIXCg9zdGFuZGFyZF9vdXRwdXQYEiABKAkSFgoOc3Rh",
+            "bmRhcmRfZXJyb3IYEyABKAlCEAoOX25leHVzX2ZpbGVfaWRCCQoHX3J1bl9p",
+            "ZEIMCgpfZXhpdF9jb2RlKskCCglGbmlzUGhhc2USGgoWRk5JU19QSEFTRV9V",
+            "TlNQRUNJRklFRBAAEhoKFkZOSVNfUEhBU0VfVU5BVkFJTEFCTEUQARIYChRG",
+            "TklTX1BIQVNFX0FWQUlMQUJMRRACEiAKHEZOSVNfUEhBU0VfV0FJVElOR19G",
+            "T1JfTkVYVVMQAxIaChZGTklTX1BIQVNFX0RPV05MT0FESU5HEAQSGQoVRk5J",
+            "U19QSEFTRV9JTlNUQUxMSU5HEAUSFAoQRk5JU19QSEFTRV9SRUFEWRAGEhUK",
+            "EUZOSVNfUEhBU0VfRkFJTEVEEAcSHwobRk5JU19QSEFTRV9VUERBVEVfQVZB",
+            "SUxBQkxFEAgSIAocRk5JU19QSEFTRV9SRUNPVkVSWV9SRVFVSVJFRBAJEiEK",
+            "HUZOSVNfUEhBU0VfU09VUkNFX1VOQVZBSUxBQkxFEAoqsQIKD0ZuaXNPdXRw",
+            "dXRQaGFzZRIhCh1GTklTX09VVFBVVF9QSEFTRV9VTlNQRUNJRklFRBAAEiEK",
+            "HUZOSVNfT1VUUFVUX1BIQVNFX1VOQVZBSUxBQkxFEAESHQoZRk5JU19PVVRQ",
+            "VVRfUEhBU0VfTUlTU0lORxACEhsKF0ZOSVNfT1VUUFVUX1BIQVNFX1NUQUxF",
+            "EAMSHQoZRk5JU19PVVRQVVRfUEhBU0VfQ1VSUkVOVBAEEh0KGUZOSVNfT1VU",
+            "UFVUX1BIQVNFX1JVTk5JTkcQBRIcChhGTklTX09VVFBVVF9QSEFTRV9GQUlM",
+            "RUQQBhIfChtGTklTX09VVFBVVF9QSEFTRV9DQU5DRUxMRUQQBxIfChtGTklT",
+            "X09VVFBVVF9QSEFTRV9BQkFORE9ORUQQCDLTBAoORm5pc09wZXJhdGlvbnMS",
+            "RAoIUmVhZEZuaXMSHC5tb2Rjb25kdWN0b3IudjEuRm5pc1JlcXVlc3QaGi5t",
+            "b2Rjb25kdWN0b3IudjEuRm5pc1N0YXRlEkcKC0luc3RhbGxGbmlzEhwubW9k",
+            "Y29uZHVjdG9yLnYxLkZuaXNSZXF1ZXN0GhoubW9kY29uZHVjdG9yLnYxLkZu",
+            "aXNTdGF0ZRJGCgpDYW5jZWxGbmlzEhwubW9kY29uZHVjdG9yLnYxLkZuaXNS",
+            "ZXF1ZXN0GhoubW9kY29uZHVjdG9yLnYxLkZuaXNTdGF0ZRJGCgpVcGRhdGVG",
+            "bmlzEhwubW9kY29uZHVjdG9yLnYxLkZuaXNSZXF1ZXN0GhoubW9kY29uZHVj",
+            "dG9yLnYxLkZuaXNTdGF0ZRJGCgpSZW1vdmVGbmlzEhwubW9kY29uZHVjdG9y",
+            "LnYxLkZuaXNSZXF1ZXN0GhoubW9kY29uZHVjdG9yLnYxLkZuaXNTdGF0ZRJH",
+            "CgtSZWNvdmVyRm5pcxIcLm1vZGNvbmR1Y3Rvci52MS5GbmlzUmVxdWVzdBoa",
+            "Lm1vZGNvbmR1Y3Rvci52MS5GbmlzU3RhdGUSRgoHUnVuRm5pcxIfLm1vZGNv",
+            "bmR1Y3Rvci52MS5GbmlzUnVuUmVxdWVzdBoaLm1vZGNvbmR1Y3Rvci52MS5G",
+            "bmlzU3RhdGUSSQoNQ2FuY2VsRm5pc1J1bhIcLm1vZGNvbmR1Y3Rvci52MS5G",
+            "bmlzUmVxdWVzdBoaLm1vZGNvbmR1Y3Rvci52MS5GbmlzU3RhdGVCG6oCGE1v",
+            "ZENvbmR1Y3Rvci5Qcm90b2NvbC5WMWIGcHJvdG8z"));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { },
-          new pbr::GeneratedClrTypeInfo(new[] {typeof(global::ModConductor.Protocol.V1.FnisPhase), }, null, new pbr::GeneratedClrTypeInfo[] {
+          new pbr::GeneratedClrTypeInfo(new[] {typeof(global::ModConductor.Protocol.V1.FnisPhase), typeof(global::ModConductor.Protocol.V1.FnisOutputPhase), }, null, new pbr::GeneratedClrTypeInfo[] {
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.FnisRequest), global::ModConductor.Protocol.V1.FnisRequest.Parser, new[]{ "WorkspaceId", "ProfileId" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.FnisState), global::ModConductor.Protocol.V1.FnisState.Parser, new[]{ "Phase", "Version", "Status", "Detail", "NexusFileId", "CanInstall", "CanCancel", "CanUpdate", "CanRemove", "CanRecover" }, new[]{ "NexusFileId" }, null, null, null)
+            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.FnisRunRequest), global::ModConductor.Protocol.V1.FnisRunRequest.Parser, new[]{ "Id", "WorkspaceId", "ProfileId" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.FnisState), global::ModConductor.Protocol.V1.FnisState.Parser, new[]{ "Phase", "Version", "Status", "Detail", "NexusFileId", "CanInstall", "CanCancel", "CanUpdate", "CanRemove", "CanRecover", "OutputPhase", "OutputStatus", "OutputDetail", "CanRun", "CanCancelRun", "RunId", "ExitCode", "StandardOutput", "StandardError" }, new[]{ "NexusFileId", "RunId", "ExitCode" }, null, null, null)
           }));
     }
     #endregion
@@ -74,6 +92,18 @@ namespace ModConductor.Protocol.V1 {
     [pbr::OriginalName("FNIS_PHASE_UPDATE_AVAILABLE")] UpdateAvailable = 8,
     [pbr::OriginalName("FNIS_PHASE_RECOVERY_REQUIRED")] RecoveryRequired = 9,
     [pbr::OriginalName("FNIS_PHASE_SOURCE_UNAVAILABLE")] SourceUnavailable = 10,
+  }
+
+  public enum FnisOutputPhase {
+    [pbr::OriginalName("FNIS_OUTPUT_PHASE_UNSPECIFIED")] Unspecified = 0,
+    [pbr::OriginalName("FNIS_OUTPUT_PHASE_UNAVAILABLE")] Unavailable = 1,
+    [pbr::OriginalName("FNIS_OUTPUT_PHASE_MISSING")] Missing = 2,
+    [pbr::OriginalName("FNIS_OUTPUT_PHASE_STALE")] Stale = 3,
+    [pbr::OriginalName("FNIS_OUTPUT_PHASE_CURRENT")] Current = 4,
+    [pbr::OriginalName("FNIS_OUTPUT_PHASE_RUNNING")] Running = 5,
+    [pbr::OriginalName("FNIS_OUTPUT_PHASE_FAILED")] Failed = 6,
+    [pbr::OriginalName("FNIS_OUTPUT_PHASE_CANCELLED")] Cancelled = 7,
+    [pbr::OriginalName("FNIS_OUTPUT_PHASE_ABANDONED")] Abandoned = 8,
   }
 
   #endregion
@@ -315,6 +345,278 @@ namespace ModConductor.Protocol.V1 {
   }
 
   [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
+  public sealed partial class FnisRunRequest : pb::IMessage<FnisRunRequest>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
+    private static readonly pb::MessageParser<FnisRunRequest> _parser = new pb::MessageParser<FnisRunRequest>(() => new FnisRunRequest());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pb::MessageParser<FnisRunRequest> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::ModConductor.Protocol.V1.FnisReflection.Descriptor.MessageTypes[1]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public FnisRunRequest() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public FnisRunRequest(FnisRunRequest other) : this() {
+      id_ = other.id_;
+      workspaceId_ = other.workspaceId_;
+      profileId_ = other.profileId_;
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public FnisRunRequest Clone() {
+      return new FnisRunRequest(this);
+    }
+
+    /// <summary>Field number for the "id" field.</summary>
+    public const int IdFieldNumber = 1;
+    private string id_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string Id {
+      get { return id_; }
+      set {
+        id_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "workspace_id" field.</summary>
+    public const int WorkspaceIdFieldNumber = 2;
+    private string workspaceId_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string WorkspaceId {
+      get { return workspaceId_; }
+      set {
+        workspaceId_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "profile_id" field.</summary>
+    public const int ProfileIdFieldNumber = 3;
+    private string profileId_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string ProfileId {
+      get { return profileId_; }
+      set {
+        profileId_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override bool Equals(object other) {
+      return Equals(other as FnisRunRequest);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool Equals(FnisRunRequest other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (Id != other.Id) return false;
+      if (WorkspaceId != other.WorkspaceId) return false;
+      if (ProfileId != other.ProfileId) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (Id.Length != 0) hash ^= Id.GetHashCode();
+      if (WorkspaceId.Length != 0) hash ^= WorkspaceId.GetHashCode();
+      if (ProfileId.Length != 0) hash ^= ProfileId.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
+      if (Id.Length != 0) {
+        output.WriteRawTag(10);
+        output.WriteString(Id);
+      }
+      if (WorkspaceId.Length != 0) {
+        output.WriteRawTag(18);
+        output.WriteString(WorkspaceId);
+      }
+      if (ProfileId.Length != 0) {
+        output.WriteRawTag(26);
+        output.WriteString(ProfileId);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      if (Id.Length != 0) {
+        output.WriteRawTag(10);
+        output.WriteString(Id);
+      }
+      if (WorkspaceId.Length != 0) {
+        output.WriteRawTag(18);
+        output.WriteString(WorkspaceId);
+      }
+      if (ProfileId.Length != 0) {
+        output.WriteRawTag(26);
+        output.WriteString(ProfileId);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int CalculateSize() {
+      int size = 0;
+      if (Id.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(Id);
+      }
+      if (WorkspaceId.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(WorkspaceId);
+      }
+      if (ProfileId.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(ProfileId);
+      }
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(FnisRunRequest other) {
+      if (other == null) {
+        return;
+      }
+      if (other.Id.Length != 0) {
+        Id = other.Id;
+      }
+      if (other.WorkspaceId.Length != 0) {
+        WorkspaceId = other.WorkspaceId;
+      }
+      if (other.ProfileId.Length != 0) {
+        ProfileId = other.ProfileId;
+      }
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 10: {
+            Id = input.ReadString();
+            break;
+          }
+          case 18: {
+            WorkspaceId = input.ReadString();
+            break;
+          }
+          case 26: {
+            ProfileId = input.ReadString();
+            break;
+          }
+        }
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 10: {
+            Id = input.ReadString();
+            break;
+          }
+          case 18: {
+            WorkspaceId = input.ReadString();
+            break;
+          }
+          case 26: {
+            ProfileId = input.ReadString();
+            break;
+          }
+        }
+      }
+    }
+    #endif
+
+  }
+
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class FnisState : pb::IMessage<FnisState>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
@@ -330,7 +632,7 @@ namespace ModConductor.Protocol.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::ModConductor.Protocol.V1.FnisReflection.Descriptor.MessageTypes[1]; }
+      get { return global::ModConductor.Protocol.V1.FnisReflection.Descriptor.MessageTypes[2]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -361,6 +663,15 @@ namespace ModConductor.Protocol.V1 {
       canUpdate_ = other.canUpdate_;
       canRemove_ = other.canRemove_;
       canRecover_ = other.canRecover_;
+      outputPhase_ = other.outputPhase_;
+      outputStatus_ = other.outputStatus_;
+      outputDetail_ = other.outputDetail_;
+      canRun_ = other.canRun_;
+      canCancelRun_ = other.canCancelRun_;
+      runId_ = other.runId_;
+      exitCode_ = other.exitCode_;
+      standardOutput_ = other.standardOutput_;
+      standardError_ = other.standardError_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -505,6 +816,143 @@ namespace ModConductor.Protocol.V1 {
       }
     }
 
+    /// <summary>Field number for the "output_phase" field.</summary>
+    public const int OutputPhaseFieldNumber = 11;
+    private global::ModConductor.Protocol.V1.FnisOutputPhase outputPhase_ = global::ModConductor.Protocol.V1.FnisOutputPhase.Unspecified;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public global::ModConductor.Protocol.V1.FnisOutputPhase OutputPhase {
+      get { return outputPhase_; }
+      set {
+        outputPhase_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "output_status" field.</summary>
+    public const int OutputStatusFieldNumber = 12;
+    private string outputStatus_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string OutputStatus {
+      get { return outputStatus_; }
+      set {
+        outputStatus_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "output_detail" field.</summary>
+    public const int OutputDetailFieldNumber = 13;
+    private string outputDetail_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string OutputDetail {
+      get { return outputDetail_; }
+      set {
+        outputDetail_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "can_run" field.</summary>
+    public const int CanRunFieldNumber = 14;
+    private bool canRun_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool CanRun {
+      get { return canRun_; }
+      set {
+        canRun_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "can_cancel_run" field.</summary>
+    public const int CanCancelRunFieldNumber = 15;
+    private bool canCancelRun_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool CanCancelRun {
+      get { return canCancelRun_; }
+      set {
+        canCancelRun_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "run_id" field.</summary>
+    public const int RunIdFieldNumber = 16;
+    private readonly static string RunIdDefaultValue = "";
+
+    private string runId_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string RunId {
+      get { return runId_ ?? RunIdDefaultValue; }
+      set {
+        runId_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+    /// <summary>Gets whether the "run_id" field is set</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool HasRunId {
+      get { return runId_ != null; }
+    }
+    /// <summary>Clears the value of the "run_id" field</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void ClearRunId() {
+      runId_ = null;
+    }
+
+    /// <summary>Field number for the "exit_code" field.</summary>
+    public const int ExitCodeFieldNumber = 17;
+    private readonly static int ExitCodeDefaultValue = 0;
+
+    private int exitCode_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int ExitCode {
+      get { if ((_hasBits0 & 2) != 0) { return exitCode_; } else { return ExitCodeDefaultValue; } }
+      set {
+        _hasBits0 |= 2;
+        exitCode_ = value;
+      }
+    }
+    /// <summary>Gets whether the "exit_code" field is set</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool HasExitCode {
+      get { return (_hasBits0 & 2) != 0; }
+    }
+    /// <summary>Clears the value of the "exit_code" field</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void ClearExitCode() {
+      _hasBits0 &= ~2;
+    }
+
+    /// <summary>Field number for the "standard_output" field.</summary>
+    public const int StandardOutputFieldNumber = 18;
+    private string standardOutput_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string StandardOutput {
+      get { return standardOutput_; }
+      set {
+        standardOutput_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "standard_error" field.</summary>
+    public const int StandardErrorFieldNumber = 19;
+    private string standardError_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string StandardError {
+      get { return standardError_; }
+      set {
+        standardError_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -530,6 +978,15 @@ namespace ModConductor.Protocol.V1 {
       if (CanUpdate != other.CanUpdate) return false;
       if (CanRemove != other.CanRemove) return false;
       if (CanRecover != other.CanRecover) return false;
+      if (OutputPhase != other.OutputPhase) return false;
+      if (OutputStatus != other.OutputStatus) return false;
+      if (OutputDetail != other.OutputDetail) return false;
+      if (CanRun != other.CanRun) return false;
+      if (CanCancelRun != other.CanCancelRun) return false;
+      if (RunId != other.RunId) return false;
+      if (ExitCode != other.ExitCode) return false;
+      if (StandardOutput != other.StandardOutput) return false;
+      if (StandardError != other.StandardError) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -547,6 +1004,15 @@ namespace ModConductor.Protocol.V1 {
       if (CanUpdate != false) hash ^= CanUpdate.GetHashCode();
       if (CanRemove != false) hash ^= CanRemove.GetHashCode();
       if (CanRecover != false) hash ^= CanRecover.GetHashCode();
+      if (OutputPhase != global::ModConductor.Protocol.V1.FnisOutputPhase.Unspecified) hash ^= OutputPhase.GetHashCode();
+      if (OutputStatus.Length != 0) hash ^= OutputStatus.GetHashCode();
+      if (OutputDetail.Length != 0) hash ^= OutputDetail.GetHashCode();
+      if (CanRun != false) hash ^= CanRun.GetHashCode();
+      if (CanCancelRun != false) hash ^= CanCancelRun.GetHashCode();
+      if (HasRunId) hash ^= RunId.GetHashCode();
+      if (HasExitCode) hash ^= ExitCode.GetHashCode();
+      if (StandardOutput.Length != 0) hash ^= StandardOutput.GetHashCode();
+      if (StandardError.Length != 0) hash ^= StandardError.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -605,6 +1071,42 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(80);
         output.WriteBool(CanRecover);
       }
+      if (OutputPhase != global::ModConductor.Protocol.V1.FnisOutputPhase.Unspecified) {
+        output.WriteRawTag(88);
+        output.WriteEnum((int) OutputPhase);
+      }
+      if (OutputStatus.Length != 0) {
+        output.WriteRawTag(98);
+        output.WriteString(OutputStatus);
+      }
+      if (OutputDetail.Length != 0) {
+        output.WriteRawTag(106);
+        output.WriteString(OutputDetail);
+      }
+      if (CanRun != false) {
+        output.WriteRawTag(112);
+        output.WriteBool(CanRun);
+      }
+      if (CanCancelRun != false) {
+        output.WriteRawTag(120);
+        output.WriteBool(CanCancelRun);
+      }
+      if (HasRunId) {
+        output.WriteRawTag(130, 1);
+        output.WriteString(RunId);
+      }
+      if (HasExitCode) {
+        output.WriteRawTag(136, 1);
+        output.WriteInt32(ExitCode);
+      }
+      if (StandardOutput.Length != 0) {
+        output.WriteRawTag(146, 1);
+        output.WriteString(StandardOutput);
+      }
+      if (StandardError.Length != 0) {
+        output.WriteRawTag(154, 1);
+        output.WriteString(StandardError);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -655,6 +1157,42 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(80);
         output.WriteBool(CanRecover);
       }
+      if (OutputPhase != global::ModConductor.Protocol.V1.FnisOutputPhase.Unspecified) {
+        output.WriteRawTag(88);
+        output.WriteEnum((int) OutputPhase);
+      }
+      if (OutputStatus.Length != 0) {
+        output.WriteRawTag(98);
+        output.WriteString(OutputStatus);
+      }
+      if (OutputDetail.Length != 0) {
+        output.WriteRawTag(106);
+        output.WriteString(OutputDetail);
+      }
+      if (CanRun != false) {
+        output.WriteRawTag(112);
+        output.WriteBool(CanRun);
+      }
+      if (CanCancelRun != false) {
+        output.WriteRawTag(120);
+        output.WriteBool(CanCancelRun);
+      }
+      if (HasRunId) {
+        output.WriteRawTag(130, 1);
+        output.WriteString(RunId);
+      }
+      if (HasExitCode) {
+        output.WriteRawTag(136, 1);
+        output.WriteInt32(ExitCode);
+      }
+      if (StandardOutput.Length != 0) {
+        output.WriteRawTag(146, 1);
+        output.WriteString(StandardOutput);
+      }
+      if (StandardError.Length != 0) {
+        output.WriteRawTag(154, 1);
+        output.WriteString(StandardError);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -694,6 +1232,33 @@ namespace ModConductor.Protocol.V1 {
       }
       if (CanRecover != false) {
         size += 1 + 1;
+      }
+      if (OutputPhase != global::ModConductor.Protocol.V1.FnisOutputPhase.Unspecified) {
+        size += 1 + pb::CodedOutputStream.ComputeEnumSize((int) OutputPhase);
+      }
+      if (OutputStatus.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(OutputStatus);
+      }
+      if (OutputDetail.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(OutputDetail);
+      }
+      if (CanRun != false) {
+        size += 1 + 1;
+      }
+      if (CanCancelRun != false) {
+        size += 1 + 1;
+      }
+      if (HasRunId) {
+        size += 2 + pb::CodedOutputStream.ComputeStringSize(RunId);
+      }
+      if (HasExitCode) {
+        size += 2 + pb::CodedOutputStream.ComputeInt32Size(ExitCode);
+      }
+      if (StandardOutput.Length != 0) {
+        size += 2 + pb::CodedOutputStream.ComputeStringSize(StandardOutput);
+      }
+      if (StandardError.Length != 0) {
+        size += 2 + pb::CodedOutputStream.ComputeStringSize(StandardError);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -736,6 +1301,33 @@ namespace ModConductor.Protocol.V1 {
       }
       if (other.CanRecover != false) {
         CanRecover = other.CanRecover;
+      }
+      if (other.OutputPhase != global::ModConductor.Protocol.V1.FnisOutputPhase.Unspecified) {
+        OutputPhase = other.OutputPhase;
+      }
+      if (other.OutputStatus.Length != 0) {
+        OutputStatus = other.OutputStatus;
+      }
+      if (other.OutputDetail.Length != 0) {
+        OutputDetail = other.OutputDetail;
+      }
+      if (other.CanRun != false) {
+        CanRun = other.CanRun;
+      }
+      if (other.CanCancelRun != false) {
+        CanCancelRun = other.CanCancelRun;
+      }
+      if (other.HasRunId) {
+        RunId = other.RunId;
+      }
+      if (other.HasExitCode) {
+        ExitCode = other.ExitCode;
+      }
+      if (other.StandardOutput.Length != 0) {
+        StandardOutput = other.StandardOutput;
+      }
+      if (other.StandardError.Length != 0) {
+        StandardError = other.StandardError;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -796,6 +1388,42 @@ namespace ModConductor.Protocol.V1 {
             CanRecover = input.ReadBool();
             break;
           }
+          case 88: {
+            OutputPhase = (global::ModConductor.Protocol.V1.FnisOutputPhase) input.ReadEnum();
+            break;
+          }
+          case 98: {
+            OutputStatus = input.ReadString();
+            break;
+          }
+          case 106: {
+            OutputDetail = input.ReadString();
+            break;
+          }
+          case 112: {
+            CanRun = input.ReadBool();
+            break;
+          }
+          case 120: {
+            CanCancelRun = input.ReadBool();
+            break;
+          }
+          case 130: {
+            RunId = input.ReadString();
+            break;
+          }
+          case 136: {
+            ExitCode = input.ReadInt32();
+            break;
+          }
+          case 146: {
+            StandardOutput = input.ReadString();
+            break;
+          }
+          case 154: {
+            StandardError = input.ReadString();
+            break;
+          }
         }
       }
     #endif
@@ -853,6 +1481,42 @@ namespace ModConductor.Protocol.V1 {
           }
           case 80: {
             CanRecover = input.ReadBool();
+            break;
+          }
+          case 88: {
+            OutputPhase = (global::ModConductor.Protocol.V1.FnisOutputPhase) input.ReadEnum();
+            break;
+          }
+          case 98: {
+            OutputStatus = input.ReadString();
+            break;
+          }
+          case 106: {
+            OutputDetail = input.ReadString();
+            break;
+          }
+          case 112: {
+            CanRun = input.ReadBool();
+            break;
+          }
+          case 120: {
+            CanCancelRun = input.ReadBool();
+            break;
+          }
+          case 130: {
+            RunId = input.ReadString();
+            break;
+          }
+          case 136: {
+            ExitCode = input.ReadInt32();
+            break;
+          }
+          case 146: {
+            StandardOutput = input.ReadString();
+            break;
+          }
+          case 154: {
+            StandardError = input.ReadString();
             break;
           }
         }

@@ -146,6 +146,9 @@ type OperationStore
     let enbSetups = EnbStore(database)
     let fnisSetups = FnisStore(database)
 
+    let fnisExecution =
+        FnisExecutionStore(directory, database, modLibrary.Access, modLibrary.PublicationOwner, fnisSetups)
+
     let gameLaunching =
         ModConductor.GameLaunching.GameLaunchSession(
             gameContexts,
@@ -262,6 +265,7 @@ type OperationStore
     member _.Artifacts = artifacts :> ModConductor.ArtifactLibrary.IArtifactLibrary
     member internal _.EnbSetups = enbSetups
     member internal _.FnisSetups = fnisSetups
+    member internal _.FnisExecution = fnisExecution
 
     member internal _.AddArtifactAtCheckpoint(request, token, checkpoint) =
         artifacts.AddAtCheckpoint(request, token, checkpoint)
@@ -381,6 +385,7 @@ type OperationStore
         profileGameData.RetainedSavePreviewCount
 
     member _.GameLaunching = gameLaunching :> ModConductor.GameLaunching.IGameLaunching
+    member internal _.ToolLaunching = gameLaunching :> ModConductor.GameLaunching.IToolLaunchProjection
     member internal _.SkseLoaders = skseLoaders
     member _.CloseExecutables() = executables.Close()
     member _.ExecutablesFailed = executables.Failed

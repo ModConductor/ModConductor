@@ -17,6 +17,7 @@ open ModConductor.HttpDownloads
 open ModConductor.ModSelection
 open ModConductor.Nexus
 open ModConductor.Persistence
+open ModConductor.Platform
 open ModConductor.Protocol.V1
 open ModConductor.Workspaces
 
@@ -30,6 +31,33 @@ module FnisFixtures =
 
         if not value then
             failwith ("FNIS fixture failed: " + name)
+
+    let private freshnessEvidence writer =
+        let path (value: string) =
+            LogicalPath.create (value.Split('/') |> Array.toList)
+            |> Result.defaultWith (fun _ -> failwith "Invalid FNIS input fixture path.")
+
+        let animation =
+            { Path = path "meshes/actors/character/animations/walk.hkx"
+              Length = 4L
+              Sha256 = String.replicate 64 "a" }
+
+        let skeleton =
+            { Path = path "meshes/actors/character/character assets/skeleton.nif"
+              Length = 8L
+              Sha256 = String.replicate 64 "b" }
+
+        let original = FnisFreshness.compute TargetPolicy.windows [ animation; skeleton ]
+        let reordered = FnisFreshness.compute TargetPolicy.windows [ skeleton; animation ]
+        let changed =
+            FnisFreshness.compute
+                TargetPolicy.windows
+                [ { animation with Sha256 = String.replicate 64 "c" }; skeleton ]
+
+        check writer "effectiveInputFingerprintIgnoresEnumerationOrder" (original = reordered)
+        check writer "effectiveInputFingerprintChangesWithAnimationContent" (original <> changed)
+        check writer "effectiveInputFilterRejectsUnrelatedFiles" (not (FnisFreshness.relevant (path "textures/a.dds")))
+        check writer "effectiveInputFilterIncludesSkeletons" (FnisFreshness.relevant skeleton.Path)
 
     let private until label read predicate =
         let deadline = DateTime.UtcNow.AddSeconds 30.
@@ -408,6 +436,146 @@ module FnisFixtures =
                     value.NexusFileId = 702L
                     && value.ArchiveSha256 = updatedGenerator.Value.ArchiveSha256))
 
+    let private executionEvidence writer area =
+        let scenario = Directory.CreateDirectory(Path.Combine(area, "execution")).FullName
+        use server = new NexusServer()
+        server.Premium <- true
+        let memory = NexusMemoryStore()
+        use credentials = new CredentialSession(memory)
+
+        use session =
+            new NexusSession(
+                credentials,
+                Some server.Registration,
+                server.Handoff,
+                (fun _ -> Task.CompletedTask),
+                requestInterval = TimeSpan.Zero
+            )
+
+        signIn session
+
+        use store =
+            new OperationStore(
+                Path.Combine(scenario, "state"),
+                nexusLinks = NexusDownloadLinks(session),
+                downloadPolicy = policy
+            )
+
+        let workspace, profile, _ = createWorkspace store scenario
+        configure server 751L (archive "execution" true 0)
+
+        use coordinator =
+            new FnisCoordinator(session, store.Downloads, store, server.Handoff)
+
+        coordinator.Install(workspace, profile) |> wait |> ignore
+        waitForPhase coordinator workspace profile FnisPhase.Ready |> ignore
+
+        let mode = Path.Combine(scenario, "fnis-mode")
+        File.WriteAllText(mode, "success")
+
+        let launcher =
+            Path.Combine(
+                scenario,
+                "installation",
+                "Steam",
+                "compatibilitytools.d",
+                "Custom Ω Proton",
+                "proton"
+            )
+
+        File.WriteAllText(
+            launcher,
+            "#!/usr/bin/python3\nimport os,sys,time\nmode=open("
+            + "r'"
+            + mode.Replace("'", "\\'")
+            + "').read().strip()\ntarget=next(a.split('=',1)[1] for a in sys.argv if a.startswith('RedirectFiles='))\nif mode=='cancel': time.sleep(30)\nif mode=='fail':\n print('synthetic failure', file=sys.stderr)\n sys.exit(7)\nos.makedirs(os.path.join(target,'meshes','actors','character','behaviors'),exist_ok=True)\nopen(os.path.join(target,'meshes','actors','character','behaviors','generated.hkx'),'wb').write(b'generated')\nprint(' '.join(sys.argv[1:]))\n"
+        )
+
+        File.SetUnixFileMode(
+            launcher,
+            UnixFileMode.UserRead ||| UnixFileMode.UserWrite ||| UnixFileMode.UserExecute
+        )
+
+        let execution = FnisRunner(store) :> IFnisExecution
+        let missing = execution.Inspect(workspace, profile, CancellationToken.None) |> wait |> result
+        let completedId = Guid.NewGuid()
+
+        let completed =
+            execution.Run(
+                { Id = completedId
+                  WorkspaceId = workspace
+                  ProfileId = profile },
+                CancellationToken.None
+            )
+            |> wait
+            |> result
+
+        let afterCompleted = enabled store profile
+
+        let repeated =
+            execution.Run(
+                { Id = completedId
+                  WorkspaceId = workspace
+                  ProfileId = profile },
+                CancellationToken.None
+            )
+            |> wait
+            |> result
+
+        check
+            writer
+            "successfulRunPublishesAndSelectsOneCurrentOutput"
+            (missing.Phase = ModConductor.Fnis.FnisOutputPhase.Missing
+             && completed.Phase = ModConductor.Fnis.FnisOutputPhase.Current
+             && completed.StandardOutput.Contains("RedirectFiles=")
+             && completed.StandardOutput.Contains("InstantExecute=1")
+             && afterCompleted.Contains completedId
+             && repeated.Phase = ModConductor.Fnis.FnisOutputPhase.Current
+             && enabled store profile = afterCompleted)
+
+        File.WriteAllText(mode, "fail")
+        let failedId = Guid.NewGuid()
+
+        execution.Run(
+            { Id = failedId
+              WorkspaceId = workspace
+              ProfileId = profile },
+            CancellationToken.None
+        )
+        |> wait
+        |> ignore
+
+        let afterFailure =
+            execution.Inspect(workspace, profile, CancellationToken.None) |> wait |> result
+
+        check
+            writer
+            "failedRunPreservesPriorOutputAndBoundedExitEvidence"
+            (afterFailure.Phase = ModConductor.Fnis.FnisOutputPhase.Current
+             && afterFailure.ExitCode = Some 7
+             && afterFailure.StandardError.Contains("synthetic failure")
+             && enabled store profile = afterCompleted
+             && not (enabled store profile |> Set.contains failedId))
+
+        File.WriteAllText(mode, "cancel")
+        use cancellation = new CancellationTokenSource(TimeSpan.FromMilliseconds 150.)
+
+        let cancelled =
+            execution.Run(
+                { Id = Guid.NewGuid()
+                  WorkspaceId = workspace
+                  ProfileId = profile },
+                cancellation.Token
+            )
+            |> wait
+            |> result
+
+        check
+            writer
+            "cancelledRunTerminatesAndPreservesPriorOutput"
+            (cancelled.Phase = ModConductor.Fnis.FnisOutputPhase.Current
+             && enabled store profile = afterCompleted)
+
     let private nxmEvidence writer area =
         let scenario = Directory.CreateDirectory(Path.Combine(area, "nxm")).FullName
         use server = new NexusServer()
@@ -572,8 +740,10 @@ module FnisFixtures =
     let observe (writer: Utf8JsonWriter) primary =
         let area = Directory.CreateDirectory(Path.Combine(primary, "fnis")).FullName
         writer.WriteStartObject("fnis")
+        freshnessEvidence writer
         layoutEvidence writer
         lifecycleEvidence writer area
+        executionEvidence writer area
         nxmEvidence writer area
         restartEvidence writer area
         GenerationCleanup.normalize area

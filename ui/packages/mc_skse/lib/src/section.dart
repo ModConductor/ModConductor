@@ -278,6 +278,18 @@ class _FnisPanelState extends State<_FnisPanel> {
           const SizedBox(height: McSpacing.medium),
           Text('FNIS Behavior SE ${value.version} · Windows generator'),
         ],
+        if (value != null && value.outputStatus.isNotEmpty) ...[
+          const SizedBox(height: McSpacing.medium),
+          McStatus(
+            title: value.outputStatus,
+            detail: value.outputDetail.isEmpty ? null : value.outputDetail,
+            tone:
+                value.outputPhase == FnisOutputStatusPhase.current ||
+                    value.outputPhase == FnisOutputStatusPhase.running
+                ? McStatusTone.neutral
+                : McStatusTone.error,
+          ),
+        ],
         const SizedBox(height: McSpacing.large),
         Wrap(
           spacing: McSpacing.medium,
@@ -348,6 +360,33 @@ class _FnisPanelState extends State<_FnisPanel> {
                     ? null
                     : () => change(
                         () => widget.client.recover(
+                          widget.workspaceId,
+                          widget.profileId,
+                        ),
+                      ),
+              ),
+            if (value?.canRun == true)
+              McAction(
+                label: 'Run FNIS',
+                icon: Icons.play_arrow,
+                emphasis: McActionEmphasis.primary,
+                onPressed: busy
+                    ? null
+                    : () => change(
+                        () => widget.client.run(
+                          widget.workspaceId,
+                          widget.profileId,
+                          newOperationId(),
+                        ),
+                      ),
+              ),
+            if (value?.canCancelRun == true)
+              McAction(
+                label: 'Cancel FNIS run',
+                onPressed: busy
+                    ? null
+                    : () => change(
+                        () => widget.client.cancelRun(
                           widget.workspaceId,
                           widget.profileId,
                         ),

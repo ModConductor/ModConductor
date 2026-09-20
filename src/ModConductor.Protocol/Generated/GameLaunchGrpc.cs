@@ -73,6 +73,14 @@ namespace ModConductor.Protocol.V1 {
         __Marshaller_modconductor_v1_ExecutableRunReply);
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::ModConductor.Protocol.V1.GameRunRequest, global::ModConductor.Protocol.V1.ExecutableRunReply> __Method_PlayGameContinuingFnis = new grpc::Method<global::ModConductor.Protocol.V1.GameRunRequest, global::ModConductor.Protocol.V1.ExecutableRunReply>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "PlayGameContinuingFnis",
+        __Marshaller_modconductor_v1_GameRunRequest,
+        __Marshaller_modconductor_v1_ExecutableRunReply);
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Method<global::ModConductor.Protocol.V1.ExecutableRunRef, global::ModConductor.Protocol.V1.ExecutableRunReply> __Method_CancelGameLaunch = new grpc::Method<global::ModConductor.Protocol.V1.ExecutableRunRef, global::ModConductor.Protocol.V1.ExecutableRunReply>(
         grpc::MethodType.Unary,
         __ServiceName,
@@ -98,6 +106,12 @@ namespace ModConductor.Protocol.V1 {
 
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V1.ExecutableRunReply> PlayGame(global::ModConductor.Protocol.V1.GameRunRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V1.ExecutableRunReply> PlayGameContinuingFnis(global::ModConductor.Protocol.V1.GameRunRequest request, grpc::ServerCallContext context)
       {
         throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
       }
@@ -178,6 +192,26 @@ namespace ModConductor.Protocol.V1 {
         return CallInvoker.AsyncUnaryCall(__Method_PlayGame, null, options, request);
       }
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V1.ExecutableRunReply PlayGameContinuingFnis(global::ModConductor.Protocol.V1.GameRunRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return PlayGameContinuingFnis(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V1.ExecutableRunReply PlayGameContinuingFnis(global::ModConductor.Protocol.V1.GameRunRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_PlayGameContinuingFnis, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.ExecutableRunReply> PlayGameContinuingFnisAsync(global::ModConductor.Protocol.V1.GameRunRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return PlayGameContinuingFnisAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.ExecutableRunReply> PlayGameContinuingFnisAsync(global::ModConductor.Protocol.V1.GameRunRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_PlayGameContinuingFnis, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       public virtual global::ModConductor.Protocol.V1.ExecutableRunReply CancelGameLaunch(global::ModConductor.Protocol.V1.ExecutableRunRef request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
       {
         return CancelGameLaunch(request, new grpc::CallOptions(headers, deadline, cancellationToken));
@@ -213,6 +247,7 @@ namespace ModConductor.Protocol.V1 {
       return grpc::ServerServiceDefinition.CreateBuilder()
           .AddMethod(__Method_ReadGameLaunch, serviceImpl.ReadGameLaunch)
           .AddMethod(__Method_PlayGame, serviceImpl.PlayGame)
+          .AddMethod(__Method_PlayGameContinuingFnis, serviceImpl.PlayGameContinuingFnis)
           .AddMethod(__Method_CancelGameLaunch, serviceImpl.CancelGameLaunch).Build();
     }
 
@@ -225,6 +260,7 @@ namespace ModConductor.Protocol.V1 {
     {
       serviceBinder.AddMethod(__Method_ReadGameLaunch, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.GameLaunchStateRequest, global::ModConductor.Protocol.V1.GameLaunchStateReply>(serviceImpl.ReadGameLaunch));
       serviceBinder.AddMethod(__Method_PlayGame, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.GameRunRequest, global::ModConductor.Protocol.V1.ExecutableRunReply>(serviceImpl.PlayGame));
+      serviceBinder.AddMethod(__Method_PlayGameContinuingFnis, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.GameRunRequest, global::ModConductor.Protocol.V1.ExecutableRunReply>(serviceImpl.PlayGameContinuingFnis));
       serviceBinder.AddMethod(__Method_CancelGameLaunch, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.ExecutableRunRef, global::ModConductor.Protocol.V1.ExecutableRunReply>(serviceImpl.CancelGameLaunch));
     }
 

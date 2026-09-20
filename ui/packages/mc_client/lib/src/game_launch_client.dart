@@ -9,7 +9,10 @@ export 'game_launch_models.dart';
 
 abstract interface class GameLaunchingClient {
   Future<GameLaunchState> read(String workspaceId, String profileId);
-  Future<ExecutableRun> play(GameRunRequest request);
+  Future<ExecutableRun> play(
+    GameRunRequest request, {
+    bool continueStaleFnis = false,
+  });
   Future<ExecutableRun> cancel(String workspaceId, String id);
 }
 
@@ -39,23 +42,30 @@ class GrpcGameLaunchingClient implements GameLaunchingClient {
       runtime: value.runtime,
       problem: value.hasProblem() ? value.problem : null,
       latest: value.hasLatest() ? readExecutableRun(value.latest) : null,
+      fnisStale: value.fnisStale,
+      fnisStatus: value.fnisStatus,
+      canRunFnis: value.canRunFnis,
     );
   }
 
   @override
-  Future<ExecutableRun> play(GameRunRequest request) async =>
-      readExecutableRunReply(
-        await _client.playGame(
-          execution.GameRunRequest(
-            id: request.id,
-            workspaceId: request.workspaceId,
-            workspaceRevision: Int64(request.workspaceRevision),
-            profileId: request.profileId,
-            contextRevision: Int64(request.contextRevision),
-            sourceToken: request.sourceToken,
-          ),
-        ),
-      );
+  Future<ExecutableRun> play(
+    GameRunRequest request, {
+    bool continueStaleFnis = false,
+  }) async => readExecutableRunReply(
+    await (continueStaleFnis
+        ? _client.playGameContinuingFnis
+        : _client.playGame)(
+      execution.GameRunRequest(
+        id: request.id,
+        workspaceId: request.workspaceId,
+        workspaceRevision: Int64(request.workspaceRevision),
+        profileId: request.profileId,
+        contextRevision: Int64(request.contextRevision),
+        sourceToken: request.sourceToken,
+      ),
+    ),
+  );
   @override
   Future<ExecutableRun> cancel(String workspaceId, String id) async =>
       readExecutableRunReply(

@@ -868,13 +868,24 @@ type FnisCoordinator
 
             lifetime.Dispose()
 
-type internal FnisService(coordinator: FnisCoordinator) =
+type internal FnisService(coordinator: FnisCoordinator, execution: IFnisExecution) =
     inherit FnisOperations.FnisOperationsBase()
 
     let ids (request: FnisRequest) =
         ModLibraryWire.id request.WorkspaceId, ModLibraryWire.id request.ProfileId
 
-    let wire value =
+    let outputPhase (value: ModConductor.Fnis.FnisOutputPhase) : ModConductor.Protocol.V1.FnisOutputPhase =
+        match value with
+        | ModConductor.Fnis.FnisOutputPhase.Unavailable -> ModConductor.Protocol.V1.FnisOutputPhase.Unavailable
+        | ModConductor.Fnis.FnisOutputPhase.Missing -> ModConductor.Protocol.V1.FnisOutputPhase.Missing
+        | ModConductor.Fnis.FnisOutputPhase.Stale -> ModConductor.Protocol.V1.FnisOutputPhase.Stale
+        | ModConductor.Fnis.FnisOutputPhase.Current -> ModConductor.Protocol.V1.FnisOutputPhase.Current
+        | ModConductor.Fnis.FnisOutputPhase.Running -> ModConductor.Protocol.V1.FnisOutputPhase.Running
+        | ModConductor.Fnis.FnisOutputPhase.Failed -> ModConductor.Protocol.V1.FnisOutputPhase.Failed
+        | ModConductor.Fnis.FnisOutputPhase.Cancelled -> ModConductor.Protocol.V1.FnisOutputPhase.Cancelled
+        | ModConductor.Fnis.FnisOutputPhase.Abandoned -> ModConductor.Protocol.V1.FnisOutputPhase.Abandoned
+
+    let wire value output =
         let reply =
             FnisState(
                 Phase = value.Phase,
@@ -896,46 +907,101 @@ type internal FnisService(coordinator: FnisCoordinator) =
             )
 
         value.FileId |> Option.iter (fun id -> reply.NexusFileId <- id)
+
+        output
+        |> Option.iter (fun (value: FnisInspection) ->
+            reply.OutputPhase <- outputPhase value.Phase
+            reply.OutputStatus <- value.Status
+            reply.OutputDetail <- value.Detail
+            reply.CanRun <- value.Phase <> ModConductor.Fnis.FnisOutputPhase.Running
+            reply.CanCancelRun <- value.Phase = ModConductor.Fnis.FnisOutputPhase.Running
+            value.LatestRunId |> Option.iter (fun id -> reply.RunId <- id.ToString("N"))
+            value.ExitCode |> Option.iter (fun code -> reply.ExitCode <- code)
+            reply.StandardOutput <- value.StandardOutput
+            reply.StandardError <- value.StandardError)
+
         reply
 
-    override _.ReadFnis(request, _) =
+    let read workspace profile token =
         task {
-            let workspace, profile = ids request
             let! value = coordinator.Read(workspace, profile)
-            return wire value
+
+            let! output =
+                if
+                    value.Phase = FnisPhase.Ready
+                    || value.Phase = FnisPhase.UpdateAvailable
+                    || value.Phase = FnisPhase.SourceUnavailable
+                then
+                    task {
+                        let! result = execution.Inspect(workspace, profile, token)
+                        return Result.toOption result
+                    }
+                else
+                    Task.FromResult None
+
+            return wire value output
         }
+
+    override _.ReadFnis(request, context) =
+        let workspace, profile = ids request
+        read workspace profile context.CancellationToken
 
     override _.InstallFnis(request, _) =
         task {
             let workspace, profile = ids request
             let! value = coordinator.Install(workspace, profile)
-            return wire value
+            return wire value None
         }
 
     override _.CancelFnis(request, _) =
         task {
             let workspace, profile = ids request
             let! value = coordinator.Cancel(workspace, profile)
-            return wire value
+            return wire value None
         }
 
     override _.UpdateFnis(request, _) =
         task {
             let workspace, profile = ids request
             let! value = coordinator.Update(workspace, profile)
-            return wire value
+            return wire value None
         }
 
     override _.RemoveFnis(request, context) =
         task {
             let workspace, profile = ids request
             let! value = coordinator.Remove(workspace, profile, context.CancellationToken)
-            return wire value
+            return wire value None
         }
 
     override _.RecoverFnis(request, context) =
         task {
             let workspace, profile = ids request
             let! value = coordinator.Recover(workspace, profile, context.CancellationToken)
-            return wire value
+            return wire value None
+        }
+
+    override _.RunFnis(request, context) =
+        task {
+            let workspace = ModLibraryWire.id request.WorkspaceId
+            let profile = ModLibraryWire.id request.ProfileId
+
+            let! output =
+                execution.Run(
+                    { Id = ModLibraryWire.id request.Id
+                      WorkspaceId = workspace
+                      ProfileId = profile },
+                    context.CancellationToken
+                )
+
+            let! setup = coordinator.Read(workspace, profile)
+            return wire setup (Result.toOption output)
+        }
+
+    override _.CancelFnisRun(request, _) =
+        task {
+            let workspace, profile = ids request
+            let! output = execution.Cancel(workspace, profile)
+            let! setup = coordinator.Read(workspace, profile)
+            return wire setup (Result.toOption output)
         }

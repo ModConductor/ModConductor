@@ -15,6 +15,17 @@ enum FnisStatusPhase {
   sourceUnavailable,
 }
 
+enum FnisOutputStatusPhase {
+  unavailable,
+  missing,
+  stale,
+  current,
+  running,
+  failed,
+  cancelled,
+  abandoned,
+}
+
 class FnisStatus {
   const FnisStatus({
     required this.phase,
@@ -26,13 +37,28 @@ class FnisStatus {
     required this.canUpdate,
     required this.canRemove,
     required this.canRecover,
+    this.outputPhase = FnisOutputStatusPhase.unavailable,
+    this.outputStatus = '',
+    this.outputDetail = '',
+    this.canRun = false,
+    this.canCancelRun = false,
+    this.runId,
+    this.exitCode,
+    this.standardOutput = '',
+    this.standardError = '',
   });
   final FnisStatusPhase phase;
   final String version, status, detail;
   final bool canInstall, canCancel, canUpdate, canRemove, canRecover;
+  final FnisOutputStatusPhase outputPhase;
+  final String outputStatus, outputDetail, standardOutput, standardError;
+  final bool canRun, canCancelRun;
+  final String? runId;
+  final int? exitCode;
   bool get active =>
       phase == FnisStatusPhase.downloading ||
-      phase == FnisStatusPhase.installing;
+      phase == FnisStatusPhase.installing ||
+      outputPhase == FnisOutputStatusPhase.running;
 }
 
 class FnisClient {
@@ -64,6 +90,31 @@ class FnisClient {
     canUpdate: value.canUpdate,
     canRemove: value.canRemove,
     canRecover: value.canRecover,
+    outputPhase: switch (value.outputPhase) {
+      wire.FnisOutputPhase.FNIS_OUTPUT_PHASE_MISSING =>
+        FnisOutputStatusPhase.missing,
+      wire.FnisOutputPhase.FNIS_OUTPUT_PHASE_STALE =>
+        FnisOutputStatusPhase.stale,
+      wire.FnisOutputPhase.FNIS_OUTPUT_PHASE_CURRENT =>
+        FnisOutputStatusPhase.current,
+      wire.FnisOutputPhase.FNIS_OUTPUT_PHASE_RUNNING =>
+        FnisOutputStatusPhase.running,
+      wire.FnisOutputPhase.FNIS_OUTPUT_PHASE_FAILED =>
+        FnisOutputStatusPhase.failed,
+      wire.FnisOutputPhase.FNIS_OUTPUT_PHASE_CANCELLED =>
+        FnisOutputStatusPhase.cancelled,
+      wire.FnisOutputPhase.FNIS_OUTPUT_PHASE_ABANDONED =>
+        FnisOutputStatusPhase.abandoned,
+      _ => FnisOutputStatusPhase.unavailable,
+    },
+    outputStatus: value.outputStatus,
+    outputDetail: value.outputDetail,
+    canRun: value.canRun,
+    canCancelRun: value.canCancelRun,
+    runId: value.hasRunId() ? value.runId : null,
+    exitCode: value.hasExitCode() ? value.exitCode : null,
+    standardOutput: value.standardOutput,
+    standardError: value.standardError,
   );
 
   wire.FnisRequest _request(String workspace, String profile) =>
@@ -81,4 +132,16 @@ class FnisClient {
       _decode(await _client.removeFnis(_request(workspace, profile)));
   Future<FnisStatus> recover(String workspace, String profile) async =>
       _decode(await _client.recoverFnis(_request(workspace, profile)));
+  Future<FnisStatus> run(String workspace, String profile, String id) async =>
+      _decode(
+        await _client.runFnis(
+          wire.FnisRunRequest(
+            id: id,
+            workspaceId: workspace,
+            profileId: profile,
+          ),
+        ),
+      );
+  Future<FnisStatus> cancelRun(String workspace, String profile) async =>
+      _decode(await _client.cancelFnisRun(_request(workspace, profile)));
 }

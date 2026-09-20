@@ -21,7 +21,7 @@ module NativeToolLaunch =
 
         bytes
 
-    let run (request: NativeLaunch) (input: byte array) limits (token: CancellationToken) =
+    let runIn streamDirectory (request: NativeLaunch) (input: byte array) limits (token: CancellationToken) =
         task {
             if input.Length > limits.InputBytes then
                 invalidArg "input" "The native tool input exceeds its write limit."
@@ -37,9 +37,9 @@ module NativeToolLaunch =
             let id = ".mc-tool-" + Guid.NewGuid().ToString("N")
 
             let files =
-                { Input = Path.Combine(request.WorkingDirectory, id + ".in")
-                  Output = Path.Combine(request.WorkingDirectory, id + ".out")
-                  Error = Path.Combine(request.WorkingDirectory, id + ".err") }
+                { Input = Path.Combine(streamDirectory, id + ".in")
+                  Output = Path.Combine(streamDirectory, id + ".out")
+                  Error = Path.Combine(streamDirectory, id + ".err") }
 
             let cleanup () =
                 for path in [ files.Input; files.Output; files.Error ] do
@@ -122,3 +122,6 @@ module NativeToolLaunch =
             finally
                 cleanup ()
         }
+
+    let run request input limits token =
+        runIn request.WorkingDirectory request input limits token

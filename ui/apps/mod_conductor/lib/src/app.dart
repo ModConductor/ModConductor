@@ -325,6 +325,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
       widget.executables,
       _workspaces.workspace,
       available: _workspaces.canEdit,
+      fnis: widget.fnis,
     );
     _executables.attach(
       widget.executables,

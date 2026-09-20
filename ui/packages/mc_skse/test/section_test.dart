@@ -83,6 +83,7 @@ class _FnisFixtureClient extends FnisClient {
 
   FnisStatus current;
   int installs = 0, cancels = 0, updates = 0, removals = 0, recoveries = 0;
+  int runs = 0, runCancellations = 0;
 
   @override
   Future<FnisStatus> read(String workspace, String profile) async => current;
@@ -114,6 +115,18 @@ class _FnisFixtureClient extends FnisClient {
   @override
   Future<FnisStatus> recover(String workspace, String profile) async {
     recoveries++;
+    return current;
+  }
+
+  @override
+  Future<FnisStatus> run(String workspace, String profile, String id) async {
+    runs++;
+    return current;
+  }
+
+  @override
+  Future<FnisStatus> cancelRun(String workspace, String profile) async {
+    runCancellations++;
     return current;
   }
 }
@@ -356,13 +369,29 @@ void main() {
     expect(enb.recoveries, 1);
   });
 
-  testWidgets('FNIS setup does not claim generator execution', (tester) async {
+  testWidgets('stale FNIS output runs only from its explicit action', (
+    tester,
+  ) async {
     final skse = _SkseFixtureClient(
       const SkseStatus(SkseStatusPhase.ready, '', '', 'SKSE is current', ''),
     );
     final enb = _EnbFixtureClient(_enb(EnbStatusPhase.ready));
     final fnis = _FnisFixtureClient(
-      _fnis(FnisStatusPhase.available, install: true),
+      FnisStatus(
+        phase: FnisStatusPhase.ready,
+        version: '7.6',
+        status: 'FNIS is ready',
+        detail: '',
+        canInstall: false,
+        canCancel: false,
+        canUpdate: true,
+        canRemove: true,
+        canRecover: false,
+        outputPhase: FnisOutputStatusPhase.stale,
+        outputStatus: 'FNIS output is stale',
+        outputDetail: 'Animation inputs changed.',
+        canRun: true,
+      ),
     );
 
     await tester.pumpWidget(
@@ -382,9 +411,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.textContaining('Windows generator'), findsOneWidget);
-    expect(find.textContaining('Run FNIS'), findsNothing);
-    await tester.tap(find.text('Install FNIS'));
+    expect(fnis.runs, 0);
+    expect(find.text('Run FNIS'), findsOneWidget);
+    await tester.ensureVisible(find.text('Run FNIS'));
+    await tester.tap(find.text('Run FNIS'));
     await tester.pumpAndSettle();
-    expect(fnis.installs, 1);
+    expect(fnis.runs, 1);
   });
 }

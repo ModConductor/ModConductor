@@ -1,9 +1,11 @@
 namespace ModConductor.Fnis
 
 open System
+open System.Threading
 open ModConductor.ArchiveInstallation
 open ModConductor.DeploymentPlanning
 open ModConductor.Nexus
+open ModConductor.Platform
 
 [<RequireQualifiedAccess>]
 type FnisProblem =
@@ -35,6 +37,74 @@ type FnisArchivePlan =
     { Files: SelectedFile list
       ComponentFiles: ComponentFile list
       Generator: string }
+
+[<RequireQualifiedAccess>]
+type FnisOutputPhase =
+    | Unavailable
+    | Missing
+    | Stale
+    | Current
+    | Running
+    | Failed
+    | Cancelled
+    | Abandoned
+
+type FnisInputFile =
+    { Path: LogicalPath
+      Length: int64
+      Sha256: string }
+
+type FnisInspection =
+    { WorkspaceId: Guid
+      ProfileId: Guid
+      GenerationId: Guid
+      Generator: string
+      Fingerprint: string
+      Phase: FnisOutputPhase
+      Status: string
+      Detail: string
+      LatestRunId: Guid option
+      ExitCode: int option
+      StandardOutput: string
+      StandardError: string }
+
+type FnisRunRequest =
+    { Id: Guid
+      WorkspaceId: Guid
+      ProfileId: Guid }
+
+type FnisRunStage =
+    { Request: FnisRunRequest
+      GenerationId: Guid
+      Generator: string
+      Fingerprint: string
+      Directory: string }
+
+[<RequireQualifiedAccess>]
+type FnisExecutionError =
+    | NotFound
+    | Busy
+    | IdentityConflict
+    | Stale
+    | Cancelled
+    | Invalid of string
+    | Unavailable of string
+
+type IFnisInspection =
+    abstract Inspect:
+        workspace: Guid * profile: Guid * cancellation: CancellationToken ->
+            System.Threading.Tasks.Task<Result<FnisInspection, FnisExecutionError>>
+
+type IFnisExecution =
+    inherit IFnisInspection
+
+    abstract Run:
+        request: FnisRunRequest * cancellation: CancellationToken ->
+            System.Threading.Tasks.Task<Result<FnisInspection, FnisExecutionError>>
+
+    abstract Cancel:
+        workspace: Guid * profile: Guid ->
+            System.Threading.Tasks.Task<Result<FnisInspection, FnisExecutionError>>
 
 module FnisProblem =
     let message =

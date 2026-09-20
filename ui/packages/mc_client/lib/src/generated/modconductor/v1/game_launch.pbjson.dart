@@ -57,6 +57,9 @@ const GameLaunchState$json = {
       '6': '.modconductor.v1.ExecutableRun',
       '10': 'latest'
     },
+    {'1': 'fnis_stale', '3': 9, '4': 1, '5': 8, '10': 'fnisStale'},
+    {'1': 'fnis_status', '3': 10, '4': 1, '5': 9, '10': 'fnisStatus'},
+    {'1': 'can_run_fnis', '3': 11, '4': 1, '5': 8, '10': 'canRunFnis'},
   ],
   '8': [
     {'1': '_problem'},
@@ -70,7 +73,9 @@ final $typed_data.Uint8List gameLaunchStateDescriptor = $convert.base64Decode(
     'Y29udGV4dFJldmlzaW9uEiEKDHNvdXJjZV90b2tlbhgEIAEoCVILc291cmNlVG9rZW4SEgoEbm'
     'FtZRgFIAEoCVIEbmFtZRIYCgdydW50aW1lGAYgASgJUgdydW50aW1lEh0KB3Byb2JsZW0YByAB'
     'KAlIAFIHcHJvYmxlbYgBARI2CgZsYXRlc3QYCCABKAsyHi5tb2Rjb25kdWN0b3IudjEuRXhlY3'
-    'V0YWJsZVJ1blIGbGF0ZXN0QgoKCF9wcm9ibGVt');
+    'V0YWJsZVJ1blIGbGF0ZXN0Eh0KCmZuaXNfc3RhbGUYCSABKAhSCWZuaXNTdGFsZRIfCgtmbmlz'
+    'X3N0YXR1cxgKIAEoCVIKZm5pc1N0YXR1cxIgCgxjYW5fcnVuX2ZuaXMYCyABKAhSCmNhblJ1bk'
+    'ZuaXNCCgoIX3Byb2JsZW0=');
 
 @$core.Deprecated('Use gameLaunchStateReplyDescriptor instead')
 const GameLaunchStateReply$json = {

@@ -60,5 +60,47 @@ class FnisPhase extends $pb.ProtobufEnum {
   const FnisPhase._(super.value, super.name);
 }
 
+class FnisOutputPhase extends $pb.ProtobufEnum {
+  static const FnisOutputPhase FNIS_OUTPUT_PHASE_UNSPECIFIED =
+      FnisOutputPhase._(
+          0, _omitEnumNames ? '' : 'FNIS_OUTPUT_PHASE_UNSPECIFIED');
+  static const FnisOutputPhase FNIS_OUTPUT_PHASE_UNAVAILABLE =
+      FnisOutputPhase._(
+          1, _omitEnumNames ? '' : 'FNIS_OUTPUT_PHASE_UNAVAILABLE');
+  static const FnisOutputPhase FNIS_OUTPUT_PHASE_MISSING =
+      FnisOutputPhase._(2, _omitEnumNames ? '' : 'FNIS_OUTPUT_PHASE_MISSING');
+  static const FnisOutputPhase FNIS_OUTPUT_PHASE_STALE =
+      FnisOutputPhase._(3, _omitEnumNames ? '' : 'FNIS_OUTPUT_PHASE_STALE');
+  static const FnisOutputPhase FNIS_OUTPUT_PHASE_CURRENT =
+      FnisOutputPhase._(4, _omitEnumNames ? '' : 'FNIS_OUTPUT_PHASE_CURRENT');
+  static const FnisOutputPhase FNIS_OUTPUT_PHASE_RUNNING =
+      FnisOutputPhase._(5, _omitEnumNames ? '' : 'FNIS_OUTPUT_PHASE_RUNNING');
+  static const FnisOutputPhase FNIS_OUTPUT_PHASE_FAILED =
+      FnisOutputPhase._(6, _omitEnumNames ? '' : 'FNIS_OUTPUT_PHASE_FAILED');
+  static const FnisOutputPhase FNIS_OUTPUT_PHASE_CANCELLED =
+      FnisOutputPhase._(7, _omitEnumNames ? '' : 'FNIS_OUTPUT_PHASE_CANCELLED');
+  static const FnisOutputPhase FNIS_OUTPUT_PHASE_ABANDONED =
+      FnisOutputPhase._(8, _omitEnumNames ? '' : 'FNIS_OUTPUT_PHASE_ABANDONED');
+
+  static const $core.List<FnisOutputPhase> values = <FnisOutputPhase>[
+    FNIS_OUTPUT_PHASE_UNSPECIFIED,
+    FNIS_OUTPUT_PHASE_UNAVAILABLE,
+    FNIS_OUTPUT_PHASE_MISSING,
+    FNIS_OUTPUT_PHASE_STALE,
+    FNIS_OUTPUT_PHASE_CURRENT,
+    FNIS_OUTPUT_PHASE_RUNNING,
+    FNIS_OUTPUT_PHASE_FAILED,
+    FNIS_OUTPUT_PHASE_CANCELLED,
+    FNIS_OUTPUT_PHASE_ABANDONED,
+  ];
+
+  static final $core.List<FnisOutputPhase?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 8);
+  static FnisOutputPhase? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const FnisOutputPhase._(super.value, super.name);
+}
+
 const $core.bool _omitEnumNames =
     $core.bool.fromEnvironment('protobuf.omit_enum_names');

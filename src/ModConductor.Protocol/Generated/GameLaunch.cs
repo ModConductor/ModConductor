@@ -27,27 +27,31 @@ namespace ModConductor.Protocol.V1 {
             "CiFtb2Rjb25kdWN0b3IvdjEvZ2FtZV9sYXVuY2gucHJvdG8SD21vZGNvbmR1",
             "Y3Rvci52MRohbW9kY29uZHVjdG9yL3YxL2V4ZWN1dGFibGVzLnByb3RvIkIK",
             "FkdhbWVMYXVuY2hTdGF0ZVJlcXVlc3QSFAoMd29ya3NwYWNlX2lkGAEgASgJ",
-            "EhIKCnByb2ZpbGVfaWQYAiABKAki3AEKD0dhbWVMYXVuY2hTdGF0ZRIUCgx3",
+            "EhIKCnByb2ZpbGVfaWQYAiABKAkimwIKD0dhbWVMYXVuY2hTdGF0ZRIUCgx3",
             "b3Jrc3BhY2VfaWQYASABKAkSEgoKcHJvZmlsZV9pZBgCIAEoCRIYChBjb250",
             "ZXh0X3JldmlzaW9uGAMgASgEEhQKDHNvdXJjZV90b2tlbhgEIAEoCRIMCgRu",
             "YW1lGAUgASgJEg8KB3J1bnRpbWUYBiABKAkSFAoHcHJvYmxlbRgHIAEoCUgA",
             "iAEBEi4KBmxhdGVzdBgIIAEoCzIeLm1vZGNvbmR1Y3Rvci52MS5FeGVjdXRh",
-            "YmxlUnVuQgoKCF9wcm9ibGVtIooBChRHYW1lTGF1bmNoU3RhdGVSZXBseRIx",
-            "CgVzdGF0ZRgBIAEoCzIgLm1vZGNvbmR1Y3Rvci52MS5HYW1lTGF1bmNoU3Rh",
-            "dGVIABI1Cgdwcm9ibGVtGAIgASgLMiIubW9kY29uZHVjdG9yLnYxLkV4ZWN1",
-            "dGFibGVQcm9ibGVtSABCCAoGcmVzdWx0MqYCChRHYW1lTGF1bmNoT3BlcmF0",
-            "aW9ucxJgCg5SZWFkR2FtZUxhdW5jaBInLm1vZGNvbmR1Y3Rvci52MS5HYW1l",
-            "TGF1bmNoU3RhdGVSZXF1ZXN0GiUubW9kY29uZHVjdG9yLnYxLkdhbWVMYXVu",
-            "Y2hTdGF0ZVJlcGx5ElAKCFBsYXlHYW1lEh8ubW9kY29uZHVjdG9yLnYxLkdh",
-            "bWVSdW5SZXF1ZXN0GiMubW9kY29uZHVjdG9yLnYxLkV4ZWN1dGFibGVSdW5S",
-            "ZXBseRJaChBDYW5jZWxHYW1lTGF1bmNoEiEubW9kY29uZHVjdG9yLnYxLkV4",
-            "ZWN1dGFibGVSdW5SZWYaIy5tb2Rjb25kdWN0b3IudjEuRXhlY3V0YWJsZVJ1",
-            "blJlcGx5QhuqAhhNb2RDb25kdWN0b3IuUHJvdG9jb2wuVjFiBnByb3RvMw=="));
+            "YmxlUnVuEhIKCmZuaXNfc3RhbGUYCSABKAgSEwoLZm5pc19zdGF0dXMYCiAB",
+            "KAkSFAoMY2FuX3J1bl9mbmlzGAsgASgIQgoKCF9wcm9ibGVtIooBChRHYW1l",
+            "TGF1bmNoU3RhdGVSZXBseRIxCgVzdGF0ZRgBIAEoCzIgLm1vZGNvbmR1Y3Rv",
+            "ci52MS5HYW1lTGF1bmNoU3RhdGVIABI1Cgdwcm9ibGVtGAIgASgLMiIubW9k",
+            "Y29uZHVjdG9yLnYxLkV4ZWN1dGFibGVQcm9ibGVtSABCCAoGcmVzdWx0MoYD",
+            "ChRHYW1lTGF1bmNoT3BlcmF0aW9ucxJgCg5SZWFkR2FtZUxhdW5jaBInLm1v",
+            "ZGNvbmR1Y3Rvci52MS5HYW1lTGF1bmNoU3RhdGVSZXF1ZXN0GiUubW9kY29u",
+            "ZHVjdG9yLnYxLkdhbWVMYXVuY2hTdGF0ZVJlcGx5ElAKCFBsYXlHYW1lEh8u",
+            "bW9kY29uZHVjdG9yLnYxLkdhbWVSdW5SZXF1ZXN0GiMubW9kY29uZHVjdG9y",
+            "LnYxLkV4ZWN1dGFibGVSdW5SZXBseRJeChZQbGF5R2FtZUNvbnRpbnVpbmdG",
+            "bmlzEh8ubW9kY29uZHVjdG9yLnYxLkdhbWVSdW5SZXF1ZXN0GiMubW9kY29u",
+            "ZHVjdG9yLnYxLkV4ZWN1dGFibGVSdW5SZXBseRJaChBDYW5jZWxHYW1lTGF1",
+            "bmNoEiEubW9kY29uZHVjdG9yLnYxLkV4ZWN1dGFibGVSdW5SZWYaIy5tb2Rj",
+            "b25kdWN0b3IudjEuRXhlY3V0YWJsZVJ1blJlcGx5QhuqAhhNb2RDb25kdWN0",
+            "b3IuUHJvdG9jb2wuVjFiBnByb3RvMw=="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::ModConductor.Protocol.V1.ExecutablesReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(null, null, new pbr::GeneratedClrTypeInfo[] {
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.GameLaunchStateRequest), global::ModConductor.Protocol.V1.GameLaunchStateRequest.Parser, new[]{ "WorkspaceId", "ProfileId" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.GameLaunchState), global::ModConductor.Protocol.V1.GameLaunchState.Parser, new[]{ "WorkspaceId", "ProfileId", "ContextRevision", "SourceToken", "Name", "Runtime", "Problem", "Latest" }, new[]{ "Problem" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.GameLaunchState), global::ModConductor.Protocol.V1.GameLaunchState.Parser, new[]{ "WorkspaceId", "ProfileId", "ContextRevision", "SourceToken", "Name", "Runtime", "Problem", "Latest", "FnisStale", "FnisStatus", "CanRunFnis" }, new[]{ "Problem" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.GameLaunchStateReply), global::ModConductor.Protocol.V1.GameLaunchStateReply.Parser, new[]{ "State", "Problem" }, new[]{ "Result" }, null, null, null)
           }));
     }
@@ -333,6 +337,9 @@ namespace ModConductor.Protocol.V1 {
       runtime_ = other.runtime_;
       problem_ = other.problem_;
       latest_ = other.latest_ != null ? other.latest_.Clone() : null;
+      fnisStale_ = other.fnisStale_;
+      fnisStatus_ = other.fnisStatus_;
+      canRunFnis_ = other.canRunFnis_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -452,6 +459,42 @@ namespace ModConductor.Protocol.V1 {
       }
     }
 
+    /// <summary>Field number for the "fnis_stale" field.</summary>
+    public const int FnisStaleFieldNumber = 9;
+    private bool fnisStale_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool FnisStale {
+      get { return fnisStale_; }
+      set {
+        fnisStale_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "fnis_status" field.</summary>
+    public const int FnisStatusFieldNumber = 10;
+    private string fnisStatus_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string FnisStatus {
+      get { return fnisStatus_; }
+      set {
+        fnisStatus_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "can_run_fnis" field.</summary>
+    public const int CanRunFnisFieldNumber = 11;
+    private bool canRunFnis_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool CanRunFnis {
+      get { return canRunFnis_; }
+      set {
+        canRunFnis_ = value;
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -475,6 +518,9 @@ namespace ModConductor.Protocol.V1 {
       if (Runtime != other.Runtime) return false;
       if (Problem != other.Problem) return false;
       if (!object.Equals(Latest, other.Latest)) return false;
+      if (FnisStale != other.FnisStale) return false;
+      if (FnisStatus != other.FnisStatus) return false;
+      if (CanRunFnis != other.CanRunFnis) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -490,6 +536,9 @@ namespace ModConductor.Protocol.V1 {
       if (Runtime.Length != 0) hash ^= Runtime.GetHashCode();
       if (HasProblem) hash ^= Problem.GetHashCode();
       if (latest_ != null) hash ^= Latest.GetHashCode();
+      if (FnisStale != false) hash ^= FnisStale.GetHashCode();
+      if (FnisStatus.Length != 0) hash ^= FnisStatus.GetHashCode();
+      if (CanRunFnis != false) hash ^= CanRunFnis.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -540,6 +589,18 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(66);
         output.WriteMessage(Latest);
       }
+      if (FnisStale != false) {
+        output.WriteRawTag(72);
+        output.WriteBool(FnisStale);
+      }
+      if (FnisStatus.Length != 0) {
+        output.WriteRawTag(82);
+        output.WriteString(FnisStatus);
+      }
+      if (CanRunFnis != false) {
+        output.WriteRawTag(88);
+        output.WriteBool(CanRunFnis);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -582,6 +643,18 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(66);
         output.WriteMessage(Latest);
       }
+      if (FnisStale != false) {
+        output.WriteRawTag(72);
+        output.WriteBool(FnisStale);
+      }
+      if (FnisStatus.Length != 0) {
+        output.WriteRawTag(82);
+        output.WriteString(FnisStatus);
+      }
+      if (CanRunFnis != false) {
+        output.WriteRawTag(88);
+        output.WriteBool(CanRunFnis);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -615,6 +688,15 @@ namespace ModConductor.Protocol.V1 {
       }
       if (latest_ != null) {
         size += 1 + pb::CodedOutputStream.ComputeMessageSize(Latest);
+      }
+      if (FnisStale != false) {
+        size += 1 + 1;
+      }
+      if (FnisStatus.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(FnisStatus);
+      }
+      if (CanRunFnis != false) {
+        size += 1 + 1;
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -654,6 +736,15 @@ namespace ModConductor.Protocol.V1 {
           Latest = new global::ModConductor.Protocol.V1.ExecutableRun();
         }
         Latest.MergeFrom(other.Latest);
+      }
+      if (other.FnisStale != false) {
+        FnisStale = other.FnisStale;
+      }
+      if (other.FnisStatus.Length != 0) {
+        FnisStatus = other.FnisStatus;
+      }
+      if (other.CanRunFnis != false) {
+        CanRunFnis = other.CanRunFnis;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -709,6 +800,18 @@ namespace ModConductor.Protocol.V1 {
             input.ReadMessage(Latest);
             break;
           }
+          case 72: {
+            FnisStale = input.ReadBool();
+            break;
+          }
+          case 82: {
+            FnisStatus = input.ReadString();
+            break;
+          }
+          case 88: {
+            CanRunFnis = input.ReadBool();
+            break;
+          }
         }
       }
     #endif
@@ -761,6 +864,18 @@ namespace ModConductor.Protocol.V1 {
               Latest = new global::ModConductor.Protocol.V1.ExecutableRun();
             }
             input.ReadMessage(Latest);
+            break;
+          }
+          case 72: {
+            FnisStale = input.ReadBool();
+            break;
+          }
+          case 82: {
+            FnisStatus = input.ReadString();
+            break;
+          }
+          case 88: {
+            CanRunFnis = input.ReadBool();
             break;
           }
         }

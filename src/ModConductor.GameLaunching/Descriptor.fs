@@ -5,6 +5,28 @@ open ModConductor.GameContexts
 open ModConductor.Platform
 
 module internal Descriptor =
+    let private inside root candidate =
+        String.Equals(root, candidate, StringComparison.OrdinalIgnoreCase)
+        || candidate.StartsWith(
+            (if IO.Path.EndsInDirectorySeparator root then root else root + string IO.Path.DirectorySeparatorChar),
+            StringComparison.OrdinalIgnoreCase
+        )
+
+    let private toolPath root (relative: string) =
+        let normalized =
+            relative.Replace('/', IO.Path.DirectorySeparatorChar).Replace('\\', IO.Path.DirectorySeparatorChar)
+
+        let candidate =
+            if IO.Path.IsPathFullyQualified normalized then
+                IO.Path.GetFullPath normalized
+            else
+                IO.Path.GetFullPath(IO.Path.Combine(root, normalized))
+
+        if not (inside (IO.Path.GetFullPath root) candidate) then
+            Error "The registered tool path is outside the selected game installation."
+        else
+            Ok candidate
+
     let private loaderPath root (loader: ComponentLoader) =
         let candidate = IO.Path.GetFullPath loader.Executable
         let directory = IO.Path.GetDirectoryName candidate
@@ -83,3 +105,30 @@ module internal Descriptor =
         | _ -> Error "Select and refresh the installation before playing."
 
     let create state loader = createWith state loader None
+
+    let createToolWith state loader configuration generation executable arguments =
+        match createWith state loader configuration, state.Binding with
+        | Ok(context, runtime, launch), Some binding ->
+            match toolPath binding.Evidence.RootPath executable with
+            | Error problem -> Error problem
+            | Ok tool ->
+                let projected =
+                    match binding.Evidence.Platform with
+                    | ContextPlatform.Windows ->
+                        { launch with
+                            Executable = tool
+                            Arguments = arguments }
+                    | ContextPlatform.Proton ->
+                        { launch with
+                            Arguments =
+                                match List.rev launch.Arguments with
+                                | _ :: prefix -> List.rev prefix @ (tool :: arguments)
+                                | [] -> tool :: arguments }
+
+                Ok
+                    { ContextId = context
+                      Runtime = runtime
+                      GenerationId = generation
+                      Launch = projected }
+        | Error problem, _ -> Error problem
+        | _, None -> Error "Select and refresh the installation before running FNIS."
