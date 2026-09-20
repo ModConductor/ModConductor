@@ -176,7 +176,6 @@ class ModConductorApp extends StatefulWidget {
     this.chooseDirectory = chooseWorkspaceDirectory,
     this.chooseExportLocation = desktop.chooseInventoryExportDestination,
     this.openExportFolder = desktop.openInventoryExportFolder,
-    this.openWorkspaceFolder = desktop.openFolder,
   });
   final DesktopRequests? desktopRequests;
   final DesktopStatus status;
@@ -221,7 +220,6 @@ class ModConductorApp extends StatefulWidget {
   final DirectoryChooser chooseDirectory;
   final InventoryExportLocationChooser chooseExportLocation;
   final InventoryExportFolderOpener openExportFolder;
-  final Future<bool> Function(String path) openWorkspaceFolder;
   final VoidCallback? onQuit;
   final VoidCallback? onRetry;
   @override
@@ -854,15 +852,16 @@ class _ModConductorAppState extends State<ModConductorApp> {
                             ),
                       helpBuilder: widget.diagnostics == null
                           ? null
-                          : (context, workspace) => HelpBrowser(
+                          : (context, workspace, actions) => HelpBrowser(
                               controller: _diagnostics,
+                              onCreateWorkspace: actions.createWorkspace,
+                              onOpenWorkspace: actions.openWorkspace,
+                              onCreateProfile: actions.createProfile,
                               onOpenSkyrimSetup:
                                   widget.skyrimSetup == null ||
-                                      workspace.selectedProfile == null
+                                      workspace?.selectedProfile == null
                                   ? null
                                   : _workspaces.showGame,
-                              onOpenWorkspaceFolder: () =>
-                                  widget.openWorkspaceFolder(workspace.path),
                             ),
                       compactCloseAction:
                           widget.gameLaunching != null &&

@@ -58,7 +58,14 @@ const _guideArticles = [
     'first-skyrim-workspace',
     'Set up your first Skyrim workspace',
     'Workspace',
-    ['Skyrim setup checks the required components for the current profile.'],
+    [
+      'Start a workspace, create a profile, and then check the Skyrim components for that profile.',
+    ],
+    [
+      'Create a workspace or open a workspace.',
+      'Create a profile.',
+      'Open Skyrim setup.',
+    ],
   ),
   _HelpArticle(
     'add-mod',
@@ -293,12 +300,16 @@ class HelpBrowser extends StatefulWidget {
   const HelpBrowser({
     super.key,
     required this.controller,
+    this.onCreateWorkspace,
+    this.onOpenWorkspace,
+    this.onCreateProfile,
     this.onOpenSkyrimSetup,
-    this.onOpenWorkspaceFolder,
   });
   final DiagnosticsController controller;
+  final VoidCallback? onCreateWorkspace;
+  final VoidCallback? onOpenWorkspace;
+  final VoidCallback? onCreateProfile;
   final VoidCallback? onOpenSkyrimSetup;
-  final Future<bool> Function()? onOpenWorkspaceFolder;
 
   @override
   State<HelpBrowser> createState() => _HelpBrowserState();
@@ -309,6 +320,9 @@ class _HelpBrowserState extends State<HelpBrowser> {
   final _listFocus = FocusNode(debugLabel: 'Help topics');
   final _previewFocus = FocusNode(debugLabel: 'Preview diagnostic change');
   final _guideActionFocus = FocusNode(debugLabel: 'Open guide action');
+  final _secondaryGuideActionFocus = FocusNode(
+    debugLabel: 'Open secondary guide action',
+  );
   final _diagnostics = McCollectionModel<String, DiagnosticFinding>(
     idOf: (row) => row.id,
     labelOf: (row) => '${row.title} ${row.area} ${row.fixDetail}',
@@ -325,8 +339,6 @@ class _HelpBrowserState extends State<HelpBrowser> {
   DiagnosticFinding? _finding;
   _HelpArticle _article = _faqArticles.first;
   bool _compact = false;
-  bool _openingWorkspaceFolder = false;
-  String? _workspaceFolderProblem;
 
   DiagnosticsController get controller => widget.controller;
 
@@ -370,6 +382,7 @@ class _HelpBrowserState extends State<HelpBrowser> {
     _listFocus.dispose();
     _previewFocus.dispose();
     _guideActionFocus.dispose();
+    _secondaryGuideActionFocus.dispose();
     _diagnostics.dispose();
     _faq.dispose();
     _guides.dispose();
@@ -416,38 +429,8 @@ class _HelpBrowserState extends State<HelpBrowser> {
     _listFocus.requestFocus();
   }
 
-  Future<void> _openWorkspaceFolder() async {
-    final open = widget.onOpenWorkspaceFolder;
-    if (open == null || _openingWorkspaceFolder) return;
-    setState(() {
-      _openingWorkspaceFolder = true;
-      _workspaceFolderProblem = null;
-    });
-    var opened = false;
-    try {
-      opened = await open();
-    } on Exception {
-      opened = false;
-    }
-    if (!mounted) return;
-    setState(() {
-      _openingWorkspaceFolder = false;
-      if (!opened) {
-        _workspaceFolderProblem =
-            'The file browser could not open the workspace folder.';
-      }
-    });
-  }
-
   List<Widget> _guideActions(_HelpArticle article) => switch (article.id) {
     'first-skyrim-workspace' => [
-      if (widget.onOpenWorkspaceFolder != null)
-        McAction(
-          key: const ValueKey('open-workspace-folder'),
-          label: 'Open workspace folder',
-          icon: Icons.folder_open,
-          onPressed: _openingWorkspaceFolder ? null : _openWorkspaceFolder,
-        ),
       if (widget.onOpenSkyrimSetup != null)
         McAction(
           key: const ValueKey('open-skyrim-setup'),
@@ -457,6 +440,35 @@ class _HelpBrowserState extends State<HelpBrowser> {
           focusNode: _guideActionFocus,
           onPressed: widget.onOpenSkyrimSetup,
         ),
+      if (widget.onOpenSkyrimSetup == null && widget.onCreateProfile != null)
+        McAction(
+          key: const ValueKey('guide-create-profile'),
+          label: 'Create profile',
+          icon: Icons.person_add_alt,
+          emphasis: McActionEmphasis.primary,
+          focusNode: _guideActionFocus,
+          onPressed: widget.onCreateProfile,
+        ),
+      if (widget.onOpenSkyrimSetup == null &&
+          widget.onCreateProfile == null) ...[
+        if (widget.onCreateWorkspace != null)
+          McAction(
+            key: const ValueKey('guide-create-workspace'),
+            label: 'Create workspace',
+            icon: Icons.add,
+            emphasis: McActionEmphasis.primary,
+            focusNode: _guideActionFocus,
+            onPressed: widget.onCreateWorkspace,
+          ),
+        if (widget.onOpenWorkspace != null)
+          McAction(
+            key: const ValueKey('guide-open-workspace'),
+            label: 'Open workspace',
+            icon: Icons.folder_open,
+            focusNode: _secondaryGuideActionFocus,
+            onPressed: widget.onOpenWorkspace,
+          ),
+      ],
     ],
     'recover' => [
       McAction(
@@ -502,6 +514,7 @@ class _HelpBrowserState extends State<HelpBrowser> {
             onPressed: () => Navigator.pop(context, false),
           ),
           McAction(
+            key: const ValueKey('apply-diagnostic-change'),
             label: deployment ? 'Continue restore' : 'Hide this copy',
             emphasis: McActionEmphasis.primary,
             onPressed: () => Navigator.pop(context, true),
@@ -602,9 +615,6 @@ class _HelpBrowserState extends State<HelpBrowser> {
         actions: _section == _HelpSection.guides
             ? _guideActions(_article)
             : const [],
-        problem: _article.id == 'first-skyrim-workspace'
-            ? _workspaceFolderProblem
-            : null,
       );
     }
     final finding = _finding;
@@ -886,7 +896,7 @@ class _HelpSections extends StatelessWidget {
             ),
             ButtonSegment(
               value: _HelpSection.guides,
-              label: Text('Guides'),
+              label: Text('Guides', key: ValueKey('help-guides-section')),
               icon: Icon(Icons.menu_book_outlined),
             ),
           ],
@@ -930,7 +940,7 @@ class _HelpSections extends StatelessWidget {
           NavigationRailDestination(
             icon: Icon(Icons.menu_book_outlined),
             selectedIcon: Icon(Icons.menu_book),
-            label: Text('Guides'),
+            label: Text('Guides', key: ValueKey('help-guides-section')),
           ),
         ],
       ),
@@ -944,13 +954,11 @@ class _HelpArticleInspector extends StatelessWidget {
     required this.article,
     required this.onClose,
     required this.actions,
-    this.problem,
   });
   final _HelpSection section;
   final _HelpArticle article;
   final VoidCallback onClose;
   final List<Widget> actions;
-  final String? problem;
 
   @override
   Widget build(BuildContext context) => McInspector(
@@ -983,10 +991,6 @@ class _HelpArticleInspector extends StatelessWidget {
             ],
           ),
         ),
-      if (problem != null) ...[
-        const SizedBox(height: McSpacing.small),
-        McStatus(title: problem!, tone: McStatusTone.error),
-      ],
     ],
   );
 }

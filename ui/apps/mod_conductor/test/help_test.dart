@@ -1,10 +1,14 @@
 import 'dart:async';
+import 'dart:ui' show Tristate;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mc_client/mc_client.dart';
+import 'package:mc_skse/mc_skse.dart';
 import 'package:mc_ui_foundation/mc_ui_foundation.dart';
+import 'package:mc_workspaces/mc_workspaces.dart';
 import 'package:mod_conductor/src/app.dart';
 
 DiagnosticFinding finding({
@@ -38,7 +42,7 @@ class FakeDiagnostics implements DiagnosticsClient {
   FakeDiagnostics({this.checkResult});
   DiagnosticSnapshot? checkResult;
   Object? previewFailure;
-  int previews = 0, applies = 0;
+  int checks = 0, previews = 0, applies = 0;
 
   @override
   Future<DiagnosticSnapshot> check({
@@ -48,15 +52,17 @@ class FakeDiagnostics implements DiagnosticsClient {
     String? pluginSnapshotId,
     String? deploymentId,
     int? deploymentRevision,
-  }) async =>
-      checkResult ??
-      DiagnosticSnapshot(
-        'check-1',
-        workspaceId,
-        profileId,
-        DateTime.utc(2026, 9, 14),
-        [finding()],
-      );
+  }) async {
+    checks++;
+    return checkResult ??
+        DiagnosticSnapshot(
+          'check-1',
+          workspaceId,
+          profileId,
+          DateTime.utc(2026, 9, 14),
+          [finding()],
+        );
+  }
 
   @override
   Future<DiagnosticPreview> preview(String snapshotId, String problemId) async {
@@ -98,46 +104,129 @@ class FakeDiagnostics implements DiagnosticsClient {
 }
 
 class FakeWorkspaces extends Fake implements WorkspacesClient {
-  final workspace = const WorkspaceInfo(
-    id: 'workspace-1',
-    name: 'My workspace',
-    path: '/games/my-workspace',
-    revision: 1,
-    selectedProfile: ProfileInfo('profile-1', 'Main'),
-  );
+  FakeWorkspaces({this.savedWorkspace});
+
+  WorkspaceInfo? savedWorkspace;
+  int opens = 0, creates = 0, profileCreates = 0;
+
+  WorkspacePage _page() =>
+      WorkspacePage(savedWorkspace!, [?savedWorkspace!.selectedProfile], null);
 
   @override
   Future<WorkspaceList> recent({String? after}) async =>
-      WorkspaceList([workspace], null);
+      WorkspaceList([?savedWorkspace], null);
 
   @override
-  Future<WorkspacePage> open(String path) async =>
-      WorkspacePage(workspace, [workspace.selectedProfile!], null);
+  Future<WorkspacePage> open(String path) async {
+    opens++;
+    savedWorkspace ??= WorkspaceInfo(
+      id: 'opened-workspace',
+      name: 'Opened workspace',
+      path: path,
+      revision: 1,
+    );
+    return _page();
+  }
+
+  @override
+  Future<WorkspacePage> create(String id, String name, String path) async {
+    creates++;
+    savedWorkspace = WorkspaceInfo(id: id, name: name, path: path, revision: 1);
+    return _page();
+  }
+
+  @override
+  Future<ProfileChange> createProfile(
+    String workspace,
+    int revision,
+    ProfileInfo profile,
+  ) async {
+    profileCreates++;
+    savedWorkspace = WorkspaceInfo(
+      id: savedWorkspace!.id,
+      name: savedWorkspace!.name,
+      path: savedWorkspace!.path,
+      revision: revision + 1,
+      selectedProfile: profile,
+    );
+    return ProfileChange(savedWorkspace!, profile, null);
+  }
 }
 
 class FakeSkyrimSetup extends Fake implements SkyrimSetupClient {
+  int reads = 0;
+
   @override
   Future<SkyrimSetupStatus> read(
     String workspace,
     String profile, {
     required bool includeFnis,
-  }) async => const SkyrimSetupStatus(
-    phase: SkyrimSetupStatusPhase.ready,
-    status: 'Skyrim setup is ready',
-    detail: '',
-    planToken: '',
-    changes: [],
-    components: [],
-    includeFnis: false,
-    consentRecorded: true,
-    canStart: false,
-    canContinue: false,
-    canSelectEnbArchive: false,
-    active: false,
-    ready: true,
-    canCancel: false,
-  );
+  }) async {
+    reads++;
+    return const SkyrimSetupStatus(
+      phase: SkyrimSetupStatusPhase.ready,
+      status: 'Skyrim setup is ready',
+      detail: '',
+      planToken: '',
+      changes: [],
+      components: [],
+      includeFnis: false,
+      consentRecorded: true,
+      canStart: false,
+      canContinue: false,
+      canSelectEnbArchive: false,
+      active: false,
+      ready: true,
+      canCancel: false,
+    );
+  }
 }
+
+Future<void> mountApp(
+  WidgetTester tester, {
+  required FakeWorkspaces workspaces,
+  required FakeDiagnostics diagnostics,
+  FakeSkyrimSetup? skyrimSetup,
+  DirectoryChooser? chooseDirectory,
+  Size size = const Size(1280, 800),
+}) async {
+  tester.view.devicePixelRatio = 1;
+  tester.view.physicalSize = size;
+  await tester.pumpWidget(
+    ModConductorApp(
+      workspaces: workspaces,
+      diagnostics: diagnostics,
+      skyrimSetup: skyrimSetup,
+      chooseDirectory: chooseDirectory ?? (_) async => null,
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
+Future<void> openGuide(WidgetTester tester, String id) async {
+  await tester.tap(find.byKey(const ValueKey('help-guides-section')));
+  await tester.pumpAndSettle();
+  await tester.tap(find.byKey(ValueKey(id)));
+  await tester.pump();
+  await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+  await tester.pumpAndSettle();
+}
+
+Future<void> activateAction(WidgetTester tester, String key) async {
+  final action = tester.widget<McAction>(find.byKey(ValueKey(key)));
+  action.focusNode!.requestFocus();
+  await tester.pump();
+  await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+  await tester.pumpAndSettle();
+}
+
+bool isSelected(WidgetTester tester, String id) =>
+    tester
+        .getSemantics(find.byKey(ValueKey(id)))
+        .getSemanticsData()
+        .flagsCollection
+        .isSelected ==
+    Tristate.isTrue;
 
 Future<DiagnosticsController> mount(
   WidgetTester tester,
@@ -162,76 +251,87 @@ Future<DiagnosticsController> mount(
 
 void main() {
   testWidgets(
-    'first workspace guide opens real workspace commands and keeps its place',
+    'first workspace Help uses the existing setup actions at 150% text',
     (tester) async {
-      tester.view.devicePixelRatio = 1;
-      tester.view.physicalSize = const Size(1280, 800);
       addTearDown(tester.view.resetDevicePixelRatio);
       addTearDown(tester.view.resetPhysicalSize);
+      tester.platformDispatcher.textScaleFactorTestValue = 1.5;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
       final workspaces = FakeWorkspaces();
-      String? openedFolder;
-
-      await tester.pumpWidget(
-        ModConductorApp(
-          workspaces: workspaces,
-          diagnostics: FakeDiagnostics(),
-          skyrimSetup: FakeSkyrimSetup(),
-          openWorkspaceFolder: (path) async {
-            openedFolder = path;
-            return true;
-          },
-        ),
+      final setup = FakeSkyrimSetup();
+      final chosen = ['/opened', '/created'];
+      await mountApp(
+        tester,
+        workspaces: workspaces,
+        diagnostics: FakeDiagnostics(),
+        skyrimSetup: setup,
+        chooseDirectory: (_) async => chosen.removeAt(0),
+        size: const Size(900, 900),
       );
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('workspace-workspace-1')));
-      await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Help'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Guides'));
-      await tester.pumpAndSettle();
-      expect(find.text('Set up your first Skyrim workspace'), findsWidgets);
-
-      await tester.tap(find.byKey(const ValueKey('open-workspace-folder')));
-      await tester.pumpAndSettle();
-      expect(openedFolder, '/games/my-workspace');
-
+      await activateAction(tester, 'open-entry-help');
+      await openGuide(tester, 'first-skyrim-workspace');
       final semantics = tester.ensureSemantics();
-      final setupAction = tester.widget<McAction>(
-        find.byKey(const ValueKey('open-skyrim-setup')),
+      expect(
+        tester
+            .getSemantics(find.byKey(const ValueKey('guide-create-workspace')))
+            .getSemanticsData()
+            .hasAction(SemanticsAction.tap),
+        isTrue,
       );
       expect(
         tester
-            .getSemantics(find.byKey(const ValueKey('open-skyrim-setup')))
+            .getSemantics(find.byKey(const ValueKey('guide-open-workspace')))
             .getSemanticsData()
-            .label,
-        'Open Skyrim setup',
+            .hasAction(SemanticsAction.tap),
+        isTrue,
       );
       semantics.dispose();
-      setupAction.focusNode?.requestFocus();
+
+      await activateAction(tester, 'guide-open-workspace');
+      await tester.tap(find.byKey(const ValueKey('choose-folder')));
       await tester.pump();
-      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.tap(find.byKey(const ValueKey('submit')));
       await tester.pumpAndSettle();
-      expect(find.textContaining('Skyrim setup is ready'), findsOneWidget);
+      expect(workspaces.opens, 1);
 
-      await tester.tap(find.text('Help'));
+      await tester.tap(find.byKey(const ValueKey('close-workspace')));
       await tester.pumpAndSettle();
-      expect(find.text('Set up your first Skyrim workspace'), findsWidgets);
-      expect(find.byKey(const ValueKey('open-skyrim-setup')), findsOneWidget);
+      await activateAction(tester, 'open-entry-help');
+      await openGuide(tester, 'first-skyrim-workspace');
+      await activateAction(tester, 'guide-create-workspace');
+      await tester.enterText(
+        find.byKey(const ValueKey('name')),
+        'New workspace',
+      );
+      await tester.tap(find.byKey(const ValueKey('choose-folder')));
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('submit')));
+      await tester.pumpAndSettle();
+      expect(workspaces.creates, 1);
 
-      tester.view.physicalSize = const Size(680, 800);
+      await tester.tap(find.byKey(const ValueKey('workspace-help-tab')));
       await tester.pumpAndSettle();
-      expect(find.byType(NavigationRail), findsNothing);
-      await tester.tap(find.byIcon(Icons.open_in_new));
+      await openGuide(tester, 'first-skyrim-workspace');
+      await activateAction(tester, 'guide-create-profile');
+      await tester.enterText(find.byKey(const ValueKey('name')), 'Main');
+      await tester.tap(find.byKey(const ValueKey('submit')));
       await tester.pumpAndSettle();
-      expect(find.byKey(const ValueKey('open-skyrim-setup')), findsOneWidget);
+      expect(workspaces.profileCreates, 1);
+
+      await activateAction(tester, 'open-skyrim-setup');
+      await tester.pumpAndSettle();
+      expect(find.byType(SkyrimSetupSection).hitTestable(), findsOneWidget);
+      expect(setup.reads, greaterThan(0));
       expect(tester.takeException(), isNull);
     },
   );
 
   testWidgets(
-    'recovery guide opens the interrupted deployment command after remount',
+    'Help preserves a chosen guide and rehydrates recovery after app restart',
     (tester) async {
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetPhysicalSize);
       final deployment = finding(
         id: 'deployment',
         code: 'deployment-incomplete',
@@ -246,52 +346,59 @@ void main() {
           [deployment, finding()],
         ),
       );
-      final controller = await mount(tester, client);
-
-      await tester.tap(find.text('Guides'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Continue a deployment restore').first);
-      await tester.pumpAndSettle();
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: HelpBrowser(
-              key: const ValueKey('remounted-help'),
-              controller: controller,
-            ),
-          ),
+      final workspaces = FakeWorkspaces(
+        savedWorkspace: const WorkspaceInfo(
+          id: 'workspace-1',
+          name: 'My workspace',
+          path: '/games/my-workspace',
+          revision: 1,
+          selectedProfile: ProfileInfo('profile-1', 'Main'),
         ),
       );
+      await mountApp(tester, workspaces: workspaces, diagnostics: client);
+      await tester.tap(find.byKey(const ValueKey('workspace-workspace-1')));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Guides'));
+      await tester.tap(find.byKey(const ValueKey('workspace-help-tab')));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Resolve a file conflict').first);
+      await openGuide(tester, 'conflict');
+      expect(isSelected(tester, 'conflict'), isTrue);
+      await tester.tap(find.byKey(const ValueKey('workspace-game-tab')));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('open-conflict-diagnostics')));
+      await tester.tap(find.byKey(const ValueKey('workspace-help-tab')));
       await tester.pumpAndSettle();
-      expect(find.text('Two copies have the same priority'), findsWidgets);
-      expect(find.text('Preview change'), findsOneWidget);
-
-      await tester.tap(find.text('Guides'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Continue a deployment restore').first);
-      await tester.pumpAndSettle();
-
-      final open = tester.widget<McAction>(
-        find.byKey(const ValueKey('open-deployment-recovery')),
+      expect(isSelected(tester, 'conflict'), isTrue);
+      expect(
+        find.byKey(const ValueKey('open-conflict-diagnostics')),
+        findsOneWidget,
       );
-      open.focusNode?.requestFocus();
-      await tester.pump();
-      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
-      await tester.pumpAndSettle();
-      expect(find.text('Deployment did not finish'), findsWidgets);
-      expect(find.text('Preview paths'), findsOneWidget);
 
-      await tester.tap(find.byKey(const ValueKey('preview-diagnostic-change')));
+      await tester.pumpWidget(const SizedBox.shrink());
       await tester.pumpAndSettle();
-      expect(find.text('Continue the deployment restore?'), findsOneWidget);
-      await tester.tap(find.widgetWithText(McAction, 'Continue restore'));
+      await mountApp(tester, workspaces: workspaces, diagnostics: client);
+      await tester.tap(find.byKey(const ValueKey('workspace-workspace-1')));
       await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('workspace-help-tab')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('help-guides-section')));
+      await tester.pumpAndSettle();
+      expect(isSelected(tester, 'first-skyrim-workspace'), isTrue);
+      expect(isSelected(tester, 'conflict'), isFalse);
+
+      await openGuide(tester, 'recover');
+      await activateAction(tester, 'open-deployment-recovery');
+      final preview = find.byKey(const ValueKey('preview-diagnostic-change'));
+      expect(
+        tester
+            .getSemantics(preview)
+            .getSemanticsData()
+            .hasAction(SemanticsAction.tap),
+        isTrue,
+      );
+      await activateAction(tester, 'preview-diagnostic-change');
+      await tester.tap(find.byKey(const ValueKey('apply-diagnostic-change')));
+      await tester.pumpAndSettle();
+      expect(client.checks, greaterThanOrEqualTo(2));
+      expect(client.previews, 1);
       expect(client.applies, 1);
     },
   );

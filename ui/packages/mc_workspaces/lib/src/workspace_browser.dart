@@ -21,6 +21,24 @@ typedef ProfileInspectorBuilder = Widget Function(
   ValueChanged<ProfileNavigationGuard?>,
 );
 
+class WorkspaceHelpActions {
+  const WorkspaceHelpActions({
+    required this.createWorkspace,
+    required this.openWorkspace,
+    this.createProfile,
+  });
+
+  final VoidCallback? createWorkspace;
+  final VoidCallback? openWorkspace;
+  final VoidCallback? createProfile;
+}
+
+typedef WorkspaceHelpBuilder = Widget Function(
+  BuildContext,
+  WorkspaceInfo?,
+  WorkspaceHelpActions,
+);
+
 enum _WorkspaceMode { profiles, mods, game, tools, archives, help }
 
 enum _ProfileAction { clone, rename, delete }
@@ -46,7 +64,7 @@ class WorkspaceBrowser extends StatefulWidget {
   final Widget Function(BuildContext, WorkspaceInfo)? executableBuilder;
   final Widget Function(BuildContext, WorkspaceInfo, VoidCallback)?
   artifactBuilder;
-  final Widget Function(BuildContext, WorkspaceInfo)? helpBuilder;
+  final WorkspaceHelpBuilder? helpBuilder;
   final List<Widget> Function(BuildContext, WorkspaceInfo)? headerActions;
   final bool compactCloseAction;
   final ProfileInspectorBuilder? profileInspectorBuilder;
@@ -61,9 +79,11 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
   final _createWorkspaceFocus = FocusNode(debugLabel: 'Create workspace');
   final _openWorkspaceFocus = FocusNode(debugLabel: 'Open workspace');
   final _createProfileFocus = FocusNode(debugLabel: 'Create profile');
+  final _helpFocus = FocusNode(debugLabel: 'Help');
   int _archiveNavigation = 0;
   int _gameNavigation = 0;
   int _helpNavigation = 0;
+  bool _entryHelp = false;
   String? _shownId;
   _WorkspaceMode _mode = _WorkspaceMode.profiles;
   final _profilesFocus = FocusNode(debugLabel: 'Profiles');
@@ -190,6 +210,7 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
     if (id != _shownId) {
       _profiles.clear();
       _mode = _WorkspaceMode.profiles;
+      _entryHelp = false;
       _inspected = false;
     }
     if (_archiveNavigation != controller.archiveNavigation) {
@@ -237,6 +258,7 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
     _createWorkspaceFocus.dispose();
     _openWorkspaceFocus.dispose();
     _createProfileFocus.dispose();
+    _helpFocus.dispose();
     super.dispose();
   }
 
@@ -326,7 +348,62 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
         controller.workspace == null ? _entry(context) : _workspace(context),
   );
 
-  Widget _entry(BuildContext context) => McPage(
+  WorkspaceHelpActions _helpActions(
+    BuildContext context,
+    WorkspaceInfo? workspace,
+  ) {
+    final canChooseWorkspace =
+        controller.connected && controller.activity == null;
+    return WorkspaceHelpActions(
+      createWorkspace: canChooseWorkspace
+          ? () => unawaited(_workspaceDialog(context, true))
+          : null,
+      openWorkspace: canChooseWorkspace
+          ? () => unawaited(_workspaceDialog(context, false))
+          : null,
+      createProfile: workspace == null || !controller.canEdit
+          ? null
+          : () => unawaited(_profileDialog(context)),
+    );
+  }
+
+  Widget _help(BuildContext context, WorkspaceInfo? workspace) =>
+      widget.helpBuilder!(context, workspace, _helpActions(context, workspace));
+
+  Widget _entry(BuildContext context) {
+    final workspaces = _workspaceEntry(context);
+    if (widget.helpBuilder == null) return workspaces;
+    return IndexedStack(
+      index: _entryHelp ? 1 : 0,
+      children: [
+        ExcludeFocus(excluding: _entryHelp, child: workspaces),
+        ExcludeFocus(
+          excluding: !_entryHelp,
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: McAction(
+                    key: const ValueKey('close-entry-help'),
+                    label: 'Workspaces',
+                    icon: Icons.arrow_back,
+                    onPressed: () => setState(() => _entryHelp = false),
+                  ),
+                ),
+                const SizedBox(height: McSpacing.medium),
+                Expanded(child: _help(context, null)),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _workspaceEntry(BuildContext context) => McPage(
     title: 'Workspaces',
     children: [
       Wrap(
@@ -352,6 +429,14 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
                 ? () => _workspaceDialog(context, false)
                 : null,
           ),
+          if (widget.helpBuilder != null)
+            McAction(
+              key: const ValueKey('open-entry-help'),
+              focusNode: _helpFocus,
+              label: 'Help',
+              icon: Icons.help_center_outlined,
+              onPressed: () => setState(() => _entryHelp = true),
+            ),
         ],
       ),
       const SizedBox(height: McSpacing.large),
@@ -492,7 +577,10 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
                     if (widget.gameContextBuilder != null)
                       ButtonSegment(
                         value: _WorkspaceMode.game,
-                        label: Text('Game'),
+                        label: Text(
+                          'Game',
+                          key: ValueKey('workspace-game-tab'),
+                        ),
                         icon: Icon(Icons.videogame_asset_outlined),
                       ),
                     if (widget.executableBuilder != null)
@@ -510,7 +598,10 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
                     if (widget.helpBuilder != null)
                       ButtonSegment(
                         value: _WorkspaceMode.help,
-                        label: Text("Help"),
+                        label: Text(
+                          'Help',
+                          key: ValueKey('workspace-help-tab'),
+                        ),
                         icon: Icon(Icons.help_center_outlined),
                       ),
                   ],
@@ -565,7 +656,7 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
                 if (widget.helpBuilder != null)
                   ExcludeFocus(
                     excluding: _mode != _WorkspaceMode.help,
-                    child: widget.helpBuilder!(context, workspace),
+                    child: _help(context, workspace),
                   )
                 else
                   const SizedBox.shrink(),
