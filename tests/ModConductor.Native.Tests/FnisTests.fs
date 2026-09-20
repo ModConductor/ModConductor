@@ -23,8 +23,10 @@ type FnisTests() =
         flag "effectiveInputFingerprintChangesWithAnimationContent" |> should equal true
         flag "effectiveInputFilterRejectsUnrelatedFiles" |> should equal true
         flag "effectiveInputFilterIncludesSkeletons" |> should equal true
+
         flag "windowsToolProjectionUsesExactDescriptorAndTypedArguments"
         |> should equal true
+
         flag "selectedWindowsContextProjectsRegisteredGenerator" |> should equal true
 
     [<Test>]
@@ -44,6 +46,8 @@ type FnisTests() =
         flag "successfulRunPublishesAndSelectsOneCurrentOutput" |> should equal true
         flag "failedRunPreservesPriorOutputAndBoundedExitEvidence" |> should equal true
         flag "cancelledRunTerminatesAndPreservesPriorOutput" |> should equal true
+        flag "combinedCancelUsesProductionFnisOwner" |> should equal true
+        flag "combinedFnisCancellationSurvivesOwnerRestart" |> should equal true
         flag "runReturnsWhileCancellationIsReachable" |> should equal true
         flag "activeGeneratedOutputIsExcludedFromEffectiveInputs" |> should equal true
         flag "addedEffectiveInputMakesFnisStale" |> should equal true
@@ -54,15 +58,25 @@ type FnisTests() =
         flag "launchFailureRetainsDetailAndRemovesStage" |> should equal true
         flag "malformedTemporaryLogIsCapturedBoundedInOwnedState" |> should equal true
         flag "temporaryLogCleanupPreservesImmutableGenerator" |> should equal true
+
         flag "restrictiveTemporaryLogTreeRestoresContentMetadataModesAndTimestamps"
         |> should equal true
+
         flag "newRestrictiveTemporaryLogDirectoryIsCapturedAndRemoved"
         |> should equal true
+
         flag "missingTemporaryLogIsAnEmptyOwnedRecord" |> should equal true
-        flag "stalePublicationRollsBackVersionAndSelectionAtomically" |> should equal true
+
+        flag "stalePublicationRollsBackVersionAndSelectionAtomically"
+        |> should equal true
+
         flag "firstStalePublicationRemovesOutputAndProfileShells" |> should equal true
-        flag "restartMarksRunAbandonedRemovesStageAndPreservesOutput" |> should equal true
-        flag "engineShutdownCancelsAndDrainsSleepingFnisProcessGroup" |> should equal true
+
+        flag "restartMarksRunAbandonedRemovesStageAndPreservesOutput"
+        |> should equal true
+
+        flag "engineShutdownCancelsAndDrainsSleepingFnisProcessGroup"
+        |> should equal true
 
     [<Test>]
     member _.``removal and restart should preserve foreign files and retained provenance``() =

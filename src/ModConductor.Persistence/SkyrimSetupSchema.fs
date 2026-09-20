@@ -21,3 +21,12 @@ module internal SkyrimSetupSchema =
     ALTER TABLE skyrim_setup_intents ADD COLUMN context_revision INTEGER NOT NULL DEFAULT 0;
     PRAGMA user_version=32;
     """
+
+    let cancellationAndActions =
+        """
+    ALTER TABLE skyrim_setup_intents ADD COLUMN action_id TEXT;
+    ALTER TABLE skyrim_setup_intents ADD COLUMN archive_path TEXT;
+    ALTER TABLE skyrim_setup_intents ADD COLUMN cancel_requested INTEGER NOT NULL DEFAULT 0 CHECK(cancel_requested IN (0,1));
+    ALTER TABLE skyrim_setup_intents ADD COLUMN cancel_detail TEXT NOT NULL DEFAULT '';
+    PRAGMA user_version=33;
+    """

@@ -620,18 +620,30 @@ type EnbCoordinator
     let runAdvance workspace profile =
         task {
             let key = workspace, profile
-            use cancellation = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token)
+            let cancellation = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token)
+            let! saved = store.EnbSetups.ReadStatus(workspace, profile)
 
             if operations.TryAdd(key, cancellation) then
-                try
-                    return! advance workspace profile cancellation.Token
-                finally
-                    match operations.TryRemove key with
-                    | true, owned -> owned.Dispose()
-                    | _ -> ()
+                Task.Run(fun () ->
+                    task {
+                        try
+                            try
+                                let! _ = advance workspace profile cancellation.Token
+                                ()
+                            with :? OperationCanceledException when
+                                cancellation.IsCancellationRequested ->
+                                ()
+                        finally
+                            match operations.TryRemove key with
+                            | true, owned -> owned.Dispose()
+                            | _ -> ()
+                    }
+                    :> Task)
+                |> ignore
             else
-                let! saved = store.EnbSetups.ReadStatus(workspace, profile)
-                return saved |> Option.map fromStored |> Option.defaultWith defaultView
+                cancellation.Dispose()
+
+            return saved |> Option.map fromStored |> Option.defaultWith defaultView
         }
 
     member _.Read(workspace, profile) =
@@ -639,10 +651,18 @@ type EnbCoordinator
             Task.FromResult(adoptionView ())
         else
             task {
+                let key = workspace, profile
                 let! operation = store.EnbSetups.ConfigurationOperation(workspace, profile)
                 let! saved = store.EnbSetups.ReadStatus(workspace, profile)
 
                 match operation, saved with
+                | Some _, Some value when operations.ContainsKey key -> return fromStored value
+                | Some _, None when operations.ContainsKey key ->
+                    return
+                        view
+                            EnbPhase.Installing
+                            "Setting up Lean ENB"
+                            "The owned component operation is active."
                 | Some operation, _ ->
                     return
                         view

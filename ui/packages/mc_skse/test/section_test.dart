@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mc_artifacts/mc_artifacts.dart';
@@ -49,6 +51,7 @@ class SetupFixtureClient extends SkyrimSetupClient {
   int cancellations = 0;
   bool? startedWithFnis;
   String? selectedPath;
+  Completer<SkyrimSetupStatus>? blockedSelection;
 
   @override
   Future<SkyrimSetupStatus> read(
@@ -109,6 +112,8 @@ class SetupFixtureClient extends SkyrimSetupClient {
   ) async {
     selections++;
     selectedPath = path;
+    final blocked = blockedSelection;
+    if (blocked != null) return blocked.future;
     return current = setupStatus(
       phase: SkyrimSetupStatusPhase.settingUpEnb,
       consent: true,
@@ -230,4 +235,74 @@ void main() {
       expect(client.current.includeFnis, isTrue);
     },
   );
+
+  testWidgets('completed setup restores the retained FNIS choice', (
+    tester,
+  ) async {
+    final client = SetupFixtureClient(
+      setupStatus(
+        phase: SkyrimSetupStatusPhase.ready,
+        canStart: false,
+        ready: true,
+        includeFnis: true,
+      ),
+    );
+    await tester.pumpWidget(section(client));
+    await tester.pumpAndSettle();
+
+    expect(
+      tester.widget<SwitchListTile>(find.byType(SwitchListTile)).value,
+      isTrue,
+    );
+  });
+
+  testWidgets('completed stale setup restores the retained FNIS choice', (
+    tester,
+  ) async {
+    final client = SetupFixtureClient(
+      setupStatus(
+        phase: SkyrimSetupStatusPhase.needsConsent,
+        canStart: true,
+        includeFnis: true,
+      ),
+    );
+    await tester.pumpWidget(section(client));
+    await tester.pumpAndSettle();
+
+    expect(
+      tester.widget<SwitchListTile>(find.byType(SwitchListTile)).value,
+      isTrue,
+    );
+  });
+
+  testWidgets('active ENB selection keeps combined Cancel available', (
+    tester,
+  ) async {
+    final client = SetupFixtureClient(
+      setupStatus(
+        phase: SkyrimSetupStatusPhase.waitingForEnbArchive,
+        consent: true,
+        canStart: false,
+        canSelectArchive: true,
+        canCancel: true,
+      ),
+    );
+    final selection = Completer<SkyrimSetupStatus>();
+    client.blockedSelection = selection;
+    await tester.pumpWidget(section(client));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Choose downloaded ENBSeries archive'));
+    await tester.pump();
+    await tester.tap(find.text('Cancel setup'));
+    await tester.pump();
+    await tester.pump();
+
+    expect(client.selections, 1);
+    expect(client.cancellations, 1);
+    expect(client.current.phase, SkyrimSetupStatusPhase.cancelled);
+
+    selection.complete(client.current);
+    await tester.pumpAndSettle();
+  });
 }

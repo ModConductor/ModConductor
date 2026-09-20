@@ -87,8 +87,8 @@ let runWithNexus registration (handoff: ModConductor.Nexus.IOAuthHandoff) args =
 
     use fnisRunner = new ModConductor.Engine.FnisRunner(store)
 
-    let skyrimSetup =
-        ModConductor.Engine.SkyrimSetupCoordinator(
+    use skyrimSetup =
+        new ModConductor.Engine.SkyrimSetupCoordinator(
             store,
             skse,
             enb,

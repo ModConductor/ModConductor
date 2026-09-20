@@ -26,6 +26,7 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
   SkyrimSetupStatus? status;
   bool includeFnis = false;
   bool busy = false;
+  bool cancelling = false;
   Timer? timer;
 
   @override
@@ -72,7 +73,10 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
     }
   }
 
-  Future<void> change(Future<SkyrimSetupStatus> Function() action) async {
+  Future<void> change(
+    Future<SkyrimSetupStatus> Function() action, {
+    bool preserveFnisChoice = false,
+  }) async {
     if (busy) return;
     setState(() => busy = true);
     SkyrimSetupStatus? next;
@@ -81,7 +85,7 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
       if (!mounted) return;
       setState(() {
         status = value;
-        if (value.consentRecorded) includeFnis = value.includeFnis;
+        if (!preserveFnisChoice) includeFnis = value.includeFnis;
       });
       next = value;
     } on Exception {
@@ -94,12 +98,13 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
     if (next != null && mounted) schedule(next);
   }
 
-  Future<void> load() => change(
+  Future<void> load({bool preserveFnisChoice = false}) => change(
     () => widget.client.read(
       widget.workspaceId,
       widget.profileId,
       includeFnis: includeFnis,
     ),
+    preserveFnisChoice: preserveFnisChoice,
   );
 
   Future<void> confirm() async {
@@ -146,6 +151,29 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
         planToken: current.planToken,
       ),
     );
+  }
+
+  Future<void> cancelSetup() async {
+    if (cancelling) return;
+    setState(() => cancelling = true);
+    SkyrimSetupStatus? next;
+    try {
+      final value = await widget.client.cancel(
+        widget.workspaceId,
+        widget.profileId,
+      );
+      if (!mounted) return;
+      setState(() {
+        status = value;
+        includeFnis = value.includeFnis;
+      });
+      next = value;
+    } on Exception {
+      if (mounted) setState(() => status = null);
+    } finally {
+      if (mounted) setState(() => cancelling = false);
+    }
+    if (next != null && mounted) schedule(next);
   }
 
   Future<void> selectArchive() async {
@@ -220,7 +248,7 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
                           ? null
                           : (selected) {
                               setState(() => includeFnis = selected);
-                              unawaited(load());
+                              unawaited(load(preserveFnisChoice: true));
                             },
                     ),
                   ),
@@ -253,14 +281,7 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
                       McAction(
                         label: 'Cancel setup',
                         icon: Icons.cancel_outlined,
-                        onPressed: busy
-                            ? null
-                            : () => change(
-                                () => widget.client.cancel(
-                                  widget.workspaceId,
-                                  widget.profileId,
-                                ),
-                              ),
+                        onPressed: cancelling ? null : cancelSetup,
                       ),
                     if (value?.canContinue == true &&
                         value?.phase == SkyrimSetupStatusPhase.failed)

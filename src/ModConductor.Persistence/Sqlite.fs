@@ -94,7 +94,8 @@ module internal Sqlite =
         | 29L
         | 30L
         | 31L
-        | 32L -> ()
+        | 32L
+        | 33L -> ()
         | _ -> raise (InvalidOperationException("The state database uses an unsupported version."))
 
         if number connection transaction "PRAGMA user_version" [] = 3L then
@@ -206,6 +207,9 @@ module internal Sqlite =
 
         if number connection transaction "PRAGMA user_version" [] = 31L then
             execute connection transaction SkyrimSetupSchema.correction []
+
+        if number connection transaction "PRAGMA user_version" [] = 32L then
+            execute connection transaction SkyrimSetupSchema.cancellationAndActions []
 
         beforeCommit ()
         transaction.Commit()

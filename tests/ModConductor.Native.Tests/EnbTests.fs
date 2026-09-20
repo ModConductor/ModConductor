@@ -24,6 +24,8 @@ type EnbTests() =
     [<Test>]
     member _.``author acquisition should remain explicit durable and cancellable``() =
         flag "authorPageWaitCancelRestart" |> should equal true
+        flag "combinedCancelUsesProductionEnbOwner" |> should equal true
+        flag "combinedEnbCancellationSurvivesOwnerRestart" |> should equal true
         flag "unapprovedCatalogueBlocksAcquisition" |> should equal true
 
     [<Test>]

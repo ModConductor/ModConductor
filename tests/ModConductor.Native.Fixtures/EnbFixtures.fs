@@ -21,6 +21,7 @@ open ModConductor.ProfileGameData
 open ModConductor.Nexus
 open ModConductor.Persistence
 open ModConductor.Platform
+open ModConductor.Protocol.V1
 open ModConductor.Workspaces
 
 module EnbFixtures =
@@ -86,6 +87,35 @@ module EnbFixtures =
             failwith ("Timed out waiting for " + label + ".")
 
         value
+
+    let private unusedCombinedDependency<'value> () =
+        Task.FromException<'value>(
+            InvalidOperationException(
+                "The combined ENB cancellation fixture used an unrelated dependency."
+            )
+        )
+
+    let private combinedEnbDependencies (enb: EnbCoordinator) : SkyrimSetupDependencies =
+        { ReadSkse = fun _ _ -> unusedCombinedDependency ()
+          StartSkse = fun _ _ -> unusedCombinedDependency ()
+          CancelSkse = fun _ _ -> unusedCombinedDependency ()
+          ReadEnb = fun workspace profile -> enb.Read(workspace, profile)
+          OpenEnb = fun workspace profile -> enb.OpenAuthorPage(workspace, profile)
+          SelectEnb =
+            fun workspace profile operation path token ->
+                enb.SelectArchive(workspace, profile, operation, path, token)
+          CancelEnb = fun workspace profile -> enb.Cancel(workspace, profile)
+          RecoverEnb = fun workspace profile token -> enb.Recover(workspace, profile, token)
+          ReadFnis = fun _ _ -> unusedCombinedDependency ()
+          InstallFnis = fun _ _ -> unusedCombinedDependency ()
+          UpdateFnis = fun _ _ -> unusedCombinedDependency ()
+          CancelFnis = fun _ _ -> unusedCombinedDependency ()
+          RecoverFnis = fun _ _ _ -> unusedCombinedDependency ()
+          InspectFnis = fun _ _ _ -> unusedCombinedDependency ()
+          RunFnis = fun _ _ -> unusedCombinedDependency ()
+          CancelFnisRun = fun _ _ -> unusedCombinedDependency ()
+          ReadLaunch = fun _ _ -> unusedCombinedDependency ()
+          PluginPreflight = fun _ _ _ -> unusedCombinedDependency () }
 
     let private signIn (session: NexusSession) =
         session.SignIn() |> wait |> ignore
@@ -470,6 +500,163 @@ module EnbFixtures =
 
         check writer "authenticatedGrpcDirectAcquisitionReachesReadyAndUpdates" (run true "direct")
         check writer "nxmAcquisitionReachesReady" (run false "nxm")
+
+    let private combinedCancellationEvidence writer area =
+        let scenario =
+            Directory.CreateDirectory(Path.Combine(area, "combined-cancellation")).FullName
+
+        let statePath = Path.Combine(scenario, "state")
+        use server = new NexusServer()
+        server.Premium <- true
+
+        server.EnbFiles <-
+            Map.ofList
+                [ EnbCatalogue.LeanModId,
+                  (7001L,
+                   "lean-enb.zip",
+                   "1.0.0",
+                   archiveBytes
+                       [ "Lean ENB/enbseries.ini", "preset"
+                         "Lean ENB/enblocal.ini", "local"
+                         "Lean ENB/enbseries/enbeffect.fx", "effect" ])
+                  EnbCatalogue.CathedralModId,
+                  (7002L,
+                   "cathedral.zip",
+                   "2.50",
+                   archiveBytes
+                       [ "Cathedral Weathers/Data/Cathedral Weathers.esp", "plugin"
+                         "Cathedral Weathers/Data/Textures/sky.dds", "texture" ]) ]
+
+        use credentials = new CredentialSession(NexusMemoryStore())
+
+        use nexus =
+            new NexusSession(
+                credentials,
+                Some server.Registration,
+                server.Handoff,
+                (fun _ -> Task.CompletedTask),
+                requestInterval = TimeSpan.Zero
+            )
+
+        signIn nexus
+
+        let store =
+            new OperationStore(
+                statePath,
+                nexusLinks = NexusDownloadLinks(nexus),
+                downloadPolicy =
+                    { ModConductor.HttpDownloads.DownloadPolicy.Default with
+                        Attempts = 1
+                        RetryDelay = TimeSpan.Zero
+                        CheckpointBytes = 4096L }
+            )
+
+        let workspace, profile, _, _ = createWorkspace store scenario
+        let runtimePath = Path.Combine(scenario, "enbseries_skyrimse_v0505.zip")
+
+        archive
+            runtimePath
+            [ "WrapperVersion/d3d11.dll", "runtime"
+              "WrapperVersion/d3dcompiler_46e.dll", "compiler" ]
+
+        let owner =
+            new EnbCoordinator(
+                nexus,
+                store.Downloads,
+                store,
+                server.Handoff,
+                EnbCatalogue.lean,
+                eligibilityOverride = (fun _ -> Task.FromResult(Ok()))
+            )
+
+        owner.OpenAuthorPage(workspace, profile) |> wait |> ignore
+
+        let context = (store.GameContexts :> IGameContexts).Read workspace |> wait |> result
+
+        let operation = Guid.NewGuid()
+
+        store.SkyrimSetups.Save
+            { WorkspaceId = workspace
+              ProfileId = profile
+              IncludeFnis = false
+              PlanToken = "production-enb-cancellation"
+              Cancelled = false
+              Completed = false
+              Stage = "enb"
+              ContextRevision = context.Revision
+              ActionId = Some operation
+              ArchivePath = Some runtimePath
+              CancelRequested = false
+              CancelDetail = ""
+              RequestedAt = DateTimeOffset.UtcNow }
+        |> wait
+
+        let _metadataHold = server.HoldMetadata()
+
+        let selecting =
+            owner.SelectArchive(workspace, profile, operation, runtimePath, CancellationToken.None)
+
+        until
+            "active combined ENB acquisition"
+            (fun () -> store.EnbSetups.ReadStatus(workspace, profile) |> wait)
+            (Option.exists (fun value -> value.Phase = "acquiring"))
+        |> ignore
+
+        let combined = new SkyrimSetupCoordinator(store, combinedEnbDependencies owner)
+
+        let cancelled = combined.Cancel(workspace, profile, CancellationToken.None) |> wait
+        server.ReleaseMetadata()
+        selecting |> wait |> ignore
+
+        let ownerAfterCancel = owner.Read(workspace, profile) |> wait
+        let cancelledIntent = store.SkyrimSetups.Read(workspace, profile) |> wait
+
+        (combined :> IDisposable).Dispose()
+        (owner :> IDisposable).Dispose()
+        (store :> IDisposable).Dispose()
+
+        use reopened = new OperationStore(statePath)
+
+        let reopenedContext =
+            (reopened.GameContexts :> IGameContexts).Read workspace |> wait |> result
+
+        (reopened.GameContexts :> IGameContexts).Refresh(workspace, reopenedContext.Revision)
+        |> wait
+        |> result
+        |> ignore
+
+        use restartedOwner =
+            new EnbCoordinator(
+                nexus,
+                reopened.Downloads,
+                reopened,
+                server.Handoff,
+                EnbCatalogue.lean,
+                eligibilityOverride = (fun _ -> Task.FromResult(Ok()))
+            )
+
+        use restartedCombined =
+            new SkyrimSetupCoordinator(reopened, combinedEnbDependencies restartedOwner)
+
+        let afterRestart =
+            restartedCombined.Read(workspace, profile, false, CancellationToken.None)
+            |> wait
+
+        check
+            writer
+            "combinedCancelUsesProductionEnbOwner"
+            (cancelled.Phase = SkyrimSetupPhase.Cancelled
+             && ownerAfterCancel.Phase <> ModConductor.Protocol.V1.EnbPhase.Validating
+             && ownerAfterCancel.Phase <> ModConductor.Protocol.V1.EnbPhase.Acquiring
+             && ownerAfterCancel.Phase <> ModConductor.Protocol.V1.EnbPhase.Installing
+             && (cancelledIntent
+                 |> Option.exists (fun value ->
+                     value.Cancelled && not value.CancelRequested && value.ActionId.IsNone)))
+
+        check
+            writer
+            "combinedEnbCancellationSurvivesOwnerRestart"
+            (afterRestart.Phase = SkyrimSetupPhase.Cancelled)
 
     let observe (writer: Utf8JsonWriter) primary =
         writer.WriteStartObject("enb")
@@ -985,7 +1172,9 @@ module EnbFixtures =
             "generationScopedUpdateRemovalRecovery"
             (firstMatches && secondMatches && removed.IsNone)
 
+
         coordinatorEvidence writer area EnbCatalogue.lean
+        combinedCancellationEvidence writer area
 
         writer.WriteEndObject()
         GenerationCleanup.normalize area

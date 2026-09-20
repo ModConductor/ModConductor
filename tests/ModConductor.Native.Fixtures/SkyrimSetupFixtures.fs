@@ -20,6 +20,19 @@ open ModConductor.Workspaces
 module SkyrimSetupFixtures =
     let private wait (pending: Task<'T>) = pending.GetAwaiter().GetResult()
 
+    let private until name read accept =
+        let deadline = DateTime.UtcNow.AddSeconds 10.
+        let mutable current = read ()
+
+        while not (accept current) && DateTime.UtcNow < deadline do
+            Thread.Sleep 20
+            current <- read ()
+
+        if not (accept current) then
+            failwith ("Skyrim setup fixture timed out: " + name)
+
+        current
+
     let private result =
         function
         | Ok value -> value
@@ -116,9 +129,15 @@ module SkyrimSetupFixtures =
               ArtifactId = None }
 
         let mutable output = ModConductor.Fnis.FnisOutputPhase.Stale
+        let mutable latestRun = None
         let mutable skseReads = 0
         let mutable enbCancels = 0
         let mutable runCalls = 0
+        let mutable blockEnb = false
+        let enbStarted = new ManualResetEventSlim(false)
+        let mutable blockFnis = false
+        let fnisRelease = new ManualResetEventSlim(false)
+        let mutable retainActiveFnisCancellation = false
 
         let inspection () =
             { WorkspaceId = Guid.Empty
@@ -133,7 +152,7 @@ module SkyrimSetupFixtures =
                 else
                     "FNIS output is stale"
               Detail = "The combined coordinator owns the next action."
-              LatestRunId = None
+              LatestRunId = latestRun
               ExitCode = None
               StandardOutput = ""
               StandardError = ""
@@ -151,6 +170,12 @@ module SkyrimSetupFixtures =
                     Phase = FnisPhase.Available }
 
             output <- ModConductor.Fnis.FnisOutputPhase.Stale
+            latestRun <- None
+            blockEnb <- false
+            enbStarted.Reset()
+            blockFnis <- false
+            fnisRelease.Reset()
+            retainActiveFnisCancellation <- false
 
         member _.ReadyWithStaleFnis() =
             skse <- { skse with Phase = SksePhase.Ready }
@@ -164,9 +189,42 @@ module SkyrimSetupFixtures =
             fnis <- { fnis with Phase = FnisPhase.Ready }
             output <- ModConductor.Fnis.FnisOutputPhase.Failed
 
+        member _.ReadyWithCurrentFnis(run) =
+            skse <- { skse with Phase = SksePhase.Ready }
+            enb <- { enb with Phase = EnbPhase.Ready }
+            fnis <- { fnis with Phase = FnisPhase.Ready }
+            output <- ModConductor.Fnis.FnisOutputPhase.Current
+            latestRun <- run
+
+        member _.RunningFnis(run) =
+            skse <- { skse with Phase = SksePhase.Ready }
+            enb <- { enb with Phase = EnbPhase.Ready }
+            fnis <- { fnis with Phase = FnisPhase.Ready }
+            output <- ModConductor.Fnis.FnisOutputPhase.Running
+            latestRun <- Some run
+
         member _.SkseReads = skseReads
         member _.EnbCancels = enbCancels
         member _.RunCalls = runCalls
+
+        member _.BlockEnb() =
+            blockEnb <- true
+            enbStarted.Reset()
+
+        member _.WaitForEnb() =
+            enbStarted.Wait(TimeSpan.FromSeconds 5.)
+
+        member _.BlockFnis() =
+            blockFnis <- true
+            fnisRelease.Reset()
+
+        member _.ReleaseFnis() = fnisRelease.Set()
+
+        member _.RetainActiveFnisCancellation() = retainActiveFnisCancellation <- true
+
+        member _.CompleteFnisCancellation() =
+            retainActiveFnisCancellation <- false
+            output <- ModConductor.Fnis.FnisOutputPhase.Cancelled
 
         member _.Dependencies =
             { ReadSkse =
@@ -192,13 +250,24 @@ module SkyrimSetupFixtures =
 
                     Task.FromResult enb
               SelectEnb =
-                fun _ _ _ _ _ ->
-                    enb <-
-                        { enb with
-                            Phase = EnbPhase.Ready
-                            Status = "Lean ENB is ready" }
+                fun _ _ _ _ token ->
+                    task {
+                        if blockEnb then
+                            enb <-
+                                { enb with
+                                    Phase = EnbPhase.Installing
+                                    Status = "Installing Lean ENB" }
 
-                    Task.FromResult enb
+                            enbStarted.Set()
+                            do! Task.Delay(Timeout.Infinite, token)
+
+                        enb <-
+                            { enb with
+                                Phase = EnbPhase.Ready
+                                Status = "Lean ENB is ready" }
+
+                        return enb
+                    }
               CancelEnb =
                 fun _ _ ->
                     enbCancels <- enbCancels + 1
@@ -224,11 +293,24 @@ module SkyrimSetupFixtures =
               RecoverFnis = fun _ _ _ -> Task.FromResult fnis
               InspectFnis = fun _ _ _ -> Task.FromResult(Ok(inspection ()))
               RunFnis =
+                fun request token ->
+                    task {
+                        runCalls <- runCalls + 1
+                        latestRun <- Some request.Id
+                        output <- ModConductor.Fnis.FnisOutputPhase.Running
+
+                        if blockFnis then
+                            fnisRelease.Wait token
+
+                        output <- ModConductor.Fnis.FnisOutputPhase.Current
+                        return Ok(inspection ())
+                    }
+              CancelFnisRun =
                 fun _ _ ->
-                    runCalls <- runCalls + 1
-                    output <- ModConductor.Fnis.FnisOutputPhase.Current
+                    if not retainActiveFnisCancellation then
+                        output <- ModConductor.Fnis.FnisOutputPhase.Cancelled
+
                     Task.FromResult(Ok(inspection ()))
-              CancelFnisRun = fun _ _ -> Task.FromResult(Ok(inspection ()))
               ReadLaunch =
                 fun workspace profile ->
                     Task.FromResult(
@@ -244,7 +326,13 @@ module SkyrimSetupFixtures =
                     )
               PluginPreflight = fun _ _ _ -> Task.FromResult(Ok()) }
 
-    let private completeFlow (coordinator: SkyrimSetupCoordinator) workspace profile existing =
+    let private completeFlow
+        (coordinator: SkyrimSetupCoordinator)
+        (workflow: WorkflowState)
+        workspace
+        profile
+        existing
+        =
         let planned =
             coordinator.Read(workspace, profile, true, CancellationToken.None) |> wait
 
@@ -278,13 +366,42 @@ module SkyrimSetupFixtures =
             )
             |> wait
 
+        let afterEnbCompleted =
+            until
+                "ENB child completion"
+                (fun () ->
+                    coordinator.Read(workspace, profile, true, CancellationToken.None) |> wait)
+                (fun value -> value.Phase = SkyrimSetupPhase.SettingUpFnis)
+
         let stale = coordinator.Continue(workspace, profile, CancellationToken.None) |> wait
-        let ready = coordinator.Continue(workspace, profile, CancellationToken.None) |> wait
+
+        workflow.BlockFnis()
+
+        let running =
+            coordinator.Continue(workspace, profile, CancellationToken.None) |> wait
+
+        workflow.ReleaseFnis()
+
+        let ready =
+            until
+                "FNIS output completion"
+                (fun () ->
+                    coordinator.Read(workspace, profile, true, CancellationToken.None) |> wait)
+                (fun value -> value.Phase = SkyrimSetupPhase.Ready)
 
         let completed =
             coordinator.Continue(workspace, profile, CancellationToken.None) |> wait
 
-        planned, started, afterSkse, waiting, afterEnb, stale, ready, completed
+        planned,
+        started,
+        afterSkse,
+        waiting,
+        afterEnb,
+        afterEnbCompleted,
+        stale,
+        running,
+        ready,
+        completed
 
     let observe (writer: Utf8JsonWriter) area =
         let state =
@@ -303,11 +420,20 @@ module SkyrimSetupFixtures =
 
             workspace <- createdWorkspace
             profile <- createdProfile
-            let coordinator = SkyrimSetupCoordinator(store, workflow.Dependencies)
+            use coordinator = new SkyrimSetupCoordinator(store, workflow.Dependencies)
             let before = store.Deployments.Read profile |> wait |> result
 
-            let planned, started, afterSkse, waiting, afterEnb, stale, ready, completed =
-                completeFlow coordinator workspace profile false
+            let (planned,
+                 started,
+                 afterSkse,
+                 waiting,
+                 afterEnb,
+                 afterEnbCompleted,
+                 stale,
+                 running,
+                 ready,
+                 completed) =
+                completeFlow coordinator workflow workspace profile false
 
             completedToken <- completed.PlanToken
             let deployed = store.Deployments.Read profile |> wait |> result
@@ -329,8 +455,12 @@ module SkyrimSetupFixtures =
             check
                 writer
                 "combinedEnbThenOptionalFnis"
-                (afterEnb.Phase = SkyrimSetupPhase.SettingUpFnis
-                 && stale.Phase = SkyrimSetupPhase.FnisStale)
+                (afterEnb.Phase = SkyrimSetupPhase.SettingUpEnb
+                 && afterEnb.CanCancel
+                 && afterEnbCompleted.Phase = SkyrimSetupPhase.SettingUpFnis
+                 && stale.Phase = SkyrimSetupPhase.FnisStale
+                 && running.Phase = SkyrimSetupPhase.FnisRunning
+                 && running.CanCancel)
 
             check
                 writer
@@ -397,15 +527,99 @@ module SkyrimSetupFixtures =
                 else
                     coordinator.Continue(workspace, profile, CancellationToken.None) |> wait
 
+            workflow.BlockEnb()
+
+            let activeSelection =
+                coordinator.SelectEnbArchive(
+                    workspace,
+                    profile,
+                    Guid.NewGuid(),
+                    "enbseries-active-cancel.zip",
+                    CancellationToken.None
+                )
+                |> wait
+
+            let childStarted = workflow.WaitForEnb()
+
             let cancelled =
                 coordinator.Cancel(workspace, profile, CancellationToken.None) |> wait
 
+            let cancelledIntent = store.SkyrimSetups.Read(workspace, profile) |> wait
+
             check
                 writer
-                "combinedCancelOwnsEnbWait"
+                "combinedCancelOwnsActiveEnb"
                 (cancelWaiting.Phase = SkyrimSetupPhase.WaitingForEnbArchive
+                 && activeSelection.Phase = SkyrimSetupPhase.SettingUpEnb
+                 && activeSelection.CanCancel
+                 && childStarted
                  && cancelled.Phase = SkyrimSetupPhase.Cancelled
+                 && cancelled.Detail.Contains("ENB setup cancelled", StringComparison.Ordinal)
+                 && (cancelledIntent
+                     |> Option.exists (fun value ->
+                         value.Cancelled
+                         && not value.CancelRequested
+                         && value.CancelDetail.Contains(
+                             "ENB setup cancelled",
+                             StringComparison.Ordinal
+                         )))
                  && workflow.EnbCancels = 1)
+
+            store.SkyrimSetups.Remove(workspace, profile) |> wait
+            workflow.Reset()
+
+            let crashPlan =
+                coordinator.Read(workspace, profile, false, CancellationToken.None) |> wait
+
+            let crashStarted =
+                coordinator.Start(
+                    workspace,
+                    profile,
+                    false,
+                    crashPlan.PlanToken,
+                    true,
+                    CancellationToken.None
+                )
+                |> wait
+
+            let crashWaiting =
+                if crashStarted.Phase = SkyrimSetupPhase.WaitingForEnbArchive then
+                    crashStarted
+                else
+                    coordinator.Continue(workspace, profile, CancellationToken.None) |> wait
+
+            workflow.BlockEnb()
+
+            coordinator.SelectEnbArchive(
+                workspace,
+                profile,
+                Guid.NewGuid(),
+                "enbseries-crash-cancel.zip",
+                CancellationToken.None
+            )
+            |> wait
+            |> ignore
+
+            if not (workflow.WaitForEnb()) then
+                failwith "The ENB child did not reach its active cancellation boundary."
+
+            let crashIntent =
+                store.SkyrimSetups.Read(workspace, profile)
+                |> wait
+                |> Option.defaultWith (fun () -> failwith "The setup intent is missing.")
+
+            store.SkyrimSetups.Save
+                { crashIntent with
+                    CancelRequested = true
+                    Cancelled = false
+                    Completed = false
+                    CancelDetail = "Cancellation was requested before restart." }
+            |> wait
+
+            check
+                writer
+                "activeCancellationIntentIsDurableBeforeRestart"
+                (crashWaiting.Phase = SkyrimSetupPhase.WaitingForEnbArchive)
 
         use reopened = new OperationStore(state)
 
@@ -417,15 +631,24 @@ module SkyrimSetupFixtures =
         |> result
         |> ignore
 
-        let restarted = SkyrimSetupCoordinator(reopened, workflow.Dependencies)
+        use restarted = new SkyrimSetupCoordinator(reopened, workflow.Dependencies)
+
+        let cancellationRecovery =
+            restarted.Read(workspace, profile, false, CancellationToken.None) |> wait
 
         let cancelledAfterRestart =
-            restarted.Read(workspace, profile, false, CancellationToken.None) |> wait
+            restarted.Continue(workspace, profile, CancellationToken.None) |> wait
 
         check
             writer
-            "combinedCancellationSurvivesRestart"
-            (cancelledAfterRestart.Phase = SkyrimSetupPhase.Cancelled)
+            "combinedCancellationCompletesAfterRestart"
+            (cancellationRecovery.Phase = SkyrimSetupPhase.RecoveryRequired
+             && cancelledAfterRestart.Phase = SkyrimSetupPhase.Cancelled
+             && cancelledAfterRestart.Detail.Contains(
+                 "ENB setup cancelled",
+                 StringComparison.Ordinal
+             )
+             && workflow.EnbCancels = 2)
 
         reopened.SkyrimSetups.Remove(workspace, profile) |> wait
         workflow.Reset()
@@ -595,6 +818,213 @@ module SkyrimSetupFixtures =
             (workflow.RunCalls = runsBeforeRetry + 1
              && retried.Phase = SkyrimSetupPhase.Ready)
 
+        let unrelatedChangeAt stage =
+            reopened.SkyrimSetups.Remove(workspace, profile) |> wait
+            let observedRun = Guid.NewGuid()
+            workflow.ReadyWithCurrentFnis(Some observedRun)
+
+            let planned =
+                restarted.Read(workspace, profile, true, CancellationToken.None) |> wait
+
+            let currentContext =
+                (reopened.GameContexts :> IGameContexts).Read workspace |> wait |> result
+
+            let expectedAction = Guid.NewGuid()
+
+            reopened.SkyrimSetups.Save
+                { WorkspaceId = workspace
+                  ProfileId = profile
+                  IncludeFnis = true
+                  PlanToken = planned.PlanToken
+                  Cancelled = false
+                  Completed = false
+                  Stage = stage
+                  ContextRevision = currentContext.Revision
+                  ActionId = Some expectedAction
+                  ArchivePath = if stage = "enb" then Some "expected-enb.zip" else None
+                  CancelRequested = false
+                  CancelDetail = ""
+                  RequestedAt = DateTimeOffset.UtcNow }
+            |> wait
+
+            let deployment = reopened.Deployments.Read profile |> wait |> result
+
+            let external =
+                reopened.Deployments.Prepare(
+                    Guid.NewGuid(),
+                    deployment.Sources,
+                    ignore,
+                    CancellationToken.None
+                )
+                |> wait
+                |> result
+
+            reopened.Deployments.Activate(
+                external.Id,
+                external.Sources,
+                ignore,
+                CancellationToken.None
+            )
+            |> wait
+            |> result
+            |> ignore
+
+            restarted.Read(workspace, profile, true, CancellationToken.None) |> wait
+
+        let deploymentRollover = unrelatedChangeAt "deployment-running"
+        let skseRollover = unrelatedChangeAt "skse"
+        let enbRollover = unrelatedChangeAt "enb"
+        let fnisInstallRollover = unrelatedChangeAt "fnis-install"
+        let fnisRunRollover = unrelatedChangeAt "fnis-run"
+
+        check
+            writer
+            "externalChangesInvalidateEveryRolloverPath"
+            ([ deploymentRollover
+               skseRollover
+               enbRollover
+               fnisInstallRollover
+               fnisRunRollover ]
+             |> List.forall (fun value ->
+                 value.Phase = SkyrimSetupPhase.NeedsConsent
+                 && not value.ConsentRecorded
+                 && value.CanStart))
+
+        reopened.SkyrimSetups.Remove(workspace, profile) |> wait
+        workflow.Reset()
+
+        let activeChangePlan =
+            restarted.Read(workspace, profile, false, CancellationToken.None) |> wait
+
+        let activeChangeStarted =
+            restarted.Start(
+                workspace,
+                profile,
+                false,
+                activeChangePlan.PlanToken,
+                true,
+                CancellationToken.None
+            )
+            |> wait
+
+        let activeChangeAfterSkse =
+            if activeChangeStarted.Phase = SkyrimSetupPhase.WaitingForSkse then
+                restarted.Continue(workspace, profile, CancellationToken.None) |> wait
+            else
+                activeChangeStarted
+
+        let activeChangeWaiting =
+            if activeChangeAfterSkse.Phase = SkyrimSetupPhase.WaitingForEnbArchive then
+                activeChangeAfterSkse
+            else
+                restarted.Continue(workspace, profile, CancellationToken.None) |> wait
+
+        workflow.BlockEnb()
+
+        restarted.SelectEnbArchive(
+            workspace,
+            profile,
+            Guid.NewGuid(),
+            "enbseries-external-change.zip",
+            CancellationToken.None
+        )
+        |> wait
+        |> ignore
+
+        if not (workflow.WaitForEnb()) then
+            failwith "The ENB child did not reach the external-change boundary."
+
+        let beforeActiveChange = reopened.Deployments.Read profile |> wait |> result
+
+        let activeExternal =
+            reopened.Deployments.Prepare(
+                Guid.NewGuid(),
+                beforeActiveChange.Sources,
+                ignore,
+                CancellationToken.None
+            )
+            |> wait
+            |> result
+
+        reopened.Deployments.Activate(
+            activeExternal.Id,
+            activeExternal.Sources,
+            ignore,
+            CancellationToken.None
+        )
+        |> wait
+        |> result
+        |> ignore
+
+        let changedWhileActive =
+            restarted.Read(workspace, profile, false, CancellationToken.None) |> wait
+
+        let cancelledAfterChange =
+            restarted.Cancel(workspace, profile, CancellationToken.None) |> wait
+
+        check
+            writer
+            "externalChangeInvalidatesActiveChildConsent"
+            (activeChangeWaiting.Phase = SkyrimSetupPhase.WaitingForEnbArchive
+             && changedWhileActive.Phase = SkyrimSetupPhase.NeedsConsent
+             && not changedWhileActive.ConsentRecorded
+             && changedWhileActive.Active
+             && changedWhileActive.CanCancel
+             && not changedWhileActive.CanStart
+             && cancelledAfterChange.Phase = SkyrimSetupPhase.Cancelled)
+
+        reopened.SkyrimSetups.Remove(workspace, profile) |> wait
+        workflow.Reset()
+        workflow.ReadyWithStaleFnis()
+
+        let fnisCancelPlan =
+            restarted.Read(workspace, profile, true, CancellationToken.None) |> wait
+
+        let fnisCancelRun = Guid.NewGuid()
+        workflow.RunningFnis(fnisCancelRun)
+        workflow.RetainActiveFnisCancellation()
+
+        let fnisCancelContext =
+            (reopened.GameContexts :> IGameContexts).Read workspace |> wait |> result
+
+        reopened.SkyrimSetups.Save
+            { WorkspaceId = workspace
+              ProfileId = profile
+              IncludeFnis = true
+              PlanToken = fnisCancelPlan.PlanToken
+              Cancelled = false
+              Completed = false
+              Stage = "fnis-run"
+              ContextRevision = fnisCancelContext.Revision
+              ActionId = Some fnisCancelRun
+              ArchivePath = None
+              CancelRequested = false
+              CancelDetail = ""
+              RequestedAt = DateTimeOffset.UtcNow }
+        |> wait
+
+        let fnisRunning =
+            restarted.Read(workspace, profile, true, CancellationToken.None) |> wait
+
+        let fnisCancellationPending =
+            restarted.Cancel(workspace, profile, CancellationToken.None) |> wait
+
+        let pendingFnisIntent = reopened.SkyrimSetups.Read(workspace, profile) |> wait
+
+        workflow.CompleteFnisCancellation()
+
+        let fnisCancellationCompleted =
+            restarted.Continue(workspace, profile, CancellationToken.None) |> wait
+
+        check
+            writer
+            "activeChildOutcomeKeepsCancellationDurableUntilTerminal"
+            (fnisRunning.Phase = SkyrimSetupPhase.FnisRunning
+             && fnisCancellationPending.Phase = SkyrimSetupPhase.RecoveryRequired
+             && (pendingFnisIntent
+                 |> Option.exists (fun value -> value.CancelRequested && not value.Cancelled))
+             && fnisCancellationCompleted.Phase = SkyrimSetupPhase.Cancelled)
+
         if OperatingSystem.IsLinux() then
             let noPrefixWorkspace, noPrefixProfile, _ =
                 createWorkspace reopened area "missing-prefix" false
@@ -615,5 +1045,93 @@ module SkyrimSetupFixtures =
                  && before.ActiveGeneration.IsNone
                  && after.ActiveGeneration.IsNone
                  && after.PendingReceipt.IsNone)
+
+            let pendingWorkspace, pendingProfile = Guid.NewGuid(), Guid.NewGuid()
+
+            let pendingRoot =
+                Directory.CreateDirectory(Path.Combine(area, "pending-prefix-workspace")).FullName
+
+            let pendingGame, pendingProton =
+                ProtonFixtures.create (Path.Combine(area, "pending-prefix-installation"))
+
+            prepareProton pendingProton.RuntimeDirectory
+            let workspaces = reopened.Workspaces :> IWorkspaceState
+
+            let created =
+                workspaces.Create(
+                    pendingWorkspace,
+                    "Pending prefix",
+                    StorageWorker.select pendingRoot
+                )
+                |> wait
+                |> result
+
+            workspaces.Edit(
+                pendingWorkspace,
+                created.Workspace.Revision,
+                ProfileEdit.Create
+                    { Id = pendingProfile
+                      Name = "Pending prefix" }
+            )
+            |> wait
+            |> result
+            |> ignore
+
+            let prefix = Path.Combine(pendingProton.CompatData, "pfx")
+            let completedPrefix = prefix + ".after-first-run"
+            Directory.Move(prefix, completedPrefix)
+
+            let pendingContext =
+                (reopened.GameContexts :> IGameContexts)
+                    .Save(
+                        pendingWorkspace,
+                        0L,
+                        { Path = pendingGame
+                          Proton = Some pendingProton }
+                    )
+                |> wait
+                |> result
+
+            let pendingDeployment = reopened.Deployments.Read pendingProfile |> wait |> result
+
+            let firstRun =
+                restarted.Read(pendingWorkspace, pendingProfile, false, CancellationToken.None)
+                |> wait
+
+            Directory.Move(completedPrefix, prefix)
+
+            let refreshed =
+                (reopened.GameContexts :> IGameContexts)
+                    .Refresh(pendingWorkspace, pendingContext.Revision)
+                |> wait
+                |> result
+
+            let continued =
+                restarted.Read(pendingWorkspace, pendingProfile, false, CancellationToken.None)
+                |> wait
+
+            let afterRefresh = reopened.Deployments.Read pendingProfile |> wait |> result
+
+            check
+                writer
+                "failedPrefixChoiceSurvivesSteamFirstRunRefresh"
+                (pendingContext.Binding
+                 |> Option.exists (fun binding ->
+                     binding.Proton = Some pendingProton
+                     && binding.NeedsCheck
+                     && not binding.Evidence.Valid)
+                 && firstRun.Phase = SkyrimSetupPhase.Unavailable
+                 && firstRun.Detail = "Start Skyrim once through Steam. Close it, then select Refresh."
+                 && pendingDeployment.ActiveGeneration.IsNone
+                 && pendingDeployment.PendingReceipt.IsNone
+                 && (refreshed.Binding
+                     |> Option.exists (fun binding ->
+                         binding.Proton = Some pendingProton
+                         && not binding.NeedsCheck
+                         && binding.Evidence.Valid))
+                 && continued.Phase = SkyrimSetupPhase.NeedsConsent
+                 && continued.CanStart
+                 && afterRefresh.ActiveGeneration.IsNone
+                 && afterRefresh.PendingReceipt.IsNone)
 
         writer.WriteEndObject()

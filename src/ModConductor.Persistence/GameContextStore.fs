@@ -119,18 +119,47 @@ type GameContextStore internal (database: StateDatabase, roots: OwnedWorkspaceRo
 
                         match owned with
                         | Ok receipt when receipt.Phase = RootCreationPhase.Complete ->
-                            let! evidence =
+                            let! installation, evidence =
                                 Task.Run(fun () ->
                                     let installation = InstallationValidation.inspect path
 
-                                    match selection.Proton with
-                                    | Some proton when installation.Valid ->
-                                        ModConductor.ProtonContexts.Validation.inspect
-                                            installation
-                                            proton
-                                    | _ -> installation)
+                                    let evidence =
+                                        match selection.Proton with
+                                        | Some proton when installation.Valid ->
+                                            ModConductor.ProtonContexts.Validation.inspect
+                                                installation
+                                                proton
+                                        | _ -> installation
 
-                            if candidate.IsSome && not evidence.Valid then
+                                    installation, evidence)
+
+                            let pendingFirstRun =
+                                match candidate, selection.Proton with
+                                | Some _, Some proton when
+                                    installation.Valid
+                                    && proton.AppId = Skyrim.definition.SteamAppId
+                                    ->
+                                    evidence.Problems
+                                    |> List.exists (fun problem ->
+                                        problem.Path.StartsWith(
+                                            proton.CompatData,
+                                            StringComparison.Ordinal
+                                        )
+                                        && (problem.Detail.StartsWith(
+                                                "The Proton data folder could not be checked.",
+                                                StringComparison.Ordinal
+                                            )
+                                            || problem.Detail.StartsWith(
+                                                "The Proton user folders could not be checked.",
+                                                StringComparison.Ordinal
+                                            )
+                                            || problem.Detail.StartsWith(
+                                                "The Proton prefix metadata could not be checked.",
+                                                StringComparison.Ordinal
+                                            )))
+                                | _ -> false
+
+                            if candidate.IsSome && not evidence.Valid && not pendingFirstRun then
                                 return Error(ContextError.Invalid evidence)
                             else
                                 return!
@@ -151,27 +180,28 @@ type GameContextStore internal (database: StateDatabase, roots: OwnedWorkspaceRo
                                                 Error ContextError.StaleRevision
                                             | Ok current ->
                                                 let binding =
-                                                    if evidence.Valid then
-                                                        { Id =
-                                                            current.Binding
-                                                            |> Option.map _.Id
-                                                            |> Option.defaultWith Guid.NewGuid
-                                                          Path = path
-                                                          Proton =
+                                                    { Id =
+                                                        current.Binding
+                                                        |> Option.map _.Id
+                                                        |> Option.defaultWith Guid.NewGuid
+                                                      Path = path
+                                                      Proton =
+                                                        if evidence.Valid then
                                                             evidence.Proton
                                                             |> Option.map _.Selection
-                                                          Evidence = evidence
-                                                          NeedsCheck = false
-                                                          Failure = None }
-                                                    else
-                                                        { current.Binding.Value with
-                                                            NeedsCheck = true
-                                                            Failure =
-                                                                Some(
-                                                                    evidence.Problems
-                                                                    |> List.map _.Detail
-                                                                    |> String.concat " "
-                                                                ) }
+                                                        else
+                                                            selection.Proton
+                                                      Evidence = evidence
+                                                      NeedsCheck = not evidence.Valid
+                                                      Failure =
+                                                        if evidence.Valid then
+                                                            None
+                                                        else
+                                                            Some(
+                                                                evidence.Problems
+                                                                |> List.map _.Detail
+                                                                |> String.concat " "
+                                                            ) }
 
                                                 GameContextRows.save
                                                     database.Connection

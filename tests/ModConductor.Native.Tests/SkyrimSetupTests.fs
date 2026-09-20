@@ -22,8 +22,9 @@ type SkyrimSetupTests() =
     [<Test>]
     member _.``combined setup should preserve cancellation recovery and existing workspaces``() =
         flag "existingWorkspaceKeepsActiveDeployment" |> should equal true
-        flag "combinedCancelOwnsEnbWait" |> should equal true
-        flag "combinedCancellationSurvivesRestart" |> should equal true
+        flag "combinedCancelOwnsActiveEnb" |> should equal true
+        flag "activeCancellationIntentIsDurableBeforeRestart" |> should equal true
+        flag "combinedCancellationCompletesAfterRestart" |> should equal true
         flag "pendingDeploymentBlocksChildReads" |> should equal true
 
     [<Test>]
@@ -33,4 +34,11 @@ type SkyrimSetupTests() =
         flag "failedFnisOutputRetriesThroughOwner" |> should equal true
         flag "changedGenerationRequiresNewPlan" |> should equal true
         flag "changedContextRequiresNewPlan" |> should equal true
+        flag "externalChangesInvalidateEveryRolloverPath" |> should equal true
+        flag "externalChangeInvalidatesActiveChildConsent" |> should equal true
+
+        flag "activeChildOutcomeKeepsCancellationDurableUntilTerminal"
+        |> should equal true
+
         flag "missingProtonPausesBeforeDeploymentWrite" |> should equal true
+        flag "failedPrefixChoiceSurvivesSteamFirstRunRefresh" |> should equal true

@@ -1,9 +1,11 @@
 namespace ModConductor.Engine
 
 open System
+open System.Collections.Concurrent
 open System.Security.Cryptography
 open System.Text
 open System.Threading
+open System.Threading.Tasks
 open ModConductor.Deployment
 open ModConductor.Executables
 open ModConductor.Fnis
@@ -116,6 +118,36 @@ module internal SkyrimSetupDependencies =
                 pluginOrders.PreflightForLaunch(workspace, profile, token) }
 
 type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: SkyrimSetupDependencies) =
+    let lifetime = new CancellationTokenSource()
+    let workers = ConcurrentDictionary<Guid * Guid, CancellationTokenSource>()
+
+    let startWorker workspace profile action =
+        let key = workspace, profile
+        let cancellation = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token)
+
+        if workers.TryAdd(key, cancellation) then
+            Task.Run(fun () ->
+                task {
+                    try
+                        try
+                            let! _ = action cancellation.Token
+                            ()
+                        with :? OperationCanceledException when
+                            cancellation.IsCancellationRequested ->
+                            ()
+                    finally
+                        match workers.TryRemove key with
+                        | true, owned -> owned.Dispose()
+                        | _ -> ()
+                }
+                :> Task)
+            |> ignore
+
+            true
+        else
+            cancellation.Dispose()
+            false
+
     let firstRunInstruction =
         "Start Skyrim once through Steam. Close it, then select Refresh."
 
@@ -244,7 +276,7 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
         | DeploymentError.Blocked detail
         | DeploymentError.Unavailable detail -> detail
 
-    let initialDeployment (deployment: DeploymentStatus) token =
+    let initialDeployment (deployment: DeploymentStatus) action token =
         task {
             match deployment.PendingReceipt with
             | Some id ->
@@ -264,10 +296,7 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
 
                     return recovered |> Result.map ignore |> Result.mapError deploymentError
             | None when deployment.ActiveGeneration.IsNone ->
-                let preparedId = Guid.NewGuid()
-
-                let! prepared =
-                    store.Deployments.Prepare(preparedId, deployment.Sources, ignore, token)
+                let! prepared = store.Deployments.Prepare(action, deployment.Sources, ignore, token)
 
                 match prepared with
                 | Error error -> return Error(deploymentError error)
@@ -413,12 +442,51 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                                 false
                                 false
 
-                        if intent |> Option.exists _.Cancelled then
+                        let staleActivePlan components =
+                            { stalePlan components with
+                                CanStart = false
+                                Active = true
+                                CanCancel = true }
+
+                        if intent |> Option.exists _.CancelRequested then
+                            let pending = intent.Value
+
+                            return
+                                { view
+                                      SkyrimSetupPhase.RecoveryRequired
+                                      "Skyrim setup cancellation needs completion"
+                                      (if String.IsNullOrWhiteSpace pending.CancelDetail then
+                                           "Select Continue to finish the recorded child cancellation and recovery."
+                                       else
+                                           pending.CancelDetail)
+                                      tokenValue
+                                      planned
+                                      [ componentView
+                                            "Setup"
+                                            "Cancellation recorded"
+                                            "The child owner must finish cancellation before setup can continue."
+                                            false
+                                            false
+                                            true ]
+                                      includeFnis
+                                      consent
+                                      false
+                                      true
+                                      false
+                                      false
+                                      false with
+                                    CanCancel = false }
+                        elif intent |> Option.exists _.Cancelled then
+                            let cancelled = intent.Value
+
                             return
                                 view
                                     SkyrimSetupPhase.Cancelled
                                     "Skyrim setup is cancelled"
-                                    "The recorded component operations stopped without replacing the prior active setup. Review the current plan to continue."
+                                    (if String.IsNullOrWhiteSpace cancelled.CancelDetail then
+                                         "The recorded component operations stopped without replacing the prior active setup. Review the current plan to continue."
+                                     else
+                                         cancelled.CancelDetail)
                                     tokenValue
                                     planned
                                     [ componentView
@@ -504,17 +572,66 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                                           false
                                           false
                                           true ]
+                        elif workers.ContainsKey((workspace, profile)) then
+                            let workerPhase, workerName, workerStatus, workerDetail =
+                                match stage with
+                                | "fnis-run" ->
+                                    SkyrimSetupPhase.FnisRunning,
+                                    "FNIS",
+                                    "Updating FNIS output",
+                                    "Cancel remains available while the FNIS owner updates the active output."
+                                | _ ->
+                                    SkyrimSetupPhase.SettingUpEnb,
+                                    "Lean ENB",
+                                    "Setting up",
+                                    "Cancel remains available while the child operation is active."
+
+                            let workerComponent =
+                                componentView workerName workerStatus workerDetail false true false
+
+                            if tokenChanged then
+                                return staleActivePlan [ workerComponent ]
+                            else
+                                return
+                                    view
+                                        workerPhase
+                                        workerStatus
+                                        workerDetail
+                                        tokenValue
+                                        planned
+                                        [ workerComponent ]
+                                        includeFnis
+                                        consent
+                                        false
+                                        false
+                                        false
+                                        true
+                                        false
                         else
                             match recorded with
                             | Some value when tokenChanged && stage = "deployment-running" ->
-                                do!
-                                    store.SkyrimSetups.Save
-                                        { value with
-                                            PlanToken = tokenValue
-                                            Stage = "skse-start" }
+                                let! receipt =
+                                    match value.ActionId with
+                                    | Some action -> store.Deployments.Receipt action
+                                    | None -> Task.FromResult(Error DeploymentError.NotFound)
 
-                                tokenChanged <- false
-                                stage <- "skse-start"
+                                let caused =
+                                    match receipt, deployed.ActiveGeneration with
+                                    | Ok receipt, Some active ->
+                                        receipt.Phase = ModConductor.Deployment.DeploymentPhase.Complete
+                                        && receipt.Proposed = active
+                                    | _ -> false
+
+                                if caused then
+                                    do!
+                                        store.SkyrimSetups.Save
+                                            { value with
+                                                PlanToken = tokenValue
+                                                Stage = "skse-start"
+                                                ActionId = None }
+
+                                    tokenChanged <- false
+                                    stage <- "skse-start"
                             | _ -> ()
 
                             let! skseState = dependencies.ReadSkse workspace profile
@@ -546,7 +663,10 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                                     else SkyrimSetupPhase.WaitingForSkse
 
                                 if tokenChanged then
-                                    return stalePlan [ skseComponent ]
+                                    if skseActive then
+                                        return staleActivePlan [ skseComponent ]
+                                    else
+                                        return stalePlan [ skseComponent ]
                                 else
                                     return
                                         view
@@ -570,8 +690,23 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                                             skseActive
                                             false
                             else
+                                let! skseTransition =
+                                    if tokenChanged && stage = "skse" then
+                                        task {
+                                            let! installed =
+                                                store.SkseLoaders.ReadStored(
+                                                    workspace,
+                                                    profile,
+                                                    deployed.ActiveGeneration
+                                                )
+
+                                            return installed.IsSome
+                                        }
+                                    else
+                                        Task.FromResult false
+
                                 match recorded with
-                                | Some value when tokenChanged && stage = "skse" ->
+                                | Some value when tokenChanged && stage = "skse" && skseTransition ->
                                     do!
                                         store.SkyrimSetups.Save
                                             { value with
@@ -580,7 +715,9 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
 
                                     tokenChanged <- false
                                     stage <- "enb-start"
-                                | Some value when stage = "skse" || stage = "skse-start" ->
+                                | Some value when
+                                    not tokenChanged && (stage = "skse" || stage = "skse-start")
+                                    ->
                                     do!
                                         store.SkyrimSetups.Save
                                             { value with
@@ -617,7 +754,10 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                                     let waiting = enbState.Phase = EnbPhase.WaitingForArchive
 
                                     if tokenChanged then
-                                        return stalePlan [ skseComponent; enbComponent ]
+                                        if enbActive then
+                                            return staleActivePlan [ skseComponent; enbComponent ]
+                                        else
+                                            return stalePlan [ skseComponent; enbComponent ]
                                     else
                                         return
                                             view
@@ -645,8 +785,30 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                                                 enbActive
                                                 false
                                 else
+                                    let! enbTransition =
+                                        if tokenChanged && stage = "enb" then
+                                            task {
+                                                let! configured =
+                                                    store.EnbSetups.ConfigurationPlan(
+                                                        workspace,
+                                                        profile,
+                                                        deployed.ActiveGeneration
+                                                    )
+
+                                                return
+                                                    match
+                                                        configured,
+                                                        recorded |> Option.bind _.ActionId
+                                                    with
+                                                    | Some(_, Some observed), Some expected ->
+                                                        observed = expected
+                                                    | _ -> false
+                                            }
+                                        else
+                                            Task.FromResult false
+
                                     match recorded with
-                                    | Some value when tokenChanged && stage = "enb" ->
+                                    | Some value when tokenChanged && stage = "enb" && enbTransition ->
                                         let nextStage =
                                             if includeFnis then "fnis-install" else "readiness"
 
@@ -658,7 +820,9 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
 
                                         tokenChanged <- false
                                         stage <- nextStage
-                                    | Some value when stage = "enb" || stage = "enb-start" ->
+                                    | Some value when
+                                        not tokenChanged && (stage = "enb" || stage = "enb-start")
+                                        ->
                                         let nextStage =
                                             if includeFnis then "fnis-install" else "readiness"
 
@@ -757,36 +921,74 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                                     let nextFnisStage =
                                         if fnisReady then "readiness" else "fnis-run"
 
+                                    let! fnisInstallTransition =
+                                        if
+                                            tokenChanged && stage = "fnis-install" && fnisSetupReady
+                                        then
+                                            task {
+                                                let! installed =
+                                                    store.FnisSetups.ReadExact(
+                                                        workspace,
+                                                        profile,
+                                                        deployed.ActiveGeneration
+                                                    )
+
+                                                return installed.IsSome
+                                            }
+                                        else
+                                            Task.FromResult false
+
+                                    let fnisRunTransition =
+                                        tokenChanged
+                                        && stage = "fnis-run"
+                                        && fnisReady
+                                        && (match recorded |> Option.bind _.ActionId, output with
+                                            | Some expected, Some observed ->
+                                                observed.LatestRunId = Some expected
+                                            | _ -> false)
+
                                     match recorded with
                                     | Some value when
-                                        tokenChanged && stage = "fnis-install" && fnisSetupReady
+                                        tokenChanged
+                                        && stage = "fnis-install"
+                                        && fnisSetupReady
+                                        && fnisInstallTransition
                                         ->
                                         do!
                                             store.SkyrimSetups.Save
                                                 { value with
                                                     PlanToken = tokenValue
-                                                    Stage = nextFnisStage }
+                                                    Stage = nextFnisStage
+                                                    ActionId = None }
 
                                         tokenChanged <- false
                                         stage <- nextFnisStage
                                     | Some value when
-                                        tokenChanged && stage = "fnis-run" && fnisReady
+                                        tokenChanged
+                                        && stage = "fnis-run"
+                                        && fnisReady
+                                        && fnisRunTransition
                                         ->
                                         do!
                                             store.SkyrimSetups.Save
                                                 { value with
                                                     PlanToken = tokenValue
-                                                    Stage = "readiness" }
+                                                    Stage = "readiness"
+                                                    ActionId = None }
 
                                         tokenChanged <- false
                                         stage <- "readiness"
-                                    | Some value when stage = "fnis-install" && fnisSetupReady ->
+                                    | Some value when
+                                        not tokenChanged && stage = "fnis-install" && fnisSetupReady
+                                        ->
                                         do!
                                             store.SkyrimSetups.Save
                                                 { value with Stage = nextFnisStage }
 
                                         stage <- nextFnisStage
-                                    | Some value when stage = "fnis-run" && fnisReady ->
+                                    | Some value when
+                                        not tokenChanged && stage = "fnis-run" && fnisReady
+                                        ->
                                         do!
                                             store.SkyrimSetups.Save
                                                 { value with Stage = "readiness" }
@@ -795,7 +997,10 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                                     | _ -> ()
 
                                     if not fnisReady && tokenChanged then
-                                        return stalePlan components
+                                        if fnisActive then
+                                            return staleActivePlan components
+                                        else
+                                            return stalePlan components
                                     elif not fnisReady then
                                         let stale =
                                             output
@@ -914,6 +1119,118 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                                                 launchReady
         }
 
+    let completeCancellation workspace profile (intent: StoredSkyrimSetupIntent) token =
+        task {
+            let key = workspace, profile
+
+            match workers.TryGetValue key with
+            | true, cancellation -> cancellation.Cancel()
+            | _ -> ()
+
+            let! childResult =
+                task {
+                    match intent.Stage with
+                    | "enb-start"
+                    | "enb-wait"
+                    | "enb" ->
+                        let! result = dependencies.CancelEnb workspace profile
+
+                        let detail = result.Status + ". " + result.Detail
+
+                        return
+                            if
+                                result.Phase = EnbPhase.Validating
+                                || result.Phase = EnbPhase.Acquiring
+                                || result.Phase = EnbPhase.Installing
+                                || result.Phase = EnbPhase.Failed
+                                || result.Phase = EnbPhase.Conflict
+                            then
+                                Error detail
+                            else
+                                Ok detail
+                    | "skse-start"
+                    | "skse" ->
+                        let! result = dependencies.CancelSkse workspace profile
+                        let detail = result.Status + ". " + result.Detail
+
+                        return
+                            if
+                                result.Phase = SksePhase.Downloading
+                                || result.Phase = SksePhase.Installing
+                            then
+                                Error detail
+                            else
+                                Ok detail
+                    | "fnis-install" ->
+                        let! result = dependencies.CancelFnis workspace profile
+                        let detail = result.Status + ". " + result.Detail
+
+                        return
+                            if
+                                result.Phase = FnisPhase.Downloading
+                                || result.Phase = FnisPhase.Installing
+                                || result.Phase = FnisPhase.RecoveryRequired
+                            then
+                                Error detail
+                            else
+                                Ok detail
+                    | "fnis-run" ->
+                        let! result = dependencies.CancelFnisRun workspace profile
+
+                        return
+                            match result with
+                            | Ok value when value.Phase = ModConductor.Fnis.FnisOutputPhase.Running ->
+                                Error(value.Status + ". " + value.Detail)
+                            | Ok value -> Ok(value.Status + ". " + value.Detail)
+                            | Error error -> Error("FNIS cancellation result: " + string error)
+                    | _ -> return Ok "No child operation remained active."
+                }
+
+            let! deployed = store.Deployments.Read profile
+
+            let! recovered =
+                match deployed with
+                | Ok value when value.PendingReceipt.IsSome ->
+                    recoverPending workspace profile value token
+                | _ -> Task.FromResult(Ok())
+
+            match childResult, recovered with
+            | Error childDetail, Error recoveryDetail ->
+                let pending =
+                    { intent with
+                        CancelRequested = true
+                        Cancelled = false
+                        Completed = false
+                        CancelDetail = childDetail + " " + recoveryDetail }
+
+                do! store.SkyrimSetups.Save pending
+                return! inspect workspace profile intent.IncludeFnis (Some pending) token
+            | Error detail, Ok()
+            | Ok _, Error detail ->
+                let pending =
+                    { intent with
+                        CancelRequested = true
+                        Cancelled = false
+                        Completed = false
+                        CancelDetail = detail }
+
+                do! store.SkyrimSetups.Save pending
+                return! inspect workspace profile intent.IncludeFnis (Some pending) token
+            | Ok childDetail, Ok() ->
+                let cancelled =
+                    { intent with
+                        CancelRequested = false
+                        Cancelled = true
+                        Completed = false
+                        Stage = "cancelled"
+                        ActionId = None
+                        ArchivePath = None
+                        CancelDetail = childDetail }
+
+                do! store.SkyrimSetups.Save cancelled
+                return! inspect workspace profile intent.IncludeFnis (Some cancelled) token
+        }
+
     let confirmPlan workspace profile includeFnis expected =
         task {
             let! contextResult = (store.GameContexts :> IGameContexts).Read workspace
@@ -949,7 +1266,8 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                     let running =
                         if deployment.ActiveGeneration.IsNone then
                             { intent with
-                                Stage = "deployment-running" }
+                                Stage = "deployment-running"
+                                ActionId = Some(intent.ActionId |> Option.defaultWith Guid.NewGuid) }
                         else
                             intent
 
@@ -958,7 +1276,7 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
 
                     let! result =
                         if deployment.ActiveGeneration.IsNone then
-                            initialDeployment deployment token
+                            initialDeployment deployment running.ActionId.Value token
                         else
                             recoverPending workspace profile deployment token
 
@@ -996,16 +1314,24 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
 
                 return! inspect workspace profile intent.IncludeFnis (Some intent) token
             | SkyrimSetupPhase.FnisStale when before.CanContinue ->
-                do! store.SkyrimSetups.Save { intent with Stage = "fnis-run" }
+                let run = Guid.NewGuid()
 
-                let! _ =
+                let running =
+                    { intent with
+                        Stage = "fnis-run"
+                        ActionId = Some run }
+
+                do! store.SkyrimSetups.Save running
+
+                startWorker workspace profile (fun childToken ->
                     dependencies.RunFnis
-                        { Id = Guid.NewGuid()
+                        { Id = run
                           WorkspaceId = workspace
                           ProfileId = profile }
-                        token
+                        childToken)
+                |> ignore
 
-                return! inspect workspace profile intent.IncludeFnis (Some intent) token
+                return! inspect workspace profile intent.IncludeFnis (Some running) token
             | SkyrimSetupPhase.Failed when before.CanContinue ->
                 let! deployment = store.Deployments.Read profile
 
@@ -1029,16 +1355,24 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                         || value.Phase = ModConductor.Fnis.FnisOutputPhase.Cancelled
                         || value.Phase = ModConductor.Fnis.FnisOutputPhase.Abandoned)
                 then
-                    do! store.SkyrimSetups.Save { intent with Stage = "fnis-run" }
+                    let run = Guid.NewGuid()
 
-                    let! _ =
+                    let running =
+                        { intent with
+                            Stage = "fnis-run"
+                            ActionId = Some run }
+
+                    do! store.SkyrimSetups.Save running
+
+                    startWorker workspace profile (fun childToken ->
                         dependencies.RunFnis
-                            { Id = Guid.NewGuid()
+                            { Id = run
                               WorkspaceId = workspace
                               ProfileId = profile }
-                            token
+                            childToken)
+                    |> ignore
 
-                    return! inspect workspace profile intent.IncludeFnis (Some intent) token
+                    return! inspect workspace profile intent.IncludeFnis (Some running) token
                 elif
                     deployment |> Result.toOption |> Option.bind _.PendingReceipt |> Option.isSome
                     && (enbState.Phase = EnbPhase.Failed || enbState.Phase = EnbPhase.Conflict)
@@ -1065,7 +1399,11 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                         { intent with
                             Completed = true
                             Stage = "complete"
-                            PlanToken = before.PlanToken }
+                            PlanToken = before.PlanToken
+                            ActionId = None
+                            ArchivePath = None
+                            CancelRequested = false
+                            CancelDetail = "" }
 
                 return
                     { before with
@@ -1084,7 +1422,7 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
             launches: IGameLaunching,
             pluginOrders: IProfilePluginOrders
         ) =
-        SkyrimSetupCoordinator(
+        new SkyrimSetupCoordinator(
             store,
             SkyrimSetupDependencies.production skse enb fnis execution launches pluginOrders
         )
@@ -1149,6 +1487,10 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                                 Completed = false
                                 Stage = initialStage
                                 ContextRevision = contextRevision
+                                ActionId = None
+                                ArchivePath = None
+                                CancelRequested = false
+                                CancelDetail = ""
                                 RequestedAt = DateTimeOffset.UtcNow }
 
                         do! store.SkyrimSetups.Save replacement
@@ -1193,6 +1535,10 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                               Completed = false
                               Stage = initialStage
                               ContextRevision = contextRevision
+                              ActionId = None
+                              ArchivePath = None
+                              CancelRequested = false
+                              CancelDetail = ""
                               RequestedAt = DateTimeOffset.UtcNow }
 
                         do! store.SkyrimSetups.Save intent
@@ -1204,6 +1550,8 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
             let! intent = store.SkyrimSetups.Read(workspace, profile)
 
             match intent with
+            | Some value when value.CancelRequested ->
+                return! completeCancellation workspace profile value token
             | Some value -> return! advance workspace profile value token
             | None -> return! inspect workspace profile false None token
         }
@@ -1225,10 +1573,28 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                 then
                     return current
                 else
-                    let selecting = { intent with Stage = "enb" }
+                    let selecting =
+                        { intent with
+                            Stage = "enb"
+                            ActionId = Some operation
+                            ArchivePath = Some path }
+
                     do! store.SkyrimSetups.Save selecting
-                    let! _ = dependencies.SelectEnb workspace profile operation path token
-                    return! inspect workspace profile intent.IncludeFnis (Some selecting) token
+
+                    startWorker workspace profile (fun childToken ->
+                        dependencies.SelectEnb workspace profile operation path childToken)
+                    |> ignore
+
+                    return
+                        { current with
+                            Phase = SkyrimSetupPhase.SettingUpEnb
+                            Status = "Setting up Lean ENB"
+                            Detail =
+                                "The child owner is validating and applying the selected ENB archive."
+                            CanSelectEnbArchive = false
+                            CanContinue = false
+                            Active = true
+                            CanCancel = true }
         }
 
     member _.Cancel(workspace, profile, token) =
@@ -1240,34 +1606,29 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
             | Some intent when intent.Cancelled || intent.Completed ->
                 return! inspect workspace profile intent.IncludeFnis (Some intent) token
             | Some intent ->
-                let cancelled =
+                let requested =
                     { intent with
-                        Cancelled = true
+                        CancelRequested = true
+                        Cancelled = false
                         Completed = false
-                        Stage = "cancelled" }
+                        CancelDetail = "Cancellation was requested." }
 
-                do! store.SkyrimSetups.Save cancelled
+                do! store.SkyrimSetups.Save requested
+                return! completeCancellation workspace profile requested token
+        }
 
-                match intent.Stage with
-                | "enb-start"
-                | "enb-wait"
-                | "enb" ->
-                    let! _ = dependencies.CancelEnb workspace profile
-                    ()
-                | "skse-start"
-                | "skse" ->
-                    let! _ = dependencies.CancelSkse workspace profile
-                    ()
-                | "fnis-install" ->
-                    let! _ = dependencies.CancelFnis workspace profile
-                    ()
-                | "fnis-run" ->
-                    let! _ = dependencies.CancelFnisRun workspace profile
-                    ()
+    interface IDisposable with
+        member _.Dispose() =
+            lifetime.Cancel()
+
+            for key in workers.Keys do
+                match workers.TryRemove key with
+                | true, cancellation ->
+                    cancellation.Cancel()
+                    cancellation.Dispose()
                 | _ -> ()
 
-                return! inspect workspace profile intent.IncludeFnis (Some cancelled) token
-        }
+            lifetime.Dispose()
 
 type internal SkyrimSetupService(coordinator: SkyrimSetupCoordinator) =
     inherit SkyrimSetupOperations.SkyrimSetupOperationsBase()
