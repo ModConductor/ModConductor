@@ -3,6 +3,7 @@
   <ItemGroup>
     <Compile Include="Contracts.fs" />
     <Compile Include="PlanningPaths.fs" />
+    <Compile Include="ComponentManifests.fs" />
     <Compile Include="InputFingerprint.fs" />
     <Compile Include="InputProjection.fs" />
     <Compile Include="TargetResolution.fs" />

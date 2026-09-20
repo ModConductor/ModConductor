@@ -18,6 +18,7 @@ module internal GenerationSources =
         roots
         snapshots
         writable
+        components
         (retained: SavedProfile option)
         =
         task {
@@ -31,14 +32,6 @@ module internal GenerationSources =
                     let result =
                         sources
                         |> Result.map (fun sources ->
-                            let saved =
-                                retained
-                                |> Option.defaultWith (fun () ->
-                                    GenerationProfile.capture
-                                        database.Connection
-                                        transaction
-                                        sources)
-
                             let sources =
                                 match retained with
                                 | None -> sources
@@ -51,6 +44,26 @@ module internal GenerationSources =
                                                 sources.Stamp.WorkspaceId
                                                 saved
                                         Hidden = saved.Hidden }
+
+                            let planning =
+                                ComponentManifests.apply
+                                    components
+                                    { Profile = sources.Profile
+                                      Roots = roots
+                                      ReadOnly = snapshots |> List.map _.Snapshot
+                                      Writable = writable }
+
+                            let sources =
+                                { sources with
+                                    Profile = planning.Profile }
+
+                            let saved =
+                                retained
+                                |> Option.defaultWith (fun () ->
+                                    GenerationProfile.capture
+                                        database.Connection
+                                        transaction
+                                        sources)
 
                             let payloads =
                                 sources.Profile.Mods
@@ -83,12 +96,12 @@ module internal GenerationSources =
                                         RecoveryFiles.fail
                                             "An exact managed payload is unavailable.")
 
-                            sources, library, files, saved)
+                            sources, planning, library, files, saved)
 
                     transaction.Commit()
                     result)
 
-            let sources, library, files, saved =
+            let sources, planning, library, files, saved =
                 read
                 |> Result.defaultWith (fun _ -> raise (RecoveryException RecoveryError.Stale))
 
@@ -153,14 +166,9 @@ module internal GenerationSources =
                         ),
                         backing))
 
-
             return
                 { Input =
-                    { Planning =
-                        { Profile = sources.Profile
-                          Roots = roots
-                          ReadOnly = snapshots |> List.map _.Snapshot
-                          Writable = writable }
+                    { Planning = planning
                       Hidden = sources.Hidden }
                   Stamp = sources.Stamp
                   Files = Map.ofList (managed @ observed) },

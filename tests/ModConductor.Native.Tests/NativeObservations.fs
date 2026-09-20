@@ -46,6 +46,7 @@ type NativeObservationSetup() =
         | "executables" -> info.ArgumentList.Add "--executables"
         | "generated-outputs" -> info.ArgumentList.Add "--generated-outputs"
         | "deployment-backend" -> info.ArgumentList.Add "--deployment-backend"
+        | "components" -> info.ArgumentList.Add "--components"
         | "generations" -> info.ArgumentList.Add "--generations"
         | "storage" -> info.ArgumentList.Add "--storage"
         | "deployment-recovery" -> info.ArgumentList.Add "--deployment-recovery"

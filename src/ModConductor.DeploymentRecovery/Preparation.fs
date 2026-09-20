@@ -42,7 +42,11 @@ module internal Preparation =
                     (HostPath.value second.Directory.Path)
                     (HostPath.value first.Directory.Path)))
 
-    let private checkLocations (roots: RootBinding list) (generation: Generation) =
+    let private checkLocations
+        (roots: RootBinding list)
+        (boundaries: TargetFile list)
+        (generation: Generation)
+        =
         let canonical (location: Location) =
             use held = HeldDirectory.Open(location.Path, location.Identity)
 
@@ -59,17 +63,7 @@ module internal Preparation =
         let targets = roots |> List.map (fun root -> root, canonical root.Directory)
         let generationPath = canonical generation.Directory
 
-        for index, (root, target) in List.indexed targets do
-            if
-                targets
-                |> List.skip (index + 1)
-                |> List.exists (fun (other, path) ->
-                    root.Directory.Identity = other.Directory.Identity
-                    || nested target path
-                    || nested path target)
-            then
-                RecoveryFiles.fail "Deployment target roots overlap."
-
+        for root, _ in targets do
             let originals = canonical root.Originals
 
             if
@@ -77,8 +71,6 @@ module internal Preparation =
                 |> List.exists (fun (targetRoot, path) ->
                     targetRoot.Directory.Identity = root.Originals.Identity
                     || targetRoot.Directory.Identity = generation.Directory.Identity
-                    || nested path originals
-                    || nested originals path
                     || nested path generationPath
                     || nested generationPath path)
             then
@@ -94,6 +86,37 @@ module internal Preparation =
 
             if root.Directory.Identity.Device <> root.Originals.Identity.Device then
                 RecoveryFiles.fail "Original preservation requires the target volume."
+
+        let nativePath target =
+            let root = roots |> List.find (fun value -> value.Root.Id = target.Root)
+
+            (HostPath.value root.Directory.Path, LogicalPath.components target.Path)
+            ||> List.fold (fun parent child -> Path.Combine(parent, child))
+            |> Path.GetFullPath
+
+        let physicalTargets =
+            (generation.Files |> List.map _.Target)
+            @ (generation.Observed |> List.map _.Target)
+            @ (generation.Working |> List.map _.Target)
+            @ boundaries
+            |> List.distinct
+            |> List.map (fun target -> target, nativePath target)
+
+        for index, (target, path) in List.indexed physicalTargets do
+            for other, otherPath in physicalTargets |> List.skip (index + 1) do
+                if
+                    target.Root <> other.Root && (nested path otherPath || nested otherPath path)
+                then
+                    RecoveryFiles.fail "Deployment target roots contain overlapping paths."
+
+        for root in roots do
+            let originals = HostPath.value root.Originals.Path |> Path.GetFullPath
+
+            if
+                physicalTargets
+                |> List.exists (fun (_, path) -> nested path originals || nested originals path)
+            then
+                RecoveryFiles.fail "A deployment target overlaps original storage."
 
     let private checkExternalLocations (roots: RootBinding list) (generation: Generation) =
         let protectedLocations =
@@ -263,7 +286,7 @@ module internal Preparation =
                 ()
             | _ -> raise (RecoveryException RecoveryError.InvalidPlan)
 
-        checkLocations context.Roots request.Generation
+        checkLocations context.Roots request.DirectoryBoundaries request.Generation
         checkExternalLocations context.Roots request.Generation
         RecoveryFiles.verifyGenerationWith token request.Generation
         RecoveryFiles.verifyObservedWith token context request.Generation

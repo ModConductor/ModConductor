@@ -6,6 +6,7 @@ open System.Threading
 open System.Threading.Tasks
 open ModConductor.ModLibrary
 open ModConductor.Platform
+open ModConductor.DeploymentPlanning
 open ModConductor.DeploymentRecovery
 open ModConductor.DeploymentGenerations
 
@@ -62,7 +63,8 @@ type internal DeploymentGenerationStore
             available,
             ?gameFolderOnly: bool,
             ?retainedProfile: SavedProfile,
-            ?recordProfile: bool
+            ?recordProfile: bool,
+            ?components: ReviewedComponent list
         ) =
         prepare (fun () ->
             protect (fun () ->
@@ -78,6 +80,7 @@ type internal DeploymentGenerationStore
                                         (request.Roots |> List.map _.Root)
                                         snapshots
                                         writable
+                                        (defaultArg components [])
                                         retainedProfile
 
                                 let sources =

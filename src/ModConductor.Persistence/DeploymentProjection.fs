@@ -58,7 +58,10 @@ module internal DeploymentProjection =
                         | _ -> ()
 
                         for link in
-                            context.Links |> List.filter (fun link -> included link.Target.Path) do
+                            context.Links
+                            |> List.filter (fun link ->
+                                link.Target.Root = expected.WorkspaceId
+                                && included link.Target.Path) do
                             if RecoveryFiles.observe context link.Target <> Some link.Entry then
                                 RecoveryFiles.fail "An active deployment link changed."
 
@@ -66,7 +69,8 @@ module internal DeploymentProjection =
                             context.Originals
                             |> List.choose (fun original ->
                                 if
-                                    included original.Target.Path
+                                    original.Target.Root = expected.WorkspaceId
+                                    && included original.Target.Path
                                     && context.Links
                                        |> List.exists (fun link ->
                                            contains link.Target.Path original.Target.Path)
@@ -104,13 +108,17 @@ module internal DeploymentProjection =
                         Ok
                             { Directories =
                                 context.Directories
-                                |> List.filter (fun row -> included row.Target.Path)
+                                |> List.filter (fun row ->
+                                    row.Target.Root = expected.WorkspaceId
+                                    && included row.Target.Path)
                                 |> List.map (fun row -> row.Target.Path, row.Identity)
                                 |> Map.ofList
                               Stamp = expected.Deployment
                               Links =
                                 context.Links
-                                |> List.filter (fun link -> included link.Target.Path)
+                                |> List.filter (fun link ->
+                                    link.Target.Root = expected.WorkspaceId
+                                    && included link.Target.Path)
                                 |> List.map (fun link ->
                                     { Path = link.Target.Path
                                       Entry = link.Entry })

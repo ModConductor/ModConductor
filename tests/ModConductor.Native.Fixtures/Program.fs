@@ -411,6 +411,16 @@ let main args =
             Console.WriteLine "ready"
             Console.ReadLine() |> ignore
             0
+        elif args.Length = 2 && args[0] = "--components" && Path.IsPathFullyQualified args[1] then
+            use writer =
+                new Utf8JsonWriter(Console.OpenStandardOutput(), JsonWriterOptions(Indented = true))
+
+            writer.WriteStartObject()
+            writer.WriteBoolean("nativeAot", not RuntimeFeature.IsDynamicCodeSupported)
+            ComponentFixtures.observe writer args[1]
+            writer.WriteEndObject()
+            writer.Flush()
+            0
         elif
             args.Length = 2
             && args[0] = "--normalize-owned-fixture"

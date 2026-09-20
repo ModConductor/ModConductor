@@ -120,10 +120,8 @@ module internal DeploymentRows =
             let sameWorkspace =
                 workspace
                 |> Option.exists (fun id ->
-                    existing.Roots.Length = 1
-                    && value.Roots.Length = 1
-                    && existing.Roots.Head.Root.Id = id
-                    && value.Roots.Head.Root.Id = id)
+                    existing.Roots |> List.exists (fun root -> root.Root.Id = id)
+                    && value.Roots |> List.exists (fun root -> root.Root.Id = id))
 
             let inactive =
                 existing.Pending.IsNone

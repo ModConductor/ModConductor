@@ -70,16 +70,11 @@ type OperationStore
             OutputRepository(database, modLibrary.Access, modLibrary.PublicationOwner)
         )
 
+    let deploymentRepository =
+        DeploymentBackendRepository(database, modLibrary.Access, filePlans, deployment, generations)
+
     let deploymentBackend =
-        ModConductor.Deployment.DeploymentBackend(
-            DeploymentBackendRepository(
-                database,
-                modLibrary.Access,
-                filePlans,
-                deployment,
-                generations
-            )
-        )
+        ModConductor.Deployment.DeploymentBackend(deploymentRepository)
 
     let profileGameData =
         ModConductor.ProfileGameData.ProfileGameDataSession(
@@ -535,6 +530,40 @@ type OperationStore
 
     member internal _.Deployment = deployment
     member internal _.Generations = generations
+
+    member internal _.PrepareComponents
+        (
+            id: Guid,
+            expected: ModConductor.FilePlanning.SourceStamp,
+            reviewed: ModConductor.DeploymentPlanning.ReviewedComponent list,
+            progress: ModConductor.Deployment.DeploymentProgress -> unit,
+            token: Threading.CancellationToken
+        ) =
+        task {
+            let! sources, existing =
+                (deploymentRepository :> ModConductor.Deployment.IDeploymentRepository)
+                    .Read(expected.ProfileId)
+
+            if sources.Stamp <> expected then
+                raise (
+                    ModConductor.DeploymentRecovery.RecoveryException
+                        ModConductor.DeploymentRecovery.RecoveryError.Stale
+                )
+
+            return!
+                DeploymentPreparation.components
+                    database
+                    modLibrary.Access
+                    filePlans
+                    generations
+                    deployment
+                    id
+                    sources
+                    existing
+                    reviewed
+                    progress
+                    token
+        }
 
     interface IDisposable with
         member _.Dispose() =

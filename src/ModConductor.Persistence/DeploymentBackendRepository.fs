@@ -1,6 +1,8 @@
 namespace ModConductor.Persistence
 
 open System
+open ModConductor.Platform
+open ModConductor.GameContexts
 open ModConductor.FilePlanning
 open ModConductor.DeploymentRecovery
 open ModConductor.Deployment
@@ -37,8 +39,32 @@ type internal DeploymentBackendRepository
                 if
                     context
                     |> Option.exists (fun context ->
-                        context.Roots.Length <> 1
-                        || context.Roots.Head.Root.Id <> sources.Stamp.WorkspaceId)
+                        let evidence = sources.Context.Binding.Value.Evidence
+
+                        let matches id path identity =
+                            context.Roots
+                            |> List.tryFind (fun root -> root.Root.Id = id)
+                            |> Option.exists (fun root ->
+                                HostPath.value root.Directory.Path = path
+                                && root.Directory.Identity = identity)
+
+                        let dataMatches =
+                            match evidence.DataPath, evidence.DataIdentity with
+                            | Some path, Some identity ->
+                                matches sources.Stamp.WorkspaceId path identity
+                            | _ -> false
+
+                        let gameMatches =
+                            if context.Roots.Length = 1 then
+                                true
+                            else
+                                ComponentRoots.gameRootId sources.Stamp.WorkspaceId evidence
+                                |> Result.exists (fun id ->
+                                    matches id evidence.RootPath evidence.RootIdentity.Value)
+
+                        not dataMatches
+                        || not gameMatches
+                        || (context.Roots.Length <> 1 && context.Roots.Length <> 2))
                 then
                     raise (RecoveryException RecoveryError.Stale)
 
