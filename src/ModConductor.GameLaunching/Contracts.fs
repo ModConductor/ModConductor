@@ -4,6 +4,17 @@ open System
 open System.Threading.Tasks
 open ModConductor.Executables
 
+type ComponentLoader =
+    { GenerationId: Guid
+      Executable: string
+      ComponentVersion: string
+      RuntimeVersion: string
+      GameSha256: string }
+
+type IComponentLoaderSelection =
+    abstract Read:
+        workspace: Guid * profile: Guid * activeGeneration: Guid option -> Task<ComponentLoader option>
+
 type GameLaunchState =
     { WorkspaceId: Guid
       ProfileId: Guid

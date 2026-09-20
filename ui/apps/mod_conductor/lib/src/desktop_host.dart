@@ -90,6 +90,7 @@ class _DesktopHostState extends State<DesktopHost> with WidgetsBindingObserver {
     bundles: _owner.bundles,
     steamDiscovery: _owner.steamDiscovery,
     protonContexts: _owner.protonContexts,
+    skse: _owner.skse,
     status: switch (_owner.state) {
       EngineIdle() => const DesktopDisconnected(),
       EngineConnecting() => const DesktopConnecting(),

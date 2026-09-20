@@ -6,7 +6,7 @@
         "type": "Direct",
         "requested": "[10.1.400, )",
         "resolved": "10.1.400",
-        "contentHash": "H9wlZ/tWgNp+Q4WQ5aUSi3XOBXrL6z+UkR0PNeyDFyoZR3c3PbtA21B9FqlthrhEwQ6f5AtQV0JLhBBDqjjscw=="
+        "contentHash": "Cw+EtoMK4ozhDdUkzgn/FwV8ifVMau9L7vvJgqti9+J2ui4qumTmcY3WbPrE1MEy1A0riZBHwLQ92wdI4X6zOA=="
       },
       "K4os.Compression.LZ4": {
         "type": "Direct",
@@ -24,7 +24,7 @@
         "type": "Direct",
         "requested": "[10.0.11, )",
         "resolved": "10.0.11",
-        "contentHash": "IBf7lbovvjGWVWXZX5cJ/cO0WXbId0Zq4BuSeT94mGZuOAP66oMeH9PTBZ9Jpp3Jb6jtK0qm/NyUbPRo1gC/wQ=="
+        "contentHash": "o6fWog7qObFqtBTfTSLORSFN4VeeVjpHIWfDnbxGL2p0UycV93WDEpA3zZP0F82Hlqpizias35NEoq3J+vIxtg=="
       },
       "Grpc.Net.Common": {
         "type": "Transitive",
@@ -153,6 +153,19 @@
           "ModConductor.Platform": "[1.0.0, )"
         }
       },
+      "modconductor.diagnostics": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )",
+          "ModConductor.Bethesda": "[1.0.0, )",
+          "ModConductor.Deployment": "[1.0.0, )",
+          "ModConductor.FilePlanning": "[1.0.0, )",
+          "ModConductor.GameContexts": "[1.0.0, )",
+          "ModConductor.GameLaunching": "[1.0.0, )",
+          "ModConductor.ProfileGameData": "[1.0.0, )",
+          "ModConductor.Workspaces": "[1.0.0, )"
+        }
+      },
       "modconductor.engine": {
         "type": "Project",
         "dependencies": {
@@ -160,6 +173,7 @@
           "Grpc.AspNetCore.Server": "[2.83.0, )",
           "ModConductor.Credentials": "[1.0.0, )",
           "ModConductor.Desktop": "[1.0.0, )",
+          "ModConductor.Diagnostics": "[1.0.0, )",
           "ModConductor.Loot": "[1.0.0, )",
           "ModConductor.Migration": "[1.0.0, )",
           "ModConductor.ModMaintenance": "[1.0.0, )",
@@ -167,6 +181,8 @@
           "ModConductor.Operations": "[1.0.0, )",
           "ModConductor.Persistence": "[1.0.0, )",
           "ModConductor.Protocol": "[1.0.0, )",
+          "ModConductor.Settings": "[1.0.0, )",
+          "ModConductor.Skse": "[1.0.0, )",
           "ModConductor.SteamDiscovery": "[1.0.0, )",
           "ModConductor.Workspaces": "[1.0.0, )"
         }
@@ -259,7 +275,8 @@
         "type": "Project",
         "dependencies": {
           "FSharp.Core": "[10.1.400, )",
-          "ModConductor.ModSelection": "[1.0.0, )"
+          "ModConductor.ModSelection": "[1.0.0, )",
+          "ModConductor.Workspaces": "[1.0.0, )"
         }
       },
       "modconductor.modselection": {
@@ -314,6 +331,7 @@
           "ModConductor.Platform": "[1.0.0, )",
           "ModConductor.ProfileGameData": "[1.0.0, )",
           "ModConductor.ProtonContexts": "[1.0.0, )",
+          "ModConductor.Skse": "[1.0.0, )",
           "ModConductor.Workspaces": "[1.0.0, )",
           "SQLitePCLRaw.bundle_e_sqlite3": "[3.0.5, )"
         }
@@ -330,6 +348,7 @@
           "FSharp.Core": "[10.1.400, )",
           "ModConductor.ArchiveInspection": "[1.0.0, )",
           "ModConductor.Bethesda": "[1.0.0, )",
+          "ModConductor.FilePlanning": "[1.0.0, )",
           "ModConductor.GameContexts": "[1.0.0, )"
         }
       },
@@ -346,6 +365,30 @@
           "FSharp.Core": "[10.1.400, )",
           "ModConductor.GameContexts": "[1.0.0, )",
           "ModConductor.SteamDiscovery": "[1.0.0, )"
+        }
+      },
+      "modconductor.settings": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )",
+          "ModConductor.Settings.Serialization": "[1.0.0, )"
+        }
+      },
+      "modconductor.settings.serialization": {
+        "type": "Project",
+        "dependencies": {
+          "Tomlyn": "[2.10.1, )"
+        }
+      },
+      "modconductor.skse": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )",
+          "ModConductor.ArchiveInspection": "[1.0.0, )",
+          "ModConductor.ArchiveInstallation": "[1.0.0, )",
+          "ModConductor.DeploymentPlanning": "[1.0.0, )",
+          "ModConductor.GameContexts": "[1.0.0, )",
+          "ModConductor.Nexus": "[1.0.0, )"
         }
       },
       "modconductor.steamdiscovery": {
@@ -407,6 +450,12 @@
           "SQLite": "3.53.4",
           "SQLitePCLRaw.config.e_sqlite3": "3.0.5"
         }
+      },
+      "Tomlyn": {
+        "type": "CentralTransitive",
+        "requested": "[2.10.1, )",
+        "resolved": "2.10.1",
+        "contentHash": "ykjOY3IpYmC4SpPcAZRTl/w2jTmhPMDydHq8xcV7tTBAQ22nKBsOkPqauIrZlMjHm03cmKfV23UOPscKp+J4Og=="
       }
     },
     "net10.0/linux-x64": {

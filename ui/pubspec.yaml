@@ -8,6 +8,7 @@ workspace:
   - packages/mc_desktop
   - packages/mc_client
   - packages/mc_game_contexts
+  - packages/mc_skse
   - packages/mc_workspaces
   - packages/mc_ui_collections
   - packages/mc_mod_library

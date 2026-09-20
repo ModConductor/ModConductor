@@ -15,11 +15,13 @@ class GameContextBrowser extends StatefulWidget {
     required this.chooseDirectory,
     this.steamDiscovery,
     this.protonContexts,
+    this.footer,
   });
   final GameContextController controller;
   final SteamDiscoveryClient? steamDiscovery;
   final ProtonContextsClient? protonContexts;
   final GameDirectoryChooser chooseDirectory;
+  final Widget? footer;
   @override
   State<GameContextBrowser> createState() => _GameContextBrowserState();
 }
@@ -89,201 +91,210 @@ class _GameContextBrowserState extends State<GameContextBrowser> {
       final binding = state?.binding;
       final evidence = binding?.evidence;
       return SingleChildScrollView(
-        child: McSection(
-          title: 'Game installation',
+        child: Column(
           children: [
-            if (c.problem != null) ...[
-              McStatus(title: c.problem!, tone: McStatusTone.error),
-              const SizedBox(height: 16),
-            ],
-            if (state == null) ...[
-              McStatus(
-                title: c.loading
-                    ? 'Loading installation'
-                    : c.problem == null
-                    ? 'Not connected'
-                    : 'Installation unavailable',
-              ),
-              if (!c.loading && c.client != null) ...[
-                const SizedBox(height: 16),
-                McAction(label: 'Retry', onPressed: () => unawaited(c.load())),
-              ],
-            ] else if (binding == null) ...[
-              McStatus(
-                title: c.needsRead
-                    ? 'Saved installation needs a reload'
-                    : 'No game selected',
-              ),
-              const SizedBox(height: 16),
-              McAction(
-                key: const ValueKey('select-installation'),
-                label: c.needsRead ? 'Reload' : 'Select installation',
-                icon: Icons.folder_open,
-                emphasis: McActionEmphasis.primary,
-                focusNode: changeFocus,
-                onPressed: c.needsRead
-                    ? (c.canRefresh ? () => unawaited(c.load()) : null)
-                    : (c.canChange ? change : null),
-              ),
-            ] else ...[
-              Text(
-                state.definition.name,
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                '${state.definition.storefront} · ${evidence!.platform == GameContextPlatform.windows ? 'Windows' : 'Proton'}',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-              const SizedBox(height: 16),
-              SelectableText(binding.path),
-              const SizedBox(height: 16),
-              McStatus(
-                title: c.needsRead
-                    ? 'Saved installation needs a reload'
-                    : c.loading
-                    ? 'Checking installation'
-                    : binding.failure ??
-                          (binding.needsCheck
-                              ? 'Installation needs a check'
-                              : evidence.proton == null
-                              ? 'Installation files checked'
-                              : 'Installation and Proton files checked'),
-                detail: binding.needsCheck || c.needsRead
-                    ? 'Last checked: ${checkedAt(evidence.checkedAt)}'
-                    : evidence.platform == GameContextPlatform.proton &&
-                          evidence.proton == null
-                    ? 'Save and settings locations are unavailable.'
-                    : 'Game version ${evidence.executable!.fileVersion}',
-                tone: binding.failure != null
-                    ? McStatusTone.error
-                    : McStatusTone.neutral,
-              ),
-              const SizedBox(height: 16),
-              Wrap(
-                spacing: 10,
-                runSpacing: 8,
-                children: [
-                  McAction(
-                    key: const ValueKey('change-installation'),
-                    label: 'Change',
-                    icon: Icons.folder_open,
-                    focusNode: changeFocus,
-                    onPressed: c.canChange ? change : null,
-                  ),
-                  McAction(
-                    key: const ValueKey('refresh-installation'),
-                    label: c.needsRead ? 'Reload' : 'Refresh',
-                    icon: Icons.refresh,
-                    onPressed: c.canRefresh
-                        ? () => unawaited(c.load(refresh: !c.needsRead))
-                        : null,
-                  ),
+            McSection(
+              title: 'Game installation',
+              children: [
+                if (c.problem != null) ...[
+                  McStatus(title: c.problem!, tone: McStatusTone.error),
+                  const SizedBox(height: 16),
                 ],
-              ),
-              const SizedBox(height: 12),
-              Material(
-                color: Colors.transparent,
-                child: ExpansionTile(
-                  key: PageStorageKey((
-                    'installation-details',
-                    state.workspaceId,
-                  )),
-                  tilePadding: EdgeInsets.zero,
-                  title: const Text('Installation details'),
-                  children: [
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (binding.needsCheck || c.needsRead)
-                            const McStatus(title: 'Last checked details'),
-                          fact('Executable', evidence.executable!.path),
-                          fact(
-                            'File version',
-                            '${evidence.executable!.fileVersion} · x64',
-                          ),
-                          fact('Data folder', evidence.dataPath!),
-                          fact(
-                            'Launcher',
-                            evidence.launcherPath ?? 'Not found or unavailable',
-                          ),
-                          fact(
-                            'Steam installation',
-                            evidence.proton?.selection.association
-                                    is SteamProtonAssociation
-                                ? 'AppID ${evidence.proton!.selection.appId} · Manifest checked'
-                                : 'Not verified',
-                          ),
-                          fact('Steam build', 'Not available'),
-                          if (evidence.proton case final proton?) ...[
-                            fact('Proton', proton.runtimeName),
-                            fact('Proton version', proton.runtimeVersion),
-                            fact(
-                              'Proton data folder',
-                              proton.selection.compatData,
-                            ),
-                            fact('Prefix folder', proton.prefixPath),
-                            fact(
-                              'Proton folder',
-                              proton.selection.runtimeDirectory,
-                            ),
-                            fact(
-                              'Prefix version',
-                              proton.prefixVersion ?? 'Not available',
-                            ),
-                            if (proton.mappingProblem case final problem?)
-                              fact('Steam setting', problem)
-                            else ...[
-                              fact(
-                                'Steam game-specific setting',
-                                proton.perGameTool ?? 'Not set',
-                              ),
-                              fact(
-                                'Steam default',
-                                proton.globalTool ?? 'Not set',
-                              ),
-                            ],
-                            for (final path in proton.paths) ...[
-                              fact(path.name, location(path.location)),
-                              if (path.windowsPath case final windows?)
-                                fact('Windows path', windows),
-                            ],
-                          ] else ...[
-                            fact('Documents', location(evidence.documents)),
-                            fact('Saves', location(evidence.saves)),
-                            fact(
-                              'Local AppData',
-                              location(evidence.localAppData),
-                            ),
-                          ],
-                        ],
-                      ),
+                if (state == null) ...[
+                  McStatus(
+                    title: c.loading
+                        ? 'Loading installation'
+                        : c.problem == null
+                        ? 'Not connected'
+                        : 'Installation unavailable',
+                  ),
+                  if (!c.loading && c.client != null) ...[
+                    const SizedBox(height: 16),
+                    McAction(
+                      label: 'Retry',
+                      onPressed: () => unawaited(c.load()),
                     ),
                   ],
-                ),
-              ),
-              Material(
-                color: Colors.transparent,
-                child: ExpansionTile(
-                  key: PageStorageKey(('capabilities', state.workspaceId)),
-                  tilePadding: EdgeInsets.zero,
-                  title: const Text('Capabilities'),
-                  children: [
-                    for (final capability in state.definition.capabilities)
-                      McCapabilityState(
-                        key: ValueKey(('capability', capability.id.value)),
-                        title: capability.name,
-                        disposition: capabilityDisposition(
-                          capability.disposition,
-                        ),
-                        reason: capability.reason,
+                ] else if (binding == null) ...[
+                  McStatus(
+                    title: c.needsRead
+                        ? 'Saved installation needs a reload'
+                        : 'No game selected',
+                  ),
+                  const SizedBox(height: 16),
+                  McAction(
+                    key: const ValueKey('select-installation'),
+                    label: c.needsRead ? 'Reload' : 'Select installation',
+                    icon: Icons.folder_open,
+                    emphasis: McActionEmphasis.primary,
+                    focusNode: changeFocus,
+                    onPressed: c.needsRead
+                        ? (c.canRefresh ? () => unawaited(c.load()) : null)
+                        : (c.canChange ? change : null),
+                  ),
+                ] else ...[
+                  Text(
+                    state.definition.name,
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${state.definition.storefront} · ${evidence!.platform == GameContextPlatform.windows ? 'Windows' : 'Proton'}',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 16),
+                  SelectableText(binding.path),
+                  const SizedBox(height: 16),
+                  McStatus(
+                    title: c.needsRead
+                        ? 'Saved installation needs a reload'
+                        : c.loading
+                        ? 'Checking installation'
+                        : binding.failure ??
+                              (binding.needsCheck
+                                  ? 'Installation needs a check'
+                                  : evidence.proton == null
+                                  ? 'Installation files checked'
+                                  : 'Installation and Proton files checked'),
+                    detail: binding.needsCheck || c.needsRead
+                        ? 'Last checked: ${checkedAt(evidence.checkedAt)}'
+                        : evidence.platform == GameContextPlatform.proton &&
+                              evidence.proton == null
+                        ? 'Save and settings locations are unavailable.'
+                        : 'Game version ${evidence.executable!.fileVersion}',
+                    tone: binding.failure != null
+                        ? McStatusTone.error
+                        : McStatusTone.neutral,
+                  ),
+                  const SizedBox(height: 16),
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 8,
+                    children: [
+                      McAction(
+                        key: const ValueKey('change-installation'),
+                        label: 'Change',
+                        icon: Icons.folder_open,
+                        focusNode: changeFocus,
+                        onPressed: c.canChange ? change : null,
                       ),
-                  ],
-                ),
-              ),
-            ],
+                      McAction(
+                        key: const ValueKey('refresh-installation'),
+                        label: c.needsRead ? 'Reload' : 'Refresh',
+                        icon: Icons.refresh,
+                        onPressed: c.canRefresh
+                            ? () => unawaited(c.load(refresh: !c.needsRead))
+                            : null,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Material(
+                    color: Colors.transparent,
+                    child: ExpansionTile(
+                      key: PageStorageKey((
+                        'installation-details',
+                        state.workspaceId,
+                      )),
+                      tilePadding: EdgeInsets.zero,
+                      title: const Text('Installation details'),
+                      children: [
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (binding.needsCheck || c.needsRead)
+                                const McStatus(title: 'Last checked details'),
+                              fact('Executable', evidence.executable!.path),
+                              fact(
+                                'File version',
+                                '${evidence.executable!.fileVersion} · x64',
+                              ),
+                              fact('Data folder', evidence.dataPath!),
+                              fact(
+                                'Launcher',
+                                evidence.launcherPath ??
+                                    'Not found or unavailable',
+                              ),
+                              fact(
+                                'Steam installation',
+                                evidence.proton?.selection.association
+                                        is SteamProtonAssociation
+                                    ? 'AppID ${evidence.proton!.selection.appId} · Manifest checked'
+                                    : 'Not verified',
+                              ),
+                              fact('Steam build', 'Not available'),
+                              if (evidence.proton case final proton?) ...[
+                                fact('Proton', proton.runtimeName),
+                                fact('Proton version', proton.runtimeVersion),
+                                fact(
+                                  'Proton data folder',
+                                  proton.selection.compatData,
+                                ),
+                                fact('Prefix folder', proton.prefixPath),
+                                fact(
+                                  'Proton folder',
+                                  proton.selection.runtimeDirectory,
+                                ),
+                                fact(
+                                  'Prefix version',
+                                  proton.prefixVersion ?? 'Not available',
+                                ),
+                                if (proton.mappingProblem case final problem?)
+                                  fact('Steam setting', problem)
+                                else ...[
+                                  fact(
+                                    'Steam game-specific setting',
+                                    proton.perGameTool ?? 'Not set',
+                                  ),
+                                  fact(
+                                    'Steam default',
+                                    proton.globalTool ?? 'Not set',
+                                  ),
+                                ],
+                                for (final path in proton.paths) ...[
+                                  fact(path.name, location(path.location)),
+                                  if (path.windowsPath case final windows?)
+                                    fact('Windows path', windows),
+                                ],
+                              ] else ...[
+                                fact('Documents', location(evidence.documents)),
+                                fact('Saves', location(evidence.saves)),
+                                fact(
+                                  'Local AppData',
+                                  location(evidence.localAppData),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Material(
+                    color: Colors.transparent,
+                    child: ExpansionTile(
+                      key: PageStorageKey(('capabilities', state.workspaceId)),
+                      tilePadding: EdgeInsets.zero,
+                      title: const Text('Capabilities'),
+                      children: [
+                        for (final capability in state.definition.capabilities)
+                          McCapabilityState(
+                            key: ValueKey(('capability', capability.id.value)),
+                            title: capability.name,
+                            disposition: capabilityDisposition(
+                              capability.disposition,
+                            ),
+                            reason: capability.reason,
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            ?widget.footer,
           ],
         ),
       );

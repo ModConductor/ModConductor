@@ -84,7 +84,8 @@ module internal Sqlite =
         | 19L
         | 20L
         | 21L
-        | 22L -> ()
+        | 22L
+        | 23L -> ()
         | _ -> raise (InvalidOperationException("The state database uses an unsupported version."))
 
         if number connection transaction "PRAGMA user_version" [] = 3L then
@@ -166,6 +167,9 @@ module internal Sqlite =
                 transaction
                 "ALTER TABLE operations ADD COLUMN migration_staged_path TEXT; ALTER TABLE operations ADD COLUMN migration_final_path TEXT; PRAGMA user_version=22;"
                 []
+
+        if number connection transaction "PRAGMA user_version" [] = 22L then
+            execute connection transaction SkseSchema.sql []
 
         beforeCommit ()
         transaction.Commit()

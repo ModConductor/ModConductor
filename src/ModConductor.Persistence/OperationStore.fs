@@ -120,12 +120,15 @@ type OperationStore
     let executables =
         ModConductor.Executables.ExecutableSession(ExecutableRepository(database))
 
+    let skseLoaders = SkseLoaderStore(database)
+
     let gameLaunching =
         ModConductor.GameLaunching.GameLaunchSession(
             gameContexts,
             deploymentBackend,
             executables,
-            profileGameData
+            profileGameData,
+            skseLoaders
         )
 
     let connection = database.Connection
@@ -351,6 +354,7 @@ type OperationStore
         profileGameData.RetainedSavePreviewCount
 
     member _.GameLaunching = gameLaunching :> ModConductor.GameLaunching.IGameLaunching
+    member internal _.SkseLoaders = skseLoaders
     member _.CloseExecutables() = executables.Close()
     member _.ExecutablesFailed = executables.Failed
 
@@ -563,6 +567,208 @@ type OperationStore
                     reviewed
                     progress
                     token
+        }
+
+    member internal this.InstallSkse
+        (
+            workspace: Guid,
+            profile: Guid,
+            release: ModConductor.Skse.SkseRelease,
+            artifact: ModConductor.ArtifactLibrary.Artifact,
+            token: Threading.CancellationToken
+        ) =
+        task {
+            let fail detail = raise (IO.IOException detail)
+
+            if
+                artifact.WorkspaceId <> workspace
+                || artifact.State <> ModConductor.ArtifactLibrary.ArtifactState.Ready
+                || artifact.Sha256.IsNone
+            then
+                fail "The verified SKSE archive is not ready."
+
+            let reference: ModConductor.ArtifactLibrary.ArtifactRef =
+                { WorkspaceId = workspace
+                  Id = artifact.Id
+                  Revision = artifact.Revision }
+
+            let! draft = installations.Prepare(reference, token)
+
+            let plan =
+                ModConductor.Skse.SkseArchiveLayout.review release draft.Manifest
+                |> Result.defaultWith (ModConductor.Skse.SkseProblem.message >> fail)
+
+            let reviewed =
+                installations.SelectReviewed(
+                    workspace,
+                    draft.Id,
+                    draft.Revision,
+                    "Skyrim Script Extender",
+                    string release.ComponentVersion,
+                    plan.Files
+                )
+
+            let installationId = Guid.NewGuid()
+            let started = installations.Start(workspace, reviewed.Id, reviewed.Revision, installationId)
+            let mutable installed = started
+
+            while installed.State = ModConductor.ArchiveInstallation.InstallationState.Running do
+                do! System.Threading.Tasks.Task.Delay(25, token)
+                let! current = installations.Read(workspace, installationId)
+                installed <- current
+
+            if
+                installed.State <> ModConductor.ArchiveInstallation.InstallationState.Complete
+                || installed.ModId.IsNone
+                || installed.VersionId.IsNone
+            then
+                fail (
+                    installed.Problem
+                    |> Option.defaultValue "SKSE installation did not complete. No component was published."
+                )
+
+            let! version =
+                database.Enqueue(fun () ->
+                    LibraryRows.version
+                        database.Connection
+                        null
+                        installed.VersionId.Value
+                        0
+                        20001
+                    |> Option.map (fun value -> { value with NextOffset = None }))
+
+            let version =
+                version |> Option.defaultWith (fun () -> fail "The installed SKSE version is unavailable.")
+
+            let! contextResult = (gameContexts :> ModConductor.GameContexts.IGameContexts).Read workspace
+
+            let context =
+                contextResult
+                |> Result.defaultWith (fun _ -> fail "The checked Skyrim installation is unavailable.")
+
+            let evidence = context.Binding.Value.Evidence
+
+            let currentRuntime =
+                match Version.TryParse evidence.Executable.Value.FileVersion with
+                | true, value -> Some value
+                | _ -> None
+
+            if currentRuntime <> Some release.RuntimeVersion then
+                fail "Skyrim changed after the compatibility check. Check SKSE again."
+
+            let gameRoot =
+                ModConductor.GameContexts.ComponentRoots.gameRootId workspace evidence
+                |> Result.defaultWith fail
+
+            let reviewedComponent =
+                ModConductor.DeploymentPlanning.ComponentManifests.review
+                    workspace
+                    gameRoot
+                    ModConductor.GameContexts.Skyrim.definition.TargetPolicy
+                    { ModId = installed.ModId.Value
+                      Version = version
+                      Priority = 0
+                      Files = plan.ComponentFiles }
+                |> Result.defaultWith (fun _ -> fail "The reviewed SKSE component no longer matches the installed archive.")
+
+            let! selectionState =
+                database.Enqueue(fun () ->
+                    SelectionRows.profile database.Connection null profile)
+
+            let expectedSelection =
+                selectionState
+                |> Option.bind (fun (owner, revision) ->
+                    if owner = workspace then Some revision else None)
+                |> Option.defaultWith (fun () -> fail "The selected profile is unavailable.")
+
+            let! previousMod = skseLoaders.CurrentMod profile
+
+            let! expectedSelection =
+                task {
+                    match previousMod with
+                    | Some previous when previous <> installed.ModId.Value ->
+                        let! disabled =
+                            (selection :> ModConductor.ModSelection.IModSelection)
+                                .Change(
+                                    profile,
+                                    expectedSelection,
+                                    [ previous ],
+                                    ModConductor.ModSelection.SelectionEdit.Enable false
+                                )
+
+                        return
+                            disabled
+                            |> Result.map _.Revision
+                            |> Result.defaultWith (fun _ ->
+                                fail "The previous SKSE component could not be retained as inactive.")
+                    | _ -> return expectedSelection
+                }
+
+            let! enabled =
+                (selection :> ModConductor.ModSelection.IModSelection)
+                    .Change(
+                        profile,
+                        expectedSelection,
+                        [ installed.ModId.Value ],
+                        ModConductor.ModSelection.SelectionEdit.Enable true
+                    )
+
+            enabled
+            |> Result.defaultWith (fun _ -> fail "The SKSE component could not be enabled for this profile.")
+            |> ignore
+
+            let! deployed = (deploymentBackend :> ModConductor.Deployment.IDeploymentBackend).Read profile
+
+            let deployed =
+                deployed
+                |> Result.defaultWith (fun _ -> fail "The profile deployment is unavailable.")
+
+            let! prepared =
+                (this.PrepareComponents(
+                    Guid.NewGuid(),
+                    deployed.Sources,
+                    [ reviewedComponent ],
+                    ignore,
+                    token
+                ))
+
+            let! receipt = generations.Start(prepared, [], cancellation = token)
+
+            let receipt =
+                receipt
+                |> Result.defaultWith (fun _ -> fail "The SKSE deployment could not start.")
+
+            let! completed =
+                generations.Run(
+                    receipt.Id,
+                    receipt.Revision,
+                    false,
+                    token,
+                    (fun _ _ -> ()),
+                    []
+                )
+
+            let completed =
+                completed
+                |> Result.defaultWith (fun _ -> fail "The SKSE deployment did not complete.")
+
+            do!
+                skseLoaders.Save(
+                    workspace,
+                    profile,
+                    installed.ModId.Value,
+                    installed.VersionId.Value,
+                    completed.Proposed,
+                    IO.Path.Combine(evidence.RootPath, plan.Loader),
+                    string release.ComponentVersion,
+                    string release.RuntimeVersion,
+                    evidence.Executable.Value.Sha256,
+                    artifact.Sha256.Value,
+                    release.ModId,
+                    release.File.Id
+                )
+
+            return completed.Proposed
         }
 
     interface IDisposable with

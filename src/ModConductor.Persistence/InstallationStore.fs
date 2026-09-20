@@ -234,6 +234,18 @@ type InstallationStore
     member internal _.Draft(workspace, id, revision) =
         lock gate (fun () -> draftReference (workspace, id, revision))
 
+    member internal _.SelectReviewed(workspace, id, revision, name, version, files) =
+        lock gate (fun () ->
+            let current = draftReference (workspace, id, revision)
+
+            if current.Installer <> InstallationMode.Manual then
+                refuse "The archive selected an installer. Review the archive again."
+
+            let next = Layout.selectFiles current name version files
+            drafts[workspace] <- next
+            updates.Remove workspace |> ignore
+            next)
+
     member _.Fomod = choices
     member _.Bain = packages
 

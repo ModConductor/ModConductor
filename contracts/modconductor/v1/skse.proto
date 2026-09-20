@@ -1,0 +1,28 @@
+syntax = "proto3";
+package modconductor.v1;
+option csharp_namespace = "ModConductor.Protocol.V1";
+
+service SkseOperations {
+  rpc ReadSkse(SkseRequest) returns (SkseState);
+  rpc StartSkse(SkseRequest) returns (SkseState);
+}
+
+message SkseRequest { string workspace_id = 1; string profile_id = 2; }
+enum SksePhase {
+  SKSE_PHASE_UNSPECIFIED = 0;
+  SKSE_PHASE_UNAVAILABLE = 1;
+  SKSE_PHASE_AVAILABLE = 2;
+  SKSE_PHASE_WAITING_FOR_NEXUS = 3;
+  SKSE_PHASE_DOWNLOADING = 4;
+  SKSE_PHASE_INSTALLING = 5;
+  SKSE_PHASE_READY = 6;
+  SKSE_PHASE_FAILED = 7;
+}
+message SkseState {
+  SksePhase phase = 1;
+  string game_version = 2;
+  string component_version = 3;
+  string status = 4;
+  string detail = 5;
+  optional int64 nexus_file_id = 6;
+}

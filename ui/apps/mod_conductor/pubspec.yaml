@@ -21,6 +21,8 @@ dependencies:
     path: ../../packages/mc_desktop
   mc_game_contexts:
     path: ../../packages/mc_game_contexts
+  mc_skse:
+    path: ../../packages/mc_skse
 
   mc_client:
     path: ../../packages/mc_client

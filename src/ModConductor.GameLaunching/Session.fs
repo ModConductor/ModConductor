@@ -13,14 +13,21 @@ type GameLaunchSession
         contexts: IGameContexts,
         deployment: DeploymentBackend,
         executables: ExecutableSession,
-        profiles: ProfileGameDataSession
+        profiles: ProfileGameDataSession,
+        loaders: IComponentLoaderSelection
     ) =
     let runs = executables :> IExecutables
     let deployments = deployment :> IDeploymentBackend
 
-    let token sources revision =
+    let token sources revision generation =
         SHA256.HashData(
-            Encoding.UTF8.GetBytes(SourceIdentity.token sources + ":" + string revision)
+            Encoding.UTF8.GetBytes(
+                SourceIdentity.token sources
+                + ":"
+                + string revision
+                + ":"
+                + (generation |> Option.map string |> Option.defaultValue "")
+            )
         )
         |> Convert.ToHexString
         |> fun value -> value.ToLowerInvariant()
@@ -45,9 +52,10 @@ type GameLaunchSession
                 | Ok state, Ok deployed when deployed.WorkspaceId = workspace ->
                     let! latest = executables.LatestGame workspace
                     let! dataRevision = profiles.Revision(workspace, profile)
+                    let! loader = loaders.Read(workspace, profile, deployed.ActiveGeneration)
 
                     let runtime, problem =
-                        match Descriptor.create state with
+                        match Descriptor.create state loader with
                         | Ok(_, runtime, _) -> runtime, None
                         | Error error -> "", Some error
 
@@ -57,7 +65,10 @@ type GameLaunchSession
                               ProfileId = profile
                               ContextRevision = state.Revision
                               SourceToken =
-                                token deployed.Sources (dataRevision |> Result.defaultValue -1L)
+                                token
+                                    deployed.Sources
+                                    (dataRevision |> Result.defaultValue -1L)
+                                    deployed.ActiveGeneration
                               Name = Skyrim.definition.Name
                               Runtime = runtime
                               Problem = problem
@@ -94,14 +105,25 @@ type GameLaunchSession
                         let! dataRevision =
                             profiles.Revision(request.WorkspaceId, request.ProfileId)
 
+                        let! loader =
+                            loaders.Read(
+                                request.WorkspaceId,
+                                request.ProfileId,
+                                deployed |> Result.toOption |> Option.bind _.ActiveGeneration
+                            )
+
                         match state, deployed with
                         | Ok state, Ok deployed when
                             deployed.WorkspaceId = request.WorkspaceId
                             && state.Revision = request.ContextRevision
                             && Result.isOk dataRevision
-                            && token deployed.Sources (dataRevision |> Result.defaultValue -1L) = request.SourceToken
+                            && token
+                                deployed.Sources
+                                (dataRevision |> Result.defaultValue -1L)
+                                deployed.ActiveGeneration
+                               = request.SourceToken
                             ->
-                            match Descriptor.create state with
+                            match Descriptor.create state loader with
                             | Error error -> return Error(ExecutableError.Unavailable error)
                             | Ok(context, runtime, launch) ->
                                 let game =

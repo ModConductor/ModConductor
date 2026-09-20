@@ -25,6 +25,7 @@ import 'proton_context_client.dart';
 import 'inventory_export_client.dart';
 import 'migration_client.dart';
 import 'settings_client.dart';
+import 'skse_client.dart';
 
 import 'dart:async';
 import 'dart:convert';
@@ -116,6 +117,8 @@ class EngineSession {
   MigrationClient get migration => _migration!;
   SettingsClient? _settings;
   SettingsClient get settings => _settings!;
+  SkseClient? _skse;
+  SkseClient get skse => _skse!;
   Future<void>? _closing;
 
   Future<int> get exited => _process.exitCode;
@@ -238,6 +241,7 @@ class EngineSession {
     _gameContexts = GrpcGameContextsClient(channel, options);
     _steamDiscovery = GrpcSteamDiscoveryClient(channel, options);
     _protonContexts = GrpcProtonContextsClient(channel, options);
+    _skse = SkseClient(channel, CallOptions(metadata: options.metadata));
   }
 
   Future<ConnectionReport> check() => operations.check();

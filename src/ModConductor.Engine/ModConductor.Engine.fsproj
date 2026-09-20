@@ -72,10 +72,12 @@
     <Compile Include="NexusMetadataService.fs" />
     <Compile Include="NexusInteractionsService.fs" />
     <Compile Include="NxmService.fs" />
+    <Compile Include="SkseService.fs" />
     <Compile Include="LinkSetupService.fs" />
     <Compile Include="Program.fs" />
     <ProjectReference Include="../ModConductor.Desktop/ModConductor.Desktop.fsproj" />
     <ProjectReference Include="../ModConductor.Nexus/ModConductor.Nexus.fsproj" />
+    <ProjectReference Include="../ModConductor.Skse/ModConductor.Skse.fsproj" />
     <ProjectReference Include="../ModConductor.Credentials/ModConductor.Credentials.fsproj" />
     <ProjectReference Include="../ModConductor.SteamDiscovery/ModConductor.SteamDiscovery.fsproj" />
     <ProjectReference Include="../ModConductor.Persistence/ModConductor.Persistence.fsproj" />

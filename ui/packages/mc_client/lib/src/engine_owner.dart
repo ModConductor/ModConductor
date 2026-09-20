@@ -25,6 +25,7 @@ import 'proton_context_client.dart';
 import 'inventory_export_client.dart';
 import 'migration_client.dart';
 import 'settings_client.dart';
+import 'skse_client.dart';
 
 import 'dart:async';
 import 'dart:io';
@@ -144,6 +145,7 @@ class EngineOwner {
       _state is EngineConnected ? _session?.migration : null;
   SettingsClient? get settings =>
       _state is EngineConnected ? _session?.settings : null;
+  SkseClient? get skse => _state is EngineConnected ? _session?.skse : null;
   Stream<EngineState> get changes => _changes.stream;
 
   void _set(EngineState state) {

@@ -108,6 +108,26 @@ void main() {
           await state.delete(recursive: true);
         }
       });
+
+      test('the authenticated SKSE service reports an unavailable game without changing it', () async {
+        final state = await Directory.systemTemp.createTemp('mc-skse-wire-');
+        final engine = EngineSession(
+          await Process.start(executable!, ['--state-directory', state.path]),
+        );
+        try {
+          await engine.connect();
+          final result = await engine.skse.read(
+            '11111111111111111111111111111111',
+            '22222222222222222222222222222222',
+          );
+          expect(result.phase, SkseStatusPhase.unavailable);
+          expect(result.status, isNotEmpty);
+        } finally {
+          await engine.close();
+          expect(await engine.exited, 0);
+          await state.delete(recursive: true);
+        }
+      });
     },
   );
 }

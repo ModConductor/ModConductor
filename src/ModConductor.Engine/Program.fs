@@ -64,9 +64,24 @@ let runWithNexus registration (handoff: ModConductor.Nexus.IOAuthHandoff) args =
 
     downloads <- Some store.Downloads
 
+    use skse =
+        new ModConductor.Engine.SkseCoordinator(
+            nexus,
+            store.Downloads,
+            store.GameContexts,
+            store,
+            handoff
+        )
+
     use nxmIngress =
         new ModConductor.Desktop.PrivateIngress(
-            (fun (id, input) -> nexus.AcceptNxm(id, input)),
+            (fun (id, input) ->
+                let accepted = nexus.AcceptNxm(id, input)
+
+                if accepted then
+                    skse.AcceptNxm id
+
+                accepted),
             nexus.DismissNxm
         )
 
@@ -145,6 +160,10 @@ let runWithNexus registration (handoff: ModConductor.Nexus.IOAuthHandoff) args =
 
     builder.Services.AddSingleton<ModConductor.Engine.NxmService>() |> ignore
     builder.Services.AddSingleton<ModConductor.Engine.NexusService>() |> ignore
+    builder.Services.AddSingleton<ModConductor.Engine.SkseCoordinator>(
+        skse
+    ) |> ignore
+    builder.Services.AddSingleton<ModConductor.Engine.SkseService>() |> ignore
 
     builder.Services.AddSingleton<ModConductor.Nexus.NexusModDetails>(
         ModConductor.Nexus.NexusModDetails(nexus, store.NexusMetadata)
@@ -416,6 +435,7 @@ let runWithNexus registration (handoff: ModConductor.Nexus.IOAuthHandoff) args =
     app.MapGrpcService<ModConductor.Engine.NexusMetadataService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.NexusInteractionsService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.NxmService>() |> ignore
+    app.MapGrpcService<ModConductor.Engine.SkseService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.LinkSetupService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.DesktopService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.DownloadService>() |> ignore

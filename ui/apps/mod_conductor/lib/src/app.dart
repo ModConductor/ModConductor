@@ -21,6 +21,7 @@ import '../l10n/app_localizations.dart';
 import 'package:mc_desktop/mc_desktop.dart';
 import 'package:mc_desktop/mc_desktop.dart' as desktop;
 import 'package:mc_game_contexts/mc_game_contexts.dart';
+import 'package:mc_skse/mc_skse.dart';
 import 'package:mc_file_plans/mc_file_plans.dart';
 import 'package:mc_client/mc_client.dart';
 import 'package:mc_ui_collections/mc_ui_collections.dart';
@@ -167,6 +168,7 @@ class ModConductorApp extends StatefulWidget {
     this.chooseExecutable = desktop.chooseExecutable,
     this.steamDiscovery,
     this.protonContexts,
+    this.skse,
     this.chooseGameDirectory = desktop.chooseGameDirectory,
     this.chooseDirectory = chooseWorkspaceDirectory,
     this.chooseExportLocation = desktop.chooseInventoryExportDestination,
@@ -207,6 +209,7 @@ class ModConductorApp extends StatefulWidget {
   final ExecutablePathChooser chooseExecutable;
   final SteamDiscoveryClient? steamDiscovery;
   final ProtonContextsClient? protonContexts;
+  final SkseClient? skse;
   final GameDirectoryChooser chooseGameDirectory;
   final DirectoryChooser chooseDirectory;
   final InventoryExportLocationChooser chooseExportLocation;
@@ -879,6 +882,20 @@ class _ModConductorAppState extends State<ModConductorApp> {
                             steamDiscovery: widget.steamDiscovery,
                             protonContexts: widget.protonContexts,
                             chooseDirectory: widget.chooseGameDirectory,
+                            footer:
+                                widget.skse == null ||
+                                    workspace.selectedProfile == null
+                                ? null
+                                : Padding(
+                                    padding: const EdgeInsets.only(
+                                      top: McSpacing.large,
+                                    ),
+                                    child: SkseSection(
+                                      client: widget.skse!,
+                                      workspaceId: workspace.id,
+                                      profileId: workspace.selectedProfile!.id,
+                                    ),
+                                  ),
                           ),
                       modLibraryBuilder: (context, workspace) =>
                           ListenableBuilder(
