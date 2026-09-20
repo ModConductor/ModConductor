@@ -12,6 +12,7 @@ type GameLaunchService(launches: IGameLaunching, skse: SkseCoordinator, fnis: IF
         function
         | FnisOutputPhase.Missing
         | FnisOutputPhase.Stale
+        | FnisOutputPhase.Running
         | FnisOutputPhase.Failed
         | FnisOutputPhase.Cancelled
         | FnisOutputPhase.Abandoned -> true

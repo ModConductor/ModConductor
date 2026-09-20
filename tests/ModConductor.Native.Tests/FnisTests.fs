@@ -25,6 +25,7 @@ type FnisTests() =
         flag "effectiveInputFilterIncludesSkeletons" |> should equal true
         flag "windowsToolProjectionUsesExactDescriptorAndTypedArguments"
         |> should equal true
+        flag "selectedWindowsContextProjectsRegisteredGenerator" |> should equal true
 
     [<Test>]
     member _.``direct acquisition should retain complete generator provenance``() =
@@ -52,9 +53,12 @@ type FnisTests() =
         flag "outputLimitFailureRetainsDetailAndRemovesStage" |> should equal true
         flag "launchFailureRetainsDetailAndRemovesStage" |> should equal true
         flag "malformedTemporaryLogIsCapturedBoundedInOwnedState" |> should equal true
+        flag "temporaryLogCleanupPreservesImmutableGenerator" |> should equal true
         flag "missingTemporaryLogIsAnEmptyOwnedRecord" |> should equal true
         flag "stalePublicationRollsBackVersionAndSelectionAtomically" |> should equal true
+        flag "firstStalePublicationRemovesOutputAndProfileShells" |> should equal true
         flag "restartMarksRunAbandonedRemovesStageAndPreservesOutput" |> should equal true
+        flag "engineShutdownCancelsAndDrainsSleepingFnisProcessGroup" |> should equal true
 
     [<Test>]
     member _.``removal and restart should preserve foreign files and retained provenance``() =

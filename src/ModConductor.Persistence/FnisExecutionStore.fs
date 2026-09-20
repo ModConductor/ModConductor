@@ -441,12 +441,13 @@ type internal FnisExecutionStore
                         let output = outputId run.Request.ProfileId
                         let row = LibraryRows.find database.Connection transaction output
 
-                        let entry =
+                        let entry, created =
                             match row with
-                            | Some row when row.Entry.WorkspaceId = run.Request.WorkspaceId -> row.Entry
+                            | Some row when row.Entry.WorkspaceId = run.Request.WorkspaceId ->
+                                row.Entry, false
                             | Some _ -> raise (InvalidDataException "The FNIS output identity is already in use.")
                             | None ->
-                                InventoryCommands.createFromOutputs
+                                (InventoryCommands.createFromOutputs
                                     database.Connection
                                     transaction
                                     run.Request.WorkspaceId
@@ -456,7 +457,8 @@ type internal FnisExecutionStore
                                       Comment = ""
                                       Version = DateTimeOffset.UtcNow.ToString("yyyyMMdd-HHmmss")
                                       Source = ""
-                                      Categories = [] }
+                                      Categories = [] }),
+                                true
 
                         let _, _, selectionRevision =
                             input
@@ -474,9 +476,9 @@ type internal FnisExecutionStore
                               "$owner", box database.OwnerId ]
 
                         transaction.Commit()
-                        entry.Revision, selectionRevision, entry.CurrentVersion)
+                        entry.Revision, selectionRevision, entry.CurrentVersion, created)
 
-                let expectedRevision, expectedSelection, sourceVersion = prepared
+                let expectedRevision, expectedSelection, sourceVersion, createdOutput = prepared
                 let inputFiles: CompositionFile list =
                     files
                     |> List.map (fun file ->
@@ -584,6 +586,31 @@ type internal FnisExecutionStore
                         ))
 
                 match published with
-                | Error error -> return Error(mapLibrary error)
+                | Error error ->
+                    if createdOutput then
+                        do!
+                            database.EnqueueInternal(fun () ->
+                                use transaction =
+                                    database.Connection.BeginTransaction(deferred = false)
+
+                                let output = outputId run.Request.ProfileId
+                                let removable =
+                                    Sqlite.number
+                                        database.Connection
+                                        transaction
+                                        "SELECT count(*) FROM mods WHERE id=$mod AND current_version IS NULL AND NOT EXISTS(SELECT 1 FROM mod_versions WHERE mod_id=$mod) AND NOT EXISTS(SELECT 1 FROM fnis_outputs WHERE mod_id=$mod)"
+                                        [ "$mod", box (string output) ] = 1L
+
+                                if removable then
+                                    Sqlite.execute
+                                        database.Connection
+                                        transaction
+                                        "DELETE FROM profile_mods WHERE mod_id=$mod; DELETE FROM mods WHERE id=$mod; UPDATE profiles SET selection_revision=selection_revision+1 WHERE workspace_id=$workspace"
+                                        [ "$mod", box (string output)
+                                          "$workspace", box (string run.Request.WorkspaceId) ]
+
+                                transaction.Commit())
+
+                    return Error(mapLibrary error)
                 | Ok _ -> return Ok()
         }

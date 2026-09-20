@@ -85,7 +85,7 @@ let runWithNexus registration (handoff: ModConductor.Nexus.IOAuthHandoff) args =
     use fnis =
         new ModConductor.Engine.FnisCoordinator(nexus, store.Downloads, store, handoff)
 
-    let fnisRunner = ModConductor.Engine.FnisRunner(store)
+    use fnisRunner = new ModConductor.Engine.FnisRunner(store)
 
     use nxmIngress =
         new ModConductor.Desktop.PrivateIngress(
@@ -278,6 +278,7 @@ let runWithNexus registration (handoff: ModConductor.Nexus.IOAuthHandoff) args =
                                     match value.Phase with
                                     | ModConductor.Fnis.FnisOutputPhase.Missing
                                     | ModConductor.Fnis.FnisOutputPhase.Stale
+                                    | ModConductor.Fnis.FnisOutputPhase.Running
                                     | ModConductor.Fnis.FnisOutputPhase.Failed
                                     | ModConductor.Fnis.FnisOutputPhase.Cancelled
                                     | ModConductor.Fnis.FnisOutputPhase.Abandoned -> true
@@ -554,6 +555,7 @@ let runWithNexus registration (handoff: ModConductor.Nexus.IOAuthHandoff) args =
     |> ignore
 
     app.WaitForShutdownAsync().GetAwaiter().GetResult()
+    fnisRunner.Stop().GetAwaiter().GetResult()
     nxmIngress.Stop().GetAwaiter().GetResult()
     store.Installations.Stop().GetAwaiter().GetResult()
     store.Deletions.Stop().GetAwaiter().GetResult()

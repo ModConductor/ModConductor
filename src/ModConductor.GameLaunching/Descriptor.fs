@@ -43,7 +43,9 @@ module internal Descriptor =
         else
             Error "The installed SKSE loader path is invalid. Check SKSE before Play."
 
-    let createWith
+    let private createWithHost
+        hostWindows
+        hostLinux
         (state: GameContextState)
         (loader: ComponentLoader option)
         (configuration: ComponentLaunchConfiguration option)
@@ -72,7 +74,7 @@ module internal Descriptor =
 
             match configured, evidence.Platform, evidence.Proton with
             | Error problem, _, _ -> Error problem
-            | Ok executable, ContextPlatform.Windows, _ when OperatingSystem.IsWindows() ->
+            | Ok executable, ContextPlatform.Windows, _ when hostWindows ->
                 Ok(
                     binding.Id,
                     "Windows",
@@ -81,7 +83,7 @@ module internal Descriptor =
                       WorkingDirectory = evidence.RootPath
                       Environment = environment }
                 )
-            | Ok executable, ContextPlatform.Proton, Some proton when OperatingSystem.IsLinux() ->
+            | Ok executable, ContextPlatform.Proton, Some proton when hostLinux ->
                 proton.Launch
                 |> Result.map (fun launch ->
                     binding.Id,
@@ -104,6 +106,14 @@ module internal Descriptor =
                 Error "Select a checked Proton launch context on Linux."
         | _ -> Error "Select and refresh the installation before playing."
 
+    let createWith state loader configuration =
+        createWithHost
+            (OperatingSystem.IsWindows())
+            (OperatingSystem.IsLinux())
+            state
+            loader
+            configuration
+
     let create state loader = createWith state loader None
 
     let projectTool platform (tool: string) (arguments: string list) (launch: NativeLaunch) =
@@ -119,8 +129,17 @@ module internal Descriptor =
                     | _ :: prefix -> List.rev prefix @ (tool :: arguments)
                     | [] -> tool :: arguments }
 
-    let createToolWith state loader configuration generation executable arguments =
-        match createWith state loader configuration, state.Binding with
+    let createToolWithHost
+        hostWindows
+        hostLinux
+        state
+        loader
+        configuration
+        generation
+        executable
+        arguments
+        =
+        match createWithHost hostWindows hostLinux state loader configuration, state.Binding with
         | Ok(context, runtime, launch), Some binding ->
             match toolPath binding.Evidence.RootPath executable with
             | Error problem -> Error problem
@@ -134,3 +153,14 @@ module internal Descriptor =
                       Launch = projected }
         | Error problem, _ -> Error problem
         | _, None -> Error "Select and refresh the installation before running FNIS."
+
+    let createToolWith state loader configuration generation executable arguments =
+        createToolWithHost
+            (OperatingSystem.IsWindows())
+            (OperatingSystem.IsLinux())
+            state
+            loader
+            configuration
+            generation
+            executable
+            arguments

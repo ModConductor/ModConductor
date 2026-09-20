@@ -503,10 +503,10 @@ module FnisFixtures =
 
         File.WriteAllText(
             launcher,
-            "#!/usr/bin/python3\nimport os,sys,time\nmode=open("
+            "#!/usr/bin/python3\nimport os,sys,time,subprocess\nmode_path="
             + "r'"
             + mode.Replace("'", "\\'")
-            + "').read().strip()\ntarget=next(a.split('=',1)[1] for a in sys.argv if a.startswith('RedirectFiles='))\ngenerator=next((a for a in sys.argv if a.lower().endswith('generatefnisforusers.exe')), '')\nlogs=os.path.join(os.path.dirname(generator),'temporary_logs')\nif mode in ('cancel','timeout'): time.sleep(30)\nif mode=='fail':\n print('synthetic failure', file=sys.stderr)\n sys.exit(7)\nif mode=='outputlimit':\n print('x'*300000)\n sys.exit(0)\nif mode=='successlog':\n os.makedirs(logs,exist_ok=True)\n open(os.path.join(logs,'GenerateFNIS_LogFile.txt'),'wb').write(b'\\xffmalformed FNIS log')\nos.makedirs(os.path.join(target,'meshes','actors','character','behaviors'),exist_ok=True)\nopen(os.path.join(target,'meshes','actors','character','behaviors','generated.hkx'),'wb').write(('generated-'+mode).encode())\nprint(' '.join(sys.argv[1:]))\n"
+            + "'\nmode=open(mode_path).read().strip()\ntarget=next(a.split('=',1)[1] for a in sys.argv if a.startswith('RedirectFiles='))\ngenerator=next((a for a in sys.argv if a.lower().endswith('generatefnisforusers.exe')), '')\nlogs=os.path.join(os.path.dirname(generator),'temporary_logs')\nif mode=='shutdownchild':\n child=subprocess.Popen(['sleep','30'])\n open(mode_path+'.childpid','w').write(str(child.pid))\n time.sleep(30)\nif mode in ('cancel','timeout'): time.sleep(30)\nif mode=='fail':\n print('synthetic failure', file=sys.stderr)\n sys.exit(7)\nif mode=='outputlimit':\n print('x'*300000)\n sys.exit(0)\nif mode=='successlog':\n os.makedirs(logs,exist_ok=True)\n open(os.path.join(logs,'GenerateFNIS_LogFile.txt'),'wb').write(b'\\xffmalformed FNIS log')\n open(os.path.join(logs,'NewFNIS.log'),'wb').write(b'new temporary log')\nos.makedirs(os.path.join(target,'meshes','actors','character','behaviors'),exist_ok=True)\nopen(os.path.join(target,'meshes','actors','character','behaviors','generated.hkx'),'wb').write(('generated-'+mode).encode())\nprint(' '.join(sys.argv[1:]))\n"
         )
 
         File.SetUnixFileMode(
@@ -520,8 +520,45 @@ module FnisFixtures =
             |> wait
             |> Option.get
 
+        let selectedContext =
+            (store.GameContexts :> IGameContexts).Read workspace |> wait |> result
+
+        let selectedWindowsContext =
+            { selectedContext with
+                Binding =
+                    selectedContext.Binding
+                    |> Option.map (fun binding ->
+                        { binding with
+                            Proton = None
+                            Evidence =
+                                { binding.Evidence with
+                                    Platform = ContextPlatform.Windows
+                                    Proton = None } }) }
+
+        let selectedWindowsProjection =
+            Descriptor.createToolWithHost
+                true
+                false
+                selectedWindowsContext
+                None
+                None
+                installedGenerator.GenerationId
+                installedGenerator.Executable
+                [ "RedirectFiles=C:\\owned"; "InstantExecute=1" ]
+
+        check
+            writer
+            "selectedWindowsContextProjectsRegisteredGenerator"
+            (selectedWindowsProjection
+             |> Result.exists (fun projected ->
+                 projected.Runtime = "Windows"
+                 && projected.Launch.Executable = installedGenerator.Executable
+                 && projected.Launch.Arguments =
+                    [ "RedirectFiles=C:\\owned"; "InstantExecute=1" ]))
+
         let generatorDirectory = Path.GetDirectoryName installedGenerator.Executable
         let temporaryLogs = Path.Combine(generatorDirectory, "temporary_logs")
+        let generatorBeforeLogs = SHA256.HashData(File.ReadAllBytes installedGenerator.Executable)
 
         if OperatingSystem.IsLinux() then
             let mode = File.GetUnixFileMode generatorDirectory
@@ -531,7 +568,8 @@ module FnisFixtures =
         else
             Directory.CreateDirectory temporaryLogs |> ignore
 
-        let execution = FnisRunner(store) :> IFnisExecution
+        use runner = new FnisRunner(store)
+        let execution = runner :> IFnisExecution
 
         let waitForRun id expected =
             until
@@ -599,6 +637,55 @@ module FnisFixtures =
 
         check writer "addedEffectiveInputMakesFnisStale" (added.Fingerprint <> initialFingerprint)
         check writer "removedEffectiveInputRestoresFingerprint" (removed.Fingerprint = initialFingerprint)
+
+        let mutable changedFirstRun = false
+        use firstStaleRunner =
+            new FnisRunner(
+                store,
+                publicationCheckpoint =
+                    (fun _ ->
+                        if not changedFirstRun then
+                            changedFirstRun <- true
+                            select true inputMod)
+            )
+
+        let firstStaleExecution = firstStaleRunner :> IFnisExecution
+        let firstStaleId = Guid.NewGuid()
+        firstStaleExecution.Run(
+            { Id = firstStaleId; WorkspaceId = workspace; ProfileId = profile },
+            CancellationToken.None
+        )
+        |> wait
+        |> result
+        |> ignore
+
+        let firstStale =
+            until
+                "first stale FNIS publication"
+                (fun () -> firstStaleExecution.Inspect(workspace, profile, CancellationToken.None) |> wait |> result)
+                (fun value ->
+                    value.LatestRunId = Some firstStaleId
+                    && value.Phase = ModConductor.Fnis.FnisOutputPhase.Failed)
+
+        let firstShells =
+            use connection =
+                new Microsoft.Data.Sqlite.SqliteConnection(
+                    "Data Source=" + Path.Combine(scenario, "state", "state.db") + ";Pooling=False"
+                )
+            connection.Open()
+            Sqlite.number
+                connection
+                null
+                "SELECT count(*) FROM mods WHERE name='FNIS generated output' OR id=(SELECT output_mod_id FROM fnis_runs WHERE id=$id)"
+                [ "$id", box (string firstStaleId) ]
+
+        check
+            writer
+            "firstStalePublicationRemovesOutputAndProfileShells"
+            (firstStale.Detail.Contains("inputs changed")
+             && (outputEntry () |> Option.isNone)
+             && firstShells = 0L)
+        select false inputMod
 
         let beforeCompleted = enabled store profile
         let completedId = Guid.NewGuid()
@@ -727,7 +814,8 @@ module FnisFixtures =
              && not (Directory.Exists(Path.Combine(scenario, "state", "fnis-runs", cancelledId.ToString("N")))))
 
         File.WriteAllText(mode, "timeout")
-        let timeoutExecution = FnisRunner(store, timeout = TimeSpan.FromMilliseconds 100.) :> IFnisExecution
+        use timeoutRunner = new FnisRunner(store, timeout = TimeSpan.FromMilliseconds 100.)
+        let timeoutExecution = timeoutRunner :> IFnisExecution
         let timeoutId = Guid.NewGuid()
         timeoutExecution.Run({ Id = timeoutId; WorkspaceId = workspace; ProfileId = profile }, CancellationToken.None)
         |> wait
@@ -746,6 +834,9 @@ module FnisFixtures =
              && timedOut.RunLog = ""
              && not (Directory.Exists(Path.Combine(scenario, "state", "fnis-runs", timeoutId.ToString("N")))))
 
+        let existingLog = Path.Combine(temporaryLogs, "GenerateFNIS_LogFile.txt")
+        let newLog = Path.Combine(temporaryLogs, "NewFNIS.log")
+        File.WriteAllText(existingLog, "original temporary log")
         File.WriteAllText(mode, "successlog")
         let logId = Guid.NewGuid()
         execution.Run({ Id = logId; WorkspaceId = workspace; ProfileId = profile }, CancellationToken.None)
@@ -758,7 +849,14 @@ module FnisFixtures =
             writer
             "malformedTemporaryLogIsCapturedBoundedInOwnedState"
             (logged.RunLog.Contains("malformed FNIS log")
-             && Encoding.UTF8.GetByteCount logged.RunLog <= 256 * 1024)
+             && Encoding.UTF8.GetByteCount logged.RunLog <= 256 * 1024
+             && File.ReadAllText(existingLog) = "original temporary log"
+             && not (File.Exists newLog))
+
+        check
+            writer
+            "temporaryLogCleanupPreservesImmutableGenerator"
+            (SHA256.HashData(File.ReadAllBytes installedGenerator.Executable) = generatorBeforeLogs)
 
         File.WriteAllText(mode, "success")
         let missingLogId = Guid.NewGuid()
@@ -771,8 +869,8 @@ module FnisFixtures =
 
         let beforeStale = outputEntry () |> Option.get
         let mutable changedForRace = false
-        let staleExecution =
-            FnisRunner(
+        use staleRunner =
+            new FnisRunner(
                 store,
                 publicationCheckpoint =
                     (fun _ ->
@@ -780,7 +878,8 @@ module FnisFixtures =
                             changedForRace <- true
                             select true inputMod)
             )
-            :> IFnisExecution
+
+        let staleExecution = staleRunner :> IFnisExecution
 
         let staleId = Guid.NewGuid()
         staleExecution.Run({ Id = staleId; WorkspaceId = workspace; ProfileId = profile }, CancellationToken.None)
@@ -815,6 +914,35 @@ module FnisFixtures =
              && staleResidue = 0L)
         select false inputMod
 
+        let childPidFile = mode + ".childpid"
+        File.WriteAllText(mode, "shutdownchild")
+        let shutdownId = Guid.NewGuid()
+        execution.Run(
+            { Id = shutdownId; WorkspaceId = workspace; ProfileId = profile },
+            CancellationToken.None
+        )
+        |> wait
+        |> result
+        |> ignore
+
+        until
+            "sleeping FNIS child"
+            (fun () -> File.Exists childPidFile)
+            id
+        |> ignore
+
+        let childPid = File.ReadAllText(childPidFile).Trim() |> Int32.Parse
+        runner.Stop() |> wait
+        let stopped = execution.Inspect(workspace, profile, CancellationToken.None) |> wait |> result
+
+        check
+            writer
+            "engineShutdownCancelsAndDrainsSleepingFnisProcessGroup"
+            (stopped.LatestRunId = Some shutdownId
+             && stopped.Phase = ModConductor.Fnis.FnisOutputPhase.Cancelled
+             && not (Directory.Exists("/proc/" + string childPid))
+             && not (Directory.Exists(Path.Combine(scenario, "state", "fnis-runs", shutdownId.ToString("N")))))
+
         let beforeRestart = outputEntry () |> Option.get
         let inspected = execution.Inspect(workspace, profile, CancellationToken.None) |> wait |> result
         let generator =
@@ -840,7 +968,8 @@ module FnisFixtures =
                 nexusLinks = NexusDownloadLinks(session),
                 downloadPolicy = policy
             )
-        let restarted = FnisRunner(reopened) :> IFnisExecution
+        use restartedRunner = new FnisRunner(reopened)
+        let restarted = restartedRunner :> IFnisExecution
         let abandoned = restarted.Inspect(workspace, profile, CancellationToken.None) |> wait |> result
         let afterRestart =
             InventoryObservations.read reopened profile

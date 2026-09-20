@@ -11,13 +11,30 @@ open ModConductor.GameLaunching
 open ModConductor.Persistence
 open ModConductor.Platform
 
+type private ActiveFnisRun =
+    { Cancellation: CancellationTokenSource
+      Completion: TaskCompletionSource<unit> }
+
+type private FnisLogFileSnapshot =
+    { Content: byte array
+      LastWriteUtc: DateTime
+      Attributes: FileAttributes
+      UnixMode: UnixFileMode option }
+
+type private FnisLogSnapshot =
+    { Directory: string
+      TemporaryDirectoryExisted: bool
+      Files: Map<string, FnisLogFileSnapshot> }
+
 type FnisRunner
     (
         store: OperationStore,
         ?timeout: TimeSpan,
         ?publicationCheckpoint: FnisRunRequest -> unit
     ) =
-    let active = ConcurrentDictionary<Guid * Guid, CancellationTokenSource>()
+    let active = ConcurrentDictionary<Guid * Guid, ActiveFnisRun>()
+    let lifetime = obj ()
+    let mutable closing = false
     let timeout = defaultArg timeout (TimeSpan.FromMinutes 5.)
     let publicationCheckpoint = defaultArg publicationCheckpoint ignore
     let logLimit = 256 * 1024
@@ -81,59 +98,128 @@ type FnisRunner
             direct @ nested
             |> List.distinct
             |> List.sortWith (fun left right -> StringComparer.OrdinalIgnoreCase.Compare(left, right))
-            |> List.truncate 32
+
+    let readBounded path limit =
+        use stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite ||| FileShare.Delete)
+
+        if stream.Length > int64 limit then
+            raise (InvalidDataException "FNIS temporary logs exceed 256 KiB.")
+
+        let bytes = Array.zeroCreate<byte> (int stream.Length)
+        let mutable offset = 0
+
+        while offset < bytes.Length do
+            let read = stream.Read(bytes, offset, bytes.Length - offset)
+            if read = 0 then offset <- bytes.Length else offset <- offset + read
+
+        bytes
+
+    let readPrefix path limit =
+        use stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite ||| FileShare.Delete)
+        let bytes = Array.zeroCreate<byte> (min limit (int (min (int64 Int32.MaxValue) stream.Length)))
+        let mutable offset = 0
+
+        while offset < bytes.Length do
+            let read = stream.Read(bytes, offset, bytes.Length - offset)
+            if read = 0 then offset <- bytes.Length else offset <- offset + read
+
+        bytes
 
     let logSnapshot (generator: string) =
-        logPaths generator
-        |> List.choose (fun path ->
-            try
-                let info = FileInfo path
-                Some(path, (info.Length, info.LastWriteTimeUtc.Ticks))
-            with
-            | :? IOException
-            | :? UnauthorizedAccessException -> None)
-        |> Map.ofList
-
-    let captureLogs (generator: string) (before: Map<string, int64 * int64>) =
-        let builder = StringBuilder()
+        let directory = Path.GetDirectoryName generator
+        let temporary = Path.Combine(directory, "temporary_logs")
         let mutable remaining = logLimit
 
-        for path in logPaths generator do
-            if remaining > 0 then
-                try
-                    let info = FileInfo path
+        let paths = logPaths generator
+
+        if paths.Length > 32 then
+            raise (InvalidDataException "FNIS has more than 32 temporary logs.")
+
+        let files =
+            paths
+            |> List.map (fun path ->
+                let content = readBounded path remaining
+                remaining <- remaining - content.Length
+
+                path,
+                { Content = content
+                  LastWriteUtc = File.GetLastWriteTimeUtc path
+                  Attributes = File.GetAttributes path
+                  UnixMode =
+                    if OperatingSystem.IsWindows() then
+                        None
+                    else
+                        Some(File.GetUnixFileMode path) })
+            |> Map.ofList
+
+        { Directory = directory
+          TemporaryDirectoryExisted = Directory.Exists temporary
+          Files = files }
+
+    let captureAndRestoreLogs (generator: string) (before: FnisLogSnapshot) =
+        let builder = StringBuilder()
+        let mutable remaining = logLimit
+        let afterPaths = logPaths generator
+
+        try
+            for path in afterPaths do
+                let existing = before.Files |> Map.tryFind path
+                let length = FileInfo(path).Length
+                let count = min remaining (int (min (int64 remaining) length))
+                let content = readPrefix path count
+                let changed =
+                    existing
+                    |> Option.forall (fun value ->
+                        length <> int64 value.Content.Length
+                        || readBounded path value.Content.Length <> value.Content)
+
+                if changed && remaining > 0 then
+                    let header = Encoding.UTF8.GetBytes("== " + Path.GetFileName path + " ==\n")
+                    let headerCount = min remaining header.Length
+                    builder.Append(Encoding.UTF8.GetString(header, 0, headerCount)) |> ignore
+                    remaining <- remaining - headerCount
+
+                    let contentCount = min remaining content.Length
+                    builder.Append(Encoding.UTF8.GetString(content, 0, contentCount)).Append('\n')
+                    |> ignore
+                    remaining <- remaining - contentCount
+        finally
+            for path in afterPaths do
+                match before.Files |> Map.tryFind path with
+                | None -> File.Delete path
+                | Some prior ->
                     let changed =
-                        before
-                        |> Map.tryFind path
-                        |> Option.forall (fun previous -> previous <> (info.Length, info.LastWriteTimeUtc.Ticks))
+                        not (File.Exists path)
+                        || FileInfo(path).Length <> int64 prior.Content.Length
+                        || readBounded path prior.Content.Length <> prior.Content
 
                     if changed then
-                        let header = "== " + Path.GetFileName path + " ==\n"
-                        let headerBytes = Encoding.UTF8.GetBytes header
-                        let headerCount = min remaining headerBytes.Length
-                        builder.Append(Encoding.UTF8.GetString(headerBytes, 0, headerCount)) |> ignore
-                        remaining <- remaining - headerCount
+                        File.WriteAllBytes(path, prior.Content)
 
-                        if remaining > 0 then
-                            use stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite ||| FileShare.Delete)
-                            let count = min remaining (int (min (int64 Int32.MaxValue) stream.Length))
-                            let bytes = Array.zeroCreate<byte> count
-                            let mutable offset = 0
+                    File.SetAttributes(path, prior.Attributes)
+                    prior.UnixMode |> Option.iter (fun mode -> File.SetUnixFileMode(path, mode))
+                    File.SetLastWriteTimeUtc(path, prior.LastWriteUtc)
 
-                            while offset < count do
-                                let read = stream.Read(bytes, offset, count - offset)
-                                if read = 0 then offset <- count else offset <- offset + read
+            for KeyValue(path, prior) in before.Files do
+                if not (File.Exists path) then
+                    File.WriteAllBytes(path, prior.Content)
+                    File.SetAttributes(path, prior.Attributes)
+                    prior.UnixMode |> Option.iter (fun mode -> File.SetUnixFileMode(path, mode))
+                    File.SetLastWriteTimeUtc(path, prior.LastWriteUtc)
 
-                            builder.Append(Encoding.UTF8.GetString(bytes, 0, offset)).Append('\n') |> ignore
-                            remaining <- remaining - offset
-                with
-                | :? IOException
-                | :? UnauthorizedAccessException -> ()
+            let temporary = Path.Combine(before.Directory, "temporary_logs")
+
+            if
+                not before.TemporaryDirectoryExisted
+                && Directory.Exists temporary
+                && (Directory.EnumerateFileSystemEntries temporary |> Seq.isEmpty)
+            then
+                Directory.Delete temporary
 
         let bytes = Encoding.UTF8.GetBytes(builder.ToString())
         if bytes.Length <= logLimit then bytes else bytes[.. logLimit - 1]
 
-    let execute (stage: FnisRunStage) (local: CancellationTokenSource) =
+    let execute (stage: FnisRunStage) (run: ActiveFnisRun) =
         task {
             let mutable stdout = Array.empty<byte>
             let mutable stderr = Array.empty<byte>
@@ -185,9 +271,9 @@ type FnisRunner
                                   OutputBytes = 256 * 1024
                                   ErrorBytes = 256 * 1024
                                   Timeout = timeout }
-                                local.Token
+                                run.Cancellation.Token
 
-                        runLog <- captureLogs stage.Generator beforeLogs
+                        runLog <- captureAndRestoreLogs stage.Generator beforeLogs
 
                         match result with
                         | Error NativeToolError.Cancelled ->
@@ -277,7 +363,7 @@ type FnisRunner
                                     stdout,
                                     stderr,
                                     runLog,
-                                    local.Token
+                                    run.Cancellation.Token
                                 )
 
                             match published with
@@ -335,9 +421,25 @@ type FnisRunner
             finally
                 store.FnisExecution.CleanupStage stage.Request.Id
                 let key = stage.Request.WorkspaceId, stage.Request.ProfileId
-                let mutable removed = Unchecked.defaultof<CancellationTokenSource>
+                let mutable removed = Unchecked.defaultof<ActiveFnisRun>
                 active.TryRemove(key, &removed) |> ignore
-                local.Dispose()
+                run.Cancellation.Dispose()
+                run.Completion.TrySetResult() |> ignore
+        }
+
+    member _.Stop() =
+        task {
+            let runs =
+                lock lifetime (fun () ->
+                    closing <- true
+                    active.Values |> Seq.toArray)
+
+            for run in runs do
+                run.Cancellation.Cancel()
+
+            if runs.Length > 0 then
+                let! _ = Task.WhenAll(runs |> Array.map _.Completion.Task)
+                ()
         }
 
     interface IFnisInspection with
@@ -377,10 +479,20 @@ type FnisRunner
                             | Ok(_, false, _) ->
                                 return! inspect request.WorkspaceId request.ProfileId token
                             | Ok(stage, true, _) ->
-                                let local = new CancellationTokenSource()
+                                let run =
+                                    { Cancellation = new CancellationTokenSource()
+                                      Completion =
+                                        TaskCompletionSource<unit>(
+                                            TaskCreationOptions.RunContinuationsAsynchronously
+                                        ) }
+
                                 let key = request.WorkspaceId, request.ProfileId
 
-                                if not (active.TryAdd(key, local)) then
+                                let accepted =
+                                    lock lifetime (fun () ->
+                                        not closing && active.TryAdd(key, run))
+
+                                if not accepted then
                                     do!
                                         store.FnisExecution.Fail(
                                             request.Id,
@@ -393,10 +505,18 @@ type FnisRunner
                                         )
 
                                     store.FnisExecution.CleanupStage request.Id
-                                    local.Dispose()
-                                    return Error FnisExecutionError.Busy
+                                    run.Cancellation.Dispose()
+
+                                    return
+                                        Error(
+                                            if closing then
+                                                FnisExecutionError.Unavailable
+                                                    "The engine is stopping."
+                                            else
+                                                FnisExecutionError.Busy
+                                        )
                                 else
-                                    Task.Run(fun () -> execute stage local :> Task) |> ignore
+                                    Task.Run(fun () -> execute stage run :> Task) |> ignore
                                     return!
                                         inspect
                                             request.WorkspaceId
@@ -407,7 +527,7 @@ type FnisRunner
         member _.Cancel(workspace, profile) =
             task {
                 match active.TryGetValue((workspace, profile)) with
-                | true, cancellation -> cancellation.Cancel()
+                | true, run -> run.Cancellation.Cancel()
                 | _ -> ()
 
                 let deadline = DateTime.UtcNow.AddSeconds 10.
@@ -417,3 +537,6 @@ type FnisRunner
 
                 return! inspect workspace profile CancellationToken.None
             }
+
+    interface IDisposable with
+        member this.Dispose() = this.Stop().GetAwaiter().GetResult()
