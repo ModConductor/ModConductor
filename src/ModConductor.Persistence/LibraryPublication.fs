@@ -291,7 +291,8 @@ type internal LibraryPublication(database: StateDatabase, access: LibraryAccess)
             cancellation: System.Threading.CancellationToken,
             afterEffect,
             afterObservation,
-            beforeInlineEffect
+            beforeInlineEffect,
+            finalize
         ) =
         task {
             if version = Guid.Empty then
@@ -364,10 +365,33 @@ type internal LibraryPublication(database: StateDatabase, access: LibraryAccess)
 
                                     let! completed =
                                         db (fun () ->
-                                            PublicationRows.complete
-                                                connection
-                                                database.OwnerId
-                                                version)
+                                            match finalize with
+                                            | None ->
+                                                PublicationRows.complete
+                                                    connection
+                                                    database.OwnerId
+                                                    version
+                                            | Some finish ->
+                                                use transaction =
+                                                    connection.BeginTransaction(deferred = false)
+
+                                                let completed =
+                                                    PublicationRows.completeIn
+                                                        connection
+                                                        transaction
+                                                        database.OwnerId
+                                                        version
+
+                                                let result =
+                                                    completed
+                                                    |> Result.bind (fun entry ->
+                                                        finish connection transaction entry
+                                                        |> Result.map (fun () -> entry))
+
+                                                if Result.isOk result then
+                                                    transaction.Commit()
+
+                                                result)
 
                                     match completed with
                                     | Ok _ -> successful <- true
@@ -399,13 +423,13 @@ type internal LibraryPublication(database: StateDatabase, access: LibraryAccess)
                                     .GetAwaiter()
                                     .GetResult()
 
-                                if cancelled then
+                                if cancelled || Option.isSome finalize then
                                     match (cleanupIncomplete version).GetAwaiter().GetResult() with
                                     | Ok _ -> ()
                                     | Error _ ->
                                         raise (
                                             IOException(
-                                                "The cancelled publication could not be removed."
+                                                "The incomplete publication could not be removed."
                                             )
                                         )
                             with _ ->
@@ -422,7 +446,8 @@ type internal LibraryPublication(database: StateDatabase, access: LibraryAccess)
             System.Threading.CancellationToken.None,
             afterEffect,
             afterObservation,
-            ignore
+            ignore,
+            None
         )
 
     member _.Compose
@@ -444,7 +469,29 @@ type internal LibraryPublication(database: StateDatabase, access: LibraryAccess)
             cancellation,
             afterEffect,
             afterObservation,
-            beforeInlineEffect
+            beforeInlineEffect,
+            None
+        )
+
+    member _.ComposeFinalized
+        (
+            modId,
+            expected,
+            version,
+            input,
+            cancellation,
+            finalize
+        ) =
+        this.Run(
+            modId,
+            expected,
+            version,
+            Some input,
+            cancellation,
+            ignore,
+            ignore,
+            ignore,
+            Some finalize
         )
 
     member _.Abandon(action) =

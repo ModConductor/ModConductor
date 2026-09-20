@@ -149,6 +149,7 @@ const FnisState$json = {
     },
     {'1': 'standard_output', '3': 18, '4': 1, '5': 9, '10': 'standardOutput'},
     {'1': 'standard_error', '3': 19, '4': 1, '5': 9, '10': 'standardError'},
+    {'1': 'run_log', '3': 20, '4': 1, '5': 9, '10': 'runLog'},
   ],
   '8': [
     {'1': '_nexus_file_id'},
@@ -171,5 +172,5 @@ final $typed_data.Uint8List fnisStateDescriptor = $convert.base64Decode(
     '5SdW4SJAoOY2FuX2NhbmNlbF9ydW4YDyABKAhSDGNhbkNhbmNlbFJ1bhIaCgZydW5faWQYECAB'
     'KAlIAVIFcnVuSWSIAQESIAoJZXhpdF9jb2RlGBEgASgFSAJSCGV4aXRDb2RliAEBEicKD3N0YW'
     '5kYXJkX291dHB1dBgSIAEoCVIOc3RhbmRhcmRPdXRwdXQSJQoOc3RhbmRhcmRfZXJyb3IYEyAB'
-    'KAlSDXN0YW5kYXJkRXJyb3JCEAoOX25leHVzX2ZpbGVfaWRCCQoHX3J1bl9pZEIMCgpfZXhpdF'
-    '9jb2Rl');
+    'KAlSDXN0YW5kYXJkRXJyb3ISFwoHcnVuX2xvZxgUIAEoCVIGcnVuTG9nQhAKDl9uZXh1c19maW'
+    'xlX2lkQgkKB19ydW5faWRCDAoKX2V4aXRfY29kZQ==');

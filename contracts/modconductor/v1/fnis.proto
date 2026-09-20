@@ -59,4 +59,5 @@ message FnisState {
   optional int32 exit_code = 17;
   string standard_output = 18;
   string standard_error = 19;
+  string run_log = 20;
 }

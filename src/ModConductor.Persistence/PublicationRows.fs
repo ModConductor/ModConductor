@@ -365,7 +365,7 @@ module internal PublicationRows =
                 Sqlite.execute
                     connection
                     transaction
-                    "DELETE FROM mod_manifest WHERE version_id=$id; DELETE FROM mod_edit_origins WHERE version_id=$id; DELETE FROM mod_payloads WHERE publication_id=$id; DELETE FROM mod_versions WHERE id=$id"
+                    "DELETE FROM mod_manifest WHERE version_id=$id; DELETE FROM mod_edit_origins WHERE version_id=$id; DELETE FROM mod_version_origins WHERE version_id=$id; DELETE FROM mod_payloads WHERE publication_id=$id; DELETE FROM mod_versions WHERE id=$id"
                     [ "$id", box (string version) ]
 
                 LibraryRows.setStatus connection transaction receipt.ModId InventoryStatus.Ready

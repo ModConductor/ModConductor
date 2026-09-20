@@ -91,7 +91,8 @@ module internal Sqlite =
         | 26L
         | 27L
         | 28L
-        | 29L -> ()
+        | 29L
+        | 30L -> ()
         | _ -> raise (InvalidOperationException("The state database uses an unsupported version."))
 
         if number connection transaction "PRAGMA user_version" [] = 3L then
@@ -194,6 +195,9 @@ module internal Sqlite =
 
         if number connection transaction "PRAGMA user_version" [] = 28L then
             execute connection transaction FnisSchema.execution []
+
+        if number connection transaction "PRAGMA user_version" [] = 29L then
+            execute connection transaction FnisSchema.executionLogs []
 
         beforeCommit ()
         transaction.Commit()

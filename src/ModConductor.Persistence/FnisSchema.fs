@@ -130,3 +130,9 @@ module internal FnisSchema =
     );
     PRAGMA user_version=29;
     """
+
+    let executionLogs =
+        """
+    ALTER TABLE fnis_runs ADD COLUMN run_log BLOB NOT NULL DEFAULT X'';
+    PRAGMA user_version=30;
+    """

@@ -2,6 +2,7 @@ namespace ModConductor.Persistence
 
 open System
 open System.IO
+open System.Security.Cryptography
 open System.Text
 open System.Threading
 open System.Threading.Tasks
@@ -25,6 +26,7 @@ type internal StoredFnisRun =
       ExitCode: int option
       StandardOutput: string
       StandardError: string
+      RunLog: string
       Problem: string option }
 
 type internal FnisExecutionStore
@@ -40,6 +42,17 @@ type internal FnisExecutionStore
     do Directory.CreateDirectory runs |> ignore
 
     let stage (id: Guid) = Path.Combine(runs, id.ToString("N"), "output")
+
+    let outputId (profile: Guid) =
+        let bytes =
+            SHA256.HashData(
+                Encoding.UTF8.GetBytes("modconductor/fnis-output/" + profile.ToString("N"))
+            )
+            |> Array.take 16
+
+        bytes[7] <- (bytes[7] &&& 0x0Fuy) ||| 0x50uy
+        bytes[8] <- (bytes[8] &&& 0x3Fuy) ||| 0x80uy
+        Guid bytes
 
     let decode bytes =
         if isNull bytes then "" else Encoding.UTF8.GetString(bytes: byte array)
@@ -66,14 +79,15 @@ type internal FnisExecutionStore
           ExitCode = if reader.IsDBNull 10 then None else Some(reader.GetInt32 10)
           StandardOutput = decode (reader.GetFieldValue<byte array> 11)
           StandardError = decode (reader.GetFieldValue<byte array> 12)
-          Problem = if reader.IsDBNull 13 then None else Some(reader.GetString 13) }
+          Problem = if reader.IsDBNull 13 then None else Some(reader.GetString 13)
+          RunLog = decode (reader.GetFieldValue<byte array> 14) }
 
     let latest connection transaction profile =
         use command =
             Sqlite.command
                 connection
                 transaction
-                "SELECT id,workspace_id,profile_id,phase,busy,generation_id,generator,input_fingerprint,output_mod_id,output_version_id,exit_code,stdout,stderr,problem FROM fnis_runs WHERE profile_id=$profile ORDER BY requested_at DESC LIMIT 1"
+                "SELECT id,workspace_id,profile_id,phase,busy,generation_id,generator,input_fingerprint,output_mod_id,output_version_id,exit_code,stdout,stderr,problem,run_log FROM fnis_runs WHERE profile_id=$profile ORDER BY requested_at DESC LIMIT 1"
                 [ "$profile", box (string profile) ]
 
         use reader = command.ExecuteReader()
@@ -161,6 +175,18 @@ type internal FnisExecutionStore
                     FnisOutputPhase.Running,
                     "FNIS is running",
                     "The previous generated output stays active until this run succeeds."
+                | Some run, _ when
+                    (run.Phase = FnisOutputPhase.Failed
+                        || run.Phase = FnisOutputPhase.Cancelled
+                        || run.Phase = FnisOutputPhase.Abandoned)
+                    ->
+                    run.Phase,
+                    (match run.Phase with
+                     | FnisOutputPhase.Cancelled -> "FNIS run was cancelled"
+                     | FnisOutputPhase.Abandoned -> "FNIS run was interrupted"
+                     | _ -> "FNIS run failed"),
+                    (run.Problem
+                     |> Option.defaultValue "The previous generated output remains active.")
                 | _, None ->
                     FnisOutputPhase.Missing,
                     "FNIS output is missing",
@@ -185,7 +211,8 @@ type internal FnisExecutionStore
               LatestRunId = latest |> Option.map _.Id
               ExitCode = latest |> Option.bind _.ExitCode
               StandardOutput = latest |> Option.map _.StandardOutput |> Option.defaultValue ""
-              StandardError = latest |> Option.map _.StandardError |> Option.defaultValue "" })
+              StandardError = latest |> Option.map _.StandardError |> Option.defaultValue ""
+              RunLog = latest |> Option.map _.RunLog |> Option.defaultValue "" })
 
     let mapLibrary =
         function
@@ -204,6 +231,16 @@ type internal FnisExecutionStore
         | LibraryError.UnprovedOwnership
         | LibraryError.FileUnavailable ->
             FnisExecutionError.Unavailable "The generated FNIS output could not be saved."
+
+    member _.CleanupStage(id: Guid) =
+        let directory = Path.Combine(runs, id.ToString("N"))
+
+        try
+            if Directory.Exists directory then
+                Directory.Delete(directory, true)
+        with
+        | :? IOException
+        | :? UnauthorizedAccessException -> ()
 
     member _.Inspect(workspace, profile, generation) =
         task {
@@ -231,7 +268,7 @@ type internal FnisExecutionStore
                             Sqlite.command
                                 database.Connection
                                 transaction
-                                "SELECT id,workspace_id,profile_id,phase,busy,generation_id,generator,input_fingerprint,output_mod_id,output_version_id,exit_code,stdout,stderr,problem FROM fnis_runs WHERE id=$id"
+                                "SELECT id,workspace_id,profile_id,phase,busy,generation_id,generator,input_fingerprint,output_mod_id,output_version_id,exit_code,stdout,stderr,problem,run_log FROM fnis_runs WHERE id=$id"
                                 [ "$id", box (string request.Id) ]
 
                         use reader = command.ExecuteReader()
@@ -274,11 +311,12 @@ type internal FnisExecutionStore
                                       GenerationId = generator.GenerationId
                                       Generator = generator.Executable
                                       Fingerprint = fingerprint
-                                      OutputModId = request.Id
+                                      OutputModId = outputId request.ProfileId
                                       OutputVersionId = Guid.NewGuid()
                                       ExitCode = None
                                       StandardOutput = ""
                                       StandardError = ""
+                                      RunLog = ""
                                       Problem = None }
 
                                 Sqlite.execute
@@ -345,7 +383,7 @@ type internal FnisExecutionStore
                         )
         }
 
-    member _.Fail(id, phase, exitCode, stdout: byte array, stderr: byte array, problem) =
+    member _.Fail(id, phase, exitCode, stdout: byte array, stderr: byte array, runLog: byte array, problem) =
         database.EnqueueInternal(fun () ->
             let phase =
                 match phase with
@@ -355,17 +393,26 @@ type internal FnisExecutionStore
             Sqlite.execute
                 database.Connection
                 null
-                "UPDATE fnis_runs SET phase=$phase,busy=0,exit_code=$exit,stdout=$stdout,stderr=$stderr,problem=$problem,completed_at=$completed WHERE id=$id AND owner=$owner AND busy=1"
+                "UPDATE fnis_runs SET phase=$phase,busy=0,exit_code=$exit,stdout=$stdout,stderr=$stderr,run_log=$log,problem=$problem,completed_at=$completed WHERE id=$id AND owner=$owner AND busy=1"
                 [ "$phase", box phase
                   "$exit", exitCode |> Option.map box |> Option.defaultValue (box DBNull.Value)
                   "$stdout", box stdout
                   "$stderr", box stderr
+                  "$log", box runLog
                   "$problem", box problem
                   "$completed", box (DateTimeOffset.UtcNow.ToString("O"))
                   "$id", box (string id)
                   "$owner", box database.OwnerId ])
 
-    member _.Publish(run: FnisRunStage, exitCode, stdout: byte array, stderr: byte array, token: CancellationToken) =
+    member _.Publish
+        (
+            run: FnisRunStage,
+            exitCode,
+            stdout: byte array,
+            stderr: byte array,
+            runLog: byte array,
+            token: CancellationToken
+        ) =
         task {
             let root =
                 match HostPath.create run.Directory with
@@ -391,7 +438,8 @@ type internal FnisExecutionStore
                 let! prepared =
                     database.Enqueue(fun () ->
                         use transaction = database.Connection.BeginTransaction(deferred = false)
-                        let row = LibraryRows.find database.Connection transaction run.Request.Id
+                        let output = outputId run.Request.ProfileId
+                        let row = LibraryRows.find database.Connection transaction output
 
                         let entry =
                             match row with
@@ -402,7 +450,7 @@ type internal FnisExecutionStore
                                     database.Connection
                                     transaction
                                     run.Request.WorkspaceId
-                                    run.Request.Id
+                                    output
                                     { Name = "FNIS generated output"
                                       Notes = "Managed by Run FNIS."
                                       Comment = ""
@@ -426,9 +474,9 @@ type internal FnisExecutionStore
                               "$owner", box database.OwnerId ]
 
                         transaction.Commit()
-                        entry.Revision, selectionRevision)
+                        entry.Revision, selectionRevision, entry.CurrentVersion)
 
-                let expectedRevision, expectedSelection = prepared
+                let expectedRevision, expectedSelection, sourceVersion = prepared
                 let inputFiles: CompositionFile list =
                     files
                     |> List.map (fun file ->
@@ -439,7 +487,7 @@ type internal FnisExecutionStore
 
                 let composition: LibraryCompositionInput =
                     { ActionId = run.Request.Id
-                      SourceVersion = None
+                      SourceVersion = sourceVersion
                       VersionLabel = DateTimeOffset.UtcNow.ToString("yyyyMMdd-HHmmss")
                       Policy = Skyrim.definition.TargetPolicy
                       Files = inputFiles
@@ -458,88 +506,84 @@ type internal FnisExecutionStore
 
                 let! published =
                     access.Run(fun () ->
-                        publication.Compose(
-                            run.Request.Id,
+                        publication.ComposeFinalized(
+                            outputId run.Request.ProfileId,
                             expectedRevision,
                             version,
                             composition,
                             token,
-                            ignore,
-                            ignore,
-                            ignore
+                            (fun connection transaction entry ->
+                                let current, _, selectionRevision =
+                                    input
+                                        connection
+                                        transaction
+                                        run.Request.WorkspaceId
+                                        run.Request.ProfileId
+
+                                if
+                                    selectionRevision <> expectedSelection
+                                    || current <> run.Fingerprint
+                                then
+                                    Error LibraryError.StaleRevision
+                                else
+                                    let output = outputId run.Request.ProfileId
+
+                                    let previous =
+                                        use command =
+                                            Sqlite.command
+                                                connection
+                                                transaction
+                                                "SELECT mod_id FROM fnis_outputs WHERE profile_id=$profile"
+                                                [ "$profile", box (string run.Request.ProfileId) ]
+
+                                        match command.ExecuteScalar() with
+                                        | :? string as value -> Some(Guid.Parse value)
+                                        | _ -> None
+
+                                    let changed =
+                                        SelectionRows.all connection transaction run.Request.ProfileId
+                                        |> List.map (fun row ->
+                                            if row.Id = output then
+                                                { row with Enabled = Some true }
+                                            elif previous = Some row.Id then
+                                                { row with Enabled = Some false }
+                                            else
+                                                row)
+
+                                    SelectionRows.apply
+                                        connection
+                                        transaction
+                                        run.Request.ProfileId
+                                        changed
+
+                                    Sqlite.execute
+                                        connection
+                                        transaction
+                                        "INSERT INTO fnis_outputs(profile_id,workspace_id,mod_id,version_id,run_id,input_fingerprint,updated_at) VALUES($profile,$workspace,$mod,$version,$run,$fingerprint,$updated) ON CONFLICT(profile_id) DO UPDATE SET workspace_id=excluded.workspace_id,mod_id=excluded.mod_id,version_id=excluded.version_id,run_id=excluded.run_id,input_fingerprint=excluded.input_fingerprint,updated_at=excluded.updated_at"
+                                        [ "$profile", box (string run.Request.ProfileId)
+                                          "$workspace", box (string run.Request.WorkspaceId)
+                                          "$mod", box (string output)
+                                          "$version", box (string entry.CurrentVersion.Value)
+                                          "$run", box (string run.Request.Id)
+                                          "$fingerprint", box run.Fingerprint
+                                          "$updated", box (DateTimeOffset.UtcNow.ToString("O")) ]
+
+                                    Sqlite.execute
+                                        connection
+                                        transaction
+                                        "UPDATE fnis_runs SET phase=3,busy=0,exit_code=$exit,stdout=$stdout,stderr=$stderr,run_log=$log,problem=NULL,completed_at=$completed WHERE id=$id AND owner=$owner AND busy=1"
+                                        [ "$exit", box exitCode
+                                          "$stdout", box stdout
+                                          "$stderr", box stderr
+                                          "$log", box runLog
+                                          "$completed", box (DateTimeOffset.UtcNow.ToString("O"))
+                                          "$id", box (string run.Request.Id)
+                                          "$owner", box database.OwnerId ]
+
+                                    Ok())
                         ))
 
                 match published with
                 | Error error -> return Error(mapLibrary error)
-                | Ok entry ->
-                    let! committed =
-                        database.Enqueue(fun () ->
-                            use transaction = database.Connection.BeginTransaction(deferred = false)
-                            let current, _, selectionRevision =
-                                input
-                                    database.Connection
-                                    transaction
-                                    run.Request.WorkspaceId
-                                    run.Request.ProfileId
-
-                            if selectionRevision <> expectedSelection || current <> run.Fingerprint then
-                                Error FnisExecutionError.Stale
-                            else
-                                let previous =
-                                    use command =
-                                        Sqlite.command
-                                            database.Connection
-                                            transaction
-                                            "SELECT mod_id FROM fnis_outputs WHERE profile_id=$profile"
-                                            [ "$profile", box (string run.Request.ProfileId) ]
-
-                                    match command.ExecuteScalar() with
-                                    | :? string as value -> Some(Guid.Parse value)
-                                    | _ -> None
-
-                                let changed =
-                                    SelectionRows.all database.Connection transaction run.Request.ProfileId
-                                    |> List.map (fun row ->
-                                        if row.Id = run.Request.Id then
-                                            { row with Enabled = Some true }
-                                        elif previous = Some row.Id then
-                                            { row with Enabled = Some false }
-                                        else
-                                            row)
-
-                                SelectionRows.apply
-                                    database.Connection
-                                    transaction
-                                    run.Request.ProfileId
-                                    changed
-
-                                Sqlite.execute
-                                    database.Connection
-                                    transaction
-                                    "INSERT INTO fnis_outputs(profile_id,workspace_id,mod_id,version_id,run_id,input_fingerprint,updated_at) VALUES($profile,$workspace,$mod,$version,$run,$fingerprint,$updated) ON CONFLICT(profile_id) DO UPDATE SET workspace_id=excluded.workspace_id,mod_id=excluded.mod_id,version_id=excluded.version_id,run_id=excluded.run_id,input_fingerprint=excluded.input_fingerprint,updated_at=excluded.updated_at"
-                                    [ "$profile", box (string run.Request.ProfileId)
-                                      "$workspace", box (string run.Request.WorkspaceId)
-                                      "$mod", box (string run.Request.Id)
-                                      "$version", box (string entry.CurrentVersion.Value)
-                                      "$run", box (string run.Request.Id)
-                                      "$fingerprint", box run.Fingerprint
-                                      "$updated", box (DateTimeOffset.UtcNow.ToString("O")) ]
-
-                                Sqlite.execute
-                                    database.Connection
-                                    transaction
-                                    "UPDATE fnis_runs SET phase=3,busy=0,exit_code=$exit,stdout=$stdout,stderr=$stderr,problem=NULL,completed_at=$completed WHERE id=$id AND owner=$owner AND busy=1"
-                                    [ "$exit", box exitCode
-                                      "$stdout", box stdout
-                                      "$stderr", box stderr
-                                      "$completed", box (DateTimeOffset.UtcNow.ToString("O"))
-                                      "$id", box (string run.Request.Id)
-                                      "$owner", box database.OwnerId ]
-
-                                transaction.Commit()
-                                Ok()
-
-                        )
-
-                    return committed
+                | Ok _ -> return Ok()
         }

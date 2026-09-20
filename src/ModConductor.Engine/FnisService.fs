@@ -367,7 +367,7 @@ type FnisCoordinator
                     Result.isOk (FnisCatalogue.eligibility game)
                     && deployment.WorkspaceId = workspace
                     ->
-                    if deployment.PendingReceipt.IsSome then
+                    if deployment.PendingReceipt.IsSome && not (workers.ContainsKey key) then
                         return!
                             persist
                                 workspace
@@ -918,7 +918,8 @@ type internal FnisService(coordinator: FnisCoordinator, execution: IFnisExecutio
             value.LatestRunId |> Option.iter (fun id -> reply.RunId <- id.ToString("N"))
             value.ExitCode |> Option.iter (fun code -> reply.ExitCode <- code)
             reply.StandardOutput <- value.StandardOutput
-            reply.StandardError <- value.StandardError)
+            reply.StandardError <- value.StandardError
+            reply.RunLog <- value.RunLog)
 
         reply
 

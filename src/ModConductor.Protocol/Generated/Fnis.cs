@@ -27,7 +27,7 @@ namespace ModConductor.Protocol.V1 {
             "Chptb2Rjb25kdWN0b3IvdjEvZm5pcy5wcm90bxIPbW9kY29uZHVjdG9yLnYx",
             "IjcKC0ZuaXNSZXF1ZXN0EhQKDHdvcmtzcGFjZV9pZBgBIAEoCRISCgpwcm9m",
             "aWxlX2lkGAIgASgJIkYKDkZuaXNSdW5SZXF1ZXN0EgoKAmlkGAEgASgJEhQK",
-            "DHdvcmtzcGFjZV9pZBgCIAEoCRISCgpwcm9maWxlX2lkGAMgASgJIoEECglG",
+            "DHdvcmtzcGFjZV9pZBgCIAEoCRISCgpwcm9maWxlX2lkGAMgASgJIpIECglG",
             "bmlzU3RhdGUSKQoFcGhhc2UYASABKA4yGi5tb2Rjb25kdWN0b3IudjEuRm5p",
             "c1BoYXNlEg8KB3ZlcnNpb24YAiABKAkSDgoGc3RhdHVzGAMgASgJEg4KBmRl",
             "dGFpbBgEIAEoCRIaCg1uZXh1c19maWxlX2lkGAUgASgDSACIAQESEwoLY2Fu",
@@ -38,42 +38,43 @@ namespace ModConductor.Protocol.V1 {
             "dHB1dF9kZXRhaWwYDSABKAkSDwoHY2FuX3J1bhgOIAEoCBIWCg5jYW5fY2Fu",
             "Y2VsX3J1bhgPIAEoCBITCgZydW5faWQYECABKAlIAYgBARIWCglleGl0X2Nv",
             "ZGUYESABKAVIAogBARIXCg9zdGFuZGFyZF9vdXRwdXQYEiABKAkSFgoOc3Rh",
-            "bmRhcmRfZXJyb3IYEyABKAlCEAoOX25leHVzX2ZpbGVfaWRCCQoHX3J1bl9p",
-            "ZEIMCgpfZXhpdF9jb2RlKskCCglGbmlzUGhhc2USGgoWRk5JU19QSEFTRV9V",
-            "TlNQRUNJRklFRBAAEhoKFkZOSVNfUEhBU0VfVU5BVkFJTEFCTEUQARIYChRG",
-            "TklTX1BIQVNFX0FWQUlMQUJMRRACEiAKHEZOSVNfUEhBU0VfV0FJVElOR19G",
-            "T1JfTkVYVVMQAxIaChZGTklTX1BIQVNFX0RPV05MT0FESU5HEAQSGQoVRk5J",
-            "U19QSEFTRV9JTlNUQUxMSU5HEAUSFAoQRk5JU19QSEFTRV9SRUFEWRAGEhUK",
-            "EUZOSVNfUEhBU0VfRkFJTEVEEAcSHwobRk5JU19QSEFTRV9VUERBVEVfQVZB",
-            "SUxBQkxFEAgSIAocRk5JU19QSEFTRV9SRUNPVkVSWV9SRVFVSVJFRBAJEiEK",
-            "HUZOSVNfUEhBU0VfU09VUkNFX1VOQVZBSUxBQkxFEAoqsQIKD0ZuaXNPdXRw",
-            "dXRQaGFzZRIhCh1GTklTX09VVFBVVF9QSEFTRV9VTlNQRUNJRklFRBAAEiEK",
-            "HUZOSVNfT1VUUFVUX1BIQVNFX1VOQVZBSUxBQkxFEAESHQoZRk5JU19PVVRQ",
-            "VVRfUEhBU0VfTUlTU0lORxACEhsKF0ZOSVNfT1VUUFVUX1BIQVNFX1NUQUxF",
-            "EAMSHQoZRk5JU19PVVRQVVRfUEhBU0VfQ1VSUkVOVBAEEh0KGUZOSVNfT1VU",
-            "UFVUX1BIQVNFX1JVTk5JTkcQBRIcChhGTklTX09VVFBVVF9QSEFTRV9GQUlM",
-            "RUQQBhIfChtGTklTX09VVFBVVF9QSEFTRV9DQU5DRUxMRUQQBxIfChtGTklT",
-            "X09VVFBVVF9QSEFTRV9BQkFORE9ORUQQCDLTBAoORm5pc09wZXJhdGlvbnMS",
-            "RAoIUmVhZEZuaXMSHC5tb2Rjb25kdWN0b3IudjEuRm5pc1JlcXVlc3QaGi5t",
-            "b2Rjb25kdWN0b3IudjEuRm5pc1N0YXRlEkcKC0luc3RhbGxGbmlzEhwubW9k",
-            "Y29uZHVjdG9yLnYxLkZuaXNSZXF1ZXN0GhoubW9kY29uZHVjdG9yLnYxLkZu",
-            "aXNTdGF0ZRJGCgpDYW5jZWxGbmlzEhwubW9kY29uZHVjdG9yLnYxLkZuaXNS",
-            "ZXF1ZXN0GhoubW9kY29uZHVjdG9yLnYxLkZuaXNTdGF0ZRJGCgpVcGRhdGVG",
-            "bmlzEhwubW9kY29uZHVjdG9yLnYxLkZuaXNSZXF1ZXN0GhoubW9kY29uZHVj",
-            "dG9yLnYxLkZuaXNTdGF0ZRJGCgpSZW1vdmVGbmlzEhwubW9kY29uZHVjdG9y",
-            "LnYxLkZuaXNSZXF1ZXN0GhoubW9kY29uZHVjdG9yLnYxLkZuaXNTdGF0ZRJH",
-            "CgtSZWNvdmVyRm5pcxIcLm1vZGNvbmR1Y3Rvci52MS5GbmlzUmVxdWVzdBoa",
-            "Lm1vZGNvbmR1Y3Rvci52MS5GbmlzU3RhdGUSRgoHUnVuRm5pcxIfLm1vZGNv",
-            "bmR1Y3Rvci52MS5GbmlzUnVuUmVxdWVzdBoaLm1vZGNvbmR1Y3Rvci52MS5G",
-            "bmlzU3RhdGUSSQoNQ2FuY2VsRm5pc1J1bhIcLm1vZGNvbmR1Y3Rvci52MS5G",
-            "bmlzUmVxdWVzdBoaLm1vZGNvbmR1Y3Rvci52MS5GbmlzU3RhdGVCG6oCGE1v",
-            "ZENvbmR1Y3Rvci5Qcm90b2NvbC5WMWIGcHJvdG8z"));
+            "bmRhcmRfZXJyb3IYEyABKAkSDwoHcnVuX2xvZxgUIAEoCUIQCg5fbmV4dXNf",
+            "ZmlsZV9pZEIJCgdfcnVuX2lkQgwKCl9leGl0X2NvZGUqyQIKCUZuaXNQaGFz",
+            "ZRIaChZGTklTX1BIQVNFX1VOU1BFQ0lGSUVEEAASGgoWRk5JU19QSEFTRV9V",
+            "TkFWQUlMQUJMRRABEhgKFEZOSVNfUEhBU0VfQVZBSUxBQkxFEAISIAocRk5J",
+            "U19QSEFTRV9XQUlUSU5HX0ZPUl9ORVhVUxADEhoKFkZOSVNfUEhBU0VfRE9X",
+            "TkxPQURJTkcQBBIZChVGTklTX1BIQVNFX0lOU1RBTExJTkcQBRIUChBGTklT",
+            "X1BIQVNFX1JFQURZEAYSFQoRRk5JU19QSEFTRV9GQUlMRUQQBxIfChtGTklT",
+            "X1BIQVNFX1VQREFURV9BVkFJTEFCTEUQCBIgChxGTklTX1BIQVNFX1JFQ09W",
+            "RVJZX1JFUVVJUkVEEAkSIQodRk5JU19QSEFTRV9TT1VSQ0VfVU5BVkFJTEFC",
+            "TEUQCiqxAgoPRm5pc091dHB1dFBoYXNlEiEKHUZOSVNfT1VUUFVUX1BIQVNF",
+            "X1VOU1BFQ0lGSUVEEAASIQodRk5JU19PVVRQVVRfUEhBU0VfVU5BVkFJTEFC",
+            "TEUQARIdChlGTklTX09VVFBVVF9QSEFTRV9NSVNTSU5HEAISGwoXRk5JU19P",
+            "VVRQVVRfUEhBU0VfU1RBTEUQAxIdChlGTklTX09VVFBVVF9QSEFTRV9DVVJS",
+            "RU5UEAQSHQoZRk5JU19PVVRQVVRfUEhBU0VfUlVOTklORxAFEhwKGEZOSVNf",
+            "T1VUUFVUX1BIQVNFX0ZBSUxFRBAGEh8KG0ZOSVNfT1VUUFVUX1BIQVNFX0NB",
+            "TkNFTExFRBAHEh8KG0ZOSVNfT1VUUFVUX1BIQVNFX0FCQU5ET05FRBAIMtME",
+            "Cg5GbmlzT3BlcmF0aW9ucxJECghSZWFkRm5pcxIcLm1vZGNvbmR1Y3Rvci52",
+            "MS5GbmlzUmVxdWVzdBoaLm1vZGNvbmR1Y3Rvci52MS5GbmlzU3RhdGUSRwoL",
+            "SW5zdGFsbEZuaXMSHC5tb2Rjb25kdWN0b3IudjEuRm5pc1JlcXVlc3QaGi5t",
+            "b2Rjb25kdWN0b3IudjEuRm5pc1N0YXRlEkYKCkNhbmNlbEZuaXMSHC5tb2Rj",
+            "b25kdWN0b3IudjEuRm5pc1JlcXVlc3QaGi5tb2Rjb25kdWN0b3IudjEuRm5p",
+            "c1N0YXRlEkYKClVwZGF0ZUZuaXMSHC5tb2Rjb25kdWN0b3IudjEuRm5pc1Jl",
+            "cXVlc3QaGi5tb2Rjb25kdWN0b3IudjEuRm5pc1N0YXRlEkYKClJlbW92ZUZu",
+            "aXMSHC5tb2Rjb25kdWN0b3IudjEuRm5pc1JlcXVlc3QaGi5tb2Rjb25kdWN0",
+            "b3IudjEuRm5pc1N0YXRlEkcKC1JlY292ZXJGbmlzEhwubW9kY29uZHVjdG9y",
+            "LnYxLkZuaXNSZXF1ZXN0GhoubW9kY29uZHVjdG9yLnYxLkZuaXNTdGF0ZRJG",
+            "CgdSdW5GbmlzEh8ubW9kY29uZHVjdG9yLnYxLkZuaXNSdW5SZXF1ZXN0Ghou",
+            "bW9kY29uZHVjdG9yLnYxLkZuaXNTdGF0ZRJJCg1DYW5jZWxGbmlzUnVuEhwu",
+            "bW9kY29uZHVjdG9yLnYxLkZuaXNSZXF1ZXN0GhoubW9kY29uZHVjdG9yLnYx",
+            "LkZuaXNTdGF0ZUIbqgIYTW9kQ29uZHVjdG9yLlByb3RvY29sLlYxYgZwcm90",
+            "bzM="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { },
           new pbr::GeneratedClrTypeInfo(new[] {typeof(global::ModConductor.Protocol.V1.FnisPhase), typeof(global::ModConductor.Protocol.V1.FnisOutputPhase), }, null, new pbr::GeneratedClrTypeInfo[] {
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.FnisRequest), global::ModConductor.Protocol.V1.FnisRequest.Parser, new[]{ "WorkspaceId", "ProfileId" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.FnisRunRequest), global::ModConductor.Protocol.V1.FnisRunRequest.Parser, new[]{ "Id", "WorkspaceId", "ProfileId" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.FnisState), global::ModConductor.Protocol.V1.FnisState.Parser, new[]{ "Phase", "Version", "Status", "Detail", "NexusFileId", "CanInstall", "CanCancel", "CanUpdate", "CanRemove", "CanRecover", "OutputPhase", "OutputStatus", "OutputDetail", "CanRun", "CanCancelRun", "RunId", "ExitCode", "StandardOutput", "StandardError" }, new[]{ "NexusFileId", "RunId", "ExitCode" }, null, null, null)
+            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.FnisState), global::ModConductor.Protocol.V1.FnisState.Parser, new[]{ "Phase", "Version", "Status", "Detail", "NexusFileId", "CanInstall", "CanCancel", "CanUpdate", "CanRemove", "CanRecover", "OutputPhase", "OutputStatus", "OutputDetail", "CanRun", "CanCancelRun", "RunId", "ExitCode", "StandardOutput", "StandardError", "RunLog" }, new[]{ "NexusFileId", "RunId", "ExitCode" }, null, null, null)
           }));
     }
     #endregion
@@ -672,6 +673,7 @@ namespace ModConductor.Protocol.V1 {
       exitCode_ = other.exitCode_;
       standardOutput_ = other.standardOutput_;
       standardError_ = other.standardError_;
+      runLog_ = other.runLog_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -953,6 +955,18 @@ namespace ModConductor.Protocol.V1 {
       }
     }
 
+    /// <summary>Field number for the "run_log" field.</summary>
+    public const int RunLogFieldNumber = 20;
+    private string runLog_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string RunLog {
+      get { return runLog_; }
+      set {
+        runLog_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -987,6 +1001,7 @@ namespace ModConductor.Protocol.V1 {
       if (ExitCode != other.ExitCode) return false;
       if (StandardOutput != other.StandardOutput) return false;
       if (StandardError != other.StandardError) return false;
+      if (RunLog != other.RunLog) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -1013,6 +1028,7 @@ namespace ModConductor.Protocol.V1 {
       if (HasExitCode) hash ^= ExitCode.GetHashCode();
       if (StandardOutput.Length != 0) hash ^= StandardOutput.GetHashCode();
       if (StandardError.Length != 0) hash ^= StandardError.GetHashCode();
+      if (RunLog.Length != 0) hash ^= RunLog.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -1107,6 +1123,10 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(154, 1);
         output.WriteString(StandardError);
       }
+      if (RunLog.Length != 0) {
+        output.WriteRawTag(162, 1);
+        output.WriteString(RunLog);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -1193,6 +1213,10 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(154, 1);
         output.WriteString(StandardError);
       }
+      if (RunLog.Length != 0) {
+        output.WriteRawTag(162, 1);
+        output.WriteString(RunLog);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -1259,6 +1283,9 @@ namespace ModConductor.Protocol.V1 {
       }
       if (StandardError.Length != 0) {
         size += 2 + pb::CodedOutputStream.ComputeStringSize(StandardError);
+      }
+      if (RunLog.Length != 0) {
+        size += 2 + pb::CodedOutputStream.ComputeStringSize(RunLog);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -1328,6 +1355,9 @@ namespace ModConductor.Protocol.V1 {
       }
       if (other.StandardError.Length != 0) {
         StandardError = other.StandardError;
+      }
+      if (other.RunLog.Length != 0) {
+        RunLog = other.RunLog;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -1424,6 +1454,10 @@ namespace ModConductor.Protocol.V1 {
             StandardError = input.ReadString();
             break;
           }
+          case 162: {
+            RunLog = input.ReadString();
+            break;
+          }
         }
       }
     #endif
@@ -1517,6 +1551,10 @@ namespace ModConductor.Protocol.V1 {
           }
           case 154: {
             StandardError = input.ReadString();
+            break;
+          }
+          case 162: {
+            RunLog = input.ReadString();
             break;
           }
         }

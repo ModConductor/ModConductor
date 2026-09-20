@@ -24,6 +24,17 @@ type internal StateDatabase(directory: string) =
         Channel.CreateBounded<Action>(BoundedChannelOptions(64, SingleReader = true))
 
     let abandonOwner owner =
+        let abandonedFnisRuns =
+            use command =
+                Sqlite.command
+                    connection
+                    null
+                    "SELECT id FROM fnis_runs WHERE owner=$owner AND busy=1"
+                    [ "$owner", box owner ]
+
+            use reader = command.ExecuteReader()
+            [ while reader.Read() do yield reader.GetString 0 ]
+
         OperationJournal.interruptOwner connection owner
 
         Sqlite.execute
@@ -92,6 +103,16 @@ type internal StateDatabase(directory: string) =
             "UPDATE fnis_runs SET phase=7,busy=0,problem='FNIS stopped when the app closed. The previous generated output remains active.',completed_at=$completed WHERE owner=$owner AND busy=1"
             [ "$owner", box owner
               "$completed", box (DateTimeOffset.UtcNow.ToString("O")) ]
+
+        for run in abandonedFnisRuns do
+            let path = Path.Combine(directory, "fnis-runs", Guid.Parse(run).ToString("N"))
+
+            try
+                if Directory.Exists path then
+                    Directory.Delete(path, true)
+            with
+            | :? IOException
+            | :? UnauthorizedAccessException -> ()
 
         Sqlite.execute
             connection

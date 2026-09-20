@@ -106,24 +106,26 @@ module internal Descriptor =
 
     let create state loader = createWith state loader None
 
+    let projectTool platform (tool: string) (arguments: string list) (launch: NativeLaunch) =
+        match platform with
+        | ContextPlatform.Windows ->
+            { launch with
+                Executable = tool
+                Arguments = arguments }
+        | ContextPlatform.Proton ->
+            { launch with
+                Arguments =
+                    match List.rev launch.Arguments with
+                    | _ :: prefix -> List.rev prefix @ (tool :: arguments)
+                    | [] -> tool :: arguments }
+
     let createToolWith state loader configuration generation executable arguments =
         match createWith state loader configuration, state.Binding with
         | Ok(context, runtime, launch), Some binding ->
             match toolPath binding.Evidence.RootPath executable with
             | Error problem -> Error problem
             | Ok tool ->
-                let projected =
-                    match binding.Evidence.Platform with
-                    | ContextPlatform.Windows ->
-                        { launch with
-                            Executable = tool
-                            Arguments = arguments }
-                    | ContextPlatform.Proton ->
-                        { launch with
-                            Arguments =
-                                match List.rev launch.Arguments with
-                                | _ :: prefix -> List.rev prefix @ (tool :: arguments)
-                                | [] -> tool :: arguments }
+                let projected = projectTool binding.Evidence.Platform tool arguments launch
 
                 Ok
                     { ContextId = context

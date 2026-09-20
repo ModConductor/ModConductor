@@ -23,6 +23,8 @@ type FnisTests() =
         flag "effectiveInputFingerprintChangesWithAnimationContent" |> should equal true
         flag "effectiveInputFilterRejectsUnrelatedFiles" |> should equal true
         flag "effectiveInputFilterIncludesSkeletons" |> should equal true
+        flag "windowsToolProjectionUsesExactDescriptorAndTypedArguments"
+        |> should equal true
 
     [<Test>]
     member _.``direct acquisition should retain complete generator provenance``() =
@@ -41,6 +43,18 @@ type FnisTests() =
         flag "successfulRunPublishesAndSelectsOneCurrentOutput" |> should equal true
         flag "failedRunPreservesPriorOutputAndBoundedExitEvidence" |> should equal true
         flag "cancelledRunTerminatesAndPreservesPriorOutput" |> should equal true
+        flag "runReturnsWhileCancellationIsReachable" |> should equal true
+        flag "activeGeneratedOutputIsExcludedFromEffectiveInputs" |> should equal true
+        flag "addedEffectiveInputMakesFnisStale" |> should equal true
+        flag "removedEffectiveInputRestoresFingerprint" |> should equal true
+        flag "distinctRunIdsCreateVersionsOfOneStableOutput" |> should equal true
+        flag "timedOutRunRetainsDetailAndRemovesStage" |> should equal true
+        flag "outputLimitFailureRetainsDetailAndRemovesStage" |> should equal true
+        flag "launchFailureRetainsDetailAndRemovesStage" |> should equal true
+        flag "malformedTemporaryLogIsCapturedBoundedInOwnedState" |> should equal true
+        flag "missingTemporaryLogIsAnEmptyOwnedRecord" |> should equal true
+        flag "stalePublicationRollsBackVersionAndSelectionAtomically" |> should equal true
+        flag "restartMarksRunAbandonedRemovesStageAndPreservesOutput" |> should equal true
 
     [<Test>]
     member _.``removal and restart should preserve foreign files and retained provenance``() =

@@ -188,6 +188,7 @@ class FnisState extends $pb.GeneratedMessage {
     $core.int? exitCode,
     $core.String? standardOutput,
     $core.String? standardError,
+    $core.String? runLog,
   }) {
     final result = create();
     if (phase != null) result.phase = phase;
@@ -209,6 +210,7 @@ class FnisState extends $pb.GeneratedMessage {
     if (exitCode != null) result.exitCode = exitCode;
     if (standardOutput != null) result.standardOutput = standardOutput;
     if (standardError != null) result.standardError = standardError;
+    if (runLog != null) result.runLog = runLog;
     return result;
   }
 
@@ -247,6 +249,7 @@ class FnisState extends $pb.GeneratedMessage {
     ..aI(17, _omitFieldNames ? '' : 'exitCode')
     ..aOS(18, _omitFieldNames ? '' : 'standardOutput')
     ..aOS(19, _omitFieldNames ? '' : 'standardError')
+    ..aOS(20, _omitFieldNames ? '' : 'runLog')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -437,6 +440,15 @@ class FnisState extends $pb.GeneratedMessage {
   $core.bool hasStandardError() => $_has(18);
   @$pb.TagNumber(19)
   void clearStandardError() => $_clearField(19);
+
+  @$pb.TagNumber(20)
+  $core.String get runLog => $_getSZ(19);
+  @$pb.TagNumber(20)
+  set runLog($core.String value) => $_setString(19, value);
+  @$pb.TagNumber(20)
+  $core.bool hasRunLog() => $_has(19);
+  @$pb.TagNumber(20)
+  void clearRunLog() => $_clearField(20);
 }
 
 const $core.bool _omitFieldNames =

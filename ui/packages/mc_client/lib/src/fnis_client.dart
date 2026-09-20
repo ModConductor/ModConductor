@@ -46,12 +46,13 @@ class FnisStatus {
     this.exitCode,
     this.standardOutput = '',
     this.standardError = '',
+    this.runLog = '',
   });
   final FnisStatusPhase phase;
   final String version, status, detail;
   final bool canInstall, canCancel, canUpdate, canRemove, canRecover;
   final FnisOutputStatusPhase outputPhase;
-  final String outputStatus, outputDetail, standardOutput, standardError;
+  final String outputStatus, outputDetail, standardOutput, standardError, runLog;
   final bool canRun, canCancelRun;
   final String? runId;
   final int? exitCode;
@@ -115,6 +116,7 @@ class FnisClient {
     exitCode: value.hasExitCode() ? value.exitCode : null,
     standardOutput: value.standardOutput,
     standardError: value.standardError,
+    runLog: value.runLog,
   );
 
   wire.FnisRequest _request(String workspace, String profile) =>

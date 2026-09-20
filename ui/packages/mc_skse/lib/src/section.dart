@@ -290,6 +290,18 @@ class _FnisPanelState extends State<_FnisPanel> {
                 : McStatusTone.error,
           ),
         ],
+        if (value != null &&
+            (value.standardError.isNotEmpty || value.runLog.isNotEmpty)) ...[
+          const SizedBox(height: McSpacing.medium),
+          McStatus(
+            title: 'FNIS run details',
+            detail: [
+              if (value.standardError.isNotEmpty) value.standardError,
+              if (value.runLog.isNotEmpty) value.runLog,
+            ].join('\n'),
+            tone: McStatusTone.error,
+          ),
+        ],
         const SizedBox(height: McSpacing.large),
         Wrap(
           spacing: McSpacing.medium,

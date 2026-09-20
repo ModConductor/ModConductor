@@ -78,10 +78,11 @@ class _EnbFixtureClient extends EnbClient {
 }
 
 class _FnisFixtureClient extends FnisClient {
-  _FnisFixtureClient(this.current)
+  _FnisFixtureClient(this.current, {this.runStaysActive = false})
     : super(ClientChannel('127.0.0.1', port: 1), CallOptions());
 
   FnisStatus current;
+  final bool runStaysActive;
   int installs = 0, cancels = 0, updates = 0, removals = 0, recoveries = 0;
   int runs = 0, runCancellations = 0;
 
@@ -121,12 +122,47 @@ class _FnisFixtureClient extends FnisClient {
   @override
   Future<FnisStatus> run(String workspace, String profile, String id) async {
     runs++;
+    if (runStaysActive) {
+      current = FnisStatus(
+        phase: current.phase,
+        version: current.version,
+        status: current.status,
+        detail: current.detail,
+        canInstall: current.canInstall,
+        canCancel: current.canCancel,
+        canUpdate: current.canUpdate,
+        canRemove: current.canRemove,
+        canRecover: current.canRecover,
+        outputPhase: FnisOutputStatusPhase.running,
+        outputStatus: 'FNIS is running',
+        outputDetail: 'The previous output remains active.',
+        canCancelRun: true,
+        runId: id,
+      );
+    }
     return current;
   }
 
   @override
   Future<FnisStatus> cancelRun(String workspace, String profile) async {
     runCancellations++;
+    current = FnisStatus(
+      phase: current.phase,
+      version: current.version,
+      status: current.status,
+      detail: current.detail,
+      canInstall: current.canInstall,
+      canCancel: current.canCancel,
+      canUpdate: current.canUpdate,
+      canRemove: current.canRemove,
+      canRecover: current.canRecover,
+      outputPhase: FnisOutputStatusPhase.cancelled,
+      outputStatus: 'FNIS run was cancelled',
+      outputDetail: 'The previous output remains active.',
+      canRun: true,
+      standardError: 'synthetic stderr',
+      runLog: 'captured generator log',
+    );
     return current;
   }
 }
@@ -392,6 +428,7 @@ void main() {
         outputDetail: 'Animation inputs changed.',
         canRun: true,
       ),
+      runStaysActive: true,
     );
 
     await tester.pumpWidget(
@@ -417,5 +454,12 @@ void main() {
     await tester.tap(find.text('Run FNIS'));
     await tester.pumpAndSettle();
     expect(fnis.runs, 1);
+    expect(find.text('Cancel FNIS run'), findsOneWidget);
+    await tester.ensureVisible(find.text('Cancel FNIS run'));
+    await tester.tap(find.text('Cancel FNIS run'));
+    await tester.pumpAndSettle();
+    expect(fnis.runCancellations, 1);
+    expect(find.textContaining('synthetic stderr'), findsOneWidget);
+    expect(find.textContaining('captured generator log'), findsOneWidget);
   });
 }

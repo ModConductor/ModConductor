@@ -66,7 +66,8 @@ type FnisInspection =
       LatestRunId: Guid option
       ExitCode: int option
       StandardOutput: string
-      StandardError: string }
+      StandardError: string
+      RunLog: string }
 
 type FnisRunRequest =
     { Id: Guid

@@ -13,6 +13,7 @@ open ModConductor.Credentials
 open ModConductor.Engine
 open ModConductor.Fnis
 open ModConductor.GameContexts
+open ModConductor.GameLaunching
 open ModConductor.HttpDownloads
 open ModConductor.ModSelection
 open ModConductor.Nexus
@@ -58,6 +59,23 @@ module FnisFixtures =
         check writer "effectiveInputFingerprintChangesWithAnimationContent" (original <> changed)
         check writer "effectiveInputFilterRejectsUnrelatedFiles" (not (FnisFreshness.relevant (path "textures/a.dds")))
         check writer "effectiveInputFilterIncludesSkeletons" (FnisFreshness.relevant skeleton.Path)
+
+        let windows =
+            Descriptor.projectTool
+                ContextPlatform.Windows
+                "C:\\Skyrim\\Data\\tools\\GenerateFNISforUsers.exe"
+                [ "RedirectFiles=C:\\owned"; "InstantExecute=1" ]
+                { Executable = "C:\\Skyrim\\SkyrimSE.exe"
+                  Arguments = []
+                  WorkingDirectory = "C:\\Skyrim"
+                  Environment = [ "SteamAppId", Some "489830" ] }
+
+        check
+            writer
+            "windowsToolProjectionUsesExactDescriptorAndTypedArguments"
+            (windows.Executable.EndsWith("GenerateFNISforUsers.exe")
+             && windows.Arguments = [ "RedirectFiles=C:\\owned"; "InstantExecute=1" ]
+             && windows.WorkingDirectory = "C:\\Skyrim")
 
     let private until label read predicate =
         let deadline = DateTime.UtcNow.AddSeconds 30.
@@ -454,7 +472,7 @@ module FnisFixtures =
 
         signIn session
 
-        use store =
+        let store =
             new OperationStore(
                 Path.Combine(scenario, "state"),
                 nexusLinks = NexusDownloadLinks(session),
@@ -488,7 +506,7 @@ module FnisFixtures =
             "#!/usr/bin/python3\nimport os,sys,time\nmode=open("
             + "r'"
             + mode.Replace("'", "\\'")
-            + "').read().strip()\ntarget=next(a.split('=',1)[1] for a in sys.argv if a.startswith('RedirectFiles='))\nif mode=='cancel': time.sleep(30)\nif mode=='fail':\n print('synthetic failure', file=sys.stderr)\n sys.exit(7)\nos.makedirs(os.path.join(target,'meshes','actors','character','behaviors'),exist_ok=True)\nopen(os.path.join(target,'meshes','actors','character','behaviors','generated.hkx'),'wb').write(b'generated')\nprint(' '.join(sys.argv[1:]))\n"
+            + "').read().strip()\ntarget=next(a.split('=',1)[1] for a in sys.argv if a.startswith('RedirectFiles='))\ngenerator=next((a for a in sys.argv if a.lower().endswith('generatefnisforusers.exe')), '')\nlogs=os.path.join(os.path.dirname(generator),'temporary_logs')\nif mode in ('cancel','timeout'): time.sleep(30)\nif mode=='fail':\n print('synthetic failure', file=sys.stderr)\n sys.exit(7)\nif mode=='outputlimit':\n print('x'*300000)\n sys.exit(0)\nif mode=='successlog':\n os.makedirs(logs,exist_ok=True)\n open(os.path.join(logs,'GenerateFNIS_LogFile.txt'),'wb').write(b'\\xffmalformed FNIS log')\nos.makedirs(os.path.join(target,'meshes','actors','character','behaviors'),exist_ok=True)\nopen(os.path.join(target,'meshes','actors','character','behaviors','generated.hkx'),'wb').write(('generated-'+mode).encode())\nprint(' '.join(sys.argv[1:]))\n"
         )
 
         File.SetUnixFileMode(
@@ -496,11 +514,95 @@ module FnisFixtures =
             UnixFileMode.UserRead ||| UnixFileMode.UserWrite ||| UnixFileMode.UserExecute
         )
 
-        let execution = FnisRunner(store) :> IFnisExecution
-        let missing = execution.Inspect(workspace, profile, CancellationToken.None) |> wait |> result
-        let completedId = Guid.NewGuid()
+        let installedGenerator =
+            let deployment = store.Deployments.Read profile |> wait |> result
+            store.FnisSetups.ReadStored(workspace, profile, deployment.ActiveGeneration)
+            |> wait
+            |> Option.get
 
-        let completed =
+        let generatorDirectory = Path.GetDirectoryName installedGenerator.Executable
+        let temporaryLogs = Path.Combine(generatorDirectory, "temporary_logs")
+
+        if OperatingSystem.IsLinux() then
+            let mode = File.GetUnixFileMode generatorDirectory
+            File.SetUnixFileMode(generatorDirectory, mode ||| UnixFileMode.UserWrite)
+            Directory.CreateDirectory temporaryLogs |> ignore
+            File.SetUnixFileMode(generatorDirectory, mode)
+        else
+            Directory.CreateDirectory temporaryLogs |> ignore
+
+        let execution = FnisRunner(store) :> IFnisExecution
+
+        let waitForRun id expected =
+            until
+                ("FNIS run " + string id)
+                (fun () -> execution.Inspect(workspace, profile, CancellationToken.None) |> wait |> result)
+                (fun value -> value.LatestRunId = Some id && value.Phase = expected)
+
+        let outputEntry () =
+            InventoryObservations.read store profile
+            |> _.Entries
+            |> List.map _.Entry.Mod
+            |> List.tryFind (fun entry -> entry.Metadata.Name = "FNIS generated output")
+
+        let select enabledValue modId =
+            let page = InventoryObservations.read store profile
+
+            (store.ModSelection :> IModSelection)
+                .Change(
+                    profile,
+                    page.SelectionRevision,
+                    [ modId ],
+                    SelectionEdit.Enable enabledValue
+                )
+            |> wait
+            |> result
+            |> ignore
+
+        let registerInput name =
+            let id = Guid.NewGuid()
+            let relative = name
+            let directory = Path.Combine(scenario, "workspace", relative)
+            let file = Path.Combine(directory, "meshes", "actors", "character", "animations", "added.hkx")
+            Directory.CreateDirectory(Path.GetDirectoryName file) |> ignore
+            File.WriteAllText(file, name)
+            let library = store.ModLibrary :> ModConductor.ModLibrary.IModLibrary
+
+            let registered =
+                library.Register(
+                    workspace,
+                    id,
+                    { Name = name
+                      Notes = ""
+                      Comment = ""
+                      Version = "1"
+                      Source = ""
+                      Categories = [] },
+                    ModConductor.ModLibrary.Registration.Directory(
+                        ModConductor.ModLibrary.ModKind.Regular,
+                        LogicalPath.create [ relative ] |> result
+                    )
+                )
+                |> wait
+                |> result
+
+            library.Publish(id, registered.Revision, Guid.NewGuid()) |> wait |> result |> ignore
+            id
+
+        let missing = execution.Inspect(workspace, profile, CancellationToken.None) |> wait |> result
+        let initialFingerprint = missing.Fingerprint
+        let inputMod = registerInput "FNIS-input-race"
+        select true inputMod
+        let added = execution.Inspect(workspace, profile, CancellationToken.None) |> wait |> result
+        select false inputMod
+        let removed = execution.Inspect(workspace, profile, CancellationToken.None) |> wait |> result
+
+        check writer "addedEffectiveInputMakesFnisStale" (added.Fingerprint <> initialFingerprint)
+        check writer "removedEffectiveInputRestoresFingerprint" (removed.Fingerprint = initialFingerprint)
+
+        let beforeCompleted = enabled store profile
+        let completedId = Guid.NewGuid()
+        let started =
             execution.Run(
                 { Id = completedId
                   WorkspaceId = workspace
@@ -510,7 +612,10 @@ module FnisFixtures =
             |> wait
             |> result
 
+        let completed = waitForRun completedId ModConductor.Fnis.FnisOutputPhase.Current
         let afterCompleted = enabled store profile
+        let firstOutput = outputEntry () |> Option.get
+        let firstVersion = firstOutput.CurrentVersion
 
         let repeated =
             execution.Run(
@@ -522,59 +627,235 @@ module FnisFixtures =
             |> wait
             |> result
 
+        check writer "runReturnsWhileCancellationIsReachable" (started.Phase = ModConductor.Fnis.FnisOutputPhase.Running)
         check
             writer
             "successfulRunPublishesAndSelectsOneCurrentOutput"
             (missing.Phase = ModConductor.Fnis.FnisOutputPhase.Missing
-             && completed.Phase = ModConductor.Fnis.FnisOutputPhase.Current
              && completed.StandardOutput.Contains("RedirectFiles=")
              && completed.StandardOutput.Contains("InstantExecute=1")
-             && afterCompleted.Contains completedId
+             && Set.count (Set.difference afterCompleted beforeCompleted) = 1
              && repeated.Phase = ModConductor.Fnis.FnisOutputPhase.Current
              && enabled store profile = afterCompleted)
 
+        check
+            writer
+            "activeGeneratedOutputIsExcludedFromEffectiveInputs"
+            (completed.Fingerprint = initialFingerprint)
+
+        File.WriteAllText(mode, "success")
+        let distinctId = Guid.NewGuid()
+        execution.Run({ Id = distinctId; WorkspaceId = workspace; ProfileId = profile }, CancellationToken.None)
+        |> wait
+        |> result
+        |> ignore
+        let distinct = waitForRun distinctId ModConductor.Fnis.FnisOutputPhase.Current
+        let secondOutput = outputEntry () |> Option.get
+
+        check
+            writer
+            "distinctRunIdsCreateVersionsOfOneStableOutput"
+            (distinct.LatestRunId = Some distinctId
+             && secondOutput.Id = firstOutput.Id
+             && secondOutput.CurrentVersion <> firstVersion
+             && (InventoryObservations.read store profile).Entries
+                |> List.filter (fun row -> row.Entry.Mod.Metadata.Name = "FNIS generated output")
+                |> List.length = 1)
+
         File.WriteAllText(mode, "fail")
         let failedId = Guid.NewGuid()
-
-        execution.Run(
-            { Id = failedId
-              WorkspaceId = workspace
-              ProfileId = profile },
-            CancellationToken.None
-        )
+        execution.Run({ Id = failedId; WorkspaceId = workspace; ProfileId = profile }, CancellationToken.None)
         |> wait
+        |> result
         |> ignore
-
-        let afterFailure =
-            execution.Inspect(workspace, profile, CancellationToken.None) |> wait |> result
+        let afterFailure = waitForRun failedId ModConductor.Fnis.FnisOutputPhase.Failed
 
         check
             writer
             "failedRunPreservesPriorOutputAndBoundedExitEvidence"
-            (afterFailure.Phase = ModConductor.Fnis.FnisOutputPhase.Current
-             && afterFailure.ExitCode = Some 7
+            (afterFailure.ExitCode = Some 7
+             && afterFailure.Detail.Contains("exited with code 7")
              && afterFailure.StandardError.Contains("synthetic failure")
              && enabled store profile = afterCompleted
-             && not (enabled store profile |> Set.contains failedId))
+             && not (Directory.Exists(Path.Combine(scenario, "state", "fnis-runs", failedId.ToString("N")))))
+
+        File.WriteAllText(mode, "outputlimit")
+        let outputLimitId = Guid.NewGuid()
+        execution.Run({ Id = outputLimitId; WorkspaceId = workspace; ProfileId = profile }, CancellationToken.None)
+        |> wait
+        |> result
+        |> ignore
+        let outputLimited = waitForRun outputLimitId ModConductor.Fnis.FnisOutputPhase.Failed
+        check
+            writer
+            "outputLimitFailureRetainsDetailAndRemovesStage"
+            (outputLimited.Detail.Contains("exceeded 256 KiB")
+             && not (Directory.Exists(Path.Combine(scenario, "state", "fnis-runs", outputLimitId.ToString("N")))))
+
+        if OperatingSystem.IsLinux() then
+            File.SetUnixFileMode(launcher, UnixFileMode.UserRead ||| UnixFileMode.UserWrite)
+        let launchId = Guid.NewGuid()
+        execution.Run({ Id = launchId; WorkspaceId = workspace; ProfileId = profile }, CancellationToken.None)
+        |> wait
+        |> result
+        |> ignore
+        let launchFailed = waitForRun launchId ModConductor.Fnis.FnisOutputPhase.Failed
+        File.SetUnixFileMode(
+            launcher,
+            UnixFileMode.UserRead ||| UnixFileMode.UserWrite ||| UnixFileMode.UserExecute
+        )
+        check
+            writer
+            "launchFailureRetainsDetailAndRemovesStage"
+            (launchFailed.Detail.Length > 0
+             && not (Directory.Exists(Path.Combine(scenario, "state", "fnis-runs", launchId.ToString("N")))))
 
         File.WriteAllText(mode, "cancel")
-        use cancellation = new CancellationTokenSource(TimeSpan.FromMilliseconds 150.)
-
-        let cancelled =
-            execution.Run(
-                { Id = Guid.NewGuid()
-                  WorkspaceId = workspace
-                  ProfileId = profile },
-                cancellation.Token
-            )
-            |> wait
-            |> result
+        let cancelledId = Guid.NewGuid()
+        execution.Run({ Id = cancelledId; WorkspaceId = workspace; ProfileId = profile }, CancellationToken.None)
+        |> wait
+        |> result
+        |> ignore
+        let cancelled = execution.Cancel(workspace, profile) |> wait |> result
 
         check
             writer
             "cancelledRunTerminatesAndPreservesPriorOutput"
-            (cancelled.Phase = ModConductor.Fnis.FnisOutputPhase.Current
-             && enabled store profile = afterCompleted)
+            (cancelled.LatestRunId = Some cancelledId
+             && cancelled.Phase = ModConductor.Fnis.FnisOutputPhase.Cancelled
+             && enabled store profile = afterCompleted
+             && not (Directory.Exists(Path.Combine(scenario, "state", "fnis-runs", cancelledId.ToString("N")))))
+
+        File.WriteAllText(mode, "timeout")
+        let timeoutExecution = FnisRunner(store, timeout = TimeSpan.FromMilliseconds 100.) :> IFnisExecution
+        let timeoutId = Guid.NewGuid()
+        timeoutExecution.Run({ Id = timeoutId; WorkspaceId = workspace; ProfileId = profile }, CancellationToken.None)
+        |> wait
+        |> result
+        |> ignore
+        let timedOut =
+            until
+                "timed-out FNIS run"
+                (fun () -> timeoutExecution.Inspect(workspace, profile, CancellationToken.None) |> wait |> result)
+                (fun value -> value.LatestRunId = Some timeoutId && value.Phase = ModConductor.Fnis.FnisOutputPhase.Failed)
+
+        check
+            writer
+            "timedOutRunRetainsDetailAndRemovesStage"
+            (timedOut.Detail.Contains("timed out")
+             && timedOut.RunLog = ""
+             && not (Directory.Exists(Path.Combine(scenario, "state", "fnis-runs", timeoutId.ToString("N")))))
+
+        File.WriteAllText(mode, "successlog")
+        let logId = Guid.NewGuid()
+        execution.Run({ Id = logId; WorkspaceId = workspace; ProfileId = profile }, CancellationToken.None)
+        |> wait
+        |> result
+        |> ignore
+        let logged = waitForRun logId ModConductor.Fnis.FnisOutputPhase.Current
+
+        check
+            writer
+            "malformedTemporaryLogIsCapturedBoundedInOwnedState"
+            (logged.RunLog.Contains("malformed FNIS log")
+             && Encoding.UTF8.GetByteCount logged.RunLog <= 256 * 1024)
+
+        File.WriteAllText(mode, "success")
+        let missingLogId = Guid.NewGuid()
+        execution.Run({ Id = missingLogId; WorkspaceId = workspace; ProfileId = profile }, CancellationToken.None)
+        |> wait
+        |> result
+        |> ignore
+        let missingLog = waitForRun missingLogId ModConductor.Fnis.FnisOutputPhase.Current
+        check writer "missingTemporaryLogIsAnEmptyOwnedRecord" (missingLog.RunLog = "")
+
+        let beforeStale = outputEntry () |> Option.get
+        let mutable changedForRace = false
+        let staleExecution =
+            FnisRunner(
+                store,
+                publicationCheckpoint =
+                    (fun _ ->
+                        if not changedForRace then
+                            changedForRace <- true
+                            select true inputMod)
+            )
+            :> IFnisExecution
+
+        let staleId = Guid.NewGuid()
+        staleExecution.Run({ Id = staleId; WorkspaceId = workspace; ProfileId = profile }, CancellationToken.None)
+        |> wait
+        |> result
+        |> ignore
+        let stale =
+            until
+                "stale FNIS publication"
+                (fun () -> staleExecution.Inspect(workspace, profile, CancellationToken.None) |> wait |> result)
+                (fun value -> value.LatestRunId = Some staleId && value.Phase = ModConductor.Fnis.FnisOutputPhase.Failed)
+        let afterStale = outputEntry () |> Option.get
+
+        let staleResidue =
+            use connection =
+                new Microsoft.Data.Sqlite.SqliteConnection(
+                    "Data Source=" + Path.Combine(scenario, "state", "state.db") + ";Pooling=False"
+                )
+            connection.Open()
+            Sqlite.number
+                connection
+                null
+                "SELECT count(*) FROM mod_versions WHERE id=(SELECT output_version_id FROM fnis_runs WHERE id=$id)"
+                [ "$id", box (string staleId) ]
+
+        check
+            writer
+            "stalePublicationRollsBackVersionAndSelectionAtomically"
+            (stale.Detail.Contains("inputs changed")
+             && afterStale.Id = beforeStale.Id
+             && afterStale.CurrentVersion = beforeStale.CurrentVersion
+             && staleResidue = 0L)
+        select false inputMod
+
+        let beforeRestart = outputEntry () |> Option.get
+        let inspected = execution.Inspect(workspace, profile, CancellationToken.None) |> wait |> result
+        let generator =
+            store.FnisSetups.ReadStored(workspace, profile, Some inspected.GenerationId)
+            |> wait
+            |> Option.get
+        let abandonedId = Guid.NewGuid()
+        let abandonedStage, _, _ =
+            store.FnisExecution.Begin(
+                { Id = abandonedId; WorkspaceId = workspace; ProfileId = profile },
+                generator,
+                inspected.Fingerprint
+            )
+            |> wait
+            |> result
+        Directory.CreateDirectory(abandonedStage.Directory) |> ignore
+        File.WriteAllText(Path.Combine(abandonedStage.Directory, "partial.log"), "partial")
+        (store :> IDisposable).Dispose()
+
+        use reopened =
+            new OperationStore(
+                Path.Combine(scenario, "state"),
+                nexusLinks = NexusDownloadLinks(session),
+                downloadPolicy = policy
+            )
+        let restarted = FnisRunner(reopened) :> IFnisExecution
+        let abandoned = restarted.Inspect(workspace, profile, CancellationToken.None) |> wait |> result
+        let afterRestart =
+            InventoryObservations.read reopened profile
+            |> _.Entries
+            |> List.map _.Entry.Mod
+            |> List.find (fun entry -> entry.Metadata.Name = "FNIS generated output")
+
+        check
+            writer
+            "restartMarksRunAbandonedRemovesStageAndPreservesOutput"
+            (abandoned.LatestRunId = Some abandonedId
+             && abandoned.Phase = ModConductor.Fnis.FnisOutputPhase.Abandoned
+             && afterRestart.Id = beforeRestart.Id
+             && afterRestart.CurrentVersion = beforeRestart.CurrentVersion
+             && not (Directory.Exists(Path.Combine(scenario, "state", "fnis-runs", abandonedId.ToString("N")))))
 
     let private nxmEvidence writer area =
         let scenario = Directory.CreateDirectory(Path.Combine(area, "nxm")).FullName
