@@ -102,10 +102,11 @@ class _ModDeletionViewState extends State<ModDeletionView> {
       }
       ++index;
     }
-    if (keep)
+    if (keep) {
       for (final path in value.external) {
         values.add(_DeletionRow(index++, path, 'Original', null));
       }
+    }
     rows.apply(upserts: values, evicted: rows.ids.toList());
     rendered = value;
   }

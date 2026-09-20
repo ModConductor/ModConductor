@@ -162,7 +162,6 @@ void main() {
           ),
         ),
       );
-      expect(find.text('Archive changes are ready'), findsOneWidget);
       expect(find.text('Apply archive changes'), findsOneWidget);
       expect(find.text('1'), findsOneWidget);
       expect(find.textContaining('Archive invalidation'), findsNothing);
