@@ -12,6 +12,7 @@ import 'dart:io';
 import 'dart:ui' show AppExitType, AppExitResponse;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
@@ -51,6 +52,28 @@ typedef _Preferences = ({
   double scale,
   ContrastPreference contrast,
 });
+
+class _PreferenceTextScaler extends TextScaler {
+  const _PreferenceTextScaler(this.platform, this.multiplier);
+
+  final TextScaler platform;
+  final double multiplier;
+
+  @override
+  double scale(double fontSize) => platform.scale(fontSize) * multiplier;
+
+  @override
+  double get textScaleFactor => scale(1);
+
+  @override
+  bool operator ==(Object other) =>
+      other is _PreferenceTextScaler &&
+      other.platform == platform &&
+      other.multiplier == multiplier;
+
+  @override
+  int get hashCode => Object.hash(platform, multiplier);
+}
 
 const _defaultPreferences = (
   appearance: AppearancePreference.system,
@@ -424,7 +447,11 @@ class _ModConductorAppState extends State<ModConductorApp> {
     if (client == null) return;
     try {
       final loaded = await client.readWorkspace(workspaceId);
-      if (!mounted || generation != _workspaceSettingsGeneration) return;
+      if (!mounted ||
+          generation != _workspaceSettingsGeneration ||
+          workspaceId != _settingsWorkspaceId) {
+        return;
+      }
       setState(() {
         _workspaceApplied = _preferences(loaded);
         _workspaceDraft = _workspaceApplied;
@@ -433,7 +460,11 @@ class _ModConductorAppState extends State<ModConductorApp> {
         _settingsProblem = null;
       });
     } on Exception {
-      if (!mounted || generation != _workspaceSettingsGeneration) return;
+      if (!mounted ||
+          generation != _workspaceSettingsGeneration ||
+          workspaceId != _settingsWorkspaceId) {
+        return;
+      }
       setState(() => _settingsProblem = 'load');
     }
   }
@@ -462,6 +493,21 @@ class _ModConductorAppState extends State<ModConductorApp> {
     required bool inherits,
   }) async {
     final client = widget.settings;
+    final workspaceId = scope == _PreferenceScope.workspace
+        ? _settingsWorkspaceId
+        : null;
+    if (scope == _PreferenceScope.workspace && workspaceId == null) {
+      return false;
+    }
+    final generation = scope == _PreferenceScope.application
+        ? ++_applicationSettingsGeneration
+        : ++_workspaceSettingsGeneration;
+
+    bool isCurrent() => scope == _PreferenceScope.application
+        ? generation == _applicationSettingsGeneration
+        : generation == _workspaceSettingsGeneration &&
+              workspaceId == _settingsWorkspaceId;
+
     SettingsSnapshot saved;
     if (client == null) {
       saved = _snapshot(value, inherits: inherits);
@@ -470,15 +516,17 @@ class _ModConductorAppState extends State<ModConductorApp> {
         saved = scope == _PreferenceScope.application
             ? await client.saveApplication(_snapshot(value, inherits: false))
             : await client.saveWorkspace(
-                _settingsWorkspaceId!,
+                workspaceId!,
                 _snapshot(value, inherits: inherits),
               );
       } on Exception {
-        if (mounted) setState(() => _settingsProblem = 'save');
+        if (mounted && isCurrent()) {
+          setState(() => _settingsProblem = 'save');
+        }
         return false;
       }
     }
-    if (!mounted) return false;
+    if (!mounted || !isCurrent()) return false;
     setState(() {
       final applied = _preferences(saved);
       if (scope == _PreferenceScope.application) {
@@ -651,7 +699,10 @@ class _ModConductorAppState extends State<ModConductorApp> {
           labels: _uiLabels(AppLocalizations.of(context)),
           child: MediaQuery(
             data: media.copyWith(
-              textScaler: TextScaler.linear(preferences.scale),
+              textScaler: _PreferenceTextScaler(
+                media.textScaler,
+                preferences.scale,
+              ),
               highContrast: systemContrast ? media.highContrast : explicitHigh,
             ),
             child: child!,

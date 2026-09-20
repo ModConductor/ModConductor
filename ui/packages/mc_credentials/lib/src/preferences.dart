@@ -4,10 +4,102 @@ import 'package:flutter/material.dart';
 import 'package:mc_client/mc_client.dart';
 import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 
+class CredentialPreferencesLabels {
+  const CredentialPreferencesLabels({
+    required this.nexusMods,
+    required this.disconnectTitle,
+    required this.disconnect,
+    required this.disconnectPause,
+    required this.disconnectRemovesSaved,
+    required this.sessionOnlyTitle,
+    required this.sessionOnly,
+    required this.sessionOnlyLost,
+    required this.sessionOnlyKeepsSaved,
+    required this.clearSessionTitle,
+    required this.removeSavedTitle,
+    required this.clearSignIn,
+    required this.removeSignIn,
+    required this.clearsSessionToo,
+    required this.storageDetails,
+    required this.close,
+    required this.problem,
+    required this.notConfigured,
+    required this.waitingSignIn,
+    required this.connectedAs,
+    required this.premium,
+    required this.notConnected,
+    required this.notSignedIn,
+    required this.notSaved,
+    required this.cancelSignIn,
+    required this.checkAccount,
+    required this.signInAgain,
+    required this.connect,
+    required this.signIn,
+    required this.storageCheckFailed,
+    required this.checkEngine,
+    required this.savedNotRemoved,
+    required this.unlockKeyring,
+    required this.saved,
+    required this.noneSaved,
+    required this.cannotCheckSaved,
+    required this.newSignIns,
+    required this.saveOnComputer,
+    required this.checkStorage,
+    required this.retryRemoval,
+  });
+
+  final String nexusMods;
+  final String disconnectTitle;
+  final String disconnect;
+  final String disconnectPause;
+  final String disconnectRemovesSaved;
+  final String sessionOnlyTitle;
+  final String sessionOnly;
+  final String sessionOnlyLost;
+  final String sessionOnlyKeepsSaved;
+  final String clearSessionTitle;
+  final String removeSavedTitle;
+  final String clearSignIn;
+  final String removeSignIn;
+  final String clearsSessionToo;
+  final String storageDetails;
+  final String close;
+  final String Function(CredentialProblem) problem;
+  final String notConfigured;
+  final String waitingSignIn;
+  final String Function(String) connectedAs;
+  final String premium;
+  final String notConnected;
+  final String notSignedIn;
+  final String notSaved;
+  final String cancelSignIn;
+  final String checkAccount;
+  final String signInAgain;
+  final String connect;
+  final String signIn;
+  final String storageCheckFailed;
+  final String checkEngine;
+  final String savedNotRemoved;
+  final String unlockKeyring;
+  final String saved;
+  final String noneSaved;
+  final String cannotCheckSaved;
+  final String newSignIns;
+  final String saveOnComputer;
+  final String checkStorage;
+  final String retryRemoval;
+}
+
 class CredentialPreferences extends StatefulWidget {
-  const CredentialPreferences({super.key, required this.client, this.nexus});
+  const CredentialPreferences({
+    super.key,
+    required this.client,
+    required this.labels,
+    this.nexus,
+  });
   final CredentialsClient? client;
   final NexusClient? nexus;
+  final CredentialPreferencesLabels labels;
   @override
   State<CredentialPreferences> createState() => _CredentialPreferencesState();
 }
@@ -86,15 +178,14 @@ class _CredentialPreferencesState extends State<CredentialPreferences> {
   }
 
   Future<void> _disconnect() async {
+    final labels = widget.labels;
     if (!await _confirm(
-      title: 'Disconnect from Nexus Mods?',
-      action: 'Disconnect',
+      title: labels.disconnectTitle,
+      action: labels.disconnect,
       children: [
-        const Text(
-          'Nexus downloads will pause. Local files will not be deleted.',
-        ),
+        Text(labels.disconnectPause),
         _gap,
-        const Text('Saved sign-in details will be removed.'),
+        Text(labels.disconnectRemovesSaved),
       ],
     ))
       return;
@@ -119,14 +210,15 @@ class _CredentialPreferencesState extends State<CredentialPreferences> {
   Future<void> _mode(CredentialMode mode) async {
     final client = widget.client;
     if (client == null) return;
+    final labels = widget.labels;
     if (mode == CredentialMode.sessionOnly &&
         !await _confirm(
-          title: 'Use this session only?',
-          action: 'Use this session only',
+          title: labels.sessionOnlyTitle,
+          action: labels.sessionOnly,
           children: [
-            const Text('New sign-in details will be lost when MC closes.'),
+            Text(labels.sessionOnlyLost),
             _gap,
-            const Text('Existing saved sign-in details will not be deleted.'),
+            Text(labels.sessionOnlyKeepsSaved),
           ],
         ))
       return;
@@ -137,18 +229,15 @@ class _CredentialPreferencesState extends State<CredentialPreferences> {
   Future<void> _remove() async {
     final client = widget.client;
     if (client == null) return;
+    final labels = widget.labels;
     if (!await _confirm(
       title: _status?.saved == SavedCredentials.absent
-          ? 'Clear session sign-in?'
-          : 'Remove saved sign-in?',
+          ? labels.clearSessionTitle
+          : labels.removeSavedTitle,
       action: _status?.saved == SavedCredentials.absent
-          ? 'Clear sign-in'
-          : 'Remove sign-in',
-      children: [
-        const Text('Nexus Mods'),
-        _gap,
-        const Text('MC will also clear sign-in details held for this session.'),
-      ],
+          ? labels.clearSignIn
+          : labels.removeSignIn,
+      children: [Text(labels.nexusMods), _gap, Text(labels.clearsSessionToo)],
     ))
       return;
     if (mounted && client == widget.client) await _run(client.remove);
@@ -160,9 +249,12 @@ class _CredentialPreferencesState extends State<CredentialPreferences> {
     showDialog<void>(
       context: context,
       builder: (context) => McDialog(
-        title: 'Sign-in storage details',
+        title: widget.labels.storageDetails,
         actions: [
-          McAction(label: 'Close', onPressed: () => Navigator.pop(context)),
+          McAction(
+            label: widget.labels.close,
+            onPressed: () => Navigator.pop(context),
+          ),
         ],
         children: [SelectableText(status.diagnosticReport)],
       ),
@@ -170,17 +262,9 @@ class _CredentialPreferencesState extends State<CredentialPreferences> {
   }
 
   static const _gap = SizedBox(height: McSpacing.medium);
-  String _problem(CredentialProblem problem) => switch (problem) {
-    CredentialProblem.locked => 'System keyring is locked',
-    CredentialProblem.unavailable => 'Secure storage is not available',
-    CredentialProblem.denied => 'Access to secure storage was denied',
-    CredentialProblem.timedOut => 'Secure storage did not respond in time',
-    CredentialProblem.cancelled => 'The storage operation was cancelled',
-    CredentialProblem.tooLarge => 'Sign-in details exceed the storage limit',
-    CredentialProblem.failed => 'The storage operation failed',
-  };
   @override
   Widget build(BuildContext context) {
+    final labels = widget.labels;
     final status = _status;
     final reconnect =
         status?.saved == SavedCredentials.present &&
@@ -188,30 +272,30 @@ class _CredentialPreferencesState extends State<CredentialPreferences> {
         _account?.problem?.code != 'sign_in_required';
     final enabled = !_busy && widget.client != null;
     return McSection(
-      title: 'Nexus Mods',
+      title: labels.nexusMods,
       children: [
         if (_account?.configured != true)
-          const Text('Sign-in is not configured in this build.')
+          Text(labels.notConfigured)
         else if (_account?.waiting == true)
-          const Text('Waiting for sign-in')
+          Text(labels.waitingSignIn)
         else if (_account?.name case final name?)
           Row(
             children: [
-              Expanded(child: Text('Connected as $name')),
-              if (_account?.premium == true) const Chip(label: Text('Premium')),
+              Expanded(child: Text(labels.connectedAs(name))),
+              if (_account?.premium == true) Chip(label: Text(labels.premium)),
             ],
           )
         else
           Text(
             status?.saved == SavedCredentials.present
-                ? 'Not connected'
-                : 'Not signed in',
+                ? labels.notConnected
+                : labels.notSignedIn,
           ),
         if (_account?.problem case final problem?) ...[
           _gap,
           McStatus(
             title: problem.code == 'storage'
-                ? 'Sign-in details were not saved'
+                ? labels.notSaved
                 : problem.message,
             detail: problem.code == 'storage' ? problem.message : null,
             tone: McStatusTone.error,
@@ -225,29 +309,29 @@ class _CredentialPreferencesState extends State<CredentialPreferences> {
             children: [
               if (_account?.waiting == true)
                 McAction(
-                  label: 'Cancel sign-in',
+                  label: labels.cancelSignIn,
                   onPressed: enabled
                       ? () => _nexus(widget.nexus!.cancel)
                       : null,
                 )
               else if (_account?.name != null) ...[
                 McAction(
-                  label: 'Check account',
+                  label: labels.checkAccount,
                   icon: Icons.refresh,
                   onPressed: enabled ? () => _nexus(widget.nexus!.check) : null,
                 ),
                 McAction(
-                  label: 'Disconnect',
+                  label: labels.disconnect,
                   icon: Icons.logout,
                   onPressed: enabled ? _disconnect : null,
                 ),
               ] else
                 McAction(
                   label: _account?.problem?.code == 'sign_in_required'
-                      ? 'Sign in again'
+                      ? labels.signInAgain
                       : reconnect
-                      ? 'Connect'
-                      : 'Sign in',
+                      ? labels.connect
+                      : labels.signIn,
                   icon: Icons.login,
                   emphasis: McActionEmphasis.primary,
                   onPressed: enabled
@@ -263,44 +347,42 @@ class _CredentialPreferencesState extends State<CredentialPreferences> {
         ],
         _gap,
         if (widget.client == null || _connectionProblem) ...[
-          const McStatus(
-            title: 'Sign-in storage could not be checked',
-            detail: 'Check the engine connection and try again.',
+          McStatus(
+            title: labels.storageCheckFailed,
+            detail: labels.checkEngine,
             tone: McStatusTone.error,
           ),
           _gap,
         ] else if (status?.removalProblem case final problem?) ...[
           McStatus(
-            title: 'Saved sign-in not removed',
+            title: labels.savedNotRemoved,
             detail: problem == CredentialProblem.locked
-                ? 'Unlock the system keyring and try again.'
-                : _problem(problem),
+                ? labels.unlockKeyring
+                : labels.problem(problem),
             tone: McStatusTone.error,
           ),
           _gap,
         ] else if (status?.problem case final problem?) ...[
-          McStatus(title: _problem(problem)),
+          McStatus(title: labels.problem(problem)),
           _gap,
         ],
         Text(switch (status?.saved) {
-          SavedCredentials.present =>
-            'Sign-in details are saved on this computer.',
-          SavedCredentials.absent => 'No saved sign-in details.',
-          SavedCredentials.unknown ||
-          null => 'Saved sign-in details cannot be checked.',
+          SavedCredentials.present => labels.saved,
+          SavedCredentials.absent => labels.noneSaved,
+          SavedCredentials.unknown || null => labels.cannotCheckSaved,
         }),
         _gap,
         if (status != null)
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 480),
             child: McChoice<CredentialMode>(
-              label: 'New sign-ins',
+              label: labels.newSignIns,
               value: status.mode,
               choices: CredentialMode.values,
               enabled: enabled,
               describe: (mode) => switch (mode) {
-                CredentialMode.secure => 'Save on this computer',
-                CredentialMode.sessionOnly => 'This session only',
+                CredentialMode.secure => labels.saveOnComputer,
+                CredentialMode.sessionOnly => labels.sessionOnly,
               },
               onChanged: _mode,
             ),
@@ -311,7 +393,7 @@ class _CredentialPreferencesState extends State<CredentialPreferences> {
           runSpacing: 12,
           children: [
             McAction(
-              label: 'Check storage',
+              label: labels.checkStorage,
               icon: Icons.refresh,
               onPressed: enabled ? _refresh : null,
             ),
@@ -323,14 +405,14 @@ class _CredentialPreferencesState extends State<CredentialPreferences> {
               McAction(
                 label: status.removalProblem == null
                     ? (status.saved == SavedCredentials.absent
-                          ? 'Clear session sign-in'
-                          : 'Remove saved sign-in')
-                    : 'Retry removal',
+                          ? labels.clearSignIn
+                          : labels.removeSignIn)
+                    : labels.retryRemoval,
                 icon: Icons.delete_outline,
                 onPressed: enabled ? _remove : null,
               ),
-            IconButton(
-              tooltip: 'Sign-in storage details',
+            McIconAction(
+              label: labels.storageDetails,
               icon: const Icon(Icons.info_outline),
               onPressed: status == null || _busy ? null : _details,
             ),

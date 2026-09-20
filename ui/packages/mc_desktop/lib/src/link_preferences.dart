@@ -4,9 +4,70 @@ import 'package:flutter/material.dart';
 import 'package:mc_client/mc_client.dart';
 import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 
+class NexusLinkPreferencesLabels {
+  const NexusLinkPreferencesLabels({
+    required this.title,
+    required this.description,
+    required this.removeWindowsTitle,
+    required this.removeTitle,
+    required this.removeWindows,
+    required this.remove,
+    required this.chooseOtherDefault,
+    required this.restoreDefault,
+    required this.availableWindows,
+    required this.available,
+    required this.notAddedWindows,
+    required this.off,
+    required this.cannotCheck,
+    required this.defaultApp,
+    required this.modConductor,
+    required this.anotherApp,
+    required this.notSet,
+    required this.cannotCheckDefault,
+    required this.chooseDefaultWindows,
+    required this.defaultChanged,
+    required this.checkFailed,
+    required this.addWindows,
+    required this.useModConductor,
+    required this.openWindows,
+    required this.checkDefault,
+  });
+
+  final String title;
+  final String description;
+  final String removeWindowsTitle;
+  final String removeTitle;
+  final String removeWindows;
+  final String remove;
+  final String chooseOtherDefault;
+  final String restoreDefault;
+  final String availableWindows;
+  final String available;
+  final String notAddedWindows;
+  final String off;
+  final String cannotCheck;
+  final String Function(String) defaultApp;
+  final String modConductor;
+  final String anotherApp;
+  final String notSet;
+  final String cannotCheckDefault;
+  final String chooseDefaultWindows;
+  final String defaultChanged;
+  final String checkFailed;
+  final String addWindows;
+  final String useModConductor;
+  final String openWindows;
+  final String checkDefault;
+}
+
 class NexusLinkPreferences extends StatefulWidget {
-  const NexusLinkPreferences({super.key, required this.client});
+  const NexusLinkPreferences({
+    super.key,
+    required this.client,
+    required this.labels,
+  });
   final LinkSetupClient? client;
+  final NexusLinkPreferencesLabels labels;
   @override
   State<NexusLinkPreferences> createState() => _NexusLinkPreferencesState();
 }
@@ -55,18 +116,15 @@ class _NexusLinkPreferencesState extends State<NexusLinkPreferences> {
 
   Future<void> remove() async {
     final windows = status?.windows == true;
+    final labels = widget.labels;
     final yes = await showDialog<bool>(
       context: context,
       builder: (c) => McFormDialog(
-        title: windows
-            ? 'Remove MC from Windows Settings?'
-            : 'Remove Nexus link setup?',
-        action: windows ? 'Remove from Windows Settings' : 'Remove link setup',
+        title: windows ? labels.removeWindowsTitle : labels.removeTitle,
+        action: windows ? labels.removeWindows : labels.remove,
         onSubmit: () => Navigator.pop(c, true),
         children: [
-          Text(
-            windows ? 'Choose another default app in Windows Settings.' : 'The previous default app will be restored only if Mod Conductor is still the default.',
-          ),
+          Text(windows ? labels.chooseOtherDefault : labels.restoreDefault),
         ],
       ),
     );
@@ -76,46 +134,41 @@ class _NexusLinkPreferencesState extends State<NexusLinkPreferences> {
 
   @override
   Widget build(BuildContext context) {
+    final labels = widget.labels;
     final value = status, client = widget.client;
     final windows = value?.windows ?? Platform.isWindows;
     final enabled = client != null && !busy;
     return McSection(
-      title: 'Nexus download links',
+      title: labels.title,
       children: [
-        const Text('Open Mod Manager Download links with Mod Conductor.'),
+        Text(labels.description),
         const SizedBox(height: 16),
         Text(switch (value?.available) {
-          true =>
-            windows
-                ? 'Available in Windows Settings'
-                : 'Link setup is available',
-          false =>
-            windows ? 'Not added to Windows Settings' : 'Link setup is off',
-          null => 'Link setup cannot be checked',
+          true => windows ? labels.availableWindows : labels.available,
+          false => windows ? labels.notAddedWindows : labels.off,
+          null => labels.cannotCheck,
         }),
         const SizedBox(height: 4),
         Text(
-          'Default app: ${switch (value?.defaultApp) {
-            NexusLinkDefault.modConductor => 'Mod Conductor',
-            NexusLinkDefault.anotherApp => 'Another app',
-            NexusLinkDefault.none => 'Not set',
-            _ => 'Cannot check',
-          }}',
+          labels.defaultApp(switch (value?.defaultApp) {
+            NexusLinkDefault.modConductor => labels.modConductor,
+            NexusLinkDefault.anotherApp => labels.anotherApp,
+            NexusLinkDefault.none => labels.notSet,
+            _ => labels.cannotCheckDefault,
+          }),
         ),
         if (windows) ...[
           const SizedBox(height: 16),
-          const Text('Choose the default app in Windows Settings.'),
+          Text(labels.chooseDefaultWindows),
         ],
         if (!windows && value?.changed == true) ...[
           const SizedBox(height: 16),
-          const Text(
-            'The default app has changed. Removing MC will keep your current choice.',
-          ),
+          Text(labels.defaultChanged),
         ],
         if (failed || value?.problem != null) ...[
           const SizedBox(height: 16),
           McStatus(
-            title: value?.problem ?? 'The Nexus link setup could not be checked. Check the engine connection.',
+            title: value?.problem ?? labels.checkFailed,
             tone: McStatusTone.error,
           ),
         ],
@@ -127,9 +180,7 @@ class _NexusLinkPreferencesState extends State<NexusLinkPreferences> {
             if (value?.available == false ||
                 (!windows && value?.changed == true))
               McAction(
-                label: windows
-                    ? 'Add to Windows Settings'
-                    : 'Use Mod Conductor',
+                label: windows ? labels.addWindows : labels.useModConductor,
                 emphasis: McActionEmphasis.primary,
                 onPressed: enabled
                     ? () => run(() => client.add(Platform.resolvedExecutable))
@@ -137,14 +188,12 @@ class _NexusLinkPreferencesState extends State<NexusLinkPreferences> {
               ),
             if (value?.canRemove == true)
               McAction(
-                label: windows
-                    ? 'Remove from Windows Settings'
-                    : 'Remove link setup',
+                label: windows ? labels.removeWindows : labels.remove,
                 onPressed: enabled ? remove : null,
               ),
             if (windows)
               McAction(
-                label: 'Open Windows Settings',
+                label: labels.openWindows,
                 icon: Icons.open_in_new,
                 emphasis: value?.available == true
                     ? McActionEmphasis.primary
@@ -152,7 +201,7 @@ class _NexusLinkPreferencesState extends State<NexusLinkPreferences> {
                 onPressed: enabled ? () => run(client.openSettings) : null,
               ),
             McAction(
-              label: 'Check default app',
+              label: labels.checkDefault,
               icon: Icons.refresh,
               onPressed: enabled ? refresh : null,
             ),

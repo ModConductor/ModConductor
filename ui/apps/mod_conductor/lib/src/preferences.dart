@@ -1,5 +1,86 @@
 part of 'app.dart';
 
+CredentialPreferencesLabels _credentialLabels(AppLocalizations labels) =>
+    CredentialPreferencesLabels(
+      nexusMods: labels.credentialNexusMods,
+      disconnectTitle: labels.credentialDisconnectTitle,
+      disconnect: labels.credentialDisconnect,
+      disconnectPause: labels.credentialDisconnectPause,
+      disconnectRemovesSaved: labels.credentialDisconnectRemovesSaved,
+      sessionOnlyTitle: labels.credentialSessionOnlyTitle,
+      sessionOnly: labels.credentialSessionOnly,
+      sessionOnlyLost: labels.credentialSessionOnlyLost,
+      sessionOnlyKeepsSaved: labels.credentialSessionOnlyKeepsSaved,
+      clearSessionTitle: labels.credentialClearSessionTitle,
+      removeSavedTitle: labels.credentialRemoveSavedTitle,
+      clearSignIn: labels.credentialClearSignIn,
+      removeSignIn: labels.credentialRemoveSignIn,
+      clearsSessionToo: labels.credentialClearsSessionToo,
+      storageDetails: labels.credentialStorageDetails,
+      close: labels.close,
+      problem: (problem) => switch (problem) {
+        CredentialProblem.locked => labels.credentialStorageLocked,
+        CredentialProblem.unavailable => labels.credentialStorageUnavailable,
+        CredentialProblem.denied => labels.credentialStorageDenied,
+        CredentialProblem.timedOut => labels.credentialStorageTimedOut,
+        CredentialProblem.cancelled => labels.credentialStorageCancelled,
+        CredentialProblem.tooLarge => labels.credentialStorageTooLarge,
+        CredentialProblem.failed => labels.credentialStorageFailed,
+      },
+      notConfigured: labels.credentialNotConfigured,
+      waitingSignIn: labels.credentialWaitingSignIn,
+      connectedAs: labels.credentialConnectedAs,
+      premium: labels.credentialPremium,
+      notConnected: labels.credentialNotConnected,
+      notSignedIn: labels.credentialNotSignedIn,
+      notSaved: labels.credentialNotSaved,
+      cancelSignIn: labels.credentialCancelSignIn,
+      checkAccount: labels.credentialCheckAccount,
+      signInAgain: labels.credentialSignInAgain,
+      connect: labels.credentialConnect,
+      signIn: labels.credentialSignIn,
+      storageCheckFailed: labels.credentialStorageCheckFailed,
+      checkEngine: labels.credentialCheckEngine,
+      savedNotRemoved: labels.credentialSavedNotRemoved,
+      unlockKeyring: labels.credentialUnlockKeyring,
+      saved: labels.credentialSaved,
+      noneSaved: labels.credentialNoneSaved,
+      cannotCheckSaved: labels.credentialCannotCheckSaved,
+      newSignIns: labels.credentialNewSignIns,
+      saveOnComputer: labels.credentialSaveOnComputer,
+      checkStorage: labels.credentialCheckStorage,
+      retryRemoval: labels.credentialRetryRemoval,
+    );
+
+NexusLinkPreferencesLabels _nexusLinkLabels(AppLocalizations labels) =>
+    NexusLinkPreferencesLabels(
+      title: labels.nexusLinks,
+      description: labels.nexusOpenLinks,
+      removeWindowsTitle: labels.nexusRemoveWindowsTitle,
+      removeTitle: labels.nexusRemoveTitle,
+      removeWindows: labels.nexusRemoveWindows,
+      remove: labels.nexusRemove,
+      chooseOtherDefault: labels.nexusChooseOtherDefault,
+      restoreDefault: labels.nexusRestoreDefault,
+      availableWindows: labels.nexusAvailableWindows,
+      available: labels.nexusAvailable,
+      notAddedWindows: labels.nexusNotAddedWindows,
+      off: labels.nexusOff,
+      cannotCheck: labels.nexusCannotCheck,
+      defaultApp: labels.nexusDefaultApp,
+      modConductor: labels.nexusModConductor,
+      anotherApp: labels.nexusAnotherApp,
+      notSet: labels.nexusNotSet,
+      cannotCheckDefault: labels.nexusCannotCheckDefault,
+      chooseDefaultWindows: labels.nexusChooseDefaultWindows,
+      defaultChanged: labels.nexusDefaultChanged,
+      checkFailed: labels.nexusCheckFailed,
+      addWindows: labels.nexusAddWindows,
+      useModConductor: labels.nexusUseModConductor,
+      openWindows: labels.nexusOpenWindows,
+      checkDefault: labels.nexusCheckDefault,
+    );
+
 class _PreferencesPage extends StatelessWidget {
   const _PreferencesPage({
     required this.labels,
@@ -65,128 +146,159 @@ class _PreferencesPage extends StatelessWidget {
       key: const PageStorageKey('preferences'),
       title: labels.preferences,
       children: [
-        McSection(
-          title: labels.display,
-          children: [
-            if (problem != null)
-              McStatus(
-                title: problem == 'load'
-                    ? labels.settingsLoadFailed
-                    : labels.settingsSaveFailed,
-                tone: McStatusTone.error,
-              )
-            else if (savedAt case final saved?)
-              McStatus(title: labels.preferencesSaved(saved)),
-            if (problem != null || savedAt != null)
-              const SizedBox(height: McSpacing.large),
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 480),
-              child: Column(
-                children: [
-                  McChoice<_PreferenceScope>(
-                    key: const ValueKey('preferences-scope'),
-                    label: labels.scope,
-                    value: scope,
-                    choices: workspaceAvailable
-                        ? _PreferenceScope.values
-                        : const [_PreferenceScope.application],
-                    describe: (value) => value == _PreferenceScope.application
-                        ? labels.application
-                        : labels.currentWorkspace,
-                    onChanged: onScope,
-                  ),
-                  if (workspaceScope) ...[
+        Semantics(
+          container: true,
+          explicitChildNodes: true,
+          child: Column(
+            children: [
+              Semantics(
+                container: true,
+                explicitChildNodes: true,
+                sortKey: const OrdinalSortKey(0, name: 'preferences-sections'),
+                child: McSection(
+                  title: labels.display,
+                  children: [
+                    if (problem != null)
+                      McStatus(
+                        title: problem == 'load'
+                            ? labels.settingsLoadFailed
+                            : labels.settingsSaveFailed,
+                        tone: McStatusTone.error,
+                      )
+                    else if (savedAt case final saved?)
+                      McStatus(title: labels.preferencesSaved(saved)),
+                    if (problem != null || savedAt != null)
+                      const SizedBox(height: McSpacing.large),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 480),
+                      child: Column(
+                        children: [
+                          McChoice<_PreferenceScope>(
+                            key: const ValueKey('preferences-scope'),
+                            label: labels.scope,
+                            value: scope,
+                            choices: workspaceAvailable
+                                ? _PreferenceScope.values
+                                : const [_PreferenceScope.application],
+                            describe: (value) =>
+                                value == _PreferenceScope.application
+                                ? labels.application
+                                : labels.currentWorkspace,
+                            onChanged: onScope,
+                          ),
+                          if (workspaceScope) ...[
+                            const SizedBox(height: McSpacing.large),
+                            SwitchListTile(
+                              contentPadding: EdgeInsets.zero,
+                              title: Text(labels.useApplicationSettings),
+                              value: inheritsApplication,
+                              onChanged: busy ? null : onInheritsApplication,
+                            ),
+                          ],
+                          const SizedBox(height: McSpacing.large),
+                          McChoice<AppearancePreference>(
+                            key: const ValueKey('preferences-theme'),
+                            label: labels.appearance,
+                            value: draft.appearance,
+                            choices: AppearancePreference.values,
+                            describe: _appearance,
+                            enabled: enabled,
+                            onChanged: (value) => onDraft((
+                              appearance: value,
+                              scale: draft.scale,
+                              contrast: draft.contrast,
+                            )),
+                          ),
+                          const SizedBox(height: McSpacing.large),
+                          McChoice<double>(
+                            key: const ValueKey('preferences-scale'),
+                            label: labels.textSize,
+                            value: draft.scale,
+                            choices: const [1, 1.25, 1.5],
+                            describe: (value) =>
+                                labels.textScalePercent((value * 100).round()),
+                            enabled: enabled,
+                            onChanged: (value) => onDraft((
+                              appearance: draft.appearance,
+                              scale: value,
+                              contrast: draft.contrast,
+                            )),
+                          ),
+                          const SizedBox(height: McSpacing.large),
+                          McChoice<ContrastPreference>(
+                            key: const ValueKey('preferences-contrast'),
+                            label: labels.contrast,
+                            value: draft.contrast,
+                            choices: ContrastPreference.values,
+                            describe: _contrast,
+                            enabled: enabled,
+                            onChanged: (value) => onDraft((
+                              appearance: draft.appearance,
+                              scale: draft.scale,
+                              contrast: value,
+                            )),
+                          ),
+                        ],
+                      ),
+                    ),
                     const SizedBox(height: McSpacing.large),
-                    SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(labels.useApplicationSettings),
-                      value: inheritsApplication,
-                      onChanged: busy ? null : onInheritsApplication,
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      children: [
+                        McAction(
+                          key: const ValueKey('apply-preferences'),
+                          label: labels.apply,
+                          emphasis: McActionEmphasis.primary,
+                          icon: Icons.check,
+                          onPressed: changed && !busy ? onSave : null,
+                        ),
+                        McAction(
+                          key: const ValueKey('cancel-preferences'),
+                          label: labels.cancel,
+                          onPressed: changed && !busy ? onCancel : null,
+                        ),
+                        McAction(
+                          key: const ValueKey('session-details'),
+                          label: labels.activePreferences,
+                          focusNode: detailsFocus,
+                          onPressed: () => _showActivePreferences(
+                            context,
+                            labels,
+                            applied,
+                            _appearance,
+                            _contrast,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
-                  const SizedBox(height: McSpacing.large),
-                  McChoice<AppearancePreference>(
-                    key: const ValueKey('preferences-theme'),
-                    label: labels.appearance,
-                    value: draft.appearance,
-                    choices: AppearancePreference.values,
-                    describe: _appearance,
-                    enabled: enabled,
-                    onChanged: (value) => onDraft((
-                      appearance: value,
-                      scale: draft.scale,
-                      contrast: draft.contrast,
-                    )),
-                  ),
-                  const SizedBox(height: McSpacing.large),
-                  McChoice<double>(
-                    key: const ValueKey('preferences-scale'),
-                    label: labels.textSize,
-                    value: draft.scale,
-                    choices: const [1, 1.25, 1.5],
-                    describe: (value) =>
-                        labels.textScalePercent((value * 100).round()),
-                    enabled: enabled,
-                    onChanged: (value) => onDraft((
-                      appearance: draft.appearance,
-                      scale: value,
-                      contrast: draft.contrast,
-                    )),
-                  ),
-                  const SizedBox(height: McSpacing.large),
-                  McChoice<ContrastPreference>(
-                    key: const ValueKey('preferences-contrast'),
-                    label: labels.contrast,
-                    value: draft.contrast,
-                    choices: ContrastPreference.values,
-                    describe: _contrast,
-                    enabled: enabled,
-                    onChanged: (value) => onDraft((
-                      appearance: draft.appearance,
-                      scale: draft.scale,
-                      contrast: value,
-                    )),
-                  ),
-                ],
+                ),
               ),
-            ),
-            const SizedBox(height: McSpacing.large),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: [
-                McAction(
-                  key: const ValueKey('apply-preferences'),
-                  label: labels.apply,
-                  emphasis: McActionEmphasis.primary,
-                  icon: Icons.check,
-                  onPressed: changed && !busy ? onSave : null,
+              const SizedBox(height: McSpacing.medium),
+              Semantics(
+                container: true,
+                explicitChildNodes: true,
+                sortKey: const OrdinalSortKey(1, name: 'preferences-sections'),
+                child: CredentialPreferences(
+                  client: credentials,
+                  nexus: nexus,
+                  labels: _credentialLabels(labels),
                 ),
-                McAction(
-                  key: const ValueKey('cancel-preferences'),
-                  label: labels.cancel,
-                  onPressed: changed && !busy ? onCancel : null,
+              ),
+              const SizedBox(height: McSpacing.medium),
+              Semantics(
+                container: true,
+                explicitChildNodes: true,
+                sortKey: const OrdinalSortKey(2, name: 'preferences-sections'),
+                child: NexusLinkPreferences(
+                  client: linkSetup,
+                  labels: _nexusLinkLabels(labels),
                 ),
-                McAction(
-                  key: const ValueKey('session-details'),
-                  label: labels.activePreferences,
-                  focusNode: detailsFocus,
-                  onPressed: () => _showActivePreferences(
-                    context,
-                    labels,
-                    applied,
-                    _appearance,
-                    _contrast,
-                  ),
-                ),
-              ],
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
-        const SizedBox(height: McSpacing.medium),
-        CredentialPreferences(client: credentials, nexus: nexus),
-        const SizedBox(height: McSpacing.medium),
-        NexusLinkPreferences(client: linkSetup),
       ],
     );
   }

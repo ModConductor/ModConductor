@@ -1,8 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 import 'package:mc_client/mc_client.dart';
+import 'package:mc_credentials/mc_credentials.dart';
+import 'package:mc_desktop/mc_desktop.dart';
 import 'package:mod_conductor/src/app.dart';
 
 Finder keyed(String value) => find.byKey(ValueKey(value));
@@ -12,6 +16,7 @@ Future<void> mount(
   VoidCallback? onQuit,
   DesktopStatus status = const DesktopDisconnected(),
   SettingsClient? settings,
+  WorkspacesClient? workspaces,
 }) async {
   tester.view.devicePixelRatio = 1;
   tester.view.physicalSize = const Size(1280, 800);
@@ -20,9 +25,73 @@ Future<void> mount(
   tester.platformDispatcher.platformBrightnessTestValue = Brightness.light;
   addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
   await tester.pumpWidget(
-    ModConductorApp(onQuit: onQuit, status: status, settings: settings),
+    ModConductorApp(
+      onQuit: onQuit,
+      status: status,
+      settings: settings,
+      workspaces: workspaces,
+    ),
   );
   await tester.pumpAndSettle();
+}
+
+SettingsSnapshot settingsSnapshot(
+  AppearancePreference appearance, {
+  bool inherits = false,
+}) => SettingsSnapshot(
+  presentation: PresentationPreferences(
+    appearance: appearance,
+    textScale: 1,
+    contrast: ContrastPreference.system,
+  ),
+  inheritsApplication: inherits,
+);
+
+WorkspaceInfo workspace(String id) => WorkspaceInfo(
+  id: id,
+  name: 'Workspace $id',
+  path: '/workspace/$id',
+  revision: 0,
+  selectedProfile: const ProfileInfo('profile', 'Profile'),
+);
+
+class _WorkspacesFake extends Fake implements WorkspacesClient {
+  final workspaces = [workspace('one'), workspace('two')];
+
+  @override
+  Future<WorkspaceList> recent({String? after}) async =>
+      WorkspaceList(workspaces, null);
+
+  @override
+  Future<WorkspacePage> open(String path) async {
+    final selected = workspaces.singleWhere((value) => value.path == path);
+    return WorkspacePage(selected, [selected.selectedProfile!], null);
+  }
+}
+
+class _DelayedSettingsFake extends _SettingsFake {
+  final reads = <String, Completer<SettingsSnapshot>>{};
+  final values = <String, SettingsSnapshot>{};
+  Completer<SettingsSnapshot>? save;
+  final savedWorkspaceIds = <String>[];
+
+  @override
+  Future<SettingsSnapshot> readWorkspace(String workspaceId) {
+    final delayed = reads[workspaceId];
+    return delayed?.future ??
+        Future.value(
+          values[workspaceId] ?? settingsSnapshot(AppearancePreference.system),
+        );
+  }
+
+  @override
+  Future<SettingsSnapshot> saveWorkspace(
+    String workspaceId,
+    SettingsSnapshot settings,
+  ) {
+    savedWorkspaceIds.add(workspaceId);
+    return save?.future ?? Future.value(settings);
+  }
 }
 
 class _SettingsFake implements SettingsClient {
@@ -71,6 +140,24 @@ Future<void> activate(WidgetTester tester, String key) async {
   await tester.ensureVisible(keyed(key));
   await tester.tap(keyed(key));
   await tester.pumpAndSettle();
+}
+
+Future<void> openWorkspace(WidgetTester tester, String id) async {
+  await tester.tap(keyed('workspace-$id'));
+  await tester.pumpAndSettle();
+}
+
+void ignoreKnownWorkspaceListTileWarning() {
+  final previous = FlutterError.onError;
+  FlutterError.onError = (details) {
+    if (details.exceptionAsString().startsWith(
+      'ListTile background color or ink splashes may be invisible.',
+    )) {
+      return;
+    }
+    previous?.call(details);
+  };
+  addTearDown(() => FlutterError.onError = previous);
 }
 
 Brightness brightness(WidgetTester tester) =>
@@ -195,6 +282,86 @@ void main() {
     );
   });
 
+  testWidgets('application text size multiplies the platform text size', (
+    tester,
+  ) async {
+    tester.platformDispatcher.textScaleFactorTestValue = 1.25;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    await mount(tester, settings: _SettingsFake());
+    expect(
+      MediaQuery.textScalerOf(tester.element(keyed('quit'))).scale(1),
+      1.25,
+    );
+
+    await activate(tester, 'nav-preferences');
+    await choose(tester, 'preferences-scale', '150%');
+    await activate(tester, 'apply-preferences');
+
+    expect(
+      MediaQuery.textScalerOf(tester.element(keyed('quit'))).scale(1),
+      1.875,
+    );
+  });
+
+  testWidgets('a workspace change rejects a pending settings save', (
+    tester,
+  ) async {
+    ignoreKnownWorkspaceListTileWarning();
+    final settings = _DelayedSettingsFake()
+      ..values['one'] = settingsSnapshot(AppearancePreference.light)
+      ..values['two'] = settingsSnapshot(AppearancePreference.light)
+      ..save = Completer<SettingsSnapshot>();
+    await mount(tester, settings: settings, workspaces: _WorkspacesFake());
+    await openWorkspace(tester, 'one');
+    await activate(tester, 'nav-preferences');
+    await choose(tester, 'preferences-scope', 'Current workspace');
+    await choose(tester, 'preferences-theme', 'Dark');
+    await tester.tap(keyed('apply-preferences'));
+    await tester.pump();
+
+    await activate(tester, 'nav-workspaces');
+    await activate(tester, 'close-workspace');
+    await openWorkspace(tester, 'two');
+    settings.save!.complete(settingsSnapshot(AppearancePreference.dark));
+    await tester.pumpAndSettle();
+
+    await activate(tester, 'nav-preferences');
+    await choose(tester, 'preferences-scope', 'Current workspace');
+    expect(
+      tester
+          .widget<McChoice<AppearancePreference>>(keyed('preferences-theme'))
+          .value,
+      AppearancePreference.light,
+    );
+    expect(settings.savedWorkspaceIds, ['one']);
+  });
+
+  testWidgets('a settings save rejects an older workspace read', (
+    tester,
+  ) async {
+    ignoreKnownWorkspaceListTileWarning();
+    final pendingRead = Completer<SettingsSnapshot>();
+    final settings = _DelayedSettingsFake()..reads['one'] = pendingRead;
+    await mount(tester, settings: settings, workspaces: _WorkspacesFake());
+    await tester.tap(keyed('workspace-one'));
+    await tester.pump();
+    await activate(tester, 'nav-preferences');
+    await choose(tester, 'preferences-scope', 'Current workspace');
+    await tester.tap(find.byType(SwitchListTile));
+    await tester.pump();
+    await choose(tester, 'preferences-theme', 'Dark');
+    await activate(tester, 'apply-preferences');
+
+    pendingRead.complete(settingsSnapshot(AppearancePreference.light));
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<McChoice<AppearancePreference>>(keyed('preferences-theme'))
+          .value,
+      AppearancePreference.dark,
+    );
+  });
+
   testWidgets(
     'Arabic direction, large text, high contrast and status semantics stay operable',
     (tester) async {
@@ -207,6 +374,17 @@ void main() {
         Directionality.of(tester.element(keyed('quit'))),
         TextDirection.rtl,
       );
+      await tester.ensureVisible(find.byType(CredentialPreferences));
+      expect(find.text('نيكسس مودز'), findsOneWidget);
+      expect(
+        find.textContaining('تعذر فحص تخزين تسجيل الدخول'),
+        findsOneWidget,
+      );
+      await tester.ensureVisible(find.byType(NexusLinkPreferences));
+      expect(find.text('روابط تنزيل نيكسس'), findsOneWidget);
+      expect(find.text('يتعذر فحص إعداد الروابط'), findsOneWidget);
+      expect(find.text('Nexus download links'), findsNothing);
+      expect(find.text('Check default app'), findsNothing);
 
       tester
           .widget<McChoice<double>>(keyed('preferences-scale'))

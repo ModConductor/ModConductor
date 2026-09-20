@@ -433,6 +433,426 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Error'**
   String get statusError;
+
+  /// No description provided for @credentialNexusMods.
+  ///
+  /// In en, this message translates to:
+  /// **'Nexus Mods'**
+  String get credentialNexusMods;
+
+  /// No description provided for @credentialDisconnectTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Disconnect from Nexus Mods?'**
+  String get credentialDisconnectTitle;
+
+  /// No description provided for @credentialDisconnect.
+  ///
+  /// In en, this message translates to:
+  /// **'Disconnect'**
+  String get credentialDisconnect;
+
+  /// No description provided for @credentialDisconnectPause.
+  ///
+  /// In en, this message translates to:
+  /// **'Nexus downloads will pause. Local files will not be deleted.'**
+  String get credentialDisconnectPause;
+
+  /// No description provided for @credentialDisconnectRemovesSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved sign-in details will be removed.'**
+  String get credentialDisconnectRemovesSaved;
+
+  /// No description provided for @credentialSessionOnlyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Use this session only?'**
+  String get credentialSessionOnlyTitle;
+
+  /// No description provided for @credentialSessionOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'This session only'**
+  String get credentialSessionOnly;
+
+  /// No description provided for @credentialSessionOnlyLost.
+  ///
+  /// In en, this message translates to:
+  /// **'New sign-in details will be lost when MC closes.'**
+  String get credentialSessionOnlyLost;
+
+  /// No description provided for @credentialSessionOnlyKeepsSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Existing saved sign-in details will not be deleted.'**
+  String get credentialSessionOnlyKeepsSaved;
+
+  /// No description provided for @credentialClearSessionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear session sign-in?'**
+  String get credentialClearSessionTitle;
+
+  /// No description provided for @credentialRemoveSavedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove saved sign-in?'**
+  String get credentialRemoveSavedTitle;
+
+  /// No description provided for @credentialClearSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear sign-in'**
+  String get credentialClearSignIn;
+
+  /// No description provided for @credentialRemoveSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove sign-in'**
+  String get credentialRemoveSignIn;
+
+  /// No description provided for @credentialClearsSessionToo.
+  ///
+  /// In en, this message translates to:
+  /// **'MC will also clear sign-in details held for this session.'**
+  String get credentialClearsSessionToo;
+
+  /// No description provided for @credentialStorageDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign-in storage details'**
+  String get credentialStorageDetails;
+
+  /// No description provided for @credentialStorageLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'System keyring is locked'**
+  String get credentialStorageLocked;
+
+  /// No description provided for @credentialStorageUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Secure storage is not available'**
+  String get credentialStorageUnavailable;
+
+  /// No description provided for @credentialStorageDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Access to secure storage was denied'**
+  String get credentialStorageDenied;
+
+  /// No description provided for @credentialStorageTimedOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Secure storage did not respond in time'**
+  String get credentialStorageTimedOut;
+
+  /// No description provided for @credentialStorageCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'The storage operation was cancelled'**
+  String get credentialStorageCancelled;
+
+  /// No description provided for @credentialStorageTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign-in details exceed the storage limit'**
+  String get credentialStorageTooLarge;
+
+  /// No description provided for @credentialStorageFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The storage operation failed'**
+  String get credentialStorageFailed;
+
+  /// No description provided for @credentialNotConfigured.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign-in is not configured in this build.'**
+  String get credentialNotConfigured;
+
+  /// No description provided for @credentialWaitingSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for sign-in'**
+  String get credentialWaitingSignIn;
+
+  /// No description provided for @credentialConnectedAs.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected as {name}'**
+  String credentialConnectedAs(String name);
+
+  /// No description provided for @credentialPremium.
+  ///
+  /// In en, this message translates to:
+  /// **'Premium'**
+  String get credentialPremium;
+
+  /// No description provided for @credentialNotConnected.
+  ///
+  /// In en, this message translates to:
+  /// **'Not connected'**
+  String get credentialNotConnected;
+
+  /// No description provided for @credentialNotSignedIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Not signed in'**
+  String get credentialNotSignedIn;
+
+  /// No description provided for @credentialNotSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign-in details were not saved'**
+  String get credentialNotSaved;
+
+  /// No description provided for @credentialCancelSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel sign-in'**
+  String get credentialCancelSignIn;
+
+  /// No description provided for @credentialCheckAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Check account'**
+  String get credentialCheckAccount;
+
+  /// No description provided for @credentialSignInAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in again'**
+  String get credentialSignInAgain;
+
+  /// No description provided for @credentialConnect.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect'**
+  String get credentialConnect;
+
+  /// No description provided for @credentialSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in'**
+  String get credentialSignIn;
+
+  /// No description provided for @credentialStorageCheckFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign-in storage could not be checked'**
+  String get credentialStorageCheckFailed;
+
+  /// No description provided for @credentialCheckEngine.
+  ///
+  /// In en, this message translates to:
+  /// **'Check the engine connection and try again.'**
+  String get credentialCheckEngine;
+
+  /// No description provided for @credentialSavedNotRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved sign-in not removed'**
+  String get credentialSavedNotRemoved;
+
+  /// No description provided for @credentialUnlockKeyring.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock the system keyring and try again.'**
+  String get credentialUnlockKeyring;
+
+  /// No description provided for @credentialSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign-in details are saved on this computer.'**
+  String get credentialSaved;
+
+  /// No description provided for @credentialNoneSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'No saved sign-in details.'**
+  String get credentialNoneSaved;
+
+  /// No description provided for @credentialCannotCheckSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved sign-in details cannot be checked.'**
+  String get credentialCannotCheckSaved;
+
+  /// No description provided for @credentialNewSignIns.
+  ///
+  /// In en, this message translates to:
+  /// **'New sign-ins'**
+  String get credentialNewSignIns;
+
+  /// No description provided for @credentialSaveOnComputer.
+  ///
+  /// In en, this message translates to:
+  /// **'Save on this computer'**
+  String get credentialSaveOnComputer;
+
+  /// No description provided for @credentialCheckStorage.
+  ///
+  /// In en, this message translates to:
+  /// **'Check storage'**
+  String get credentialCheckStorage;
+
+  /// No description provided for @credentialRetryRemoval.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry removal'**
+  String get credentialRetryRemoval;
+
+  /// No description provided for @nexusLinks.
+  ///
+  /// In en, this message translates to:
+  /// **'Nexus download links'**
+  String get nexusLinks;
+
+  /// No description provided for @nexusOpenLinks.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Mod Manager Download links with Mod Conductor.'**
+  String get nexusOpenLinks;
+
+  /// No description provided for @nexusRemoveWindowsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove MC from Windows Settings?'**
+  String get nexusRemoveWindowsTitle;
+
+  /// No description provided for @nexusRemoveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove Nexus link setup?'**
+  String get nexusRemoveTitle;
+
+  /// No description provided for @nexusRemoveWindows.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from Windows Settings'**
+  String get nexusRemoveWindows;
+
+  /// No description provided for @nexusRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove link setup'**
+  String get nexusRemove;
+
+  /// No description provided for @nexusChooseOtherDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose another default app in Windows Settings.'**
+  String get nexusChooseOtherDefault;
+
+  /// No description provided for @nexusRestoreDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'The previous default app will be restored only if Mod Conductor is still the default.'**
+  String get nexusRestoreDefault;
+
+  /// No description provided for @nexusAvailableWindows.
+  ///
+  /// In en, this message translates to:
+  /// **'Available in Windows Settings'**
+  String get nexusAvailableWindows;
+
+  /// No description provided for @nexusAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Link setup is available'**
+  String get nexusAvailable;
+
+  /// No description provided for @nexusNotAddedWindows.
+  ///
+  /// In en, this message translates to:
+  /// **'Not added to Windows Settings'**
+  String get nexusNotAddedWindows;
+
+  /// No description provided for @nexusOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Link setup is off'**
+  String get nexusOff;
+
+  /// No description provided for @nexusCannotCheck.
+  ///
+  /// In en, this message translates to:
+  /// **'Link setup cannot be checked'**
+  String get nexusCannotCheck;
+
+  /// No description provided for @nexusDefaultApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Default app: {app}'**
+  String nexusDefaultApp(String app);
+
+  /// No description provided for @nexusModConductor.
+  ///
+  /// In en, this message translates to:
+  /// **'Mod Conductor'**
+  String get nexusModConductor;
+
+  /// No description provided for @nexusAnotherApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Another app'**
+  String get nexusAnotherApp;
+
+  /// No description provided for @nexusNotSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Not set'**
+  String get nexusNotSet;
+
+  /// No description provided for @nexusCannotCheckDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot check'**
+  String get nexusCannotCheckDefault;
+
+  /// No description provided for @nexusChooseDefaultWindows.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the default app in Windows Settings.'**
+  String get nexusChooseDefaultWindows;
+
+  /// No description provided for @nexusDefaultChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'The default app has changed. Removing MC will keep your current choice.'**
+  String get nexusDefaultChanged;
+
+  /// No description provided for @nexusCheckFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The Nexus link setup could not be checked. Check the engine connection.'**
+  String get nexusCheckFailed;
+
+  /// No description provided for @nexusAddWindows.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to Windows Settings'**
+  String get nexusAddWindows;
+
+  /// No description provided for @nexusUseModConductor.
+  ///
+  /// In en, this message translates to:
+  /// **'Use Mod Conductor'**
+  String get nexusUseModConductor;
+
+  /// No description provided for @nexusOpenWindows.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Windows Settings'**
+  String get nexusOpenWindows;
+
+  /// No description provided for @nexusCheckDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Check default app'**
+  String get nexusCheckDefault;
 }
 
 class _AppLocalizationsDelegate

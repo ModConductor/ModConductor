@@ -202,4 +202,232 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get statusError => 'خطأ';
+
+  @override
+  String get credentialNexusMods => 'نيكسس مودز';
+
+  @override
+  String get credentialDisconnectTitle => 'قطع الاتصال بنيكسس مودز؟';
+
+  @override
+  String get credentialDisconnect => 'قطع الاتصال';
+
+  @override
+  String get credentialDisconnectPause =>
+      'ستتوقف تنزيلات نيكسس مؤقتًا. لن تُحذف الملفات المحلية.';
+
+  @override
+  String get credentialDisconnectRemovesSaved =>
+      'ستُحذف بيانات تسجيل الدخول المحفوظة.';
+
+  @override
+  String get credentialSessionOnlyTitle => 'استخدام هذه الجلسة فقط؟';
+
+  @override
+  String get credentialSessionOnly => 'هذه الجلسة فقط';
+
+  @override
+  String get credentialSessionOnlyLost =>
+      'ستُفقد بيانات تسجيل الدخول الجديدة عند إغلاق مود كوندكتور.';
+
+  @override
+  String get credentialSessionOnlyKeepsSaved =>
+      'لن تُحذف بيانات تسجيل الدخول المحفوظة حاليًا.';
+
+  @override
+  String get credentialClearSessionTitle => 'مسح تسجيل دخول الجلسة؟';
+
+  @override
+  String get credentialRemoveSavedTitle => 'إزالة تسجيل الدخول المحفوظ؟';
+
+  @override
+  String get credentialClearSignIn => 'مسح تسجيل الدخول';
+
+  @override
+  String get credentialRemoveSignIn => 'إزالة تسجيل الدخول';
+
+  @override
+  String get credentialClearsSessionToo =>
+      'سيمسح مود كوندكتور أيضًا بيانات تسجيل الدخول لهذه الجلسة.';
+
+  @override
+  String get credentialStorageDetails => 'تفاصيل تخزين تسجيل الدخول';
+
+  @override
+  String get credentialStorageLocked => 'حلقة مفاتيح النظام مقفلة';
+
+  @override
+  String get credentialStorageUnavailable => 'التخزين الآمن غير متاح';
+
+  @override
+  String get credentialStorageDenied => 'رُفض الوصول إلى التخزين الآمن';
+
+  @override
+  String get credentialStorageTimedOut =>
+      'لم يستجب التخزين الآمن في الوقت المحدد';
+
+  @override
+  String get credentialStorageCancelled => 'أُلغيت عملية التخزين';
+
+  @override
+  String get credentialStorageTooLarge =>
+      'تتجاوز بيانات تسجيل الدخول حد التخزين';
+
+  @override
+  String get credentialStorageFailed => 'فشلت عملية التخزين';
+
+  @override
+  String get credentialNotConfigured => 'تسجيل الدخول غير مهيأ في هذا الإصدار.';
+
+  @override
+  String get credentialWaitingSignIn => 'في انتظار تسجيل الدخول';
+
+  @override
+  String credentialConnectedAs(String name) {
+    return 'متصل باسم $name';
+  }
+
+  @override
+  String get credentialPremium => 'مميز';
+
+  @override
+  String get credentialNotConnected => 'غير متصل';
+
+  @override
+  String get credentialNotSignedIn => 'لم يُسجل الدخول';
+
+  @override
+  String get credentialNotSaved => 'لم تُحفظ بيانات تسجيل الدخول';
+
+  @override
+  String get credentialCancelSignIn => 'إلغاء تسجيل الدخول';
+
+  @override
+  String get credentialCheckAccount => 'فحص الحساب';
+
+  @override
+  String get credentialSignInAgain => 'تسجيل الدخول مجددًا';
+
+  @override
+  String get credentialConnect => 'اتصال';
+
+  @override
+  String get credentialSignIn => 'تسجيل الدخول';
+
+  @override
+  String get credentialStorageCheckFailed => 'تعذر فحص تخزين تسجيل الدخول';
+
+  @override
+  String get credentialCheckEngine => 'افحص اتصال المحرك وحاول مجددًا.';
+
+  @override
+  String get credentialSavedNotRemoved => 'لم يُزل تسجيل الدخول المحفوظ';
+
+  @override
+  String get credentialUnlockKeyring => 'افتح حلقة مفاتيح النظام وحاول مجددًا.';
+
+  @override
+  String get credentialSaved => 'بيانات تسجيل الدخول محفوظة على هذا الحاسوب.';
+
+  @override
+  String get credentialNoneSaved => 'لا توجد بيانات تسجيل دخول محفوظة.';
+
+  @override
+  String get credentialCannotCheckSaved =>
+      'يتعذر فحص بيانات تسجيل الدخول المحفوظة.';
+
+  @override
+  String get credentialNewSignIns => 'عمليات تسجيل الدخول الجديدة';
+
+  @override
+  String get credentialSaveOnComputer => 'حفظ على هذا الحاسوب';
+
+  @override
+  String get credentialCheckStorage => 'فحص التخزين';
+
+  @override
+  String get credentialRetryRemoval => 'إعادة محاولة الإزالة';
+
+  @override
+  String get nexusLinks => 'روابط تنزيل نيكسس';
+
+  @override
+  String get nexusOpenLinks =>
+      'افتح روابط تنزيل مدير التعديلات باستخدام مود كوندكتور.';
+
+  @override
+  String get nexusRemoveWindowsTitle => 'إزالة مود كوندكتور من إعدادات ويندوز؟';
+
+  @override
+  String get nexusRemoveTitle => 'إزالة إعداد روابط نيكسس؟';
+
+  @override
+  String get nexusRemoveWindows => 'إزالة من إعدادات ويندوز';
+
+  @override
+  String get nexusRemove => 'إزالة إعداد الروابط';
+
+  @override
+  String get nexusChooseOtherDefault =>
+      'اختر تطبيقًا افتراضيًا آخر في إعدادات ويندوز.';
+
+  @override
+  String get nexusRestoreDefault =>
+      'لن يُستعاد التطبيق الافتراضي السابق إلا إذا ظل مود كوندكتور هو التطبيق الافتراضي.';
+
+  @override
+  String get nexusAvailableWindows => 'متاح في إعدادات ويندوز';
+
+  @override
+  String get nexusAvailable => 'إعداد الروابط متاح';
+
+  @override
+  String get nexusNotAddedWindows => 'غير مضاف إلى إعدادات ويندوز';
+
+  @override
+  String get nexusOff => 'إعداد الروابط متوقف';
+
+  @override
+  String get nexusCannotCheck => 'يتعذر فحص إعداد الروابط';
+
+  @override
+  String nexusDefaultApp(String app) {
+    return 'التطبيق الافتراضي: $app';
+  }
+
+  @override
+  String get nexusModConductor => 'مود كوندكتور';
+
+  @override
+  String get nexusAnotherApp => 'تطبيق آخر';
+
+  @override
+  String get nexusNotSet => 'غير محدد';
+
+  @override
+  String get nexusCannotCheckDefault => 'يتعذر الفحص';
+
+  @override
+  String get nexusChooseDefaultWindows =>
+      'اختر التطبيق الافتراضي في إعدادات ويندوز.';
+
+  @override
+  String get nexusDefaultChanged =>
+      'تغير التطبيق الافتراضي. ستُبقي إزالة مود كوندكتور اختيارك الحالي.';
+
+  @override
+  String get nexusCheckFailed =>
+      'تعذر فحص إعداد روابط نيكسس. افحص اتصال المحرك.';
+
+  @override
+  String get nexusAddWindows => 'إضافة إلى إعدادات ويندوز';
+
+  @override
+  String get nexusUseModConductor => 'استخدام مود كوندكتور';
+
+  @override
+  String get nexusOpenWindows => 'فتح إعدادات ويندوز';
+
+  @override
+  String get nexusCheckDefault => 'فحص التطبيق الافتراضي';
 }

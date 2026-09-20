@@ -6,7 +6,13 @@
   "workspaces": "Workspaces",
   "preferences": "Preferences",
   "openRequests": "{count, plural, =0{Open requests} =1{Open 1 request} other{Open {count} requests}}",
-  "@openRequests": {"placeholders": {"count": {"type": "int"}}},
+  "@openRequests": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "connected": "Connected",
   "connecting": "Connection in progress",
   "notConnected": "Not connected",
@@ -34,12 +40,25 @@
   "activePreferences": "Active preferences",
   "close": "Close",
   "preferencesSaved": "Preferences saved at {time}",
-  "@preferencesSaved": {"placeholders": {"time": {"type": "DateTime", "format": "Hm"}}},
+  "@preferencesSaved": {
+    "placeholders": {
+      "time": {
+        "type": "DateTime",
+        "format": "Hm"
+      }
+    }
+  },
   "settingsLoadFailed": "The settings could not be loaded.",
   "settingsSaveFailed": "The settings could not be saved.",
   "workspaceSettingsUnavailable": "Open a workspace to change its settings.",
   "textScalePercent": "{value}%",
-  "@textScalePercent": {"placeholders": {"value": {"type": "int"}}},
+  "@textScalePercent": {
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
   "closeInspector": "Close inspector",
   "name": "Name",
   "enterName": "Enter a name.",
@@ -52,14 +71,116 @@
   "loadMore": "Load more",
   "retry": "Retry",
   "refreshCollection": "Refresh {title}",
-  "@refreshCollection": {"placeholders": {"title": {"type": "String"}}},
+  "@refreshCollection": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
   "collapseItem": "Collapse {label}",
-  "@collapseItem": {"placeholders": {"label": {"type": "String"}}},
+  "@collapseItem": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
   "expandItem": "Expand {label}",
-  "@expandItem": {"placeholders": {"label": {"type": "String"}}},
+  "@expandItem": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
   "statusAvailable": "Available",
   "statusUnavailable": "Unavailable",
   "statusUnsupported": "Unsupported",
   "statusInformation": "Information",
-  "statusError": "Error"
+  "statusError": "Error",
+  "credentialNexusMods": "Nexus Mods",
+  "credentialDisconnectTitle": "Disconnect from Nexus Mods?",
+  "credentialDisconnect": "Disconnect",
+  "credentialDisconnectPause": "Nexus downloads will pause. Local files will not be deleted.",
+  "credentialDisconnectRemovesSaved": "Saved sign-in details will be removed.",
+  "credentialSessionOnlyTitle": "Use this session only?",
+  "credentialSessionOnly": "This session only",
+  "credentialSessionOnlyLost": "New sign-in details will be lost when MC closes.",
+  "credentialSessionOnlyKeepsSaved": "Existing saved sign-in details will not be deleted.",
+  "credentialClearSessionTitle": "Clear session sign-in?",
+  "credentialRemoveSavedTitle": "Remove saved sign-in?",
+  "credentialClearSignIn": "Clear sign-in",
+  "credentialRemoveSignIn": "Remove sign-in",
+  "credentialClearsSessionToo": "MC will also clear sign-in details held for this session.",
+  "credentialStorageDetails": "Sign-in storage details",
+  "credentialStorageLocked": "System keyring is locked",
+  "credentialStorageUnavailable": "Secure storage is not available",
+  "credentialStorageDenied": "Access to secure storage was denied",
+  "credentialStorageTimedOut": "Secure storage did not respond in time",
+  "credentialStorageCancelled": "The storage operation was cancelled",
+  "credentialStorageTooLarge": "Sign-in details exceed the storage limit",
+  "credentialStorageFailed": "The storage operation failed",
+  "credentialNotConfigured": "Sign-in is not configured in this build.",
+  "credentialWaitingSignIn": "Waiting for sign-in",
+  "credentialConnectedAs": "Connected as {name}",
+  "@credentialConnectedAs": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "credentialPremium": "Premium",
+  "credentialNotConnected": "Not connected",
+  "credentialNotSignedIn": "Not signed in",
+  "credentialNotSaved": "Sign-in details were not saved",
+  "credentialCancelSignIn": "Cancel sign-in",
+  "credentialCheckAccount": "Check account",
+  "credentialSignInAgain": "Sign in again",
+  "credentialConnect": "Connect",
+  "credentialSignIn": "Sign in",
+  "credentialStorageCheckFailed": "Sign-in storage could not be checked",
+  "credentialCheckEngine": "Check the engine connection and try again.",
+  "credentialSavedNotRemoved": "Saved sign-in not removed",
+  "credentialUnlockKeyring": "Unlock the system keyring and try again.",
+  "credentialSaved": "Sign-in details are saved on this computer.",
+  "credentialNoneSaved": "No saved sign-in details.",
+  "credentialCannotCheckSaved": "Saved sign-in details cannot be checked.",
+  "credentialNewSignIns": "New sign-ins",
+  "credentialSaveOnComputer": "Save on this computer",
+  "credentialCheckStorage": "Check storage",
+  "credentialRetryRemoval": "Retry removal",
+  "nexusLinks": "Nexus download links",
+  "nexusOpenLinks": "Open Mod Manager Download links with Mod Conductor.",
+  "nexusRemoveWindowsTitle": "Remove MC from Windows Settings?",
+  "nexusRemoveTitle": "Remove Nexus link setup?",
+  "nexusRemoveWindows": "Remove from Windows Settings",
+  "nexusRemove": "Remove link setup",
+  "nexusChooseOtherDefault": "Choose another default app in Windows Settings.",
+  "nexusRestoreDefault": "The previous default app will be restored only if Mod Conductor is still the default.",
+  "nexusAvailableWindows": "Available in Windows Settings",
+  "nexusAvailable": "Link setup is available",
+  "nexusNotAddedWindows": "Not added to Windows Settings",
+  "nexusOff": "Link setup is off",
+  "nexusCannotCheck": "Link setup cannot be checked",
+  "nexusDefaultApp": "Default app: {app}",
+  "@nexusDefaultApp": {
+    "placeholders": {
+      "app": {
+        "type": "String"
+      }
+    }
+  },
+  "nexusModConductor": "Mod Conductor",
+  "nexusAnotherApp": "Another app",
+  "nexusNotSet": "Not set",
+  "nexusCannotCheckDefault": "Cannot check",
+  "nexusChooseDefaultWindows": "Choose the default app in Windows Settings.",
+  "nexusDefaultChanged": "The default app has changed. Removing MC will keep your current choice.",
+  "nexusCheckFailed": "The Nexus link setup could not be checked. Check the engine connection.",
+  "nexusAddWindows": "Add to Windows Settings",
+  "nexusUseModConductor": "Use Mod Conductor",
+  "nexusOpenWindows": "Open Windows Settings",
+  "nexusCheckDefault": "Check default app"
 }
