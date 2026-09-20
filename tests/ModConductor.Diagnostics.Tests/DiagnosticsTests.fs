@@ -542,7 +542,8 @@ type DiagnosticsTests() =
 
         let ids =
             json.RootElement.GetProperty("problems").EnumerateArray()
-            |> Seq.collect (fun problem -> problem.GetProperty("ids").EnumerateArray())
+            |> Seq.collect (fun problem ->
+                problem.GetProperty("ids").EnumerateArray() |> Seq.toArray)
             |> Seq.toArray
 
         Assert.That(ids.Length, Is.GreaterThanOrEqualTo 3)

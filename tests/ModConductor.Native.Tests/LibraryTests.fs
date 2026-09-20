@@ -33,7 +33,7 @@ type LibraryTests() =
         flag "foreignPreserved" |> should equal true
 
     [<Test>]
-    member _.``restart should complete only durably observed files and preserve unproved effects``
+    member _.``restart should safely retry unproved effects and complete durably observed files``
         ()
         =
         let windows =
@@ -49,7 +49,7 @@ type LibraryTests() =
         |> should equal true
 
         effect.GetProperty("phaseBefore").GetString() |> should equal "interrupted"
-        effect.GetProperty("resumed").GetBoolean() |> should equal false
+        effect.GetProperty("resumed").GetBoolean() |> should equal true
         effect.GetProperty("payloadsPreserved").GetInt32() |> should equal 1
 
         observed.GetProperty("unpublishedBeforeRecovery").GetBoolean()
@@ -79,6 +79,8 @@ type LibraryTests() =
 
         cancel.GetProperty("cancelDurable").GetBoolean() |> should equal true
         cancel.GetProperty("retryWhileClosingRefused").GetBoolean() |> should equal true
+        cancel.GetProperty("cancelledPublicationRemoved").GetBoolean() |> should equal true
+        cancel.GetProperty("cancelledPayloadsRemoved").GetBoolean() |> should equal true
         cancel.GetProperty("committed").GetBoolean() |> should equal false
         cancel.GetProperty("workerResult").GetString() |> should equal "cancelled"
 

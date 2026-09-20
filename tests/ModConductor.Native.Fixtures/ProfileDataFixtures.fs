@@ -50,6 +50,7 @@ module ProfileDataFixtures =
                 Directory.CreateDirectory(Path.Combine(area, "workspace")).FullName
 
             let game, proton = ProtonFixtures.create (Path.Combine(area, "game"))
+            BethesdaSamples.requiredBaseFiles game
             let launcher = Path.Combine(proton.RuntimeDirectory, "proton")
             File.WriteAllText(launcher, "#!/bin/sh\nexit 0\n")
 
@@ -422,25 +423,14 @@ module ProfileDataFixtures =
                 | _ -> invalidOp "Expected game run"
 
             check
-                "settingsFailureRetainsCompletedModReceiptWithoutStarting"
+                "invalidPluginSettingsRetainDeploymentWithoutStarting"
                 (failed.Phase = RunPhase.Failed
                  && failed.ProcessId.IsNone
                  && failedGame.Files.IsSome
-                 && failedGame.ProfileData.IsSome
-                 && not failedGame.ProfileData.Value.Complete)
+                 && failedGame.ProfileData.IsNone
+                 && (read first).Pending.IsNone)
 
             File.Delete privateIni
-            let continued = api.Resume(workspace, failed.Id, token) |> wait |> result
-
-            if not continued.Complete then
-                Console.Error.WriteLine(
-                    "Continue failure: " + (continued.Problem |> Option.defaultValue "Unknown")
-                )
-
-            check
-                "unfinishedSettingsActionCanResumeWithoutRelaunch"
-                (continued.Complete
-                 && (store.Executables.Read(workspace, failed.Id) |> wait |> result).Phase = RunPhase.Failed)
 
             api.Restore(Guid.NewGuid(), (read first).Reference, token)
             |> wait

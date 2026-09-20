@@ -296,12 +296,28 @@ module FomodFixtures =
                 )
                 |> wait
 
+            let draft =
+                if draft.Installer = InstallationMode.Fomod then
+                    draft
+                else
+                    store.Installations.UseInstaller(
+                        workspace,
+                        draft.Id,
+                        draft.Revision,
+                        InstallationMode.Fomod
+                    )
+
             let view =
                 store.Installations.Fomod.Open(workspace, draft.Id, draft.Revision, profile)
                 |> wait
 
             let manual =
-                store.Installations.Fomod.Manual(workspace, view.Draft.Id, view.Draft.Revision)
+                store.Installations.UseInstaller(
+                    workspace,
+                    view.Draft.Id,
+                    view.Draft.Revision,
+                    InstallationMode.Manual
+                )
 
             store.Installations.CloseDraft(workspace, manual.Id)
             view.Problem.IsSome && manual.Installer = InstallationMode.Manual

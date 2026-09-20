@@ -143,8 +143,22 @@ module LibraryRecoveryFixtures =
                 child.Send "continue"
                 writer.WriteString("workerResult", child.Line())
                 child.Finish()
-                let receipt = library.Publication version |> wait |> result
-                writer.WriteBoolean("committed", receipt.Phase = PublicationPhase.Complete)
+
+                if mode = "cancel" then
+                    writer.WriteBoolean(
+                        "cancelledPublicationRemoved",
+                        library.Publication version |> wait = Error LibraryError.NotFound
+                    )
+
+                    writer.WriteBoolean(
+                        "cancelledPayloadsRemoved",
+                        Directory.GetFiles(root, "*.payload", SearchOption.AllDirectories).Length = 0
+                    )
+
+                    writer.WriteBoolean("committed", false)
+                else
+                    let receipt = library.Publication version |> wait |> result
+                    writer.WriteBoolean("committed", receipt.Phase = PublicationPhase.Complete)
 
                 if mode = "live" then
                     writer.WriteBoolean(

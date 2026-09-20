@@ -55,6 +55,7 @@ module GameLaunchFixtures =
             let game, proton = ProtonFixtures.create (Path.Combine(area, "installation"))
             let target = Path.Combine(game, "Data", "Marker.TXT")
             File.WriteAllText(target, "original base")
+            BethesdaSamples.requiredBaseFiles game
 
             let source =
                 Directory.CreateDirectory(Path.Combine(workspacePath, "Managed")).FullName

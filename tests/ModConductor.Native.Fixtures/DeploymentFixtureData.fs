@@ -85,35 +85,18 @@ module internal DeploymentFixtureData =
     let input revision files =
         let entries =
             files
-            |> List.map (fun (name, value, payloadId) ->
+            |> List.map (fun (name, value, _) ->
                 let bytes = Text.Encoding.UTF8.GetBytes(value: string)
 
                 { Path = path name
-                  Payload =
-                    { Id = id payloadId
-                      Length = int64 bytes.Length
-                      Sha256 = Convert.ToHexStringLower(SHA256.HashData bytes) } })
+                  Length = int64 bytes.Length
+                  Sha256 = Convert.ToHexStringLower(SHA256.HashData bytes) })
 
         { Profile =
             { ProfileId = id 3
               Revision = revision
               Complete = true
-              Mods =
-                [ { ModId = id 4
-                    Priority = 0
-                    Enabled = true
-                    Version =
-                      Some
-                          { Id = id (100 + int revision)
-                            ModId = id 4
-                            Entries = entries
-                            Origin = ModConductor.ModLibrary.VersionOrigin.RegisteredSource
-                            NextOffset = None }
-                    Mappings =
-                      [ { SourcePrefix = PlanPath.Root
-                          TargetRoot = rootId
-                          TargetPrefix = PlanPath.Root } ]
-                    Archives = [] } ] }
+              Mods = [] }
           Roots =
             [ { Id = rootId
                 Policy =
@@ -121,7 +104,18 @@ module internal DeploymentFixtureData =
                       TargetPolicy.windows
                   else
                       TargetPolicy.linux } ]
-          ReadOnly = []
+          ReadOnly =
+            [ { Id = id 4
+                Generation = "fixture-" + string revision
+                Kind = ReadOnlyLayerKind.Base
+                Priority = 0
+                Complete = true
+                Files = entries
+                Mappings =
+                  [ { SourcePrefix = PlanPath.Root
+                      TargetRoot = rootId
+                      TargetPrefix = PlanPath.Root } ]
+                Archives = [] } ]
           Writable =
             [ { Id = id 5
                 Target = WritableTarget.Subtree(rootId, PlanPath.At(path "outputs")) } ] }

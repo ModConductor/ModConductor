@@ -48,6 +48,10 @@ module BethesdaSamples =
         writer.Flush()
         output.ToArray()
 
+    let requiredBaseFiles game =
+        for name in ModConductor.Bethesda.OrderRules.baseFiles do
+            File.WriteAllBytes(Path.Combine(game, "Data", name), header 1u 1.7f [] false)
+
     let files directory =
         let game, _ = ProtonFixtures.create directory
         File.WriteAllBytes(Path.Combine(game, "Data", "Skyrim.esm"), header 1u 1.7f [] false)
