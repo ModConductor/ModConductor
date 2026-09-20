@@ -53,6 +53,9 @@ module SkyrimSetupFixtures =
         let companionMod, companionVersion = Guid.NewGuid(), Guid.NewGuid()
         let unrelatedMod, unrelatedVersion = Guid.NewGuid(), Guid.NewGuid()
         let beforeGeneration, afterGeneration = Guid.NewGuid(), Guid.NewGuid()
+        let beforeDeployment = String.replicate 64 "a"
+        let expectedDeployment = String.replicate 64 "b"
+        let extraDeployment = String.replicate 64 "c"
 
         let sources: SourceStamp =
             { WorkspaceId = workspace
@@ -62,108 +65,145 @@ module SkyrimSetupFixtures =
               ExclusionRevision = 13L
               OutputRevision = 17L
               Versions = [ existingMod, Some existingVersion ]
-              Deployment = Some "fixture-deployment" }
+              Deployment = Some beforeDeployment }
 
         let before =
             { Sources = sources
+              DeploymentRevision = 23L
               ActiveGeneration = Some beforeGeneration }
 
-        let expected (versions: (Guid * Guid) list) (generation: Guid option) =
+        let expectedChildDeployment (versions: (Guid * Guid) list) (generation: Guid option) =
             { Sources =
                 { sources with
                     SelectionRevision = sources.SelectionRevision + int64 versions.Length + 1L
                     Versions =
                         sources.Versions
-                        @ (versions |> List.map (fun (modId, versionId) -> modId, Some versionId)) }
+                        @ (versions |> List.map (fun (modId, versionId) -> modId, Some versionId))
+                    Deployment = Some expectedDeployment }
+              DeploymentRevision = before.DeploymentRevision + 1L
               ActiveGeneration = generation }
 
-        let deploymentBefore = { before with ActiveGeneration = None }
+        let deploymentBefore =
+            { before with
+                Sources = { sources with Deployment = None }
+                DeploymentRevision = 0L
+                ActiveGeneration = None }
 
         let deploymentAfter =
             { deploymentBefore with
+                Sources =
+                    { deploymentBefore.Sources with
+                        Deployment = Some expectedDeployment }
+                DeploymentRevision = deploymentBefore.DeploymentRevision + 1L
                 ActiveGeneration = Some afterGeneration }
 
-        let skseAfter = expected [ childMod, childVersion ] (Some afterGeneration)
+        let skseAfter =
+            expectedChildDeployment [ childMod, childVersion ] (Some afterGeneration)
 
         let enbAfter =
-            expected
+            expectedChildDeployment
                 [ childMod, childVersion; companionMod, companionVersion ]
                 (Some afterGeneration)
 
-        let fnisInstallAfter = expected [ childMod, childVersion ] (Some afterGeneration)
-        let fnisRunAfter = expected [ childMod, childVersion ] (Some beforeGeneration)
+        let fnisInstallAfter =
+            expectedChildDeployment [ childMod, childVersion ] (Some afterGeneration)
+
+        let fnisRunAfter =
+            { before with
+                Sources =
+                    { sources with
+                        SelectionRevision = sources.SelectionRevision + 2L
+                        Versions = sources.Versions @ [ childMod, Some childVersion ] } }
+
+        let recorded snapshot =
+            SkyrimSetupPlan.token workspace profile true sources.ContextRevision snapshot
+            |> SkyrimSetupPlan.snapshot workspace profile true sources.ContextRevision
+            |> Option.defaultWith (fun () -> failwith "The Skyrim setup plan snapshot was lost.")
 
         let accepted =
             [ SkyrimSetupPlan.permits
-                  deploymentBefore
+                  (recorded deploymentBefore)
                   deploymentAfter
                   (SkyrimSetupStageChange.Deployment afterGeneration)
               SkyrimSetupPlan.permits
-                  before
+                  (recorded before)
                   skseAfter
                   (SkyrimSetupStageChange.ComponentDeployment(
                       afterGeneration,
                       [ childMod, childVersion ]
                   ))
               SkyrimSetupPlan.permits
-                  before
+                  (recorded before)
                   enbAfter
                   (SkyrimSetupStageChange.ComponentDeployment(
                       afterGeneration,
                       [ childMod, childVersion; companionMod, companionVersion ]
                   ))
               SkyrimSetupPlan.permits
-                  before
+                  (recorded before)
                   fnisInstallAfter
                   (SkyrimSetupStageChange.ComponentDeployment(
                       afterGeneration,
                       [ childMod, childVersion ]
                   ))
               SkyrimSetupPlan.permits
-                  before
+                  (recorded before)
                   fnisRunAfter
                   (SkyrimSetupStageChange.FnisOutput(childMod, childVersion)) ]
+
+        let withExtraDeployment (snapshot: SkyrimSetupPlanSnapshot) =
+            { snapshot with
+                DeploymentRevision = snapshot.DeploymentRevision + 1L
+                Sources =
+                    { snapshot.Sources with
+                        Deployment = Some extraDeployment } }
 
         let withUnrelatedVersion (snapshot: SkyrimSetupPlanSnapshot) =
             { snapshot with
                 Sources =
                     { snapshot.Sources with
+                        SelectionRevision = snapshot.Sources.SelectionRevision + 1L
                         Versions =
                             snapshot.Sources.Versions @ [ unrelatedMod, Some unrelatedVersion ] } }
 
+        let withChangedContext snapshot =
+            let extra = withExtraDeployment snapshot
+
+            { extra with
+                Sources =
+                    { extra.Sources with
+                        ContextRevision = extra.Sources.ContextRevision + 1L } }
+
         let rejected =
             [ SkyrimSetupPlan.permits
-                  deploymentBefore
-                  (withUnrelatedVersion deploymentAfter)
+                  (recorded deploymentBefore)
+                  (withExtraDeployment deploymentAfter)
                   (SkyrimSetupStageChange.Deployment afterGeneration)
               SkyrimSetupPlan.permits
-                  before
-                  (withUnrelatedVersion skseAfter)
+                  (recorded before)
+                  (withExtraDeployment (withUnrelatedVersion skseAfter))
                   (SkyrimSetupStageChange.ComponentDeployment(
                       afterGeneration,
                       [ childMod, childVersion ]
                   ))
               SkyrimSetupPlan.permits
-                  before
-                  { enbAfter with
-                      Sources =
-                          { enbAfter.Sources with
-                              ContextRevision = enbAfter.Sources.ContextRevision + 1L } }
+                  (recorded before)
+                  (withChangedContext enbAfter)
                   (SkyrimSetupStageChange.ComponentDeployment(
                       afterGeneration,
                       [ childMod, childVersion; companionMod, companionVersion ]
                   ))
               SkyrimSetupPlan.permits
-                  before
-                  { fnisInstallAfter with
+                  (recorded before)
+                  { withExtraDeployment fnisInstallAfter with
                       ActiveGeneration = Some(Guid.NewGuid()) }
                   (SkyrimSetupStageChange.ComponentDeployment(
                       afterGeneration,
                       [ childMod, childVersion ]
                   ))
               SkyrimSetupPlan.permits
-                  before
-                  (withUnrelatedVersion fnisRunAfter)
+                  (recorded before)
+                  (withExtraDeployment (withUnrelatedVersion fnisRunAfter))
                   (SkyrimSetupStageChange.FnisOutput(childMod, childVersion)) ]
 
         check writer "expectedChildOnlyDeltasAdvanceEveryRollover" (accepted |> List.forall id)

@@ -45,6 +45,7 @@ type SkyrimSetupView =
 
 type internal SkyrimSetupPlanSnapshot =
     { Sources: SourceStamp
+      DeploymentRevision: int64
       ActiveGeneration: Guid option }
 
 [<RequireQualifiedAccess>]
@@ -58,13 +59,14 @@ module internal SkyrimSetupPlan =
         use stream = new MemoryStream()
         use writer = new BinaryWriter(stream, Encoding.UTF8, true)
         let sources = snapshot.Sources
-        writer.Write 1uy
+        writer.Write 2uy
         writer.Write(sources.WorkspaceId.ToByteArray())
         writer.Write(sources.ProfileId.ToByteArray())
         writer.Write sources.SelectionRevision
         writer.Write sources.ContextRevision
         writer.Write sources.ExclusionRevision
         writer.Write sources.OutputRevision
+        writer.Write snapshot.DeploymentRevision
         writer.Write sources.Versions.Length
 
         for modId, versionId in sources.Versions do
@@ -95,7 +97,7 @@ module internal SkyrimSetupPlan =
             use stream = new MemoryStream(bytes, false)
             use reader = new BinaryReader(stream, Encoding.UTF8, true)
 
-            if reader.ReadByte() <> 1uy then
+            if reader.ReadByte() <> 2uy then
                 None
             else
                 let workspace = readGuid reader
@@ -104,6 +106,7 @@ module internal SkyrimSetupPlan =
                 let context = reader.ReadInt64()
                 let exclusion = reader.ReadInt64()
                 let output = reader.ReadInt64()
+                let deploymentRevision = reader.ReadInt64()
                 let count = reader.ReadInt32()
 
                 if count < 0 || count > 100000 then
@@ -139,6 +142,7 @@ module internal SkyrimSetupPlan =
                                   OutputRevision = output
                                   Versions = versions
                                   Deployment = deployment }
+                              DeploymentRevision = deploymentRevision
                               ActiveGeneration = generation }
         with
         | :? EndOfStreamException
@@ -165,7 +169,7 @@ module internal SkyrimSetupPlan =
         (payload: byte array)
         =
         use incremental = IncrementalHash.CreateHash HashAlgorithmName.SHA256
-        incremental.AppendData(Encoding.UTF8.GetBytes "mc-skyrim-setup-v2")
+        incremental.AppendData(Encoding.UTF8.GetBytes "mc-skyrim-setup-v3")
         incremental.AppendData(workspace.ToByteArray())
         incremental.AppendData(profile.ToByteArray())
         incremental.AppendData([| if includeFnis then 1uy else 0uy |])
@@ -208,6 +212,11 @@ module internal SkyrimSetupPlan =
     let private stableSources (before: SourceStamp) (after: SourceStamp) =
         stableSourceData before after && before.Deployment = after.Deployment
 
+    let private expectedDeploymentTransition before after =
+        after.DeploymentRevision = before.DeploymentRevision + 1L
+        && after.Sources.Deployment.IsSome
+        && after.Sources.Deployment <> before.Sources.Deployment
+
     let private versionChanges expected before after =
         let before = before |> Map.ofList
         let after = after |> Map.ofList
@@ -236,10 +245,12 @@ module internal SkyrimSetupPlan =
             && before.ActiveGeneration.IsNone
             && after.ActiveGeneration = Some generation
             && after.Sources.Deployment.IsSome
+            && after.DeploymentRevision = before.DeploymentRevision + 1L
             && before.Sources.SelectionRevision = after.Sources.SelectionRevision
             && before.Sources.Versions = after.Sources.Versions
         | SkyrimSetupStageChange.ComponentDeployment(generation, versions) ->
-            stableSources before.Sources after.Sources
+            stableSourceData before.Sources after.Sources
+            && expectedDeploymentTransition before after
             && after.ActiveGeneration = Some generation
             && (match versionChanges versions before.Sources.Versions after.Sources.Versions with
                 | Some count ->
@@ -249,6 +260,7 @@ module internal SkyrimSetupPlan =
                 | None -> false)
         | SkyrimSetupStageChange.FnisOutput(modId, versionId) ->
             stableSources before.Sources after.Sources
+            && after.DeploymentRevision = before.DeploymentRevision
             && after.ActiveGeneration = before.ActiveGeneration
             && (match
                     versionChanges
@@ -387,6 +399,7 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
             includeFnis
             contextRevision
             { Sources = deployment.Sources
+              DeploymentRevision = deployment.Revision
               ActiveGeneration = deployment.ActiveGeneration }
 
     let componentView name status detail ready active blocked =
@@ -630,6 +643,7 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
 
                         let currentSnapshot =
                             { Sources = deployed.Sources
+                              DeploymentRevision = deployed.Revision
                               ActiveGeneration = deployed.ActiveGeneration }
 
                         let planned = changes includeFnis deployed.ActiveGeneration.IsSome
