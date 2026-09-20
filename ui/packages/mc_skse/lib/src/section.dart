@@ -198,113 +198,112 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
         value.phase == SkyrimSetupStatusPhase.recoveryRequired ||
         value.phase == SkyrimSetupStatusPhase.failed;
 
-    return McSection(
-      title: 'Skyrim setup',
+    final content = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Flexible(
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                McStatus(
-                  title:
-                      value?.status ??
-                      (busy
-                          ? 'Checking Skyrim setup'
-                          : 'Skyrim setup is unavailable'),
-                  detail: value?.detail.isEmpty == false
-                      ? value!.detail
-                      : 'Check the engine connection.',
-                  tone: failed ? McStatusTone.error : McStatusTone.neutral,
-                ),
-                if (busy || value?.active == true) ...[
-                  const SizedBox(height: McSpacing.medium),
-                  const LinearProgressIndicator(),
-                ],
-                if (value != null && value.components.isNotEmpty) ...[
-                  const SizedBox(height: McSpacing.large),
-                  for (final item in value.components) ...[
-                    McStatus(
-                      title: '${item.name}: ${item.status}',
-                      detail: item.detail.isEmpty ? null : item.detail,
-                      tone: item.blocked
-                          ? McStatusTone.error
-                          : McStatusTone.neutral,
-                    ),
-                    const SizedBox(height: McSpacing.medium),
-                  ],
-                ],
-                if (value?.consentRecorded != true) ...[
-                  Material(
-                    type: MaterialType.transparency,
-                    child: SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('Include FNIS'),
-                      subtitle: const Text(
-                        'Install FNIS and keep its active animation output current for this profile.',
-                      ),
-                      value: includeFnis,
-                      onChanged: busy
-                          ? null
-                          : (selected) {
-                              setState(() => includeFnis = selected);
-                              unawaited(load(preserveFnisChoice: true));
-                            },
-                    ),
-                  ),
-                ],
-                const SizedBox(height: McSpacing.medium),
-                Wrap(
-                  spacing: McSpacing.medium,
-                  runSpacing: McSpacing.medium,
-                  children: [
-                    McAction(
-                      label: 'Refresh',
-                      icon: Icons.refresh,
-                      onPressed: busy ? null : load,
-                    ),
-                    if (value?.canStart == true)
-                      McAction(
-                        label: 'Review and apply setup',
-                        icon: Icons.fact_check_outlined,
-                        emphasis: McActionEmphasis.primary,
-                        onPressed: busy ? null : confirm,
-                      ),
-                    if (value?.canSelectEnbArchive == true)
-                      McAction(
-                        label: 'Choose downloaded ENBSeries archive',
-                        icon: Icons.folder_open,
-                        emphasis: McActionEmphasis.primary,
-                        onPressed: busy ? null : selectArchive,
-                      ),
-                    if (value?.canCancel == true)
-                      McAction(
-                        label: 'Cancel setup',
-                        icon: Icons.cancel_outlined,
-                        onPressed: cancelling ? null : cancelSetup,
-                      ),
-                    if (value?.canContinue == true &&
-                        value?.phase == SkyrimSetupStatusPhase.failed)
-                      McAction(
-                        label: 'Try setup again',
-                        icon: Icons.refresh,
-                        emphasis: McActionEmphasis.primary,
-                        onPressed: busy
-                            ? null
-                            : () => change(
-                                () => widget.client.continueSetup(
-                                  widget.workspaceId,
-                                  widget.profileId,
-                                ),
-                              ),
-                      ),
-                  ],
-                ),
-              ],
+        McStatus(
+          title:
+              value?.status ??
+              (busy ? 'Checking Skyrim setup' : 'Skyrim setup is unavailable'),
+          detail: value?.detail.isEmpty == false
+              ? value!.detail
+              : 'Check the engine connection.',
+          tone: failed ? McStatusTone.error : McStatusTone.neutral,
+        ),
+        if (busy || value?.active == true) ...[
+          const SizedBox(height: McSpacing.medium),
+          const LinearProgressIndicator(),
+        ],
+        if (value != null && value.components.isNotEmpty) ...[
+          const SizedBox(height: McSpacing.large),
+          for (final item in value.components) ...[
+            McStatus(
+              title: '${item.name}: ${item.status}',
+              detail: item.detail.isEmpty ? null : item.detail,
+              tone: item.blocked ? McStatusTone.error : McStatusTone.neutral,
+            ),
+            const SizedBox(height: McSpacing.medium),
+          ],
+        ],
+        if (value?.consentRecorded != true) ...[
+          Material(
+            type: MaterialType.transparency,
+            child: SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Include FNIS'),
+              subtitle: const Text(
+                'Install FNIS and keep its active animation output current for this profile.',
+              ),
+              value: includeFnis,
+              onChanged: busy
+                  ? null
+                  : (selected) {
+                      setState(() => includeFnis = selected);
+                      unawaited(load(preserveFnisChoice: true));
+                    },
             ),
           ),
+        ],
+        const SizedBox(height: McSpacing.medium),
+        Wrap(
+          spacing: McSpacing.medium,
+          runSpacing: McSpacing.medium,
+          children: [
+            McAction(
+              label: 'Refresh',
+              icon: Icons.refresh,
+              onPressed: busy ? null : load,
+            ),
+            if (value?.canStart == true)
+              McAction(
+                label: 'Review and apply setup',
+                icon: Icons.fact_check_outlined,
+                emphasis: McActionEmphasis.primary,
+                onPressed: busy ? null : confirm,
+              ),
+            if (value?.canSelectEnbArchive == true)
+              McAction(
+                label: 'Choose downloaded ENBSeries archive',
+                icon: Icons.folder_open,
+                emphasis: McActionEmphasis.primary,
+                onPressed: busy ? null : selectArchive,
+              ),
+            if (value?.canCancel == true)
+              McAction(
+                label: 'Cancel setup',
+                icon: Icons.cancel_outlined,
+                onPressed: cancelling ? null : cancelSetup,
+              ),
+            if (value?.canContinue == true &&
+                value?.phase == SkyrimSetupStatusPhase.failed)
+              McAction(
+                label: 'Try setup again',
+                icon: Icons.refresh,
+                emphasis: McActionEmphasis.primary,
+                onPressed: busy
+                    ? null
+                    : () => change(
+                        () => widget.client.continueSetup(
+                          widget.workspaceId,
+                          widget.profileId,
+                        ),
+                      ),
+              ),
+          ],
         ),
       ],
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) => McSection(
+        title: 'Skyrim setup',
+        children: [
+          if (constraints.hasBoundedHeight)
+            Flexible(child: SingleChildScrollView(child: content))
+          else
+            content,
+        ],
+      ),
     );
   }
 }

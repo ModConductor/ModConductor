@@ -130,24 +130,42 @@ class SetupFixtureClient extends SkyrimSetupClient {
   }
 }
 
-Widget section(SetupFixtureClient client, {ArchiveChooser? chooseArchive}) =>
-    MaterialApp(
-      home: Scaffold(
-        body: SizedBox(
-          height: 700,
-          child: SkyrimSetupSection(
-            client: client,
-            chooseArchive:
-                chooseArchive ??
-                () async => const ArchiveFile('/tmp/enb.zip', 10),
-            workspaceId: 'workspace',
-            profileId: 'profile',
-          ),
-        ),
-      ),
-    );
+Widget section(
+  SetupFixtureClient client, {
+  ArchiveChooser? chooseArchive,
+  double? height = 700,
+}) {
+  final setup = SkyrimSetupSection(
+    client: client,
+    chooseArchive:
+        chooseArchive ?? () async => const ArchiveFile('/tmp/enb.zip', 10),
+    workspaceId: 'workspace',
+    profileId: 'profile',
+  );
+  return MaterialApp(
+    home: Scaffold(
+      body: height == null
+          ? SingleChildScrollView(child: setup)
+          : SizedBox(height: height, child: setup),
+    ),
+  );
+}
 
 void main() {
+  testWidgets('setup layout should support parent and bounded scrolling', (
+    tester,
+  ) async {
+    final client = SetupFixtureClient(setupStatus());
+
+    await tester.pumpWidget(section(client, height: null));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+
+    await tester.pumpWidget(section(client, height: 180));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets(
     'setup should require one confirmed plan before starting writes',
     (tester) async {
