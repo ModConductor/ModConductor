@@ -29,7 +29,7 @@ type SkseCoordinator
         handoff: IOAuthHandoff
     ) =
     let lifetime = new CancellationTokenSource()
-    let workers = ConcurrentDictionary<Guid * Guid, byte>()
+    let workers = ConcurrentDictionary<Guid * Guid, CancellationTokenSource>()
 
     let phaseName (value: SksePhase) =
         match value with
@@ -176,7 +176,9 @@ type SkseCoordinator
         (selection: StoredSkseSelection)
         (artifact: Artifact)
         =
-        if workers.TryAdd(key, 0uy) then
+        let local = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token)
+
+        if workers.TryAdd(key, local) then
             (task {
                 let gameVersion, _ = facts context
                 let release = selection.Selection.Release
@@ -187,7 +189,9 @@ type SkseCoordinator
                             let mutable current = artifact
                             let mutable waiting = true
 
-                            while waiting && not lifetime.IsCancellationRequested do
+                            while waiting do
+                                local.Token.ThrowIfCancellationRequested()
+
                                 match current.State, current.Download with
                                 | (ArtifactState.Ready | ArtifactState.Installed), _ ->
                                     waiting <- false
@@ -202,7 +206,7 @@ type SkseCoordinator
                                         )
                                     )
                                 | _ ->
-                                    Task.Delay(100, lifetime.Token).GetAwaiter().GetResult()
+                                    Task.Delay(100, local.Token).GetAwaiter().GetResult()
 
                                     current <-
                                         store.Artifacts
@@ -218,7 +222,7 @@ type SkseCoordinator
 
                     let! current = waitForArtifact ()
 
-                    if not lifetime.IsCancellationRequested then
+                    if not local.IsCancellationRequested then
                         do! saveArtifact current selection
 
                         let! _ =
@@ -238,7 +242,7 @@ type SkseCoordinator
                                 release,
                                 current,
                                 selection.CheckedAt,
-                                lifetime.Token
+                                local.Token
                             )
 
                         let! _ =
@@ -253,7 +257,7 @@ type SkseCoordinator
 
                         ()
                 with
-                | :? OperationCanceledException when lifetime.IsCancellationRequested -> ()
+                | :? OperationCanceledException when local.IsCancellationRequested -> ()
                 | error ->
                     failed
                         key
@@ -264,10 +268,14 @@ type SkseCoordinator
                         error.Message
                     |> fun pending -> pending.GetAwaiter().GetResult() |> ignore
 
-                workers.TryRemove key |> ignore
+                let mutable removed = Unchecked.defaultof<CancellationTokenSource>
+                workers.TryRemove(key, &removed) |> ignore
+                local.Dispose()
             }
             :> Task)
             |> ignore
+        else
+            local.Dispose()
 
     let prepareArtifact
         key
@@ -552,6 +560,47 @@ type SkseCoordinator
                                 prepareArtifact key context selection artifact "Downloading SKSE"
         }
 
+    member this.Cancel(workspace, profile) =
+        task {
+            let key = workspace, profile
+
+            match workers.TryGetValue key with
+            | true, cancellation -> cancellation.Cancel()
+            | _ -> ()
+
+            let deadline = DateTime.UtcNow.AddSeconds 5.
+
+            while workers.ContainsKey key && DateTime.UtcNow < deadline do
+                do! Task.Delay 10
+
+            do! store.SkseLoaders.RemovePending profile
+            let! deployed = store.Deployments.Read profile
+
+            match deployed with
+            | Ok deployed ->
+                let! installed =
+                    store.SkseLoaders.ReadStored(workspace, profile, deployed.ActiveGeneration)
+
+                match installed with
+                | Some loader ->
+                    let! context = games.Read workspace
+
+                    match context with
+                    | Ok context -> return! installedState key context loader
+                    | Error _ -> return! this.Read(workspace, profile)
+                | None ->
+                    return!
+                        persist
+                            key
+                            { Phase = SksePhase.Available
+                              GameVersion = ""
+                              ComponentVersion = ""
+                              Status = "SKSE setup was cancelled"
+                              Detail = "No active profile generation was changed."
+                              FileId = None }
+            | Error _ -> return! this.Read(workspace, profile)
+        }
+
     member _.AcceptNxm(id: Guid) =
         Task.Run(fun () ->
             task {
@@ -705,6 +754,13 @@ type SkseCoordinator
     interface IDisposable with
         member _.Dispose() =
             lifetime.Cancel()
+
+            for worker in workers.Values do
+                try
+                    worker.Cancel()
+                with :? ObjectDisposedException ->
+                    ()
+
             lifetime.Dispose()
 
 type internal SkseService(coordinator: SkseCoordinator) =

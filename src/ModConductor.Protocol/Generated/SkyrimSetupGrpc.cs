@@ -88,6 +88,14 @@ namespace ModConductor.Protocol.V1 {
         __Marshaller_modconductor_v1_SkyrimSetupArchiveRequest,
         __Marshaller_modconductor_v1_SkyrimSetupState);
 
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::ModConductor.Protocol.V1.SkyrimSetupRequest, global::ModConductor.Protocol.V1.SkyrimSetupState> __Method_CancelSkyrimSetup = new grpc::Method<global::ModConductor.Protocol.V1.SkyrimSetupRequest, global::ModConductor.Protocol.V1.SkyrimSetupState>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "CancelSkyrimSetup",
+        __Marshaller_modconductor_v1_SkyrimSetupRequest,
+        __Marshaller_modconductor_v1_SkyrimSetupState);
+
     /// <summary>Service descriptor</summary>
     public static global::Google.Protobuf.Reflection.ServiceDescriptor Descriptor
     {
@@ -118,6 +126,12 @@ namespace ModConductor.Protocol.V1 {
 
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V1.SkyrimSetupState> SelectSkyrimSetupEnbArchive(global::ModConductor.Protocol.V1.SkyrimSetupArchiveRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V1.SkyrimSetupState> CancelSkyrimSetup(global::ModConductor.Protocol.V1.SkyrimSetupRequest request, grpc::ServerCallContext context)
       {
         throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
       }
@@ -231,6 +245,26 @@ namespace ModConductor.Protocol.V1 {
       {
         return CallInvoker.AsyncUnaryCall(__Method_SelectSkyrimSetupEnbArchive, null, options, request);
       }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V1.SkyrimSetupState CancelSkyrimSetup(global::ModConductor.Protocol.V1.SkyrimSetupRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return CancelSkyrimSetup(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V1.SkyrimSetupState CancelSkyrimSetup(global::ModConductor.Protocol.V1.SkyrimSetupRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_CancelSkyrimSetup, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.SkyrimSetupState> CancelSkyrimSetupAsync(global::ModConductor.Protocol.V1.SkyrimSetupRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return CancelSkyrimSetupAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.SkyrimSetupState> CancelSkyrimSetupAsync(global::ModConductor.Protocol.V1.SkyrimSetupRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_CancelSkyrimSetup, null, options, request);
+      }
       /// <summary>Creates a new instance of client from given <c>ClientBaseConfiguration</c>.</summary>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       protected override SkyrimSetupOperationsClient NewInstance(ClientBaseConfiguration configuration)
@@ -248,7 +282,8 @@ namespace ModConductor.Protocol.V1 {
           .AddMethod(__Method_ReadSkyrimSetup, serviceImpl.ReadSkyrimSetup)
           .AddMethod(__Method_StartSkyrimSetup, serviceImpl.StartSkyrimSetup)
           .AddMethod(__Method_ContinueSkyrimSetup, serviceImpl.ContinueSkyrimSetup)
-          .AddMethod(__Method_SelectSkyrimSetupEnbArchive, serviceImpl.SelectSkyrimSetupEnbArchive).Build();
+          .AddMethod(__Method_SelectSkyrimSetupEnbArchive, serviceImpl.SelectSkyrimSetupEnbArchive)
+          .AddMethod(__Method_CancelSkyrimSetup, serviceImpl.CancelSkyrimSetup).Build();
     }
 
     /// <summary>Register service method with a service binder with or without implementation. Useful when customizing the service binding logic.
@@ -262,6 +297,7 @@ namespace ModConductor.Protocol.V1 {
       serviceBinder.AddMethod(__Method_StartSkyrimSetup, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.StartSkyrimSetupRequest, global::ModConductor.Protocol.V1.SkyrimSetupState>(serviceImpl.StartSkyrimSetup));
       serviceBinder.AddMethod(__Method_ContinueSkyrimSetup, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.SkyrimSetupRequest, global::ModConductor.Protocol.V1.SkyrimSetupState>(serviceImpl.ContinueSkyrimSetup));
       serviceBinder.AddMethod(__Method_SelectSkyrimSetupEnbArchive, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.SkyrimSetupArchiveRequest, global::ModConductor.Protocol.V1.SkyrimSetupState>(serviceImpl.SelectSkyrimSetupEnbArchive));
+      serviceBinder.AddMethod(__Method_CancelSkyrimSetup, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.SkyrimSetupRequest, global::ModConductor.Protocol.V1.SkyrimSetupState>(serviceImpl.CancelSkyrimSetup));
     }
 
   }

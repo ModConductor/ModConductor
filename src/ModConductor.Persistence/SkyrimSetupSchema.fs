@@ -12,3 +12,12 @@ module internal SkyrimSetupSchema =
     );
     PRAGMA user_version=31;
     """
+
+    let correction =
+        """
+    ALTER TABLE skyrim_setup_intents ADD COLUMN cancelled INTEGER NOT NULL DEFAULT 0 CHECK(cancelled IN (0,1));
+    ALTER TABLE skyrim_setup_intents ADD COLUMN completed INTEGER NOT NULL DEFAULT 0 CHECK(completed IN (0,1));
+    ALTER TABLE skyrim_setup_intents ADD COLUMN stage TEXT NOT NULL DEFAULT 'setup';
+    ALTER TABLE skyrim_setup_intents ADD COLUMN context_revision INTEGER NOT NULL DEFAULT 0;
+    PRAGMA user_version=32;
+    """

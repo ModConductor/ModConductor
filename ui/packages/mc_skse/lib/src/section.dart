@@ -249,6 +249,19 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
                         emphasis: McActionEmphasis.primary,
                         onPressed: busy ? null : selectArchive,
                       ),
+                    if (value?.canCancel == true)
+                      McAction(
+                        label: 'Cancel setup',
+                        icon: Icons.cancel_outlined,
+                        onPressed: busy
+                            ? null
+                            : () => change(
+                                () => widget.client.cancel(
+                                  widget.workspaceId,
+                                  widget.profileId,
+                                ),
+                              ),
+                      ),
                     if (value?.canContinue == true &&
                         value?.phase == SkyrimSetupStatusPhase.failed)
                       McAction(

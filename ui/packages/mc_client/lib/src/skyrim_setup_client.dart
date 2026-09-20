@@ -16,6 +16,7 @@ enum SkyrimSetupStatusPhase {
   ready,
   recoveryRequired,
   failed,
+  cancelled,
 }
 
 class SkyrimSetupChange {
@@ -51,6 +52,7 @@ class SkyrimSetupStatus {
     required this.canSelectEnbArchive,
     required this.active,
     required this.ready,
+    required this.canCancel,
   });
 
   final SkyrimSetupStatusPhase phase;
@@ -63,7 +65,8 @@ class SkyrimSetupStatus {
       canContinue,
       canSelectEnbArchive,
       active,
-      ready;
+      ready,
+      canCancel;
 }
 
 abstract class SkyrimSetupClient {
@@ -86,6 +89,8 @@ abstract class SkyrimSetupClient {
   });
 
   Future<SkyrimSetupStatus> continueSetup(String workspace, String profile);
+
+  Future<SkyrimSetupStatus> cancel(String workspace, String profile);
 
   Future<SkyrimSetupStatus> selectEnbArchive(
     String workspace,
@@ -127,6 +132,8 @@ class _GrpcSkyrimSetupClient extends SkyrimSetupClient {
         SkyrimSetupStatusPhase.recoveryRequired,
       wire.SkyrimSetupPhase.SKYRIM_SETUP_PHASE_FAILED =>
         SkyrimSetupStatusPhase.failed,
+      wire.SkyrimSetupPhase.SKYRIM_SETUP_PHASE_CANCELLED =>
+        SkyrimSetupStatusPhase.cancelled,
       _ => SkyrimSetupStatusPhase.unavailable,
     },
     status: value.status,
@@ -154,6 +161,7 @@ class _GrpcSkyrimSetupClient extends SkyrimSetupClient {
     canSelectEnbArchive: value.canSelectEnbArchive,
     active: value.active,
     ready: value.ready,
+    canCancel: value.canCancel,
   );
 
   @override
@@ -198,6 +206,14 @@ class _GrpcSkyrimSetupClient extends SkyrimSetupClient {
       wire.SkyrimSetupRequest(workspaceId: workspace, profileId: profile),
     ),
   );
+
+  @override
+  Future<SkyrimSetupStatus> cancel(String workspace, String profile) async =>
+      _decode(
+        await _client.cancelSkyrimSetup(
+          wire.SkyrimSetupRequest(workspaceId: workspace, profileId: profile),
+        ),
+      );
 
   @override
   Future<SkyrimSetupStatus> selectEnbArchive(

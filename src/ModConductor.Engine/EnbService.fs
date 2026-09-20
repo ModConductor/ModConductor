@@ -1,6 +1,7 @@
 namespace ModConductor.Engine
 
 open System
+open System.Collections.Concurrent
 open System.Threading
 open System.Threading.Tasks
 open ModConductor.ArtifactLibrary
@@ -30,6 +31,7 @@ type EnbCoordinator
         ?eligibilityOverride: Guid * Guid -> Task<Result<unit, EnbProblem>>
     ) as this =
     let lifetime = new CancellationTokenSource()
+    let operations = ConcurrentDictionary<Guid * Guid, CancellationTokenSource>()
 
     let phaseName =
         function
@@ -170,7 +172,7 @@ type EnbCoordinator
             return pending |> List.filter (fun value -> value.ProfileId = profile)
         }
 
-    let rec advance workspace profile =
+    let rec advance workspace profile (token: CancellationToken) =
         task {
             let! saved = store.EnbSetups.ReadStatus(workspace, profile)
 
@@ -270,7 +272,7 @@ type EnbCoordinator
                                         row,
                                         runtime,
                                         available,
-                                        lifetime.Token
+                                        token
                                     )
 
                                 do! store.EnbSetups.RemovePending(profile, None)
@@ -424,7 +426,7 @@ type EnbCoordinator
                                                     + "?tab=files&file_id="
                                                     + string next.File.Id
                                                 ),
-                                                lifetime.Token
+                                                token
                                             )
 
                                         return!
@@ -452,7 +454,7 @@ type EnbCoordinator
                                                     error.Message)
         }
 
-    let beginAcquisition workspace profile (runtime: Artifact) =
+    let beginAcquisition workspace profile (runtime: Artifact) token =
         task {
             let! resolved = resolveSources ()
 
@@ -489,128 +491,10 @@ type EnbCoordinator
 
                     do! store.EnbSetups.SavePending pending
 
-                return! advance workspace profile
+                return! advance workspace profile token
         }
 
-    member _.Read(workspace, profile) =
-        if not row.TermsApproved then
-            Task.FromResult(adoptionView ())
-        else
-            task {
-                let! operation = store.EnbSetups.ConfigurationOperation(workspace, profile)
-                let! saved = store.EnbSetups.ReadStatus(workspace, profile)
-
-                match operation, saved with
-                | Some operation, _ ->
-                    return
-                        view
-                            (if operation.Phase = "conflict" then
-                                 EnbPhase.Conflict
-                             else
-                                 EnbPhase.Failed)
-                            "ENB setup recovery is required"
-                            (if String.IsNullOrWhiteSpace operation.Detail then
-                                 "Finish recovery before changing this ENB setup."
-                             else
-                                 operation.Detail)
-                | None, Some value when value.Phase = "acquiring" || value.Phase = "installing" ->
-                    return! advance workspace profile
-                | None, Some value when
-                    value.Phase = "waiting"
-                    || value.Phase = "failed"
-                    || value.Phase = "conflict"
-                    || value.Phase = "ready"
-                    || value.Phase = "unavailable"
-                    ->
-                    return fromStored value
-                | None, _ ->
-                    let! eligible = eligibility workspace profile
-
-                    return
-                        match eligible with
-                        | Ok() -> defaultView ()
-                        | Error problem ->
-                            view
-                                EnbPhase.Unavailable
-                                "ENB setup is unavailable"
-                                (EnbProblem.message problem)
-            }
-
-    member _.OpenAuthorPage(workspace, profile) =
-        if not row.TermsApproved then
-            Task.FromResult(adoptionView ())
-        else
-            task {
-                let! eligible = eligibility workspace profile
-
-                match eligible with
-                | Error problem ->
-                    return!
-                        persist
-                            workspace
-                            profile
-                            None
-                            None
-                            (view
-                                EnbPhase.Unavailable
-                                "ENB setup is unavailable"
-                                (EnbProblem.message problem))
-                | Ok() ->
-                    try
-                        do! handoff.Open(row.Runtime.Source, lifetime.Token)
-
-                        return!
-                            persist
-                                workspace
-                                profile
-                                None
-                                None
-                                (view
-                                    EnbPhase.WaitingForArchive
-                                    "Waiting for the ENBSeries archive"
-                                    "Download ENBSeries 0.505 from the author page, then choose that archive here.")
-                    with error ->
-                        return!
-                            persist
-                                workspace
-                                profile
-                                None
-                                None
-                                (view
-                                    EnbPhase.Failed
-                                    "The ENBSeries page could not be opened"
-                                    error.Message)
-            }
-
-    member _.Cancel(workspace, profile) =
-        if not row.TermsApproved then
-            Task.FromResult(adoptionView ())
-        else
-            task {
-                let! saved = store.EnbSetups.ReadStatus(workspace, profile)
-
-                match saved with
-                | Some value when value.Phase = "acquiring" || value.Phase = "installing" ->
-                    return fromStored value
-                | _ ->
-                    let! eligible = eligibility workspace profile
-
-                    return!
-                        persist
-                            workspace
-                            profile
-                            None
-                            None
-                            (match eligible with
-                             | Ok() -> defaultView ()
-                             | Error problem ->
-                                 view
-                                     EnbPhase.Unavailable
-                                     "ENB setup is unavailable"
-                                     (EnbProblem.message problem))
-            }
-
-    member _.SelectArchive(workspace, profile, operation, path: string, token) =
+    let selectArchive (workspace, profile, operation, path: string, token) =
         if not row.TermsApproved then
             Task.FromResult(adoptionView ())
         else
@@ -711,7 +595,7 @@ type EnbCoordinator
                                                 "ENBSeries 0.505 was validated"
                                                 "Resolving Lean ENB and its declared companion through Nexus Mods.")
 
-                                    return! beginAcquisition workspace profile artifact
+                                    return! beginAcquisition workspace profile artifact token
                             with error ->
                                 let! _ = store.Artifacts.Remove reference
 
@@ -730,6 +614,193 @@ type EnbCoordinator
                                             EnbPhase.Failed
                                             "The ENBSeries archive was refused"
                                             detail)
+            }
+
+
+    let runAdvance workspace profile =
+        task {
+            let key = workspace, profile
+            use cancellation = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token)
+
+            if operations.TryAdd(key, cancellation) then
+                try
+                    return! advance workspace profile cancellation.Token
+                finally
+                    match operations.TryRemove key with
+                    | true, owned -> owned.Dispose()
+                    | _ -> ()
+            else
+                let! saved = store.EnbSetups.ReadStatus(workspace, profile)
+                return saved |> Option.map fromStored |> Option.defaultWith defaultView
+        }
+
+    member _.Read(workspace, profile) =
+        if not row.TermsApproved then
+            Task.FromResult(adoptionView ())
+        else
+            task {
+                let! operation = store.EnbSetups.ConfigurationOperation(workspace, profile)
+                let! saved = store.EnbSetups.ReadStatus(workspace, profile)
+
+                match operation, saved with
+                | Some operation, _ ->
+                    return
+                        view
+                            (if operation.Phase = "conflict" then
+                                 EnbPhase.Conflict
+                             else
+                                 EnbPhase.Failed)
+                            "ENB setup recovery is required"
+                            (if String.IsNullOrWhiteSpace operation.Detail then
+                                 "Finish recovery before changing this ENB setup."
+                             else
+                                 operation.Detail)
+                | None, Some value when value.Phase = "acquiring" || value.Phase = "installing" ->
+                    return! runAdvance workspace profile
+                | None, Some value when
+                    value.Phase = "waiting"
+                    || value.Phase = "failed"
+                    || value.Phase = "conflict"
+                    || value.Phase = "ready"
+                    || value.Phase = "unavailable"
+                    ->
+                    return fromStored value
+                | None, _ ->
+                    let! eligible = eligibility workspace profile
+
+                    return
+                        match eligible with
+                        | Ok() -> defaultView ()
+                        | Error problem ->
+                            view
+                                EnbPhase.Unavailable
+                                "ENB setup is unavailable"
+                                (EnbProblem.message problem)
+            }
+
+    member _.OpenAuthorPage(workspace, profile) =
+        if not row.TermsApproved then
+            Task.FromResult(adoptionView ())
+        else
+            task {
+                let! eligible = eligibility workspace profile
+
+                match eligible with
+                | Error problem ->
+                    return!
+                        persist
+                            workspace
+                            profile
+                            None
+                            None
+                            (view
+                                EnbPhase.Unavailable
+                                "ENB setup is unavailable"
+                                (EnbProblem.message problem))
+                | Ok() ->
+                    try
+                        do! handoff.Open(row.Runtime.Source, lifetime.Token)
+
+                        return!
+                            persist
+                                workspace
+                                profile
+                                None
+                                None
+                                (view
+                                    EnbPhase.WaitingForArchive
+                                    "Waiting for the ENBSeries archive"
+                                    "Download ENBSeries 0.505 from the author page, then choose that archive here.")
+                    with error ->
+                        return!
+                            persist
+                                workspace
+                                profile
+                                None
+                                None
+                                (view
+                                    EnbPhase.Failed
+                                    "The ENBSeries page could not be opened"
+                                    error.Message)
+            }
+
+    member _.Cancel(workspace, profile) =
+        if not row.TermsApproved then
+            Task.FromResult(adoptionView ())
+        else
+            task {
+                let key = workspace, profile
+
+                match operations.TryGetValue key with
+                | true, cancellation -> cancellation.Cancel()
+                | _ -> ()
+
+                let deadline = DateTime.UtcNow.AddSeconds 10.
+
+                while operations.ContainsKey key && DateTime.UtcNow < deadline do
+                    do! Task.Delay 20
+
+                let! configuration = store.EnbSetups.ConfigurationOperation(workspace, profile)
+                let! deployed = store.Deployments.Read profile
+
+                if
+                    configuration.IsSome
+                    || (deployed |> Result.toOption |> Option.bind _.PendingReceipt |> Option.isSome)
+                then
+                    return! this.Recover(workspace, profile, CancellationToken.None)
+                else
+                    let! pending = pendingFor profile
+
+                    for source in pending do
+                        let nexusReference =
+                            reference source.AccountId source.NexusModId source.File false
+
+                        let! artifact = downloads.FindNexus(workspace, nexusReference)
+
+                        match artifact with
+                        | Some value ->
+                            let! _ = downloads.Control(workspace, value.Id, DownloadAction.Pause)
+                            ()
+                        | None -> ()
+
+                    do! store.EnbSetups.RemovePending(profile, None)
+                    let! eligible = eligibility workspace profile
+
+                    return!
+                        persist
+                            workspace
+                            profile
+                            None
+                            None
+                            (match eligible with
+                             | Ok() -> defaultView ()
+                             | Error problem ->
+                                 view
+                                     EnbPhase.Unavailable
+                                     "ENB setup is unavailable"
+                                     (EnbProblem.message problem))
+            }
+
+    member _.SelectArchive(workspace, profile, operation, path: string, token) =
+        if not row.TermsApproved then
+            Task.FromResult(adoptionView ())
+        else
+            task {
+                let key = workspace, profile
+
+                use cancellation =
+                    CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token, token)
+
+                if operations.TryAdd(key, cancellation) then
+                    try
+                        return!
+                            selectArchive (workspace, profile, operation, path, cancellation.Token)
+                    finally
+                        match operations.TryRemove key with
+                        | true, owned -> owned.Dispose()
+                        | _ -> ()
+                else
+                    return! this.Read(workspace, profile)
             }
 
     member _.Update(workspace, profile) =
@@ -755,7 +826,7 @@ type EnbCoordinator
                     let! artifact = store.Artifacts.Read(workspace, id)
 
                     match artifact with
-                    | Ok value -> return! beginAcquisition workspace profile value
+                    | Ok value -> return! beginAcquisition workspace profile value lifetime.Token
                     | Error _ ->
                         return!
                             persist
@@ -1056,6 +1127,10 @@ type EnbCoordinator
     interface IDisposable with
         member _.Dispose() =
             lifetime.Cancel()
+
+            for cancellation in operations.Values do
+                cancellation.Cancel()
+
             lifetime.Dispose()
 
 type internal EnbService(coordinator: EnbCoordinator) =

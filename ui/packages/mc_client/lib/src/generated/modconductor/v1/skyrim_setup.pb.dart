@@ -561,6 +561,7 @@ class SkyrimSetupState extends $pb.GeneratedMessage {
     $core.bool? canSelectEnbArchive,
     $core.bool? active,
     $core.bool? ready,
+    $core.bool? canCancel,
   }) {
     final result = create();
     if (phase != null) result.phase = phase;
@@ -577,6 +578,7 @@ class SkyrimSetupState extends $pb.GeneratedMessage {
       result.canSelectEnbArchive = canSelectEnbArchive;
     if (active != null) result.active = active;
     if (ready != null) result.ready = ready;
+    if (canCancel != null) result.canCancel = canCancel;
     return result;
   }
 
@@ -610,6 +612,7 @@ class SkyrimSetupState extends $pb.GeneratedMessage {
     ..aOB(11, _omitFieldNames ? '' : 'canSelectEnbArchive')
     ..aOB(12, _omitFieldNames ? '' : 'active')
     ..aOB(13, _omitFieldNames ? '' : 'ready')
+    ..aOB(14, _omitFieldNames ? '' : 'canCancel')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -735,6 +738,15 @@ class SkyrimSetupState extends $pb.GeneratedMessage {
   $core.bool hasReady() => $_has(12);
   @$pb.TagNumber(13)
   void clearReady() => $_clearField(13);
+
+  @$pb.TagNumber(14)
+  $core.bool get canCancel => $_getBF(13);
+  @$pb.TagNumber(14)
+  set canCancel($core.bool value) => $_setBool(13, value);
+  @$pb.TagNumber(14)
+  $core.bool hasCanCancel() => $_has(13);
+  @$pb.TagNumber(14)
+  void clearCanCancel() => $_clearField(14);
 }
 
 const $core.bool _omitFieldNames =

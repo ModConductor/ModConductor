@@ -62,6 +62,13 @@ class SkyrimSetupOperationsClient extends $grpc.Client {
         options: options);
   }
 
+  $grpc.ResponseFuture<$0.SkyrimSetupState> cancelSkyrimSetup(
+    $0.SkyrimSetupRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$cancelSkyrimSetup, request, options: options);
+  }
+
   // method descriptors
 
   static final _$readSkyrimSetup =
@@ -83,6 +90,11 @@ class SkyrimSetupOperationsClient extends $grpc.Client {
       $grpc.ClientMethod<$0.SkyrimSetupArchiveRequest, $0.SkyrimSetupState>(
           '/modconductor.v1.SkyrimSetupOperations/SelectSkyrimSetupEnbArchive',
           ($0.SkyrimSetupArchiveRequest value) => value.writeToBuffer(),
+          $0.SkyrimSetupState.fromBuffer);
+  static final _$cancelSkyrimSetup =
+      $grpc.ClientMethod<$0.SkyrimSetupRequest, $0.SkyrimSetupState>(
+          '/modconductor.v1.SkyrimSetupOperations/CancelSkyrimSetup',
+          ($0.SkyrimSetupRequest value) => value.writeToBuffer(),
           $0.SkyrimSetupState.fromBuffer);
 }
 
@@ -126,6 +138,14 @@ abstract class SkyrimSetupOperationsServiceBase extends $grpc.Service {
             ($core.List<$core.int> value) =>
                 $0.SkyrimSetupArchiveRequest.fromBuffer(value),
             ($0.SkyrimSetupState value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.SkyrimSetupRequest, $0.SkyrimSetupState>(
+        'CancelSkyrimSetup',
+        cancelSkyrimSetup_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.SkyrimSetupRequest.fromBuffer(value),
+        ($0.SkyrimSetupState value) => value.writeToBuffer()));
   }
 
   $async.Future<$0.SkyrimSetupState> readSkyrimSetup_Pre(
@@ -163,4 +183,13 @@ abstract class SkyrimSetupOperationsServiceBase extends $grpc.Service {
 
   $async.Future<$0.SkyrimSetupState> selectSkyrimSetupEnbArchive(
       $grpc.ServiceCall call, $0.SkyrimSetupArchiveRequest request);
+
+  $async.Future<$0.SkyrimSetupState> cancelSkyrimSetup_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.SkyrimSetupRequest> $request) async {
+    return cancelSkyrimSetup($call, await $request);
+  }
+
+  $async.Future<$0.SkyrimSetupState> cancelSkyrimSetup(
+      $grpc.ServiceCall call, $0.SkyrimSetupRequest request);
 }

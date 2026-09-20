@@ -13,6 +13,7 @@ SkyrimSetupStatus setupStatus({
   bool active = false,
   bool ready = false,
   bool includeFnis = false,
+  bool canCancel = false,
 }) => SkyrimSetupStatus(
   phase: phase,
   status: 'Setup status',
@@ -38,12 +39,14 @@ SkyrimSetupStatus setupStatus({
   canSelectEnbArchive: canSelectArchive,
   active: active,
   ready: ready,
+  canCancel: canCancel,
 );
 
 class SetupFixtureClient extends SkyrimSetupClient {
   SetupFixtureClient(this.current);
   SkyrimSetupStatus current;
   int starts = 0, continues = 0, selections = 0;
+  int cancellations = 0;
   bool? startedWithFnis;
   String? selectedPath;
 
@@ -83,6 +86,16 @@ class SetupFixtureClient extends SkyrimSetupClient {
       consent: true,
       canStart: false,
       canSelectArchive: true,
+      includeFnis: current.includeFnis,
+    );
+  }
+
+  @override
+  Future<SkyrimSetupStatus> cancel(String workspace, String profile) async {
+    cancellations++;
+    return current = setupStatus(
+      phase: SkyrimSetupStatusPhase.cancelled,
+      canStart: true,
       includeFnis: current.includeFnis,
     );
   }
@@ -192,4 +205,29 @@ void main() {
     expect(client.continues, 1);
     expect(client.starts, 0);
   });
+
+  testWidgets(
+    'cancel should stop the combined workflow and retain its durable choice',
+    (tester) async {
+      final client = SetupFixtureClient(
+        setupStatus(
+          phase: SkyrimSetupStatusPhase.waitingForEnbArchive,
+          consent: true,
+          canStart: false,
+          canSelectArchive: true,
+          canCancel: true,
+          includeFnis: true,
+        ),
+      );
+      await tester.pumpWidget(section(client));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Cancel setup'));
+      await tester.pumpAndSettle();
+
+      expect(client.cancellations, 1);
+      expect(client.current.phase, SkyrimSetupStatusPhase.cancelled);
+      expect(client.current.includeFnis, isTrue);
+    },
+  );
 }

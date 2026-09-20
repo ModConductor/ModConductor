@@ -188,6 +188,11 @@ void main() {
           expect(result.phase, SkyrimSetupStatusPhase.unavailable);
           expect(result.canStart, isFalse);
           expect(result.components.single.blocked, isTrue);
+          final cancelled = await engine.skyrimSetup.cancel(
+            '11111111111111111111111111111111',
+            '22222222222222222222222222222222',
+          );
+          expect(cancelled.phase, SkyrimSetupStatusPhase.unavailable);
         } finally {
           await engine.close();
           expect(await engine.exited, 0);

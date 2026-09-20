@@ -33,6 +33,7 @@ const SkyrimSetupPhase$json = {
     {'1': 'SKYRIM_SETUP_PHASE_READY', '2': 11},
     {'1': 'SKYRIM_SETUP_PHASE_RECOVERY_REQUIRED', '2': 12},
     {'1': 'SKYRIM_SETUP_PHASE_FAILED', '2': 13},
+    {'1': 'SKYRIM_SETUP_PHASE_CANCELLED', '2': 14},
   ],
 };
 
@@ -48,7 +49,7 @@ final $typed_data.Uint8List skyrimSetupPhaseDescriptor = $convert.base64Decode(
     'JJTV9TRVRVUF9QSEFTRV9GTklTX1NUQUxFEAkSIwofU0tZUklNX1NFVFVQX1BIQVNFX0ZOSVNf'
     'UlVOTklORxAKEhwKGFNLWVJJTV9TRVRVUF9QSEFTRV9SRUFEWRALEigKJFNLWVJJTV9TRVRVUF'
     '9QSEFTRV9SRUNPVkVSWV9SRVFVSVJFRBAMEh0KGVNLWVJJTV9TRVRVUF9QSEFTRV9GQUlMRUQQ'
-    'DQ==');
+    'DRIgChxTS1lSSU1fU0VUVVBfUEhBU0VfQ0FOQ0VMTEVEEA4=');
 
 @$core.Deprecated('Use skyrimSetupRequestDescriptor instead')
 const SkyrimSetupRequest$json = {
@@ -199,6 +200,7 @@ const SkyrimSetupState$json = {
     },
     {'1': 'active', '3': 12, '4': 1, '5': 8, '10': 'active'},
     {'1': 'ready', '3': 13, '4': 1, '5': 8, '10': 'ready'},
+    {'1': 'can_cancel', '3': 14, '4': 1, '5': 8, '10': 'canCancel'},
   ],
 };
 
@@ -213,4 +215,5 @@ final $typed_data.Uint8List skyrimSetupStateDescriptor = $convert.base64Decode(
     'X3JlY29yZGVkGAggASgIUg9jb25zZW50UmVjb3JkZWQSGwoJY2FuX3N0YXJ0GAkgASgIUghjYW'
     '5TdGFydBIhCgxjYW5fY29udGludWUYCiABKAhSC2NhbkNvbnRpbnVlEjMKFmNhbl9zZWxlY3Rf'
     'ZW5iX2FyY2hpdmUYCyABKAhSE2NhblNlbGVjdEVuYkFyY2hpdmUSFgoGYWN0aXZlGAwgASgIUg'
-    'ZhY3RpdmUSFAoFcmVhZHkYDSABKAhSBXJlYWR5');
+    'ZhY3RpdmUSFAoFcmVhZHkYDSABKAhSBXJlYWR5Eh0KCmNhbl9jYW5jZWwYDiABKAhSCWNhbkNh'
+    'bmNlbA==');

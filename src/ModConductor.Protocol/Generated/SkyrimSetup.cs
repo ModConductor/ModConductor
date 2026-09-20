@@ -37,7 +37,7 @@ namespace ModConductor.Protocol.V1 {
             "aBgEIAEoCSIyChFTa3lyaW1TZXR1cENoYW5nZRINCgV0aXRsZRgBIAEoCRIO",
             "CgZkZXRhaWwYAiABKAkidAoUU2t5cmltU2V0dXBDb21wb25lbnQSDAoEbmFt",
             "ZRgBIAEoCRIOCgZzdGF0dXMYAiABKAkSDgoGZGV0YWlsGAMgASgJEg0KBXJl",
-            "YWR5GAQgASgIEg4KBmFjdGl2ZRgFIAEoCBIPCgdibG9ja2VkGAYgASgIIoAD",
+            "YWR5GAQgASgIEg4KBmFjdGl2ZRgFIAEoCBIPCgdibG9ja2VkGAYgASgIIpQD",
             "ChBTa3lyaW1TZXR1cFN0YXRlEjAKBXBoYXNlGAEgASgOMiEubW9kY29uZHVj",
             "dG9yLnYxLlNreXJpbVNldHVwUGhhc2USDgoGc3RhdHVzGAIgASgJEg4KBmRl",
             "dGFpbBgDIAEoCRISCgpwbGFuX3Rva2VuGAQgASgJEjMKB2NoYW5nZXMYBSAD",
@@ -46,30 +46,33 @@ namespace ModConductor.Protocol.V1 {
             "bXBvbmVudBIUCgxpbmNsdWRlX2ZuaXMYByABKAgSGAoQY29uc2VudF9yZWNv",
             "cmRlZBgIIAEoCBIRCgljYW5fc3RhcnQYCSABKAgSFAoMY2FuX2NvbnRpbnVl",
             "GAogASgIEh4KFmNhbl9zZWxlY3RfZW5iX2FyY2hpdmUYCyABKAgSDgoGYWN0",
-            "aXZlGAwgASgIEg0KBXJlYWR5GA0gASgIKqwEChBTa3lyaW1TZXR1cFBoYXNl",
-            "EiIKHlNLWVJJTV9TRVRVUF9QSEFTRV9VTlNQRUNJRklFRBAAEiIKHlNLWVJJ",
-            "TV9TRVRVUF9QSEFTRV9VTkFWQUlMQUJMRRABEiQKIFNLWVJJTV9TRVRVUF9Q",
-            "SEFTRV9ORUVEU19DT05TRU5UEAISKwonU0tZUklNX1NFVFVQX1BIQVNFX1BS",
-            "RVBBUklOR19ERVBMT1lNRU5UEAMSJgoiU0tZUklNX1NFVFVQX1BIQVNFX1NF",
-            "VFRJTkdfVVBfU0tTRRAEEicKI1NLWVJJTV9TRVRVUF9QSEFTRV9XQUlUSU5H",
-            "X0ZPUl9TS1NFEAUSLgoqU0tZUklNX1NFVFVQX1BIQVNFX1dBSVRJTkdfRk9S",
-            "X0VOQl9BUkNISVZFEAYSJQohU0tZUklNX1NFVFVQX1BIQVNFX1NFVFRJTkdf",
-            "VVBfRU5CEAcSJgoiU0tZUklNX1NFVFVQX1BIQVNFX1NFVFRJTkdfVVBfRk5J",
-            "UxAIEiEKHVNLWVJJTV9TRVRVUF9QSEFTRV9GTklTX1NUQUxFEAkSIwofU0tZ",
-            "UklNX1NFVFVQX1BIQVNFX0ZOSVNfUlVOTklORxAKEhwKGFNLWVJJTV9TRVRV",
-            "UF9QSEFTRV9SRUFEWRALEigKJFNLWVJJTV9TRVRVUF9QSEFTRV9SRUNPVkVS",
-            "WV9SRVFVSVJFRBAMEh0KGVNLWVJJTV9TRVRVUF9QSEFTRV9GQUlMRUQQDTKk",
-            "AwoVU2t5cmltU2V0dXBPcGVyYXRpb25zEl0KD1JlYWRTa3lyaW1TZXR1cBIn",
-            "Lm1vZGNvbmR1Y3Rvci52MS5SZWFkU2t5cmltU2V0dXBSZXF1ZXN0GiEubW9k",
-            "Y29uZHVjdG9yLnYxLlNreXJpbVNldHVwU3RhdGUSXwoQU3RhcnRTa3lyaW1T",
-            "ZXR1cBIoLm1vZGNvbmR1Y3Rvci52MS5TdGFydFNreXJpbVNldHVwUmVxdWVz",
-            "dBohLm1vZGNvbmR1Y3Rvci52MS5Ta3lyaW1TZXR1cFN0YXRlEl0KE0NvbnRp",
-            "bnVlU2t5cmltU2V0dXASIy5tb2Rjb25kdWN0b3IudjEuU2t5cmltU2V0dXBS",
-            "ZXF1ZXN0GiEubW9kY29uZHVjdG9yLnYxLlNreXJpbVNldHVwU3RhdGUSbAob",
-            "U2VsZWN0U2t5cmltU2V0dXBFbmJBcmNoaXZlEioubW9kY29uZHVjdG9yLnYx",
-            "LlNreXJpbVNldHVwQXJjaGl2ZVJlcXVlc3QaIS5tb2Rjb25kdWN0b3IudjEu",
-            "U2t5cmltU2V0dXBTdGF0ZUIbqgIYTW9kQ29uZHVjdG9yLlByb3RvY29sLlYx",
-            "YgZwcm90bzM="));
+            "aXZlGAwgASgIEg0KBXJlYWR5GA0gASgIEhIKCmNhbl9jYW5jZWwYDiABKAgq",
+            "zgQKEFNreXJpbVNldHVwUGhhc2USIgoeU0tZUklNX1NFVFVQX1BIQVNFX1VO",
+            "U1BFQ0lGSUVEEAASIgoeU0tZUklNX1NFVFVQX1BIQVNFX1VOQVZBSUxBQkxF",
+            "EAESJAogU0tZUklNX1NFVFVQX1BIQVNFX05FRURTX0NPTlNFTlQQAhIrCidT",
+            "S1lSSU1fU0VUVVBfUEhBU0VfUFJFUEFSSU5HX0RFUExPWU1FTlQQAxImCiJT",
+            "S1lSSU1fU0VUVVBfUEhBU0VfU0VUVElOR19VUF9TS1NFEAQSJwojU0tZUklN",
+            "X1NFVFVQX1BIQVNFX1dBSVRJTkdfRk9SX1NLU0UQBRIuCipTS1lSSU1fU0VU",
+            "VVBfUEhBU0VfV0FJVElOR19GT1JfRU5CX0FSQ0hJVkUQBhIlCiFTS1lSSU1f",
+            "U0VUVVBfUEhBU0VfU0VUVElOR19VUF9FTkIQBxImCiJTS1lSSU1fU0VUVVBf",
+            "UEhBU0VfU0VUVElOR19VUF9GTklTEAgSIQodU0tZUklNX1NFVFVQX1BIQVNF",
+            "X0ZOSVNfU1RBTEUQCRIjCh9TS1lSSU1fU0VUVVBfUEhBU0VfRk5JU19SVU5O",
+            "SU5HEAoSHAoYU0tZUklNX1NFVFVQX1BIQVNFX1JFQURZEAsSKAokU0tZUklN",
+            "X1NFVFVQX1BIQVNFX1JFQ09WRVJZX1JFUVVJUkVEEAwSHQoZU0tZUklNX1NF",
+            "VFVQX1BIQVNFX0ZBSUxFRBANEiAKHFNLWVJJTV9TRVRVUF9QSEFTRV9DQU5D",
+            "RUxMRUQQDjKBBAoVU2t5cmltU2V0dXBPcGVyYXRpb25zEl0KD1JlYWRTa3ly",
+            "aW1TZXR1cBInLm1vZGNvbmR1Y3Rvci52MS5SZWFkU2t5cmltU2V0dXBSZXF1",
+            "ZXN0GiEubW9kY29uZHVjdG9yLnYxLlNreXJpbVNldHVwU3RhdGUSXwoQU3Rh",
+            "cnRTa3lyaW1TZXR1cBIoLm1vZGNvbmR1Y3Rvci52MS5TdGFydFNreXJpbVNl",
+            "dHVwUmVxdWVzdBohLm1vZGNvbmR1Y3Rvci52MS5Ta3lyaW1TZXR1cFN0YXRl",
+            "El0KE0NvbnRpbnVlU2t5cmltU2V0dXASIy5tb2Rjb25kdWN0b3IudjEuU2t5",
+            "cmltU2V0dXBSZXF1ZXN0GiEubW9kY29uZHVjdG9yLnYxLlNreXJpbVNldHVw",
+            "U3RhdGUSbAobU2VsZWN0U2t5cmltU2V0dXBFbmJBcmNoaXZlEioubW9kY29u",
+            "ZHVjdG9yLnYxLlNreXJpbVNldHVwQXJjaGl2ZVJlcXVlc3QaIS5tb2Rjb25k",
+            "dWN0b3IudjEuU2t5cmltU2V0dXBTdGF0ZRJbChFDYW5jZWxTa3lyaW1TZXR1",
+            "cBIjLm1vZGNvbmR1Y3Rvci52MS5Ta3lyaW1TZXR1cFJlcXVlc3QaIS5tb2Rj",
+            "b25kdWN0b3IudjEuU2t5cmltU2V0dXBTdGF0ZUIbqgIYTW9kQ29uZHVjdG9y",
+            "LlByb3RvY29sLlYxYgZwcm90bzM="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { },
           new pbr::GeneratedClrTypeInfo(new[] {typeof(global::ModConductor.Protocol.V1.SkyrimSetupPhase), }, null, new pbr::GeneratedClrTypeInfo[] {
@@ -79,7 +82,7 @@ namespace ModConductor.Protocol.V1 {
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.SkyrimSetupArchiveRequest), global::ModConductor.Protocol.V1.SkyrimSetupArchiveRequest.Parser, new[]{ "WorkspaceId", "ProfileId", "OperationId", "Path" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.SkyrimSetupChange), global::ModConductor.Protocol.V1.SkyrimSetupChange.Parser, new[]{ "Title", "Detail" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.SkyrimSetupComponent), global::ModConductor.Protocol.V1.SkyrimSetupComponent.Parser, new[]{ "Name", "Status", "Detail", "Ready", "Active", "Blocked" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.SkyrimSetupState), global::ModConductor.Protocol.V1.SkyrimSetupState.Parser, new[]{ "Phase", "Status", "Detail", "PlanToken", "Changes", "Components", "IncludeFnis", "ConsentRecorded", "CanStart", "CanContinue", "CanSelectEnbArchive", "Active", "Ready" }, null, null, null, null)
+            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.SkyrimSetupState), global::ModConductor.Protocol.V1.SkyrimSetupState.Parser, new[]{ "Phase", "Status", "Detail", "PlanToken", "Changes", "Components", "IncludeFnis", "ConsentRecorded", "CanStart", "CanContinue", "CanSelectEnbArchive", "Active", "Ready", "CanCancel" }, null, null, null, null)
           }));
     }
     #endregion
@@ -101,6 +104,7 @@ namespace ModConductor.Protocol.V1 {
     [pbr::OriginalName("SKYRIM_SETUP_PHASE_READY")] Ready = 11,
     [pbr::OriginalName("SKYRIM_SETUP_PHASE_RECOVERY_REQUIRED")] RecoveryRequired = 12,
     [pbr::OriginalName("SKYRIM_SETUP_PHASE_FAILED")] Failed = 13,
+    [pbr::OriginalName("SKYRIM_SETUP_PHASE_CANCELLED")] Cancelled = 14,
   }
 
   #endregion
@@ -1934,6 +1938,7 @@ namespace ModConductor.Protocol.V1 {
       canSelectEnbArchive_ = other.canSelectEnbArchive_;
       active_ = other.active_;
       ready_ = other.ready_;
+      canCancel_ = other.canCancel_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -2097,6 +2102,18 @@ namespace ModConductor.Protocol.V1 {
       }
     }
 
+    /// <summary>Field number for the "can_cancel" field.</summary>
+    public const int CanCancelFieldNumber = 14;
+    private bool canCancel_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool CanCancel {
+      get { return canCancel_; }
+      set {
+        canCancel_ = value;
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -2125,6 +2142,7 @@ namespace ModConductor.Protocol.V1 {
       if (CanSelectEnbArchive != other.CanSelectEnbArchive) return false;
       if (Active != other.Active) return false;
       if (Ready != other.Ready) return false;
+      if (CanCancel != other.CanCancel) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -2145,6 +2163,7 @@ namespace ModConductor.Protocol.V1 {
       if (CanSelectEnbArchive != false) hash ^= CanSelectEnbArchive.GetHashCode();
       if (Active != false) hash ^= Active.GetHashCode();
       if (Ready != false) hash ^= Ready.GetHashCode();
+      if (CanCancel != false) hash ^= CanCancel.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -2209,6 +2228,10 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(104);
         output.WriteBool(Ready);
       }
+      if (CanCancel != false) {
+        output.WriteRawTag(112);
+        output.WriteBool(CanCancel);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -2265,6 +2288,10 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(104);
         output.WriteBool(Ready);
       }
+      if (CanCancel != false) {
+        output.WriteRawTag(112);
+        output.WriteBool(CanCancel);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -2308,6 +2335,9 @@ namespace ModConductor.Protocol.V1 {
         size += 1 + 1;
       }
       if (Ready != false) {
+        size += 1 + 1;
+      }
+      if (CanCancel != false) {
         size += 1 + 1;
       }
       if (_unknownFields != null) {
@@ -2356,6 +2386,9 @@ namespace ModConductor.Protocol.V1 {
       }
       if (other.Ready != false) {
         Ready = other.Ready;
+      }
+      if (other.CanCancel != false) {
+        CanCancel = other.CanCancel;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -2428,6 +2461,10 @@ namespace ModConductor.Protocol.V1 {
             Ready = input.ReadBool();
             break;
           }
+          case 112: {
+            CanCancel = input.ReadBool();
+            break;
+          }
         }
       }
     #endif
@@ -2497,6 +2534,10 @@ namespace ModConductor.Protocol.V1 {
           }
           case 104: {
             Ready = input.ReadBool();
+            break;
+          }
+          case 112: {
+            CanCancel = input.ReadBool();
             break;
           }
         }

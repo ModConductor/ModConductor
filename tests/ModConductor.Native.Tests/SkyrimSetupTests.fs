@@ -12,8 +12,25 @@ type SkyrimSetupTests() =
             .GetBoolean()
 
     [<Test>]
-    member _.``confirmed setup intent should survive restart without crossing workspaces``() =
-        flag "intentSurvivesRestart" |> should equal true
-        flag "fnisChoiceSurvivesRestart" |> should equal true
-        flag "planConsentSurvivesRestart" |> should equal true
-        flag "profileIntentIsWorkspaceScoped" |> should equal true
+    member _.``combined setup should sequence owned components and readiness``() =
+        flag "cleanPlanIncludesInitialDeployment" |> should equal true
+        flag "initialDeploymentPrecedesSkse" |> should equal true
+        flag "combinedSkseThenEnbPause" |> should equal true
+        flag "combinedEnbThenOptionalFnis" |> should equal true
+        flag "combinedPluginLaunchReady" |> should equal true
+
+    [<Test>]
+    member _.``combined setup should preserve cancellation recovery and existing workspaces``() =
+        flag "existingWorkspaceKeepsActiveDeployment" |> should equal true
+        flag "combinedCancelOwnsEnbWait" |> should equal true
+        flag "combinedCancellationSurvivesRestart" |> should equal true
+        flag "pendingDeploymentBlocksChildReads" |> should equal true
+
+    [<Test>]
+    member _.``combined setup should retain optional FNIS and reject stale consent``() =
+        flag "completedFnisChoiceIsDurable" |> should equal true
+        flag "fnisChoiceSurvivesReadyRestart" |> should equal true
+        flag "failedFnisOutputRetriesThroughOwner" |> should equal true
+        flag "changedGenerationRequiresNewPlan" |> should equal true
+        flag "changedContextRequiresNewPlan" |> should equal true
+        flag "missingProtonPausesBeforeDeploymentWrite" |> should equal true

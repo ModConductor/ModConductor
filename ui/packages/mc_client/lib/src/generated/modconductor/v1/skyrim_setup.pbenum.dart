@@ -55,6 +55,9 @@ class SkyrimSetupPhase extends $pb.ProtobufEnum {
           12, _omitEnumNames ? '' : 'SKYRIM_SETUP_PHASE_RECOVERY_REQUIRED');
   static const SkyrimSetupPhase SKYRIM_SETUP_PHASE_FAILED =
       SkyrimSetupPhase._(13, _omitEnumNames ? '' : 'SKYRIM_SETUP_PHASE_FAILED');
+  static const SkyrimSetupPhase SKYRIM_SETUP_PHASE_CANCELLED =
+      SkyrimSetupPhase._(
+          14, _omitEnumNames ? '' : 'SKYRIM_SETUP_PHASE_CANCELLED');
 
   static const $core.List<SkyrimSetupPhase> values = <SkyrimSetupPhase>[
     SKYRIM_SETUP_PHASE_UNSPECIFIED,
@@ -71,10 +74,11 @@ class SkyrimSetupPhase extends $pb.ProtobufEnum {
     SKYRIM_SETUP_PHASE_READY,
     SKYRIM_SETUP_PHASE_RECOVERY_REQUIRED,
     SKYRIM_SETUP_PHASE_FAILED,
+    SKYRIM_SETUP_PHASE_CANCELLED,
   ];
 
   static final $core.List<SkyrimSetupPhase?> _byValue =
-      $pb.ProtobufEnum.$_initByValueList(values, 13);
+      $pb.ProtobufEnum.$_initByValueList(values, 14);
   static SkyrimSetupPhase? valueOf($core.int value) =>
       value < 0 || value >= _byValue.length ? null : _byValue[value];
 
