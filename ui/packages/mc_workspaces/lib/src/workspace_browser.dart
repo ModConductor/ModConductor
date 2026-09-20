@@ -62,6 +62,7 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
   final _openWorkspaceFocus = FocusNode(debugLabel: 'Open workspace');
   final _createProfileFocus = FocusNode(debugLabel: 'Create profile');
   int _archiveNavigation = 0;
+  int _gameNavigation = 0;
   int _helpNavigation = 0;
   String? _shownId;
   _WorkspaceMode _mode = _WorkspaceMode.profiles;
@@ -194,6 +195,10 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
     if (_archiveNavigation != controller.archiveNavigation) {
       _archiveNavigation = controller.archiveNavigation;
       _mode = _WorkspaceMode.archives;
+    }
+    if (_gameNavigation != controller.gameNavigation) {
+      _gameNavigation = controller.gameNavigation;
+      _mode = _WorkspaceMode.game;
     }
     if (_helpNavigation != controller.helpNavigation) {
       _helpNavigation = controller.helpNavigation;

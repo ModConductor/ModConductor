@@ -55,6 +55,12 @@ const _faqArticles = [
 
 const _guideArticles = [
   _HelpArticle(
+    'first-skyrim-workspace',
+    'Set up your first Skyrim workspace',
+    'Workspace',
+    ['Skyrim setup checks the required components for the current profile.'],
+  ),
+  _HelpArticle(
     'add-mod',
     'Add a mod from an archive',
     'Mods',
@@ -68,11 +74,12 @@ const _guideArticles = [
     ],
   ),
   _HelpArticle('recover', 'Continue a deployment restore', 'Diagnostics', [], [
-    'Select Diagnostics.',
-    'Select Deployment did not finish.',
-    'Select Preview paths.',
-    'Check all affected paths.',
-    'Select Continue restore.',
+    'Preview the affected paths.',
+    'Continue the restore.',
+  ]),
+  _HelpArticle('conflict', 'Resolve a file conflict', 'Diagnostics', [], [
+    'Preview the change.',
+    'Apply the change.',
   ]),
   _HelpArticle(
     'profile',
@@ -283,8 +290,15 @@ class DiagnosticsController extends ChangeNotifier {
 }
 
 class HelpBrowser extends StatefulWidget {
-  const HelpBrowser({super.key, required this.controller});
+  const HelpBrowser({
+    super.key,
+    required this.controller,
+    this.onOpenSkyrimSetup,
+    this.onOpenWorkspaceFolder,
+  });
   final DiagnosticsController controller;
+  final VoidCallback? onOpenSkyrimSetup;
+  final Future<bool> Function()? onOpenWorkspaceFolder;
 
   @override
   State<HelpBrowser> createState() => _HelpBrowserState();
@@ -294,6 +308,7 @@ class _HelpBrowserState extends State<HelpBrowser> {
   final _scaffold = GlobalKey<ScaffoldState>();
   final _listFocus = FocusNode(debugLabel: 'Help topics');
   final _previewFocus = FocusNode(debugLabel: 'Preview diagnostic change');
+  final _guideActionFocus = FocusNode(debugLabel: 'Open guide action');
   final _diagnostics = McCollectionModel<String, DiagnosticFinding>(
     idOf: (row) => row.id,
     labelOf: (row) => '${row.title} ${row.area} ${row.fixDetail}',
@@ -310,6 +325,8 @@ class _HelpBrowserState extends State<HelpBrowser> {
   DiagnosticFinding? _finding;
   _HelpArticle _article = _faqArticles.first;
   bool _compact = false;
+  bool _openingWorkspaceFolder = false;
+  String? _workspaceFolderProblem;
 
   DiagnosticsController get controller => widget.controller;
 
@@ -318,7 +335,7 @@ class _HelpBrowserState extends State<HelpBrowser> {
     super.initState();
     controller.addListener(_changed);
     _faq.select('play');
-    _guides.select('recover');
+    _guides.select('first-skyrim-workspace');
     _changed();
   }
 
@@ -352,6 +369,7 @@ class _HelpBrowserState extends State<HelpBrowser> {
     controller.removeListener(_changed);
     _listFocus.dispose();
     _previewFocus.dispose();
+    _guideActionFocus.dispose();
     _diagnostics.dispose();
     _faq.dispose();
     _guides.dispose();
@@ -381,6 +399,91 @@ class _HelpBrowserState extends State<HelpBrowser> {
     });
     _listFocus.requestFocus();
   }
+
+  DiagnosticFinding? _diagnostic(String code) => controller.snapshot?.findings
+      .where((row) => row.code == code)
+      .firstOrNull;
+
+  void _openDiagnostic(String code) {
+    final finding = _diagnostic(code);
+    setState(() {
+      _section = _HelpSection.diagnostics;
+      _finding = finding ?? controller.snapshot?.findings.firstOrNull;
+      if (_finding case final selected?) {
+        _diagnostics.select(selected.id);
+      }
+    });
+    _listFocus.requestFocus();
+  }
+
+  Future<void> _openWorkspaceFolder() async {
+    final open = widget.onOpenWorkspaceFolder;
+    if (open == null || _openingWorkspaceFolder) return;
+    setState(() {
+      _openingWorkspaceFolder = true;
+      _workspaceFolderProblem = null;
+    });
+    var opened = false;
+    try {
+      opened = await open();
+    } on Exception {
+      opened = false;
+    }
+    if (!mounted) return;
+    setState(() {
+      _openingWorkspaceFolder = false;
+      if (!opened) {
+        _workspaceFolderProblem =
+            'The file browser could not open the workspace folder.';
+      }
+    });
+  }
+
+  List<Widget> _guideActions(_HelpArticle article) => switch (article.id) {
+    'first-skyrim-workspace' => [
+      if (widget.onOpenWorkspaceFolder != null)
+        McAction(
+          key: const ValueKey('open-workspace-folder'),
+          label: 'Open workspace folder',
+          icon: Icons.folder_open,
+          onPressed: _openingWorkspaceFolder ? null : _openWorkspaceFolder,
+        ),
+      if (widget.onOpenSkyrimSetup != null)
+        McAction(
+          key: const ValueKey('open-skyrim-setup'),
+          label: 'Open Skyrim setup',
+          icon: Icons.videogame_asset_outlined,
+          emphasis: McActionEmphasis.primary,
+          focusNode: _guideActionFocus,
+          onPressed: widget.onOpenSkyrimSetup,
+        ),
+    ],
+    'recover' => [
+      McAction(
+        key: const ValueKey('open-deployment-recovery'),
+        label: _diagnostic('deployment-incomplete') == null
+            ? 'Open diagnostics'
+            : 'Open deployment problem',
+        icon: Icons.fact_check_outlined,
+        emphasis: McActionEmphasis.primary,
+        focusNode: _guideActionFocus,
+        onPressed: () => _openDiagnostic('deployment-incomplete'),
+      ),
+    ],
+    'conflict' => [
+      McAction(
+        key: const ValueKey('open-conflict-diagnostics'),
+        label: _diagnostic('priority-tie') == null
+            ? 'Open diagnostics'
+            : 'Open file conflict',
+        icon: Icons.fact_check_outlined,
+        emphasis: McActionEmphasis.primary,
+        focusNode: _guideActionFocus,
+        onPressed: () => _openDiagnostic('priority-tie'),
+      ),
+    ],
+    _ => const [],
+  };
 
   Future<void> _preview(DiagnosticFinding finding) async {
     final opener = FocusManager.instance.primaryFocus;
@@ -496,6 +599,12 @@ class _HelpBrowserState extends State<HelpBrowser> {
         section: _section,
         article: _article,
         onClose: _closeInspector,
+        actions: _section == _HelpSection.guides
+            ? _guideActions(_article)
+            : const [],
+        problem: _article.id == 'first-skyrim-workspace'
+            ? _workspaceFolderProblem
+            : null,
       );
     }
     final finding = _finding;
@@ -834,15 +943,27 @@ class _HelpArticleInspector extends StatelessWidget {
     required this.section,
     required this.article,
     required this.onClose,
+    required this.actions,
+    this.problem,
   });
   final _HelpSection section;
   final _HelpArticle article;
   final VoidCallback onClose;
+  final List<Widget> actions;
+  final String? problem;
 
   @override
   Widget build(BuildContext context) => McInspector(
     title: section == _HelpSection.faq ? 'FAQ' : 'Guide',
     onClose: onClose,
+    footer: actions.isEmpty
+        ? null
+        : Wrap(
+            alignment: WrapAlignment.end,
+            spacing: McSpacing.small,
+            runSpacing: McSpacing.small,
+            children: actions,
+          ),
     children: [
       Text(article.title, style: Theme.of(context).textTheme.headlineSmall),
       const SizedBox(height: 18),
@@ -862,6 +983,10 @@ class _HelpArticleInspector extends StatelessWidget {
             ],
           ),
         ),
+      if (problem != null) ...[
+        const SizedBox(height: McSpacing.small),
+        McStatus(title: problem!, tone: McStatusTone.error),
+      ],
     ],
   );
 }

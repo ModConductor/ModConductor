@@ -7,14 +7,18 @@ import 'package:mc_client/mc_client.dart';
 import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 import 'package:mod_conductor/src/app.dart';
 
-DiagnosticFinding finding({String id = 'conflict'}) => DiagnosticFinding(
+DiagnosticFinding finding({
+  String id = 'conflict',
+  String code = 'priority-tie',
+  String title = 'Two copies have the same priority',
+}) => DiagnosticFinding(
   id: id,
-  code: 'priority-tie',
+  code: code,
   severity: DiagnosticSeverity.error,
   workspaceName: 'My workspace',
   profileName: 'Main',
   gameName: 'Skyrim Special Edition',
-  title: 'Two copies have the same priority',
+  title: title,
   summary: 'Mod Conductor cannot select one file copy',
   detail: null,
   area: 'Main mod files',
@@ -93,6 +97,48 @@ class FakeDiagnostics implements DiagnosticsClient {
       throw UnimplementedError();
 }
 
+class FakeWorkspaces extends Fake implements WorkspacesClient {
+  final workspace = const WorkspaceInfo(
+    id: 'workspace-1',
+    name: 'My workspace',
+    path: '/games/my-workspace',
+    revision: 1,
+    selectedProfile: ProfileInfo('profile-1', 'Main'),
+  );
+
+  @override
+  Future<WorkspaceList> recent({String? after}) async =>
+      WorkspaceList([workspace], null);
+
+  @override
+  Future<WorkspacePage> open(String path) async =>
+      WorkspacePage(workspace, [workspace.selectedProfile!], null);
+}
+
+class FakeSkyrimSetup extends Fake implements SkyrimSetupClient {
+  @override
+  Future<SkyrimSetupStatus> read(
+    String workspace,
+    String profile, {
+    required bool includeFnis,
+  }) async => const SkyrimSetupStatus(
+    phase: SkyrimSetupStatusPhase.ready,
+    status: 'Skyrim setup is ready',
+    detail: '',
+    planToken: '',
+    changes: [],
+    components: [],
+    includeFnis: false,
+    consentRecorded: true,
+    canStart: false,
+    canContinue: false,
+    canSelectEnbArchive: false,
+    active: false,
+    ready: true,
+    canCancel: false,
+  );
+}
+
 Future<DiagnosticsController> mount(
   WidgetTester tester,
   FakeDiagnostics client, {
@@ -115,6 +161,141 @@ Future<DiagnosticsController> mount(
 }
 
 void main() {
+  testWidgets(
+    'first workspace guide opens real workspace commands and keeps its place',
+    (tester) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(1280, 800);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetPhysicalSize);
+      final workspaces = FakeWorkspaces();
+      String? openedFolder;
+
+      await tester.pumpWidget(
+        ModConductorApp(
+          workspaces: workspaces,
+          diagnostics: FakeDiagnostics(),
+          skyrimSetup: FakeSkyrimSetup(),
+          openWorkspaceFolder: (path) async {
+            openedFolder = path;
+            return true;
+          },
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('workspace-workspace-1')));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Help'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Guides'));
+      await tester.pumpAndSettle();
+      expect(find.text('Set up your first Skyrim workspace'), findsWidgets);
+
+      await tester.tap(find.byKey(const ValueKey('open-workspace-folder')));
+      await tester.pumpAndSettle();
+      expect(openedFolder, '/games/my-workspace');
+
+      final semantics = tester.ensureSemantics();
+      final setupAction = tester.widget<McAction>(
+        find.byKey(const ValueKey('open-skyrim-setup')),
+      );
+      expect(
+        tester
+            .getSemantics(find.byKey(const ValueKey('open-skyrim-setup')))
+            .getSemanticsData()
+            .label,
+        'Open Skyrim setup',
+      );
+      semantics.dispose();
+      setupAction.focusNode?.requestFocus();
+      await tester.pump();
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Skyrim setup is ready'), findsOneWidget);
+
+      await tester.tap(find.text('Help'));
+      await tester.pumpAndSettle();
+      expect(find.text('Set up your first Skyrim workspace'), findsWidgets);
+      expect(find.byKey(const ValueKey('open-skyrim-setup')), findsOneWidget);
+
+      tester.view.physicalSize = const Size(680, 800);
+      await tester.pumpAndSettle();
+      expect(find.byType(NavigationRail), findsNothing);
+      await tester.tap(find.byIcon(Icons.open_in_new));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('open-skyrim-setup')), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'recovery guide opens the interrupted deployment command after remount',
+    (tester) async {
+      final deployment = finding(
+        id: 'deployment',
+        code: 'deployment-incomplete',
+        title: 'Deployment did not finish',
+      );
+      final client = FakeDiagnostics(
+        checkResult: DiagnosticSnapshot(
+          'check-1',
+          'workspace-1',
+          'profile-1',
+          DateTime.utc(2026, 9, 20),
+          [deployment, finding()],
+        ),
+      );
+      final controller = await mount(tester, client);
+
+      await tester.tap(find.text('Guides'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Continue a deployment restore').first);
+      await tester.pumpAndSettle();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: HelpBrowser(
+              key: const ValueKey('remounted-help'),
+              controller: controller,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Guides'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Resolve a file conflict').first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('open-conflict-diagnostics')));
+      await tester.pumpAndSettle();
+      expect(find.text('Two copies have the same priority'), findsWidgets);
+      expect(find.text('Preview change'), findsOneWidget);
+
+      await tester.tap(find.text('Guides'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Continue a deployment restore').first);
+      await tester.pumpAndSettle();
+
+      final open = tester.widget<McAction>(
+        find.byKey(const ValueKey('open-deployment-recovery')),
+      );
+      open.focusNode?.requestFocus();
+      await tester.pump();
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pumpAndSettle();
+      expect(find.text('Deployment did not finish'), findsWidgets);
+      expect(find.text('Preview paths'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('preview-diagnostic-change')));
+      await tester.pumpAndSettle();
+      expect(find.text('Continue the deployment restore?'), findsOneWidget);
+      await tester.tap(find.widgetWithText(McAction, 'Continue restore'));
+      await tester.pumpAndSettle();
+      expect(client.applies, 1);
+    },
+  );
+
   testWidgets(
     'wide Help reuses one sidebar, list, inspector and explicit preview',
     (tester) async {
@@ -155,7 +336,10 @@ void main() {
       await tester.pumpAndSettle();
       expect(client.previews, 2);
       expect(client.applies, 1);
-      expect(find.text('Mod Conductor updated the mod files'), findsOneWidget);
+      expect(
+        find.textContaining('Mod Conductor updated the mod files'),
+        findsOneWidget,
+      );
       expect(
         find.text('Second mod now supplies this file in the saved mod files.'),
         findsOneWidget,
@@ -185,7 +369,9 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('preview-diagnostic-change')));
       await tester.pumpAndSettle();
       expect(
-        find.text('The selected information changed. Run Diagnostics again.'),
+        find.textContaining(
+          'The selected information changed. Run Diagnostics again.',
+        ),
         findsOneWidget,
       );
       expect(client.applies, 0);
