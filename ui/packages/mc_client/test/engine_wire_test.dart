@@ -128,6 +128,26 @@ void main() {
           await state.delete(recursive: true);
         }
       });
+
+      test('the authenticated ENB service reports its adoption gate without changing files', () async {
+        final state = await Directory.systemTemp.createTemp('mc-enb-wire-');
+        final engine = EngineSession(
+          await Process.start(executable!, ['--state-directory', state.path]),
+        );
+        try {
+          await engine.connect();
+          final result = await engine.enb.read(
+            '11111111111111111111111111111111',
+            '22222222222222222222222222222222',
+          );
+          expect(result.phase, EnbStatusPhase.blocked);
+          expect(result.canSelectArchive, isFalse);
+        } finally {
+          await engine.close();
+          expect(await engine.exited, 0);
+          await state.delete(recursive: true);
+        }
+      });
     },
   );
 }

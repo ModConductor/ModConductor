@@ -3,6 +3,7 @@
     <Project Path="src/ModConductor.Desktop/ModConductor.Desktop.fsproj" />
     <Project Path="src/ModConductor.Nexus/ModConductor.Nexus.fsproj" />
     <Project Path="src/ModConductor.Skse/ModConductor.Skse.fsproj" />
+    <Project Path="src/ModConductor.Enb/ModConductor.Enb.fsproj" />
     <Project Path="src/ModConductor.Credentials/ModConductor.Credentials.fsproj" />
     <Project Path="src/ModConductor.Bain/ModConductor.Bain.fsproj" />
   <Project Path="src/ModConductor.BundleInstallation/ModConductor.BundleInstallation.fsproj" />

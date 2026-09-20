@@ -432,6 +432,16 @@ let main args =
             writer.WriteEndObject()
             writer.Flush()
             0
+        elif args.Length = 2 && args[0] = "--enb" && Path.IsPathFullyQualified args[1] then
+            use writer =
+                new Utf8JsonWriter(Console.OpenStandardOutput(), JsonWriterOptions(Indented = true))
+
+            writer.WriteStartObject()
+            writer.WriteBoolean("nativeAot", not RuntimeFeature.IsDynamicCodeSupported)
+            EnbFixtures.observe writer args[1]
+            writer.WriteEndObject()
+            writer.Flush()
+            0
         elif
             args.Length = 2
             && args[0] = "--normalize-owned-fixture"

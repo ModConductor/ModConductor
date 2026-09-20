@@ -21,12 +21,19 @@ module internal Descriptor =
         else
             Error "The installed SKSE loader path is invalid. Check SKSE before Play."
 
-    let create (state: GameContextState) (loader: ComponentLoader option) =
+    let createWith
+        (state: GameContextState)
+        (loader: ComponentLoader option)
+        (configuration: ComponentLaunchConfiguration option)
+        =
         match state.Binding with
         | Some binding when not binding.NeedsCheck && binding.Evidence.Valid ->
             let evidence = binding.Evidence
             let app = string Skyrim.definition.SteamAppId
-            let environment = [ "SteamAppId", Some app; "SteamGameId", Some app ]
+
+            let environment =
+                [ "SteamAppId", Some app; "SteamGameId", Some app ]
+                @ (configuration |> Option.map _.Environment |> Option.defaultValue [])
 
             let selected =
                 match loader with
@@ -35,7 +42,13 @@ module internal Descriptor =
                     Error "Skyrim changed after SKSE was installed. Check SKSE before Play."
                 | Some loader -> loaderPath evidence.RootPath loader
 
-            match selected, evidence.Platform, evidence.Proton with
+            let configured =
+                match configuration with
+                | Some value when value.GameSha256 <> evidence.Executable.Value.Sha256 ->
+                    Error "Skyrim changed after ENB was installed. Check ENB before Play."
+                | _ -> selected
+
+            match configured, evidence.Platform, evidence.Proton with
             | Error problem, _, _ -> Error problem
             | Ok executable, ContextPlatform.Windows, _ when OperatingSystem.IsWindows() ->
                 Ok(
@@ -68,3 +81,5 @@ module internal Descriptor =
             | Ok _, ContextPlatform.Proton, _ ->
                 Error "Select a checked Proton launch context on Linux."
         | _ -> Error "Select and refresh the installation before playing."
+
+    let create state loader = createWith state loader None

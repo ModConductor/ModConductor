@@ -26,6 +26,7 @@ import 'inventory_export_client.dart';
 import 'migration_client.dart';
 import 'settings_client.dart';
 import 'skse_client.dart';
+import 'enb_client.dart';
 
 import 'dart:async';
 import 'dart:convert';
@@ -119,6 +120,8 @@ class EngineSession {
   SettingsClient get settings => _settings!;
   SkseClient? _skse;
   SkseClient get skse => _skse!;
+  EnbClient? _enb;
+  EnbClient get enb => _enb!;
   Future<void>? _closing;
 
   Future<int> get exited => _process.exitCode;
@@ -242,6 +245,7 @@ class EngineSession {
     _steamDiscovery = GrpcSteamDiscoveryClient(channel, options);
     _protonContexts = GrpcProtonContextsClient(channel, options);
     _skse = SkseClient(channel, CallOptions(metadata: options.metadata));
+    _enb = EnbClient(channel, CallOptions(metadata: options.metadata));
   }
 
   Future<ConnectionReport> check() => operations.check();

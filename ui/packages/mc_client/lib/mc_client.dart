@@ -48,3 +48,4 @@ export 'src/diagnostics_client.dart';
 export 'src/migration_client.dart';
 export 'src/settings_client.dart';
 export 'src/skse_client.dart';
+export 'src/enb_client.dart';

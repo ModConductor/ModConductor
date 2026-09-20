@@ -1,0 +1,82 @@
+{
+  "version": 2,
+  "dependencies": {
+    "net10.0": {
+      "FSharp.Core": {
+        "type": "Direct",
+        "requested": "[10.1.400, )",
+        "resolved": "10.1.400",
+        "contentHash": "Cw+EtoMK4ozhDdUkzgn/FwV8ifVMau9L7vvJgqti9+J2ui4qumTmcY3WbPrE1MEy1A0riZBHwLQ92wdI4X6zOA=="
+      },
+      "Microsoft.NET.ILLink.Tasks": {
+        "type": "Direct",
+        "requested": "[10.0.11, )",
+        "resolved": "10.0.11",
+        "contentHash": "o6fWog7qObFqtBTfTSLORSFN4VeeVjpHIWfDnbxGL2p0UycV93WDEpA3zZP0F82Hlqpizias35NEoq3J+vIxtg=="
+      },
+      "modconductor.archiveinspection": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )",
+          "ModConductor.ArtifactLibrary": "[1.0.0, )",
+          "ModConductor.Platform": "[1.0.0, )",
+          "SharpCompress": "[0.50.4, )"
+        }
+      },
+      "modconductor.archiveinstallation": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )",
+          "ModConductor.ArchiveInspection": "[1.0.0, )",
+          "ModConductor.ModLibrary": "[1.0.0, )"
+        }
+      },
+      "modconductor.artifactlibrary": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )"
+        }
+      },
+      "modconductor.credentials": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )"
+        }
+      },
+      "modconductor.deploymentplanning": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )",
+          "ModConductor.ModLibrary": "[1.0.0, )",
+          "ModConductor.Platform": "[1.0.0, )"
+        }
+      },
+      "modconductor.modlibrary": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )",
+          "ModConductor.Platform": "[1.0.0, )"
+        }
+      },
+      "modconductor.nexus": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )",
+          "ModConductor.Credentials": "[1.0.0, )"
+        }
+      },
+      "modconductor.platform": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )"
+        }
+      },
+      "SharpCompress": {
+        "type": "CentralTransitive",
+        "requested": "[0.50.4, )",
+        "resolved": "0.50.4",
+        "contentHash": "/hxjUR7DEX6mky8/LQXyrnrKioOL6D6veAID1EZpro+q4s02x5dHEYBV3qjEN6lDYYilDoQQ76BcmQj+lRx51w=="
+      }
+    }
+  }
+}

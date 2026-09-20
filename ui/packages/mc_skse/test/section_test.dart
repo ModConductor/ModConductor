@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:grpc/grpc.dart';
 import 'package:mc_client/mc_client.dart';
+import 'package:mc_artifacts/mc_artifacts.dart';
 import 'package:mc_skse/mc_skse.dart';
 
 class _SkseFixtureClient extends SkseClient {
@@ -20,6 +21,58 @@ class _SkseFixtureClient extends SkseClient {
     return current;
   }
 }
+
+class _EnbFixtureClient extends EnbClient {
+  _EnbFixtureClient(this.current)
+    : super(ClientChannel('127.0.0.1', port: 1), CallOptions());
+
+  EnbStatus current;
+  int opens = 0, selections = 0, cancels = 0;
+  String? selectedPath;
+
+  @override
+  Future<EnbStatus> read(String workspace, String profile) async => current;
+
+  @override
+  Future<EnbStatus> openAuthorPage(String workspace, String profile) async {
+    opens++;
+    return current = _enb(EnbStatusPhase.waiting, select: true, cancel: true);
+  }
+
+  @override
+  Future<EnbStatus> selectArchive(
+    String workspace,
+    String profile,
+    String operation,
+    String path,
+  ) async {
+    selections++;
+    selectedPath = path;
+    return current = _enb(EnbStatusPhase.acquiring);
+  }
+
+  @override
+  Future<EnbStatus> cancel(String workspace, String profile) async {
+    cancels++;
+    return current = _enb(EnbStatusPhase.available, open: true);
+  }
+}
+
+EnbStatus _enb(
+  EnbStatusPhase phase, {
+  bool open = false,
+  bool select = false,
+  bool cancel = false,
+}) => EnbStatus(
+  phase: phase,
+  status: 'ENB status',
+  detail: '',
+  runtimeVersion: '0.505',
+  presetVersion: '1.0.0',
+  canOpenAuthorPage: open,
+  canSelectArchive: select,
+  canCancel: cancel,
+);
 
 Widget _section(_SkseFixtureClient client) => MaterialApp(
   home: Scaffold(
@@ -73,4 +126,83 @@ void main() {
       expect(client.starts, 0);
     },
   );
+
+  testWidgets(
+    'the author page action waits for the selected archive before acquisition',
+    (tester) async {
+      final skse = _SkseFixtureClient(
+        const SkseStatus(
+          SkseStatusPhase.ready,
+          '1.7.104.0',
+          '2.3.1',
+          'SKSE is current',
+          '',
+        ),
+      );
+      final enb = _EnbFixtureClient(_enb(EnbStatusPhase.available, open: true));
+      var choices = 0;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SkyrimSetupSection(
+              skse: skse,
+              enb: enb,
+              workspaceId: 'workspace',
+              profileId: 'profile',
+              chooseArchive: () async {
+                choices++;
+                return const ArchiveFile('/downloads/enb.zip', 42);
+              },
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.folder_open), findsNothing);
+      await tester.tap(find.byIcon(Icons.open_in_browser));
+      await tester.pumpAndSettle();
+      expect(enb.opens, 1);
+      expect(find.byIcon(Icons.folder_open), findsOneWidget);
+
+      await tester.tap(find.byIcon(Icons.folder_open));
+      await tester.pumpAndSettle();
+      expect(choices, 1);
+      expect(enb.selections, 1);
+      expect(enb.selectedPath, '/downloads/enb.zip');
+    },
+  );
+
+  testWidgets('cancel keeps archive selection available for a later restart', (
+    tester,
+  ) async {
+    final skse = _SkseFixtureClient(
+      const SkseStatus(SkseStatusPhase.ready, '', '', 'SKSE is current', ''),
+    );
+    final enb = _EnbFixtureClient(
+      _enb(EnbStatusPhase.waiting, select: true, cancel: true),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SkyrimSetupSection(
+            skse: skse,
+            enb: enb,
+            workspaceId: 'workspace',
+            profileId: 'profile',
+            chooseArchive: () async => null,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(enb.cancels, 1);
+    expect(enb.selections, 0);
+    expect(find.byIcon(Icons.open_in_browser), findsOneWidget);
+  });
 }

@@ -166,6 +166,16 @@
           "ModConductor.Workspaces": "[1.0.0, )"
         }
       },
+      "modconductor.enb": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )",
+          "ModConductor.ArchiveInspection": "[1.0.0, )",
+          "ModConductor.ArchiveInstallation": "[1.0.0, )",
+          "ModConductor.DeploymentPlanning": "[1.0.0, )",
+          "ModConductor.Nexus": "[1.0.0, )"
+        }
+      },
       "modconductor.engine": {
         "type": "Project",
         "dependencies": {
@@ -174,6 +184,7 @@
           "ModConductor.Credentials": "[1.0.0, )",
           "ModConductor.Desktop": "[1.0.0, )",
           "ModConductor.Diagnostics": "[1.0.0, )",
+          "ModConductor.Enb": "[1.0.0, )",
           "ModConductor.Loot": "[1.0.0, )",
           "ModConductor.Migration": "[1.0.0, )",
           "ModConductor.ModMaintenance": "[1.0.0, )",
@@ -313,6 +324,7 @@
           "ModConductor.Deployment": "[1.0.0, )",
           "ModConductor.DeploymentGenerations": "[1.0.0, )",
           "ModConductor.DeploymentRecovery": "[1.0.0, )",
+          "ModConductor.Enb": "[1.0.0, )",
           "ModConductor.Executables": "[1.0.0, )",
           "ModConductor.FilePlanning": "[1.0.0, )",
           "ModConductor.Fomod": "[1.0.0, )",

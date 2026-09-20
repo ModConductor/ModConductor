@@ -145,6 +145,16 @@
           "ModConductor.Platform": "[1.0.0, )"
         }
       },
+      "modconductor.enb": {
+        "type": "Project",
+        "dependencies": {
+          "FSharp.Core": "[10.1.400, )",
+          "ModConductor.ArchiveInspection": "[1.0.0, )",
+          "ModConductor.ArchiveInstallation": "[1.0.0, )",
+          "ModConductor.DeploymentPlanning": "[1.0.0, )",
+          "ModConductor.Nexus": "[1.0.0, )"
+        }
+      },
       "modconductor.executables": {
         "type": "Project",
         "dependencies": {

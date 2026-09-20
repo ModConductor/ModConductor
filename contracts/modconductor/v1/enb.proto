@@ -1,0 +1,41 @@
+syntax = "proto3";
+package modconductor.v1;
+option csharp_namespace = "ModConductor.Protocol.V1";
+
+service EnbOperations {
+  rpc ReadEnb(EnbRequest) returns (EnbState);
+  rpc OpenEnbAuthorPage(EnbRequest) returns (EnbState);
+  rpc SelectEnbArchive(EnbArchiveRequest) returns (EnbState);
+  rpc CancelEnbWait(EnbRequest) returns (EnbState);
+}
+
+message EnbRequest { string workspace_id = 1; string profile_id = 2; }
+message EnbArchiveRequest {
+  string workspace_id = 1;
+  string profile_id = 2;
+  string operation_id = 3;
+  string path = 4;
+}
+enum EnbPhase {
+  ENB_PHASE_UNSPECIFIED = 0;
+  ENB_PHASE_UNAVAILABLE = 1;
+  ENB_PHASE_BLOCKED = 2;
+  ENB_PHASE_AVAILABLE = 3;
+  ENB_PHASE_WAITING_FOR_ARCHIVE = 4;
+  ENB_PHASE_VALIDATING = 5;
+  ENB_PHASE_ACQUIRING = 6;
+  ENB_PHASE_INSTALLING = 7;
+  ENB_PHASE_READY = 8;
+  ENB_PHASE_FAILED = 9;
+  ENB_PHASE_CONFLICT = 10;
+}
+message EnbState {
+  EnbPhase phase = 1;
+  string status = 2;
+  string detail = 3;
+  string runtime_version = 4;
+  string preset_version = 5;
+  bool can_open_author_page = 6;
+  bool can_select_archive = 7;
+  bool can_cancel = 8;
+}

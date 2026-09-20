@@ -13,7 +13,18 @@ type ComponentLoader =
 
 type IComponentLoaderSelection =
     abstract Read:
-        workspace: Guid * profile: Guid * activeGeneration: Guid option -> Task<ComponentLoader option>
+        workspace: Guid * profile: Guid * activeGeneration: Guid option ->
+            Task<ComponentLoader option>
+
+type ComponentLaunchConfiguration =
+    { GenerationId: Guid
+      GameSha256: string
+      Environment: (string * string option) list }
+
+type IComponentLaunchConfigurationSelection =
+    abstract Read:
+        workspace: Guid * profile: Guid * activeGeneration: Guid option ->
+            Task<ComponentLaunchConfiguration option>
 
 type GameLaunchState =
     { WorkspaceId: Guid

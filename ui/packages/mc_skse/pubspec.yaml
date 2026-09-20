@@ -1,5 +1,5 @@
 name: mc_skse
-description: Shared Skyrim Script Extender setup section.
+description: Shared Skyrim runtime setup section.
 publish_to: none
 resolution: workspace
 version: 0.1.0
@@ -11,6 +11,8 @@ dependencies:
     sdk: flutter
   mc_client:
     path: ../mc_client
+  mc_artifacts:
+    path: ../mc_artifacts
   mc_ui_foundation:
     path: ../mc_ui_foundation
 dev_dependencies:

@@ -122,6 +122,7 @@ type OperationStore
         ModConductor.Executables.ExecutableSession(ExecutableRepository(database))
 
     let skseLoaders = SkseLoaderStore(database)
+    let enbSetups = EnbStore(database)
 
     let gameLaunching =
         ModConductor.GameLaunching.GameLaunchSession(
@@ -129,7 +130,8 @@ type OperationStore
             deploymentBackend,
             executables,
             profileGameData,
-            skseLoaders
+            skseLoaders,
+            configuration = enbSetups
         )
 
     let connection = database.Connection
@@ -236,6 +238,7 @@ type OperationStore
     member _.Downloads = downloads
 
     member _.Artifacts = artifacts :> ModConductor.ArtifactLibrary.IArtifactLibrary
+    member internal _.EnbSetups = enbSetups
 
     member internal _.AddArtifactAtCheckpoint(request, token, checkpoint) =
         artifacts.AddAtCheckpoint(request, token, checkpoint)

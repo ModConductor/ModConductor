@@ -14,10 +14,16 @@ type GameLaunchSession
         deployment: DeploymentBackend,
         executables: ExecutableSession,
         profiles: ProfileGameDataSession,
-        loaders: IComponentLoaderSelection
+        loaders: IComponentLoaderSelection,
+        ?configuration: IComponentLaunchConfigurationSelection
     ) =
     let runs = executables :> IExecutables
     let deployments = deployment :> IDeploymentBackend
+
+    let launchConfiguration workspace profile generation =
+        match configuration with
+        | Some owner -> owner.Read(workspace, profile, generation)
+        | None -> System.Threading.Tasks.Task.FromResult None
 
     let token sources revision generation =
         SHA256.HashData(
@@ -53,9 +59,10 @@ type GameLaunchSession
                     let! latest = executables.LatestGame workspace
                     let! dataRevision = profiles.Revision(workspace, profile)
                     let! loader = loaders.Read(workspace, profile, deployed.ActiveGeneration)
+                    let! launch = launchConfiguration workspace profile deployed.ActiveGeneration
 
                     let runtime, problem =
-                        match Descriptor.create state loader with
+                        match Descriptor.createWith state loader launch with
                         | Ok(_, runtime, _) -> runtime, None
                         | Error error -> "", Some error
 
@@ -112,6 +119,12 @@ type GameLaunchSession
                                 deployed |> Result.toOption |> Option.bind _.ActiveGeneration
                             )
 
+                        let! launch =
+                            launchConfiguration
+                                request.WorkspaceId
+                                request.ProfileId
+                                (deployed |> Result.toOption |> Option.bind _.ActiveGeneration)
+
                         match state, deployed with
                         | Ok state, Ok deployed when
                             deployed.WorkspaceId = request.WorkspaceId
@@ -120,10 +133,9 @@ type GameLaunchSession
                             && token
                                 deployed.Sources
                                 (dataRevision |> Result.defaultValue -1L)
-                                deployed.ActiveGeneration
-                               = request.SourceToken
+                                deployed.ActiveGeneration = request.SourceToken
                             ->
-                            match Descriptor.create state loader with
+                            match Descriptor.createWith state loader launch with
                             | Error error -> return Error(ExecutableError.Unavailable error)
                             | Ok(context, runtime, launch) ->
                                 let game =

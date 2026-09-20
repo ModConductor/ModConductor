@@ -20,6 +20,7 @@
     <Compile Include="NexusMetadataSchema.fs" />
     <Compile Include="EditSchema.fs" />
     <Compile Include="SkseSchema.fs" />
+    <Compile Include="EnbSchema.fs" />
     <Compile Include="Sqlite.fs" />
     <Compile Include="MaintenanceClaims.fs" />
     <Compile Include="LibraryEncoding.fs" />
@@ -35,6 +36,7 @@
     <Compile Include="WorkspaceProfiles.fs" />
     <Compile Include="StateDatabase.fs" />
     <Compile Include="SkseLoaderStore.fs" />
+    <Compile Include="EnbStore.fs" />
     <Compile Include="NexusOriginRows.fs" />
     <Compile Include="NexusMetadataRows.fs" />
     <Compile Include="NexusMetadataStore.fs" />
@@ -109,6 +111,7 @@
     <Compile Include="OperationStore.fs" />
     <ProjectReference Include="../ModConductor.Nexus/ModConductor.Nexus.fsproj" />
     <ProjectReference Include="../ModConductor.Skse/ModConductor.Skse.fsproj" />
+    <ProjectReference Include="../ModConductor.Enb/ModConductor.Enb.fsproj" />
     <ProjectReference Include="../ModConductor.HttpDownloads/ModConductor.HttpDownloads.fsproj" />
     <ProjectReference Include="../ModConductor.ArchiveInstallation/ModConductor.ArchiveInstallation.fsproj" />
     <ProjectReference Include="../ModConductor.Bain/ModConductor.Bain.fsproj" />

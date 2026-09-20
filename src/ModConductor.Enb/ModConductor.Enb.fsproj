@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Contracts.fs" />
+    <Compile Include="Catalogue.fs" />
+    <Compile Include="ArchiveLayouts.fs" />
+    <Compile Include="SetupPlanning.fs" />
+    <ProjectReference Include="../ModConductor.ArchiveInspection/ModConductor.ArchiveInspection.fsproj" />
+    <ProjectReference Include="../ModConductor.ArchiveInstallation/ModConductor.ArchiveInstallation.fsproj" />
+    <ProjectReference Include="../ModConductor.DeploymentPlanning/ModConductor.DeploymentPlanning.fsproj" />
+    <ProjectReference Include="../ModConductor.Nexus/ModConductor.Nexus.fsproj" />
+    <PackageReference Include="FSharp.Core" />
+  </ItemGroup>
+</Project>

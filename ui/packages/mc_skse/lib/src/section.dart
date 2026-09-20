@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:mc_client/mc_client.dart';
+import 'package:mc_artifacts/mc_artifacts.dart';
 import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 
 class SkseSection extends StatefulWidget {
@@ -10,9 +11,11 @@ class SkseSection extends StatefulWidget {
     required this.client,
     required this.workspaceId,
     required this.profileId,
+    this.embedded = false,
   });
   final SkseClient client;
   final String workspaceId, profileId;
+  final bool embedded;
   @override
   State<SkseSection> createState() => _SkseSectionState();
 }
@@ -79,37 +82,227 @@ class _SkseSectionState extends State<SkseSection> {
         value?.phase == SkseStatusPhase.unavailable ||
         value?.phase == SkseStatusPhase.incompatible ||
         value?.phase == SkseStatusPhase.sourceUnavailable;
-    return McSection(
-      title: 'Skyrim Script Extender',
+    final children = <Widget>[
+      McStatus(
+        title:
+            value?.status ??
+            (busy ? 'Checking SKSE' : 'SKSE status is unavailable'),
+        detail: value?.detail.isEmpty == false ? value!.detail : null,
+        tone: failed ? McStatusTone.error : McStatusTone.neutral,
+      ),
+      if (value != null && value.gameVersion.isNotEmpty) ...[
+        const SizedBox(height: McSpacing.medium),
+        Text('Skyrim ${value.gameVersion} · SKSE ${value.componentVersion}'),
+      ],
+      const SizedBox(height: McSpacing.large),
+      Wrap(
+        spacing: McSpacing.medium,
+        children: [
+          McAction(
+            label: 'Refresh',
+            icon: Icons.refresh,
+            onPressed: busy ? null : load,
+          ),
+          if (value?.phase == SkseStatusPhase.available ||
+              value?.phase == SkseStatusPhase.updateAvailable ||
+              value?.phase == SkseStatusPhase.failed)
+            McAction(
+              label: 'Set up SKSE',
+              icon: Icons.download,
+              emphasis: McActionEmphasis.primary,
+              onPressed: busy ? null : () => load(start: true),
+            ),
+        ],
+      ),
+    ];
+    if (widget.embedded) return Column(children: children);
+    return McSection(title: 'Skyrim Script Extender', children: children);
+  }
+}
+
+class SkyrimSetupSection extends StatelessWidget {
+  const SkyrimSetupSection({
+    super.key,
+    required this.skse,
+    required this.enb,
+    required this.chooseArchive,
+    required this.workspaceId,
+    required this.profileId,
+  });
+
+  final SkseClient skse;
+  final EnbClient enb;
+  final ArchiveChooser chooseArchive;
+  final String workspaceId, profileId;
+
+  @override
+  Widget build(BuildContext context) => McSection(
+    title: 'Skyrim setup',
+    children: [
+      SkseSection(
+        client: skse,
+        workspaceId: workspaceId,
+        profileId: profileId,
+        embedded: true,
+      ),
+      const SizedBox(height: McSpacing.large),
+      const Divider(),
+      const SizedBox(height: McSpacing.medium),
+      _EnbPanel(
+        client: enb,
+        chooseArchive: chooseArchive,
+        workspaceId: workspaceId,
+        profileId: profileId,
+      ),
+    ],
+  );
+}
+
+class _EnbPanel extends StatefulWidget {
+  const _EnbPanel({
+    required this.client,
+    required this.chooseArchive,
+    required this.workspaceId,
+    required this.profileId,
+  });
+  final EnbClient client;
+  final ArchiveChooser chooseArchive;
+  final String workspaceId, profileId;
+
+  @override
+  State<_EnbPanel> createState() => _EnbPanelState();
+}
+
+class _EnbPanelState extends State<_EnbPanel> {
+  EnbStatus? status;
+  bool busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(load());
+  }
+
+  @override
+  void didUpdateWidget(covariant _EnbPanel old) {
+    super.didUpdateWidget(old);
+    if (old.workspaceId != widget.workspaceId ||
+        old.profileId != widget.profileId)
+      unawaited(load());
+  }
+
+  Future<void> change(Future<EnbStatus> Function() action) async {
+    if (busy) return;
+    setState(() => busy = true);
+    try {
+      final value = await action();
+      if (mounted) setState(() => status = value);
+    } on Exception {
+      if (mounted) {
+        setState(
+          () => status = const EnbStatus(
+            phase: EnbStatusPhase.failed,
+            status: 'ENB status is unavailable',
+            detail: 'Check the engine connection.',
+            runtimeVersion: '',
+            presetVersion: '',
+            canOpenAuthorPage: false,
+            canSelectArchive: false,
+            canCancel: false,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
+  Future<void> load() =>
+      change(() => widget.client.read(widget.workspaceId, widget.profileId));
+
+  Future<void> selectArchive() async {
+    final selected = await widget.chooseArchive();
+    if (selected == null || !mounted) return;
+    await change(
+      () => widget.client.selectArchive(
+        widget.workspaceId,
+        widget.profileId,
+        newOperationId(),
+        selected.path,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final value = status;
+    final failed =
+        value?.phase == EnbStatusPhase.failed ||
+        value?.phase == EnbStatusPhase.blocked ||
+        value?.phase == EnbStatusPhase.conflict ||
+        value?.phase == EnbStatusPhase.unavailable;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         McStatus(
           title:
               value?.status ??
-              (busy ? 'Checking SKSE' : 'SKSE status is unavailable'),
+              (busy ? 'Checking ENB' : 'ENB status is unavailable'),
           detail: value?.detail.isEmpty == false ? value!.detail : null,
           tone: failed ? McStatusTone.error : McStatusTone.neutral,
         ),
-        if (value != null && value.gameVersion.isNotEmpty) ...[
+        if (busy) ...[
           const SizedBox(height: McSpacing.medium),
-          Text('Skyrim ${value.gameVersion} · SKSE ${value.componentVersion}'),
+          const LinearProgressIndicator(),
+        ],
+        if (value != null && value.runtimeVersion.isNotEmpty) ...[
+          const SizedBox(height: McSpacing.medium),
+          Text(
+            'ENBSeries ${value.runtimeVersion} · Lean ENB ${value.presetVersion}',
+          ),
         ],
         const SizedBox(height: McSpacing.large),
         Wrap(
           spacing: McSpacing.medium,
+          runSpacing: McSpacing.medium,
           children: [
             McAction(
               label: 'Refresh',
               icon: Icons.refresh,
               onPressed: busy ? null : load,
             ),
-            if (value?.phase == SkseStatusPhase.available ||
-                value?.phase == SkseStatusPhase.updateAvailable ||
-                value?.phase == SkseStatusPhase.failed)
+            if (value?.canOpenAuthorPage == true)
               McAction(
-                label: 'Set up SKSE',
-                icon: Icons.download,
+                label: 'Open ENBSeries page',
+                icon: Icons.open_in_browser,
                 emphasis: McActionEmphasis.primary,
-                onPressed: busy ? null : () => load(start: true),
+                onPressed: busy
+                    ? null
+                    : () => change(
+                        () => widget.client.openAuthorPage(
+                          widget.workspaceId,
+                          widget.profileId,
+                        ),
+                      ),
+              ),
+            if (value?.canSelectArchive == true)
+              McAction(
+                label: 'Choose downloaded archive',
+                icon: Icons.folder_open,
+                emphasis: McActionEmphasis.primary,
+                onPressed: busy ? null : selectArchive,
+              ),
+            if (value?.canCancel == true)
+              McAction(
+                label: 'Cancel',
+                onPressed: busy
+                    ? null
+                    : () => change(
+                        () => widget.client.cancel(
+                          widget.workspaceId,
+                          widget.profileId,
+                        ),
+                      ),
               ),
           ],
         ),

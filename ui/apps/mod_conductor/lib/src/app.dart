@@ -169,6 +169,7 @@ class ModConductorApp extends StatefulWidget {
     this.steamDiscovery,
     this.protonContexts,
     this.skse,
+    this.enb,
     this.chooseGameDirectory = desktop.chooseGameDirectory,
     this.chooseDirectory = chooseWorkspaceDirectory,
     this.chooseExportLocation = desktop.chooseInventoryExportDestination,
@@ -210,6 +211,7 @@ class ModConductorApp extends StatefulWidget {
   final SteamDiscoveryClient? steamDiscovery;
   final ProtonContextsClient? protonContexts;
   final SkseClient? skse;
+  final EnbClient? enb;
   final GameDirectoryChooser chooseGameDirectory;
   final DirectoryChooser chooseDirectory;
   final InventoryExportLocationChooser chooseExportLocation;
@@ -884,14 +886,17 @@ class _ModConductorAppState extends State<ModConductorApp> {
                             chooseDirectory: widget.chooseGameDirectory,
                             footer:
                                 widget.skse == null ||
+                                    widget.enb == null ||
                                     workspace.selectedProfile == null
                                 ? null
                                 : Padding(
                                     padding: const EdgeInsets.only(
                                       top: McSpacing.large,
                                     ),
-                                    child: SkseSection(
-                                      client: widget.skse!,
+                                    child: SkyrimSetupSection(
+                                      skse: widget.skse!,
+                                      enb: widget.enb!,
+                                      chooseArchive: widget.chooseArchive,
                                       workspaceId: workspace.id,
                                       profileId: workspace.selectedProfile!.id,
                                     ),
