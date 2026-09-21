@@ -56,14 +56,15 @@ abstract interface class NexusClient {
   Future<NexusAccount> connect();
   Future<NexusAccount> check();
   Future<NexusAccount> submitPersonalApiKey(String apiKey);
-  Future<NexusMod> mod(String workspace, int id);
+  Future<NexusMod> mod(String workspace, String profile, int id);
   Future<Artifact> download(
     String workspace,
+    String profile,
     String artifactId,
     int modId,
     int fileId,
   );
-  Future<void> openPage(String workspace, int modId);
+  Future<void> openPage(String workspace, String profile, int modId);
 }
 
 class GrpcNexusClient implements NexusClient {
@@ -125,33 +126,39 @@ class GrpcNexusClient implements NexusClient {
     ),
   );
   @override
-  Future<NexusMod> mod(String workspace, int id) => _call(() async {
-    final reply = await _client.readNexusMod(
-      wire.NexusModRequest(workspaceId: workspace, modId: Int64(id)),
-    );
-    if (reply.hasFailure()) throw _problem(reply.failure);
-    if (!reply.hasMod()) {
-      throw const NexusProblem(
-        'response',
-        'The engine returned an incomplete Nexus response.',
-      );
-    }
-    final v = reply.mod;
-    return NexusMod(v.id.toInt(), v.name, v.summary, [
-      for (final f in v.files)
-        NexusFile(
-          f.id.toInt(),
-          f.name,
-          f.version,
-          f.category,
-          f.description,
-          f.hasBytes() ? f.bytes.toInt() : null,
-        ),
-    ]);
-  });
+  Future<NexusMod> mod(String workspace, String profile, int id) =>
+      _call(() async {
+        final reply = await _client.readNexusMod(
+          wire.NexusModRequest(
+            workspaceId: workspace,
+            profileId: profile,
+            modId: Int64(id),
+          ),
+        );
+        if (reply.hasFailure()) throw _problem(reply.failure);
+        if (!reply.hasMod()) {
+          throw const NexusProblem(
+            'response',
+            'The engine returned an incomplete Nexus response.',
+          );
+        }
+        final v = reply.mod;
+        return NexusMod(v.id.toInt(), v.name, v.summary, [
+          for (final f in v.files)
+            NexusFile(
+              f.id.toInt(),
+              f.name,
+              f.version,
+              f.category,
+              f.description,
+              f.hasBytes() ? f.bytes.toInt() : null,
+            ),
+        ]);
+      });
   @override
   Future<Artifact> download(
     String workspace,
+    String profile,
     String artifactId,
     int modId,
     int fileId,
@@ -159,6 +166,7 @@ class GrpcNexusClient implements NexusClient {
     final reply = await _client.downloadNexusFile(
       wire.NexusDownloadRequest(
         workspaceId: workspace,
+        profileId: profile,
         artifactId: artifactId,
         modId: Int64(modId),
         fileId: Int64(fileId),
@@ -174,9 +182,14 @@ class GrpcNexusClient implements NexusClient {
     return GrpcArtifactsClient.decode(reply.artifact);
   });
   @override
-  Future<void> openPage(String workspace, int modId) => _call(() async {
-    await _client.openNexusModPage(
-      wire.NexusModRequest(workspaceId: workspace, modId: Int64(modId)),
-    );
-  });
+  Future<void> openPage(String workspace, String profile, int modId) =>
+      _call(() async {
+        await _client.openNexusModPage(
+          wire.NexusModRequest(
+            workspaceId: workspace,
+            profileId: profile,
+            modId: Int64(modId),
+          ),
+        );
+      });
 }

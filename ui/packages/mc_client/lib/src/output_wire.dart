@@ -20,6 +20,7 @@ Never reject(wire.OutputFault fault) => throw OutputException(
 );
 wire.OutputScopeRef reference(OutputScopeRef value) => wire.OutputScopeRef(
   workspaceId: value.workspaceId,
+  profileId: value.profileId,
   contextId: value.contextId,
   revision: Int64(value.revision),
   contextRevision: Int64(value.contextRevision),
@@ -52,6 +53,7 @@ OutputLocation location(wire.OutputLocation value) => OutputLocation(
 OutputScope scope(wire.OutputScope value) => OutputScope(
   OutputScopeRef(
     value.reference.workspaceId,
+    value.reference.profileId,
     value.reference.contextId,
     value.reference.revision.toInt(),
     value.reference.contextRevision.toInt(),

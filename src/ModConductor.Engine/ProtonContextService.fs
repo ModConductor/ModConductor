@@ -19,7 +19,7 @@ type ProtonContextService() =
                 p.Length > 4096 || not (IO.Path.IsPathFullyQualified p)
 
             if
-                request.DefinitionId <> Skyrim.definition.Id
+                request.DefinitionId <> GameId.value Skyrim.definition.Id
                 || invalidPath request.GamePath
                 || request.AdditionalRoots.Count > 16
                 || (request.AdditionalRoots |> Seq.exists invalidPath)

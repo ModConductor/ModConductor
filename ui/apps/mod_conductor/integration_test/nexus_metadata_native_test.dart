@@ -103,7 +103,13 @@ void main() {
           0,
           ProfileInfo(profile, 'Everyday'),
         );
-        await owner.gameContexts!.save(workspace, 0, game);
+        await owner.gameContexts!.save(
+          workspace,
+          profile,
+          'skyrim-se-steam',
+          0,
+          game,
+        );
         Future<Artifact> available(Artifact initial) async {
           var value = initial;
           for (var n = 0; n < 100 && value.state != ArtifactState.ready; n++) {
@@ -115,7 +121,13 @@ void main() {
         }
 
         final archive = await available(
-          await owner.nexus!.download(workspace, newOperationId(), 64012, 501),
+          await owner.nexus!.download(
+            workspace,
+            profile,
+            newOperationId(),
+            64012,
+            501,
+          ),
         );
         final draft = await owner.installations!.prepare(archive).result;
         final started = await owner.installations!.start(
@@ -296,7 +308,11 @@ void main() {
           () => find.text('Quiet rivers updated').evaluate().isNotEmpty,
         );
         await capture('updated');
-        final finalDetails = await owner.nexusMetadata!.read(workspace, mod.id);
+        final finalDetails = await owner.nexusMetadata!.read(
+          workspace,
+          profile,
+          mod.id,
+        );
         expect(finalDetails.installedFile, file);
         expect(finalDetails.installedVersion, '1.5');
         await tap(action('Open Mods'));

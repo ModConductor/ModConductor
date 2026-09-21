@@ -31,6 +31,7 @@ type internal DeploymentBackendRepository
                         let id =
                             DeploymentContextId.create
                                 sources.Stamp.WorkspaceId
+                                sources.Stamp.ProfileId
                                 (ModConductor.Deployment.DeploymentContextId.fingerprint
                                     binding.Evidence)
 
@@ -167,10 +168,47 @@ type internal DeploymentBackendRepository
             database.Enqueue(fun () ->
                 FilePlanRows.stamp database.Connection null stamp.ProfileId = Some stamp)
 
-        member _.Context workspace =
+        member _.Context(workspace, profile) =
             database.Enqueue(fun () ->
-                GameContextRows.read database.Connection null database.OwnerId workspace
+                GameContextRows.read database.Connection null database.OwnerId workspace profile
                 |> Result.defaultWith (fun _ -> raise (RecoveryException RecoveryError.NotFound)))
+
+        member _.ContextForDeployment(workspace, context) =
+            database.Enqueue(fun () ->
+                use query =
+                    Sqlite.command
+                        database.Connection
+                        null
+                        "SELECT id FROM profiles WHERE workspace_id=$workspace ORDER BY id"
+                        [ "$workspace", box (string workspace) ]
+
+                use reader = query.ExecuteReader()
+
+                let profiles =
+                    [ while reader.Read() do
+                          yield Guid.Parse(reader.GetString 0) ]
+
+                reader.Close()
+
+                profiles
+                |> List.choose (fun profile ->
+                    GameContextRows.read
+                        database.Connection
+                        null
+                        database.OwnerId
+                        workspace
+                        profile
+                    |> Result.toOption
+                    |> Option.filter (fun state ->
+                        state.Binding
+                        |> Option.exists (fun binding ->
+                            DeploymentContextId.create
+                                workspace
+                                profile
+                                (DeploymentContextId.fingerprint binding.Evidence) = context)))
+                |> function
+                    | [ state ] -> state
+                    | _ -> raise (RecoveryException RecoveryError.NotFound))
 
         member _.Start(prepared, token) =
             generations.Start(prepared, [], cancellation = token)

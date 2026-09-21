@@ -39,7 +39,7 @@ module ContextIdentity =
                 writer.Write 2
                 text reason
 
-        text evidence.DefinitionId
+        text (GameId.value evidence.DefinitionId)
         writer.Write evidence.DefinitionRevision
 
         writer.Write(

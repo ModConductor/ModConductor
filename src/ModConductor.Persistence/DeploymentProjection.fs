@@ -20,7 +20,12 @@ module internal DeploymentProjection =
             Error FilePlanError.Stale
         else
             let selected =
-                GameContextRows.read connection transaction owner expected.WorkspaceId
+                GameContextRows.read
+                    connection
+                    transaction
+                    owner
+                    expected.WorkspaceId
+                    expected.ProfileId
 
             let id =
                 selected
@@ -29,13 +34,21 @@ module internal DeploymentProjection =
                 |> Option.map (fun binding ->
                     ModConductor.Deployment.DeploymentContextId.create
                         expected.WorkspaceId
+                        expected.ProfileId
                         (ModConductor.Deployment.DeploymentContextId.fingerprint binding.Evidence))
 
             match id |> Option.bind (DeploymentRows.context connection transaction) with
             | None -> Ok GameProjection.empty
             | Some context when context.Pending.IsSome -> Error FilePlanError.Blocked
             | Some context ->
-                match GameContextRows.read connection transaction owner expected.WorkspaceId with
+                match
+                    GameContextRows.read
+                        connection
+                        transaction
+                        owner
+                        expected.WorkspaceId
+                        expected.ProfileId
+                with
                 | Error _ -> Error FilePlanError.NotFound
                 | Ok state ->
                     let evidence = state.Binding |> Option.map _.Evidence

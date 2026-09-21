@@ -140,6 +140,7 @@ const OutputScopeRef$json = {
     {'1': 'context_id', '3': 2, '4': 1, '5': 9, '10': 'contextId'},
     {'1': 'revision', '3': 3, '4': 1, '5': 4, '10': 'revision'},
     {'1': 'context_revision', '3': 4, '4': 1, '5': 4, '10': 'contextRevision'},
+    {'1': 'profile_id', '3': 5, '4': 1, '5': 9, '10': 'profileId'},
   ],
 };
 
@@ -147,7 +148,8 @@ const OutputScopeRef$json = {
 final $typed_data.Uint8List outputScopeRefDescriptor = $convert.base64Decode(
     'Cg5PdXRwdXRTY29wZVJlZhIhCgx3b3Jrc3BhY2VfaWQYASABKAlSC3dvcmtzcGFjZUlkEh0KCm'
     'NvbnRleHRfaWQYAiABKAlSCWNvbnRleHRJZBIaCghyZXZpc2lvbhgDIAEoBFIIcmV2aXNpb24S'
-    'KQoQY29udGV4dF9yZXZpc2lvbhgEIAEoBFIPY29udGV4dFJldmlzaW9u');
+    'KQoQY29udGV4dF9yZXZpc2lvbhgEIAEoBFIPY29udGV4dFJldmlzaW9uEh0KCnByb2ZpbGVfaW'
+    'QYBSABKAlSCXByb2ZpbGVJZA==');
 
 @$core.Deprecated('Use readOutputsRequestDescriptor instead')
 const ReadOutputsRequest$json = {
@@ -163,6 +165,7 @@ const ReadOutputsRequest$json = {
       '10': 'contextId',
       '17': true
     },
+    {'1': 'profile_id', '3': 3, '4': 1, '5': 9, '10': 'profileId'},
   ],
   '8': [
     {'1': '_context_id'},
@@ -172,7 +175,8 @@ const ReadOutputsRequest$json = {
 /// Descriptor for `ReadOutputsRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List readOutputsRequestDescriptor = $convert.base64Decode(
     'ChJSZWFkT3V0cHV0c1JlcXVlc3QSIQoMd29ya3NwYWNlX2lkGAEgASgJUgt3b3Jrc3BhY2VJZB'
-    'IiCgpjb250ZXh0X2lkGAIgASgJSABSCWNvbnRleHRJZIgBAUINCgtfY29udGV4dF9pZA==');
+    'IiCgpjb250ZXh0X2lkGAIgASgJSABSCWNvbnRleHRJZIgBARIdCgpwcm9maWxlX2lkGAMgASgJ'
+    'Uglwcm9maWxlSWRCDQoLX2NvbnRleHRfaWQ=');
 
 @$core.Deprecated('Use outputLocationDescriptor instead')
 const OutputLocation$json = {

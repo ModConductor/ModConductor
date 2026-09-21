@@ -95,7 +95,8 @@ module internal Sqlite =
         | 30L
         | 31L
         | 32L
-        | 33L -> ()
+        | 33L
+        | 34L -> ()
         | _ -> raise (InvalidOperationException("The state database uses an unsupported version."))
 
         if number connection transaction "PRAGMA user_version" [] = 3L then
@@ -210,6 +211,34 @@ module internal Sqlite =
 
         if number connection transaction "PRAGMA user_version" [] = 32L then
             execute connection transaction SkyrimSetupSchema.cancellationAndActions []
+
+        if number connection transaction "PRAGMA user_version" [] = 33L then
+            execute
+                connection
+                transaction
+                """
+                ALTER TABLE game_contexts RENAME TO workspace_game_contexts_v33;
+                CREATE TABLE game_contexts(
+                    profile_id TEXT PRIMARY KEY REFERENCES profiles(id) ON DELETE CASCADE,
+                    workspace_id TEXT NOT NULL REFERENCES workspaces(id),
+                    game_id TEXT NOT NULL,
+                    id TEXT NOT NULL,
+                    path TEXT NOT NULL,
+                    revision INTEGER NOT NULL,
+                    evidence TEXT NOT NULL,
+                    checked_owner TEXT NOT NULL,
+                    failure TEXT,
+                    proton_selection TEXT
+                );
+                CREATE INDEX game_contexts_by_workspace ON game_contexts(workspace_id,profile_id);
+                INSERT INTO game_contexts(profile_id,workspace_id,game_id,id,path,revision,evidence,checked_owner,failure,proton_selection)
+                SELECT p.id,g.workspace_id,'skyrim-se-steam',g.id,g.path,g.revision,g.evidence,g.checked_owner,g.failure,g.proton_selection
+                FROM workspace_game_contexts_v33 g
+                JOIN profiles p ON p.workspace_id=g.workspace_id;
+                DROP TABLE workspace_game_contexts_v33;
+                PRAGMA user_version=34;
+                """
+                []
 
         beforeCommit ()
         transaction.Commit()

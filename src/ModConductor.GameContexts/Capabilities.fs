@@ -36,7 +36,7 @@ type CapabilityAudience =
     | PolicyOnly
 
 type CapabilityContext =
-    { DefinitionId: string
+    { DefinitionId: GameId
       Platforms: ContextPlatform list }
 
 type CompiledCapability =

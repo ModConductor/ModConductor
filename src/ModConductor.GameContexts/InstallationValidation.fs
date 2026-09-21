@@ -30,7 +30,7 @@ module InstallationValidation =
               Saves = unavailable
               LocalAppData = unavailable }
 
-    let inspect candidate =
+    let inspect (definition: GameDefinition) candidate =
         let problems = ResizeArray<ValidationProblem>()
         let mutable rootIdentity = None
         let mutable dataIdentity = None
@@ -88,7 +88,7 @@ module InstallationValidation =
                                 problem expected (expected + " has ambiguous names in this folder.")
                                 None
 
-                        name Skyrim.definition.Data true
+                        name definition.Data true
                         |> Option.iter (fun name ->
                             try
                                 use data = directory.Directory(name, None)
@@ -97,7 +97,7 @@ module InstallationValidation =
                             with :? IOException ->
                                 problem name "The Data folder is unavailable or is a link.")
 
-                        name Skyrim.definition.Launcher false
+                        name definition.Launcher false
                         |> Option.iter (fun name ->
                             try
                                 use file = fst (directory.Read(name, None))
@@ -105,7 +105,7 @@ module InstallationValidation =
                             with :? IOException ->
                                 ())
 
-                        name Skyrim.definition.Executable true
+                        name definition.Executable true
                         |> Option.iter (fun name ->
                             try
                                 let stream, identity = directory.Read(name, None)
@@ -180,8 +180,8 @@ module InstallationValidation =
         | :? IOException -> problem candidate "The installation folder changed or cannot be read."
 
         let report =
-            { DefinitionId = Skyrim.definition.Id
-              DefinitionRevision = Skyrim.definition.Revision
+            { DefinitionId = definition.Id
+              DefinitionRevision = definition.Revision
               Platform =
                 if OperatingSystem.IsWindows() then
                     ContextPlatform.Windows
@@ -194,7 +194,7 @@ module InstallationValidation =
               Executable = executable
               LauncherPath = launcher
               Proton = None
-              Locations = locations Skyrim.definition
+              Locations = locations definition
               Problems = List.ofSeq problems
               CheckedAt =
                 DateTimeOffset.FromUnixTimeMilliseconds(

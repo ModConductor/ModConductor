@@ -19,10 +19,12 @@ GameContextState snapshot(
   String workspace,
   int revision,
   String? path, {
+  String profile = 'profile',
   String version = '1.7.104.0',
   bool needsCheck = false,
 }) => GameContextState(
   workspaceId: workspace,
+  profileId: profile,
   revision: revision,
   definition: definition,
   binding: path == null
@@ -58,24 +60,32 @@ GameContextState snapshot(
 class Client implements GameContextsClient {
   Future<GameContextState> Function(String) onRead = (id) async =>
       snapshot(id, 1, '/game');
+  Future<GameContextState> Function(String, String)? onProfileRead;
   Future<GameContextState> Function(String, int, String) onSave = (
     id,
     revision,
     path,
   ) async => snapshot(id, revision + 1, path);
   Future<GameContextState> Function(String, int)? onRefresh;
+  Future<GameContextState> Function(String, String, int)? onProfileRefresh;
   @override
-  Future<GameContextState> read(String id) => onRead(id);
+  Future<GameContextState> read(String id, String profile) =>
+      onProfileRead?.call(id, profile) ?? onRead(id);
   @override
   Future<GameContextState> save(
     String id,
+    String profile,
+    String gameId,
     int revision,
     String path, {
     ProtonSelection? proton,
   }) => onSave(id, revision, path);
   @override
-  Future<GameContextState> refresh(String id, int revision) =>
-      onRefresh?.call(id, revision) ?? onRead(id);
+  Future<GameContextState> refresh(String id, String profile, int revision) =>
+      onProfileRefresh?.call(id, profile, revision) ??
+      onRefresh?.call(id, revision) ??
+      onProfileRead?.call(id, profile) ??
+      onRead(id);
 }
 
 Future<void> page(WidgetTester tester, GameContextController controller) async {
@@ -110,15 +120,30 @@ void main() {
       );
     };
     final controller = GameContextController();
-    controller.attach(client, workspaceId: 'workspace', editable: true);
+    controller.attach(
+      client,
+      workspaceId: 'workspace',
+      profileId: 'profile',
+      editable: true,
+    );
     await Future<void>.delayed(Duration.zero);
     expect(checks, 1);
     expect(controller.state!.binding!.needsCheck, isTrue);
     expect(controller.needsRead, isTrue);
     await controller.load();
-    controller.attach(client, workspaceId: 'other', editable: true);
+    controller.attach(
+      client,
+      workspaceId: 'other',
+      profileId: 'profile',
+      editable: true,
+    );
     await Future<void>.delayed(Duration.zero);
-    controller.attach(client, workspaceId: 'workspace', editable: true);
+    controller.attach(
+      client,
+      workspaceId: 'workspace',
+      profileId: 'profile',
+      editable: true,
+    );
     await Future<void>.delayed(Duration.zero);
     expect(checks, 1);
     await controller.load(refresh: true);
@@ -135,7 +160,12 @@ void main() {
       restartedChecks++;
       return snapshot(id, revision + 1, '/game', version: 'current-discovery');
     };
-    controller.attach(restarted, workspaceId: 'workspace', editable: true);
+    controller.attach(
+      restarted,
+      workspaceId: 'workspace',
+      profileId: 'profile',
+      editable: true,
+    );
     await Future<void>.delayed(Duration.zero);
     expect(restartedChecks, 1);
     expect(
@@ -161,15 +191,74 @@ void main() {
         return snapshot(id, revision + 1, '/game');
       };
       final controller = GameContextController();
-      controller.attach(client, workspaceId: 'old', editable: true);
-      controller.attach(client, workspaceId: 'current', editable: true);
+      controller.attach(
+        client,
+        workspaceId: 'old',
+        profileId: 'profile',
+        editable: true,
+      );
+      controller.attach(
+        client,
+        workspaceId: 'current',
+        profileId: 'profile',
+        editable: true,
+      );
       oldRead.complete(snapshot('old', 1, '/old', needsCheck: true));
       await Future<void>.delayed(Duration.zero);
       expect(checks, isEmpty);
       expect(controller.state!.workspaceId, 'current');
-      controller.attach(client, workspaceId: 'old', editable: true);
+      controller.attach(
+        client,
+        workspaceId: 'old',
+        profileId: 'profile',
+        editable: true,
+      );
       await Future<void>.delayed(Duration.zero);
       expect(checks, ['old']);
+      controller.dispose();
+    },
+  );
+
+  test(
+    'startup checks are independent for profiles in one workspace',
+    () async {
+      final checks = <String>[];
+      final client = Client()
+        ..onProfileRead = (workspace, profile) async {
+          return snapshot(
+            workspace,
+            1,
+            '/$profile',
+            profile: profile,
+            needsCheck: true,
+          );
+        }
+        ..onProfileRefresh = (workspace, profile, revision) async {
+          checks.add(profile);
+          return snapshot(
+            workspace,
+            revision + 1,
+            '/$profile',
+            profile: profile,
+          );
+        };
+      final controller = GameContextController();
+      controller.attach(
+        client,
+        workspaceId: 'workspace',
+        profileId: 'first',
+        editable: true,
+      );
+      await Future<void>.delayed(Duration.zero);
+      controller.attach(
+        client,
+        workspaceId: 'workspace',
+        profileId: 'second',
+        editable: true,
+      );
+      await Future<void>.delayed(Duration.zero);
+      expect(checks, ['first', 'second']);
+      expect(controller.state!.profileId, 'second');
       controller.dispose();
     },
   );
@@ -180,8 +269,18 @@ void main() {
     client.onRead = (id) =>
         id == 'first' ? first.future : Future.value(snapshot(id, 1, '/second'));
     final controller = GameContextController();
-    controller.attach(client, workspaceId: 'first', editable: true);
-    controller.attach(client, workspaceId: 'second', editable: true);
+    controller.attach(
+      client,
+      workspaceId: 'first',
+      profileId: 'profile',
+      editable: true,
+    );
+    controller.attach(
+      client,
+      workspaceId: 'second',
+      profileId: 'profile',
+      editable: true,
+    );
     await Future<void>.delayed(Duration.zero);
     controller.accept(snapshot('second', 3, '/new'), client);
     first.complete(snapshot('first', 9, '/old'));
@@ -191,15 +290,54 @@ void main() {
     controller.dispose();
   });
   test(
+    'a late context read cannot replace another profile in the same workspace',
+    () async {
+      final client = Client();
+      final first = Completer<GameContextState>();
+      client.onProfileRead = (workspace, profile) => profile == 'first'
+          ? first.future
+          : Future.value(snapshot(workspace, 1, '/second', profile: profile));
+      final controller = GameContextController();
+      controller.attach(
+        client,
+        workspaceId: 'workspace',
+        profileId: 'first',
+        editable: true,
+      );
+      controller.attach(
+        client,
+        workspaceId: 'workspace',
+        profileId: 'second',
+        editable: true,
+      );
+      await Future<void>.delayed(Duration.zero);
+      first.complete(snapshot('workspace', 9, '/old', profile: 'first'));
+      await Future<void>.delayed(Duration.zero);
+      expect(controller.state!.profileId, 'second');
+      expect(controller.state!.binding!.path, '/second');
+      controller.dispose();
+    },
+  );
+  test(
     'a reply from a replaced connection cannot refresh the current binding',
     () async {
       final oldClient = Client();
       final newClient = Client()
         ..onRead = (id) async => snapshot(id, 1, '/current');
       final controller = GameContextController()
-        ..attach(oldClient, workspaceId: 'workspace', editable: true);
+        ..attach(
+          oldClient,
+          workspaceId: 'workspace',
+          profileId: 'profile',
+          editable: true,
+        );
       await Future<void>.delayed(Duration.zero);
-      controller.attach(newClient, workspaceId: 'workspace', editable: true);
+      controller.attach(
+        newClient,
+        workspaceId: 'workspace',
+        profileId: 'profile',
+        editable: true,
+      );
       await Future<void>.delayed(Duration.zero);
       controller.accept(snapshot('workspace', 1, '/old'), oldClient);
       expect(controller.state!.binding!.path, '/current');
@@ -212,7 +350,12 @@ void main() {
       final client = Client()
         ..onSave = (_, _, _) async => throw TimeoutException('lost reply');
       final controller = GameContextController()
-        ..attach(client, workspaceId: 'workspace', editable: true);
+        ..attach(
+          client,
+          workspaceId: 'workspace',
+          profileId: 'profile',
+          editable: true,
+        );
       await page(tester, controller);
       await tester.tap(find.byKey(const ValueKey('change-installation')));
       await tester.pumpAndSettle();
@@ -251,7 +394,12 @@ void main() {
           throw TimeoutException('committed reply lost');
         };
       final controller = GameContextController()
-        ..attach(client, workspaceId: 'workspace', editable: true);
+        ..attach(
+          client,
+          workspaceId: 'workspace',
+          profileId: 'profile',
+          editable: true,
+        );
       await page(tester, controller);
       final checkedStatus = tester
           .widget<McStatus>(find.byType(McStatus))
@@ -302,7 +450,12 @@ void main() {
         return snapshot(id, revision + 1, path);
       };
       final controller = GameContextController()
-        ..attach(client, workspaceId: 'workspace', editable: true);
+        ..attach(
+          client,
+          workspaceId: 'workspace',
+          profileId: 'profile',
+          editable: true,
+        );
       await page(tester, controller);
       await tester.tap(find.byKey(const ValueKey('change-installation')));
       await tester.pumpAndSettle();
@@ -338,7 +491,12 @@ void main() {
           '/games/SteamLibrary/steamapps/common/Skyrim Special Edition',
         );
       final controller = GameContextController()
-        ..attach(client, workspaceId: 'workspace', editable: true);
+        ..attach(
+          client,
+          workspaceId: 'workspace',
+          profileId: 'profile',
+          editable: true,
+        );
       addTearDown(controller.dispose);
 
       await page(tester, controller);
@@ -390,7 +548,12 @@ void main() {
         return snapshot(id, revision + 1, path);
       };
       final controller = GameContextController()
-        ..attach(client, workspaceId: 'workspace', editable: true);
+        ..attach(
+          client,
+          workspaceId: 'workspace',
+          profileId: 'profile',
+          editable: true,
+        );
       await page(tester, controller);
       await tester.tap(find.byKey(const ValueKey('change-installation')));
       await tester.pumpAndSettle();
@@ -438,7 +601,12 @@ void main() {
       final pending = Completer<GameContextState>();
       client.onSave = (_, _, _) => pending.future;
       final controller = GameContextController()
-        ..attach(client, workspaceId: 'workspace', editable: true);
+        ..attach(
+          client,
+          workspaceId: 'workspace',
+          profileId: 'profile',
+          editable: true,
+        );
       await page(tester, controller);
       await tester.tap(find.byKey(const ValueKey('change-installation')));
       await tester.pumpAndSettle();

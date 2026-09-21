@@ -77,12 +77,12 @@ void main() {
 
       try {
         await owner.connect();
-        final workspace = newOperationId();
+        final workspace = newOperationId(), profile = newOperationId();
         await owner.workspaces!.create(workspace, 'Weekend', root.path);
         await owner.workspaces!.createProfile(
           workspace,
           0,
-          ProfileInfo(newOperationId(), 'Everyday'),
+          ProfileInfo(profile, 'Everyday'),
         );
         final before = (await owner.workspaces!.read(workspace)).workspace;
         await tester.pumpWidget(
@@ -124,13 +124,19 @@ void main() {
             await capture('proton-draft');
             await tap(find.byKey(const ValueKey('submit')).last);
           }
-          expect((await owner.gameContexts!.read(workspace)).binding, isNull);
+          expect(
+            (await owner.gameContexts!.read(workspace, profile)).binding,
+            isNull,
+          );
         }
 
         await choose();
         await tester.sendKeyEvent(LogicalKeyboardKey.escape);
         await tester.pumpAndSettle();
-        expect((await owner.gameContexts!.read(workspace)).binding, isNull);
+        expect(
+          (await owner.gameContexts!.read(workspace, profile)).binding,
+          isNull,
+        );
         await choose();
         await tap(find.byKey(const ValueKey('submit')).last);
         await until(
@@ -139,7 +145,7 @@ void main() {
               .evaluate()
               .isEmpty,
         );
-        var saved = await owner.gameContexts!.read(workspace);
+        var saved = await owner.gameContexts!.read(workspace, profile);
         if (Platform.isLinux) {
           expect(saved.binding!.proton!.compatData, data);
           expect(
@@ -180,7 +186,7 @@ void main() {
                 .evaluate()
                 .isEmpty,
           );
-          final partial = await owner.gameContexts!.read(workspace);
+          final partial = await owner.gameContexts!.read(workspace, profile);
           expect(partial.binding!.path, replacement);
           expect(partial.binding!.proton, isNull);
           expect(partial.binding!.evidence.proton, isNull);
@@ -196,7 +202,7 @@ void main() {
           );
           await tap(find.byKey(const ValueKey('submit')).last);
           expect(
-            (await owner.gameContexts!.read(workspace)).revision,
+            (await owner.gameContexts!.read(workspace, profile)).revision,
             partial.revision,
           );
           await tap(find.byKey(const ValueKey('submit')));
@@ -206,7 +212,7 @@ void main() {
                 .evaluate()
                 .isEmpty,
           );
-          saved = await owner.gameContexts!.read(workspace);
+          saved = await owner.gameContexts!.read(workspace, profile);
           expect(saved.binding!.path, replacement);
           expect(saved.binding!.proton!.compatData, data);
           expect(saved.revision, partial.revision + 1);
@@ -234,7 +240,7 @@ void main() {
                 !controller().loading &&
                 controller().state!.revision > saved.revision,
           );
-          final failed = await owner.gameContexts!.read(workspace);
+          final failed = await owner.gameContexts!.read(workspace, profile);
           expect(failed.binding!.needsCheck, isTrue);
           expect(
             failed.binding!.proton!.compatData,

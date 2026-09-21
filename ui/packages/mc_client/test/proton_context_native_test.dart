@@ -24,13 +24,18 @@ void main() {
       final runtime = '$steam/compatibilitytools.d/Custom Ω Proton';
       var child = await NativeChild.start(engine!, state);
       try {
-        final workspace = newOperationId();
+        final workspace = newOperationId(), profile = newOperationId();
         await child.workspaces().create(workspace, 'Proton', root.path);
+        await child.workspaces().createProfile(
+          workspace,
+          0,
+          ProfileInfo(profile, 'Proton'),
+        );
         var contexts = child.gameContexts();
-        final initial = await contexts.read(workspace);
+        final initial = await contexts.read(workspace, profile);
         await expectLater(
           child.protonContexts(authenticate: false).search(
-            initial.definition.id,
+            'skyrim-se-steam',
             game,
             [steam],
           ).result,
@@ -43,7 +48,7 @@ void main() {
           ),
         );
         final report = await child.protonContexts().search(
-          initial.definition.id,
+          'skyrim-se-steam',
           game,
           [steam],
         ).result;
@@ -58,7 +63,14 @@ void main() {
           expect(report.prefixes, isEmpty);
           expect(report.problems, isNotEmpty);
           await expectLater(
-            contexts.save(workspace, initial.revision, game, proton: selection),
+            contexts.save(
+              workspace,
+              profile,
+              'skyrim-se-steam',
+              initial.revision,
+              game,
+              proton: selection,
+            ),
             throwsA(
               isA<GameContextException>().having(
                 (e) => e.code,
@@ -67,8 +79,14 @@ void main() {
               ),
             ),
           );
-          expect((await contexts.read(workspace)).binding, isNull);
-          final native = await contexts.save(workspace, initial.revision, game);
+          expect((await contexts.read(workspace, profile)).binding, isNull);
+          final native = await contexts.save(
+            workspace,
+            profile,
+            'skyrim-se-steam',
+            initial.revision,
+            game,
+          );
           expect(
             native.binding!.evidence.platform,
             GameContextPlatform.windows,
@@ -79,9 +97,11 @@ void main() {
         expect(prefix.origins.single.manifest.appId, 489830);
         expect(report.mappings.single.perGame, isNull);
         expect(report.mappings.single.globalDefault, 'fixture_tool');
-        expect((await contexts.read(workspace)).binding, isNull);
+        expect((await contexts.read(workspace, profile)).binding, isNull);
         final saved = await contexts.save(
           workspace,
+          profile,
+          'skyrim-se-steam',
           initial.revision,
           game,
           proton: selection,
@@ -98,7 +118,13 @@ void main() {
           isTrue,
         );
         await expectLater(
-          contexts.save(workspace, initial.revision, game),
+          contexts.save(
+            workspace,
+            profile,
+            'skyrim-se-steam',
+            initial.revision,
+            game,
+          ),
           throwsA(
             isA<GameContextException>().having(
               (e) => e.code,
@@ -108,13 +134,16 @@ void main() {
           ),
         );
         expect(
-          (await contexts.read(workspace)).binding!.proton!.runtimeDirectory,
+          (await contexts.read(
+            workspace,
+            profile,
+          )).binding!.proton!.runtimeDirectory,
           runtime,
         );
         await child.close();
         child = await NativeChild.start(engine, state);
         contexts = child.gameContexts();
-        final reopened = await contexts.read(workspace);
+        final reopened = await contexts.read(workspace, profile);
         expect(reopened.binding!.needsCheck, isTrue);
         expect(
           reopened.binding!.evidence.fingerprint,
@@ -122,7 +151,11 @@ void main() {
         );
         final launcher = File('$runtime/proton');
         await launcher.rename('$runtime/proton.hidden');
-        final failed = await contexts.refresh(workspace, reopened.revision);
+        final failed = await contexts.refresh(
+          workspace,
+          profile,
+          reopened.revision,
+        );
         expect(failed.binding!.needsCheck, isTrue);
         expect(
           failed.binding!.evidence.fingerprint,
@@ -130,7 +163,11 @@ void main() {
         );
         expect(failed.binding!.proton!.compatData, selection.compatData);
         await File('$runtime/proton.hidden').rename('$runtime/proton');
-        final checked = await contexts.refresh(workspace, failed.revision);
+        final checked = await contexts.refresh(
+          workspace,
+          profile,
+          failed.revision,
+        );
         expect(checked.binding!.needsCheck, isFalse);
         expect(
           checked.binding!.evidence.fingerprint,

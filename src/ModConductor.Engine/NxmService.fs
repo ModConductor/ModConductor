@@ -51,13 +51,18 @@ type NxmService
                     result.Problem <- "Nexus downloads are not available in this build."
                 else
                     if request.WorkspaceId <> "" then
-                        let! game = games.Read(ModLibraryWire.id request.WorkspaceId)
+                        let! game =
+                            games.Read(
+                                ModLibraryWire.id request.WorkspaceId,
+                                ModLibraryWire.id request.ProfileId
+                            )
 
                         match game with
                         | Ok value when
                             value.Binding
                             |> Option.exists (fun binding ->
-                                binding.Evidence.DefinitionId = "skyrim-se-steam")
+                                binding.Evidence.DefinitionId =
+                                    GameId.SkyrimSpecialEditionSteam)
                             ->
                             ()
                         | _ ->

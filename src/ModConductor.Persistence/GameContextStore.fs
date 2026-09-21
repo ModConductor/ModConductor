@@ -5,13 +5,13 @@ open System.Threading.Tasks
 open ModConductor.GameContexts
 
 module internal GameContextRows =
-    let read connection transaction owner workspace =
+    let read connection transaction owner workspace profile =
         if
             Sqlite.number
                 connection
                 transaction
-                "SELECT count(*) FROM workspaces WHERE id=$id"
-                [ "$id", box (string workspace) ] = 0L
+                "SELECT count(*) FROM profiles WHERE workspace_id=$workspace AND id=$profile"
+                [ "$workspace", box (string workspace); "$profile", box (string profile) ] = 0L
         then
             Error ContextError.NotFound
         else
@@ -19,39 +19,46 @@ module internal GameContextRows =
                 Sqlite.command
                     connection
                     transaction
-                    "SELECT id,path,revision,evidence,checked_owner,failure,proton_selection FROM game_contexts WHERE workspace_id=$id"
-                    [ "$id", box (string workspace) ]
+                    "SELECT game_id,id,path,revision,evidence,checked_owner,failure,proton_selection FROM game_contexts WHERE workspace_id=$workspace AND profile_id=$profile"
+                    [ "$workspace", box (string workspace); "$profile", box (string profile) ]
 
             use row = query.ExecuteReader()
 
             if row.Read() then
                 Ok
                     { WorkspaceId = workspace
-                      Revision = row.GetInt64 2
+                      ProfileId = profile
+                      Revision = row.GetInt64 3
                       Binding =
                         Some
-                            { Id = Guid.Parse(row.GetString 0)
-                              Path = row.GetString 1
+                            { Id = Guid.Parse(row.GetString 1)
+                              GameId =
+                                GameId.tryParse (row.GetString 0)
+                                |> Option.defaultWith (fun () -> invalidOp "Invalid stored game ID.")
+                              Path = row.GetString 2
                               Proton =
-                                if row.IsDBNull 6 then
+                                if row.IsDBNull 7 then
                                     None
                                 else
-                                    Some(ProtonEncoding.decodeSelection (row.GetString 6))
-                              Evidence = GameContextEncoding.decode (row.GetString 3)
-                              NeedsCheck = row.GetString 4 <> owner || not (row.IsDBNull 5)
-                              Failure = if row.IsDBNull 5 then None else Some(row.GetString 5) } }
+                                    Some(ProtonEncoding.decodeSelection (row.GetString 7))
+                              Evidence = GameContextEncoding.decode (row.GetString 4)
+                              NeedsCheck = row.GetString 5 <> owner || not (row.IsDBNull 6)
+                              Failure = if row.IsDBNull 6 then None else Some(row.GetString 6) } }
             else
                 Ok
                     { WorkspaceId = workspace
+                      ProfileId = profile
                       Revision = 0L
                       Binding = None }
 
-    let save connection transaction owner workspace revision (binding: GameBinding) =
+    let save connection transaction owner workspace profile revision (binding: GameBinding) =
         Sqlite.execute
             connection
             transaction
-            "INSERT INTO game_contexts(workspace_id,id,path,revision,evidence,checked_owner,failure,proton_selection) VALUES($workspace,$id,$path,$revision,$evidence,$owner,$failure,$proton) ON CONFLICT(workspace_id) DO UPDATE SET path=excluded.path,revision=excluded.revision,evidence=excluded.evidence,checked_owner=excluded.checked_owner,failure=excluded.failure,proton_selection=excluded.proton_selection"
+            "INSERT INTO game_contexts(profile_id,workspace_id,game_id,id,path,revision,evidence,checked_owner,failure,proton_selection) VALUES($profile,$workspace,$game,$id,$path,$revision,$evidence,$owner,$failure,$proton) ON CONFLICT(profile_id) DO UPDATE SET game_id=excluded.game_id,path=excluded.path,revision=excluded.revision,evidence=excluded.evidence,checked_owner=excluded.checked_owner,failure=excluded.failure,proton_selection=excluded.proton_selection"
             [ "$workspace", box (string workspace)
+              "$profile", box (string profile)
+              "$game", box (GameId.value binding.GameId)
               "$id", box (string binding.Id)
               "$path", box binding.Path
               "$revision", box revision
@@ -91,14 +98,14 @@ type GameContextStore internal (database: StateDatabase, roots: OwnedWorkspaceRo
                     lock gate (fun () -> active <- active - 1)
         }
 
-    let read workspace =
+    let read workspace profile =
         database.Enqueue(fun () ->
-            GameContextRows.read database.Connection null database.OwnerId workspace)
+            GameContextRows.read database.Connection null database.OwnerId workspace profile)
 
-    let change workspace expected (candidate: ContextSelection option) =
+    let change workspace profile expected (candidate: ContextSelection option) =
         run (fun () ->
             task {
-                let! before = read workspace
+                let! before = read workspace profile
 
                 match before with
                 | Error error -> return Error error
@@ -109,7 +116,10 @@ type GameContextStore internal (database: StateDatabase, roots: OwnedWorkspaceRo
                         candidate
                         |> Option.orElseWith (fun () ->
                             before.Binding
-                            |> Option.map (fun b -> { Path = b.Path; Proton = b.Proton }))
+                            |> Option.map (fun b ->
+                                { GameId = b.GameId
+                                  Path = b.Path
+                                  Proton = b.Proton }))
 
                     match selection with
                     | None -> return Error ContextError.NotFound
@@ -119,9 +129,13 @@ type GameContextStore internal (database: StateDatabase, roots: OwnedWorkspaceRo
 
                         match owned with
                         | Ok receipt when receipt.Phase = RootCreationPhase.Complete ->
+                            let definition =
+                                match selection.GameId with
+                                | GameId.SkyrimSpecialEditionSteam -> Skyrim.definition
+
                             let! installation, evidence =
                                 Task.Run(fun () ->
-                                    let installation = InstallationValidation.inspect path
+                                    let installation = InstallationValidation.inspect definition path
 
                                     let evidence =
                                         match selection.Proton with
@@ -174,6 +188,7 @@ type GameContextStore internal (database: StateDatabase, roots: OwnedWorkspaceRo
                                                     transaction
                                                     database.OwnerId
                                                     workspace
+                                                    profile
                                             with
                                             | Error error -> Error error
                                             | Ok current when current.Revision <> expected ->
@@ -182,8 +197,11 @@ type GameContextStore internal (database: StateDatabase, roots: OwnedWorkspaceRo
                                                 let binding =
                                                     { Id =
                                                         current.Binding
+                                                        |> Option.filter (fun binding ->
+                                                            binding.GameId = selection.GameId)
                                                         |> Option.map _.Id
                                                         |> Option.defaultWith Guid.NewGuid
+                                                      GameId = selection.GameId
                                                       Path = path
                                                       Proton =
                                                         if evidence.Valid then
@@ -191,7 +209,13 @@ type GameContextStore internal (database: StateDatabase, roots: OwnedWorkspaceRo
                                                             |> Option.map _.Selection
                                                         else
                                                             selection.Proton
-                                                      Evidence = evidence
+                                                      Evidence =
+                                                        if evidence.Valid then
+                                                            evidence
+                                                        else
+                                                            current.Binding
+                                                            |> Option.map _.Evidence
+                                                            |> Option.defaultValue evidence
                                                       NeedsCheck = not evidence.Valid
                                                       Failure =
                                                         if evidence.Valid then
@@ -208,11 +232,13 @@ type GameContextStore internal (database: StateDatabase, roots: OwnedWorkspaceRo
                                                     transaction
                                                     database.OwnerId
                                                     workspace
+                                                    profile
                                                     (expected + 1L)
                                                     binding
 
                                                 Ok
                                                     { WorkspaceId = workspace
+                                                      ProfileId = profile
                                                       Revision = expected + 1L
                                                       Binding = Some binding }
 
@@ -231,9 +257,9 @@ type GameContextStore internal (database: StateDatabase, roots: OwnedWorkspaceRo
                 true)
 
     interface IGameContexts with
-        member _.Read workspace = run (fun () -> read workspace)
+        member _.Read(workspace, profile) = run (fun () -> read workspace profile)
 
-        member _.Save(workspace, expected, selection) =
-            change workspace expected (Some selection)
+        member _.Save(workspace, profile, expected, selection) =
+            change workspace profile expected (Some selection)
 
-        member _.Refresh(workspace, expected) = change workspace expected None
+        member _.Refresh(workspace, profile, expected) = change workspace profile expected None

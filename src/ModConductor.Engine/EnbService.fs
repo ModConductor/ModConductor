@@ -108,7 +108,8 @@ type EnbCoordinator
         | Some qualify -> qualify (workspace, profile)
         | None ->
             task {
-                let! context = (store.GameContexts :> IGameContexts).Read workspace
+                let! context =
+                    (store.GameContexts :> IGameContexts).Read(workspace, profile)
                 let! deployed = store.Deployments.Read profile
 
                 match context, deployed with

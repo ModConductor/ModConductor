@@ -82,7 +82,12 @@ void main() {
         return save(id, revision, path);
       };
       final controller = GameContextController()
-        ..attach(client, workspaceId: 'workspace', editable: true);
+        ..attach(
+          client,
+          workspaceId: 'workspace',
+          profileId: 'profile',
+          editable: true,
+        );
       await tester.pumpWidget(
         MaterialApp(
           theme: mcTheme(Brightness.light),

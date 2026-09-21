@@ -32,6 +32,8 @@ void main() {
         );
         await child.gameContexts().save(
           workspace,
+          profile,
+          'skyrim-se-steam',
           0,
           game,
           proton: Platform.isLinux
@@ -46,7 +48,7 @@ void main() {
               : null,
         );
         await expectLater(
-          child.outputs(authenticate: false).read(workspace),
+          child.outputs(authenticate: false).read(workspace, profile),
           throwsA(
             isA<GrpcError>().having(
               (e) => e.code,
@@ -66,7 +68,7 @@ void main() {
           ),
         );
         final outputs = child.outputs();
-        var scope = await outputs.read(workspace);
+        var scope = await outputs.read(workspace, profile);
         final folder = await outputs.add(
           newOperationId(),
           scope.reference,
@@ -79,7 +81,7 @@ void main() {
           names.add(name);
           await File('${folder.physicalPath}/$name').writeAsString('Output $i');
         }
-        scope = await outputs.read(workspace);
+        scope = await outputs.read(workspace, profile);
         final events = await outputs.observe(scope.reference).toList();
         var snapshot = events.whereType<OutputsObserved>().single.snapshot;
         expect(snapshot.files, names.length);
@@ -118,7 +120,7 @@ void main() {
         expect(kept.complete, isTrue);
         snapshot =
             (await outputs
-                    .observe((await outputs.read(workspace)).reference)
+                    .observe((await outputs.read(workspace, profile)).reference)
                     .where((e) => e is OutputsObserved)
                     .cast<OutputsObserved>()
                     .single)
@@ -146,7 +148,7 @@ void main() {
         final before = await deployments.read(profile);
         await outputs.add(
           newOperationId(),
-          (await outputs.read(workspace)).reference,
+          (await outputs.read(workspace, profile)).reference,
           'Second folder',
           OutputLocationKind.toolFolder,
         );

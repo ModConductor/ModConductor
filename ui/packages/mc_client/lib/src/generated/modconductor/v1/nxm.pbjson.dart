@@ -48,13 +48,15 @@ const NexusLinkRequest$json = {
   '2': [
     {'1': 'reference', '3': 1, '4': 1, '5': 9, '10': 'reference'},
     {'1': 'workspace_id', '3': 2, '4': 1, '5': 9, '10': 'workspaceId'},
+    {'1': 'profile_id', '3': 3, '4': 1, '5': 9, '10': 'profileId'},
   ],
 };
 
 /// Descriptor for `NexusLinkRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List nexusLinkRequestDescriptor = $convert.base64Decode(
     'ChBOZXh1c0xpbmtSZXF1ZXN0EhwKCXJlZmVyZW5jZRgBIAEoCVIJcmVmZXJlbmNlEiEKDHdvcm'
-    'tzcGFjZV9pZBgCIAEoCVILd29ya3NwYWNlSWQ=');
+    'tzcGFjZV9pZBgCIAEoCVILd29ya3NwYWNlSWQSHQoKcHJvZmlsZV9pZBgDIAEoCVIJcHJvZmls'
+    'ZUlk');
 
 @$core.Deprecated('Use nexusLinkReplyDescriptor instead')
 const NexusLinkReply$json = {

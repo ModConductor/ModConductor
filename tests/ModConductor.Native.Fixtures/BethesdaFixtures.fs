@@ -145,8 +145,10 @@ module BethesdaFixtures =
         (store.GameContexts :> IGameContexts)
             .Save(
                 workspace,
+                profile,
                 0L,
-                { Path = game
+                { GameId = GameId.SkyrimSpecialEditionSteam
+                  Path = game
                   Proton = if OperatingSystem.IsLinux() then Some proton else None }
             )
         |> wait

@@ -143,6 +143,8 @@ void main() {
         ], true);
         await owner.gameContexts!.save(
           id,
+          profile,
+          'skyrim-se-steam',
           0,
           game,
           proton: ProtonSelection(
@@ -246,8 +248,8 @@ void main() {
         await manifest.writeAsString(
           'manifest { version 2 commandline "/unsupported" }',
         );
-        final context = await owner.gameContexts!.read(id);
-        await owner.gameContexts!.refresh(id, context.revision);
+        final context = await owner.gameContexts!.read(id, empty);
+        await owner.gameContexts!.refresh(id, empty, context.revision);
         await tap(action('Play'));
         await until(
           () => controller().problem != null && !controller().changing,

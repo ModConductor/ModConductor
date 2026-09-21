@@ -29,15 +29,19 @@ void main() {
       final bytes = await manifest.readAsBytes();
       var child = await NativeChild.start(engine!, state);
       try {
-        final workspace = newOperationId();
+        final workspace = newOperationId(), profile = newOperationId();
         await child.workspaces().create(workspace, 'Steam check', root.path);
+        await child.workspaces().createProfile(
+          workspace,
+          0,
+          ProfileInfo(profile, 'Steam'),
+        );
         var contexts = child.gameContexts();
-        final initial = await contexts.read(workspace);
+        final initial = await contexts.read(workspace, profile);
         await expectLater(
-          child.steamDiscovery(authenticate: false).search(
-            initial.definition.id,
-            [steam],
-          ).result,
+          child.steamDiscovery(authenticate: false).search('skyrim-se-steam', [
+            steam,
+          ]).result,
           throwsA(
             isA<GrpcError>().having(
               (e) => e.code,
@@ -47,9 +51,7 @@ void main() {
           ),
         );
         final discovery = child.steamDiscovery();
-        final first = await discovery.search(initial.definition.id, [
-          steam,
-        ]).result;
+        final first = await discovery.search('skyrim-se-steam', [steam]).result;
         final found = first.candidates.singleWhere(
           (c) => c.directory.canonicalPath == canonicalGame,
         );
@@ -64,8 +66,8 @@ void main() {
           first.diagnostics.any((d) => d.path.contains('Unavailable library')),
           isTrue,
         );
-        expect((await contexts.read(workspace)).binding, isNull);
-        final again = await discovery.search(initial.definition.id, [
+        expect((await contexts.read(workspace, profile)).binding, isNull);
+        final again = await discovery.search('skyrim-se-steam', [
           steam,
           library,
         ]).result;
@@ -77,6 +79,8 @@ void main() {
         await expectLater(
           contexts.save(
             workspace,
+            profile,
+            'skyrim-se-steam',
             initial.revision,
             found.directory.canonicalPath,
           ),
@@ -88,10 +92,12 @@ void main() {
             ),
           ),
         );
-        expect((await contexts.read(workspace)).binding, isNull);
+        expect((await contexts.read(workspace, profile)).binding, isNull);
         await Directory('$game/temporarily-moved').rename('$game/Data');
         final saved = await contexts.save(
           workspace,
+          profile,
+          'skyrim-se-steam',
           initial.revision,
           found.directory.canonicalPath,
         );
@@ -100,7 +106,7 @@ void main() {
         await child.close();
         child = await NativeChild.start(engine, state);
         contexts = child.gameContexts();
-        final reopened = await contexts.read(workspace);
+        final reopened = await contexts.read(workspace, profile);
         expect(reopened.binding!.id, saved.binding!.id);
         expect(reopened.binding!.path, canonicalGame);
         expect(reopened.binding!.needsCheck, isTrue);

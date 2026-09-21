@@ -99,7 +99,7 @@ type SteamDiscoveryService() =
     override _.SearchInstallations(request, context) =
         task {
             if
-                request.DefinitionId <> Skyrim.definition.Id
+                request.DefinitionId <> GameId.value Skyrim.definition.Id
                 || request.AdditionalRoots.Count > 16
                 || (request.AdditionalRoots
                     |> Seq.exists (fun path ->

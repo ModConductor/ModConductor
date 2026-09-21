@@ -35,7 +35,8 @@ module internal LaunchDeployment =
 
                 try
                     let! current = repository.Current expected
-                    let! checkedContext = repository.Context expected.WorkspaceId
+                    let! checkedContext =
+                        repository.Context(expected.WorkspaceId, expected.ProfileId)
                     token.ThrowIfCancellationRequested()
 
                     if not current || checkedContext <> prepared.Context then

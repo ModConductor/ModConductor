@@ -99,10 +99,11 @@ class ModNexusInteractions {
 }
 
 abstract interface class NexusMetadataClient {
-  Future<ModNexusDetails> read(String workspace, String mod);
+  Future<ModNexusDetails> read(String workspace, String profile, String mod);
   Future<ModNexusDetails> refresh(ModNexusReference reference);
   Future<ModNexusDetails> link(
     ModNexusReference reference,
+    String profile,
     int? mod,
     int? file,
   );
@@ -255,13 +256,18 @@ class GrpcNexusMetadataClient implements NexusMetadataClient {
   }
 
   @override
-  Future<ModNexusDetails> read(String workspace, String mod) => _call(
-    () async => _details(
-      await _client.readModNexus(
-        wire.ModNexusRequest(workspaceId: workspace, modId: mod),
-      ),
-    ),
-  );
+  Future<ModNexusDetails> read(String workspace, String profile, String mod) =>
+      _call(
+        () async => _details(
+          await _client.readModNexus(
+            wire.ModNexusRequest(
+              workspaceId: workspace,
+              profileId: profile,
+              modId: mod,
+            ),
+          ),
+        ),
+      );
   @override
   Future<ModNexusDetails> refresh(ModNexusReference reference) => _call(
     () async => _details(await _client.refreshModNexus(_reference(reference))),
@@ -269,6 +275,7 @@ class GrpcNexusMetadataClient implements NexusMetadataClient {
   @override
   Future<ModNexusDetails> link(
     ModNexusReference reference,
+    String profile,
     int? mod,
     int? file,
   ) => _call(
@@ -276,6 +283,7 @@ class GrpcNexusMetadataClient implements NexusMetadataClient {
       await _client.linkModNexus(
         wire.LinkModNexusRequest(
           reference: _reference(reference),
+          profileId: profile,
           providerMod: mod == null ? null : Int64(mod),
           fileId: file == null ? null : Int64(file),
         ),

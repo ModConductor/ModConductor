@@ -38,9 +38,9 @@ type GameLaunchSession
         |> Convert.ToHexString
         |> fun value -> value.ToLowerInvariant()
 
-    let context workspace =
+    let context workspace profile =
         task {
-            let! result = contexts.Read workspace
+            let! result = contexts.Read(workspace, profile)
 
             return
                 result
@@ -51,7 +51,7 @@ type GameLaunchSession
     interface IGameLaunching with
         member _.Read(workspace, profile) =
             task {
-                let! state = context workspace
+                let! state = context workspace profile
                 let! deployed = deployments.Read profile
 
                 match state, deployed with
@@ -106,7 +106,7 @@ type GameLaunchSession
                         | RunSource.Game previous when previous.Request = request -> return Ok value
                         | _ -> return Error ExecutableError.IdentityConflict
                     | Error ExecutableError.NotFound ->
-                        let! state = context request.WorkspaceId
+                        let! state = context request.WorkspaceId request.ProfileId
                         let! deployed = deployments.Read request.ProfileId
 
                         let! dataRevision =
@@ -170,7 +170,7 @@ type GameLaunchSession
     interface IToolLaunchProjection with
         member _.Project(workspace, profile, generation, executable, arguments) =
             task {
-                let! state = context workspace
+                let! state = context workspace profile
                 let! deployed = deployments.Read profile
 
                 match state, deployed with

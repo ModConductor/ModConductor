@@ -182,8 +182,10 @@ module EnbFixtures =
         (store.GameContexts :> IGameContexts)
             .Save(
                 workspace,
+                profile,
                 0L,
-                { Path = game
+                { GameId = GameId.SkyrimSpecialEditionSteam
+                  Path = game
                   Proton = if OperatingSystem.IsLinux() then Some proton else None }
             )
         |> wait
@@ -571,7 +573,7 @@ module EnbFixtures =
 
         owner.OpenAuthorPage(workspace, profile) |> wait |> ignore
 
-        let context = (store.GameContexts :> IGameContexts).Read workspace |> wait |> result
+        let context = (store.GameContexts :> IGameContexts).Read(workspace, profile) |> wait |> result
 
         let operation = Guid.NewGuid()
 
@@ -635,9 +637,9 @@ module EnbFixtures =
         use reopened = new OperationStore(statePath)
 
         let reopenedContext =
-            (reopened.GameContexts :> IGameContexts).Read workspace |> wait |> result
+            (reopened.GameContexts :> IGameContexts).Read(workspace, profile) |> wait |> result
 
-        (reopened.GameContexts :> IGameContexts).Refresh(workspace, reopenedContext.Revision)
+        (reopened.GameContexts :> IGameContexts).Refresh(workspace, profile, reopenedContext.Revision)
         |> wait
         |> result
         |> ignore

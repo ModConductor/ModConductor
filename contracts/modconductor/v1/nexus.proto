@@ -25,7 +25,7 @@ message NexusAccountStatus {
   optional NexusFailure failure = 5;
   optional string profile_image_url = 6;
 }
-message NexusModRequest { string workspace_id = 1; int64 mod_id = 2; }
+message NexusModRequest { string workspace_id = 1; int64 mod_id = 2; string profile_id = 3; }
 message NexusFileInfo {
   int64 id = 1;
   string name = 2;
@@ -36,5 +36,5 @@ message NexusFileInfo {
 }
 message NexusModInfo { int64 id = 1; string name = 2; string summary = 3; repeated NexusFileInfo files = 4; }
 message NexusModReply { oneof result { NexusModInfo mod = 1; NexusFailure failure = 2; } }
-message NexusDownloadRequest { string workspace_id = 1; string artifact_id = 2; int64 mod_id = 3; int64 file_id = 4; }
+message NexusDownloadRequest { string workspace_id = 1; string artifact_id = 2; int64 mod_id = 3; int64 file_id = 4; string profile_id = 5; }
 message NexusDownloadReply { oneof result { ArchiveArtifact artifact = 1; NexusFailure failure = 2; } }

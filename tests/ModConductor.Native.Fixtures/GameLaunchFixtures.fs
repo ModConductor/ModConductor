@@ -138,13 +138,14 @@ module GameLaunchFixtures =
                 |> ignore
 
                 (store.GameContexts :> IGameContexts)
-                    .Save(workspace, 0L, { Path = game; Proton = Some proton })
+                    .Save(workspace, profile, 0L, { GameId = GameId.SkyrimSpecialEditionSteam
+                                                    Path = game; Proton = Some proton })
                 |> wait
                 |> result
                 |> ignore
 
                 let checkedContext =
-                    (store.GameContexts :> IGameContexts).Read workspace |> wait |> result
+                    (store.GameContexts :> IGameContexts).Read(workspace, profile) |> wait |> result
 
                 GameLaunchProcessFixture.observe writer area checkedContext.Binding.Value.Evidence
                 let api = store.GameLaunching
@@ -352,11 +353,11 @@ module GameLaunchFixtures =
                     (old.Phase = RunPhase.Finished && old.ProfileId = Some profile)
 
                 let oldContext =
-                    (store.GameContexts :> IGameContexts).Read workspace |> wait |> result
+                    (store.GameContexts :> IGameContexts).Read(workspace, profile) |> wait |> result
 
                 check "newOwnerRequiresStartupCheck" oldContext.Binding.Value.NeedsCheck
 
-                (store.GameContexts :> IGameContexts).Refresh(workspace, oldContext.Revision)
+                (store.GameContexts :> IGameContexts).Refresh(workspace, profile, oldContext.Revision)
                 |> wait
                 |> result
                 |> ignore

@@ -588,7 +588,8 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                 intent
                 |> Option.exists (fun value -> not value.Cancelled && not value.Completed)
 
-            let! contextResult = (store.GameContexts :> IGameContexts).Read workspace
+            let! contextResult =
+                (store.GameContexts :> IGameContexts).Read(workspace, profile)
 
             match contextResult with
             | Error _ ->
@@ -1545,7 +1546,8 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
 
     let confirmPlan workspace profile includeFnis expected =
         task {
-            let! contextResult = (store.GameContexts :> IGameContexts).Read workspace
+            let! contextResult =
+                (store.GameContexts :> IGameContexts).Read(workspace, profile)
             let! deploymentResult = store.Deployments.Read profile
 
             match contextResult, deploymentResult with

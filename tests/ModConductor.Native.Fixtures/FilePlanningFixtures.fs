@@ -160,11 +160,13 @@ module FilePlanningFixtures =
                 |> ignore
 
             let selection =
-                { Path = game
+                { GameId = GameId.SkyrimSpecialEditionSteam
+                  Path = game
                   Proton = if OperatingSystem.IsLinux() then Some proton else None }
 
-            let context = contexts.Save(workspace, 0L, selection) |> wait |> result
-            finalContextRevision <- context.Revision
+            for profile in [ first; second ] do
+                let context = contexts.Save(workspace, profile, 0L, selection) |> wait |> result
+                finalContextRevision <- context.Revision
 
             let concurrentReads =
                 [ for _ in 1..16 do
@@ -583,7 +585,7 @@ module FilePlanningFixtures =
             use store = new OperationStore(state)
             let contexts = store.GameContexts :> IGameContexts
             let plans = store.FilePlans :> IFilePlans
-            let context = contexts.Read workspace |> wait |> result
+            let context = contexts.Read(workspace, first) |> wait |> result
             let opened = plans.Open(first, CancellationToken.None) |> wait |> result
 
             writer.WriteBoolean(

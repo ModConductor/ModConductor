@@ -43,8 +43,8 @@ module internal FilePlanRows =
                 Sqlite.number
                     connection
                     transaction
-                    "SELECT COALESCE((SELECT revision FROM game_contexts WHERE workspace_id=$workspace),0)"
-                    [ "$workspace", box (string workspace) ]
+                    "SELECT COALESCE((SELECT revision FROM game_contexts WHERE workspace_id=$workspace AND profile_id=$profile),0)"
+                    [ "$workspace", box (string workspace); "$profile", box (string profile) ]
               ExclusionRevision = revision connection transaction workspace
               OutputRevision =
                 Sqlite.number
@@ -54,13 +54,14 @@ module internal FilePlanRows =
                     [ "$workspace", box (string workspace) ]
               Versions = versions connection transaction workspace
               Deployment =
-                match GameContextRows.read connection transaction "" workspace with
+                match GameContextRows.read connection transaction "" workspace profile with
                 | Ok state ->
                     state.Binding
                     |> Option.bind (fun binding ->
                         let id =
                             ModConductor.Deployment.DeploymentContextId.create
                                 workspace
+                                profile
                                 (ModConductor.Deployment.DeploymentContextId.fingerprint
                                     binding.Evidence)
 
@@ -99,7 +100,7 @@ module internal FilePlanRows =
         | Some stamp when stamp.Versions.Length > Limits.entries ->
             Error(FilePlanError.LimitExceeded "The mod inventory exceeds the entry limit.")
         | Some stamp ->
-            match GameContextRows.read connection transaction owner stamp.WorkspaceId with
+            match GameContextRows.read connection transaction owner stamp.WorkspaceId profile with
             | Error _ -> Error FilePlanError.NotFound
             | Ok context ->
                 let selection =
@@ -223,7 +224,11 @@ module internal FilePlanRows =
                             match context.Binding with
                             | None -> []
                             | Some _ ->
-                                let id = OutputRows.contextId stamp.WorkspaceId context
+                                let id =
+                                    OutputRows.contextId
+                                        stamp.WorkspaceId
+                                        stamp.ProfileId
+                                        context
 
                                 use query =
                                     Sqlite.command

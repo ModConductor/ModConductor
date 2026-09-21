@@ -210,18 +210,22 @@ module internal ComponentFixtures =
         enable profileOne
         enable profileTwo
 
-        (store.GameContexts :> IGameContexts)
-            .Save(
-                workspace,
-                0L,
-                { Path = game
-                  Proton = if OperatingSystem.IsLinux() then Some proton else None }
-            )
-        |> wait
-        |> result
-        |> ignore
+        for profile in [ profileOne; profileTwo ] do
+            (store.GameContexts :> IGameContexts)
+                .Save(
+                    workspace,
+                    profile,
+                    0L,
+                    { GameId = GameId.SkyrimSpecialEditionSteam
+                      Path = game
+                      Proton = if OperatingSystem.IsLinux() then Some proton else None }
+                )
+            |> wait
+            |> result
+            |> ignore
 
-        let context = (store.GameContexts :> IGameContexts).Read workspace |> wait |> result
+        let context =
+            (store.GameContexts :> IGameContexts).Read(workspace, profileOne) |> wait |> result
 
         let gameRoot =
             ComponentRoots.gameRootId workspace context.Binding.Value.Evidence

@@ -62,10 +62,12 @@ class _ModNexusViewState extends State<ModNexusView> {
 
   Future<void> linkForm() async {
     final original = controller.details, nexus = controller.nexus;
-    if (original == null || nexus == null) return;
+    final profile = controller.profile;
+    if (original == null || nexus == null || profile == null) return;
     final result = await showDialog<({int mod, int? file})>(
       context: context,
-      builder: (_) => NexusLinkForm(details: original, client: nexus),
+      builder: (_) =>
+          NexusLinkForm(details: original, client: nexus, profile: profile),
     );
     if (result != null && mounted) {
       await controller.link(result.mod, result.file);

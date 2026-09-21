@@ -6,6 +6,7 @@ class ModNexusController extends ChangeNotifier {
   NexusMetadataClient? client;
   NexusClient? nexus;
   String? workspace;
+  String? profile;
   ModNexusDetails? details;
   ModNexusInteractions? interactions;
   NexusProblem? problem;
@@ -26,16 +27,19 @@ class ModNexusController extends ChangeNotifier {
     NexusMetadataClient? client,
     NexusClient? nexus,
     String? workspace,
+    String? profile,
   ) {
     if (identical(this.client, client) &&
         identical(this.nexus, nexus) &&
-        this.workspace == workspace) {
+        this.workspace == workspace &&
+        this.profile == profile) {
       return;
     }
     ++_epoch;
     this.client = client;
     this.nexus = nexus;
     this.workspace = workspace;
+    this.profile = profile;
     details = null;
     interactions = null;
     viewing = false;
@@ -115,7 +119,7 @@ class ModNexusController extends ChangeNotifier {
   }
 
   Future<void> open(ModEntry mod) async {
-    if (busy || workspace == null) return;
+    if (busy || workspace == null || profile == null) return;
     viewing = true;
     details = null;
     interactions = null;
@@ -123,7 +127,7 @@ class ModNexusController extends ChangeNotifier {
     requests.clear();
     refusedFile = null;
     await _run((epoch) async {
-      final value = await client!.read(workspace!, mod.id);
+      final value = await client!.read(workspace!, profile!, mod.id);
       if (!_current(epoch)) return;
       _accept(value);
       final state = await client!.interactions(value.reference);
@@ -155,7 +159,7 @@ class ModNexusController extends ChangeNotifier {
   Future<void> link(int? mod, int? file) => _run((epoch) async {
     final original = details;
     if (original == null) return;
-    final value = await client!.link(original.reference, mod, file);
+    final value = await client!.link(original.reference, profile!, mod, file);
     if (!_current(epoch)) return;
     _accept(value);
     requests.clear();
@@ -217,7 +221,7 @@ class ModNexusController extends ChangeNotifier {
   Future<void> openPage() => _run((_) async {
     final value = details?.reference;
     if (value?.providerMod == null) return;
-    await nexus?.openPage(value!.workspace, value.providerMod!);
+    await nexus?.openPage(value!.workspace, profile!, value.providerMod!);
   });
   @override
   void dispose() {

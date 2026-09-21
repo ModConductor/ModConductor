@@ -45,13 +45,14 @@ type NexusMetadataService
                 let! result = details.Link(value, None, None)
                 return NexusMetadataWire.reply result
             | Ok value ->
-                let! context = games.Read value.Workspace
+                let! context =
+                    games.Read(value.Workspace, ModLibraryWire.id request.ProfileId)
 
                 match context with
                 | Ok context when
                     context.Binding
                     |> Option.exists (fun binding ->
-                        binding.Evidence.DefinitionId = "skyrim-se-steam")
+                        binding.Evidence.DefinitionId = GameId.SkyrimSpecialEditionSteam)
                     ->
                     let! metadata =
                         session.ReadMetadata

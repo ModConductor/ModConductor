@@ -214,7 +214,8 @@ module SaveFixtures =
 
         let context =
             (store.GameContexts :> IGameContexts)
-                .Save(workspace, 0L, { Path = game; Proton = Some proton })
+                .Save(workspace, profile, 0L, { GameId = GameId.SkyrimSpecialEditionSteam
+                                                Path = game; Proton = Some proton })
             |> wait
             |> result
 
@@ -446,8 +447,8 @@ module SaveFixtures =
         store <- new OperationStore(Path.Combine(area, "state"))
         api <- store.ProfileGameData
         let contexts = store.GameContexts :> IGameContexts
-        let currentContext = contexts.Read(workspace) |> wait |> result
-        contexts.Refresh(workspace, currentContext.Revision) |> wait |> result |> ignore
+        let currentContext = contexts.Read(workspace, profile) |> wait |> result
+        contexts.Refresh(workspace, profile, currentContext.Revision) |> wait |> result |> ignore
         let resumed = api.Resume(workspace, interruptedId, token) |> wait |> result
 
         check

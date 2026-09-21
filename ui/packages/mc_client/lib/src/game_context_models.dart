@@ -202,13 +202,15 @@ class GameBindingInfo {
 class GameContextState {
   const GameContextState({
     required this.workspaceId,
+    required this.profileId,
     required this.revision,
     required this.definition,
     this.binding,
   });
   final String workspaceId;
+  final String profileId;
   final int revision;
-  final GameDefinitionInfo definition;
+  final GameDefinitionInfo? definition;
   final GameBindingInfo? binding;
 }
 

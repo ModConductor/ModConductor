@@ -40,7 +40,7 @@ module internal GameContextEncoding =
             w.WriteEndObject()
 
         w.WriteStartObject()
-        text "definition" e.DefinitionId
+        text "definition" (GameId.value e.DefinitionId)
         w.WriteNumber("definitionRevision", e.DefinitionRevision)
 
         w.WriteNumber(
@@ -121,7 +121,9 @@ module internal GameContextEncoding =
             | Some path -> Location.Located(path, (get e "exists").GetBoolean())
             | None -> Location.Unavailable(text e "reason")
 
-        { DefinitionId = text root "definition"
+        { DefinitionId =
+            GameId.tryParse (text root "definition")
+            |> Option.defaultWith (fun () -> invalidOp "Invalid stored game definition.")
           DefinitionRevision = (get root "definitionRevision").GetInt32()
           Platform =
             match (get root "platform").GetInt32() with

@@ -153,7 +153,11 @@ module internal DeploymentPreparation =
             let evidence = GameProcesses.validate sources.Context
 
             let ownership = DeploymentContextId.fingerprint evidence
-            let contextId = DeploymentContextId.create sources.Stamp.WorkspaceId ownership
+            let contextId =
+                DeploymentContextId.create
+                    sources.Stamp.WorkspaceId
+                    sources.Stamp.ProfileId
+                    ownership
 
             let! acquired =
                 (plans :> IFilePlans)

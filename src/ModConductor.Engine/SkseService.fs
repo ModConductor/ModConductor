@@ -125,7 +125,7 @@ type SkseCoordinator
 
     let resolve workspace profile =
         task {
-            let! context = games.Read workspace
+            let! context = games.Read(workspace, profile)
 
             match context with
             | Error _ -> return Error SkseProblem.GameUnavailable
@@ -375,7 +375,7 @@ type SkseCoordinator
     member _.Read(workspace, profile) =
         task {
             let key = workspace, profile
-            let! contextResult = games.Read workspace
+            let! contextResult = games.Read(workspace, profile)
             let! deployed = store.Deployments.Read profile
 
             match contextResult, deployed with
@@ -453,7 +453,7 @@ type SkseCoordinator
 
             match resolved with
             | Error liveProblem ->
-                let! context = games.Read workspace
+                let! context = games.Read(workspace, profile)
 
                 match context with
                 | Ok context when context.Binding.IsSome ->
@@ -583,7 +583,7 @@ type SkseCoordinator
 
                 match installed with
                 | Some loader ->
-                    let! context = games.Read workspace
+                    let! context = games.Read(workspace, profile)
 
                     match context with
                     | Ok context -> return! installedState key context loader
@@ -694,7 +694,8 @@ type SkseCoordinator
                                 | Ok artifact ->
                                     admitted.Complete()
                                     do! store.SkseLoaders.RemovePending(selection.ProfileId.Value)
-                                    let! context = games.Read selection.WorkspaceId
+                                    let! context =
+                                        games.Read(selection.WorkspaceId, selection.ProfileId.Value)
 
                                     match context with
                                     | Ok context when context.Binding.IsSome ->
@@ -736,7 +737,7 @@ type SkseCoordinator
                 match loader with
                 | None -> return Ok()
                 | Some loader ->
-                    let! context = games.Read workspace
+                    let! context = games.Read(workspace, profile)
 
                     match context with
                     | Error _ ->

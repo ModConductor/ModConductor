@@ -6,9 +6,15 @@ import 'category_controller.dart';
 import 'category_picker.dart';
 
 class NexusLinkForm extends StatefulWidget {
-  const NexusLinkForm({super.key, required this.details, required this.client});
+  const NexusLinkForm({
+    super.key,
+    required this.details,
+    required this.client,
+    required this.profile,
+  });
   final ModNexusDetails details;
   final NexusClient client;
+  final String profile;
   @override
   State<NexusLinkForm> createState() => _NexusLinkFormState();
 }
@@ -37,6 +43,7 @@ class _NexusLinkFormState extends State<NexusLinkForm> {
     try {
       final value = await widget.client.mod(
         widget.details.reference.workspace,
+        widget.profile,
         id,
       );
       if (mounted) {

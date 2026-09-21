@@ -9,7 +9,11 @@ import 'output_wire.dart' as mapping;
 export 'output_models.dart';
 
 abstract interface class GeneratedOutputsClient {
-  Future<OutputScope> read(String workspaceId, {String? contextId});
+  Future<OutputScope> read(
+    String workspaceId,
+    String profileId, {
+    String? contextId,
+  });
   Future<OutputLocation> add(
     String id,
     OutputScopeRef expected,
@@ -45,15 +49,19 @@ class GrpcGeneratedOutputsClient implements GeneratedOutputsClient {
     : _client = wire.GeneratedOutputOperationsClient(channel, options: options);
   final wire.GeneratedOutputOperationsClient _client;
   @override
-  Future<OutputScope> read(String workspaceId, {String? contextId}) async =>
-      mapping.scopeReply(
-        await _client.readOutputs(
-          wire.ReadOutputsRequest(
-            workspaceId: workspaceId,
-            contextId: contextId,
-          ),
-        ),
-      );
+  Future<OutputScope> read(
+    String workspaceId,
+    String profileId, {
+    String? contextId,
+  }) async => mapping.scopeReply(
+    await _client.readOutputs(
+      wire.ReadOutputsRequest(
+        workspaceId: workspaceId,
+        profileId: profileId,
+        contextId: contextId,
+      ),
+    ),
+  );
   @override
   Future<OutputLocation> add(
     String id,

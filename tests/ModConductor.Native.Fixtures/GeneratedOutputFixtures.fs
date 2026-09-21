@@ -78,8 +78,10 @@ module GeneratedOutputFixtures =
                 (store.GameContexts :> IGameContexts)
                     .Save(
                         workspace,
+                        profile,
                         0L,
-                        { Path = game
+                        { GameId = GameId.SkyrimSpecialEditionSteam
+                          Path = game
                           Proton =
                             if OperatingSystem.IsLinux() then
                                 Some selectedProton
@@ -118,7 +120,7 @@ module GeneratedOutputFixtures =
                      && reused.Proton.Value.GlobalTool = Some "fixture_tool")
 
                 let readAgain =
-                    (store.GameContexts :> IGameContexts).Read workspace |> wait |> result
+                    (store.GameContexts :> IGameContexts).Read(workspace, profile) |> wait |> result
 
                 check
                     "ordinaryReadKeepsSessionSnapshot"
@@ -129,7 +131,7 @@ module GeneratedOutputFixtures =
             let library = store.ModLibrary :> IModLibrary
 
             let scope () =
-                outputs.Read(workspace, None) |> wait |> result
+                outputs.Read(workspace, profile, None) |> wait |> result
 
             let observe () =
                 outputs.Observe(scope (), ignore, token) |> wait |> result
@@ -532,8 +534,8 @@ module GeneratedOutputFixtures =
 
             if OperatingSystem.IsLinux() then
                 let contexts = store.GameContexts :> IGameContexts
-                let before = contexts.Read workspace |> wait |> result
-                let refreshed = contexts.Refresh(workspace, before.Revision) |> wait |> result
+                let before = contexts.Read(workspace, profile) |> wait |> result
+                let refreshed = contexts.Refresh(workspace, profile, before.Revision) |> wait |> result
 
                 check
                     "explicitRefreshReplacesSessionSnapshot"
@@ -577,7 +579,7 @@ module GeneratedOutputFixtures =
                         |> Option.exists (fun value -> value.Id = profile && value.EnabledMods = 1)))
 
             let contexts = reopened.GameContexts :> IGameContexts
-            let context = contexts.Read workspace |> wait |> result
+            let context = contexts.Read(workspace, profile) |> wait |> result
 
             let refused =
                 try
@@ -587,7 +589,7 @@ module GeneratedOutputFixtures =
                     true
 
             check "restartRequiresSessionCheck" (context.Binding.Value.NeedsCheck && refused)
-            let initialized = contexts.Refresh(workspace, context.Revision) |> wait |> result
+            let initialized = contexts.Refresh(workspace, profile, context.Revision) |> wait |> result
 
             check
                 "restartRefreshReadsCurrentDiscovery"

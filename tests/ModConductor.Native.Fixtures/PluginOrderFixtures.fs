@@ -79,10 +79,14 @@ module PluginOrderFixtures =
         |> ignore
 
         let context =
-            (store.GameContexts :> IGameContexts)
-                .Save(workspace, 0L, { Path = game; Proton = Some proton })
-            |> wait
-            |> result
+            [ first; second ]
+            |> List.map (fun profile ->
+                (store.GameContexts :> IGameContexts)
+                    .Save(workspace, profile, 0L, { GameId = GameId.SkyrimSpecialEditionSteam
+                                                    Path = game; Proton = Some proton })
+                |> wait
+                |> result)
+            |> List.head
 
         let local =
             match context.Binding.Value.Evidence.Locations.LocalAppData with
@@ -262,8 +266,8 @@ module PluginOrderFixtures =
         (store :> IDisposable).Dispose()
         store <- new OperationStore(Path.Combine(area, "state"))
         let contexts = store.GameContexts :> IGameContexts
-        let reloaded = contexts.Read(workspace) |> wait |> result
-        contexts.Refresh(workspace, reloaded.Revision) |> wait |> result |> ignore
+        let reloaded = contexts.Read(workspace, first) |> wait |> result
+        contexts.Refresh(workspace, first, reloaded.Revision) |> wait |> result |> ignore
         let pending = store.ProfileGameData.Read(workspace, first) |> wait |> result
 
         let resumed =

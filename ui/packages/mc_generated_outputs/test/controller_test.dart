@@ -11,13 +11,22 @@ import 'package:mc_generated_outputs/src/output_controller.dart';
 import 'package:mc_generated_outputs/src/output_pane.dart';
 import 'package:mc_generated_outputs/src/output_tree.dart';
 
-OutputScope scope(String workspace) => OutputScope(
-  OutputScopeRef(workspace, 'context-$workspace', 1, 1),
-  '/game',
-  const [],
-  const [],
-  const [],
-);
+OutputScope scope(String workspace, {String profile = 'profile'}) =>
+    OutputScope(
+      OutputScopeRef(
+        workspace,
+        profile,
+        profile == 'profile'
+            ? 'context-$workspace'
+            : 'context-$workspace-$profile',
+        1,
+        1,
+      ),
+      '/game',
+      const [],
+      const [],
+      const [],
+    );
 OutputSnapshot snapshot(String id, {String workspace = 'one'}) =>
     OutputSnapshot(id, scope(workspace), DateTime.utc(2026), 1, 1, 1);
 OutputFile file(String name) => OutputFile(
@@ -32,6 +41,7 @@ OutputFile file(String name) => OutputFile(
 
 class Outputs implements GeneratedOutputsClient {
   Future<OutputScope> Function(String)? reading;
+  Future<OutputScope> Function(String, String)? profileReading;
   Future<OutputPage> Function(String, String, String?)? paging;
   final observations = <StreamController<OutputLoadEvent>>[];
   int reads = 0, applications = 0, resumes = 0;
@@ -47,9 +57,15 @@ class Outputs implements GeneratedOutputsClient {
   String? actionId;
   bool loseReply = false, incomplete = false;
   @override
-  Future<OutputScope> read(String workspaceId, {String? contextId}) {
+  Future<OutputScope> read(
+    String workspaceId,
+    String profileId, {
+    String? contextId,
+  }) {
     reads++;
-    return reading?.call(workspaceId) ?? Future.value(scope(workspaceId));
+    return profileReading?.call(workspaceId, profileId) ??
+        reading?.call(workspaceId) ??
+        Future.value(scope(workspaceId, profile: profileId));
   }
 
   @override
@@ -151,7 +167,7 @@ void main() {
           OutputPage(loaded, [file('output')], 1, null, 1, 1);
       final controller = OutputController();
       addTearDown(controller.dispose);
-      controller.attach(api, 'one', available: true);
+      controller.attach(api, 'one', profile: 'profile', available: true);
       await tester.pump();
       controller.snapshot = loaded;
       controller.tools.attach(api, loaded);
@@ -222,7 +238,7 @@ void main() {
       );
       final controller = OutputController();
       addTearDown(controller.dispose);
-      controller.attach(api, 'one', available: true);
+      controller.attach(api, 'one', profile: 'profile', available: true);
       await tester.pump();
       await tester.pumpWidget(
         MaterialApp(
@@ -255,7 +271,7 @@ void main() {
       final api = Outputs()..adding = Completer<OutputLocation>();
       final controller = OutputController();
       addTearDown(controller.dispose);
-      controller.attach(api, 'one', available: true);
+      controller.attach(api, 'one', profile: 'profile', available: true);
       await tester.pumpWidget(
         MaterialApp(
           home: Builder(
@@ -329,7 +345,7 @@ void main() {
     api.reading = (_) => read.future;
     final controller = OutputController();
     addTearDown(controller.dispose);
-    controller.attach(api, 'one', available: true);
+    controller.attach(api, 'one', profile: 'profile', available: true);
     final refresh = controller.refresh();
     expect(api.reads, 1);
     read.complete(scope('one'));
@@ -358,8 +374,8 @@ void main() {
         workspace == 'one' ? delayed.future : Future.value(scope(workspace));
     final controller = OutputController();
     addTearDown(controller.dispose);
-    controller.attach(api, 'one', available: true);
-    controller.attach(api, 'two', available: true);
+    controller.attach(api, 'one', profile: 'profile', available: true);
+    controller.attach(api, 'two', profile: 'profile', available: true);
     await Future<void>.delayed(const Duration(milliseconds: 1));
     delayed.complete(scope('one'));
     await Future<void>.delayed(const Duration(milliseconds: 1));
@@ -373,11 +389,30 @@ void main() {
     expect(controller.needsRead, isTrue);
   });
 
+  test(
+    'a late scope read cannot repopulate another profile in the same workspace',
+    () async {
+      final api = Outputs(), delayed = Completer<OutputScope>();
+      api.profileReading = (workspace, profile) => profile == 'one'
+          ? delayed.future
+          : Future.value(scope(workspace, profile: profile));
+      final controller = OutputController();
+      addTearDown(controller.dispose);
+      controller.attach(api, 'workspace', profile: 'one', available: true);
+      controller.attach(api, 'workspace', profile: 'two', available: true);
+      await Future<void>.delayed(const Duration(milliseconds: 1));
+      delayed.complete(scope('workspace', profile: 'one'));
+      await Future<void>.delayed(const Duration(milliseconds: 1));
+      expect(controller.profileId, 'two');
+      expect(controller.scope?.reference.profileId, 'two');
+    },
+  );
+
   test('unknown publication is reconciled by its action identity without applying another promotion', () async {
     final api = Outputs()..loseReply = true;
     final controller = OutputController();
     addTearDown(controller.dispose);
-    controller.attach(api, 'one', available: true);
+    controller.attach(api, 'one', profile: 'profile', available: true);
     await Future<void>.delayed(const Duration(milliseconds: 1));
     controller.snapshot = snapshot('checked');
     expect(

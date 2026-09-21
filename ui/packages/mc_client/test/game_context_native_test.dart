@@ -16,15 +16,54 @@ void main() {
       final state = await Directory('${area.path}/state').create();
       final root = await Directory('${area.path}/root').create();
       final game = '${area.path}/game';
+      final secondGame = '${area.path}/second-game';
       final prepared = await Process.run(fixtureTool!, ['--game-files', game]);
       expect(prepared.exitCode, 0, reason: '${prepared.stderr}');
+      final preparedSecond = await Process.run(fixtureTool, [
+        '--game-files',
+        secondGame,
+      ]);
+      expect(preparedSecond.exitCode, 0, reason: '${preparedSecond.stderr}');
       var child = await NativeChild.start(engine!, state);
       final workspace = newOperationId();
+      final profile = newOperationId();
+      final secondProfile = newOperationId();
       try {
         await child.workspaces().create(workspace, 'Game', root.path);
+        final created = await child.workspaces().createProfile(
+          workspace,
+          0,
+          ProfileInfo(profile, 'Game'),
+        );
+        await child.workspaces().createProfile(
+          workspace,
+          created.workspace.revision,
+          ProfileInfo(secondProfile, 'Second game'),
+        );
         final client = child.gameContexts();
-        final empty = await client.read(workspace);
-        final installationCapability = empty.definition.capability(
+        final empty = await client.read(workspace, profile);
+        expect(empty.definition, isNull);
+        expect(empty.binding, isNull);
+        final saved = await client.save(
+          workspace,
+          profile,
+          'skyrim-se-steam',
+          empty.revision,
+          game,
+        );
+        final secondEmpty = await client.read(workspace, secondProfile);
+        expect(secondEmpty.binding, isNull);
+        final secondSaved = await client.save(
+          workspace,
+          secondProfile,
+          'skyrim-se-steam',
+          secondEmpty.revision,
+          secondGame,
+        );
+        expect(secondSaved.binding!.path, secondGame);
+        expect((await client.read(workspace, profile)).binding!.path, game);
+        final definition = saved.definition!;
+        final installationCapability = definition.capability(
           GameCapabilityId.gameInstallationValidation,
         );
         expect(
@@ -33,36 +72,42 @@ void main() {
         );
         expect(
           installationCapability?.supports(
-            empty.definition.id,
+            definition.id,
             GameContextPlatform.windows,
           ),
           isTrue,
         );
         expect(
           installationCapability?.supports(
-            empty.definition.id,
+            definition.id,
             GameContextPlatform.proton,
           ),
           isTrue,
         );
         expect(
-          empty.definition.capability(GameCapabilityId.archiveInspection)?.kind,
+          definition.capability(GameCapabilityId.archiveInspection)?.kind,
           GameCapabilityKind.gameAdapter,
         );
         expect(
-          empty.definition
+          definition
               .capability(GameCapabilityId.archiveInspection)
               ?.disposition,
           GameCapabilityDisposition.available,
         );
         expect(
-          empty.definition.capability(GameCapabilityId.legacyExtensionAbi),
+          definition.capability(GameCapabilityId.legacyExtensionAbi),
           isNull,
         );
         await expectLater(
           child
               .gameContexts(authenticate: false)
-              .save(workspace, empty.revision, game),
+              .save(
+                workspace,
+                profile,
+                'skyrim-se-steam',
+                saved.revision,
+                game,
+              ),
           throwsA(
             isA<GrpcError>().having(
               (e) => e.code,
@@ -71,8 +116,6 @@ void main() {
             ),
           ),
         );
-        expect((await client.read(workspace)).binding, isNull);
-        final saved = await client.save(workspace, empty.revision, game);
         expect(saved.binding!.evidence.executable!.fileVersion, '1.7.104.0');
         if (Platform.isLinux) {
           expect(
@@ -81,7 +124,13 @@ void main() {
           );
         }
         await expectLater(
-          client.save(workspace, saved.revision, '$game/absent'),
+          client.save(
+            workspace,
+            profile,
+            'skyrim-se-steam',
+            saved.revision,
+            '$game/absent',
+          ),
           throwsA(
             isA<GameContextException>().having(
               (e) => e.code,
@@ -90,11 +139,20 @@ void main() {
             ),
           ),
         );
-        expect((await client.read(workspace)).revision, saved.revision);
+        expect(
+          (await client.read(workspace, profile)).revision,
+          saved.revision,
+        );
         final results = await Future.wait([
           for (var i = 0; i < 2; i++)
             client
-                .save(workspace, saved.revision, game)
+                .save(
+                  workspace,
+                  profile,
+                  'skyrim-se-steam',
+                  saved.revision,
+                  game,
+                )
                 .then<Object>(
                   (value) => value,
                   onError: (Object error) => error,
@@ -110,11 +168,11 @@ void main() {
             GameContextFailure.workspaceUnavailable,
           ),
         );
-        final current = await client.read(workspace);
+        final current = await client.read(workspace, profile);
         expect(current.revision, saved.revision + 1);
         await child.close();
         child = await NativeChild.start(engine, state);
-        final reopened = await child.gameContexts().read(workspace);
+        final reopened = await child.gameContexts().read(workspace, profile);
         expect(reopened.binding!.id, saved.binding!.id);
         expect(reopened.binding!.needsCheck, isTrue);
         expect(
@@ -123,6 +181,7 @@ void main() {
         );
         final checked = await child.gameContexts().refresh(
           workspace,
+          profile,
           reopened.revision,
         );
         expect(checked.binding!.needsCheck, isFalse);
@@ -130,6 +189,7 @@ void main() {
         await data.rename('$game/moved-data');
         final unavailable = await child.gameContexts().refresh(
           workspace,
+          profile,
           checked.revision,
         );
         expect(unavailable.binding!.needsCheck, isTrue);

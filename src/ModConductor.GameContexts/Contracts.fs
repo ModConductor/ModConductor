@@ -9,8 +9,22 @@ type ContextPlatform =
     | Windows
     | Proton
 
+[<Struct; RequireQualifiedAccess>]
+type GameId =
+    | SkyrimSpecialEditionSteam
+
+module GameId =
+    let value =
+        function
+        | GameId.SkyrimSpecialEditionSteam -> "skyrim-se-steam"
+
+    let tryParse =
+        function
+        | "skyrim-se-steam" -> Some GameId.SkyrimSpecialEditionSteam
+        | _ -> None
+
 type GameDefinition =
-    { Id: string
+    { Id: GameId
       Revision: int
       Name: string
       Storefront: string
@@ -26,7 +40,7 @@ type GameDefinition =
 
 module Skyrim =
     let definition =
-        { Id = "skyrim-se-steam"
+        { Id = GameId.SkyrimSpecialEditionSteam
           Revision = 1
           Name = "Skyrim Special Edition"
           Storefront = "Steam"
@@ -73,7 +87,8 @@ type ProtonSelection =
       ToolId: string }
 
 type ContextSelection =
-    { Path: string
+    { GameId: GameId
+      Path: string
       Proton: ProtonSelection option }
 
 type ContextFileEvidence =
@@ -110,7 +125,7 @@ type ProtonEvidence =
       Paths: ProtonPath list }
 
 type InstallationEvidence =
-    { DefinitionId: string
+    { DefinitionId: GameId
       DefinitionRevision: int
       Platform: ContextPlatform
       RootPath: string
@@ -133,6 +148,7 @@ type InstallationEvidence =
 
 type GameBinding =
     { Id: Guid
+      GameId: GameId
       Path: string
       Proton: ProtonSelection option
       Evidence: InstallationEvidence
@@ -141,6 +157,7 @@ type GameBinding =
 
 type GameContextState =
     { WorkspaceId: Guid
+      ProfileId: Guid
       Revision: int64
       Binding: GameBinding option }
 
@@ -153,11 +170,12 @@ type ContextError =
     | Invalid of InstallationEvidence
 
 type IGameContexts =
-    abstract Read: workspace: Guid -> Task<Result<GameContextState, ContextError>>
+    abstract Read: workspace: Guid * profile: Guid -> Task<Result<GameContextState, ContextError>>
 
     abstract Save:
-        workspace: Guid * expected: int64 * selection: ContextSelection ->
+        workspace: Guid * profile: Guid * expected: int64 * selection: ContextSelection ->
             Task<Result<GameContextState, ContextError>>
 
     abstract Refresh:
-        workspace: Guid * expected: int64 -> Task<Result<GameContextState, ContextError>>
+        workspace: Guid * profile: Guid * expected: int64 ->
+            Task<Result<GameContextState, ContextError>>

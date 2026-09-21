@@ -131,13 +131,14 @@ const NexusModRequest$json = {
   '2': [
     {'1': 'workspace_id', '3': 1, '4': 1, '5': 9, '10': 'workspaceId'},
     {'1': 'mod_id', '3': 2, '4': 1, '5': 3, '10': 'modId'},
+    {'1': 'profile_id', '3': 3, '4': 1, '5': 9, '10': 'profileId'},
   ],
 };
 
 /// Descriptor for `NexusModRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List nexusModRequestDescriptor = $convert.base64Decode(
     'Cg9OZXh1c01vZFJlcXVlc3QSIQoMd29ya3NwYWNlX2lkGAEgASgJUgt3b3Jrc3BhY2VJZBIVCg'
-    'Ztb2RfaWQYAiABKANSBW1vZElk');
+    'Ztb2RfaWQYAiABKANSBW1vZElkEh0KCnByb2ZpbGVfaWQYAyABKAlSCXByb2ZpbGVJZA==');
 
 @$core.Deprecated('Use nexusFileInfoDescriptor instead')
 const NexusFileInfo$json = {
@@ -228,6 +229,7 @@ const NexusDownloadRequest$json = {
     {'1': 'artifact_id', '3': 2, '4': 1, '5': 9, '10': 'artifactId'},
     {'1': 'mod_id', '3': 3, '4': 1, '5': 3, '10': 'modId'},
     {'1': 'file_id', '3': 4, '4': 1, '5': 3, '10': 'fileId'},
+    {'1': 'profile_id', '3': 5, '4': 1, '5': 9, '10': 'profileId'},
   ],
 };
 
@@ -235,7 +237,8 @@ const NexusDownloadRequest$json = {
 final $typed_data.Uint8List nexusDownloadRequestDescriptor = $convert.base64Decode(
     'ChROZXh1c0Rvd25sb2FkUmVxdWVzdBIhCgx3b3Jrc3BhY2VfaWQYASABKAlSC3dvcmtzcGFjZU'
     'lkEh8KC2FydGlmYWN0X2lkGAIgASgJUgphcnRpZmFjdElkEhUKBm1vZF9pZBgDIAEoA1IFbW9k'
-    'SWQSFwoHZmlsZV9pZBgEIAEoA1IGZmlsZUlk');
+    'SWQSFwoHZmlsZV9pZBgEIAEoA1IGZmlsZUlkEh0KCnByb2ZpbGVfaWQYBSABKAlSCXByb2ZpbG'
+    'VJZA==');
 
 @$core.Deprecated('Use nexusDownloadReplyDescriptor instead')
 const NexusDownloadReply$json = {

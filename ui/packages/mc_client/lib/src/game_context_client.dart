@@ -8,14 +8,20 @@ import 'proton_context_wire.dart';
 export 'game_context_models.dart';
 
 abstract interface class GameContextsClient {
-  Future<GameContextState> read(String workspaceId);
+  Future<GameContextState> read(String workspaceId, String profileId);
   Future<GameContextState> save(
     String workspaceId,
+    String profileId,
+    String gameId,
     int revision,
     String path, {
     ProtonSelection? proton,
   });
-  Future<GameContextState> refresh(String workspaceId, int revision);
+  Future<GameContextState> refresh(
+    String workspaceId,
+    String profileId,
+    int revision,
+  );
 }
 
 class GrpcGameContextsClient implements GameContextsClient {
@@ -23,14 +29,20 @@ class GrpcGameContextsClient implements GameContextsClient {
     : _client = wire.GameContextOperationsClient(channel, options: options);
   final wire.GameContextOperationsClient _client;
   @override
-  Future<GameContextState> read(String workspaceId) async => _reply(
-    await _client.readGameContext(
-      wire.ReadGameContextRequest(workspaceId: workspaceId),
-    ),
-  );
+  Future<GameContextState> read(String workspaceId, String profileId) async =>
+      _reply(
+        await _client.readGameContext(
+          wire.ReadGameContextRequest(
+            workspaceId: workspaceId,
+            profileId: profileId,
+          ),
+        ),
+      );
   @override
   Future<GameContextState> save(
     String workspaceId,
+    String profileId,
+    String gameId,
     int revision,
     String path, {
     ProtonSelection? proton,
@@ -38,6 +50,8 @@ class GrpcGameContextsClient implements GameContextsClient {
     await _client.saveGameContext(
       wire.SaveGameContextRequest(
         workspaceId: workspaceId,
+        profileId: profileId,
+        gameId: gameId,
         expectedRevision: Int64(revision),
         path: path,
         proton: proton == null ? null : encodeProtonSelection(proton),
@@ -46,16 +60,20 @@ class GrpcGameContextsClient implements GameContextsClient {
     ),
   );
   @override
-  Future<GameContextState> refresh(String workspaceId, int revision) async =>
-      _reply(
-        await _client.refreshGameContext(
-          wire.RefreshGameContextRequest(
-            workspaceId: workspaceId,
-            expectedRevision: Int64(revision),
-          ),
-          options: CallOptions(timeout: const Duration(seconds: 30)),
-        ),
-      );
+  Future<GameContextState> refresh(
+    String workspaceId,
+    String profileId,
+    int revision,
+  ) async => _reply(
+    await _client.refreshGameContext(
+      wire.RefreshGameContextRequest(
+        workspaceId: workspaceId,
+        profileId: profileId,
+        expectedRevision: Int64(revision),
+      ),
+      options: CallOptions(timeout: const Duration(seconds: 30)),
+    ),
+  );
 }
 
 GameLocation _location(wire.GameLocation value) =>
@@ -166,15 +184,20 @@ GameContextState _reply(wire.GameContextReply reply) {
       final d = s.definition;
       return GameContextState(
         workspaceId: s.workspaceId,
+        profileId: s.profileId,
         revision: s.revision.toInt(),
-        definition: GameDefinitionInfo(
-          id: d.definitionId,
-          revision: d.revision,
-          name: d.name,
-          storefront: d.storefront,
-          declaredSteamAppId: d.declaredSteamAppId,
-          capabilities: List.unmodifiable(d.capabilities.map(_capability)),
-        ),
+        definition: s.hasDefinition()
+            ? GameDefinitionInfo(
+                id: d.definitionId,
+                revision: d.revision,
+                name: d.name,
+                storefront: d.storefront,
+                declaredSteamAppId: d.declaredSteamAppId,
+                capabilities: List.unmodifiable(
+                  d.capabilities.map(_capability),
+                ),
+              )
+            : null,
         binding: s.hasBinding()
             ? GameBindingInfo(
                 id: s.binding.bindingId,

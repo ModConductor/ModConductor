@@ -158,10 +158,12 @@ class NexusLinkRequest extends $pb.GeneratedMessage {
   factory NexusLinkRequest({
     $core.String? reference,
     $core.String? workspaceId,
+    $core.String? profileId,
   }) {
     final result = create();
     if (reference != null) result.reference = reference;
     if (workspaceId != null) result.workspaceId = workspaceId;
+    if (profileId != null) result.profileId = profileId;
     return result;
   }
 
@@ -181,6 +183,7 @@ class NexusLinkRequest extends $pb.GeneratedMessage {
       createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'reference')
     ..aOS(2, _omitFieldNames ? '' : 'workspaceId')
+    ..aOS(3, _omitFieldNames ? '' : 'profileId')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -219,6 +222,15 @@ class NexusLinkRequest extends $pb.GeneratedMessage {
   $core.bool hasWorkspaceId() => $_has(1);
   @$pb.TagNumber(2)
   void clearWorkspaceId() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get profileId => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set profileId($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasProfileId() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearProfileId() => $_clearField(3);
 }
 
 class NexusLinkReply extends $pb.GeneratedMessage {

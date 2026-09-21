@@ -339,7 +339,8 @@ module ArchivePolicyFixtures =
             |> ignore
 
             (store.GameContexts :> IGameContexts)
-                .Save(workspace, 0L, { Path = game; Proton = Some proton })
+                .Save(workspace, profile, 0L, { GameId = GameId.SkyrimSpecialEditionSteam
+                                                Path = game; Proton = Some proton })
             |> wait
             |> result
             |> ignore

@@ -138,15 +138,17 @@ module SkseCoordinatorFixtures =
         (store.GameContexts :> IGameContexts)
             .Save(
                 workspace,
+                profile,
                 0L,
-                { Path = game
+                { GameId = GameId.SkyrimSpecialEditionSteam
+                  Path = game
                   Proton = if OperatingSystem.IsLinux() then Some proton else None }
             )
         |> wait
         |> result
         |> ignore
 
-        let context = (store.GameContexts :> IGameContexts).Read workspace |> wait |> result
+        let context = (store.GameContexts :> IGameContexts).Read(workspace, profile) |> wait |> result
         workspace, profile, game, proton, context
 
     let private configure
@@ -496,13 +498,15 @@ module SkseCoordinatorFixtures =
             )
 
         let staleContext =
-            (restarted.GameContexts :> IGameContexts).Read workspace |> wait |> result
+            (restarted.GameContexts :> IGameContexts).Read(workspace, profile) |> wait |> result
 
         (restarted.GameContexts :> IGameContexts)
             .Save(
                 workspace,
+                profile,
                 staleContext.Revision,
-                { Path = gamePath
+                { GameId = GameId.SkyrimSpecialEditionSteam
+                  Path = gamePath
                   Proton = protonSelection }
             )
         |> wait
@@ -666,13 +670,15 @@ module SkseCoordinatorFixtures =
             failwith "The retained SKSE generation was not activated."
 
         GameContextFixtures.create game 105
-        let changed = (store.GameContexts :> IGameContexts).Read workspace |> wait |> result
+        let changed = (store.GameContexts :> IGameContexts).Read(workspace, profile) |> wait |> result
 
         (store.GameContexts :> IGameContexts)
             .Save(
                 workspace,
+                profile,
                 changed.Revision,
-                { Path = game
+                { GameId = GameId.SkyrimSpecialEditionSteam
+                  Path = game
                   Proton = if OperatingSystem.IsLinux() then Some proton else None }
             )
         |> wait
@@ -685,13 +691,15 @@ module SkseCoordinatorFixtures =
         GameContextFixtures.create game 104
 
         let changedAgain =
-            (store.GameContexts :> IGameContexts).Read workspace |> wait |> result
+            (store.GameContexts :> IGameContexts).Read(workspace, profile) |> wait |> result
 
         (store.GameContexts :> IGameContexts)
             .Save(
                 workspace,
+                profile,
                 changedAgain.Revision,
-                { Path = game
+                { GameId = GameId.SkyrimSpecialEditionSteam
+                  Path = game
                   Proton = if OperatingSystem.IsLinux() then Some proton else None }
             )
         |> wait
@@ -722,13 +730,15 @@ module SkseCoordinatorFixtures =
 
             if changeGame then
                 GameContextFixtures.create game 105
-                let state = (store.GameContexts :> IGameContexts).Read workspace |> wait |> result
+                let state = (store.GameContexts :> IGameContexts).Read(workspace, profile) |> wait |> result
 
                 (store.GameContexts :> IGameContexts)
                     .Save(
                         workspace,
+                        profile,
                         state.Revision,
-                        { Path = game
+                        { GameId = GameId.SkyrimSpecialEditionSteam
+                          Path = game
                           Proton = if OperatingSystem.IsLinux() then Some proton else None }
                     )
                 |> wait
@@ -742,13 +752,15 @@ module SkseCoordinatorFixtures =
 
             if changeGame then
                 GameContextFixtures.create game 104
-                let state = (store.GameContexts :> IGameContexts).Read workspace |> wait |> result
+                let state = (store.GameContexts :> IGameContexts).Read(workspace, profile) |> wait |> result
 
                 (store.GameContexts :> IGameContexts)
                     .Save(
                         workspace,
+                        profile,
                         state.Revision,
-                        { Path = game
+                        { GameId = GameId.SkyrimSpecialEditionSteam
+                          Path = game
                           Proton = if OperatingSystem.IsLinux() then Some proton else None }
                     )
                 |> wait
@@ -813,9 +825,9 @@ module SkseCoordinatorFixtures =
         use restarted = new OperationStore(statePath)
 
         let restartedContext =
-            (restarted.GameContexts :> IGameContexts).Read workspace |> wait |> result
+            (restarted.GameContexts :> IGameContexts).Read(workspace, profile) |> wait |> result
 
-        (restarted.GameContexts :> IGameContexts).Refresh(workspace, restartedContext.Revision)
+        (restarted.GameContexts :> IGameContexts).Refresh(workspace, profile, restartedContext.Revision)
         |> wait
         |> result
         |> ignore

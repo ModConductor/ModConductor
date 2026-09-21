@@ -134,6 +134,8 @@ void main() {
         );
         await owner.gameContexts!.save(
           workspace,
+          profile,
+          'skyrim-se-steam',
           0,
           game,
           proton: Platform.isLinux

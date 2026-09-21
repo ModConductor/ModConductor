@@ -111,7 +111,7 @@ type FnisCoordinator
 
     let resolve workspace profile =
         task {
-            let! game = (store.GameContexts :> IGameContexts).Read workspace
+            let! game = (store.GameContexts :> IGameContexts).Read(workspace, profile)
 
             match game with
             | Error _ -> return Error FnisProblem.GameUnavailable
@@ -359,7 +359,7 @@ type FnisCoordinator
         else
             task {
                 let key = workspace, profile
-                let! game = (store.GameContexts :> IGameContexts).Read workspace
+                let! game = (store.GameContexts :> IGameContexts).Read(workspace, profile)
                 let! deployment = store.Deployments.Read profile
 
                 match game, deployment with

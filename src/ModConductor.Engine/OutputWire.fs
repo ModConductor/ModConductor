@@ -30,6 +30,7 @@ module internal OutputWire =
     let reference (value: OutputScope) =
         Protocol.V1.OutputScopeRef(
             WorkspaceId = value.WorkspaceId.ToString("N"),
+            ProfileId = value.ProfileId.ToString("N"),
             ContextId = value.ContextId.ToString("N"),
             Revision = uint64 value.Revision,
             ContextRevision = uint64 value.ContextRevision

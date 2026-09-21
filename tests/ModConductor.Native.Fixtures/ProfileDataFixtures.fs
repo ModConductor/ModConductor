@@ -97,10 +97,14 @@ module ProfileDataFixtures =
             |> ignore
 
             let context =
-                (store.GameContexts :> IGameContexts)
-                    .Save(workspace, 0L, { Path = game; Proton = Some proton })
-                |> wait
-                |> result
+                [ first; second ]
+                |> List.map (fun profile ->
+                    (store.GameContexts :> IGameContexts)
+                        .Save(workspace, profile, 0L, { GameId = GameId.SkyrimSpecialEditionSteam
+                                                        Path = game; Proton = Some proton })
+                    |> wait
+                    |> result)
+                |> List.head
 
             let documents =
                 match context.Binding.Value.Evidence.Locations.Documents with
@@ -489,8 +493,8 @@ module ProfileDataFixtures =
             ws <- store.Workspaces :> IWorkspaceState
             api <- store.ProfileGameData
             let contexts = store.GameContexts :> IGameContexts
-            let reloaded = contexts.Read(workspace) |> wait |> result
-            contexts.Refresh(workspace, reloaded.Revision) |> wait |> result |> ignore
+            let reloaded = contexts.Read(workspace, first) |> wait |> result
+            contexts.Refresh(workspace, first, reloaded.Revision) |> wait |> result |> ignore
 
             let resumed =
                 store.ProfileGameData.Resume(workspace, interruptedId, token) |> wait |> result

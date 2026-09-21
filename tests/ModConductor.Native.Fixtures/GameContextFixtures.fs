@@ -5,6 +5,7 @@ open System.IO
 open System.Buffers.Binary
 open System.Text
 open System.Text.Json
+open Microsoft.Data.Sqlite
 open ModConductor.GameContexts
 open ModConductor.Persistence
 open ModConductor.Workspaces
@@ -89,7 +90,7 @@ module GameContextFixtures =
             else
                 []
 
-        let inspected = InstallationValidation.inspect game
+        let inspected = InstallationValidation.inspect Skyrim.definition game
         writer.WriteStartObject("gameContexts")
 
         let installationCapability =
@@ -184,14 +185,14 @@ module GameContextFixtures =
         let malformed = image 104
         BinaryPrimitives.WriteUInt32LittleEndian(malformed.AsSpan(564, 4), 0x80000020u)
         File.WriteAllBytes(exe, malformed)
-        let cyclic = InstallationValidation.inspect game
+        let cyclic = InstallationValidation.inspect Skyrim.definition game
         File.WriteAllBytes(exe, initialBytes[..779])
-        let truncated = InstallationValidation.inspect game
+        let truncated = InstallationValidation.inspect Skyrim.definition game
         let noVersion = image 104
         BinaryPrimitives.WriteUInt32LittleEndian(noVersion.AsSpan(528, 4), 10u)
         Encoding.Unicode.GetBytes("FileVersion\0001.7.104.0").CopyTo(noVersion, 1200)
         File.WriteAllBytes(exe, noVersion)
-        let stringsOnly = InstallationValidation.inspect game
+        let stringsOnly = InstallationValidation.inspect Skyrim.definition game
 
         writer.WriteBoolean(
             "malformedVersionsRefused",
@@ -204,6 +205,8 @@ module GameContextFixtures =
             Directory.CreateDirectory(Path.Combine(primary, "game-contexts", "state")).FullName
 
         let first, second = Guid.NewGuid(), Guid.NewGuid()
+        let firstProfile, secondProfile, cloneProfile, unboundProfile =
+            Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid()
         let mutable prior = Unchecked.defaultof<GameContextState>
 
         do
@@ -211,26 +214,51 @@ module GameContextFixtures =
             let workspaces = store.Workspaces :> IWorkspaceState
             let contexts = store.GameContexts :> IGameContexts
 
-            for id in [ first; second ] do
+            for id, profile in [ first, firstProfile; second, secondProfile ] do
                 let root =
                     Directory
                         .CreateDirectory(Path.Combine(primary, "game-contexts", id.ToString("N")))
                         .FullName
 
-                workspaces.Create(id, "Context", StorageWorker.select root)
+                let created =
+                    workspaces.Create(id, "Context", StorageWorker.select root)
+                    |> wait
+                    |> result
+
+                workspaces.Edit(
+                    id,
+                    created.Workspace.Revision,
+                    ProfileEdit.Create { Id = profile; Name = "Everyday" }
+                )
                 |> wait
                 |> result
                 |> ignore
 
-            let empty = contexts.Read first |> wait |> result
+            let empty = contexts.Read(first, firstProfile) |> wait |> result
 
             let saved =
-                contexts.Save(first, empty.Revision, { Path = game; Proton = None })
+                contexts.Save(
+                    first,
+                    firstProfile,
+                    empty.Revision,
+                    { GameId = GameId.SkyrimSpecialEditionSteam
+                      Path = game
+                      Proton = None }
+                )
                 |> wait
                 |> result
 
             let other =
-                contexts.Save(second, 0L, { Path = game; Proton = None }) |> wait |> result
+                contexts.Save(
+                    second,
+                    secondProfile,
+                    0L,
+                    { GameId = GameId.SkyrimSpecialEditionSteam
+                      Path = game
+                      Proton = None }
+                )
+                |> wait
+                |> result
 
             writer.WriteBoolean(
                 "workspacesShareInstallation",
@@ -239,44 +267,113 @@ module GameContextFixtures =
             )
 
             let workspace = workspaces.Read(first, None) |> wait |> result
-            let profileId = Guid.NewGuid()
 
-            let created =
+            let clonedWorkspace =
                 workspaces.Edit(
                     first,
                     workspace.Workspace.Revision,
-                    ProfileEdit.Create { Id = profileId; Name = "Everyday" }
+                    ProfileEdit.Clone(firstProfile, { Id = cloneProfile; Name = "Copy" })
                 )
                 |> wait
                 |> result
 
+            writer.WriteBoolean(
+                "profilesPreserveBinding",
+                let cloned = contexts.Read(first, cloneProfile) |> wait |> result
+                cloned.Binding.Value.Path = saved.Binding.Value.Path
+                && cloned.Binding.Value.GameId = saved.Binding.Value.GameId
+                && cloned.Binding.Value.Id <> saved.Binding.Value.Id
+            )
+
+            let deploymentFingerprint =
+                ModConductor.Deployment.DeploymentContextId.fingerprint
+                    saved.Binding.Value.Evidence
+
+            writer.WriteBoolean(
+                "profileDeploymentContextsAreDistinct",
+                ModConductor.Deployment.DeploymentContextId.create
+                    first
+                    firstProfile
+                    deploymentFingerprint
+                <> ModConductor.Deployment.DeploymentContextId.create
+                    first
+                    cloneProfile
+                    deploymentFingerprint
+            )
+
+            let withUnbound =
+                workspaces.Edit(
+                    first,
+                    clonedWorkspace.Workspace.Revision,
+                    ProfileEdit.Create { Id = unboundProfile; Name = "Unbound" }
+                )
+                |> wait
+                |> result
+
+            let unbound = contexts.Read(first, unboundProfile) |> wait |> result
+            writer.WriteBoolean("unboundProfileSafe", unbound.Revision = 0L && unbound.Binding.IsNone)
+
+            let alternate = Path.Combine(primary, "game-contexts", "alternate-game")
+            create alternate 106
+            let cloneBefore = contexts.Read(first, cloneProfile) |> wait |> result
+
+            let changedClone =
+                contexts.Save(
+                    first,
+                    cloneProfile,
+                    cloneBefore.Revision,
+                    { GameId = GameId.SkyrimSpecialEditionSteam
+                      Path = alternate
+                      Proton = None }
+                )
+                |> wait
+                |> result
+
+            writer.WriteBoolean(
+                "profilesIsolateBindings",
+                changedClone.Binding.Value.Path = alternate
+                && (contexts.Read(first, firstProfile) |> wait |> result) = saved
+            )
+
             workspaces.Edit(
                 first,
-                created.Workspace.Revision,
-                ProfileEdit.Clone(profileId, { Id = Guid.NewGuid(); Name = "Copy" })
+                withUnbound.Workspace.Revision,
+                ProfileEdit.Delete cloneProfile
             )
             |> wait
             |> result
             |> ignore
 
             writer.WriteBoolean(
-                "profilesPreserveBinding",
-                contexts.Read first |> wait |> result = saved
+                "profileDeleteRemovesOnlyOwnedBinding",
+                contexts.Read(first, cloneProfile) |> wait = Error ContextError.NotFound
+                && (contexts.Read(first, firstProfile) |> wait |> result) = saved
             )
 
-            let stale = contexts.Save(first, 0L, { Path = game; Proton = None }) |> wait
+            let stale =
+                contexts.Save(
+                    first,
+                    firstProfile,
+                    0L,
+                    { GameId = GameId.SkyrimSpecialEditionSteam
+                      Path = game
+                      Proton = None }
+                )
+                |> wait
 
             writer.WriteBoolean(
                 "staleSavePreservesBinding",
                 stale = Error ContextError.StaleRevision
-                && (contexts.Read first |> wait |> result) = saved
+                && (contexts.Read(first, firstProfile) |> wait |> result) = saved
             )
 
             let missing =
                 contexts.Save(
                     first,
+                    firstProfile,
                     saved.Revision,
-                    { Path = Path.Combine(game, "absent")
+                    { GameId = GameId.SkyrimSpecialEditionSteam
+                      Path = Path.Combine(game, "absent")
                       Proton = None }
                 )
                 |> wait
@@ -286,11 +383,11 @@ module GameContextFixtures =
                 (match missing with
                  | Error(ContextError.Invalid e) -> not e.Valid
                  | _ -> false)
-                && (contexts.Read first |> wait |> result) = saved
+                && (contexts.Read(first, firstProfile) |> wait |> result) = saved
             )
 
             File.Move(exe, exe + ".moved")
-            let failed = contexts.Refresh(first, saved.Revision) |> wait |> result
+            let failed = contexts.Refresh(first, firstProfile, saved.Revision) |> wait |> result
 
             writer.WriteBoolean(
                 "failedRefreshRetainsEvidence",
@@ -301,7 +398,7 @@ module GameContextFixtures =
             )
 
             File.Move(exe + ".moved", exe)
-            let refreshed = contexts.Refresh(first, failed.Revision) |> wait |> result
+            let refreshed = contexts.Refresh(first, firstProfile, failed.Revision) |> wait |> result
 
             writer.WriteBoolean(
                 "refreshRestoresCurrentEvidence",
@@ -315,7 +412,7 @@ module GameContextFixtures =
         do
             use store = new OperationStore(statePath)
             let contexts = store.GameContexts :> IGameContexts
-            let reopened = contexts.Read first |> wait |> result
+            let reopened = contexts.Read(first, firstProfile) |> wait |> result
 
             writer.WriteBoolean(
                 "restartRequiresRecheck",
@@ -325,7 +422,8 @@ module GameContextFixtures =
             )
 
             create game 105
-            let refreshed = contexts.Refresh(first, reopened.Revision) |> wait |> result
+            let refreshed =
+                contexts.Refresh(first, firstProfile, reopened.Revision) |> wait |> result
 
             writer.WriteBoolean(
                 "changedExecutableGetsNewEvidence",
@@ -336,12 +434,14 @@ module GameContextFixtures =
 
             let missingData = Path.Combine(game, "Data-away")
             Directory.Move(Path.Combine(game, "Data"), missingData)
-            let invalid = InstallationValidation.inspect game
+            let invalid = InstallationValidation.inspect Skyrim.definition game
 
             writer.WriteBoolean(
                 "missingDataNotValid",
                 not invalid.Valid && invalid.Executable.IsSome
             )
+
+            Directory.Move(missingData, Path.Combine(game, "Data"))
 
         let noHostFolders =
             if OperatingSystem.IsLinux() then
@@ -356,4 +456,113 @@ module GameContextFixtures =
                 true
 
         writer.WriteBoolean("protonHasNoHostFolders", noHostFolders)
+
+        let migrationState =
+            Directory.CreateDirectory(Path.Combine(primary, "game-contexts", "migration-state")).FullName
+
+        let migrationWorkspace, migrationEmptyWorkspace = Guid.NewGuid(), Guid.NewGuid()
+        let migrationProfiles = [ Guid.NewGuid(); Guid.NewGuid(); Guid.NewGuid() ]
+
+        do
+            use store = new OperationStore(migrationState)
+            let workspaces = store.Workspaces :> IWorkspaceState
+            let contexts = store.GameContexts :> IGameContexts
+
+            let createWorkspace id name =
+                let root =
+                    Directory.CreateDirectory(Path.Combine(primary, "game-contexts", name)).FullName
+
+                workspaces.Create(id, name, StorageWorker.select root) |> wait |> result
+
+            let mutable current =
+                (createWorkspace migrationWorkspace "migration-workspace").Workspace
+
+            for profile in migrationProfiles do
+                let changed =
+                    workspaces.Edit(
+                        migrationWorkspace,
+                        current.Revision,
+                        ProfileEdit.Create { Id = profile; Name = "Migrated" }
+                    )
+                    |> wait
+                    |> result
+
+                current <- changed.Workspace
+
+            createWorkspace migrationEmptyWorkspace "migration-empty" |> ignore
+
+            contexts.Save(
+                migrationWorkspace,
+                List.head migrationProfiles,
+                0L,
+                { GameId = GameId.SkyrimSpecialEditionSteam
+                  Path = game
+                  Proton = None }
+            )
+            |> wait
+            |> result
+            |> ignore
+
+        do
+            use connection =
+                new SqliteConnection("Data Source=" + Path.Combine(migrationState, "state.db"))
+
+            connection.Open()
+
+            use command = connection.CreateCommand()
+            command.CommandText <-
+                """
+                PRAGMA foreign_keys=OFF;
+                DROP INDEX game_contexts_by_workspace;
+                ALTER TABLE game_contexts RENAME TO profile_game_contexts_v34;
+                CREATE TABLE game_contexts(workspace_id TEXT PRIMARY KEY REFERENCES workspaces(id),id TEXT NOT NULL,path TEXT NOT NULL,revision INTEGER NOT NULL,evidence TEXT NOT NULL,checked_owner TEXT NOT NULL,failure TEXT,proton_selection TEXT);
+                INSERT INTO game_contexts(workspace_id,id,path,revision,evidence,checked_owner,failure,proton_selection)
+                SELECT workspace_id,id,path,revision,evidence,checked_owner,failure,proton_selection
+                FROM profile_game_contexts_v34
+                WHERE profile_id=$profile;
+                DROP TABLE profile_game_contexts_v34;
+                PRAGMA user_version=33;
+                """
+
+            command.Parameters.AddWithValue("$profile", string (List.head migrationProfiles))
+            |> ignore
+
+            command.ExecuteNonQuery() |> ignore
+
+        do
+            use store = new OperationStore(migrationState)
+            let contexts = store.GameContexts :> IGameContexts
+
+            let migrated =
+                migrationProfiles
+                |> List.map (fun profile -> contexts.Read(migrationWorkspace, profile) |> wait |> result)
+
+            let workspaces = store.Workspaces :> IWorkspaceState
+            let empty = workspaces.Read(migrationEmptyWorkspace, None) |> wait |> result
+            let emptyProfile = Guid.NewGuid()
+
+            workspaces.Edit(
+                migrationEmptyWorkspace,
+                empty.Workspace.Revision,
+                ProfileEdit.Create { Id = emptyProfile; Name = "Still unbound" }
+            )
+            |> wait
+            |> result
+            |> ignore
+
+            writer.WriteBoolean(
+                "workspaceBindingMigratesToEveryExistingProfile",
+                migrated
+                |> List.forall (fun state ->
+                    state.Binding
+                    |> Option.exists (fun binding ->
+                        binding.Path = game
+                        && binding.GameId = GameId.SkyrimSpecialEditionSteam))
+            )
+
+            writer.WriteBoolean(
+                "workspaceWithoutProfilesMigratesUnbound",
+                (contexts.Read(migrationEmptyWorkspace, emptyProfile) |> wait |> result).Binding.IsNone
+            )
+
         writer.WriteEndObject()

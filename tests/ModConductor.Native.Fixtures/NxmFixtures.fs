@@ -12,6 +12,7 @@ open ModConductor.HttpDownloads
 open ModConductor.ArtifactLibrary
 open ModConductor.Persistence
 open ModConductor.Workspaces
+open ModConductor.GameContexts
 open ModConductor.Engine
 open ModConductor.Protocol.V1
 
@@ -90,6 +91,7 @@ module NxmFixtures =
         until (fun () -> session.Status.Account.IsSome)
         let state = Path.Combine(primary, "state")
         let workspace = Guid.NewGuid()
+        let profile = Guid.NewGuid()
         let root = Directory.CreateDirectory(Path.Combine(primary, "workspace")).FullName
         let mutable original = Guid.Empty
         let mutable kept = 0L
@@ -105,8 +107,18 @@ module NxmFixtures =
                             CheckpointBytes = 16384L }
                 )
 
+            let created =
+                (store.Workspaces :> IWorkspaceState)
+                    .Create(workspace, "NXM fixture", StorageWorker.select root)
+                |> wait
+                |> result
+
             (store.Workspaces :> IWorkspaceState)
-                .Create(workspace, "NXM fixture", StorageWorker.select root)
+                .Edit(
+                    workspace,
+                    created.Workspace.Revision,
+                    ProfileEdit.Create { Id = profile; Name = "NXM" }
+                )
             |> wait
             |> result
             |> ignore
@@ -115,7 +127,8 @@ module NxmFixtures =
             GameContextFixtures.create game 104
 
             (store.GameContexts :> ModConductor.GameContexts.IGameContexts)
-                .Save(workspace, 0L, { Path = game; Proton = None })
+                .Save(workspace, profile, 0L, { GameId = GameId.SkyrimSpecialEditionSteam
+                                                Path = game; Proton = None })
             |> wait
             |> result
             |> ignore

@@ -80,7 +80,7 @@ class DesktopRequests extends ChangeNotifier {
       hasWorkspaceSelection = false;
   List<String> arguments = const [];
   DesktopIntent? intent;
-  String? problem, workspaceId;
+  String? problem, workspaceId, profileId;
   String? _adoptionKey, _operationId;
   bool get connected => _client != null;
   String operationId(String workspace, String path, ArtifactStorage storage) {
@@ -94,9 +94,12 @@ class DesktopRequests extends ChangeNotifier {
 
   Future<void> recheck() => _resolve();
 
-  void selectWorkspace(String? value) {
+  void selectWorkspace(String? value) => selectContext(value, profileId);
+
+  void selectContext(String? value, String? profile) {
     hasWorkspaceSelection = true;
     workspaceId = value;
+    profileId = profile;
     if (isNexus) unawaited(_resolve());
     notifyListeners();
   }
@@ -182,7 +185,11 @@ class DesktopRequests extends ChangeNotifier {
         resolving = true;
         notifyListeners();
         try {
-          final result = await _nxm!.read(nexusReference!, workspaceId);
+          final result = await _nxm!.read(
+            nexusReference!,
+            workspaceId,
+            profile: profileId,
+          );
           if (!disposed && generation == _generation) {
             nexusLink = result;
             problem = result.problem;

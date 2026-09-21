@@ -141,6 +141,8 @@ void main() {
         ], true);
         await owner.gameContexts!.save(
           workspace,
+          profile,
+          'skyrim-se-steam',
           0,
           game,
           proton: ProtonSelection(

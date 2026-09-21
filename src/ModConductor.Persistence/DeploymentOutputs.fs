@@ -19,7 +19,8 @@ module internal DeploymentOutputs =
             if OutputRows.active database.Connection transaction workspace.Id then
                 raise (RecoveryException RecoveryError.Busy)
 
-            let context = OutputRows.contextId workspace.Id sources.Context
+            let context =
+                OutputRows.contextId workspace.Id sources.Stamp.ProfileId sources.Context
             let rows = OutputRows.locations database.Connection transaction workspace context
 
             let working =

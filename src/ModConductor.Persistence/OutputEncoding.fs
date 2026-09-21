@@ -200,10 +200,11 @@ module internal OutputEncoding =
     let encode (value: OutputActionRecord) =
         use stream = new MemoryStream()
         use w = new BinaryWriter(stream, Encoding.UTF8, true)
-        w.Write 1
+        w.Write 2
         guid w value.Id
         guid w value.SnapshotId
         guid w value.Scope.WorkspaceId
+        guid w value.Scope.ProfileId
         guid w value.Scope.ContextId
         w.Write value.Scope.Revision
         w.Write value.Scope.ContextRevision
@@ -237,7 +238,9 @@ module internal OutputEncoding =
         use stream = new MemoryStream(bytes, false)
         use r = new BinaryReader(stream, Encoding.UTF8, true)
 
-        if r.ReadInt32() <> 1 then
+        let version = r.ReadInt32()
+
+        if version <> 1 && version <> 2 then
             invalid ()
 
         let id = readGuid r
@@ -245,6 +248,7 @@ module internal OutputEncoding =
 
         let scope =
             { WorkspaceId = readGuid r
+              ProfileId = if version = 2 then readGuid r else Guid.Empty
               ContextId = readGuid r
               Revision = r.ReadInt64()
               ContextRevision = r.ReadInt64()

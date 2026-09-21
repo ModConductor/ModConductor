@@ -328,7 +328,8 @@ type DeploymentBackend internal (repository: IDeploymentRepository) =
                             if value.View.Sources <> expected then
                                 return Error DeploymentError.Stale
                             else
-                                let! context = repository.Context expected.WorkspaceId
+                                let! context =
+                                    repository.Context(expected.WorkspaceId, expected.ProfileId)
 
                                 if context <> value.Context then
                                     return Error DeploymentError.Stale
@@ -362,7 +363,10 @@ type DeploymentBackend internal (repository: IDeploymentRepository) =
                                         return Error DeploymentError.Stale
                                     else
                                         let! context =
-                                            repository.Context saved.Context.Roots.Head.Root.Id
+                                            repository.ContextForDeployment(
+                                                saved.Context.Roots.Head.Root.Id,
+                                                saved.Context.Id
+                                            )
 
                                         let evidence = GameProcesses.validate context
 

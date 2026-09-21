@@ -53,7 +53,8 @@ module FomodFixtures =
         GameContextFixtures.create game 104
         File.WriteAllText(Path.Combine(game, "Data", "base.txt"), "base")
 
-        (store.GameContexts :> IGameContexts).Save(workspace, 0L, { Path = game; Proton = None })
+        (store.GameContexts :> IGameContexts).Save(workspace, profile, 0L, { GameId = GameId.SkyrimSpecialEditionSteam
+                                                                             Path = game; Proton = None })
         |> wait
         |> result
         |> ignore

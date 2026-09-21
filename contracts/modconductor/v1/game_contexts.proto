@@ -8,9 +8,9 @@ service GameContextOperations {
   rpc SaveGameContext(SaveGameContextRequest) returns (GameContextReply);
   rpc RefreshGameContext(RefreshGameContextRequest) returns (GameContextReply);
 }
-message ReadGameContextRequest { string workspace_id = 1; }
-message SaveGameContextRequest { string workspace_id = 1; uint64 expected_revision = 2; string path = 3; ProtonSelectionInfo proton = 4; }
-message RefreshGameContextRequest { string workspace_id = 1; uint64 expected_revision = 2; }
+message ReadGameContextRequest { string workspace_id = 1; string profile_id = 2; }
+message SaveGameContextRequest { string workspace_id = 1; uint64 expected_revision = 2; string path = 3; ProtonSelectionInfo proton = 4; string profile_id = 5; string game_id = 6; }
+message RefreshGameContextRequest { string workspace_id = 1; uint64 expected_revision = 2; string profile_id = 3; }
 message GameDefinitionInfo {
   string definition_id = 1;
   uint32 revision = 2;
@@ -83,6 +83,7 @@ message GameContextState {
   uint64 revision = 2;
   GameDefinitionInfo definition = 3;
   GameBindingInfo binding = 4;
+  string profile_id = 5;
 }
 enum GameContextFaultCode {
   GAME_CONTEXT_FAULT_UNSPECIFIED = 0;

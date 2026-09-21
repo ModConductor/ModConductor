@@ -10,7 +10,7 @@ service NexusMetadata {
   rpc MapModNexusCategory(MapModNexusCategoryRequest) returns (ModNexusReply);
   rpc DownloadModNexusFile(DownloadModNexusFileRequest) returns (NexusDownloadReply);
 }
-message ModNexusRequest { string workspace_id=1; string mod_id=2; }
+message ModNexusRequest { string workspace_id=1; string mod_id=2; string profile_id=3; }
 message ModNexusReference { string workspace_id=1; string mod_id=2; int64 link_revision=3; string version_id=4; optional int64 provider_mod=5; int64 mod_revision=6; }
 message NexusMetadataFile { NexusFileInfo file=1; int32 category_id=2; optional int64 uploaded_unix_ms=3; bool update_candidate=4; }
 message NexusPublicMetadata {
@@ -26,6 +26,6 @@ message ModNexusDetails {
   optional string category_id=10; string category=11;
 }
 message ModNexusReply { oneof result { ModNexusDetails details=1; NexusFailure failure=2; } }
-message LinkModNexusRequest { ModNexusReference reference=1; optional int64 provider_mod=2; optional int64 file_id=3; }
+message LinkModNexusRequest { ModNexusReference reference=1; optional int64 provider_mod=2; optional int64 file_id=3; string profile_id=4; }
 message MapModNexusCategoryRequest { ModNexusReference reference=1; string category_id=2; int64 provider_category_id=3; }
 message DownloadModNexusFileRequest { ModNexusReference reference=1; int64 file_id=2; bool update_only=3; string artifact_id=4; }

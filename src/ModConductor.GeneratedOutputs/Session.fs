@@ -256,10 +256,10 @@ type GeneratedOutputSession internal (repository: IOutputRepository) =
             })
 
     interface IGeneratedOutputs with
-        member _.Read(workspace, context) =
+        member _.Read(workspace, profile, context) =
             run workspace (fun () ->
                 task {
-                    let! scope, _ = repository.Read(workspace, context)
+                    let! scope, _ = repository.Read(workspace, profile, context)
                     return Ok scope
                 })
 
@@ -288,7 +288,11 @@ type GeneratedOutputSession internal (repository: IOutputRepository) =
             run scope.WorkspaceId (fun () ->
                 task {
                     let! current, backings =
-                        repository.Read(scope.WorkspaceId, Some scope.ContextId)
+                        repository.Read(
+                            scope.WorkspaceId,
+                            scope.ProfileId,
+                            Some scope.ContextId
+                        )
 
                     if
                         current.Revision <> scope.Revision

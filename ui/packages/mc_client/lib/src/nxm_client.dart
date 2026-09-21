@@ -54,12 +54,14 @@ class NxmClient {
   Future<NexusLink> read(
     String reference,
     String? workspace, {
+    String? profile,
     bool download = false,
   }) async {
     try {
       final request = wire.NexusLinkRequest(
         reference: reference,
         workspaceId: workspace,
+        profileId: profile,
       );
       final value = await (download
           ? _client.downloadNexusLink(request)

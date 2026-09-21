@@ -49,7 +49,8 @@ class _GameContextBrowserState extends State<GameContextBrowser> {
         steamDiscovery: widget.steamDiscovery,
         protonContexts: widget.protonContexts,
         onSaved: (result) => c.accept(result, client),
-        onUnknownSave: () => c.unknownSave(client, initial.workspaceId),
+        onUnknownSave: () =>
+            c.unknownSave(client, initial.workspaceId, initial.profileId),
       ),
     );
     if (mounted) changeFocus.requestFocus();
@@ -123,12 +124,12 @@ class _GameContextBrowserState extends State<GameContextBrowser> {
                   ),
                 ] else ...[
                   Text(
-                    state.definition.name,
+                    state.definition!.name,
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${state.definition.storefront} · ${evidence!.platform == GameContextPlatform.windows ? 'Windows' : 'Proton'}',
+                    '${state.definition!.storefront} · ${evidence!.platform == GameContextPlatform.windows ? 'Windows' : 'Proton'}',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                   const SizedBox(height: 16),
@@ -305,7 +306,7 @@ class _GameContextBrowserState extends State<GameContextBrowser> {
                       tilePadding: EdgeInsets.zero,
                       title: const Text('Capabilities'),
                       children: [
-                        for (final capability in state.definition.capabilities)
+                        for (final capability in state.definition!.capabilities)
                           McCapabilityState(
                             key: ValueKey(('capability', capability.id.value)),
                             title: capability.name,

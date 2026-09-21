@@ -36,18 +36,19 @@ module internal DeploymentContextId =
                     writer.Write value.High
 
             writer.Write "mc-data-target-v1"
-            writer.Write evidence.DefinitionId
+            writer.Write(GameId.value evidence.DefinitionId)
             writer.Write evidence.RootPath
             identity evidence.RootIdentity
             writer.Write(defaultArg evidence.DataPath "")
             identity evidence.DataIdentity)
         |> Convert.ToHexStringLower
 
-    let create (workspace: Guid) (fingerprint: string) =
+    let create (workspace: Guid) (profile: Guid) (fingerprint: string) =
         let digest =
             encode (fun writer ->
                 writer.Write "mc-game-deployment-v1"
                 writer.Write(workspace.ToByteArray())
+                writer.Write(profile.ToByteArray())
                 writer.Write fingerprint)
 
         Guid(digest.AsSpan(0, 16))

@@ -156,15 +156,17 @@ module SkseFixtures =
         (store.GameContexts :> IGameContexts)
             .Save(
                 workspace,
+                profile,
                 0L,
-                { Path = game
+                { GameId = GameId.SkyrimSpecialEditionSteam
+                  Path = game
                   Proton = if OperatingSystem.IsLinux() then Some proton else None }
             )
         |> wait
         |> result
         |> ignore
 
-        let state = (store.GameContexts :> IGameContexts).Read workspace |> wait |> result
+        let state = (store.GameContexts :> IGameContexts).Read(workspace, profile) |> wait |> result
         let evidence = state.Binding.Value.Evidence
         let runtime = evidence.Executable.Value.FileVersion
 

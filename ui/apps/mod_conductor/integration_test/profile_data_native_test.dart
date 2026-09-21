@@ -167,6 +167,8 @@ void main() {
         );
         final checked = await owner.gameContexts!.save(
           id,
+          first,
+          'skyrim-se-steam',
           0,
           game,
           proton: ProtonSelection(

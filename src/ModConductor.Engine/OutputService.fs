@@ -15,6 +15,7 @@ type OutputService(outputs: IGeneratedOutputs) =
             let! read =
                 outputs.Read(
                     ModLibraryWire.id value.WorkspaceId,
+                    ModLibraryWire.id value.ProfileId,
                     Some(ModLibraryWire.id value.ContextId)
                 )
 
@@ -35,6 +36,7 @@ type OutputService(outputs: IGeneratedOutputs) =
             let! read =
                 outputs.Read(
                     ModLibraryWire.id request.WorkspaceId,
+                    ModLibraryWire.id request.ProfileId,
                     if request.HasContextId then
                         Some(ModLibraryWire.id request.ContextId)
                     else

@@ -23,7 +23,7 @@ type internal OutputRepository
         }
 
     interface IOutputRepository with
-        member _.Read(workspace, context) =
+        member _.Read(workspace, profile, context) =
             task {
                 let! root = OutputLocationCommands.root access workspace
 
@@ -37,6 +37,7 @@ type internal OutputRepository
                                 transaction
                                 database.OwnerId
                                 root
+                                profile
                                 context
 
                         transaction.Commit()

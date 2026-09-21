@@ -69,12 +69,12 @@ void main() {
 
       try {
         await owner.connect();
-        final workspace = newOperationId();
+        final workspace = newOperationId(), profile = newOperationId();
         await owner.workspaces!.create(workspace, 'Weekend', root.path);
         await owner.workspaces!.createProfile(
           workspace,
           0,
-          ProfileInfo(newOperationId(), 'Everyday'),
+          ProfileInfo(profile, 'Everyday'),
         );
         final before = (await owner.workspaces!.read(workspace)).workspace;
         await tester.pumpWidget(
@@ -102,7 +102,10 @@ void main() {
         );
         await tester.sendKeyEvent(LogicalKeyboardKey.escape);
         await tester.pumpAndSettle();
-        expect((await owner.gameContexts!.read(workspace)).binding, isNull);
+        expect(
+          (await owner.gameContexts!.read(workspace, profile)).binding,
+          isNull,
+        );
         await tap(find.byKey(const ValueKey('select-installation')));
         await tester.enterText(
           find.byKey(const ValueKey('installation-folder')),
@@ -116,7 +119,10 @@ void main() {
               )
               .enabled,
         );
-        expect((await owner.gameContexts!.read(workspace)).binding, isNull);
+        expect(
+          (await owner.gameContexts!.read(workspace, profile)).binding,
+          isNull,
+        );
         await capture('invalid-folder');
         await tap(find.byKey(const ValueKey('browse-installation')));
         await tap(find.byKey(const ValueKey('submit')));
@@ -126,7 +132,7 @@ void main() {
               .evaluate()
               .isEmpty,
         );
-        final saved = await owner.gameContexts!.read(workspace);
+        final saved = await owner.gameContexts!.read(workspace, profile);
         expect(saved.binding!.path, game);
         expect(saved.binding!.evidence.executable!.fileVersion, '1.7.104.0');
         await capture('saved-context');
@@ -137,7 +143,7 @@ void main() {
             )
             .controller!
             .text;
-        await owner.gameContexts!.refresh(workspace, saved.revision);
+        await owner.gameContexts!.refresh(workspace, profile, saved.revision);
         await tap(find.byKey(const ValueKey('submit')));
         await until(
           () => find
@@ -180,7 +186,7 @@ void main() {
         expect(after.revision, before.revision);
         expect(after.selectedProfile!.id, before.selectedProfile!.id);
         expect(
-          (await owner.gameContexts!.read(workspace)).revision,
+          (await owner.gameContexts!.read(workspace, profile)).revision,
           saved.revision + 1,
         );
       } finally {

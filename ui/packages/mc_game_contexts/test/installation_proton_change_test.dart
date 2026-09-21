@@ -23,6 +23,7 @@ GameContextState manualState() {
   final e = state.binding!.evidence;
   return GameContextState(
     workspaceId: state.workspaceId,
+    profileId: state.profileId,
     revision: state.revision,
     definition: state.definition,
     binding: GameBindingInfo(

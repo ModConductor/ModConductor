@@ -26,9 +26,17 @@ module internal OutputLocationCommands =
             let! state =
                 database.Enqueue(fun () ->
                     let state =
-                        OutputRows.game database.Connection null database.OwnerId scope.WorkspaceId
+                        OutputRows.game
+                            database.Connection
+                            null
+                            database.OwnerId
+                            scope.WorkspaceId
+                            scope.ProfileId
 
-                    if OutputRows.contextId scope.WorkspaceId state <> scope.ContextId then
+                    if
+                        OutputRows.contextId scope.WorkspaceId scope.ProfileId state
+                        <> scope.ContextId
+                    then
                         OutputRows.fail OutputError.Stale
 
                     state)
@@ -87,8 +95,12 @@ module internal OutputLocationCommands =
                             transaction
                             database.OwnerId
                             expected.WorkspaceId
+                            expected.ProfileId
 
-                    if OutputRows.contextId expected.WorkspaceId state <> expected.ContextId then
+                    if
+                        OutputRows.contextId expected.WorkspaceId expected.ProfileId state
+                        <> expected.ContextId
+                    then
                         OutputRows.fail OutputError.Stale
 
                     let rows =
@@ -122,6 +134,7 @@ module internal OutputLocationCommands =
                                     transaction
                                     database.OwnerId
                                     root
+                                    expected.ProfileId
                                     (Some expected.ContextId)
 
                             let addedBytes =

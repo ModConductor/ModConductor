@@ -239,8 +239,10 @@ module internal GenerationFixtures =
 
         contexts.Save(
             workspace,
+            profile,
             0L,
-            { Path = gamePath
+            { GameId = GameId.SkyrimSpecialEditionSteam
+              Path = gamePath
               Proton = if OperatingSystem.IsLinux() then Some proton else None }
         )
         |> wait

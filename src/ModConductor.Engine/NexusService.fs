@@ -46,14 +46,15 @@ type NexusService
     =
     inherit Nexus.NexusBase()
 
-    let game workspace =
+    let game workspace profile =
         task {
-            let! result = games.Read workspace
+            let! result = games.Read(workspace, profile)
 
             match result with
             | Ok state when
                 state.Binding
-                |> Option.exists (fun binding -> binding.Evidence.DefinitionId = "skyrim-se-steam")
+                |> Option.exists (fun binding ->
+                    binding.Evidence.DefinitionId = GameId.SkyrimSpecialEditionSteam)
                 ->
                 return Ok "skyrimspecialedition"
             | Ok _
@@ -95,7 +96,10 @@ type NexusService
 
     override _.ReadNexusMod(request, _) =
         task {
-            let! mapped = game (ModLibraryWire.id request.WorkspaceId)
+            let! mapped =
+                game
+                    (ModLibraryWire.id request.WorkspaceId)
+                    (ModLibraryWire.id request.ProfileId)
 
             let! result =
                 match mapped with
@@ -111,7 +115,7 @@ type NexusService
     override _.DownloadNexusFile(request, _) =
         task {
             let workspace = ModLibraryWire.id request.WorkspaceId
-            let! mapped = game workspace
+            let! mapped = game workspace (ModLibraryWire.id request.ProfileId)
 
             match mapped, session.Status.Account with
             | Error error, _ -> return NexusDownloadReply(Failure = NexusWire.failure error)
@@ -153,7 +157,10 @@ type NexusService
 
     override _.OpenNexusModPage(request, context) =
         task {
-            let! mapped = game (ModLibraryWire.id request.WorkspaceId)
+            let! mapped =
+                game
+                    (ModLibraryWire.id request.WorkspaceId)
+                    (ModLibraryWire.id request.ProfileId)
 
             match mapped with
             | Ok value when request.ModId > 0L ->

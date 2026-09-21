@@ -205,8 +205,10 @@ module FnisFixtures =
         (store.GameContexts :> IGameContexts)
             .Save(
                 workspace,
+                profile,
                 0L,
-                { Path = game
+                { GameId = GameId.SkyrimSpecialEditionSteam
+                  Path = game
                   Proton = if OperatingSystem.IsLinux() then Some proton else None }
             )
         |> wait
@@ -558,7 +560,7 @@ module FnisFixtures =
             |> Option.get
 
         let selectedContext =
-            (store.GameContexts :> IGameContexts).Read workspace |> wait |> result
+            (store.GameContexts :> IGameContexts).Read(workspace, profile) |> wait |> result
 
         let selectedWindowsContext =
             { selectedContext with
@@ -938,7 +940,7 @@ module FnisFixtures =
         File.WriteAllText(mode, "cancel")
         let cancelledId = Guid.NewGuid()
 
-        let context = (store.GameContexts :> IGameContexts).Read workspace |> wait |> result
+        let context = (store.GameContexts :> IGameContexts).Read(workspace, profile) |> wait |> result
 
         store.SkyrimSetups.Save
             { WorkspaceId = workspace
@@ -1309,9 +1311,9 @@ module FnisFixtures =
             )
 
         let reopenedContext =
-            (reopened.GameContexts :> IGameContexts).Read workspace |> wait |> result
+            (reopened.GameContexts :> IGameContexts).Read(workspace, profile) |> wait |> result
 
-        (reopened.GameContexts :> IGameContexts).Refresh(workspace, reopenedContext.Revision)
+        (reopened.GameContexts :> IGameContexts).Refresh(workspace, profile, reopenedContext.Revision)
         |> wait
         |> result
         |> ignore
@@ -1497,9 +1499,9 @@ module FnisFixtures =
             )
 
         let context =
-            (restarted.GameContexts :> IGameContexts).Read workspace |> wait |> result
+            (restarted.GameContexts :> IGameContexts).Read(workspace, profile) |> wait |> result
 
-        (restarted.GameContexts :> IGameContexts).Refresh(workspace, context.Revision)
+        (restarted.GameContexts :> IGameContexts).Refresh(workspace, profile, context.Revision)
         |> wait
         |> result
         |> ignore

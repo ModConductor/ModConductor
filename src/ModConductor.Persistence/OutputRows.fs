@@ -16,14 +16,17 @@ type internal StoredOutputLocation =
 module internal OutputRows =
     let fail error = raise (OutputException error)
 
-    let game connection transaction owner workspace =
-        GameContextRows.read connection transaction owner workspace
+    let game connection transaction owner workspace profile =
+        GameContextRows.read connection transaction owner workspace profile
         |> Result.defaultWith (fun _ -> fail OutputError.NotFound)
 
-    let contextId workspace (state: ModConductor.GameContexts.GameContextState) =
+    let contextId workspace profile (state: ModConductor.GameContexts.GameContextState) =
         state.Binding
         |> Option.map (fun binding ->
-            DeploymentContextId.create workspace (DeploymentContextId.fingerprint binding.Evidence))
+            DeploymentContextId.create
+                workspace
+                profile
+                (DeploymentContextId.fingerprint binding.Evidence))
         |> Option.defaultWith (fun () ->
             fail (OutputError.Unavailable "Select a game installation first."))
 
@@ -39,8 +42,9 @@ module internal OutputRows =
         && Sqlite.number
             connection
             transaction
-            "SELECT COALESCE((SELECT revision FROM game_contexts WHERE workspace_id=$workspace),0)"
-            [ "$workspace", box (string scope.WorkspaceId) ] = scope.ContextRevision
+            "SELECT COALESCE((SELECT revision FROM game_contexts WHERE workspace_id=$workspace AND profile_id=$profile),0)"
+            [ "$workspace", box (string scope.WorkspaceId)
+              "$profile", box (string scope.ProfileId) ] = scope.ContextRevision
 
     let pending connection transaction workspace context =
         use query =
@@ -188,9 +192,9 @@ module internal OutputRows =
                         |> Result.defaultWith (fun _ -> invalidOp "Invalid stored output path.")
                     ) })
 
-    let scope connection transaction owner (root: WorkspaceRoot) requested =
-        let state = game connection transaction owner root.Id
-        let currentId = contextId root.Id state
+    let scope connection transaction owner (root: WorkspaceRoot) profile requested =
+        let state = game connection transaction owner root.Id profile
+        let currentId = contextId root.Id profile state
         let selected = requested |> Option.defaultValue currentId
 
         use query =
@@ -234,6 +238,7 @@ module internal OutputRows =
 
         let result: OutputScope =
             { WorkspaceId = root.Id
+              ProfileId = profile
               ContextId = selected
               Revision = revision connection transaction root.Id selected
               ContextRevision = state.Revision

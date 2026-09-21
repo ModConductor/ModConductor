@@ -86,7 +86,7 @@ module ProtonFixtures =
     let observe (writer: Utf8JsonWriter) primary =
         let area = Path.Combine(primary, "proton")
         let game, selected = create area
-        let installation = InstallationValidation.inspect game
+        let installation = InstallationValidation.inspect Skyrim.definition game
         let checkedContext = Validation.inspect installation selected
         writer.WriteStartObject("proton")
 
@@ -294,6 +294,7 @@ module ProtonFixtures =
 
             let statePath = Directory.CreateDirectory(Path.Combine(area, "state")).FullName
             let workspace = Guid.NewGuid()
+            let profile = Guid.NewGuid()
             let wait = StorageWorker.wait
             let result = StorageWorker.result
             let mutable saved = Unchecked.defaultof<GameContextState>
@@ -306,7 +307,16 @@ module ProtonFixtures =
                 let workspaceRoot =
                     Directory.CreateDirectory(Path.Combine(area, "workspace")).FullName
 
-                workspaces.Create(workspace, "Proton", StorageWorker.select workspaceRoot)
+                let created =
+                    workspaces.Create(workspace, "Proton", StorageWorker.select workspaceRoot)
+                    |> wait
+                    |> result
+
+                workspaces.Edit(
+                    workspace,
+                    created.Workspace.Revision,
+                    ProfileEdit.Create { Id = profile; Name = "Proton" }
+                )
                 |> wait
                 |> result
                 |> ignore
@@ -314,8 +324,10 @@ module ProtonFixtures =
                 saved <-
                     contexts.Save(
                         workspace,
+                        profile,
                         0L,
-                        { Path = game
+                        { GameId = GameId.SkyrimSpecialEditionSteam
+                          Path = game
                           Proton = Some { selected with ToolId = "" } }
                     )
                     |> wait
@@ -326,19 +338,22 @@ module ProtonFixtures =
                     saved.Binding.Value.Proton.Value.ToolId = selected.ToolId
                 )
 
-                let stale = contexts.Save(workspace, 0L, { Path = game; Proton = None }) |> wait
+                let stale = contexts.Save(workspace, profile, 0L, { GameId = GameId.SkyrimSpecialEditionSteam
+                                                                    Path = game; Proton = None }) |> wait
 
                 writer.WriteBoolean(
                     "staleDoesNotDropSelection",
                     stale = Error ContextError.StaleRevision
-                    && (contexts.Read workspace |> wait |> result) = saved
+                    && (contexts.Read(workspace, profile) |> wait |> result) = saved
                 )
 
                 let invalid =
                     contexts.Save(
                         workspace,
+                        profile,
                         saved.Revision,
-                        { Path = game
+                        { GameId = GameId.SkyrimSpecialEditionSteam
+                          Path = game
                           Proton =
                             Some
                                 { selected with
@@ -348,7 +363,7 @@ module ProtonFixtures =
 
                 writer.WriteBoolean(
                     "invalidReplacementAtomic",
-                    Result.isError invalid && (contexts.Read workspace |> wait |> result) = saved
+                    Result.isError invalid && (contexts.Read(workspace, profile) |> wait |> result) = saved
                 )
 
                 File.Move(
@@ -356,7 +371,7 @@ module ProtonFixtures =
                     Path.Combine(selected.RuntimeDirectory, "proton.hidden")
                 )
 
-                let failed = contexts.Refresh(workspace, saved.Revision) |> wait |> result
+                let failed = contexts.Refresh(workspace, profile, saved.Revision) |> wait |> result
 
                 writer.WriteBoolean(
                     "failedRefreshRetainsPins",
@@ -370,13 +385,13 @@ module ProtonFixtures =
                     Path.Combine(selected.RuntimeDirectory, "proton")
                 )
 
-                saved <- contexts.Refresh(workspace, failed.Revision) |> wait |> result
+                saved <- contexts.Refresh(workspace, profile, failed.Revision) |> wait |> result
 
             do
                 use store = new OperationStore(statePath)
 
                 let reopened =
-                    (store.GameContexts :> IGameContexts).Read workspace |> wait |> result
+                    (store.GameContexts :> IGameContexts).Read(workspace, profile) |> wait |> result
 
                 writer.WriteBoolean(
                     "restartRetainsSelectionAndRequiresCheck",

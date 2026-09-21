@@ -45,7 +45,7 @@ type internal ProfileDataRepository(database: StateDatabase, access: LibraryAcce
                     database.Enqueue(fun () ->
                         ProfileDataRows.checkProfile connection null workspace profile
 
-                        GameContextRows.read connection null database.OwnerId workspace
+                        GameContextRows.read connection null database.OwnerId workspace profile
                         |> Result.defaultWith (fun _ ->
                             ProfileDataRows.fail ProfileDataError.NotFound))
 

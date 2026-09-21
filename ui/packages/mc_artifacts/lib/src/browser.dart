@@ -199,11 +199,15 @@ class _ArtifactBrowserState extends State<ArtifactBrowser> {
       builder: (c, constraints) {
         final narrow =
             constraints.maxWidth < 1100 * MediaQuery.textScalerOf(c).scale(1);
-        if (nexus && widget.nexus != null && controller.workspaceId != null) {
+        if (nexus &&
+            widget.nexus != null &&
+            controller.workspaceId != null &&
+            widget.profileId != null) {
           return NexusFilesView(
             key: ValueKey((controller.workspaceId, widget.nexus)),
             client: widget.nexus!,
             workspace: controller.workspaceId!,
+            profile: widget.profileId!,
             onBack: () => setState(() => nexus = false),
             onDownloaded: (artifact) async {
               if (!mounted || artifact.workspaceId != controller.workspaceId)

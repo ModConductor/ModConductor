@@ -32,7 +32,7 @@ module ComponentRoots =
             use writer = new BinaryWriter(bytes, Encoding.UTF8, true)
             writer.Write "mc-skyrim-game-root-v1"
             writer.Write(workspace.ToByteArray())
-            writer.Write evidence.DefinitionId
+            writer.Write(GameId.value evidence.DefinitionId)
             writer.Write evidence.RootPath
             identity writer evidence.RootIdentity.Value
             writer.Flush()

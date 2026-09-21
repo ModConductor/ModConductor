@@ -21,13 +21,14 @@ const ModNexusRequest$json = {
   '2': [
     {'1': 'workspace_id', '3': 1, '4': 1, '5': 9, '10': 'workspaceId'},
     {'1': 'mod_id', '3': 2, '4': 1, '5': 9, '10': 'modId'},
+    {'1': 'profile_id', '3': 3, '4': 1, '5': 9, '10': 'profileId'},
   ],
 };
 
 /// Descriptor for `ModNexusRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List modNexusRequestDescriptor = $convert.base64Decode(
     'Cg9Nb2ROZXh1c1JlcXVlc3QSIQoMd29ya3NwYWNlX2lkGAEgASgJUgt3b3Jrc3BhY2VJZBIVCg'
-    'Ztb2RfaWQYAiABKAlSBW1vZElk');
+    'Ztb2RfaWQYAiABKAlSBW1vZElkEh0KCnByb2ZpbGVfaWQYAyABKAlSCXByb2ZpbGVJZA==');
 
 @$core.Deprecated('Use modNexusReferenceDescriptor instead')
 const ModNexusReference$json = {
@@ -300,6 +301,7 @@ const LinkModNexusRequest$json = {
       '10': 'fileId',
       '17': true
     },
+    {'1': 'profile_id', '3': 4, '4': 1, '5': 9, '10': 'profileId'},
   ],
   '8': [
     {'1': '_provider_mod'},
@@ -311,8 +313,8 @@ const LinkModNexusRequest$json = {
 final $typed_data.Uint8List linkModNexusRequestDescriptor = $convert.base64Decode(
     'ChNMaW5rTW9kTmV4dXNSZXF1ZXN0EkAKCXJlZmVyZW5jZRgBIAEoCzIiLm1vZGNvbmR1Y3Rvci'
     '52MS5Nb2ROZXh1c1JlZmVyZW5jZVIJcmVmZXJlbmNlEiYKDHByb3ZpZGVyX21vZBgCIAEoA0gA'
-    'Ugtwcm92aWRlck1vZIgBARIcCgdmaWxlX2lkGAMgASgDSAFSBmZpbGVJZIgBAUIPCg1fcHJvdm'
-    'lkZXJfbW9kQgoKCF9maWxlX2lk');
+    'Ugtwcm92aWRlck1vZIgBARIcCgdmaWxlX2lkGAMgASgDSAFSBmZpbGVJZIgBARIdCgpwcm9maW'
+    'xlX2lkGAQgASgJUglwcm9maWxlSWRCDwoNX3Byb3ZpZGVyX21vZEIKCghfZmlsZV9pZA==');
 
 @$core.Deprecated('Use mapModNexusCategoryRequestDescriptor instead')
 const MapModNexusCategoryRequest$json = {

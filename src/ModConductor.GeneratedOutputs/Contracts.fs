@@ -43,6 +43,7 @@ type OutputContext =
 
 type OutputScope =
     { WorkspaceId: Guid
+      ProfileId: Guid
       ContextId: Guid
       Revision: int64
       ContextRevision: int64
@@ -132,7 +133,8 @@ type OutputPromotionPreview =
       RegisteredSource: bool }
 
 type IGeneratedOutputs =
-    abstract Read: workspace: Guid * context: Guid option -> Task<Result<OutputScope, OutputError>>
+    abstract Read:
+        workspace: Guid * profile: Guid * context: Guid option -> Task<Result<OutputScope, OutputError>>
 
     abstract Add:
         id: Guid * expected: OutputScope * name: string * purpose: OutputPurpose ->

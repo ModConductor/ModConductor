@@ -32,11 +32,17 @@ type GameContextTests() =
         flag "protonHasNoHostFolders" |> should equal true
 
     [<Test>]
-    member _.``workspace bindings should survive profile operations and reject stale or invalid replacements``
+    member _.``profile bindings should clone isolate delete and reject stale or invalid replacements``
         ()
         =
         flag "workspacesShareInstallation" |> should equal true
         flag "profilesPreserveBinding" |> should equal true
+        flag "profileDeploymentContextsAreDistinct" |> should equal true
+        flag "unboundProfileSafe" |> should equal true
+        flag "profilesIsolateBindings" |> should equal true
+        flag "profileDeleteRemovesOnlyOwnedBinding" |> should equal true
+        flag "workspaceBindingMigratesToEveryExistingProfile" |> should equal true
+        flag "workspaceWithoutProfilesMigratesUnbound" |> should equal true
         flag "staleSavePreservesBinding" |> should equal true
         flag "invalidReplacementPreservesBinding" |> should equal true
 

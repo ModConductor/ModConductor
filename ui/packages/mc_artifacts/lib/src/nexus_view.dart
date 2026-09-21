@@ -10,11 +10,13 @@ class NexusFilesView extends StatefulWidget {
     super.key,
     required this.client,
     required this.workspace,
+    required this.profile,
     required this.onBack,
     required this.onDownloaded,
   });
   final NexusClient client;
   final String workspace;
+  final String profile;
   final VoidCallback onBack;
   final Future<void> Function(Artifact) onDownloaded;
   @override
@@ -66,7 +68,11 @@ class _NexusFilesViewState extends State<NexusFilesView> {
       problem = null;
     });
     try {
-      final value = await widget.client.mod(widget.workspace, id);
+      final value = await widget.client.mod(
+        widget.workspace,
+        widget.profile,
+        id,
+      );
       if (!mounted) return;
       model.apply(removed: model.ids.toList(), upserts: value.files);
       if (value.files.isNotEmpty) model.select(value.files.first.id);
@@ -92,6 +98,7 @@ class _NexusFilesViewState extends State<NexusFilesView> {
       final id = requests.putIfAbsent(file.id, newOperationId);
       final artifact = await widget.client.download(
         widget.workspace,
+        widget.profile,
         id,
         selected.id,
         file.id,
@@ -112,7 +119,7 @@ class _NexusFilesViewState extends State<NexusFilesView> {
     final value = mod;
     if (value == null) return;
     try {
-      await widget.client.openPage(widget.workspace, value.id);
+      await widget.client.openPage(widget.workspace, widget.profile, value.id);
     } on NexusProblem catch (error) {
       if (mounted) setState(() => problem = error);
     }

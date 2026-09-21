@@ -165,6 +165,19 @@ module internal WorkspaceProfiles =
                         | ProfileEdit.Delete _ -> invalidOp "Expected a new profile."
 
                     SelectionRows.initialize connection transaction id value.Id source
+
+                    match source with
+                    | Some source ->
+                        Sqlite.execute
+                            connection
+                            transaction
+                            "INSERT INTO game_contexts(profile_id,workspace_id,game_id,id,path,revision,evidence,checked_owner,failure,proton_selection) SELECT $target,workspace_id,game_id,$binding,path,revision,evidence,checked_owner,failure,proton_selection FROM game_contexts WHERE workspace_id=$workspace AND profile_id=$source"
+                            [ "$target", box (string value.Id)
+                              "$binding", box (string (Guid.NewGuid()))
+                              "$workspace", box (string id)
+                              "$source", box (string source) ]
+                    | None -> ()
+
                     Some value, None, selected |> Option.orElse (Some value.Id)
                 | ProfileEdit.Rename(target, name) ->
                     Sqlite.execute

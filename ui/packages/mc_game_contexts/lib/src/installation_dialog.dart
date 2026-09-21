@@ -73,13 +73,13 @@ class _InstallationDialogState extends State<InstallationDialog> {
     if (busy || discovery == null) return;
     final search = steamSearch ??= SteamSearchController(
       discovery,
-      current.definition.id,
+      current.definition!.id,
     );
     final path = await showDialog<String>(
       context: context,
       builder: (_) => SteamInstallationChooser(
         controller: search,
-        gameName: current.definition.name,
+        gameName: current.definition!.name,
         chooseDirectory: widget.chooseDirectory,
       ),
     );
@@ -98,7 +98,7 @@ class _InstallationDialogState extends State<InstallationDialog> {
     final selected = await showDialog<ProtonSelection>(
       context: context,
       builder: (_) => ProtonDialog(
-        game: current.definition,
+        game: current.definition!,
         gamePath: gamePath,
         client: client,
         chooseDirectory: widget.chooseDirectory,
@@ -124,6 +124,8 @@ class _InstallationDialogState extends State<InstallationDialog> {
     try {
       final result = await widget.client.save(
         current.workspaceId,
+        current.profileId,
+        current.definition!.id,
         current.revision,
         folder.text,
         proton: proton,
@@ -158,7 +160,10 @@ class _InstallationDialogState extends State<InstallationDialog> {
     if (busy) return;
     setState(() => busy = true);
     try {
-      final result = await widget.client.read(current.workspaceId);
+      final result = await widget.client.read(
+        current.workspaceId,
+        current.profileId,
+      );
       widget.onSaved(result);
       if (mounted) {
         setState(() {
@@ -209,11 +214,11 @@ class _InstallationDialogState extends State<InstallationDialog> {
     onSubmit: busy || needsReload ? null : save,
     children: [
       Text(
-        current.definition.name,
+        current.definition!.name,
         style: Theme.of(context).textTheme.titleMedium,
       ),
       const SizedBox(height: 4),
-      Text(current.definition.storefront),
+      Text(current.definition!.storefront),
       const SizedBox(height: 20),
       TextFormField(
         key: const ValueKey('installation-folder'),

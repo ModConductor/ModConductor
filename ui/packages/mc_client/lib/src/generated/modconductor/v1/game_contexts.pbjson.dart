@@ -95,6 +95,7 @@ const ReadGameContextRequest$json = {
   '1': 'ReadGameContextRequest',
   '2': [
     {'1': 'workspace_id', '3': 1, '4': 1, '5': 9, '10': 'workspaceId'},
+    {'1': 'profile_id', '3': 2, '4': 1, '5': 9, '10': 'profileId'},
   ],
 };
 
@@ -102,7 +103,7 @@ const ReadGameContextRequest$json = {
 final $typed_data.Uint8List readGameContextRequestDescriptor =
     $convert.base64Decode(
         'ChZSZWFkR2FtZUNvbnRleHRSZXF1ZXN0EiEKDHdvcmtzcGFjZV9pZBgBIAEoCVILd29ya3NwYW'
-        'NlSWQ=');
+        'NlSWQSHQoKcHJvZmlsZV9pZBgCIAEoCVIJcHJvZmlsZUlk');
 
 @$core.Deprecated('Use saveGameContextRequestDescriptor instead')
 const SaveGameContextRequest$json = {
@@ -125,6 +126,8 @@ const SaveGameContextRequest$json = {
       '6': '.modconductor.v1.ProtonSelectionInfo',
       '10': 'proton'
     },
+    {'1': 'profile_id', '3': 5, '4': 1, '5': 9, '10': 'profileId'},
+    {'1': 'game_id', '3': 6, '4': 1, '5': 9, '10': 'gameId'},
   ],
 };
 
@@ -133,7 +136,8 @@ final $typed_data.Uint8List saveGameContextRequestDescriptor = $convert.base64De
     'ChZTYXZlR2FtZUNvbnRleHRSZXF1ZXN0EiEKDHdvcmtzcGFjZV9pZBgBIAEoCVILd29ya3NwYW'
     'NlSWQSKwoRZXhwZWN0ZWRfcmV2aXNpb24YAiABKARSEGV4cGVjdGVkUmV2aXNpb24SEgoEcGF0'
     'aBgDIAEoCVIEcGF0aBI8CgZwcm90b24YBCABKAsyJC5tb2Rjb25kdWN0b3IudjEuUHJvdG9uU2'
-    'VsZWN0aW9uSW5mb1IGcHJvdG9u');
+    'VsZWN0aW9uSW5mb1IGcHJvdG9uEh0KCnByb2ZpbGVfaWQYBSABKAlSCXByb2ZpbGVJZBIXCgdn'
+    'YW1lX2lkGAYgASgJUgZnYW1lSWQ=');
 
 @$core.Deprecated('Use refreshGameContextRequestDescriptor instead')
 const RefreshGameContextRequest$json = {
@@ -147,14 +151,15 @@ const RefreshGameContextRequest$json = {
       '5': 4,
       '10': 'expectedRevision'
     },
+    {'1': 'profile_id', '3': 3, '4': 1, '5': 9, '10': 'profileId'},
   ],
 };
 
 /// Descriptor for `RefreshGameContextRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List refreshGameContextRequestDescriptor =
-    $convert.base64Decode(
-        'ChlSZWZyZXNoR2FtZUNvbnRleHRSZXF1ZXN0EiEKDHdvcmtzcGFjZV9pZBgBIAEoCVILd29ya3'
-        'NwYWNlSWQSKwoRZXhwZWN0ZWRfcmV2aXNpb24YAiABKARSEGV4cGVjdGVkUmV2aXNpb24=');
+final $typed_data.Uint8List refreshGameContextRequestDescriptor = $convert.base64Decode(
+    'ChlSZWZyZXNoR2FtZUNvbnRleHRSZXF1ZXN0EiEKDHdvcmtzcGFjZV9pZBgBIAEoCVILd29ya3'
+    'NwYWNlSWQSKwoRZXhwZWN0ZWRfcmV2aXNpb24YAiABKARSEGV4cGVjdGVkUmV2aXNpb24SHQoK'
+    'cHJvZmlsZV9pZBgDIAEoCVIJcHJvZmlsZUlk');
 
 @$core.Deprecated('Use gameDefinitionInfoDescriptor instead')
 const GameDefinitionInfo$json = {
@@ -554,6 +559,7 @@ const GameContextState$json = {
       '6': '.modconductor.v1.GameBindingInfo',
       '10': 'binding'
     },
+    {'1': 'profile_id', '3': 5, '4': 1, '5': 9, '10': 'profileId'},
   ],
 };
 
@@ -562,7 +568,8 @@ final $typed_data.Uint8List gameContextStateDescriptor = $convert.base64Decode(
     'ChBHYW1lQ29udGV4dFN0YXRlEiEKDHdvcmtzcGFjZV9pZBgBIAEoCVILd29ya3NwYWNlSWQSGg'
     'oIcmV2aXNpb24YAiABKARSCHJldmlzaW9uEkMKCmRlZmluaXRpb24YAyABKAsyIy5tb2Rjb25k'
     'dWN0b3IudjEuR2FtZURlZmluaXRpb25JbmZvUgpkZWZpbml0aW9uEjoKB2JpbmRpbmcYBCABKA'
-    'syIC5tb2Rjb25kdWN0b3IudjEuR2FtZUJpbmRpbmdJbmZvUgdiaW5kaW5n');
+    'syIC5tb2Rjb25kdWN0b3IudjEuR2FtZUJpbmRpbmdJbmZvUgdiaW5kaW5nEh0KCnByb2ZpbGVf'
+    'aWQYBSABKAlSCXByb2ZpbGVJZA==');
 
 @$core.Deprecated('Use gameContextFaultDescriptor instead')
 const GameContextFault$json = {

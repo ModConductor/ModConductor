@@ -25,9 +25,11 @@ export 'game_contexts.pbenum.dart';
 class ReadGameContextRequest extends $pb.GeneratedMessage {
   factory ReadGameContextRequest({
     $core.String? workspaceId,
+    $core.String? profileId,
   }) {
     final result = create();
     if (workspaceId != null) result.workspaceId = workspaceId;
+    if (profileId != null) result.profileId = profileId;
     return result;
   }
 
@@ -46,6 +48,7 @@ class ReadGameContextRequest extends $pb.GeneratedMessage {
           const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
       createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'workspaceId')
+    ..aOS(2, _omitFieldNames ? '' : 'profileId')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -76,6 +79,15 @@ class ReadGameContextRequest extends $pb.GeneratedMessage {
   $core.bool hasWorkspaceId() => $_has(0);
   @$pb.TagNumber(1)
   void clearWorkspaceId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get profileId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set profileId($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasProfileId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearProfileId() => $_clearField(2);
 }
 
 class SaveGameContextRequest extends $pb.GeneratedMessage {
@@ -84,12 +96,16 @@ class SaveGameContextRequest extends $pb.GeneratedMessage {
     $fixnum.Int64? expectedRevision,
     $core.String? path,
     $1.ProtonSelectionInfo? proton,
+    $core.String? profileId,
+    $core.String? gameId,
   }) {
     final result = create();
     if (workspaceId != null) result.workspaceId = workspaceId;
     if (expectedRevision != null) result.expectedRevision = expectedRevision;
     if (path != null) result.path = path;
     if (proton != null) result.proton = proton;
+    if (profileId != null) result.profileId = profileId;
+    if (gameId != null) result.gameId = gameId;
     return result;
   }
 
@@ -114,6 +130,8 @@ class SaveGameContextRequest extends $pb.GeneratedMessage {
     ..aOS(3, _omitFieldNames ? '' : 'path')
     ..aOM<$1.ProtonSelectionInfo>(4, _omitFieldNames ? '' : 'proton',
         subBuilder: $1.ProtonSelectionInfo.create)
+    ..aOS(5, _omitFieldNames ? '' : 'profileId')
+    ..aOS(6, _omitFieldNames ? '' : 'gameId')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -173,16 +191,36 @@ class SaveGameContextRequest extends $pb.GeneratedMessage {
   void clearProton() => $_clearField(4);
   @$pb.TagNumber(4)
   $1.ProtonSelectionInfo ensureProton() => $_ensure(3);
+
+  @$pb.TagNumber(5)
+  $core.String get profileId => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set profileId($core.String value) => $_setString(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasProfileId() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearProfileId() => $_clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.String get gameId => $_getSZ(5);
+  @$pb.TagNumber(6)
+  set gameId($core.String value) => $_setString(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasGameId() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearGameId() => $_clearField(6);
 }
 
 class RefreshGameContextRequest extends $pb.GeneratedMessage {
   factory RefreshGameContextRequest({
     $core.String? workspaceId,
     $fixnum.Int64? expectedRevision,
+    $core.String? profileId,
   }) {
     final result = create();
     if (workspaceId != null) result.workspaceId = workspaceId;
     if (expectedRevision != null) result.expectedRevision = expectedRevision;
+    if (profileId != null) result.profileId = profileId;
     return result;
   }
 
@@ -204,6 +242,7 @@ class RefreshGameContextRequest extends $pb.GeneratedMessage {
     ..a<$fixnum.Int64>(
         2, _omitFieldNames ? '' : 'expectedRevision', $pb.PbFieldType.OU6,
         defaultOrMaker: $fixnum.Int64.ZERO)
+    ..aOS(3, _omitFieldNames ? '' : 'profileId')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -243,6 +282,15 @@ class RefreshGameContextRequest extends $pb.GeneratedMessage {
   $core.bool hasExpectedRevision() => $_has(1);
   @$pb.TagNumber(2)
   void clearExpectedRevision() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get profileId => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set profileId($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasProfileId() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearProfileId() => $_clearField(3);
 }
 
 class GameDefinitionInfo extends $pb.GeneratedMessage {
@@ -1304,12 +1352,14 @@ class GameContextState extends $pb.GeneratedMessage {
     $fixnum.Int64? revision,
     GameDefinitionInfo? definition,
     GameBindingInfo? binding,
+    $core.String? profileId,
   }) {
     final result = create();
     if (workspaceId != null) result.workspaceId = workspaceId;
     if (revision != null) result.revision = revision;
     if (definition != null) result.definition = definition;
     if (binding != null) result.binding = binding;
+    if (profileId != null) result.profileId = profileId;
     return result;
   }
 
@@ -1335,6 +1385,7 @@ class GameContextState extends $pb.GeneratedMessage {
         subBuilder: GameDefinitionInfo.create)
     ..aOM<GameBindingInfo>(4, _omitFieldNames ? '' : 'binding',
         subBuilder: GameBindingInfo.create)
+    ..aOS(5, _omitFieldNames ? '' : 'profileId')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1395,6 +1446,15 @@ class GameContextState extends $pb.GeneratedMessage {
   void clearBinding() => $_clearField(4);
   @$pb.TagNumber(4)
   GameBindingInfo ensureBinding() => $_ensure(3);
+
+  @$pb.TagNumber(5)
+  $core.String get profileId => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set profileId($core.String value) => $_setString(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasProfileId() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearProfileId() => $_clearField(5);
 }
 
 class GameContextFault extends $pb.GeneratedMessage {

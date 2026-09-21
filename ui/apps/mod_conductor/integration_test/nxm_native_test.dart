@@ -131,7 +131,13 @@ void main() {
           0,
           ProfileInfo(profile, 'Everyday'),
         );
-        await owner.gameContexts!.save(workspace, 0, game);
+        await owner.gameContexts!.save(
+          workspace,
+          profile,
+          'skyrim-se-steam',
+          0,
+          game,
+        );
         await tester.pumpWidget(
           RepaintBoundary(
             key: boundary,
@@ -181,6 +187,7 @@ void main() {
         final archiveId = newOperationId();
         final started = await owner.nexus!.download(
           workspace,
+          profile,
           archiveId,
           64012,
           501,

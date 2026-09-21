@@ -106,7 +106,7 @@ type LootSession
         async {
             let evidence = validateContext sources.Context
 
-            if evidence.DefinitionId <> "skyrim-se-steam" then
+            if evidence.DefinitionId <> GameId.SkyrimSpecialEditionSteam then
                 return Error(LootError.Unsupported "LOOT sorting is not available for this game.")
             else
                 let root =

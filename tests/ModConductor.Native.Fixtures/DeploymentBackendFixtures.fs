@@ -48,8 +48,10 @@ module DeploymentBackendFixtures =
         (store.GameContexts :> IGameContexts)
             .Save(
                 workspace,
+                profile,
                 0L,
-                { Path = game
+                { GameId = GameId.SkyrimSpecialEditionSteam
+                  Path = game
                   Proton = if OperatingSystem.IsLinux() then Some proton else None }
             )
         |> wait
@@ -177,8 +179,10 @@ module DeploymentBackendFixtures =
         (store.GameContexts :> IGameContexts)
             .Save(
                 workspace,
+                profile,
                 0L,
-                { Path = game
+                { GameId = GameId.SkyrimSpecialEditionSteam
+                  Path = game
                   Proton = if OperatingSystem.IsLinux() then Some proton else None }
             )
         |> wait
@@ -188,10 +192,11 @@ module DeploymentBackendFixtures =
         let backend = store.Deployments
 
         let deploymentContext () =
-            let saved = (store.GameContexts :> IGameContexts).Read workspace |> wait |> result
+            let saved = (store.GameContexts :> IGameContexts).Read(workspace, profile) |> wait |> result
 
             DeploymentContextId.create
                 workspace
+                profile
                 (DeploymentContextId.fingerprint saved.Binding.Value.Evidence)
 
         let state = backend.Read profile |> wait |> result
@@ -295,7 +300,7 @@ module DeploymentBackendFixtures =
         )
 
         let beforeEvidence =
-            (store.GameContexts :> IGameContexts).Read workspace |> wait |> result
+            (store.GameContexts :> IGameContexts).Read(workspace, profile) |> wait |> result
 
         let ownedContext = deploymentContext ()
         GameContextFixtures.create game 105
@@ -307,7 +312,7 @@ module DeploymentBackendFixtures =
             )
 
         let refreshed =
-            (store.GameContexts :> IGameContexts).Refresh(workspace, beforeEvidence.Revision)
+            (store.GameContexts :> IGameContexts).Refresh(workspace, profile, beforeEvidence.Revision)
             |> wait
             |> result
 
@@ -603,14 +608,16 @@ module DeploymentBackendFixtures =
         let contexts = store.GameContexts :> IGameContexts
 
         let originalSelection =
-            { Path = game
+            { GameId = GameId.SkyrimSpecialEditionSteam
+              Path = game
               Proton = if OperatingSystem.IsLinux() then Some proton else None }
 
         let replacementGame, replacementProton =
             ProtonFixtures.create (Path.Combine(area, "replacement-game"))
 
         let replacementSelection =
-            { Path = replacementGame
+            { GameId = GameId.SkyrimSpecialEditionSteam
+              Path = replacementGame
               Proton =
                 if OperatingSystem.IsLinux() then
                     Some replacementProton
@@ -618,8 +625,8 @@ module DeploymentBackendFixtures =
                     None }
 
         let select selection =
-            let saved = contexts.Read workspace |> wait |> result
-            contexts.Save(workspace, saved.Revision, selection) |> wait |> result |> ignore
+            let saved = contexts.Read(workspace, profile) |> wait |> result
+            contexts.Save(workspace, profile, saved.Revision, selection) |> wait |> result |> ignore
 
         let originalContext = deploymentContext ()
         select replacementSelection

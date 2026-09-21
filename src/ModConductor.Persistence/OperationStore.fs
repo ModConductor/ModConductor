@@ -832,7 +832,7 @@ type OperationStore
                 |> Option.defaultWith (fun () -> fail "The installed SKSE version is unavailable.")
 
             let! contextResult =
-                (gameContexts :> ModConductor.GameContexts.IGameContexts).Read workspace
+                (gameContexts :> ModConductor.GameContexts.IGameContexts).Read(workspace, profile)
 
             let context =
                 contextResult
@@ -1079,7 +1079,7 @@ type OperationStore
                 |> Option.defaultWith (fun () -> fail "The installed FNIS version is unavailable.")
 
             let! contextResult =
-                (gameContexts :> ModConductor.GameContexts.IGameContexts).Read workspace
+                (gameContexts :> ModConductor.GameContexts.IGameContexts).Read(workspace, profile)
 
             let context =
                 contextResult
@@ -1352,7 +1352,7 @@ type OperationStore
             let fail detail = raise (IO.IOException detail)
 
             let! contextResult =
-                (gameContexts :> ModConductor.GameContexts.IGameContexts).Read workspace
+                (gameContexts :> ModConductor.GameContexts.IGameContexts).Read(workspace, profile)
 
             let context =
                 contextResult

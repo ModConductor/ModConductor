@@ -14,8 +14,8 @@ service GeneratedOutputOperations {
   rpc ReadOutputAction(OutputActionRequest) returns (OutputActionReply);
   rpc ResumeOutputAction(OutputActionRequest) returns (OutputActionReply);
 }
-message OutputScopeRef { string workspace_id = 1; string context_id = 2; uint64 revision = 3; uint64 context_revision = 4; }
-message ReadOutputsRequest { string workspace_id = 1; optional string context_id = 2; }
+message OutputScopeRef { string workspace_id = 1; string context_id = 2; uint64 revision = 3; uint64 context_revision = 4; string profile_id = 5; }
+message ReadOutputsRequest { string workspace_id = 1; optional string context_id = 2; string profile_id = 3; }
 enum OutputLocationKind { OUTPUT_LOCATION_KIND_UNSPECIFIED = 0; OUTPUT_LOCATION_KIND_TOOL_FOLDER = 1; OUTPUT_LOCATION_KIND_WRITABLE_FILE = 2; }
 enum OutputLocationStatus { OUTPUT_LOCATION_STATUS_UNSPECIFIED = 0; OUTPUT_LOCATION_STATUS_UNINITIALIZED = 1; OUTPUT_LOCATION_STATUS_READY = 2; OUTPUT_LOCATION_STATUS_STOPPED = 3; }
 message OutputLocation {

@@ -56,7 +56,7 @@ module GeneratedOutputRecoveryFixtures =
 
     let private interrupt (inner: IOutputRepository) checkpoint =
         { new IOutputRepository with
-            member _.Read(workspace, context) = inner.Read(workspace, context)
+            member _.Read(workspace, profile, context) = inner.Read(workspace, profile, context)
             member _.Add(id, scope, name, purpose) = inner.Add(id, scope, name, purpose)
             member _.Workspace id = inner.Workspace id
             member _.StopUsing(id, revision) = inner.StopUsing(id, revision)
@@ -127,8 +127,10 @@ module GeneratedOutputRecoveryFixtures =
             (store.GameContexts :> IGameContexts)
                 .Save(
                     workspace,
+                    profile,
                     0L,
-                    { Path = game
+                    { GameId = GameId.SkyrimSpecialEditionSteam
+                      Path = game
                       Proton = if OperatingSystem.IsLinux() then Some proton else None }
                 )
             |> wait
@@ -138,7 +140,7 @@ module GeneratedOutputRecoveryFixtures =
             let outputs = store.GeneratedOutputs
 
             let scope () =
-                outputs.Read(workspace, None) |> wait |> result
+                outputs.Read(workspace, profile, None) |> wait |> result
 
             let slot =
                 outputs.Add(
@@ -158,8 +160,8 @@ module GeneratedOutputRecoveryFixtures =
             slot, tool
 
         let initialize (owner: Owner) =
-            let state = owner.Contexts.Read workspace |> wait |> result
-            owner.Contexts.Refresh(workspace, state.Revision) |> wait |> result |> ignore
+            let state = owner.Contexts.Read(workspace, profile) |> wait |> result
+            owner.Contexts.Refresh(workspace, profile, state.Revision) |> wait |> result |> ignore
 
         let session (owner: Owner) checkpoint =
             let repository =
@@ -174,7 +176,7 @@ module GeneratedOutputRecoveryFixtures =
 
             try
                 let outputs = session :> IGeneratedOutputs
-                let scope = outputs.Read(workspace, None) |> wait |> result
+                let scope = outputs.Read(workspace, profile, None) |> wait |> result
                 let observed = outputs.Observe(scope, ignore, token) |> wait |> result
                 let id = Guid.NewGuid()
 
@@ -267,7 +269,7 @@ module GeneratedOutputRecoveryFixtures =
                  && owner.VersionCount modId = 1L
                  && saved.Origin = VersionOrigin.Outputs move.Id)
 
-            let current, _ = owner.Repository.Read(workspace, None) |> wait
+            let current, _ = owner.Repository.Read(workspace, profile, None) |> wait
 
             owner.Repository.Add(Guid.NewGuid(), current, "Another tool", OutputPurpose.ToolFolder)
             |> wait

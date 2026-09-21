@@ -26,97 +26,99 @@ namespace ModConductor.Protocol.V1 {
           string.Concat(
             "CiNtb2Rjb25kdWN0b3IvdjEvZ2FtZV9jb250ZXh0cy5wcm90bxIPbW9kY29u",
             "ZHVjdG9yLnYxGiVtb2Rjb25kdWN0b3IvdjEvcHJvdG9uX2NvbnRleHRzLnBy",
-            "b3RvIi4KFlJlYWRHYW1lQ29udGV4dFJlcXVlc3QSFAoMd29ya3NwYWNlX2lk",
-            "GAEgASgJIo0BChZTYXZlR2FtZUNvbnRleHRSZXF1ZXN0EhQKDHdvcmtzcGFj",
-            "ZV9pZBgBIAEoCRIZChFleHBlY3RlZF9yZXZpc2lvbhgCIAEoBBIMCgRwYXRo",
-            "GAMgASgJEjQKBnByb3RvbhgEIAEoCzIkLm1vZGNvbmR1Y3Rvci52MS5Qcm90",
-            "b25TZWxlY3Rpb25JbmZvIkwKGVJlZnJlc2hHYW1lQ29udGV4dFJlcXVlc3QS",
-            "FAoMd29ya3NwYWNlX2lkGAEgASgJEhkKEWV4cGVjdGVkX3JldmlzaW9uGAIg",
-            "ASgEIocCChJHYW1lRGVmaW5pdGlvbkluZm8SFQoNZGVmaW5pdGlvbl9pZBgB",
-            "IAEoCRIQCghyZXZpc2lvbhgCIAEoDRIMCgRuYW1lGAMgASgJEhIKCnN0b3Jl",
-            "ZnJvbnQYBCABKAkSHQoVZGVjbGFyZWRfc3RlYW1fYXBwX2lkGAUgASgNEkwK",
-            "GHVuYXZhaWxhYmxlX2NhcGFiaWxpdGllcxgGIAMoCzIqLm1vZGNvbmR1Y3Rv",
-            "ci52MS5VbmF2YWlsYWJsZUdhbWVDYXBhYmlsaXR5EjkKDGNhcGFiaWxpdGll",
-            "cxgHIAMoCzIjLm1vZGNvbmR1Y3Rvci52MS5HYW1lQ2FwYWJpbGl0eUluZm8i",
-            "OQoZVW5hdmFpbGFibGVHYW1lQ2FwYWJpbGl0eRIMCgRuYW1lGAEgASgJEg4K",
-            "BnJlYXNvbhgCIAEoCSJnChVHYW1lQ2FwYWJpbGl0eUNvbnRleHQSFQoNZGVm",
-            "aW5pdGlvbl9pZBgBIAEoCRI3CglwbGF0Zm9ybXMYAiADKA4yJC5tb2Rjb25k",
-            "dWN0b3IudjEuR2FtZUNvbnRleHRQbGF0Zm9ybSKZAgoSR2FtZUNhcGFiaWxp",
-            "dHlJbmZvEhUKDWNhcGFiaWxpdHlfaWQYASABKAkSEAoIcmV2aXNpb24YAiAB",
-            "KA0SDAoEbmFtZRgDIAEoCRIxCgRraW5kGAQgASgOMiMubW9kY29uZHVjdG9y",
-            "LnYxLkdhbWVDYXBhYmlsaXR5S2luZBI4Cghjb250ZXh0cxgFIAMoCzImLm1v",
-            "ZGNvbmR1Y3Rvci52MS5HYW1lQ2FwYWJpbGl0eUNvbnRleHQSPwoLZGlzcG9z",
-            "aXRpb24YBiABKA4yKi5tb2Rjb25kdWN0b3IudjEuR2FtZUNhcGFiaWxpdHlE",
-            "aXNwb3NpdGlvbhITCgZyZWFzb24YByABKAlIAIgBAUIJCgdfcmVhc29uIm0K",
-            "DEdhbWVMb2NhdGlvbhI1Cgdsb2NhdGVkGAEgASgLMiIubW9kY29uZHVjdG9y",
-            "LnYxLkxvY2F0ZWRHYW1lRm9sZGVySAASHAoSdW5hdmFpbGFibGVfcmVhc29u",
-            "GAIgASgJSABCCAoGcmVzdWx0IjEKEUxvY2F0ZWRHYW1lRm9sZGVyEgwKBHBh",
-            "dGgYASABKAkSDgoGZXhpc3RzGAIgASgIInUKFkdhbWVFeGVjdXRhYmxlRXZp",
-            "ZGVuY2USDAoEcGF0aBgBIAEoCRIOCgZzaGEyNTYYAiABKAkSDgoGbGVuZ3Ro",
-            "GAMgASgEEhQKDGZpbGVfdmVyc2lvbhgEIAEoCRIXCg9wcm9kdWN0X3ZlcnNp",
-            "b24YBSABKAkiNQoVR2FtZVZhbGlkYXRpb25Qcm9ibGVtEgwKBHBhdGgYASAB",
-            "KAkSDgoGZGV0YWlsGAIgASgJIuQEChhHYW1lSW5zdGFsbGF0aW9uRXZpZGVu",
-            "Y2USNgoIcGxhdGZvcm0YASABKA4yJC5tb2Rjb25kdWN0b3IudjEuR2FtZUNv",
-            "bnRleHRQbGF0Zm9ybRIRCglyb290X3BhdGgYAiABKAkSFgoJZGF0YV9wYXRo",
-            "GAMgASgJSACIAQESOwoKZXhlY3V0YWJsZRgEIAEoCzInLm1vZGNvbmR1Y3Rv",
-            "ci52MS5HYW1lRXhlY3V0YWJsZUV2aWRlbmNlEhoKDWxhdW5jaGVyX3BhdGgY",
-            "BSABKAlIAYgBARIwCglkb2N1bWVudHMYBiABKAsyHS5tb2Rjb25kdWN0b3Iu",
-            "djEuR2FtZUxvY2F0aW9uEiwKBXNhdmVzGAcgASgLMh0ubW9kY29uZHVjdG9y",
-            "LnYxLkdhbWVMb2NhdGlvbhI1Cg5sb2NhbF9hcHBfZGF0YRgIIAEoCzIdLm1v",
-            "ZGNvbmR1Y3Rvci52MS5HYW1lTG9jYXRpb24SOAoIcHJvYmxlbXMYCSADKAsy",
-            "Ji5tb2Rjb25kdWN0b3IudjEuR2FtZVZhbGlkYXRpb25Qcm9ibGVtEhoKEmNo",
-            "ZWNrZWRfYXRfdW5peF9tcxgKIAEoAxITCgtmaW5nZXJwcmludBgLIAEoCRIV",
-            "Cg1kZWZpbml0aW9uX2lkGAwgASgJEhsKE2RlZmluaXRpb25fcmV2aXNpb24Y",
-            "DSABKA0SNgoGcHJvdG9uGA4gASgLMiYubW9kY29uZHVjdG9yLnYxLlByb3Rv",
-            "bkNvbnRleHRFdmlkZW5jZUIMCgpfZGF0YV9wYXRoQhAKDl9sYXVuY2hlcl9w",
-            "YXRoIt0BCg9HYW1lQmluZGluZ0luZm8SEgoKYmluZGluZ19pZBgBIAEoCRIM",
-            "CgRwYXRoGAIgASgJEjsKCGV2aWRlbmNlGAMgASgLMikubW9kY29uZHVjdG9y",
-            "LnYxLkdhbWVJbnN0YWxsYXRpb25FdmlkZW5jZRITCgtuZWVkc19jaGVjaxgE",
-            "IAEoCBIUCgdmYWlsdXJlGAUgASgJSACIAQESNAoGcHJvdG9uGAYgASgLMiQu",
-            "bW9kY29uZHVjdG9yLnYxLlByb3RvblNlbGVjdGlvbkluZm9CCgoIX2ZhaWx1",
-            "cmUipgEKEEdhbWVDb250ZXh0U3RhdGUSFAoMd29ya3NwYWNlX2lkGAEgASgJ",
-            "EhAKCHJldmlzaW9uGAIgASgEEjcKCmRlZmluaXRpb24YAyABKAsyIy5tb2Rj",
-            "b25kdWN0b3IudjEuR2FtZURlZmluaXRpb25JbmZvEjEKB2JpbmRpbmcYBCAB",
-            "KAsyIC5tb2Rjb25kdWN0b3IudjEuR2FtZUJpbmRpbmdJbmZvIpUBChBHYW1l",
-            "Q29udGV4dEZhdWx0EjMKBGNvZGUYASABKA4yJS5tb2Rjb25kdWN0b3IudjEu",
-            "R2FtZUNvbnRleHRGYXVsdENvZGUSDgoGZGV0YWlsGAIgASgJEjwKCWNhbmRp",
-            "ZGF0ZRgDIAEoCzIpLm1vZGNvbmR1Y3Rvci52MS5HYW1lSW5zdGFsbGF0aW9u",
-            "RXZpZGVuY2UihQEKEEdhbWVDb250ZXh0UmVwbHkSMgoFc3RhdGUYASABKAsy",
-            "IS5tb2Rjb25kdWN0b3IudjEuR2FtZUNvbnRleHRTdGF0ZUgAEjIKBWZhdWx0",
-            "GAIgASgLMiEubW9kY29uZHVjdG9yLnYxLkdhbWVDb250ZXh0RmF1bHRIAEIJ",
-            "CgdvdXRjb21lKoEBChNHYW1lQ29udGV4dFBsYXRmb3JtEiUKIUdBTUVfQ09O",
-            "VEVYVF9QTEFURk9STV9VTlNQRUNJRklFRBAAEiEKHUdBTUVfQ09OVEVYVF9Q",
-            "TEFURk9STV9XSU5ET1dTEAESIAocR0FNRV9DT05URVhUX1BMQVRGT1JNX1BS",
-            "T1RPThACKt8BChJHYW1lQ2FwYWJpbGl0eUtpbmQSJAogR0FNRV9DQVBBQklM",
-            "SVRZX0tJTkRfVU5TUEVDSUZJRUQQABIlCiFHQU1FX0NBUEFCSUxJVFlfS0lO",
-            "RF9DT1JFX09VVENPTUUQARIlCiFHQU1FX0NBUEFCSUxJVFlfS0lORF9HQU1F",
-            "X0FEQVBURVIQAhIoCiRHQU1FX0NBUEFCSUxJVFlfS0lORF9PUFRJT05BTF9M",
-            "RUdBQ1kQAxIrCidHQU1FX0NBUEFCSUxJVFlfS0lORF9PQlNPTEVURV9NRUNI",
-            "QU5JU00QBCrNAQoZR2FtZUNhcGFiaWxpdHlEaXNwb3NpdGlvbhIrCidHQU1F",
-            "X0NBUEFCSUxJVFlfRElTUE9TSVRJT05fVU5TUEVDSUZJRUQQABIpCiVHQU1F",
-            "X0NBUEFCSUxJVFlfRElTUE9TSVRJT05fQVZBSUxBQkxFEAESKwonR0FNRV9D",
-            "QVBBQklMSVRZX0RJU1BPU0lUSU9OX1VOQVZBSUxBQkxFEAISKwonR0FNRV9D",
-            "QVBBQklMSVRZX0RJU1BPU0lUSU9OX1VOU1VQUE9SVEVEEAMq+wEKFEdhbWVD",
-            "b250ZXh0RmF1bHRDb2RlEiIKHkdBTUVfQ09OVEVYVF9GQVVMVF9VTlNQRUNJ",
-            "RklFRBAAEiAKHEdBTUVfQ09OVEVYVF9GQVVMVF9OT1RfRk9VTkQQARIlCiFH",
-            "QU1FX0NPTlRFWFRfRkFVTFRfU1RBTEVfUkVWSVNJT04QAhIsCihHQU1FX0NP",
-            "TlRFWFRfRkFVTFRfV09SS1NQQUNFX1VOQVZBSUxBQkxFEAMSKwonR0FNRV9D",
-            "T05URVhUX0ZBVUxUX0lOVkFMSURfSU5TVEFMTEFUSU9OEAQSGwoXR0FNRV9D",
-            "T05URVhUX0ZBVUxUX0JVU1kQBTK6AgoVR2FtZUNvbnRleHRPcGVyYXRpb25z",
-            "El0KD1JlYWRHYW1lQ29udGV4dBInLm1vZGNvbmR1Y3Rvci52MS5SZWFkR2Ft",
-            "ZUNvbnRleHRSZXF1ZXN0GiEubW9kY29uZHVjdG9yLnYxLkdhbWVDb250ZXh0",
-            "UmVwbHkSXQoPU2F2ZUdhbWVDb250ZXh0EicubW9kY29uZHVjdG9yLnYxLlNh",
-            "dmVHYW1lQ29udGV4dFJlcXVlc3QaIS5tb2Rjb25kdWN0b3IudjEuR2FtZUNv",
-            "bnRleHRSZXBseRJjChJSZWZyZXNoR2FtZUNvbnRleHQSKi5tb2Rjb25kdWN0",
-            "b3IudjEuUmVmcmVzaEdhbWVDb250ZXh0UmVxdWVzdBohLm1vZGNvbmR1Y3Rv",
-            "ci52MS5HYW1lQ29udGV4dFJlcGx5QhuqAhhNb2RDb25kdWN0b3IuUHJvdG9j",
-            "b2wuVjFiBnByb3RvMw=="));
+            "b3RvIkIKFlJlYWRHYW1lQ29udGV4dFJlcXVlc3QSFAoMd29ya3NwYWNlX2lk",
+            "GAEgASgJEhIKCnByb2ZpbGVfaWQYAiABKAkisgEKFlNhdmVHYW1lQ29udGV4",
+            "dFJlcXVlc3QSFAoMd29ya3NwYWNlX2lkGAEgASgJEhkKEWV4cGVjdGVkX3Jl",
+            "dmlzaW9uGAIgASgEEgwKBHBhdGgYAyABKAkSNAoGcHJvdG9uGAQgASgLMiQu",
+            "bW9kY29uZHVjdG9yLnYxLlByb3RvblNlbGVjdGlvbkluZm8SEgoKcHJvZmls",
+            "ZV9pZBgFIAEoCRIPCgdnYW1lX2lkGAYgASgJImAKGVJlZnJlc2hHYW1lQ29u",
+            "dGV4dFJlcXVlc3QSFAoMd29ya3NwYWNlX2lkGAEgASgJEhkKEWV4cGVjdGVk",
+            "X3JldmlzaW9uGAIgASgEEhIKCnByb2ZpbGVfaWQYAyABKAkihwIKEkdhbWVE",
+            "ZWZpbml0aW9uSW5mbxIVCg1kZWZpbml0aW9uX2lkGAEgASgJEhAKCHJldmlz",
+            "aW9uGAIgASgNEgwKBG5hbWUYAyABKAkSEgoKc3RvcmVmcm9udBgEIAEoCRId",
+            "ChVkZWNsYXJlZF9zdGVhbV9hcHBfaWQYBSABKA0STAoYdW5hdmFpbGFibGVf",
+            "Y2FwYWJpbGl0aWVzGAYgAygLMioubW9kY29uZHVjdG9yLnYxLlVuYXZhaWxh",
+            "YmxlR2FtZUNhcGFiaWxpdHkSOQoMY2FwYWJpbGl0aWVzGAcgAygLMiMubW9k",
+            "Y29uZHVjdG9yLnYxLkdhbWVDYXBhYmlsaXR5SW5mbyI5ChlVbmF2YWlsYWJs",
+            "ZUdhbWVDYXBhYmlsaXR5EgwKBG5hbWUYASABKAkSDgoGcmVhc29uGAIgASgJ",
+            "ImcKFUdhbWVDYXBhYmlsaXR5Q29udGV4dBIVCg1kZWZpbml0aW9uX2lkGAEg",
+            "ASgJEjcKCXBsYXRmb3JtcxgCIAMoDjIkLm1vZGNvbmR1Y3Rvci52MS5HYW1l",
+            "Q29udGV4dFBsYXRmb3JtIpkCChJHYW1lQ2FwYWJpbGl0eUluZm8SFQoNY2Fw",
+            "YWJpbGl0eV9pZBgBIAEoCRIQCghyZXZpc2lvbhgCIAEoDRIMCgRuYW1lGAMg",
+            "ASgJEjEKBGtpbmQYBCABKA4yIy5tb2Rjb25kdWN0b3IudjEuR2FtZUNhcGFi",
+            "aWxpdHlLaW5kEjgKCGNvbnRleHRzGAUgAygLMiYubW9kY29uZHVjdG9yLnYx",
+            "LkdhbWVDYXBhYmlsaXR5Q29udGV4dBI/CgtkaXNwb3NpdGlvbhgGIAEoDjIq",
+            "Lm1vZGNvbmR1Y3Rvci52MS5HYW1lQ2FwYWJpbGl0eURpc3Bvc2l0aW9uEhMK",
+            "BnJlYXNvbhgHIAEoCUgAiAEBQgkKB19yZWFzb24ibQoMR2FtZUxvY2F0aW9u",
+            "EjUKB2xvY2F0ZWQYASABKAsyIi5tb2Rjb25kdWN0b3IudjEuTG9jYXRlZEdh",
+            "bWVGb2xkZXJIABIcChJ1bmF2YWlsYWJsZV9yZWFzb24YAiABKAlIAEIICgZy",
+            "ZXN1bHQiMQoRTG9jYXRlZEdhbWVGb2xkZXISDAoEcGF0aBgBIAEoCRIOCgZl",
+            "eGlzdHMYAiABKAgidQoWR2FtZUV4ZWN1dGFibGVFdmlkZW5jZRIMCgRwYXRo",
+            "GAEgASgJEg4KBnNoYTI1NhgCIAEoCRIOCgZsZW5ndGgYAyABKAQSFAoMZmls",
+            "ZV92ZXJzaW9uGAQgASgJEhcKD3Byb2R1Y3RfdmVyc2lvbhgFIAEoCSI1ChVH",
+            "YW1lVmFsaWRhdGlvblByb2JsZW0SDAoEcGF0aBgBIAEoCRIOCgZkZXRhaWwY",
+            "AiABKAki5AQKGEdhbWVJbnN0YWxsYXRpb25FdmlkZW5jZRI2CghwbGF0Zm9y",
+            "bRgBIAEoDjIkLm1vZGNvbmR1Y3Rvci52MS5HYW1lQ29udGV4dFBsYXRmb3Jt",
+            "EhEKCXJvb3RfcGF0aBgCIAEoCRIWCglkYXRhX3BhdGgYAyABKAlIAIgBARI7",
+            "CgpleGVjdXRhYmxlGAQgASgLMicubW9kY29uZHVjdG9yLnYxLkdhbWVFeGVj",
+            "dXRhYmxlRXZpZGVuY2USGgoNbGF1bmNoZXJfcGF0aBgFIAEoCUgBiAEBEjAK",
+            "CWRvY3VtZW50cxgGIAEoCzIdLm1vZGNvbmR1Y3Rvci52MS5HYW1lTG9jYXRp",
+            "b24SLAoFc2F2ZXMYByABKAsyHS5tb2Rjb25kdWN0b3IudjEuR2FtZUxvY2F0",
+            "aW9uEjUKDmxvY2FsX2FwcF9kYXRhGAggASgLMh0ubW9kY29uZHVjdG9yLnYx",
+            "LkdhbWVMb2NhdGlvbhI4Cghwcm9ibGVtcxgJIAMoCzImLm1vZGNvbmR1Y3Rv",
+            "ci52MS5HYW1lVmFsaWRhdGlvblByb2JsZW0SGgoSY2hlY2tlZF9hdF91bml4",
+            "X21zGAogASgDEhMKC2ZpbmdlcnByaW50GAsgASgJEhUKDWRlZmluaXRpb25f",
+            "aWQYDCABKAkSGwoTZGVmaW5pdGlvbl9yZXZpc2lvbhgNIAEoDRI2CgZwcm90",
+            "b24YDiABKAsyJi5tb2Rjb25kdWN0b3IudjEuUHJvdG9uQ29udGV4dEV2aWRl",
+            "bmNlQgwKCl9kYXRhX3BhdGhCEAoOX2xhdW5jaGVyX3BhdGgi3QEKD0dhbWVC",
+            "aW5kaW5nSW5mbxISCgpiaW5kaW5nX2lkGAEgASgJEgwKBHBhdGgYAiABKAkS",
+            "OwoIZXZpZGVuY2UYAyABKAsyKS5tb2Rjb25kdWN0b3IudjEuR2FtZUluc3Rh",
+            "bGxhdGlvbkV2aWRlbmNlEhMKC25lZWRzX2NoZWNrGAQgASgIEhQKB2ZhaWx1",
+            "cmUYBSABKAlIAIgBARI0CgZwcm90b24YBiABKAsyJC5tb2Rjb25kdWN0b3Iu",
+            "djEuUHJvdG9uU2VsZWN0aW9uSW5mb0IKCghfZmFpbHVyZSK6AQoQR2FtZUNv",
+            "bnRleHRTdGF0ZRIUCgx3b3Jrc3BhY2VfaWQYASABKAkSEAoIcmV2aXNpb24Y",
+            "AiABKAQSNwoKZGVmaW5pdGlvbhgDIAEoCzIjLm1vZGNvbmR1Y3Rvci52MS5H",
+            "YW1lRGVmaW5pdGlvbkluZm8SMQoHYmluZGluZxgEIAEoCzIgLm1vZGNvbmR1",
+            "Y3Rvci52MS5HYW1lQmluZGluZ0luZm8SEgoKcHJvZmlsZV9pZBgFIAEoCSKV",
+            "AQoQR2FtZUNvbnRleHRGYXVsdBIzCgRjb2RlGAEgASgOMiUubW9kY29uZHVj",
+            "dG9yLnYxLkdhbWVDb250ZXh0RmF1bHRDb2RlEg4KBmRldGFpbBgCIAEoCRI8",
+            "CgljYW5kaWRhdGUYAyABKAsyKS5tb2Rjb25kdWN0b3IudjEuR2FtZUluc3Rh",
+            "bGxhdGlvbkV2aWRlbmNlIoUBChBHYW1lQ29udGV4dFJlcGx5EjIKBXN0YXRl",
+            "GAEgASgLMiEubW9kY29uZHVjdG9yLnYxLkdhbWVDb250ZXh0U3RhdGVIABIy",
+            "CgVmYXVsdBgCIAEoCzIhLm1vZGNvbmR1Y3Rvci52MS5HYW1lQ29udGV4dEZh",
+            "dWx0SABCCQoHb3V0Y29tZSqBAQoTR2FtZUNvbnRleHRQbGF0Zm9ybRIlCiFH",
+            "QU1FX0NPTlRFWFRfUExBVEZPUk1fVU5TUEVDSUZJRUQQABIhCh1HQU1FX0NP",
+            "TlRFWFRfUExBVEZPUk1fV0lORE9XUxABEiAKHEdBTUVfQ09OVEVYVF9QTEFU",
+            "Rk9STV9QUk9UT04QAirfAQoSR2FtZUNhcGFiaWxpdHlLaW5kEiQKIEdBTUVf",
+            "Q0FQQUJJTElUWV9LSU5EX1VOU1BFQ0lGSUVEEAASJQohR0FNRV9DQVBBQklM",
+            "SVRZX0tJTkRfQ09SRV9PVVRDT01FEAESJQohR0FNRV9DQVBBQklMSVRZX0tJ",
+            "TkRfR0FNRV9BREFQVEVSEAISKAokR0FNRV9DQVBBQklMSVRZX0tJTkRfT1BU",
+            "SU9OQUxfTEVHQUNZEAMSKwonR0FNRV9DQVBBQklMSVRZX0tJTkRfT0JTT0xF",
+            "VEVfTUVDSEFOSVNNEAQqzQEKGUdhbWVDYXBhYmlsaXR5RGlzcG9zaXRpb24S",
+            "KwonR0FNRV9DQVBBQklMSVRZX0RJU1BPU0lUSU9OX1VOU1BFQ0lGSUVEEAAS",
+            "KQolR0FNRV9DQVBBQklMSVRZX0RJU1BPU0lUSU9OX0FWQUlMQUJMRRABEisK",
+            "J0dBTUVfQ0FQQUJJTElUWV9ESVNQT1NJVElPTl9VTkFWQUlMQUJMRRACEisK",
+            "J0dBTUVfQ0FQQUJJTElUWV9ESVNQT1NJVElPTl9VTlNVUFBPUlRFRBADKvsB",
+            "ChRHYW1lQ29udGV4dEZhdWx0Q29kZRIiCh5HQU1FX0NPTlRFWFRfRkFVTFRf",
+            "VU5TUEVDSUZJRUQQABIgChxHQU1FX0NPTlRFWFRfRkFVTFRfTk9UX0ZPVU5E",
+            "EAESJQohR0FNRV9DT05URVhUX0ZBVUxUX1NUQUxFX1JFVklTSU9OEAISLAoo",
+            "R0FNRV9DT05URVhUX0ZBVUxUX1dPUktTUEFDRV9VTkFWQUlMQUJMRRADEisK",
+            "J0dBTUVfQ09OVEVYVF9GQVVMVF9JTlZBTElEX0lOU1RBTExBVElPThAEEhsK",
+            "F0dBTUVfQ09OVEVYVF9GQVVMVF9CVVNZEAUyugIKFUdhbWVDb250ZXh0T3Bl",
+            "cmF0aW9ucxJdCg9SZWFkR2FtZUNvbnRleHQSJy5tb2Rjb25kdWN0b3IudjEu",
+            "UmVhZEdhbWVDb250ZXh0UmVxdWVzdBohLm1vZGNvbmR1Y3Rvci52MS5HYW1l",
+            "Q29udGV4dFJlcGx5El0KD1NhdmVHYW1lQ29udGV4dBInLm1vZGNvbmR1Y3Rv",
+            "ci52MS5TYXZlR2FtZUNvbnRleHRSZXF1ZXN0GiEubW9kY29uZHVjdG9yLnYx",
+            "LkdhbWVDb250ZXh0UmVwbHkSYwoSUmVmcmVzaEdhbWVDb250ZXh0EioubW9k",
+            "Y29uZHVjdG9yLnYxLlJlZnJlc2hHYW1lQ29udGV4dFJlcXVlc3QaIS5tb2Rj",
+            "b25kdWN0b3IudjEuR2FtZUNvbnRleHRSZXBseUIbqgIYTW9kQ29uZHVjdG9y",
+            "LlByb3RvY29sLlYxYgZwcm90bzM="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::ModConductor.Protocol.V1.ProtonContextsReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(new[] {typeof(global::ModConductor.Protocol.V1.GameContextPlatform), typeof(global::ModConductor.Protocol.V1.GameCapabilityKind), typeof(global::ModConductor.Protocol.V1.GameCapabilityDisposition), typeof(global::ModConductor.Protocol.V1.GameContextFaultCode), }, null, new pbr::GeneratedClrTypeInfo[] {
-            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ReadGameContextRequest), global::ModConductor.Protocol.V1.ReadGameContextRequest.Parser, new[]{ "WorkspaceId" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.SaveGameContextRequest), global::ModConductor.Protocol.V1.SaveGameContextRequest.Parser, new[]{ "WorkspaceId", "ExpectedRevision", "Path", "Proton" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.RefreshGameContextRequest), global::ModConductor.Protocol.V1.RefreshGameContextRequest.Parser, new[]{ "WorkspaceId", "ExpectedRevision" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ReadGameContextRequest), global::ModConductor.Protocol.V1.ReadGameContextRequest.Parser, new[]{ "WorkspaceId", "ProfileId" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.SaveGameContextRequest), global::ModConductor.Protocol.V1.SaveGameContextRequest.Parser, new[]{ "WorkspaceId", "ExpectedRevision", "Path", "Proton", "ProfileId", "GameId" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.RefreshGameContextRequest), global::ModConductor.Protocol.V1.RefreshGameContextRequest.Parser, new[]{ "WorkspaceId", "ExpectedRevision", "ProfileId" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.GameDefinitionInfo), global::ModConductor.Protocol.V1.GameDefinitionInfo.Parser, new[]{ "DefinitionId", "Revision", "Name", "Storefront", "DeclaredSteamAppId", "UnavailableCapabilities", "Capabilities" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.UnavailableGameCapability), global::ModConductor.Protocol.V1.UnavailableGameCapability.Parser, new[]{ "Name", "Reason" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.GameCapabilityContext), global::ModConductor.Protocol.V1.GameCapabilityContext.Parser, new[]{ "DefinitionId", "Platforms" }, null, null, null, null),
@@ -127,7 +129,7 @@ namespace ModConductor.Protocol.V1 {
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.GameValidationProblem), global::ModConductor.Protocol.V1.GameValidationProblem.Parser, new[]{ "Path", "Detail" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.GameInstallationEvidence), global::ModConductor.Protocol.V1.GameInstallationEvidence.Parser, new[]{ "Platform", "RootPath", "DataPath", "Executable", "LauncherPath", "Documents", "Saves", "LocalAppData", "Problems", "CheckedAtUnixMs", "Fingerprint", "DefinitionId", "DefinitionRevision", "Proton" }, new[]{ "DataPath", "LauncherPath" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.GameBindingInfo), global::ModConductor.Protocol.V1.GameBindingInfo.Parser, new[]{ "BindingId", "Path", "Evidence", "NeedsCheck", "Failure", "Proton" }, new[]{ "Failure" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.GameContextState), global::ModConductor.Protocol.V1.GameContextState.Parser, new[]{ "WorkspaceId", "Revision", "Definition", "Binding" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.GameContextState), global::ModConductor.Protocol.V1.GameContextState.Parser, new[]{ "WorkspaceId", "Revision", "Definition", "Binding", "ProfileId" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.GameContextFault), global::ModConductor.Protocol.V1.GameContextFault.Parser, new[]{ "Code", "Detail", "Candidate" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.GameContextReply), global::ModConductor.Protocol.V1.GameContextReply.Parser, new[]{ "State", "Fault" }, new[]{ "Outcome" }, null, null, null)
           }));
@@ -205,6 +207,7 @@ namespace ModConductor.Protocol.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public ReadGameContextRequest(ReadGameContextRequest other) : this() {
       workspaceId_ = other.workspaceId_;
+      profileId_ = other.profileId_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -226,6 +229,18 @@ namespace ModConductor.Protocol.V1 {
       }
     }
 
+    /// <summary>Field number for the "profile_id" field.</summary>
+    public const int ProfileIdFieldNumber = 2;
+    private string profileId_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string ProfileId {
+      get { return profileId_; }
+      set {
+        profileId_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -242,6 +257,7 @@ namespace ModConductor.Protocol.V1 {
         return true;
       }
       if (WorkspaceId != other.WorkspaceId) return false;
+      if (ProfileId != other.ProfileId) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -250,6 +266,7 @@ namespace ModConductor.Protocol.V1 {
     public override int GetHashCode() {
       int hash = 1;
       if (WorkspaceId.Length != 0) hash ^= WorkspaceId.GetHashCode();
+      if (ProfileId.Length != 0) hash ^= ProfileId.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -272,6 +289,10 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(10);
         output.WriteString(WorkspaceId);
       }
+      if (ProfileId.Length != 0) {
+        output.WriteRawTag(18);
+        output.WriteString(ProfileId);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -286,6 +307,10 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(10);
         output.WriteString(WorkspaceId);
       }
+      if (ProfileId.Length != 0) {
+        output.WriteRawTag(18);
+        output.WriteString(ProfileId);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -298,6 +323,9 @@ namespace ModConductor.Protocol.V1 {
       int size = 0;
       if (WorkspaceId.Length != 0) {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(WorkspaceId);
+      }
+      if (ProfileId.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(ProfileId);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -313,6 +341,9 @@ namespace ModConductor.Protocol.V1 {
       }
       if (other.WorkspaceId.Length != 0) {
         WorkspaceId = other.WorkspaceId;
+      }
+      if (other.ProfileId.Length != 0) {
+        ProfileId = other.ProfileId;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -337,6 +368,10 @@ namespace ModConductor.Protocol.V1 {
             WorkspaceId = input.ReadString();
             break;
           }
+          case 18: {
+            ProfileId = input.ReadString();
+            break;
+          }
         }
       }
     #endif
@@ -358,6 +393,10 @@ namespace ModConductor.Protocol.V1 {
             break;
           case 10: {
             WorkspaceId = input.ReadString();
+            break;
+          }
+          case 18: {
+            ProfileId = input.ReadString();
             break;
           }
         }
@@ -406,6 +445,8 @@ namespace ModConductor.Protocol.V1 {
       expectedRevision_ = other.expectedRevision_;
       path_ = other.path_;
       proton_ = other.proton_ != null ? other.proton_.Clone() : null;
+      profileId_ = other.profileId_;
+      gameId_ = other.gameId_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -463,6 +504,30 @@ namespace ModConductor.Protocol.V1 {
       }
     }
 
+    /// <summary>Field number for the "profile_id" field.</summary>
+    public const int ProfileIdFieldNumber = 5;
+    private string profileId_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string ProfileId {
+      get { return profileId_; }
+      set {
+        profileId_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "game_id" field.</summary>
+    public const int GameIdFieldNumber = 6;
+    private string gameId_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string GameId {
+      get { return gameId_; }
+      set {
+        gameId_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -482,6 +547,8 @@ namespace ModConductor.Protocol.V1 {
       if (ExpectedRevision != other.ExpectedRevision) return false;
       if (Path != other.Path) return false;
       if (!object.Equals(Proton, other.Proton)) return false;
+      if (ProfileId != other.ProfileId) return false;
+      if (GameId != other.GameId) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -493,6 +560,8 @@ namespace ModConductor.Protocol.V1 {
       if (ExpectedRevision != 0UL) hash ^= ExpectedRevision.GetHashCode();
       if (Path.Length != 0) hash ^= Path.GetHashCode();
       if (proton_ != null) hash ^= Proton.GetHashCode();
+      if (ProfileId.Length != 0) hash ^= ProfileId.GetHashCode();
+      if (GameId.Length != 0) hash ^= GameId.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -527,6 +596,14 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(34);
         output.WriteMessage(Proton);
       }
+      if (ProfileId.Length != 0) {
+        output.WriteRawTag(42);
+        output.WriteString(ProfileId);
+      }
+      if (GameId.Length != 0) {
+        output.WriteRawTag(50);
+        output.WriteString(GameId);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -553,6 +630,14 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(34);
         output.WriteMessage(Proton);
       }
+      if (ProfileId.Length != 0) {
+        output.WriteRawTag(42);
+        output.WriteString(ProfileId);
+      }
+      if (GameId.Length != 0) {
+        output.WriteRawTag(50);
+        output.WriteString(GameId);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -574,6 +659,12 @@ namespace ModConductor.Protocol.V1 {
       }
       if (proton_ != null) {
         size += 1 + pb::CodedOutputStream.ComputeMessageSize(Proton);
+      }
+      if (ProfileId.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(ProfileId);
+      }
+      if (GameId.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(GameId);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -601,6 +692,12 @@ namespace ModConductor.Protocol.V1 {
           Proton = new global::ModConductor.Protocol.V1.ProtonSelectionInfo();
         }
         Proton.MergeFrom(other.Proton);
+      }
+      if (other.ProfileId.Length != 0) {
+        ProfileId = other.ProfileId;
+      }
+      if (other.GameId.Length != 0) {
+        GameId = other.GameId;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -640,6 +737,14 @@ namespace ModConductor.Protocol.V1 {
             input.ReadMessage(Proton);
             break;
           }
+          case 42: {
+            ProfileId = input.ReadString();
+            break;
+          }
+          case 50: {
+            GameId = input.ReadString();
+            break;
+          }
         }
       }
     #endif
@@ -676,6 +781,14 @@ namespace ModConductor.Protocol.V1 {
               Proton = new global::ModConductor.Protocol.V1.ProtonSelectionInfo();
             }
             input.ReadMessage(Proton);
+            break;
+          }
+          case 42: {
+            ProfileId = input.ReadString();
+            break;
+          }
+          case 50: {
+            GameId = input.ReadString();
             break;
           }
         }
@@ -722,6 +835,7 @@ namespace ModConductor.Protocol.V1 {
     public RefreshGameContextRequest(RefreshGameContextRequest other) : this() {
       workspaceId_ = other.workspaceId_;
       expectedRevision_ = other.expectedRevision_;
+      profileId_ = other.profileId_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -755,6 +869,18 @@ namespace ModConductor.Protocol.V1 {
       }
     }
 
+    /// <summary>Field number for the "profile_id" field.</summary>
+    public const int ProfileIdFieldNumber = 3;
+    private string profileId_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string ProfileId {
+      get { return profileId_; }
+      set {
+        profileId_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -772,6 +898,7 @@ namespace ModConductor.Protocol.V1 {
       }
       if (WorkspaceId != other.WorkspaceId) return false;
       if (ExpectedRevision != other.ExpectedRevision) return false;
+      if (ProfileId != other.ProfileId) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -781,6 +908,7 @@ namespace ModConductor.Protocol.V1 {
       int hash = 1;
       if (WorkspaceId.Length != 0) hash ^= WorkspaceId.GetHashCode();
       if (ExpectedRevision != 0UL) hash ^= ExpectedRevision.GetHashCode();
+      if (ProfileId.Length != 0) hash ^= ProfileId.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -807,6 +935,10 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(16);
         output.WriteUInt64(ExpectedRevision);
       }
+      if (ProfileId.Length != 0) {
+        output.WriteRawTag(26);
+        output.WriteString(ProfileId);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -825,6 +957,10 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(16);
         output.WriteUInt64(ExpectedRevision);
       }
+      if (ProfileId.Length != 0) {
+        output.WriteRawTag(26);
+        output.WriteString(ProfileId);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -840,6 +976,9 @@ namespace ModConductor.Protocol.V1 {
       }
       if (ExpectedRevision != 0UL) {
         size += 1 + pb::CodedOutputStream.ComputeUInt64Size(ExpectedRevision);
+      }
+      if (ProfileId.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(ProfileId);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -858,6 +997,9 @@ namespace ModConductor.Protocol.V1 {
       }
       if (other.ExpectedRevision != 0UL) {
         ExpectedRevision = other.ExpectedRevision;
+      }
+      if (other.ProfileId.Length != 0) {
+        ProfileId = other.ProfileId;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -886,6 +1028,10 @@ namespace ModConductor.Protocol.V1 {
             ExpectedRevision = input.ReadUInt64();
             break;
           }
+          case 26: {
+            ProfileId = input.ReadString();
+            break;
+          }
         }
       }
     #endif
@@ -911,6 +1057,10 @@ namespace ModConductor.Protocol.V1 {
           }
           case 16: {
             ExpectedRevision = input.ReadUInt64();
+            break;
+          }
+          case 26: {
+            ProfileId = input.ReadString();
             break;
           }
         }
@@ -4508,6 +4658,7 @@ namespace ModConductor.Protocol.V1 {
       revision_ = other.revision_;
       definition_ = other.definition_ != null ? other.definition_.Clone() : null;
       binding_ = other.binding_ != null ? other.binding_.Clone() : null;
+      profileId_ = other.profileId_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -4565,6 +4716,18 @@ namespace ModConductor.Protocol.V1 {
       }
     }
 
+    /// <summary>Field number for the "profile_id" field.</summary>
+    public const int ProfileIdFieldNumber = 5;
+    private string profileId_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string ProfileId {
+      get { return profileId_; }
+      set {
+        profileId_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -4584,6 +4747,7 @@ namespace ModConductor.Protocol.V1 {
       if (Revision != other.Revision) return false;
       if (!object.Equals(Definition, other.Definition)) return false;
       if (!object.Equals(Binding, other.Binding)) return false;
+      if (ProfileId != other.ProfileId) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -4595,6 +4759,7 @@ namespace ModConductor.Protocol.V1 {
       if (Revision != 0UL) hash ^= Revision.GetHashCode();
       if (definition_ != null) hash ^= Definition.GetHashCode();
       if (binding_ != null) hash ^= Binding.GetHashCode();
+      if (ProfileId.Length != 0) hash ^= ProfileId.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -4629,6 +4794,10 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(34);
         output.WriteMessage(Binding);
       }
+      if (ProfileId.Length != 0) {
+        output.WriteRawTag(42);
+        output.WriteString(ProfileId);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -4655,6 +4824,10 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(34);
         output.WriteMessage(Binding);
       }
+      if (ProfileId.Length != 0) {
+        output.WriteRawTag(42);
+        output.WriteString(ProfileId);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -4676,6 +4849,9 @@ namespace ModConductor.Protocol.V1 {
       }
       if (binding_ != null) {
         size += 1 + pb::CodedOutputStream.ComputeMessageSize(Binding);
+      }
+      if (ProfileId.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(ProfileId);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -4706,6 +4882,9 @@ namespace ModConductor.Protocol.V1 {
           Binding = new global::ModConductor.Protocol.V1.GameBindingInfo();
         }
         Binding.MergeFrom(other.Binding);
+      }
+      if (other.ProfileId.Length != 0) {
+        ProfileId = other.ProfileId;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -4748,6 +4927,10 @@ namespace ModConductor.Protocol.V1 {
             input.ReadMessage(Binding);
             break;
           }
+          case 42: {
+            ProfileId = input.ReadString();
+            break;
+          }
         }
       }
     #endif
@@ -4787,6 +4970,10 @@ namespace ModConductor.Protocol.V1 {
               Binding = new global::ModConductor.Protocol.V1.GameBindingInfo();
             }
             input.ReadMessage(Binding);
+            break;
+          }
+          case 42: {
+            ProfileId = input.ReadString();
             break;
           }
         }

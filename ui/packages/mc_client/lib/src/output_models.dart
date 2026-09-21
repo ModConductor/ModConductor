@@ -25,11 +25,12 @@ class OutputException implements Exception {
 class OutputScopeRef {
   const OutputScopeRef(
     this.workspaceId,
+    this.profileId,
     this.contextId,
     this.revision,
     this.contextRevision,
   );
-  final String workspaceId, contextId;
+  final String workspaceId, profileId, contextId;
   final int revision, contextRevision;
 }
 

@@ -54,7 +54,7 @@ module internal DataLocations =
         let key =
             workspace.ToString("N")
             + "\n"
-            + Skyrim.definition.Id
+            + GameId.value Skyrim.definition.Id
             + "\n"
             + physical
             + ":"

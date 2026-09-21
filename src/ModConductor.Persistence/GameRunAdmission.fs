@@ -38,6 +38,7 @@ module internal GameRunAdmission =
                             transaction
                             database.OwnerId
                             request.WorkspaceId
+                            request.ProfileId
 
                     let validContext =
                         match context with

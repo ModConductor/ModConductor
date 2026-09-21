@@ -316,10 +316,12 @@ class NexusModRequest extends $pb.GeneratedMessage {
   factory NexusModRequest({
     $core.String? workspaceId,
     $fixnum.Int64? modId,
+    $core.String? profileId,
   }) {
     final result = create();
     if (workspaceId != null) result.workspaceId = workspaceId;
     if (modId != null) result.modId = modId;
+    if (profileId != null) result.profileId = profileId;
     return result;
   }
 
@@ -339,6 +341,7 @@ class NexusModRequest extends $pb.GeneratedMessage {
       createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'workspaceId')
     ..aInt64(2, _omitFieldNames ? '' : 'modId')
+    ..aOS(3, _omitFieldNames ? '' : 'profileId')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -377,6 +380,15 @@ class NexusModRequest extends $pb.GeneratedMessage {
   $core.bool hasModId() => $_has(1);
   @$pb.TagNumber(2)
   void clearModId() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get profileId => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set profileId($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasProfileId() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearProfileId() => $_clearField(3);
 }
 
 class NexusFileInfo extends $pb.GeneratedMessage {
@@ -676,12 +688,14 @@ class NexusDownloadRequest extends $pb.GeneratedMessage {
     $core.String? artifactId,
     $fixnum.Int64? modId,
     $fixnum.Int64? fileId,
+    $core.String? profileId,
   }) {
     final result = create();
     if (workspaceId != null) result.workspaceId = workspaceId;
     if (artifactId != null) result.artifactId = artifactId;
     if (modId != null) result.modId = modId;
     if (fileId != null) result.fileId = fileId;
+    if (profileId != null) result.profileId = profileId;
     return result;
   }
 
@@ -703,6 +717,7 @@ class NexusDownloadRequest extends $pb.GeneratedMessage {
     ..aOS(2, _omitFieldNames ? '' : 'artifactId')
     ..aInt64(3, _omitFieldNames ? '' : 'modId')
     ..aInt64(4, _omitFieldNames ? '' : 'fileId')
+    ..aOS(5, _omitFieldNames ? '' : 'profileId')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -759,6 +774,15 @@ class NexusDownloadRequest extends $pb.GeneratedMessage {
   $core.bool hasFileId() => $_has(3);
   @$pb.TagNumber(4)
   void clearFileId() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.String get profileId => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set profileId($core.String value) => $_setString(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasProfileId() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearProfileId() => $_clearField(5);
 }
 
 enum NexusDownloadReply_Result { artifact, failure, notSet }

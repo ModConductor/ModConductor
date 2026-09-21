@@ -28,7 +28,7 @@ module DeploymentProcessFixtures =
             let other = Directory.CreateDirectory(Path.Combine(area, "other")).FullName
             let otherGame = Path.Combine(other, "SkyrimSE.exe")
             File.Copy(Environment.ProcessPath, otherGame, false)
-            let context = InstallationValidation.inspect area
+            let context = InstallationValidation.inspect Skyrim.definition area
 
             let executable (path: string) =
                 let location = DeploymentFixtureData.location (Path.GetDirectoryName path)

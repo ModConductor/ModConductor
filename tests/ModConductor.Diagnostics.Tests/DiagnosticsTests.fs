@@ -289,6 +289,7 @@ type private FixtureDeployments(workspaceId: Guid, profileId: Guid) =
 
 type private FixtureGameContexts(
     workspaceId: Guid,
+    profileId: Guid,
     root: string,
     documents: Location
 ) =
@@ -325,10 +326,12 @@ type private FixtureGameContexts(
 
     let state =
         { WorkspaceId = workspaceId
+          ProfileId = profileId
           Revision = 4L
           Binding =
             Some
                 { Id = Guid.NewGuid()
+                  GameId = GameId.SkyrimSpecialEditionSteam
                   Path = root
                   Proton = None
                   Evidence = evidence
@@ -339,16 +342,16 @@ type private FixtureGameContexts(
     member _.State = state
 
     interface IGameContexts with
-        member _.Read workspace =
-            if workspace = workspaceId then
+        member _.Read(workspace, profile) =
+            if workspace = workspaceId && profile = profileId then
                 Task.FromResult(Ok state)
             else
                 Task.FromResult(Error ContextError.NotFound)
 
-        member _.Save(_, _, _) =
+        member _.Save(_, _, _, _) =
             Task.FromResult(Error ContextError.NotFound)
 
-        member _.Refresh(_, _) =
+        member _.Refresh(_, _, _) =
             Task.FromResult(Error ContextError.NotFound)
 
 
@@ -397,9 +400,9 @@ type private DiagnosticFixtureEnvironment(
     let fixtureGameContexts =
         match documents, unavailableDocuments with
         | Some path, _ ->
-            Some(FixtureGameContexts(workspaceId, path, Location.Located(path, true)))
+            Some(FixtureGameContexts(workspaceId, profileId, path, Location.Located(path, true)))
         | None, Some detail ->
-            Some(FixtureGameContexts(workspaceId, root, Location.Unavailable detail))
+            Some(FixtureGameContexts(workspaceId, profileId, root, Location.Unavailable detail))
         | None, None -> None
 
     let gameContexts =
@@ -643,10 +646,12 @@ type SkyrimDiagnosticSessionTests() =
     [<Test>]
     member _.``skyrim diagnostics should require an available compiled capability``() =
         let workspaceId = Guid.NewGuid()
+        let profileId = Guid.NewGuid()
 
         let context =
             FixtureGameContexts(
                 workspaceId,
+                profileId,
                 "fixture",
                 Location.Located("fixture", false)
             )

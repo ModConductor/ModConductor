@@ -13,7 +13,8 @@ type internal OutputActionRecord =
       Result: OutputActionResult }
 
 type internal IOutputRepository =
-    abstract Read: Guid * Guid option -> Task<OutputScope * OutputBacking list>
+    abstract Read: workspace: Guid * profile: Guid * context: Guid option ->
+        Task<OutputScope * OutputBacking list>
     abstract Add: Guid * OutputScope * string * OutputPurpose -> Task<OutputLocation>
     abstract Workspace: Guid -> Task<Guid>
     abstract StopUsing: Guid * int64 -> Task<OutputLocation>

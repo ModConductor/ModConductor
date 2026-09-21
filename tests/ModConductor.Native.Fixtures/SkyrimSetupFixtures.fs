@@ -256,8 +256,10 @@ module SkyrimSetupFixtures =
             (store.GameContexts :> IGameContexts)
                 .Save(
                     workspace,
+                    profile,
                     0L,
-                    { Path = game
+                    { GameId = GameId.SkyrimSpecialEditionSteam
+                      Path = game
                       Proton =
                         if includeProton && OperatingSystem.IsLinux() then
                             Some proton
@@ -793,9 +795,9 @@ module SkyrimSetupFixtures =
         use reopened = new OperationStore(state)
 
         let context =
-            (reopened.GameContexts :> IGameContexts).Read workspace |> wait |> result
+            (reopened.GameContexts :> IGameContexts).Read(workspace, profile) |> wait |> result
 
-        (reopened.GameContexts :> IGameContexts).Refresh(workspace, context.Revision)
+        (reopened.GameContexts :> IGameContexts).Refresh(workspace, profile, context.Revision)
         |> wait
         |> result
         |> ignore
@@ -927,9 +929,9 @@ module SkyrimSetupFixtures =
             |> wait
 
         let currentContext =
-            (reopened.GameContexts :> IGameContexts).Read workspace |> wait |> result
+            (reopened.GameContexts :> IGameContexts).Read(workspace, profile) |> wait |> result
 
-        (reopened.GameContexts :> IGameContexts).Refresh(workspace, currentContext.Revision)
+        (reopened.GameContexts :> IGameContexts).Refresh(workspace, profile, currentContext.Revision)
         |> wait
         |> result
         |> ignore
@@ -996,7 +998,7 @@ module SkyrimSetupFixtures =
                 restarted.Read(workspace, profile, true, CancellationToken.None) |> wait
 
             let currentContext =
-                (reopened.GameContexts :> IGameContexts).Read workspace |> wait |> result
+                (reopened.GameContexts :> IGameContexts).Read(workspace, profile) |> wait |> result
 
             let expectedAction = Guid.NewGuid()
 
@@ -1154,7 +1156,7 @@ module SkyrimSetupFixtures =
         workflow.RetainActiveFnisCancellation()
 
         let fnisCancelContext =
-            (reopened.GameContexts :> IGameContexts).Read workspace |> wait |> result
+            (reopened.GameContexts :> IGameContexts).Read(workspace, profile) |> wait |> result
 
         reopened.SkyrimSetups.Save
             { WorkspaceId = workspace
@@ -1254,8 +1256,10 @@ module SkyrimSetupFixtures =
                 (reopened.GameContexts :> IGameContexts)
                     .Save(
                         pendingWorkspace,
+                        pendingProfile,
                         0L,
-                        { Path = pendingGame
+                        { GameId = GameId.SkyrimSpecialEditionSteam
+                          Path = pendingGame
                           Proton = Some pendingProton }
                     )
                 |> wait
@@ -1271,7 +1275,7 @@ module SkyrimSetupFixtures =
 
             let refreshed =
                 (reopened.GameContexts :> IGameContexts)
-                    .Refresh(pendingWorkspace, pendingContext.Revision)
+                    .Refresh(pendingWorkspace, pendingProfile, pendingContext.Revision)
                 |> wait
                 |> result
 

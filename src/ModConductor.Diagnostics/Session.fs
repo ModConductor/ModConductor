@@ -190,9 +190,9 @@ type DiagnosticSession(
                             Ok value)
         }
 
-    let supportedContext workspace =
+    let supportedContext workspace profile =
         task {
-            let! context = gameContexts.Read workspace
+            let! context = gameContexts.Read(workspace, profile)
 
             return
                 context
@@ -352,7 +352,7 @@ type DiagnosticSession(
                             |> Option.map (Checks.launch workspace profile)
                             |> Option.defaultValue []
 
-                        let! gameContext = supportedContext workspace.Id
+                        let! gameContext = supportedContext workspace.Id profile.Id
 
                         let! fileFindings =
                             match request.FileSnapshotId with

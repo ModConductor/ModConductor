@@ -71,12 +71,14 @@ class SavingClient extends Client {
   @override
   Future<GameContextState> save(
     String id,
+    String profile,
+    String gameId,
     int revision,
     String path, {
     ProtonSelection? proton,
   }) {
     selections.add(proton);
-    return super.save(id, revision, path, proton: proton);
+    return super.save(id, profile, gameId, revision, path, proton: proton);
   }
 }
 

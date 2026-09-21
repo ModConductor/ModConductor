@@ -18,7 +18,7 @@ module private GameContextWire =
     let evidence (value: InstallationEvidence) =
         let result =
             GameInstallationEvidence(
-                DefinitionId = value.DefinitionId,
+                DefinitionId = GameId.value value.DefinitionId,
                 DefinitionRevision = uint32 value.DefinitionRevision,
                 Platform = platform value.Platform,
                 RootPath = value.RootPath,
@@ -81,7 +81,8 @@ module private GameContextWire =
         result.Contexts.AddRange(
             value.Contexts
             |> Seq.map (fun supported ->
-                let context = GameCapabilityContext(DefinitionId = supported.DefinitionId)
+                let context =
+                    GameCapabilityContext(DefinitionId = GameId.value supported.DefinitionId)
                 context.Platforms.AddRange(supported.Platforms |> Seq.map platform)
                 context)
         )
@@ -91,37 +92,41 @@ module private GameContextWire =
     let reply =
         function
         | Ok(value: ModConductor.GameContexts.GameContextState) ->
-            let d = Skyrim.definition
-
             let state =
                 ModConductor.Protocol.V1.GameContextState(
                     WorkspaceId = value.WorkspaceId.ToString("N"),
-                    Revision = uint64 value.Revision,
-                    Definition =
-                        GameDefinitionInfo(
-                            DefinitionId = d.Id,
-                            Revision = uint32 d.Revision,
-                            Name = d.Name,
-                            Storefront = d.Storefront,
-                            DeclaredSteamAppId = d.SteamAppId
-                        )
+                    ProfileId = value.ProfileId.ToString("N"),
+                    Revision = uint64 value.Revision
                 )
-
-            let capabilities = CapabilityPolicy.forUsers d.Id
-            state.Definition.Capabilities.AddRange(capabilities |> Seq.map capability)
-
-            state.Definition.UnavailableCapabilities.AddRange(
-                capabilities
-                |> Seq.choose (fun item ->
-                    match item.Disposition with
-                    | CapabilityDisposition.Available -> None
-                    | CapabilityDisposition.Unavailable reason
-                    | CapabilityDisposition.Unsupported reason ->
-                        Some(UnavailableGameCapability(Name = item.Name, Reason = reason)))
-            )
 
             value.Binding
             |> Option.iter (fun b ->
+                let d =
+                    match b.GameId with
+                    | GameId.SkyrimSpecialEditionSteam -> Skyrim.definition
+
+                state.Definition <-
+                    GameDefinitionInfo(
+                        DefinitionId = GameId.value d.Id,
+                        Revision = uint32 d.Revision,
+                        Name = d.Name,
+                        Storefront = d.Storefront,
+                        DeclaredSteamAppId = d.SteamAppId
+                    )
+
+                let capabilities = CapabilityPolicy.forUsers d.Id
+                state.Definition.Capabilities.AddRange(capabilities |> Seq.map capability)
+
+                state.Definition.UnavailableCapabilities.AddRange(
+                    capabilities
+                    |> Seq.choose (fun item ->
+                        match item.Disposition with
+                        | CapabilityDisposition.Available -> None
+                        | CapabilityDisposition.Unavailable reason
+                        | CapabilityDisposition.Unsupported reason ->
+                            Some(UnavailableGameCapability(Name = item.Name, Reason = reason)))
+                )
+
                 let binding =
                     GameBindingInfo(
                         BindingId = b.Id.ToString("N"),
@@ -140,10 +145,10 @@ module private GameContextWire =
                 match error with
                 | ContextError.NotFound ->
                     GameContextFaultCode.GameContextFaultNotFound,
-                    "The workspace installation was not found."
+                    "The profile was not found."
                 | ContextError.StaleRevision ->
                     GameContextFaultCode.GameContextFaultStaleRevision,
-                    "The workspace installation changed. Your folder was not saved."
+                    "The profile installation changed. The folder was not saved."
                 | ContextError.WorkspaceUnavailable ->
                     GameContextFaultCode.GameContextFaultWorkspaceUnavailable,
                     "The workspace needs a check before its installation can change."
@@ -170,7 +175,11 @@ type GameContextService(contexts: IGameContexts) =
 
     override _.ReadGameContext(request, _) =
         task {
-            let! result = contexts.Read(ModLibraryWire.id request.WorkspaceId)
+            let! result =
+                contexts.Read(
+                    ModLibraryWire.id request.WorkspaceId,
+                    ModLibraryWire.id request.ProfileId
+                )
             return GameContextWire.reply result
         }
 
@@ -180,10 +189,16 @@ type GameContextService(contexts: IGameContexts) =
                 ModLibraryWire.reject "The installation path is too long."
 
             let! result =
+                let game =
+                    GameId.tryParse request.GameId
+                    |> Option.defaultWith (fun () -> ModLibraryWire.reject "Select a known game.")
+
                 contexts.Save(
                     ModLibraryWire.id request.WorkspaceId,
+                    ModLibraryWire.id request.ProfileId,
                     ModLibraryWire.number request.ExpectedRevision,
-                    { Path = request.Path
+                    { GameId = game
+                      Path = request.Path
                       Proton = ProtonWire.readSelection request.Proton }
                 )
 
@@ -195,6 +210,7 @@ type GameContextService(contexts: IGameContexts) =
             let! result =
                 contexts.Refresh(
                     ModLibraryWire.id request.WorkspaceId,
+                    ModLibraryWire.id request.ProfileId,
                     ModLibraryWire.number request.ExpectedRevision
                 )
 

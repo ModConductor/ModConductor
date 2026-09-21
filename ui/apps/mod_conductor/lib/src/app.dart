@@ -355,10 +355,12 @@ class _ModConductorAppState extends State<ModConductorApp> {
       widget.nexusMetadata,
       widget.nexus,
       _workspaces.workspace?.id,
+      _workspaces.workspace?.selectedProfile?.id,
     );
     _outputs.attach(
       widget.outputs,
       _workspaces.workspace?.id,
+      profile: _workspaces.workspace?.selectedProfile?.id,
       available: _workspaces.canEdit,
     );
     _deployments.attach(
@@ -399,6 +401,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
     _game.attach(
       widget.gameContexts,
       workspaceId: _workspaces.workspace?.id,
+      profileId: _workspaces.workspace?.selectedProfile?.id,
       editable: _workspaces.canEdit,
     );
     _mods.attach(
@@ -756,11 +759,10 @@ class _ModConductorAppState extends State<ModConductorApp> {
             onRequests: () async {
               final requests = widget.desktopRequests;
               if (requests == null) return;
-              if (!requests.hasWorkspaceSelection) {
-                requests.selectWorkspace(_workspaces.workspace?.id);
-              } else {
-                unawaited(requests.recheck());
-              }
+              requests.selectContext(
+                _workspaces.workspace?.id,
+                _workspaces.workspace?.selectedProfile?.id,
+              );
               final choice = await showDialog<DesktopRequestChoice>(
                 context: context,
                 builder: (_) => OpenRequestsDialog(
@@ -918,7 +920,13 @@ class _ModConductorAppState extends State<ModConductorApp> {
                             chooseDirectory: widget.chooseGameDirectory,
                             footer:
                                 widget.skyrimSetup == null ||
-                                    workspace.selectedProfile == null
+                                    workspace.selectedProfile == null ||
+                                    _game
+                                            .state
+                                            ?.binding
+                                            ?.evidence
+                                            .definitionId !=
+                                        'skyrim-se-steam'
                                 ? null
                                 : Padding(
                                     padding: const EdgeInsets.only(
@@ -1026,7 +1034,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
                                         widget.chooseExportLocation,
                                     openExportFolder: widget.openExportFolder,
                                     archiveUnavailable:
-                                        _game.state?.definition.unavailable(
+                                        _game.state?.definition?.unavailable(
                                           GameCapabilityId.archiveInspection,
                                         ) ??
                                         false,
@@ -1068,7 +1076,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
                                         widget.chooseExportLocation,
                                     openExportFolder: widget.openExportFolder,
                                     archiveUnavailable:
-                                        _game.state?.definition.unavailable(
+                                        _game.state?.definition?.unavailable(
                                           GameCapabilityId.archiveInspection,
                                         ) ??
                                         false,

@@ -10,6 +10,7 @@ class OutputController extends ChangeNotifier {
       writable = OutputTree(OutputLocationKind.writableFile);
   GeneratedOutputsClient? client;
   String? workspaceId;
+  String? profileId;
   bool _available = false, _disposed = false;
   int _epoch = 0;
   int _readEpoch = 0, _observationEpoch = 0;
@@ -24,7 +25,8 @@ class OutputController extends ChangeNotifier {
   String? pendingAction, problem;
   bool loading = false, reading = false, changing = false, needsRead = false;
   VoidCallback? onChanged;
-  bool get connected => client != null && workspaceId != null && _available;
+  bool get connected =>
+      client != null && workspaceId != null && profileId != null && _available;
   bool get canAct =>
       connected &&
       !changing &&
@@ -40,11 +42,14 @@ class OutputController extends ChangeNotifier {
   void attach(
     GeneratedOutputsClient? value,
     String? workspace, {
+    required String? profile,
     required bool available,
   }) {
     final newlyAvailable = !_available && available;
     _available = available;
-    if (identical(client, value) && workspace == workspaceId) {
+    if (identical(client, value) &&
+        workspace == workspaceId &&
+        profile == profileId) {
       if (newlyAvailable && scope == null && connected) unawaited(read());
       return;
     }
@@ -58,6 +63,7 @@ class OutputController extends ChangeNotifier {
     if (!(_observed?.isCompleted ?? true)) _observed!.complete();
     client = value;
     workspaceId = workspace;
+    profileId = profile;
     scope = null;
     snapshot = null;
     inspected = null;
@@ -82,8 +88,13 @@ class OutputController extends ChangeNotifier {
 
   Future<void> read({String? contextId}) async {
     if (reading) return _read?.future;
-    final api = client, workspace = workspaceId;
-    if (!connected || api == null || workspace == null || reading || changing) {
+    final api = client, workspace = workspaceId, profile = profileId;
+    if (!connected ||
+        api == null ||
+        workspace == null ||
+        profile == null ||
+        reading ||
+        changing) {
       return;
     }
     final epoch = _epoch, readEpoch = _readEpoch;
@@ -93,7 +104,7 @@ class OutputController extends ChangeNotifier {
     problem = null;
     _notify();
     try {
-      final value = await api.read(workspace, contextId: contextId);
+      final value = await api.read(workspace, profile, contextId: contextId);
       if (_disposed || epoch != _epoch || readEpoch != _readEpoch) return;
       if (scope?.reference.contextId != value.reference.contextId ||
           scope?.reference.revision != value.reference.revision ||

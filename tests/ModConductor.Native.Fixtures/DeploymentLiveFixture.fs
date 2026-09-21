@@ -89,7 +89,8 @@ module DeploymentLiveFixture =
         File.Copy(collision, Path.Combine(source, collisionName.ToLowerInvariant()), false)
 
         let selection =
-            { Path = game
+            { GameId = GameId.SkyrimSpecialEditionSteam
+              Path = game
               Proton =
                 if OperatingSystem.IsLinux() then
                     Some
@@ -187,7 +188,7 @@ module DeploymentLiveFixture =
             |> result
             |> ignore
 
-            (store.GameContexts :> IGameContexts).Save(workspace, 0L, selection)
+            (store.GameContexts :> IGameContexts).Save(workspace, profile, 0L, selection)
             |> wait
             |> result
             |> ignore
@@ -207,8 +208,8 @@ module DeploymentLiveFixture =
 
             checkpoint "phase1" active
             let contexts = store.GameContexts :> IGameContexts
-            let context = contexts.Read workspace |> wait |> result
-            contexts.Refresh(workspace, context.Revision) |> wait |> result |> ignore
+            let context = contexts.Read(workspace, profile) |> wait |> result
+            contexts.Refresh(workspace, profile, context.Revision) |> wait |> result |> ignore
             write firstPath "generation two\n"
             let secondVersion = Guid.NewGuid()
 
@@ -230,8 +231,8 @@ module DeploymentLiveFixture =
                 |> result
 
             checkpoint "phase2" active
-            let context = contexts.Read workspace |> wait |> result
-            contexts.Refresh(workspace, context.Revision) |> wait |> result |> ignore
+            let context = contexts.Read(workspace, profile) |> wait |> result
+            contexts.Refresh(workspace, profile, context.Revision) |> wait |> result |> ignore
             let current = backend.Read profile |> wait |> result
 
             let baseline =
@@ -268,12 +269,12 @@ module DeploymentLiveFixture =
             (store :> IDisposable).Dispose()
             store <- new OperationStore(statePath)
             let contexts = store.GameContexts :> IGameContexts
-            let reloaded = contexts.Read workspace |> wait |> result
+            let reloaded = contexts.Read(workspace, profile) |> wait |> result
 
             if not reloaded.Binding.Value.NeedsCheck then
                 invalidOp "Restart did not require context revalidation."
 
-            contexts.Refresh(workspace, reloaded.Revision) |> wait |> result |> ignore
+            contexts.Refresh(workspace, profile, reloaded.Revision) |> wait |> result |> ignore
 
             let restored =
                 store.Deployments.Recover(
