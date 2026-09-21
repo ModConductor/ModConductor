@@ -23,9 +23,9 @@ void main() {
       state.path,
       provider.path,
     ]);
+    const candidate = 'synthetic-personal-key';
 
     try {
-      const candidate = 'synthetic-personal-key';
       Object? rejected;
       try {
         await child.nexus(authenticate: false).submitPersonalApiKey(candidate);
@@ -44,6 +44,11 @@ void main() {
     } finally {
       await child.close();
     }
+
+    expect(
+      utf8.decode(child.errors, allowMalformed: true),
+      isNot(contains(candidate)),
+    );
 
     final durable = StringBuffer();
     await for (final entry in state.list(recursive: true)) {

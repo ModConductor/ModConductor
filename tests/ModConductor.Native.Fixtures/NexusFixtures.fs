@@ -272,6 +272,49 @@ module NexusFixtures =
                  | Some(NexusProblem.RateLimited _) -> rateMemory.Saves = 0
                  | _ -> false)
 
+        let revokedDuringInteraction mode path =
+            use server = new NexusServer()
+            use credentials = new CredentialSession(NexusMemoryStore())
+
+            use session =
+                new NexusSession(
+                    credentials,
+                    Some server.Registration,
+                    server.Handoff,
+                    (fun _ -> Task.CompletedTask),
+                    requestInterval = TimeSpan.Zero
+                )
+
+            session.SubmitPersonalApiKey("synthetic-personal-key") |> wait |> ignore
+            server.Mode <- mode
+
+            session.RefreshInteractions(
+                { Game = "skyrimspecialedition"
+                  Mod = 64012L }
+            )
+            |> wait
+            |> ignore
+
+            session.Status, server.Count path
+
+        let revokedByTracking, trackingRequests =
+            revokedDuringInteraction "invalid-tracking-key" "/api/user/tracked_mods.json"
+
+        check
+            "revokedPersonalApiKeyDuringTrackingClearsActiveAccount"
+            (trackingRequests = 1
+             && revokedByTracking.Account.IsNone
+             && revokedByTracking.Problem = Some NexusProblem.InvalidApiKey)
+
+        let revokedByEndorsement, endorsementRequests =
+            revokedDuringInteraction "invalid-endorsement-key" "/api/user/endorsements.json"
+
+        check
+            "revokedPersonalApiKeyDuringEndorsementClearsActiveAccount"
+            (endorsementRequests = 1
+             && revokedByEndorsement.Account.IsNone
+             && revokedByEndorsement.Problem = Some NexusProblem.InvalidApiKey)
+
         use secureServer = new NexusServer()
         let secureMemory = NexusMemoryStore()
         let securePaused = ResizeArray<string>()

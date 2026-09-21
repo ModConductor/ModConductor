@@ -179,6 +179,12 @@ type NexusServer() =
                     if not (isNull apiKey) then
                         apiKeyRequests <- apiKeyRequests + 1
 
+                    let keyRevoked =
+                        mode = "invalid-key"
+                        || (mode = "invalid-tracking-key" && path.EndsWith "/user/tracked_mods.json")
+                        || (mode = "invalid-endorsement-key"
+                            && path.EndsWith "/user/endorsements.json")
+
                     if path.EndsWith "/users/validate.json" then
                         if apiKey <> "synthetic-personal-key" || mode = "invalid-key" then
                             do! write 401 "{}"
@@ -197,8 +203,7 @@ type NexusServer() =
                                      + (if premium then "true" else "false")
                                      + "}")
                     elif
-                        (not (isNull apiKey)
-                         && (apiKey <> "synthetic-personal-key" || mode = "invalid-key"))
+                        (not (isNull apiKey) && (apiKey <> "synthetic-personal-key" || keyRevoked))
                         || (isNull apiKey
                             && (isNull bearer
                                 || not (bearer.StartsWith "Bearer synthetic-access-secret-")))

@@ -646,6 +646,11 @@ type NexusSession
                                     return MetadataJson.tracking identity reply.RootElement
                                 })
 
+                        match tracked with
+                        | Error NexusProblem.InvalidApiKey ->
+                            raise (NexusException NexusProblem.InvalidApiKey)
+                        | _ -> ()
+
                         let! endorsed =
                             NexusBoundary.protect (fun () ->
                                 task {
@@ -659,6 +664,11 @@ type NexusSession
 
                                     return MetadataJson.endorsements identity reply.RootElement
                                 })
+
+                        match endorsed with
+                        | Error NexusProblem.InvalidApiKey ->
+                            raise (NexusException NexusProblem.InvalidApiKey)
+                        | _ -> ()
 
                         return tracked, endorsed
                     })
