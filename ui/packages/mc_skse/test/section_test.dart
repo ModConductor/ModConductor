@@ -229,6 +229,36 @@ void main() {
     },
   );
 
+  testWidgets('setup status slots retain valid content at 150% text', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(760, 900);
+    tester.view.devicePixelRatio = 1;
+    tester.platformDispatcher.textScaleFactorTestValue = 1.5;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    final client = SetupFixtureClient(setupStatus());
+    await tester.pumpWidget(section(client));
+    await tester.pumpAndSettle();
+
+    final refresh = Completer<SkyrimSetupStatus>();
+    client.blockedRead = refresh;
+    await tester.tap(find.text('Refresh'));
+    await tester.pump();
+    await expectLater(
+      find.byType(SkyrimSetupSection),
+      matchesGoldenFile('goldens/skyrim_setup_pending_150.png'),
+    );
+
+    refresh.completeError(Exception('refresh failed'));
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(SkyrimSetupSection),
+      matchesGoldenFile('goldens/skyrim_setup_failure_150.png'),
+    );
+  });
+
   testWidgets(
     'setup should require one confirmed plan before starting writes',
     (tester) async {

@@ -368,6 +368,10 @@ void main() {
         }
         previous = rowRect;
       }
+      await expectLater(
+        find.byType(GameContextBrowser),
+        matchesGoldenFile('goldens/installation_details_expanded_150.png'),
+      );
       expect(tester.takeException(), isNull);
     },
   );

@@ -232,6 +232,7 @@ Future<DiagnosticsController> mount(
   WidgetTester tester,
   FakeDiagnostics client, {
   Size size = const Size(1280, 800),
+  ThemeData? theme,
 }) async {
   tester.view.devicePixelRatio = 1;
   tester.view.physicalSize = size;
@@ -242,6 +243,7 @@ Future<DiagnosticsController> mount(
   controller.attach(client, 'workspace-1', 'profile-1');
   await tester.pumpWidget(
     MaterialApp(
+      theme: theme,
       home: Scaffold(body: HelpBrowser(controller: controller)),
     ),
   );
@@ -402,6 +404,28 @@ void main() {
       expect(client.applies, 1);
     },
   );
+
+  testWidgets('Help navigation remains aligned at supported widths', (
+    tester,
+  ) async {
+    for (final visualCase in [
+      (name: 'wide', size: const Size(1280, 800)),
+      (name: 'narrow', size: const Size(680, 800)),
+    ]) {
+      await mount(
+        tester,
+        FakeDiagnostics(),
+        size: visualCase.size,
+        theme: mcTheme(Brightness.dark),
+      );
+      await expectLater(
+        find.byType(HelpBrowser),
+        matchesGoldenFile(
+          'goldens/help_navigation_${visualCase.name}_dark.png',
+        ),
+      );
+    }
+  });
 
   testWidgets(
     'wide Help reuses one sidebar, list, inspector and explicit preview',

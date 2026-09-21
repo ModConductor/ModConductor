@@ -220,11 +220,22 @@ void main() {
     expect(rows.expanded(1), isFalse);
   });
 
-  for (final direction in TextDirection.values) {
+  for (final visualCase in [
+    (
+      name: 'narrow_rtl',
+      size: const Size(320, 480),
+      direction: TextDirection.rtl,
+    ),
+    (
+      name: 'wide_ltr',
+      size: const Size(720, 480),
+      direction: TextDirection.ltr,
+    ),
+  ]) {
     testWidgets(
-      'sortable headers keep the icon and label together in $direction',
+      'sortable headers keep the icon and label together in ${visualCase.name}',
       (tester) async {
-        tester.view.physicalSize = const Size(320, 480);
+        tester.view.physicalSize = visualCase.size;
         tester.view.devicePixelRatio = 1;
         tester.platformDispatcher.textScaleFactorTestValue = 1.5;
         addTearDown(tester.view.resetPhysicalSize);
@@ -237,7 +248,7 @@ void main() {
         await tester.pumpWidget(
           MaterialApp(
             home: Directionality(
-              textDirection: direction,
+              textDirection: visualCase.direction,
               child: Scaffold(
                 body: McCollection<int, Item>(
                   model: rows,
@@ -266,6 +277,10 @@ void main() {
         final label = find.descendant(of: header, matching: find.text('Order'));
         expect(icon, findsOneWidget);
         expect(label, findsOneWidget);
+        await expectLater(
+          find.byType(McCollection<int, Item>),
+          matchesGoldenFile('goldens/sort_header_${visualCase.name}_150.png'),
+        );
         final sortSemantics = tester
             .getSemantics(
               find.descendant(of: header, matching: find.byType(TextButton)),
@@ -279,7 +294,7 @@ void main() {
         );
         expect(
           tester.getCenter(icon).dx < tester.getCenter(label).dx,
-          direction == TextDirection.ltr,
+          visualCase.direction == TextDirection.ltr,
         );
 
         await tester.tap(header);
