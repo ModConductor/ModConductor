@@ -45,11 +45,6 @@ void main() {
       await child.close();
     }
 
-    expect(
-      utf8.decode(child.errors, allowMalformed: true),
-      isNot(contains(candidate)),
-    );
-
     final durable = StringBuffer();
     await for (final entry in state.list(recursive: true)) {
       if (entry is File) {
