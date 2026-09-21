@@ -98,11 +98,14 @@ void main() {
       Widget app() => MaterialApp(
         theme: mcTheme(Brightness.light),
         home: Scaffold(
-          body: CredentialPreferences(
-            key: ValueKey(instance),
-            client: credentials,
-            nexus: nexus,
-            labels: _labels,
+          body: Directionality(
+            textDirection: TextDirection.rtl,
+            child: CredentialPreferences(
+              key: ValueKey(instance),
+              client: credentials,
+              nexus: nexus,
+              labels: _labels,
+            ),
           ),
         ),
       );
@@ -110,6 +113,7 @@ void main() {
       await tester.pumpWidget(app());
       await tester.pumpAndSettle();
       final field = find.byKey(const ValueKey('nexus-personal-api-key'));
+      expect(Directionality.of(tester.element(field)), TextDirection.rtl);
       expect(tester.widget<TextField>(field).obscureText, isTrue);
 
       await tester.tap(find.byIcon(Icons.visibility));

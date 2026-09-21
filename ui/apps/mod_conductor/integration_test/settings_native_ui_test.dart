@@ -119,13 +119,6 @@ void main() {
       await tester.pumpAndSettle();
       expect(details.hasFocus, isTrue);
 
-      tester.platformDispatcher.localesTestValue = const [Locale('ar')];
-      await tester.pumpAndSettle();
-      expect(
-        Directionality.of(tester.element(find.byKey(const ValueKey('quit')))),
-        TextDirection.rtl,
-      );
-      await capture('preferences-rtl-arabic');
       expect(tester.takeException(), isNull);
     } finally {
       semantics.dispose();

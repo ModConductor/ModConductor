@@ -82,6 +82,20 @@ const _defaultPreferences = (
   contrast: ContrastPreference.system,
 );
 
+const _englishLocale = Locale('en');
+
+Locale _resolveAppLocale(
+  List<Locale>? preferredLocales,
+  Iterable<Locale> supportedLocales,
+) {
+  for (final preferred in preferredLocales ?? const <Locale>[]) {
+    for (final supported in supportedLocales) {
+      if (preferred.languageCode == supported.languageCode) return supported;
+    }
+  }
+  return _englishLocale;
+}
+
 ThemeMode _themeMode(AppearancePreference value) => switch (value) {
   AppearancePreference.system => ThemeMode.system,
   AppearancePreference.light => ThemeMode.light,
@@ -692,6 +706,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: AppLocalizations.supportedLocales,
+      localeListResolutionCallback: _resolveAppLocale,
       theme: mcTheme(Brightness.light, highContrast: explicitHigh),
       darkTheme: mcTheme(Brightness.dark, highContrast: explicitHigh),
       highContrastTheme: mcTheme(

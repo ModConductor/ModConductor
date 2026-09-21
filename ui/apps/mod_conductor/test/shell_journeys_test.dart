@@ -5,8 +5,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 import 'package:mc_client/mc_client.dart';
-import 'package:mc_credentials/mc_credentials.dart';
-import 'package:mc_desktop/mc_desktop.dart';
 import 'package:mod_conductor/src/app.dart';
 
 Finder keyed(String value) => find.byKey(ValueKey(value));
@@ -362,54 +360,55 @@ void main() {
     );
   });
 
-  testWidgets(
-    'Arabic direction, large text, high contrast and status semantics stay operable',
-    (tester) async {
-      tester.platformDispatcher.localesTestValue = const [Locale('ar')];
-      addTearDown(tester.platformDispatcher.clearLocalesTestValue);
-      final semantics = tester.ensureSemantics();
-      await mount(tester, settings: _SettingsFake());
-      await activate(tester, 'nav-preferences');
-      expect(
-        Directionality.of(tester.element(keyed('quit'))),
-        TextDirection.rtl,
-      );
-      await tester.ensureVisible(find.byType(CredentialPreferences));
-      expect(find.text('نيكسس مودز'), findsOneWidget);
-      expect(
-        find.textContaining('تعذر فحص تخزين تسجيل الدخول'),
-        findsOneWidget,
-      );
-      await tester.ensureVisible(find.byType(NexusLinkPreferences));
-      expect(find.text('روابط تنزيل نيكسس'), findsOneWidget);
-      expect(find.text('يتعذر فحص إعداد الروابط'), findsOneWidget);
-      expect(find.text('Nexus download links'), findsNothing);
-      expect(find.text('Check default app'), findsNothing);
+  testWidgets('unsupported and regional platform locales select English', (
+    tester,
+  ) async {
+    tester.platformDispatcher.localesTestValue = const [Locale('ar')];
+    addTearDown(tester.platformDispatcher.clearLocalesTestValue);
+    await mount(tester);
 
-      tester
-          .widget<McChoice<double>>(keyed('preferences-scale'))
-          .onChanged(1.5);
-      await tester.pump();
-      tester
-          .widget<McChoice<ContrastPreference>>(keyed('preferences-contrast'))
-          .onChanged(ContrastPreference.high);
-      await tester.pump();
-      await activate(tester, 'apply-preferences');
-      tester.view.physicalSize = const Size(640, 700);
+    for (final platformLocales in <List<Locale>>[
+      const [Locale('ar')],
+      const [Locale('C')],
+      const [],
+      const [Locale('en', 'GB')],
+    ]) {
+      tester.platformDispatcher.localesTestValue = platformLocales;
       await tester.pumpAndSettle();
+      final context = tester.element(keyed('quit'));
+      expect(Localizations.localeOf(context), const Locale('en'));
+      expect(Directionality.of(context), TextDirection.ltr);
+    }
+  });
 
-      expect(
-        MediaQuery.textScalerOf(tester.element(keyed('quit'))).scale(1),
-        1.5,
-      );
-      expect(MediaQuery.highContrastOf(tester.element(keyed('quit'))), isTrue);
-      final status = tester.getSemantics(find.byType(McStatus).first);
-      expect(status.getSemanticsData().label, isNotEmpty);
-      expect(keyed('quit'), findsOneWidget);
-      expect(tester.takeException(), isNull);
-      semantics.dispose();
-    },
-  );
+  testWidgets('large text, high contrast and status semantics stay operable', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    await mount(tester, settings: _SettingsFake());
+    await activate(tester, 'nav-preferences');
+
+    tester.widget<McChoice<double>>(keyed('preferences-scale')).onChanged(1.5);
+    await tester.pump();
+    tester
+        .widget<McChoice<ContrastPreference>>(keyed('preferences-contrast'))
+        .onChanged(ContrastPreference.high);
+    await tester.pump();
+    await activate(tester, 'apply-preferences');
+    tester.view.physicalSize = const Size(640, 700);
+    await tester.pumpAndSettle();
+
+    expect(
+      MediaQuery.textScalerOf(tester.element(keyed('quit'))).scale(1),
+      1.5,
+    );
+    expect(MediaQuery.highContrastOf(tester.element(keyed('quit'))), isTrue);
+    final status = tester.getSemantics(find.byType(McStatus).first);
+    expect(status.getSemanticsData().label, isNotEmpty);
+    expect(keyed('quit'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    semantics.dispose();
+  });
 
   testWidgets(
     'active comparison preserves draft and restores focus on Escape',
