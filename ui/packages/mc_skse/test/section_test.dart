@@ -283,6 +283,21 @@ void main() {
     await tester.pumpWidget(section(client, theme: mcTheme(Brightness.dark)));
     await tester.pumpAndSettle();
 
+    final statusRows = find.descendant(
+      of: find.byType(SkyrimSetupSection),
+      matching: find.byType(McStatus),
+    );
+    final retainedStatusRects = [
+      for (var index = 0; index < statusRows.evaluate().length; index++)
+        tester.getRect(statusRows.at(index)),
+    ];
+    final includeFnis = find.byKey(const ValueKey('include-fnis'));
+    final refreshAction = find.byKey(const ValueKey('refresh-skyrim-setup'));
+    final reviewAction = find.byKey(const ValueKey('review-skyrim-setup'));
+    final retainedFnisRect = tester.getRect(includeFnis);
+    final retainedRefreshRect = tester.getRect(refreshAction);
+    final retainedReviewRect = tester.getRect(reviewAction);
+
     await expectLater(
       find.byType(SkyrimSetupSection),
       matchesGoldenFile('goldens/skyrim_setup_idle_dark_150.png'),
@@ -306,8 +321,21 @@ void main() {
 
     final fnis = Completer<SkyrimSetupStatus>();
     client.blockedRead = fnis;
-    await tester.tap(find.byKey(const ValueKey('include-fnis')));
+    await tester.tap(find.text('Include FNIS'));
     await tester.pump();
+    expect(statusRows, findsNWidgets(retainedStatusRects.length));
+    expect([
+      for (var index = 0; index < retainedStatusRects.length; index++)
+        tester.getRect(statusRows.at(index)),
+    ], retainedStatusRects);
+    expect(tester.getRect(includeFnis), retainedFnisRect);
+    expect(tester.getRect(refreshAction), retainedRefreshRect);
+    expect(tester.getRect(reviewAction), retainedReviewRect);
+    expect(
+      tester.widget<McAsyncStatusSlot>(find.byType(McAsyncStatusSlot)).active,
+      isTrue,
+    );
+    expect(tester.widget<SwitchListTile>(includeFnis).value, isTrue);
     await expectLater(
       find.byType(SkyrimSetupSection),
       matchesGoldenFile('goldens/skyrim_setup_fnis_pending_dark_150.png'),
