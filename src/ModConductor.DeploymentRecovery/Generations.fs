@@ -25,19 +25,19 @@ module internal Generations =
 
                 let length, hash =
                     match file.Winner.Source with
-                    | SourcePin.Mod(_, _, entry) -> entry.Payload.Length, entry.Payload.Sha256
-                    | SourcePin.Snapshot(_, _, entry) -> entry.Length, entry.Sha256
+                    | SourcePin.Mod(_, _, entry) -> entry.Payload.Length, Some entry.Payload.Sha256
+                    | SourcePin.Snapshot(_, _, entry) ->
+                        SnapshotFile.length entry, SnapshotFile.sha256 entry
 
                 RecoveryFiles.withParent directory path (fun parent name ->
-                    let stream, identity = parent.Read(name, None)
-                    use stream = stream
+                    let metadata = parent.InspectFile(name, None)
 
-                    if stream.Length <> length || RecoveryFiles.digest stream <> hash then
+                    if metadata.Length <> length then
                         RecoveryFiles.fail "The prepared generation differs from its plan."
 
                     { Target = file.Target
                       Path = path
-                      Identity = identity
+                      Identity = metadata.Identity
                       Length = length
                       Sha256 = hash
                       Backing = None }))

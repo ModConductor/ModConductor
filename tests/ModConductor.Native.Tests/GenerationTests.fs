@@ -22,6 +22,8 @@ type GenerationTests() =
         ()
         =
         flag "baseUntouched" |> should equal true
+        flag "deploymentDoesNotRehashManagedPayloads" |> should equal true
+        flag "deploymentChecksBaseMetadataWithoutReadingContent" |> should equal true
         flag "mixedBranchUsesLeaf" |> should equal true
         flag "managedDirectoryLink" |> should equal true
         flag "individualCollisionLink" |> should equal true

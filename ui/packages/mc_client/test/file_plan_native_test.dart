@@ -152,6 +152,7 @@ void main() {
         final inspected = await files.inspectCopy(loaded.id, copy);
         expect(inspected.focusedCopy!.copy, copy);
         expect(inspected.focusedCopy!.source, isA<ManagedPreviewSource>());
+        expect(inspected.focusedCopy!.sha256, isNotEmpty);
         final managedPreview = files.preview(
           loaded.id,
           inspected.focusedCopy!.source,
@@ -161,9 +162,11 @@ void main() {
         expect(managedResult.standing, FileSourceStanding.winner);
         expect((managedResult.content as FilePreviewText).content, 'Mod copy');
         final targetInspection = await files.inspect(loaded.id, ['shared.txt']);
-        final gameSource = targetInspection.copies
-            .singleWhere((row) => row.source is CheckedGamePreviewSource)
-            .source;
+        final gameCopy = targetInspection.copies.singleWhere(
+          (row) => row.source is CheckedGamePreviewSource,
+        );
+        expect(gameCopy.sha256, isNull);
+        final gameSource = gameCopy.source;
         final gameResult = await files
             .preview(loaded.id, gameSource, FilePreviewRepresentation.text)
             .result;
@@ -373,7 +376,7 @@ void main() {
               sum +
               utf8.encode(row.name).length +
               utf8.encode(row.versionLabel).length +
-              utf8.encode(row.sha256).length +
+              utf8.encode(row.sha256 ?? '').length +
               utf8.encode(row.copy!.modId).length +
               utf8.encode(row.copy!.versionId).length +
               2 * utf8.encode(row.sourcePath.join('/')).length,

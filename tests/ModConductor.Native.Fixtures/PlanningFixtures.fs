@@ -97,8 +97,10 @@ module PlanningFixtures =
                 writer.WriteString("snapshotId", snapshotId)
                 writer.WriteString("generation", generation)
                 writer.WriteString("sourcePath", LogicalPath.display file.Path)
-                writer.WriteNumber("length", file.Length)
-                writer.WriteString("sha256", file.Sha256)
+                writer.WriteNumber("length", SnapshotFile.length file)
+
+                SnapshotFile.sha256 file
+                |> Option.iter (fun value -> writer.WriteString("sha256", value))
 
             writer.WriteEndObject()
 
@@ -144,8 +146,14 @@ module PlanningFixtures =
               Complete = true
               Files =
                 [ { Path = path "Textures/shared.txt"
-                    Length = 4L
-                    Sha256 = String('b', 64) } ]
+                    Identity =
+                      SnapshotFileIdentity.Metadata
+                          { Identity =
+                              { Device = LinuxDevice(1u, 2u)
+                                Low = 3UL
+                                High = 0UL }
+                            Length = 4L
+                            Modified = DateTime.UnixEpoch } } ]
               Mappings = [ mapping ]
               Archives = [] }
 
@@ -153,7 +161,12 @@ module PlanningFixtures =
             { baseSnapshot with
                 Id = id 21
                 Kind = ReadOnlyLayerKind.Secondary
-                Priority = -10 }
+                Priority = -10
+                Files =
+                    baseSnapshot.Files
+                    |> List.map (fun file ->
+                        { file with
+                            Identity = SnapshotFileIdentity.Content(4L, String('b', 64)) }) }
 
         let initial =
             { input [ low; high ] with

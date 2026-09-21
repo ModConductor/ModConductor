@@ -28,8 +28,7 @@ module FilePreviewFixtures =
               Kind = ReadOnlyLayerKind.Base
               SourcePath = path name
               Target = path name
-              Length = int64 bytes.Length
-              Sha256 = hash bytes }
+              Length = int64 bytes.Length }
 
     let private render name representation (bytes: byte array) token =
         use stream = new MemoryStream(bytes, false)

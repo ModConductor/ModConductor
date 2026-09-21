@@ -2,6 +2,7 @@ namespace ModConductor.FilePlanning
 
 open System.Threading
 open System.Threading.Tasks
+open ModConductor.DeploymentPlanning
 
 type internal SnapshotAcquisition(repository: IFilePlanRepository, cache: SnapshotCache) =
     let describe snapshot =
@@ -94,17 +95,25 @@ type internal SnapshotAcquisition(repository: IFilePlanRepository, cache: Snapsh
                         match observation with
                         | Error error -> return Error error
                         | Ok observation ->
-                            let! verified =
-                                repository.VerifyPayloads(
-                                    sources,
-                                    Limits.contentBytes
-                                    - (observation.Snapshot.Files |> List.sumBy _.Length),
-                                    token
-                                )
+                            let payloadBytes =
+                                sources.Profile.Mods
+                                |> List.filter _.Enabled
+                                |> List.collect (fun row ->
+                                    row.Version |> Option.map _.Entries |> Option.defaultValue [])
+                                |> List.map _.Payload
+                                |> List.distinctBy _.Id
+                                |> List.sumBy _.Length
 
-                            match verified with
-                            | Error error -> return Error error
-                            | Ok() ->
+                            let gameBytes =
+                                observation.Snapshot.Files |> List.sumBy SnapshotFile.length
+
+                            if payloadBytes > Limits.contentBytes - gameBytes then
+                                return
+                                    Error(
+                                        FilePlanError.LimitExceeded
+                                            "The published files exceed the 64 GiB content limit."
+                                    )
+                            else
                                 let! snapshot = create sources (Some observation)
                                 token.ThrowIfCancellationRequested()
                                 let! current = repository.Current sources.Stamp

@@ -68,6 +68,30 @@ module internal InputFingerprint =
             number length
             text (digest.ToUpperInvariant())
 
+        let fileIdentity value =
+            match value.Device with
+            | LinuxDevice(major, minor) ->
+                number 0L
+                number (int64 major)
+                number (int64 minor)
+            | WindowsVolume serial ->
+                number 1L
+                number (int64 serial)
+
+            number (int64 value.Low)
+            number (int64 value.High)
+
+        let snapshotIdentity =
+            function
+            | SnapshotFileIdentity.Metadata metadata ->
+                number 0L
+                fileIdentity metadata.Identity
+                number metadata.Length
+                number (metadata.Modified.ToUniversalTime().Ticks)
+            | SnapshotFileIdentity.Content(length, digest) ->
+                number 1L
+                content length digest
+
         let entry (value: ManifestEntry) =
             path value.Path
             id value.Payload.Id
@@ -137,7 +161,7 @@ module internal InputFingerprint =
             |> List.sort
             |> items (fun file ->
                 path file.Path
-                content file.Length file.Sha256)
+                snapshotIdentity file.Identity)
 
             mappings layer.Mappings
             archives layer.Archives)

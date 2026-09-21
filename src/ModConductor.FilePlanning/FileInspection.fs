@@ -79,7 +79,7 @@ module internal InspectionProjection =
                 && winner = Some(SourcePin.Mod(id.ModId, id.VersionId, row.Entry))
               Historical = false
               Length = row.Entry.Payload.Length
-              Sha256 = row.Entry.Payload.Sha256
+              Sha256 = Some row.Entry.Payload.Sha256
               CanHide =
                 not hidden
                 && not invalid
@@ -99,8 +99,7 @@ module internal InspectionProjection =
                       Kind = kind
                       SourcePath = file.Path
                       Target = target
-                      Length = file.Length
-                      Sha256 = file.Sha256 }
+                      Length = SnapshotFile.length file }
               Standing =
                 if not invalid && not writable && winner = Some source then
                     FileSourceStanding.Winner
@@ -115,8 +114,8 @@ module internal InspectionProjection =
               Hidden = false
               Winner = not invalid && not writable && winner = Some source
               Historical = false
-              Length = file.Length
-              Sha256 = file.Sha256
+              Length = SnapshotFile.length file
+              Sha256 = None
               CanHide = false
               CanUnhide = false }
 

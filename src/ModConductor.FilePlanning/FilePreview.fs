@@ -2,7 +2,6 @@ namespace ModConductor.FilePlanning
 
 open System
 open System.IO
-open System.Security.Cryptography
 open System.Threading
 open ModConductor.Platform
 
@@ -99,12 +98,6 @@ module FilePreviewRendering =
         | FilePreviewSource.CheckedGameFile value -> value.Length
         | FilePreviewSource.QualifiedArchiveEntry value -> value.Length
 
-    let sourceSha256 =
-        function
-        | FilePreviewSource.ManagedCopy value -> Some value.Sha256
-        | FilePreviewSource.CheckedGameFile value -> Some value.Sha256
-        | FilePreviewSource.QualifiedArchiveEntry _ -> None
-
     let target =
         function
         | FilePreviewSource.ManagedCopy value -> value.Target
@@ -170,7 +163,6 @@ module FilePreviewRendering =
                      "This file is too large to preview.")
                 standing
         else
-            use digest = IncrementalHash.CreateHash HashAlgorithmName.SHA256
             use output = new MemoryStream(int expectedLength)
             let buffer = Array.zeroCreate<byte> FilePreviewLimits.BufferBytes
             let mutable doneReading = false
@@ -189,16 +181,9 @@ module FilePreviewRendering =
                     if total > expectedLength || total > FilePreviewLimits.SourceBytes then
                         changedInput <- true
                     else
-                        digest.AppendData(buffer, 0, count)
                         output.Write(buffer, 0, count)
 
-            let actualHash = Convert.ToHexStringLower(digest.GetHashAndReset())
-
-            if
-                changedInput
-                || total <> expectedLength
-                || (sourceSha256 source |> Option.exists ((<>) actualHash))
-            then
+            if changedInput || total <> expectedLength then
                 changed source "The selected source changed. Reload the file view." standing
             else
                 let bytes = output.ToArray()

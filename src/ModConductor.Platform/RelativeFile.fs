@@ -155,4 +155,29 @@ module internal RelativeFile =
     let openChild root name directory create =
         openEntry root name directory create false
 
+    let openMetadata (root: SafeFileHandle) name =
+        if OperatingSystem.IsLinux() then
+            if
+                String.IsNullOrEmpty name
+                || name = "."
+                || name = ".."
+                || name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0
+            then
+                invalidArg "name" "Use one native filename component."
+
+            let descriptor = openAt (int (root.DangerousGetHandle()), name, 0x2A0000, 0u)
+
+            if descriptor < 0 then
+                raise (
+                    IOException(
+                        "Opening file metadata failed: " + string (Marshal.GetLastPInvokeError())
+                    )
+                )
+
+            new SafeFileHandle(nativeint descriptor, true)
+        elif OperatingSystem.IsWindows() then
+            openEntry root name false false false
+        else
+            raise (PlatformNotSupportedException())
+
     let openWritable root name = openEntry root name false false true

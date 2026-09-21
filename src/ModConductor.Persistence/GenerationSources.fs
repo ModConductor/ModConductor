@@ -140,9 +140,15 @@ module internal GenerationSources =
                     snapshot.Snapshot.Files
                     |> List.map (fun file ->
                         let identity =
-                            snapshot.Files.TryFind file.Path
-                            |> Option.defaultWith (fun () ->
-                                RecoveryFiles.fail "A snapshot file has no observed identity.")
+                            match
+                                SnapshotFile.metadata file, snapshot.Files.TryFind file.Path
+                            with
+                            | Some metadata, Some observed when metadata.Identity = observed ->
+                                metadata.Identity
+                            | None, Some observed -> observed
+                            | _ ->
+                                RecoveryFiles.fail
+                                    "A snapshot file has no matching observed identity."
 
                         let backing =
                             match snapshot.Originals.TryFind file.Path with

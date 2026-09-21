@@ -2,7 +2,6 @@ namespace ModConductor.DeploymentRecovery
 
 open System
 open System.IO
-open System.Security.Cryptography
 open System.Threading
 open ModConductor.Platform
 open ModConductor.DeploymentPlanning
@@ -10,25 +9,6 @@ open ModConductor.DeploymentPlanning
 module internal RecoveryFiles =
     let fail text =
         raise (RecoveryException(RecoveryError.Mismatch text))
-
-    let digestWith (token: CancellationToken) (stream: Stream) =
-        use hash = IncrementalHash.CreateHash HashAlgorithmName.SHA256
-        let buffer = Array.zeroCreate<byte> 65536
-        let mutable reading = true
-
-        while reading do
-            token.ThrowIfCancellationRequested()
-            let count = stream.Read(buffer, 0, buffer.Length)
-
-            if count = 0 then
-                reading <- false
-            else
-                hash.AppendData(buffer, 0, count)
-
-        Convert.ToHexStringLower(hash.GetHashAndReset())
-
-    let digest stream =
-        digestWith CancellationToken.None stream
 
     let path (root: Location) logical =
         (HostPath.value root.Path, LogicalPath.components logical)
@@ -75,12 +55,7 @@ module internal RecoveryFiles =
             if parent.InspectEntry name <> Some original.Entry then
                 false
             else
-                match original.Sha256 with
-                | None -> true
-                | Some hash ->
-                    let stream, _ = parent.Read(name, Some original.Entry.Identity)
-                    use stream = stream
-                    digestWith token stream = hash
+                true
 
         if stored then
             use backup = HeldDirectory.Open(root.Originals.Path, root.Originals.Identity)
@@ -89,20 +64,12 @@ module internal RecoveryFiles =
             withParent root.Directory original.Target.Path check
 
     let captureOriginal token (receiptId: Guid) index context target (entry: HeldEntry) =
-        let hash =
-            if entry.Kind = EntryKind.RegularFile then
-                withParent (binding context target).Directory target.Path (fun parent name ->
-                    let stream, _ = parent.Read(name, Some entry.Identity)
-                    use stream = stream
-                    Some(digestWith token stream))
-            elif entry.Kind = EntryKind.Directory then
-                None
-            else
-                fail "An unowned link or special entry is not an original file or directory."
+        if entry.Kind <> EntryKind.RegularFile && entry.Kind <> EntryKind.Directory then
+            fail "An unowned link or special entry is not an original file or directory."
 
         { Target = target
           Entry = entry
-          Sha256 = hash
+          Sha256 = None
           Backup = receiptId.ToString() + "-" + string index }
 
     let linkMatches (spec: LinkSpec) (entry: HeldEntry) =
@@ -206,17 +173,16 @@ module internal RecoveryFiles =
         check directory []
 
         for file in generation.Files do
-            let read (parent: HeldDirectory) name identity =
-                let stream, _ = parent.Read(name, Some identity)
-                use stream = stream
+            let check (parent: HeldDirectory) name identity =
+                let metadata = parent.InspectFile(name, Some identity)
 
-                if stream.Length <> file.Length || digestWith token stream <> file.Sha256 then
+                if metadata.Length <> file.Length then
                     fail "A retained generation file changed."
 
             match file.Backing with
             | None ->
                 withParent generation.Directory file.Path (fun parent name ->
-                    read parent name file.Identity)
+                    check parent name file.Identity)
             | Some backing ->
                 withParent generation.Directory file.Path (fun parent name ->
                     let expected =
@@ -230,7 +196,7 @@ module internal RecoveryFiles =
                     | _ -> fail "A retained generation link changed.")
 
                 withParent backing.Directory backing.Path (fun parent name ->
-                    read parent name backing.Identity)
+                    check parent name backing.Identity)
 
         for working in generation.Working do
             withParent working.Root working.Path (fun parent name ->
@@ -259,10 +225,12 @@ module internal RecoveryFiles =
                     Target = nativeTarget generation logicalFile.Target }
 
             let check (parent: HeldDirectory) name =
-                let stream, _ = parent.Read(name, Some file.Identity)
-                use stream = stream
+                let metadata = parent.InspectFile(name, Some file.Identity)
 
-                if stream.Length <> file.Length || digestWith token stream <> file.Sha256 then
+                if
+                    metadata.Length <> file.Length
+                    || file.Modified |> Option.exists ((<>) metadata.Modified)
+                then
                     fail "An observed game-folder file changed."
 
             match observe context file.Target with

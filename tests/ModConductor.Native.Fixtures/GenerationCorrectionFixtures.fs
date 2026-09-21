@@ -2,6 +2,7 @@ namespace ModConductor.Native.Fixtures
 
 open System
 open System.IO
+open System.Security.Cryptography
 open System.Text.Json
 open System.Threading
 open ModConductor.Platform
@@ -67,8 +68,7 @@ module internal GenerationCorrectionFixtures =
                         Guid.NewGuid(),
                         "controlled",
                         { Path = target.Path
-                          Length = length
-                          Sha256 = String.replicate 64 "0" }
+                          Identity = SnapshotFileIdentity.Content(length, String.replicate 64 "0") }
                     )
                   MappedTarget = target
                   Archives = [] }
@@ -207,15 +207,16 @@ module internal GenerationCorrectionFixtures =
               Identity = identity
               OwnerGeneration = None }
 
-        let hash = GenerationFiles.read source RecoveryFiles.digest
+        let hash =
+            GenerationFiles.read source (fun stream ->
+                SHA256.HashData stream |> Convert.ToHexStringLower)
 
         let pin =
             SourcePin.Snapshot(
                 Guid.NewGuid(),
                 "seed",
                 { Path = path "seed.bin"
-                  Length = int64 bytes.Length
-                  Sha256 = hash }
+                  Identity = SnapshotFileIdentity.Content(int64 bytes.Length, hash) }
             )
 
         let final = path "settings.bin"

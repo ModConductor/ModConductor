@@ -47,6 +47,23 @@ type private AttributeTag =
     val mutable Attributes: uint32
     val mutable Tag: uint32
 
+[<Struct; StructLayout(LayoutKind.Sequential)>]
+type private BasicInformation =
+    val mutable CreationTime: int64
+    val mutable LastAccessTime: int64
+    val mutable LastWriteTime: int64
+    val mutable ChangeTime: int64
+    val mutable Attributes: uint32
+    val mutable Reserved: uint32
+
+[<Struct; StructLayout(LayoutKind.Sequential)>]
+type private StandardInformation =
+    val mutable AllocationSize: int64
+    val mutable EndOfFile: int64
+    val mutable Links: uint32
+    val mutable DeletePending: byte
+    val mutable Directory: byte
+
 module internal Native =
     [<DllImport("libc", EntryPoint = "statx", SetLastError = true)>]
     extern int private statx(
@@ -119,6 +136,22 @@ module internal Native =
         uint32 size
     )
 
+    [<DllImport("kernel32.dll", EntryPoint = "GetFileInformationByHandleEx", SetLastError = true)>]
+    extern int private basicInformation(
+        SafeFileHandle handle,
+        int informationClass,
+        BasicInformation& information,
+        uint32 size
+    )
+
+    [<DllImport("kernel32.dll", EntryPoint = "GetFileInformationByHandleEx", SetLastError = true)>]
+    extern int private standardInformation(
+        SafeFileHandle handle,
+        int informationClass,
+        StandardInformation& information,
+        uint32 size
+    )
+
     let private error operation =
         let code = Marshal.GetLastPInvokeError()
 
@@ -150,6 +183,9 @@ module internal Native =
             (if follow then 0x02000000u else 0x02200000u),
             0n
         )
+
+    let private windowsMetadataHandle path =
+        createFile (windowsPath path, 0x80u, 7u, 0n, 3u, 0x02200000u, 0n)
 
     let canonical path =
         if OperatingSystem.IsLinux() then
@@ -359,3 +395,71 @@ module internal Native =
                             EntryKind.RegularFile }
         else
             Error UnsupportedEntry
+
+    let handleFileMetadata (handle: SafeFileHandle) =
+        if OperatingSystem.IsLinux() then
+            let mutable result = Unchecked.defaultof<Statx>
+
+            if statx (int (handle.DangerousGetHandle()), "", 0x1000, 0x1341u, &result) <> 0 then
+                error "statx file metadata"
+            elif result.Mask &&& 0x341u <> 0x341u || int result.Mode &&& 0xf000 <> 0x8000 then
+                Error UnsupportedEntry
+            elif result.Size > uint64 Int64.MaxValue then
+                Error LimitExceeded
+            else
+                try
+                    Ok
+                        { Identity =
+                            { Device = LinuxDevice(result.Major, result.Minor)
+                              Low = result.Inode
+                              High = 0UL }
+                          Length = int64 result.Size
+                          Modified =
+                            DateTimeOffset
+                                .FromUnixTimeSeconds(result.Modified.Seconds)
+                                .AddTicks(int64 result.Modified.Nanoseconds / 100L)
+                                .UtcDateTime }
+                with :? ArgumentOutOfRangeException ->
+                    Error UnsupportedEntry
+        elif OperatingSystem.IsWindows() then
+            let mutable id = Unchecked.defaultof<FileId>
+            let mutable basic = Unchecked.defaultof<BasicInformation>
+            let mutable standard = Unchecked.defaultof<StandardInformation>
+
+            if
+                fileId (handle, 18, &id, 24u) = 0
+                || basicInformation (handle, 0, &basic, uint32 (Marshal.SizeOf<BasicInformation>())) = 0
+                || standardInformation (
+                    handle,
+                    1,
+                    &standard,
+                    uint32 (Marshal.SizeOf<StandardInformation>())
+                ) = 0
+            then
+                error "File handle metadata"
+            elif basic.Attributes &&& 0x410u <> 0u || standard.Directory <> 0uy then
+                Error UnsupportedEntry
+            else
+                try
+                    Ok
+                        { Identity =
+                            { Device = WindowsVolume id.Volume
+                              Low = id.Low
+                              High = id.High }
+                          Length = standard.EndOfFile
+                          Modified = DateTime.FromFileTimeUtc basic.LastWriteTime }
+                with :? ArgumentOutOfRangeException ->
+                    Error UnsupportedEntry
+        else
+            Error UnsupportedEntry
+
+    let fileMetadata path =
+        if not (OperatingSystem.IsWindows()) then
+            Error UnsupportedEntry
+        else
+            use handle = windowsMetadataHandle path
+
+            if handle.IsInvalid then
+                error "CreateFile metadata"
+            else
+                handleFileMetadata handle

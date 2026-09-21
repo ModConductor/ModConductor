@@ -24,6 +24,14 @@ module internal InputProjection =
         let validContent length (digest: string) =
             length >= 0L && digest.Length = 64 && digest |> Seq.forall Uri.IsHexDigit
 
+        let validSnapshot kind (file: SnapshotFile) =
+            match kind, file.Identity with
+            | ReadOnlyLayerKind.Base, SnapshotFileIdentity.Metadata metadata ->
+                metadata.Length >= 0L
+            | ReadOnlyLayerKind.Secondary, SnapshotFileIdentity.Content(length, digest) ->
+                validContent length digest
+            | _ -> false
+
         let addLayer id precedence mappings archives (sources: SourcePin list) =
             for mapping in mappings do
                 if not (roots.ContainsKey mapping.TargetRoot) then
@@ -42,7 +50,7 @@ module internal InputProjection =
             for source in sources do
                 let path = PlanningPaths.sourcePath source
 
-                let length, digest =
+                let valid =
                     match source with
                     | SourcePin.Mod(_, _, entry) ->
                         let payload = entry.Payload
@@ -54,10 +62,17 @@ module internal InputProjection =
                         | true, _ -> ()
                         | false, _ -> payloads.Add(payload.Id, signature)
 
-                        payload.Length, payload.Sha256
-                    | SourcePin.Snapshot(_, _, file) -> file.Length, file.Sha256
+                        validContent payload.Length payload.Sha256
+                    | SourcePin.Snapshot(_, _, file) ->
+                        let kind =
+                            match precedence.Tier with
+                            | LayerTier.Base -> ReadOnlyLayerKind.Base
+                            | LayerTier.Secondary -> ReadOnlyLayerKind.Secondary
+                            | LayerTier.Mod -> invalidOp "A snapshot cannot be a mod layer."
 
-                if not (validContent length digest) then
+                        validSnapshot kind file
+
+                if not valid then
                     issues.Add(PlanningIssue.InvalidContent(id, path))
 
                 let candidates =

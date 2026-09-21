@@ -1,5 +1,7 @@
 namespace ModConductor.Platform
 
+open System
+
 type DeviceIdentity =
     | LinuxDevice of major: uint32 * minor: uint32
     | WindowsVolume of serial: uint64
@@ -8,6 +10,11 @@ type FileIdentity =
     { Device: DeviceIdentity
       Low: uint64
       High: uint64 }
+
+type HeldFileMetadata =
+    { Identity: FileIdentity
+      Length: int64
+      Modified: DateTime }
 
 type EntryKind =
     | RegularFile

@@ -34,6 +34,7 @@ type DeploymentTests() =
         flag "cancelledEffectRemainsRecoverable" |> should equal true
         flag "originalsRecordedBeforeEffects" |> should equal true
         flag "explicitOriginalsRestored" |> should equal true
+        flag "originalPreservationAndRestorationDoNotReadContent" |> should equal true
 
     [<Test>]
     member _.``changed destinations and pins should block recovery without overwriting foreign entries``

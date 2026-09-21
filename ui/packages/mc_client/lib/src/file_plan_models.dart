@@ -93,9 +93,8 @@ class CheckedGamePreviewSource extends FilePreviewSource {
     required super.sourcePath,
     required super.target,
     required super.length,
-    required this.sha256,
   });
-  final String snapshotId, generation, sha256;
+  final String snapshotId, generation;
   final int kind;
   @override
   Object get id => 'game:$snapshotId:$generation:${sourcePath.join('/')}';
@@ -234,7 +233,7 @@ class InspectedFileCopy {
     required this.winner,
     required this.historical,
     required this.length,
-    required this.sha256,
+    this.sha256,
     required this.canHide,
     required this.canUnhide,
     required this.source,
@@ -244,7 +243,8 @@ class InspectedFileCopy {
   final FilePreviewSource source;
   final FileSourceStanding standing;
   final List<String> sourcePath;
-  final String name, versionLabel, sha256;
+  final String name, versionLabel;
+  final String? sha256;
   final int? priority;
   final int length;
   final bool enabled, hidden, winner, historical, canHide, canUnhide;

@@ -12,8 +12,13 @@ type FilePlanningTests() =
             .GetBoolean()
 
     [<Test>]
-    member _.``acquisition should pin observed bytes and keep bounded page identities separate``() =
+    member _.``acquisition should index metadata without reading content and keep bounded page identities separate``
+        ()
+        =
         flag "coldViewNotComplete" |> should equal true
+        flag "initialViewDoesNotReadGameContent" |> should equal true
+        flag "initialViewDoesNotRehashManagedPayloads" |> should equal true
+        flag "initialUsefulPageWithinOneSecond" |> should equal true
         flag "priorityWinnerAndBasePins" |> should equal true
         flag "opaqueArchiveIsAFile" |> should equal true
         flag "boundedCursorKeepsIdentity" |> should equal true

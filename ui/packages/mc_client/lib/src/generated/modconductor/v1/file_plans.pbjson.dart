@@ -250,7 +250,10 @@ const CheckedGamePreviewSource$json = {
       '10': 'target'
     },
     {'1': 'length', '3': 6, '4': 1, '5': 4, '10': 'length'},
-    {'1': 'sha256', '3': 7, '4': 1, '5': 9, '10': 'sha256'},
+    {'1': 'sha256', '3': 7, '4': 1, '5': 9, '9': 0, '10': 'sha256', '17': true},
+  ],
+  '8': [
+    {'1': '_sha256'},
   ],
 };
 
@@ -260,8 +263,8 @@ final $typed_data.Uint8List checkedGamePreviewSourceDescriptor = $convert.base64
     '90SWQSHgoKZ2VuZXJhdGlvbhgCIAEoCVIKZ2VuZXJhdGlvbhISCgRraW5kGAMgASgNUgRraW5k'
     'EkAKC3NvdXJjZV9wYXRoGAQgASgLMh8ubW9kY29uZHVjdG9yLnYxLk1vZExvZ2ljYWxQYXRoUg'
     'pzb3VyY2VQYXRoEjcKBnRhcmdldBgFIAEoCzIfLm1vZGNvbmR1Y3Rvci52MS5Nb2RMb2dpY2Fs'
-    'UGF0aFIGdGFyZ2V0EhYKBmxlbmd0aBgGIAEoBFIGbGVuZ3RoEhYKBnNoYTI1NhgHIAEoCVIGc2'
-    'hhMjU2');
+    'UGF0aFIGdGFyZ2V0EhYKBmxlbmd0aBgGIAEoBFIGbGVuZ3RoEhsKBnNoYTI1NhgHIAEoCUgAUg'
+    'ZzaGEyNTaIAQFCCQoHX3NoYTI1Ng==');
 
 @$core.Deprecated('Use qualifiedArchiveEntryPreviewSourceDescriptor instead')
 const QualifiedArchiveEntryPreviewSource$json = {
@@ -1146,7 +1149,15 @@ const InspectedFileCopy$json = {
     {'1': 'winner', '3': 8, '4': 1, '5': 8, '10': 'winner'},
     {'1': 'historical', '3': 9, '4': 1, '5': 8, '10': 'historical'},
     {'1': 'length', '3': 10, '4': 1, '5': 4, '10': 'length'},
-    {'1': 'sha256', '3': 11, '4': 1, '5': 9, '10': 'sha256'},
+    {
+      '1': 'sha256',
+      '3': 11,
+      '4': 1,
+      '5': 9,
+      '9': 1,
+      '10': 'sha256',
+      '17': true
+    },
     {'1': 'can_hide', '3': 12, '4': 1, '5': 8, '10': 'canHide'},
     {'1': 'can_unhide', '3': 13, '4': 1, '5': 8, '10': 'canUnhide'},
     {
@@ -1168,6 +1179,7 @@ const InspectedFileCopy$json = {
   ],
   '8': [
     {'1': '_priority'},
+    {'1': '_sha256'},
   ],
 };
 
@@ -1179,11 +1191,11 @@ final $typed_data.Uint8List inspectedFileCopyDescriptor = $convert.base64Decode(
     'Npb25fbGFiZWwYBCABKAlSDHZlcnNpb25MYWJlbBIfCghwcmlvcml0eRgFIAEoDUgAUghwcmlv'
     'cml0eYgBARIYCgdlbmFibGVkGAYgASgIUgdlbmFibGVkEhYKBmhpZGRlbhgHIAEoCFIGaGlkZG'
     'VuEhYKBndpbm5lchgIIAEoCFIGd2lubmVyEh4KCmhpc3RvcmljYWwYCSABKAhSCmhpc3Rvcmlj'
-    'YWwSFgoGbGVuZ3RoGAogASgEUgZsZW5ndGgSFgoGc2hhMjU2GAsgASgJUgZzaGEyNTYSGQoIY2'
-    'FuX2hpZGUYDCABKAhSB2NhbkhpZGUSHQoKY2FuX3VuaGlkZRgNIAEoCFIJY2FuVW5oaWRlEjoK'
-    'BnNvdXJjZRgOIAEoCzIiLm1vZGNvbmR1Y3Rvci52MS5GaWxlUHJldmlld1NvdXJjZVIGc291cm'
-    'NlEj8KCHN0YW5kaW5nGA8gASgOMiMubW9kY29uZHVjdG9yLnYxLkZpbGVTb3VyY2VTdGFuZGlu'
-    'Z1IIc3RhbmRpbmdCCwoJX3ByaW9yaXR5');
+    'YWwSFgoGbGVuZ3RoGAogASgEUgZsZW5ndGgSGwoGc2hhMjU2GAsgASgJSAFSBnNoYTI1NogBAR'
+    'IZCghjYW5faGlkZRgMIAEoCFIHY2FuSGlkZRIdCgpjYW5fdW5oaWRlGA0gASgIUgljYW5Vbmhp'
+    'ZGUSOgoGc291cmNlGA4gASgLMiIubW9kY29uZHVjdG9yLnYxLkZpbGVQcmV2aWV3U291cmNlUg'
+    'Zzb3VyY2USPwoIc3RhbmRpbmcYDyABKA4yIy5tb2Rjb25kdWN0b3IudjEuRmlsZVNvdXJjZVN0'
+    'YW5kaW5nUghzdGFuZGluZ0ILCglfcHJpb3JpdHlCCQoHX3NoYTI1Ng==');
 
 @$core.Deprecated('Use plannedFileInspectionDescriptor instead')
 const PlannedFileInspection$json = {

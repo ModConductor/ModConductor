@@ -127,9 +127,6 @@ type IFilePlanRepository =
     abstract GameProjection:
         SourceStamp * CancellationToken -> Task<Result<GameProjection, FilePlanError>>
 
-    abstract VerifyPayloads:
-        PlanSources * int64 * CancellationToken -> Task<Result<unit, FilePlanError>>
-
     abstract SetHidden:
         SourceStamp * ModFile * bool * string * string -> Task<Result<SourceStamp, FilePlanError>>
 
@@ -208,8 +205,7 @@ type CheckedGamePreviewSource =
       Kind: ReadOnlyLayerKind
       SourcePath: LogicalPath
       Target: LogicalPath
-      Length: int64
-      Sha256: string }
+      Length: int64 }
 
 type QualifiedArchiveEntryPreviewSource =
     { WorkspaceId: Guid
@@ -311,7 +307,7 @@ type InspectedCopy =
       Winner: bool
       Historical: bool
       Length: int64
-      Sha256: string
+      Sha256: string option
       CanHide: bool
       CanUnhide: bool }
 
@@ -343,8 +339,7 @@ type IFilePlans =
     abstract Problems:
         Guid * FileCursor option -> Task<Result<string list * FileCursor option, FilePlanError>>
 
-    abstract DiagnosticProblems:
-        Guid -> Task<Result<FileDiagnosticProblem list, FilePlanError>>
+    abstract DiagnosticProblems: Guid -> Task<Result<FileDiagnosticProblem list, FilePlanError>>
 
     abstract Inspect:
         Guid * LogicalPath * FileCursor option -> Task<Result<FileInspection, FilePlanError>>

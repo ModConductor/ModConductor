@@ -66,57 +66,22 @@ module GameFiles =
                     clock.Restart()
 
             notify true
-            let buffer = Array.zeroCreate<byte> 65536
 
             for entry in entries do
                 token.ThrowIfCancellationRequested()
 
                 if not entry.Directory then
-                    let stream, _ = GameInventory.read root projection entry
-                    use stream = stream
-
-                    if
-                        stream.Length <> entry.Length
-                        || File.GetLastWriteTimeUtc stream.SafeFileHandle <> entry.Modified
-                    then
-                        raise (ScanChangedException())
-
-                    use digest = IncrementalHash.CreateHash HashAlgorithmName.SHA256
-                    let mutable remaining = entry.Length
-
-                    while remaining > 0L do
-                        token.ThrowIfCancellationRequested()
-
-                        let count =
-                            stream.Read(buffer, 0, int (min remaining (int64 buffer.Length)))
-
-                        if count = 0 then
-                            raise (ScanChangedException())
-
-                        digest.AppendData(buffer, 0, count)
-                        remaining <- remaining - int64 count
-                        doneBytes <- doneBytes + int64 count
-
-                        notify false
-
-                    if
-                        stream.ReadByte() <> -1
-                        || stream.Length <> entry.Length
-                        || File.GetLastWriteTimeUtc stream.SafeFileHandle <> entry.Modified
-                    then
-                        raise (ScanChangedException())
-
                     files.Add
                         { Path = entry.Path
-                          Length = entry.Length
-                          Sha256 = Convert.ToHexStringLower(digest.GetHashAndReset()) }
+                          Identity =
+                            SnapshotFileIdentity.Metadata
+                                { Identity = entry.Identity
+                                  Length = entry.Length
+                                  Modified = entry.Modified } }
 
-            let after, _, _ = GameInventory.inventory root projection token
+                    doneBytes <- doneBytes + entry.Length
+                    notify false
 
-            if after <> entries then
-                raise (ScanChangedException())
-
-            use reopened = HeldDirectory.Open(rootPath, identity)
             notify true
 
             let generation =
@@ -141,9 +106,6 @@ module GameFiles =
                     writer.Write entry.Directory
                     writer.Write entry.Length
                     writer.Write entry.Modified.Ticks
-
-                for file in files do
-                    writer.Write file.Sha256
 
                 writer.Flush()
 

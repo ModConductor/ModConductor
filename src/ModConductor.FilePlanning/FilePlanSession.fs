@@ -127,9 +127,8 @@ type FilePlanSession(repository: IFileCandidateRepository) =
                                 let bytes = Array.zeroCreate<byte> (int managed.Length)
                                 stream.ReadExactly bytes
                                 token.ThrowIfCancellationRequested()
-                                let digest = Convert.ToHexStringLower(SHA256.HashData bytes)
 
-                                if stream.Length <> managed.Length || digest <> managed.Sha256 then
+                                if stream.Length <> managed.Length then
                                     return Error FilePlanError.Stale
                                 else
                                     return
@@ -317,7 +316,7 @@ type FilePlanSession(repository: IFileCandidateRepository) =
                                                 Winner = false
                                                 Historical = not saved.Current
                                                 Length = saved.Entry.Payload.Length
-                                                Sha256 = saved.Entry.Payload.Sha256
+                                                Sha256 = Some saved.Entry.Payload.Sha256
                                                 CanHide = false
                                                 CanUnhide = false } ] })
                             |> Result.bind InspectionProjection.bounded

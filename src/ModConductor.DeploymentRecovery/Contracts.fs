@@ -28,7 +28,7 @@ type internal ObservedFile =
     { Target: TargetFile
       Identity: FileIdentity
       Length: int64
-      Sha256: string }
+      Modified: DateTime option }
 
 type internal WorkingBinding =
     { Target: TargetFile
@@ -42,7 +42,7 @@ type internal GenerationFile =
       Path: LogicalPath
       Identity: FileIdentity
       Length: int64
-      Sha256: string
+      Sha256: string option
       Backing: FileBacking option }
 
 type internal SavedMod =

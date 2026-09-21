@@ -82,15 +82,22 @@ module internal DeploymentFixtureData =
         File.WriteAllText(file, value)
         file
 
-    let input revision files =
-        let entries =
+    let input revision directory files =
+        let entries: SnapshotFile list =
             files
-            |> List.map (fun (name, value, _) ->
-                let bytes = Text.Encoding.UTF8.GetBytes(value: string)
+            |> List.map (fun (name, _, _) ->
+                let source = path (rootId.ToString("N") + "/" + name)
+
+                let metadata =
+                    RecoveryFiles.withParent (location directory) source (fun parent child ->
+                        parent.InspectFile(child, None))
 
                 { Path = path name
-                  Length = int64 bytes.Length
-                  Sha256 = Convert.ToHexStringLower(SHA256.HashData bytes) })
+                  Identity =
+                    SnapshotFileIdentity.Metadata
+                        { Identity = metadata.Identity
+                          Length = metadata.Length
+                          Modified = metadata.Modified } })
 
         { Profile =
             { ProfileId = id 3
@@ -169,7 +176,7 @@ module internal DeploymentFixtureData =
                 else
                     File.WriteAllText(dest, value)
 
-            let proposed = input (int64 number) files
+            let proposed = input (int64 number) directory files
             Generations.capture (id (200 + number)) (location directory) (ready proposed) proposed
 
         let first = prepare 1 firstFiles

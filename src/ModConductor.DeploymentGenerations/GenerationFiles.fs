@@ -32,10 +32,15 @@ module internal GenerationFiles =
                     )
                 )
 
-    let content =
+    let length =
         function
-        | SourcePin.Mod(_, _, entry) -> entry.Payload.Length, entry.Payload.Sha256
-        | SourcePin.Snapshot(_, _, entry) -> entry.Length, entry.Sha256
+        | SourcePin.Mod(_, _, entry) -> entry.Payload.Length
+        | SourcePin.Snapshot(_, _, entry) -> SnapshotFile.length entry
+
+    let sha256 =
+        function
+        | SourcePin.Mod(_, _, entry) -> Some entry.Payload.Sha256
+        | SourcePin.Snapshot(_, _, entry) -> SnapshotFile.sha256 entry
 
     let read (source: FileBacking) action =
         RecoveryFiles.withParent source.Directory source.Path (fun parent name ->
@@ -43,12 +48,14 @@ module internal GenerationFiles =
             use stream = stream
             action stream)
 
-    let verify pin source =
-        let length, hash = content pin
+    let verify pin (source: FileBacking) =
+        let expectedLength = length pin
 
-        read source (fun stream ->
-            if stream.Length <> length || RecoveryFiles.digest stream <> hash then
-                RecoveryFiles.fail "A pinned source changed.")
+        RecoveryFiles.withParent source.Directory source.Path (fun parent name ->
+            let metadata = parent.InspectFile(name, Some source.Identity)
+
+            if metadata.Length <> expectedLength then
+                RecoveryFiles.fail "A pinned source changed length.")
 
     let inspect (root: Location) path =
         use directory = HeldDirectory.Open(root.Path, root.Identity)
@@ -87,7 +94,7 @@ module internal GenerationFiles =
         walk directory (LogicalPath.components path)
 
     let private copyAtCheckpoint token pin source destination path readOnly afterChunk =
-        let expectedLength, expectedHash = content pin
+        let expectedLength = length pin
 
         read source (fun input ->
             withCreatedParent destination path (fun parent name ->
@@ -117,11 +124,6 @@ module internal GenerationFiles =
 
                 if total <> expectedLength then
                     RecoveryFiles.fail "A copied source changed length."
-
-                output.Position <- 0L
-
-                if RecoveryFiles.digestWith token output <> expectedHash then
-                    RecoveryFiles.fail "A copied source changed."
 
                 if readOnly then
                     if OperatingSystem.IsWindows() then

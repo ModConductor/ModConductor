@@ -110,7 +110,8 @@ module internal GenerationBuilder =
                             false
                         ))
 
-                let length, hash = content pin
+                let length = length pin
+                let hash = sha256 pin
 
                 { Target = file.Target
                   Path = path
@@ -183,8 +184,8 @@ module internal GenerationBuilder =
                     |> Option.map (fun target ->
                         { Target = target
                           Identity = backing.Identity
-                          Length = file.Length
-                          Sha256 = file.Sha256 })
+                          Length = SnapshotFile.length file
+                          Modified = SnapshotFile.metadata file |> Option.map _.Modified })
                 | _ -> None)
 
         let references =

@@ -32,6 +32,12 @@ module internal GameInventory =
         withParent root (LogicalPath.components source.Path) (fun parent name ->
             parent.Read(name, Some source.Identity))
 
+    let inspectSource (source: GameFileSource) =
+        use root = HeldDirectory.Open(source.Root, source.RootIdentity)
+
+        withParent root (LogicalPath.components source.Path) (fun parent name ->
+            parent.InspectFile(name, Some source.Identity))
+
     let read (root: HeldDirectory) (projection: GameProjection) (entry: ObservedEntry) =
         match projection.Originals.TryFind entry.Path with
         | Some source -> readSource source
@@ -140,15 +146,14 @@ module internal GameInventory =
 
                         walk child parts (depth + 1)
                     | Some entry when entry.Kind = EntryKind.RegularFile ->
-                        let stream, identity = directory.Read(name, Some entry.Identity)
-                        use stream = stream
+                        let file = directory.InspectFile(name, Some entry.Identity)
 
                         add
                             { Path = logical
-                              Identity = identity
+                              Identity = file.Identity
                               Directory = false
-                              Length = stream.Length
-                              Modified = File.GetLastWriteTimeUtc stream.SafeFileHandle }
+                              Length = file.Length
+                              Modified = file.Modified }
                     | _ ->
                         raise (
                             IOException(
@@ -162,17 +167,16 @@ module internal GameInventory =
 
         for KeyValue(logical, source) in projection.Originals do
             token.ThrowIfCancellationRequested()
-            let stream, identity = readSource source
-            use stream = stream
+            let file = inspectSource source
 
             if existingPaths.Contains logical then
                 raise (ScanChangedException())
 
             add
                 { Path = logical
-                  Identity = identity
+                  Identity = file.Identity
                   Directory = false
-                  Length = stream.Length
-                  Modified = File.GetLastWriteTimeUtc stream.SafeFileHandle }
+                  Length = file.Length
+                  Modified = file.Modified }
 
         result |> Seq.sortBy _.Path |> Seq.toList, bytes, metadata

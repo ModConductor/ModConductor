@@ -33,7 +33,7 @@ message ManagedPreviewSource {
 }
 message CheckedGamePreviewSource {
   string snapshot_id = 1; string generation = 2; uint32 kind = 3; ModLogicalPath source_path = 4; ModLogicalPath target = 5;
-  uint64 length = 6; string sha256 = 7;
+  uint64 length = 6; optional string sha256 = 7;
 }
 message QualifiedArchiveEntryPreviewSource {
   string workspace_id = 1; string artifact_id = 2; uint64 artifact_revision = 3; string archive_sha256 = 4;
@@ -114,7 +114,7 @@ message PlannedFileNode { ModLogicalPath path = 1; bool directory = 2; PlannedFi
 message PlannedFilePage { FilePlanState state = 1; repeated PlannedFileNode nodes = 2; FilePlanCursor next = 3; }
 message InspectedFileCopy {
   ManagedFileCopy copy = 1; ModLogicalPath source_path = 2; string name = 3; string version_label = 4; optional uint32 priority = 5;
-  bool enabled = 6; bool hidden = 7; bool winner = 8; bool historical = 9; uint64 length = 10; string sha256 = 11;
+  bool enabled = 6; bool hidden = 7; bool winner = 8; bool historical = 9; uint64 length = 10; optional string sha256 = 11;
   bool can_hide = 12; bool can_unhide = 13; FilePreviewSource source = 14; FileSourceStanding standing = 15;
 }
 message PlannedFileInspection { FilePlanState state = 1; ModLogicalPath target = 2; repeated InspectedFileCopy copies = 3; FilePlanCursor next = 4; InspectedFileCopy focused_copy = 5; bool writable = 6; }

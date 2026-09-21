@@ -3,6 +3,7 @@ namespace ModConductor.Native.Fixtures
 open System
 open System.IO
 open System.Diagnostics
+open System.Security.Cryptography
 open System.Text.Json
 open System.Threading
 open System.Security.AccessControl
@@ -25,7 +26,24 @@ module internal GenerationFixtures =
     let private location = DeploymentFixtureData.location
 
     let private digest file =
-        use stream = File.OpenRead file in RecoveryFiles.digest stream
+        use stream = File.OpenRead file
+        SHA256.HashData stream |> Convert.ToHexStringLower
+
+    let private denyReads (path: string) =
+        if OperatingSystem.IsLinux() then
+            let mode = File.GetUnixFileMode path
+            File.SetUnixFileMode(path, enum<UnixFileMode> 0)
+
+            let refused =
+                try
+                    use _ = File.OpenRead path
+                    false
+                with :? UnauthorizedAccessException ->
+                    true
+
+            refused, (fun () -> File.SetUnixFileMode(path, mode))
+        else
+            true, ignore
 
     let private metadata =
         { Name = "Managed"
@@ -107,18 +125,25 @@ module internal GenerationFixtures =
         write "settings.ini" "seed defaults"
         write "hidden.txt" "hidden managed payload"
 
-        let snapshotFiles =
+        let snapshotFiles: SnapshotFile list =
             [ "base.txt"; "shared.txt"; "mixed/base.txt" ]
             |> List.map (fun name ->
-                { Path = path name
-                  Length = FileInfo(Path.Combine(targetPath, name)).Length
-                  Sha256 = digest (Path.Combine(targetPath, name)) })
+                let logical = path name
+
+                let file =
+                    RecoveryFiles.withParent (location targetPath) logical (fun parent child ->
+                        parent.InspectFile(child, None))
+
+                { Path = logical
+                  Identity =
+                    SnapshotFileIdentity.Metadata
+                        { Identity = file.Identity
+                          Length = file.Length
+                          Modified = file.Modified } })
 
         let observed =
             snapshotFiles
-            |> List.map (fun file ->
-                RecoveryFiles.withParent (location targetPath) file.Path (fun parent name ->
-                    file.Path, (parent.InspectEntry name).Value.Identity))
+            |> List.map (fun file -> file.Path, (SnapshotFile.metadata file).Value.Identity)
             |> Map.ofList
 
         let snapshot =
@@ -141,10 +166,13 @@ module internal GenerationFixtures =
         let extraSource = make "explicit-secondary"
         File.WriteAllText(Path.Combine(extraSource, "extra.txt"), "explicit secondary bytes")
 
-        let extraFile =
+        let extraFile: SnapshotFile =
             { Path = path "extra.txt"
-              Length = FileInfo(Path.Combine(extraSource, "extra.txt")).Length
-              Sha256 = digest (Path.Combine(extraSource, "extra.txt")) }
+              Identity =
+                SnapshotFileIdentity.Content(
+                    FileInfo(Path.Combine(extraSource, "extra.txt")).Length,
+                    digest (Path.Combine(extraSource, "extra.txt"))
+                ) }
 
         let extraIdentity =
             RecoveryFiles.withParent (location extraSource) extraFile.Path (fun parent name ->
@@ -306,9 +334,30 @@ module internal GenerationFixtures =
             with :? InvalidOperationException ->
                 true
 
+        let manifest = library.Version(version, 0) |> wait |> result
+
+        let linkedPayload =
+            manifest.Entries |> List.find (fun entry -> entry.Path = path "shared.txt")
+
+        let payloadPath =
+            Directory.GetFiles(
+                workspacePath,
+                LibraryFiles.payloadName linkedPayload.Payload.Id,
+                SearchOption.AllDirectories
+            )
+            |> Array.exactlyOne
+
+        let payloadReadRefused, restorePayload = denyReads payloadPath
         release.Set()
-        let first = delayed |> wait |> result
+
+        let first =
+            try
+                delayed |> wait |> result
+            finally
+                restorePayload ()
+
         writer.WriteBoolean("closePreservesActivePreparation", closeRefused)
+        writer.WriteBoolean("deploymentDoesNotRehashManagedPayloads", payloadReadRefused)
 
         writer.WriteBoolean(
             "sourceBytesAndPermissionsUnchanged",
@@ -364,10 +413,17 @@ module internal GenerationFixtures =
             && (store.Deployment.Context contextId |> wait).IsNone
         )
 
+        let baseReadRefused, restoreBase = denyReads gameFile
+
         let firstReceipt =
-            store.Generations.Start(switch 0L first (Some first.Sources), [])
-            |> wait
-            |> result
+            try
+                store.Generations.Start(switch 0L first (Some first.Sources), [])
+                |> wait
+                |> result
+            finally
+                restoreBase ()
+
+        writer.WriteBoolean("deploymentChecksBaseMetadataWithoutReadingContent", baseReadRefused)
 
         let timer = Stopwatch.StartNew()
         run firstReceipt |> ignore
@@ -475,7 +531,7 @@ module internal GenerationFixtures =
 
         writer.WriteBoolean(
             "secondaryCopiedOnce",
-            first.Measurements.CopiedBytes = extraFile.Length
+            first.Measurements.CopiedBytes = SnapshotFile.length extraFile
             && second.Measurements.CopiedBytes = 0L
             && shared |> List.exists (fun file -> file.Target = target "extra.txt")
         )
@@ -490,7 +546,7 @@ module internal GenerationFixtures =
             |> List.sumBy _.Length
         )
 
-        writer.WriteNumber("secondaryBackingBytes", extraFile.Length)
+        writer.WriteNumber("secondaryBackingBytes", SnapshotFile.length extraFile)
 
         writer.WriteBoolean(
             "onlyChangedPublicationBytes",

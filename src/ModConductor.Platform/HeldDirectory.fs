@@ -151,6 +151,19 @@ type HeldDirectory private (handle: SafeFileHandle) =
     member internal _.Handle = handle
     member _.InspectEntry(name) = HeldEntries.inspect handle name
 
+    member _.InspectFile(name, expected: FileIdentity option) =
+        let metadata =
+            if OperatingSystem.IsWindows() then
+                Native.fileMetadata (HeldEntries.path handle name)
+            else
+                use child = RelativeFile.openMetadata handle name
+                Native.handleFileMetadata child
+
+        match metadata with
+        | Ok metadata when expected |> Option.forall ((=) metadata.Identity) -> metadata
+        | Ok _ -> raise (IOException("The file changed."))
+        | Error _ -> raise (IOException("The file metadata is unavailable."))
+
     member _.CreateLink(name, target, directory) =
         HeldEntries.createLink handle name target directory
 

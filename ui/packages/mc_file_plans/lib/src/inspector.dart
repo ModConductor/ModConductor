@@ -302,13 +302,15 @@ class FileSourcesInspector extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(selected.source.kindLabel),
-              const SizedBox(height: 8),
-              SelectableText(
-                selected.source is QualifiedArchiveEntryPreviewSource
-                    ? 'Archive SHA-256 ${selected.sha256}'
-                    : 'SHA-256 ${selected.sha256}',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
+              if (selected.sha256 case final sha256?) ...[
+                const SizedBox(height: 8),
+                SelectableText(
+                  selected.source is QualifiedArchiveEntryPreviewSource
+                      ? 'Archive SHA-256 $sha256'
+                      : 'SHA-256 $sha256',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
               if (selected.copy != null) ...[
                 const SizedBox(height: 12),
                 if (view.loadingHistory) const LinearProgressIndicator(),

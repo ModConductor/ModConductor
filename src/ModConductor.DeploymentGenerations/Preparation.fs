@@ -37,8 +37,7 @@ module internal GenerationCapacity =
                       request.SecondaryStorage,
                       secondary
                       |> List.fold
-                          (fun total file ->
-                              add total (fst (GenerationFiles.content file.Winner.Source)))
+                          (fun total file -> add total (GenerationFiles.length file.Winner.Source))
                           (entries secondary.Length)
               for binding, _, _, _ in bindings do
                   yield binding.Root, entries 0
@@ -55,7 +54,7 @@ module internal GenerationCapacity =
 
                   yield root.Directory, entries (Checked.(+) immutableCount workingCount)
               for _, root, _, pin in seeds do
-                  yield root, add (fst (GenerationFiles.content pin)) 4096L ]
+                  yield root, add (GenerationFiles.length pin) 4096L ]
             |> List.groupBy (fun (location, _) -> location.Identity.Device)
             |> List.map (fun (_, charges) ->
                 fst charges.Head, charges |> List.fold (fun total (_, bytes) -> add total bytes) 0L)
@@ -104,13 +103,11 @@ module internal GenerationPreparation =
             generation.Files
             |> List.tryPick (fun file ->
                 if generation.References |> List.contains pin then
-                    let length, hash = content pin
-
                     file.Backing
                     |> Option.filter (fun backing ->
                         backing.OwnerGeneration.IsSome
-                        && file.Length = length
-                        && file.Sha256 = hash)
+                        && file.Length = length pin
+                        && file.Sha256 = sha256 pin)
                 else
                     None))
 
@@ -178,12 +175,12 @@ module internal GenerationPreparation =
 
         let copiedBytes =
             secondaryCopies
-            |> Seq.map (fun file -> content file.Winner.Source |> fst)
+            |> Seq.map (fun file -> length file.Winner.Source)
             |> GenerationCapacity.sum
 
         let seedBytes =
             seedCopies
-            |> Seq.map (fun (_, _, _, pin) -> content pin |> fst)
+            |> Seq.map (fun (_, _, _, pin) -> length pin)
             |> GenerationCapacity.sum
 
         let capacity =

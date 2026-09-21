@@ -23,12 +23,24 @@ module internal DeploymentGenerationEncoding =
             w.Write file.Payload.Length
             w.Write file.Payload.Sha256
         | SourcePin.Snapshot(snapshot, version, file) ->
-            w.Write 1
+            w.Write(
+                match file.Identity with
+                | SnapshotFileIdentity.Content _ -> 1
+                | SnapshotFileIdentity.Metadata _ -> 2
+            )
+
             guid w snapshot
             w.Write version
             path w file.Path
-            w.Write file.Length
-            w.Write file.Sha256
+
+            match file.Identity with
+            | SnapshotFileIdentity.Content(length, sha256) ->
+                w.Write length
+                w.Write sha256
+            | SnapshotFileIdentity.Metadata metadata ->
+                identity w metadata.Identity
+                w.Write metadata.Length
+                w.Write(metadata.Modified.ToUniversalTime().Ticks)
 
     let private readSource (r: BinaryReader) =
         match r.ReadInt32() with
@@ -53,8 +65,21 @@ module internal DeploymentGenerationEncoding =
                 id,
                 v,
                 { Path = readPath r
-                  Length = r.ReadInt64()
-                  Sha256 = r.ReadString() }
+                  Identity = SnapshotFileIdentity.Content(r.ReadInt64(), r.ReadString()) }
+            )
+        | 2 ->
+            let id = readGuid r in
+            let v = r.ReadString() in
+
+            SourcePin.Snapshot(
+                id,
+                v,
+                { Path = readPath r
+                  Identity =
+                    SnapshotFileIdentity.Metadata
+                        { Identity = readIdentity r
+                          Length = r.ReadInt64()
+                          Modified = DateTime(r.ReadInt64(), DateTimeKind.Utc) } }
             )
         | _ -> corrupt ()
 
@@ -95,13 +120,24 @@ module internal DeploymentGenerationEncoding =
         target w v.Target
         identity w v.Identity
         w.Write v.Length
-        w.Write v.Sha256
+        option (fun w (value: DateTime) -> w.Write(value.ToUniversalTime().Ticks)) w v.Modified
 
-    let private readObserved (r: BinaryReader) : ObservedFile =
-        { Target = readTarget r
-          Identity = readIdentity r
-          Length = r.ReadInt64()
-          Sha256 = r.ReadString() }
+    let private readObserved version (r: BinaryReader) : ObservedFile =
+        let target = readTarget r
+        let identity = readIdentity r
+        let length = r.ReadInt64()
+
+        let modified =
+            if version >= 5 then
+                readOption (fun r -> DateTime(r.ReadInt64(), DateTimeKind.Utc)) r
+            else
+                r.ReadString() |> ignore
+                None
+
+        { Target = target
+          Identity = identity
+          Length = length
+          Modified = modified }
 
     let private working (w: BinaryWriter) (v: WorkingBinding) =
         target w v.Target
@@ -126,7 +162,7 @@ module internal DeploymentGenerationEncoding =
         path w v.Path
         identity w v.Identity
         w.Write v.Length
-        w.Write v.Sha256
+        option text w v.Sha256
         option backing w v.Backing
 
     let private readFile version (r: BinaryReader) : GenerationFile =
@@ -134,7 +170,11 @@ module internal DeploymentGenerationEncoding =
           Path = readPath r
           Identity = readIdentity r
           Length = r.ReadInt64()
-          Sha256 = r.ReadString()
+          Sha256 =
+            if version >= 5 then
+                readOption readText r
+            else
+                Some(r.ReadString())
           Backing = if version >= 2 then readOption readBacking r else None }
 
     let private savedMod (w: BinaryWriter) (value: SavedMod) =
@@ -213,7 +253,11 @@ module internal DeploymentGenerationEncoding =
           References = readList readSource r
           Writable = readList readWritable r
           Roots = readList readRoot r
-          Observed = if version >= 2 then readList readObserved r else []
+          Observed =
+            if version >= 2 then
+                readList (readObserved version) r
+            else
+                []
           Working =
             if version >= 2 then
                 readList (readWorking version) r

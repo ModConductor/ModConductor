@@ -40,10 +40,35 @@ type ReadOnlyLayerKind =
     | Base
     | Secondary
 
+type BaseFileMetadata =
+    { Identity: FileIdentity
+      Length: int64
+      Modified: DateTime }
+
+[<RequireQualifiedAccess>]
+type SnapshotFileIdentity =
+    | Metadata of BaseFileMetadata
+    | Content of length: int64 * sha256: string
+
 type SnapshotFile =
     { Path: LogicalPath
-      Length: int64
-      Sha256: string }
+      Identity: SnapshotFileIdentity }
+
+module SnapshotFile =
+    let length file =
+        match file.Identity with
+        | SnapshotFileIdentity.Metadata metadata -> metadata.Length
+        | SnapshotFileIdentity.Content(length, _) -> length
+
+    let sha256 file =
+        match file.Identity with
+        | SnapshotFileIdentity.Metadata _ -> None
+        | SnapshotFileIdentity.Content(_, sha256) -> Some sha256
+
+    let metadata file =
+        match file.Identity with
+        | SnapshotFileIdentity.Metadata metadata -> Some metadata
+        | SnapshotFileIdentity.Content _ -> None
 
 type ReadOnlySnapshot =
     { Id: Guid

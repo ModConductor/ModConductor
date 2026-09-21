@@ -35,7 +35,6 @@ wire.FilePreviewSource encodeSource(FilePreviewSource source) =>
           sourcePath: modwire.ModLogicalPath(components: value.sourcePath),
           target: modwire.ModLogicalPath(components: value.target),
           length: Int64(value.length),
-          sha256: value.sha256,
         ),
       ),
       QualifiedArchiveEntryPreviewSource value => wire.FilePreviewSource(
@@ -69,7 +68,6 @@ FilePreviewSource decodeSource(wire.FilePreviewSource source) =>
         sourcePath: List.unmodifiable(source.game.sourcePath.components),
         target: List.unmodifiable(source.game.target.components),
         length: source.game.length.toInt(),
-        sha256: source.game.sha256,
       ),
       wire.FilePreviewSource_Source.archiveEntry =>
         QualifiedArchiveEntryPreviewSource(
@@ -231,7 +229,7 @@ InspectedFileCopy inspected(wire.InspectedFileCopy value) => InspectedFileCopy(
   winner: value.winner,
   historical: value.historical,
   length: value.length.toInt(),
-  sha256: value.sha256,
+  sha256: value.hasSha256() ? value.sha256 : null,
   canHide: value.canHide,
   canUnhide: value.canUnhide,
   source: decodeSource(value.source),

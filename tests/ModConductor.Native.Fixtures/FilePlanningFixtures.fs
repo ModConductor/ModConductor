@@ -3,6 +3,7 @@ namespace ModConductor.Native.Fixtures
 open System
 open System.IO
 open System.Security.Cryptography
+open System.Diagnostics
 open System.Text.Json
 open System.Threading
 open ModConductor.DeploymentPlanning
@@ -30,6 +31,27 @@ module FilePlanningFixtures =
     let private hash file =
         use stream = File.OpenRead file in SHA256.HashData stream |> Convert.ToHexStringLower
 
+    let private denyReads (paths: string list) =
+        if OperatingSystem.IsLinux() then
+            let modes = paths |> List.map (fun path -> path, File.GetUnixFileMode path)
+
+            for path, _ in modes do
+                File.SetUnixFileMode(path, enum<UnixFileMode> 0)
+
+            let refused =
+                paths
+                |> List.forall (fun path ->
+                    try
+                        use _ = File.OpenRead path
+                        false
+                    with :? UnauthorizedAccessException ->
+                        true)
+
+            refused,
+            (fun () -> modes |> List.iter (fun (path, mode) -> File.SetUnixFileMode(path, mode)))
+        else
+            true, ignore
+
     let observe (writer: Utf8JsonWriter) primary =
         let area = Directory.CreateDirectory(Path.Combine(primary, "file-plans")).FullName
         let state = Directory.CreateDirectory(Path.Combine(area, "state")).FullName
@@ -38,7 +60,6 @@ module FilePlanningFixtures =
         let data = Path.Combine(game, "Data")
         File.WriteAllText(Path.Combine(data, "shared.txt"), "game-folder copy")
         File.WriteAllText(Path.Combine(data, "opaque.bsa"), "opaque container bytes")
-        let originalBase = hash (Path.Combine(data, "shared.txt"))
 
         let workspace, first, second, low, high =
             Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid()
@@ -185,7 +206,39 @@ module FilePlanningFixtures =
             let inspect (snapshot: FilePlanSummary) target =
                 plans.Inspect(snapshot.Id, target, None) |> wait |> result
 
-            let initial = acquire first true
+            let gameReadRefused, restoreGame = denyReads [ Path.Combine(data, "opaque.bsa") ]
+
+            let timer = Stopwatch.StartNew()
+
+            let metadataInitial =
+                try
+                    acquire first true
+                finally
+                    restoreGame ()
+
+            plans.Children(metadataInitial.Id, None, "", None) |> wait |> result |> ignore
+            timer.Stop()
+
+            writer.WriteBoolean("initialViewDoesNotReadGameContent", gameReadRefused)
+
+            writer.WriteBoolean(
+                "initialUsefulPageWithinOneSecond",
+                timer.Elapsed < TimeSpan.FromSeconds 1.0
+            )
+
+            let payloads =
+                Directory.GetFiles(root, "*.payload", SearchOption.AllDirectories)
+                |> Array.toList
+
+            let payloadReadsRefused, restorePayloads = denyReads payloads
+
+            let initial =
+                try
+                    acquire first true
+                finally
+                    restorePayloads ()
+
+            writer.WriteBoolean("initialViewDoesNotRehashManagedPayloads", payloadReadsRefused)
             let sources = inspect initial (path "shared.txt")
 
             writer.WriteBoolean(
@@ -193,19 +246,14 @@ module FilePlanningFixtures =
                 sources.Copies.Length = 3
                 && (sources.Copies
                     |> List.exists (fun row -> row.Copy = Some highCopy && row.Winner))
-                && (sources.Copies
-                    |> List.exists (fun row -> row.Copy.IsNone && row.Sha256 = originalBase))
+                && (sources.Copies |> List.exists (fun row -> row.Copy.IsNone && row.Sha256.IsNone))
             )
 
             let managedSource =
-                sources.Copies
-                |> List.find (fun row -> row.Copy = Some highCopy)
-                |> _.Source
+                sources.Copies |> List.find (fun row -> row.Copy = Some highCopy) |> _.Source
 
             let gameSource =
-                sources.Copies
-                |> List.find (fun row -> row.Copy.IsNone)
-                |> _.Source
+                sources.Copies |> List.find (fun row -> row.Copy.IsNone) |> _.Source
 
             let preview source =
                 plans.Preview(
@@ -237,8 +285,7 @@ module FilePlanningFixtures =
 
             writer.WriteBoolean(
                 "opaqueArchiveIsAFile",
-                (inspect initial (path "opaque.bsa")).Copies.Head.Sha256 =
-                    hash (Path.Combine(data, "opaque.bsa"))
+                (inspect initial (path "opaque.bsa")).Copies.Head.Sha256.IsNone
             )
 
             let existing =
@@ -319,7 +366,8 @@ module FilePlanningFixtures =
                     FilePreviewRepresentation.Text,
                     CancellationToken.None
                 )
-                |> wait = Error FilePlanError.Stale
+                |> wait =
+                    Error FilePlanError.Stale
             )
 
             writer.WriteBoolean(
@@ -402,7 +450,8 @@ module FilePlanningFixtures =
                     FilePreviewRepresentation.Text,
                     CancellationToken.None
                 )
-                |> wait = Error FilePlanError.Stale
+                |> wait =
+                    Error FilePlanError.Stale
             )
 
             writer.WriteBoolean(
@@ -431,8 +480,7 @@ module FilePlanningFixtures =
                 refreshed.Fingerprint <> initial.Fingerprint
                 && not refreshed.Stale
                 && (inspect refreshed (path "shared.txt")).Copies
-                   |> List.exists (fun row ->
-                       row.Copy.IsNone && row.Sha256 = hash (Path.Combine(data, "shared.txt")))
+                   |> List.exists (fun row -> row.Copy.IsNone && row.Sha256.IsNone)
             )
 
             use cancelled = new CancellationTokenSource()
@@ -523,10 +571,9 @@ module FilePlanningFixtures =
             writer.WriteBoolean(
                 "rulesDoNotChangeProfileOrSource",
                 (InventoryObservations.read store second).SelectionRevision = beforeProfile.SelectionRevision
-                && hash (Path.Combine(root, "High", "shared.txt")) = (sources.Copies
-                                                                      |> List.find (fun row ->
-                                                                          row.Copy = Some highCopy))
-                    .Sha256
+                && (sources.Copies |> List.find (fun row -> row.Copy = Some highCopy)).Sha256 = Some(
+                    hash (Path.Combine(root, "High", "shared.txt"))
+                )
             )
 
             retained <- history

@@ -217,6 +217,59 @@ module internal DeploymentBoundaryFixtures =
             (result.Phase = ReceiptPhase.Complete && contents area "shared.txt" = "shared")
             "durably recorded links resume after process loss"
 
+    let private metadataOnlyOriginalLifecycle root =
+        let area = create (Path.Combine(root, "metadata-only-original"))
+        let originalPath = Path.Combine(area.Game, "shared.txt")
+        File.WriteAllText(originalPath, "unreadable original")
+        use store = new OperationStore(area.State)
+
+        let mode =
+            if OperatingSystem.IsLinux() then
+                let value = File.GetUnixFileMode originalPath
+                File.SetUnixFileMode(originalPath, enum<UnixFileMode> 0)
+                Some value
+            else
+                None
+
+        let refused =
+            if OperatingSystem.IsLinux() then
+                try
+                    use _ = File.OpenRead originalPath
+                    false
+                with :? UnauthorizedAccessException ->
+                    true
+            else
+                true
+
+        let receipt =
+            get (
+                store.Deployment.Start(
+                    { request area (id 1850) 0L area.First with
+                        PreserveOriginals = [ target "shared.txt" ] }
+                )
+            )
+            |> ok
+
+        let index =
+            receipt.Changes
+            |> List.findIndex (fun change -> change.Target = target "shared.txt")
+
+        stopped (fun () ->
+            run store receipt false (fun phase current ->
+                if phase = "removed" && current = index then
+                    raise Interrupted))
+
+        let pending = read store receipt.Id
+        let restored = run store pending true (fun _ _ -> ()) |> ok
+
+        mode |> Option.iter (fun value -> File.SetUnixFileMode(originalPath, value))
+
+        check
+            (refused
+             && restored.Phase = ReceiptPhase.Restored
+             && File.ReadAllText originalPath = "unreadable original")
+            "original lifecycle uses metadata identity"
+
     let observe writer root =
         separation root
         flag writer "overlappingStorageRefusedBeforeRows" true
@@ -228,3 +281,5 @@ module internal DeploymentBoundaryFixtures =
         flag writer "unrecordedRestoreLinkPreserved" true
         knownOwnerLoss root
         flag writer "recordedIdentitySurvivesOwnerLoss" true
+        metadataOnlyOriginalLifecycle root
+        flag writer "originalPreservationAndRestorationDoNotReadContent" true

@@ -150,7 +150,11 @@ type internal FnisExecutionStore
                     let length, digest =
                         match resolved.Winner.Source with
                         | SourcePin.Mod(_, _, entry) -> entry.Payload.Length, entry.Payload.Sha256
-                        | SourcePin.Snapshot(_, _, file) -> file.Length, file.Sha256
+                        | SourcePin.Snapshot(_, _, file) ->
+                            SnapshotFile.length file,
+                            SnapshotFile.sha256 file
+                            |> Option.defaultWith (fun () ->
+                                raise (InvalidDataException "FNIS inputs require acquired content."))
 
                     Some
                         { Path = target.Path

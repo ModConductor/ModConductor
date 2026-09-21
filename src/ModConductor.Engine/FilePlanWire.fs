@@ -68,8 +68,7 @@ module internal FilePlanWire =
                         Kind = (if game.Kind = ReadOnlyLayerKind.Base then 1u else 2u),
                         SourcePath = ModLibraryWire.logical game.SourcePath,
                         Target = ModLibraryWire.logical game.Target,
-                        Length = uint64 game.Length,
-                        Sha256 = game.Sha256
+                        Length = uint64 game.Length
                     )
             )
         | ModConductor.FilePlanning.FilePreviewSource.QualifiedArchiveEntry archive ->
@@ -118,8 +117,7 @@ module internal FilePlanWire =
                   Kind = kind
                   SourcePath = ModLibraryWire.path item.SourcePath
                   Target = ModLibraryWire.path item.Target
-                  Length = checkedLength item.Length
-                  Sha256 = checkedHash item.Sha256 }
+                  Length = checkedLength item.Length }
         | FilePreviewSource.SourceOneofCase.ArchiveEntry ->
             let item = value.ArchiveEntry
 
@@ -378,7 +376,6 @@ module internal FilePlanWire =
                 Winner = value.Winner,
                 Historical = value.Historical,
                 Length = uint64 value.Length,
-                Sha256 = value.Sha256,
                 CanHide = value.CanHide,
                 CanUnhide = value.CanUnhide,
                 Source = source value.Source,
@@ -389,6 +386,8 @@ module internal FilePlanWire =
 
         value.Priority
         |> Option.iter (fun priority -> result.Priority <- uint32 priority)
+
+        value.Sha256 |> Option.iter (fun sha256 -> result.Sha256 <- sha256)
 
         result
 

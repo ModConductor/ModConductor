@@ -58,7 +58,7 @@ module internal MaintenanceDeployments =
                   Path = DeploymentFixtureData.path name
                   Identity = link.Identity
                   Length = entry.Payload.Length
-                  Sha256 = entry.Payload.Sha256
+                  Sha256 = Some entry.Payload.Sha256
                   Backing =
                     Some
                         { Directory = backing

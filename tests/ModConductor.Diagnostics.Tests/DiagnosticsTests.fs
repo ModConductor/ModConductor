@@ -124,7 +124,7 @@ type private FixturePlans(workspaceId: Guid, profileId: Guid) =
                       Winner = true
                       Historical = false
                       Length = 1L
-                      Sha256 = String.replicate 64 "0"
+                      Sha256 = Some(String.replicate 64 "0")
                       CanHide = false
                       CanUnhide = false }
 
