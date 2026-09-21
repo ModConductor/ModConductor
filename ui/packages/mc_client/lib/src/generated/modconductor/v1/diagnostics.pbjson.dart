@@ -110,7 +110,7 @@ const DiagnosticRequest$json = {
     },
     {
       '1': 'plugin_snapshot_id',
-      '3': 7,
+      '3': 6,
       '4': 1,
       '5': 9,
       '9': 3,
@@ -124,10 +124,6 @@ const DiagnosticRequest$json = {
     {'1': '_deployment_revision'},
     {'1': '_plugin_snapshot_id'},
   ],
-  '9': [
-    {'1': 6, '2': 7},
-  ],
-  '10': ['operation_id'],
 };
 
 /// Descriptor for `DiagnosticRequest`. Decode as a `google.protobuf.DescriptorProto`.
@@ -136,9 +132,9 @@ final $typed_data.Uint8List diagnosticRequestDescriptor = $convert.base64Decode(
     '0KCnByb2ZpbGVfaWQYAiABKAlSCXByb2ZpbGVJZBItChBmaWxlX3NuYXBzaG90X2lkGAMgASgJ'
     'SABSDmZpbGVTbmFwc2hvdElkiAEBEigKDWRlcGxveW1lbnRfaWQYBCABKAlIAVIMZGVwbG95bW'
     'VudElkiAEBEjQKE2RlcGxveW1lbnRfcmV2aXNpb24YBSABKARIAlISZGVwbG95bWVudFJldmlz'
-    'aW9uiAEBEjEKEnBsdWdpbl9zbmFwc2hvdF9pZBgHIAEoCUgDUhBwbHVnaW5TbmFwc2hvdElkiA'
+    'aW9uiAEBEjEKEnBsdWdpbl9zbmFwc2hvdF9pZBgGIAEoCUgDUhBwbHVnaW5TbmFwc2hvdElkiA'
     'EBQhMKEV9maWxlX3NuYXBzaG90X2lkQhAKDl9kZXBsb3ltZW50X2lkQhYKFF9kZXBsb3ltZW50'
-    'X3JldmlzaW9uQhUKE19wbHVnaW5fc25hcHNob3RfaWRKBAgGEAdSDG9wZXJhdGlvbl9pZA==');
+    'X3JldmlzaW9uQhUKE19wbHVnaW5fc25hcHNob3RfaWQ=');
 
 @$core.Deprecated('Use diagnosticSnapshotReferenceDescriptor instead')
 const DiagnosticSnapshotReference$json = {
@@ -175,17 +171,13 @@ const DiagnosticApplyRequest$json = {
   '2': [
     {'1': 'preview_id', '3': 1, '4': 1, '5': 9, '10': 'previewId'},
   ],
-  '9': [
-    {'1': 2, '2': 3},
-  ],
-  '10': ['action_id'],
 };
 
 /// Descriptor for `DiagnosticApplyRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List diagnosticApplyRequestDescriptor =
     $convert.base64Decode(
-        'ChZEaWFnbm9zdGljQXBwbHlSZXF1ZXN0Eh0KCnByZXZpZXdfaWQYASABKAlSCXByZXZpZXdJZE'
-        'oECAIQA1IJYWN0aW9uX2lk');
+        'ChZEaWFnbm9zdGljQXBwbHlSZXF1ZXN0Eh0KCnByZXZpZXdfaWQYASABKAlSCXByZXZpZXdJZA'
+        '==');
 
 @$core.Deprecated('Use diagnosticEvidenceDescriptor instead')
 const DiagnosticEvidence$json = {
@@ -400,10 +392,10 @@ const DiagnosticPreview$json = {
     {'1': 'snapshot_id', '3': 2, '4': 1, '5': 9, '10': 'snapshotId'},
     {'1': 'problem_id', '3': 3, '4': 1, '5': 9, '10': 'problemId'},
     {'1': 'expires_at', '3': 4, '4': 1, '5': 9, '10': 'expiresAt'},
-    {'1': 'result', '3': 6, '4': 1, '5': 9, '10': 'result'},
+    {'1': 'result', '3': 5, '4': 1, '5': 9, '10': 'result'},
     {
       '1': 'items',
-      '3': 7,
+      '3': 6,
       '4': 3,
       '5': 11,
       '6': '.modconductor.v1.DiagnosticRemediationItem',
@@ -411,27 +403,23 @@ const DiagnosticPreview$json = {
     },
     {
       '1': 'identifiers',
-      '3': 8,
+      '3': 7,
       '4': 3,
       '5': 11,
       '6': '.modconductor.v1.DiagnosticRemediationIdentifier',
       '10': 'identifiers'
     },
   ],
-  '9': [
-    {'1': 5, '2': 6},
-  ],
-  '10': ['paths'],
 };
 
 /// Descriptor for `DiagnosticPreview`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List diagnosticPreviewDescriptor = $convert.base64Decode(
     'ChFEaWFnbm9zdGljUHJldmlldxIOCgJpZBgBIAEoCVICaWQSHwoLc25hcHNob3RfaWQYAiABKA'
     'lSCnNuYXBzaG90SWQSHQoKcHJvYmxlbV9pZBgDIAEoCVIJcHJvYmxlbUlkEh0KCmV4cGlyZXNf'
-    'YXQYBCABKAlSCWV4cGlyZXNBdBIWCgZyZXN1bHQYBiABKAlSBnJlc3VsdBJACgVpdGVtcxgHIA'
+    'YXQYBCABKAlSCWV4cGlyZXNBdBIWCgZyZXN1bHQYBSABKAlSBnJlc3VsdBJACgVpdGVtcxgGIA'
     'MoCzIqLm1vZGNvbmR1Y3Rvci52MS5EaWFnbm9zdGljUmVtZWRpYXRpb25JdGVtUgVpdGVtcxJS'
-    'CgtpZGVudGlmaWVycxgIIAMoCzIwLm1vZGNvbmR1Y3Rvci52MS5EaWFnbm9zdGljUmVtZWRpYX'
-    'Rpb25JZGVudGlmaWVyUgtpZGVudGlmaWVyc0oECAUQBlIFcGF0aHM=');
+    'CgtpZGVudGlmaWVycxgHIAMoCzIwLm1vZGNvbmR1Y3Rvci52MS5EaWFnbm9zdGljUmVtZWRpYX'
+    'Rpb25JZGVudGlmaWVyUgtpZGVudGlmaWVycw==');
 
 @$core.Deprecated('Use diagnosticPreviewReplyDescriptor instead')
 const DiagnosticPreviewReply$json = {

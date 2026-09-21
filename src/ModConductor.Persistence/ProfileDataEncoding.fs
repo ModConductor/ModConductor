@@ -22,7 +22,7 @@ module internal ProfileDataEncoding =
             option (option stored) writer value.PluginObserved)
 
     let readContext =
-        decode (fun version reader ->
+        decode (fun reader ->
             { Id = readGuid reader
               WorkspaceId = readGuid reader
               Revision = reader.ReadInt64()
@@ -30,15 +30,11 @@ module internal ProfileDataEncoding =
               Documents = readRoot reader
               Storage = readOption readRoot reader
               OriginalsRoot = readOption readRoot reader
-              Applied = readOption (readApplied version) reader
+              Applied = readOption readApplied reader
               Pending = readOption readGuid reader
-              PluginRoot = if version >= 2 then readOption readRoot reader else None
-              PluginOriginals = if version >= 2 then readOption readRoot reader else None
-              PluginObserved =
-                if version >= 2 then
-                    readOption (readOption readStored) reader
-                else
-                    None }
+              PluginRoot = readOption readRoot reader
+              PluginOriginals = readOption readRoot reader
+              PluginObserved = readOption (readOption readStored) reader }
             : ProfileDataContext)
 
     let profile =
@@ -55,7 +51,7 @@ module internal ProfileDataEncoding =
             option archiveReceipt writer value.ArchiveList)
 
     let readProfile =
-        decode (fun version reader ->
+        decode (fun reader ->
             { ProfileId = readGuid reader
               Revision = reader.ReadInt64()
               Options = readOptions reader
@@ -64,19 +60,8 @@ module internal ProfileDataEncoding =
               Saves = readOption readRoot reader
               SettingsInitialized = reader.ReadBoolean()
               SavesInitialized = reader.ReadBoolean()
-              PluginOrder =
-                if version >= 2 then
-                    readOption readPluginOrder reader
-                else
-                    None
-              ArchiveList =
-                if version >= 4 then
-                    readOption readArchiveReceipt reader
-                elif version = 3 then
-                    readOption readArchivePatch reader
-                    |> Option.map (fun profile -> { Profile = profile; Documents = None })
-                else
-                    None }
+              PluginOrder = readOption readPluginOrder reader
+              ArchiveList = readOption readArchiveReceipt reader }
             : PrivateProfileData)
 
     let private change writer (value: ProfileDataFilesEffect) =
@@ -322,7 +307,7 @@ module internal ProfileDataEncoding =
             option writePrivate writer value.ChangedProfile)
 
     let readAction =
-        decode (fun version reader ->
+        decode (fun reader ->
             { Id = readGuid reader
               ContextId = readGuid reader
               ProfileId = readGuid reader
@@ -338,9 +323,9 @@ module internal ProfileDataEncoding =
               Link = readLink reader
               LinkRemoved = reader.ReadBoolean()
               LinkCreated = readOption readIdentity reader
-              Proposed = readOption (readApplied version) reader
+              Proposed = readOption readApplied reader
               Complete = reader.ReadBoolean()
               Problem = readOption readText reader
-              PluginStage = if version >= 2 then readOption readRoot reader else None
-              ChangedProfile = if version >= 3 then readOption readPrivate reader else None }
+              PluginStage = readOption readRoot reader
+              ChangedProfile = readOption readPrivate reader }
             : ProfileDataActionRecord)

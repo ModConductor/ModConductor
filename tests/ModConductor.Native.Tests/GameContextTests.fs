@@ -45,13 +45,6 @@ type GameContextTests() =
         flag "invalidReplacementPreservesBinding" |> should equal true
 
     [<Test>]
-    member _.``incompatible pre-release state should reset instead of migrate``() =
-        flag "incompatibleWorkspaceBindingReset" |> should equal true
-        flag "incompatibleDeploymentStateReset" |> should equal true
-        flag "incompatibleOutputStateReset" |> should equal true
-        flag "freshProfileAfterResetUnbound" |> should equal true
-
-    [<Test>]
     member _.``failed checks and restart should retain identity while requiring new evidence``() =
         flag "failedRefreshRetainsEvidence" |> should equal true
         flag "refreshRestoresCurrentEvidence" |> should equal true

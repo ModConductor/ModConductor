@@ -62,7 +62,7 @@ class DiagnosticRequest extends $pb.GeneratedMessage {
     ..a<$fixnum.Int64>(
         5, _omitFieldNames ? '' : 'deploymentRevision', $pb.PbFieldType.OU6,
         defaultOrMaker: $fixnum.Int64.ZERO)
-    ..aOS(7, _omitFieldNames ? '' : 'pluginSnapshotId')
+    ..aOS(6, _omitFieldNames ? '' : 'pluginSnapshotId')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -129,14 +129,14 @@ class DiagnosticRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(5)
   void clearDeploymentRevision() => $_clearField(5);
 
-  @$pb.TagNumber(7)
+  @$pb.TagNumber(6)
   $core.String get pluginSnapshotId => $_getSZ(5);
-  @$pb.TagNumber(7)
+  @$pb.TagNumber(6)
   set pluginSnapshotId($core.String value) => $_setString(5, value);
-  @$pb.TagNumber(7)
+  @$pb.TagNumber(6)
   $core.bool hasPluginSnapshotId() => $_has(5);
-  @$pb.TagNumber(7)
-  void clearPluginSnapshotId() => $_clearField(7);
+  @$pb.TagNumber(6)
+  void clearPluginSnapshotId() => $_clearField(6);
 }
 
 class DiagnosticSnapshotReference extends $pb.GeneratedMessage {
@@ -1050,11 +1050,11 @@ class DiagnosticPreview extends $pb.GeneratedMessage {
     ..aOS(2, _omitFieldNames ? '' : 'snapshotId')
     ..aOS(3, _omitFieldNames ? '' : 'problemId')
     ..aOS(4, _omitFieldNames ? '' : 'expiresAt')
-    ..aOS(6, _omitFieldNames ? '' : 'result')
-    ..pPM<DiagnosticRemediationItem>(7, _omitFieldNames ? '' : 'items',
+    ..aOS(5, _omitFieldNames ? '' : 'result')
+    ..pPM<DiagnosticRemediationItem>(6, _omitFieldNames ? '' : 'items',
         subBuilder: DiagnosticRemediationItem.create)
     ..pPM<DiagnosticRemediationIdentifier>(
-        8, _omitFieldNames ? '' : 'identifiers',
+        7, _omitFieldNames ? '' : 'identifiers',
         subBuilder: DiagnosticRemediationIdentifier.create)
     ..hasRequiredFields = false;
 
@@ -1113,19 +1113,19 @@ class DiagnosticPreview extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   void clearExpiresAt() => $_clearField(4);
 
-  @$pb.TagNumber(6)
+  @$pb.TagNumber(5)
   $core.String get result => $_getSZ(4);
-  @$pb.TagNumber(6)
+  @$pb.TagNumber(5)
   set result($core.String value) => $_setString(4, value);
-  @$pb.TagNumber(6)
+  @$pb.TagNumber(5)
   $core.bool hasResult() => $_has(4);
-  @$pb.TagNumber(6)
-  void clearResult() => $_clearField(6);
+  @$pb.TagNumber(5)
+  void clearResult() => $_clearField(5);
 
-  @$pb.TagNumber(7)
+  @$pb.TagNumber(6)
   $pb.PbList<DiagnosticRemediationItem> get items => $_getList(5);
 
-  @$pb.TagNumber(8)
+  @$pb.TagNumber(7)
   $pb.PbList<DiagnosticRemediationIdentifier> get identifiers => $_getList(6);
 }
 

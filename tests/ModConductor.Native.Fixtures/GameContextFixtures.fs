@@ -5,7 +5,6 @@ open System.IO
 open System.Buffers.Binary
 open System.Text
 open System.Text.Json
-open Microsoft.Data.Sqlite
 open ModConductor.GameContexts
 open ModConductor.Persistence
 open ModConductor.Workspaces
@@ -205,8 +204,10 @@ module GameContextFixtures =
             Directory.CreateDirectory(Path.Combine(primary, "game-contexts", "state")).FullName
 
         let first, second = Guid.NewGuid(), Guid.NewGuid()
+
         let firstProfile, secondProfile, cloneProfile, unboundProfile =
             Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid()
+
         let mutable prior = Unchecked.defaultof<GameContextState>
 
         do
@@ -221,9 +222,7 @@ module GameContextFixtures =
                         .FullName
 
                 let created =
-                    workspaces.Create(id, "Context", StorageWorker.select root)
-                    |> wait
-                    |> result
+                    workspaces.Create(id, "Context", StorageWorker.select root) |> wait |> result
 
                 workspaces.Edit(
                     id,
@@ -280,14 +279,14 @@ module GameContextFixtures =
             writer.WriteBoolean(
                 "profilesPreserveBinding",
                 let cloned = contexts.Read(first, cloneProfile) |> wait |> result
+
                 cloned.Binding.Value.Path = saved.Binding.Value.Path
                 && cloned.Binding.Value.GameId = saved.Binding.Value.GameId
                 && cloned.Binding.Value.Id <> saved.Binding.Value.Id
             )
 
             let deploymentFingerprint =
-                ModConductor.Deployment.DeploymentContextId.fingerprint
-                    saved.Binding.Value.Evidence
+                ModConductor.Deployment.DeploymentContextId.fingerprint saved.Binding.Value.Evidence
 
             writer.WriteBoolean(
                 "profileDeploymentContextsAreDistinct",
@@ -305,13 +304,19 @@ module GameContextFixtures =
                 workspaces.Edit(
                     first,
                     clonedWorkspace.Workspace.Revision,
-                    ProfileEdit.Create { Id = unboundProfile; Name = "Unbound" }
+                    ProfileEdit.Create
+                        { Id = unboundProfile
+                          Name = "Unbound" }
                 )
                 |> wait
                 |> result
 
             let unbound = contexts.Read(first, unboundProfile) |> wait |> result
-            writer.WriteBoolean("unboundProfileSafe", unbound.Revision = 0L && unbound.Binding.IsNone)
+
+            writer.WriteBoolean(
+                "unboundProfileSafe",
+                unbound.Revision = 0L && unbound.Binding.IsNone
+            )
 
             let alternate = Path.Combine(primary, "game-contexts", "alternate-game")
             create alternate 106
@@ -335,11 +340,7 @@ module GameContextFixtures =
                 && (contexts.Read(first, firstProfile) |> wait |> result) = saved
             )
 
-            workspaces.Edit(
-                first,
-                withUnbound.Workspace.Revision,
-                ProfileEdit.Delete cloneProfile
-            )
+            workspaces.Edit(first, withUnbound.Workspace.Revision, ProfileEdit.Delete cloneProfile)
             |> wait
             |> result
             |> ignore
@@ -398,7 +399,9 @@ module GameContextFixtures =
             )
 
             File.Move(exe + ".moved", exe)
-            let refreshed = contexts.Refresh(first, firstProfile, failed.Revision) |> wait |> result
+
+            let refreshed =
+                contexts.Refresh(first, firstProfile, failed.Revision) |> wait |> result
 
             writer.WriteBoolean(
                 "refreshRestoresCurrentEvidence",
@@ -422,6 +425,7 @@ module GameContextFixtures =
             )
 
             create game 105
+
             let refreshed =
                 contexts.Refresh(first, firstProfile, reopened.Revision) |> wait |> result
 
@@ -456,194 +460,5 @@ module GameContextFixtures =
                 true
 
         writer.WriteBoolean("protonHasNoHostFolders", noHostFolders)
-
-        let migrationState =
-            Directory
-                .CreateDirectory(Path.Combine(primary, "game-contexts", "migration-state"))
-                .FullName
-
-        let migrationWorkspace, migrationEmptyWorkspace = Guid.NewGuid(), Guid.NewGuid()
-        let migrationProfiles = [ Guid.NewGuid(); Guid.NewGuid(); Guid.NewGuid() ]
-        let obsoleteDeploymentContext = Guid.NewGuid()
-        let obsoleteGeneration = Guid.NewGuid()
-        let obsoleteReceipt = Guid.NewGuid()
-        let obsoleteOutputContext = Guid.NewGuid()
-        let obsoleteOutputLocation = Guid.NewGuid()
-        let obsoleteOutputAction = Guid.NewGuid()
-
-        do
-            use store = new OperationStore(migrationState)
-            let workspaces = store.Workspaces :> IWorkspaceState
-            let contexts = store.GameContexts :> IGameContexts
-
-            let createWorkspace id name =
-                let root =
-                    Directory.CreateDirectory(Path.Combine(primary, "game-contexts", name)).FullName
-
-                workspaces.Create(id, name, StorageWorker.select root) |> wait |> result
-
-            let mutable current =
-                (createWorkspace migrationWorkspace "migration-workspace").Workspace
-
-            for profile in migrationProfiles do
-                let changed =
-                    workspaces.Edit(
-                        migrationWorkspace,
-                        current.Revision,
-                        ProfileEdit.Create { Id = profile; Name = "Migrated" }
-                    )
-                    |> wait
-                    |> result
-
-                current <- changed.Workspace
-
-            createWorkspace migrationEmptyWorkspace "migration-empty" |> ignore
-
-            contexts.Save(
-                migrationWorkspace,
-                List.head migrationProfiles,
-                0L,
-                { GameId = GameId.SkyrimSpecialEditionSteam
-                  Path = game
-                  Proton = None }
-            )
-            |> wait
-            |> result
-            |> ignore
-
-        do
-            use connection =
-                new SqliteConnection("Data Source=" + Path.Combine(migrationState, "state.db"))
-
-            connection.Open()
-
-            use command = connection.CreateCommand()
-
-            command.CommandText <-
-                """
-                PRAGMA foreign_keys=OFF;
-                DROP INDEX game_contexts_by_workspace;
-                ALTER TABLE game_contexts RENAME TO profile_game_contexts_v34;
-                CREATE TABLE game_contexts(workspace_id TEXT PRIMARY KEY REFERENCES workspaces(id),id TEXT NOT NULL,path TEXT NOT NULL,revision INTEGER NOT NULL,evidence TEXT NOT NULL,checked_owner TEXT NOT NULL,failure TEXT,proton_selection TEXT);
-                INSERT INTO game_contexts(workspace_id,id,path,revision,evidence,checked_owner,failure,proton_selection)
-                SELECT workspace_id,id,path,revision,evidence,checked_owner,failure,proton_selection
-                FROM profile_game_contexts_v34
-                WHERE profile_id=$profile;
-                DROP TABLE profile_game_contexts_v34;
-
-                INSERT INTO deployment_contexts(id,revision,pending,body,digest)
-                VALUES($deployment,0,NULL,X'00','obsolete');
-                INSERT INTO deployment_generations(context_id,id,body,digest,unavailable)
-                VALUES($deployment,$generation,X'00','obsolete',NULL);
-                INSERT INTO deployment_receipts(
-                    id,context_id,previous_id,proposed_id,revision,phase,owner,busy,abandoned,body,digest
-                ) VALUES(
-                    $receipt,$deployment,NULL,$generation,0,2,'obsolete',0,0,X'00','obsolete'
-                );
-
-                INSERT INTO output_contexts(workspace_id,id,game_path,revision)
-                VALUES($workspace,$output,$game,0);
-                INSERT INTO output_locations(
-                    id,workspace_id,context_id,name,purpose,target,revision,enabled,initialized,root_name
-                ) VALUES(
-                    $location,$workspace,$output,'Obsolete',0,NULL,0,1,0,'.obsolete-output'
-                );
-                INSERT INTO output_observations(location_id,path,sha256,kept)
-                VALUES($location,'obsolete.txt','obsolete',0);
-                INSERT INTO output_actions(
-                    id,workspace_id,context_id,owner,busy,complete,version_id,body
-                ) VALUES(
-                    $action,$workspace,$output,'obsolete',0,0,NULL,X'00'
-                );
-                PRAGMA user_version=33;
-                """
-
-            command.Parameters.AddWithValue("$profile", string (List.head migrationProfiles))
-            |> ignore
-
-            command.Parameters.AddWithValue("$deployment", string obsoleteDeploymentContext)
-            |> ignore
-
-            command.Parameters.AddWithValue("$generation", string obsoleteGeneration)
-            |> ignore
-
-            command.Parameters.AddWithValue("$receipt", string obsoleteReceipt) |> ignore
-
-            command.Parameters.AddWithValue("$workspace", string migrationWorkspace)
-            |> ignore
-
-            command.Parameters.AddWithValue("$output", string obsoleteOutputContext)
-            |> ignore
-
-            command.Parameters.AddWithValue("$game", game) |> ignore
-
-            command.Parameters.AddWithValue("$location", string obsoleteOutputLocation)
-            |> ignore
-
-            command.Parameters.AddWithValue("$action", string obsoleteOutputAction)
-            |> ignore
-
-            command.ExecuteNonQuery() |> ignore
-
-        do
-            use store = new OperationStore(migrationState)
-            let contexts = store.GameContexts :> IGameContexts
-
-            let reset =
-                migrationProfiles
-                |> List.map (fun profile ->
-                    contexts.Read(migrationWorkspace, profile) |> wait |> result)
-
-            let workspaces = store.Workspaces :> IWorkspaceState
-            let empty = workspaces.Read(migrationEmptyWorkspace, None) |> wait |> result
-            let emptyProfile = Guid.NewGuid()
-
-            workspaces.Edit(
-                migrationEmptyWorkspace,
-                empty.Workspace.Revision,
-                ProfileEdit.Create
-                    { Id = emptyProfile
-                      Name = "Still unbound" }
-            )
-            |> wait
-            |> result
-            |> ignore
-
-            writer.WriteBoolean(
-                "incompatibleWorkspaceBindingReset",
-                reset |> List.forall (fun state -> state.Revision = 0L && state.Binding.IsNone)
-            )
-
-            writer.WriteBoolean(
-                "freshProfileAfterResetUnbound",
-                let state = contexts.Read(migrationEmptyWorkspace, emptyProfile) |> wait |> result
-                state.Revision = 0L && state.Binding.IsNone
-            )
-
-        do
-            use connection =
-                new SqliteConnection("Data Source=" + Path.Combine(migrationState, "state.db"))
-
-            connection.Open()
-
-            let count table =
-                use command = connection.CreateCommand()
-                command.CommandText <- "SELECT count(*) FROM " + table
-                command.ExecuteScalar() :?> int64
-
-            writer.WriteBoolean(
-                "incompatibleDeploymentStateReset",
-                count "deployment_contexts" = 0L
-                && count "deployment_generations" = 0L
-                && count "deployment_receipts" = 0L
-            )
-
-            writer.WriteBoolean(
-                "incompatibleOutputStateReset",
-                count "output_contexts" = 0L
-                && count "output_locations" = 0L
-                && count "output_observations" = 0L
-                && count "output_actions" = 0L
-            )
 
         writer.WriteEndObject()

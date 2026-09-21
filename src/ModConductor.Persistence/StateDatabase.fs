@@ -33,7 +33,9 @@ type internal StateDatabase(directory: string) =
                     [ "$owner", box owner ]
 
             use reader = command.ExecuteReader()
-            [ while reader.Read() do yield reader.GetString 0 ]
+
+            [ while reader.Read() do
+                  yield reader.GetString 0 ]
 
         OperationJournal.interruptOwner connection owner
 
@@ -101,8 +103,7 @@ type internal StateDatabase(directory: string) =
             connection
             null
             "UPDATE fnis_runs SET phase=7,busy=0,problem='FNIS stopped when the app closed. The previous generated output remains active.',completed_at=$completed WHERE owner=$owner AND busy=1"
-            [ "$owner", box owner
-              "$completed", box (DateTimeOffset.UtcNow.ToString("O")) ]
+            [ "$owner", box owner; "$completed", box (DateTimeOffset.UtcNow.ToString("O")) ]
 
         for run in abandonedFnisRuns do
             let path = Path.Combine(directory, "fnis-runs", Guid.Parse(run).ToString("N"))
@@ -137,7 +138,7 @@ type internal StateDatabase(directory: string) =
                     ModConductor.ModOrganization.OrganizationPolicy.contains value query
             )
 
-            Sqlite.migrate connection
+            Sqlite.initialize connection
             OwnerLease.recover owners ownerId abandonOwner
 
             Sqlite.execute

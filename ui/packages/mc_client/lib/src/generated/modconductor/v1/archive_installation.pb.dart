@@ -394,14 +394,14 @@ class ArchiveInstallationDraft extends $pb.GeneratedMessage {
     ..a<$fixnum.Int64>(9, _omitFieldNames ? '' : 'bytes', $pb.PbFieldType.OU6,
         defaultOrMaker: $fixnum.Int64.ZERO)
     ..aOB(10, _omitFieldNames ? '' : 'canInstall')
-    ..aE<ArchiveInstaller>(12, _omitFieldNames ? '' : 'installer',
+    ..aE<ArchiveInstaller>(11, _omitFieldNames ? '' : 'installer',
         enumValues: ArchiveInstaller.values)
     ..pc<ArchiveInstaller>(
-        13, _omitFieldNames ? '' : 'availableInstallers', $pb.PbFieldType.KE,
+        12, _omitFieldNames ? '' : 'availableInstallers', $pb.PbFieldType.KE,
         valueOf: ArchiveInstaller.valueOf,
         enumValues: ArchiveInstaller.values,
         defaultEnumValue: ArchiveInstaller.ARCHIVE_INSTALLER_MANUAL)
-    ..pPS(14, _omitFieldNames ? '' : 'wizardScripts')
+    ..pPS(13, _omitFieldNames ? '' : 'wizardScripts')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -508,19 +508,19 @@ class ArchiveInstallationDraft extends $pb.GeneratedMessage {
   @$pb.TagNumber(10)
   void clearCanInstall() => $_clearField(10);
 
-  @$pb.TagNumber(12)
+  @$pb.TagNumber(11)
   ArchiveInstaller get installer => $_getN(10);
-  @$pb.TagNumber(12)
-  set installer(ArchiveInstaller value) => $_setField(12, value);
-  @$pb.TagNumber(12)
+  @$pb.TagNumber(11)
+  set installer(ArchiveInstaller value) => $_setField(11, value);
+  @$pb.TagNumber(11)
   $core.bool hasInstaller() => $_has(10);
-  @$pb.TagNumber(12)
-  void clearInstaller() => $_clearField(12);
+  @$pb.TagNumber(11)
+  void clearInstaller() => $_clearField(11);
 
-  @$pb.TagNumber(13)
+  @$pb.TagNumber(12)
   $pb.PbList<ArchiveInstaller> get availableInstallers => $_getList(11);
 
-  @$pb.TagNumber(14)
+  @$pb.TagNumber(13)
   $pb.PbList<$core.String> get wizardScripts => $_getList(12);
 }
 

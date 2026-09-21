@@ -79,10 +79,10 @@ module internal ExecutableEncoding =
               Arguments = args
               Environment = environment } }
 
-    let private encode (version: int) write value =
+    let private encode write value =
         use stream = new MemoryStream()
         use writer = new BinaryWriter(stream)
-        writer.Write version
+        writer.Write 1
         write writer value
         writer.Flush()
         Convert.ToBase64String(stream.ToArray())
@@ -91,24 +91,19 @@ module internal ExecutableEncoding =
         use stream = new MemoryStream(Convert.FromBase64String value)
         use reader = new BinaryReader(stream)
 
-        let version = reader.ReadInt32()
-        let result = read version reader
+        if reader.ReadInt32() <> 1 then
+            raise (InvalidDataException "The executable record version is unsupported.")
+
+        let result = read reader
 
         if stream.Position <> stream.Length then
             raise (InvalidDataException "The executable record has trailing data.")
 
         result
 
-    let encodePreset value = encode 1 preset value
+    let encodePreset value = encode preset value
 
-    let decodePreset value =
-        decode
-            (fun version reader ->
-                if version <> 1 then
-                    raise (InvalidDataException "The executable preset version is unsupported.")
-
-                readPreset reader)
-            value
+    let decodePreset value = decode readPreset value
 
     let private nativeRequest (w: BinaryWriter) (v: RunRequest) =
         guid w v.Id
@@ -190,7 +185,7 @@ module internal ExecutableEncoding =
             w
             v.ProfileData
 
-    let private readGame version (r: BinaryReader) : GameRun =
+    let private readGame (r: BinaryReader) : GameRun =
         let request =
             { Id = readGuid r
               WorkspaceId = readGuid r
@@ -231,23 +226,19 @@ module internal ExecutableEncoding =
                       GenerationId = readGuid r
                       Fingerprint = r.ReadString() })
                 r
-          ProfileDataRevision = if version >= 3 then r.ReadInt64() else 0L
+          ProfileDataRevision = r.ReadInt64()
           ProfileData =
-            if version >= 3 then
-                readOpt
-                    (fun r ->
-                        { ReceiptId = readGuid r
-                          Revision = r.ReadInt64()
-                          CompletedFiles = r.ReadInt32()
-                          Complete = r.ReadBoolean() }
-                        : AppliedProfileData)
-                    r
-            else
-                None }
+            readOpt
+                (fun r ->
+                    { ReceiptId = readGuid r
+                      Revision = r.ReadInt64()
+                      CompletedFiles = r.ReadInt32()
+                      Complete = r.ReadBoolean() }
+                    : AppliedProfileData)
+                r }
 
     let encodeRun (value: ExecutableRun) =
         encode
-            3
             (fun w v ->
                 match v.Source with
                 | RunSource.Preset(request, value) ->
@@ -272,27 +263,15 @@ module internal ExecutableEncoding =
 
     let decodeRun value =
         decode
-            (fun version r ->
-                let source, revision =
-                    match version with
-                    | 1 ->
-                        let request = readRequest r
-                        let revision = r.ReadInt64()
-                        RunSource.Preset(request, readPreset r), revision
-                    | 2
-                    | 3 ->
-                        let source =
-                            match r.ReadInt32() with
-                            | 0 -> RunSource.Preset(readRequest r, readPreset r)
-                            | 1 -> RunSource.Game(readGame version r)
-                            | _ -> raise (InvalidDataException "The run source is invalid.")
-
-                        source, r.ReadInt64()
-                    | _ ->
-                        raise (InvalidDataException "The executable run version is unsupported.")
+            (fun r ->
+                let source =
+                    match r.ReadInt32() with
+                    | 0 -> RunSource.Preset(readRequest r, readPreset r)
+                    | 1 -> RunSource.Game(readGame r)
+                    | _ -> raise (InvalidDataException "The run source is invalid.")
 
                 { Source = source
-                  Revision = revision
+                  Revision = r.ReadInt64()
                   ProfileId = readOpt readGuid r
                   ProfileName = readOpt (fun r -> r.ReadString()) r
                   RequestedAt = DateTimeOffset.Parse(r.ReadString())

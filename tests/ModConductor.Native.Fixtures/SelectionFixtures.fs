@@ -344,41 +344,4 @@ module SelectionFixtures =
                     restored.Revision = persistedRevision + 1L && restored.EnabledCount = 4
             )
 
-        let migration = Directory.CreateDirectory(Path.Combine(area, "migration")).FullName
-
-        File.Copy(
-            Path.Combine(AppContext.BaseDirectory, "fixtures", "state-v4.db"),
-            Path.Combine(migration, "state.db")
-        )
-
-        do
-            use child =
-                new NativeChild(
-                    Environment.ProcessPath,
-                    [ "--storage-worker"; "migration"; migration; root; string workspace ]
-                )
-
-            if child.Line() <> "ready" then
-                invalidOp "The migration checkpoint was not reached."
-
-            child.Terminate()
-
-        writer.WriteBoolean(
-            "migrationRollback",
-            number migration "PRAGMA user_version" = 4L
-            && number migration "SELECT count(*) FROM profiles" = 2L
-        )
-
-        do
-            use upgraded = new OperationStore(migration)
-
-            writer.WriteBoolean(
-                "migrationPreserves",
-                number migration "SELECT count(*) FROM profile_mods" = 8L
-                && number migration "SELECT count(*) FROM profile_mods WHERE enabled=1" = 0L
-                && number migration "SELECT count(*) FROM profile_mods WHERE enabled IS NULL" = 2L
-                && number migration "SELECT count(*) FROM profiles WHERE selection_revision=0" = 2L
-                && number migration "SELECT count(*) FROM profiles WHERE name IN ('First','Second')" = 2L
-            )
-
         writer.WriteEndObject()

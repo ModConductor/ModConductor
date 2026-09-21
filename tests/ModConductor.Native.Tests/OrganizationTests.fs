@@ -39,12 +39,3 @@ type OrganizationTests() =
         flag "organization" "boundedContinuation" |> should equal true
         flag "organization" "lockedRowsFollowSavedOrder" |> should equal true
         flag "organization" "queryAndInventoryInvalidate" |> should equal true
-
-    [<Test>]
-    member _.``legacy categories should migrate atomically without merging human labels or changing profile state``
-        ()
-        =
-        flag "categoryMigration" "rollback" |> should equal true
-        flag "categoryMigration" "exactLabelsAndIsolation" |> should equal true
-        flag "categoryMigration" "metadataAndProfiles" |> should equal true
-        flag "categoryMigration" "stableAfterRestart" |> should equal true

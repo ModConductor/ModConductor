@@ -1,9 +1,7 @@
 namespace ModConductor.Native.Fixtures
 
 open System
-open System.IO
 open System.Threading
-open Microsoft.Data.Sqlite
 open ModConductor.Platform
 open ModConductor.Persistence
 open ModConductor.Operations
@@ -50,80 +48,69 @@ module StorageWorker =
             begun
 
     let run mode state root (id: string) =
-        if mode = "migration" then
-            SQLitePCL.Batteries_V2.Init()
+        use store = new OperationStore(state)
+        let workspace = store.WorkspaceRoots
+        let prepared = workspace.Prepare(Guid.Parse id, 0L, select root) |> wait |> result
 
-            use connection =
-                new SqliteConnection(
-                    "Data Source=" + Path.Combine(state, "state.db") + ";Pooling=False"
+        if mode = "intent" then
+            pause ()
+        elif mode = "effect" then
+            workspace.ApplyAtCheckpoint(Guid.Parse id, prepared.Revision, pause)
+            |> wait
+            |> ignore
+        elif mode = "slow" then
+            use arrived = new ManualResetEventSlim(false)
+            use release = new ManualResetEventSlim(false)
+
+            let pending =
+                workspace.ApplyAtCheckpoint(
+                    Guid.Parse id,
+                    prepared.Revision,
+                    fun () ->
+                        arrived.Set()
+                        release.Wait()
                 )
 
-            connection.Open()
-            Sqlite.migrateAtCommit connection pause
+            if not (arrived.Wait 10000) then
+                invalidOp "The file checkpoint was not reached."
+
+            let operation = runtime store (Guid.NewGuid().ToString()) 0L
+
+            let refused =
+                try
+                    (store :> IDisposable).Dispose()
+                    false
+                with :? InvalidOperationException ->
+                    true
+
+            let listed = workspace.Recoverable None |> wait |> List.contains (Guid.Parse id)
+
+            let featureAvailable =
+                (store.Workspaces :> IWorkspaceState).Read(Guid.NewGuid(), None) |> wait = Error
+                    WorkspaceError.NotFound
+
+            Console.WriteLine(
+                string operation.ResultRevision
+                + ":"
+                + string refused
+                + ":"
+                + string listed
+                + ":"
+                + string featureAvailable
+            )
+
+            Console.Out.Flush()
+            Console.ReadLine() |> ignore
+            release.Set()
+            let applied = pending |> wait |> result
+            workspace.Complete(Guid.Parse id, applied.Revision) |> wait |> result |> ignore
         else
-            use store = new OperationStore(state)
-            let workspace = store.WorkspaceRoots
-            let prepared = workspace.Prepare(Guid.Parse id, 0L, select root) |> wait |> result
+            let applied = workspace.Apply(Guid.Parse id, prepared.Revision) |> wait |> result
 
-            if mode = "intent" then
+            if mode = "observed" then
                 pause ()
-            elif mode = "effect" then
-                workspace.ApplyAtCheckpoint(Guid.Parse id, prepared.Revision, pause)
-                |> wait
-                |> ignore
-            elif mode = "slow" then
-                use arrived = new ManualResetEventSlim(false)
-                use release = new ManualResetEventSlim(false)
-
-                let pending =
-                    workspace.ApplyAtCheckpoint(
-                        Guid.Parse id,
-                        prepared.Revision,
-                        fun () ->
-                            arrived.Set()
-                            release.Wait()
-                    )
-
-                if not (arrived.Wait 10000) then
-                    invalidOp "The file checkpoint was not reached."
-
-                let operation = runtime store (Guid.NewGuid().ToString()) 0L
-
-                let refused =
-                    try
-                        (store :> IDisposable).Dispose()
-                        false
-                    with :? InvalidOperationException ->
-                        true
-
-                let listed = workspace.Recoverable None |> wait |> List.contains (Guid.Parse id)
-
-                let featureAvailable =
-                    (store.Workspaces :> IWorkspaceState).Read(Guid.NewGuid(), None) |> wait = Error
-                        WorkspaceError.NotFound
-
-                Console.WriteLine(
-                    string operation.ResultRevision
-                    + ":"
-                    + string refused
-                    + ":"
-                    + string listed
-                    + ":"
-                    + string featureAvailable
-                )
-
-                Console.Out.Flush()
-                Console.ReadLine() |> ignore
-                release.Set()
-                let applied = pending |> wait |> result
+            elif mode = "live" then
+                pause ()
                 workspace.Complete(Guid.Parse id, applied.Revision) |> wait |> result |> ignore
             else
-                let applied = workspace.Apply(Guid.Parse id, prepared.Revision) |> wait |> result
-
-                if mode = "observed" then
-                    pause ()
-                elif mode = "live" then
-                    pause ()
-                    workspace.Complete(Guid.Parse id, applied.Revision) |> wait |> result |> ignore
-                else
-                    invalidArg "mode" "Unknown storage fixture mode."
+                invalidArg "mode" "Unknown storage fixture mode."

@@ -30,9 +30,10 @@ The engine stores `ModConductor/state/state.db` under local application data.
 `--state-directory <absolute-path>` selects another state directory. Workspace
 folders do not contain separate databases.
 
-Schema upgrades commit in one SQLite transaction. Unsupported schema versions are
-refused. Database schema versions, protocol majors, metadata revisions, and feed
-cursors have separate meanings.
+The first-release schema is created directly in one SQLite transaction. Incompatible
+pre-release databases are refused with a reset instruction; they are not upgraded.
+Forward schema upgrades begin only after the first public release. Database schema
+versions, protocol majors, metadata revisions, and feed cursors have separate meanings.
 
 Each engine holds an owner lease. Recovery claims abandoned work, not work owned
 by another live engine. The shared queue bounds database work. File operations run
@@ -243,8 +244,7 @@ Prefix registry reads use only the declared Windows user-folder values. Path wal
 use held, no-follow directories and relative link reads. Internal redirects can be
 resolved; outside-prefix redirects, ambiguous names and unknown variables remain
 unavailable without a host-folder fallback. Missing leaves are not created. Windows
-native contexts do not use the Proton resolver. Schema migration preserves older
-path-only selections and their evidence; restarting still requires recheck.
+native contexts do not use the Proton resolver. Restarting requires recheck.
 
 ## Planned loose files
 

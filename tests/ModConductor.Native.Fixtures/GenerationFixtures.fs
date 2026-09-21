@@ -53,24 +53,6 @@ module internal GenerationFixtures =
           Source = ""
           Categories = [] }
 
-    let legacy state (contextId: string) =
-        use store = new OperationStore(state)
-        let context = store.Deployment.Context(Guid.Parse contextId) |> wait |> Option.get
-
-        let generation =
-            store.Deployment.Generation(context.Id, context.Active.Value)
-            |> wait
-            |> Option.get
-
-        RecoveryFiles.verifyGeneration generation
-        let receipts = store.Deployment.Pending 0L |> wait
-        use writer = new Utf8JsonWriter(Console.OpenStandardOutput())
-        writer.WriteStartObject()
-        writer.WriteBoolean("decoded", true)
-        writer.WriteNumber("generationFiles", generation.Files.Length)
-        writer.WriteNumber("pending", receipts.Length)
-        writer.WriteEndObject()
-
     let observe (writer: Utf8JsonWriter) primary =
         let area = Directory.CreateDirectory(Path.Combine(primary, "generations")).FullName
 

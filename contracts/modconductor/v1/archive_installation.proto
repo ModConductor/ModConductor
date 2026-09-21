@@ -29,10 +29,9 @@ message ArchiveInstallationDraft {
   string version = 8;
   uint64 bytes = 9;
   bool can_install = 10;
-  reserved 11;
-  ArchiveInstaller installer = 12;
-  repeated ArchiveInstaller available_installers = 13;
-  repeated string wizard_scripts = 14;
+  ArchiveInstaller installer = 11;
+  repeated ArchiveInstaller available_installers = 12;
+  repeated string wizard_scripts = 13;
 }
 message InstallationRoot { repeated string components = 1; }
 message InstallationInclusion { repeated string source = 1; bool included = 2; }

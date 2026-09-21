@@ -35,28 +35,6 @@ module DeploymentFixtures =
         else
             result |> ok |> ignore
 
-    let migrate directory =
-        use store = new OperationStore(directory)
-        use output = Console.OpenStandardOutput()
-        use writer = new Utf8JsonWriter(output, JsonWriterOptions(Indented = true))
-        writer.WriteStartObject()
-        writer.WriteBoolean("nativeAot", not RuntimeFeature.IsDynamicCodeSupported)
-
-        use connection =
-            new SqliteConnection(
-                "Data Source="
-                + Path.Combine(directory, "state.db")
-                + ";Mode=ReadOnly;Pooling=False"
-            )
-
-        connection.Open()
-        use query = connection.CreateCommand()
-        query.CommandText <- "PRAGMA user_version"
-        writer.WriteNumber("schema", Convert.ToInt32(query.ExecuteScalar()))
-        writer.WriteString("scope", "owned cloned state only")
-        writer.WriteEndObject()
-        writer.Flush()
-
     let observe (writer: Utf8JsonWriter) root =
         writer.WriteStartObject("deployment")
         let area = create (Path.Combine(root, "normal"))

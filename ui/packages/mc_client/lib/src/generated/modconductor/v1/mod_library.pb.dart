@@ -188,7 +188,7 @@ class InventoryModMetadata extends $pb.GeneratedMessage {
     ..aOS(3, _omitFieldNames ? '' : 'comment')
     ..aOS(4, _omitFieldNames ? '' : 'version')
     ..aOS(5, _omitFieldNames ? '' : 'source')
-    ..pPM<ModCategoryReference>(7, _omitFieldNames ? '' : 'categories',
+    ..pPM<ModCategoryReference>(6, _omitFieldNames ? '' : 'categories',
         subBuilder: ModCategoryReference.create)
     ..hasRequiredFields = false;
 
@@ -256,7 +256,7 @@ class InventoryModMetadata extends $pb.GeneratedMessage {
   @$pb.TagNumber(5)
   void clearSource() => $_clearField(5);
 
-  @$pb.TagNumber(7)
+  @$pb.TagNumber(6)
   $pb.PbList<ModCategoryReference> get categories => $_getList(5);
 }
 

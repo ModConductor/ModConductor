@@ -122,22 +122,15 @@ module internal DeploymentGenerationEncoding =
         w.Write v.Length
         option (fun w (value: DateTime) -> w.Write(value.ToUniversalTime().Ticks)) w v.Modified
 
-    let private readObserved version (r: BinaryReader) : ObservedFile =
+    let private readObserved (r: BinaryReader) : ObservedFile =
         let target = readTarget r
         let identity = readIdentity r
         let length = r.ReadInt64()
 
-        let modified =
-            if version >= 5 then
-                readOption (fun r -> DateTime(r.ReadInt64(), DateTimeKind.Utc)) r
-            else
-                r.ReadString() |> ignore
-                None
-
         { Target = target
           Identity = identity
           Length = length
-          Modified = modified }
+          Modified = readOption (fun r -> DateTime(r.ReadInt64(), DateTimeKind.Utc)) r }
 
     let private working (w: BinaryWriter) (v: WorkingBinding) =
         target w v.Target
@@ -146,16 +139,12 @@ module internal DeploymentGenerationEncoding =
         path w v.Path
         option identity w v.Identity
 
-    let private readWorking version (r: BinaryReader) : WorkingBinding =
+    let private readWorking (r: BinaryReader) : WorkingBinding =
         { Target = readTarget r
           Directory = r.ReadBoolean()
           Root = readLocation r
           Path = readPath r
-          Identity =
-            if version >= 4 then
-                readOption readIdentity r
-            else
-                Some(readIdentity r) }
+          Identity = readOption readIdentity r }
 
     let private file (w: BinaryWriter) (v: GenerationFile) =
         target w v.Target
@@ -165,17 +154,13 @@ module internal DeploymentGenerationEncoding =
         option text w v.Sha256
         option backing w v.Backing
 
-    let private readFile version (r: BinaryReader) : GenerationFile =
+    let private readFile (r: BinaryReader) : GenerationFile =
         { Target = readTarget r
           Path = readPath r
           Identity = readIdentity r
           Length = r.ReadInt64()
-          Sha256 =
-            if version >= 5 then
-                readOption readText r
-            else
-                Some(r.ReadString())
-          Backing = if version >= 2 then readOption readBacking r else None }
+          Sha256 = readOption readText r
+          Backing = readOption readBacking r }
 
     let private savedMod (w: BinaryWriter) (value: SavedMod) =
         guid w value.ModId
@@ -245,27 +230,16 @@ module internal DeploymentGenerationEncoding =
 
         option provenance w v.Provenance
 
-    let readGeneration version (r: BinaryReader) : Generation =
+    let readGeneration (r: BinaryReader) : Generation =
         { Id = readGuid r
           PlanFingerprint = r.ReadString()
           Directory = readLocation r
-          Files = readList (readFile version) r
+          Files = readList readFile r
           References = readList readSource r
           Writable = readList readWritable r
           Roots = readList readRoot r
-          Observed =
-            if version >= 2 then
-                readList (readObserved version) r
-            else
-                []
-          Working =
-            if version >= 2 then
-                readList (readWorking version) r
-            else
-                []
+          Observed = readList readObserved r
+          Working = readList readWorking r
           NativeTargets =
-            if version >= 3 then
-                readList (fun r -> let key = readTarget r in key, readPath r) r |> Map.ofList
-            else
-                Map.empty
-          Provenance = if version >= 4 then readOption readProvenance r else None }
+            readList (fun r -> let key = readTarget r in key, readPath r) r |> Map.ofList
+          Provenance = readOption readProvenance r }

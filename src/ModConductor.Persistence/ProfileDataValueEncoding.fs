@@ -146,10 +146,7 @@ module internal ProfileDataValueEncoding =
         { Profile = readArchivePatch reader
           Documents = readOption readArchivePatch reader }
 
-    let sourceStamp
-        (writer: BinaryWriter)
-        (value: ModConductor.FilePlanning.SourceStamp)
-        =
+    let sourceStamp (writer: BinaryWriter) (value: ModConductor.FilePlanning.SourceStamp) =
         guid writer value.WorkspaceId
         guid writer value.ProfileId
         writer.Write value.SelectionRevision
@@ -173,10 +170,7 @@ module internal ProfileDataValueEncoding =
           ContextRevision = reader.ReadInt64()
           ExclusionRevision = reader.ReadInt64()
           OutputRevision = reader.ReadInt64()
-          Versions =
-            readList
-                (fun reader -> readGuid reader, readOption readGuid reader)
-                reader
+          Versions = readList (fun reader -> readGuid reader, readOption readGuid reader) reader
           Deployment = readOption readText reader }
 
     let original writer (value: GlobalIni) =
@@ -246,22 +240,18 @@ module internal ProfileDataValueEncoding =
         option identity writer value.SaveLink
         option appliedPlugins writer value.Plugins
 
-    let readApplied version reader : AppliedProfileData =
+    let readApplied reader : AppliedProfileData =
         { ProfileId = readGuid reader
           Options = readOptions reader
           Originals = readList readOriginal reader
           SaveOverride = readOption readPatch reader
           SaveLink = readOption readIdentity reader
-          Plugins =
-            if version >= 2 then
-                readOption readAppliedPlugins reader
-            else
-                None }
+          Plugins = readOption readAppliedPlugins reader }
 
     let encode write value =
         use stream = new MemoryStream()
         use writer = new BinaryWriter(stream, UTF8Encoding(false, true), true)
-        writer.Write 5
+        writer.Write 1
         write writer value
         writer.Flush()
 
@@ -277,12 +267,10 @@ module internal ProfileDataValueEncoding =
         use stream = new MemoryStream(bytes, false)
         use reader = new BinaryReader(stream, UTF8Encoding(false, true), true)
 
-        let version = reader.ReadInt32()
+        if reader.ReadInt32() <> 1 then
+            raise (InvalidDataException "The profile settings record version is unsupported.")
 
-        if version <> 1 && version <> 2 && version <> 3 && version <> 4 && version <> 5 then
-            invalid ()
-
-        let value = read version reader
+        let value = read reader
 
         if stream.Position <> stream.Length then
             invalid ()

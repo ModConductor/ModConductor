@@ -51,12 +51,6 @@ do not add supported Mod Conductor platforms.
 | file_selector_web | 0.9.5 | [BSD-3-Clause](third-party/file_selector_web-LICENSE.txt) |
 
 
-## Synthetic storage fixture
-
-`tests/fixtures/state-v1.db` contains a synthetic runtime result created through
-the earlier native store. Its source and database hashes are recorded beside it.
-It contains no user data or credentials.
-
 ## Investigation references — not adopted material
 
 - MO2 feature/source investigation baseline:

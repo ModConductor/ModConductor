@@ -74,38 +74,105 @@ module StorageFixtures =
             )
 
         writer.WriteStartObject("storage")
-        let state, root, id = area "migration"
-
-        File.Copy(
-            Path.Combine(AppContext.BaseDirectory, "fixtures", "state-v1.db"),
-            Path.Combine(state, "state.db")
-        )
-
-        writer.WriteStartObject("migration")
-        writer.WriteNumber("before", number state "PRAGMA user_version")
-        use migrating = worker "migration" state root id
-        migrating.Line() |> ignore
-        migrating.Terminate()
-        writer.WriteNumber("afterInterruption", number state "PRAGMA user_version")
-
-        writer.WriteNumber(
-            "committedRows",
-            number state "SELECT count(*) FROM operations WHERE phase=2 AND result_revision=1"
-        )
-
-        writer.WriteNumber(
-            "partialTables",
-            number state "SELECT count(*) FROM sqlite_master WHERE name='workspace_roots'"
-        )
+        writer.WriteStartObject("schema")
+        let state, _, _ = area "schema"
 
         do
             use store = new OperationStore(state)
-            let replay = StorageWorker.runtime store "11111111-1111-1111-1111-111111111111" 0L
-            writer.WriteNumber("replayRevision", replay.ResultRevision)
-            writer.WriteString("sqliteVersion", store.SqliteVersion)
+            StorageWorker.runtime store "11111111-1111-1111-1111-111111111111" 0L |> ignore
 
-        writer.WriteNumber("afterUpgrade", number state "PRAGMA user_version")
+        writer.WriteNumber("version", number state "PRAGMA user_version")
+        writer.WriteNumber("applicationId", number state "PRAGMA application_id")
+
+        writer.WriteNumber(
+            "tables",
+            number
+                state
+                "SELECT count(*) FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
+        )
+
+        writer.WriteNumber(
+            "indexes",
+            number
+                state
+                "SELECT count(*) FROM sqlite_master WHERE type='index' AND name NOT LIKE 'sqlite_%'"
+        )
+
+        writer.WriteNumber(
+            "triggers",
+            number
+                state
+                "SELECT count(*) FROM sqlite_master WHERE type='trigger' AND name NOT LIKE 'sqlite_%'"
+        )
+
+        writer.WriteNumber(
+            "foreignKeyFailures",
+            number state "SELECT count(*) FROM pragma_foreign_key_check"
+        )
+
+        let interrupted, _, _ = area "schema-interrupted"
+        let mutable rolledBack = false
+
+        do
+            use connection =
+                new SqliteConnection(
+                    "Data Source=" + Path.Combine(interrupted, "state.db") + ";Pooling=False"
+                )
+
+            connection.Open()
+
+            try
+                Sqlite.initializeAtCommit connection (fun () -> invalidOp "Stop before commit.")
+            with :? InvalidOperationException ->
+                rolledBack <- true
+
+        writer.WriteBoolean(
+            "initializationRollback",
+            rolledBack
+            && number interrupted "PRAGMA user_version" = 0L
+            && number
+                interrupted
+                "SELECT count(*) FROM sqlite_master WHERE name NOT LIKE 'sqlite_%'" = 0L
+        )
+
+        let unsupported, _, _ = area "schema-unsupported"
+
+        do
+            use connection =
+                new SqliteConnection(
+                    "Data Source=" + Path.Combine(unsupported, "state.db") + ";Pooling=False"
+                )
+
+            connection.Open()
+
+            Sqlite.execute
+                connection
+                null
+                "CREATE TABLE development_state(value INTEGER); INSERT INTO development_state VALUES(42); PRAGMA user_version=1;"
+                []
+
+        let mutable resetInstruction = false
+
+        try
+            use _ = new OperationStore(unsupported)
+            ()
+        with :? InvalidOperationException as error ->
+            resetInstruction <- error.Message.Contains("Delete the Mod Conductor state directory")
+
+        writer.WriteBoolean(
+            "unsupportedRefused",
+            resetInstruction
+            && number unsupported "PRAGMA user_version" = 1L
+            && number unsupported "SELECT value FROM development_state" = 42L
+            && number unsupported "SELECT count(*) FROM sqlite_master WHERE name='operation_state'" = 0L
+        )
+
+        do
+            use _ = new OperationStore(state)
+            writer.WriteBoolean("restartCurrent", true)
+
         writer.WriteEndObject()
+        PersistenceEncodingFixtures.observe writer
 
         writer.WriteStartObject("lifecycle")
         let state, root, id = area "lifecycle"

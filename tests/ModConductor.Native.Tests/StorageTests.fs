@@ -14,19 +14,35 @@ type StorageTests() =
     let flag (value: JsonElement) (name: string) = value.GetProperty(name).GetBoolean()
 
     [<Test>]
-    member _.``interrupted schema migration should preserve the old committed state and upgrade on restart``
+    member _.``persisted values should reject every development version marker``() =
+        let codecs = field "codecVersions"
+
+        for name in
+            [ "deploymentContext"
+              "deploymentReceipt"
+              "deploymentGeneration"
+              "executablePreset"
+              "executableRun"
+              "outputAction"
+              "profileContext"
+              "profile"
+              "profileAction" ] do
+            flag codecs name |> should equal true
+
+    [<Test>]
+    member _.``empty state should create the complete first release schema atomically and refuse development databases``
         ()
         =
-        let migration = field "migration"
-        number migration "before" |> should equal 1L
-        number migration "afterInterruption" |> should equal 1L
-        number migration "partialTables" |> should equal 0L
-        number migration "committedRows" |> should equal 1L
-
-        number migration "afterUpgrade"
-        |> should be (greaterThan (number migration "before"))
-
-        number migration "replayRevision" |> should equal 1L
+        let schema = field "schema"
+        number schema "version" |> should equal 1L
+        number schema "applicationId" |> should equal 1296253774L
+        number schema "tables" |> should equal 72L
+        number schema "indexes" |> should equal 23L
+        number schema "triggers" |> should equal 2L
+        number schema "foreignKeyFailures" |> should equal 0L
+        flag schema "initializationRollback" |> should equal true
+        flag schema "unsupportedRefused" |> should equal true
+        flag schema "restartCurrent" |> should equal true
 
     [<Test>]
     member _.``stale root revisions should fail while completed creation replays unchanged across restart``

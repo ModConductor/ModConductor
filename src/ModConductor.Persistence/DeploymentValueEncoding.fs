@@ -196,7 +196,7 @@ module internal DeploymentValueEncoding =
         option guid w v.Pending
         list ownedDirectory w v.Directories
 
-    let readContext version (r: BinaryReader) : Context =
+    let readContext (r: BinaryReader) : Context =
         { Id = readGuid r
           Fingerprint = r.ReadString()
           Roots = readList readBinding r
@@ -205,4 +205,4 @@ module internal DeploymentValueEncoding =
           Links = readList readLink r
           Originals = readList readOriginal r
           Pending = readOption readGuid r
-          Directories = if version >= 2 then readList readOwnedDirectory r else [] }
+          Directories = readList readOwnedDirectory r }

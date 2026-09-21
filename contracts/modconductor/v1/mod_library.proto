@@ -40,9 +40,7 @@ enum InventoryModAction {
 message ModCategoryReference { string category_id = 1; string label = 2; bool missing = 3; }
 message InventoryModMetadata {
   string name = 1; string notes = 2; string comment = 3; string version = 4; string source = 5;
-  reserved 6;
-  reserved "category";
-  repeated ModCategoryReference categories = 7;
+  repeated ModCategoryReference categories = 6;
 }
 message InventoryMod {
   string mod_id = 1; string workspace_id = 2; InventoryModKind kind = 3;

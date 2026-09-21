@@ -486,7 +486,8 @@ module GeneratedOutputFixtures =
 
             check "discardedSlotIsNotReseeded" (not (File.Exists slot.PhysicalPath))
             outputs.StopUsing(slot.Id, slot.Revision) |> wait |> result |> ignore
-            let saved = store.Deployments.Read other |> wait |> result
+
+            let saved = store.Deployments.Read profile |> wait |> result
 
             let restore =
                 store.Deployments.PrepareRetained(
@@ -509,7 +510,7 @@ module GeneratedOutputFixtures =
                 (not (File.Exists slot.PhysicalPath)
                  && File.ReadAllText(Path.Combine(game, "Data", "result.txt")) = "new output")
 
-            let final = store.Deployments.Read other |> wait |> result
+            let final = store.Deployments.Read profile |> wait |> result
 
             let deactivate =
                 store.Deployments.PrepareRetained(
@@ -535,7 +536,9 @@ module GeneratedOutputFixtures =
             if OperatingSystem.IsLinux() then
                 let contexts = store.GameContexts :> IGameContexts
                 let before = contexts.Read(workspace, profile) |> wait |> result
-                let refreshed = contexts.Refresh(workspace, profile, before.Revision) |> wait |> result
+
+                let refreshed =
+                    contexts.Refresh(workspace, profile, before.Revision) |> wait |> result
 
                 check
                     "explicitRefreshReplacesSessionSnapshot"
@@ -567,7 +570,7 @@ module GeneratedOutputFixtures =
                 "publicationResultSurvivesRestart"
                 (action.Published && action.Complete && action.VersionId = Some versionId)
 
-            let saved = reopened.Deployments.Saved(other, None) |> wait |> result
+            let saved = reopened.Deployments.Saved(profile, None) |> wait |> result
 
             check
                 "savedRecipeSurvivesRestart"
@@ -589,7 +592,9 @@ module GeneratedOutputFixtures =
                     true
 
             check "restartRequiresSessionCheck" (context.Binding.Value.NeedsCheck && refused)
-            let initialized = contexts.Refresh(workspace, profile, context.Revision) |> wait |> result
+
+            let initialized =
+                contexts.Refresh(workspace, profile, context.Revision) |> wait |> result
 
             check
                 "restartRefreshReadsCurrentDiscovery"
@@ -598,7 +603,7 @@ module GeneratedOutputFixtures =
                      || initialized.Binding.Value.Evidence.Proton.Value.GlobalTool = Some
                          "next_session_tool"))
 
-            let current = reopened.Deployments.Read other |> wait |> result
+            let current = reopened.Deployments.Read profile |> wait |> result
 
             let restored =
                 reopened.Deployments.PrepareRetained(
@@ -631,7 +636,7 @@ module GeneratedOutputFixtures =
                      | SelectionState.Managed(_, false) -> true
                      | _ -> false))
 
-            let current = reopened.Deployments.Read other |> wait |> result
+            let current = reopened.Deployments.Read profile |> wait |> result
 
             let deactivated =
                 reopened.Deployments.PrepareRetained(

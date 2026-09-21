@@ -41,10 +41,3 @@ type SelectionTests() =
         flag "restartPreserves" |> should equal true
         flag "beforeCommit" |> should equal true
         flag "afterCommit" |> should equal true
-
-    [<Test>]
-    member _.``v4 migration should initialize profiles without losing metadata across interruption``
-        ()
-        =
-        flag "migrationRollback" |> should equal true
-        flag "migrationPreserves" |> should equal true

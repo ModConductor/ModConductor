@@ -141,13 +141,13 @@ module internal DeploymentEncoding =
         w.Write v.Detail
         list parentChange w v.Parents
 
-    let private readReceipt version (r: BinaryReader) : Receipt =
+    let private readReceipt (r: BinaryReader) : Receipt =
         { Id = readGuid r
           Model =
             (match r.ReadInt32() with
              | 1 -> DeploymentModel.SymbolicLinkGeneration
              | _ -> corrupt ())
-          Context = readContext version r
+          Context = readContext r
           Proposed = readGuid r
           Previous = readOption readGuid r
           PlanFingerprint = r.ReadString()
@@ -156,12 +156,12 @@ module internal DeploymentEncoding =
           Changes = readList readChange r
           Originals = readList readOriginal r
           Detail = r.ReadString()
-          Parents = if version >= 2 then readList readParentChange r else [] }
+          Parents = readList readParentChange r }
 
-    let private encode version write value =
+    let private encode write value =
         use stream = new MemoryStream()
         use writer = new BinaryWriter(stream, UTF8Encoding(false, true), true)
-        writer.Write(version: int)
+        writer.Write(1: int)
         write writer value
         writer.Flush()
 
@@ -178,12 +178,14 @@ module internal DeploymentEncoding =
             use stream = new MemoryStream(bytes, false)
             use reader = new BinaryReader(stream, UTF8Encoding(false, true))
 
-            let version = reader.ReadInt32()
+            if reader.ReadInt32() <> 1 then
+                raise (
+                    RecoveryException(
+                        RecoveryError.Corrupt "The activation record version is unsupported."
+                    )
+                )
 
-            if version < 1 || version > 5 then
-                corrupt ()
-
-            let value = read version reader
+            let value = read reader
 
             if stream.Position <> stream.Length then
                 corrupt ()
@@ -195,16 +197,12 @@ module internal DeploymentEncoding =
         | :? FormatException
         | :? OverflowException -> corrupt ()
 
-    let contextBytes value = encode 2 context value
-    let receiptBytes value = encode 2 receipt value
-    let generationBytes value = encode 5 generation value
+    let contextBytes value = encode context value
+    let receiptBytes value = encode receipt value
+    let generationBytes value = encode generation value
 
-    let contextFrom bytes =
-        decode (fun version r -> if version > 2 then corrupt () else readContext version r) bytes
-
-    let receiptFrom bytes =
-        decode (fun version r -> if version > 2 then corrupt () else readReceipt version r) bytes
-
+    let contextFrom bytes = decode readContext bytes
+    let receiptFrom bytes = decode readReceipt bytes
     let generationFrom bytes = decode readGeneration bytes
 
     let hash (bytes: byte[]) =

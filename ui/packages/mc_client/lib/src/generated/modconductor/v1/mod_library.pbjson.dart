@@ -169,26 +169,21 @@ const InventoryModMetadata$json = {
     {'1': 'source', '3': 5, '4': 1, '5': 9, '10': 'source'},
     {
       '1': 'categories',
-      '3': 7,
+      '3': 6,
       '4': 3,
       '5': 11,
       '6': '.modconductor.v1.ModCategoryReference',
       '10': 'categories'
     },
   ],
-  '9': [
-    {'1': 6, '2': 7},
-  ],
-  '10': ['category'],
 };
 
 /// Descriptor for `InventoryModMetadata`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List inventoryModMetadataDescriptor = $convert.base64Decode(
     'ChRJbnZlbnRvcnlNb2RNZXRhZGF0YRISCgRuYW1lGAEgASgJUgRuYW1lEhQKBW5vdGVzGAIgAS'
     'gJUgVub3RlcxIYCgdjb21tZW50GAMgASgJUgdjb21tZW50EhgKB3ZlcnNpb24YBCABKAlSB3Zl'
-    'cnNpb24SFgoGc291cmNlGAUgASgJUgZzb3VyY2USRQoKY2F0ZWdvcmllcxgHIAMoCzIlLm1vZG'
-    'NvbmR1Y3Rvci52MS5Nb2RDYXRlZ29yeVJlZmVyZW5jZVIKY2F0ZWdvcmllc0oECAYQB1IIY2F0'
-    'ZWdvcnk=');
+    'cnNpb24SFgoGc291cmNlGAUgASgJUgZzb3VyY2USRQoKY2F0ZWdvcmllcxgGIAMoCzIlLm1vZG'
+    'NvbmR1Y3Rvci52MS5Nb2RDYXRlZ29yeVJlZmVyZW5jZVIKY2F0ZWdvcmllcw==');
 
 @$core.Deprecated('Use inventoryModDescriptor instead')
 const InventoryMod$json = {

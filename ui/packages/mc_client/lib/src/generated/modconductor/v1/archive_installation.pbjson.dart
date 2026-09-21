@@ -157,7 +157,7 @@ const ArchiveInstallationDraft$json = {
     {'1': 'can_install', '3': 10, '4': 1, '5': 8, '10': 'canInstall'},
     {
       '1': 'installer',
-      '3': 12,
+      '3': 11,
       '4': 1,
       '5': 14,
       '6': '.modconductor.v1.ArchiveInstaller',
@@ -165,16 +165,13 @@ const ArchiveInstallationDraft$json = {
     },
     {
       '1': 'available_installers',
-      '3': 13,
+      '3': 12,
       '4': 3,
       '5': 14,
       '6': '.modconductor.v1.ArchiveInstaller',
       '10': 'availableInstallers'
     },
-    {'1': 'wizard_scripts', '3': 14, '4': 3, '5': 9, '10': 'wizardScripts'},
-  ],
-  '9': [
-    {'1': 11, '2': 12},
+    {'1': 'wizard_scripts', '3': 13, '4': 3, '5': 9, '10': 'wizardScripts'},
   ],
 };
 
@@ -188,10 +185,10 @@ final $typed_data.Uint8List archiveInstallationDraftDescriptor = $convert.base64
     'IEcm9vdBI3CgVmaWxlcxgGIAMoCzIhLm1vZGNvbmR1Y3Rvci52MS5JbnN0YWxsYXRpb25GaWxl'
     'UgVmaWxlcxISCgRuYW1lGAcgASgJUgRuYW1lEhgKB3ZlcnNpb24YCCABKAlSB3ZlcnNpb24SFA'
     'oFYnl0ZXMYCSABKARSBWJ5dGVzEh8KC2Nhbl9pbnN0YWxsGAogASgIUgpjYW5JbnN0YWxsEj8K'
-    'CWluc3RhbGxlchgMIAEoDjIhLm1vZGNvbmR1Y3Rvci52MS5BcmNoaXZlSW5zdGFsbGVyUglpbn'
-    'N0YWxsZXISVAoUYXZhaWxhYmxlX2luc3RhbGxlcnMYDSADKA4yIS5tb2Rjb25kdWN0b3IudjEu'
+    'CWluc3RhbGxlchgLIAEoDjIhLm1vZGNvbmR1Y3Rvci52MS5BcmNoaXZlSW5zdGFsbGVyUglpbn'
+    'N0YWxsZXISVAoUYXZhaWxhYmxlX2luc3RhbGxlcnMYDCADKA4yIS5tb2Rjb25kdWN0b3IudjEu'
     'QXJjaGl2ZUluc3RhbGxlclITYXZhaWxhYmxlSW5zdGFsbGVycxIlCg53aXphcmRfc2NyaXB0cx'
-    'gOIAMoCVINd2l6YXJkU2NyaXB0c0oECAsQDA==');
+    'gNIAMoCVINd2l6YXJkU2NyaXB0cw==');
 
 @$core.Deprecated('Use installationRootDescriptor instead')
 const InstallationRoot$json = {

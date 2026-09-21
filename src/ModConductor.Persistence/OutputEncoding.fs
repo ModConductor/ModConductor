@@ -200,7 +200,7 @@ module internal OutputEncoding =
     let encode (value: OutputActionRecord) =
         use stream = new MemoryStream()
         use w = new BinaryWriter(stream, Encoding.UTF8, true)
-        w.Write 2
+        w.Write 1
         guid w value.Id
         guid w value.SnapshotId
         guid w value.Scope.WorkspaceId
@@ -238,17 +238,15 @@ module internal OutputEncoding =
         use stream = new MemoryStream(bytes, false)
         use r = new BinaryReader(stream, Encoding.UTF8, true)
 
-        let version = r.ReadInt32()
-
-        if version <> 1 && version <> 2 then
-            invalid ()
+        if r.ReadInt32() <> 1 then
+            raise (InvalidDataException "The output action record version is unsupported.")
 
         let id = readGuid r
         let snapshot = readGuid r
 
         let scope =
             { WorkspaceId = readGuid r
-              ProfileId = if version = 2 then readGuid r else Guid.Empty
+              ProfileId = readGuid r
               ContextId = readGuid r
               Revision = r.ReadInt64()
               ContextRevision = r.ReadInt64()

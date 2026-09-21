@@ -33,7 +33,7 @@ namespace ModConductor.Protocol.V1 {
             "EhQKDHdvcmtzcGFjZV9pZBgBIAEoCSI5ChVJbnN0YWxsYXRpb25SZWZlcmVu",
             "Y2USFAoMd29ya3NwYWNlX2lkGAEgASgJEgoKAmlkGAIgASgJIjYKEEluc3Rh",
             "bGxhdGlvbkZpbGUSDQoFaW5kZXgYASABKA0SEwoLZGVzdGluYXRpb24YAiAD",
-            "KAki8wMKGEFyY2hpdmVJbnN0YWxsYXRpb25EcmFmdBI+CglyZWZlcmVuY2UY",
+            "KAki7QMKGEFyY2hpdmVJbnN0YWxsYXRpb25EcmFmdBI+CglyZWZlcmVuY2UY",
             "ASABKAsyKy5tb2Rjb25kdWN0b3IudjEuSW5zdGFsbGF0aW9uRHJhZnRSZWZl",
             "cmVuY2USNAoIYXJ0aWZhY3QYAiABKAsyIi5tb2Rjb25kdWN0b3IudjEuQXJ0",
             "aWZhY3RSZWZlcmVuY2USFAoMYXJjaGl2ZV9uYW1lGAMgASgJEjMKCG1hbmlm",
@@ -41,62 +41,62 @@ namespace ModConductor.Protocol.V1 {
             "DAoEcm9vdBgFIAMoCRIwCgVmaWxlcxgGIAMoCzIhLm1vZGNvbmR1Y3Rvci52",
             "MS5JbnN0YWxsYXRpb25GaWxlEgwKBG5hbWUYByABKAkSDwoHdmVyc2lvbhgI",
             "IAEoCRINCgVieXRlcxgJIAEoBBITCgtjYW5faW5zdGFsbBgKIAEoCBI0Cglp",
-            "bnN0YWxsZXIYDCABKA4yIS5tb2Rjb25kdWN0b3IudjEuQXJjaGl2ZUluc3Rh",
-            "bGxlchI/ChRhdmFpbGFibGVfaW5zdGFsbGVycxgNIAMoDjIhLm1vZGNvbmR1",
-            "Y3Rvci52MS5BcmNoaXZlSW5zdGFsbGVyEhYKDndpemFyZF9zY3JpcHRzGA4g",
-            "AygJSgQICxAMIiYKEEluc3RhbGxhdGlvblJvb3QSEgoKY29tcG9uZW50cxgB",
-            "IAMoCSI5ChVJbnN0YWxsYXRpb25JbmNsdXNpb24SDgoGc291cmNlGAEgAygJ",
-            "EhAKCGluY2x1ZGVkGAIgASgIIj4KF0luc3RhbGxhdGlvbkRlc3RpbmF0aW9u",
-            "Eg4KBnNvdXJjZRgBIAMoCRITCgtkZXN0aW5hdGlvbhgCIAMoCSI1ChRJbnN0",
-            "YWxsYXRpb25NZXRhZGF0YRIMCgRuYW1lGAEgASgJEg8KB3ZlcnNpb24YAiAB",
-            "KAki0AIKGEluc3RhbGxhdGlvbkxheW91dENoYW5nZRI+CglyZWZlcmVuY2UY",
-            "ASABKAsyKy5tb2Rjb25kdWN0b3IudjEuSW5zdGFsbGF0aW9uRHJhZnRSZWZl",
-            "cmVuY2USMQoEcm9vdBgCIAEoCzIhLm1vZGNvbmR1Y3Rvci52MS5JbnN0YWxs",
-            "YXRpb25Sb290SAASOwoJaW5jbHVzaW9uGAMgASgLMiYubW9kY29uZHVjdG9y",
-            "LnYxLkluc3RhbGxhdGlvbkluY2x1c2lvbkgAEj8KC2Rlc3RpbmF0aW9uGAQg",
-            "ASgLMigubW9kY29uZHVjdG9yLnYxLkluc3RhbGxhdGlvbkRlc3RpbmF0aW9u",
-            "SAASOQoIbWV0YWRhdGEYBSABKAsyJS5tb2Rjb25kdWN0b3IudjEuSW5zdGFs",
-            "bGF0aW9uTWV0YWRhdGFIAEIICgZjaGFuZ2UiYgoYU3RhcnRBcmNoaXZlSW5z",
-            "dGFsbGF0aW9uEjoKBWRyYWZ0GAEgASgLMisubW9kY29uZHVjdG9yLnYxLklu",
-            "c3RhbGxhdGlvbkRyYWZ0UmVmZXJlbmNlEgoKAmlkGAIgASgJIrEDChlBcmNo",
-            "aXZlSW5zdGFsbGF0aW9uU3RhdHVzEgoKAmlkGAEgASgJEhQKDHdvcmtzcGFj",
-            "ZV9pZBgCIAEoCRITCgthcnRpZmFjdF9pZBgDIAEoCRIUCgxhcmNoaXZlX25h",
-            "bWUYBCABKAkSDAoEbmFtZRgFIAEoCRIPCgd2ZXJzaW9uGAYgASgJEjEKBXBo",
-            "YXNlGAcgASgOMiIubW9kY29uZHVjdG9yLnYxLkluc3RhbGxhdGlvblBoYXNl",
-            "Eg0KBWZpbGVzGAggASgNEhMKC3RvdGFsX2ZpbGVzGAkgASgNEg0KBWJ5dGVz",
-            "GAogASgEEhMKC3RvdGFsX2J5dGVzGAsgASgEEhQKB3Byb2JsZW0YDCABKAlI",
-            "AIgBARITCgZtb2RfaWQYDSABKAlIAYgBARIXCgp2ZXJzaW9uX2lkGA4gASgJ",
-            "SAKIAQESHAoPdGVtcG9yYXJ5X2J5dGVzGA8gASgESAOIAQESEQoJaXNfdXBk",
-            "YXRlGBAgASgIQgoKCF9wcm9ibGVtQgkKB19tb2RfaWRCDQoLX3ZlcnNpb25f",
-            "aWRCEgoQX3RlbXBvcmFyeV9ieXRlcyJWChdBcmNoaXZlSW5zdGFsbGF0aW9u",
-            "TGlzdBI7CgdlbnRyaWVzGAEgAygLMioubW9kY29uZHVjdG9yLnYxLkFyY2hp",
-            "dmVJbnN0YWxsYXRpb25TdGF0dXMqlgEKEUluc3RhbGxhdGlvblBoYXNlEh4K",
-            "GklOU1RBTExBVElPTl9QSEFTRV9SVU5OSU5HEAASHgoaSU5TVEFMTEFUSU9O",
-            "X1BIQVNFX1NUT1BQRUQQARIfChtJTlNUQUxMQVRJT05fUEhBU0VfQ09NUExF",
-            "VEUQAhIgChxJTlNUQUxMQVRJT05fUEhBU0VfRElTQ0FSREVEEAMqaQoQQXJj",
-            "aGl2ZUluc3RhbGxlchIcChhBUkNISVZFX0lOU1RBTExFUl9NQU5VQUwQABIb",
-            "ChdBUkNISVZFX0lOU1RBTExFUl9GT01PRBABEhoKFkFSQ0hJVkVfSU5TVEFM",
-            "TEVSX0JBSU4QAjL3BgoTQXJjaGl2ZUluc3RhbGxhdGlvbhJkChNQcmVwYXJl",
-            "SW5zdGFsbGF0aW9uEiIubW9kY29uZHVjdG9yLnYxLkFydGlmYWN0UmVmZXJl",
-            "bmNlGikubW9kY29uZHVjdG9yLnYxLkFyY2hpdmVJbnN0YWxsYXRpb25EcmFm",
-            "dBJwChhDaGFuZ2VJbnN0YWxsYXRpb25MYXlvdXQSKS5tb2Rjb25kdWN0b3Iu",
-            "djEuSW5zdGFsbGF0aW9uTGF5b3V0Q2hhbmdlGikubW9kY29uZHVjdG9yLnYx",
-            "LkFyY2hpdmVJbnN0YWxsYXRpb25EcmFmdBJvChZDbG9zZUluc3RhbGxhdGlv",
-            "bkRyYWZ0EisubW9kY29uZHVjdG9yLnYxLkluc3RhbGxhdGlvbkRyYWZ0UmVm",
-            "ZXJlbmNlGigubW9kY29uZHVjdG9yLnYxLkluc3RhbGxhdGlvbkRyYWZ0Q2xv",
-            "c2VkEmoKEVN0YXJ0SW5zdGFsbGF0aW9uEikubW9kY29uZHVjdG9yLnYxLlN0",
-            "YXJ0QXJjaGl2ZUluc3RhbGxhdGlvbhoqLm1vZGNvbmR1Y3Rvci52MS5BcmNo",
-            "aXZlSW5zdGFsbGF0aW9uU3RhdHVzEmcKE1JlY2VudEluc3RhbGxhdGlvbnMS",
-            "Ji5tb2Rjb25kdWN0b3IudjEuSW5zdGFsbGF0aW9uV29ya3NwYWNlGigubW9k",
-            "Y29uZHVjdG9yLnYxLkFyY2hpdmVJbnN0YWxsYXRpb25MaXN0EmkKEVdhdGNo",
-            "SW5zdGFsbGF0aW9uEiYubW9kY29uZHVjdG9yLnYxLkluc3RhbGxhdGlvblJl",
-            "ZmVyZW5jZRoqLm1vZGNvbmR1Y3Rvci52MS5BcmNoaXZlSW5zdGFsbGF0aW9u",
-            "U3RhdHVzMAESaAoSQ2FuY2VsSW5zdGFsbGF0aW9uEiYubW9kY29uZHVjdG9y",
-            "LnYxLkluc3RhbGxhdGlvblJlZmVyZW5jZRoqLm1vZGNvbmR1Y3Rvci52MS5B",
-            "cmNoaXZlSW5zdGFsbGF0aW9uU3RhdHVzEm0KF0RlbGV0ZUluc3RhbGxhdGlv",
-            "bkZpbGVzEiYubW9kY29uZHVjdG9yLnYxLkluc3RhbGxhdGlvblJlZmVyZW5j",
+            "bnN0YWxsZXIYCyABKA4yIS5tb2Rjb25kdWN0b3IudjEuQXJjaGl2ZUluc3Rh",
+            "bGxlchI/ChRhdmFpbGFibGVfaW5zdGFsbGVycxgMIAMoDjIhLm1vZGNvbmR1",
+            "Y3Rvci52MS5BcmNoaXZlSW5zdGFsbGVyEhYKDndpemFyZF9zY3JpcHRzGA0g",
+            "AygJIiYKEEluc3RhbGxhdGlvblJvb3QSEgoKY29tcG9uZW50cxgBIAMoCSI5",
+            "ChVJbnN0YWxsYXRpb25JbmNsdXNpb24SDgoGc291cmNlGAEgAygJEhAKCGlu",
+            "Y2x1ZGVkGAIgASgIIj4KF0luc3RhbGxhdGlvbkRlc3RpbmF0aW9uEg4KBnNv",
+            "dXJjZRgBIAMoCRITCgtkZXN0aW5hdGlvbhgCIAMoCSI1ChRJbnN0YWxsYXRp",
+            "b25NZXRhZGF0YRIMCgRuYW1lGAEgASgJEg8KB3ZlcnNpb24YAiABKAki0AIK",
+            "GEluc3RhbGxhdGlvbkxheW91dENoYW5nZRI+CglyZWZlcmVuY2UYASABKAsy",
+            "Ky5tb2Rjb25kdWN0b3IudjEuSW5zdGFsbGF0aW9uRHJhZnRSZWZlcmVuY2US",
+            "MQoEcm9vdBgCIAEoCzIhLm1vZGNvbmR1Y3Rvci52MS5JbnN0YWxsYXRpb25S",
+            "b290SAASOwoJaW5jbHVzaW9uGAMgASgLMiYubW9kY29uZHVjdG9yLnYxLklu",
+            "c3RhbGxhdGlvbkluY2x1c2lvbkgAEj8KC2Rlc3RpbmF0aW9uGAQgASgLMigu",
+            "bW9kY29uZHVjdG9yLnYxLkluc3RhbGxhdGlvbkRlc3RpbmF0aW9uSAASOQoI",
+            "bWV0YWRhdGEYBSABKAsyJS5tb2Rjb25kdWN0b3IudjEuSW5zdGFsbGF0aW9u",
+            "TWV0YWRhdGFIAEIICgZjaGFuZ2UiYgoYU3RhcnRBcmNoaXZlSW5zdGFsbGF0",
+            "aW9uEjoKBWRyYWZ0GAEgASgLMisubW9kY29uZHVjdG9yLnYxLkluc3RhbGxh",
+            "dGlvbkRyYWZ0UmVmZXJlbmNlEgoKAmlkGAIgASgJIrEDChlBcmNoaXZlSW5z",
+            "dGFsbGF0aW9uU3RhdHVzEgoKAmlkGAEgASgJEhQKDHdvcmtzcGFjZV9pZBgC",
+            "IAEoCRITCgthcnRpZmFjdF9pZBgDIAEoCRIUCgxhcmNoaXZlX25hbWUYBCAB",
+            "KAkSDAoEbmFtZRgFIAEoCRIPCgd2ZXJzaW9uGAYgASgJEjEKBXBoYXNlGAcg",
+            "ASgOMiIubW9kY29uZHVjdG9yLnYxLkluc3RhbGxhdGlvblBoYXNlEg0KBWZp",
+            "bGVzGAggASgNEhMKC3RvdGFsX2ZpbGVzGAkgASgNEg0KBWJ5dGVzGAogASgE",
+            "EhMKC3RvdGFsX2J5dGVzGAsgASgEEhQKB3Byb2JsZW0YDCABKAlIAIgBARIT",
+            "CgZtb2RfaWQYDSABKAlIAYgBARIXCgp2ZXJzaW9uX2lkGA4gASgJSAKIAQES",
+            "HAoPdGVtcG9yYXJ5X2J5dGVzGA8gASgESAOIAQESEQoJaXNfdXBkYXRlGBAg",
+            "ASgIQgoKCF9wcm9ibGVtQgkKB19tb2RfaWRCDQoLX3ZlcnNpb25faWRCEgoQ",
+            "X3RlbXBvcmFyeV9ieXRlcyJWChdBcmNoaXZlSW5zdGFsbGF0aW9uTGlzdBI7",
+            "CgdlbnRyaWVzGAEgAygLMioubW9kY29uZHVjdG9yLnYxLkFyY2hpdmVJbnN0",
+            "YWxsYXRpb25TdGF0dXMqlgEKEUluc3RhbGxhdGlvblBoYXNlEh4KGklOU1RB",
+            "TExBVElPTl9QSEFTRV9SVU5OSU5HEAASHgoaSU5TVEFMTEFUSU9OX1BIQVNF",
+            "X1NUT1BQRUQQARIfChtJTlNUQUxMQVRJT05fUEhBU0VfQ09NUExFVEUQAhIg",
+            "ChxJTlNUQUxMQVRJT05fUEhBU0VfRElTQ0FSREVEEAMqaQoQQXJjaGl2ZUlu",
+            "c3RhbGxlchIcChhBUkNISVZFX0lOU1RBTExFUl9NQU5VQUwQABIbChdBUkNI",
+            "SVZFX0lOU1RBTExFUl9GT01PRBABEhoKFkFSQ0hJVkVfSU5TVEFMTEVSX0JB",
+            "SU4QAjL3BgoTQXJjaGl2ZUluc3RhbGxhdGlvbhJkChNQcmVwYXJlSW5zdGFs",
+            "bGF0aW9uEiIubW9kY29uZHVjdG9yLnYxLkFydGlmYWN0UmVmZXJlbmNlGiku",
+            "bW9kY29uZHVjdG9yLnYxLkFyY2hpdmVJbnN0YWxsYXRpb25EcmFmdBJwChhD",
+            "aGFuZ2VJbnN0YWxsYXRpb25MYXlvdXQSKS5tb2Rjb25kdWN0b3IudjEuSW5z",
+            "dGFsbGF0aW9uTGF5b3V0Q2hhbmdlGikubW9kY29uZHVjdG9yLnYxLkFyY2hp",
+            "dmVJbnN0YWxsYXRpb25EcmFmdBJvChZDbG9zZUluc3RhbGxhdGlvbkRyYWZ0",
+            "EisubW9kY29uZHVjdG9yLnYxLkluc3RhbGxhdGlvbkRyYWZ0UmVmZXJlbmNl",
+            "GigubW9kY29uZHVjdG9yLnYxLkluc3RhbGxhdGlvbkRyYWZ0Q2xvc2VkEmoK",
+            "EVN0YXJ0SW5zdGFsbGF0aW9uEikubW9kY29uZHVjdG9yLnYxLlN0YXJ0QXJj",
+            "aGl2ZUluc3RhbGxhdGlvbhoqLm1vZGNvbmR1Y3Rvci52MS5BcmNoaXZlSW5z",
+            "dGFsbGF0aW9uU3RhdHVzEmcKE1JlY2VudEluc3RhbGxhdGlvbnMSJi5tb2Rj",
+            "b25kdWN0b3IudjEuSW5zdGFsbGF0aW9uV29ya3NwYWNlGigubW9kY29uZHVj",
+            "dG9yLnYxLkFyY2hpdmVJbnN0YWxsYXRpb25MaXN0EmkKEVdhdGNoSW5zdGFs",
+            "bGF0aW9uEiYubW9kY29uZHVjdG9yLnYxLkluc3RhbGxhdGlvblJlZmVyZW5j",
             "ZRoqLm1vZGNvbmR1Y3Rvci52MS5BcmNoaXZlSW5zdGFsbGF0aW9uU3RhdHVz",
-            "QhuqAhhNb2RDb25kdWN0b3IuUHJvdG9jb2wuVjFiBnByb3RvMw=="));
+            "MAESaAoSQ2FuY2VsSW5zdGFsbGF0aW9uEiYubW9kY29uZHVjdG9yLnYxLklu",
+            "c3RhbGxhdGlvblJlZmVyZW5jZRoqLm1vZGNvbmR1Y3Rvci52MS5BcmNoaXZl",
+            "SW5zdGFsbGF0aW9uU3RhdHVzEm0KF0RlbGV0ZUluc3RhbGxhdGlvbkZpbGVz",
+            "EiYubW9kY29uZHVjdG9yLnYxLkluc3RhbGxhdGlvblJlZmVyZW5jZRoqLm1v",
+            "ZGNvbmR1Y3Rvci52MS5BcmNoaXZlSW5zdGFsbGF0aW9uU3RhdHVzQhuqAhhN",
+            "b2RDb25kdWN0b3IuUHJvdG9jb2wuVjFiBnByb3RvMw=="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::ModConductor.Protocol.V1.ArtifactsReflection.Descriptor, global::ModConductor.Protocol.V1.ArchiveInspectionReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(new[] {typeof(global::ModConductor.Protocol.V1.InstallationPhase), typeof(global::ModConductor.Protocol.V1.ArchiveInstaller), }, null, new pbr::GeneratedClrTypeInfo[] {
@@ -1402,7 +1402,7 @@ namespace ModConductor.Protocol.V1 {
     }
 
     /// <summary>Field number for the "installer" field.</summary>
-    public const int InstallerFieldNumber = 12;
+    public const int InstallerFieldNumber = 11;
     private global::ModConductor.Protocol.V1.ArchiveInstaller installer_ = global::ModConductor.Protocol.V1.ArchiveInstaller.Manual;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
@@ -1414,9 +1414,9 @@ namespace ModConductor.Protocol.V1 {
     }
 
     /// <summary>Field number for the "available_installers" field.</summary>
-    public const int AvailableInstallersFieldNumber = 13;
+    public const int AvailableInstallersFieldNumber = 12;
     private static readonly pb::FieldCodec<global::ModConductor.Protocol.V1.ArchiveInstaller> _repeated_availableInstallers_codec
-        = pb::FieldCodec.ForEnum(106, x => (int) x, x => (global::ModConductor.Protocol.V1.ArchiveInstaller) x);
+        = pb::FieldCodec.ForEnum(98, x => (int) x, x => (global::ModConductor.Protocol.V1.ArchiveInstaller) x);
     private readonly pbc::RepeatedField<global::ModConductor.Protocol.V1.ArchiveInstaller> availableInstallers_ = new pbc::RepeatedField<global::ModConductor.Protocol.V1.ArchiveInstaller>();
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
@@ -1425,9 +1425,9 @@ namespace ModConductor.Protocol.V1 {
     }
 
     /// <summary>Field number for the "wizard_scripts" field.</summary>
-    public const int WizardScriptsFieldNumber = 14;
+    public const int WizardScriptsFieldNumber = 13;
     private static readonly pb::FieldCodec<string> _repeated_wizardScripts_codec
-        = pb::FieldCodec.ForString(114);
+        = pb::FieldCodec.ForString(106);
     private readonly pbc::RepeatedField<string> wizardScripts_ = new pbc::RepeatedField<string>();
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
@@ -1536,7 +1536,7 @@ namespace ModConductor.Protocol.V1 {
         output.WriteBool(CanInstall);
       }
       if (Installer != global::ModConductor.Protocol.V1.ArchiveInstaller.Manual) {
-        output.WriteRawTag(96);
+        output.WriteRawTag(88);
         output.WriteEnum((int) Installer);
       }
       availableInstallers_.WriteTo(output, _repeated_availableInstallers_codec);
@@ -1586,7 +1586,7 @@ namespace ModConductor.Protocol.V1 {
         output.WriteBool(CanInstall);
       }
       if (Installer != global::ModConductor.Protocol.V1.ArchiveInstaller.Manual) {
-        output.WriteRawTag(96);
+        output.WriteRawTag(88);
         output.WriteEnum((int) Installer);
       }
       availableInstallers_.WriteTo(ref output, _repeated_availableInstallers_codec);
@@ -1752,16 +1752,16 @@ namespace ModConductor.Protocol.V1 {
             CanInstall = input.ReadBool();
             break;
           }
-          case 96: {
+          case 88: {
             Installer = (global::ModConductor.Protocol.V1.ArchiveInstaller) input.ReadEnum();
             break;
           }
-          case 106:
-          case 104: {
+          case 98:
+          case 96: {
             availableInstallers_.AddEntriesFrom(input, _repeated_availableInstallers_codec);
             break;
           }
-          case 114: {
+          case 106: {
             wizardScripts_.AddEntriesFrom(input, _repeated_wizardScripts_codec);
             break;
           }
@@ -1833,16 +1833,16 @@ namespace ModConductor.Protocol.V1 {
             CanInstall = input.ReadBool();
             break;
           }
-          case 96: {
+          case 88: {
             Installer = (global::ModConductor.Protocol.V1.ArchiveInstaller) input.ReadEnum();
             break;
           }
-          case 106:
-          case 104: {
+          case 98:
+          case 96: {
             availableInstallers_.AddEntriesFrom(ref input, _repeated_availableInstallers_codec);
             break;
           }
-          case 114: {
+          case 106: {
             wizardScripts_.AddEntriesFrom(ref input, _repeated_wizardScripts_codec);
             break;
           }

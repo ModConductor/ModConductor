@@ -507,13 +507,6 @@ let main args =
             writer.Flush()
             0
         elif
-            args.Length = 3
-            && args[0] = "--generation-legacy"
-            && Path.IsPathFullyQualified args[1]
-        then
-            GenerationFixtures.legacy args[1] args[2]
-            0
-        elif
             args.Length = 2
             && args[0] = "--generations"
             && Path.IsPathFullyQualified args[1]
@@ -537,13 +530,6 @@ let main args =
             0
         elif args.Length = 2 && args[0] = "--storage" && Path.IsPathFullyQualified args[1] then
             StorageFixtures.run args[1]
-            0
-        elif
-            args.Length = 2
-            && args[0] = "--migrate-state"
-            && Path.IsPathFullyQualified args[1]
-        then
-            DeploymentFixtures.migrate args[1]
             0
         elif args.Length = 5 && args[0] = "--deployment-worker" then
             DeploymentFixtures.worker args[1] args[2] args[3] args[4]
@@ -668,7 +654,6 @@ let main args =
                 && not migrationOnly
             then
                 OrganizationFixtures.observe writer primary
-                OrganizationMigration.observe writer primary
 
             if
                 not filePlansOnly
