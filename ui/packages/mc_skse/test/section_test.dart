@@ -140,6 +140,7 @@ Widget section(
   SetupFixtureClient client, {
   ArchiveChooser? chooseArchive,
   double? height = 700,
+  ThemeData? theme,
 }) {
   final setup = SkyrimSetupSection(
     client: client,
@@ -149,6 +150,7 @@ Widget section(
     profileId: 'profile',
   );
   return MaterialApp(
+    theme: theme,
     home: Scaffold(
       body: height == null
           ? SingleChildScrollView(child: setup)
@@ -182,7 +184,13 @@ void main() {
       await tester.pumpAndSettle();
 
       final sectionFinder = find.byType(McSection);
+      final includeFnis = find.byKey(const ValueKey('include-fnis'));
+      final refreshAction = find.byKey(const ValueKey('refresh-skyrim-setup'));
+      final reviewAction = find.byKey(const ValueKey('review-skyrim-setup'));
       final originalHeight = tester.getSize(sectionFinder).height;
+      final originalFnis = tester.getRect(includeFnis);
+      final originalRefresh = tester.getRect(refreshAction);
+      final originalReview = tester.getRect(reviewAction);
       expect(find.textContaining('Matching SKSE found'), findsOneWidget);
 
       final refresh = Completer<SkyrimSetupStatus>();
@@ -192,6 +200,33 @@ void main() {
 
       expect(find.textContaining('Matching SKSE found'), findsOneWidget);
       expect(tester.getSize(sectionFinder).height, originalHeight);
+      expect(tester.getRect(includeFnis), originalFnis);
+      expect(tester.getRect(refreshAction), originalRefresh);
+      expect(tester.getRect(reviewAction), originalReview);
+      expect(tester.widget<SwitchListTile>(includeFnis).onChanged, isNotNull);
+      expect(
+        tester
+            .widget<OutlinedButton>(
+              find.descendant(
+                of: refreshAction,
+                matching: find.byType(OutlinedButton),
+              ),
+            )
+            .onPressed,
+        isNotNull,
+      );
+      expect(
+        tester
+            .widget<FilledButton>(
+              find.descendant(
+                of: reviewAction,
+                matching: find.byType(FilledButton),
+              ),
+            )
+            .onPressed,
+        isNotNull,
+      );
+      expect(find.byType(LinearProgressIndicator), findsNothing);
       expect(
         tester.widget<McAsyncStatusSlot>(find.byType(McAsyncStatusSlot)).active,
         isTrue,
@@ -202,6 +237,9 @@ void main() {
 
       expect(find.textContaining('Matching SKSE found'), findsOneWidget);
       expect(tester.getSize(sectionFinder).height, originalHeight);
+      expect(tester.getRect(includeFnis), originalFnis);
+      expect(tester.getRect(refreshAction), originalRefresh);
+      expect(tester.getRect(reviewAction), originalReview);
       expect(
         tester
             .widget<McAsyncStatusSlot>(find.byType(McAsyncStatusSlot))
@@ -216,6 +254,9 @@ void main() {
 
       expect(find.textContaining('Matching SKSE found'), findsOneWidget);
       expect(tester.getSize(sectionFinder).height, originalHeight);
+      expect(tester.getRect(includeFnis), originalFnis);
+      expect(tester.getRect(refreshAction), originalRefresh);
+      expect(tester.getRect(reviewAction), originalReview);
       expect(
         tester.widget<SwitchListTile>(find.byType(SwitchListTile)).value,
         isTrue,
@@ -239,8 +280,13 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
     final client = SetupFixtureClient(setupStatus());
-    await tester.pumpWidget(section(client));
+    await tester.pumpWidget(section(client, theme: mcTheme(Brightness.dark)));
     await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(SkyrimSetupSection),
+      matchesGoldenFile('goldens/skyrim_setup_idle_dark_150.png'),
+    );
 
     final refresh = Completer<SkyrimSetupStatus>();
     client.blockedRead = refresh;
@@ -248,15 +294,27 @@ void main() {
     await tester.pump();
     await expectLater(
       find.byType(SkyrimSetupSection),
-      matchesGoldenFile('goldens/skyrim_setup_pending_150.png'),
+      matchesGoldenFile('goldens/skyrim_setup_pending_dark_150.png'),
     );
 
     refresh.completeError(Exception('refresh failed'));
     await tester.pumpAndSettle();
     await expectLater(
       find.byType(SkyrimSetupSection),
-      matchesGoldenFile('goldens/skyrim_setup_failure_150.png'),
+      matchesGoldenFile('goldens/skyrim_setup_failure_dark_150.png'),
     );
+
+    final fnis = Completer<SkyrimSetupStatus>();
+    client.blockedRead = fnis;
+    await tester.tap(find.byKey(const ValueKey('include-fnis')));
+    await tester.pump();
+    await expectLater(
+      find.byType(SkyrimSetupSection),
+      matchesGoldenFile('goldens/skyrim_setup_fnis_pending_dark_150.png'),
+    );
+    client.blockedRead = null;
+    fnis.complete(client.current);
+    await tester.pumpAndSettle();
   });
 
   testWidgets(

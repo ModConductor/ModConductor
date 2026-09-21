@@ -89,6 +89,7 @@ class _McCollectionState<I extends Object, T extends Object>
     extends State<McCollection<I, T>> {
   final _ownScroll = ScrollController();
   ScrollController get _scroll => widget.scrollController ?? _ownScroll;
+  final _horizontalScroll = ScrollController();
   final _filter = TextEditingController();
   late final _ownFocus = FocusNode(debugLabel: widget.title);
   FocusNode get _focus => widget.focusNode ?? _ownFocus;
@@ -115,8 +116,25 @@ class _McCollectionState<I extends Object, T extends Object>
   void dispose() {
     _ownFocus.dispose();
     _ownScroll.dispose();
+    _horizontalScroll.dispose();
     _filter.dispose();
     super.dispose();
+  }
+
+  double _headerMinimumWidth(BuildContext context, McColumn<T> column) {
+    final painter = TextPainter(
+      text: TextSpan(
+        text: column.label,
+        style: column.compare == null
+            ? Theme.of(context).textTheme.bodySmall
+            : Theme.of(context).textTheme.labelLarge,
+      ),
+      maxLines: 1,
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+    )..layout();
+    return painter.width.ceilToDouble() +
+        (column.compare == null ? 0 : 16 + McSpacing.small + 16);
   }
 
   void _select(
@@ -248,10 +266,7 @@ class _McCollectionState<I extends Object, T extends Object>
       final colors = Theme.of(context).colorScheme;
       final labels = McUiLocalization.labelsOf(context);
       final scale = MediaQuery.textScalerOf(context).scale(1);
-      _extent = 48 * scale.clamp(1, 3);
-      Widget cell(Widget child, double? width) => width == null
-          ? Expanded(child: child)
-          : SizedBox(width: width * scale.clamp(1, 1.25), child: child);
+      _extent = 52 * scale.clamp(1, 3);
       final visible = model.visible;
       if (_focus.hasPrimaryFocus && model.focusedId != null) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -341,22 +356,56 @@ class _McCollectionState<I extends Object, T extends Object>
                 padding: const EdgeInsetsDirectional.fromSTEB(12, 0, 12, 8),
                 child: widget.toolbar!,
               ),
-            Container(
-              decoration: BoxDecoration(
-                border: Border.symmetric(
-                  horizontal: BorderSide(color: colors.outlineVariant),
-                ),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  for (final column in widget.columns)
-                    cell(
-                      column.compare == null
+            Expanded(
+              child: LayoutBuilder(
+                builder: (context, bounds) {
+                  final tree = widget.showTree ?? (model.parentOf != null);
+                  final widthScale = scale.clamp(1, 1.25).toDouble();
+                  final widths = <double>[
+                    for (var index = 0; index < widget.columns.length; index++)
+                      () {
+                        final column = widget.columns[index];
+                        final requested = (column.width ?? 0) * widthScale;
+                        final treeLead = tree && index == 0 ? 32.0 : 0.0;
+                        return requested
+                            .clamp(
+                              _headerMinimumWidth(context, column) + treeLead,
+                              double.infinity,
+                            )
+                            .toDouble();
+                      }(),
+                  ];
+                  final flexible = <int>[
+                    for (var index = 0; index < widget.columns.length; index++)
+                      if (widget.columns[index].width == null) index,
+                  ];
+                  final available = (bounds.maxWidth - 32)
+                      .clamp(0, double.infinity)
+                      .toDouble();
+                  final minimum = widths.fold(0.0, (sum, value) => sum + value);
+                  final remaining = available - minimum;
+                  if (remaining > 0 && flexible.isNotEmpty) {
+                    final share = remaining / flexible.length;
+                    for (final index in flexible) {
+                      widths[index] += share;
+                    }
+                  }
+                  final overflows = minimum > available;
+                  final contentWidth = overflows
+                      ? minimum + 32
+                      : bounds.maxWidth;
+
+                  Widget header(int index) {
+                    final column = widget.columns[index];
+                    return SizedBox(
+                      width: widths[index],
+                      child: column.compare == null
                           ? Padding(
                               padding: const EdgeInsets.symmetric(vertical: 10),
                               child: Text(
                                 column.label,
+                                maxLines: 1,
+                                softWrap: false,
                                 style: Theme.of(context).textTheme.bodySmall,
                               ),
                             )
@@ -385,145 +434,224 @@ class _McCollectionState<I extends Object, T extends Object>
                                 },
                               ),
                             ),
-                      column.width,
-                    ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: Focus(
-                focusNode: _focus,
-                onKeyEvent: _key,
-                child: Semantics(
-                  container: true,
-                  explicitChildNodes: true,
-                  label: widget.title,
-                  child: visible.isEmpty
-                      ? Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(24),
-                            child:
-                                widget.emptyContent ??
-                                Text(
-                                  model.query.isNotEmpty
-                                      ? labels.noMatches
-                                      : widget.empty ?? labels.noItems,
-                                ),
+                    );
+                  }
+
+                  Widget rowCell(int index, I id, T row, bool branch) {
+                    final column = widget.columns[index];
+                    final contents = ExcludeSemantics(
+                      excluding: !column.interactive,
+                      child: column.cell(row),
+                    );
+                    if (!tree || index != 0) {
+                      return SizedBox(width: widths[index], child: contents);
+                    }
+                    return SizedBox(
+                      width: widths[index],
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            width: (model.depth(id) * 18.0).clamp(0, 108),
                           ),
-                        )
-                      : Scrollbar(
-                          controller: _scroll,
-                          child: ListView.builder(
-                            controller: _scroll,
-                            itemExtent: _extent,
-                            itemCount: visible.length,
-                            findChildIndexCallback: (key) => key is ValueKey<I>
-                                ? model.position(key.value)
-                                : null,
-                            itemBuilder: (context, index) {
-                              final id = visible[index], row = model[id]!;
-                              final selected = model.selectedIds.contains(id);
-                              final focused =
-                                  id == model.focusedId &&
-                                  _focus.hasPrimaryFocus;
-                              final branch = model.branch(id);
-                              return Semantics(
-                                key: ValueKey<I>(id),
-                                container: true,
-                                selected: selected,
-                                focusable: true,
-                                focused: focused,
-                                expanded: branch ? model.expanded(id) : null,
-                                label: [
-                                  widget.semanticLabel?.call(row) ??
-                                      model.labelOf(row),
-                                  if (branch)
-                                    model.expanded(id)
-                                        ? labels.expanded
-                                        : labels.collapsed,
-                                ].join(', '),
-                                onTap: () => _select(id),
-                                onFocus: () => _select(id),
-                                child: Material(
-                                  color: selected
-                                      ? colors.primary.withValues(alpha: .14)
-                                      : Colors.transparent,
-                                  child: InkWell(
-                                    canRequestFocus: false,
-                                    excludeFromSemantics: true,
-                                    onTap: () => _select(id, pointer: true),
-                                    onDoubleTap: branch
-                                        ? () => model.toggle(id)
-                                        : null,
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        border: BorderDirectional(
-                                          start: BorderSide(
-                                            width: 3,
-                                            color: selected
-                                                ? colors.primary
-                                                : Colors.transparent,
-                                          ),
-                                          bottom: BorderSide(
-                                            color: focused
-                                                ? colors.primary
-                                                : colors.outlineVariant
-                                                      .withValues(alpha: .55),
-                                          ),
+                          SizedBox(
+                            width: 32,
+                            child: branch
+                                ? McCollectionExpander(
+                                    model: model,
+                                    id: id,
+                                    label: widget.nodeLabel?.call(row),
+                                  )
+                                : ExcludeSemantics(
+                                    child:
+                                        widget.nodeIcon?.call(row) ??
+                                        const Icon(
+                                          Icons.insert_drive_file_outlined,
+                                          size: 19,
                                         ),
-                                      ),
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 13,
-                                        vertical: 5,
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          if (widget.showTree ??
-                                              (model.parentOf != null)) ...[
-                                            SizedBox(
-                                              width: (model.depth(id) * 18.0)
-                                                  .clamp(0, 108),
-                                            ),
-                                            SizedBox(
-                                              width: 32,
-                                              child: branch
-                                                  ? McCollectionExpander(
-                                                      model: model,
-                                                      id: id,
-                                                      label: widget.nodeLabel
-                                                          ?.call(row),
-                                                    )
-                                                  : ExcludeSemantics(
-                                                      child:
-                                                          widget.nodeIcon?.call(
-                                                            row,
-                                                          ) ??
-                                                          const Icon(
-                                                            Icons
-                                                                .insert_drive_file_outlined,
-                                                            size: 19,
-                                                          ),
-                                                    ),
-                                            ),
-                                          ],
-                                          for (final column in widget.columns)
-                                            cell(
-                                              ExcludeSemantics(
-                                                excluding: !column.interactive,
-                                                child: column.cell(row),
-                                              ),
-                                              column.width,
-                                            ),
-                                        ],
-                                      ),
-                                    ),
+                                  ),
+                          ),
+                          Expanded(child: contents),
+                        ],
+                      ),
+                    );
+                  }
+
+                  return Scrollbar(
+                    controller: _horizontalScroll,
+                    interactive: true,
+                    thumbVisibility: overflows,
+                    scrollbarOrientation: ScrollbarOrientation.bottom,
+                    child: SingleChildScrollView(
+                      controller: _horizontalScroll,
+                      scrollDirection: Axis.horizontal,
+                      child: SizedBox(
+                        width: contentWidth,
+                        height: bounds.maxHeight,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Container(
+                              decoration: BoxDecoration(
+                                border: Border.symmetric(
+                                  horizontal: BorderSide(
+                                    color: colors.outlineVariant,
                                   ),
                                 ),
-                              );
-                            },
-                          ),
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
+                              child: Row(
+                                children: [
+                                  for (
+                                    var index = 0;
+                                    index < widget.columns.length;
+                                    index++
+                                  )
+                                    header(index),
+                                ],
+                              ),
+                            ),
+                            Expanded(
+                              child: Focus(
+                                focusNode: _focus,
+                                onKeyEvent: _key,
+                                child: Semantics(
+                                  container: true,
+                                  explicitChildNodes: true,
+                                  label: widget.title,
+                                  child: visible.isEmpty
+                                      ? Center(
+                                          child: Padding(
+                                            padding: const EdgeInsets.all(24),
+                                            child:
+                                                widget.emptyContent ??
+                                                Text(
+                                                  model.query.isNotEmpty
+                                                      ? labels.noMatches
+                                                      : widget.empty ??
+                                                            labels.noItems,
+                                                ),
+                                          ),
+                                        )
+                                      : Scrollbar(
+                                          controller: _scroll,
+                                          child: ListView.builder(
+                                            controller: _scroll,
+                                            itemExtent: _extent,
+                                            itemCount: visible.length,
+                                            findChildIndexCallback: (key) =>
+                                                key is ValueKey<I>
+                                                ? model.position(key.value)
+                                                : null,
+                                            itemBuilder: (context, index) {
+                                              final id = visible[index];
+                                              final row = model[id]!;
+                                              final selected = model.selectedIds
+                                                  .contains(id);
+                                              final focused =
+                                                  id == model.focusedId &&
+                                                  _focus.hasPrimaryFocus;
+                                              final branch = model.branch(id);
+                                              return Semantics(
+                                                key: ValueKey<I>(id),
+                                                container: true,
+                                                selected: selected,
+                                                focusable: true,
+                                                focused: focused,
+                                                expanded: branch
+                                                    ? model.expanded(id)
+                                                    : null,
+                                                label: [
+                                                  widget.semanticLabel?.call(
+                                                        row,
+                                                      ) ??
+                                                      model.labelOf(row),
+                                                  if (branch)
+                                                    model.expanded(id)
+                                                        ? labels.expanded
+                                                        : labels.collapsed,
+                                                ].join(', '),
+                                                onTap: () => _select(id),
+                                                onFocus: () => _select(id),
+                                                child: Material(
+                                                  color: selected
+                                                      ? colors.primary
+                                                            .withValues(
+                                                              alpha: .14,
+                                                            )
+                                                      : Colors.transparent,
+                                                  child: InkWell(
+                                                    canRequestFocus: false,
+                                                    excludeFromSemantics: true,
+                                                    onTap: () => _select(
+                                                      id,
+                                                      pointer: true,
+                                                    ),
+                                                    onDoubleTap: branch
+                                                        ? () => model.toggle(id)
+                                                        : null,
+                                                    child: Container(
+                                                      decoration: BoxDecoration(
+                                                        border: BorderDirectional(
+                                                          start: BorderSide(
+                                                            width: 3,
+                                                            color: selected
+                                                                ? colors.primary
+                                                                : Colors
+                                                                      .transparent,
+                                                          ),
+                                                          bottom: BorderSide(
+                                                            color: focused
+                                                                ? colors.primary
+                                                                : colors
+                                                                      .outlineVariant
+                                                                      .withValues(
+                                                                        alpha:
+                                                                            .55,
+                                                                      ),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      padding:
+                                                          const EdgeInsets.symmetric(
+                                                            horizontal: 13,
+                                                            vertical: 5,
+                                                          ),
+                                                      child: Row(
+                                                        children: [
+                                                          for (
+                                                            var column = 0;
+                                                            column <
+                                                                widget
+                                                                    .columns
+                                                                    .length;
+                                                            column++
+                                                          )
+                                                            rowCell(
+                                                              column,
+                                                              id,
+                                                              row,
+                                                              branch,
+                                                            ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                        ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                ),
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
             if (widget.problem != null)

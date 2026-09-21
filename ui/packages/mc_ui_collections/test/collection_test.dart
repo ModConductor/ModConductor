@@ -223,7 +223,7 @@ void main() {
   for (final visualCase in [
     (
       name: 'narrow_rtl',
-      size: const Size(320, 480),
+      size: const Size(200, 480),
       direction: TextDirection.rtl,
     ),
     (
@@ -247,6 +247,7 @@ void main() {
         rows.apply(upserts: [item(2), item(1)]);
         await tester.pumpWidget(
           MaterialApp(
+            theme: mcTheme(Brightness.dark),
             home: Directionality(
               textDirection: visualCase.direction,
               child: Scaffold(
@@ -257,10 +258,18 @@ void main() {
                   countLabel: '2 items',
                   columns: [
                     McColumn(
+                      '',
+                      (row) => const SizedBox.shrink(),
+                      width: 40,
+                      interactive: true,
+                    ),
+                    McColumn(
                       'Order',
-                      (row) => Text(row.name),
+                      (row) => Text('${row.id}'),
+                      width: 65,
                       compare: (a, b) => a.id.compareTo(b.id),
                     ),
+                    McColumn('Plugin', (row) => McCollectionName(row.name)),
                   ],
                 ),
               ),
@@ -269,7 +278,9 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        final header = find.byType(McSortHeader);
+        final header = find.byWidgetPredicate(
+          (widget) => widget is McSortHeader && widget.label == 'Order',
+        );
         final icon = find.descendant(
           of: header,
           matching: find.byIcon(Icons.unfold_more),
@@ -277,6 +288,17 @@ void main() {
         final label = find.descendant(of: header, matching: find.text('Order'));
         expect(icon, findsOneWidget);
         expect(label, findsOneWidget);
+        final horizontal = tester.widget<SingleChildScrollView>(
+          find.byWidgetPredicate(
+            (widget) =>
+                widget is SingleChildScrollView &&
+                widget.scrollDirection == Axis.horizontal,
+          ),
+        );
+        expect(
+          horizontal.controller!.position.maxScrollExtent > 0,
+          visualCase.name == 'narrow_rtl',
+        );
         await expectLater(
           find.byType(McCollection<int, Item>),
           matchesGoldenFile('goldens/sort_header_${visualCase.name}_150.png'),

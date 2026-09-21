@@ -112,6 +112,7 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
   );
 
   Future<void> confirm() async {
+    if (busy) return;
     final current = status;
     if (current == null) return;
     final agreed = await showDialog<bool>(
@@ -186,6 +187,7 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
   }
 
   Future<void> selectArchive() async {
+    if (busy) return;
     final selected = await widget.chooseArchive();
     if (selected == null || !mounted) return;
     await change(
@@ -239,18 +241,18 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
           Material(
             type: MaterialType.transparency,
             child: SwitchListTile(
+              key: const ValueKey('include-fnis'),
               contentPadding: EdgeInsets.zero,
               title: const Text('Include FNIS'),
               subtitle: const Text(
                 'Install FNIS and keep its active animation output current for this profile.',
               ),
               value: includeFnis,
-              onChanged: busy
-                  ? null
-                  : (selected) {
-                      setState(() => includeFnis = selected);
-                      unawaited(load(preserveFnisChoice: true));
-                    },
+              onChanged: (selected) {
+                if (busy) return;
+                setState(() => includeFnis = selected);
+                unawaited(load(preserveFnisChoice: true));
+              },
             ),
           ),
         ],
@@ -260,29 +262,31 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
           runSpacing: McSpacing.medium,
           children: [
             McAction(
+              key: const ValueKey('refresh-skyrim-setup'),
               label: 'Refresh',
               icon: Icons.refresh,
-              onPressed: busy ? null : load,
+              onPressed: load,
             ),
             if (value?.canStart == true)
               McAction(
+                key: const ValueKey('review-skyrim-setup'),
                 label: 'Review and apply setup',
                 icon: Icons.fact_check_outlined,
                 emphasis: McActionEmphasis.primary,
-                onPressed: busy ? null : confirm,
+                onPressed: confirm,
               ),
             if (value?.canSelectEnbArchive == true)
               McAction(
                 label: 'Choose downloaded ENBSeries archive',
                 icon: Icons.folder_open,
                 emphasis: McActionEmphasis.primary,
-                onPressed: busy ? null : selectArchive,
+                onPressed: selectArchive,
               ),
             if (value?.canCancel == true)
               McAction(
                 label: 'Cancel setup',
                 icon: Icons.cancel_outlined,
-                onPressed: cancelling ? null : cancelSetup,
+                onPressed: cancelSetup,
               ),
             if (value?.canContinue == true &&
                 value?.phase == SkyrimSetupStatusPhase.failed)
@@ -290,14 +294,12 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
                 label: 'Try setup again',
                 icon: Icons.refresh,
                 emphasis: McActionEmphasis.primary,
-                onPressed: busy
-                    ? null
-                    : () => change(
-                        () => widget.client.continueSetup(
-                          widget.workspaceId,
-                          widget.profileId,
-                        ),
-                      ),
+                onPressed: () => change(
+                  () => widget.client.continueSetup(
+                    widget.workspaceId,
+                    widget.profileId,
+                  ),
+                ),
               ),
           ],
         ),

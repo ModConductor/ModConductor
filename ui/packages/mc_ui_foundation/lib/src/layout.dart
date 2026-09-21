@@ -84,7 +84,17 @@ class McAsyncStatusSlot extends StatelessWidget {
     return SizedBox(
       height: 44 * scale,
       child: active
-          ? const Center(child: LinearProgressIndicator())
+          ? Semantics(
+              liveRegion: true,
+              label: 'Updating',
+              child: const Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: SizedBox.square(
+                  dimension: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            )
           : message == null
           ? null
           : Semantics(
@@ -143,11 +153,7 @@ class McSortHeader extends StatelessWidget {
       child: Semantics(
         label: '$label, $state',
         excludeSemantics: true,
-        child: McIconLabel(
-          icon: Icon(icon, size: 16),
-          label: label,
-          flexible: true,
-        ),
+        child: McIconLabel(icon: Icon(icon, size: 16), label: label),
       ),
     );
   }
