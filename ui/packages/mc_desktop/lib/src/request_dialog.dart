@@ -104,14 +104,21 @@ class OpenRequestsDialog extends StatelessWidget {
                   ),
               ],
             ],
-            if (requests.resolving) const McStatus(title: 'Checking request'),
+            if (requests.resolving)
+              const McActionFeedback(
+                kind: McActionFeedbackKind.pending,
+                message: 'Checking request',
+              ),
             if (requests.problem case final problem?)
-              McStatus(title: problem, tone: McStatusTone.error),
+              McActionFeedback(
+                kind: McActionFeedbackKind.failure,
+                message: problem,
+              ),
             if (!requests.connected && requests.problem == null)
-              const McStatus(
-                title: 'Not connected',
+              const McActionFeedback(
+                kind: McActionFeedbackKind.refusal,
+                message: 'Not connected',
                 detail: 'Reconnect to open this request.',
-                tone: McStatusTone.error,
               ),
           ],
         ],

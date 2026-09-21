@@ -186,7 +186,11 @@ void main() {
         find.byKey(const ValueKey('installation-folder')),
         '/new-game',
       );
-      await tap(find.byKey(const ValueKey('select-proton')));
+      final selectProton = find.byKey(const ValueKey('select-proton'));
+      await tester.ensureVisible(selectProton);
+      await tester.pumpAndSettle();
+      await tester.tap(selectProton);
+      await tester.pump();
       await tester.enterText(
         find.byKey(const ValueKey('proton-data-folder')),
         '/new-prefix',

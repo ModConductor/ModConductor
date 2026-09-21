@@ -148,16 +148,21 @@ class _DeploymentDialogState extends State<DeploymentDialog> {
                   ? null
                   : '${prepared.profile?.enabledMods ?? 0} ${prepared.profile?.enabledMods == 1 ? 'mod' : 'mods'} · ${prepared.writableFiles} writable game ${prepared.writableFiles == 1 ? 'file' : 'files'}',
             ),
-            if (controller.busy) ...[
-              const LinearProgressIndicator(),
-              if (progress != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8, bottom: 16),
-                  child: Text(
-                    '${progress.completed} of ${progress.total} ${controller.preparing ? 'files' : 'paths'}${progress.bytes == 0 ? '' : ' · ${progress.bytes} bytes'}',
-                  ),
-                ),
-            ],
+            if (controller.reading)
+              const McActionFeedback(
+                kind: McActionFeedbackKind.pending,
+                message: 'Reading current deployment',
+              ),
+            if (controller.busy)
+              McActionFeedback(
+                kind: McActionFeedbackKind.pending,
+                message: controller.preparing
+                    ? 'Preparing deployment'
+                    : 'Applying deployment',
+                detail: progress == null
+                    ? null
+                    : '${progress.completed} of ${progress.total} ${controller.preparing ? 'files' : 'paths'}${progress.bytes == 0 ? '' : ' · ${progress.bytes} bytes'}',
+              ),
             datum(
               'Game files',
               controller.state == null
@@ -169,18 +174,21 @@ class _DeploymentDialogState extends State<DeploymentDialog> {
                   : controller.activeName,
             ),
             if (controller.problem != null) ...[
-              McStatus(title: controller.problem!, tone: McStatusTone.error),
+              McActionFeedback(
+                kind: McActionFeedbackKind.failure,
+                message: controller.problem!,
+              ),
               const SizedBox(height: 12),
             ],
             if (receipt != null &&
                 controller.state?.pendingReceipt != null) ...[
-              McStatus(
-                title: receipt.detail.isEmpty
+              McActionFeedback(
+                kind: McActionFeedbackKind.failure,
+                message: receipt.detail.isEmpty
                     ? 'Deployment is incomplete'
                     : receipt.detail,
                 detail:
                     '${receipt.completed} of ${receipt.total} paths applied',
-                tone: McStatusTone.error,
               ),
               Wrap(
                 spacing: 8,
@@ -212,7 +220,10 @@ class _DeploymentDialogState extends State<DeploymentDialog> {
               const SizedBox(height: 16),
             ],
             if (prepared != null && controller.stale)
-              const McStatus(title: 'The prepared plan is out of date.'),
+              const McActionFeedback(
+                kind: McActionFeedbackKind.refusal,
+                message: 'The prepared plan is out of date.',
+              ),
             Wrap(
               spacing: 8,
               runSpacing: 8,
@@ -286,7 +297,8 @@ class _SavedDeploymentsDialogState extends State<SavedDeploymentsDialog> {
                   if (value.profile != null)
                     '${value.profile!.enabledMods} ${value.profile!.enabledMods == 1 ? 'mod' : 'mods'}',
                   if (!value.canRestore)
-                    value.unavailable ?? 'Saved order and file visibility are unavailable',
+                    value.unavailable ??
+                        'Saved order and file visibility are unavailable',
                 ].join(' · '),
               ),
               trailing: McAction(

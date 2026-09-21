@@ -146,7 +146,7 @@ void main() {
         await tester.pumpAndSettle();
         await tester.ensureVisible(find.byKey(const ValueKey('select-proton')));
         await tester.tap(find.byKey(const ValueKey('select-proton')));
-        await tester.pumpAndSettle();
+        await tester.pump();
         await tester.enterText(
           find.byKey(const ValueKey('proton-data-folder')),
           '/selected data Ω',

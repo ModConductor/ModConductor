@@ -93,6 +93,13 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('choose-folder')));
       await tester.pumpAndSettle();
       expect(choices, 1);
+      expect(
+        tester
+            .widget<TextButton>(find.byKey(const ValueKey('choose-folder')))
+            .focusNode!
+            .hasFocus,
+        isTrue,
+      );
       expect(find.byType(McActionFeedback), findsOneWidget);
       expect(
         tester

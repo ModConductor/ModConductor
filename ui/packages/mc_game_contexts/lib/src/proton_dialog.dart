@@ -132,7 +132,11 @@ class _ProtonDialogState extends State<ProtonDialog> {
               ),
             ),
       children: [
-        if (search.loading) const McStatus(title: 'Finding Proton folders'),
+        if (search.loading)
+          const McActionFeedback(
+            kind: McActionFeedbackKind.pending,
+            message: 'Finding Proton folders',
+          ),
         if (prefixes.length > 1 &&
             !(dataTouched && association is ManualProtonAssociation)) ...[
           McChoice<String>(
@@ -243,9 +247,19 @@ class _ProtonDialogState extends State<ProtonDialog> {
             ),
           ),
         ],
-        if (problem != null || search.problem != null) ...[
+        if (problem != null) ...[
           const SizedBox(height: 12),
-          McStatus(title: problem ?? search.problem!, tone: McStatusTone.error),
+          McActionFeedback(
+            kind: McActionFeedbackKind.failure,
+            message: problem!,
+          ),
+        ],
+        if (search.problem != null) ...[
+          const SizedBox(height: 12),
+          McActionFeedback(
+            kind: McActionFeedbackKind.failure,
+            message: search.problem!,
+          ),
           McAction(
             label: 'Retry search',
             onPressed: search.loading ? null : () => unawaited(search.search()),

@@ -178,18 +178,20 @@ class _ModDeletionViewState extends State<ModDeletionView> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                McStatus(
-                  title: title,
+                McActionFeedback(
+                  kind: status == null
+                      ? McActionFeedbackKind.refusal
+                      : switch (status.phase) {
+                          DeletionPhase.running => McActionFeedbackKind.pending,
+                          DeletionPhase.incomplete =>
+                            McActionFeedbackKind.failure,
+                          DeletionPhase.complete =>
+                            McActionFeedbackKind.success,
+                        },
+                  message: title,
                   detail: status?.problem ?? value?.blocked,
-                  tone: status?.phase == DeletionPhase.incomplete
-                      ? McStatusTone.error
-                      : McStatusTone.neutral,
                 ),
                 const SizedBox(height: 24),
-                if (status?.phase == DeletionPhase.running) ...[
-                  const LinearProgressIndicator(),
-                  const SizedBox(height: 16),
-                ],
                 if (status != null && status.phase != DeletionPhase.complete)
                   deletionFact(
                     context,
@@ -307,9 +309,9 @@ class _ModDeletionViewState extends State<ModDeletionView> {
               Row(
                 children: [
                   Expanded(
-                    child: McStatus(
-                      title: controller.problem!,
-                      tone: McStatusTone.error,
+                    child: McActionFeedback(
+                      kind: McActionFeedbackKind.failure,
+                      message: controller.problem!,
                     ),
                   ),
                   if (status?.phase == DeletionPhase.running)
@@ -319,7 +321,13 @@ class _ModDeletionViewState extends State<ModDeletionView> {
                     ),
                 ],
               ),
-            if (controller.busy) const LinearProgressIndicator(),
+            if (controller.busy && status == null)
+              McActionFeedback(
+                kind: McActionFeedbackKind.pending,
+                message: value == null
+                    ? 'Checking mod files'
+                    : 'Deleting ${value.name}',
+              ),
             Expanded(
               child: result
                   ? outcome(context)
