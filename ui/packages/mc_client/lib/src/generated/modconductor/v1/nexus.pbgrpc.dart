@@ -67,6 +67,14 @@ class NexusClient extends $grpc.Client {
     return $createUnaryCall(_$checkNexusAccount, request, options: options);
   }
 
+  $grpc.ResponseFuture<$0.NexusAccountStatus> submitNexusPersonalApiKey(
+    $0.NexusPersonalApiKeyRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$submitNexusPersonalApiKey, request,
+        options: options);
+  }
+
   $grpc.ResponseFuture<$0.NexusModReply> readNexusMod(
     $0.NexusModRequest request, {
     $grpc.CallOptions? options,
@@ -114,6 +122,11 @@ class NexusClient extends $grpc.Client {
       $grpc.ClientMethod<$0.NexusStatusRequest, $0.NexusAccountStatus>(
           '/modconductor.v1.Nexus/CheckNexusAccount',
           ($0.NexusStatusRequest value) => value.writeToBuffer(),
+          $0.NexusAccountStatus.fromBuffer);
+  static final _$submitNexusPersonalApiKey =
+      $grpc.ClientMethod<$0.NexusPersonalApiKeyRequest, $0.NexusAccountStatus>(
+          '/modconductor.v1.Nexus/SubmitNexusPersonalApiKey',
+          ($0.NexusPersonalApiKeyRequest value) => value.writeToBuffer(),
           $0.NexusAccountStatus.fromBuffer);
   static final _$readNexusMod =
       $grpc.ClientMethod<$0.NexusModRequest, $0.NexusModReply>(
@@ -182,6 +195,15 @@ abstract class NexusServiceBase extends $grpc.Service {
             ($core.List<$core.int> value) =>
                 $0.NexusStatusRequest.fromBuffer(value),
             ($0.NexusAccountStatus value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.NexusPersonalApiKeyRequest,
+            $0.NexusAccountStatus>(
+        'SubmitNexusPersonalApiKey',
+        submitNexusPersonalApiKey_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.NexusPersonalApiKeyRequest.fromBuffer(value),
+        ($0.NexusAccountStatus value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$0.NexusModRequest, $0.NexusModReply>(
         'ReadNexusMod',
         readNexusMod_Pre,
@@ -250,6 +272,15 @@ abstract class NexusServiceBase extends $grpc.Service {
 
   $async.Future<$0.NexusAccountStatus> checkNexusAccount(
       $grpc.ServiceCall call, $0.NexusStatusRequest request);
+
+  $async.Future<$0.NexusAccountStatus> submitNexusPersonalApiKey_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.NexusPersonalApiKeyRequest> $request) async {
+    return submitNexusPersonalApiKey($call, await $request);
+  }
+
+  $async.Future<$0.NexusAccountStatus> submitNexusPersonalApiKey(
+      $grpc.ServiceCall call, $0.NexusPersonalApiKeyRequest request);
 
   $async.Future<$0.NexusModReply> readNexusMod_Pre($grpc.ServiceCall $call,
       $async.Future<$0.NexusModRequest> $request) async {

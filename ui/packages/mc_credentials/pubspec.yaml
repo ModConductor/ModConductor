@@ -12,3 +12,6 @@ dependencies:
     path: ../mc_client
   mc_ui_foundation:
     path: ../mc_ui_foundation
+dev_dependencies:
+  flutter_test:
+    sdk: flutter

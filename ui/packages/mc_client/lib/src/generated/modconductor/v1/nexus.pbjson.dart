@@ -24,6 +24,19 @@ const NexusStatusRequest$json = {
 final $typed_data.Uint8List nexusStatusRequestDescriptor =
     $convert.base64Decode('ChJOZXh1c1N0YXR1c1JlcXVlc3Q=');
 
+@$core.Deprecated('Use nexusPersonalApiKeyRequestDescriptor instead')
+const NexusPersonalApiKeyRequest$json = {
+  '1': 'NexusPersonalApiKeyRequest',
+  '2': [
+    {'1': 'api_key', '3': 1, '4': 1, '5': 9, '10': 'apiKey'},
+  ],
+};
+
+/// Descriptor for `NexusPersonalApiKeyRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List nexusPersonalApiKeyRequestDescriptor =
+    $convert.base64Decode(
+        'ChpOZXh1c1BlcnNvbmFsQXBpS2V5UmVxdWVzdBIXCgdhcGlfa2V5GAEgASgJUgZhcGlLZXk=');
+
 @$core.Deprecated('Use nexusFailureDescriptor instead')
 const NexusFailure$json = {
   '1': 'NexusFailure',

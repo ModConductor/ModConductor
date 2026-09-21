@@ -50,6 +50,8 @@ namespace ModConductor.Protocol.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.NexusAccountStatus> __Marshaller_modconductor_v1_NexusAccountStatus = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.NexusAccountStatus.Parser));
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.NexusPersonalApiKeyRequest> __Marshaller_modconductor_v1_NexusPersonalApiKeyRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.NexusPersonalApiKeyRequest.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.NexusModRequest> __Marshaller_modconductor_v1_NexusModRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.NexusModRequest.Parser));
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.NexusModReply> __Marshaller_modconductor_v1_NexusModReply = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.NexusModReply.Parser));
@@ -96,6 +98,14 @@ namespace ModConductor.Protocol.V1 {
         __ServiceName,
         "CheckNexusAccount",
         __Marshaller_modconductor_v1_NexusStatusRequest,
+        __Marshaller_modconductor_v1_NexusAccountStatus);
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::ModConductor.Protocol.V1.NexusPersonalApiKeyRequest, global::ModConductor.Protocol.V1.NexusAccountStatus> __Method_SubmitNexusPersonalApiKey = new grpc::Method<global::ModConductor.Protocol.V1.NexusPersonalApiKeyRequest, global::ModConductor.Protocol.V1.NexusAccountStatus>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "SubmitNexusPersonalApiKey",
+        __Marshaller_modconductor_v1_NexusPersonalApiKeyRequest,
         __Marshaller_modconductor_v1_NexusAccountStatus);
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
@@ -158,6 +168,12 @@ namespace ModConductor.Protocol.V1 {
 
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V1.NexusAccountStatus> CheckNexusAccount(global::ModConductor.Protocol.V1.NexusStatusRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V1.NexusAccountStatus> SubmitNexusPersonalApiKey(global::ModConductor.Protocol.V1.NexusPersonalApiKeyRequest request, grpc::ServerCallContext context)
       {
         throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
       }
@@ -310,6 +326,26 @@ namespace ModConductor.Protocol.V1 {
         return CallInvoker.AsyncUnaryCall(__Method_CheckNexusAccount, null, options, request);
       }
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V1.NexusAccountStatus SubmitNexusPersonalApiKey(global::ModConductor.Protocol.V1.NexusPersonalApiKeyRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return SubmitNexusPersonalApiKey(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V1.NexusAccountStatus SubmitNexusPersonalApiKey(global::ModConductor.Protocol.V1.NexusPersonalApiKeyRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_SubmitNexusPersonalApiKey, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.NexusAccountStatus> SubmitNexusPersonalApiKeyAsync(global::ModConductor.Protocol.V1.NexusPersonalApiKeyRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return SubmitNexusPersonalApiKeyAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.NexusAccountStatus> SubmitNexusPersonalApiKeyAsync(global::ModConductor.Protocol.V1.NexusPersonalApiKeyRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_SubmitNexusPersonalApiKey, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       public virtual global::ModConductor.Protocol.V1.NexusModReply ReadNexusMod(global::ModConductor.Protocol.V1.NexusModRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
       {
         return ReadNexusMod(request, new grpc::CallOptions(headers, deadline, cancellationToken));
@@ -388,6 +424,7 @@ namespace ModConductor.Protocol.V1 {
           .AddMethod(__Method_CancelNexusSignIn, serviceImpl.CancelNexusSignIn)
           .AddMethod(__Method_ConnectNexus, serviceImpl.ConnectNexus)
           .AddMethod(__Method_CheckNexusAccount, serviceImpl.CheckNexusAccount)
+          .AddMethod(__Method_SubmitNexusPersonalApiKey, serviceImpl.SubmitNexusPersonalApiKey)
           .AddMethod(__Method_ReadNexusMod, serviceImpl.ReadNexusMod)
           .AddMethod(__Method_DownloadNexusFile, serviceImpl.DownloadNexusFile)
           .AddMethod(__Method_OpenNexusModPage, serviceImpl.OpenNexusModPage).Build();
@@ -405,6 +442,7 @@ namespace ModConductor.Protocol.V1 {
       serviceBinder.AddMethod(__Method_CancelNexusSignIn, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.NexusStatusRequest, global::ModConductor.Protocol.V1.NexusAccountStatus>(serviceImpl.CancelNexusSignIn));
       serviceBinder.AddMethod(__Method_ConnectNexus, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.NexusStatusRequest, global::ModConductor.Protocol.V1.NexusAccountStatus>(serviceImpl.ConnectNexus));
       serviceBinder.AddMethod(__Method_CheckNexusAccount, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.NexusStatusRequest, global::ModConductor.Protocol.V1.NexusAccountStatus>(serviceImpl.CheckNexusAccount));
+      serviceBinder.AddMethod(__Method_SubmitNexusPersonalApiKey, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.NexusPersonalApiKeyRequest, global::ModConductor.Protocol.V1.NexusAccountStatus>(serviceImpl.SubmitNexusPersonalApiKey));
       serviceBinder.AddMethod(__Method_ReadNexusMod, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.NexusModRequest, global::ModConductor.Protocol.V1.NexusModReply>(serviceImpl.ReadNexusMod));
       serviceBinder.AddMethod(__Method_DownloadNexusFile, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.NexusDownloadRequest, global::ModConductor.Protocol.V1.NexusDownloadReply>(serviceImpl.DownloadNexusFile));
       serviceBinder.AddMethod(__Method_OpenNexusModPage, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.NexusModRequest, global::ModConductor.Protocol.V1.NexusStatusRequest>(serviceImpl.OpenNexusModPage));

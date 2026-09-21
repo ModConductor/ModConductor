@@ -52,6 +52,10 @@ module internal NexusJson =
           Subject: string
           Refresh: string }
 
+    type SavedCredential =
+        | OAuth of Saved
+        | PersonalApiKey of subject: string * key: string
+
     let tokens fallback value =
         if
             not (
@@ -106,14 +110,42 @@ module internal NexusJson =
           Name = name
           Premium = premium }
 
-    let saved value =
-        if number "version" value <> 1L then
+    let apiKeyAccount value =
+        let subject = number "user_id" value |> string
+        let name = text "name" value
+
+        if String.IsNullOrWhiteSpace name then
             fail ()
 
-        { Issuer = text "issuer" value
-          Client = text "client" value
-          Subject = text "subject" value
-          Refresh = text "refresh" value }
+        let premium =
+            field "is_premium" value
+            |> Option.bind (fun item ->
+                if item.ValueKind = JsonValueKind.True then Some true
+                elif item.ValueKind = JsonValueKind.False then Some false
+                else None)
+            |> Option.defaultWith fail
+
+        { Subject = subject
+          Name = name
+          Premium = Some premium }
+
+    let saved value =
+        match number "version" value with
+        | 1L ->
+            OAuth
+                { Issuer = text "issuer" value
+                  Client = text "client" value
+                  Subject = text "subject" value
+                  Refresh = text "refresh" value }
+        | 2L when text "kind" value = "personal_api_key" ->
+            let subject = text "subject" value
+            let key = text "key" value
+
+            if String.IsNullOrWhiteSpace subject || String.IsNullOrWhiteSpace key then
+                fail ()
+
+            PersonalApiKey(subject, key)
+        | _ -> fail ()
 
     let writeSaved (value: Saved) =
         use stream = new MemoryStream()
@@ -124,6 +156,18 @@ module internal NexusJson =
         writer.WriteString("client", value.Client)
         writer.WriteString("subject", value.Subject)
         writer.WriteString("refresh", value.Refresh)
+        writer.WriteEndObject()
+        writer.Flush()
+        stream.ToArray()
+
+    let writeSavedApiKey (subject: string) (key: string) =
+        use stream = new MemoryStream()
+        use writer = new Utf8JsonWriter(stream)
+        writer.WriteStartObject()
+        writer.WriteNumber("version", 2)
+        writer.WriteString("kind", "personal_api_key")
+        writer.WriteString("subject", subject)
+        writer.WriteString("key", key)
         writer.WriteEndObject()
         writer.Flush()
         stream.ToArray()

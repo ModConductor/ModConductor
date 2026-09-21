@@ -58,6 +58,63 @@ class NexusStatusRequest extends $pb.GeneratedMessage {
   static NexusStatusRequest? _defaultInstance;
 }
 
+class NexusPersonalApiKeyRequest extends $pb.GeneratedMessage {
+  factory NexusPersonalApiKeyRequest({
+    $core.String? apiKey,
+  }) {
+    final result = create();
+    if (apiKey != null) result.apiKey = apiKey;
+    return result;
+  }
+
+  NexusPersonalApiKeyRequest._();
+
+  factory NexusPersonalApiKeyRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory NexusPersonalApiKeyRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'NexusPersonalApiKeyRequest',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'apiKey')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  NexusPersonalApiKeyRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  NexusPersonalApiKeyRequest copyWith(
+          void Function(NexusPersonalApiKeyRequest) updates) =>
+      super.copyWith(
+              (message) => updates(message as NexusPersonalApiKeyRequest))
+          as NexusPersonalApiKeyRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static NexusPersonalApiKeyRequest create() => NexusPersonalApiKeyRequest._();
+  @$core.override
+  NexusPersonalApiKeyRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static NexusPersonalApiKeyRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<NexusPersonalApiKeyRequest>(create);
+  static NexusPersonalApiKeyRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get apiKey => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set apiKey($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasApiKey() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearApiKey() => $_clearField(1);
+}
+
 class NexusFailure extends $pb.GeneratedMessage {
   factory NexusFailure({
     $core.String? code,

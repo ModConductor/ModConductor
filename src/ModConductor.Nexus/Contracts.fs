@@ -14,6 +14,7 @@ type NexusProblem =
     | InteractionUnavailable
     | InteractionBusy
     | SignInRequired
+    | InvalidApiKey
     | Cancelled
     | InvalidCallback
     | AccountChanged
@@ -37,6 +38,11 @@ type Account =
     { Subject: string
       Name: string
       Premium: bool option }
+
+[<RequireQualifiedAccess>]
+type internal NexusAuthorization =
+    | OAuth of string
+    | PersonalApiKey of string
 
 type NexusStatus =
     { Configured: bool
@@ -99,6 +105,7 @@ module NexusProblem =
         | NexusProblem.InteractionBusy -> "A Nexus account action is already in progress."
         | NexusProblem.NotConfigured -> "Sign-in is not configured in this build."
         | NexusProblem.SignInRequired -> "Sign in to Nexus Mods again."
+        | NexusProblem.InvalidApiKey -> "Nexus Mods did not accept this API key."
         | NexusProblem.Cancelled -> "The Nexus request was cancelled."
         | NexusProblem.InvalidCallback -> "The sign-in response did not match this request."
         | NexusProblem.AccountChanged ->

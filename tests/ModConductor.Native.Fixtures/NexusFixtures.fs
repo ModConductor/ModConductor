@@ -219,6 +219,228 @@ module NexusFixtures =
 
         writer.WriteEndObject()
 
+        writer.WriteStartObject("nexusPersonalApiKey")
+        use keyServer = new NexusServer()
+        let rejectedMemory = NexusMemoryStore()
+
+        do
+            use rejectedCredentials = new CredentialSession(rejectedMemory)
+
+            use rejectedSession =
+                new NexusSession(
+                    rejectedCredentials,
+                    Some keyServer.Registration,
+                    keyServer.Handoff,
+                    (fun _ -> Task.CompletedTask),
+                    requestInterval = TimeSpan.Zero
+                )
+
+            let invalid = rejectedSession.SubmitPersonalApiKey("wrong-key") |> wait
+
+            check
+                "invalidPersonalApiKeyIsRejectedBeforeSave"
+                (invalid.Problem = Some NexusProblem.InvalidApiKey && rejectedMemory.Saves = 0)
+
+            keyServer.Mode <- "offline"
+            let offline = rejectedSession.SubmitPersonalApiKey("synthetic-personal-key") |> wait
+
+            check
+                "offlinePersonalApiKeyValidationIsStructured"
+                (offline.Problem = Some NexusProblem.Offline && rejectedMemory.Saves = 0)
+
+        use rateServer = new NexusServer()
+        let rateMemory = NexusMemoryStore()
+
+        do
+            use rateCredentials = new CredentialSession(rateMemory)
+
+            use rateSession =
+                new NexusSession(
+                    rateCredentials,
+                    Some rateServer.Registration,
+                    rateServer.Handoff,
+                    (fun _ -> Task.CompletedTask),
+                    requestInterval = TimeSpan.Zero
+                )
+
+            rateServer.Mode <- "rate"
+            let limited = rateSession.SubmitPersonalApiKey("synthetic-personal-key") |> wait
+
+            check
+                "rateLimitedPersonalApiKeyValidationIsStructured"
+                (match limited.Problem with
+                 | Some(NexusProblem.RateLimited _) -> rateMemory.Saves = 0
+                 | _ -> false)
+
+        use secureServer = new NexusServer()
+        let secureMemory = NexusMemoryStore()
+        let securePaused = ResizeArray<string>()
+
+        do
+            use secureCredentials = new CredentialSession(secureMemory)
+
+            use secureSession =
+                new NexusSession(
+                    secureCredentials,
+                    Some secureServer.Registration,
+                    secureServer.Handoff,
+                    (fun subject ->
+                        securePaused.Add subject
+                        Task.CompletedTask),
+                    requestInterval = TimeSpan.Zero
+                )
+
+            let connected = secureSession.SubmitPersonalApiKey("synthetic-personal-key") |> wait
+
+            let queried = secureSession.ReadMod("skyrimspecialedition", 64012L) |> wait
+
+            let linked =
+                secureSession.Resolve("skyrimspecialedition", 64012L, 501L, "42") |> wait
+
+            let identity =
+                { Game = "skyrimspecialedition"
+                  Mod = 64012L }
+
+            let interactions = secureSession.RefreshInteractions(identity) |> wait
+
+            let changed =
+                secureSession.ChangeInteraction(
+                    identity,
+                    interactions.Revision,
+                    NexusInteraction.Track,
+                    "1.4"
+                )
+                |> wait
+
+            check
+                "personalApiKeyAuthorizesValidationQueriesMutationsAndDownloadLinks"
+                (connected.Account
+                 |> Option.exists (fun value ->
+                     value.Subject = "42" && value.Name = "Rowan" && value.Premium = Some true)
+                 && Result.isOk queried
+                 && Result.isOk linked
+                 && changed.Tracking = Some true
+                 && changed.Problem.IsNone
+                 && secureServer.ApiKeyRequests >= 3)
+
+            let savedBeforeRejectedCandidate = secureMemory.Bytes
+            let rejectedCandidate = secureSession.SubmitPersonalApiKey("wrong-key") |> wait
+
+            let queryAfterRejectedCandidate =
+                secureSession.ReadMod("skyrimspecialedition", 64012L) |> wait
+
+            check
+                "rejectedPersonalApiKeyDoesNotReplaceActiveOrSavedCredential"
+                (rejectedCandidate.Problem = Some NexusProblem.InvalidApiKey
+                 && rejectedCandidate.Account |> Option.exists (fun value -> value.Subject = "42")
+                 && Result.isOk queryAfterRejectedCandidate
+                 && secureMemory.Bytes = savedBeforeRejectedCandidate)
+
+            secureServer.Premium <- false
+            let freeAccount = secureSession.CheckAccount() |> wait
+            secureServer.Mode <- "entitlement"
+
+            let freeDownload =
+                secureSession.Resolve("skyrimspecialedition", 64012L, 503L, "42") |> wait
+
+            check
+                "personalApiKeyKeepsPremiumAsAccountEntitlement"
+                (freeAccount.Account |> Option.exists (fun value -> value.Premium = Some false)
+                 && freeDownload = Error NexusProblem.Entitlement)
+
+            secureServer.Premium <- true
+            secureServer.Mode <- "bad-origin"
+
+            let confined =
+                secureSession.Resolve("skyrimspecialedition", 64012L, 502L, "42") |> wait
+
+            check
+                "personalApiKeyDownloadOriginIsConfined"
+                (confined = Error NexusProblem.InvalidResponse)
+
+        do
+            use restoredCredentials = new CredentialSession(secureMemory)
+
+            use restoredSession =
+                new NexusSession(
+                    restoredCredentials,
+                    Some secureServer.Registration,
+                    secureServer.Handoff,
+                    (fun subject ->
+                        securePaused.Add subject
+                        Task.CompletedTask),
+                    requestInterval = TimeSpan.Zero
+                )
+
+            secureServer.Mode <- "good"
+            let restored = restoredSession.Connect() |> wait
+
+            check
+                "savedPersonalApiKeyRestoresOnlyInsideEngine"
+                (restored.Account |> Option.exists (fun value -> value.Subject = "42"))
+
+            secureServer.Mode <- "invalid-key"
+            let revoked = restoredSession.CheckAccount() |> wait
+
+            check
+                "revokedPersonalApiKeyClearsActiveAccount"
+                (revoked.Account.IsNone && revoked.Problem = Some NexusProblem.InvalidApiKey)
+
+            secureServer.Mode <- "good"
+            let removed = restoredSession.Disconnect token |> wait
+
+            check
+                "disconnectRemovesPersonalApiKeyAndPausesItsAccount"
+                (removed.Saved = SavedPresence.Absent
+                 && secureMemory.Bytes.IsNone
+                 && securePaused.Contains "42")
+
+        use sessionServer = new NexusServer()
+        let sessionMemory = NexusMemoryStore()
+
+        do
+            use sessionCredentials = new CredentialSession(sessionMemory)
+            sessionCredentials.SetMode(StorageMode.SessionOnly, token) |> wait |> ignore
+
+            use personalSession =
+                new NexusSession(
+                    sessionCredentials,
+                    Some sessionServer.Registration,
+                    sessionServer.Handoff,
+                    (fun _ -> Task.CompletedTask),
+                    requestInterval = TimeSpan.Zero
+                )
+
+            personalSession.SubmitPersonalApiKey("synthetic-personal-key") |> wait |> ignore
+
+            let status = sessionCredentials.Status token |> wait
+
+            check
+                "sessionOnlyPersonalApiKeyIsNotSaved"
+                (status.HasSession
+                 && status.Saved = SavedPresence.Absent
+                 && sessionMemory.Bytes.IsNone)
+
+        do
+            use restartedCredentials = new CredentialSession(sessionMemory)
+
+            use restartedSession =
+                new NexusSession(
+                    restartedCredentials,
+                    Some sessionServer.Registration,
+                    sessionServer.Handoff,
+                    (fun _ -> Task.CompletedTask),
+                    requestInterval = TimeSpan.Zero
+                )
+
+            let restarted = restartedSession.Connect() |> wait
+
+            check
+                "sessionOnlyPersonalApiKeyDoesNotSurviveRestart"
+                (restarted.Account.IsNone && restarted.Problem = Some NexusProblem.SignInRequired)
+
+        writer.WriteEndObject()
+
         writer.WriteStartObject("nexusDownloads")
         use server = new NexusServer()
         let memory = NexusMemoryStore()
@@ -237,7 +459,7 @@ module NexusFixtures =
                 requestInterval = TimeSpan.Zero
             )
 
-        signIn session
+        session.SubmitPersonalApiKey("synthetic-personal-key") |> wait |> ignore
 
         let area =
             Directory.CreateDirectory(Path.Combine(primary, "nexus-downloads")).FullName
@@ -296,7 +518,7 @@ module NexusFixtures =
             (paused.Download.Value.State = DownloadState.Paused
              && paused.Download.Value.Bytes >= 32768L)
 
-        check "privateRequestHasNoBearerOrCookie" (not server.PrivateHeader)
+        check "signedArtifactRequestHasNoPrivateCredential" (not server.PrivateHeader)
         server.Subject <- "99"
         signIn session
 

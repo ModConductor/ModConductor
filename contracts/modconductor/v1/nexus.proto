@@ -9,11 +9,13 @@ service Nexus {
   rpc CancelNexusSignIn(NexusStatusRequest) returns (NexusAccountStatus);
   rpc ConnectNexus(NexusStatusRequest) returns (NexusAccountStatus);
   rpc CheckNexusAccount(NexusStatusRequest) returns (NexusAccountStatus);
+  rpc SubmitNexusPersonalApiKey(NexusPersonalApiKeyRequest) returns (NexusAccountStatus);
   rpc ReadNexusMod(NexusModRequest) returns (NexusModReply);
   rpc DownloadNexusFile(NexusDownloadRequest) returns (NexusDownloadReply);
   rpc OpenNexusModPage(NexusModRequest) returns (NexusStatusRequest);
 }
 message NexusStatusRequest {}
+message NexusPersonalApiKeyRequest { string api_key = 1; }
 message NexusFailure { string code = 1; string message = 2; optional int64 retry_at_unix_ms = 3; }
 message NexusAccountStatus {
   bool configured = 1;

@@ -14,6 +14,7 @@ module internal NexusWire =
             | NexusProblem.InteractionBusy -> "interaction_busy"
             | NexusProblem.NotConfigured -> "not_configured"
             | NexusProblem.SignInRequired -> "sign_in_required"
+            | NexusProblem.InvalidApiKey -> "invalid_api_key"
             | NexusProblem.Cancelled -> "cancelled"
             | NexusProblem.InvalidCallback -> "invalid_callback"
             | NexusProblem.AccountChanged -> "account_changed"

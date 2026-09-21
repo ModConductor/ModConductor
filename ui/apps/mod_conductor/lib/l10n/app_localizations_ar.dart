@@ -277,9 +277,6 @@ class AppLocalizationsAr extends AppLocalizations {
   String get credentialStorageFailed => 'فشلت عملية التخزين';
 
   @override
-  String get credentialNotConfigured => 'تسجيل الدخول غير مهيأ في هذا الإصدار.';
-
-  @override
   String get credentialWaitingSignIn => 'في انتظار تسجيل الدخول';
 
   @override
@@ -313,6 +310,18 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get credentialSignIn => 'تسجيل الدخول';
+
+  @override
+  String get credentialPersonalApiKey => 'أدخل مفتاح API الشخصي';
+
+  @override
+  String get credentialShowPersonalApiKey => 'إظهار مفتاح API الشخصي';
+
+  @override
+  String get credentialHidePersonalApiKey => 'إخفاء مفتاح API الشخصي';
+
+  @override
+  String get credentialSubmitPersonalApiKey => 'الاتصال بمفتاح API';
 
   @override
   String get credentialStorageCheckFailed => 'تعذر فحص تخزين تسجيل الدخول';

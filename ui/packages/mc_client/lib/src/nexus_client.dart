@@ -53,6 +53,7 @@ abstract interface class NexusClient {
   Future<NexusAccount> cancel();
   Future<NexusAccount> connect();
   Future<NexusAccount> check();
+  Future<NexusAccount> submitPersonalApiKey(String apiKey);
   Future<NexusMod> mod(String workspace, int id);
   Future<Artifact> download(
     String workspace,
@@ -114,6 +115,12 @@ class GrpcNexusClient implements NexusClient {
   @override
   Future<NexusAccount> check() =>
       _account(() => _client.checkNexusAccount(wire.NexusStatusRequest()));
+  @override
+  Future<NexusAccount> submitPersonalApiKey(String apiKey) => _account(
+    () => _client.submitNexusPersonalApiKey(
+      wire.NexusPersonalApiKeyRequest(apiKey: apiKey),
+    ),
+  );
   @override
   Future<NexusMod> mod(String workspace, int id) => _call(() async {
     final reply = await _client.readNexusMod(

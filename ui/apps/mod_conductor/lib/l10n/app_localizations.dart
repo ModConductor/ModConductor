@@ -566,12 +566,6 @@ abstract class AppLocalizations {
   /// **'The storage operation failed'**
   String get credentialStorageFailed;
 
-  /// No description provided for @credentialNotConfigured.
-  ///
-  /// In en, this message translates to:
-  /// **'Sign-in is not configured in this build.'**
-  String get credentialNotConfigured;
-
   /// No description provided for @credentialWaitingSignIn.
   ///
   /// In en, this message translates to:
@@ -637,6 +631,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Sign in'**
   String get credentialSignIn;
+
+  /// No description provided for @credentialPersonalApiKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter personal API key'**
+  String get credentialPersonalApiKey;
+
+  /// No description provided for @credentialShowPersonalApiKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Show personal API key'**
+  String get credentialShowPersonalApiKey;
+
+  /// No description provided for @credentialHidePersonalApiKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide personal API key'**
+  String get credentialHidePersonalApiKey;
+
+  /// No description provided for @credentialSubmitPersonalApiKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect with API key'**
+  String get credentialSubmitPersonalApiKey;
 
   /// No description provided for @credentialStorageCheckFailed.
   ///

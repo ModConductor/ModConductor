@@ -121,7 +121,6 @@
   "credentialStorageCancelled": "The storage operation was cancelled",
   "credentialStorageTooLarge": "Sign-in details exceed the storage limit",
   "credentialStorageFailed": "The storage operation failed",
-  "credentialNotConfigured": "Sign-in is not configured in this build.",
   "credentialWaitingSignIn": "Waiting for sign-in",
   "credentialConnectedAs": "Connected as {name}",
   "@credentialConnectedAs": {
@@ -140,6 +139,10 @@
   "credentialSignInAgain": "Sign in again",
   "credentialConnect": "Connect",
   "credentialSignIn": "Sign in",
+  "credentialPersonalApiKey": "Enter personal API key",
+  "credentialShowPersonalApiKey": "Show personal API key",
+  "credentialHidePersonalApiKey": "Hide personal API key",
+  "credentialSubmitPersonalApiKey": "Connect with API key",
   "credentialStorageCheckFailed": "Sign-in storage could not be checked",
   "credentialCheckEngine": "Check the engine connection and try again.",
   "credentialSavedNotRemoved": "Saved sign-in not removed",

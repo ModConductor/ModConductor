@@ -40,6 +40,7 @@ type NexusServer() =
     let mutable payload = Array.init (1024 * 1024) (fun n -> byte (n % 251))
     let mutable downloadKey = "synthetic-signed-key-A"
     let mutable nxmRequests = 0
+    let mutable apiKeyRequests = 0
     let mutable privateHeader = false
     let mutable ranges = 0
     let mutable slow = false
@@ -172,7 +173,38 @@ type NexusServer() =
                                   + (if premium then "[\"premium\"]" else "[]")
                                   + "}"))
                 elif path.StartsWith "/api/" then
-                    if mode = "rate" then
+                    let apiKey = request.Headers["APIKEY"]
+                    let bearer = request.Headers["Authorization"]
+
+                    if not (isNull apiKey) then
+                        apiKeyRequests <- apiKeyRequests + 1
+
+                    if path.EndsWith "/users/validate.json" then
+                        if apiKey <> "synthetic-personal-key" || mode = "invalid-key" then
+                            do! write 401 "{}"
+                        elif mode = "rate" then
+                            response.Headers["Retry-After"] <- "15"
+                            do! write 429 "{}"
+                        elif mode = "offline" then
+                            do! write 503 "{}"
+                        else
+                            do!
+                                write
+                                    200
+                                    ("{\"user_id\":"
+                                     + subject
+                                     + ",\"key\":\"synthetic-personal-key\",\"name\":\"Rowan\",\"is_premium\":"
+                                     + (if premium then "true" else "false")
+                                     + "}")
+                    elif
+                        (not (isNull apiKey)
+                         && (apiKey <> "synthetic-personal-key" || mode = "invalid-key"))
+                        || (isNull apiKey
+                            && (isNull bearer
+                                || not (bearer.StartsWith "Bearer synthetic-access-secret-")))
+                    then
+                        do! write 401 "{}"
+                    elif mode = "rate" then
                         response.Headers["Retry-After"] <- "15"
                         do! write 429 "{\"error\":\"synthetic-refresh-secret\"}"
                     elif mode = "offline" then
@@ -201,11 +233,17 @@ type NexusServer() =
                                         else
                                             None)
 
+                                let origin =
+                                    if mode = "bad-origin" then
+                                        "https://outside.invalid/"
+                                    else
+                                        root
+
                                 write
                                     200
                                     (("[{"
                                       + "\"name\":\"Fixture CDN\",\"short_name\":\"fixture\",\"URI\":\""
-                                      + root
+                                      + origin
                                       + "payload?mod="
                                       + (modId |> Option.map string |> Option.defaultValue "")
                                       + "&key="
@@ -539,6 +577,7 @@ type NexusServer() =
                 elif path = "/payload" then
                     if
                         request.Headers["Authorization"] <> null
+                        || request.Headers["APIKEY"] <> null
                         || request.Headers["Cookie"] <> null
                     then
                         privateHeader <- true
@@ -698,6 +737,7 @@ type NexusServer() =
         | _ -> 0
 
     member _.NxmRequests = nxmRequests
+    member _.ApiKeyRequests = apiKeyRequests
     member _.PrivateHeader = privateHeader
     member _.Ranges = ranges
     member _.Root = root

@@ -87,6 +87,12 @@ type NexusService
             return NexusWire.status value
         }
 
+    override _.SubmitNexusPersonalApiKey(request, _) =
+        task {
+            let! value = session.SubmitPersonalApiKey(request.ApiKey)
+            return NexusWire.status value
+        }
+
     override _.ReadNexusMod(request, _) =
         task {
             let! mapped = game (ModLibraryWire.id request.WorkspaceId)

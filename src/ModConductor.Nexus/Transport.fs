@@ -25,7 +25,7 @@ module internal NexusBoundary =
             | _ -> return Error NexusProblem.Failed
         }
 
-type internal NexusTransport(registration: NexusRegistration, interval: TimeSpan) =
+type internal NexusTransport(api: Uri, interval: TimeSpan) =
     let handler =
         new SocketsHttpHandler(
             AllowAutoRedirect = false,
@@ -44,6 +44,13 @@ type internal NexusTransport(registration: NexusRegistration, interval: TimeSpan
     let scheduling = obj ()
     let mutable nextRequest = DateTimeOffset.MinValue
     let mutable blockedUntil = DateTimeOffset.MinValue
+
+    let authorize (request: HttpRequestMessage) =
+        function
+        | NexusAuthorization.OAuth value ->
+            request.Headers.Authorization <- AuthenticationHeaderValue("Bearer", value)
+        | NexusAuthorization.PersonalApiKey value ->
+            request.Headers.TryAddWithoutValidation("APIKEY", value) |> ignore
 
     let wait (token: CancellationToken) =
         task {
@@ -79,7 +86,7 @@ type internal NexusTransport(registration: NexusRegistration, interval: TimeSpan
     member _.Send
         (
             uri: Uri,
-            bearer: string option,
+            authorization: NexusAuthorization option,
             fields: (string * string) list option,
             entitlement: bool,
             token: CancellationToken
@@ -111,9 +118,7 @@ type internal NexusTransport(registration: NexusRegistration, interval: TimeSpan
                     request.Headers.TryAddWithoutValidation("Application-Version", "0.1.0")
                     |> ignore
 
-                    bearer
-                    |> Option.iter (fun value ->
-                        request.Headers.Authorization <- AuthenticationHeaderValue("Bearer", value))
+                    authorization |> Option.iter (authorize request)
 
                     fields
                     |> Option.iter (fun values ->
@@ -157,7 +162,12 @@ type internal NexusTransport(registration: NexusRegistration, interval: TimeSpan
 
                     if not retry then
                         if code = 401 || (fields.IsSome && code = 400) then
-                            reject NexusProblem.SignInRequired
+                            reject (
+                                match authorization with
+                                | Some(NexusAuthorization.PersonalApiKey _) ->
+                                    NexusProblem.InvalidApiKey
+                                | _ -> NexusProblem.SignInRequired
+                            )
 
                         if code = 403 then
                             reject (
@@ -187,18 +197,32 @@ type internal NexusTransport(registration: NexusRegistration, interval: TimeSpan
                 slots.Release() |> ignore
         }
 
-    member this.Token(fields, token) =
-        this.Send(registration.Token, None, Some fields, false, token)
+    member this.Token(uri, fields, token) =
+        this.Send(uri, None, Some fields, false, token)
 
-    member this.UserInfo(access, token) =
-        this.Send(registration.UserInfo, Some access, None, false, token)
+    member this.UserInfo(uri, access, token) =
+        this.Send(uri, Some(NexusAuthorization.OAuth access), None, false, token)
 
-    member this.Api(path: string, access, entitlement, token) =
-        this.Send(Uri(registration.Api, path), Some access, None, entitlement, token)
+    member this.Api(path: string, authorization, entitlement, token) =
+        this.Send(Uri(api, path), Some authorization, None, entitlement, token)
+
+    member this.ValidatePersonalApiKey(key, token) =
+        this.Api("users/validate.json", NexusAuthorization.PersonalApiKey key, false, token)
 
     member _.Mutate
-        (path: string, access: string, action: NexusInteraction, fields, token: CancellationToken)
-        =
+        (
+            path: string,
+            authorization: NexusAuthorization,
+            action: NexusInteraction,
+            fields,
+            token: CancellationToken
+        ) =
+        let bearer, apiKey, rejected =
+            match authorization with
+            | NexusAuthorization.OAuth value -> Some value, None, NexusProblem.SignInRequired
+            | NexusAuthorization.PersonalApiKey value ->
+                None, Some value, NexusProblem.InvalidApiKey
+
         NexusBoundary.protect (fun () ->
             task {
                 do! slots.WaitAsync token
@@ -212,7 +236,7 @@ type internal NexusTransport(registration: NexusRegistration, interval: TimeSpan
                                  HttpMethod.Delete
                              else
                                  HttpMethod.Post),
-                            Uri(registration.Api, path)
+                            Uri(api, path)
                         )
 
                     request.Headers.UserAgent.ParseAdd("ModConductor/0.1.0")
@@ -223,7 +247,15 @@ type internal NexusTransport(registration: NexusRegistration, interval: TimeSpan
                     request.Headers.TryAddWithoutValidation("Application-Version", "0.1.0")
                     |> ignore
 
-                    request.Headers.Authorization <- AuthenticationHeaderValue("Bearer", access)
+                    bearer
+                    |> Option.iter (fun value ->
+                        request.Headers.Authorization <-
+                            AuthenticationHeaderValue("Bearer", value))
+
+                    apiKey
+                    |> Option.iter (fun value ->
+                        request.Headers.TryAddWithoutValidation("APIKEY", value) |> ignore)
+
                     request.Content <- new ByteArrayContent(MetadataJson.write fields)
                     request.Content.Headers.ContentType <- MediaTypeHeaderValue("application/json")
                     use deadline = CancellationTokenSource.CreateLinkedTokenSource token
@@ -239,7 +271,7 @@ type internal NexusTransport(registration: NexusRegistration, interval: TimeSpan
                             raise (NexusException(NexusProblem.RateLimited until))
 
                         if code = 401 then
-                            raise (NexusException NexusProblem.SignInRequired)
+                            raise (NexusException rejected)
 
                         if code = 403 || code = 400 || code = 422 then
                             raise (NexusException NexusProblem.Forbidden)

@@ -276,10 +276,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get credentialStorageFailed => 'The storage operation failed';
 
   @override
-  String get credentialNotConfigured =>
-      'Sign-in is not configured in this build.';
-
-  @override
   String get credentialWaitingSignIn => 'Waiting for sign-in';
 
   @override
@@ -313,6 +309,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get credentialSignIn => 'Sign in';
+
+  @override
+  String get credentialPersonalApiKey => 'Enter personal API key';
+
+  @override
+  String get credentialShowPersonalApiKey => 'Show personal API key';
+
+  @override
+  String get credentialHidePersonalApiKey => 'Hide personal API key';
+
+  @override
+  String get credentialSubmitPersonalApiKey => 'Connect with API key';
 
   @override
   String get credentialStorageCheckFailed =>

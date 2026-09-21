@@ -255,7 +255,11 @@ void main() {
         await capture('session-confirm');
         await tap(action('Use this session only'));
         await storageReady();
-        await tap(action('Sign in'));
+        await tester.enterText(
+          find.byKey(const ValueKey('nexus-personal-api-key')),
+          'synthetic-personal-key',
+        );
+        await tap(find.byKey(const ValueKey('submit-nexus-personal-api-key')));
         await until(() => action('Disconnect').evaluate().isNotEmpty);
         await storageReady();
         final memory = await owner.credentials!.status();
@@ -265,7 +269,7 @@ void main() {
         expect((await owner.nexus!.status()).name, 'Rowan');
         await capture('connected-session');
         await File('$output/verified.txt').writeAsString(
-          'Actual compiled shared Preferences and archive widgets, v1 RPC and NativeAOT fixture host using production Engine composition. PKCE uses only an isolated fake HTTP provider/browser. Verified sign-in, navigation, metadata/details, refusal disables both Download controls, explicit retry via new selection, one tracked transfer after Back during its pending handoff and later tab navigation, truthful locked-store disconnect, and explicit fresh session-only sign-in while the saved item remains locked. Synthetic game files are metadata only; no executable is run.\n',
+          'Actual compiled shared Preferences and archive widgets, authenticated v1 RPC, and NativeAOT fixture host using production Engine composition. PKCE and personal API-key validation use only an isolated fake HTTP provider/browser. Verified sign-in, navigation, metadata/details, refusal disables both Download controls, explicit retry via new selection, one tracked transfer after Back during its pending handoff and later tab navigation, truthful locked-store disconnect, and explicit fresh session-only personal API-key submission while the saved OAuth item remains locked. Synthetic game files are metadata only; no executable is run.\n',
         );
       } finally {
         await tester.pumpWidget(const SizedBox.shrink());

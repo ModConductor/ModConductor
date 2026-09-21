@@ -23,7 +23,6 @@ class CredentialPreferencesLabels {
     required this.storageDetails,
     required this.close,
     required this.problem,
-    required this.notConfigured,
     required this.waitingSignIn,
     required this.connectedAs,
     required this.premium,
@@ -35,6 +34,10 @@ class CredentialPreferencesLabels {
     required this.signInAgain,
     required this.connect,
     required this.signIn,
+    required this.personalApiKey,
+    required this.showPersonalApiKey,
+    required this.hidePersonalApiKey,
+    required this.submitPersonalApiKey,
     required this.storageCheckFailed,
     required this.checkEngine,
     required this.savedNotRemoved,
@@ -65,7 +68,6 @@ class CredentialPreferencesLabels {
   final String storageDetails;
   final String close;
   final String Function(CredentialProblem) problem;
-  final String notConfigured;
   final String waitingSignIn;
   final String Function(String) connectedAs;
   final String premium;
@@ -77,6 +79,10 @@ class CredentialPreferencesLabels {
   final String signInAgain;
   final String connect;
   final String signIn;
+  final String personalApiKey;
+  final String showPersonalApiKey;
+  final String hidePersonalApiKey;
+  final String submitPersonalApiKey;
   final String storageCheckFailed;
   final String checkEngine;
   final String savedNotRemoved;
@@ -109,6 +115,8 @@ class _CredentialPreferencesState extends State<CredentialPreferences> {
   NexusAccount? _account;
   Timer? _poll;
   bool _busy = false, _connectionProblem = false;
+  bool _showPersonalApiKey = false;
+  final _personalApiKey = TextEditingController();
   int _generation = 0;
   @override
   void initState() {
@@ -165,6 +173,7 @@ class _CredentialPreferencesState extends State<CredentialPreferences> {
   @override
   void dispose() {
     _poll?.cancel();
+    _personalApiKey.dispose();
     super.dispose();
   }
 
@@ -190,6 +199,12 @@ class _CredentialPreferencesState extends State<CredentialPreferences> {
     ))
       return;
     if (mounted && widget.client != null) await _run(widget.client!.remove);
+  }
+
+  Future<void> _submitPersonalApiKey() async {
+    final nexus = widget.nexus;
+    if (nexus == null || _personalApiKey.text.isEmpty) return;
+    await _nexus(() => nexus.submitPersonalApiKey(_personalApiKey.text));
   }
 
   Future<bool> _confirm({
@@ -274,9 +289,7 @@ class _CredentialPreferencesState extends State<CredentialPreferences> {
     return McSection(
       title: labels.nexusMods,
       children: [
-        if (_account?.configured != true)
-          Text(labels.notConfigured)
-        else if (_account?.waiting == true)
+        if (_account?.waiting == true)
           Text(labels.waitingSignIn)
         else if (_account?.name case final name?)
           Row(
@@ -301,7 +314,10 @@ class _CredentialPreferencesState extends State<CredentialPreferences> {
             tone: McStatusTone.error,
           ),
         ],
-        if (_account?.configured == true && widget.nexus != null) ...[
+        if (widget.nexus != null &&
+            (_account?.configured == true ||
+                _account?.name != null ||
+                reconnect)) ...[
           _gap,
           Wrap(
             spacing: 12,
@@ -343,6 +359,46 @@ class _CredentialPreferencesState extends State<CredentialPreferences> {
                       : null,
                 ),
             ],
+          ),
+        ],
+        if (_account?.name == null && widget.nexus != null) ...[
+          _gap,
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 480),
+            child: TextField(
+              key: const ValueKey('nexus-personal-api-key'),
+              controller: _personalApiKey,
+              obscureText: !_showPersonalApiKey,
+              enableSuggestions: false,
+              autocorrect: false,
+              textInputAction: TextInputAction.done,
+              onSubmitted: enabled ? (_) => _submitPersonalApiKey() : null,
+              decoration: InputDecoration(
+                labelText: labels.personalApiKey,
+                suffixIcon: McIconAction(
+                  label: _showPersonalApiKey
+                      ? labels.hidePersonalApiKey
+                      : labels.showPersonalApiKey,
+                  icon: Icon(
+                    _showPersonalApiKey
+                        ? Icons.visibility_off
+                        : Icons.visibility,
+                  ),
+                  onPressed: enabled
+                      ? () => setState(
+                          () => _showPersonalApiKey = !_showPersonalApiKey,
+                        )
+                      : null,
+                ),
+              ),
+            ),
+          ),
+          _gap,
+          McAction(
+            key: const ValueKey('submit-nexus-personal-api-key'),
+            label: labels.submitPersonalApiKey,
+            icon: Icons.key,
+            onPressed: enabled ? _submitPersonalApiKey : null,
           ),
         ],
         _gap,

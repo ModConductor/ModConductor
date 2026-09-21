@@ -78,7 +78,6 @@
   "credentialStorageCancelled": "أُلغيت عملية التخزين",
   "credentialStorageTooLarge": "تتجاوز بيانات تسجيل الدخول حد التخزين",
   "credentialStorageFailed": "فشلت عملية التخزين",
-  "credentialNotConfigured": "تسجيل الدخول غير مهيأ في هذا الإصدار.",
   "credentialWaitingSignIn": "في انتظار تسجيل الدخول",
   "credentialConnectedAs": "متصل باسم {name}",
   "@credentialConnectedAs": {
@@ -97,6 +96,10 @@
   "credentialSignInAgain": "تسجيل الدخول مجددًا",
   "credentialConnect": "اتصال",
   "credentialSignIn": "تسجيل الدخول",
+  "credentialPersonalApiKey": "أدخل مفتاح API الشخصي",
+  "credentialShowPersonalApiKey": "إظهار مفتاح API الشخصي",
+  "credentialHidePersonalApiKey": "إخفاء مفتاح API الشخصي",
+  "credentialSubmitPersonalApiKey": "الاتصال بمفتاح API",
   "credentialStorageCheckFailed": "تعذر فحص تخزين تسجيل الدخول",
   "credentialCheckEngine": "افحص اتصال المحرك وحاول مجددًا.",
   "credentialSavedNotRemoved": "لم يُزل تسجيل الدخول المحفوظ",

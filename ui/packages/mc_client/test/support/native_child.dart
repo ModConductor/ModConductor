@@ -21,10 +21,14 @@ class NativeChild {
   final List<ClientChannel> channels = [];
 
   static Future<NativeChild> start(String executable, Directory state) async {
-    final process = await Process.start(executable, [
-      '--state-directory',
-      state.path,
-    ]);
+    return startWithArguments(executable, ['--state-directory', state.path]);
+  }
+
+  static Future<NativeChild> startWithArguments(
+    String executable,
+    List<String> arguments,
+  ) async {
+    final process = await Process.start(executable, arguments);
     final errors = <int>[];
     process.stderr.listen(errors.addAll);
     final random = Random.secure();
@@ -119,6 +123,19 @@ class NativeChild {
   );
 
   SettingsClient settings({bool authenticate = true}) => GrpcSettingsClient(
+    _localChannel(),
+    CallOptions(metadata: authenticate ? {'mc-session': capability} : const {}),
+  );
+
+  CredentialsClient credentials({bool authenticate = true}) =>
+      GrpcCredentialsClient(
+        _localChannel(),
+        CallOptions(
+          metadata: authenticate ? {'mc-session': capability} : const {},
+        ),
+      );
+
+  NexusClient nexus({bool authenticate = true}) => GrpcNexusClient(
     _localChannel(),
     CallOptions(metadata: authenticate ? {'mc-session': capability} : const {}),
   );
