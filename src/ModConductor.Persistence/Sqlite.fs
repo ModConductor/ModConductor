@@ -1,6 +1,9 @@
 namespace ModConductor.Persistence
 
 open System
+open System.Buffers.Binary
+open System.IO
+open System.Text
 open Microsoft.Data.Sqlite
 
 module internal Sqlite =
@@ -29,12 +32,36 @@ module internal Sqlite =
             )
         )
 
+    let requireCompatible path =
+        if File.Exists path then
+            let header = Array.zeroCreate<byte> 72
+
+            use stream =
+                new FileStream(
+                    path,
+                    FileMode.Open,
+                    FileAccess.Read,
+                    FileShare.ReadWrite ||| FileShare.Delete
+                )
+
+            try
+                stream.ReadExactly header
+            with :? EndOfStreamException ->
+                incompatible ()
+
+            let sqliteHeader = Encoding.ASCII.GetBytes("SQLite format 3\000")
+
+            if
+                not (header.AsSpan(0, sqliteHeader.Length).SequenceEqual sqliteHeader)
+                || int64 (BinaryPrimitives.ReadInt32BigEndian(header.AsSpan(60, 4)))
+                   <> Schema.CurrentVersion
+                || int64 (BinaryPrimitives.ReadInt32BigEndian(header.AsSpan(68, 4)))
+                   <> Schema.ApplicationId
+            then
+                incompatible ()
+
     let initializeAtCommit (connection: SqliteConnection) beforeCommit =
-        execute
-            connection
-            null
-            "PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA foreign_keys=ON;"
-            []
+        execute connection null "PRAGMA foreign_keys=ON;" []
 
         use transaction = connection.BeginTransaction(deferred = false)
         let version = number connection transaction "PRAGMA user_version" []
@@ -54,5 +81,7 @@ module internal Sqlite =
 
         beforeCommit ()
         transaction.Commit()
+
+        execute connection null "PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL;" []
 
     let initialize connection = initializeAtCommit connection ignore

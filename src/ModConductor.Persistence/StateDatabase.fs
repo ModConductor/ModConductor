@@ -8,12 +8,15 @@ open Microsoft.Data.Sqlite
 open ModConductor.Operations
 
 type internal StateDatabase(directory: string) =
+    let databasePath = Path.Combine(directory, "state.db")
+    do Sqlite.requireCompatible databasePath
+
     let owners = Path.Combine(directory, "owners")
     let ownerId, ownerPath, lease = OwnerLease.reserve owners
 
     let settings =
         SqliteConnectionStringBuilder(
-            DataSource = Path.Combine(directory, "state.db"),
+            DataSource = databasePath,
             Pooling = false,
             DefaultTimeout = 1
         )

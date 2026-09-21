@@ -151,6 +151,16 @@ module StorageFixtures =
                 "CREATE TABLE development_state(value INTEGER); INSERT INTO development_state VALUES(42); PRAGMA user_version=1;"
                 []
 
+        let unsupportedDatabase = Path.Combine(unsupported, "state.db")
+        let unchangedTime = DateTime(2020, 1, 2, 3, 4, 5, DateTimeKind.Utc)
+        File.SetLastWriteTimeUtc(unsupportedDatabase, unchangedTime)
+        let unsupportedBytes = File.ReadAllBytes unsupportedDatabase
+
+        let unsupportedEntries =
+            Directory.GetFileSystemEntries unsupported
+            |> Array.map Path.GetFileName
+            |> Array.sort
+
         let mutable resetInstruction = false
 
         try
@@ -160,11 +170,16 @@ module StorageFixtures =
             resetInstruction <- error.Message.Contains("Delete the Mod Conductor state directory")
 
         writer.WriteBoolean(
-            "unsupportedRefused",
+            "unsupportedRefusedWithoutMutation",
             resetInstruction
-            && number unsupported "PRAGMA user_version" = 1L
-            && number unsupported "SELECT value FROM development_state" = 42L
-            && number unsupported "SELECT count(*) FROM sqlite_master WHERE name='operation_state'" = 0L
+            && File.ReadAllBytes unsupportedDatabase = unsupportedBytes
+            && File.GetLastWriteTimeUtc unsupportedDatabase = unchangedTime
+            && (Directory.GetFileSystemEntries unsupported
+                |> Array.map Path.GetFileName
+                |> Array.sort) = unsupportedEntries
+            && not (Directory.Exists(Path.Combine(unsupported, "owners")))
+            && not (File.Exists(unsupportedDatabase + "-wal"))
+            && not (File.Exists(unsupportedDatabase + "-shm"))
         )
 
         do

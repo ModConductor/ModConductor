@@ -41,7 +41,7 @@ type StorageTests() =
         number schema "triggers" |> should equal 2L
         number schema "foreignKeyFailures" |> should equal 0L
         flag schema "initializationRollback" |> should equal true
-        flag schema "unsupportedRefused" |> should equal true
+        flag schema "unsupportedRefusedWithoutMutation" |> should equal true
         flag schema "restartCurrent" |> should equal true
 
     [<Test>]
