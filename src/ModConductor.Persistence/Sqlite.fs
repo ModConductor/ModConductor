@@ -217,7 +217,22 @@ module internal Sqlite =
                 connection
                 transaction
                 """
-                ALTER TABLE game_contexts RENAME TO workspace_game_contexts_v33;
+                DELETE FROM skse_replacement_intents;
+                DELETE FROM fnis_publication_intents;
+                DELETE FROM enb_selection_intents;
+                DELETE FROM enb_configuration_operations;
+
+                DELETE FROM mod_version_origins;
+                DELETE FROM output_observations;
+                DELETE FROM output_actions;
+                DELETE FROM output_locations;
+                DELETE FROM output_contexts;
+
+                DELETE FROM deployment_receipts;
+                DELETE FROM deployment_generations;
+                DELETE FROM deployment_contexts;
+
+                DROP TABLE game_contexts;
                 CREATE TABLE game_contexts(
                     profile_id TEXT PRIMARY KEY REFERENCES profiles(id) ON DELETE CASCADE,
                     workspace_id TEXT NOT NULL REFERENCES workspaces(id),
@@ -231,11 +246,6 @@ module internal Sqlite =
                     proton_selection TEXT
                 );
                 CREATE INDEX game_contexts_by_workspace ON game_contexts(workspace_id,profile_id);
-                INSERT INTO game_contexts(profile_id,workspace_id,game_id,id,path,revision,evidence,checked_owner,failure,proton_selection)
-                SELECT p.id,g.workspace_id,'skyrim-se-steam',g.id,g.path,g.revision,g.evidence,g.checked_owner,g.failure,g.proton_selection
-                FROM workspace_game_contexts_v33 g
-                JOIN profiles p ON p.workspace_id=g.workspace_id;
-                DROP TABLE workspace_game_contexts_v33;
                 PRAGMA user_version=34;
                 """
                 []

@@ -458,10 +458,18 @@ module GameContextFixtures =
         writer.WriteBoolean("protonHasNoHostFolders", noHostFolders)
 
         let migrationState =
-            Directory.CreateDirectory(Path.Combine(primary, "game-contexts", "migration-state")).FullName
+            Directory
+                .CreateDirectory(Path.Combine(primary, "game-contexts", "migration-state"))
+                .FullName
 
         let migrationWorkspace, migrationEmptyWorkspace = Guid.NewGuid(), Guid.NewGuid()
         let migrationProfiles = [ Guid.NewGuid(); Guid.NewGuid(); Guid.NewGuid() ]
+        let obsoleteDeploymentContext = Guid.NewGuid()
+        let obsoleteGeneration = Guid.NewGuid()
+        let obsoleteReceipt = Guid.NewGuid()
+        let obsoleteOutputContext = Guid.NewGuid()
+        let obsoleteOutputLocation = Guid.NewGuid()
+        let obsoleteOutputAction = Guid.NewGuid()
 
         do
             use store = new OperationStore(migrationState)
@@ -510,6 +518,7 @@ module GameContextFixtures =
             connection.Open()
 
             use command = connection.CreateCommand()
+
             command.CommandText <-
                 """
                 PRAGMA foreign_keys=OFF;
@@ -521,10 +530,57 @@ module GameContextFixtures =
                 FROM profile_game_contexts_v34
                 WHERE profile_id=$profile;
                 DROP TABLE profile_game_contexts_v34;
+
+                INSERT INTO deployment_contexts(id,revision,pending,body,digest)
+                VALUES($deployment,0,NULL,X'00','obsolete');
+                INSERT INTO deployment_generations(context_id,id,body,digest,unavailable)
+                VALUES($deployment,$generation,X'00','obsolete',NULL);
+                INSERT INTO deployment_receipts(
+                    id,context_id,previous_id,proposed_id,revision,phase,owner,busy,abandoned,body,digest
+                ) VALUES(
+                    $receipt,$deployment,NULL,$generation,0,2,'obsolete',0,0,X'00','obsolete'
+                );
+
+                INSERT INTO output_contexts(workspace_id,id,game_path,revision)
+                VALUES($workspace,$output,$game,0);
+                INSERT INTO output_locations(
+                    id,workspace_id,context_id,name,purpose,target,revision,enabled,initialized,root_name
+                ) VALUES(
+                    $location,$workspace,$output,'Obsolete',0,NULL,0,1,0,'.obsolete-output'
+                );
+                INSERT INTO output_observations(location_id,path,sha256,kept)
+                VALUES($location,'obsolete.txt','obsolete',0);
+                INSERT INTO output_actions(
+                    id,workspace_id,context_id,owner,busy,complete,version_id,body
+                ) VALUES(
+                    $action,$workspace,$output,'obsolete',0,0,NULL,X'00'
+                );
                 PRAGMA user_version=33;
                 """
 
             command.Parameters.AddWithValue("$profile", string (List.head migrationProfiles))
+            |> ignore
+
+            command.Parameters.AddWithValue("$deployment", string obsoleteDeploymentContext)
+            |> ignore
+
+            command.Parameters.AddWithValue("$generation", string obsoleteGeneration)
+            |> ignore
+
+            command.Parameters.AddWithValue("$receipt", string obsoleteReceipt) |> ignore
+
+            command.Parameters.AddWithValue("$workspace", string migrationWorkspace)
+            |> ignore
+
+            command.Parameters.AddWithValue("$output", string obsoleteOutputContext)
+            |> ignore
+
+            command.Parameters.AddWithValue("$game", game) |> ignore
+
+            command.Parameters.AddWithValue("$location", string obsoleteOutputLocation)
+            |> ignore
+
+            command.Parameters.AddWithValue("$action", string obsoleteOutputAction)
             |> ignore
 
             command.ExecuteNonQuery() |> ignore
@@ -533,9 +589,10 @@ module GameContextFixtures =
             use store = new OperationStore(migrationState)
             let contexts = store.GameContexts :> IGameContexts
 
-            let migrated =
+            let reset =
                 migrationProfiles
-                |> List.map (fun profile -> contexts.Read(migrationWorkspace, profile) |> wait |> result)
+                |> List.map (fun profile ->
+                    contexts.Read(migrationWorkspace, profile) |> wait |> result)
 
             let workspaces = store.Workspaces :> IWorkspaceState
             let empty = workspaces.Read(migrationEmptyWorkspace, None) |> wait |> result
@@ -544,25 +601,49 @@ module GameContextFixtures =
             workspaces.Edit(
                 migrationEmptyWorkspace,
                 empty.Workspace.Revision,
-                ProfileEdit.Create { Id = emptyProfile; Name = "Still unbound" }
+                ProfileEdit.Create
+                    { Id = emptyProfile
+                      Name = "Still unbound" }
             )
             |> wait
             |> result
             |> ignore
 
             writer.WriteBoolean(
-                "workspaceBindingMigratesToEveryExistingProfile",
-                migrated
-                |> List.forall (fun state ->
-                    state.Binding
-                    |> Option.exists (fun binding ->
-                        binding.Path = game
-                        && binding.GameId = GameId.SkyrimSpecialEditionSteam))
+                "incompatibleWorkspaceBindingReset",
+                reset |> List.forall (fun state -> state.Revision = 0L && state.Binding.IsNone)
             )
 
             writer.WriteBoolean(
-                "workspaceWithoutProfilesMigratesUnbound",
-                (contexts.Read(migrationEmptyWorkspace, emptyProfile) |> wait |> result).Binding.IsNone
+                "freshProfileAfterResetUnbound",
+                let state = contexts.Read(migrationEmptyWorkspace, emptyProfile) |> wait |> result
+                state.Revision = 0L && state.Binding.IsNone
+            )
+
+        do
+            use connection =
+                new SqliteConnection("Data Source=" + Path.Combine(migrationState, "state.db"))
+
+            connection.Open()
+
+            let count table =
+                use command = connection.CreateCommand()
+                command.CommandText <- "SELECT count(*) FROM " + table
+                command.ExecuteScalar() :?> int64
+
+            writer.WriteBoolean(
+                "incompatibleDeploymentStateReset",
+                count "deployment_contexts" = 0L
+                && count "deployment_generations" = 0L
+                && count "deployment_receipts" = 0L
+            )
+
+            writer.WriteBoolean(
+                "incompatibleOutputStateReset",
+                count "output_contexts" = 0L
+                && count "output_locations" = 0L
+                && count "output_observations" = 0L
+                && count "output_actions" = 0L
             )
 
         writer.WriteEndObject()

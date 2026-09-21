@@ -41,10 +41,15 @@ type GameContextTests() =
         flag "unboundProfileSafe" |> should equal true
         flag "profilesIsolateBindings" |> should equal true
         flag "profileDeleteRemovesOnlyOwnedBinding" |> should equal true
-        flag "workspaceBindingMigratesToEveryExistingProfile" |> should equal true
-        flag "workspaceWithoutProfilesMigratesUnbound" |> should equal true
         flag "staleSavePreservesBinding" |> should equal true
         flag "invalidReplacementPreservesBinding" |> should equal true
+
+    [<Test>]
+    member _.``incompatible pre-release state should reset instead of migrate``() =
+        flag "incompatibleWorkspaceBindingReset" |> should equal true
+        flag "incompatibleDeploymentStateReset" |> should equal true
+        flag "incompatibleOutputStateReset" |> should equal true
+        flag "freshProfileAfterResetUnbound" |> should equal true
 
     [<Test>]
     member _.``failed checks and restart should retain identity while requiring new evidence``() =
