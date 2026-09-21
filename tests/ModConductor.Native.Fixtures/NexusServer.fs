@@ -169,7 +169,7 @@ type NexusServer() =
                                 (("{"
                                   + "\"sub\":\""
                                   + subject
-                                  + "\",\"name\":\"Rowan\",\"membership_roles\":"
+                                  + "\",\"name\":\"Rowan\",\"picture\":\"https://static.nexusmods.com/avatar.png\",\"membership_roles\":"
                                   + (if premium then "[\"premium\"]" else "[]")
                                   + "}"))
                 elif path.StartsWith "/api/" then
@@ -199,7 +199,7 @@ type NexusServer() =
                                     200
                                     ("{\"user_id\":"
                                      + subject
-                                     + ",\"key\":\"synthetic-personal-key\",\"name\":\"Rowan\",\"is_premium\":"
+                                     + ",\"key\":\"synthetic-personal-key\",\"name\":\"Rowan\",\"profile_url\":\"https://static.nexusmods.com/avatar.png\",\"is_premium\":"
                                      + (if premium then "true" else "false")
                                      + "}")
                     elif

@@ -5,7 +5,147 @@ import 'localization.dart';
 
 enum McStatusTone { neutral, error }
 
+enum McActionFeedbackKind { pending, success, refusal, failure }
+
 enum McCapabilityDisposition { available, unavailable, unsupported }
+
+class McIdentityCard extends StatelessWidget {
+  const McIdentityCard({
+    super.key,
+    required this.name,
+    required this.provider,
+    this.image,
+    this.badges = const [],
+    this.fallbackIcon = Icons.person,
+    this.semanticLabel,
+  });
+
+  final String name;
+  final String provider;
+  final ImageProvider<Object>? image;
+  final List<Widget> badges;
+  final IconData fallbackIcon;
+  final String? semanticLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    Widget fallback() => Icon(fallbackIcon, color: colors.primary, size: 30);
+    return Semantics(
+      container: true,
+      excludeSemantics: true,
+      label: semanticLabel ?? '$name, $provider',
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(McSpacing.medium),
+        decoration: BoxDecoration(
+          color: colors.surfaceContainerHighest.withValues(alpha: .35),
+          border: Border.all(color: colors.outlineVariant),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          children: [
+            ExcludeSemantics(
+              child: CircleAvatar(
+                radius: 28,
+                backgroundColor: colors.primary.withValues(alpha: .16),
+                child: image == null
+                    ? fallback()
+                    : ClipOval(
+                        child: Image(
+                          image: image!,
+                          width: 56,
+                          height: 56,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, _, _) => fallback(),
+                        ),
+                      ),
+              ),
+            ),
+            const SizedBox(width: McSpacing.medium),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(name, style: Theme.of(context).textTheme.titleMedium),
+                  const SizedBox(height: 3),
+                  Text(provider, style: Theme.of(context).textTheme.bodySmall),
+                ],
+              ),
+            ),
+            if (badges.isNotEmpty) ...[
+              const SizedBox(width: McSpacing.medium),
+              Wrap(spacing: McSpacing.small, children: badges),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class McActionFeedback extends StatelessWidget {
+  const McActionFeedback({
+    super.key,
+    required this.kind,
+    required this.message,
+    this.detail,
+  });
+
+  final McActionFeedbackKind kind;
+  final String message;
+  final String? detail;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final icon = switch (kind) {
+      McActionFeedbackKind.pending => null,
+      McActionFeedbackKind.success => Icons.check_circle_outline,
+      McActionFeedbackKind.refusal => Icons.block,
+      McActionFeedbackKind.failure => Icons.error_outline,
+    };
+    final color = switch (kind) {
+      McActionFeedbackKind.pending ||
+      McActionFeedbackKind.success => colors.primary,
+      McActionFeedbackKind.refusal => colors.onSurfaceVariant,
+      McActionFeedbackKind.failure => colors.error,
+    };
+    return Semantics(
+      liveRegion: true,
+      container: true,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: McSpacing.small),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ExcludeSemantics(
+              child: icon == null
+                  ? const SizedBox.square(
+                      dimension: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Icon(icon, size: 20, color: color),
+            ),
+            const SizedBox(width: McSpacing.small),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(message),
+                  if (detail case final value?) ...[
+                    const SizedBox(height: 2),
+                    Text(value, style: Theme.of(context).textTheme.bodySmall),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 class McCapabilityState extends StatelessWidget {
   const McCapabilityState({

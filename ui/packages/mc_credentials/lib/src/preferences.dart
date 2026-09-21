@@ -24,8 +24,10 @@ class CredentialPreferencesLabels {
     required this.close,
     required this.problem,
     required this.waitingSignIn,
-    required this.connectedAs,
     required this.premium,
+    required this.accountCurrent,
+    required this.checkingAccount,
+    required this.accountCheckFailed,
     required this.notConnected,
     required this.notSignedIn,
     required this.notSaved,
@@ -69,8 +71,10 @@ class CredentialPreferencesLabels {
   final String close;
   final String Function(CredentialProblem) problem;
   final String waitingSignIn;
-  final String Function(String) connectedAs;
   final String premium;
+  final String accountCurrent;
+  final String checkingAccount;
+  final String accountCheckFailed;
   final String notConnected;
   final String notSignedIn;
   final String notSaved;
@@ -115,6 +119,9 @@ class _CredentialPreferencesState extends State<CredentialPreferences> {
   NexusAccount? _account;
   Timer? _poll;
   bool _busy = false, _connectionProblem = false;
+  bool _checkingAccount = false,
+      _accountChecked = false,
+      _accountCheckFailed = false;
   bool _showPersonalApiKey = false;
   final _personalApiKey = TextEditingController();
   int _generation = 0;
@@ -132,6 +139,9 @@ class _CredentialPreferencesState extends State<CredentialPreferences> {
       _busy = false;
       _status = null;
       _account = null;
+      _checkingAccount = false;
+      _accountChecked = false;
+      _accountCheckFailed = false;
       _poll?.cancel();
       _refresh();
     }
@@ -177,13 +187,37 @@ class _CredentialPreferencesState extends State<CredentialPreferences> {
     super.dispose();
   }
 
-  Future<void> _nexus(Future<NexusAccount> Function() action) async {
+  Future<void> _nexus(
+    Future<NexusAccount> Function() action, {
+    bool accountCheck = false,
+  }) async {
     final client = widget.client;
     if (client == null) return;
+    if (!accountCheck) {
+      _accountChecked = false;
+      _accountCheckFailed = false;
+    }
     await _run(() async {
       await action();
       return client.status();
     });
+  }
+
+  Future<void> _checkAccount() async {
+    final nexus = widget.nexus;
+    if (nexus == null || _checkingAccount) return;
+    setState(() {
+      _checkingAccount = true;
+      _accountCheckFailed = false;
+    });
+    await _nexus(nexus.check, accountCheck: true);
+    if (mounted) {
+      setState(() {
+        _checkingAccount = false;
+        _accountChecked = true;
+        _accountCheckFailed = _connectionProblem || _account?.problem != null;
+      });
+    }
   }
 
   Future<void> _disconnect() async {
@@ -198,7 +232,11 @@ class _CredentialPreferencesState extends State<CredentialPreferences> {
       ],
     ))
       return;
-    if (mounted && widget.client != null) await _run(widget.client!.remove);
+    if (mounted && widget.client != null) {
+      _accountChecked = false;
+      _accountCheckFailed = false;
+      await _run(widget.client!.remove);
+    }
   }
 
   Future<void> _submitPersonalApiKey() async {
@@ -255,7 +293,11 @@ class _CredentialPreferencesState extends State<CredentialPreferences> {
       children: [Text(labels.nexusMods), _gap, Text(labels.clearsSessionToo)],
     ))
       return;
-    if (mounted && client == widget.client) await _run(client.remove);
+    if (mounted && client == widget.client) {
+      _accountChecked = false;
+      _accountCheckFailed = false;
+      await _run(client.remove);
+    }
   }
 
   void _details() {
@@ -286,31 +328,52 @@ class _CredentialPreferencesState extends State<CredentialPreferences> {
         status?.mode != CredentialMode.sessionOnly &&
         _account?.problem?.code != 'sign_in_required';
     final enabled = !_busy && widget.client != null;
+    final accountProblem = _account?.problem;
     return McSection(
       title: labels.nexusMods,
       children: [
         if (_account?.waiting == true)
-          Text(labels.waitingSignIn)
-        else if (_account?.name case final name?)
-          Row(
-            children: [
-              Expanded(child: Text(labels.connectedAs(name))),
-              if (_account?.premium == true) Chip(label: Text(labels.premium)),
-            ],
+          McActionFeedback(
+            kind: McActionFeedbackKind.pending,
+            message: labels.waitingSignIn,
           )
         else
-          Text(
-            status?.saved == SavedCredentials.present
-                ? labels.notConnected
-                : labels.notSignedIn,
+          McIdentityCard(
+            key: const ValueKey('nexus-identity'),
+            name:
+                _account?.name ??
+                (status?.saved == SavedCredentials.present
+                    ? labels.notConnected
+                    : labels.notSignedIn),
+            provider: labels.nexusMods,
+            semanticLabel:
+                '${_account?.name ?? (status?.saved == SavedCredentials.present ? labels.notConnected : labels.notSignedIn)}, ${labels.nexusMods}${_account?.premium == true ? ', ${labels.premium}' : ''}',
+            image: _account?.profileImage == null
+                ? null
+                : NetworkImage(_account!.profileImage!.toString()),
+            fallbackIcon: _account?.name == null
+                ? Icons.person_outline
+                : Icons.person,
+            badges: [
+              if (_account?.premium == true)
+                Chip(
+                  avatar: const Icon(
+                    Icons.workspace_premium_outlined,
+                    size: 17,
+                  ),
+                  label: Text(labels.premium),
+                ),
+            ],
           ),
-        if (_account?.problem case final problem?) ...[
+        if (!_accountChecked && accountProblem != null) ...[
           _gap,
           McStatus(
-            title: problem.code == 'storage'
+            title: accountProblem.code == 'storage'
                 ? labels.notSaved
-                : problem.message,
-            detail: problem.code == 'storage' ? problem.message : null,
+                : accountProblem.message,
+            detail: accountProblem.code == 'storage'
+                ? accountProblem.message
+                : null,
             tone: McStatusTone.error,
           ),
         ],
@@ -332,9 +395,10 @@ class _CredentialPreferencesState extends State<CredentialPreferences> {
                 )
               else if (_account?.name != null) ...[
                 McAction(
+                  key: const ValueKey('nexus-check-account'),
                   label: labels.checkAccount,
                   icon: Icons.refresh,
-                  onPressed: enabled ? () => _nexus(widget.nexus!.check) : null,
+                  onPressed: enabled ? _checkAccount : null,
                 ),
                 McAction(
                   label: labels.disconnect,
@@ -359,6 +423,25 @@ class _CredentialPreferencesState extends State<CredentialPreferences> {
                       : null,
                 ),
             ],
+          ),
+        ],
+        if (_checkingAccount || _accountChecked) ...[
+          _gap,
+          McActionFeedback(
+            key: const ValueKey('nexus-account-feedback'),
+            kind: _checkingAccount
+                ? McActionFeedbackKind.pending
+                : _accountCheckFailed
+                ? McActionFeedbackKind.failure
+                : McActionFeedbackKind.success,
+            message: _checkingAccount
+                ? labels.checkingAccount
+                : _accountCheckFailed
+                ? labels.accountCheckFailed
+                : labels.accountCurrent,
+            detail: !_accountCheckFailed
+                ? null
+                : _account?.problem?.message ?? labels.checkEngine,
           ),
         ],
         if (_account?.name == null && widget.nexus != null) ...[

@@ -135,17 +135,14 @@ void main() {
         );
         await tapKey('create-workspace');
         await tester.enterText(find.byKey(const ValueKey('name')), 'Weekend');
-        await folder('create');
-        await capture('selected-folder-light');
-        expect(
-          find.byWidgetPredicate(
-            (widget) =>
-                widget is SelectableText && widget.data == workspace.path,
-          ),
-          findsOneWidget,
-        );
         await tapKey('submit');
         await until(() => getController().canEdit);
+        expect(
+          getController().workspace!.path,
+          startsWith(
+            '${state.path}${Platform.pathSeparator}workspaces${Platform.pathSeparator}',
+          ),
+        );
         await capture('empty-light');
         await tapKey('create-profile');
         await name('Everyday');
@@ -208,7 +205,7 @@ void main() {
         owner = makeOwner();
         await mount();
         await tapKey('open-workspace');
-        await folder('reopen');
+        await folder('reopen', path: saved.path);
         await tapKey('submit');
         await until(
           () =>

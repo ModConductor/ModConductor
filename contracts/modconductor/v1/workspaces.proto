@@ -49,7 +49,7 @@ enum WorkspaceFaultCode {
 }
 message WorkspaceFault { WorkspaceFaultCode code = 1; string detail = 2; }
 message WorkspaceReply { oneof outcome { WorkspacePage page = 1; WorkspaceFault fault = 2; } }
-message CreateWorkspaceRequest { string workspace_id = 1; string name = 2; string path = 3; uint64 expected_revision = 4; }
+message CreateWorkspaceRequest { string workspace_id = 1; string name = 2; optional string path = 3; uint64 expected_revision = 4; }
 message OpenWorkspaceRequest { string path = 1; }
 message ReadWorkspaceRequest { string workspace_id = 1; optional string after_profile_id = 2; }
 message CloneProfile { string source_profile_id = 1; ProfileInfo copy = 2; }

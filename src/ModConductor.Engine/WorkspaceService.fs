@@ -1,6 +1,7 @@
 namespace ModConductor.Engine
 
 open System
+open System.IO
 open System.Threading.Tasks
 open Grpc.Core
 open ModConductor.Platform
@@ -152,7 +153,22 @@ module private WorkspaceWire =
                     )
         }
 
-type WorkspaceService(state: IWorkspaceState) =
+type WorkspaceLocations(defaultRoot: string) =
+    member _.Default(workspace: Guid) =
+        let path = Path.Combine(defaultRoot, workspace.ToString("N"))
+
+        try
+            Directory.CreateDirectory path |> ignore
+            Ok path
+        with
+        | :? IOException
+        | :? UnauthorizedAccessException ->
+            Error(
+                WorkspaceError.InvalidRoot
+                    "The default workspace folder could not be created."
+            )
+
+type WorkspaceService(state: IWorkspaceState, locations: WorkspaceLocations) =
     inherit WorkspaceOperations.WorkspaceOperationsBase()
     let selection = new System.Threading.SemaphoreSlim(2, 2)
 
@@ -179,7 +195,16 @@ type WorkspaceService(state: IWorkspaceState) =
             Task.FromResult(WorkspaceWire.pageReply (Error WorkspaceError.StaleRevision))
         else
             let id = WorkspaceWire.id request.WorkspaceId
-            selected request.Path (fun root -> state.Create(id, request.Name, root))
+
+            match ProfilePolicy.name request.Name with
+            | Error error -> Task.FromResult(WorkspaceWire.pageReply (Error error))
+            | Ok name ->
+                let path =
+                    if request.HasPath then Ok request.Path else locations.Default id
+
+                match path with
+                | Error error -> Task.FromResult(WorkspaceWire.pageReply (Error error))
+                | Ok path -> selected path (fun root -> state.Create(id, name, root))
 
     override _.OpenWorkspace(request, _) = selected request.Path state.Open
 

@@ -33,7 +33,7 @@ class WorkspaceController extends ChangeNotifier {
   String? problem;
   String? _problemWorkspace;
   final Map<String, String> _activities = {};
-  ({String id, String name, String path})? _creation;
+  ({String id, String name, String? path})? _creation;
 
   StreamSubscription<ProfileChangeEvent>? _profileChange;
   Completer<ProfileChange>? _profileResult;
@@ -209,13 +209,13 @@ class WorkspaceController extends ChangeNotifier {
     }
   }
 
-  Future<void> create(String name, String path) async {
+  Future<void> create(String name, [String? path]) async {
     final id = newOperationId();
     _creation = (id: id, name: name, path: path);
     final navigation = ++_navigation;
     showingWorkspace = true;
     page = WorkspacePage(
-      WorkspaceInfo(id: id, name: name, path: path, revision: 0),
+      WorkspaceInfo(id: id, name: name, path: path ?? '', revision: 0),
       const [],
       null,
     );

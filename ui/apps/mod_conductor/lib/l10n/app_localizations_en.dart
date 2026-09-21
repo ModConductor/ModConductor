@@ -279,12 +279,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get credentialWaitingSignIn => 'Waiting for sign-in';
 
   @override
-  String credentialConnectedAs(String name) {
-    return 'Connected as $name';
-  }
+  String get credentialPremium => 'Premium';
 
   @override
-  String get credentialPremium => 'Premium';
+  String get credentialAccountCurrent => 'Account is current';
+
+  @override
+  String get credentialCheckingAccount => 'Checking account';
+
+  @override
+  String get credentialAccountCheckFailed => 'Account check failed';
 
   @override
   String get credentialNotConnected => 'Not connected';

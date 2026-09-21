@@ -16,18 +16,21 @@ open Microsoft.Extensions.Hosting
 open Microsoft.Extensions.Logging
 
 let runWithNexus registration (handoff: ModConductor.Nexus.IOAuthHandoff) args =
-    let directory =
+    let directory, workspaceDirectory =
         match args with
         | [||] ->
-            Path.Combine(
-                Environment.GetFolderPath(
-                    Environment.SpecialFolder.LocalApplicationData,
-                    Environment.SpecialFolderOption.Create
-                ),
-                "ModConductor",
-                "state"
-            )
-        | [| "--state-directory"; path |] when Path.IsPathFullyQualified path -> path
+            let application =
+                Path.Combine(
+                    Environment.GetFolderPath(
+                        Environment.SpecialFolder.LocalApplicationData,
+                        Environment.SpecialFolderOption.Create
+                    ),
+                    "ModConductor"
+                )
+
+            Path.Combine(application, "state"), Path.Combine(application, "workspaces")
+        | [| "--state-directory"; path |] when Path.IsPathFullyQualified path ->
+            path, Path.Combine(path, "workspaces")
         | _ -> invalidArg "args" "Invalid engine arguments."
 
     use input = Console.OpenStandardInput()
@@ -316,6 +319,12 @@ let runWithNexus registration (handoff: ModConductor.Nexus.IOAuthHandoff) args =
     builder.Services.AddSingleton<ModConductor.Engine.DiagnosticService>() |> ignore
 
     builder.Services.AddSingleton<ModConductor.Engine.ModLibraryService>() |> ignore
+
+    builder.Services.AddSingleton<ModConductor.Engine.WorkspaceLocations>(
+        ModConductor.Engine.WorkspaceLocations(workspaceDirectory)
+    )
+    |> ignore
+
     builder.Services.AddSingleton<ModConductor.Engine.WorkspaceService>() |> ignore
 
     builder.Services.AddSingleton<ModConductor.Settings.SettingsOwner>(

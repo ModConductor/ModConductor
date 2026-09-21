@@ -45,7 +45,9 @@ module internal NexusWire =
         source.Account
         |> Option.iter (fun account ->
             value.AccountName <- account.Name
-            account.Premium |> Option.iter (fun premium -> value.Premium <- premium))
+            account.Premium |> Option.iter (fun premium -> value.Premium <- premium)
+            account.ProfileImage
+            |> Option.iter (fun image -> value.ProfileImageUrl <- image.AbsoluteUri))
 
         source.Problem |> Option.iter (fun problem -> value.Failure <- failure problem)
         value

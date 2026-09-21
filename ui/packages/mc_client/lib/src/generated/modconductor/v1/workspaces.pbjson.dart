@@ -236,7 +236,7 @@ const CreateWorkspaceRequest$json = {
   '2': [
     {'1': 'workspace_id', '3': 1, '4': 1, '5': 9, '10': 'workspaceId'},
     {'1': 'name', '3': 2, '4': 1, '5': 9, '10': 'name'},
-    {'1': 'path', '3': 3, '4': 1, '5': 9, '10': 'path'},
+    {'1': 'path', '3': 3, '4': 1, '5': 9, '9': 0, '10': 'path', '17': true},
     {
       '1': 'expected_revision',
       '3': 4,
@@ -245,13 +245,16 @@ const CreateWorkspaceRequest$json = {
       '10': 'expectedRevision'
     },
   ],
+  '8': [
+    {'1': '_path'},
+  ],
 };
 
 /// Descriptor for `CreateWorkspaceRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List createWorkspaceRequestDescriptor = $convert.base64Decode(
     'ChZDcmVhdGVXb3Jrc3BhY2VSZXF1ZXN0EiEKDHdvcmtzcGFjZV9pZBgBIAEoCVILd29ya3NwYW'
-    'NlSWQSEgoEbmFtZRgCIAEoCVIEbmFtZRISCgRwYXRoGAMgASgJUgRwYXRoEisKEWV4cGVjdGVk'
-    'X3JldmlzaW9uGAQgASgEUhBleHBlY3RlZFJldmlzaW9u');
+    'NlSWQSEgoEbmFtZRgCIAEoCVIEbmFtZRIXCgRwYXRoGAMgASgJSABSBHBhdGiIAQESKwoRZXhw'
+    'ZWN0ZWRfcmV2aXNpb24YBCABKARSEGV4cGVjdGVkUmV2aXNpb25CBwoFX3BhdGg=');
 
 @$core.Deprecated('Use openWorkspaceRequestDescriptor instead')
 const OpenWorkspaceRequest$json = {

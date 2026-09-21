@@ -39,6 +39,7 @@ void main() {
       final account = await child.nexus().submitPersonalApiKey(candidate);
       expect(account.name, 'Rowan');
       expect(account.premium, isTrue);
+      expect(account.profileImage?.host, 'static.nexusmods.com');
       expect(account.problem, isNull);
       expect((await child.nexus().status()).name, 'Rowan');
     } finally {

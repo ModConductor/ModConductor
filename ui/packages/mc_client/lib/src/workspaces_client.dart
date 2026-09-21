@@ -79,7 +79,7 @@ class WorkspaceException implements Exception {
 }
 
 abstract interface class WorkspacesClient {
-  Future<WorkspacePage> create(String id, String name, String path);
+  Future<WorkspacePage> create(String id, String name, [String? path]);
   Future<WorkspacePage> open(String path);
   Future<WorkspacePage> read(String id, {String? after});
   Future<WorkspacePage> check(String id, int receiptRevision);
@@ -221,7 +221,7 @@ class GrpcWorkspacesClient implements WorkspacesClient, ProfileChangesClient {
   final wire.WorkspaceOperationsClient _wire, _profileWire;
 
   @override
-  Future<WorkspacePage> create(String id, String name, String path) async =>
+  Future<WorkspacePage> create(String id, String name, [String? path]) async =>
       _page(
         await _wire.createWorkspace(
           wire.CreateWorkspaceRequest(

@@ -38,8 +38,7 @@ Future<String?> chooseInventoryExportDestination() async =>
       ],
     ))?.path;
 
-Future<bool> openInventoryExportFolder(String filePath) async {
-  final folder = File(filePath).parent.path;
+Future<bool> openFolder(String folder) async {
   try {
     if (Platform.isWindows) {
       await Process.start('explorer.exe', [
@@ -58,3 +57,6 @@ Future<bool> openInventoryExportFolder(String filePath) async {
   }
   return false;
 }
+
+Future<bool> openInventoryExportFolder(String filePath) =>
+    openFolder(File(filePath).parent.path);

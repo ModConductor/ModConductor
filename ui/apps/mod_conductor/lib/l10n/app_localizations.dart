@@ -568,17 +568,29 @@ abstract class AppLocalizations {
   /// **'Waiting for sign-in'**
   String get credentialWaitingSignIn;
 
-  /// No description provided for @credentialConnectedAs.
-  ///
-  /// In en, this message translates to:
-  /// **'Connected as {name}'**
-  String credentialConnectedAs(String name);
-
   /// No description provided for @credentialPremium.
   ///
   /// In en, this message translates to:
   /// **'Premium'**
   String get credentialPremium;
+
+  /// No description provided for @credentialAccountCurrent.
+  ///
+  /// In en, this message translates to:
+  /// **'Account is current'**
+  String get credentialAccountCurrent;
+
+  /// No description provided for @credentialCheckingAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking account'**
+  String get credentialCheckingAccount;
+
+  /// No description provided for @credentialAccountCheckFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Account check failed'**
+  String get credentialAccountCheckFailed;
 
   /// No description provided for @credentialNotConnected.
   ///

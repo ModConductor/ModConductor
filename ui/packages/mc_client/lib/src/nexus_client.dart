@@ -18,12 +18,14 @@ class NexusAccount {
     this.waiting,
     this.name,
     this.premium,
-    this.problem,
-  );
+    this.problem, [
+    this.profileImage,
+  ]);
   final bool configured, waiting;
   final String? name;
   final bool? premium;
   final NexusProblem? problem;
+  final Uri? profileImage;
 }
 
 class NexusFile {
@@ -98,6 +100,7 @@ class GrpcNexusClient implements NexusClient {
       v.hasAccountName() ? v.accountName : null,
       v.hasPremium() ? v.premium : null,
       v.hasFailure() ? _problem(v.failure) : null,
+      v.hasProfileImageUrl() ? Uri.tryParse(v.profileImageUrl) : null,
     );
   });
   @override

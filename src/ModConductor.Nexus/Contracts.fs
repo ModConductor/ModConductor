@@ -37,7 +37,8 @@ type internal NexusException(problem) =
 type Account =
     { Subject: string
       Name: string
-      Premium: bool option }
+      Premium: bool option
+      ProfileImage: Uri option }
 
 [<RequireQualifiedAccess>]
 type internal NexusAuthorization =

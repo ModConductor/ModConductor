@@ -201,6 +201,7 @@ class NexusAccountStatus extends $pb.GeneratedMessage {
     $core.String? accountName,
     $core.bool? premium,
     NexusFailure? failure,
+    $core.String? profileImageUrl,
   }) {
     final result = create();
     if (configured != null) result.configured = configured;
@@ -208,6 +209,7 @@ class NexusAccountStatus extends $pb.GeneratedMessage {
     if (accountName != null) result.accountName = accountName;
     if (premium != null) result.premium = premium;
     if (failure != null) result.failure = failure;
+    if (profileImageUrl != null) result.profileImageUrl = profileImageUrl;
     return result;
   }
 
@@ -231,6 +233,7 @@ class NexusAccountStatus extends $pb.GeneratedMessage {
     ..aOB(4, _omitFieldNames ? '' : 'premium')
     ..aOM<NexusFailure>(5, _omitFieldNames ? '' : 'failure',
         subBuilder: NexusFailure.create)
+    ..aOS(6, _omitFieldNames ? '' : 'profileImageUrl')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -298,6 +301,15 @@ class NexusAccountStatus extends $pb.GeneratedMessage {
   void clearFailure() => $_clearField(5);
   @$pb.TagNumber(5)
   NexusFailure ensureFailure() => $_ensure(4);
+
+  @$pb.TagNumber(6)
+  $core.String get profileImageUrl => $_getSZ(5);
+  @$pb.TagNumber(6)
+  set profileImageUrl($core.String value) => $_setString(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasProfileImageUrl() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearProfileImageUrl() => $_clearField(6);
 }
 
 class NexusModRequest extends $pb.GeneratedMessage {

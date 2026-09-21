@@ -98,11 +98,21 @@ const NexusAccountStatus$json = {
       '10': 'failure',
       '17': true
     },
+    {
+      '1': 'profile_image_url',
+      '3': 6,
+      '4': 1,
+      '5': 9,
+      '9': 3,
+      '10': 'profileImageUrl',
+      '17': true
+    },
   ],
   '8': [
     {'1': '_account_name'},
     {'1': '_premium'},
     {'1': '_failure'},
+    {'1': '_profile_image_url'},
   ],
 };
 
@@ -111,8 +121,9 @@ final $typed_data.Uint8List nexusAccountStatusDescriptor = $convert.base64Decode
     'ChJOZXh1c0FjY291bnRTdGF0dXMSHgoKY29uZmlndXJlZBgBIAEoCFIKY29uZmlndXJlZBIYCg'
     'd3YWl0aW5nGAIgASgIUgd3YWl0aW5nEiYKDGFjY291bnRfbmFtZRgDIAEoCUgAUgthY2NvdW50'
     'TmFtZYgBARIdCgdwcmVtaXVtGAQgASgISAFSB3ByZW1pdW2IAQESPAoHZmFpbHVyZRgFIAEoCz'
-    'IdLm1vZGNvbmR1Y3Rvci52MS5OZXh1c0ZhaWx1cmVIAlIHZmFpbHVyZYgBAUIPCg1fYWNjb3Vu'
-    'dF9uYW1lQgoKCF9wcmVtaXVtQgoKCF9mYWlsdXJl');
+    'IdLm1vZGNvbmR1Y3Rvci52MS5OZXh1c0ZhaWx1cmVIAlIHZmFpbHVyZYgBARIvChFwcm9maWxl'
+    'X2ltYWdlX3VybBgGIAEoCUgDUg9wcm9maWxlSW1hZ2VVcmyIAQFCDwoNX2FjY291bnRfbmFtZU'
+    'IKCghfcHJlbWl1bUIKCghfZmFpbHVyZUIUChJfcHJvZmlsZV9pbWFnZV91cmw=');
 
 @$core.Deprecated('Use nexusModRequestDescriptor instead')
 const NexusModRequest$json = {

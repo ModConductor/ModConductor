@@ -10,6 +10,7 @@ import 'controller.dart';
 import 'workspace_dialog.dart';
 
 typedef ProfileRowId = ({String profileId});
+typedef WorkspaceFolderOpener = Future<bool> Function(String path);
 typedef ProfileNavigationGuard = Future<bool> Function(
   FutureOr<void> Function() navigate,
 );
@@ -56,6 +57,7 @@ class WorkspaceBrowser extends StatefulWidget {
     this.headerActions,
     this.profileInspectorBuilder,
     this.compactCloseAction = false,
+    this.openFolder,
   });
   final WorkspaceController controller;
   final DirectoryChooser chooseDirectory;
@@ -67,6 +69,7 @@ class WorkspaceBrowser extends StatefulWidget {
   final WorkspaceHelpBuilder? helpBuilder;
   final List<Widget> Function(BuildContext, WorkspaceInfo)? headerActions;
   final bool compactCloseAction;
+  final WorkspaceFolderOpener? openFolder;
   final ProfileInspectorBuilder? profileInspectorBuilder;
 
   @override
@@ -98,6 +101,7 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
       _compactProfileActions = false;
   ProfileNavigationGuard? _profileNavigationGuard;
   String? _inspectedProfileId;
+  bool _openingFolder = false, _folderProblem = false;
   bool _allowProfileDrawerClose = false, _guardingProfileDrawerClose = false;
   void _inspectProfile() {
     setState(() => _inspected = true);
@@ -264,7 +268,7 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
 
   Future<void> _workspaceDialog(BuildContext context, bool create) async {
     (create ? _createWorkspaceFocus : _openWorkspaceFocus).requestFocus();
-    final value = await showDialog<({String name, String path})>(
+    final value = await showDialog<({String name, String? path})>(
       context: context,
       builder: (_) =>
           WorkspaceDialog(create: create, chooseDirectory: chooseDirectory),
@@ -273,7 +277,24 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
     if (create) {
       await controller.create(value.name, value.path);
     } else {
-      await controller.open(value.path);
+      await controller.open(value.path!);
+    }
+  }
+
+  Future<void> _openFolder() async {
+    final workspace = controller.workspace;
+    final open = widget.openFolder;
+    if (workspace == null || open == null || _openingFolder) return;
+    setState(() {
+      _openingFolder = true;
+      _folderProblem = false;
+    });
+    final opened = await open(workspace.path);
+    if (mounted) {
+      setState(() {
+        _openingFolder = false;
+        _folderProblem = !opened;
+      });
     }
   }
 
@@ -467,9 +488,15 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
       if (!controller.connected)
         const McStatus(title: 'The engine is not connected.'),
       if (controller.activity != null)
-        McStatus(title: '${controller.activity} in progress.'),
+        McActionFeedback(
+          kind: McActionFeedbackKind.pending,
+          message: controller.activity!,
+        ),
       if (controller.currentProblem != null) ...[
-        McStatus(title: controller.currentProblem!, tone: McStatusTone.error),
+        McActionFeedback(
+          kind: McActionFeedbackKind.failure,
+          message: controller.currentProblem!,
+        ),
         const SizedBox(height: McSpacing.medium),
         McAction(
           label: 'Refresh',
@@ -524,6 +551,15 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
                     ),
                   ),
                   ...?widget.headerActions?.call(context, workspace),
+                  if (widget.openFolder != null)
+                    McAction(
+                      key: const ValueKey('open-workspace-folder'),
+                      label: 'Open folder',
+                      icon: Icons.folder_open,
+                      onPressed: _openingFolder
+                          ? null
+                          : () => unawaited(_openFolder()),
+                    ),
                   if (widget.compactCloseAction)
                     McIconAction(
                       key: const ValueKey('close-workspace'),
@@ -665,21 +701,22 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
           ),
           if (controller.needsCheck && controller.activity == null) ...[
             const SizedBox(height: 12),
-            McStatus(
-              title: switch (workspace.pendingRoot?.reason) {
+            McActionFeedback(
+              kind: McActionFeedbackKind.refusal,
+              message: switch (workspace.pendingRoot?.reason) {
                 WorkspaceRootIssueReason.ownershipUnproved => 'Mod Conductor cannot verify this workspace. Choose another folder for a new workspace.',
                 WorkspaceRootIssueReason.identityUnverified =>
                   'Mod Conductor cannot verify this workspace.',
                 WorkspaceRootIssueReason.incompleteCreation ||
                 null => 'Workspace creation did not finish.',
               },
-              tone: McStatusTone.error,
             ),
           ],
           if (controller.activity != null) ...[
             const SizedBox(height: 12),
-            McStatus(
-              title: '${controller.activity} in progress.',
+            McActionFeedback(
+              kind: McActionFeedbackKind.pending,
+              message: controller.activity!,
               detail: controller.copyProgress == null
                   ? null
                   : '${controller.copyProgress!.files} files · ${controller.copyProgress!.bytes} bytes copied',
@@ -692,9 +729,20 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
           ],
           if (controller.currentProblem != null) ...[
             const SizedBox(height: 12),
-            McStatus(
-              title: controller.currentProblem!,
-              tone: McStatusTone.error,
+            McActionFeedback(
+              kind: McActionFeedbackKind.failure,
+              message: controller.currentProblem!,
+            ),
+          ],
+          if (_openingFolder || _folderProblem) ...[
+            const SizedBox(height: 12),
+            McActionFeedback(
+              kind: _openingFolder
+                  ? McActionFeedbackKind.pending
+                  : McActionFeedbackKind.failure,
+              message: _openingFolder
+                  ? 'Opening workspace folder'
+                  : 'The workspace folder did not open.',
             ),
           ],
         ],

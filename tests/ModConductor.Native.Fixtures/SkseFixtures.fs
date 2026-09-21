@@ -188,7 +188,8 @@ module SkseFixtures =
                 (Some
                     { Subject = "42"
                       Name = "Premium"
-                      Premium = Some true })
+                      Premium = Some true
+                      ProfileImage = None })
             |> Result.defaultWith (fun _ -> invalidOp "Premium SKSE resolution failed.")
 
         let regular =
@@ -198,7 +199,8 @@ module SkseFixtures =
                 (Some
                     { Subject = "43"
                       Name = "Regular"
-                      Premium = Some false })
+                      Premium = Some false
+                      ProfileImage = None })
             |> Result.defaultWith (fun _ -> invalidOp "Regular SKSE resolution failed.")
 
         let manifest =

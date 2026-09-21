@@ -22,6 +22,7 @@ WorkspacePage page(
 );
 
 class ScriptedClient extends Fake implements WorkspacesClient {
+  Future<WorkspacePage> Function(String, String, String?)? onCreate;
   Future<WorkspacePage> Function(String)? onOpen;
   Future<WorkspacePage> Function(String, String?)? onRead;
   Future<ProfileChange> Function(String, int, ProfileInfo)? onRename;
@@ -30,6 +31,9 @@ class ScriptedClient extends Fake implements WorkspacesClient {
       const WorkspaceList([], null);
   @override
   Future<WorkspacePage> open(String path) => onOpen!(path);
+  @override
+  Future<WorkspacePage> create(String id, String name, [String? path]) =>
+      onCreate!(id, name, path);
   @override
   Future<WorkspacePage> read(String id, {String? after}) => onRead!(id, after);
   @override

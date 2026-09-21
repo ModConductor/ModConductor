@@ -190,6 +190,7 @@ class ModConductorApp extends StatefulWidget {
     this.chooseDirectory = chooseWorkspaceDirectory,
     this.chooseExportLocation = desktop.chooseInventoryExportDestination,
     this.openExportFolder = desktop.openInventoryExportFolder,
+    this.openWorkspaceFolder = desktop.openFolder,
   });
   final DesktopRequests? desktopRequests;
   final DesktopStatus status;
@@ -234,6 +235,7 @@ class ModConductorApp extends StatefulWidget {
   final DirectoryChooser chooseDirectory;
   final InventoryExportLocationChooser chooseExportLocation;
   final InventoryExportFolderOpener openExportFolder;
+  final WorkspaceFolderOpener openWorkspaceFolder;
   final VoidCallback? onQuit;
   final VoidCallback? onRetry;
   @override
@@ -811,6 +813,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
                     DesktopConnecting() ||
                     DesktopConnected() => WorkspaceBrowser(
                       controller: _workspaces,
+                      openFolder: widget.openWorkspaceFolder,
                       profileInspectorBuilder: widget.profileData == null
                           ? null
                           : (context, workspace, profile, close, bindGuard) =>

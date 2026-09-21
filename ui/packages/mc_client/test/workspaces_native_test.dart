@@ -36,6 +36,27 @@ void main() {
         ? 'Set MC_ENGINE_PATH to a published NativeAOT engine.'
         : false,
     () {
+      test('name-only concurrent creation uses stable distinct owned roots', () async {
+        final client = (await start()).workspaces();
+        final firstId = newOperationId(), secondId = newOperationId();
+        final created = await Future.wait([
+          client.create(firstId, 'Same name'),
+          client.create(secondId, 'Same name'),
+        ]);
+        expect(
+          created.map((value) => value.workspace.path).toSet(),
+          hasLength(2),
+        );
+        expect(created.map((value) => value.workspace.path).toSet(), {
+          '${state.path}${Platform.pathSeparator}workspaces${Platform.pathSeparator}$firstId',
+          '${state.path}${Platform.pathSeparator}workspaces${Platform.pathSeparator}$secondId',
+        });
+        for (final page in created) {
+          expect(Directory(page.workspace.path).existsSync(), isTrue);
+          expect(page.workspace.pendingRoot, isNull);
+        }
+      });
+
       test('profile lifecycle and explicit folder reopen preserve selection independently of runtime results', () async {
         final child = await start();
         final client = child.workspaces();

@@ -129,9 +129,14 @@ class FakeWorkspaces extends Fake implements WorkspacesClient {
   }
 
   @override
-  Future<WorkspacePage> create(String id, String name, String path) async {
+  Future<WorkspacePage> create(String id, String name, [String? path]) async {
     creates++;
-    savedWorkspace = WorkspaceInfo(id: id, name: name, path: path, revision: 1);
+    savedWorkspace = WorkspaceInfo(
+      id: id,
+      name: name,
+      path: path ?? '/default/$id',
+      revision: 1,
+    );
     return _page();
   }
 

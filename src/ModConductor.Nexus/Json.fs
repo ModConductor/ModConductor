@@ -41,6 +41,22 @@ module internal NexusJson =
             | true, n -> Some n
             | _ -> None)
 
+    let private profileImage name value =
+        optionalText name value
+        |> Option.bind (fun text ->
+            match Uri.TryCreate(text, UriKind.Absolute) with
+            | true, uri when
+                text.Length <= 2048
+                && uri.Scheme = Uri.UriSchemeHttps
+                && uri.UserInfo = ""
+                && uri.Fragment = ""
+                && not (String.IsNullOrWhiteSpace uri.Host)
+                && uri.IsDefaultPort
+                && (uri.Host.Equals("nexusmods.com", StringComparison.OrdinalIgnoreCase)
+                    || uri.Host.EndsWith(".nexusmods.com", StringComparison.OrdinalIgnoreCase))
+                -> Some uri
+            | _ -> None)
+
     type Tokens =
         { Access: string
           Refresh: string
@@ -108,7 +124,8 @@ module internal NexusJson =
 
         { Subject = subject
           Name = name
-          Premium = premium }
+          Premium = premium
+          ProfileImage = profileImage "picture" value }
 
     let apiKeyAccount value =
         let subject = number "user_id" value |> string
@@ -127,7 +144,8 @@ module internal NexusJson =
 
         { Subject = subject
           Name = name
-          Premium = Some premium }
+          Premium = Some premium
+          ProfileImage = profileImage "profile_url" value }
 
     let saved value =
         match number "version" value with

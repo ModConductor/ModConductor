@@ -122,15 +122,10 @@
   "credentialStorageTooLarge": "Sign-in details exceed the storage limit",
   "credentialStorageFailed": "The storage operation failed",
   "credentialWaitingSignIn": "Waiting for sign-in",
-  "credentialConnectedAs": "Connected as {name}",
-  "@credentialConnectedAs": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
   "credentialPremium": "Premium",
+  "credentialAccountCurrent": "Account is current",
+  "credentialCheckingAccount": "Checking account",
+  "credentialAccountCheckFailed": "Account check failed",
   "credentialNotConnected": "Not connected",
   "credentialNotSignedIn": "Not signed in",
   "credentialNotSaved": "Sign-in details were not saved",

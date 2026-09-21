@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mc_client/mc_client.dart';
@@ -16,6 +18,9 @@ const _status = CredentialStatus(
 class _Nexus extends Fake implements NexusClient {
   NexusAccount account = const NexusAccount(false, false, null, null, null);
   final submitted = <String>[];
+  Completer<NexusAccount>? pendingCheck;
+  Object? checkError;
+  int checks = 0;
 
   @override
   Future<NexusAccount> status() async => account;
@@ -24,6 +29,13 @@ class _Nexus extends Fake implements NexusClient {
   Future<NexusAccount> submitPersonalApiKey(String apiKey) async {
     submitted.add(apiKey);
     return account = const NexusAccount(false, false, 'Rowan', false, null);
+  }
+
+  @override
+  Future<NexusAccount> check() {
+    checks++;
+    if (checkError case final error?) return Future.error(error);
+    return pendingCheck?.future ?? Future.value(account);
   }
 }
 
@@ -60,8 +72,10 @@ CredentialPreferencesLabels get _labels => CredentialPreferencesLabels(
   close: 'Close',
   problem: (_) => 'Storage problem',
   waitingSignIn: 'Waiting',
-  connectedAs: (name) => 'Connected as $name',
   premium: 'Premium',
+  accountCurrent: 'Current',
+  checkingAccount: 'Checking',
+  accountCheckFailed: 'Check failed',
   notConnected: 'Not connected',
   notSignedIn: 'Not signed in',
   notSaved: 'Not saved',
@@ -143,4 +157,54 @@ void main() {
       expect(nexus.submitted, ['synthetic-personal-key']);
     },
   );
+
+  testWidgets('account checks replace pending feedback with one result', (
+    tester,
+  ) async {
+    final nexus = _Nexus()
+      ..account = const NexusAccount(false, false, 'Rowan', true, null)
+      ..pendingCheck = Completer<NexusAccount>();
+    final credentials = _Credentials(nexus);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: mcTheme(Brightness.dark),
+        home: Scaffold(
+          body: CredentialPreferences(
+            client: credentials,
+            nexus: nexus,
+            labels: _labels,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(McIdentityCard), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('nexus-check-account')));
+    await tester.pump();
+    expect(
+      tester.widget<McActionFeedback>(find.byType(McActionFeedback)).kind,
+      McActionFeedbackKind.pending,
+    );
+    nexus.pendingCheck!.complete(nexus.account);
+    await tester.pumpAndSettle();
+    expect(find.byType(McActionFeedback), findsOneWidget);
+    expect(
+      tester.widget<McActionFeedback>(find.byType(McActionFeedback)).kind,
+      McActionFeedbackKind.success,
+    );
+    nexus.pendingCheck = null;
+    await tester.tap(find.byKey(const ValueKey('nexus-check-account')));
+    await tester.pumpAndSettle();
+    expect(nexus.checks, 2);
+    expect(find.byType(McActionFeedback), findsOneWidget);
+    nexus.checkError = const NexusProblem('connection', 'Synthetic failure');
+    await tester.tap(find.byKey(const ValueKey('nexus-check-account')));
+    await tester.pumpAndSettle();
+    expect(nexus.checks, 3);
+    expect(find.byType(McActionFeedback), findsOneWidget);
+    expect(
+      tester.widget<McActionFeedback>(find.byType(McActionFeedback)).kind,
+      McActionFeedbackKind.failure,
+    );
+  });
 }

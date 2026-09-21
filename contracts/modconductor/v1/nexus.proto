@@ -23,6 +23,7 @@ message NexusAccountStatus {
   optional string account_name = 3;
   optional bool premium = 4;
   optional NexusFailure failure = 5;
+  optional string profile_image_url = 6;
 }
 message NexusModRequest { string workspace_id = 1; int64 mod_id = 2; }
 message NexusFileInfo {
