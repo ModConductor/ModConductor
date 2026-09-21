@@ -409,11 +409,28 @@ void main() {
       final client = FakeDiagnostics();
       await mount(tester, client);
 
-      expect(find.byType(NavigationRail), findsOneWidget);
+      expect(
+        find.byWidgetPredicate((widget) => widget is McNavigationList),
+        findsOneWidget,
+      );
       expect(find.text('Diagnostics'), findsWidgets);
       expect(find.text('FAQ'), findsOneWidget);
       expect(find.text('Guides'), findsOneWidget);
       expect(find.text('Two copies have the same priority'), findsWidgets);
+      final faqAction = find.ancestor(
+        of: find.text('FAQ'),
+        matching: find.byType(TextButton),
+      );
+      final faqIcon = find.descendant(
+        of: faqAction,
+        matching: find.byIcon(Icons.help_outline),
+      );
+      expect(faqAction, findsOneWidget);
+      expect(faqIcon, findsOneWidget);
+      expect(
+        tester.getCenter(faqIcon).dy,
+        closeTo(tester.getCenter(find.text('FAQ')).dy, 1),
+      );
 
       final previewAction = find.byKey(
         const ValueKey('preview-diagnostic-change'),
@@ -465,7 +482,16 @@ void main() {
         find.byWidgetPredicate((widget) => widget is SegmentedButton),
         findsOneWidget,
       );
-      expect(find.byType(NavigationRail), findsNothing);
+      expect(
+        find.byWidgetPredicate((widget) => widget is McNavigationList),
+        findsNothing,
+      );
+      final faqIcon = find.byIcon(Icons.help_outline);
+      expect(faqIcon, findsOneWidget);
+      expect(
+        tester.getCenter(faqIcon).dy,
+        closeTo(tester.getCenter(find.text('FAQ').first).dy, 1),
+      );
       await tester.tap(find.text('FAQ').first);
       await tester.pumpAndSettle();
       expect(find.text('What happens when I select Play?'), findsOneWidget);

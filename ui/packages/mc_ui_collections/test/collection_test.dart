@@ -220,6 +220,83 @@ void main() {
     expect(rows.expanded(1), isFalse);
   });
 
+  for (final direction in TextDirection.values) {
+    testWidgets(
+      'sortable headers keep the icon and label together in $direction',
+      (tester) async {
+        tester.view.physicalSize = const Size(320, 480);
+        tester.view.devicePixelRatio = 1;
+        tester.platformDispatcher.textScaleFactorTestValue = 1.5;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+        final rows = model();
+        final semantics = tester.ensureSemantics();
+        addTearDown(rows.dispose);
+        rows.apply(upserts: [item(2), item(1)]);
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Directionality(
+              textDirection: direction,
+              child: Scaffold(
+                body: McCollection<int, Item>(
+                  model: rows,
+                  title: 'Items',
+                  filterLabel: 'Filter items',
+                  countLabel: '2 items',
+                  columns: [
+                    McColumn(
+                      'Order',
+                      (row) => Text(row.name),
+                      compare: (a, b) => a.id.compareTo(b.id),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final header = find.byType(McSortHeader);
+        final icon = find.descendant(
+          of: header,
+          matching: find.byIcon(Icons.unfold_more),
+        );
+        final label = find.descendant(of: header, matching: find.text('Order'));
+        expect(icon, findsOneWidget);
+        expect(label, findsOneWidget);
+        final sortSemantics = tester
+            .getSemantics(
+              find.descendant(of: header, matching: find.byType(TextButton)),
+            )
+            .getSemanticsData();
+        semantics.dispose();
+        expect(sortSemantics.hasAction(SemanticsAction.tap), isTrue);
+        expect(
+          tester.getCenter(icon).dy,
+          closeTo(tester.getCenter(label).dy, 1),
+        );
+        expect(
+          tester.getCenter(icon).dx < tester.getCenter(label).dx,
+          direction == TextDirection.ltr,
+        );
+
+        await tester.tap(header);
+        await tester.pump();
+        expect(rows.visible, [1, 2]);
+        expect(
+          find.descendant(
+            of: header,
+            matching: find.byIcon(Icons.arrow_upward),
+          ),
+          findsOneWidget,
+        );
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+
   for (final scale in [1.0, 1.5]) {
     testWidgets(
       'keyboard follows stable IDs across virtual pages and preserves dialog focus at $scale text',

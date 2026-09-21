@@ -323,6 +323,55 @@ void main() {
     },
   );
   testWidgets(
+    'expanded installation facts keep selectable content inside each row',
+    (tester) async {
+      tester.view.physicalSize = const Size(680, 900);
+      tester.view.devicePixelRatio = 1;
+      tester.platformDispatcher.textScaleFactorTestValue = 1.5;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      final client = Client()
+        ..onRead = (id) async => snapshot(
+          id,
+          1,
+          '/games/SteamLibrary/steamapps/common/Skyrim Special Edition',
+        );
+      final controller = GameContextController()
+        ..attach(client, workspaceId: 'workspace', editable: true);
+      addTearDown(controller.dispose);
+
+      await page(tester, controller);
+      await tester.tap(find.text('Installation details'));
+      await tester.pumpAndSettle();
+
+      final rows = find.byType(McPropertyRow);
+      expect(rows, findsWidgets);
+      Rect? previous;
+      for (final element in rows.evaluate()) {
+        final row = find.byElementPredicate(
+          (candidate) => candidate == element,
+        );
+        final selection = find.descendant(
+          of: row,
+          matching: find.byType(SelectionArea),
+        );
+        expect(selection, findsOneWidget);
+        final rowRect = tester.getRect(row);
+        final selectionRect = tester.getRect(selection);
+        expect(selectionRect.left, greaterThanOrEqualTo(rowRect.left));
+        expect(selectionRect.top, greaterThanOrEqualTo(rowRect.top));
+        expect(selectionRect.right, lessThanOrEqualTo(rowRect.right));
+        expect(selectionRect.bottom, lessThanOrEqualTo(rowRect.bottom));
+        if (previous case final prior?) {
+          expect(rowRect.top, greaterThanOrEqualTo(prior.bottom));
+        }
+        previous = rowRect;
+      }
+      expect(tester.takeException(), isNull);
+    },
+  );
+  testWidgets(
     'a stale save retains the draft until the current binding is reviewed',
     (tester) async {
       final client = Client();

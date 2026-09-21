@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'theme.dart';
+import 'layout.dart';
 
 enum McActionEmphasis { primary, secondary }
 
@@ -20,16 +20,17 @@ class McAction extends StatelessWidget {
   final FocusNode? focusNode;
   @override
   Widget build(BuildContext context) {
-    final child = Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (icon != null) ...[
-          Icon(icon, size: 18),
-          const SizedBox(width: McSpacing.small),
-        ],
-        Flexible(child: Text(label)),
-      ],
-    );
+    final child = icon == null
+        ? Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [Flexible(child: Text(label))],
+          )
+        : McIconLabel(
+            icon: Icon(icon, size: 18),
+            label: label,
+            flexible: true,
+            maxLines: null,
+          );
     return switch (emphasis) {
       McActionEmphasis.primary => FilledButton(
         onPressed: onPressed,

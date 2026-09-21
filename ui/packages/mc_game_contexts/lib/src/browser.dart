@@ -55,17 +55,6 @@ class _GameContextBrowserState extends State<GameContextBrowser> {
     if (mounted) changeFocus.requestFocus();
   }
 
-  Widget fact(String label, String value) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 7),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: Theme.of(context).textTheme.labelMedium),
-        const SizedBox(height: 3),
-        SelectableText(value),
-      ],
-    ),
-  );
   String location(GameLocation value) => switch (value) {
     LocatedGameFolder(:final path, :final exists) =>
       exists ? path : '$path\nNot found',
@@ -206,64 +195,101 @@ class _GameContextBrowserState extends State<GameContextBrowser> {
                             children: [
                               if (binding.needsCheck || c.needsRead)
                                 const McStatus(title: 'Last checked details'),
-                              fact('Executable', evidence.executable!.path),
-                              fact(
-                                'File version',
-                                '${evidence.executable!.fileVersion} · x64',
+                              McPropertyRow(
+                                label: 'Executable',
+                                value: evidence.executable!.path,
                               ),
-                              fact('Data folder', evidence.dataPath!),
-                              fact(
-                                'Launcher',
-                                evidence.launcherPath ??
+                              McPropertyRow(
+                                label: 'File version',
+                                value:
+                                    '${evidence.executable!.fileVersion} · x64',
+                              ),
+                              McPropertyRow(
+                                label: 'Data folder',
+                                value: evidence.dataPath!,
+                              ),
+                              McPropertyRow(
+                                label: 'Launcher',
+                                value:
+                                    evidence.launcherPath ??
                                     'Not found or unavailable',
                               ),
-                              fact(
-                                'Steam installation',
-                                evidence.proton?.selection.association
+                              McPropertyRow(
+                                label: 'Steam installation',
+                                value:
+                                    evidence.proton?.selection.association
                                         is SteamProtonAssociation
                                     ? 'AppID ${evidence.proton!.selection.appId} · Manifest checked'
                                     : 'Not verified',
                               ),
-                              fact('Steam build', 'Not available'),
+                              const McPropertyRow(
+                                label: 'Steam build',
+                                value: 'Not available',
+                              ),
                               if (evidence.proton case final proton?) ...[
-                                fact('Proton', proton.runtimeName),
-                                fact('Proton version', proton.runtimeVersion),
-                                fact(
-                                  'Proton data folder',
-                                  proton.selection.compatData,
+                                McPropertyRow(
+                                  label: 'Proton',
+                                  value: proton.runtimeName,
                                 ),
-                                fact('Prefix folder', proton.prefixPath),
-                                fact(
-                                  'Proton folder',
-                                  proton.selection.runtimeDirectory,
+                                McPropertyRow(
+                                  label: 'Proton version',
+                                  value: proton.runtimeVersion,
                                 ),
-                                fact(
-                                  'Prefix version',
-                                  proton.prefixVersion ?? 'Not available',
+                                McPropertyRow(
+                                  label: 'Proton data folder',
+                                  value: proton.selection.compatData,
+                                ),
+                                McPropertyRow(
+                                  label: 'Prefix folder',
+                                  value: proton.prefixPath,
+                                ),
+                                McPropertyRow(
+                                  label: 'Proton folder',
+                                  value: proton.selection.runtimeDirectory,
+                                ),
+                                McPropertyRow(
+                                  label: 'Prefix version',
+                                  value:
+                                      proton.prefixVersion ?? 'Not available',
                                 ),
                                 if (proton.mappingProblem case final problem?)
-                                  fact('Steam setting', problem)
+                                  McPropertyRow(
+                                    label: 'Steam setting',
+                                    value: problem,
+                                  )
                                 else ...[
-                                  fact(
-                                    'Steam game-specific setting',
-                                    proton.perGameTool ?? 'Not set',
+                                  McPropertyRow(
+                                    label: 'Steam game-specific setting',
+                                    value: proton.perGameTool ?? 'Not set',
                                   ),
-                                  fact(
-                                    'Steam default',
-                                    proton.globalTool ?? 'Not set',
+                                  McPropertyRow(
+                                    label: 'Steam default',
+                                    value: proton.globalTool ?? 'Not set',
                                   ),
                                 ],
                                 for (final path in proton.paths) ...[
-                                  fact(path.name, location(path.location)),
+                                  McPropertyRow(
+                                    label: path.name,
+                                    value: location(path.location),
+                                  ),
                                   if (path.windowsPath case final windows?)
-                                    fact('Windows path', windows),
+                                    McPropertyRow(
+                                      label: 'Windows path',
+                                      value: windows,
+                                    ),
                                 ],
                               ] else ...[
-                                fact('Documents', location(evidence.documents)),
-                                fact('Saves', location(evidence.saves)),
-                                fact(
-                                  'Local AppData',
-                                  location(evidence.localAppData),
+                                McPropertyRow(
+                                  label: 'Documents',
+                                  value: location(evidence.documents),
+                                ),
+                                McPropertyRow(
+                                  label: 'Saves',
+                                  value: location(evidence.saves),
+                                ),
+                                McPropertyRow(
+                                  label: 'Local AppData',
+                                  value: location(evidence.localAppData),
                                 ),
                               ],
                             ],

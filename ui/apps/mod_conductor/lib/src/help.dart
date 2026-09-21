@@ -714,11 +714,13 @@ class _HelpBrowserState extends State<HelpBrowser> {
         ),
         Align(
           alignment: Alignment.centerLeft,
-          child: TextButton.icon(
+          child: TextButton(
             key: const ValueKey('export-support'),
             onPressed: controller.busy ? null : _export,
-            icon: const Icon(Icons.save_alt, size: 18),
-            label: const Text('Export support report'),
+            child: const McIconLabel(
+              icon: Icon(Icons.save_alt, size: 18),
+              label: 'Export support report',
+            ),
           ),
         ),
       ],
@@ -883,21 +885,26 @@ class _HelpSections extends StatelessWidget {
       return SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: SegmentedButton<_HelpSection>(
+          showSelectedIcon: false,
           segments: const [
             ButtonSegment(
               value: _HelpSection.diagnostics,
-              label: Text('Diagnostics'),
-              icon: Icon(Icons.fact_check_outlined),
+              label: McIconLabel(
+                icon: Icon(Icons.fact_check_outlined),
+                label: 'Diagnostics',
+              ),
             ),
             ButtonSegment(
               value: _HelpSection.faq,
-              label: Text('FAQ'),
-              icon: Icon(Icons.help_outline),
+              label: McIconLabel(icon: Icon(Icons.help_outline), label: 'FAQ'),
             ),
             ButtonSegment(
               value: _HelpSection.guides,
-              label: Text('Guides', key: ValueKey('help-guides-section')),
-              icon: Icon(Icons.menu_book_outlined),
+              label: McIconLabel(
+                key: ValueKey('help-guides-section'),
+                icon: Icon(Icons.menu_book_outlined),
+                label: 'Guides',
+              ),
             ),
           ],
           selected: {section},
@@ -912,37 +919,47 @@ class _HelpSections extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
       ),
       clipBehavior: Clip.antiAlias,
-      child: NavigationRail(
-        minWidth: 154,
-        minExtendedWidth: 154,
-        extended: true,
-        groupAlignment: -1,
-        selectedIndex: section.index,
-        onDestinationSelected: (index) => onChanged(_HelpSection.values[index]),
-        leading: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 18, 16, 12),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: Text('Help', style: Theme.of(context).textTheme.titleMedium),
-          ),
+      child: SizedBox(
+        width:
+            190 *
+            MediaQuery.textScalerOf(context).scale(1).clamp(1, 1.5).toDouble(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsetsDirectional.fromSTEB(20, 18, 20, 12),
+              child: Text(
+                'Help',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+            ),
+            McNavigationList<_HelpSection>(
+              selected: section,
+              onSelected: onChanged,
+              items: const [
+                McNavigationItem(
+                  value: _HelpSection.diagnostics,
+                  label: 'Diagnostics',
+                  icon: Icons.fact_check_outlined,
+                  selectedIcon: Icons.fact_check,
+                ),
+                McNavigationItem(
+                  value: _HelpSection.faq,
+                  label: 'FAQ',
+                  icon: Icons.help_outline,
+                  selectedIcon: Icons.help,
+                ),
+                McNavigationItem(
+                  value: _HelpSection.guides,
+                  label: 'Guides',
+                  icon: Icons.menu_book_outlined,
+                  selectedIcon: Icons.menu_book,
+                  key: ValueKey('help-guides-section'),
+                ),
+              ],
+            ),
+          ],
         ),
-        destinations: const [
-          NavigationRailDestination(
-            icon: Icon(Icons.fact_check_outlined),
-            selectedIcon: Icon(Icons.fact_check),
-            label: Text('Diagnostics'),
-          ),
-          NavigationRailDestination(
-            icon: Icon(Icons.help_outline),
-            selectedIcon: Icon(Icons.help),
-            label: Text('FAQ'),
-          ),
-          NavigationRailDestination(
-            icon: Icon(Icons.menu_book_outlined),
-            selectedIcon: Icon(Icons.menu_book),
-            label: Text('Guides', key: ValueKey('help-guides-section')),
-          ),
-        ],
       ),
     );
   }

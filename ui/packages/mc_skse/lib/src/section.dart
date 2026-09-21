@@ -27,6 +27,7 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
   bool includeFnis = false;
   bool busy = false;
   bool cancelling = false;
+  String? problem;
   Timer? timer;
 
   @override
@@ -78,7 +79,10 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
     bool preserveFnisChoice = false,
   }) async {
     if (busy) return;
-    setState(() => busy = true);
+    setState(() {
+      busy = true;
+      problem = null;
+    });
     SkyrimSetupStatus? next;
     try {
       final value = await action();
@@ -90,7 +94,7 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
       next = value;
     } on Exception {
       if (mounted) {
-        setState(() => status = null);
+        setState(() => problem = 'Skyrim setup could not be updated.');
       }
     } finally {
       if (mounted) setState(() => busy = false);
@@ -155,7 +159,10 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
 
   Future<void> cancelSetup() async {
     if (cancelling) return;
-    setState(() => cancelling = true);
+    setState(() {
+      cancelling = true;
+      problem = null;
+    });
     SkyrimSetupStatus? next;
     try {
       final value = await widget.client.cancel(
@@ -169,7 +176,9 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
       });
       next = value;
     } on Exception {
-      if (mounted) setState(() => status = null);
+      if (mounted) {
+        setState(() => problem = 'Skyrim setup could not be updated.');
+      }
     } finally {
       if (mounted) setState(() => cancelling = false);
     }
@@ -210,10 +219,11 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
               : 'Check the engine connection.',
           tone: failed ? McStatusTone.error : McStatusTone.neutral,
         ),
-        if (busy || value?.active == true) ...[
-          const SizedBox(height: McSpacing.medium),
-          const LinearProgressIndicator(),
-        ],
+        const SizedBox(height: McSpacing.small),
+        McAsyncStatusSlot(
+          active: busy || cancelling || value?.active == true,
+          problem: problem,
+        ),
         if (value != null && value.components.isNotEmpty) ...[
           const SizedBox(height: McSpacing.large),
           for (final item in value.components) ...[

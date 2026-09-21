@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mc_artifacts/mc_artifacts.dart';
 import 'package:mc_client/mc_client.dart';
 import 'package:mc_skse/mc_skse.dart';
+import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 
 SkyrimSetupStatus setupStatus({
   SkyrimSetupStatusPhase phase = SkyrimSetupStatusPhase.needsConsent,
@@ -52,6 +53,7 @@ class SetupFixtureClient extends SkyrimSetupClient {
   bool? startedWithFnis;
   String? selectedPath;
   Completer<SkyrimSetupStatus>? blockedSelection;
+  Completer<SkyrimSetupStatus>? blockedRead;
   SkyrimSetupStatus? nextContinue;
 
   @override
@@ -59,7 +61,11 @@ class SetupFixtureClient extends SkyrimSetupClient {
     String workspace,
     String profile, {
     required bool includeFnis,
-  }) async => current;
+  }) async {
+    final blocked = blockedRead;
+    if (blocked != null) return blocked.future;
+    return current;
+  }
 
   @override
   Future<SkyrimSetupStatus> start(
@@ -165,6 +171,63 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets(
+    'refresh and FNIS changes keep valid setup content in a stable slot',
+    (tester) async {
+      tester.platformDispatcher.textScaleFactorTestValue = 1.5;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      final client = SetupFixtureClient(setupStatus());
+      await tester.pumpWidget(section(client, height: null));
+      await tester.pumpAndSettle();
+
+      final sectionFinder = find.byType(McSection);
+      final originalHeight = tester.getSize(sectionFinder).height;
+      expect(find.textContaining('Matching SKSE found'), findsOneWidget);
+
+      final refresh = Completer<SkyrimSetupStatus>();
+      client.blockedRead = refresh;
+      await tester.tap(find.text('Refresh'));
+      await tester.pump();
+
+      expect(find.textContaining('Matching SKSE found'), findsOneWidget);
+      expect(tester.getSize(sectionFinder).height, originalHeight);
+      expect(
+        tester.widget<McAsyncStatusSlot>(find.byType(McAsyncStatusSlot)).active,
+        isTrue,
+      );
+
+      refresh.completeError(Exception('refresh failed'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Matching SKSE found'), findsOneWidget);
+      expect(tester.getSize(sectionFinder).height, originalHeight);
+      expect(
+        tester
+            .widget<McAsyncStatusSlot>(find.byType(McAsyncStatusSlot))
+            .problem,
+        isNotNull,
+      );
+
+      final fnis = Completer<SkyrimSetupStatus>();
+      client.blockedRead = fnis;
+      await tester.tap(find.text('Include FNIS'));
+      await tester.pump();
+
+      expect(find.textContaining('Matching SKSE found'), findsOneWidget);
+      expect(tester.getSize(sectionFinder).height, originalHeight);
+      expect(
+        tester.widget<SwitchListTile>(find.byType(SwitchListTile)).value,
+        isTrue,
+      );
+
+      client.blockedRead = null;
+      fnis.complete(client.current);
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Matching SKSE found'), findsOneWidget);
+      expect(tester.getSize(sectionFinder).height, originalHeight);
+    },
+  );
 
   testWidgets(
     'setup should require one confirmed plan before starting writes',

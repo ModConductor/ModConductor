@@ -362,7 +362,13 @@ class _McCollectionState<I extends Object, T extends Object>
                             )
                           : Align(
                               alignment: AlignmentDirectional.centerStart,
-                              child: TextButton(
+                              child: McSortHeader(
+                                label: column.label,
+                                direction: model.sortLabel == column.label
+                                    ? model.descending
+                                          ? McSortDirection.descending
+                                          : McSortDirection.ascending
+                                    : null,
                                 onPressed: () {
                                   if (widget.onSort != null) {
                                     widget.onSort!(column.label);
@@ -377,13 +383,6 @@ class _McCollectionState<I extends Object, T extends Object>
                                     label: column.label,
                                   );
                                 },
-                                child: Text(
-                                  '${column.label}${model.sortLabel == column.label
-                                      ? model.descending
-                                            ? ' ↓'
-                                            : ' ↑'
-                                      : ''}',
-                                ),
                               ),
                             ),
                       column.width,
@@ -584,23 +583,21 @@ class McCollectionName extends StatelessWidget {
   final String text;
   final IconData? icon;
   @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      if (icon != null) ...[
-        Icon(
-          icon,
-          size: 19,
-          color: Theme.of(context).colorScheme.onSurfaceVariant,
-        ),
-        const SizedBox(width: 9),
-      ],
-      Expanded(
-        child: Tooltip(
-          message: text,
-          child: Text(text, maxLines: 2, overflow: TextOverflow.ellipsis),
-        ),
-      ),
-    ],
+  Widget build(BuildContext context) => Tooltip(
+    message: text,
+    child: icon == null
+        ? Text(text, maxLines: 2, overflow: TextOverflow.ellipsis)
+        : McIconLabel(
+            icon: Icon(
+              icon,
+              size: 19,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+            label: text,
+            expanded: true,
+            maxLines: 2,
+            gap: 9,
+          ),
   );
 }
 

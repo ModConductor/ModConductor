@@ -88,7 +88,7 @@ class _DesktopShell extends StatelessWidget {
                     for (final item in _Destination.values)
                       Semantics(
                         selected: destination == item,
-                        child: TextButton.icon(
+                        child: TextButton(
                           key: ValueKey(
                             item == _Destination.workspaces
                                 ? 'nav-workspaces'
@@ -105,14 +105,14 @@ class _DesktopShell extends StatelessWidget {
                                 : null,
                           ),
                           onPressed: () => onNavigate(item),
-                          icon: Icon(
-                            item == _Destination.workspaces
-                                ? Icons.home_outlined
-                                : Icons.tune,
-                            size: 18,
-                          ),
-                          label: Text(
-                            item == _Destination.workspaces
+                          child: McIconLabel(
+                            icon: Icon(
+                              item == _Destination.workspaces
+                                  ? Icons.home_outlined
+                                  : Icons.tune,
+                              size: 18,
+                            ),
+                            label: item == _Destination.workspaces
                                 ? labels.workspaces
                                 : labels.preferences,
                           ),
@@ -121,13 +121,15 @@ class _DesktopShell extends StatelessWidget {
                     if (requests case final requests?)
                       ListenableBuilder(
                         listenable: requests,
-                        builder: (context, _) => TextButton.icon(
+                        builder: (context, _) => TextButton(
                           onPressed: onRequests,
-                          icon: const Icon(
-                            Icons.move_to_inbox_outlined,
-                            size: 18,
+                          child: McIconLabel(
+                            icon: const Icon(
+                              Icons.move_to_inbox_outlined,
+                              size: 18,
+                            ),
+                            label: labels.openRequests(requests.count),
                           ),
-                          label: Text(labels.openRequests(requests.count)),
                         ),
                       ),
                   ],
