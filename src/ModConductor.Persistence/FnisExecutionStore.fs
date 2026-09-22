@@ -220,7 +220,7 @@ type internal FnisExecutionStore
 
     let mapLibrary =
         function
-        | LibraryError.Busy -> FnisExecutionError.Busy
+        | LibraryError.Busy _ -> FnisExecutionError.Busy
         | LibraryError.Cancelled -> FnisExecutionError.Cancelled
         | LibraryError.StaleRevision
         | LibraryError.SourceChanged -> FnisExecutionError.Stale

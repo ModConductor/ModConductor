@@ -735,7 +735,19 @@ class _ModLibraryBrowserState extends State<ModLibraryBrowser> {
 
         return Column(
           children: [
-            if (deletion.pending.isNotEmpty)
+            if (inventory.activeOperation case final operation?)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: McActionFeedback(
+                  key: ValueKey(('library-operation', operation.id)),
+                  kind: McActionFeedbackKind.pending,
+                  message: '${_operationKind(operation.kind)} in progress',
+                  detail:
+                      'Operation ${operation.id}. ${_operationActions(operation.actions)}',
+                ),
+              ),
+            if (inventory.activeOperation == null &&
+                deletion.pending.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Row(
@@ -884,6 +896,34 @@ String _status(InventoryStatus status) => switch (status) {
   InventoryStatus.publishing => 'Save in progress',
   InventoryStatus.deleting => 'Deletion unfinished',
 };
+String _operationKind(LibraryOperationKind kind) => switch (kind) {
+  LibraryOperationKind.publication => 'Version save',
+  LibraryOperationKind.installation => 'Mod installation',
+  LibraryOperationKind.upgrade => 'Mod update',
+  LibraryOperationKind.deletion => 'Mod deletion',
+};
+String _operationActions(List<LibraryOperationAction> actions) {
+  final values = actions.toSet();
+  if (values.contains(LibraryOperationAction.wait) &&
+      values.contains(LibraryOperationAction.cancel)) {
+    return 'You can wait or cancel it.';
+  }
+  if (values.contains(LibraryOperationAction.resume) &&
+      values.contains(LibraryOperationAction.cancel)) {
+    return 'You can resume or cancel it.';
+  }
+  if (values.contains(LibraryOperationAction.wait)) {
+    return 'You can wait for it.';
+  }
+  if (values.contains(LibraryOperationAction.resume)) {
+    return 'You can resume it.';
+  }
+  if (values.contains(LibraryOperationAction.cancel)) {
+    return 'You can cancel it.';
+  }
+  return 'No action is available.';
+}
+
 String _size(int bytes) => bytes >= 1048576
     ? '${(bytes / 1048576).toStringAsFixed(1)} MiB'
     : bytes >= 1024

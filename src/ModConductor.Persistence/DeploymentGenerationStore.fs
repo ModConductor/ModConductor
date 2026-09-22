@@ -130,7 +130,7 @@ type internal DeploymentGenerationStore
                     return
                         admitted
                         |> Result.mapError (function
-                            | LibraryError.Busy -> RecoveryError.Busy
+                            | LibraryError.Busy _ -> RecoveryError.Busy
                             | _ ->
                                 RecoveryError.Unavailable
                                     "Generation source storage is unavailable.")

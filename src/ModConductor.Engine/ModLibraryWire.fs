@@ -158,7 +158,7 @@ module internal ModLibraryWire =
                 ModLibraryFaultCode.SourceChanged, "The source files changed."
             | LibraryError.UnsupportedAction ->
                 ModLibraryFaultCode.UnsupportedAction, "This action is not available for this item."
-            | LibraryError.Busy ->
+            | LibraryError.Busy _ ->
                 ModLibraryFaultCode.Busy, "A library change is still in progress."
             | LibraryError.LimitExceeded ->
                 ModLibraryFaultCode.LimitExceeded, "The requested limit is too large or invalid."
@@ -167,7 +167,34 @@ module internal ModLibraryWire =
                 "The source or published files are unavailable or changed."
             | LibraryError.Cancelled -> ModLibraryFaultCode.Cancelled, "Publication was cancelled."
 
-        ModLibraryFault(Code = code, Detail = detail)
+        let result = ModLibraryFault(Code = code, Detail = detail)
+
+        match error with
+        | LibraryError.Busy operation ->
+            let active =
+                ModLibraryOperation(
+                    OperationId = operation.Id.ToString("N"),
+                    WorkspaceId = operation.WorkspaceId.ToString("N"),
+                    Kind =
+                        match operation.Kind with
+                        | LibraryOperationKind.Publication -> ModLibraryOperationKind.Publication
+                        | LibraryOperationKind.Installation -> ModLibraryOperationKind.Installation
+                        | LibraryOperationKind.Upgrade -> ModLibraryOperationKind.Upgrade
+                        | LibraryOperationKind.Deletion -> ModLibraryOperationKind.Deletion
+                )
+
+            active.Actions.AddRange(
+                operation.Actions
+                |> Seq.map (function
+                    | LibraryOperationAction.Wait -> ModLibraryOperationAction.Wait
+                    | LibraryOperationAction.Resume -> ModLibraryOperationAction.Resume
+                    | LibraryOperationAction.Cancel -> ModLibraryOperationAction.Cancel)
+            )
+
+            result.ActiveOperation <- active
+        | _ -> ()
+
+        result
 
     let modReply =
         function

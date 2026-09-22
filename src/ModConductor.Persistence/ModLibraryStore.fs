@@ -9,13 +9,13 @@ type ModLibraryStore internal (database: StateDatabase, roots: OwnedWorkspaceRoo
     let access = LibraryAccess(database, roots)
     let publication = LibraryPublication(database, access)
 
-    // Receipt queries and cancellation remain available while both file-job slots are occupied.
+    // Receipt queries and cancellation stay available while file work is active.
     let receipt action =
         task {
             try
                 return! database.Enqueue action
             with :? ModConductor.Operations.CapacityException ->
-                return Error LibraryError.Busy
+                return Error LibraryError.FileUnavailable
         }
 
     member internal _.PublicationOwner = publication

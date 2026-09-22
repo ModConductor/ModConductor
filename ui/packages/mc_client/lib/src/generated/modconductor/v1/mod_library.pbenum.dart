@@ -184,6 +184,70 @@ class ModLibraryFaultCode extends $pb.ProtobufEnum {
   const ModLibraryFaultCode._(super.value, super.name);
 }
 
+class ModLibraryOperationKind extends $pb.ProtobufEnum {
+  static const ModLibraryOperationKind MOD_LIBRARY_OPERATION_KIND_UNSPECIFIED =
+      ModLibraryOperationKind._(
+          0, _omitEnumNames ? '' : 'MOD_LIBRARY_OPERATION_KIND_UNSPECIFIED');
+  static const ModLibraryOperationKind MOD_LIBRARY_OPERATION_KIND_PUBLICATION =
+      ModLibraryOperationKind._(
+          1, _omitEnumNames ? '' : 'MOD_LIBRARY_OPERATION_KIND_PUBLICATION');
+  static const ModLibraryOperationKind MOD_LIBRARY_OPERATION_KIND_INSTALLATION =
+      ModLibraryOperationKind._(
+          2, _omitEnumNames ? '' : 'MOD_LIBRARY_OPERATION_KIND_INSTALLATION');
+  static const ModLibraryOperationKind MOD_LIBRARY_OPERATION_KIND_UPGRADE =
+      ModLibraryOperationKind._(
+          3, _omitEnumNames ? '' : 'MOD_LIBRARY_OPERATION_KIND_UPGRADE');
+  static const ModLibraryOperationKind MOD_LIBRARY_OPERATION_KIND_DELETION =
+      ModLibraryOperationKind._(
+          4, _omitEnumNames ? '' : 'MOD_LIBRARY_OPERATION_KIND_DELETION');
+
+  static const $core.List<ModLibraryOperationKind> values =
+      <ModLibraryOperationKind>[
+    MOD_LIBRARY_OPERATION_KIND_UNSPECIFIED,
+    MOD_LIBRARY_OPERATION_KIND_PUBLICATION,
+    MOD_LIBRARY_OPERATION_KIND_INSTALLATION,
+    MOD_LIBRARY_OPERATION_KIND_UPGRADE,
+    MOD_LIBRARY_OPERATION_KIND_DELETION,
+  ];
+
+  static final $core.List<ModLibraryOperationKind?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 4);
+  static ModLibraryOperationKind? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const ModLibraryOperationKind._(super.value, super.name);
+}
+
+class ModLibraryOperationAction extends $pb.ProtobufEnum {
+  static const ModLibraryOperationAction
+      MOD_LIBRARY_OPERATION_ACTION_UNSPECIFIED = ModLibraryOperationAction._(
+          0, _omitEnumNames ? '' : 'MOD_LIBRARY_OPERATION_ACTION_UNSPECIFIED');
+  static const ModLibraryOperationAction MOD_LIBRARY_OPERATION_ACTION_WAIT =
+      ModLibraryOperationAction._(
+          1, _omitEnumNames ? '' : 'MOD_LIBRARY_OPERATION_ACTION_WAIT');
+  static const ModLibraryOperationAction MOD_LIBRARY_OPERATION_ACTION_RESUME =
+      ModLibraryOperationAction._(
+          2, _omitEnumNames ? '' : 'MOD_LIBRARY_OPERATION_ACTION_RESUME');
+  static const ModLibraryOperationAction MOD_LIBRARY_OPERATION_ACTION_CANCEL =
+      ModLibraryOperationAction._(
+          3, _omitEnumNames ? '' : 'MOD_LIBRARY_OPERATION_ACTION_CANCEL');
+
+  static const $core.List<ModLibraryOperationAction> values =
+      <ModLibraryOperationAction>[
+    MOD_LIBRARY_OPERATION_ACTION_UNSPECIFIED,
+    MOD_LIBRARY_OPERATION_ACTION_WAIT,
+    MOD_LIBRARY_OPERATION_ACTION_RESUME,
+    MOD_LIBRARY_OPERATION_ACTION_CANCEL,
+  ];
+
+  static final $core.List<ModLibraryOperationAction?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 3);
+  static ModLibraryOperationAction? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const ModLibraryOperationAction._(super.value, super.name);
+}
+
 class ModPublicationPhase extends $pb.ProtobufEnum {
   static const ModPublicationPhase MOD_PUBLICATION_PHASE_UNSPECIFIED =
       ModPublicationPhase._(

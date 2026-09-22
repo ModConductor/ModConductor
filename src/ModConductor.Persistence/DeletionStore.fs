@@ -98,9 +98,6 @@ type DeletionStore internal (database: StateDatabase, access: LibraryAccess) =
                 cancellation.Dispose()
                 workers.Remove key |> ignore
 
-        if workers.Count >= 2 && not (workers.ContainsKey id) then
-            refuse "Two deletions are already active. Wait for one to finish."
-
     member _.Prepare(workspace, modId, revision) =
         task {
             let! result =

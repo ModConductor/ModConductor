@@ -47,12 +47,12 @@ module ConcurrentRootFixtures =
         let firstRead = roots.Validate first
         let sharedRead = roots.Validate first
         let secondRead = roots.Validate second
+        let thirdRead = roots.Validate third
         let mutable busy = false
 
         try
             busy <-
-                roots.Validate third |> wait = Error WorkspaceFailure.Busy
-                && roots.Apply(first, firstReceipt.Revision) |> wait = Error WorkspaceFailure.Busy
+                roots.Apply(first, firstReceipt.Revision) |> wait = Error WorkspaceFailure.Busy
                 && roots.Complete(first, firstReceipt.Revision) |> wait = Error
                     WorkspaceFailure.Busy
                 && not (roots.TryClose())
@@ -61,8 +61,8 @@ module ConcurrentRootFixtures =
 
         held |> wait
 
-        let firstResult, sharedResult, secondResult =
-            firstRead |> wait, sharedRead |> wait, secondRead |> wait
+        let firstResult, sharedResult, secondResult, thirdResult =
+            firstRead |> wait, sharedRead |> wait, secondRead |> wait, thirdRead |> wait
 
         writer.WriteStartObject("concurrentRoots")
 
@@ -72,6 +72,7 @@ module ConcurrentRootFixtures =
             && Result.isOk firstResult
             && firstResult = sharedResult
             && Result.isOk secondResult
+            && Result.isOk thirdResult
         )
 
         let moved = firstPath + "-moved"

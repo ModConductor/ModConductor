@@ -3,14 +3,24 @@ namespace ModConductor.Native.Fixtures
 open System
 open System.IO
 open System.Text.Json
+open System.Threading
 open ModConductor.Persistence
 open ModConductor.ModLibrary
+open ModConductor.ModOrganization
 open ModConductor.Platform
 open ModConductor.Workspaces
 
 module LibraryRecoveryFixtures =
     let private wait = StorageWorker.wait
     let private result = StorageWorker.result
+
+    let private busy operationId =
+        function
+        | Error(LibraryError.Busy operation) ->
+            operation.Id = operationId
+            && operation.Kind = LibraryOperationKind.Publication
+            && operation.Actions = [ LibraryOperationAction.Wait; LibraryOperationAction.Cancel ]
+        | _ -> false
 
     let observe (writer: Utf8JsonWriter) primary =
         writer.WriteStartArray("libraryWindows")
@@ -103,7 +113,7 @@ module LibraryRecoveryFixtures =
 
                 writer.WriteBoolean(
                     "liveRefused",
-                    library.Publish(modId, 0L, version) |> wait = Error LibraryError.Busy
+                    library.Publish(modId, 0L, version) |> wait |> busy version
                 )
 
                 writer.WriteBoolean(
@@ -121,7 +131,7 @@ module LibraryRecoveryFixtures =
 
                     writer.WriteBoolean(
                         "retryWhileClosingRefused",
-                        library.Publish(modId, 0L, Guid.NewGuid()) |> wait = Error LibraryError.Busy
+                        library.Publish(modId, 0L, Guid.NewGuid()) |> wait |> busy version
                     )
                 elif mode = "source-change" then
                     File.WriteAllText(Path.Combine(source, "file.txt"), "external edit")
@@ -152,7 +162,8 @@ module LibraryRecoveryFixtures =
 
                     writer.WriteBoolean(
                         "cancelledPayloadsRemoved",
-                        Directory.GetFiles(root, "*.payload", SearchOption.AllDirectories).Length = 0
+                        Directory.GetFiles(root, "*.payload", SearchOption.AllDirectories).Length =
+                            0
                     )
 
                     writer.WriteBoolean("committed", false)
@@ -181,3 +192,195 @@ module LibraryRecoveryFixtures =
             writer.WriteEndObject()
 
         writer.WriteEndArray()
+
+        let admissionArea =
+            Directory.CreateDirectory(Path.Combine(primary, "library-admission")).FullName
+
+        let state = Directory.CreateDirectory(Path.Combine(admissionArea, "state")).FullName
+        use store = new OperationStore(state)
+        let workspaces = store.Workspaces :> IWorkspaceState
+        let library = store.ModLibrary :> IModLibrary
+        let organization = store.ModOrganization :> IModOrganization
+
+        let createWorkspace name =
+            let workspace, profile, modId = Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid()
+            let root = Directory.CreateDirectory(Path.Combine(admissionArea, name)).FullName
+            let source = Directory.CreateDirectory(Path.Combine(root, "source")).FullName
+            File.WriteAllText(Path.Combine(source, "file.txt"), name)
+
+            let created =
+                workspaces.Create(workspace, name, StorageWorker.select root) |> wait |> result
+
+            workspaces.Edit(
+                workspace,
+                created.Workspace.Revision,
+                ProfileEdit.Create { Id = profile; Name = name }
+            )
+            |> wait
+            |> result
+            |> ignore
+
+            let entry =
+                library.Register(
+                    workspace,
+                    modId,
+                    { Name = name
+                      Notes = ""
+                      Comment = ""
+                      Version = ""
+                      Source = ""
+                      Categories = [] },
+                    Registration.Directory(
+                        ModKind.Regular,
+                        LogicalPath.create [ "source" ] |> result
+                    )
+                )
+                |> wait
+                |> result
+
+            workspace, profile, entry
+
+        let workspace, profile, entry = createWorkspace "active"
+        let _, otherProfile, otherEntry = createWorkspace "other"
+        let version = Guid.NewGuid()
+        use entered = new ManualResetEventSlim()
+        use release = new ManualResetEventSlim()
+
+        let publishing =
+            store.ModLibrary.PublishAtCheckpoint(
+                entry.Id,
+                entry.Revision,
+                version,
+                (fun () ->
+                    entered.Set()
+                    release.Wait()),
+                ignore
+            )
+
+        if not (entered.Wait(TimeSpan.FromSeconds 5.)) then
+            invalidOp "The publication did not reach the admission boundary."
+
+        let sameRead =
+            organization.Query(profile, InventoryObservations.query, None, None) |> wait
+
+        let otherRead =
+            organization.Query(otherProfile, InventoryObservations.query, None, None)
+            |> wait
+
+        let otherEdit =
+            library.Edit(
+                otherEntry.Id,
+                otherEntry.Revision,
+                { otherEntry.Metadata with
+                    Notes = "Unrelated" }
+            )
+            |> wait
+
+        let blocked =
+            library.Edit(
+                entry.Id,
+                entry.Revision,
+                { entry.Metadata with
+                    Notes = "Blocked" }
+            )
+            |> wait
+
+        let projected = busy version blocked
+        let cancelled = library.CancelPublication version |> wait |> result
+        release.Set()
+        let stopped = publishing |> wait
+
+        let afterCancellation =
+            library.Edit(
+                entry.Id,
+                entry.Revision,
+                { entry.Metadata with
+                    Notes = "Available" }
+            )
+            |> wait
+
+        writer.WriteStartObject("libraryAdmission")
+        writer.WriteBoolean("readsContinueDuringMutation", Result.isOk sameRead)
+
+        writer.WriteBoolean(
+            "otherWorkspaceContinues",
+            Result.isOk otherRead && Result.isOk otherEdit
+        )
+
+        writer.WriteBoolean("busyProjectsReceipt", projected)
+
+        writer.WriteBoolean(
+            "cancelReleasesMutation",
+            cancelled.Phase = PublicationPhase.Cancelled
+            && stopped = Error LibraryError.Cancelled
+            && Result.isOk afterCancellation
+        )
+
+        writer.WriteString("workspace", workspace)
+        writer.WriteEndObject()
+
+        let initializationArea =
+            Directory.CreateDirectory(Path.Combine(primary, "library-initialization")).FullName
+
+        let initializationState =
+            Directory.CreateDirectory(Path.Combine(initializationArea, "state")).FullName
+
+        let initializationRoot =
+            Directory.CreateDirectory(Path.Combine(initializationArea, "root")).FullName
+
+        let initializationSource =
+            Directory.CreateDirectory(Path.Combine(initializationRoot, "source")).FullName
+
+        File.WriteAllText(Path.Combine(initializationSource, "file.txt"), "source")
+        let initializationWorkspace = Guid.NewGuid()
+
+        do
+            use initializing = new OperationStore(initializationState)
+
+            (initializing.Workspaces :> IWorkspaceState)
+                .Create(
+                    initializationWorkspace,
+                    "Initialization",
+                    StorageWorker.select initializationRoot
+                )
+            |> wait
+            |> result
+            |> ignore
+
+        use initializationChild =
+            new NativeChild(
+                Environment.ProcessPath,
+                [ "--library-worker"
+                  "initialize"
+                  initializationState
+                  string initializationWorkspace
+                  string Guid.Empty ]
+            )
+
+        initializationChild.Line() |> ignore
+        initializationChild.Terminate()
+
+        use recovered = new OperationStore(initializationState)
+        let recoveredMod = Guid.NewGuid()
+
+        let recoveredEntry =
+            (recovered.ModLibrary :> IModLibrary)
+                .Register(
+                    initializationWorkspace,
+                    recoveredMod,
+                    { Name = "Recovered"
+                      Notes = ""
+                      Comment = ""
+                      Version = ""
+                      Source = ""
+                      Categories = [] },
+                    Registration.Directory(
+                        ModKind.Regular,
+                        LogicalPath.create [ "source" ] |> result
+                    )
+                )
+            |> wait
+
+        writer.WriteStartObject("libraryInitialization")
+        writer.WriteBoolean("staleOwnerCanRetry", Result.isOk recoveredEntry)
+        writer.WriteEndObject()

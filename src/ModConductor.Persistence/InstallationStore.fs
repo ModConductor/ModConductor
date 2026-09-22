@@ -133,7 +133,7 @@ type InstallationStore
         ) =
         task {
             lock gate (fun () ->
-                if closing || preparing.Contains reference.WorkspaceId || preparing.Count >= 2 then
+                if closing || preparing.Contains reference.WorkspaceId then
                     refuse "Archive preparation is busy. Try again shortly."
 
                 if drafts.Count >= 16 && not (drafts.ContainsKey reference.WorkspaceId) then
@@ -317,9 +317,6 @@ type InstallationStore
                 if work.IsCompleted then
                     cancellation.Dispose()
                     workers.Remove key |> ignore
-
-            if workers.Count >= 2 && not (workers.ContainsKey id) then
-                refuse "Two installations are already active. Wait for one to finish."
 
             let snapshot, fresh =
                 db (fun () ->

@@ -79,10 +79,34 @@ type LibraryTests() =
 
         cancel.GetProperty("cancelDurable").GetBoolean() |> should equal true
         cancel.GetProperty("retryWhileClosingRefused").GetBoolean() |> should equal true
-        cancel.GetProperty("cancelledPublicationRemoved").GetBoolean() |> should equal true
+
+        cancel.GetProperty("cancelledPublicationRemoved").GetBoolean()
+        |> should equal true
+
         cancel.GetProperty("cancelledPayloadsRemoved").GetBoolean() |> should equal true
         cancel.GetProperty("committed").GetBoolean() |> should equal false
         cancel.GetProperty("workerResult").GetString() |> should equal "cancelled"
+
+    [<Test>]
+    member _.``reads cancellation and unrelated workspaces should not share mutation admission``() =
+        let data = NativeObservations.report.RootElement.GetProperty("libraryAdmission")
+
+        data.GetProperty("readsContinueDuringMutation").GetBoolean()
+        |> should equal true
+
+        data.GetProperty("otherWorkspaceContinues").GetBoolean() |> should equal true
+        data.GetProperty("busyProjectsReceipt").GetBoolean() |> should equal true
+        data.GetProperty("cancelReleasesMutation").GetBoolean() |> should equal true
+
+    [<Test>]
+    member _.``restart should clear an abandoned library initialization without inventing a version``
+        ()
+        =
+        NativeObservations.report.RootElement
+            .GetProperty("libraryInitialization")
+            .GetProperty("staleOwnerCanRetry")
+            .GetBoolean()
+        |> should equal true
 
     [<Test>]
     member _.``concurrent source edits and changed observed payloads should refuse publication without removing data``

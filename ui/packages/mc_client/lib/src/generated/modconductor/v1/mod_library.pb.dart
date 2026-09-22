@@ -435,14 +435,107 @@ class InventoryMod extends $pb.GeneratedMessage {
   ModVersionOrigin ensureVersionOrigin() => $_ensure(9);
 }
 
+class ModLibraryOperation extends $pb.GeneratedMessage {
+  factory ModLibraryOperation({
+    $core.String? operationId,
+    $core.String? workspaceId,
+    ModLibraryOperationKind? kind,
+    $core.Iterable<ModLibraryOperationAction>? actions,
+  }) {
+    final result = create();
+    if (operationId != null) result.operationId = operationId;
+    if (workspaceId != null) result.workspaceId = workspaceId;
+    if (kind != null) result.kind = kind;
+    if (actions != null) result.actions.addAll(actions);
+    return result;
+  }
+
+  ModLibraryOperation._();
+
+  factory ModLibraryOperation.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ModLibraryOperation.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ModLibraryOperation',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'operationId')
+    ..aOS(2, _omitFieldNames ? '' : 'workspaceId')
+    ..aE<ModLibraryOperationKind>(3, _omitFieldNames ? '' : 'kind',
+        enumValues: ModLibraryOperationKind.values)
+    ..pc<ModLibraryOperationAction>(
+        4, _omitFieldNames ? '' : 'actions', $pb.PbFieldType.KE,
+        valueOf: ModLibraryOperationAction.valueOf,
+        enumValues: ModLibraryOperationAction.values,
+        defaultEnumValue:
+            ModLibraryOperationAction.MOD_LIBRARY_OPERATION_ACTION_UNSPECIFIED)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ModLibraryOperation clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ModLibraryOperation copyWith(void Function(ModLibraryOperation) updates) =>
+      super.copyWith((message) => updates(message as ModLibraryOperation))
+          as ModLibraryOperation;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ModLibraryOperation create() => ModLibraryOperation._();
+  @$core.override
+  ModLibraryOperation createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ModLibraryOperation getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ModLibraryOperation>(create);
+  static ModLibraryOperation? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get operationId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set operationId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasOperationId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearOperationId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get workspaceId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set workspaceId($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasWorkspaceId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearWorkspaceId() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  ModLibraryOperationKind get kind => $_getN(2);
+  @$pb.TagNumber(3)
+  set kind(ModLibraryOperationKind value) => $_setField(3, value);
+  @$pb.TagNumber(3)
+  $core.bool hasKind() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearKind() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $pb.PbList<ModLibraryOperationAction> get actions => $_getList(3);
+}
+
 class ModLibraryFault extends $pb.GeneratedMessage {
   factory ModLibraryFault({
     ModLibraryFaultCode? code,
     $core.String? detail,
+    ModLibraryOperation? activeOperation,
   }) {
     final result = create();
     if (code != null) result.code = code;
     if (detail != null) result.detail = detail;
+    if (activeOperation != null) result.activeOperation = activeOperation;
     return result;
   }
 
@@ -463,6 +556,8 @@ class ModLibraryFault extends $pb.GeneratedMessage {
     ..aE<ModLibraryFaultCode>(1, _omitFieldNames ? '' : 'code',
         enumValues: ModLibraryFaultCode.values)
     ..aOS(2, _omitFieldNames ? '' : 'detail')
+    ..aOM<ModLibraryOperation>(3, _omitFieldNames ? '' : 'activeOperation',
+        subBuilder: ModLibraryOperation.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -501,6 +596,17 @@ class ModLibraryFault extends $pb.GeneratedMessage {
   $core.bool hasDetail() => $_has(1);
   @$pb.TagNumber(2)
   void clearDetail() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  ModLibraryOperation get activeOperation => $_getN(2);
+  @$pb.TagNumber(3)
+  set activeOperation(ModLibraryOperation value) => $_setField(3, value);
+  @$pb.TagNumber(3)
+  $core.bool hasActiveOperation() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearActiveOperation() => $_clearField(3);
+  @$pb.TagNumber(3)
+  ModLibraryOperation ensureActiveOperation() => $_ensure(2);
 }
 
 enum ModReply_Outcome { mod, fault, notSet }

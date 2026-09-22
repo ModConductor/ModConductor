@@ -42,7 +42,7 @@ module internal ProfileModWire =
         | LibraryError.UnprovedOwnership
         | LibraryError.SourceChanged
         | LibraryError.UnsupportedAction
-        | LibraryError.Busy
+        | LibraryError.Busy _
         | LibraryError.LimitExceeded
         | LibraryError.FileUnavailable
         | LibraryError.Cancelled -> ()

@@ -106,7 +106,7 @@ module internal PublicationRows =
                 find connection transaction version, LibraryRows.find connection transaction modId
             with
             | _, Some _ when MaintenanceClaims.busy connection transaction modId ->
-                Error LibraryError.Busy
+                Error(MaintenanceClaims.busyError connection transaction modId)
             | Some receipt, Some row when
                 receipt.ModId = modId && receipt.ExpectedRevision = expected
                 ->
@@ -164,7 +164,7 @@ module internal PublicationRows =
                     receipt.Phase = PublicationPhase.Intent
                     || receipt.Phase = PublicationPhase.Observed
                 then
-                    Error LibraryError.Busy
+                    Error(MaintenanceClaims.busyError connection transaction modId)
                 else
                     Error LibraryError.UnprovedOwnership
             | Some _, _ -> Error LibraryError.IdentityConflict
@@ -187,7 +187,7 @@ module internal PublicationRows =
                     [ "$mod", box (string modId) ]
                 <> 0L
                 ->
-                Error LibraryError.Busy
+                Error(MaintenanceClaims.busyError connection transaction modId)
             | None, Some row ->
                 Sqlite.execute
                     connection
@@ -314,7 +314,7 @@ module internal PublicationRows =
                     [ "$id", box (string persisted.VersionId) ]
                 <> 0L
                 ->
-                Error LibraryError.Busy
+                Error(MaintenanceClaims.busyError connection transaction persisted.ModId)
             | Ok(Some persisted) ->
                 Sqlite.execute
                     connection

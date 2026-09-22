@@ -6,7 +6,7 @@ open System.Threading.Tasks
 open ModConductor.ModLibrary
 open ModConductor.Platform
 
-/// Owns bounded feature admission and the workspace-root/library file boundary.
+/// Owns lifecycle admission and the workspace-root/library file boundary.
 type internal LibraryAccess(database: StateDatabase, roots: OwnedWorkspaceRootStore) =
     let gate = obj ()
 
@@ -25,7 +25,7 @@ type internal LibraryAccess(database: StateDatabase, roots: OwnedWorkspaceRootSt
         task {
             let accepted =
                 lock gate (fun () ->
-                    if closing || active >= 2 then
+                    if closing then
                         false
                     else
                         if active = 0 then
@@ -38,14 +38,15 @@ type internal LibraryAccess(database: StateDatabase, roots: OwnedWorkspaceRootSt
                         true)
 
             if not accepted then
-                return Error LibraryError.Busy
+                return Error LibraryError.FileUnavailable
             else
                 try
                     try
                         return! action ()
                     with
                     | :? SourceOverlapException -> return Error LibraryError.InvalidSource
-                    | :? ModConductor.Operations.CapacityException -> return Error LibraryError.Busy
+                    | :? ModConductor.Operations.CapacityException ->
+                        return Error LibraryError.FileUnavailable
                     | :? IOException
                     | :? UnauthorizedAccessException -> return Error LibraryError.FileUnavailable
                 finally
@@ -64,7 +65,7 @@ type internal LibraryAccess(database: StateDatabase, roots: OwnedWorkspaceRootSt
                 match checkedRoot with
                 | Ok receipt when receipt.Phase = RootCreationPhase.Complete -> Ok receipt.Workspace
                 | Ok _ -> Error LibraryError.UnprovedOwnership
-                | Error WorkspaceFailure.Busy -> Error LibraryError.Busy
+                | Error WorkspaceFailure.Busy -> Error LibraryError.UnprovedOwnership
                 | Error WorkspaceFailure.NotFound -> Error LibraryError.NotFound
                 | Error WorkspaceFailure.StaleRevision
                 | Error WorkspaceFailure.IdentityConflict

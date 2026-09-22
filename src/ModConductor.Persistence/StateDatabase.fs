@@ -93,6 +93,12 @@ type internal StateDatabase(directory: string) =
         Sqlite.execute
             connection
             null
+            "DELETE FROM mod_libraries WHERE owner=$owner AND phase=1"
+            [ "$owner", box owner ]
+
+        Sqlite.execute
+            connection
+            null
             "UPDATE output_actions SET busy=0 WHERE owner=$owner"
             [ "$owner", box owner ]
 

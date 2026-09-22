@@ -24,7 +24,86 @@ class FolderClient extends LibraryClient {
   }
 }
 
+class MovingClient extends SelectionClient {
+  late Future<ProfileModsDelta> Function(
+    int revision,
+    List<String> ids,
+    ProfileModMove direction,
+  )
+  onMove;
+
+  @override
+  Future<ProfileModsDelta> move(
+    String profile,
+    int revision,
+    Iterable<String> ids,
+    ProfileModMove direction,
+  ) => onMove(revision, ids.toList(), direction);
+}
+
 void main() {
+  testWidgets(
+    'active receipt state is local and clears after the operation ends',
+    (tester) async {
+      const operation = LibraryOperation(
+        id: '11111111111111111111111111111111',
+        workspaceId: 'workspace',
+        kind: LibraryOperationKind.publication,
+        actions: [LibraryOperationAction.wait, LibraryOperationAction.cancel],
+      );
+      final client = LibraryClient()
+        ..onQuery = (_, _) async => inventoryPage([mod('one')], null);
+      final selection = MovingClient()
+        ..onMove = (_, _, _) async => throw const LibraryException(
+          LibraryFault.busy,
+          'A library change is still in progress.',
+          activeOperation: operation,
+        );
+      final controller = ModLibraryController();
+      addTearDown(controller.dispose);
+      controller.attach(
+        client,
+        selection,
+        organizationClient: organization(client),
+        workspaceId: 'workspace',
+        profileId: 'profile',
+        editable: true,
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: mcTheme(Brightness.light),
+          home: Scaffold(
+            body: ModLibraryBrowser(
+              controller: controller,
+              workspacePath: '/workspace',
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+      controller.mods.select((modId: 'one'));
+      await controller.inventory.move(ProfileModMove.up);
+      await tester.pump();
+      expect(find.byType(McActionFeedback), findsOneWidget);
+      expect(controller.inventory.activeOperation, same(operation));
+      expect(controller.inventory.problem, isNull);
+
+      selection.onMove = (_, _, _) async =>
+          const ProfileModsDelta(1, [ManagedProfileMod('one', 0, false)], 0);
+      client.onQuery = (_, _) async => queryPage([
+        OrganizedMod(
+          ProfileMod(mod('one'), const ManagedProfileMod('one', 0, false)),
+          null,
+        ),
+      ], revision: 1);
+      await controller.inventory.move(ProfileModMove.up);
+      await tester.pump();
+      expect(find.byType(McActionFeedback), findsNothing);
+      expect(controller.inventory.activeOperation, isNull);
+    },
+  );
+
   testWidgets(
     'native folder choice submits through the feature client and updates the inventory',
     (tester) async {

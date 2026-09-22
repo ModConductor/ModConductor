@@ -18,7 +18,7 @@ type OwnedWorkspaceRootStore internal (database: StateDatabase) =
     let mutable closed = false
 
     let enter id =
-        lock gate (fun () -> not closed && active.Count < 2 && active.Add id)
+        lock gate (fun () -> not closed && active.Add id)
 
     let leave id =
         lock gate (fun () -> active.Remove id |> ignore)

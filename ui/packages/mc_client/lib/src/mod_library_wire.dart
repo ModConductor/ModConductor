@@ -79,6 +79,31 @@ LibraryFault libraryFault(wire.ModLibraryFaultCode value) => switch (value) {
   _ => throw const FormatException('Unsupported library libraryFault.'),
 };
 
+LibraryOperationKind libraryOperationKind(wire.ModLibraryOperationKind value) =>
+    switch (value) {
+      wire.ModLibraryOperationKind.MOD_LIBRARY_OPERATION_KIND_PUBLICATION =>
+        LibraryOperationKind.publication,
+      wire.ModLibraryOperationKind.MOD_LIBRARY_OPERATION_KIND_INSTALLATION =>
+        LibraryOperationKind.installation,
+      wire.ModLibraryOperationKind.MOD_LIBRARY_OPERATION_KIND_UPGRADE =>
+        LibraryOperationKind.upgrade,
+      wire.ModLibraryOperationKind.MOD_LIBRARY_OPERATION_KIND_DELETION =>
+        LibraryOperationKind.deletion,
+      _ => throw const FormatException('Unsupported library operation type.'),
+    };
+
+LibraryOperationAction libraryOperationAction(
+  wire.ModLibraryOperationAction value,
+) => switch (value) {
+  wire.ModLibraryOperationAction.MOD_LIBRARY_OPERATION_ACTION_WAIT =>
+    LibraryOperationAction.wait,
+  wire.ModLibraryOperationAction.MOD_LIBRARY_OPERATION_ACTION_RESUME =>
+    LibraryOperationAction.resume,
+  wire.ModLibraryOperationAction.MOD_LIBRARY_OPERATION_ACTION_CANCEL =>
+    LibraryOperationAction.cancel,
+  _ => throw const FormatException('Unsupported library operation action.'),
+};
+
 wire.InventoryModKind encodeModKind(ModKind value) => switch (value) {
   ModKind.regular => wire.InventoryModKind.INVENTORY_MOD_KIND_REGULAR,
   ModKind.separator => wire.InventoryModKind.INVENTORY_MOD_KIND_SEPARATOR,
@@ -88,8 +113,20 @@ wire.InventoryModKind encodeModKind(ModKind value) => switch (value) {
     wire.InventoryModKind.INVENTORY_MOD_KIND_GENERATED_OUTPUT,
 };
 
-Never reject(wire.ModLibraryFault fault) =>
-    throw LibraryException(libraryFault(fault.code), fault.detail);
+Never reject(wire.ModLibraryFault fault) => throw LibraryException(
+  libraryFault(fault.code),
+  fault.detail,
+  activeOperation: fault.hasActiveOperation()
+      ? LibraryOperation(
+          id: fault.activeOperation.operationId,
+          workspaceId: fault.activeOperation.workspaceId,
+          kind: libraryOperationKind(fault.activeOperation.kind),
+          actions: List.unmodifiable(
+            fault.activeOperation.actions.map(libraryOperationAction),
+          ),
+        )
+      : null,
+);
 wire.InventoryModMetadata encodeMetadata(ModMetadata value) =>
     wire.InventoryModMetadata(
       name: value.name,

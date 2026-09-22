@@ -10,7 +10,15 @@ module LibraryWorker =
         let modId, version = Guid.Parse modText, Guid.Parse versionText
         let pause = StorageWorker.pause
 
-        if mode = "rename-before" || mode = "rename-after" then
+        if mode = "initialize" then
+            let root =
+                store.ModLibrary.Access.Root modId |> StorageWorker.wait |> StorageWorker.result
+
+            store.ModLibrary.Access.PrepareLibrary(root, pause)
+            |> StorageWorker.wait
+            |> StorageWorker.result
+            |> ignore
+        elif mode = "rename-before" || mode = "rename-after" then
             store.ModLibrary.EditAtCheckpoint(
                 modId,
                 0L,

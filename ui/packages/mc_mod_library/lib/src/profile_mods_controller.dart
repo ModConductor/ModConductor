@@ -27,6 +27,7 @@ class ProfileModsController extends ChangeNotifier {
       matchingSeparators = 0,
       matchingGroups = 0;
   String? problem;
+  LibraryOperation? activeOperation;
   int get loaded => _cache.loaded;
   bool get connected =>
       _client != null && _organization != null && _profile != null;
@@ -125,6 +126,7 @@ class ProfileModsController extends ChangeNotifier {
       _pendingFocus = null;
       complete = stale = false;
       problem = null;
+      activeOperation = null;
       _next = null;
       _cache.clear();
       query = const ModQuery();
@@ -256,9 +258,14 @@ class ProfileModsController extends ChangeNotifier {
             error is FormatException ||
             (error is LibraryException &&
                 error.fault == LibraryFault.staleRevision);
-        problem = error is LibraryException
-            ? error.detail
-            : 'Could not load the mods.';
+        activeOperation = error is LibraryException
+            ? error.activeOperation
+            : null;
+        problem = activeOperation == null
+            ? error is LibraryException
+                  ? error.detail
+                  : 'Could not load the mods.'
+            : null;
       }
       return false;
     } finally {
@@ -318,10 +325,12 @@ class ProfileModsController extends ChangeNotifier {
     loading = false;
     changing = true;
     problem = null;
+    activeOperation = null;
     _notify();
     try {
       final delta = await action();
       if (_disposed || epoch != _epoch) return;
+      activeOperation = null;
       if (delta.revision != expected + 1) {
         throw const FormatException('The profile revision changed.');
       }
@@ -345,9 +354,14 @@ class ProfileModsController extends ChangeNotifier {
         stale =
             error is! LibraryException ||
             error.fault == LibraryFault.staleRevision;
-        problem = error is LibraryException
-            ? error.detail
-            : 'Could not confirm the profile change. Reload its mods.';
+        activeOperation = error is LibraryException
+            ? error.activeOperation
+            : null;
+        problem = activeOperation == null
+            ? error is LibraryException
+                  ? error.detail
+                  : 'Could not confirm the profile change. Reload its mods.'
+            : null;
       }
     } finally {
       if (!_disposed && epoch == _epoch) {

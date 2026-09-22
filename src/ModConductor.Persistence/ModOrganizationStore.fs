@@ -32,8 +32,8 @@ type ModOrganizationStore internal (database: StateDatabase, access: LibraryAcce
                 CategoryCommands.edit connection transaction workspace expected edit)
 
         member _.Query(profile, query, cursor, inspected) =
-            access.Run(fun () ->
-                task {
+            task {
+                try
                     match OrganizationPolicy.normalize query with
                     | Error error -> return Error error
                     | Ok query ->
@@ -46,9 +46,7 @@ type ModOrganizationStore internal (database: StateDatabase, access: LibraryAcce
                         | Some(workspace, _) ->
                             return!
                                 run workspace false (fun connection transaction ->
-                                    match
-                                        SelectionRows.profile connection transaction profile
-                                    with
+                                    match SelectionRows.profile connection transaction profile with
                                     | Some(current, revision) when current = workspace ->
                                         OrganizationQuery.read
                                             connection
@@ -61,4 +59,6 @@ type ModOrganizationStore internal (database: StateDatabase, access: LibraryAcce
                                             inspected
                                     | Some _
                                     | None -> Error LibraryError.NotFound)
-                })
+                with :? ModConductor.Operations.CapacityException ->
+                    return Error LibraryError.FileUnavailable
+            }
