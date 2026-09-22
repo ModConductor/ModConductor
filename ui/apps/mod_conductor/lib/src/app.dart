@@ -842,6 +842,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
     BuildContext context,
     WorkspaceInfo workspace,
   ) async {
+    final pendingProfileId = newOperationId();
     ProfileInfo? created;
     GameContextState? committedContext;
     GameContextsClient? committedClient;
@@ -870,7 +871,10 @@ class _ModConductorAppState extends State<ModConductorApp> {
               if (client == null) {
                 return 'The profile setup is not available.';
               }
-              created ??= await _workspaces.createProfile(selection.name);
+              created ??= await _workspaces.createProfile(
+                selection.name,
+                profileId: pendingProfileId,
+              );
               final profile = created;
               if (profile == null) {
                 return _workspaces.currentProblem ??

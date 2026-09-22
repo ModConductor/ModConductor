@@ -283,7 +283,7 @@ GameContextState unboundGame(String workspace, String profile) =>
     );
 
 class RetryWorkspaces extends FakeWorkspaces {
-  RetryWorkspaces()
+  RetryWorkspaces({this.loseFirstCreateResponse = false})
     : profiles = [const ProfileInfo('original-profile', 'Original')],
       super(
         savedWorkspace: const WorkspaceInfo(
@@ -296,6 +296,7 @@ class RetryWorkspaces extends FakeWorkspaces {
       );
 
   final List<ProfileInfo> profiles;
+  final bool loseFirstCreateResponse;
   int failedSelections = 0;
   int selectionAttempts = 0;
 
@@ -324,6 +325,9 @@ class RetryWorkspaces extends FakeWorkspaces {
       revision: revision + 1,
       selectedProfile: savedWorkspace!.selectedProfile,
     );
+    if (loseFirstCreateResponse && profileCreates == 1) {
+      throw Exception('The profile creation response was lost.');
+    }
     return ProfileChange(savedWorkspace!, profile, null);
   }
 
@@ -502,6 +506,41 @@ Future<DiagnosticsController> mount(
 }
 
 void main() {
+  testWidgets('a lost create response recovers one usable profile', (
+    tester,
+  ) async {
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+    final workspaces = RetryWorkspaces(loseFirstCreateResponse: true);
+    final contexts = RetryGameContexts();
+    await mountApp(
+      tester,
+      workspaces: workspaces,
+      diagnostics: FakeDiagnostics(),
+      gameContexts: contexts,
+      steamDiscovery: FakeSteamDiscovery(),
+    );
+    await prepareNewProfile(tester);
+
+    await tester.tap(find.byKey(const ValueKey('submit-profile-setup')));
+    await tester.pumpAndSettle();
+
+    expect(workspaces.profileCreates, 1);
+    expect(workspaces.profiles, hasLength(2));
+    expect(contexts.saves, 1);
+    expect(workspaces.selectionAttempts, 1);
+    expect(
+      workspaces.savedWorkspace!.selectedProfile!.id,
+      workspaces.createdProfile.id,
+    );
+    expect(
+      contexts.states[workspaces.createdProfile.id]!.binding!.needsCheck,
+      isFalse,
+    );
+    expect(find.byKey(const ValueKey('submit-profile-setup')), findsNothing);
+    expect(find.byKey(const ValueKey('workspace-mods-tab')), findsOneWidget);
+  });
+
   testWidgets(
     'a selection failure retries without saving the game context twice',
     (tester) async {
