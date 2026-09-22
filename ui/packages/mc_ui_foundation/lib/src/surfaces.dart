@@ -248,10 +248,7 @@ class McStatus extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  '$status: $title',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
+                Text(title, style: Theme.of(context).textTheme.titleMedium),
                 if (detail != null) ...[
                   const SizedBox(height: McSpacing.small),
                   Text(detail!, style: Theme.of(context).textTheme.bodySmall),

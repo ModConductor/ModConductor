@@ -63,6 +63,14 @@ class _GameContextBrowserState extends State<GameContextBrowser> {
   };
   String checkedAt(DateTime time) =>
       MaterialLocalizations.of(context).formatFullDate(time.toLocal());
+  List<McFact> locationFacts(String label, GameLocation value) =>
+      switch (value) {
+        LocatedGameFolder(:final path, :final exists) => [
+          McFact(label, path, path: true),
+          if (!exists) McFact('$label status', 'Not found'),
+        ],
+        UnavailableGameLocation(:final reason) => [McFact(label, reason)],
+      };
   McCapabilityDisposition capabilityDisposition(
     GameCapabilityDisposition value,
   ) => switch (value) {
@@ -133,7 +141,7 @@ class _GameContextBrowserState extends State<GameContextBrowser> {
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                   const SizedBox(height: 16),
-                  SelectableText(binding.path),
+                  McPathValue(path: binding.path),
                   const SizedBox(height: 16),
                   McStatus(
                     title: c.needsRead
@@ -189,113 +197,129 @@ class _GameContextBrowserState extends State<GameContextBrowser> {
                       tilePadding: EdgeInsets.zero,
                       title: const Text('Installation details'),
                       children: [
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (binding.needsCheck || c.needsRead)
-                                const McStatus(title: 'Last checked details'),
-                              McPropertyRow(
-                                label: 'Executable',
-                                value: evidence.executable!.path,
+                        McFactGroup(
+                          title: 'Game',
+                          rows: [
+                            McFact('Game', state.definition!.name),
+                            McFact('Store', state.definition!.storefront),
+                            McFact(
+                              'Platform',
+                              evidence.platform == GameContextPlatform.windows
+                                  ? 'Windows'
+                                  : 'Proton',
+                            ),
+                            McFact(
+                              'Installation folder',
+                              binding.path,
+                              path: true,
+                            ),
+                            if (evidence.dataPath case final data?)
+                              McFact('Data folder', data, path: true),
+                            if (evidence.executable case final executable?) ...[
+                              McFact('Executable', executable.path, path: true),
+                              McFact(
+                                'File version',
+                                '${executable.fileVersion} · x64',
                               ),
-                              McPropertyRow(
-                                label: 'File version',
-                                value:
-                                    '${evidence.executable!.fileVersion} · x64',
+                            ],
+                            if (evidence.launcherPath case final launcher?)
+                              McFact('Launcher', launcher, path: true),
+                          ],
+                        ),
+                        if (evidence.proton case final proton?) ...[
+                          const SizedBox(height: 20),
+                          McFactGroup(
+                            title: 'Runtime',
+                            rows: [
+                              McFact('Name', proton.runtimeName),
+                              McFact('Version', proton.runtimeVersion),
+                              McFact(
+                                'Proton folder',
+                                proton.selection.runtimeDirectory,
+                                path: true,
                               ),
-                              McPropertyRow(
-                                label: 'Data folder',
-                                value: evidence.dataPath!,
+                              McFact(
+                                'Data folder',
+                                proton.selection.compatData,
+                                path: true,
                               ),
-                              McPropertyRow(
-                                label: 'Launcher',
-                                value:
-                                    evidence.launcherPath ??
-                                    'Not found or unavailable',
+                              McFact(
+                                'Prefix folder',
+                                proton.prefixPath,
+                                path: true,
                               ),
-                              McPropertyRow(
-                                label: 'Steam installation',
-                                value:
-                                    evidence.proton?.selection.association
-                                        is SteamProtonAssociation
-                                    ? 'AppID ${evidence.proton!.selection.appId} · Manifest checked'
-                                    : 'Not verified',
-                              ),
-                              const McPropertyRow(
-                                label: 'Steam build',
-                                value: 'Not available',
-                              ),
-                              if (evidence.proton case final proton?) ...[
-                                McPropertyRow(
-                                  label: 'Proton',
-                                  value: proton.runtimeName,
+                              if (proton.prefixVersion case final version?)
+                                McFact('Prefix version', version),
+                            ],
+                          ),
+                          const SizedBox(height: 20),
+                          McFactGroup(
+                            title: 'Steam',
+                            rows: [
+                              McFact('AppID', '${proton.selection.appId}'),
+                              if (proton.mappingProblem case final problem?)
+                                McFact('Mapping problem', problem)
+                              else ...[
+                                McFact(
+                                  'Game setting',
+                                  proton.perGameTool ?? 'Not set',
                                 ),
-                                McPropertyRow(
-                                  label: 'Proton version',
-                                  value: proton.runtimeVersion,
-                                ),
-                                McPropertyRow(
-                                  label: 'Proton data folder',
-                                  value: proton.selection.compatData,
-                                ),
-                                McPropertyRow(
-                                  label: 'Prefix folder',
-                                  value: proton.prefixPath,
-                                ),
-                                McPropertyRow(
-                                  label: 'Proton folder',
-                                  value: proton.selection.runtimeDirectory,
-                                ),
-                                McPropertyRow(
-                                  label: 'Prefix version',
-                                  value:
-                                      proton.prefixVersion ?? 'Not available',
-                                ),
-                                if (proton.mappingProblem case final problem?)
-                                  McPropertyRow(
-                                    label: 'Steam setting',
-                                    value: problem,
-                                  )
-                                else ...[
-                                  McPropertyRow(
-                                    label: 'Steam game-specific setting',
-                                    value: proton.perGameTool ?? 'Not set',
-                                  ),
-                                  McPropertyRow(
-                                    label: 'Steam default',
-                                    value: proton.globalTool ?? 'Not set',
-                                  ),
-                                ],
-                                for (final path in proton.paths) ...[
-                                  McPropertyRow(
-                                    label: path.name,
-                                    value: location(path.location),
-                                  ),
-                                  if (path.windowsPath case final windows?)
-                                    McPropertyRow(
-                                      label: 'Windows path',
-                                      value: windows,
-                                    ),
-                                ],
-                              ] else ...[
-                                McPropertyRow(
-                                  label: 'Documents',
-                                  value: location(evidence.documents),
-                                ),
-                                McPropertyRow(
-                                  label: 'Saves',
-                                  value: location(evidence.saves),
-                                ),
-                                McPropertyRow(
-                                  label: 'Local AppData',
-                                  value: location(evidence.localAppData),
+                                McFact(
+                                  'Default',
+                                  proton.globalTool ?? 'Not set',
                                 ),
                               ],
                             ],
                           ),
-                        ),
+                          const SizedBox(height: 20),
+                          McFactGroup(
+                            title: 'Folders',
+                            rows: [
+                              for (final path in proton.paths) ...[
+                                ...locationFacts(path.name, path.location),
+                                if (path.windowsPath case final windows?)
+                                  McFact('Windows path', windows),
+                              ],
+                            ],
+                          ),
+                        ] else ...[
+                          const SizedBox(height: 20),
+                          McFactGroup(
+                            title: 'Folders',
+                            rows: [
+                              ...locationFacts('Documents', evidence.documents),
+                              ...locationFacts('Saves', evidence.saves),
+                              ...locationFacts(
+                                'Local AppData',
+                                evidence.localAppData,
+                              ),
+                            ],
+                          ),
+                        ],
+                        if (evidence.problems.isNotEmpty) ...[
+                          const SizedBox(height: 20),
+                          McDiagnosticTable(
+                            title: 'Installation problems',
+                            diagnostics: [
+                              for (
+                                var index = 0;
+                                index < evidence.problems.length;
+                                index++
+                              )
+                                McDiagnosticItem(
+                                  id: '${evidence.problems[index].path}:${evidence.problems[index].detail}:$index',
+                                  title: evidence.problems[index].detail,
+                                  affected: evidence.problems[index].path,
+                                  evidence: [
+                                    McFact(
+                                      'Problem',
+                                      evidence.problems[index].detail,
+                                    ),
+                                  ],
+                                ),
+                            ],
+                          ),
+                        ],
                       ],
                     ),
                   ),

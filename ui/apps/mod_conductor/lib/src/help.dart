@@ -527,7 +527,12 @@ class _HelpBrowserState extends State<HelpBrowser> {
                 : 'This change affects these items:',
           ),
           const SizedBox(height: 12),
-          _AffectedItems(items: preview.items),
+          McFactGroup(
+            title: 'Affected items',
+            rows: [
+              for (final item in preview.items) McFact(item.label, item.value),
+            ],
+          ),
           const SizedBox(height: 12),
           McStatus(
             title: deployment
@@ -677,15 +682,15 @@ class _HelpBrowserState extends State<HelpBrowser> {
               : McStatusTone.neutral,
         ),
         const SizedBox(height: 20),
-        const Text('Applies to', style: TextStyle(fontWeight: FontWeight.w600)),
-        const SizedBox(height: 10),
-        _FindingFacts(
-          values: [
-            DiagnosticEvidence('Workspace', finding.workspaceName),
-            DiagnosticEvidence('Profile', finding.profileName),
-            ...finding.evidence.where(
+        McFactGroup(
+          title: 'Applies to',
+          rows: [
+            McFact('Workspace', finding.workspaceName),
+            McFact('Profile', finding.profileName),
+            for (final item in finding.evidence.where(
               (item) => item.label != 'Workspace' && item.label != 'Profile',
-            ),
+            ))
+              McFact(item.label, item.value),
           ],
         ),
         const SizedBox(height: 20),
@@ -1009,76 +1014,6 @@ class _HelpArticleInspector extends StatelessWidget {
           ),
         ),
     ],
-  );
-}
-
-class _FindingFacts extends StatelessWidget {
-  const _FindingFacts({required this.values});
-  final List<DiagnosticEvidence> values;
-  @override
-  Widget build(BuildContext context) => Column(
-    children: [
-      for (final value in values)
-        Padding(
-          padding: const EdgeInsets.only(bottom: 10),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(
-                width: 116,
-                child: Text(
-                  value.label,
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(child: Text(value.value)),
-            ],
-          ),
-        ),
-    ],
-  );
-}
-
-class _AffectedItems extends StatelessWidget {
-  const _AffectedItems({required this.items});
-  final List<DiagnosticRemediationItem> items;
-  @override
-  Widget build(BuildContext context) => Container(
-    width: double.infinity,
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color: Theme.of(context).colorScheme.surfaceContainerHighest,
-      borderRadius: BorderRadius.circular(8),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        for (final item in items)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 3),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(
-                  width: 116,
-                  child: Text(
-                    item.label,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: SelectableText(
-                    item.value,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ),
-              ],
-            ),
-          ),
-      ],
-    ),
   );
 }
 

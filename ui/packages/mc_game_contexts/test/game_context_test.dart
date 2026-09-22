@@ -503,28 +503,23 @@ void main() {
       await tester.tap(find.text('Installation details'));
       await tester.pumpAndSettle();
 
-      final rows = find.byType(McPropertyRow);
-      expect(rows, findsWidgets);
-      Rect? previous;
-      for (final element in rows.evaluate()) {
-        final row = find.byElementPredicate(
+      final paths = find.byType(McPathValue);
+      expect(paths, findsWidgets);
+      for (final element in paths.evaluate()) {
+        final path = find.byElementPredicate(
           (candidate) => candidate == element,
         );
         final selection = find.descendant(
-          of: row,
+          of: path,
           matching: find.byType(SelectionArea),
         );
         expect(selection, findsOneWidget);
-        final rowRect = tester.getRect(row);
+        final pathRect = tester.getRect(path);
         final selectionRect = tester.getRect(selection);
-        expect(selectionRect.left, greaterThanOrEqualTo(rowRect.left));
-        expect(selectionRect.top, greaterThanOrEqualTo(rowRect.top));
-        expect(selectionRect.right, lessThanOrEqualTo(rowRect.right));
-        expect(selectionRect.bottom, lessThanOrEqualTo(rowRect.bottom));
-        if (previous case final prior?) {
-          expect(rowRect.top, greaterThanOrEqualTo(prior.bottom));
-        }
-        previous = rowRect;
+        expect(selectionRect.left, greaterThanOrEqualTo(pathRect.left));
+        expect(selectionRect.top, greaterThanOrEqualTo(pathRect.top));
+        expect(selectionRect.right, lessThanOrEqualTo(pathRect.right));
+        expect(selectionRect.bottom, lessThanOrEqualTo(pathRect.bottom));
       }
       await expectLater(
         find.byType(GameContextBrowser),

@@ -109,25 +109,17 @@ class OutputInspector extends StatelessWidget {
           tilePadding: EdgeInsets.zero,
           title: const Text('File information'),
           children: [
-            ListTile(
-              title: const Text('Checked'),
-              subtitle: Text(deploymentDate(file.observedAt)),
+            McFactGroup(
+              title: 'Observation',
+              rows: [
+                McFact('Checked', deploymentDate(file.observedAt)),
+                if (file.sha256.isNotEmpty) McFact('SHA-256', file.sha256),
+                if (location != null)
+                  McFact('Working location', location.physicalPath, path: true),
+                if (file.deploymentId case final deployment?)
+                  McFact('Deployment at check', deployment),
+              ],
             ),
-            if (file.sha256.isNotEmpty)
-              ListTile(
-                title: const Text('SHA-256'),
-                subtitle: SelectableText(file.sha256),
-              ),
-            if (location != null)
-              ListTile(
-                title: const Text('Working location'),
-                subtitle: SelectableText(location.physicalPath),
-              ),
-            if (file.deploymentId != null)
-              ListTile(
-                title: const Text('Deployment at check'),
-                subtitle: Text(file.deploymentId!),
-              ),
           ],
         ),
       ],

@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mc_client/mc_client.dart';
 import 'package:mc_game_contexts/mc_game_contexts.dart';
+import 'package:mc_game_contexts/src/steam_diagnostics.dart';
 import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 
 import 'game_context_test.dart' show Client;
@@ -40,6 +41,55 @@ class DiscoveryClient implements SteamDiscoveryClient {
 }
 
 void main() {
+  test(
+    'search diagnostics group duplicate origins but retain distinct problems',
+    () {
+      const path = '/games/SteamLibrary';
+      final groups = groupSteamDiagnostics(
+        const SteamSearchResult(
+          appId: 489830,
+          roots: [
+            SteamSearchRoot('/steam/default', 'Default Steam data folder'),
+            SteamSearchRoot('/steam/link', 'Steam home link'),
+          ],
+          candidates: [],
+          diagnostics: [
+            SteamSearchDiagnostic(
+              '/steam/default',
+              path,
+              SteamDiscoveryProblem.rootUnavailable,
+              'The Steam library folder is unavailable.',
+            ),
+            SteamSearchDiagnostic(
+              '/steam/link',
+              path,
+              SteamDiscoveryProblem.rootUnavailable,
+              'The folder is not mounted.',
+            ),
+            SteamSearchDiagnostic(
+              '/steam/link',
+              path,
+              SteamDiscoveryProblem.librariesUnreadable,
+              'The Steam library file cannot be read.',
+            ),
+          ],
+          limited: false,
+        ),
+      );
+
+      expect(groups, hasLength(2));
+      final unavailable = groups.firstWhere(
+        (value) => value.kind == SteamDiscoveryProblem.rootUnavailable,
+      );
+      expect(unavailable.details, hasLength(2));
+      expect(
+        unavailable.origins,
+        containsAll(['Default Steam data folder', 'Steam home link']),
+      );
+      expect(groups.where((value) => value.path == path), hasLength(2));
+    },
+  );
+
   test('cancelled searches cannot replace newer results and refresh retains stable selection', () async {
     final client = DiscoveryClient();
     final controller = SteamSearchController(client, 'skyrim');

@@ -45,29 +45,6 @@ class McIconLabel extends StatelessWidget {
   }
 }
 
-class McPropertyRow extends StatelessWidget {
-  const McPropertyRow({super.key, required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) => Semantics(
-    container: true,
-    child: Padding(
-      padding: const EdgeInsets.symmetric(vertical: 7),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(label, style: Theme.of(context).textTheme.labelMedium),
-          const SizedBox(height: 3),
-          ClipRect(child: SelectionArea(child: Text(value))),
-        ],
-      ),
-    ),
-  );
-}
-
 class McAsyncStatusSlot extends StatelessWidget {
   const McAsyncStatusSlot({super.key, required this.active, this.problem});
 

@@ -115,8 +115,9 @@ smaller layouts. The narrow browser uses one pane selector.
 
 The engine supplies winners, hidden states, allowed actions and paged tree rows.
 Filters match file paths; display choices do not change precedence. Hide and
-Unhide affect one saved copy across all workspace profiles. Cold Load and Refresh
-are cancellable. Previous observations remain visible after a failed check.
+Unhide affect one saved copy across all workspace profiles. Skyrim Data starts
+its first metadata scan when the pane opens. A stale generation starts another
+scan. The Refresh action stays explicit. The current observation remains visible during a refresh and after a failed scan.
 
 `mc_generated_outputs` supplies Tool outputs and Writable game files as named
 `ModFilePane` inputs to the same browser. They use engine-filtered pages and the
@@ -150,3 +151,50 @@ retains the library selection. The existing collection, tree expander and inspec
 show entry paths and sizes; narrow details use the same drawer. Changing workspace
 clears the contents view. A late or canceled read cannot replace another view.
 No install action or archive-validity status is inferred from the listed metadata.
+
+## Structured data
+
+Use `McFactGroup` for labeled values. Set `path` on `McFact` when the value is a
+file-system path. The path stays selectable and the row supplies a copy action.
+The component changes from two columns to stacked rows at a narrow width.
+
+Use `McDiagnosticTable` for a set of findings. Each `McDiagnosticItem` has a
+stable ID, a specific title, an affected item, evidence, and optional origins or
+action. A row keeps one problem identity. It can combine duplicate discovery
+origins, but it must not combine different problem kinds for the same path.
+
+Use `McStructuredState` when a structured view is loading, empty, partial,
+unavailable, or in error. Keep the current structured content visible during a
+refresh. Use `McStatus` for a short status next to other content. Its visible
+text does not include a severity prefix. Screen readers still receive the
+severity.
+
+### Detail surface audit
+
+The 2026-09-22 audit checked read-only detail and diagnostic surfaces in the
+Flutter application.
+
+- Skyrim Data uses `McCollection` and `McStructuredState`. It starts its
+  metadata scan when the pane opens.
+- Game installation, Steam, and Proton details use `McFactGroup` and
+  `McPathValue`.
+- Steam search problems use `McDiagnosticTable`. The grouping keeps one row for
+  each problem kind and canonical path. It keeps all discovery origins and
+  detail values.
+- Proton search problems use `McDiagnosticTable`.
+- Help diagnostics use the diagnostic collection and `McFactGroup` for the
+  selected finding and change preview.
+- Executable run details, archive details, and output observations use
+  `McFactGroup`.
+
+The following surfaces keep their existing components:
+
+- File trees, archive contents, saves, plugins, mods, and profiles use
+  `McCollection`. They require selection, sorting, paging, or tree navigation.
+- Forms and editors keep form controls. Their values are drafts, not read-only
+  facts.
+- File-source, plugin, save, and deployment inspectors combine actions or a
+  chronological history with their values. A property table cannot replace
+  those controls without changing the interaction.
+- The sign-in storage report stays as one selectable report. Its line structure
+  comes from the credential provider and must stay intact.

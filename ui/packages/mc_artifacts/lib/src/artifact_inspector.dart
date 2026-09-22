@@ -30,15 +30,20 @@ class ArtifactInspector extends StatelessWidget {
     tilePadding: EdgeInsets.zero,
     title: const Text('Archive details'),
     children: [
-      if (artifact.download != null && artifact.path.isNotEmpty)
-        archiveFact(c, 'Location', artifact.path),
-      archiveFact(
-        c,
-        artifact.download == null ? 'Original file' : 'Original source',
-        artifact.originalPath,
+      McFactGroup(
+        title: 'Archive',
+        rows: [
+          if (artifact.download != null && artifact.path.isNotEmpty)
+            McFact('Location', artifact.path, path: true),
+          McFact(
+            artifact.download == null ? 'Original file' : 'Original source',
+            artifact.originalPath,
+            path: true,
+          ),
+          McFact('Archive ID', artifact.id),
+          if (artifact.sha256 case final checksum?) McFact('SHA-256', checksum),
+        ],
       ),
-      archiveFact(c, 'Archive ID', artifact.id),
-      if (artifact.sha256 != null) archiveFact(c, 'SHA-256', artifact.sha256!),
     ],
   );
   @override

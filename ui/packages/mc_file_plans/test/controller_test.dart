@@ -5,23 +5,26 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mc_client/mc_client.dart';
 import 'package:mc_file_plans/mc_file_plans.dart';
+import 'package:mc_file_plans/src/planned_files.dart';
 import 'package:mc_file_plans/src/planned_files_controller.dart';
 import 'package:mc_mod_library/mc_mod_library.dart';
+import 'package:mc_ui_collections/mc_ui_collections.dart';
 import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 
-FilePlanState state(String id) => FilePlanState(
-  id: id,
-  workspaceId: 'workspace',
-  profileId: 'profile',
-  fingerprint: 'fingerprint-$id',
-  loaded: true,
-  stale: false,
-  plannedFiles: 3,
-  absentTargets: 0,
-  inspectedFiles: 3,
-  problems: const [],
-  problemCount: 0,
-);
+FilePlanState state(String id, {bool loaded = true, bool stale = false}) =>
+    FilePlanState(
+      id: id,
+      workspaceId: 'workspace',
+      profileId: 'profile',
+      fingerprint: 'fingerprint-$id',
+      loaded: loaded,
+      stale: stale,
+      plannedFiles: 3,
+      absentTargets: 0,
+      inspectedFiles: 3,
+      problems: const [],
+      problemCount: 0,
+    );
 PlannedFileNode node(
   List<String> path, {
   bool folder = false,
@@ -199,8 +202,140 @@ class FakePlans implements FilePlansClient {
   }) async => const FilePlanProblems([], null);
 }
 
+class AutomaticPlans extends FakePlans {
+  AutomaticPlans({
+    required this.loaded,
+    this.keepOpen = false,
+    this.fail = false,
+  }) {
+    current = loaded
+        ? state('stale', stale: true)
+        : state('unloaded', loaded: false);
+  }
+
+  final bool loaded;
+  final bool keepOpen;
+  final bool fail;
+  final refreshes = <bool>[];
+  final refreshStream = StreamController<FilePlanLoadEvent>(sync: true);
+
+  @override
+  Stream<FilePlanLoadEvent> acquire(String profileId, {required bool refresh}) {
+    refreshes.add(refresh);
+    if (keepOpen) return refreshStream.stream;
+    if (fail) {
+      return Stream<FilePlanLoadEvent>.error(
+        const FilePlanException(
+          FilePlanFailure.fileUnavailable,
+          'The Data folder is unavailable.',
+        ),
+      );
+    }
+    current = state('loaded');
+    return Stream<FilePlanLoadEvent>.value(FilePlanLoaded(current));
+  }
+}
+
 void main() {
   previewSupersessionTests();
+  testWidgets('opening Skyrim Data starts an initial metadata load', (
+    tester,
+  ) async {
+    final client = AutomaticPlans(loaded: false);
+    final controller = FilePlansController()..attach(client, 'profile');
+    final focus = FocusNode();
+    addTearDown(focus.dispose);
+    addTearDown(controller.dispose);
+    addTearDown(client.stream.close);
+    await tester.pump();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: mcTheme(Brightness.light),
+        home: Scaffold(
+          body: PlannedFiles(
+            controller: controller,
+            focusNode: focus,
+            onInspect: (_) {},
+          ),
+        ),
+      ),
+    );
+    for (var index = 0; index < 6; index++) {
+      await tester.pump();
+    }
+
+    expect(client.refreshes, [false]);
+    expect(controller.state!.loaded, isTrue);
+    expect(find.text('Load files'), findsNothing);
+    expect(find.text('No files found'), findsWidgets);
+  });
+
+  testWidgets('an automatic load failure shows the specific error', (
+    tester,
+  ) async {
+    final client = AutomaticPlans(loaded: false, fail: true);
+    final controller = FilePlansController()..attach(client, 'profile');
+    final focus = FocusNode();
+    addTearDown(focus.dispose);
+    addTearDown(controller.dispose);
+    addTearDown(client.stream.close);
+    await tester.pump();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: mcTheme(Brightness.light),
+        home: Scaffold(
+          body: PlannedFiles(
+            controller: controller,
+            focusNode: focus,
+            onInspect: (_) {},
+          ),
+        ),
+      ),
+    );
+    for (var index = 0; index < 6; index++) {
+      await tester.pump();
+    }
+
+    expect(client.refreshes, [false]);
+    expect(find.text('The Data folder cannot be read'), findsOneWidget);
+    expect(find.text('The Data folder is unavailable.'), findsOneWidget);
+  });
+
+  testWidgets('a stale refresh keeps the current file view visible', (
+    tester,
+  ) async {
+    final client = AutomaticPlans(loaded: true, keepOpen: true);
+    final controller = FilePlansController()..attach(client, 'profile');
+    final focus = FocusNode();
+    addTearDown(focus.dispose);
+    addTearDown(controller.dispose);
+    addTearDown(client.stream.close);
+    await tester.pump();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: mcTheme(Brightness.light),
+        home: Scaffold(
+          body: PlannedFiles(
+            controller: controller,
+            focusNode: focus,
+            onInspect: (_) {},
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(client.refreshes, [true]);
+    expect(find.byType(McCollection<String, PlannedFileNode>), findsOneWidget);
+    expect(find.text('Refreshing file names'), findsOneWidget);
+    unawaited(controller.cancel());
+    await tester.pumpWidget(const SizedBox());
+  });
+
   test('cancelling acquisition completes its waiter and retains the previous snapshot', () async {
     final client = FakePlans();
     final controller = FilePlansController()..attach(client, 'profile');

@@ -183,7 +183,6 @@ void main() {
         }
         await tap(find.text('Skyrim Data'));
         await capture('cold-light');
-        await tap(action('Load files'));
         await until(
           () =>
               controller().state?.loaded == true &&
@@ -266,7 +265,13 @@ void main() {
         await File('$game/Data/shared.txt')
             .writeAsString('Changed external fixture data');
         await tap(action('Hide this copy'));
-        await until(() => !controller().changing && controller().needsRead);
+        await until(
+          () =>
+              !controller().changing &&
+              (controller().loading ||
+                  (!controller().needsRead &&
+                      controller().state?.stale == false)),
+        );
         expect(
           (await owner.filePlans!.history(
             controller().state!.id,
@@ -276,15 +281,12 @@ void main() {
         );
         await capture('stale-dark');
         await tap(icon('Close inspector'));
-        await tap(find.text('Reload'));
-        await until(() => !controller().reading && !controller().needsRead);
-        // Explicit Refresh hashes the new game observation; Reload alone does not.
-        await tap(icon('Refresh Planned files'));
         await until(
           () =>
               !controller().loading &&
               !controller().tree.loading &&
-              controller().state?.stale == false,
+              controller().state?.stale == false &&
+              !controller().needsRead,
         );
         await capture('refreshed-dark');
         if (narrow) await tap(find.text('Installed mods').first);

@@ -272,36 +272,80 @@ class _ProtonDialogState extends State<ProtonDialog> {
             tilePadding: EdgeInsets.zero,
             title: const Text('Proton details'),
             children: [
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (data.text.isNotEmpty)
-                      SelectableText('Prefix folder: ${data.text}/pfx'),
-                    if (runtime.text.isNotEmpty)
-                      SelectableText('Proton folder: ${runtime.text}'),
-                    for (final mapping
-                        in report?.mappings ?? const <ProtonToolMapping>[]) ...[
-                      Text(
-                        'Steam game-specific setting: ${mapping.perGame ?? 'Not set'}',
+              if (runtime.text.isNotEmpty)
+                McFactGroup(
+                  title: 'Runtime',
+                  rows: [
+                    McFact('Proton folder', runtime.text, path: true),
+                    if (toolId.isNotEmpty) McFact('Steam tool ID', toolId),
+                  ],
+                ),
+              if (runtime.text.isNotEmpty && data.text.isNotEmpty)
+                const SizedBox(height: 20),
+              if (data.text.isNotEmpty)
+                McFactGroup(
+                  title: 'Prefix',
+                  rows: [
+                    McFact('Data folder', data.text, path: true),
+                    McFact('Prefix folder', '${data.text}/pfx', path: true),
+                    McFact('AppID', '${widget.game.declaredSteamAppId}'),
+                  ],
+                ),
+              if (report != null && report.mappings.isNotEmpty) ...[
+                const SizedBox(height: 20),
+                for (
+                  var index = 0;
+                  index < report.mappings.length;
+                  index++
+                ) ...[
+                  McFactGroup(
+                    title: report.mappings.length == 1
+                        ? 'Steam mappings'
+                        : 'Steam mapping ${index + 1}',
+                    rows: [
+                      McFact(
+                        'Game setting',
+                        report.mappings[index].perGame ?? 'Not set',
                       ),
-                      Text(
-                        'Steam default: ${mapping.globalDefault ?? 'Not set'}',
+                      McFact(
+                        'Default',
+                        report.mappings[index].globalDefault ?? 'Not set',
                       ),
-                      SelectableText(mapping.source.path),
+                      McFact(
+                        'Mapping file',
+                        report.mappings[index].source.path,
+                        path: true,
+                      ),
                     ],
-                    if (report?.limited ?? false)
-                      const McStatus(title: 'The search reached its limit.'),
-                    for (final issue
-                        in report?.problems ?? const <GameValidationProblem>[])
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 6),
-                        child: Text('${issue.path}\n${issue.detail}'),
+                  ),
+                  if (index < report.mappings.length - 1)
+                    const SizedBox(height: 20),
+                ],
+              ],
+              if (report?.limited ?? false) ...[
+                const SizedBox(height: 20),
+                const McStructuredState(
+                  tone: McStructuredStateTone.partial,
+                  title: 'The search reached its limit',
+                ),
+              ],
+              if (report != null && report.problems.isNotEmpty) ...[
+                const SizedBox(height: 20),
+                McDiagnosticTable(
+                  title: 'Search problems',
+                  diagnostics: [
+                    for (var index = 0; index < report.problems.length; index++)
+                      McDiagnosticItem(
+                        id: '${report.problems[index].path}:${report.problems[index].detail}:$index',
+                        title: report.problems[index].detail,
+                        affected: report.problems[index].path,
+                        evidence: [
+                          McFact('Problem', report.problems[index].detail),
+                        ],
                       ),
                   ],
                 ),
-              ),
+              ],
             ],
           ),
         ),

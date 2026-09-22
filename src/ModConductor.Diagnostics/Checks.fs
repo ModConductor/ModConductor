@@ -155,7 +155,7 @@ module internal Checks =
                 else
                     DiagnosticAction.None
 
-            let title = if tie then "Two copies have the same priority" else "Mod files need attention"
+            let title = if tie then "Two copies have the same priority" else problem.Title
             let area = profile.Name + " mod files"
             let next =
                 if fixableTie then
@@ -171,11 +171,11 @@ module internal Checks =
             baseFinding
                 workspace profile "Skyrim Special Edition" ("mod-files:" + problem.Id) problem.Code DiagnosticSeverity.Error
                 title
-                (if tie then "Mod Conductor cannot select one file copy" else "The current mod files contain a problem.")
+                (if tie then "Mod Conductor cannot select one file copy" else problem.Title)
                 None
                 area next
                 (if action = DiagnosticAction.None then Fixability.NotFixable else Fixability.PreviewAvailable)
-                (if action = DiagnosticAction.None then "You need to fix this" else "Mod Conductor can fix this")
+                (if action = DiagnosticAction.None then "Open the mod files" else "Preview change")
                 [ correlation CorrelationKind.ModFiles summary.Id None ] action
                 ([ evidence "Workspace" workspace.Name; evidence "Profile" profile.Name ]
                  @ (target |> Option.map (evidence "Target" >> List.singleton) |> Option.defaultValue [])
@@ -204,12 +204,12 @@ module internal Checks =
                     correlation CorrelationKind.Action action None ]
                   (DiagnosticAction.ResumeProfileData action)
                   [ evidence "Workspace" workspace.Name; evidence "Profile" profile.Name ] ]
-        | None, Some _ ->
+        | None, Some problem ->
             [ baseFinding workspace profile game "profile:problem" "profile-data-problem" DiagnosticSeverity.Warning
-                  "Profile files need attention" "Mod Conductor cannot use the current profile files." None
+                  problem problem None
                   profile.Name "Open Profiles. Check the profile files."
-                  Fixability.NotFixable "You need to fix this" [] DiagnosticAction.None
-                  [ evidence "Workspace" workspace.Name; evidence "Profile" profile.Name ] ]
+                  Fixability.NotFixable "Open the profile files" [] DiagnosticAction.None
+                  [ evidence "Workspace" workspace.Name; evidence "Profile" profile.Name; evidence "Problem" problem ] ]
         | _ -> []
     let skseLog
         (workspace: Workspace)

@@ -174,8 +174,14 @@ class GamePlayDialog extends StatelessWidget {
           ],
           if (game != null && !preparing) ...[
             const SizedBox(height: 16),
-            runDetail(context, 'Game folder', game.gameDirectory),
-            runDetail(context, 'Runtime', game.runtime),
+            McFactGroup(
+              title: 'Launch',
+              rows: [
+                McFact('Game folder', game.gameDirectory, path: true),
+                McFact('Runtime', game.runtime),
+              ],
+            ),
+            const SizedBox(height: 16),
             McAction(
               label: 'Run details',
               onPressed: () => showExecutableRunDetails(context, run!),
