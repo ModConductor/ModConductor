@@ -46,7 +46,6 @@ const ModInventoryStatus$json = {
     {'1': 'MOD_INVENTORY_STATUS_CHANGED', '2': 3},
     {'1': 'MOD_INVENTORY_STATUS_UNPROVED', '2': 4},
     {'1': 'MOD_INVENTORY_STATUS_PUBLISHING', '2': 5},
-    {'1': 'MOD_INVENTORY_STATUS_DELETING', '2': 6},
   ],
 };
 
@@ -56,7 +55,7 @@ final $typed_data.Uint8List modInventoryStatusDescriptor = $convert.base64Decode
     'QQABIeChpNT0RfSU5WRU5UT1JZX1NUQVRVU19SRUFEWRABEiEKHU1PRF9JTlZFTlRPUllfU1RB'
     'VFVTX0RFVEFDSEVEEAISIAocTU9EX0lOVkVOVE9SWV9TVEFUVVNfQ0hBTkdFRBADEiEKHU1PRF'
     '9JTlZFTlRPUllfU1RBVFVTX1VOUFJPVkVEEAQSIwofTU9EX0lOVkVOVE9SWV9TVEFUVVNfUFVC'
-    'TElTSElORxAFEiEKHU1PRF9JTlZFTlRPUllfU1RBVFVTX0RFTEVUSU5HEAY=');
+    'TElTSElORxAF');
 
 @$core.Deprecated('Use inventoryModActionDescriptor instead')
 const InventoryModAction$json = {

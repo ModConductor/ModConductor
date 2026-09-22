@@ -174,17 +174,10 @@ module BundleFixtures =
         let deletion =
             store.Deletions.Prepare(workspace, target.Id, target.Revision) |> wait
 
-        let job = store.Deletions.Start(workspace, deletion.Id, Guid.NewGuid())
-        let mutable deleted = job
-        let until = DateTime.UtcNow.AddSeconds 20
-
-        while deleted.Phase = DeletionPhase.Running && DateTime.UtcNow < until do
-            Thread.Sleep 10
-            deleted <- store.Deletions.Read(workspace, job.Id) |> wait
+        store.Deletions.Delete(workspace, target.Id, deletion.Revision) |> wait
 
         let passed =
-            deleted.Phase = DeletionPhase.Complete
-            && (store.Bundles.Find(workspace, bundle.Artifact.Id) |> wait).IsNone
+            (store.Bundles.Find(workspace, bundle.Artifact.Id) |> wait).IsNone
             && Directory.GetFiles(root, "bundle-*.archive", SearchOption.AllDirectories).Length = 0
             && (store.Artifacts.Read(workspace, bundle.Artifact.Id) |> wait) = Error
                 ArtifactError.NotFound
@@ -197,8 +190,6 @@ module BundleFixtures =
 
         if not passed then
             failwith "Last bundle child deletion closure failed."
-
-        store.Deletions.Stop() |> wait
 
     let observe (writer: Utf8JsonWriter) area =
         create area
@@ -423,16 +414,7 @@ module BundleFixtures =
                 |> List.exists (fun f -> f.Kind = DeletionFileKind.Temporary && not f.Shared)
              && deletion.Files |> List.exists (fun f -> f.Shared))
 
-        let job = store.Deletions.Start(workspace, deletion.Id, Guid.NewGuid())
-        let mutable deleted = job
-        let until = DateTime.UtcNow.AddSeconds 20
-
-        while deleted.Phase = DeletionPhase.Running && DateTime.UtcNow < until do
-            Thread.Sleep 10
-            deleted <- store.Deletions.Read(workspace, job.Id) |> wait
-
-        if deleted.Phase <> DeletionPhase.Complete then
-            failwith (string deleted.Problem)
+        store.Deletions.Delete(workspace, target.Id, deletion.Revision) |> wait
 
         let bundle = store.Bundles.Read(workspace, bundleId) |> wait
 
@@ -591,5 +573,4 @@ module BundleFixtures =
 
         store.Bundles.Delete(current.Reference) |> wait
         store.Installations.Stop() |> wait
-        store.Deletions.Stop() |> wait
         writer.WriteEndObject()

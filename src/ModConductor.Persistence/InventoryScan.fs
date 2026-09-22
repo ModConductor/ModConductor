@@ -118,7 +118,6 @@ module internal InventoryScan =
                     for row in rows do
                         if
                             row.Entry.Status <> InventoryStatus.Publishing
-                            && row.Entry.Status <> InventoryStatus.Deleting
                             && row.Entry.Kind <> ModKind.Separator
                         then
                             if remaining <= 0 then

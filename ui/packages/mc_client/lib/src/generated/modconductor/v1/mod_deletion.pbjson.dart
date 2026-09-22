@@ -33,22 +33,6 @@ final $typed_data.Uint8List modDeletionFileKindDescriptor = $convert.base64Decod
     'SUxFX0tJTkRfVEVNUE9SQVJZEAISKgomTU9EX0RFTEVUSU9OX0ZJTEVfS0lORF9HRU5FUkFUSU'
     '9OX0xJTksQAw==');
 
-@$core.Deprecated('Use modDeletionPhaseDescriptor instead')
-const ModDeletionPhase$json = {
-  '1': 'ModDeletionPhase',
-  '2': [
-    {'1': 'MOD_DELETION_PHASE_RUNNING', '2': 0},
-    {'1': 'MOD_DELETION_PHASE_INCOMPLETE', '2': 1},
-    {'1': 'MOD_DELETION_PHASE_COMPLETE', '2': 2},
-  ],
-};
-
-/// Descriptor for `ModDeletionPhase`. Decode as a `google.protobuf.EnumDescriptorProto`.
-final $typed_data.Uint8List modDeletionPhaseDescriptor = $convert.base64Decode(
-    'ChBNb2REZWxldGlvblBoYXNlEh4KGk1PRF9ERUxFVElPTl9QSEFTRV9SVU5OSU5HEAASIQodTU'
-    '9EX0RFTEVUSU9OX1BIQVNFX0lOQ09NUExFVEUQARIfChtNT0RfREVMRVRJT05fUEhBU0VfQ09N'
-    'UExFVEUQAg==');
-
 @$core.Deprecated('Use prepareModDeletionRequestDescriptor instead')
 const PrepareModDeletionRequest$json = {
   '1': 'PrepareModDeletionRequest',
@@ -65,56 +49,29 @@ final $typed_data.Uint8List prepareModDeletionRequestDescriptor = $convert.base6
     'NwYWNlSWQSFQoGbW9kX2lkGAIgASgJUgVtb2RJZBIaCghyZXZpc2lvbhgDIAEoBFIIcmV2aXNp'
     'b24=');
 
-@$core.Deprecated('Use modDeletionReferenceDescriptor instead')
-const ModDeletionReference$json = {
-  '1': 'ModDeletionReference',
+@$core.Deprecated('Use deleteModRequestDescriptor instead')
+const DeleteModRequest$json = {
+  '1': 'DeleteModRequest',
   '2': [
     {'1': 'workspace_id', '3': 1, '4': 1, '5': 9, '10': 'workspaceId'},
-    {'1': 'id', '3': 2, '4': 1, '5': 9, '10': 'id'},
+    {'1': 'mod_id', '3': 2, '4': 1, '5': 9, '10': 'modId'},
+    {'1': 'revision', '3': 3, '4': 1, '5': 4, '10': 'revision'},
   ],
 };
 
-/// Descriptor for `ModDeletionReference`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List modDeletionReferenceDescriptor = $convert.base64Decode(
-    'ChRNb2REZWxldGlvblJlZmVyZW5jZRIhCgx3b3Jrc3BhY2VfaWQYASABKAlSC3dvcmtzcGFjZU'
-    'lkEg4KAmlkGAIgASgJUgJpZA==');
+/// Descriptor for `DeleteModRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List deleteModRequestDescriptor = $convert.base64Decode(
+    'ChBEZWxldGVNb2RSZXF1ZXN0EiEKDHdvcmtzcGFjZV9pZBgBIAEoCVILd29ya3NwYWNlSWQSFQ'
+    'oGbW9kX2lkGAIgASgJUgVtb2RJZBIaCghyZXZpc2lvbhgDIAEoBFIIcmV2aXNpb24=');
 
-@$core.Deprecated('Use modDeletionWorkspaceDescriptor instead')
-const ModDeletionWorkspace$json = {
-  '1': 'ModDeletionWorkspace',
-  '2': [
-    {'1': 'workspace_id', '3': 1, '4': 1, '5': 9, '10': 'workspaceId'},
-  ],
+@$core.Deprecated('Use modDeletedDescriptor instead')
+const ModDeleted$json = {
+  '1': 'ModDeleted',
 };
 
-/// Descriptor for `ModDeletionWorkspace`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List modDeletionWorkspaceDescriptor = $convert.base64Decode(
-    'ChRNb2REZWxldGlvbldvcmtzcGFjZRIhCgx3b3Jrc3BhY2VfaWQYASABKAlSC3dvcmtzcGFjZU'
-    'lk');
-
-@$core.Deprecated('Use modDeletionPreviewClosedDescriptor instead')
-const ModDeletionPreviewClosed$json = {
-  '1': 'ModDeletionPreviewClosed',
-};
-
-/// Descriptor for `ModDeletionPreviewClosed`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List modDeletionPreviewClosedDescriptor =
-    $convert.base64Decode('ChhNb2REZWxldGlvblByZXZpZXdDbG9zZWQ=');
-
-@$core.Deprecated('Use startModDeletionRequestDescriptor instead')
-const StartModDeletionRequest$json = {
-  '1': 'StartModDeletionRequest',
-  '2': [
-    {'1': 'workspace_id', '3': 1, '4': 1, '5': 9, '10': 'workspaceId'},
-    {'1': 'preview_id', '3': 2, '4': 1, '5': 9, '10': 'previewId'},
-    {'1': 'id', '3': 3, '4': 1, '5': 9, '10': 'id'},
-  ],
-};
-
-/// Descriptor for `StartModDeletionRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List startModDeletionRequestDescriptor = $convert.base64Decode(
-    'ChdTdGFydE1vZERlbGV0aW9uUmVxdWVzdBIhCgx3b3Jrc3BhY2VfaWQYASABKAlSC3dvcmtzcG'
-    'FjZUlkEh0KCnByZXZpZXdfaWQYAiABKAlSCXByZXZpZXdJZBIOCgJpZBgDIAEoCVICaWQ=');
+/// Descriptor for `ModDeleted`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List modDeletedDescriptor =
+    $convert.base64Decode('CgpNb2REZWxldGVk');
 
 @$core.Deprecated('Use modDeletionFileDescriptor instead')
 const ModDeletionFile$json = {
@@ -191,16 +148,15 @@ final $typed_data.Uint8List modDeletionDeploymentDescriptor = $convert.base64Dec
 const ModDeletionPreview$json = {
   '1': 'ModDeletionPreview',
   '2': [
-    {'1': 'id', '3': 1, '4': 1, '5': 9, '10': 'id'},
-    {'1': 'workspace_id', '3': 2, '4': 1, '5': 9, '10': 'workspaceId'},
-    {'1': 'mod_id', '3': 3, '4': 1, '5': 9, '10': 'modId'},
-    {'1': 'revision', '3': 4, '4': 1, '5': 4, '10': 'revision'},
-    {'1': 'name', '3': 5, '4': 1, '5': 9, '10': 'name'},
-    {'1': 'versions', '3': 6, '4': 1, '5': 13, '10': 'versions'},
-    {'1': 'backups', '3': 7, '4': 3, '5': 9, '10': 'backups'},
+    {'1': 'workspace_id', '3': 1, '4': 1, '5': 9, '10': 'workspaceId'},
+    {'1': 'mod_id', '3': 2, '4': 1, '5': 9, '10': 'modId'},
+    {'1': 'revision', '3': 3, '4': 1, '5': 4, '10': 'revision'},
+    {'1': 'name', '3': 4, '4': 1, '5': 9, '10': 'name'},
+    {'1': 'versions', '3': 5, '4': 1, '5': 13, '10': 'versions'},
+    {'1': 'backups', '3': 6, '4': 3, '5': 9, '10': 'backups'},
     {
       '1': 'profiles',
-      '3': 8,
+      '3': 7,
       '4': 3,
       '5': 11,
       '6': '.modconductor.v1.ModDeletionProfile',
@@ -208,7 +164,7 @@ const ModDeletionPreview$json = {
     },
     {
       '1': 'deployments',
-      '3': 9,
+      '3': 8,
       '4': 3,
       '5': 11,
       '6': '.modconductor.v1.ModDeletionDeployment',
@@ -216,16 +172,16 @@ const ModDeletionPreview$json = {
     },
     {
       '1': 'files',
-      '3': 10,
+      '3': 9,
       '4': 3,
       '5': 11,
       '6': '.modconductor.v1.ModDeletionFile',
       '10': 'files'
     },
-    {'1': 'external', '3': 11, '4': 3, '5': 9, '10': 'external'},
+    {'1': 'external', '3': 10, '4': 3, '5': 9, '10': 'external'},
     {
       '1': 'blocked',
-      '3': 12,
+      '3': 11,
       '4': 1,
       '5': 9,
       '9': 0,
@@ -240,72 +196,12 @@ const ModDeletionPreview$json = {
 
 /// Descriptor for `ModDeletionPreview`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List modDeletionPreviewDescriptor = $convert.base64Decode(
-    'ChJNb2REZWxldGlvblByZXZpZXcSDgoCaWQYASABKAlSAmlkEiEKDHdvcmtzcGFjZV9pZBgCIA'
-    'EoCVILd29ya3NwYWNlSWQSFQoGbW9kX2lkGAMgASgJUgVtb2RJZBIaCghyZXZpc2lvbhgEIAEo'
-    'BFIIcmV2aXNpb24SEgoEbmFtZRgFIAEoCVIEbmFtZRIaCgh2ZXJzaW9ucxgGIAEoDVIIdmVyc2'
-    'lvbnMSGAoHYmFja3VwcxgHIAMoCVIHYmFja3VwcxI/Cghwcm9maWxlcxgIIAMoCzIjLm1vZGNv'
-    'bmR1Y3Rvci52MS5Nb2REZWxldGlvblByb2ZpbGVSCHByb2ZpbGVzEkgKC2RlcGxveW1lbnRzGA'
-    'kgAygLMiYubW9kY29uZHVjdG9yLnYxLk1vZERlbGV0aW9uRGVwbG95bWVudFILZGVwbG95bWVu'
-    'dHMSNgoFZmlsZXMYCiADKAsyIC5tb2Rjb25kdWN0b3IudjEuTW9kRGVsZXRpb25GaWxlUgVmaW'
-    'xlcxIaCghleHRlcm5hbBgLIAMoCVIIZXh0ZXJuYWwSHQoHYmxvY2tlZBgMIAEoCUgAUgdibG9j'
-    'a2VkiAEBQgoKCF9ibG9ja2Vk');
-
-@$core.Deprecated('Use modDeletionStatusDescriptor instead')
-const ModDeletionStatus$json = {
-  '1': 'ModDeletionStatus',
-  '2': [
-    {'1': 'id', '3': 1, '4': 1, '5': 9, '10': 'id'},
-    {'1': 'workspace_id', '3': 2, '4': 1, '5': 9, '10': 'workspaceId'},
-    {'1': 'mod_id', '3': 3, '4': 1, '5': 9, '10': 'modId'},
-    {'1': 'name', '3': 4, '4': 1, '5': 9, '10': 'name'},
-    {
-      '1': 'phase',
-      '3': 5,
-      '4': 1,
-      '5': 14,
-      '6': '.modconductor.v1.ModDeletionPhase',
-      '10': 'phase'
-    },
-    {'1': 'remaining', '3': 6, '4': 1, '5': 13, '10': 'remaining'},
-    {
-      '1': 'problem',
-      '3': 7,
-      '4': 1,
-      '5': 9,
-      '9': 0,
-      '10': 'problem',
-      '17': true
-    },
-  ],
-  '8': [
-    {'1': '_problem'},
-  ],
-};
-
-/// Descriptor for `ModDeletionStatus`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List modDeletionStatusDescriptor = $convert.base64Decode(
-    'ChFNb2REZWxldGlvblN0YXR1cxIOCgJpZBgBIAEoCVICaWQSIQoMd29ya3NwYWNlX2lkGAIgAS'
-    'gJUgt3b3Jrc3BhY2VJZBIVCgZtb2RfaWQYAyABKAlSBW1vZElkEhIKBG5hbWUYBCABKAlSBG5h'
-    'bWUSNwoFcGhhc2UYBSABKA4yIS5tb2Rjb25kdWN0b3IudjEuTW9kRGVsZXRpb25QaGFzZVIFcG'
-    'hhc2USHAoJcmVtYWluaW5nGAYgASgNUglyZW1haW5pbmcSHQoHcHJvYmxlbRgHIAEoCUgAUgdw'
-    'cm9ibGVtiAEBQgoKCF9wcm9ibGVt');
-
-@$core.Deprecated('Use modDeletionListDescriptor instead')
-const ModDeletionList$json = {
-  '1': 'ModDeletionList',
-  '2': [
-    {
-      '1': 'entries',
-      '3': 1,
-      '4': 3,
-      '5': 11,
-      '6': '.modconductor.v1.ModDeletionStatus',
-      '10': 'entries'
-    },
-  ],
-};
-
-/// Descriptor for `ModDeletionList`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List modDeletionListDescriptor = $convert.base64Decode(
-    'Cg9Nb2REZWxldGlvbkxpc3QSPAoHZW50cmllcxgBIAMoCzIiLm1vZGNvbmR1Y3Rvci52MS5Nb2'
-    'REZWxldGlvblN0YXR1c1IHZW50cmllcw==');
+    'ChJNb2REZWxldGlvblByZXZpZXcSIQoMd29ya3NwYWNlX2lkGAEgASgJUgt3b3Jrc3BhY2VJZB'
+    'IVCgZtb2RfaWQYAiABKAlSBW1vZElkEhoKCHJldmlzaW9uGAMgASgEUghyZXZpc2lvbhISCgRu'
+    'YW1lGAQgASgJUgRuYW1lEhoKCHZlcnNpb25zGAUgASgNUgh2ZXJzaW9ucxIYCgdiYWNrdXBzGA'
+    'YgAygJUgdiYWNrdXBzEj8KCHByb2ZpbGVzGAcgAygLMiMubW9kY29uZHVjdG9yLnYxLk1vZERl'
+    'bGV0aW9uUHJvZmlsZVIIcHJvZmlsZXMSSAoLZGVwbG95bWVudHMYCCADKAsyJi5tb2Rjb25kdW'
+    'N0b3IudjEuTW9kRGVsZXRpb25EZXBsb3ltZW50UgtkZXBsb3ltZW50cxI2CgVmaWxlcxgJIAMo'
+    'CzIgLm1vZGNvbmR1Y3Rvci52MS5Nb2REZWxldGlvbkZpbGVSBWZpbGVzEhoKCGV4dGVybmFsGA'
+    'ogAygJUghleHRlcm5hbBIdCgdibG9ja2VkGAsgASgJSABSB2Jsb2NrZWSIAQFCCgoIX2Jsb2Nr'
+    'ZWQ=');

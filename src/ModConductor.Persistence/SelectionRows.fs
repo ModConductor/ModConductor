@@ -74,7 +74,7 @@ module internal SelectionRows =
             Sqlite.execute
                 connection
                 transaction
-                "INSERT INTO profile_mods SELECT $profile,id,ROW_NUMBER() OVER(ORDER BY id)-1,CASE WHEN kind=1 THEN 0 ELSE NULL END FROM mods WHERE workspace_id=$workspace AND kind IN (1,2) AND NOT EXISTS(SELECT 1 FROM mod_deletion_targets d WHERE d.mod_id=mods.id)"
+                "INSERT INTO profile_mods SELECT $profile,id,ROW_NUMBER() OVER(ORDER BY id)-1,CASE WHEN kind=1 THEN 0 ELSE NULL END FROM mods WHERE workspace_id=$workspace AND kind IN (1,2)"
                 [ "$profile", box (string profile); "$workspace", box (string workspace) ]
 
     let registered connection transaction workspace modId kind =

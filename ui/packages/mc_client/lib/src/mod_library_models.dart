@@ -1,13 +1,6 @@
 enum ModKind { regular, separator, backup, unmanaged, generatedOutput }
 
-enum InventoryStatus {
-  ready,
-  detached,
-  changed,
-  unproved,
-  publishing,
-  deleting,
-}
+enum InventoryStatus { ready, detached, changed, unproved, publishing }
 
 enum ModAction { editMetadata, publish, readVersion }
 

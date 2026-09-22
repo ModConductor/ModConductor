@@ -43,29 +43,5 @@ class ModDeletionFileKind extends $pb.ProtobufEnum {
   const ModDeletionFileKind._(super.value, super.name);
 }
 
-class ModDeletionPhase extends $pb.ProtobufEnum {
-  static const ModDeletionPhase MOD_DELETION_PHASE_RUNNING =
-      ModDeletionPhase._(0, _omitEnumNames ? '' : 'MOD_DELETION_PHASE_RUNNING');
-  static const ModDeletionPhase MOD_DELETION_PHASE_INCOMPLETE =
-      ModDeletionPhase._(
-          1, _omitEnumNames ? '' : 'MOD_DELETION_PHASE_INCOMPLETE');
-  static const ModDeletionPhase MOD_DELETION_PHASE_COMPLETE =
-      ModDeletionPhase._(
-          2, _omitEnumNames ? '' : 'MOD_DELETION_PHASE_COMPLETE');
-
-  static const $core.List<ModDeletionPhase> values = <ModDeletionPhase>[
-    MOD_DELETION_PHASE_RUNNING,
-    MOD_DELETION_PHASE_INCOMPLETE,
-    MOD_DELETION_PHASE_COMPLETE,
-  ];
-
-  static final $core.List<ModDeletionPhase?> _byValue =
-      $pb.ProtobufEnum.$_initByValueList(values, 2);
-  static ModDeletionPhase? valueOf($core.int value) =>
-      value < 0 || value >= _byValue.length ? null : _byValue[value];
-
-  const ModDeletionPhase._(super.value, super.name);
-}
-
 const $core.bool _omitEnumNames =
     $core.bool.fromEnvironment('protobuf.omit_enum_names');

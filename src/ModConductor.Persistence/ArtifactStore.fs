@@ -226,7 +226,7 @@ type internal ArtifactStore(database: StateDatabase, access: LibraryAccess) =
                     use transaction = connection.BeginTransaction(deferred = false)
                     let row = find transaction reference.WorkspaceId reference.Id
 
-                    if row.Busy || MaintenanceClaims.deleting connection transaction modId then
+                    if row.Busy then
                         refuse ArtifactError.Busy
 
                     if row.Artifact.Revision <> reference.Revision then

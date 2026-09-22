@@ -38,19 +38,6 @@ module MaintenanceFixtures =
 
         status
 
-    let private deleted (store: OperationStore) workspace id =
-        let deadline = DateTime.UtcNow.AddSeconds 20
-        let mutable status = store.Deletions.Read(workspace, id) |> wait
-
-        while status.Phase = DeletionPhase.Running && DateTime.UtcNow < deadline do
-            Thread.Sleep 10
-            status <- store.Deletions.Read(workspace, id) |> wait
-
-        if status.Phase <> DeletionPhase.Complete then
-            failwith (string status.Problem)
-
-        status
-
     let zip path entries =
         use file = File.Create path
         use archive = new ZipArchive(file, ZipArchiveMode.Create)
@@ -341,15 +328,13 @@ module MaintenanceFixtures =
                 |> List.filter (fun file -> file.Kind = DeletionFileKind.Archive)
                 |> List.length = 3)
 
-        let started = store.Deletions.Start(workspace, deletion.Id, Guid.NewGuid())
-        deleted store workspace started.Id |> ignore
+        store.Deletions.Delete(workspace, modId, deletion.Revision) |> wait
         check "ChangedOwnedBytesDoNotPreventDeletion" (not (File.Exists changedPath))
 
         check
-            "SuccessfulDeletionRemovesInventoryAndPendingReceipt"
+            "SuccessfulDeletionRemovesInventory"
             (((library.Scan(workspace, 100) |> wait |> result).Entries
-              |> List.forall (fun entry -> entry.Id <> modId))
-             && (store.Deletions.Recent workspace |> wait).IsEmpty)
+              |> List.forall (fun entry -> entry.Id <> modId)))
 
         check
             "DeletedGenerationCannotRestoreAndHasNoPrivateReferences"
@@ -415,13 +400,7 @@ module MaintenanceFixtures =
                 null
                 "SELECT count(*) FROM mod_versions WHERE mod_id=$mod"
                 [ "$mod", box (string modId) ] = 0L
-             && LibraryRows.find connection null backup.Id = None
-             && Sqlite.number connection null "SELECT count(*) FROM mod_deletions" [] = 0L)
-
-        check
-            "RepeatedCompletedDeleteReturnsSameResult"
-            ((store.Deletions.Start(workspace, deletion.Id, started.Id)).Phase = DeletionPhase.Complete)
+             && LibraryRows.find connection null backup.Id = None)
 
         store.Installations.Stop() |> wait
-        store.Deletions.Stop() |> wait
         writer.WriteEndObject()

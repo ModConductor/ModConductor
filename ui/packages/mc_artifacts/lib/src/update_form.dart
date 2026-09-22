@@ -51,11 +51,7 @@ class _UpdateTargetFormState extends State<UpdateTargetForm> {
       for (final entry
           in page.entries
               .map((row) => row.mod)
-              .where(
-                (mod) =>
-                    mod.currentVersionId != null &&
-                    mod.status != InventoryStatus.deleting,
-              )) {
+              .where((mod) => mod.currentVersionId != null)) {
         final index = entries.indexWhere((current) => current.id == entry.id);
         if (index < 0) {
           entries.add(entry);

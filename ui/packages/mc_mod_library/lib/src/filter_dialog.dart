@@ -36,7 +36,6 @@ String _status(InventoryStatus value) => switch (value) {
   InventoryStatus.changed => 'Changed',
   InventoryStatus.unproved => 'Unverified',
   InventoryStatus.publishing => 'Saving version',
-  InventoryStatus.deleting => 'Deletion unfinished',
 };
 
 class ModFilterDialog extends StatefulWidget {

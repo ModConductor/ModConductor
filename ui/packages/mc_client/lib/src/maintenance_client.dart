@@ -21,11 +21,7 @@ abstract interface class MaintenanceClient {
   );
   Future<InstallationStatus> startUpdate(UpdatePreview preview, String id);
   Future<DeletionPreview> prepareDeletion(ModEntry target);
-  Future<void> closeDeletion(DeletionPreview preview);
-  Future<DeletionStatus> startDeletion(DeletionPreview preview, String id);
-  Future<DeletionStatus> continueDeletion(DeletionStatus status);
-  Future<List<DeletionStatus>> recentDeletions(String workspaceId);
-  Stream<DeletionStatus> watchDeletion(DeletionStatus status);
+  Future<void> deleteMod(DeletionPreview preview);
 }
 
 class GrpcMaintenanceClient implements MaintenanceClient {
@@ -134,7 +130,6 @@ class GrpcMaintenanceClient implements MaintenanceClient {
       ),
     );
     return DeletionPreview(
-      id: value.id,
       workspaceId: value.workspaceId,
       modId: value.modId,
       revision: value.revision.toInt(),
@@ -186,84 +181,16 @@ class GrpcMaintenanceClient implements MaintenanceClient {
     );
   }
 
-  DeletionStatus _status(deletion.ModDeletionStatus value) => DeletionStatus(
-    id: value.id,
-    workspaceId: value.workspaceId,
-    modId: value.modId,
-    name: value.name,
-    phase: switch (value.phase) {
-      deletion.ModDeletionPhase.MOD_DELETION_PHASE_RUNNING =>
-        DeletionPhase.running,
-      deletion.ModDeletionPhase.MOD_DELETION_PHASE_INCOMPLETE =>
-        DeletionPhase.incomplete,
-      deletion.ModDeletionPhase.MOD_DELETION_PHASE_COMPLETE =>
-        DeletionPhase.complete,
-      _ => throw const ArtifactProblem('Unknown deletion state.'),
-    },
-    remaining: value.remaining,
-    problem: value.hasProblem() ? value.problem : null,
-  );
   @override
-  Future<void> closeDeletion(DeletionPreview preview) async {
+  Future<void> deleteMod(DeletionPreview preview) async {
     await _call(
-      _deletions.closeModDeletionPreview(
-        deletion.ModDeletionReference(
+      _deletions.deleteMod(
+        deletion.DeleteModRequest(
           workspaceId: preview.workspaceId,
-          id: preview.id,
+          modId: preview.modId,
+          revision: Int64(preview.revision),
         ),
       ),
     );
-  }
-
-  @override
-  Future<DeletionStatus> startDeletion(
-    DeletionPreview preview,
-    String id,
-  ) async => _status(
-    await _call(
-      _deletions.startModDeletion(
-        deletion.StartModDeletionRequest(
-          workspaceId: preview.workspaceId,
-          previewId: preview.id,
-          id: id,
-        ),
-      ),
-    ),
-  );
-  @override
-  Future<DeletionStatus> continueDeletion(DeletionStatus status) async =>
-      _status(
-        await _call(
-          _deletions.continueModDeletion(
-            deletion.ModDeletionReference(
-              workspaceId: status.workspaceId,
-              id: status.id,
-            ),
-          ),
-        ),
-      );
-  @override
-  Future<List<DeletionStatus>> recentDeletions(String workspaceId) async =>
-      (await _call(
-        _deletions.recentModDeletions(
-          deletion.ModDeletionWorkspace(workspaceId: workspaceId),
-        ),
-      )).entries.map(_status).toList();
-  @override
-  Stream<DeletionStatus> watchDeletion(DeletionStatus status) async* {
-    try {
-      await for (final value in _deletions.watchModDeletion(
-        deletion.ModDeletionReference(
-          workspaceId: status.workspaceId,
-          id: status.id,
-        ),
-      )) {
-        yield _status(value);
-      }
-    } on GrpcError catch (error) {
-      throw ArtifactProblem(
-        error.message ?? 'The deletion status is unavailable.',
-      );
-    }
   }
 }

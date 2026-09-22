@@ -59,8 +59,7 @@ type DeletionDeployment =
       Active: bool }
 
 type DeletionPreview =
-    { Id: Guid
-      WorkspaceId: Guid
+    { WorkspaceId: Guid
       ModId: Guid
       Revision: int64
       Name: string
@@ -71,18 +70,3 @@ type DeletionPreview =
       Files: DeletionFile list
       External: string list
       Blocked: string option }
-
-[<RequireQualifiedAccess>]
-type DeletionPhase =
-    | Running
-    | Incomplete
-    | Complete
-
-type DeletionStatus =
-    { Id: Guid
-      WorkspaceId: Guid
-      ModId: Guid
-      Name: string
-      Phase: DeletionPhase
-      Remaining: int
-      Problem: string option }

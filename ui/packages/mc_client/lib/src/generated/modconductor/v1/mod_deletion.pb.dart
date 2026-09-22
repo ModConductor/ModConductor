@@ -103,53 +103,58 @@ class PrepareModDeletionRequest extends $pb.GeneratedMessage {
   void clearRevision() => $_clearField(3);
 }
 
-class ModDeletionReference extends $pb.GeneratedMessage {
-  factory ModDeletionReference({
+class DeleteModRequest extends $pb.GeneratedMessage {
+  factory DeleteModRequest({
     $core.String? workspaceId,
-    $core.String? id,
+    $core.String? modId,
+    $fixnum.Int64? revision,
   }) {
     final result = create();
     if (workspaceId != null) result.workspaceId = workspaceId;
-    if (id != null) result.id = id;
+    if (modId != null) result.modId = modId;
+    if (revision != null) result.revision = revision;
     return result;
   }
 
-  ModDeletionReference._();
+  DeleteModRequest._();
 
-  factory ModDeletionReference.fromBuffer($core.List<$core.int> data,
+  factory DeleteModRequest.fromBuffer($core.List<$core.int> data,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
       create()..mergeFromBuffer(data, registry);
-  factory ModDeletionReference.fromJson($core.String json,
+  factory DeleteModRequest.fromJson($core.String json,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
       create()..mergeFromJson(json, registry);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
-      _omitMessageNames ? '' : 'ModDeletionReference',
+      _omitMessageNames ? '' : 'DeleteModRequest',
       package:
           const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
       createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'workspaceId')
-    ..aOS(2, _omitFieldNames ? '' : 'id')
+    ..aOS(2, _omitFieldNames ? '' : 'modId')
+    ..a<$fixnum.Int64>(
+        3, _omitFieldNames ? '' : 'revision', $pb.PbFieldType.OU6,
+        defaultOrMaker: $fixnum.Int64.ZERO)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  ModDeletionReference clone() => deepCopy();
+  DeleteModRequest clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  ModDeletionReference copyWith(void Function(ModDeletionReference) updates) =>
-      super.copyWith((message) => updates(message as ModDeletionReference))
-          as ModDeletionReference;
+  DeleteModRequest copyWith(void Function(DeleteModRequest) updates) =>
+      super.copyWith((message) => updates(message as DeleteModRequest))
+          as DeleteModRequest;
 
   @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
-  static ModDeletionReference create() => ModDeletionReference._();
+  static DeleteModRequest create() => DeleteModRequest._();
   @$core.override
-  ModDeletionReference createEmptyInstance() => create();
+  DeleteModRequest createEmptyInstance() => create();
   @$core.pragma('dart2js:noInline')
-  static ModDeletionReference getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<ModDeletionReference>(create);
-  static ModDeletionReference? _defaultInstance;
+  static DeleteModRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<DeleteModRequest>(create);
+  static DeleteModRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get workspaceId => $_getSZ(0);
@@ -161,188 +166,60 @@ class ModDeletionReference extends $pb.GeneratedMessage {
   void clearWorkspaceId() => $_clearField(1);
 
   @$pb.TagNumber(2)
-  $core.String get id => $_getSZ(1);
+  $core.String get modId => $_getSZ(1);
   @$pb.TagNumber(2)
-  set id($core.String value) => $_setString(1, value);
+  set modId($core.String value) => $_setString(1, value);
   @$pb.TagNumber(2)
-  $core.bool hasId() => $_has(1);
+  $core.bool hasModId() => $_has(1);
   @$pb.TagNumber(2)
-  void clearId() => $_clearField(2);
+  void clearModId() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get revision => $_getI64(2);
+  @$pb.TagNumber(3)
+  set revision($fixnum.Int64 value) => $_setInt64(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasRevision() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearRevision() => $_clearField(3);
 }
 
-class ModDeletionWorkspace extends $pb.GeneratedMessage {
-  factory ModDeletionWorkspace({
-    $core.String? workspaceId,
-  }) {
-    final result = create();
-    if (workspaceId != null) result.workspaceId = workspaceId;
-    return result;
-  }
+class ModDeleted extends $pb.GeneratedMessage {
+  factory ModDeleted() => create();
 
-  ModDeletionWorkspace._();
+  ModDeleted._();
 
-  factory ModDeletionWorkspace.fromBuffer($core.List<$core.int> data,
+  factory ModDeleted.fromBuffer($core.List<$core.int> data,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
       create()..mergeFromBuffer(data, registry);
-  factory ModDeletionWorkspace.fromJson($core.String json,
+  factory ModDeleted.fromJson($core.String json,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
       create()..mergeFromJson(json, registry);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
-      _omitMessageNames ? '' : 'ModDeletionWorkspace',
-      package:
-          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
-      createEmptyInstance: create)
-    ..aOS(1, _omitFieldNames ? '' : 'workspaceId')
-    ..hasRequiredFields = false;
-
-  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  ModDeletionWorkspace clone() => deepCopy();
-  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  ModDeletionWorkspace copyWith(void Function(ModDeletionWorkspace) updates) =>
-      super.copyWith((message) => updates(message as ModDeletionWorkspace))
-          as ModDeletionWorkspace;
-
-  @$core.override
-  $pb.BuilderInfo get info_ => _i;
-
-  @$core.pragma('dart2js:noInline')
-  static ModDeletionWorkspace create() => ModDeletionWorkspace._();
-  @$core.override
-  ModDeletionWorkspace createEmptyInstance() => create();
-  @$core.pragma('dart2js:noInline')
-  static ModDeletionWorkspace getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<ModDeletionWorkspace>(create);
-  static ModDeletionWorkspace? _defaultInstance;
-
-  @$pb.TagNumber(1)
-  $core.String get workspaceId => $_getSZ(0);
-  @$pb.TagNumber(1)
-  set workspaceId($core.String value) => $_setString(0, value);
-  @$pb.TagNumber(1)
-  $core.bool hasWorkspaceId() => $_has(0);
-  @$pb.TagNumber(1)
-  void clearWorkspaceId() => $_clearField(1);
-}
-
-class ModDeletionPreviewClosed extends $pb.GeneratedMessage {
-  factory ModDeletionPreviewClosed() => create();
-
-  ModDeletionPreviewClosed._();
-
-  factory ModDeletionPreviewClosed.fromBuffer($core.List<$core.int> data,
-          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(data, registry);
-  factory ModDeletionPreviewClosed.fromJson($core.String json,
-          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromJson(json, registry);
-
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
-      _omitMessageNames ? '' : 'ModDeletionPreviewClosed',
+      _omitMessageNames ? '' : 'ModDeleted',
       package:
           const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
       createEmptyInstance: create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  ModDeletionPreviewClosed clone() => deepCopy();
+  ModDeleted clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  ModDeletionPreviewClosed copyWith(
-          void Function(ModDeletionPreviewClosed) updates) =>
-      super.copyWith((message) => updates(message as ModDeletionPreviewClosed))
-          as ModDeletionPreviewClosed;
+  ModDeleted copyWith(void Function(ModDeleted) updates) =>
+      super.copyWith((message) => updates(message as ModDeleted)) as ModDeleted;
 
   @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
-  static ModDeletionPreviewClosed create() => ModDeletionPreviewClosed._();
+  static ModDeleted create() => ModDeleted._();
   @$core.override
-  ModDeletionPreviewClosed createEmptyInstance() => create();
+  ModDeleted createEmptyInstance() => create();
   @$core.pragma('dart2js:noInline')
-  static ModDeletionPreviewClosed getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<ModDeletionPreviewClosed>(create);
-  static ModDeletionPreviewClosed? _defaultInstance;
-}
-
-class StartModDeletionRequest extends $pb.GeneratedMessage {
-  factory StartModDeletionRequest({
-    $core.String? workspaceId,
-    $core.String? previewId,
-    $core.String? id,
-  }) {
-    final result = create();
-    if (workspaceId != null) result.workspaceId = workspaceId;
-    if (previewId != null) result.previewId = previewId;
-    if (id != null) result.id = id;
-    return result;
-  }
-
-  StartModDeletionRequest._();
-
-  factory StartModDeletionRequest.fromBuffer($core.List<$core.int> data,
-          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(data, registry);
-  factory StartModDeletionRequest.fromJson($core.String json,
-          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromJson(json, registry);
-
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
-      _omitMessageNames ? '' : 'StartModDeletionRequest',
-      package:
-          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
-      createEmptyInstance: create)
-    ..aOS(1, _omitFieldNames ? '' : 'workspaceId')
-    ..aOS(2, _omitFieldNames ? '' : 'previewId')
-    ..aOS(3, _omitFieldNames ? '' : 'id')
-    ..hasRequiredFields = false;
-
-  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  StartModDeletionRequest clone() => deepCopy();
-  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  StartModDeletionRequest copyWith(
-          void Function(StartModDeletionRequest) updates) =>
-      super.copyWith((message) => updates(message as StartModDeletionRequest))
-          as StartModDeletionRequest;
-
-  @$core.override
-  $pb.BuilderInfo get info_ => _i;
-
-  @$core.pragma('dart2js:noInline')
-  static StartModDeletionRequest create() => StartModDeletionRequest._();
-  @$core.override
-  StartModDeletionRequest createEmptyInstance() => create();
-  @$core.pragma('dart2js:noInline')
-  static StartModDeletionRequest getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<StartModDeletionRequest>(create);
-  static StartModDeletionRequest? _defaultInstance;
-
-  @$pb.TagNumber(1)
-  $core.String get workspaceId => $_getSZ(0);
-  @$pb.TagNumber(1)
-  set workspaceId($core.String value) => $_setString(0, value);
-  @$pb.TagNumber(1)
-  $core.bool hasWorkspaceId() => $_has(0);
-  @$pb.TagNumber(1)
-  void clearWorkspaceId() => $_clearField(1);
-
-  @$pb.TagNumber(2)
-  $core.String get previewId => $_getSZ(1);
-  @$pb.TagNumber(2)
-  set previewId($core.String value) => $_setString(1, value);
-  @$pb.TagNumber(2)
-  $core.bool hasPreviewId() => $_has(1);
-  @$pb.TagNumber(2)
-  void clearPreviewId() => $_clearField(2);
-
-  @$pb.TagNumber(3)
-  $core.String get id => $_getSZ(2);
-  @$pb.TagNumber(3)
-  set id($core.String value) => $_setString(2, value);
-  @$pb.TagNumber(3)
-  $core.bool hasId() => $_has(2);
-  @$pb.TagNumber(3)
-  void clearId() => $_clearField(3);
+  static ModDeleted getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ModDeleted>(create);
+  static ModDeleted? _defaultInstance;
 }
 
 class ModDeletionFile extends $pb.GeneratedMessage {
@@ -611,7 +488,6 @@ class ModDeletionDeployment extends $pb.GeneratedMessage {
 
 class ModDeletionPreview extends $pb.GeneratedMessage {
   factory ModDeletionPreview({
-    $core.String? id,
     $core.String? workspaceId,
     $core.String? modId,
     $fixnum.Int64? revision,
@@ -625,7 +501,6 @@ class ModDeletionPreview extends $pb.GeneratedMessage {
     $core.String? blocked,
   }) {
     final result = create();
-    if (id != null) result.id = id;
     if (workspaceId != null) result.workspaceId = workspaceId;
     if (modId != null) result.modId = modId;
     if (revision != null) result.revision = revision;
@@ -654,23 +529,22 @@ class ModDeletionPreview extends $pb.GeneratedMessage {
       package:
           const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
       createEmptyInstance: create)
-    ..aOS(1, _omitFieldNames ? '' : 'id')
-    ..aOS(2, _omitFieldNames ? '' : 'workspaceId')
-    ..aOS(3, _omitFieldNames ? '' : 'modId')
+    ..aOS(1, _omitFieldNames ? '' : 'workspaceId')
+    ..aOS(2, _omitFieldNames ? '' : 'modId')
     ..a<$fixnum.Int64>(
-        4, _omitFieldNames ? '' : 'revision', $pb.PbFieldType.OU6,
+        3, _omitFieldNames ? '' : 'revision', $pb.PbFieldType.OU6,
         defaultOrMaker: $fixnum.Int64.ZERO)
-    ..aOS(5, _omitFieldNames ? '' : 'name')
-    ..aI(6, _omitFieldNames ? '' : 'versions', fieldType: $pb.PbFieldType.OU3)
-    ..pPS(7, _omitFieldNames ? '' : 'backups')
-    ..pPM<ModDeletionProfile>(8, _omitFieldNames ? '' : 'profiles',
+    ..aOS(4, _omitFieldNames ? '' : 'name')
+    ..aI(5, _omitFieldNames ? '' : 'versions', fieldType: $pb.PbFieldType.OU3)
+    ..pPS(6, _omitFieldNames ? '' : 'backups')
+    ..pPM<ModDeletionProfile>(7, _omitFieldNames ? '' : 'profiles',
         subBuilder: ModDeletionProfile.create)
-    ..pPM<ModDeletionDeployment>(9, _omitFieldNames ? '' : 'deployments',
+    ..pPM<ModDeletionDeployment>(8, _omitFieldNames ? '' : 'deployments',
         subBuilder: ModDeletionDeployment.create)
-    ..pPM<ModDeletionFile>(10, _omitFieldNames ? '' : 'files',
+    ..pPM<ModDeletionFile>(9, _omitFieldNames ? '' : 'files',
         subBuilder: ModDeletionFile.create)
-    ..pPS(11, _omitFieldNames ? '' : 'external')
-    ..aOS(12, _omitFieldNames ? '' : 'blocked')
+    ..pPS(10, _omitFieldNames ? '' : 'external')
+    ..aOS(11, _omitFieldNames ? '' : 'blocked')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -693,174 +567,31 @@ class ModDeletionPreview extends $pb.GeneratedMessage {
   static ModDeletionPreview? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $core.String get id => $_getSZ(0);
+  $core.String get workspaceId => $_getSZ(0);
   @$pb.TagNumber(1)
-  set id($core.String value) => $_setString(0, value);
+  set workspaceId($core.String value) => $_setString(0, value);
   @$pb.TagNumber(1)
-  $core.bool hasId() => $_has(0);
+  $core.bool hasWorkspaceId() => $_has(0);
   @$pb.TagNumber(1)
-  void clearId() => $_clearField(1);
+  void clearWorkspaceId() => $_clearField(1);
 
   @$pb.TagNumber(2)
-  $core.String get workspaceId => $_getSZ(1);
+  $core.String get modId => $_getSZ(1);
   @$pb.TagNumber(2)
-  set workspaceId($core.String value) => $_setString(1, value);
+  set modId($core.String value) => $_setString(1, value);
   @$pb.TagNumber(2)
-  $core.bool hasWorkspaceId() => $_has(1);
+  $core.bool hasModId() => $_has(1);
   @$pb.TagNumber(2)
-  void clearWorkspaceId() => $_clearField(2);
+  void clearModId() => $_clearField(2);
 
   @$pb.TagNumber(3)
-  $core.String get modId => $_getSZ(2);
+  $fixnum.Int64 get revision => $_getI64(2);
   @$pb.TagNumber(3)
-  set modId($core.String value) => $_setString(2, value);
+  set revision($fixnum.Int64 value) => $_setInt64(2, value);
   @$pb.TagNumber(3)
-  $core.bool hasModId() => $_has(2);
+  $core.bool hasRevision() => $_has(2);
   @$pb.TagNumber(3)
-  void clearModId() => $_clearField(3);
-
-  @$pb.TagNumber(4)
-  $fixnum.Int64 get revision => $_getI64(3);
-  @$pb.TagNumber(4)
-  set revision($fixnum.Int64 value) => $_setInt64(3, value);
-  @$pb.TagNumber(4)
-  $core.bool hasRevision() => $_has(3);
-  @$pb.TagNumber(4)
-  void clearRevision() => $_clearField(4);
-
-  @$pb.TagNumber(5)
-  $core.String get name => $_getSZ(4);
-  @$pb.TagNumber(5)
-  set name($core.String value) => $_setString(4, value);
-  @$pb.TagNumber(5)
-  $core.bool hasName() => $_has(4);
-  @$pb.TagNumber(5)
-  void clearName() => $_clearField(5);
-
-  @$pb.TagNumber(6)
-  $core.int get versions => $_getIZ(5);
-  @$pb.TagNumber(6)
-  set versions($core.int value) => $_setUnsignedInt32(5, value);
-  @$pb.TagNumber(6)
-  $core.bool hasVersions() => $_has(5);
-  @$pb.TagNumber(6)
-  void clearVersions() => $_clearField(6);
-
-  @$pb.TagNumber(7)
-  $pb.PbList<$core.String> get backups => $_getList(6);
-
-  @$pb.TagNumber(8)
-  $pb.PbList<ModDeletionProfile> get profiles => $_getList(7);
-
-  @$pb.TagNumber(9)
-  $pb.PbList<ModDeletionDeployment> get deployments => $_getList(8);
-
-  @$pb.TagNumber(10)
-  $pb.PbList<ModDeletionFile> get files => $_getList(9);
-
-  @$pb.TagNumber(11)
-  $pb.PbList<$core.String> get external => $_getList(10);
-
-  @$pb.TagNumber(12)
-  $core.String get blocked => $_getSZ(11);
-  @$pb.TagNumber(12)
-  set blocked($core.String value) => $_setString(11, value);
-  @$pb.TagNumber(12)
-  $core.bool hasBlocked() => $_has(11);
-  @$pb.TagNumber(12)
-  void clearBlocked() => $_clearField(12);
-}
-
-class ModDeletionStatus extends $pb.GeneratedMessage {
-  factory ModDeletionStatus({
-    $core.String? id,
-    $core.String? workspaceId,
-    $core.String? modId,
-    $core.String? name,
-    ModDeletionPhase? phase,
-    $core.int? remaining,
-    $core.String? problem,
-  }) {
-    final result = create();
-    if (id != null) result.id = id;
-    if (workspaceId != null) result.workspaceId = workspaceId;
-    if (modId != null) result.modId = modId;
-    if (name != null) result.name = name;
-    if (phase != null) result.phase = phase;
-    if (remaining != null) result.remaining = remaining;
-    if (problem != null) result.problem = problem;
-    return result;
-  }
-
-  ModDeletionStatus._();
-
-  factory ModDeletionStatus.fromBuffer($core.List<$core.int> data,
-          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(data, registry);
-  factory ModDeletionStatus.fromJson($core.String json,
-          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromJson(json, registry);
-
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
-      _omitMessageNames ? '' : 'ModDeletionStatus',
-      package:
-          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
-      createEmptyInstance: create)
-    ..aOS(1, _omitFieldNames ? '' : 'id')
-    ..aOS(2, _omitFieldNames ? '' : 'workspaceId')
-    ..aOS(3, _omitFieldNames ? '' : 'modId')
-    ..aOS(4, _omitFieldNames ? '' : 'name')
-    ..aE<ModDeletionPhase>(5, _omitFieldNames ? '' : 'phase',
-        enumValues: ModDeletionPhase.values)
-    ..aI(6, _omitFieldNames ? '' : 'remaining', fieldType: $pb.PbFieldType.OU3)
-    ..aOS(7, _omitFieldNames ? '' : 'problem')
-    ..hasRequiredFields = false;
-
-  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  ModDeletionStatus clone() => deepCopy();
-  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  ModDeletionStatus copyWith(void Function(ModDeletionStatus) updates) =>
-      super.copyWith((message) => updates(message as ModDeletionStatus))
-          as ModDeletionStatus;
-
-  @$core.override
-  $pb.BuilderInfo get info_ => _i;
-
-  @$core.pragma('dart2js:noInline')
-  static ModDeletionStatus create() => ModDeletionStatus._();
-  @$core.override
-  ModDeletionStatus createEmptyInstance() => create();
-  @$core.pragma('dart2js:noInline')
-  static ModDeletionStatus getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<ModDeletionStatus>(create);
-  static ModDeletionStatus? _defaultInstance;
-
-  @$pb.TagNumber(1)
-  $core.String get id => $_getSZ(0);
-  @$pb.TagNumber(1)
-  set id($core.String value) => $_setString(0, value);
-  @$pb.TagNumber(1)
-  $core.bool hasId() => $_has(0);
-  @$pb.TagNumber(1)
-  void clearId() => $_clearField(1);
-
-  @$pb.TagNumber(2)
-  $core.String get workspaceId => $_getSZ(1);
-  @$pb.TagNumber(2)
-  set workspaceId($core.String value) => $_setString(1, value);
-  @$pb.TagNumber(2)
-  $core.bool hasWorkspaceId() => $_has(1);
-  @$pb.TagNumber(2)
-  void clearWorkspaceId() => $_clearField(2);
-
-  @$pb.TagNumber(3)
-  $core.String get modId => $_getSZ(2);
-  @$pb.TagNumber(3)
-  set modId($core.String value) => $_setString(2, value);
-  @$pb.TagNumber(3)
-  $core.bool hasModId() => $_has(2);
-  @$pb.TagNumber(3)
-  void clearModId() => $_clearField(3);
+  void clearRevision() => $_clearField(3);
 
   @$pb.TagNumber(4)
   $core.String get name => $_getSZ(3);
@@ -872,81 +603,37 @@ class ModDeletionStatus extends $pb.GeneratedMessage {
   void clearName() => $_clearField(4);
 
   @$pb.TagNumber(5)
-  ModDeletionPhase get phase => $_getN(4);
+  $core.int get versions => $_getIZ(4);
   @$pb.TagNumber(5)
-  set phase(ModDeletionPhase value) => $_setField(5, value);
+  set versions($core.int value) => $_setUnsignedInt32(4, value);
   @$pb.TagNumber(5)
-  $core.bool hasPhase() => $_has(4);
+  $core.bool hasVersions() => $_has(4);
   @$pb.TagNumber(5)
-  void clearPhase() => $_clearField(5);
+  void clearVersions() => $_clearField(5);
 
   @$pb.TagNumber(6)
-  $core.int get remaining => $_getIZ(5);
-  @$pb.TagNumber(6)
-  set remaining($core.int value) => $_setUnsignedInt32(5, value);
-  @$pb.TagNumber(6)
-  $core.bool hasRemaining() => $_has(5);
-  @$pb.TagNumber(6)
-  void clearRemaining() => $_clearField(6);
+  $pb.PbList<$core.String> get backups => $_getList(5);
 
   @$pb.TagNumber(7)
-  $core.String get problem => $_getSZ(6);
-  @$pb.TagNumber(7)
-  set problem($core.String value) => $_setString(6, value);
-  @$pb.TagNumber(7)
-  $core.bool hasProblem() => $_has(6);
-  @$pb.TagNumber(7)
-  void clearProblem() => $_clearField(7);
-}
+  $pb.PbList<ModDeletionProfile> get profiles => $_getList(6);
 
-class ModDeletionList extends $pb.GeneratedMessage {
-  factory ModDeletionList({
-    $core.Iterable<ModDeletionStatus>? entries,
-  }) {
-    final result = create();
-    if (entries != null) result.entries.addAll(entries);
-    return result;
-  }
+  @$pb.TagNumber(8)
+  $pb.PbList<ModDeletionDeployment> get deployments => $_getList(7);
 
-  ModDeletionList._();
+  @$pb.TagNumber(9)
+  $pb.PbList<ModDeletionFile> get files => $_getList(8);
 
-  factory ModDeletionList.fromBuffer($core.List<$core.int> data,
-          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(data, registry);
-  factory ModDeletionList.fromJson($core.String json,
-          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromJson(json, registry);
+  @$pb.TagNumber(10)
+  $pb.PbList<$core.String> get external => $_getList(9);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
-      _omitMessageNames ? '' : 'ModDeletionList',
-      package:
-          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
-      createEmptyInstance: create)
-    ..pPM<ModDeletionStatus>(1, _omitFieldNames ? '' : 'entries',
-        subBuilder: ModDeletionStatus.create)
-    ..hasRequiredFields = false;
-
-  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  ModDeletionList clone() => deepCopy();
-  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  ModDeletionList copyWith(void Function(ModDeletionList) updates) =>
-      super.copyWith((message) => updates(message as ModDeletionList))
-          as ModDeletionList;
-
-  @$core.override
-  $pb.BuilderInfo get info_ => _i;
-
-  @$core.pragma('dart2js:noInline')
-  static ModDeletionList create() => ModDeletionList._();
-  @$core.override
-  ModDeletionList createEmptyInstance() => create();
-  @$core.pragma('dart2js:noInline')
-  static ModDeletionList getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<ModDeletionList>(create);
-  static ModDeletionList? _defaultInstance;
-
-  @$pb.TagNumber(1)
-  $pb.PbList<ModDeletionStatus> get entries => $_getList(0);
+  @$pb.TagNumber(11)
+  $core.String get blocked => $_getSZ(10);
+  @$pb.TagNumber(11)
+  set blocked($core.String value) => $_setString(10, value);
+  @$pb.TagNumber(11)
+  $core.bool hasBlocked() => $_has(10);
+  @$pb.TagNumber(11)
+  void clearBlocked() => $_clearField(11);
 }
 
 const $core.bool _omitFieldNames =

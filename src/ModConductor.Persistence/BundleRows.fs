@@ -60,21 +60,13 @@ module internal BundleRows =
           Busy = r.GetInt32 4
           Problem = optional r 5 r.GetString }
 
-    let deleting connection transaction id =
-        Sqlite.number
-            connection
-            transaction
-            "SELECT count(*) FROM bundle_mods m JOIN mod_deletion_targets t ON t.mod_id=m.mod_id WHERE m.bundle_id=$id"
-            [ "$id", box (string id) ]
-        <> 0L
-
     let check connection transaction (reference: BundleRef) =
         let value = work connection transaction reference.WorkspaceId reference.Id
 
         if value.Revision <> reference.Revision then
             refuse "The bundle changed. Open its current checklist."
 
-        if value.Busy <> 0 || deleting connection transaction reference.Id then
+        if value.Busy <> 0 then
             refuse "The bundle has an operation in progress."
 
         value
@@ -212,7 +204,7 @@ module internal BundleRows =
         | Some destination ->
             let owner = work connection transaction workspace destination.BundleId
 
-            if owner.Busy <> 0 || deleting connection transaction destination.BundleId then
+            if owner.Busy <> 0 then
                 refuse "The bundle is busy. Wait for its current operation."
 
             let item =

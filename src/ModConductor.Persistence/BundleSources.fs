@@ -27,7 +27,7 @@ type internal BundleSources(database: StateDatabase, access: LibraryAccess) =
             use transaction = connection.BeginTransaction(deferred = false)
             let work = BundleRows.work connection transaction workspace id
 
-            if work.Busy <> 0 || BundleRows.deleting connection transaction id then
+            if work.Busy <> 0 then
                 fail ArtifactError.Busy
 
             Sqlite.execute

@@ -50,17 +50,9 @@ namespace ModConductor.Protocol.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.ModDeletionPreview> __Marshaller_modconductor_v1_ModDeletionPreview = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.ModDeletionPreview.Parser));
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.ModDeletionReference> __Marshaller_modconductor_v1_ModDeletionReference = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.ModDeletionReference.Parser));
+    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.DeleteModRequest> __Marshaller_modconductor_v1_DeleteModRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.DeleteModRequest.Parser));
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.ModDeletionPreviewClosed> __Marshaller_modconductor_v1_ModDeletionPreviewClosed = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.ModDeletionPreviewClosed.Parser));
-    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.StartModDeletionRequest> __Marshaller_modconductor_v1_StartModDeletionRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.StartModDeletionRequest.Parser));
-    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.ModDeletionStatus> __Marshaller_modconductor_v1_ModDeletionStatus = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.ModDeletionStatus.Parser));
-    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.ModDeletionWorkspace> __Marshaller_modconductor_v1_ModDeletionWorkspace = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.ModDeletionWorkspace.Parser));
-    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.ModDeletionList> __Marshaller_modconductor_v1_ModDeletionList = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.ModDeletionList.Parser));
+    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.ModDeleted> __Marshaller_modconductor_v1_ModDeleted = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.ModDeleted.Parser));
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Method<global::ModConductor.Protocol.V1.PrepareModDeletionRequest, global::ModConductor.Protocol.V1.ModDeletionPreview> __Method_PrepareModDeletion = new grpc::Method<global::ModConductor.Protocol.V1.PrepareModDeletionRequest, global::ModConductor.Protocol.V1.ModDeletionPreview>(
@@ -71,44 +63,12 @@ namespace ModConductor.Protocol.V1 {
         __Marshaller_modconductor_v1_ModDeletionPreview);
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-    static readonly grpc::Method<global::ModConductor.Protocol.V1.ModDeletionReference, global::ModConductor.Protocol.V1.ModDeletionPreviewClosed> __Method_CloseModDeletionPreview = new grpc::Method<global::ModConductor.Protocol.V1.ModDeletionReference, global::ModConductor.Protocol.V1.ModDeletionPreviewClosed>(
+    static readonly grpc::Method<global::ModConductor.Protocol.V1.DeleteModRequest, global::ModConductor.Protocol.V1.ModDeleted> __Method_DeleteMod = new grpc::Method<global::ModConductor.Protocol.V1.DeleteModRequest, global::ModConductor.Protocol.V1.ModDeleted>(
         grpc::MethodType.Unary,
         __ServiceName,
-        "CloseModDeletionPreview",
-        __Marshaller_modconductor_v1_ModDeletionReference,
-        __Marshaller_modconductor_v1_ModDeletionPreviewClosed);
-
-    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-    static readonly grpc::Method<global::ModConductor.Protocol.V1.StartModDeletionRequest, global::ModConductor.Protocol.V1.ModDeletionStatus> __Method_StartModDeletion = new grpc::Method<global::ModConductor.Protocol.V1.StartModDeletionRequest, global::ModConductor.Protocol.V1.ModDeletionStatus>(
-        grpc::MethodType.Unary,
-        __ServiceName,
-        "StartModDeletion",
-        __Marshaller_modconductor_v1_StartModDeletionRequest,
-        __Marshaller_modconductor_v1_ModDeletionStatus);
-
-    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-    static readonly grpc::Method<global::ModConductor.Protocol.V1.ModDeletionReference, global::ModConductor.Protocol.V1.ModDeletionStatus> __Method_ContinueModDeletion = new grpc::Method<global::ModConductor.Protocol.V1.ModDeletionReference, global::ModConductor.Protocol.V1.ModDeletionStatus>(
-        grpc::MethodType.Unary,
-        __ServiceName,
-        "ContinueModDeletion",
-        __Marshaller_modconductor_v1_ModDeletionReference,
-        __Marshaller_modconductor_v1_ModDeletionStatus);
-
-    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-    static readonly grpc::Method<global::ModConductor.Protocol.V1.ModDeletionWorkspace, global::ModConductor.Protocol.V1.ModDeletionList> __Method_RecentModDeletions = new grpc::Method<global::ModConductor.Protocol.V1.ModDeletionWorkspace, global::ModConductor.Protocol.V1.ModDeletionList>(
-        grpc::MethodType.Unary,
-        __ServiceName,
-        "RecentModDeletions",
-        __Marshaller_modconductor_v1_ModDeletionWorkspace,
-        __Marshaller_modconductor_v1_ModDeletionList);
-
-    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-    static readonly grpc::Method<global::ModConductor.Protocol.V1.ModDeletionReference, global::ModConductor.Protocol.V1.ModDeletionStatus> __Method_WatchModDeletion = new grpc::Method<global::ModConductor.Protocol.V1.ModDeletionReference, global::ModConductor.Protocol.V1.ModDeletionStatus>(
-        grpc::MethodType.ServerStreaming,
-        __ServiceName,
-        "WatchModDeletion",
-        __Marshaller_modconductor_v1_ModDeletionReference,
-        __Marshaller_modconductor_v1_ModDeletionStatus);
+        "DeleteMod",
+        __Marshaller_modconductor_v1_DeleteModRequest,
+        __Marshaller_modconductor_v1_ModDeleted);
 
     /// <summary>Service descriptor</summary>
     public static global::Google.Protobuf.Reflection.ServiceDescriptor Descriptor
@@ -127,31 +87,7 @@ namespace ModConductor.Protocol.V1 {
       }
 
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V1.ModDeletionPreviewClosed> CloseModDeletionPreview(global::ModConductor.Protocol.V1.ModDeletionReference request, grpc::ServerCallContext context)
-      {
-        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
-      }
-
-      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V1.ModDeletionStatus> StartModDeletion(global::ModConductor.Protocol.V1.StartModDeletionRequest request, grpc::ServerCallContext context)
-      {
-        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
-      }
-
-      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V1.ModDeletionStatus> ContinueModDeletion(global::ModConductor.Protocol.V1.ModDeletionReference request, grpc::ServerCallContext context)
-      {
-        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
-      }
-
-      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V1.ModDeletionList> RecentModDeletions(global::ModConductor.Protocol.V1.ModDeletionWorkspace request, grpc::ServerCallContext context)
-      {
-        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
-      }
-
-      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual global::System.Threading.Tasks.Task WatchModDeletion(global::ModConductor.Protocol.V1.ModDeletionReference request, grpc::IServerStreamWriter<global::ModConductor.Protocol.V1.ModDeletionStatus> responseStream, grpc::ServerCallContext context)
+      public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V1.ModDeleted> DeleteMod(global::ModConductor.Protocol.V1.DeleteModRequest request, grpc::ServerCallContext context)
       {
         throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
       }
@@ -206,94 +142,24 @@ namespace ModConductor.Protocol.V1 {
         return CallInvoker.AsyncUnaryCall(__Method_PrepareModDeletion, null, options, request);
       }
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual global::ModConductor.Protocol.V1.ModDeletionPreviewClosed CloseModDeletionPreview(global::ModConductor.Protocol.V1.ModDeletionReference request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      public virtual global::ModConductor.Protocol.V1.ModDeleted DeleteMod(global::ModConductor.Protocol.V1.DeleteModRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
       {
-        return CloseModDeletionPreview(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+        return DeleteMod(request, new grpc::CallOptions(headers, deadline, cancellationToken));
       }
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual global::ModConductor.Protocol.V1.ModDeletionPreviewClosed CloseModDeletionPreview(global::ModConductor.Protocol.V1.ModDeletionReference request, grpc::CallOptions options)
+      public virtual global::ModConductor.Protocol.V1.ModDeleted DeleteMod(global::ModConductor.Protocol.V1.DeleteModRequest request, grpc::CallOptions options)
       {
-        return CallInvoker.BlockingUnaryCall(__Method_CloseModDeletionPreview, null, options, request);
+        return CallInvoker.BlockingUnaryCall(__Method_DeleteMod, null, options, request);
       }
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.ModDeletionPreviewClosed> CloseModDeletionPreviewAsync(global::ModConductor.Protocol.V1.ModDeletionReference request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.ModDeleted> DeleteModAsync(global::ModConductor.Protocol.V1.DeleteModRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
       {
-        return CloseModDeletionPreviewAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+        return DeleteModAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
       }
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.ModDeletionPreviewClosed> CloseModDeletionPreviewAsync(global::ModConductor.Protocol.V1.ModDeletionReference request, grpc::CallOptions options)
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.ModDeleted> DeleteModAsync(global::ModConductor.Protocol.V1.DeleteModRequest request, grpc::CallOptions options)
       {
-        return CallInvoker.AsyncUnaryCall(__Method_CloseModDeletionPreview, null, options, request);
-      }
-      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual global::ModConductor.Protocol.V1.ModDeletionStatus StartModDeletion(global::ModConductor.Protocol.V1.StartModDeletionRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
-      {
-        return StartModDeletion(request, new grpc::CallOptions(headers, deadline, cancellationToken));
-      }
-      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual global::ModConductor.Protocol.V1.ModDeletionStatus StartModDeletion(global::ModConductor.Protocol.V1.StartModDeletionRequest request, grpc::CallOptions options)
-      {
-        return CallInvoker.BlockingUnaryCall(__Method_StartModDeletion, null, options, request);
-      }
-      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.ModDeletionStatus> StartModDeletionAsync(global::ModConductor.Protocol.V1.StartModDeletionRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
-      {
-        return StartModDeletionAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
-      }
-      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.ModDeletionStatus> StartModDeletionAsync(global::ModConductor.Protocol.V1.StartModDeletionRequest request, grpc::CallOptions options)
-      {
-        return CallInvoker.AsyncUnaryCall(__Method_StartModDeletion, null, options, request);
-      }
-      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual global::ModConductor.Protocol.V1.ModDeletionStatus ContinueModDeletion(global::ModConductor.Protocol.V1.ModDeletionReference request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
-      {
-        return ContinueModDeletion(request, new grpc::CallOptions(headers, deadline, cancellationToken));
-      }
-      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual global::ModConductor.Protocol.V1.ModDeletionStatus ContinueModDeletion(global::ModConductor.Protocol.V1.ModDeletionReference request, grpc::CallOptions options)
-      {
-        return CallInvoker.BlockingUnaryCall(__Method_ContinueModDeletion, null, options, request);
-      }
-      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.ModDeletionStatus> ContinueModDeletionAsync(global::ModConductor.Protocol.V1.ModDeletionReference request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
-      {
-        return ContinueModDeletionAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
-      }
-      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.ModDeletionStatus> ContinueModDeletionAsync(global::ModConductor.Protocol.V1.ModDeletionReference request, grpc::CallOptions options)
-      {
-        return CallInvoker.AsyncUnaryCall(__Method_ContinueModDeletion, null, options, request);
-      }
-      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual global::ModConductor.Protocol.V1.ModDeletionList RecentModDeletions(global::ModConductor.Protocol.V1.ModDeletionWorkspace request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
-      {
-        return RecentModDeletions(request, new grpc::CallOptions(headers, deadline, cancellationToken));
-      }
-      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual global::ModConductor.Protocol.V1.ModDeletionList RecentModDeletions(global::ModConductor.Protocol.V1.ModDeletionWorkspace request, grpc::CallOptions options)
-      {
-        return CallInvoker.BlockingUnaryCall(__Method_RecentModDeletions, null, options, request);
-      }
-      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.ModDeletionList> RecentModDeletionsAsync(global::ModConductor.Protocol.V1.ModDeletionWorkspace request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
-      {
-        return RecentModDeletionsAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
-      }
-      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.ModDeletionList> RecentModDeletionsAsync(global::ModConductor.Protocol.V1.ModDeletionWorkspace request, grpc::CallOptions options)
-      {
-        return CallInvoker.AsyncUnaryCall(__Method_RecentModDeletions, null, options, request);
-      }
-      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual grpc::AsyncServerStreamingCall<global::ModConductor.Protocol.V1.ModDeletionStatus> WatchModDeletion(global::ModConductor.Protocol.V1.ModDeletionReference request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
-      {
-        return WatchModDeletion(request, new grpc::CallOptions(headers, deadline, cancellationToken));
-      }
-      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual grpc::AsyncServerStreamingCall<global::ModConductor.Protocol.V1.ModDeletionStatus> WatchModDeletion(global::ModConductor.Protocol.V1.ModDeletionReference request, grpc::CallOptions options)
-      {
-        return CallInvoker.AsyncServerStreamingCall(__Method_WatchModDeletion, null, options, request);
+        return CallInvoker.AsyncUnaryCall(__Method_DeleteMod, null, options, request);
       }
       /// <summary>Creates a new instance of client from given <c>ClientBaseConfiguration</c>.</summary>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
@@ -310,11 +176,7 @@ namespace ModConductor.Protocol.V1 {
     {
       return grpc::ServerServiceDefinition.CreateBuilder()
           .AddMethod(__Method_PrepareModDeletion, serviceImpl.PrepareModDeletion)
-          .AddMethod(__Method_CloseModDeletionPreview, serviceImpl.CloseModDeletionPreview)
-          .AddMethod(__Method_StartModDeletion, serviceImpl.StartModDeletion)
-          .AddMethod(__Method_ContinueModDeletion, serviceImpl.ContinueModDeletion)
-          .AddMethod(__Method_RecentModDeletions, serviceImpl.RecentModDeletions)
-          .AddMethod(__Method_WatchModDeletion, serviceImpl.WatchModDeletion).Build();
+          .AddMethod(__Method_DeleteMod, serviceImpl.DeleteMod).Build();
     }
 
     /// <summary>Register service method with a service binder with or without implementation. Useful when customizing the service binding logic.
@@ -325,11 +187,7 @@ namespace ModConductor.Protocol.V1 {
     public static void BindService(grpc::ServiceBinderBase serviceBinder, ModDeletionBase serviceImpl)
     {
       serviceBinder.AddMethod(__Method_PrepareModDeletion, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.PrepareModDeletionRequest, global::ModConductor.Protocol.V1.ModDeletionPreview>(serviceImpl.PrepareModDeletion));
-      serviceBinder.AddMethod(__Method_CloseModDeletionPreview, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.ModDeletionReference, global::ModConductor.Protocol.V1.ModDeletionPreviewClosed>(serviceImpl.CloseModDeletionPreview));
-      serviceBinder.AddMethod(__Method_StartModDeletion, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.StartModDeletionRequest, global::ModConductor.Protocol.V1.ModDeletionStatus>(serviceImpl.StartModDeletion));
-      serviceBinder.AddMethod(__Method_ContinueModDeletion, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.ModDeletionReference, global::ModConductor.Protocol.V1.ModDeletionStatus>(serviceImpl.ContinueModDeletion));
-      serviceBinder.AddMethod(__Method_RecentModDeletions, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.ModDeletionWorkspace, global::ModConductor.Protocol.V1.ModDeletionList>(serviceImpl.RecentModDeletions));
-      serviceBinder.AddMethod(__Method_WatchModDeletion, serviceImpl == null ? null : new grpc::ServerStreamingServerMethod<global::ModConductor.Protocol.V1.ModDeletionReference, global::ModConductor.Protocol.V1.ModDeletionStatus>(serviceImpl.WatchModDeletion));
+      serviceBinder.AddMethod(__Method_DeleteMod, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.DeleteModRequest, global::ModConductor.Protocol.V1.ModDeleted>(serviceImpl.DeleteMod));
     }
 
   }

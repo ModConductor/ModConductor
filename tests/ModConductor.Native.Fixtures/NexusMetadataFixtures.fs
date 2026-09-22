@@ -426,11 +426,7 @@ module NexusMetadataFixtures =
             let preview =
                 store.Deletions.Prepare(workspace, installedMod, target.Revision) |> wait
 
-            let started = store.Deletions.Start(workspace, preview.Id, Guid.NewGuid())
-
-            until (fun () ->
-                (store.Deletions.Read(workspace, started.Id) |> wait).Phase
-                <> DeletionPhase.Running)
+            store.Deletions.Delete(workspace, installedMod, preview.Revision) |> wait
 
             server.ReleaseMetadata()
 

@@ -23,8 +23,6 @@ InventoryStatus inventoryStatus(wire.ModInventoryStatus value) =>
         InventoryStatus.unproved,
       wire.ModInventoryStatus.MOD_INVENTORY_STATUS_PUBLISHING =>
         InventoryStatus.publishing,
-      wire.ModInventoryStatus.MOD_INVENTORY_STATUS_DELETING =>
-        InventoryStatus.deleting,
       _ => throw const FormatException('Unsupported library inventoryStatus.'),
     };
 

@@ -354,7 +354,6 @@ module internal InstallationRows =
                 | Some row when
                     row.Entry.Revision = target.Revision
                     && row.Entry.CurrentVersion = Some target.PreviousVersion
-                    && not (MaintenanceClaims.deleting connection transaction modId)
                     ->
                     target.Revision
                 | _ -> refuse "The installed mod changed. The update was not published."

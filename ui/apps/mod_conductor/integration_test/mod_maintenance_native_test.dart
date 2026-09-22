@@ -242,7 +242,6 @@ void main() {
       await tap('Delete');
       await until(() => action('Open Mods').evaluate().isNotEmpty);
       await capture('deleted');
-      expect((await owner.maintenance!.recentDeletions(workspace)), isEmpty);
       expect(
         (await owner.modLibrary!.scan(
           workspace,

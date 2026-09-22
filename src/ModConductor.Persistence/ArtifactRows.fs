@@ -83,15 +83,6 @@ module internal ArtifactRows =
 
             reader.Close()
 
-            let deleting =
-                Sqlite.number
-                    connection
-                    transaction
-                    "SELECT count(*) FROM mod_deletion_artifacts WHERE artifact_id=$id"
-                    [ "$id", box (string id) ]
-                <> 0L
-
-            let row = { row with Busy = row.Busy || deleting }
             let provenance = links connection transaction id
 
             let installing =

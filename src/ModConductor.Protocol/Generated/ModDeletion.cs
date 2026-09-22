@@ -27,67 +27,43 @@ namespace ModConductor.Protocol.V1 {
             "CiJtb2Rjb25kdWN0b3IvdjEvbW9kX2RlbGV0aW9uLnByb3RvEg9tb2Rjb25k",
             "dWN0b3IudjEiUwoZUHJlcGFyZU1vZERlbGV0aW9uUmVxdWVzdBIUCgx3b3Jr",
             "c3BhY2VfaWQYASABKAkSDgoGbW9kX2lkGAIgASgJEhAKCHJldmlzaW9uGAMg",
-            "ASgEIjgKFE1vZERlbGV0aW9uUmVmZXJlbmNlEhQKDHdvcmtzcGFjZV9pZBgB",
-            "IAEoCRIKCgJpZBgCIAEoCSIsChRNb2REZWxldGlvbldvcmtzcGFjZRIUCgx3",
-            "b3Jrc3BhY2VfaWQYASABKAkiGgoYTW9kRGVsZXRpb25QcmV2aWV3Q2xvc2Vk",
-            "Ik8KF1N0YXJ0TW9kRGVsZXRpb25SZXF1ZXN0EhQKDHdvcmtzcGFjZV9pZBgB",
-            "IAEoCRISCgpwcmV2aWV3X2lkGAIgASgJEgoKAmlkGAMgASgJIoIBCg9Nb2RE",
-            "ZWxldGlvbkZpbGUSDQoFbGFiZWwYASABKAkSMgoEa2luZBgCIAEoDjIkLm1v",
-            "ZGNvbmR1Y3Rvci52MS5Nb2REZWxldGlvbkZpbGVLaW5kEhIKBWJ5dGVzGAMg",
-            "ASgESACIAQESDgoGc2hhcmVkGAQgASgIQggKBl9ieXRlcyIuChJNb2REZWxl",
-            "dGlvblByb2ZpbGUSCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCSKPAQoVTW9k",
-            "RGVsZXRpb25EZXBsb3ltZW50EhIKCmNvbnRleHRfaWQYASABKAkSCgoCaWQY",
-            "AiABKAkSDAoEbmFtZRgDIAEoCRIgChNwcmVwYXJlZF9hdF91bml4X21zGAQg",
-            "ASgDSACIAQESDgoGYWN0aXZlGAUgASgIQhYKFF9wcmVwYXJlZF9hdF91bml4",
-            "X21zIuICChJNb2REZWxldGlvblByZXZpZXcSCgoCaWQYASABKAkSFAoMd29y",
-            "a3NwYWNlX2lkGAIgASgJEg4KBm1vZF9pZBgDIAEoCRIQCghyZXZpc2lvbhgE",
-            "IAEoBBIMCgRuYW1lGAUgASgJEhAKCHZlcnNpb25zGAYgASgNEg8KB2JhY2t1",
-            "cHMYByADKAkSNQoIcHJvZmlsZXMYCCADKAsyIy5tb2Rjb25kdWN0b3IudjEu",
-            "TW9kRGVsZXRpb25Qcm9maWxlEjsKC2RlcGxveW1lbnRzGAkgAygLMiYubW9k",
-            "Y29uZHVjdG9yLnYxLk1vZERlbGV0aW9uRGVwbG95bWVudBIvCgVmaWxlcxgK",
+            "ASgEIkoKEERlbGV0ZU1vZFJlcXVlc3QSFAoMd29ya3NwYWNlX2lkGAEgASgJ",
+            "Eg4KBm1vZF9pZBgCIAEoCRIQCghyZXZpc2lvbhgDIAEoBCIMCgpNb2REZWxl",
+            "dGVkIoIBCg9Nb2REZWxldGlvbkZpbGUSDQoFbGFiZWwYASABKAkSMgoEa2lu",
+            "ZBgCIAEoDjIkLm1vZGNvbmR1Y3Rvci52MS5Nb2REZWxldGlvbkZpbGVLaW5k",
+            "EhIKBWJ5dGVzGAMgASgESACIAQESDgoGc2hhcmVkGAQgASgIQggKBl9ieXRl",
+            "cyIuChJNb2REZWxldGlvblByb2ZpbGUSCgoCaWQYASABKAkSDAoEbmFtZRgC",
+            "IAEoCSKPAQoVTW9kRGVsZXRpb25EZXBsb3ltZW50EhIKCmNvbnRleHRfaWQY",
+            "ASABKAkSCgoCaWQYAiABKAkSDAoEbmFtZRgDIAEoCRIgChNwcmVwYXJlZF9h",
+            "dF91bml4X21zGAQgASgDSACIAQESDgoGYWN0aXZlGAUgASgIQhYKFF9wcmVw",
+            "YXJlZF9hdF91bml4X21zItYCChJNb2REZWxldGlvblByZXZpZXcSFAoMd29y",
+            "a3NwYWNlX2lkGAEgASgJEg4KBm1vZF9pZBgCIAEoCRIQCghyZXZpc2lvbhgD",
+            "IAEoBBIMCgRuYW1lGAQgASgJEhAKCHZlcnNpb25zGAUgASgNEg8KB2JhY2t1",
+            "cHMYBiADKAkSNQoIcHJvZmlsZXMYByADKAsyIy5tb2Rjb25kdWN0b3IudjEu",
+            "TW9kRGVsZXRpb25Qcm9maWxlEjsKC2RlcGxveW1lbnRzGAggAygLMiYubW9k",
+            "Y29uZHVjdG9yLnYxLk1vZERlbGV0aW9uRGVwbG95bWVudBIvCgVmaWxlcxgJ",
             "IAMoCzIgLm1vZGNvbmR1Y3Rvci52MS5Nb2REZWxldGlvbkZpbGUSEAoIZXh0",
-            "ZXJuYWwYCyADKAkSFAoHYmxvY2tlZBgMIAEoCUgAiAEBQgoKCF9ibG9ja2Vk",
-            "IroBChFNb2REZWxldGlvblN0YXR1cxIKCgJpZBgBIAEoCRIUCgx3b3Jrc3Bh",
-            "Y2VfaWQYAiABKAkSDgoGbW9kX2lkGAMgASgJEgwKBG5hbWUYBCABKAkSMAoF",
-            "cGhhc2UYBSABKA4yIS5tb2Rjb25kdWN0b3IudjEuTW9kRGVsZXRpb25QaGFz",
-            "ZRIRCglyZW1haW5pbmcYBiABKA0SFAoHcHJvYmxlbRgHIAEoCUgAiAEBQgoK",
-            "CF9wcm9ibGVtIkYKD01vZERlbGV0aW9uTGlzdBIzCgdlbnRyaWVzGAEgAygL",
-            "MiIubW9kY29uZHVjdG9yLnYxLk1vZERlbGV0aW9uU3RhdHVzKq8BChNNb2RE",
-            "ZWxldGlvbkZpbGVLaW5kEiIKHk1PRF9ERUxFVElPTl9GSUxFX0tJTkRfUEFZ",
-            "TE9BRBAAEiIKHk1PRF9ERUxFVElPTl9GSUxFX0tJTkRfQVJDSElWRRABEiQK",
-            "IE1PRF9ERUxFVElPTl9GSUxFX0tJTkRfVEVNUE9SQVJZEAISKgomTU9EX0RF",
-            "TEVUSU9OX0ZJTEVfS0lORF9HRU5FUkFUSU9OX0xJTksQAyp2ChBNb2REZWxl",
-            "dGlvblBoYXNlEh4KGk1PRF9ERUxFVElPTl9QSEFTRV9SVU5OSU5HEAASIQod",
-            "TU9EX0RFTEVUSU9OX1BIQVNFX0lOQ09NUExFVEUQARIfChtNT0RfREVMRVRJ",
-            "T05fUEhBU0VfQ09NUExFVEUQAjLlBAoLTW9kRGVsZXRpb24SZQoSUHJlcGFy",
-            "ZU1vZERlbGV0aW9uEioubW9kY29uZHVjdG9yLnYxLlByZXBhcmVNb2REZWxl",
-            "dGlvblJlcXVlc3QaIy5tb2Rjb25kdWN0b3IudjEuTW9kRGVsZXRpb25QcmV2",
-            "aWV3EmsKF0Nsb3NlTW9kRGVsZXRpb25QcmV2aWV3EiUubW9kY29uZHVjdG9y",
-            "LnYxLk1vZERlbGV0aW9uUmVmZXJlbmNlGikubW9kY29uZHVjdG9yLnYxLk1v",
-            "ZERlbGV0aW9uUHJldmlld0Nsb3NlZBJgChBTdGFydE1vZERlbGV0aW9uEigu",
-            "bW9kY29uZHVjdG9yLnYxLlN0YXJ0TW9kRGVsZXRpb25SZXF1ZXN0GiIubW9k",
-            "Y29uZHVjdG9yLnYxLk1vZERlbGV0aW9uU3RhdHVzEmAKE0NvbnRpbnVlTW9k",
-            "RGVsZXRpb24SJS5tb2Rjb25kdWN0b3IudjEuTW9kRGVsZXRpb25SZWZlcmVu",
-            "Y2UaIi5tb2Rjb25kdWN0b3IudjEuTW9kRGVsZXRpb25TdGF0dXMSXQoSUmVj",
-            "ZW50TW9kRGVsZXRpb25zEiUubW9kY29uZHVjdG9yLnYxLk1vZERlbGV0aW9u",
-            "V29ya3NwYWNlGiAubW9kY29uZHVjdG9yLnYxLk1vZERlbGV0aW9uTGlzdBJf",
-            "ChBXYXRjaE1vZERlbGV0aW9uEiUubW9kY29uZHVjdG9yLnYxLk1vZERlbGV0",
-            "aW9uUmVmZXJlbmNlGiIubW9kY29uZHVjdG9yLnYxLk1vZERlbGV0aW9uU3Rh",
-            "dHVzMAFCG6oCGE1vZENvbmR1Y3Rvci5Qcm90b2NvbC5WMWIGcHJvdG8z"));
+            "ZXJuYWwYCiADKAkSFAoHYmxvY2tlZBgLIAEoCUgAiAEBQgoKCF9ibG9ja2Vk",
+            "Kq8BChNNb2REZWxldGlvbkZpbGVLaW5kEiIKHk1PRF9ERUxFVElPTl9GSUxF",
+            "X0tJTkRfUEFZTE9BRBAAEiIKHk1PRF9ERUxFVElPTl9GSUxFX0tJTkRfQVJD",
+            "SElWRRABEiQKIE1PRF9ERUxFVElPTl9GSUxFX0tJTkRfVEVNUE9SQVJZEAIS",
+            "KgomTU9EX0RFTEVUSU9OX0ZJTEVfS0lORF9HRU5FUkFUSU9OX0xJTksQAzLB",
+            "AQoLTW9kRGVsZXRpb24SZQoSUHJlcGFyZU1vZERlbGV0aW9uEioubW9kY29u",
+            "ZHVjdG9yLnYxLlByZXBhcmVNb2REZWxldGlvblJlcXVlc3QaIy5tb2Rjb25k",
+            "dWN0b3IudjEuTW9kRGVsZXRpb25QcmV2aWV3EksKCURlbGV0ZU1vZBIhLm1v",
+            "ZGNvbmR1Y3Rvci52MS5EZWxldGVNb2RSZXF1ZXN0GhsubW9kY29uZHVjdG9y",
+            "LnYxLk1vZERlbGV0ZWRCG6oCGE1vZENvbmR1Y3Rvci5Qcm90b2NvbC5WMWIG",
+            "cHJvdG8z"));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { },
-          new pbr::GeneratedClrTypeInfo(new[] {typeof(global::ModConductor.Protocol.V1.ModDeletionFileKind), typeof(global::ModConductor.Protocol.V1.ModDeletionPhase), }, null, new pbr::GeneratedClrTypeInfo[] {
+          new pbr::GeneratedClrTypeInfo(new[] {typeof(global::ModConductor.Protocol.V1.ModDeletionFileKind), }, null, new pbr::GeneratedClrTypeInfo[] {
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.PrepareModDeletionRequest), global::ModConductor.Protocol.V1.PrepareModDeletionRequest.Parser, new[]{ "WorkspaceId", "ModId", "Revision" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ModDeletionReference), global::ModConductor.Protocol.V1.ModDeletionReference.Parser, new[]{ "WorkspaceId", "Id" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ModDeletionWorkspace), global::ModConductor.Protocol.V1.ModDeletionWorkspace.Parser, new[]{ "WorkspaceId" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ModDeletionPreviewClosed), global::ModConductor.Protocol.V1.ModDeletionPreviewClosed.Parser, null, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.StartModDeletionRequest), global::ModConductor.Protocol.V1.StartModDeletionRequest.Parser, new[]{ "WorkspaceId", "PreviewId", "Id" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.DeleteModRequest), global::ModConductor.Protocol.V1.DeleteModRequest.Parser, new[]{ "WorkspaceId", "ModId", "Revision" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ModDeleted), global::ModConductor.Protocol.V1.ModDeleted.Parser, null, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ModDeletionFile), global::ModConductor.Protocol.V1.ModDeletionFile.Parser, new[]{ "Label", "Kind", "Bytes", "Shared" }, new[]{ "Bytes" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ModDeletionProfile), global::ModConductor.Protocol.V1.ModDeletionProfile.Parser, new[]{ "Id", "Name" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ModDeletionDeployment), global::ModConductor.Protocol.V1.ModDeletionDeployment.Parser, new[]{ "ContextId", "Id", "Name", "PreparedAtUnixMs", "Active" }, new[]{ "PreparedAtUnixMs" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ModDeletionPreview), global::ModConductor.Protocol.V1.ModDeletionPreview.Parser, new[]{ "Id", "WorkspaceId", "ModId", "Revision", "Name", "Versions", "Backups", "Profiles", "Deployments", "Files", "External", "Blocked" }, new[]{ "Blocked" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ModDeletionStatus), global::ModConductor.Protocol.V1.ModDeletionStatus.Parser, new[]{ "Id", "WorkspaceId", "ModId", "Name", "Phase", "Remaining", "Problem" }, new[]{ "Problem" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ModDeletionList), global::ModConductor.Protocol.V1.ModDeletionList.Parser, new[]{ "Entries" }, null, null, null, null)
+            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ModDeletionPreview), global::ModConductor.Protocol.V1.ModDeletionPreview.Parser, new[]{ "WorkspaceId", "ModId", "Revision", "Name", "Versions", "Backups", "Profiles", "Deployments", "Files", "External", "Blocked" }, new[]{ "Blocked" }, null, null, null)
           }));
     }
     #endregion
@@ -99,12 +75,6 @@ namespace ModConductor.Protocol.V1 {
     [pbr::OriginalName("MOD_DELETION_FILE_KIND_ARCHIVE")] Archive = 1,
     [pbr::OriginalName("MOD_DELETION_FILE_KIND_TEMPORARY")] Temporary = 2,
     [pbr::OriginalName("MOD_DELETION_FILE_KIND_GENERATION_LINK")] GenerationLink = 3,
-  }
-
-  public enum ModDeletionPhase {
-    [pbr::OriginalName("MOD_DELETION_PHASE_RUNNING")] Running = 0,
-    [pbr::OriginalName("MOD_DELETION_PHASE_INCOMPLETE")] Incomplete = 1,
-    [pbr::OriginalName("MOD_DELETION_PHASE_COMPLETE")] Complete = 2,
   }
 
   #endregion
@@ -383,16 +353,16 @@ namespace ModConductor.Protocol.V1 {
   }
 
   [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
-  public sealed partial class ModDeletionReference : pb::IMessage<ModDeletionReference>
+  public sealed partial class DeleteModRequest : pb::IMessage<DeleteModRequest>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
   #endif
   {
-    private static readonly pb::MessageParser<ModDeletionReference> _parser = new pb::MessageParser<ModDeletionReference>(() => new ModDeletionReference());
+    private static readonly pb::MessageParser<DeleteModRequest> _parser = new pb::MessageParser<DeleteModRequest>(() => new DeleteModRequest());
     private pb::UnknownFieldSet _unknownFields;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public static pb::MessageParser<ModDeletionReference> Parser { get { return _parser; } }
+    public static pb::MessageParser<DeleteModRequest> Parser { get { return _parser; } }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
@@ -408,7 +378,7 @@ namespace ModConductor.Protocol.V1 {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public ModDeletionReference() {
+    public DeleteModRequest() {
       OnConstruction();
     }
 
@@ -416,16 +386,17 @@ namespace ModConductor.Protocol.V1 {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public ModDeletionReference(ModDeletionReference other) : this() {
+    public DeleteModRequest(DeleteModRequest other) : this() {
       workspaceId_ = other.workspaceId_;
-      id_ = other.id_;
+      modId_ = other.modId_;
+      revision_ = other.revision_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public ModDeletionReference Clone() {
-      return new ModDeletionReference(this);
+    public DeleteModRequest Clone() {
+      return new DeleteModRequest(this);
     }
 
     /// <summary>Field number for the "workspace_id" field.</summary>
@@ -440,27 +411,39 @@ namespace ModConductor.Protocol.V1 {
       }
     }
 
-    /// <summary>Field number for the "id" field.</summary>
-    public const int IdFieldNumber = 2;
-    private string id_ = "";
+    /// <summary>Field number for the "mod_id" field.</summary>
+    public const int ModIdFieldNumber = 2;
+    private string modId_ = "";
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public string Id {
-      get { return id_; }
+    public string ModId {
+      get { return modId_; }
       set {
-        id_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+        modId_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "revision" field.</summary>
+    public const int RevisionFieldNumber = 3;
+    private ulong revision_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public ulong Revision {
+      get { return revision_; }
+      set {
+        revision_ = value;
       }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
-      return Equals(other as ModDeletionReference);
+      return Equals(other as DeleteModRequest);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public bool Equals(ModDeletionReference other) {
+    public bool Equals(DeleteModRequest other) {
       if (ReferenceEquals(other, null)) {
         return false;
       }
@@ -468,7 +451,8 @@ namespace ModConductor.Protocol.V1 {
         return true;
       }
       if (WorkspaceId != other.WorkspaceId) return false;
-      if (Id != other.Id) return false;
+      if (ModId != other.ModId) return false;
+      if (Revision != other.Revision) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -477,7 +461,8 @@ namespace ModConductor.Protocol.V1 {
     public override int GetHashCode() {
       int hash = 1;
       if (WorkspaceId.Length != 0) hash ^= WorkspaceId.GetHashCode();
-      if (Id.Length != 0) hash ^= Id.GetHashCode();
+      if (ModId.Length != 0) hash ^= ModId.GetHashCode();
+      if (Revision != 0UL) hash ^= Revision.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -500,9 +485,13 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(10);
         output.WriteString(WorkspaceId);
       }
-      if (Id.Length != 0) {
+      if (ModId.Length != 0) {
         output.WriteRawTag(18);
-        output.WriteString(Id);
+        output.WriteString(ModId);
+      }
+      if (Revision != 0UL) {
+        output.WriteRawTag(24);
+        output.WriteUInt64(Revision);
       }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
@@ -518,9 +507,13 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(10);
         output.WriteString(WorkspaceId);
       }
-      if (Id.Length != 0) {
+      if (ModId.Length != 0) {
         output.WriteRawTag(18);
-        output.WriteString(Id);
+        output.WriteString(ModId);
+      }
+      if (Revision != 0UL) {
+        output.WriteRawTag(24);
+        output.WriteUInt64(Revision);
       }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
@@ -535,8 +528,11 @@ namespace ModConductor.Protocol.V1 {
       if (WorkspaceId.Length != 0) {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(WorkspaceId);
       }
-      if (Id.Length != 0) {
-        size += 1 + pb::CodedOutputStream.ComputeStringSize(Id);
+      if (ModId.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(ModId);
+      }
+      if (Revision != 0UL) {
+        size += 1 + pb::CodedOutputStream.ComputeUInt64Size(Revision);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -546,15 +542,18 @@ namespace ModConductor.Protocol.V1 {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public void MergeFrom(ModDeletionReference other) {
+    public void MergeFrom(DeleteModRequest other) {
       if (other == null) {
         return;
       }
       if (other.WorkspaceId.Length != 0) {
         WorkspaceId = other.WorkspaceId;
       }
-      if (other.Id.Length != 0) {
-        Id = other.Id;
+      if (other.ModId.Length != 0) {
+        ModId = other.ModId;
+      }
+      if (other.Revision != 0UL) {
+        Revision = other.Revision;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -580,7 +579,11 @@ namespace ModConductor.Protocol.V1 {
             break;
           }
           case 18: {
-            Id = input.ReadString();
+            ModId = input.ReadString();
+            break;
+          }
+          case 24: {
+            Revision = input.ReadUInt64();
             break;
           }
         }
@@ -607,7 +610,11 @@ namespace ModConductor.Protocol.V1 {
             break;
           }
           case 18: {
-            Id = input.ReadString();
+            ModId = input.ReadString();
+            break;
+          }
+          case 24: {
+            Revision = input.ReadUInt64();
             break;
           }
         }
@@ -618,16 +625,16 @@ namespace ModConductor.Protocol.V1 {
   }
 
   [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
-  public sealed partial class ModDeletionWorkspace : pb::IMessage<ModDeletionWorkspace>
+  public sealed partial class ModDeleted : pb::IMessage<ModDeleted>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
   #endif
   {
-    private static readonly pb::MessageParser<ModDeletionWorkspace> _parser = new pb::MessageParser<ModDeletionWorkspace>(() => new ModDeletionWorkspace());
+    private static readonly pb::MessageParser<ModDeleted> _parser = new pb::MessageParser<ModDeleted>(() => new ModDeleted());
     private pb::UnknownFieldSet _unknownFields;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public static pb::MessageParser<ModDeletionWorkspace> Parser { get { return _parser; } }
+    public static pb::MessageParser<ModDeleted> Parser { get { return _parser; } }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
@@ -643,7 +650,7 @@ namespace ModConductor.Protocol.V1 {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public ModDeletionWorkspace() {
+    public ModDeleted() {
       OnConstruction();
     }
 
@@ -651,223 +658,25 @@ namespace ModConductor.Protocol.V1 {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public ModDeletionWorkspace(ModDeletionWorkspace other) : this() {
-      workspaceId_ = other.workspaceId_;
+    public ModDeleted(ModDeleted other) : this() {
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public ModDeletionWorkspace Clone() {
-      return new ModDeletionWorkspace(this);
-    }
-
-    /// <summary>Field number for the "workspace_id" field.</summary>
-    public const int WorkspaceIdFieldNumber = 1;
-    private string workspaceId_ = "";
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public string WorkspaceId {
-      get { return workspaceId_; }
-      set {
-        workspaceId_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
-      }
+    public ModDeleted Clone() {
+      return new ModDeleted(this);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
-      return Equals(other as ModDeletionWorkspace);
+      return Equals(other as ModDeleted);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public bool Equals(ModDeletionWorkspace other) {
-      if (ReferenceEquals(other, null)) {
-        return false;
-      }
-      if (ReferenceEquals(other, this)) {
-        return true;
-      }
-      if (WorkspaceId != other.WorkspaceId) return false;
-      return Equals(_unknownFields, other._unknownFields);
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public override int GetHashCode() {
-      int hash = 1;
-      if (WorkspaceId.Length != 0) hash ^= WorkspaceId.GetHashCode();
-      if (_unknownFields != null) {
-        hash ^= _unknownFields.GetHashCode();
-      }
-      return hash;
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public override string ToString() {
-      return pb::JsonFormatter.ToDiagnosticString(this);
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public void WriteTo(pb::CodedOutputStream output) {
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
-      output.WriteRawMessage(this);
-    #else
-      if (WorkspaceId.Length != 0) {
-        output.WriteRawTag(10);
-        output.WriteString(WorkspaceId);
-      }
-      if (_unknownFields != null) {
-        _unknownFields.WriteTo(output);
-      }
-    #endif
-    }
-
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
-      if (WorkspaceId.Length != 0) {
-        output.WriteRawTag(10);
-        output.WriteString(WorkspaceId);
-      }
-      if (_unknownFields != null) {
-        _unknownFields.WriteTo(ref output);
-      }
-    }
-    #endif
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public int CalculateSize() {
-      int size = 0;
-      if (WorkspaceId.Length != 0) {
-        size += 1 + pb::CodedOutputStream.ComputeStringSize(WorkspaceId);
-      }
-      if (_unknownFields != null) {
-        size += _unknownFields.CalculateSize();
-      }
-      return size;
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public void MergeFrom(ModDeletionWorkspace other) {
-      if (other == null) {
-        return;
-      }
-      if (other.WorkspaceId.Length != 0) {
-        WorkspaceId = other.WorkspaceId;
-      }
-      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public void MergeFrom(pb::CodedInputStream input) {
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
-      input.ReadRawMessage(this);
-    #else
-      uint tag;
-      while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
-          default:
-            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
-            break;
-          case 10: {
-            WorkspaceId = input.ReadString();
-            break;
-          }
-        }
-      }
-    #endif
-    }
-
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
-      uint tag;
-      while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
-          default:
-            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
-            break;
-          case 10: {
-            WorkspaceId = input.ReadString();
-            break;
-          }
-        }
-      }
-    }
-    #endif
-
-  }
-
-  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
-  public sealed partial class ModDeletionPreviewClosed : pb::IMessage<ModDeletionPreviewClosed>
-  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
-      , pb::IBufferMessage
-  #endif
-  {
-    private static readonly pb::MessageParser<ModDeletionPreviewClosed> _parser = new pb::MessageParser<ModDeletionPreviewClosed>(() => new ModDeletionPreviewClosed());
-    private pb::UnknownFieldSet _unknownFields;
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public static pb::MessageParser<ModDeletionPreviewClosed> Parser { get { return _parser; } }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public static pbr::MessageDescriptor Descriptor {
-      get { return global::ModConductor.Protocol.V1.ModDeletionReflection.Descriptor.MessageTypes[3]; }
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    pbr::MessageDescriptor pb::IMessage.Descriptor {
-      get { return Descriptor; }
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public ModDeletionPreviewClosed() {
-      OnConstruction();
-    }
-
-    partial void OnConstruction();
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public ModDeletionPreviewClosed(ModDeletionPreviewClosed other) : this() {
-      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public ModDeletionPreviewClosed Clone() {
-      return new ModDeletionPreviewClosed(this);
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public override bool Equals(object other) {
-      return Equals(other as ModDeletionPreviewClosed);
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public bool Equals(ModDeletionPreviewClosed other) {
+    public bool Equals(ModDeleted other) {
       if (ReferenceEquals(other, null)) {
         return false;
       }
@@ -927,7 +736,7 @@ namespace ModConductor.Protocol.V1 {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public void MergeFrom(ModDeletionPreviewClosed other) {
+    public void MergeFrom(ModDeleted other) {
       if (other == null) {
         return;
       }
@@ -969,278 +778,6 @@ namespace ModConductor.Protocol.V1 {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
-        }
-      }
-    }
-    #endif
-
-  }
-
-  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
-  public sealed partial class StartModDeletionRequest : pb::IMessage<StartModDeletionRequest>
-  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
-      , pb::IBufferMessage
-  #endif
-  {
-    private static readonly pb::MessageParser<StartModDeletionRequest> _parser = new pb::MessageParser<StartModDeletionRequest>(() => new StartModDeletionRequest());
-    private pb::UnknownFieldSet _unknownFields;
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public static pb::MessageParser<StartModDeletionRequest> Parser { get { return _parser; } }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public static pbr::MessageDescriptor Descriptor {
-      get { return global::ModConductor.Protocol.V1.ModDeletionReflection.Descriptor.MessageTypes[4]; }
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    pbr::MessageDescriptor pb::IMessage.Descriptor {
-      get { return Descriptor; }
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public StartModDeletionRequest() {
-      OnConstruction();
-    }
-
-    partial void OnConstruction();
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public StartModDeletionRequest(StartModDeletionRequest other) : this() {
-      workspaceId_ = other.workspaceId_;
-      previewId_ = other.previewId_;
-      id_ = other.id_;
-      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public StartModDeletionRequest Clone() {
-      return new StartModDeletionRequest(this);
-    }
-
-    /// <summary>Field number for the "workspace_id" field.</summary>
-    public const int WorkspaceIdFieldNumber = 1;
-    private string workspaceId_ = "";
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public string WorkspaceId {
-      get { return workspaceId_; }
-      set {
-        workspaceId_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
-      }
-    }
-
-    /// <summary>Field number for the "preview_id" field.</summary>
-    public const int PreviewIdFieldNumber = 2;
-    private string previewId_ = "";
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public string PreviewId {
-      get { return previewId_; }
-      set {
-        previewId_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
-      }
-    }
-
-    /// <summary>Field number for the "id" field.</summary>
-    public const int IdFieldNumber = 3;
-    private string id_ = "";
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public string Id {
-      get { return id_; }
-      set {
-        id_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
-      }
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public override bool Equals(object other) {
-      return Equals(other as StartModDeletionRequest);
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public bool Equals(StartModDeletionRequest other) {
-      if (ReferenceEquals(other, null)) {
-        return false;
-      }
-      if (ReferenceEquals(other, this)) {
-        return true;
-      }
-      if (WorkspaceId != other.WorkspaceId) return false;
-      if (PreviewId != other.PreviewId) return false;
-      if (Id != other.Id) return false;
-      return Equals(_unknownFields, other._unknownFields);
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public override int GetHashCode() {
-      int hash = 1;
-      if (WorkspaceId.Length != 0) hash ^= WorkspaceId.GetHashCode();
-      if (PreviewId.Length != 0) hash ^= PreviewId.GetHashCode();
-      if (Id.Length != 0) hash ^= Id.GetHashCode();
-      if (_unknownFields != null) {
-        hash ^= _unknownFields.GetHashCode();
-      }
-      return hash;
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public override string ToString() {
-      return pb::JsonFormatter.ToDiagnosticString(this);
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public void WriteTo(pb::CodedOutputStream output) {
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
-      output.WriteRawMessage(this);
-    #else
-      if (WorkspaceId.Length != 0) {
-        output.WriteRawTag(10);
-        output.WriteString(WorkspaceId);
-      }
-      if (PreviewId.Length != 0) {
-        output.WriteRawTag(18);
-        output.WriteString(PreviewId);
-      }
-      if (Id.Length != 0) {
-        output.WriteRawTag(26);
-        output.WriteString(Id);
-      }
-      if (_unknownFields != null) {
-        _unknownFields.WriteTo(output);
-      }
-    #endif
-    }
-
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
-      if (WorkspaceId.Length != 0) {
-        output.WriteRawTag(10);
-        output.WriteString(WorkspaceId);
-      }
-      if (PreviewId.Length != 0) {
-        output.WriteRawTag(18);
-        output.WriteString(PreviewId);
-      }
-      if (Id.Length != 0) {
-        output.WriteRawTag(26);
-        output.WriteString(Id);
-      }
-      if (_unknownFields != null) {
-        _unknownFields.WriteTo(ref output);
-      }
-    }
-    #endif
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public int CalculateSize() {
-      int size = 0;
-      if (WorkspaceId.Length != 0) {
-        size += 1 + pb::CodedOutputStream.ComputeStringSize(WorkspaceId);
-      }
-      if (PreviewId.Length != 0) {
-        size += 1 + pb::CodedOutputStream.ComputeStringSize(PreviewId);
-      }
-      if (Id.Length != 0) {
-        size += 1 + pb::CodedOutputStream.ComputeStringSize(Id);
-      }
-      if (_unknownFields != null) {
-        size += _unknownFields.CalculateSize();
-      }
-      return size;
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public void MergeFrom(StartModDeletionRequest other) {
-      if (other == null) {
-        return;
-      }
-      if (other.WorkspaceId.Length != 0) {
-        WorkspaceId = other.WorkspaceId;
-      }
-      if (other.PreviewId.Length != 0) {
-        PreviewId = other.PreviewId;
-      }
-      if (other.Id.Length != 0) {
-        Id = other.Id;
-      }
-      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public void MergeFrom(pb::CodedInputStream input) {
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
-      input.ReadRawMessage(this);
-    #else
-      uint tag;
-      while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
-          default:
-            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
-            break;
-          case 10: {
-            WorkspaceId = input.ReadString();
-            break;
-          }
-          case 18: {
-            PreviewId = input.ReadString();
-            break;
-          }
-          case 26: {
-            Id = input.ReadString();
-            break;
-          }
-        }
-      }
-    #endif
-    }
-
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
-      uint tag;
-      while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
-          default:
-            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
-            break;
-          case 10: {
-            WorkspaceId = input.ReadString();
-            break;
-          }
-          case 18: {
-            PreviewId = input.ReadString();
-            break;
-          }
-          case 26: {
-            Id = input.ReadString();
-            break;
-          }
         }
       }
     }
@@ -1264,7 +801,7 @@ namespace ModConductor.Protocol.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::ModConductor.Protocol.V1.ModDeletionReflection.Descriptor.MessageTypes[5]; }
+      get { return global::ModConductor.Protocol.V1.ModDeletionReflection.Descriptor.MessageTypes[3]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -1589,7 +1126,7 @@ namespace ModConductor.Protocol.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::ModConductor.Protocol.V1.ModDeletionReflection.Descriptor.MessageTypes[6]; }
+      get { return global::ModConductor.Protocol.V1.ModDeletionReflection.Descriptor.MessageTypes[4]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -1825,7 +1362,7 @@ namespace ModConductor.Protocol.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::ModConductor.Protocol.V1.ModDeletionReflection.Descriptor.MessageTypes[7]; }
+      get { return global::ModConductor.Protocol.V1.ModDeletionReflection.Descriptor.MessageTypes[5]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -2187,7 +1724,7 @@ namespace ModConductor.Protocol.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::ModConductor.Protocol.V1.ModDeletionReflection.Descriptor.MessageTypes[8]; }
+      get { return global::ModConductor.Protocol.V1.ModDeletionReflection.Descriptor.MessageTypes[6]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -2207,7 +1744,6 @@ namespace ModConductor.Protocol.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public ModDeletionPreview(ModDeletionPreview other) : this() {
-      id_ = other.id_;
       workspaceId_ = other.workspaceId_;
       modId_ = other.modId_;
       revision_ = other.revision_;
@@ -2228,20 +1764,8 @@ namespace ModConductor.Protocol.V1 {
       return new ModDeletionPreview(this);
     }
 
-    /// <summary>Field number for the "id" field.</summary>
-    public const int IdFieldNumber = 1;
-    private string id_ = "";
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public string Id {
-      get { return id_; }
-      set {
-        id_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
-      }
-    }
-
     /// <summary>Field number for the "workspace_id" field.</summary>
-    public const int WorkspaceIdFieldNumber = 2;
+    public const int WorkspaceIdFieldNumber = 1;
     private string workspaceId_ = "";
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
@@ -2253,7 +1777,7 @@ namespace ModConductor.Protocol.V1 {
     }
 
     /// <summary>Field number for the "mod_id" field.</summary>
-    public const int ModIdFieldNumber = 3;
+    public const int ModIdFieldNumber = 2;
     private string modId_ = "";
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
@@ -2265,7 +1789,7 @@ namespace ModConductor.Protocol.V1 {
     }
 
     /// <summary>Field number for the "revision" field.</summary>
-    public const int RevisionFieldNumber = 4;
+    public const int RevisionFieldNumber = 3;
     private ulong revision_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
@@ -2277,7 +1801,7 @@ namespace ModConductor.Protocol.V1 {
     }
 
     /// <summary>Field number for the "name" field.</summary>
-    public const int NameFieldNumber = 5;
+    public const int NameFieldNumber = 4;
     private string name_ = "";
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
@@ -2289,7 +1813,7 @@ namespace ModConductor.Protocol.V1 {
     }
 
     /// <summary>Field number for the "versions" field.</summary>
-    public const int VersionsFieldNumber = 6;
+    public const int VersionsFieldNumber = 5;
     private uint versions_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
@@ -2301,9 +1825,9 @@ namespace ModConductor.Protocol.V1 {
     }
 
     /// <summary>Field number for the "backups" field.</summary>
-    public const int BackupsFieldNumber = 7;
+    public const int BackupsFieldNumber = 6;
     private static readonly pb::FieldCodec<string> _repeated_backups_codec
-        = pb::FieldCodec.ForString(58);
+        = pb::FieldCodec.ForString(50);
     private readonly pbc::RepeatedField<string> backups_ = new pbc::RepeatedField<string>();
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
@@ -2312,9 +1836,9 @@ namespace ModConductor.Protocol.V1 {
     }
 
     /// <summary>Field number for the "profiles" field.</summary>
-    public const int ProfilesFieldNumber = 8;
+    public const int ProfilesFieldNumber = 7;
     private static readonly pb::FieldCodec<global::ModConductor.Protocol.V1.ModDeletionProfile> _repeated_profiles_codec
-        = pb::FieldCodec.ForMessage(66, global::ModConductor.Protocol.V1.ModDeletionProfile.Parser);
+        = pb::FieldCodec.ForMessage(58, global::ModConductor.Protocol.V1.ModDeletionProfile.Parser);
     private readonly pbc::RepeatedField<global::ModConductor.Protocol.V1.ModDeletionProfile> profiles_ = new pbc::RepeatedField<global::ModConductor.Protocol.V1.ModDeletionProfile>();
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
@@ -2323,9 +1847,9 @@ namespace ModConductor.Protocol.V1 {
     }
 
     /// <summary>Field number for the "deployments" field.</summary>
-    public const int DeploymentsFieldNumber = 9;
+    public const int DeploymentsFieldNumber = 8;
     private static readonly pb::FieldCodec<global::ModConductor.Protocol.V1.ModDeletionDeployment> _repeated_deployments_codec
-        = pb::FieldCodec.ForMessage(74, global::ModConductor.Protocol.V1.ModDeletionDeployment.Parser);
+        = pb::FieldCodec.ForMessage(66, global::ModConductor.Protocol.V1.ModDeletionDeployment.Parser);
     private readonly pbc::RepeatedField<global::ModConductor.Protocol.V1.ModDeletionDeployment> deployments_ = new pbc::RepeatedField<global::ModConductor.Protocol.V1.ModDeletionDeployment>();
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
@@ -2334,9 +1858,9 @@ namespace ModConductor.Protocol.V1 {
     }
 
     /// <summary>Field number for the "files" field.</summary>
-    public const int FilesFieldNumber = 10;
+    public const int FilesFieldNumber = 9;
     private static readonly pb::FieldCodec<global::ModConductor.Protocol.V1.ModDeletionFile> _repeated_files_codec
-        = pb::FieldCodec.ForMessage(82, global::ModConductor.Protocol.V1.ModDeletionFile.Parser);
+        = pb::FieldCodec.ForMessage(74, global::ModConductor.Protocol.V1.ModDeletionFile.Parser);
     private readonly pbc::RepeatedField<global::ModConductor.Protocol.V1.ModDeletionFile> files_ = new pbc::RepeatedField<global::ModConductor.Protocol.V1.ModDeletionFile>();
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
@@ -2345,9 +1869,9 @@ namespace ModConductor.Protocol.V1 {
     }
 
     /// <summary>Field number for the "external" field.</summary>
-    public const int ExternalFieldNumber = 11;
+    public const int ExternalFieldNumber = 10;
     private static readonly pb::FieldCodec<string> _repeated_external_codec
-        = pb::FieldCodec.ForString(90);
+        = pb::FieldCodec.ForString(82);
     private readonly pbc::RepeatedField<string> external_ = new pbc::RepeatedField<string>();
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
@@ -2356,7 +1880,7 @@ namespace ModConductor.Protocol.V1 {
     }
 
     /// <summary>Field number for the "blocked" field.</summary>
-    public const int BlockedFieldNumber = 12;
+    public const int BlockedFieldNumber = 11;
     private readonly static string BlockedDefaultValue = "";
 
     private string blocked_;
@@ -2396,7 +1920,6 @@ namespace ModConductor.Protocol.V1 {
       if (ReferenceEquals(other, this)) {
         return true;
       }
-      if (Id != other.Id) return false;
       if (WorkspaceId != other.WorkspaceId) return false;
       if (ModId != other.ModId) return false;
       if (Revision != other.Revision) return false;
@@ -2415,7 +1938,6 @@ namespace ModConductor.Protocol.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override int GetHashCode() {
       int hash = 1;
-      if (Id.Length != 0) hash ^= Id.GetHashCode();
       if (WorkspaceId.Length != 0) hash ^= WorkspaceId.GetHashCode();
       if (ModId.Length != 0) hash ^= ModId.GetHashCode();
       if (Revision != 0UL) hash ^= Revision.GetHashCode();
@@ -2445,28 +1967,24 @@ namespace ModConductor.Protocol.V1 {
     #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       output.WriteRawMessage(this);
     #else
-      if (Id.Length != 0) {
-        output.WriteRawTag(10);
-        output.WriteString(Id);
-      }
       if (WorkspaceId.Length != 0) {
-        output.WriteRawTag(18);
+        output.WriteRawTag(10);
         output.WriteString(WorkspaceId);
       }
       if (ModId.Length != 0) {
-        output.WriteRawTag(26);
+        output.WriteRawTag(18);
         output.WriteString(ModId);
       }
       if (Revision != 0UL) {
-        output.WriteRawTag(32);
+        output.WriteRawTag(24);
         output.WriteUInt64(Revision);
       }
       if (Name.Length != 0) {
-        output.WriteRawTag(42);
+        output.WriteRawTag(34);
         output.WriteString(Name);
       }
       if (Versions != 0) {
-        output.WriteRawTag(48);
+        output.WriteRawTag(40);
         output.WriteUInt32(Versions);
       }
       backups_.WriteTo(output, _repeated_backups_codec);
@@ -2475,7 +1993,7 @@ namespace ModConductor.Protocol.V1 {
       files_.WriteTo(output, _repeated_files_codec);
       external_.WriteTo(output, _repeated_external_codec);
       if (HasBlocked) {
-        output.WriteRawTag(98);
+        output.WriteRawTag(90);
         output.WriteString(Blocked);
       }
       if (_unknownFields != null) {
@@ -2488,28 +2006,24 @@ namespace ModConductor.Protocol.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
-      if (Id.Length != 0) {
-        output.WriteRawTag(10);
-        output.WriteString(Id);
-      }
       if (WorkspaceId.Length != 0) {
-        output.WriteRawTag(18);
+        output.WriteRawTag(10);
         output.WriteString(WorkspaceId);
       }
       if (ModId.Length != 0) {
-        output.WriteRawTag(26);
+        output.WriteRawTag(18);
         output.WriteString(ModId);
       }
       if (Revision != 0UL) {
-        output.WriteRawTag(32);
+        output.WriteRawTag(24);
         output.WriteUInt64(Revision);
       }
       if (Name.Length != 0) {
-        output.WriteRawTag(42);
+        output.WriteRawTag(34);
         output.WriteString(Name);
       }
       if (Versions != 0) {
-        output.WriteRawTag(48);
+        output.WriteRawTag(40);
         output.WriteUInt32(Versions);
       }
       backups_.WriteTo(ref output, _repeated_backups_codec);
@@ -2518,7 +2032,7 @@ namespace ModConductor.Protocol.V1 {
       files_.WriteTo(ref output, _repeated_files_codec);
       external_.WriteTo(ref output, _repeated_external_codec);
       if (HasBlocked) {
-        output.WriteRawTag(98);
+        output.WriteRawTag(90);
         output.WriteString(Blocked);
       }
       if (_unknownFields != null) {
@@ -2531,9 +2045,6 @@ namespace ModConductor.Protocol.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int CalculateSize() {
       int size = 0;
-      if (Id.Length != 0) {
-        size += 1 + pb::CodedOutputStream.ComputeStringSize(Id);
-      }
       if (WorkspaceId.Length != 0) {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(WorkspaceId);
       }
@@ -2568,9 +2079,6 @@ namespace ModConductor.Protocol.V1 {
     public void MergeFrom(ModDeletionPreview other) {
       if (other == null) {
         return;
-      }
-      if (other.Id.Length != 0) {
-        Id = other.Id;
       }
       if (other.WorkspaceId.Length != 0) {
         WorkspaceId = other.WorkspaceId;
@@ -2615,50 +2123,46 @@ namespace ModConductor.Protocol.V1 {
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
           case 10: {
-            Id = input.ReadString();
-            break;
-          }
-          case 18: {
             WorkspaceId = input.ReadString();
             break;
           }
-          case 26: {
+          case 18: {
             ModId = input.ReadString();
             break;
           }
-          case 32: {
+          case 24: {
             Revision = input.ReadUInt64();
             break;
           }
-          case 42: {
+          case 34: {
             Name = input.ReadString();
             break;
           }
-          case 48: {
+          case 40: {
             Versions = input.ReadUInt32();
             break;
           }
-          case 58: {
+          case 50: {
             backups_.AddEntriesFrom(input, _repeated_backups_codec);
             break;
           }
-          case 66: {
+          case 58: {
             profiles_.AddEntriesFrom(input, _repeated_profiles_codec);
             break;
           }
-          case 74: {
+          case 66: {
             deployments_.AddEntriesFrom(input, _repeated_deployments_codec);
             break;
           }
-          case 82: {
+          case 74: {
             files_.AddEntriesFrom(input, _repeated_files_codec);
             break;
           }
-          case 90: {
+          case 82: {
             external_.AddEntriesFrom(input, _repeated_external_codec);
             break;
           }
-          case 98: {
+          case 90: {
             Blocked = input.ReadString();
             break;
           }
@@ -2682,672 +2186,47 @@ namespace ModConductor.Protocol.V1 {
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
           case 10: {
-            Id = input.ReadString();
-            break;
-          }
-          case 18: {
             WorkspaceId = input.ReadString();
             break;
           }
-          case 26: {
+          case 18: {
             ModId = input.ReadString();
             break;
           }
-          case 32: {
+          case 24: {
             Revision = input.ReadUInt64();
             break;
           }
-          case 42: {
+          case 34: {
             Name = input.ReadString();
             break;
           }
-          case 48: {
+          case 40: {
             Versions = input.ReadUInt32();
             break;
           }
-          case 58: {
+          case 50: {
             backups_.AddEntriesFrom(ref input, _repeated_backups_codec);
             break;
           }
-          case 66: {
+          case 58: {
             profiles_.AddEntriesFrom(ref input, _repeated_profiles_codec);
             break;
           }
-          case 74: {
+          case 66: {
             deployments_.AddEntriesFrom(ref input, _repeated_deployments_codec);
             break;
           }
-          case 82: {
+          case 74: {
             files_.AddEntriesFrom(ref input, _repeated_files_codec);
             break;
           }
-          case 90: {
+          case 82: {
             external_.AddEntriesFrom(ref input, _repeated_external_codec);
             break;
           }
-          case 98: {
+          case 90: {
             Blocked = input.ReadString();
-            break;
-          }
-        }
-      }
-    }
-    #endif
-
-  }
-
-  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
-  public sealed partial class ModDeletionStatus : pb::IMessage<ModDeletionStatus>
-  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
-      , pb::IBufferMessage
-  #endif
-  {
-    private static readonly pb::MessageParser<ModDeletionStatus> _parser = new pb::MessageParser<ModDeletionStatus>(() => new ModDeletionStatus());
-    private pb::UnknownFieldSet _unknownFields;
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public static pb::MessageParser<ModDeletionStatus> Parser { get { return _parser; } }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public static pbr::MessageDescriptor Descriptor {
-      get { return global::ModConductor.Protocol.V1.ModDeletionReflection.Descriptor.MessageTypes[9]; }
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    pbr::MessageDescriptor pb::IMessage.Descriptor {
-      get { return Descriptor; }
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public ModDeletionStatus() {
-      OnConstruction();
-    }
-
-    partial void OnConstruction();
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public ModDeletionStatus(ModDeletionStatus other) : this() {
-      id_ = other.id_;
-      workspaceId_ = other.workspaceId_;
-      modId_ = other.modId_;
-      name_ = other.name_;
-      phase_ = other.phase_;
-      remaining_ = other.remaining_;
-      problem_ = other.problem_;
-      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public ModDeletionStatus Clone() {
-      return new ModDeletionStatus(this);
-    }
-
-    /// <summary>Field number for the "id" field.</summary>
-    public const int IdFieldNumber = 1;
-    private string id_ = "";
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public string Id {
-      get { return id_; }
-      set {
-        id_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
-      }
-    }
-
-    /// <summary>Field number for the "workspace_id" field.</summary>
-    public const int WorkspaceIdFieldNumber = 2;
-    private string workspaceId_ = "";
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public string WorkspaceId {
-      get { return workspaceId_; }
-      set {
-        workspaceId_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
-      }
-    }
-
-    /// <summary>Field number for the "mod_id" field.</summary>
-    public const int ModIdFieldNumber = 3;
-    private string modId_ = "";
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public string ModId {
-      get { return modId_; }
-      set {
-        modId_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
-      }
-    }
-
-    /// <summary>Field number for the "name" field.</summary>
-    public const int NameFieldNumber = 4;
-    private string name_ = "";
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public string Name {
-      get { return name_; }
-      set {
-        name_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
-      }
-    }
-
-    /// <summary>Field number for the "phase" field.</summary>
-    public const int PhaseFieldNumber = 5;
-    private global::ModConductor.Protocol.V1.ModDeletionPhase phase_ = global::ModConductor.Protocol.V1.ModDeletionPhase.Running;
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public global::ModConductor.Protocol.V1.ModDeletionPhase Phase {
-      get { return phase_; }
-      set {
-        phase_ = value;
-      }
-    }
-
-    /// <summary>Field number for the "remaining" field.</summary>
-    public const int RemainingFieldNumber = 6;
-    private uint remaining_;
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public uint Remaining {
-      get { return remaining_; }
-      set {
-        remaining_ = value;
-      }
-    }
-
-    /// <summary>Field number for the "problem" field.</summary>
-    public const int ProblemFieldNumber = 7;
-    private readonly static string ProblemDefaultValue = "";
-
-    private string problem_;
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public string Problem {
-      get { return problem_ ?? ProblemDefaultValue; }
-      set {
-        problem_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
-      }
-    }
-    /// <summary>Gets whether the "problem" field is set</summary>
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public bool HasProblem {
-      get { return problem_ != null; }
-    }
-    /// <summary>Clears the value of the "problem" field</summary>
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public void ClearProblem() {
-      problem_ = null;
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public override bool Equals(object other) {
-      return Equals(other as ModDeletionStatus);
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public bool Equals(ModDeletionStatus other) {
-      if (ReferenceEquals(other, null)) {
-        return false;
-      }
-      if (ReferenceEquals(other, this)) {
-        return true;
-      }
-      if (Id != other.Id) return false;
-      if (WorkspaceId != other.WorkspaceId) return false;
-      if (ModId != other.ModId) return false;
-      if (Name != other.Name) return false;
-      if (Phase != other.Phase) return false;
-      if (Remaining != other.Remaining) return false;
-      if (Problem != other.Problem) return false;
-      return Equals(_unknownFields, other._unknownFields);
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public override int GetHashCode() {
-      int hash = 1;
-      if (Id.Length != 0) hash ^= Id.GetHashCode();
-      if (WorkspaceId.Length != 0) hash ^= WorkspaceId.GetHashCode();
-      if (ModId.Length != 0) hash ^= ModId.GetHashCode();
-      if (Name.Length != 0) hash ^= Name.GetHashCode();
-      if (Phase != global::ModConductor.Protocol.V1.ModDeletionPhase.Running) hash ^= Phase.GetHashCode();
-      if (Remaining != 0) hash ^= Remaining.GetHashCode();
-      if (HasProblem) hash ^= Problem.GetHashCode();
-      if (_unknownFields != null) {
-        hash ^= _unknownFields.GetHashCode();
-      }
-      return hash;
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public override string ToString() {
-      return pb::JsonFormatter.ToDiagnosticString(this);
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public void WriteTo(pb::CodedOutputStream output) {
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
-      output.WriteRawMessage(this);
-    #else
-      if (Id.Length != 0) {
-        output.WriteRawTag(10);
-        output.WriteString(Id);
-      }
-      if (WorkspaceId.Length != 0) {
-        output.WriteRawTag(18);
-        output.WriteString(WorkspaceId);
-      }
-      if (ModId.Length != 0) {
-        output.WriteRawTag(26);
-        output.WriteString(ModId);
-      }
-      if (Name.Length != 0) {
-        output.WriteRawTag(34);
-        output.WriteString(Name);
-      }
-      if (Phase != global::ModConductor.Protocol.V1.ModDeletionPhase.Running) {
-        output.WriteRawTag(40);
-        output.WriteEnum((int) Phase);
-      }
-      if (Remaining != 0) {
-        output.WriteRawTag(48);
-        output.WriteUInt32(Remaining);
-      }
-      if (HasProblem) {
-        output.WriteRawTag(58);
-        output.WriteString(Problem);
-      }
-      if (_unknownFields != null) {
-        _unknownFields.WriteTo(output);
-      }
-    #endif
-    }
-
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
-      if (Id.Length != 0) {
-        output.WriteRawTag(10);
-        output.WriteString(Id);
-      }
-      if (WorkspaceId.Length != 0) {
-        output.WriteRawTag(18);
-        output.WriteString(WorkspaceId);
-      }
-      if (ModId.Length != 0) {
-        output.WriteRawTag(26);
-        output.WriteString(ModId);
-      }
-      if (Name.Length != 0) {
-        output.WriteRawTag(34);
-        output.WriteString(Name);
-      }
-      if (Phase != global::ModConductor.Protocol.V1.ModDeletionPhase.Running) {
-        output.WriteRawTag(40);
-        output.WriteEnum((int) Phase);
-      }
-      if (Remaining != 0) {
-        output.WriteRawTag(48);
-        output.WriteUInt32(Remaining);
-      }
-      if (HasProblem) {
-        output.WriteRawTag(58);
-        output.WriteString(Problem);
-      }
-      if (_unknownFields != null) {
-        _unknownFields.WriteTo(ref output);
-      }
-    }
-    #endif
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public int CalculateSize() {
-      int size = 0;
-      if (Id.Length != 0) {
-        size += 1 + pb::CodedOutputStream.ComputeStringSize(Id);
-      }
-      if (WorkspaceId.Length != 0) {
-        size += 1 + pb::CodedOutputStream.ComputeStringSize(WorkspaceId);
-      }
-      if (ModId.Length != 0) {
-        size += 1 + pb::CodedOutputStream.ComputeStringSize(ModId);
-      }
-      if (Name.Length != 0) {
-        size += 1 + pb::CodedOutputStream.ComputeStringSize(Name);
-      }
-      if (Phase != global::ModConductor.Protocol.V1.ModDeletionPhase.Running) {
-        size += 1 + pb::CodedOutputStream.ComputeEnumSize((int) Phase);
-      }
-      if (Remaining != 0) {
-        size += 1 + pb::CodedOutputStream.ComputeUInt32Size(Remaining);
-      }
-      if (HasProblem) {
-        size += 1 + pb::CodedOutputStream.ComputeStringSize(Problem);
-      }
-      if (_unknownFields != null) {
-        size += _unknownFields.CalculateSize();
-      }
-      return size;
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public void MergeFrom(ModDeletionStatus other) {
-      if (other == null) {
-        return;
-      }
-      if (other.Id.Length != 0) {
-        Id = other.Id;
-      }
-      if (other.WorkspaceId.Length != 0) {
-        WorkspaceId = other.WorkspaceId;
-      }
-      if (other.ModId.Length != 0) {
-        ModId = other.ModId;
-      }
-      if (other.Name.Length != 0) {
-        Name = other.Name;
-      }
-      if (other.Phase != global::ModConductor.Protocol.V1.ModDeletionPhase.Running) {
-        Phase = other.Phase;
-      }
-      if (other.Remaining != 0) {
-        Remaining = other.Remaining;
-      }
-      if (other.HasProblem) {
-        Problem = other.Problem;
-      }
-      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public void MergeFrom(pb::CodedInputStream input) {
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
-      input.ReadRawMessage(this);
-    #else
-      uint tag;
-      while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
-          default:
-            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
-            break;
-          case 10: {
-            Id = input.ReadString();
-            break;
-          }
-          case 18: {
-            WorkspaceId = input.ReadString();
-            break;
-          }
-          case 26: {
-            ModId = input.ReadString();
-            break;
-          }
-          case 34: {
-            Name = input.ReadString();
-            break;
-          }
-          case 40: {
-            Phase = (global::ModConductor.Protocol.V1.ModDeletionPhase) input.ReadEnum();
-            break;
-          }
-          case 48: {
-            Remaining = input.ReadUInt32();
-            break;
-          }
-          case 58: {
-            Problem = input.ReadString();
-            break;
-          }
-        }
-      }
-    #endif
-    }
-
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
-      uint tag;
-      while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
-          default:
-            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
-            break;
-          case 10: {
-            Id = input.ReadString();
-            break;
-          }
-          case 18: {
-            WorkspaceId = input.ReadString();
-            break;
-          }
-          case 26: {
-            ModId = input.ReadString();
-            break;
-          }
-          case 34: {
-            Name = input.ReadString();
-            break;
-          }
-          case 40: {
-            Phase = (global::ModConductor.Protocol.V1.ModDeletionPhase) input.ReadEnum();
-            break;
-          }
-          case 48: {
-            Remaining = input.ReadUInt32();
-            break;
-          }
-          case 58: {
-            Problem = input.ReadString();
-            break;
-          }
-        }
-      }
-    }
-    #endif
-
-  }
-
-  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
-  public sealed partial class ModDeletionList : pb::IMessage<ModDeletionList>
-  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
-      , pb::IBufferMessage
-  #endif
-  {
-    private static readonly pb::MessageParser<ModDeletionList> _parser = new pb::MessageParser<ModDeletionList>(() => new ModDeletionList());
-    private pb::UnknownFieldSet _unknownFields;
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public static pb::MessageParser<ModDeletionList> Parser { get { return _parser; } }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public static pbr::MessageDescriptor Descriptor {
-      get { return global::ModConductor.Protocol.V1.ModDeletionReflection.Descriptor.MessageTypes[10]; }
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    pbr::MessageDescriptor pb::IMessage.Descriptor {
-      get { return Descriptor; }
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public ModDeletionList() {
-      OnConstruction();
-    }
-
-    partial void OnConstruction();
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public ModDeletionList(ModDeletionList other) : this() {
-      entries_ = other.entries_.Clone();
-      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public ModDeletionList Clone() {
-      return new ModDeletionList(this);
-    }
-
-    /// <summary>Field number for the "entries" field.</summary>
-    public const int EntriesFieldNumber = 1;
-    private static readonly pb::FieldCodec<global::ModConductor.Protocol.V1.ModDeletionStatus> _repeated_entries_codec
-        = pb::FieldCodec.ForMessage(10, global::ModConductor.Protocol.V1.ModDeletionStatus.Parser);
-    private readonly pbc::RepeatedField<global::ModConductor.Protocol.V1.ModDeletionStatus> entries_ = new pbc::RepeatedField<global::ModConductor.Protocol.V1.ModDeletionStatus>();
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public pbc::RepeatedField<global::ModConductor.Protocol.V1.ModDeletionStatus> Entries {
-      get { return entries_; }
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public override bool Equals(object other) {
-      return Equals(other as ModDeletionList);
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public bool Equals(ModDeletionList other) {
-      if (ReferenceEquals(other, null)) {
-        return false;
-      }
-      if (ReferenceEquals(other, this)) {
-        return true;
-      }
-      if(!entries_.Equals(other.entries_)) return false;
-      return Equals(_unknownFields, other._unknownFields);
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public override int GetHashCode() {
-      int hash = 1;
-      hash ^= entries_.GetHashCode();
-      if (_unknownFields != null) {
-        hash ^= _unknownFields.GetHashCode();
-      }
-      return hash;
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public override string ToString() {
-      return pb::JsonFormatter.ToDiagnosticString(this);
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public void WriteTo(pb::CodedOutputStream output) {
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
-      output.WriteRawMessage(this);
-    #else
-      entries_.WriteTo(output, _repeated_entries_codec);
-      if (_unknownFields != null) {
-        _unknownFields.WriteTo(output);
-      }
-    #endif
-    }
-
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
-      entries_.WriteTo(ref output, _repeated_entries_codec);
-      if (_unknownFields != null) {
-        _unknownFields.WriteTo(ref output);
-      }
-    }
-    #endif
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public int CalculateSize() {
-      int size = 0;
-      size += entries_.CalculateSize(_repeated_entries_codec);
-      if (_unknownFields != null) {
-        size += _unknownFields.CalculateSize();
-      }
-      return size;
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public void MergeFrom(ModDeletionList other) {
-      if (other == null) {
-        return;
-      }
-      entries_.Add(other.entries_);
-      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public void MergeFrom(pb::CodedInputStream input) {
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
-      input.ReadRawMessage(this);
-    #else
-      uint tag;
-      while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
-          default:
-            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
-            break;
-          case 10: {
-            entries_.AddEntriesFrom(input, _repeated_entries_codec);
-            break;
-          }
-        }
-      }
-    #endif
-    }
-
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
-      uint tag;
-      while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
-          default:
-            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
-            break;
-          case 10: {
-            entries_.AddEntriesFrom(ref input, _repeated_entries_codec);
             break;
           }
         }

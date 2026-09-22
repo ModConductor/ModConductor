@@ -34,7 +34,6 @@ module InventoryPolicy =
                 []
 
         match kind with
-        | _ when status = InventoryStatus.Deleting -> []
         | ModKind.Regular ->
             ModAction.EditMetadata
             :: (if status = InventoryStatus.Ready || status = InventoryStatus.Changed then

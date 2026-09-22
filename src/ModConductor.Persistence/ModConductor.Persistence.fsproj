@@ -89,8 +89,7 @@
     <Compile Include="DeletionModels.fs" />
     <Compile Include="BundleDeletion.fs" />
     <Compile Include="DeletionSnapshot.fs" />
-    <Compile Include="DeletionPlanning.fs" />
-    <Compile Include="DeletionRows.fs" />
+    <Compile Include="DeletionInspection.fs" />
     <Compile Include="DeletionFiles.fs" />
     <Compile Include="DeletionCompletion.fs" />
     <Compile Include="DeletionStore.fs" />

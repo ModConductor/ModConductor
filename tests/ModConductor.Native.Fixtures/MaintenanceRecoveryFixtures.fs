@@ -63,8 +63,8 @@ module MaintenanceRecoveryFixtures =
             store.Installations.StartUpdateAtCheckpoint(workspace, preview.Id, id, hook)
             |> ignore
         else
-            let preview = store.Deletions.Prepare(workspace, modId, current.Revision) |> wait
-            store.Deletions.StartAtCheckpoint(workspace, preview.Id, id, hook) |> ignore
+            store.Deletions.DeleteAtCheckpoint(workspace, modId, current.Revision, hook)
+            |> wait
 
         Thread.Sleep Timeout.Infinite
 
@@ -229,94 +229,134 @@ module MaintenanceRecoveryFixtures =
 
             let archive = store.Artifacts.Read(workspace, archiveId) |> wait |> result
             check "UnpublishedUpdateDoesNotClaimInstalledProvenance" (archive.Links.IsEmpty)
-
-        let deletion = Guid.NewGuid()
-
-        do
-            use child = runChild modId "delete" deletion "after-deletion-effect"
-
-            if child.Line() <> "ready" then
-                failwith "The deletion effect checkpoint was not reached."
-
-            child.Terminate()
+            store.Installations.Cancel(workspace, update) |> wait |> ignore
+            store.Installations.Discard(workspace, update) |> wait |> ignore
 
         do
             use store = new OperationStore(state)
-            let pending = store.Deletions.Recent workspace |> wait |> List.exactlyOne
+            let library = store.ModLibrary :> IModLibrary
+
+            let target =
+                (library.Scan(workspace, 100) |> wait |> result).Entries
+                |> List.find (fun entry -> entry.Id = modId)
+
+            let mutable failed = false
+
+            try
+                store.Deletions.DeleteAtCheckpoint(
+                    workspace,
+                    modId,
+                    target.Revision,
+                    fun checkpoint ->
+                        if checkpoint = "before-deletion-effect" then
+                            raise (IOException "Injected deletion failure.")
+                )
+                |> wait
+            with _ ->
+                failed <- true
 
             check
-                "DeletionReturnsIncompleteWithoutAutomaticEffects"
-                (pending.Id = deletion && pending.Phase = DeletionPhase.Incomplete)
-
-            store.Deletions.Continue(workspace, deletion) |> ignore
-            let deadline = DateTime.UtcNow.AddSeconds 20
-            let mutable current = store.Deletions.Read(workspace, deletion) |> wait
-
-            while current.Phase = DeletionPhase.Running && DateTime.UtcNow < deadline do
-                Thread.Sleep 10
-                current <- store.Deletions.Read(workspace, deletion) |> wait
-
-            check
-                "ContinueFinishesUnacknowledgedEffectAndRemovesReceipt"
-                (current.Phase = DeletionPhase.Complete
-                 && (store.Deletions.Recent workspace |> wait).IsEmpty)
-
-            use connection = MaintenanceDeployments.database state
-
-            check
-                "DeletionIncludesInterruptedUpdateTemporaryData"
-                (Sqlite.number
-                    connection
-                    null
-                    "SELECT count(*) FROM archive_installations WHERE mod_id=$mod"
-                    [ "$mod", box (string modId) ] = 0L
-                 && Directory.GetFiles(root, "*", SearchOption.AllDirectories)
-                    |> Array.forall (fun file ->
-                        not (
-                            file.EndsWith(".payload")
-                            || file.EndsWith(".archive")
-                            || file.EndsWith(".partial")
-                        )))
+                "FilesystemFailureKeepsRegistration"
+                (failed
+                 && (library.Scan(workspace, 100) |> wait |> result).Entries
+                    |> List.exists (fun entry -> entry.Id = modId))
 
             let source = Directory.CreateDirectory(Path.Combine(root, "registered-source"))
             File.WriteAllText(Path.Combine(source.FullName, "file.txt"), "registered")
             admissionMod <- Guid.NewGuid()
 
             let registered =
-                (store.ModLibrary :> IModLibrary)
-                    .Register(
-                        workspace,
-                        admissionMod,
-                        { Name = "Admission fixture"
-                          Notes = ""
-                          Comment = ""
-                          Version = ""
-                          Source = ""
-                          Categories = [] },
-                        Registration.Directory(
-                            ModKind.Regular,
-                            ModConductor.Platform.LogicalPath.create [ source.Name ] |> result
-                        )
+                library.Register(
+                    workspace,
+                    admissionMod,
+                    { Name = "Admission fixture"
+                      Notes = ""
+                      Comment = ""
+                      Version = ""
+                      Source = ""
+                      Categories = [] },
+                    Registration.Directory(
+                        ModKind.Regular,
+                        ModConductor.Platform.LogicalPath.create [ source.Name ] |> result
                     )
+                )
                 |> wait
                 |> result
 
-            (store.ModLibrary :> IModLibrary)
-                .Publish(registered.Id, registered.Revision, Guid.NewGuid())
+            library.Publish(registered.Id, registered.Revision, Guid.NewGuid())
             |> wait
             |> result
             |> ignore
 
-            store.Deletions.Stop() |> wait
+            let updateArchive = Path.Combine(area, "admission-update.zip")
+            MaintenanceFixtures.zip updateArchive [ "Data/file.txt", "updated" ]
 
-        let admissionDeletion = Guid.NewGuid()
+            archiveId <-
+                (store.Artifacts.Add(
+                    { Id = Guid.NewGuid()
+                      WorkspaceId = workspace
+                      Path = updateArchive
+                      Storage = ArtifactStorage.Copy },
+                    token
+                 )
+                 |> wait
+                 |> result)
+                    .Id
 
         do
-            use child =
-                runChild admissionMod "delete" admissionDeletion "before-deletion-effect"
+            use child = runChild admissionMod "update" (Guid.NewGuid()) "file-observed"
 
             if child.Line() <> "ready" then
-                failwith "The admission deletion checkpoint was not reached."
+                failwith "The active update checkpoint was not reached."
+
+            use store = new OperationStore(state)
+
+            let target =
+                ((store.ModLibrary :> IModLibrary).Scan(workspace, 100) |> wait |> result).Entries
+                |> List.find (fun entry -> entry.Id = admissionMod)
+
+            let mutable refused = false
+
+            try
+                store.Deletions.Delete(workspace, admissionMod, target.Revision) |> wait
+            with _ ->
+                refused <- true
+
+            check "SameModActiveOperationRefusesDeletion" refused
+            child.Terminate()
+
+        do
+            use child = runChild modId "delete" (Guid.NewGuid()) "before-deletion-completion"
+
+            if child.Line() <> "ready" then
+                failwith "The deletion completion checkpoint was not reached."
+
+            use store = new OperationStore(state)
+            let library = store.ModLibrary :> IModLibrary
+
+            let unrelated =
+                (library.Scan(workspace, 100) |> wait |> result).Entries
+                |> List.find (fun entry -> entry.Id = admissionMod)
+
+            let edited =
+                library.Edit(
+                    admissionMod,
+                    unrelated.Revision,
+                    { unrelated.Metadata with
+                        Notes = "unrelated operation completed" }
+                )
+                |> wait
+
+            check
+                "UnrelatedModOperationContinuesDuringDeletion"
+                (match edited with
+                 | Ok entry -> entry.Metadata.Notes <> ""
+                 | Error _ -> false)
+
+            check
+                "ProcessStopBeforeDatabaseRemovalKeepsRegistration"
+                ((library.Scan(workspace, 100) |> wait |> result).Entries
+                 |> List.exists (fun entry -> entry.Id = modId))
 
             child.Terminate()
 
@@ -324,57 +364,52 @@ module MaintenanceRecoveryFixtures =
             use store = new OperationStore(state)
             let library = store.ModLibrary :> IModLibrary
 
-            let expected =
+            let target =
                 (library.Scan(workspace, 100) |> wait |> result).Entries
-                |> List.find (fun entry -> entry.Id = admissionMod)
-                |> _.Revision
+                |> List.find (fun entry -> entry.Id = modId)
 
-            let pending = store.Deletions.Recent workspace |> wait |> List.exactlyOne
-
-            let metadata =
-                library.Edit(
-                    admissionMod,
-                    expected,
-                    { Name = "Admission fixture"
-                      Notes = "not applied"
-                      Comment = ""
-                      Version = ""
-                      Source = ""
-                      Categories = [] }
-                )
-                |> wait
+            use connection = MaintenanceDeployments.database state
 
             check
-                "RecoveredDeletionMetadataEditUsesOperationSpecificResult"
-                (metadata = Error LibraryError.UnsupportedAction)
+                "RestartHasNoDeletionRecoverySurface"
+                (Sqlite.number
+                    connection
+                    null
+                    "SELECT count(*) FROM sqlite_master WHERE type='table' AND name LIKE 'mod_deletion%'"
+                    [] = 0L)
 
-            let publication =
-                library.Publish(admissionMod, expected, Guid.NewGuid()) |> wait
+            let targetOwnedNames =
+                DeletionQueries.ids
+                    connection
+                    null
+                    "SELECT m.payload_id FROM mod_manifest m JOIN mod_versions v ON v.id=m.version_id WHERE v.mod_id=$mod UNION SELECT f.payload_id FROM installation_files f JOIN archive_installations i ON i.id=f.installation_id WHERE i.mod_id=$mod"
+                    [ "$mod", box (string modId) ]
+                |> List.map LibraryFiles.payloadName
+                |> Set.ofList
 
-            check "RecoveredDeletionAdmitsPublication" (Result.isOk publication)
-
-            let stillPending = store.Deletions.Recent workspace |> wait |> List.exactlyOne
-
-            check
-                "RecoveredDeletionRemainsAvailableAfterPublication"
-                (pending.Id = admissionDeletion
-                 && pending.Phase = DeletionPhase.Incomplete
-                 && stillPending.Id = admissionDeletion
-                 && stillPending.Phase = DeletionPhase.Incomplete)
-
-            store.Deletions.Continue(workspace, admissionDeletion) |> ignore
-            let deadline = DateTime.UtcNow.AddSeconds 20
-            let mutable current = store.Deletions.Read(workspace, admissionDeletion) |> wait
-
-            while current.Phase = DeletionPhase.Running && DateTime.UtcNow < deadline do
-                Thread.Sleep 10
-                current <- store.Deletions.Read(workspace, admissionDeletion) |> wait
+            store.Deletions.Delete(workspace, modId, target.Revision) |> wait
 
             check
-                "RecoveredDeletionContinuesAfterPublication"
-                (current.Phase = DeletionPhase.Complete
-                 && (store.Deletions.Recent workspace |> wait).IsEmpty)
+                "RetryToleratesAlreadyMissingOwnedPaths"
+                ((library.Scan(workspace, 100) |> wait |> result).Entries
+                 |> List.forall (fun entry -> entry.Id <> modId))
 
-            store.Deletions.Stop() |> wait
+            check
+                "DirectDeletionRemovesInterruptedUpdateData"
+                (Sqlite.number
+                    connection
+                    null
+                    "SELECT count(*) FROM archive_installations WHERE mod_id=$mod"
+                    [ "$mod", box (string modId) ] = 0L
+                 && Directory.GetFiles(root, "*", SearchOption.AllDirectories)
+                    |> Array.forall (fun file ->
+                        not (targetOwnedNames.Contains(Path.GetFileName file))))
+
+            check
+                "UnrelatedModRemainsAfterDeletionRetry"
+                ((library.Scan(workspace, 100) |> wait |> result).Entries
+                 |> List.exists (fun entry ->
+                     entry.Id = admissionMod
+                     && entry.Metadata.Notes = "unrelated operation completed"))
 
         writer.WriteEndObject()

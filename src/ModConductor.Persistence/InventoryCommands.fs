@@ -88,13 +88,7 @@ module internal InventoryCommands =
                                                     transaction
                                                     value.ModId)
                                             |> Option.exists (fun value ->
-                                                value.Entry.WorkspaceId = workspace
-                                                && not (
-                                                    MaintenanceClaims.deleting
-                                                        database.Connection
-                                                        transaction
-                                                        value.Entry.Id
-                                                )))
+                                                value.Entry.WorkspaceId = workspace))
 
                                     let canonical =
                                         CategoryRows.canonicalMetadata

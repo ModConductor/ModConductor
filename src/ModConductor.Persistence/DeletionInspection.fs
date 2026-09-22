@@ -10,7 +10,7 @@ open ModConductor.ArtifactLibrary
 open ModConductor.Platform
 open ModConductor.GeneratedOutputs
 
-module internal DeletionPlanning =
+module internal DeletionInspection =
     let private refuse message = raise (InstallationException message)
 
     let read (database: StateDatabase) (access: LibraryAccess) workspace modId expected =
@@ -232,8 +232,7 @@ module internal DeletionPlanning =
 
             return
                 { View =
-                    { Id = Guid.NewGuid()
-                      WorkspaceId = workspace
+                    { WorkspaceId = workspace
                       ModId = modId
                       Revision = expected
                       Name = row.Entry.Metadata.Name
@@ -247,12 +246,6 @@ module internal DeletionPlanning =
                   Targets = targets
                   Versions = versions
                   Payloads = payloads |> List.map (fun (id, _, _, _, _) -> id)
-                  BundleSources =
-                    bundleSources
-                    |> List.choose (fun (s, shared) ->
-                        if shared then None else Some(s.BundleId, s.Id))
-                  RelatedArtifacts =
-                    artifacts |> List.map (fun (artifact, _) -> artifact.Artifact.Id)
                   PrivatePayloads =
                     payloads
                     |> List.choose (fun (id, _, _, _, shared) -> if shared then None else Some id)

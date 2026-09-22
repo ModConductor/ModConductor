@@ -258,7 +258,6 @@ class _ModLibraryBrowserState extends State<ModLibraryBrowser> {
               icon: const Icon(Icons.delete_outline),
               onPressed:
                   chosen?.kind == ModKind.regular &&
-                      chosen?.status != InventoryStatus.deleting &&
                       controller.canEdit &&
                       !deletion.busy
                   ? () {
@@ -735,22 +734,6 @@ class _ModLibraryBrowserState extends State<ModLibraryBrowser> {
 
         return Column(
           children: [
-            if (deletion.pending.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Row(
-                  children: [
-                    const Expanded(child: Text('Mod deletion unfinished')),
-                    McAction(
-                      label: 'Open deletion',
-                      onPressed: () {
-                        widget.onMaintenanceOpen?.call();
-                        deletion.resume(deletion.pending.first);
-                      },
-                    ),
-                  ],
-                ),
-              ),
             if (deletion.problem != null)
               McStatus(title: deletion.problem!, tone: McStatusTone.error),
 
@@ -882,7 +865,6 @@ String _status(InventoryStatus status) => switch (status) {
   InventoryStatus.changed => 'Source changed',
   InventoryStatus.unproved => 'Not verified',
   InventoryStatus.publishing => 'Save in progress',
-  InventoryStatus.deleting => 'Deletion unfinished',
 };
 String _size(int bytes) => bytes >= 1048576
     ? '${(bytes / 1048576).toStringAsFixed(1)} MiB'

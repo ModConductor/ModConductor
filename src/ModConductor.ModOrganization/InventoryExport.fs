@@ -144,7 +144,6 @@ module InventoryExportCsv =
         | InventoryStatus.Changed -> "changed"
         | InventoryStatus.Unproved -> "unproved"
         | InventoryStatus.Publishing -> "publishing"
-        | InventoryStatus.Deleting -> "deleting"
 
     let private priority =
         function

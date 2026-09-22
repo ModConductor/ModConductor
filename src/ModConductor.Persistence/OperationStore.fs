@@ -1978,7 +1978,6 @@ type OperationStore
                     plugins.TryClose()
                     && archivePolicies.TryClose()
                     && installations.TryClose()
-                    && deletions.TryClose()
                     && downloads.TryClose()
                     && outputs.TryClose(fun () ->
                         deploymentBackend.TryClose(fun () ->

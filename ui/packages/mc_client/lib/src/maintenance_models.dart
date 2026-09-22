@@ -70,7 +70,6 @@ class DeletionDeployment {
 
 class DeletionPreview {
   const DeletionPreview({
-    required this.id,
     required this.workspaceId,
     required this.modId,
     required this.revision,
@@ -83,29 +82,11 @@ class DeletionPreview {
     required this.external,
     this.blocked,
   });
-  final String id, workspaceId, modId, name;
+  final String workspaceId, modId, name;
   final int revision, versions;
   final List<String> backups, external;
   final List<DeletionProfile> profiles;
   final List<DeletionDeployment> deployments;
   final List<DeletionFile> files;
   final String? blocked;
-}
-
-enum DeletionPhase { running, incomplete, complete }
-
-class DeletionStatus {
-  const DeletionStatus({
-    required this.id,
-    required this.workspaceId,
-    required this.modId,
-    required this.name,
-    required this.phase,
-    required this.remaining,
-    this.problem,
-  });
-  final String id, workspaceId, modId, name;
-  final DeletionPhase phase;
-  final int remaining;
-  final String? problem;
 }

@@ -585,7 +585,6 @@ let runWithNexus registration (handoff: ModConductor.Nexus.IOAuthHandoff) args =
     fnisRunner.Stop().GetAwaiter().GetResult()
     nxmIngress.Stop().GetAwaiter().GetResult()
     store.Installations.Stop().GetAwaiter().GetResult()
-    store.Deletions.Stop().GetAwaiter().GetResult()
     store.Downloads.Stop().GetAwaiter().GetResult()
     nexus.Stop().GetAwaiter().GetResult()
     coordinator.Drain().GetAwaiter().GetResult()

@@ -57,7 +57,6 @@ wire.ModFilterPredicate predicate(ModFilter value) => switch (value) {
         mods.ModInventoryStatus.MOD_INVENTORY_STATUS_UNPROVED,
       InventoryStatus.publishing =>
         mods.ModInventoryStatus.MOD_INVENTORY_STATUS_PUBLISHING,
-      InventoryStatus.deleting => mods.ModInventoryStatus.MOD_INVENTORY_STATUS_DELETING,
     },
   ),
   EnabledFilter() => wire.ModFilterPredicate(

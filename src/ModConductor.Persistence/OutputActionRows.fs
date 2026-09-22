@@ -172,14 +172,6 @@ module internal OutputActionRows =
     let claim (database: StateDatabase) (record: OutputActionRecord) =
         use transaction = database.Connection.BeginTransaction(deferred = false)
 
-        match destination record with
-        | Some(OutputDestination.ExistingMod(modId, _, _))
-        | Some(OutputDestination.NewMod(modId, _, _)) when
-            MaintenanceClaims.deleting database.Connection transaction modId
-            ->
-            OutputRows.fail OutputError.Busy
-        | _ -> ()
-
         if record.Id = Guid.Empty then
             OutputRows.fail (OutputError.Invalid "Use a new output action identity.")
 

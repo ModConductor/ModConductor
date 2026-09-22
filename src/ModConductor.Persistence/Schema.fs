@@ -263,10 +263,6 @@ CREATE TABLE installation_files(
           PRIMARY KEY(installation_id,entry_index));
 CREATE TABLE installation_reuse(installation_id TEXT NOT NULL REFERENCES archive_installations(id),path TEXT NOT NULL,payload_id TEXT NOT NULL REFERENCES mod_payloads(id),PRIMARY KEY(installation_id,path));
 CREATE TABLE mod_categories(mod_id TEXT NOT NULL REFERENCES mods(id), category_id TEXT NOT NULL, label TEXT NOT NULL, PRIMARY KEY(mod_id,category_id));
-CREATE TABLE mod_deletion_artifacts(deletion_id TEXT NOT NULL REFERENCES mod_deletions(id),artifact_id TEXT NOT NULL UNIQUE,PRIMARY KEY(deletion_id,artifact_id));
-CREATE TABLE mod_deletion_effects(deletion_id TEXT NOT NULL REFERENCES mod_deletions(id),sequence INTEGER NOT NULL,kind INTEGER NOT NULL,root TEXT NOT NULL,root_identity TEXT NOT NULL,path TEXT NOT NULL,identity TEXT,label TEXT NOT NULL,bytes INTEGER,PRIMARY KEY(deletion_id,sequence));
-CREATE TABLE mod_deletion_targets(deletion_id TEXT NOT NULL REFERENCES mod_deletions(id),mod_id TEXT NOT NULL UNIQUE,PRIMARY KEY(deletion_id,mod_id));
-CREATE TABLE mod_deletions(id TEXT PRIMARY KEY,workspace_id TEXT NOT NULL REFERENCES workspaces(id),mod_id TEXT NOT NULL UNIQUE,name TEXT NOT NULL,owner TEXT NOT NULL,busy INTEGER NOT NULL,problem TEXT);
 CREATE TABLE mod_edit_origins(version_id TEXT PRIMARY KEY REFERENCES mod_versions(id),edit_id TEXT NOT NULL UNIQUE,source_version TEXT NOT NULL REFERENCES mod_versions(id),path TEXT NOT NULL,previous_payload TEXT NOT NULL REFERENCES mod_payloads(id),content BLOB NOT NULL,digest TEXT NOT NULL);
 CREATE TABLE mod_libraries(workspace_id TEXT PRIMARY KEY REFERENCES workspaces(id), directory TEXT NOT NULL UNIQUE, owner TEXT NOT NULL, phase INTEGER NOT NULL, identity TEXT);
 CREATE TABLE mod_manifest(version_id TEXT NOT NULL REFERENCES mod_versions(id), path TEXT NOT NULL, payload_id TEXT NOT NULL REFERENCES mod_payloads(id), PRIMARY KEY(version_id,path));

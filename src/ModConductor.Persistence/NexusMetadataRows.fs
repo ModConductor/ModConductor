@@ -56,11 +56,7 @@ module internal NexusMetadataRows =
 
     let read connection tx owner workspace modId =
         match LibraryRows.find connection tx modId with
-        | Some row when
-            row.Entry.WorkspaceId = workspace
-            && row.Entry.Kind = ModKind.Regular
-            && not (MaintenanceClaims.deleting connection tx modId)
-            ->
+        | Some row when row.Entry.WorkspaceId = workspace && row.Entry.Kind = ModKind.Regular ->
             let entry = row.Entry
 
             let origins =

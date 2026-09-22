@@ -7,7 +7,6 @@ module internal DeletionWire =
     let preview (value: DeletionPreview) =
         let result =
             ModDeletionPreview(
-                Id = value.Id.ToString("N"),
                 WorkspaceId = value.WorkspaceId.ToString("N"),
                 ModId = value.ModId.ToString("N"),
                 Revision = uint64 value.Revision,
@@ -55,22 +54,4 @@ module internal DeletionWire =
             file.Bytes |> Option.iter (fun bytes -> row.Bytes <- uint64 bytes)
             result.Files.Add row
 
-        result
-
-    let status (value: DeletionStatus) =
-        let result =
-            ModDeletionStatus(
-                Id = value.Id.ToString("N"),
-                WorkspaceId = value.WorkspaceId.ToString("N"),
-                ModId = value.ModId.ToString("N"),
-                Name = value.Name,
-                Remaining = uint32 value.Remaining,
-                Phase =
-                    (match value.Phase with
-                     | DeletionPhase.Running -> ModDeletionPhase.Running
-                     | DeletionPhase.Incomplete -> ModDeletionPhase.Incomplete
-                     | DeletionPhase.Complete -> ModDeletionPhase.Complete)
-            )
-
-        value.Problem |> Option.iter (fun text -> result.Problem <- text)
         result

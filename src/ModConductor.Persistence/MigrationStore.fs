@@ -126,7 +126,6 @@ type internal MigrationStore
             SELECT
               (SELECT count(*) FROM operations WHERE phase=1 AND id<>$allowed) +
               (SELECT count(*) FROM archive_installations WHERE workspace_id=$workspace AND busy<>0) +
-              (SELECT count(*) FROM mod_deletions WHERE workspace_id=$workspace AND busy<>0) +
               (SELECT count(*) FROM bundle_work WHERE workspace_id=$workspace AND busy<>0) +
               (SELECT count(*) FROM output_actions WHERE workspace_id=$workspace AND complete=0) +
               (SELECT count(*) FROM profile_data_actions a JOIN profile_data_contexts c ON c.id=a.context_id WHERE c.workspace_id=$workspace AND a.complete=0) +

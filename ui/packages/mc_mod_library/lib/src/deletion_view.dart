@@ -160,14 +160,10 @@ class _ModDeletionViewState extends State<ModDeletionView> {
   }
 
   Widget outcome(BuildContext context) {
-    final status = controller.status, value = controller.preview;
-    final title = status == null
-        ? 'Deletion unavailable'
-        : switch (status.phase) {
-            DeletionPhase.running => 'Deleting ${status.name}',
-            DeletionPhase.incomplete => 'Deletion incomplete',
-            DeletionPhase.complete => '${status.name} deleted',
-          };
+    final value = controller.preview;
+    final title = controller.complete
+        ? '${value!.name} deleted'
+        : 'Deletion unavailable';
     return Align(
       alignment: Alignment.topLeft,
       child: ConstrainedBox(
@@ -179,26 +175,14 @@ class _ModDeletionViewState extends State<ModDeletionView> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 McActionFeedback(
-                  kind: status == null
-                      ? McActionFeedbackKind.refusal
-                      : switch (status.phase) {
-                          DeletionPhase.running => McActionFeedbackKind.pending,
-                          DeletionPhase.incomplete =>
-                            McActionFeedbackKind.failure,
-                          DeletionPhase.complete =>
-                            McActionFeedbackKind.success,
-                        },
+                  kind: controller.complete
+                      ? McActionFeedbackKind.success
+                      : McActionFeedbackKind.refusal,
                   message: title,
-                  detail: status?.problem ?? value?.blocked,
+                  detail: value?.blocked,
                 ),
                 const SizedBox(height: 24),
-                if (status != null && status.phase != DeletionPhase.complete)
-                  deletionFact(
-                    context,
-                    'Files left to delete',
-                    '${status.remaining}',
-                  ),
-                if (status?.phase == DeletionPhase.complete) ...[
+                if (controller.complete) ...[
                   if (value?.deployments.isNotEmpty == true)
                     deletionFact(
                       context,
@@ -211,7 +195,7 @@ class _ModDeletionViewState extends State<ModDeletionView> {
                     onPressed: controller.back,
                   ),
                 ],
-                if (status == null && value != null) ...[
+                if (!controller.complete && value != null) ...[
                   if (value.deployments.any((entry) => entry.active)) ...[
                     deletionFact(
                       context,
@@ -246,10 +230,10 @@ class _ModDeletionViewState extends State<ModDeletionView> {
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, box) {
-      final value = controller.preview, status = controller.status;
+      final value = controller.preview;
       final narrow =
           box.maxWidth < 1100 * MediaQuery.textScalerOf(context).scale(1);
-      final result = status != null || value?.blocked != null;
+      final result = controller.complete || value?.blocked != null;
       if (value != null && !identical(rendered, value)) load(value);
       return Scaffold(
         key: pane,
@@ -272,22 +256,13 @@ class _ModDeletionViewState extends State<ModDeletionView> {
                 Expanded(
                   child: Text(
                     result
-                        ? status?.name ?? value?.name ?? 'Mod deletion'
+                        ? value?.name ?? 'Mod deletion'
                         : 'Delete ${value?.name ?? 'mod'}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                 ),
-                if (status?.phase == DeletionPhase.incomplete)
-                  McAction(
-                    label: 'Continue deletion',
-                    icon: Icons.delete_outline,
-                    emphasis: McActionEmphasis.primary,
-                    onPressed: controller.busy
-                        ? null
-                        : () => unawaited(controller.run()),
-                  ),
                 if (!result && value != null)
                   McAction(
                     label: 'Delete…',
@@ -314,14 +289,9 @@ class _ModDeletionViewState extends State<ModDeletionView> {
                       message: controller.problem!,
                     ),
                   ),
-                  if (status?.phase == DeletionPhase.running)
-                    McAction(
-                      label: 'Check progress',
-                      onPressed: controller.observe,
-                    ),
                 ],
               ),
-            if (controller.busy && status == null)
+            if (controller.busy)
               McActionFeedback(
                 kind: McActionFeedbackKind.pending,
                 message: value == null

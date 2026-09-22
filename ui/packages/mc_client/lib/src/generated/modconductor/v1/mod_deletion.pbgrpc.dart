@@ -39,42 +39,11 @@ class ModDeletionClient extends $grpc.Client {
     return $createUnaryCall(_$prepareModDeletion, request, options: options);
   }
 
-  $grpc.ResponseFuture<$0.ModDeletionPreviewClosed> closeModDeletionPreview(
-    $0.ModDeletionReference request, {
+  $grpc.ResponseFuture<$0.ModDeleted> deleteMod(
+    $0.DeleteModRequest request, {
     $grpc.CallOptions? options,
   }) {
-    return $createUnaryCall(_$closeModDeletionPreview, request,
-        options: options);
-  }
-
-  $grpc.ResponseFuture<$0.ModDeletionStatus> startModDeletion(
-    $0.StartModDeletionRequest request, {
-    $grpc.CallOptions? options,
-  }) {
-    return $createUnaryCall(_$startModDeletion, request, options: options);
-  }
-
-  $grpc.ResponseFuture<$0.ModDeletionStatus> continueModDeletion(
-    $0.ModDeletionReference request, {
-    $grpc.CallOptions? options,
-  }) {
-    return $createUnaryCall(_$continueModDeletion, request, options: options);
-  }
-
-  $grpc.ResponseFuture<$0.ModDeletionList> recentModDeletions(
-    $0.ModDeletionWorkspace request, {
-    $grpc.CallOptions? options,
-  }) {
-    return $createUnaryCall(_$recentModDeletions, request, options: options);
-  }
-
-  $grpc.ResponseStream<$0.ModDeletionStatus> watchModDeletion(
-    $0.ModDeletionReference request, {
-    $grpc.CallOptions? options,
-  }) {
-    return $createStreamingCall(
-        _$watchModDeletion, $async.Stream.fromIterable([request]),
-        options: options);
+    return $createUnaryCall(_$deleteMod, request, options: options);
   }
 
   // method descriptors
@@ -84,31 +53,11 @@ class ModDeletionClient extends $grpc.Client {
           '/modconductor.v1.ModDeletion/PrepareModDeletion',
           ($0.PrepareModDeletionRequest value) => value.writeToBuffer(),
           $0.ModDeletionPreview.fromBuffer);
-  static final _$closeModDeletionPreview =
-      $grpc.ClientMethod<$0.ModDeletionReference, $0.ModDeletionPreviewClosed>(
-          '/modconductor.v1.ModDeletion/CloseModDeletionPreview',
-          ($0.ModDeletionReference value) => value.writeToBuffer(),
-          $0.ModDeletionPreviewClosed.fromBuffer);
-  static final _$startModDeletion =
-      $grpc.ClientMethod<$0.StartModDeletionRequest, $0.ModDeletionStatus>(
-          '/modconductor.v1.ModDeletion/StartModDeletion',
-          ($0.StartModDeletionRequest value) => value.writeToBuffer(),
-          $0.ModDeletionStatus.fromBuffer);
-  static final _$continueModDeletion =
-      $grpc.ClientMethod<$0.ModDeletionReference, $0.ModDeletionStatus>(
-          '/modconductor.v1.ModDeletion/ContinueModDeletion',
-          ($0.ModDeletionReference value) => value.writeToBuffer(),
-          $0.ModDeletionStatus.fromBuffer);
-  static final _$recentModDeletions =
-      $grpc.ClientMethod<$0.ModDeletionWorkspace, $0.ModDeletionList>(
-          '/modconductor.v1.ModDeletion/RecentModDeletions',
-          ($0.ModDeletionWorkspace value) => value.writeToBuffer(),
-          $0.ModDeletionList.fromBuffer);
-  static final _$watchModDeletion =
-      $grpc.ClientMethod<$0.ModDeletionReference, $0.ModDeletionStatus>(
-          '/modconductor.v1.ModDeletion/WatchModDeletion',
-          ($0.ModDeletionReference value) => value.writeToBuffer(),
-          $0.ModDeletionStatus.fromBuffer);
+  static final _$deleteMod =
+      $grpc.ClientMethod<$0.DeleteModRequest, $0.ModDeleted>(
+          '/modconductor.v1.ModDeletion/DeleteMod',
+          ($0.DeleteModRequest value) => value.writeToBuffer(),
+          $0.ModDeleted.fromBuffer);
 }
 
 @$pb.GrpcServiceName('modconductor.v1.ModDeletion')
@@ -125,50 +74,13 @@ abstract class ModDeletionServiceBase extends $grpc.Service {
         ($core.List<$core.int> value) =>
             $0.PrepareModDeletionRequest.fromBuffer(value),
         ($0.ModDeletionPreview value) => value.writeToBuffer()));
-    $addMethod($grpc.ServiceMethod<$0.ModDeletionReference,
-            $0.ModDeletionPreviewClosed>(
-        'CloseModDeletionPreview',
-        closeModDeletionPreview_Pre,
+    $addMethod($grpc.ServiceMethod<$0.DeleteModRequest, $0.ModDeleted>(
+        'DeleteMod',
+        deleteMod_Pre,
         false,
         false,
-        ($core.List<$core.int> value) =>
-            $0.ModDeletionReference.fromBuffer(value),
-        ($0.ModDeletionPreviewClosed value) => value.writeToBuffer()));
-    $addMethod(
-        $grpc.ServiceMethod<$0.StartModDeletionRequest, $0.ModDeletionStatus>(
-            'StartModDeletion',
-            startModDeletion_Pre,
-            false,
-            false,
-            ($core.List<$core.int> value) =>
-                $0.StartModDeletionRequest.fromBuffer(value),
-            ($0.ModDeletionStatus value) => value.writeToBuffer()));
-    $addMethod(
-        $grpc.ServiceMethod<$0.ModDeletionReference, $0.ModDeletionStatus>(
-            'ContinueModDeletion',
-            continueModDeletion_Pre,
-            false,
-            false,
-            ($core.List<$core.int> value) =>
-                $0.ModDeletionReference.fromBuffer(value),
-            ($0.ModDeletionStatus value) => value.writeToBuffer()));
-    $addMethod($grpc.ServiceMethod<$0.ModDeletionWorkspace, $0.ModDeletionList>(
-        'RecentModDeletions',
-        recentModDeletions_Pre,
-        false,
-        false,
-        ($core.List<$core.int> value) =>
-            $0.ModDeletionWorkspace.fromBuffer(value),
-        ($0.ModDeletionList value) => value.writeToBuffer()));
-    $addMethod(
-        $grpc.ServiceMethod<$0.ModDeletionReference, $0.ModDeletionStatus>(
-            'WatchModDeletion',
-            watchModDeletion_Pre,
-            false,
-            true,
-            ($core.List<$core.int> value) =>
-                $0.ModDeletionReference.fromBuffer(value),
-            ($0.ModDeletionStatus value) => value.writeToBuffer()));
+        ($core.List<$core.int> value) => $0.DeleteModRequest.fromBuffer(value),
+        ($0.ModDeleted value) => value.writeToBuffer()));
   }
 
   $async.Future<$0.ModDeletionPreview> prepareModDeletion_Pre(
@@ -180,48 +92,11 @@ abstract class ModDeletionServiceBase extends $grpc.Service {
   $async.Future<$0.ModDeletionPreview> prepareModDeletion(
       $grpc.ServiceCall call, $0.PrepareModDeletionRequest request);
 
-  $async.Future<$0.ModDeletionPreviewClosed> closeModDeletionPreview_Pre(
-      $grpc.ServiceCall $call,
-      $async.Future<$0.ModDeletionReference> $request) async {
-    return closeModDeletionPreview($call, await $request);
+  $async.Future<$0.ModDeleted> deleteMod_Pre($grpc.ServiceCall $call,
+      $async.Future<$0.DeleteModRequest> $request) async {
+    return deleteMod($call, await $request);
   }
 
-  $async.Future<$0.ModDeletionPreviewClosed> closeModDeletionPreview(
-      $grpc.ServiceCall call, $0.ModDeletionReference request);
-
-  $async.Future<$0.ModDeletionStatus> startModDeletion_Pre(
-      $grpc.ServiceCall $call,
-      $async.Future<$0.StartModDeletionRequest> $request) async {
-    return startModDeletion($call, await $request);
-  }
-
-  $async.Future<$0.ModDeletionStatus> startModDeletion(
-      $grpc.ServiceCall call, $0.StartModDeletionRequest request);
-
-  $async.Future<$0.ModDeletionStatus> continueModDeletion_Pre(
-      $grpc.ServiceCall $call,
-      $async.Future<$0.ModDeletionReference> $request) async {
-    return continueModDeletion($call, await $request);
-  }
-
-  $async.Future<$0.ModDeletionStatus> continueModDeletion(
-      $grpc.ServiceCall call, $0.ModDeletionReference request);
-
-  $async.Future<$0.ModDeletionList> recentModDeletions_Pre(
-      $grpc.ServiceCall $call,
-      $async.Future<$0.ModDeletionWorkspace> $request) async {
-    return recentModDeletions($call, await $request);
-  }
-
-  $async.Future<$0.ModDeletionList> recentModDeletions(
-      $grpc.ServiceCall call, $0.ModDeletionWorkspace request);
-
-  $async.Stream<$0.ModDeletionStatus> watchModDeletion_Pre(
-      $grpc.ServiceCall $call,
-      $async.Future<$0.ModDeletionReference> $request) async* {
-    yield* watchModDeletion($call, await $request);
-  }
-
-  $async.Stream<$0.ModDeletionStatus> watchModDeletion(
-      $grpc.ServiceCall call, $0.ModDeletionReference request);
+  $async.Future<$0.ModDeleted> deleteMod(
+      $grpc.ServiceCall call, $0.DeleteModRequest request);
 }

@@ -15,13 +15,11 @@ type internal DeletionEffect =
       Label: string
       Bytes: int64 option }
 
-type internal DeletionPlan =
+type internal DeletionState =
     { View: DeletionPreview
       Targets: Guid list
       Versions: Guid list
       Payloads: Guid list
-      BundleSources: (Guid * Guid) list
-      RelatedArtifacts: Guid list
       PrivatePayloads: Guid list
       Artifacts: Guid list
       Effects: DeletionEffect list
