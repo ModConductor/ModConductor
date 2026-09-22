@@ -15,6 +15,7 @@ Future<void> mount(
   DesktopStatus status = const DesktopDisconnected(),
   SettingsClient? settings,
   WorkspacesClient? workspaces,
+  GameContextsClient? gameContexts,
 }) async {
   tester.view.devicePixelRatio = 1;
   tester.view.physicalSize = const Size(1280, 800);
@@ -28,6 +29,7 @@ Future<void> mount(
       status: status,
       settings: settings,
       workspaces: workspaces,
+      gameContexts: gameContexts,
     ),
   );
   await tester.pumpAndSettle();
@@ -65,6 +67,78 @@ class _WorkspacesFake extends Fake implements WorkspacesClient {
     final selected = workspaces.singleWhere((value) => value.path == path);
     return WorkspacePage(selected, [selected.selectedProfile!], null);
   }
+}
+
+class _CapabilityGameContexts extends Fake implements GameContextsClient {
+  static const definition = GameDefinitionInfo(
+    id: 'example-steam-game',
+    revision: 1,
+    name: 'Example Steam game',
+    storefront: 'Steam',
+    declaredSteamAppId: 1,
+    capabilities: [
+      GameCapability(
+        id: GameCapabilityId.gameInstallationValidation,
+        revision: 1,
+        name: 'Game installation validation',
+        kind: GameCapabilityKind.coreOutcome,
+        contexts: [
+          GameCapabilityContext(
+            definitionId: 'example-steam-game',
+            platforms: [GameContextPlatform.windows],
+          ),
+        ],
+        disposition: GameCapabilityDisposition.available,
+      ),
+    ],
+  );
+
+  @override
+  Future<GameContextState> read(String workspaceId, String profileId) async =>
+      GameContextState(
+        workspaceId: workspaceId,
+        profileId: profileId,
+        revision: 1,
+        definition: definition,
+        binding: GameBindingInfo(
+          id: 'binding',
+          path: '/games/example',
+          needsCheck: false,
+          evidence: GameInstallationEvidence(
+            definitionId: definition.id,
+            definitionRevision: definition.revision,
+            platform: GameContextPlatform.windows,
+            rootPath: '/games/example',
+            dataPath: '/games/example/Data',
+            executable: const GameExecutableEvidence(
+              path: '/games/example/game.exe',
+              sha256: 'abc',
+              length: 1,
+              fileVersion: '1',
+              productVersion: '1',
+            ),
+            launcherPath: null,
+            documents: const UnavailableGameLocation('not needed'),
+            saves: const UnavailableGameLocation('not needed'),
+            localAppData: const UnavailableGameLocation('not needed'),
+            problems: const [],
+            checkedAt: DateTime.utc(2026),
+            fingerprint: 'fixture',
+          ),
+        ),
+      );
+}
+
+class _UnboundGameContexts extends Fake implements GameContextsClient {
+  @override
+  Future<GameContextState> read(String workspaceId, String profileId) async =>
+      GameContextState(
+        workspaceId: workspaceId,
+        profileId: profileId,
+        revision: 0,
+        definition: null,
+        binding: null,
+      );
 }
 
 class _DelayedSettingsFake extends _SettingsFake {
@@ -162,6 +236,43 @@ Brightness brightness(WidgetTester tester) =>
     Theme.of(tester.element(keyed('quit'))).brightness;
 
 void main() {
+  testWidgets('an unbound profile shows setup without the workbench', (
+    tester,
+  ) async {
+    await mount(
+      tester,
+      workspaces: _WorkspacesFake(),
+      gameContexts: _UnboundGameContexts(),
+    );
+
+    await openWorkspace(tester, 'one');
+
+    expect(keyed('profile-setup-name'), findsOneWidget);
+    expect(keyed('workspace-profiles-tab'), findsNothing);
+    expect(keyed('workspace-game-tab'), findsNothing);
+    expect(keyed('workspace-mods-tab'), findsNothing);
+  });
+
+  testWidgets('a bound profile exposes only its supported workbench', (
+    tester,
+  ) async {
+    await mount(
+      tester,
+      workspaces: _WorkspacesFake(),
+      gameContexts: _CapabilityGameContexts(),
+    );
+
+    await openWorkspace(tester, 'one');
+
+    expect(keyed('workspace-profiles-tab'), findsOneWidget);
+    expect(keyed('workspace-game-tab'), findsOneWidget);
+    expect(keyed('workspace-mods-tab'), findsNothing);
+    expect(keyed('workspace-tools-tab'), findsNothing);
+    expect(keyed('workspace-archives-tab'), findsNothing);
+    expect(keyed('workspace-help-tab'), findsNothing);
+    expect(keyed('profile-setup-name'), findsNothing);
+  });
+
   testWidgets('keyboard navigation opens preferences and reaches its form', (
     tester,
   ) async {

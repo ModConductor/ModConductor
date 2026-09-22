@@ -141,14 +141,14 @@ class WorkspaceController extends ChangeNotifier {
     _notify();
   }
 
-  Future<void> _run<T>(
+  Future<T?> _run<T>(
     String? id,
     String label,
     Future<T> Function(WorkspacesClient) action,
     void Function(T) apply,
   ) async {
     final client = _client;
-    if (client == null || _activities.containsKey(id ?? '')) return;
+    if (client == null || _activities.containsKey(id ?? '')) return null;
     final epoch = _epoch;
     _activities[id ?? ''] = label;
     problem = null;
@@ -157,6 +157,7 @@ class WorkspaceController extends ChangeNotifier {
     try {
       final result = await action(client);
       if (!_disposed && epoch == _epoch) apply(result);
+      return result;
     } on Exception catch (error) {
       if (!_disposed && epoch == _epoch) {
         problem = error is WorkspaceException
@@ -164,6 +165,7 @@ class WorkspaceController extends ChangeNotifier {
             : '$label did not return a result.';
         _problemWorkspace = id;
       }
+      return null;
     } finally {
       if (!_disposed && epoch == _epoch) {
         _activities.remove(id ?? '');
@@ -325,13 +327,15 @@ class WorkspaceController extends ChangeNotifier {
     );
   }
 
-  Future<void> _edit(
+  Future<ProfileChange?> _edit(
     String label,
     Future<ProfileChange> Function(WorkspacesClient, WorkspaceInfo) action,
   ) async {
     final current = workspace;
-    if (current == null || !canEdit) return;
-    await _run(current.id, label, (client) => action(client, current), (value) {
+    if (current == null || !canEdit) return null;
+    return _run(current.id, label, (client) => action(client, current), (
+      value,
+    ) {
       _remember(value.workspace);
       if (page?.workspace.id != current.id ||
           page!.workspace.revision > value.workspace.revision) {
@@ -350,14 +354,16 @@ class WorkspaceController extends ChangeNotifier {
     });
   }
 
-  Future<void> createProfile(String name) => _edit(
-    'Profile creation: $name',
-    (client, current) => client.createProfile(
-      current.id,
-      current.revision,
-      ProfileInfo(newOperationId(), name),
-    ),
-  );
+  Future<ProfileInfo?> createProfile(String name) async {
+    final profile = ProfileInfo(newOperationId(), name);
+    final change = await _edit(
+      'Profile creation: $name',
+      (client, current) =>
+          client.createProfile(current.id, current.revision, profile),
+    );
+    return change?.changed;
+  }
+
   Future<void> clone(ProfileInfo source, String name) =>
       _edit('Profile clone: ${source.name}', (client, current) {
         final target = ProfileInfo(newOperationId(), name);

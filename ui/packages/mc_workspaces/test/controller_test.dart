@@ -26,6 +26,7 @@ class ScriptedClient extends Fake implements WorkspacesClient {
   Future<WorkspacePage> Function(String)? onOpen;
   Future<WorkspacePage> Function(String, String?)? onRead;
   Future<ProfileChange> Function(String, int, ProfileInfo)? onRename;
+  Future<ProfileChange> Function(String, int, ProfileInfo)? onCreateProfile;
   @override
   Future<WorkspaceList> recent({String? after}) async =>
       const WorkspaceList([], null);
@@ -42,6 +43,12 @@ class ScriptedClient extends Fake implements WorkspacesClient {
     int revision,
     ProfileInfo profile,
   ) => onRename!(workspace, revision, profile);
+  @override
+  Future<ProfileChange> createProfile(
+    String workspace,
+    int revision,
+    ProfileInfo profile,
+  ) => onCreateProfile!(workspace, revision, profile);
 }
 
 class CopyClient extends ScriptedClient implements ProfileChangesClient {
@@ -67,6 +74,26 @@ class CopyClient extends ScriptedClient implements ProfileChangesClient {
 }
 
 void main() {
+  test('profile creation returns the committed profile for setup', () async {
+    final client = ScriptedClient();
+    client.onOpen = (_) async => page('one');
+    client.onCreateProfile = (workspace, revision, profile) async {
+      final current = page('one', revision: revision + 1);
+      return ProfileChange(current.workspace, profile, null);
+    };
+    final controller = WorkspaceController()..attach(client);
+    addTearDown(controller.dispose);
+    await controller.open('/fixture/one');
+
+    final created = await controller.createProfile('Created');
+
+    expect(created?.name, 'Created');
+    expect(
+      controller.page!.profiles.any((profile) => profile.id == created?.id),
+      isTrue,
+    );
+  });
+
   test('cancelling a streamed clone keeps the selected profile and rejects late completion', () async {
     final client = CopyClient()..onOpen = (_) async => page('one');
     final controller = WorkspaceController()..attach(client);

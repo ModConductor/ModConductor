@@ -10,9 +10,9 @@ display filters, sorting, selection, and keyboard navigation. IDs come from the
 consumer. Immutable row values and explicit callbacks replace dynamic feature maps.
 Nonstructural deltas update cached rows without recalculating the visible list.
 
-`mc_workspaces` owns workspace/profile forms, lifecycle state, and the profile
-collection. `mc_mod_library` owns inventory, profile selection, and saved-version
-presentation, category forms, and query state. Its profile controller applies
+`mc_workspaces` owns workspace/profile forms, reusable profile setup, lifecycle
+state, and the profile collection. `mc_mod_library` owns inventory, profile
+selection, and saved-version presentation, category forms, and query state. Its profile controller applies
 revision-pinned queries after selection changes. The query cache keeps matching,
 context, and inspected rows separate. The library controller retains metadata
 actions and pinned file state. `mc_game_contexts` owns the installation form, context controller, and evidence
@@ -83,9 +83,17 @@ See [Architecture](ARCHITECTURE.md) for state ownership and
 
 ## Game selection
 
-The workspace's Game mode retains the Profiles and Mods views. The installation
-form uses `McFormDialog`, the shared folder action, and inline errors. Save
-validates and commits without a separate Check step. Cancel closes an unsubmitted draft without changing the binding.
+Profile creation collects the name, supported game, and installation before it
+creates the profile. One discovered installation is selected. Several results
+require a selection. Every discovery result keeps a secondary folder override.
+No result uses the same folder action as an explicit fallback. Cancel closes the
+draft without creating a profile.
+
+An unbound current profile shows only profile setup. A bound profile shows only
+workbench areas that its game and platform capabilities support. The Game mode
+installation form uses `McFormDialog`, the shared folder action, and inline
+errors. Save validates and commits without a separate Check step. Cancel closes
+an unsubmitted draft without changing the binding.
 The app requests folder selection. The standard Windows picker can still expose
 file actions; it is not a read-only sandbox.
 

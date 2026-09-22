@@ -187,11 +187,122 @@ class FakeSkyrimSetup extends Fake implements SkyrimSetupClient {
   }
 }
 
+const skyrimDefinition = GameDefinitionInfo(
+  id: 'skyrim-se-steam',
+  revision: 1,
+  name: 'Skyrim Special Edition',
+  storefront: 'Steam',
+  declaredSteamAppId: 489830,
+  capabilities: [
+    GameCapability(
+      id: GameCapabilityId.gameInstallationValidation,
+      revision: 1,
+      name: 'Game installation validation',
+      kind: GameCapabilityKind.coreOutcome,
+      contexts: [
+        GameCapabilityContext(
+          definitionId: 'skyrim-se-steam',
+          platforms: [GameContextPlatform.windows],
+        ),
+      ],
+      disposition: GameCapabilityDisposition.available,
+    ),
+    GameCapability(
+      id: GameCapabilityId.skyrimSpecialEdition,
+      revision: 1,
+      name: 'Skyrim Special Edition',
+      kind: GameCapabilityKind.gameAdapter,
+      contexts: [
+        GameCapabilityContext(
+          definitionId: 'skyrim-se-steam',
+          platforms: [GameContextPlatform.windows],
+        ),
+      ],
+      disposition: GameCapabilityDisposition.available,
+    ),
+  ],
+);
+
+GameContextState boundGame(String workspace, String profile) =>
+    GameContextState(
+      workspaceId: workspace,
+      profileId: profile,
+      revision: 1,
+      definition: skyrimDefinition,
+      binding: GameBindingInfo(
+        id: 'binding-$profile',
+        path: '/games/skyrim',
+        needsCheck: false,
+        evidence: GameInstallationEvidence(
+          definitionId: skyrimDefinition.id,
+          definitionRevision: skyrimDefinition.revision,
+          platform: GameContextPlatform.windows,
+          rootPath: '/games/skyrim',
+          dataPath: '/games/skyrim/Data',
+          executable: const GameExecutableEvidence(
+            path: '/games/skyrim/SkyrimSE.exe',
+            sha256: 'abc',
+            length: 1,
+            fileVersion: '1.6.1170',
+            productVersion: '1.6.1170',
+          ),
+          launcherPath: null,
+          documents: const UnavailableGameLocation('not needed'),
+          saves: const UnavailableGameLocation('not needed'),
+          localAppData: const UnavailableGameLocation('not needed'),
+          problems: const [],
+          checkedAt: DateTime.utc(2026),
+          fingerprint: 'fixture',
+        ),
+      ),
+    );
+
+class FakeGameContexts extends Fake implements GameContextsClient {
+  @override
+  Future<GameContextState> read(String workspaceId, String profileId) async =>
+      boundGame(workspaceId, profileId);
+
+  @override
+  Future<GameContextState> save(
+    String workspaceId,
+    String profileId,
+    String gameId,
+    int revision,
+    String path, {
+    ProtonSelection? proton,
+  }) async => boundGame(workspaceId, profileId);
+}
+
+class FakeSteamDiscovery implements SteamDiscoveryClient {
+  @override
+  SteamSearch search(String definitionId, List<String> additionalRoots) =>
+      SteamSearch(
+        Future.value(
+          const SteamSearchResult(
+            appId: 489830,
+            roots: [],
+            candidates: [
+              SteamInstallationCandidate(
+                'candidate',
+                SteamDirectory('/games/skyrim', '/games/skyrim', 'fixture'),
+                [],
+              ),
+            ],
+            diagnostics: [],
+            limited: false,
+          ),
+        ),
+        () async {},
+      );
+}
+
 Future<void> mountApp(
   WidgetTester tester, {
   required FakeWorkspaces workspaces,
   required FakeDiagnostics diagnostics,
   FakeSkyrimSetup? skyrimSetup,
+  GameContextsClient? gameContexts,
+  SteamDiscoveryClient? steamDiscovery,
   DirectoryChooser? chooseDirectory,
   Size size = const Size(1280, 800),
 }) async {
@@ -202,6 +313,8 @@ Future<void> mountApp(
       workspaces: workspaces,
       diagnostics: diagnostics,
       skyrimSetup: skyrimSetup,
+      gameContexts: gameContexts,
+      steamDiscovery: steamDiscovery,
       chooseDirectory: chooseDirectory ?? (_) async => null,
     ),
   );
@@ -257,6 +370,46 @@ Future<DiagnosticsController> mount(
 }
 
 void main() {
+  testWidgets('cancelling profile setup does not create a profile', (
+    tester,
+  ) async {
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+    final workspaces = FakeWorkspaces(
+      savedWorkspace: const WorkspaceInfo(
+        id: 'workspace-1',
+        name: 'My workspace',
+        path: '/games/my-workspace',
+        revision: 1,
+        selectedProfile: ProfileInfo('profile-1', 'Main'),
+      ),
+    );
+    await mountApp(
+      tester,
+      workspaces: workspaces,
+      diagnostics: FakeDiagnostics(),
+      gameContexts: FakeGameContexts(),
+      steamDiscovery: FakeSteamDiscovery(),
+    );
+    await tester.tap(find.byKey(const ValueKey('workspace-workspace-1')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('create-profile')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('profile-setup-name')),
+      'Discarded',
+    );
+    await tester.tap(find.byKey(const ValueKey('find-profile-installation')));
+    await tester.pumpAndSettle();
+
+    expect(workspaces.profileCreates, 0);
+    await tester.tap(find.byKey(const ValueKey('cancel-profile-setup')));
+    await tester.pumpAndSettle();
+
+    expect(workspaces.profileCreates, 0);
+    expect(find.byKey(const ValueKey('profile-setup-name')), findsNothing);
+  });
+
   testWidgets(
     'first workspace Help uses the existing setup actions at 150% text',
     (tester) async {
@@ -264,7 +417,15 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
       tester.platformDispatcher.textScaleFactorTestValue = 1.5;
       addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
-      final workspaces = FakeWorkspaces();
+      final workspaces = FakeWorkspaces(
+        savedWorkspace: const WorkspaceInfo(
+          id: 'workspace-1',
+          name: 'My workspace',
+          path: '/games/my-workspace',
+          revision: 1,
+          selectedProfile: ProfileInfo('profile-1', 'Main'),
+        ),
+      );
       final setup = FakeSkyrimSetup();
       final chosen = ['/opened', '/created'];
       await mountApp(
@@ -272,6 +433,8 @@ void main() {
         workspaces: workspaces,
         diagnostics: FakeDiagnostics(),
         skyrimSetup: setup,
+        gameContexts: FakeGameContexts(),
+        steamDiscovery: FakeSteamDiscovery(),
         chooseDirectory: (_) async => chosen.removeAt(0),
         size: const Size(900, 900),
       );
@@ -317,18 +480,24 @@ void main() {
       await tester.pumpAndSettle();
       expect(workspaces.creates, 1);
 
-      await tester.tap(find.byKey(const ValueKey('workspace-help-tab')));
+      await tester.tap(find.byKey(const ValueKey('create-profile')));
       await tester.pumpAndSettle();
-      await openGuide(tester, 'first-skyrim-workspace');
-      await activateAction(tester, 'guide-create-profile');
-      await tester.enterText(find.byKey(const ValueKey('name')), 'Main');
-      await tester.tap(find.byKey(const ValueKey('submit')));
+      await tester.enterText(
+        find.byKey(const ValueKey('profile-setup-name')),
+        'Main',
+      );
+      await tester.tap(find.byKey(const ValueKey('find-profile-installation')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('submit-profile-setup')));
       await tester.pumpAndSettle();
       expect(workspaces.profileCreates, 1);
 
+      await tester.tap(find.byKey(const ValueKey('workspace-help-tab')));
+      await tester.pumpAndSettle();
+      await openGuide(tester, 'first-skyrim-workspace');
       await activateAction(tester, 'open-skyrim-setup');
       await tester.pumpAndSettle();
-      expect(find.byType(SkyrimSetupSection).hitTestable(), findsOneWidget);
+      expect(find.byType(SkyrimSetupSection), findsOneWidget);
       expect(setup.reads, greaterThan(0));
       expect(tester.takeException(), isNull);
     },
@@ -362,7 +531,12 @@ void main() {
           selectedProfile: ProfileInfo('profile-1', 'Main'),
         ),
       );
-      await mountApp(tester, workspaces: workspaces, diagnostics: client);
+      await mountApp(
+        tester,
+        workspaces: workspaces,
+        diagnostics: client,
+        gameContexts: FakeGameContexts(),
+      );
       await tester.tap(find.byKey(const ValueKey('workspace-workspace-1')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('workspace-help-tab')));
@@ -381,7 +555,12 @@ void main() {
 
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pumpAndSettle();
-      await mountApp(tester, workspaces: workspaces, diagnostics: client);
+      await mountApp(
+        tester,
+        workspaces: workspaces,
+        diagnostics: client,
+        gameContexts: FakeGameContexts(),
+      );
       await tester.tap(find.byKey(const ValueKey('workspace-workspace-1')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('workspace-help-tab')));

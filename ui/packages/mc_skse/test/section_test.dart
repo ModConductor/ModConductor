@@ -9,6 +9,8 @@ import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 
 SkyrimSetupStatus setupStatus({
   SkyrimSetupStatusPhase phase = SkyrimSetupStatusPhase.needsConsent,
+  String status = 'Setup status',
+  String detail = 'Setup detail',
   bool consent = false,
   bool canStart = true,
   bool canContinue = false,
@@ -17,22 +19,23 @@ SkyrimSetupStatus setupStatus({
   bool ready = false,
   bool includeFnis = false,
   bool canCancel = false,
+  bool componentBlocked = false,
 }) => SkyrimSetupStatus(
   phase: phase,
-  status: 'Setup status',
-  detail: 'Setup detail',
+  status: status,
+  detail: detail,
   planToken: 'current-plan',
   changes: const [
     SkyrimSetupChange('Set up SKSE', 'Install the matching version.'),
   ],
-  components: const [
+  components: [
     SkyrimSetupComponent(
       name: 'SKSE',
       status: 'Matching SKSE found',
       detail: '',
       ready: false,
       active: false,
-      blocked: false,
+      blocked: componentBlocked,
     ),
   ],
   includeFnis: includeFnis,
@@ -160,6 +163,54 @@ Widget section(
 }
 
 void main() {
+  testWidgets('a first-run requirement is setup guidance, not an error', (
+    tester,
+  ) async {
+    final client = SetupFixtureClient(
+      setupStatus(
+        phase: SkyrimSetupStatusPhase.unavailable,
+        status: 'Skyrim needs its first Steam run',
+        componentBlocked: true,
+      ),
+    );
+
+    await tester.pumpWidget(section(client));
+    await tester.pumpAndSettle();
+
+    final statuses = tester.widgetList<McStatus>(
+      find.descendant(
+        of: find.byType(SkyrimSetupSection),
+        matching: find.byType(McStatus),
+      ),
+    );
+    expect(statuses, isNotEmpty);
+    expect(
+      statuses.every((status) => status.tone == McStatusTone.neutral),
+      isTrue,
+    );
+  });
+
+  testWidgets('an unavailable setup failure retains its error state', (
+    tester,
+  ) async {
+    final client = SetupFixtureClient(
+      setupStatus(phase: SkyrimSetupStatusPhase.unavailable),
+    );
+
+    await tester.pumpWidget(section(client));
+    await tester.pumpAndSettle();
+
+    final firstStatus = tester.widget<McStatus>(
+      find
+          .descendant(
+            of: find.byType(SkyrimSetupSection),
+            matching: find.byType(McStatus),
+          )
+          .first,
+    );
+    expect(firstStatus.tone, McStatusTone.error);
+  });
+
   testWidgets('setup layout should support parent and bounded scrolling', (
     tester,
   ) async {

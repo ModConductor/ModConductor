@@ -197,9 +197,9 @@ retained plan. It does not observe external changes or authorize activation.
 
 ## Game installations
 
-Each workspace selects one installation. Profiles share that binding. Several
-workspaces can refer to the same installation. Selection does not change mods,
-versions, profile order, or enablement.
+Each profile selects one installation. Profiles in the same workspace can use
+different installations. Several profiles can refer to the same installation.
+Selection does not change mods, versions, profile order, or enablement.
 
 Save checks the explicit folder and its expected binding revision before commit.
 The validator reads declared installation entries through held directories. It

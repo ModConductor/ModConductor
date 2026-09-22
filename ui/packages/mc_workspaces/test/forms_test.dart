@@ -5,9 +5,44 @@ import 'package:mc_client/mc_client.dart';
 import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 import 'package:mc_workspaces/mc_workspaces.dart';
 
-import 'controller_test.dart' show ScriptedClient;
+import 'controller_test.dart' show ScriptedClient, page;
 
 void main() {
+  testWidgets('an unbound current profile builds only its setup gate', (
+    tester,
+  ) async {
+    final client = ScriptedClient()..onOpen = (_) async => page('one');
+    final controller = WorkspaceController()..attach(client);
+    addTearDown(controller.dispose);
+    await controller.open('/fixture/one');
+    var setupBuilds = 0;
+    var workbenchBuilds = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: mcTheme(Brightness.light),
+        home: Scaffold(
+          body: WorkspaceBrowser(
+            controller: controller,
+            workbenchReady: false,
+            profileSetupBuilder: (_, _, _) {
+              setupBuilds++;
+              return const SizedBox(key: ValueKey('profile-setup-gate'));
+            },
+            modLibraryBuilder: (_, _) {
+              workbenchBuilds++;
+              return const SizedBox();
+            },
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(setupBuilds, greaterThan(0));
+    expect(workbenchBuilds, 0);
+    expect(find.byKey(const ValueKey('profile-setup-gate')), findsOneWidget);
+  });
+
   testWidgets(
     'workspace modal Escape restores keyboard focus without choosing a folder or submitting',
     (tester) async {

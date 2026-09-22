@@ -21,6 +21,15 @@ typedef ProfileInspectorBuilder = Widget Function(
   VoidCallback,
   ValueChanged<ProfileNavigationGuard?>,
 );
+typedef ProfileCreator = Future<void> Function(
+  BuildContext context,
+  WorkspaceInfo workspace,
+);
+typedef ProfileSetupBuilder = Widget Function(
+  BuildContext context,
+  WorkspaceInfo workspace,
+  ProfileInfo profile,
+);
 
 class WorkspaceHelpActions {
   const WorkspaceHelpActions({
@@ -53,9 +62,13 @@ class WorkspaceBrowser extends StatefulWidget {
     this.gameContextBuilder,
     this.executableBuilder,
     this.artifactBuilder,
+    this.entryHelpBuilder,
     this.helpBuilder,
     this.headerActions,
     this.profileInspectorBuilder,
+    this.profileCreator,
+    this.profileSetupBuilder,
+    this.workbenchReady = true,
     this.compactCloseAction = false,
     this.openFolder,
   });
@@ -66,11 +79,15 @@ class WorkspaceBrowser extends StatefulWidget {
   final Widget Function(BuildContext, WorkspaceInfo)? executableBuilder;
   final Widget Function(BuildContext, WorkspaceInfo, VoidCallback)?
   artifactBuilder;
+  final WorkspaceHelpBuilder? entryHelpBuilder;
   final WorkspaceHelpBuilder? helpBuilder;
   final List<Widget> Function(BuildContext, WorkspaceInfo)? headerActions;
   final bool compactCloseAction;
   final WorkspaceFolderOpener? openFolder;
   final ProfileInspectorBuilder? profileInspectorBuilder;
+  final ProfileCreator? profileCreator;
+  final ProfileSetupBuilder? profileSetupBuilder;
+  final bool workbenchReady;
 
   @override
   State<WorkspaceBrowser> createState() => _WorkspaceBrowserState();
@@ -303,6 +320,15 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
     ProfileInfo? profile,
     bool rename = false,
   }) async {
+    if (profile == null && !rename && widget.profileCreator != null) {
+      final workspace = controller.workspace;
+      if (workspace != null) {
+        _createProfileFocus.requestFocus();
+        await widget.profileCreator!(context, workspace);
+        if (mounted) _createProfileFocus.requestFocus();
+      }
+      return;
+    }
     final value = await showDialog<String>(
       context: context,
       builder: (_) => McNameDialog(
@@ -393,7 +419,8 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
 
   Widget _entry(BuildContext context) {
     final workspaces = _workspaceEntry(context);
-    if (widget.helpBuilder == null) return workspaces;
+    final help = widget.entryHelpBuilder ?? widget.helpBuilder;
+    if (help == null) return workspaces;
     return IndexedStack(
       index: _entryHelp ? 1 : 0,
       children: [
@@ -415,7 +442,9 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
                   ),
                 ),
                 const SizedBox(height: McSpacing.medium),
-                Expanded(child: _help(context, null)),
+                Expanded(
+                  child: help(context, null, _helpActions(context, null)),
+                ),
               ],
             ),
           ),
@@ -450,7 +479,7 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
                 ? () => _workspaceDialog(context, false)
                 : null,
           ),
-          if (widget.helpBuilder != null)
+          if (widget.entryHelpBuilder != null || widget.helpBuilder != null)
             McAction(
               key: const ValueKey('open-entry-help'),
               focusNode: _helpFocus,
@@ -511,6 +540,20 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
   Widget _workspace(BuildContext context) {
     final workspace = controller.workspace!;
     final current = workspace.selectedProfile;
+    final ready = current == null || widget.workbenchReady;
+    final mode = switch (_mode) {
+      _WorkspaceMode.mods when widget.modLibraryBuilder == null =>
+        _WorkspaceMode.profiles,
+      _WorkspaceMode.game when widget.gameContextBuilder == null =>
+        _WorkspaceMode.profiles,
+      _WorkspaceMode.tools when widget.executableBuilder == null =>
+        _WorkspaceMode.profiles,
+      _WorkspaceMode.archives when widget.artifactBuilder == null =>
+        _WorkspaceMode.profiles,
+      _WorkspaceMode.help when widget.helpBuilder == null =>
+        _WorkspaceMode.profiles,
+      final available => available,
+    };
     return Padding(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -546,11 +589,13 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
                     child: McAction(
                       label: current?.name ?? 'Profiles',
                       icon: Icons.person_outline,
-                      onPressed: () =>
-                          setState(() => _mode = _WorkspaceMode.profiles),
+                      onPressed: ready
+                          ? () =>
+                                setState(() => _mode = _WorkspaceMode.profiles)
+                          : null,
                     ),
                   ),
-                  ...?widget.headerActions?.call(context, workspace),
+                  if (ready) ...?widget.headerActions?.call(context, workspace),
                   if (widget.openFolder != null)
                     McAction(
                       key: const ValueKey('open-workspace-folder'),
@@ -588,117 +633,135 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
             ],
           ),
           const SizedBox(height: 16),
-          if (widget.modLibraryBuilder != null ||
-              widget.gameContextBuilder != null ||
-              widget.executableBuilder != null ||
-              widget.artifactBuilder != null ||
-              widget.helpBuilder != null) ...[
-            Align(
-              alignment: Alignment.centerLeft,
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: SegmentedButton<_WorkspaceMode>(
-                  segments: [
-                    ButtonSegment(
-                      value: _WorkspaceMode.profiles,
-                      label: Text('Profiles'),
-                      icon: Icon(Icons.people_outline),
-                    ),
-                    if (widget.modLibraryBuilder != null)
+          if (!ready && widget.profileSetupBuilder != null)
+            Expanded(
+              child: widget.profileSetupBuilder!(context, workspace, current),
+            )
+          else ...[
+            if (widget.modLibraryBuilder != null ||
+                widget.gameContextBuilder != null ||
+                widget.executableBuilder != null ||
+                widget.artifactBuilder != null ||
+                widget.helpBuilder != null) ...[
+              Align(
+                alignment: Alignment.centerLeft,
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: SegmentedButton<_WorkspaceMode>(
+                    segments: [
                       ButtonSegment(
-                        value: _WorkspaceMode.mods,
-                        label: Text('Mods'),
-                        icon: Icon(Icons.layers_outlined),
-                      ),
-                    if (widget.gameContextBuilder != null)
-                      ButtonSegment(
-                        value: _WorkspaceMode.game,
+                        value: _WorkspaceMode.profiles,
                         label: Text(
-                          'Game',
-                          key: ValueKey('workspace-game-tab'),
+                          'Profiles',
+                          key: ValueKey('workspace-profiles-tab'),
                         ),
-                        icon: Icon(Icons.videogame_asset_outlined),
+                        icon: Icon(Icons.people_outline),
                       ),
-                    if (widget.executableBuilder != null)
-                      ButtonSegment(
-                        value: _WorkspaceMode.tools,
-                        label: Text("Tools"),
-                        icon: Icon(Icons.terminal),
-                      ),
-                    if (widget.artifactBuilder != null)
-                      ButtonSegment(
-                        value: _WorkspaceMode.archives,
-                        label: Text("Archives"),
-                        icon: Icon(Icons.inventory_2_outlined),
-                      ),
-                    if (widget.helpBuilder != null)
-                      ButtonSegment(
-                        value: _WorkspaceMode.help,
-                        label: Text(
-                          'Help',
-                          key: ValueKey('workspace-help-tab'),
+                      if (widget.modLibraryBuilder != null)
+                        ButtonSegment(
+                          value: _WorkspaceMode.mods,
+                          label: Text(
+                            'Mods',
+                            key: ValueKey('workspace-mods-tab'),
+                          ),
+                          icon: Icon(Icons.layers_outlined),
                         ),
-                        icon: Icon(Icons.help_center_outlined),
-                      ),
-                  ],
-                  selected: {_mode},
-                  onSelectionChanged: (value) =>
-                      setState(() => _mode = value.single),
+                      if (widget.gameContextBuilder != null)
+                        ButtonSegment(
+                          value: _WorkspaceMode.game,
+                          label: Text(
+                            'Game',
+                            key: ValueKey('workspace-game-tab'),
+                          ),
+                          icon: Icon(Icons.videogame_asset_outlined),
+                        ),
+                      if (widget.executableBuilder != null)
+                        ButtonSegment(
+                          value: _WorkspaceMode.tools,
+                          label: Text(
+                            'Tools',
+                            key: ValueKey('workspace-tools-tab'),
+                          ),
+                          icon: Icon(Icons.terminal),
+                        ),
+                      if (widget.artifactBuilder != null)
+                        ButtonSegment(
+                          value: _WorkspaceMode.archives,
+                          label: Text(
+                            'Archives',
+                            key: ValueKey('workspace-archives-tab'),
+                          ),
+                          icon: Icon(Icons.inventory_2_outlined),
+                        ),
+                      if (widget.helpBuilder != null)
+                        ButtonSegment(
+                          value: _WorkspaceMode.help,
+                          label: Text(
+                            'Help',
+                            key: ValueKey('workspace-help-tab'),
+                          ),
+                          icon: Icon(Icons.help_center_outlined),
+                        ),
+                    ],
+                    selected: {mode},
+                    onSelectionChanged: (value) =>
+                        setState(() => _mode = value.single),
+                  ),
                 ),
               ),
+              const SizedBox(height: 16),
+            ],
+            Expanded(
+              child: IndexedStack(
+                index: mode.index,
+                children: [
+                  ExcludeFocus(
+                    excluding: mode != _WorkspaceMode.profiles,
+                    child: _profilesSurface(context),
+                  ),
+                  if (widget.modLibraryBuilder != null)
+                    ExcludeFocus(
+                      excluding: mode != _WorkspaceMode.mods,
+                      child: widget.modLibraryBuilder!(context, workspace),
+                    )
+                  else
+                    const SizedBox.shrink(),
+                  if (widget.gameContextBuilder != null)
+                    ExcludeFocus(
+                      excluding: mode != _WorkspaceMode.game,
+                      child: widget.gameContextBuilder!(context, workspace),
+                    )
+                  else
+                    const SizedBox.shrink(),
+                  if (widget.executableBuilder != null)
+                    ExcludeFocus(
+                      excluding: mode != _WorkspaceMode.tools,
+                      child: widget.executableBuilder!(context, workspace),
+                    )
+                  else
+                    const SizedBox.shrink(),
+                  if (widget.artifactBuilder != null)
+                    ExcludeFocus(
+                      excluding: mode != _WorkspaceMode.archives,
+                      child: widget.artifactBuilder!(
+                        context,
+                        workspace,
+                        () => setState(() => _mode = _WorkspaceMode.mods),
+                      ),
+                    )
+                  else
+                    const SizedBox.shrink(),
+                  if (widget.helpBuilder != null)
+                    ExcludeFocus(
+                      excluding: mode != _WorkspaceMode.help,
+                      child: _help(context, workspace),
+                    )
+                  else
+                    const SizedBox.shrink(),
+                ],
+              ),
             ),
-            const SizedBox(height: 16),
           ],
-          Expanded(
-            child: IndexedStack(
-              index: _mode.index,
-              children: [
-                ExcludeFocus(
-                  excluding: _mode != _WorkspaceMode.profiles,
-                  child: _profilesSurface(context),
-                ),
-                if (widget.modLibraryBuilder != null)
-                  ExcludeFocus(
-                    excluding: _mode != _WorkspaceMode.mods,
-                    child: widget.modLibraryBuilder!(context, workspace),
-                  )
-                else
-                  const SizedBox.shrink(),
-                if (widget.gameContextBuilder != null)
-                  ExcludeFocus(
-                    excluding: _mode != _WorkspaceMode.game,
-                    child: widget.gameContextBuilder!(context, workspace),
-                  )
-                else
-                  const SizedBox.shrink(),
-                if (widget.executableBuilder != null)
-                  ExcludeFocus(
-                    excluding: _mode != _WorkspaceMode.tools,
-                    child: widget.executableBuilder!(context, workspace),
-                  )
-                else
-                  const SizedBox.shrink(),
-                if (widget.artifactBuilder != null)
-                  ExcludeFocus(
-                    excluding: _mode != _WorkspaceMode.archives,
-                    child: widget.artifactBuilder!(
-                      context,
-                      workspace,
-                      () => setState(() => _mode = _WorkspaceMode.mods),
-                    ),
-                  )
-                else
-                  const SizedBox.shrink(),
-                if (widget.helpBuilder != null)
-                  ExcludeFocus(
-                    excluding: _mode != _WorkspaceMode.help,
-                    child: _help(context, workspace),
-                  )
-                else
-                  const SizedBox.shrink(),
-              ],
-            ),
-          ),
           if (controller.needsCheck && controller.activity == null) ...[
             const SizedBox(height: 12),
             McActionFeedback(

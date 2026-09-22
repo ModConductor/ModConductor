@@ -203,11 +203,15 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
   @override
   Widget build(BuildContext context) {
     final value = status;
+    final routineSetup =
+        value?.phase == SkyrimSetupStatusPhase.unavailable &&
+        value?.status == 'Skyrim needs its first Steam run';
     final failed =
-        value == null ||
-        value.phase == SkyrimSetupStatusPhase.unavailable ||
-        value.phase == SkyrimSetupStatusPhase.recoveryRequired ||
-        value.phase == SkyrimSetupStatusPhase.failed;
+        value != null &&
+        !routineSetup &&
+        (value.phase == SkyrimSetupStatusPhase.unavailable ||
+            value.phase == SkyrimSetupStatusPhase.recoveryRequired ||
+            value.phase == SkyrimSetupStatusPhase.failed);
 
     final content = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -232,7 +236,9 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
             McStatus(
               title: '${item.name}: ${item.status}',
               detail: item.detail.isEmpty ? null : item.detail,
-              tone: item.blocked ? McStatusTone.error : McStatusTone.neutral,
+              tone: item.blocked && !routineSetup
+                  ? McStatusTone.error
+                  : McStatusTone.neutral,
             ),
             const SizedBox(height: McSpacing.medium),
           ],

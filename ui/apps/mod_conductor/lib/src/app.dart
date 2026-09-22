@@ -82,6 +82,14 @@ const _defaultPreferences = (
   contrast: ContrastPreference.system,
 );
 
+const _profileSetupGames = [
+  ProfileSetupGame(
+    id: 'skyrim-se-steam',
+    name: 'Skyrim Special Edition',
+    storefront: 'Steam',
+  ),
+];
+
 const _englishLocale = Locale('en');
 
 Locale _resolveAppLocale(
@@ -278,6 +286,31 @@ class _ModConductorAppState extends State<ModConductorApp> {
   final _profileData = ProfileDataController();
   int? _selectionRevision, _catalogueRevision;
   int? _contextRevision;
+  bool get _gameReady {
+    final state = _game.state;
+    final binding = state?.binding;
+    return state?.definition != null &&
+        binding != null &&
+        !binding.needsCheck &&
+        binding.failure == null &&
+        binding.evidence.problems.isEmpty;
+  }
+
+  bool _supports(GameCapabilityId id) {
+    if (!_gameReady) return false;
+    final state = _game.state!;
+    final definition = state.definition!;
+    final platform = state.binding!.evidence.platform;
+    final capability = definition.capability(id);
+    return capability?.disposition == GameCapabilityDisposition.available &&
+        capability!.supports(definition.id, platform);
+  }
+
+  bool get _supportsSkyrim => _supports(GameCapabilityId.skyrimSpecialEdition);
+  bool get _supportsArchives => _supports(GameCapabilityId.archiveInspection);
+  bool get _supportsInstallation =>
+      _supports(GameCapabilityId.gameInstallationValidation);
+
   void _modsChanged() {
     if ((_selectionRevision != null &&
             _selectionRevision != _mods.inventory.revision) ||
@@ -309,11 +342,12 @@ class _ModConductorAppState extends State<ModConductorApp> {
   }
 
   void _diagnosticInputsChanged() {
+    final available = _supportsSkyrim;
     final receipt = _deployments.receipt;
     _diagnostics.attach(
-      widget.diagnostics,
-      _workspaces.workspace?.id,
-      _workspaces.workspace?.selectedProfile?.id,
+      available ? widget.diagnostics : null,
+      available ? _workspaces.workspace?.id : null,
+      available ? _workspaces.workspace?.selectedProfile?.id : null,
       fileSnapshotId: _files.state?.id,
       pluginSnapshotId: _plugins.order?.headers.id,
       deploymentId: receipt?.id,
@@ -334,86 +368,100 @@ class _ModConductorAppState extends State<ModConductorApp> {
     }
     if (revision != _contextRevision) _play.invalidate();
     _contextRevision = revision;
+    _syncCapabilityConsumers();
     if (mounted) setState(() {});
   }
 
   void _syncWorkspaceConsumers() {
-    _play.attach(
-      widget.gameLaunching,
-      widget.executables,
-      _workspaces.workspace,
-      available: _workspaces.canEdit,
-      fnis: widget.fnis,
-    );
-    _executables.attach(
-      widget.executables,
-      _workspaces.workspace,
-      available: _workspaces.canEdit,
-    );
-    _artifacts.attach(widget.artifacts, _workspaces.workspace?.id);
-    _nexusDetails.attach(
-      widget.nexusMetadata,
-      widget.nexus,
-      _workspaces.workspace?.id,
-      _workspaces.workspace?.selectedProfile?.id,
-    );
-    _outputs.attach(
-      widget.outputs,
-      _workspaces.workspace?.id,
-      profile: _workspaces.workspace?.selectedProfile?.id,
-      available: _workspaces.canEdit,
-    );
-    _deployments.attach(
-      widget.deployments,
-      _workspaces.workspace?.selectedProfile?.id,
-      _workspaces.workspace?.selectedProfile?.name,
-      available: _workspaces.canEdit,
-    );
-    _plugins.resumeAction = () => _profileData.resumeSelected(
-      widget.profileData,
-      _workspaces.workspace!.id,
-      _workspaces.workspace!.selectedProfile!.id,
-      available: _workspaces.canEdit,
-    );
-    _plugins.attach(
-      widget.bethesda,
-      _workspaces.workspace?.selectedProfile?.id,
-      orders: widget.pluginOrders,
-    );
-    _sortOrder.attach(
-      widget.loot,
-      _plugins,
-      _workspaces.workspace?.selectedProfile?.id,
-    );
-    _archives.resumeAction = _plugins.resumeAction;
-    _archives.attach(
-      widget.archivePolicies,
-      _plugins,
-      _workspaces.workspace?.id,
-      _workspaces.workspace?.selectedProfile?.id,
-    );
-    _files.attach(
-      widget.filePlans,
-      _workspaces.workspace?.selectedProfile?.id,
-      available: _workspaces.canEdit,
-    );
-    _diagnosticInputsChanged();
     _game.attach(
       widget.gameContexts,
       workspaceId: _workspaces.workspace?.id,
       profileId: _workspaces.workspace?.selectedProfile?.id,
       editable: _workspaces.canEdit,
     );
-    _mods.attach(
-      widget.modLibrary,
-      widget.profileMods,
-      organizationClient: widget.modOrganization,
-      workspaceId: _workspaces.workspace?.id,
-      profileId: _workspaces.workspace?.selectedProfile?.id,
-      workspaceRevision: _workspaces.workspace?.revision,
-      editable: _workspaces.canEdit,
-    );
+    _syncCapabilityConsumers();
     _loadWorkspaceSettings(_workspaces.workspace?.id);
+  }
+
+  void _syncCapabilityConsumers() {
+    final skyrim = _supportsSkyrim;
+    final archives = _supportsArchives;
+    final workspace = _workspaces.workspace;
+    final profile = workspace?.selectedProfile;
+    _play.attach(
+      skyrim ? widget.gameLaunching : null,
+      skyrim ? widget.executables : null,
+      skyrim ? workspace : null,
+      available: skyrim && _workspaces.canEdit,
+      fnis: skyrim ? widget.fnis : null,
+    );
+    _executables.attach(
+      skyrim ? widget.executables : null,
+      skyrim ? workspace : null,
+      available: skyrim && _workspaces.canEdit,
+    );
+    _artifacts.attach(
+      archives ? widget.artifacts : null,
+      archives ? workspace?.id : null,
+    );
+    _nexusDetails.attach(
+      skyrim ? widget.nexusMetadata : null,
+      skyrim ? widget.nexus : null,
+      skyrim ? workspace?.id : null,
+      skyrim ? profile?.id : null,
+    );
+    _outputs.attach(
+      skyrim ? widget.outputs : null,
+      skyrim ? workspace?.id : null,
+      profile: skyrim ? profile?.id : null,
+      available: skyrim && _workspaces.canEdit,
+    );
+    _deployments.attach(
+      skyrim ? widget.deployments : null,
+      skyrim ? profile?.id : null,
+      skyrim ? profile?.name : null,
+      available: skyrim && _workspaces.canEdit,
+    );
+    _plugins.resumeAction = !skyrim || workspace == null || profile == null
+        ? null
+        : () => _profileData.resumeSelected(
+            widget.profileData,
+            workspace.id,
+            profile.id,
+            available: _workspaces.canEdit,
+          );
+    _plugins.attach(
+      skyrim ? widget.bethesda : null,
+      skyrim ? profile?.id : null,
+      orders: skyrim ? widget.pluginOrders : null,
+    );
+    _sortOrder.attach(
+      skyrim ? widget.loot : null,
+      _plugins,
+      skyrim ? profile?.id : null,
+    );
+    _archives.resumeAction = _plugins.resumeAction;
+    _archives.attach(
+      skyrim ? widget.archivePolicies : null,
+      _plugins,
+      skyrim ? workspace?.id : null,
+      skyrim ? profile?.id : null,
+    );
+    _files.attach(
+      skyrim ? widget.filePlans : null,
+      skyrim ? profile?.id : null,
+      available: skyrim && _workspaces.canEdit,
+    );
+    _diagnosticInputsChanged();
+    _mods.attach(
+      skyrim ? widget.modLibrary : null,
+      skyrim ? widget.profileMods : null,
+      organizationClient: skyrim ? widget.modOrganization : null,
+      workspaceId: skyrim ? workspace?.id : null,
+      profileId: skyrim ? profile?.id : null,
+      workspaceRevision: skyrim ? workspace?.revision : null,
+      editable: skyrim && _workspaces.canEdit,
+    );
   }
 
   _Preferences get _effectivePreferences =>
@@ -694,6 +742,162 @@ class _ModConductorAppState extends State<ModConductorApp> {
     ), inherits: false);
   }
 
+  String _profileSetupFailure(Object failure) {
+    if (failure case GameContextException(:final detail, :final candidate)) {
+      final problems = candidate?.problems.map((item) => item.detail).toList();
+      return problems == null || problems.isEmpty
+          ? detail
+          : problems.join('\n');
+    }
+    if (failure case WorkspaceException(:final detail)) return detail;
+    return 'Profile setup did not return a result. Try again.';
+  }
+
+  Future<String?> _saveProfileSetup(
+    WorkspaceInfo workspace,
+    ProfileInfo profile,
+    ProfileSetupSelection selection,
+  ) async {
+    final client = widget.gameContexts;
+    final state = _game.state;
+    if (client == null ||
+        state == null ||
+        state.workspaceId != workspace.id ||
+        state.profileId != profile.id) {
+      return 'The profile setup is not ready. Try again.';
+    }
+    try {
+      final saved = await client.save(
+        workspace.id,
+        profile.id,
+        selection.game.id,
+        state.revision,
+        selection.installation,
+      );
+      _game.accept(saved, client);
+      return null;
+    } on Exception catch (failure) {
+      return _profileSetupFailure(failure);
+    }
+  }
+
+  Widget _profileSetupGate(
+    BuildContext context,
+    WorkspaceInfo workspace,
+    ProfileInfo profile,
+  ) {
+    final state = _game.state;
+    final binding = state?.binding;
+    if (_game.loading && (state == null || binding?.needsCheck == true)) {
+      return Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 460),
+          child: const McActionFeedback(
+            kind: McActionFeedbackKind.pending,
+            message: 'Checking profile setup',
+          ),
+        ),
+      );
+    }
+    if (state == null) {
+      return Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 460),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              McActionFeedback(
+                kind: McActionFeedbackKind.failure,
+                message: _game.problem ?? 'The profile setup is not available.',
+              ),
+              const SizedBox(height: McSpacing.medium),
+              McAction(
+                label: 'Try again',
+                icon: Icons.refresh,
+                onPressed: _game.client == null
+                    ? null
+                    : () => unawaited(_game.load()),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    return ProfileSetupSurface(
+      key: ValueKey(('profile-setup', profile.id)),
+      initialName: profile.name,
+      nameEditable: false,
+      games: _profileSetupGames,
+      discovery: widget.steamDiscovery,
+      chooseDirectory: widget.chooseGameDirectory,
+      initialInstallation: binding?.path,
+      initialProblem: _game.problem ?? binding?.failure,
+      actionLabel: 'Save profile',
+      onSubmit: (selection) => _saveProfileSetup(workspace, profile, selection),
+    );
+  }
+
+  Future<void> _createProfile(
+    BuildContext context,
+    WorkspaceInfo workspace,
+  ) async {
+    ProfileInfo? created;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => Dialog(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 760, maxHeight: 760),
+          child: ProfileSetupSurface(
+            initialName: '',
+            games: _profileSetupGames,
+            discovery: widget.steamDiscovery,
+            chooseDirectory: widget.chooseGameDirectory,
+            actionLabel: 'Create profile',
+            canCancel: true,
+            onCancel: () => Navigator.pop(dialogContext),
+            onComplete: () => Navigator.pop(dialogContext),
+            onSubmit: (selection) async {
+              if (_workspaces.workspace?.id != workspace.id) {
+                return 'The workspace changed. Start profile setup again.';
+              }
+              final client = widget.gameContexts;
+              if (client == null) {
+                return 'The profile setup is not available.';
+              }
+              created ??= await _workspaces.createProfile(selection.name);
+              final profile = created;
+              if (profile == null) {
+                return _workspaces.currentProblem ??
+                    'The profile could not be created.';
+              }
+              try {
+                final saved = await client.save(
+                  workspace.id,
+                  profile.id,
+                  selection.game.id,
+                  0,
+                  selection.installation,
+                );
+                if (_workspaces.workspace?.selectedProfile?.id != profile.id) {
+                  await _workspaces.select(profile);
+                }
+                if (_workspaces.workspace?.selectedProfile?.id != profile.id) {
+                  return _workspaces.currentProblem ??
+                      'The profile was created but did not open.';
+                }
+                _game.accept(saved, client);
+                return null;
+              } on Exception catch (failure) {
+                return _profileSetupFailure(failure);
+              }
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final preferences = _effectivePreferences;
@@ -816,7 +1020,11 @@ class _ModConductorAppState extends State<ModConductorApp> {
                     DesktopConnected() => WorkspaceBrowser(
                       controller: _workspaces,
                       openFolder: widget.openWorkspaceFolder,
-                      profileInspectorBuilder: widget.profileData == null
+                      profileCreator: _createProfile,
+                      profileSetupBuilder: _profileSetupGate,
+                      workbenchReady: _gameReady,
+                      profileInspectorBuilder:
+                          !_supportsSkyrim || widget.profileData == null
                           ? null
                           : (context, workspace, profile, close, bindGuard) =>
                                 ProfileSettingsInspector(
@@ -835,14 +1043,16 @@ class _ModConductorAppState extends State<ModConductorApp> {
                                       _workspaces.resumeProfileChange,
                                   pluginHeadersId: _plugins.order?.headers.id,
                                 ),
-                      executableBuilder: widget.executables == null
+                      executableBuilder:
+                          !_supportsSkyrim || widget.executables == null
                           ? null
                           : (context, workspace) => ExecutablesBrowser(
                               controller: _executables,
                               chooseExecutable: widget.chooseExecutable,
                               chooseDirectory: widget.chooseGameDirectory,
                             ),
-                      artifactBuilder: widget.artifacts == null
+                      artifactBuilder:
+                          !_supportsArchives || widget.artifacts == null
                           ? null
                           : (context, workspace, openMods) => ArtifactBrowser(
                               nexus: widget.nexus,
@@ -870,7 +1080,16 @@ class _ModConductorAppState extends State<ModConductorApp> {
                               chooseFile: widget.chooseArchive,
                               workspacePath: workspace.path,
                             ),
-                      helpBuilder: widget.diagnostics == null
+                      entryHelpBuilder: widget.diagnostics == null
+                          ? null
+                          : (context, workspace, actions) => HelpBrowser(
+                              controller: _diagnostics,
+                              onCreateWorkspace: actions.createWorkspace,
+                              onOpenWorkspace: actions.openWorkspace,
+                              onCreateProfile: actions.createProfile,
+                            ),
+                      helpBuilder:
+                          !_supportsSkyrim || widget.diagnostics == null
                           ? null
                           : (context, workspace, actions) => HelpBrowser(
                               controller: _diagnostics,
@@ -887,7 +1106,9 @@ class _ModConductorAppState extends State<ModConductorApp> {
                           widget.gameLaunching != null &&
                           MediaQuery.sizeOf(context).width < 950,
                       headerActions:
-                          widget.deployments == null && widget.migration == null
+                          !_supportsSkyrim ||
+                              (widget.deployments == null &&
+                                  widget.migration == null)
                           ? null
                           : (context, workspace) => [
                               if (widget.migration != null)
@@ -912,176 +1133,185 @@ class _ModConductorAppState extends State<ModConductorApp> {
                                   widget.deployments != null)
                                 GamePlayActions(controller: _play),
                             ],
-                      gameContextBuilder: (context, workspace) =>
-                          GameContextBrowser(
-                            controller: _game,
-                            steamDiscovery: widget.steamDiscovery,
-                            protonContexts: widget.protonContexts,
-                            chooseDirectory: widget.chooseGameDirectory,
-                            footer:
-                                widget.skyrimSetup == null ||
-                                    workspace.selectedProfile == null ||
-                                    _game
-                                            .state
-                                            ?.binding
-                                            ?.evidence
-                                            .definitionId !=
-                                        'skyrim-se-steam'
-                                ? null
-                                : Padding(
-                                    padding: const EdgeInsets.only(
-                                      top: McSpacing.large,
+                      gameContextBuilder: !_supportsInstallation
+                          ? null
+                          : (context, workspace) => GameContextBrowser(
+                              controller: _game,
+                              steamDiscovery: widget.steamDiscovery,
+                              protonContexts: widget.protonContexts,
+                              chooseDirectory: widget.chooseGameDirectory,
+                              footer:
+                                  widget.skyrimSetup == null ||
+                                      workspace.selectedProfile == null ||
+                                      _game
+                                              .state
+                                              ?.binding
+                                              ?.evidence
+                                              .definitionId !=
+                                          'skyrim-se-steam'
+                                  ? null
+                                  : Padding(
+                                      padding: const EdgeInsets.only(
+                                        top: McSpacing.large,
+                                      ),
+                                      child: SkyrimSetupSection(
+                                        client: widget.skyrimSetup!,
+                                        chooseArchive: widget.chooseArchive,
+                                        workspaceId: workspace.id,
+                                        profileId:
+                                            workspace.selectedProfile!.id,
+                                      ),
                                     ),
-                                    child: SkyrimSetupSection(
-                                      client: widget.skyrimSetup!,
-                                      chooseArchive: widget.chooseArchive,
-                                      workspaceId: workspace.id,
-                                      profileId: workspace.selectedProfile!.id,
-                                    ),
-                                  ),
-                          ),
-                      modLibraryBuilder: (context, workspace) =>
-                          ListenableBuilder(
-                            listenable: _nexusDetails,
-                            builder: (context, _) => _nexusDetails.viewing
-                                ? ModNexusView(
-                                    controller: _nexusDetails,
-                                    onMapped: _mods.inventory.refreshCatalogue,
-                                    organization: widget.modOrganization,
-                                    localCategories:
-                                        _mods.selected?.metadata.categories ??
-                                        const [],
-                                    onDownloaded:
-                                        (artifact, details, version) async {
-                                          await _artifacts.load();
-                                          _artifacts.model.select(artifact.id);
-                                          final target = _mods.selected;
-                                          if (target?.id ==
-                                                  details.reference.mod &&
-                                              target?.currentVersionId ==
-                                                  details.reference.version) {
-                                            _artifacts.reviewUpdate(
-                                              artifact,
-                                              target!,
-                                              version: version,
-                                              open:
-                                                  artifact.state ==
-                                                      ArtifactState.ready ||
-                                                  artifact.state ==
-                                                      ArtifactState.installed,
+                            ),
+                      modLibraryBuilder: !_supportsSkyrim
+                          ? null
+                          : (context, workspace) => ListenableBuilder(
+                              listenable: _nexusDetails,
+                              builder: (context, _) => _nexusDetails.viewing
+                                  ? ModNexusView(
+                                      controller: _nexusDetails,
+                                      onMapped:
+                                          _mods.inventory.refreshCatalogue,
+                                      organization: widget.modOrganization,
+                                      localCategories:
+                                          _mods.selected?.metadata.categories ??
+                                          const [],
+                                      onDownloaded:
+                                          (artifact, details, version) async {
+                                            await _artifacts.load();
+                                            _artifacts.model.select(
+                                              artifact.id,
                                             );
-                                          }
-                                          _nexusDetails.close();
-                                          _workspaces.showArchives();
-                                        },
-                                  )
-                                : widget.filePlans == null
-                                ? ModLibraryBrowser(
-                                    controller: _mods,
-                                    onOpenNexus: widget.nexusMetadata == null
-                                        ? null
-                                        : _nexusDetails.open,
-                                    maintenance: widget.maintenance,
-                                    onOpenDeployment: widget.deployments == null
-                                        ? null
-                                        : () => showDialog<void>(
-                                            context: context,
-                                            builder: (_) => DeploymentDialog(
-                                              controller: _deployments,
+                                            final target = _mods.selected;
+                                            if (target?.id ==
+                                                    details.reference.mod &&
+                                                target?.currentVersionId ==
+                                                    details.reference.version) {
+                                              _artifacts.reviewUpdate(
+                                                artifact,
+                                                target!,
+                                                version: version,
+                                                open:
+                                                    artifact.state ==
+                                                        ArtifactState.ready ||
+                                                    artifact.state ==
+                                                        ArtifactState.installed,
+                                              );
+                                            }
+                                            _nexusDetails.close();
+                                            _workspaces.showArchives();
+                                          },
+                                    )
+                                  : widget.filePlans == null
+                                  ? ModLibraryBrowser(
+                                      controller: _mods,
+                                      onOpenNexus: widget.nexusMetadata == null
+                                          ? null
+                                          : _nexusDetails.open,
+                                      maintenance: widget.maintenance,
+                                      onOpenDeployment:
+                                          widget.deployments == null
+                                          ? null
+                                          : () => showDialog<void>(
+                                              context: context,
+                                              builder: (_) => DeploymentDialog(
+                                                controller: _deployments,
+                                              ),
                                             ),
-                                          ),
-                                    workspacePath: workspace.path,
-                                    chooseDirectory: widget.chooseDirectory,
-                                    inventoryExports: widget.inventoryExports,
-                                    chooseExportLocation:
-                                        widget.chooseExportLocation,
-                                    openExportFolder: widget.openExportFolder,
-                                    profileName:
-                                        workspace.selectedProfile?.name,
-                                  )
-                                : widget.outputs == null
-                                ? FilePlanningWorkbench(
-                                    mods: _mods,
-                                    onOpenNexus: widget.nexusMetadata == null
-                                        ? null
-                                        : _nexusDetails.open,
-                                    maintenance: widget.maintenance,
-                                    onOpenDeployment: widget.deployments == null
-                                        ? null
-                                        : () => showDialog<void>(
-                                            context: context,
-                                            builder: (_) => DeploymentDialog(
-                                              controller: _deployments,
+                                      workspacePath: workspace.path,
+                                      chooseDirectory: widget.chooseDirectory,
+                                      inventoryExports: widget.inventoryExports,
+                                      chooseExportLocation:
+                                          widget.chooseExportLocation,
+                                      openExportFolder: widget.openExportFolder,
+                                      profileName:
+                                          workspace.selectedProfile?.name,
+                                    )
+                                  : widget.outputs == null
+                                  ? FilePlanningWorkbench(
+                                      mods: _mods,
+                                      onOpenNexus: widget.nexusMetadata == null
+                                          ? null
+                                          : _nexusDetails.open,
+                                      maintenance: widget.maintenance,
+                                      onOpenDeployment:
+                                          widget.deployments == null
+                                          ? null
+                                          : () => showDialog<void>(
+                                              context: context,
+                                              builder: (_) => DeploymentDialog(
+                                                controller: _deployments,
+                                              ),
                                             ),
-                                          ),
-                                    plans: _files,
-                                    onOpenProblems: _workspaces.showHelp,
-                                    plugins: widget.bethesda == null
-                                        ? null
-                                        : _plugins,
-                                    archives: widget.archivePolicies == null
-                                        ? null
-                                        : _archives,
-                                    sortOrder: widget.loot == null
-                                        ? null
-                                        : _sortOrder,
-                                    workspacePath: workspace.path,
-                                    chooseDirectory: widget.chooseDirectory,
-                                    profileName:
-                                        workspace.selectedProfile?.name,
-                                    inventoryExports: widget.inventoryExports,
-                                    chooseExportLocation:
-                                        widget.chooseExportLocation,
-                                    openExportFolder: widget.openExportFolder,
-                                    archiveUnavailable:
-                                        _game.state?.definition?.unavailable(
-                                          GameCapabilityId.archiveInspection,
-                                        ) ??
-                                        false,
-                                  )
-                                : DeploymentOutputsWorkbench(
-                                    mods: _mods,
-                                    onOpenNexus: widget.nexusMetadata == null
-                                        ? null
-                                        : _nexusDetails.open,
-                                    maintenance: widget.maintenance,
-                                    onOpenDeployment: widget.deployments == null
-                                        ? null
-                                        : () => showDialog<void>(
-                                            context: context,
-                                            builder: (_) => DeploymentDialog(
-                                              controller: _deployments,
+                                      plans: _files,
+                                      onOpenProblems: _workspaces.showHelp,
+                                      plugins: widget.bethesda == null
+                                          ? null
+                                          : _plugins,
+                                      archives: widget.archivePolicies == null
+                                          ? null
+                                          : _archives,
+                                      sortOrder: widget.loot == null
+                                          ? null
+                                          : _sortOrder,
+                                      workspacePath: workspace.path,
+                                      chooseDirectory: widget.chooseDirectory,
+                                      profileName:
+                                          workspace.selectedProfile?.name,
+                                      inventoryExports: widget.inventoryExports,
+                                      chooseExportLocation:
+                                          widget.chooseExportLocation,
+                                      openExportFolder: widget.openExportFolder,
+                                      archiveUnavailable:
+                                          _game.state?.definition?.unavailable(
+                                            GameCapabilityId.archiveInspection,
+                                          ) ??
+                                          false,
+                                    )
+                                  : DeploymentOutputsWorkbench(
+                                      mods: _mods,
+                                      onOpenNexus: widget.nexusMetadata == null
+                                          ? null
+                                          : _nexusDetails.open,
+                                      maintenance: widget.maintenance,
+                                      onOpenDeployment:
+                                          widget.deployments == null
+                                          ? null
+                                          : () => showDialog<void>(
+                                              context: context,
+                                              builder: (_) => DeploymentDialog(
+                                                controller: _deployments,
+                                              ),
                                             ),
-                                          ),
-                                    plans: _files,
-                                    onOpenProblems: _workspaces.showHelp,
-                                    plugins: widget.bethesda == null
-                                        ? null
-                                        : _plugins,
-                                    archives: widget.archivePolicies == null
-                                        ? null
-                                        : _archives,
-                                    sortOrder: widget.loot == null
-                                        ? null
-                                        : _sortOrder,
-                                    outputs: _outputs,
-                                    profileId: workspace.selectedProfile?.id,
-                                    organization: widget.modOrganization,
-                                    workspacePath: workspace.path,
-                                    chooseDirectory: widget.chooseDirectory,
-                                    profileName:
-                                        workspace.selectedProfile?.name,
-                                    inventoryExports: widget.inventoryExports,
-                                    chooseExportLocation:
-                                        widget.chooseExportLocation,
-                                    openExportFolder: widget.openExportFolder,
-                                    archiveUnavailable:
-                                        _game.state?.definition?.unavailable(
-                                          GameCapabilityId.archiveInspection,
-                                        ) ??
-                                        false,
-                                  ),
-                          ),
+                                      plans: _files,
+                                      onOpenProblems: _workspaces.showHelp,
+                                      plugins: widget.bethesda == null
+                                          ? null
+                                          : _plugins,
+                                      archives: widget.archivePolicies == null
+                                          ? null
+                                          : _archives,
+                                      sortOrder: widget.loot == null
+                                          ? null
+                                          : _sortOrder,
+                                      outputs: _outputs,
+                                      profileId: workspace.selectedProfile?.id,
+                                      organization: widget.modOrganization,
+                                      workspacePath: workspace.path,
+                                      chooseDirectory: widget.chooseDirectory,
+                                      profileName:
+                                          workspace.selectedProfile?.name,
+                                      inventoryExports: widget.inventoryExports,
+                                      chooseExportLocation:
+                                          widget.chooseExportLocation,
+                                      openExportFolder: widget.openExportFolder,
+                                      archiveUnavailable:
+                                          _game.state?.definition?.unavailable(
+                                            GameCapabilityId.archiveInspection,
+                                          ) ??
+                                          false,
+                                    ),
+                            ),
                       chooseDirectory: widget.chooseDirectory,
                     ),
                   },
