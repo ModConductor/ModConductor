@@ -5,7 +5,7 @@ module internal MaintenanceClaims =
         Sqlite.number
             connection
             transaction
-            "SELECT count(*) FROM mod_deletion_targets WHERE mod_id=$mod"
+            "SELECT count(*) FROM mod_deletion_targets t JOIN mod_deletions d ON d.id=t.deletion_id WHERE t.mod_id=$mod AND d.busy=1"
             [ "$mod", box (string modId) ]
         <> 0L
 
