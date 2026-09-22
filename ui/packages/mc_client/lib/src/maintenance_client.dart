@@ -20,8 +20,7 @@ abstract interface class MaintenanceClient {
     String version,
   );
   Future<InstallationStatus> startUpdate(UpdatePreview preview, String id);
-  Future<DeletionPreview> prepareDeletion(ModEntry target);
-  Future<void> deleteMod(DeletionPreview preview);
+  Future<void> deleteMod(ModEntry target);
 }
 
 class GrpcMaintenanceClient implements MaintenanceClient {
@@ -119,76 +118,13 @@ class GrpcMaintenanceClient implements MaintenanceClient {
     ),
   );
   @override
-  Future<DeletionPreview> prepareDeletion(ModEntry target) async {
-    final value = await _call(
-      _deletions.prepareModDeletion(
-        deletion.PrepareModDeletionRequest(
-          workspaceId: target.workspaceId,
-          modId: target.id,
-          revision: Int64(target.revision),
-        ),
-      ),
-    );
-    return DeletionPreview(
-      workspaceId: value.workspaceId,
-      modId: value.modId,
-      revision: value.revision.toInt(),
-      name: value.name,
-      versions: value.versions,
-      backups: List.unmodifiable(value.backups),
-      external: List.unmodifiable(value.external),
-      blocked: value.hasBlocked() ? value.blocked : null,
-      profiles: [
-        for (final profile in value.profiles)
-          DeletionProfile(profile.id, profile.name),
-      ],
-      deployments: [
-        for (final entry in value.deployments)
-          DeletionDeployment(
-            entry.contextId,
-            entry.id,
-            entry.name,
-            entry.hasPreparedAtUnixMs()
-                ? DateTime.fromMillisecondsSinceEpoch(
-                    entry.preparedAtUnixMs.toInt(),
-                    isUtc: true,
-                  )
-                : null,
-            entry.active,
-          ),
-      ],
-      files: [
-        for (final file in value.files)
-          DeletionFile(
-            file.label,
-            switch (file.kind) {
-              deletion.ModDeletionFileKind.MOD_DELETION_FILE_KIND_PAYLOAD =>
-                DeletionFileKind.payload,
-              deletion.ModDeletionFileKind.MOD_DELETION_FILE_KIND_ARCHIVE =>
-                DeletionFileKind.archive,
-              deletion.ModDeletionFileKind.MOD_DELETION_FILE_KIND_TEMPORARY =>
-                DeletionFileKind.temporary,
-              deletion
-                  .ModDeletionFileKind
-                  .MOD_DELETION_FILE_KIND_GENERATION_LINK =>
-                DeletionFileKind.generationLink,
-              _ => throw const ArtifactProblem('Unknown deletion file type.'),
-            },
-            file.hasBytes() ? file.bytes.toInt() : null,
-            file.shared,
-          ),
-      ],
-    );
-  }
-
-  @override
-  Future<void> deleteMod(DeletionPreview preview) async {
+  Future<void> deleteMod(ModEntry target) async {
     await _call(
       _deletions.deleteMod(
         deletion.DeleteModRequest(
-          workspaceId: preview.workspaceId,
-          modId: preview.modId,
-          revision: Int64(preview.revision),
+          workspaceId: target.workspaceId,
+          modId: target.id,
+          revision: Int64(target.revision),
         ),
       ),
     );

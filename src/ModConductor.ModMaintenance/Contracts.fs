@@ -35,38 +35,3 @@ type UpdatePreview =
       Files: UpdateFile list
       Plan: InstallationPlan
       SourceNotices: string list }
-
-[<RequireQualifiedAccess>]
-type DeletionFileKind =
-    | Payload
-    | Archive
-    | Temporary
-    | GenerationLink
-
-type DeletionFile =
-    { Label: string
-      Kind: DeletionFileKind
-      Bytes: int64 option
-      Shared: bool }
-
-type DeletionProfile = { Id: Guid; Name: string }
-
-type DeletionDeployment =
-    { ContextId: Guid
-      Id: Guid
-      Name: string
-      PreparedAt: DateTimeOffset option
-      Active: bool }
-
-type DeletionPreview =
-    { WorkspaceId: Guid
-      ModId: Guid
-      Revision: int64
-      Name: string
-      Versions: int
-      Backups: string list
-      Profiles: DeletionProfile list
-      Deployments: DeletionDeployment list
-      Files: DeletionFile list
-      External: string list
-      Blocked: string option }

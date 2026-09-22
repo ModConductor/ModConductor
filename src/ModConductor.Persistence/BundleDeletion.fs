@@ -6,7 +6,7 @@ module internal BundleDeletion =
     let works connection transaction targets =
         targets
         |> List.collect (fun target ->
-            DeletionQueries.ids
+            DeletionRows.ids
                 connection
                 transaction
                 "SELECT bundle_id FROM bundle_mods WHERE mod_id=$mod"
@@ -38,7 +38,7 @@ module internal BundleDeletion =
             |> List.map (fun s -> s, remaining.Contains s.Id))
 
     let parentShared connection transaction artifact targets =
-        DeletionQueries.ids
+        DeletionRows.ids
             connection
             transaction
             "SELECT m.mod_id FROM bundle_mods m JOIN bundle_work w ON w.id=m.bundle_id WHERE w.artifact_id=$artifact"

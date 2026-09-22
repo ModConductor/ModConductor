@@ -22,7 +22,6 @@ class DeploymentOutputsWorkbench extends StatelessWidget {
     this.sortOrder,
     this.profileName,
     this.maintenance,
-    this.onOpenDeployment,
     this.onOpenProblems,
     this.onOpenNexus,
     this.organization,
@@ -42,7 +41,6 @@ class DeploymentOutputsWorkbench extends StatelessWidget {
   final String? profileId, profileName;
   final void Function(ModEntry)? onOpenNexus;
   final MaintenanceClient? maintenance;
-  final VoidCallback? onOpenDeployment;
   final VoidCallback? onOpenProblems;
   final ModOrganizationClient? organization;
   final bool archiveUnavailable;
@@ -56,7 +54,6 @@ class DeploymentOutputsWorkbench extends StatelessWidget {
       mods: mods,
       onOpenNexus: onOpenNexus,
       maintenance: maintenance,
-      onOpenDeployment: onOpenDeployment,
       onOpenProblems: onOpenProblems,
       plans: plans,
       plugins: plugins,

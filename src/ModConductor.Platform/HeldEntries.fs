@@ -42,6 +42,12 @@ module internal HeldEntries =
     [<DllImport("libc", SetLastError = true)>]
     extern int private unlinkat(int directory, string name, int flags)
 
+    [<DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)>]
+    extern int private DeleteFileW(string name)
+
+    [<DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)>]
+    extern int private RemoveDirectoryW(string name)
+
     [<DllImport("libc", SetLastError = true)>]
     extern int private renameat2(
         int source,
@@ -165,6 +171,32 @@ module internal HeldEntries =
             else
                 File.Delete(path handle name)
         | _ -> raise (IOException "The owned link changed; it was left untouched.")
+
+    let unlink (handle: SafeFileHandle) name =
+        nameCheck name
+
+        if OperatingSystem.IsLinux() then
+            if unlinkat (int (handle.DangerousGetHandle()), name, 0) <> 0 then
+                match Marshal.GetLastPInvokeError() with
+                | 2 -> ()
+                | error -> raise (IOException("Removing the owned entry failed: " + string error))
+        elif OperatingSystem.IsWindows() then
+            let child = path handle name
+
+            if DeleteFileW child = 0 then
+                match Marshal.GetLastPInvokeError() with
+                | 2
+                | 3 -> ()
+                | _ when RemoveDirectoryW child <> 0 -> ()
+                | _ ->
+                    raise (
+                        IOException(
+                            "Removing the owned entry failed: "
+                            + string (Marshal.GetLastPInvokeError())
+                        )
+                    )
+        else
+            raise (PlatformNotSupportedException())
 
     let removeFile (handle: SafeFileHandle) name expected =
         match inspect handle name with

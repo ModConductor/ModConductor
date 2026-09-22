@@ -278,8 +278,19 @@ module MaintenanceFixtures =
             |> List.find (fun entry -> entry.Id = modId)
 
         MaintenanceDeployments.active state context (Some generation.Id)
-        let blocked = store.Deletions.Prepare(workspace, modId, current.Revision) |> wait
-        check "ActiveDeploymentPreventsDeletion" blocked.Blocked.IsSome
+        let mutable activeRefused = false
+
+        try
+            store.Deletions.Delete(workspace, modId, current.Revision) |> wait
+        with _ ->
+            activeRefused <- true
+
+        check
+            "ActiveDeploymentPreventsDeletion"
+            (activeRefused
+             && (library.Scan(workspace, 100) |> wait |> result).Entries
+                |> List.exists (fun entry -> entry.Id = modId))
+
         MaintenanceDeployments.active state context None
 
         let retainedBytes =
@@ -303,33 +314,19 @@ module MaintenanceFixtures =
         let changedPath =
             Path.Combine(ownedPath, LibraryFiles.payloadName changedPayload.Payload.Id)
 
-        let displaced = Path.Combine(area, "displaced-owned-file")
-        File.Move(changedPath, displaced)
-        File.WriteAllText(changedPath, "unrelated replacement")
-        let refused = store.Deletions.Prepare(workspace, modId, current.Revision) |> wait
-
-        check
-            "ReplacementIdentityIsNotDeleted"
-            (refused.Blocked.IsSome
-             && File.ReadAllText(changedPath) = "unrelated replacement")
-
-        File.Delete changedPath
-        File.Move(displaced, changedPath)
         File.SetAttributes(changedPath, FileAttributes.Normal)
         File.WriteAllText(changedPath, "changed bytes still owned")
-        let deletion = store.Deletions.Prepare(workspace, modId, current.Revision) |> wait
 
-        check
-            "DeletionIncludesAllVersionsBackupAndArchives"
-            (deletion.Versions = 3
-             && deletion.Backups = [ backup.Metadata.Name ]
-             && deletion.Blocked.IsNone
-             && deletion.Files
-                |> List.filter (fun file -> file.Kind = DeletionFileKind.Archive)
-                |> List.length = 3)
+        if OperatingSystem.IsLinux() then
+            File.SetUnixFileMode(changedPath, UnixFileMode.UserWrite)
+            store.Deletions.Delete(workspace, modId, current.Revision) |> wait
+        else
+            use noReadAccess =
+                new FileStream(changedPath, FileMode.Open, FileAccess.Write, FileShare.Delete)
 
-        store.Deletions.Delete(workspace, modId, deletion.Revision) |> wait
-        check "ChangedOwnedBytesDoNotPreventDeletion" (not (File.Exists changedPath))
+            store.Deletions.Delete(workspace, modId, current.Revision) |> wait
+
+        check "DirectDeletionDoesNotOpenOwnedFileContents" (not (File.Exists changedPath))
 
         check
             "SuccessfulDeletionRemovesInventory"

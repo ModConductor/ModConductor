@@ -171,10 +171,7 @@ module BundleFixtures =
 
         let target = inventory.Entries |> List.find (fun m -> m.Id = modId)
 
-        let deletion =
-            store.Deletions.Prepare(workspace, target.Id, target.Revision) |> wait
-
-        store.Deletions.Delete(workspace, target.Id, deletion.Revision) |> wait
+        store.Deletions.Delete(workspace, target.Id, target.Revision) |> wait
 
         let passed =
             (store.Bundles.Find(workspace, bundle.Artifact.Id) |> wait).IsNone
@@ -404,17 +401,7 @@ module BundleFixtures =
 
         File.AppendAllText(privateCopy, "changed owned bytes")
 
-        let deletion =
-            store.Deletions.Prepare(workspace, target.Id, target.Revision) |> wait
-
-        check
-            "DeletionFindsPrivateChildCopyAndSharedParentSources"
-            (deletion.Blocked.IsNone
-             && deletion.Files
-                |> List.exists (fun f -> f.Kind = DeletionFileKind.Temporary && not f.Shared)
-             && deletion.Files |> List.exists (fun f -> f.Shared))
-
-        store.Deletions.Delete(workspace, target.Id, deletion.Revision) |> wait
+        store.Deletions.Delete(workspace, target.Id, target.Revision) |> wait
 
         let bundle = store.Bundles.Read(workspace, bundleId) |> wait
 

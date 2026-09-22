@@ -1,5 +1,4 @@
 import 'deletion_controller.dart';
-import 'deletion_view.dart';
 
 import 'dart:async';
 
@@ -35,7 +34,6 @@ class ModLibraryBrowser extends StatefulWidget {
     this.paneLabel = 'Files',
     this.singlePane,
     this.maintenance,
-    this.onOpenDeployment,
     this.onOpenNexus,
     this.onMaintenanceOpen,
     this.savedFileActions = const [],
@@ -52,7 +50,7 @@ class ModLibraryBrowser extends StatefulWidget {
   final bool? singlePane;
   final void Function(ModEntry)? onOpenNexus;
   final MaintenanceClient? maintenance;
-  final VoidCallback? onOpenDeployment, onMaintenanceOpen;
+  final VoidCallback? onMaintenanceOpen;
   final List<Widget> savedFileActions;
   final InventoryExportClient? inventoryExports;
   final InventoryExportLocationChooser? chooseExportLocation;
@@ -87,6 +85,91 @@ class _ModLibraryBrowserState extends State<ModLibraryBrowser> {
 
   void attachDeletion() =>
       deletion.attach(widget.maintenance, controller.workspaceId);
+
+  Future<void> _delete(ModEntry target) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => McFormDialog(
+        title: 'Delete ${target.metadata.name}?',
+        action: 'Delete',
+        onSubmit: () => Navigator.pop(context, true),
+        children: const [
+          Text(
+            'This permanently removes the mod and its Mod Conductor files. Original archives, source folders, saves, and game files stay unchanged.',
+          ),
+        ],
+      ),
+    );
+    if (!mounted || confirmed != true) return;
+    widget.onMaintenanceOpen?.call();
+    unawaited(deletion.open(target));
+  }
+
+  Widget _deletionView() {
+    final target = deletion.target!;
+    final name = target.metadata.name;
+    final feedback = deletion.busy
+        ? McActionFeedback(
+            kind: McActionFeedbackKind.pending,
+            message: 'Deleting $name',
+          )
+        : deletion.complete
+        ? McActionFeedback(
+            kind: McActionFeedbackKind.success,
+            message: '$name deleted',
+          )
+        : McActionFeedback(
+            kind: McActionFeedbackKind.failure,
+            message: '$name was not deleted',
+            detail: deletion.problem,
+          );
+
+    return PopScope(
+      canPop: !deletion.busy,
+      child: Align(
+        key: const ValueKey('mod-deletion-status'),
+        alignment: Alignment.topLeft,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 670),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(4, 20, 4, 4),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                feedback,
+                const SizedBox(height: 24),
+                if (deletion.complete)
+                  McAction(
+                    label: 'Open Mods',
+                    icon: Icons.layers_outlined,
+                    onPressed: deletion.back,
+                  )
+                else if (!deletion.busy)
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 8,
+                    children: [
+                      McAction(
+                        label: 'Try again',
+                        icon: Icons.refresh,
+                        emphasis: McActionEmphasis.primary,
+                        onPressed: () => unawaited(deletion.run()),
+                      ),
+                      McAction(
+                        label: 'Back to mod',
+                        icon: Icons.arrow_back,
+                        onPressed: deletion.back,
+                      ),
+                    ],
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   void didUpdateWidget(ModLibraryBrowser oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -207,10 +290,7 @@ class _ModLibraryBrowserState extends State<ModLibraryBrowser> {
     builder: (context, _) => LayoutBuilder(
       builder: (context, constraints) {
         if (deletion.viewing) {
-          return ModDeletionView(
-            controller: deletion,
-            onOpenDeployment: widget.onOpenDeployment,
-          );
+          return _deletionView();
         }
         final narrow = widget.singlePane ?? constraints.maxWidth < 1050;
         final compact = narrow && constraints.maxHeight < 500;
@@ -260,10 +340,7 @@ class _ModLibraryBrowserState extends State<ModLibraryBrowser> {
                   chosen?.kind == ModKind.regular &&
                       controller.canEdit &&
                       !deletion.busy
-                  ? () {
-                      widget.onMaintenanceOpen?.call();
-                      unawaited(deletion.open(chosen!));
-                    }
+                  ? () => unawaited(_delete(chosen!))
                   : null,
             ),
           McIconMenu<_OrganizationAction>(

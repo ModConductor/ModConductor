@@ -2,26 +2,7 @@ syntax = "proto3";
 package modconductor.v1;
 option csharp_namespace = "ModConductor.Protocol.V1";
 service ModDeletion {
-  rpc PrepareModDeletion(PrepareModDeletionRequest) returns (ModDeletionPreview);
   rpc DeleteMod(DeleteModRequest) returns (ModDeleted);
 }
-message PrepareModDeletionRequest { string workspace_id = 1; string mod_id = 2; uint64 revision = 3; }
 message DeleteModRequest { string workspace_id = 1; string mod_id = 2; uint64 revision = 3; }
 message ModDeleted {}
-enum ModDeletionFileKind { MOD_DELETION_FILE_KIND_PAYLOAD = 0; MOD_DELETION_FILE_KIND_ARCHIVE = 1; MOD_DELETION_FILE_KIND_TEMPORARY = 2; MOD_DELETION_FILE_KIND_GENERATION_LINK = 3; }
-message ModDeletionFile { string label = 1; ModDeletionFileKind kind = 2; optional uint64 bytes = 3; bool shared = 4; }
-message ModDeletionProfile { string id = 1; string name = 2; }
-message ModDeletionDeployment { string context_id = 1; string id = 2; string name = 3; optional int64 prepared_at_unix_ms = 4; bool active = 5; }
-message ModDeletionPreview {
-  string workspace_id = 1;
-  string mod_id = 2;
-  uint64 revision = 3;
-  string name = 4;
-  uint32 versions = 5;
-  repeated string backups = 6;
-  repeated ModDeletionProfile profiles = 7;
-  repeated ModDeletionDeployment deployments = 8;
-  repeated ModDeletionFile files = 9;
-  repeated string external = 10;
-  optional string blocked = 11;
-}

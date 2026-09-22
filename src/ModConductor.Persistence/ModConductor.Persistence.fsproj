@@ -86,12 +86,8 @@
     <Compile Include="InstallationPayloads.fs" />
     <Compile Include="InstallationStore.fs" />
     <Compile Include="BundleStore.fs" />
-    <Compile Include="DeletionModels.fs" />
+    <Compile Include="DeletionRows.fs" />
     <Compile Include="BundleDeletion.fs" />
-    <Compile Include="DeletionSnapshot.fs" />
-    <Compile Include="DeletionInspection.fs" />
-    <Compile Include="DeletionFiles.fs" />
-    <Compile Include="DeletionCompletion.fs" />
     <Compile Include="DeletionStore.fs" />
     <Compile Include="MigrationStore.fs" />
     <Compile Include="OperationStore.fs" />

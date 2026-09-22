@@ -25,7 +25,6 @@ class FilePlanningWorkbench extends StatefulWidget {
     this.archives,
     this.sortOrder,
     this.maintenance,
-    this.onOpenDeployment,
     this.onOpenNexus,
     this.onOpenProblems,
     this.archiveUnavailable = false,
@@ -46,7 +45,6 @@ class FilePlanningWorkbench extends StatefulWidget {
   final SortOrderController? sortOrder;
   final void Function(ModEntry)? onOpenNexus;
   final MaintenanceClient? maintenance;
-  final VoidCallback? onOpenDeployment;
   final VoidCallback? onOpenProblems;
   final bool archiveUnavailable;
   final List<ModFilePane> Function(VoidCallback onInspect)? additionalFilePanes;
@@ -219,7 +217,6 @@ class _FilePlanningWorkbenchState extends State<FilePlanningWorkbench> {
                   controller: widget.mods,
                   onOpenNexus: widget.onOpenNexus,
                   maintenance: widget.maintenance,
-                  onOpenDeployment: widget.onOpenDeployment,
                   onMaintenanceOpen: _close,
                   workspacePath: widget.workspacePath,
                   chooseDirectory: widget.chooseDirectory,

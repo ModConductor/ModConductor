@@ -1266,15 +1266,6 @@ class _ModConductorAppState extends State<ModConductorApp> {
                                           ? null
                                           : _nexusDetails.open,
                                       maintenance: widget.maintenance,
-                                      onOpenDeployment:
-                                          widget.deployments == null
-                                          ? null
-                                          : () => showDialog<void>(
-                                              context: context,
-                                              builder: (_) => DeploymentDialog(
-                                                controller: _deployments,
-                                              ),
-                                            ),
                                       workspacePath: workspace.path,
                                       chooseDirectory: widget.chooseDirectory,
                                       inventoryExports: widget.inventoryExports,
@@ -1291,15 +1282,6 @@ class _ModConductorAppState extends State<ModConductorApp> {
                                           ? null
                                           : _nexusDetails.open,
                                       maintenance: widget.maintenance,
-                                      onOpenDeployment:
-                                          widget.deployments == null
-                                          ? null
-                                          : () => showDialog<void>(
-                                              context: context,
-                                              builder: (_) => DeploymentDialog(
-                                                controller: _deployments,
-                                              ),
-                                            ),
                                       plans: _files,
                                       onOpenProblems: _workspaces.showHelp,
                                       plugins: widget.bethesda == null
@@ -1331,15 +1313,6 @@ class _ModConductorAppState extends State<ModConductorApp> {
                                           ? null
                                           : _nexusDetails.open,
                                       maintenance: widget.maintenance,
-                                      onOpenDeployment:
-                                          widget.deployments == null
-                                          ? null
-                                          : () => showDialog<void>(
-                                              context: context,
-                                              builder: (_) => DeploymentDialog(
-                                                controller: _deployments,
-                                              ),
-                                            ),
                                       plans: _files,
                                       onOpenProblems: _workspaces.showHelp,
                                       plugins: widget.bethesda == null

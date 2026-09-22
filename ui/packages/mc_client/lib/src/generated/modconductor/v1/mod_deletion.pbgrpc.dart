@@ -32,13 +32,6 @@ class ModDeletionClient extends $grpc.Client {
 
   ModDeletionClient(super.channel, {super.options, super.interceptors});
 
-  $grpc.ResponseFuture<$0.ModDeletionPreview> prepareModDeletion(
-    $0.PrepareModDeletionRequest request, {
-    $grpc.CallOptions? options,
-  }) {
-    return $createUnaryCall(_$prepareModDeletion, request, options: options);
-  }
-
   $grpc.ResponseFuture<$0.ModDeleted> deleteMod(
     $0.DeleteModRequest request, {
     $grpc.CallOptions? options,
@@ -48,11 +41,6 @@ class ModDeletionClient extends $grpc.Client {
 
   // method descriptors
 
-  static final _$prepareModDeletion =
-      $grpc.ClientMethod<$0.PrepareModDeletionRequest, $0.ModDeletionPreview>(
-          '/modconductor.v1.ModDeletion/PrepareModDeletion',
-          ($0.PrepareModDeletionRequest value) => value.writeToBuffer(),
-          $0.ModDeletionPreview.fromBuffer);
   static final _$deleteMod =
       $grpc.ClientMethod<$0.DeleteModRequest, $0.ModDeleted>(
           '/modconductor.v1.ModDeletion/DeleteMod',
@@ -65,15 +53,6 @@ abstract class ModDeletionServiceBase extends $grpc.Service {
   $core.String get $name => 'modconductor.v1.ModDeletion';
 
   ModDeletionServiceBase() {
-    $addMethod($grpc.ServiceMethod<$0.PrepareModDeletionRequest,
-            $0.ModDeletionPreview>(
-        'PrepareModDeletion',
-        prepareModDeletion_Pre,
-        false,
-        false,
-        ($core.List<$core.int> value) =>
-            $0.PrepareModDeletionRequest.fromBuffer(value),
-        ($0.ModDeletionPreview value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$0.DeleteModRequest, $0.ModDeleted>(
         'DeleteMod',
         deleteMod_Pre,
@@ -82,15 +61,6 @@ abstract class ModDeletionServiceBase extends $grpc.Service {
         ($core.List<$core.int> value) => $0.DeleteModRequest.fromBuffer(value),
         ($0.ModDeleted value) => value.writeToBuffer()));
   }
-
-  $async.Future<$0.ModDeletionPreview> prepareModDeletion_Pre(
-      $grpc.ServiceCall $call,
-      $async.Future<$0.PrepareModDeletionRequest> $request) async {
-    return prepareModDeletion($call, await $request);
-  }
-
-  $async.Future<$0.ModDeletionPreview> prepareModDeletion(
-      $grpc.ServiceCall call, $0.PrepareModDeletionRequest request);
 
   $async.Future<$0.ModDeleted> deleteMod_Pre($grpc.ServiceCall $call,
       $async.Future<$0.DeleteModRequest> $request) async {

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mc_client/mc_client.dart';
@@ -21,6 +23,17 @@ class FolderClient extends LibraryClient {
     final entry = mod(id);
     onQuery = (_, _) async => inventoryPage([entry], null);
     return entry;
+  }
+}
+
+class PendingDeletionClient extends Fake implements MaintenanceClient {
+  final pending = Completer<void>();
+  ModEntry? target;
+
+  @override
+  Future<void> deleteMod(ModEntry value) async {
+    target = value;
+    await pending.future;
   }
 }
 
@@ -65,4 +78,60 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+
+  testWidgets('delete confirms the selected mod and stays pending in front', (
+    tester,
+  ) async {
+    final entry = mod('mod', revision: 4);
+    final library = FolderClient()
+      ..onQuery = (_, _) async => inventoryPage([entry], null);
+    final maintenance = PendingDeletionClient();
+    final controller = ModLibraryController();
+    addTearDown(controller.dispose);
+    controller.attach(
+      library,
+      SelectionClient(),
+      organizationClient: organization(library),
+      workspaceId: 'workspace',
+      profileId: 'profile',
+      editable: true,
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: mcTheme(Brightness.light),
+        home: Scaffold(
+          body: ModLibraryBrowser(
+            controller: controller,
+            workspacePath: '/workspace',
+            maintenance: maintenance,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey((modId: 'mod'))));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byWidgetPredicate(
+        (widget) => widget is McIconAction && widget.label == 'Delete mod',
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Delete Mod mod?'), findsOneWidget);
+    await tester.tap(find.widgetWithText(McAction, 'Delete'));
+    await tester.pump();
+
+    expect(maintenance.target, same(entry));
+    expect(find.byKey(const ValueKey('mod-deletion-status')), findsOneWidget);
+    expect(find.text('Deleting Mod mod'), findsOneWidget);
+    expect(find.text('Back to mod'), findsNothing);
+    expect(find.text('Open Mods'), findsNothing);
+
+    maintenance.pending.complete();
+    await tester.pumpAndSettle();
+    expect(find.text('Mod mod deleted'), findsOneWidget);
+    expect(find.text('Open Mods'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 }

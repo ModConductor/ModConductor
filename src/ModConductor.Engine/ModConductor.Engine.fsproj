@@ -67,7 +67,6 @@
     <Compile Include="BundleWire.fs" />
     <Compile Include="BundleService.fs" />
     <Compile Include="UpdateService.fs" />
-    <Compile Include="DeletionWire.fs" />
     <Compile Include="DeletionService.fs" />
     <Compile Include="CredentialService.fs" />
     <Compile Include="OAuthHandoff.fs" />

@@ -6,7 +6,7 @@ class DeletionController extends ChangeNotifier {
   final Future<void> Function() onChanged;
   MaintenanceClient? client;
   String? workspaceId;
-  DeletionPreview? preview;
+  ModEntry? target;
   bool busy = false, viewing = false, complete = false, _disposed = false;
   String? problem;
   int _epoch = 0;
@@ -15,48 +15,34 @@ class DeletionController extends ChangeNotifier {
     if (!_disposed) notifyListeners();
   }
 
-  String message(Object error) => error is ArtifactProblem
-      ? error.detail
-      : 'The deletion operation failed.';
+  String message(Object error) =>
+      error is ArtifactProblem ? error.detail : 'The mod was not deleted.';
 
   void attach(MaintenanceClient? value, String? workspace) {
     if (identical(client, value) && workspaceId == workspace) return;
     ++_epoch;
     client = value;
     workspaceId = workspace;
-    preview = null;
+    target = null;
     problem = null;
     busy = false;
     viewing = false;
     complete = false;
   }
 
-  Future<void> open(ModEntry target) async {
+  Future<void> open(ModEntry value) async {
     if (client == null || busy) return;
-    final epoch = ++_epoch;
+    ++_epoch;
+    target = value;
     viewing = true;
-    busy = true;
-    preview = null;
-    problem = null;
     complete = false;
-    notify();
-    try {
-      final value = await client!.prepareDeletion(target);
-      if (!_disposed && epoch == _epoch) preview = value;
-    } on Exception catch (error) {
-      if (!_disposed && epoch == _epoch) problem = message(error);
-    } finally {
-      if (!_disposed && epoch == _epoch) {
-        busy = false;
-        notify();
-      }
-    }
+    await run();
   }
 
   Future<void> run() async {
-    final owner = client, value = preview;
+    final owner = client, value = target;
     final epoch = _epoch;
-    if (owner == null || value == null || busy || value.blocked != null) return;
+    if (owner == null || value == null || busy) return;
     busy = true;
     problem = null;
     notify();
@@ -76,10 +62,10 @@ class DeletionController extends ChangeNotifier {
   }
 
   void back() {
+    if (busy) return;
     ++_epoch;
-    preview = null;
+    target = null;
     problem = null;
-    busy = false;
     viewing = false;
     complete = false;
     notify();

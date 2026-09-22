@@ -1,31 +1,9 @@
 namespace ModConductor.Persistence
 
 open System
-open ModConductor.Platform
-open ModConductor.ModMaintenance
 open ModConductor.DeploymentRecovery
 
-type internal DeletionEffect =
-    { Sequence: int
-      Kind: DeletionFileKind
-      Root: HostPath
-      RootIdentity: FileIdentity
-      Path: LogicalPath
-      Identity: FileIdentity option
-      Label: string
-      Bytes: int64 option }
-
-type internal DeletionState =
-    { View: DeletionPreview
-      Targets: Guid list
-      Versions: Guid list
-      Payloads: Guid list
-      PrivatePayloads: Guid list
-      Artifacts: Guid list
-      Effects: DeletionEffect list
-      Generations: (Guid * Generation) list }
-
-module internal DeletionQueries =
+module internal DeletionRows =
     let ids connection transaction sql parameters =
         use query = Sqlite.command connection transaction sql parameters
         use reader = query.ExecuteReader()

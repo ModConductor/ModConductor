@@ -248,7 +248,7 @@ module MaintenanceRecoveryFixtures =
                     modId,
                     target.Revision,
                     fun checkpoint ->
-                        if checkpoint = "before-deletion-effect" then
+                        if checkpoint = "before-deletion-files" then
                             raise (IOException "Injected deletion failure.")
                 )
                 |> wait
@@ -379,7 +379,7 @@ module MaintenanceRecoveryFixtures =
                     [] = 0L)
 
             let targetOwnedNames =
-                DeletionQueries.ids
+                DeletionRows.ids
                     connection
                     null
                     "SELECT m.payload_id FROM mod_manifest m JOIN mod_versions v ON v.id=m.version_id WHERE v.mod_id=$mod UNION SELECT f.payload_id FROM installation_files f JOIN archive_installations i ON i.id=f.installation_id WHERE i.mod_id=$mod"

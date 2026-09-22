@@ -9,7 +9,6 @@ import 'package:integration_test/integration_test.dart';
 import 'package:mc_artifacts/mc_artifacts.dart';
 import 'package:mc_artifacts/src/update_view.dart';
 import 'package:mc_mod_library/mc_mod_library.dart';
-import 'package:mc_mod_library/src/deletion_view.dart';
 import 'package:mc_client/mc_client.dart';
 import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 import 'package:mod_conductor/src/app.dart';
@@ -232,12 +231,8 @@ void main() {
       await capture('mods');
       await tap('Delete mod');
       await until(
-        () =>
-            find.byType(ModDeletionView).evaluate().isNotEmpty &&
-            action('Delete…').evaluate().isNotEmpty,
+        () => find.text('Delete Rivière textures?').evaluate().isNotEmpty,
       );
-      await capture('delete-review');
-      await tap('Delete…');
       await capture('delete-confirm');
       await tap('Delete');
       await until(() => action('Open Mods').evaluate().isNotEmpty);
@@ -252,7 +247,7 @@ void main() {
       expect(await File('$files/Rivière-1.2.zip').exists(), isTrue);
       expect(await File('$files/Rivière-1.3.zip').exists(), isTrue);
       await File('$output/result.txt').writeAsString(
-        'Compiled production app and NativeAOT v1 services: target selection, merge/replace preview, conflict inspector, stable-mod update, owned deletion confirmation and result. External fixture originals remain.\n',
+        'Compiled production app and NativeAOT v1 services: target selection, merge/replace preview, conflict inspector, stable-mod update, direct owned deletion confirmation and result. External fixture originals remain.\n',
       );
     } catch (error, stack) {
       File('$output/primary-ui-error.log').writeAsStringSync(

@@ -162,5 +162,52 @@ module GenerationStorage =
             then
                 raise (IOException("The link cannot be protected from ordinary replacement."))
 
+    let private directLinkProtection (root: HeldDirectory) name protect =
+        if OperatingSystem.IsWindows() then
+            let path = HeldEntries.path root.Handle name
+            use entry = CreateFileW(path, 0x60000u, 7u, 0n, 3u, 0x02200000u, 0n)
+
+            if entry.IsInvalid then
+                match Marshal.GetLastPInvokeError() with
+                | 2
+                | 3 -> false
+                | _ -> raise (IOException("The link security cannot be opened."))
+            else
+                let mutable needed = 0u
+                GetKernelObjectSecurity(entry, 4u, null, 0u, &needed) |> ignore
+
+                if needed = 0u || needed > 65536u then
+                    raise (IOException "The link security is unavailable.")
+
+                let descriptor = Array.zeroCreate<byte> (int needed)
+
+                if GetKernelObjectSecurity(entry, 4u, descriptor, needed, &needed) = 0 then
+                    raise (IOException "The link security cannot be read.")
+
+                let security = FileSecurity()
+                security.SetSecurityDescriptorBinaryForm(descriptor, AccessControlSections.Access)
+                use user = WindowsIdentity.GetCurrent()
+
+                let rule =
+                    FileSystemAccessRule(user.User, FileSystemRights.Delete, AccessControlType.Deny)
+
+                if protect then
+                    security.AddAccessRule rule
+                else
+                    security.RemoveAccessRuleSpecific rule
+
+                if
+                    SetKernelObjectSecurity(entry, 4u, security.GetSecurityDescriptorBinaryForm()) = 0
+                then
+                    raise (IOException("The link cannot be protected from ordinary replacement."))
+
+                true
+        elif OperatingSystem.IsLinux() then
+            true
+        else
+            raise (PlatformNotSupportedException())
+
     let protectLink root name expected = linkProtection root name expected true
     let allowLinkDeletion root name expected = linkProtection root name expected false
+    let protectOwnedLink root name = directLinkProtection root name true
+    let allowOwnedLinkDeletion root name = directLinkProtection root name false
