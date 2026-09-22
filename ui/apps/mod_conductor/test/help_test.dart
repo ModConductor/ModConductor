@@ -273,6 +273,125 @@ class FakeGameContexts extends Fake implements GameContextsClient {
   }) async => boundGame(workspaceId, profileId);
 }
 
+GameContextState unboundGame(String workspace, String profile) =>
+    GameContextState(
+      workspaceId: workspace,
+      profileId: profile,
+      revision: 0,
+      definition: null,
+      binding: null,
+    );
+
+class RetryWorkspaces extends FakeWorkspaces {
+  RetryWorkspaces()
+    : profiles = [const ProfileInfo('original-profile', 'Original')],
+      super(
+        savedWorkspace: const WorkspaceInfo(
+          id: 'workspace-1',
+          name: 'My workspace',
+          path: '/games/my-workspace',
+          revision: 1,
+          selectedProfile: ProfileInfo('original-profile', 'Original'),
+        ),
+      );
+
+  final List<ProfileInfo> profiles;
+  int failedSelections = 0;
+  int selectionAttempts = 0;
+
+  ProfileInfo get createdProfile => profiles.last;
+
+  WorkspacePage get page => WorkspacePage(savedWorkspace!, profiles, null);
+
+  @override
+  Future<WorkspacePage> open(String path) async => page;
+
+  @override
+  Future<WorkspacePage> read(String id, {String? after}) async => page;
+
+  @override
+  Future<ProfileChange> createProfile(
+    String workspace,
+    int revision,
+    ProfileInfo profile,
+  ) async {
+    profileCreates++;
+    profiles.add(profile);
+    savedWorkspace = WorkspaceInfo(
+      id: savedWorkspace!.id,
+      name: savedWorkspace!.name,
+      path: savedWorkspace!.path,
+      revision: revision + 1,
+      selectedProfile: savedWorkspace!.selectedProfile,
+    );
+    return ProfileChange(savedWorkspace!, profile, null);
+  }
+
+  @override
+  Future<ProfileChange> selectProfile(
+    String workspace,
+    int revision,
+    String profile,
+  ) async {
+    selectionAttempts++;
+    if (failedSelections > 0) {
+      failedSelections--;
+      throw const WorkspaceException(
+        WorkspaceFault.unresolved,
+        'The profile selection did not return a result.',
+      );
+    }
+    final selected = profiles.singleWhere((item) => item.id == profile);
+    savedWorkspace = WorkspaceInfo(
+      id: savedWorkspace!.id,
+      name: savedWorkspace!.name,
+      path: savedWorkspace!.path,
+      revision: revision + 1,
+      selectedProfile: selected,
+    );
+    return ProfileChange(savedWorkspace!, selected, null);
+  }
+}
+
+class RetryGameContexts extends Fake implements GameContextsClient {
+  RetryGameContexts({this.loseFirstSaveResponse = false});
+
+  final bool loseFirstSaveResponse;
+  final states = <String, GameContextState>{
+    'original-profile': boundGame('workspace-1', 'original-profile'),
+  };
+  int saves = 0;
+
+  @override
+  Future<GameContextState> read(String workspaceId, String profileId) async =>
+      states[profileId] ?? unboundGame(workspaceId, profileId);
+
+  @override
+  Future<GameContextState> save(
+    String workspaceId,
+    String profileId,
+    String gameId,
+    int revision,
+    String path, {
+    ProtonSelection? proton,
+  }) async {
+    final current = states[profileId] ?? unboundGame(workspaceId, profileId);
+    if (revision != current.revision) {
+      throw const GameContextException(
+        GameContextFailure.stale,
+        'The game context revision is stale.',
+      );
+    }
+    saves++;
+    final saved = boundGame(workspaceId, profileId);
+    states[profileId] = saved;
+    if (loseFirstSaveResponse && saves == 1) {
+      throw Exception('The saved response was lost.');
+    }
+    return saved;
+  }
+}
+
 class FakeSteamDiscovery implements SteamDiscoveryClient {
   @override
   SteamSearch search(String definitionId, List<String> additionalRoots) =>
@@ -318,6 +437,19 @@ Future<void> mountApp(
       chooseDirectory: chooseDirectory ?? (_) async => null,
     ),
   );
+  await tester.pumpAndSettle();
+}
+
+Future<void> prepareNewProfile(WidgetTester tester) async {
+  await tester.tap(find.byKey(const ValueKey('workspace-workspace-1')));
+  await tester.pumpAndSettle();
+  await tester.tap(find.byKey(const ValueKey('create-profile')));
+  await tester.pumpAndSettle();
+  await tester.enterText(
+    find.byKey(const ValueKey('profile-setup-name')),
+    'Retry profile',
+  );
+  await tester.tap(find.byKey(const ValueKey('find-profile-installation')));
   await tester.pumpAndSettle();
 }
 
@@ -370,6 +502,87 @@ Future<DiagnosticsController> mount(
 }
 
 void main() {
+  testWidgets(
+    'a selection failure retries without saving the game context twice',
+    (tester) async {
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetPhysicalSize);
+      final workspaces = RetryWorkspaces()..failedSelections = 1;
+      final contexts = RetryGameContexts();
+      await mountApp(
+        tester,
+        workspaces: workspaces,
+        diagnostics: FakeDiagnostics(),
+        gameContexts: contexts,
+        steamDiscovery: FakeSteamDiscovery(),
+      );
+      await prepareNewProfile(tester);
+
+      await tester.tap(find.byKey(const ValueKey('submit-profile-setup')));
+      await tester.pumpAndSettle();
+      expect(workspaces.profileCreates, 1);
+      expect(workspaces.profiles, hasLength(2));
+      expect(contexts.saves, 1);
+      expect(workspaces.selectionAttempts, 1);
+
+      await tester.tap(find.byKey(const ValueKey('submit-profile-setup')));
+      await tester.pumpAndSettle();
+      expect(workspaces.profileCreates, 1);
+      expect(workspaces.profiles, hasLength(2));
+      expect(contexts.saves, 1);
+      expect(workspaces.selectionAttempts, 2);
+      expect(
+        workspaces.savedWorkspace!.selectedProfile!.id,
+        workspaces.createdProfile.id,
+      );
+      expect(
+        contexts.states[workspaces.createdProfile.id]!.binding!.needsCheck,
+        isFalse,
+      );
+      expect(find.byKey(const ValueKey('submit-profile-setup')), findsNothing);
+      expect(find.byKey(const ValueKey('workspace-mods-tab')), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'a lost save response reloads the committed context before retry',
+    (tester) async {
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetPhysicalSize);
+      final workspaces = RetryWorkspaces();
+      final contexts = RetryGameContexts(loseFirstSaveResponse: true);
+      await mountApp(
+        tester,
+        workspaces: workspaces,
+        diagnostics: FakeDiagnostics(),
+        gameContexts: contexts,
+        steamDiscovery: FakeSteamDiscovery(),
+      );
+      await prepareNewProfile(tester);
+
+      await tester.tap(find.byKey(const ValueKey('submit-profile-setup')));
+      await tester.pumpAndSettle();
+      expect(workspaces.profileCreates, 1);
+      expect(workspaces.profiles, hasLength(2));
+      expect(contexts.saves, 1);
+      expect(workspaces.selectionAttempts, 0);
+
+      await tester.tap(find.byKey(const ValueKey('submit-profile-setup')));
+      await tester.pumpAndSettle();
+      expect(workspaces.profileCreates, 1);
+      expect(workspaces.profiles, hasLength(2));
+      expect(contexts.saves, 1);
+      expect(workspaces.selectionAttempts, 1);
+      expect(
+        workspaces.savedWorkspace!.selectedProfile!.id,
+        workspaces.createdProfile.id,
+      );
+      expect(contexts.states[workspaces.createdProfile.id]!.revision, 1);
+      expect(find.byKey(const ValueKey('submit-profile-setup')), findsNothing);
+      expect(find.byKey(const ValueKey('workspace-mods-tab')), findsOneWidget);
+    },
+  );
+
   testWidgets('cancelling profile setup does not create a profile', (
     tester,
   ) async {

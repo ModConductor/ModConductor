@@ -843,6 +843,11 @@ class _ModConductorAppState extends State<ModConductorApp> {
     WorkspaceInfo workspace,
   ) async {
     ProfileInfo? created;
+    GameContextState? committedContext;
+    GameContextsClient? committedClient;
+    ProfileSetupSelection? committedSelection;
+    ProfileSetupSelection? attemptedSelection;
+    var selectionAttempted = false;
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => Dialog(
@@ -872,20 +877,49 @@ class _ModConductorAppState extends State<ModConductorApp> {
                     'The profile could not be created.';
               }
               try {
-                final saved = await client.save(
-                  workspace.id,
-                  profile.id,
-                  selection.game.id,
-                  0,
-                  selection.installation,
-                );
+                var saved = committedContext;
+                if (saved == null ||
+                    !identical(committedClient, client) ||
+                    !_sameProfileSetup(committedSelection, selection)) {
+                  final loaded = await client.read(workspace.id, profile.id);
+                  if (_sameProfileSetup(attemptedSelection, selection) &&
+                      _profileSetupIsReady(loaded, selection)) {
+                    saved = loaded;
+                  } else {
+                    attemptedSelection = selection;
+                    committedContext = null;
+                    committedClient = null;
+                    committedSelection = null;
+                    saved = await client.save(
+                      workspace.id,
+                      profile.id,
+                      selection.game.id,
+                      loaded.revision,
+                      selection.installation,
+                    );
+                  }
+                  committedContext = saved;
+                  committedClient = client;
+                  committedSelection = selection;
+                }
+                if (selectionAttempted) {
+                  await _workspaces.refresh();
+                  if (_workspaces.currentProblem != null) {
+                    return _workspaces.currentProblem;
+                  }
+                }
+                if (_workspaces.workspace?.id != workspace.id) {
+                  return 'The workspace changed. Start profile setup again.';
+                }
                 if (_workspaces.workspace?.selectedProfile?.id != profile.id) {
+                  selectionAttempted = true;
                   await _workspaces.select(profile);
                 }
                 if (_workspaces.workspace?.selectedProfile?.id != profile.id) {
                   return _workspaces.currentProblem ??
                       'The profile was created but did not open.';
                 }
+                selectionAttempted = false;
                 _game.accept(saved, client);
                 return null;
               } on Exception catch (failure) {
@@ -896,6 +930,25 @@ class _ModConductorAppState extends State<ModConductorApp> {
         ),
       ),
     );
+  }
+
+  bool _sameProfileSetup(
+    ProfileSetupSelection? previous,
+    ProfileSetupSelection current,
+  ) =>
+      previous?.game.id == current.game.id &&
+      previous?.installation == current.installation;
+
+  bool _profileSetupIsReady(
+    GameContextState state,
+    ProfileSetupSelection selection,
+  ) {
+    final binding = state.binding;
+    return state.definition?.id == selection.game.id &&
+        binding != null &&
+        !binding.needsCheck &&
+        binding.failure == null &&
+        binding.evidence.problems.isEmpty;
   }
 
   @override
