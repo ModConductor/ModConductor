@@ -208,7 +208,7 @@ type internal OutputRepository
                     | Ok _ -> return version
                     | Error LibraryError.StaleRevision
                     | Error LibraryError.SourceChanged -> return OutputRows.fail OutputError.Stale
-                    | Error(LibraryError.Busy _) -> return OutputRows.fail OutputError.Busy
+                    | Error LibraryError.Busy -> return OutputRows.fail OutputError.Busy
                     | Error LibraryError.Cancelled -> return raise (OperationCanceledException())
                     | Error LibraryError.NotFound -> return OutputRows.fail OutputError.NotFound
                     | Error LibraryError.LimitExceeded ->

@@ -110,44 +110,6 @@ final $typed_data.Uint8List modLibraryFaultCodeDescriptor = $convert.base64Decod
     'JSQVJZX0ZBVUxUX0NPREVfRklMRV9VTkFWQUlMQUJMRRALEiQKIE1PRF9MSUJSQVJZX0ZBVUxU'
     'X0NPREVfQ0FOQ0VMTEVEEAw=');
 
-@$core.Deprecated('Use modLibraryOperationKindDescriptor instead')
-const ModLibraryOperationKind$json = {
-  '1': 'ModLibraryOperationKind',
-  '2': [
-    {'1': 'MOD_LIBRARY_OPERATION_KIND_UNSPECIFIED', '2': 0},
-    {'1': 'MOD_LIBRARY_OPERATION_KIND_PUBLICATION', '2': 1},
-    {'1': 'MOD_LIBRARY_OPERATION_KIND_INSTALLATION', '2': 2},
-    {'1': 'MOD_LIBRARY_OPERATION_KIND_UPGRADE', '2': 3},
-    {'1': 'MOD_LIBRARY_OPERATION_KIND_DELETION', '2': 4},
-  ],
-};
-
-/// Descriptor for `ModLibraryOperationKind`. Decode as a `google.protobuf.EnumDescriptorProto`.
-final $typed_data.Uint8List modLibraryOperationKindDescriptor = $convert.base64Decode(
-    'ChdNb2RMaWJyYXJ5T3BlcmF0aW9uS2luZBIqCiZNT0RfTElCUkFSWV9PUEVSQVRJT05fS0lORF'
-    '9VTlNQRUNJRklFRBAAEioKJk1PRF9MSUJSQVJZX09QRVJBVElPTl9LSU5EX1BVQkxJQ0FUSU9O'
-    'EAESKwonTU9EX0xJQlJBUllfT1BFUkFUSU9OX0tJTkRfSU5TVEFMTEFUSU9OEAISJgoiTU9EX0'
-    'xJQlJBUllfT1BFUkFUSU9OX0tJTkRfVVBHUkFERRADEicKI01PRF9MSUJSQVJZX09QRVJBVElP'
-    'Tl9LSU5EX0RFTEVUSU9OEAQ=');
-
-@$core.Deprecated('Use modLibraryOperationActionDescriptor instead')
-const ModLibraryOperationAction$json = {
-  '1': 'ModLibraryOperationAction',
-  '2': [
-    {'1': 'MOD_LIBRARY_OPERATION_ACTION_UNSPECIFIED', '2': 0},
-    {'1': 'MOD_LIBRARY_OPERATION_ACTION_WAIT', '2': 1},
-    {'1': 'MOD_LIBRARY_OPERATION_ACTION_RESUME', '2': 2},
-    {'1': 'MOD_LIBRARY_OPERATION_ACTION_CANCEL', '2': 3},
-  ],
-};
-
-/// Descriptor for `ModLibraryOperationAction`. Decode as a `google.protobuf.EnumDescriptorProto`.
-final $typed_data.Uint8List modLibraryOperationActionDescriptor = $convert.base64Decode(
-    'ChlNb2RMaWJyYXJ5T3BlcmF0aW9uQWN0aW9uEiwKKE1PRF9MSUJSQVJZX09QRVJBVElPTl9BQ1'
-    'RJT05fVU5TUEVDSUZJRUQQABIlCiFNT0RfTElCUkFSWV9PUEVSQVRJT05fQUNUSU9OX1dBSVQQ'
-    'ARInCiNNT0RfTElCUkFSWV9PUEVSQVRJT05fQUNUSU9OX1JFU1VNRRACEicKI01PRF9MSUJSQV'
-    'JZX09QRVJBVElPTl9BQ1RJT05fQ0FOQ0VMEAM=');
-
 @$core.Deprecated('Use modPublicationPhaseDescriptor instead')
 const ModPublicationPhase$json = {
   '1': 'ModPublicationPhase',
@@ -307,39 +269,6 @@ final $typed_data.Uint8List inventoryModDescriptor = $convert.base64Decode(
     'Rvci52MS5Nb2RWZXJzaW9uT3JpZ2luUg12ZXJzaW9uT3JpZ2luQhUKE19jdXJyZW50X3ZlcnNp'
     'b25faWQ=');
 
-@$core.Deprecated('Use modLibraryOperationDescriptor instead')
-const ModLibraryOperation$json = {
-  '1': 'ModLibraryOperation',
-  '2': [
-    {'1': 'operation_id', '3': 1, '4': 1, '5': 9, '10': 'operationId'},
-    {'1': 'workspace_id', '3': 2, '4': 1, '5': 9, '10': 'workspaceId'},
-    {
-      '1': 'kind',
-      '3': 3,
-      '4': 1,
-      '5': 14,
-      '6': '.modconductor.v1.ModLibraryOperationKind',
-      '10': 'kind'
-    },
-    {
-      '1': 'actions',
-      '3': 4,
-      '4': 3,
-      '5': 14,
-      '6': '.modconductor.v1.ModLibraryOperationAction',
-      '10': 'actions'
-    },
-  ],
-};
-
-/// Descriptor for `ModLibraryOperation`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List modLibraryOperationDescriptor = $convert.base64Decode(
-    'ChNNb2RMaWJyYXJ5T3BlcmF0aW9uEiEKDG9wZXJhdGlvbl9pZBgBIAEoCVILb3BlcmF0aW9uSW'
-    'QSIQoMd29ya3NwYWNlX2lkGAIgASgJUgt3b3Jrc3BhY2VJZBI8CgRraW5kGAMgASgOMigubW9k'
-    'Y29uZHVjdG9yLnYxLk1vZExpYnJhcnlPcGVyYXRpb25LaW5kUgRraW5kEkQKB2FjdGlvbnMYBC'
-    'ADKA4yKi5tb2Rjb25kdWN0b3IudjEuTW9kTGlicmFyeU9wZXJhdGlvbkFjdGlvblIHYWN0aW9u'
-    'cw==');
-
 @$core.Deprecated('Use modLibraryFaultDescriptor instead')
 const ModLibraryFault$json = {
   '1': 'ModLibraryFault',
@@ -353,28 +282,13 @@ const ModLibraryFault$json = {
       '10': 'code'
     },
     {'1': 'detail', '3': 2, '4': 1, '5': 9, '10': 'detail'},
-    {
-      '1': 'active_operation',
-      '3': 3,
-      '4': 1,
-      '5': 11,
-      '6': '.modconductor.v1.ModLibraryOperation',
-      '9': 0,
-      '10': 'activeOperation',
-      '17': true
-    },
-  ],
-  '8': [
-    {'1': '_active_operation'},
   ],
 };
 
 /// Descriptor for `ModLibraryFault`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List modLibraryFaultDescriptor = $convert.base64Decode(
     'Cg9Nb2RMaWJyYXJ5RmF1bHQSOAoEY29kZRgBIAEoDjIkLm1vZGNvbmR1Y3Rvci52MS5Nb2RMaW'
-    'JyYXJ5RmF1bHRDb2RlUgRjb2RlEhYKBmRldGFpbBgCIAEoCVIGZGV0YWlsElQKEGFjdGl2ZV9v'
-    'cGVyYXRpb24YAyABKAsyJC5tb2Rjb25kdWN0b3IudjEuTW9kTGlicmFyeU9wZXJhdGlvbkgAUg'
-    '9hY3RpdmVPcGVyYXRpb26IAQFCEwoRX2FjdGl2ZV9vcGVyYXRpb24=');
+    'JyYXJ5RmF1bHRDb2RlUgRjb2RlEhYKBmRldGFpbBgCIAEoCVIGZGV0YWls');
 
 @$core.Deprecated('Use modReplyDescriptor instead')
 const ModReply$json = {

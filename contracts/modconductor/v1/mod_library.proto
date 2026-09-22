@@ -68,30 +68,7 @@ enum ModLibraryFaultCode {
   MOD_LIBRARY_FAULT_CODE_FILE_UNAVAILABLE = 11;
   MOD_LIBRARY_FAULT_CODE_CANCELLED = 12;
 }
-enum ModLibraryOperationKind {
-  MOD_LIBRARY_OPERATION_KIND_UNSPECIFIED = 0;
-  MOD_LIBRARY_OPERATION_KIND_PUBLICATION = 1;
-  MOD_LIBRARY_OPERATION_KIND_INSTALLATION = 2;
-  MOD_LIBRARY_OPERATION_KIND_UPGRADE = 3;
-  MOD_LIBRARY_OPERATION_KIND_DELETION = 4;
-}
-enum ModLibraryOperationAction {
-  MOD_LIBRARY_OPERATION_ACTION_UNSPECIFIED = 0;
-  MOD_LIBRARY_OPERATION_ACTION_WAIT = 1;
-  MOD_LIBRARY_OPERATION_ACTION_RESUME = 2;
-  MOD_LIBRARY_OPERATION_ACTION_CANCEL = 3;
-}
-message ModLibraryOperation {
-  string operation_id = 1;
-  string workspace_id = 2;
-  ModLibraryOperationKind kind = 3;
-  repeated ModLibraryOperationAction actions = 4;
-}
-message ModLibraryFault {
-  ModLibraryFaultCode code = 1;
-  string detail = 2;
-  optional ModLibraryOperation active_operation = 3;
-}
+message ModLibraryFault { ModLibraryFaultCode code = 1; string detail = 2; }
 message ModReply { oneof outcome { InventoryMod mod = 1; ModLibraryFault fault = 2; } }
 message RegisterModRequest {
   string workspace_id = 1; string mod_id = 2; InventoryModMetadata metadata = 3;

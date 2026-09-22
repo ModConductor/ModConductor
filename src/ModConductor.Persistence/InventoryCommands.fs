@@ -214,12 +214,7 @@ module internal InventoryCommands =
                                             transaction
                                             id
                                     then
-                                        Error(
-                                            MaintenanceClaims.busyError
-                                                database.Connection
-                                                transaction
-                                                id
-                                        )
+                                        Error LibraryError.Busy
                                     else
                                         match
                                             CategoryRows.canonicalMetadata

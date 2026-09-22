@@ -1,53 +1,6 @@
 namespace ModConductor.Persistence
 
-open System
-open ModConductor.ModLibrary
-
 module internal MaintenanceClaims =
-    let private operation (id: string) (workspace: string) kind actions =
-        { Id = Guid.Parse id
-          WorkspaceId = Guid.Parse workspace
-          Kind = kind
-          Actions = actions }
-
-    let activeOperation connection transaction modId =
-        use query =
-            Sqlite.command
-                connection
-                transaction
-                "SELECT d.id,d.workspace_id,d.busy,1 FROM mod_deletions d JOIN mod_deletion_targets t ON t.deletion_id=d.id WHERE t.mod_id=$mod UNION ALL SELECT i.id,i.workspace_id,CASE WHEN i.state=0 THEN 1 ELSE 0 END,2 FROM archive_installations i WHERE i.mod_id=$mod AND i.target_revision IS NOT NULL AND (i.state=0 OR i.busy=1) UNION ALL SELECT v.id,m.workspace_id,v.busy,3 FROM mod_versions v JOIN mods m ON m.id=v.mod_id WHERE v.mod_id=$mod AND v.busy=1 LIMIT 1"
-                [ "$mod", box (string modId) ]
-
-        use reader = query.ExecuteReader()
-
-        if not (reader.Read()) then
-            None
-        else
-            let id, workspace, live =
-                reader.GetString 0, reader.GetString 1, reader.GetBoolean 2
-
-            let kind, actions =
-                match reader.GetInt32 3 with
-                | 1 ->
-                    LibraryOperationKind.Deletion,
-                    (if live then
-                         [ LibraryOperationAction.Wait ]
-                     else
-                         [ LibraryOperationAction.Resume ])
-                | 2 ->
-                    LibraryOperationKind.Upgrade,
-                    [ LibraryOperationAction.Wait; LibraryOperationAction.Cancel ]
-                | _ ->
-                    LibraryOperationKind.Publication,
-                    [ LibraryOperationAction.Wait; LibraryOperationAction.Cancel ]
-
-            Some(operation id workspace kind actions)
-
-    let busyError connection transaction modId =
-        activeOperation connection transaction modId
-        |> Option.map LibraryError.Busy
-        |> Option.defaultValue LibraryError.FileUnavailable
-
     let deleting connection transaction modId =
         Sqlite.number
             connection

@@ -95,7 +95,7 @@ type LibraryTests() =
         |> should equal true
 
         data.GetProperty("otherWorkspaceContinues").GetBoolean() |> should equal true
-        data.GetProperty("busyProjectsReceipt").GetBoolean() |> should equal true
+        data.GetProperty("conflictingMutationIsBusy").GetBoolean() |> should equal true
         data.GetProperty("cancelReleasesMutation").GetBoolean() |> should equal true
 
     [<Test>]

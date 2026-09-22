@@ -80,25 +80,6 @@ type ModVersion =
 
 type UnmanagedEntry = { Path: LogicalPath; Kind: EntryKind }
 
-[<RequireQualifiedAccess>]
-type LibraryOperationKind =
-    | Publication
-    | Installation
-    | Upgrade
-    | Deletion
-
-[<RequireQualifiedAccess>]
-type LibraryOperationAction =
-    | Wait
-    | Resume
-    | Cancel
-
-type LibraryOperation =
-    { Id: Guid
-      WorkspaceId: Guid
-      Kind: LibraryOperationKind
-      Actions: LibraryOperationAction list }
-
 type InventoryScan =
     { Entries: ModEntry list
       Unmanaged: UnmanagedEntry list
@@ -114,7 +95,7 @@ type LibraryError =
     | UnprovedOwnership
     | SourceChanged
     | UnsupportedAction
-    | Busy of operation: LibraryOperation
+    | Busy
     | LimitExceeded
     | FileUnavailable
     | Cancelled

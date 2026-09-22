@@ -51,7 +51,7 @@ module internal OrganizationWire =
         | LibraryError.InvalidSource
         | LibraryError.UnprovedOwnership
         | LibraryError.SourceChanged
-        | LibraryError.Busy _
+        | LibraryError.Busy
         | LibraryError.LimitExceeded
         | LibraryError.FileUnavailable
         | LibraryError.Cancelled -> ()

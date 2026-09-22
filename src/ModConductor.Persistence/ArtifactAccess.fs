@@ -59,7 +59,7 @@ type internal ArtifactAccess(database: StateDatabase, access: LibraryAccess) =
             return
                 match result with
                 | Ok value -> value
-                | Error(LibraryError.Busy _) -> Error ArtifactError.Busy
+                | Error LibraryError.Busy -> Error ArtifactError.Busy
                 | Error _ -> Error ArtifactError.Unavailable
         }
 

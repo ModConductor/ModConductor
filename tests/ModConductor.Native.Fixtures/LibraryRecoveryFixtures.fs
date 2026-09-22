@@ -14,14 +14,6 @@ module LibraryRecoveryFixtures =
     let private wait = StorageWorker.wait
     let private result = StorageWorker.result
 
-    let private busy operationId =
-        function
-        | Error(LibraryError.Busy operation) ->
-            operation.Id = operationId
-            && operation.Kind = LibraryOperationKind.Publication
-            && operation.Actions = [ LibraryOperationAction.Wait; LibraryOperationAction.Cancel ]
-        | _ -> false
-
     let observe (writer: Utf8JsonWriter) primary =
         writer.WriteStartArray("libraryWindows")
 
@@ -113,7 +105,7 @@ module LibraryRecoveryFixtures =
 
                 writer.WriteBoolean(
                     "liveRefused",
-                    library.Publish(modId, 0L, version) |> wait |> busy version
+                    library.Publish(modId, 0L, version) |> wait = Error LibraryError.Busy
                 )
 
                 writer.WriteBoolean(
@@ -131,7 +123,7 @@ module LibraryRecoveryFixtures =
 
                     writer.WriteBoolean(
                         "retryWhileClosingRefused",
-                        library.Publish(modId, 0L, Guid.NewGuid()) |> wait |> busy version
+                        library.Publish(modId, 0L, Guid.NewGuid()) |> wait = Error LibraryError.Busy
                     )
                 elif mode = "source-change" then
                     File.WriteAllText(Path.Combine(source, "file.txt"), "external edit")
@@ -285,7 +277,7 @@ module LibraryRecoveryFixtures =
             )
             |> wait
 
-        let projected = busy version blocked
+        let locallyBusy = blocked = Error LibraryError.Busy
         let cancelled = library.CancelPublication version |> wait |> result
         release.Set()
         let stopped = publishing |> wait
@@ -307,7 +299,7 @@ module LibraryRecoveryFixtures =
             Result.isOk otherRead && Result.isOk otherEdit
         )
 
-        writer.WriteBoolean("busyProjectsReceipt", projected)
+        writer.WriteBoolean("conflictingMutationIsBusy", locallyBusy)
 
         writer.WriteBoolean(
             "cancelReleasesMutation",

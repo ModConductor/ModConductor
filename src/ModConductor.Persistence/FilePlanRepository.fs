@@ -46,7 +46,7 @@ type FilePlanRepository
     let rootError =
         function
         | LibraryError.NotFound -> FilePlanError.NotFound
-        | LibraryError.Busy _ -> FilePlanError.Busy
+        | LibraryError.Busy -> FilePlanError.Busy
         | LibraryError.StaleRevision -> FilePlanError.Stale
         | LibraryError.IdentityConflict
         | LibraryError.InvalidMetadata
@@ -339,7 +339,7 @@ type FilePlanRepository
                             match result with
                             | Ok _ -> Ok action
                             | Error LibraryError.NotFound -> Error FilePlanError.NotFound
-                            | Error(LibraryError.Busy _) -> Error FilePlanError.Busy
+                            | Error LibraryError.Busy -> Error FilePlanError.Busy
                             | Error LibraryError.StaleRevision
                             | Error LibraryError.SourceChanged -> Error FilePlanError.Stale
                             | Error LibraryError.Cancelled -> Error FilePlanError.Cancelled
@@ -373,7 +373,7 @@ type FilePlanRepository
                         match result with
                         | Ok id -> Ok id
                         | Error LibraryError.NotFound -> Error FilePlanError.NotFound
-                        | Error(LibraryError.Busy _) -> Error FilePlanError.Busy
+                        | Error LibraryError.Busy -> Error FilePlanError.Busy
                         | Error _ ->
                             Error(
                                 FilePlanError.InvalidEdit

@@ -28,27 +28,10 @@ enum LibraryFault {
   cancelled,
 }
 
-enum LibraryOperationKind { publication, installation, upgrade, deletion }
-
-enum LibraryOperationAction { wait, resume, cancel }
-
-class LibraryOperation {
-  const LibraryOperation({
-    required this.id,
-    required this.workspaceId,
-    required this.kind,
-    required this.actions,
-  });
-  final String id, workspaceId;
-  final LibraryOperationKind kind;
-  final List<LibraryOperationAction> actions;
-}
-
 class LibraryException implements Exception {
-  const LibraryException(this.fault, this.detail, {this.activeOperation});
+  const LibraryException(this.fault, this.detail);
   final LibraryFault fault;
   final String detail;
-  final LibraryOperation? activeOperation;
 }
 
 class CategoryReference {

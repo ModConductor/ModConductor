@@ -42,6 +42,36 @@ class AddingLibrary extends LibraryClient {
 }
 
 void main() {
+  test('a completed retry clears a local busy fault', () async {
+    final client = ProfileClient();
+    final queries = QueryClient()
+      ..onQuery = (_, _, _, _) async => queryPage([row('a', 0)]);
+    final state = ProfileModsController();
+    addTearDown(state.dispose);
+    state.attach(client, queries, 'workspace', 'profile');
+    await settle();
+    state.model.select((modId: 'a'));
+
+    client.onMove = (_, _, _) async => throw const LibraryException(
+      LibraryFault.busy,
+      'A library change is still in progress.',
+    );
+    await state.move(ProfileModMove.up);
+    expect(state.problem, 'A library change is still in progress.');
+    expect(state.stale, isFalse);
+
+    await state.load(refresh: true);
+    expect(state.problem, isNull);
+
+    client.onMove = (_, _, _) async =>
+        const ProfileModsDelta(1, [ManagedProfileMod('a', 0, false)], 0);
+    queries.onQuery = (_, _, _, _) async =>
+        queryPage([row('a', 0)], revision: 1);
+    await state.move(ProfileModMove.up);
+    expect(state.problem, isNull);
+    expect(state.stale, isFalse);
+  });
+
   test('one coherent move and query retain hidden selection and reject a superseded page', () async {
     final client = ProfileClient();
     final queries = QueryClient()
