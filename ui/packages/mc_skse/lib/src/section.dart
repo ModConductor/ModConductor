@@ -315,6 +315,8 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
     };
     const skseIcon =
         'https://shared.fastly.steamstatic.com/community_assets/images/apps/365720/48eaa1815ac4beddc4d7c9fec6c2517f6f0b718e.jpg';
+    const enbIcon = 'http://enbdev.com/header_logo.gif';
+    const fnisIcon = 'https://images.nexusmods.com/mod-headers/1704/3038.jpg';
     final kind = switch (item.id) {
       'skse' => 'Script extender',
       'enb' => 'Graphics injector',
@@ -328,7 +330,16 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
       installed: item.installed,
       selected: selected,
       updating: action == SkyrimSetupAction.update,
-      iconUrl: item.id == 'skse' ? skseIcon : null,
+      iconUrl: switch (item.id) {
+        'skse' => skseIcon,
+        'enb' => enbIcon,
+        'fnis' => fnisIcon,
+        _ => null,
+      },
+      iconHeaders: item.id == 'enb'
+          ? const {'Referer': 'http://enbdev.com/'}
+          : null,
+      iconFit: item.id == 'fnis' ? BoxFit.cover : BoxFit.contain,
       enabled: !busy && !locked,
       onToggle: () => selectAction(
         item.id,

@@ -8,11 +8,15 @@ class McIdentityIcon extends StatelessWidget {
     super.key,
     required this.name,
     this.url,
+    this.headers,
+    this.fit = BoxFit.contain,
     this.size = 32,
   });
 
   final String name;
   final String? url;
+  final Map<String, String>? headers;
+  final BoxFit fit;
   final double size;
 
   @override
@@ -24,7 +28,8 @@ class McIdentityIcon extends StatelessWidget {
             url!,
             width: size,
             height: size,
-            fit: BoxFit.contain,
+            headers: headers,
+            fit: fit,
             semanticLabel: name,
             errorBuilder: (_, _, _) => const SizedBox.shrink(),
           ),
@@ -42,6 +47,8 @@ class McComponentChoiceRow extends StatelessWidget {
     required this.onToggle,
     required this.onOpenPage,
     this.iconUrl,
+    this.iconHeaders,
+    this.iconFit = BoxFit.contain,
     this.updating = false,
     this.onUpdate,
     this.onChooseArchive,
@@ -53,6 +60,8 @@ class McComponentChoiceRow extends StatelessWidget {
 
   final String name, kind, current;
   final String? iconUrl, archiveName;
+  final Map<String, String>? iconHeaders;
+  final BoxFit iconFit;
   final bool installed, selected, updating, archiveRequired, enabled;
   final VoidCallback onToggle, onOpenPage;
   final VoidCallback? onUpdate, onChooseArchive, onClearArchive;
@@ -64,7 +73,12 @@ class McComponentChoiceRow extends StatelessWidget {
       constraints: const BoxConstraints(minHeight: 40),
       child: Row(
         children: [
-          McIdentityIcon(name: name, url: iconUrl),
+          McIdentityIcon(
+            name: name,
+            url: iconUrl,
+            headers: iconHeaders,
+            fit: iconFit,
+          ),
           const SizedBox(width: 12),
           Flexible(
             child: Column(
