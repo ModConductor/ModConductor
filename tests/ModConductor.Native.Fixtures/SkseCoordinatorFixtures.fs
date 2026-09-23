@@ -523,14 +523,18 @@ module SkseCoordinatorFixtures =
             )
 
         let cold = coordinator.Read(workspace, profile) |> wait
+        let beforeChoice = restarted.SkseLoaders.ReadStored(workspace, profile, None) |> wait
+        let started = coordinator.Start(workspace, profile) |> wait
         let ready = waitForStatus restarted workspace profile "current"
         let launch = restarted.GameLaunching.Read(workspace, profile) |> wait |> result
 
         check
             writer
-            "coldCoordinatorInstallsValidatedCacheWhileSourceOffline"
-            (cold.Phase = SksePhase.Downloading
-             && cold.Status = "Installing cached SKSE"
+            "coldCoordinatorWaitsForChoiceThenUsesCacheOffline"
+            (cold.Phase = SksePhase.Available
+             && cold.Status = "SKSE archive ready"
+             && beforeChoice.IsNone
+             && started.Phase = SksePhase.Downloading
              && ready.Status = "SKSE is current"
              && launch.Problem.IsNone)
 

@@ -2,17 +2,41 @@ namespace ModConductor.Persistence
 
 open System
 
+[<RequireQualifiedAccess>]
+type internal SetupAction =
+    | Unchanged = 0
+    | Install = 1
+    | Remove = 2
+    | Update = 3
+
+type internal SetupSelection =
+    { Skse: SetupAction
+      Enb: SetupAction
+      Fnis: SetupAction
+      EnbArchive: string option }
+
+module internal SetupSelection =
+    let none =
+        { Skse = SetupAction.Unchanged
+          Enb = SetupAction.Unchanged
+          Fnis = SetupAction.Unchanged
+          EnbArchive = None }
+
+    let hasChange value =
+        value.Skse <> SetupAction.Unchanged
+        || value.Enb <> SetupAction.Unchanged
+        || value.Fnis <> SetupAction.Unchanged
+
 type internal StoredSkyrimSetupIntent =
     { WorkspaceId: Guid
       ProfileId: Guid
-      IncludeFnis: bool
+      Selection: SetupSelection
       PlanToken: string
       Cancelled: bool
       Completed: bool
       Stage: string
       ContextRevision: int64
       ActionId: Guid option
-      ArchivePath: string option
       CancelRequested: bool
       CancelDetail: string
       RequestedAt: DateTimeOffset }
@@ -24,7 +48,7 @@ type internal SkyrimSetupStore(database: StateDatabase) =
                 Sqlite.command
                     database.Connection
                     null
-                    "SELECT workspace_id,include_fnis,plan_token,requested_at,cancelled,completed,stage,context_revision,action_id,archive_path,cancel_requested,cancel_detail FROM skyrim_setup_intents WHERE profile_id=$profile"
+                    "SELECT workspace_id,skse_action,enb_action,fnis_action,plan_token,requested_at,cancelled,completed,stage,context_revision,action_id,enb_archive_path,cancel_requested,cancel_detail FROM skyrim_setup_intents WHERE profile_id=$profile"
                     [ "$profile", box (string profile) ]
 
             use reader = command.ExecuteReader()
@@ -33,21 +57,24 @@ type internal SkyrimSetupStore(database: StateDatabase) =
                 Some
                     { WorkspaceId = workspace
                       ProfileId = profile
-                      IncludeFnis = reader.GetInt64 1 = 1L
-                      PlanToken = reader.GetString 2
-                      Cancelled = reader.GetInt64 4 = 1L
-                      Completed = reader.GetInt64 5 = 1L
-                      Stage = reader.GetString 6
-                      ContextRevision = reader.GetInt64 7
+                      Selection =
+                        { Skse = enum<SetupAction> (int (reader.GetInt64 1))
+                          Enb = enum<SetupAction> (int (reader.GetInt64 2))
+                          Fnis = enum<SetupAction> (int (reader.GetInt64 3))
+                          EnbArchive = if reader.IsDBNull 11 then None else Some(reader.GetString 11) }
+                      PlanToken = reader.GetString 4
+                      Cancelled = reader.GetInt64 6 = 1L
+                      Completed = reader.GetInt64 7 = 1L
+                      Stage = reader.GetString 8
+                      ContextRevision = reader.GetInt64 9
                       ActionId =
-                        if reader.IsDBNull 8 then
+                        if reader.IsDBNull 10 then
                             None
                         else
-                            Some(Guid.Parse(reader.GetString 8))
-                      ArchivePath = if reader.IsDBNull 9 then None else Some(reader.GetString 9)
-                      CancelRequested = reader.GetInt64 10 = 1L
-                      CancelDetail = reader.GetString 11
-                      RequestedAt = DateTimeOffset.Parse(reader.GetString 3) }
+                            Some(Guid.Parse(reader.GetString 10))
+                      CancelRequested = reader.GetInt64 12 = 1L
+                      CancelDetail = reader.GetString 13
+                      RequestedAt = DateTimeOffset.Parse(reader.GetString 5) }
             else
                 None)
 
@@ -56,10 +83,12 @@ type internal SkyrimSetupStore(database: StateDatabase) =
             Sqlite.execute
                 database.Connection
                 null
-                "INSERT INTO skyrim_setup_intents(profile_id,workspace_id,include_fnis,plan_token,requested_at,cancelled,completed,stage,context_revision,action_id,archive_path,cancel_requested,cancel_detail) VALUES($profile,$workspace,$fnis,$token,$requested,$cancelled,$completed,$stage,$context,$action,$archive,$cancelRequested,$cancelDetail) ON CONFLICT(profile_id) DO UPDATE SET workspace_id=excluded.workspace_id,include_fnis=excluded.include_fnis,plan_token=excluded.plan_token,requested_at=excluded.requested_at,cancelled=excluded.cancelled,completed=excluded.completed,stage=excluded.stage,context_revision=excluded.context_revision,action_id=excluded.action_id,archive_path=excluded.archive_path,cancel_requested=excluded.cancel_requested,cancel_detail=excluded.cancel_detail"
+                "INSERT INTO skyrim_setup_intents(profile_id,workspace_id,skse_action,enb_action,fnis_action,plan_token,requested_at,cancelled,completed,stage,context_revision,action_id,enb_archive_path,cancel_requested,cancel_detail) VALUES($profile,$workspace,$skse,$enb,$fnis,$token,$requested,$cancelled,$completed,$stage,$context,$action,$archive,$cancelRequested,$cancelDetail) ON CONFLICT(profile_id) DO UPDATE SET workspace_id=excluded.workspace_id,skse_action=excluded.skse_action,enb_action=excluded.enb_action,fnis_action=excluded.fnis_action,plan_token=excluded.plan_token,requested_at=excluded.requested_at,cancelled=excluded.cancelled,completed=excluded.completed,stage=excluded.stage,context_revision=excluded.context_revision,action_id=excluded.action_id,enb_archive_path=excluded.enb_archive_path,cancel_requested=excluded.cancel_requested,cancel_detail=excluded.cancel_detail"
                 [ "$profile", box (string value.ProfileId)
                   "$workspace", box (string value.WorkspaceId)
-                  "$fnis", box (if value.IncludeFnis then 1 else 0)
+                  "$skse", box (int value.Selection.Skse)
+                  "$enb", box (int value.Selection.Enb)
+                  "$fnis", box (int value.Selection.Fnis)
                   "$token", box value.PlanToken
                   "$requested", box (value.RequestedAt.ToString("O"))
                   "$cancelled", box (if value.Cancelled then 1 else 0)
@@ -71,7 +100,7 @@ type internal SkyrimSetupStore(database: StateDatabase) =
                   |> Option.map (string >> box)
                   |> Option.defaultValue (box DBNull.Value)
                   "$archive",
-                  value.ArchivePath |> Option.map box |> Option.defaultValue (box DBNull.Value)
+                  value.Selection.EnbArchive |> Option.map box |> Option.defaultValue (box DBNull.Value)
                   "$cancelRequested", box (if value.CancelRequested then 1 else 0)
                   "$cancelDetail", box value.CancelDetail ])
 

@@ -20,21 +20,69 @@ enum SkyrimSetupStatusPhase {
 }
 
 class SkyrimSetupChange {
-  const SkyrimSetupChange(this.title, this.detail);
-  final String title, detail;
+  const SkyrimSetupChange(
+    this.title,
+    this.detail,
+    this.source, {
+    this.supporting = false,
+  });
+  final String title, detail, source;
+  final bool supporting;
+}
+
+enum SkyrimSetupAction { unchanged, install, remove, update }
+
+class SkyrimSetupSelection {
+  const SkyrimSetupSelection({
+    this.skse = SkyrimSetupAction.unchanged,
+    this.enb = SkyrimSetupAction.unchanged,
+    this.fnis = SkyrimSetupAction.unchanged,
+    this.enbArchivePath,
+  });
+
+  final SkyrimSetupAction skse, enb, fnis;
+  final String? enbArchivePath;
+
+  bool get hasChange =>
+      skse != SkyrimSetupAction.unchanged ||
+      enb != SkyrimSetupAction.unchanged ||
+      fnis != SkyrimSetupAction.unchanged;
+
+  bool get needsEnbArchive =>
+      enb == SkyrimSetupAction.install || enb == SkyrimSetupAction.update;
+
+  bool get canReview =>
+      hasChange && (!needsEnbArchive || enbArchivePath?.isNotEmpty == true);
+
+  SkyrimSetupSelection withAction(String id, SkyrimSetupAction action) =>
+      SkyrimSetupSelection(
+        skse: id == 'skse' ? action : skse,
+        enb: id == 'enb' ? action : enb,
+        fnis: id == 'fnis' ? action : fnis,
+        enbArchivePath: enbArchivePath,
+      );
+
+  SkyrimSetupSelection withEnbArchive(String? path) => SkyrimSetupSelection(
+    skse: skse,
+    enb: enb,
+    fnis: fnis,
+    enbArchivePath: path,
+  );
 }
 
 class SkyrimSetupComponent {
   const SkyrimSetupComponent({
+    required this.id,
     required this.name,
     required this.status,
     required this.detail,
     required this.ready,
     required this.active,
     required this.blocked,
+    required this.installed,
   });
-  final String name, status, detail;
-  final bool ready, active, blocked;
+  final String id, name, status, detail;
+  final bool ready, active, blocked, installed;
 }
 
 class SkyrimSetupStatus {
@@ -45,11 +93,10 @@ class SkyrimSetupStatus {
     required this.planToken,
     required this.changes,
     required this.components,
-    required this.includeFnis,
+    required this.selection,
     required this.consentRecorded,
     required this.canStart,
     required this.canContinue,
-    required this.canSelectEnbArchive,
     required this.active,
     required this.ready,
     required this.canCancel,
@@ -59,11 +106,10 @@ class SkyrimSetupStatus {
   final String status, detail, planToken;
   final List<SkyrimSetupChange> changes;
   final List<SkyrimSetupComponent> components;
-  final bool includeFnis,
-      consentRecorded,
+  final SkyrimSetupSelection selection;
+  final bool consentRecorded,
       canStart,
       canContinue,
-      canSelectEnbArchive,
       active,
       ready,
       canCancel;
@@ -78,13 +124,13 @@ abstract class SkyrimSetupClient {
   Future<SkyrimSetupStatus> read(
     String workspace,
     String profile, {
-    required bool includeFnis,
+    required SkyrimSetupSelection selection,
   });
 
   Future<SkyrimSetupStatus> start(
     String workspace,
     String profile, {
-    required bool includeFnis,
+    required SkyrimSetupSelection selection,
     required String planToken,
   });
 
@@ -92,12 +138,7 @@ abstract class SkyrimSetupClient {
 
   Future<SkyrimSetupStatus> cancel(String workspace, String profile);
 
-  Future<SkyrimSetupStatus> selectEnbArchive(
-    String workspace,
-    String profile,
-    String operationId,
-    String path,
-  );
+  Future<void> openProjectPage(String componentId);
 }
 
 class _GrpcSkyrimSetupClient extends SkyrimSetupClient {
@@ -105,6 +146,31 @@ class _GrpcSkyrimSetupClient extends SkyrimSetupClient {
     : _client = wire.SkyrimSetupOperationsClient(channel, options: options);
 
   final wire.SkyrimSetupOperationsClient _client;
+
+  @override
+  Future<void> openProjectPage(String componentId) async {
+    await _client.openSkyrimSetupPage(
+      wire.SkyrimSetupPageRequest(componentId: componentId),
+    );
+  }
+
+  SkyrimSetupSelection _selection(wire.SkyrimSetupSelection value) =>
+      SkyrimSetupSelection(
+        skse: SkyrimSetupAction.values[value.skse.value],
+        enb: SkyrimSetupAction.values[value.enb.value],
+        fnis: SkyrimSetupAction.values[value.fnis.value],
+        enbArchivePath: value.enbArchivePath.isEmpty
+            ? null
+            : value.enbArchivePath,
+      );
+
+  wire.SkyrimSetupSelection _wireSelection(SkyrimSetupSelection value) =>
+      wire.SkyrimSetupSelection(
+        skse: wire.SkyrimSetupAction.valueOf(value.skse.index)!,
+        enb: wire.SkyrimSetupAction.valueOf(value.enb.index)!,
+        fnis: wire.SkyrimSetupAction.valueOf(value.fnis.index)!,
+        enbArchivePath: value.enbArchivePath ?? '',
+      );
 
   SkyrimSetupStatus _decode(wire.SkyrimSetupState value) => SkyrimSetupStatus(
     phase: switch (value.phase) {
@@ -140,25 +206,33 @@ class _GrpcSkyrimSetupClient extends SkyrimSetupClient {
     detail: value.detail,
     planToken: value.planToken,
     changes: List.unmodifiable(
-      value.changes.map((item) => SkyrimSetupChange(item.title, item.detail)),
+      value.changes.map(
+        (item) => SkyrimSetupChange(
+          item.title,
+          item.detail,
+          item.source,
+          supporting: item.supporting,
+        ),
+      ),
     ),
     components: List.unmodifiable(
       value.components.map(
         (item) => SkyrimSetupComponent(
+          id: item.id,
           name: item.name,
           status: item.status,
           detail: item.detail,
           ready: item.ready,
           active: item.active,
           blocked: item.blocked,
+          installed: item.installed,
         ),
       ),
     ),
-    includeFnis: value.includeFnis,
+    selection: _selection(value.selection),
     consentRecorded: value.consentRecorded,
     canStart: value.canStart,
     canContinue: value.canContinue,
-    canSelectEnbArchive: value.canSelectEnbArchive,
     active: value.active,
     ready: value.ready,
     canCancel: value.canCancel,
@@ -168,13 +242,13 @@ class _GrpcSkyrimSetupClient extends SkyrimSetupClient {
   Future<SkyrimSetupStatus> read(
     String workspace,
     String profile, {
-    required bool includeFnis,
+    required SkyrimSetupSelection selection,
   }) async => _decode(
     await _client.readSkyrimSetup(
       wire.ReadSkyrimSetupRequest(
         workspaceId: workspace,
         profileId: profile,
-        includeFnis: includeFnis,
+        selection: _wireSelection(selection),
       ),
     ),
   );
@@ -183,14 +257,14 @@ class _GrpcSkyrimSetupClient extends SkyrimSetupClient {
   Future<SkyrimSetupStatus> start(
     String workspace,
     String profile, {
-    required bool includeFnis,
+    required SkyrimSetupSelection selection,
     required String planToken,
   }) async => _decode(
     await _client.startSkyrimSetup(
       wire.StartSkyrimSetupRequest(
         workspaceId: workspace,
         profileId: profile,
-        includeFnis: includeFnis,
+        selection: _wireSelection(selection),
         planToken: planToken,
         changePlanConfirmed: true,
       ),
@@ -214,21 +288,4 @@ class _GrpcSkyrimSetupClient extends SkyrimSetupClient {
           wire.SkyrimSetupRequest(workspaceId: workspace, profileId: profile),
         ),
       );
-
-  @override
-  Future<SkyrimSetupStatus> selectEnbArchive(
-    String workspace,
-    String profile,
-    String operationId,
-    String path,
-  ) async => _decode(
-    await _client.selectSkyrimSetupEnbArchive(
-      wire.SkyrimSetupArchiveRequest(
-        workspaceId: workspace,
-        profileId: profile,
-        operationId: operationId,
-        path: path,
-      ),
-    ),
-  );
 }

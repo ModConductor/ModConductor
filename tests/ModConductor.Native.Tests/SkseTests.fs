@@ -60,7 +60,7 @@ type SkseTests() =
 
     [<Test>]
     member _.``cold coordinator should install validated cache while source is offline``() =
-        coordinatorFlag "coldCoordinatorInstallsValidatedCacheWhileSourceOffline"
+        coordinatorFlag "coldCoordinatorWaitsForChoiceThenUsesCacheOffline"
         |> should equal true
 
     [<Test>]

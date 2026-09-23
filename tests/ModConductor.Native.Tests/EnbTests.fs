@@ -63,3 +63,8 @@ type EnbTests() =
     member _.``configuration removal should remain recoverable and preserve later edits``() =
         flag "configurationFailureRemainsRecoverable" |> should equal true
         flag "compareBeforeRestorePreservesConflictAndRecovers" |> should equal true
+
+    [<Test>]
+    member _.``runtime choice does not acquire or remove the preset``() =
+        flag "runtimeOnlyRemovalKeepsPresetAndCompanion" |> should equal true
+        flag "runtimeOnlySelectionAvoidsPresetAcquisition" |> should equal true

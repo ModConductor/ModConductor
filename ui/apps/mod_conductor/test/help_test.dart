@@ -165,7 +165,7 @@ class FakeSkyrimSetup extends Fake implements SkyrimSetupClient {
   Future<SkyrimSetupStatus> read(
     String workspace,
     String profile, {
-    required bool includeFnis,
+    required SkyrimSetupSelection selection,
   }) async {
     reads++;
     return const SkyrimSetupStatus(
@@ -175,11 +175,10 @@ class FakeSkyrimSetup extends Fake implements SkyrimSetupClient {
       planToken: '',
       changes: [],
       components: [],
-      includeFnis: false,
+      selection: SkyrimSetupSelection(),
       consentRecorded: true,
       canStart: false,
       canContinue: false,
-      canSelectEnbArchive: false,
       active: false,
       ready: true,
       canCancel: false,

@@ -12,38 +12,37 @@ type SkyrimSetupTests() =
             .GetBoolean()
 
     [<Test>]
-    member _.``combined setup should sequence owned components and readiness``() =
-        flag "cleanPlanIncludesInitialDeployment" |> should equal true
-        flag "initialDeploymentPrecedesSkse" |> should equal true
-        flag "combinedSkseThenEnbPause" |> should equal true
-        flag "combinedEnbThenOptionalFnis" |> should equal true
-        flag "combinedPluginLaunchReady" |> should equal true
+    member _.``new setup does not select or deploy components``() =
+        flag "noDefaultComponentChoice" |> should equal true
+        flag "noDefaultDeployment" |> should equal true
+        flag "noDefaultIntent" |> should equal true
+        flag "cancelBeforeApplyDoesNotWrite" |> should equal true
 
     [<Test>]
-    member _.``combined setup should preserve cancellation recovery and existing workspaces``() =
-        flag "existingWorkspaceKeepsActiveDeployment" |> should equal true
-        flag "combinedCancelOwnsActiveEnb" |> should equal true
-        flag "activeCancellationIntentIsDurableBeforeRestart" |> should equal true
-        flag "combinedCancellationCompletesAfterRestart" |> should equal true
-        flag "pendingDeploymentBlocksChildReads" |> should equal true
+    member _.``only selected components enter a reviewable plan``() =
+        flag "enbNeedsArchiveBeforeApply" |> should equal true
+        flag "enbOnlyPlan" |> should equal true
+        flag "enbDoesNotSelectSkseOrFnis" |> should equal true
+        flag "enbArchiveEnablesReview" |> should equal true
+        flag "fnisOnlyPlan" |> should equal true
+        flag "skseOnlyPlan" |> should equal true
+        flag "combinedPlanNamesOnlySelectedComponents" |> should equal true
 
     [<Test>]
-    member _.``combined setup should retain optional FNIS and reject stale consent``() =
-        flag "completedFnisChoiceIsDurable" |> should equal true
-        flag "fnisChoiceSurvivesReadyRestart" |> should equal true
-        flag "failedFnisOutputRetriesThroughOwner" |> should equal true
-        flag "changedGenerationRequiresNewPlan" |> should equal true
-        flag "changedContextRequiresNewPlan" |> should equal true
-        flag "externalChangesInvalidateEveryRolloverPath" |> should equal true
+    member _.``start requires the reviewed selection and explicit confirmation``() =
+        flag "selectionBoundToPlan" |> should equal true
+        flag "staleSelectionDoesNotWrite" |> should equal true
+        flag "unconfirmedPlanDoesNotWrite" |> should equal true
+        flag "confirmedChoiceRetained" |> should equal true
+        flag "confirmedChoiceSurvivesCoordinatorRestart" |> should equal true
+        flag "confirmedChoiceSurvivesStoreRestart" |> should equal true
+        flag "unselectedComponentsNotStarted" |> should equal true
+        flag "selectedSkseOnlyExecutes" |> should equal true
+        flag "selectedEnbOnlyExecutes" |> should equal true
+        flag "selectedFnisOnlyExecutes" |> should equal true
+        flag "combinedChoicesExecuteOnceEach" |> should equal true
+
+    [<Test>]
+    member _.``child changes allow only expected plan rollover``() =
         flag "expectedChildOnlyDeltasAdvanceEveryRollover" |> should equal true
-
-        flag "combinedChildAndUnrelatedDeltasInvalidateEveryRollover"
-        |> should equal true
-
-        flag "externalChangeInvalidatesActiveChildConsent" |> should equal true
-
-        flag "activeChildOutcomeKeepsCancellationDurableUntilTerminal"
-        |> should equal true
-
-        flag "missingProtonPausesBeforeDeploymentWrite" |> should equal true
-        flag "failedPrefixChoiceSurvivesSteamFirstRunRefresh" |> should equal true
+        flag "combinedChildAndUnrelatedDeltasInvalidateEveryRollover" |> should equal true

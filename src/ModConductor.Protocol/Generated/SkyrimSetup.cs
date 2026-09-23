@@ -25,70 +25,89 @@ namespace ModConductor.Protocol.V1 {
       byte[] descriptorData = global::System.Convert.FromBase64String(
           string.Concat(
             "CiJtb2Rjb25kdWN0b3IvdjEvc2t5cmltX3NldHVwLnByb3RvEg9tb2Rjb25k",
-            "dWN0b3IudjEiPgoSU2t5cmltU2V0dXBSZXF1ZXN0EhQKDHdvcmtzcGFjZV9p",
-            "ZBgBIAEoCRISCgpwcm9maWxlX2lkGAIgASgJIlgKFlJlYWRTa3lyaW1TZXR1",
-            "cFJlcXVlc3QSFAoMd29ya3NwYWNlX2lkGAEgASgJEhIKCnByb2ZpbGVfaWQY",
-            "AiABKAkSFAoMaW5jbHVkZV9mbmlzGAMgASgIIowBChdTdGFydFNreXJpbVNl",
-            "dHVwUmVxdWVzdBIUCgx3b3Jrc3BhY2VfaWQYASABKAkSEgoKcHJvZmlsZV9p",
-            "ZBgCIAEoCRIUCgxpbmNsdWRlX2ZuaXMYAyABKAgSEgoKcGxhbl90b2tlbhgE",
-            "IAEoCRIdChVjaGFuZ2VfcGxhbl9jb25maXJtZWQYBSABKAgiaQoZU2t5cmlt",
-            "U2V0dXBBcmNoaXZlUmVxdWVzdBIUCgx3b3Jrc3BhY2VfaWQYASABKAkSEgoK",
-            "cHJvZmlsZV9pZBgCIAEoCRIUCgxvcGVyYXRpb25faWQYAyABKAkSDAoEcGF0",
-            "aBgEIAEoCSIyChFTa3lyaW1TZXR1cENoYW5nZRINCgV0aXRsZRgBIAEoCRIO",
-            "CgZkZXRhaWwYAiABKAkidAoUU2t5cmltU2V0dXBDb21wb25lbnQSDAoEbmFt",
-            "ZRgBIAEoCRIOCgZzdGF0dXMYAiABKAkSDgoGZGV0YWlsGAMgASgJEg0KBXJl",
-            "YWR5GAQgASgIEg4KBmFjdGl2ZRgFIAEoCBIPCgdibG9ja2VkGAYgASgIIpQD",
-            "ChBTa3lyaW1TZXR1cFN0YXRlEjAKBXBoYXNlGAEgASgOMiEubW9kY29uZHVj",
-            "dG9yLnYxLlNreXJpbVNldHVwUGhhc2USDgoGc3RhdHVzGAIgASgJEg4KBmRl",
-            "dGFpbBgDIAEoCRISCgpwbGFuX3Rva2VuGAQgASgJEjMKB2NoYW5nZXMYBSAD",
-            "KAsyIi5tb2Rjb25kdWN0b3IudjEuU2t5cmltU2V0dXBDaGFuZ2USOQoKY29t",
-            "cG9uZW50cxgGIAMoCzIlLm1vZGNvbmR1Y3Rvci52MS5Ta3lyaW1TZXR1cENv",
-            "bXBvbmVudBIUCgxpbmNsdWRlX2ZuaXMYByABKAgSGAoQY29uc2VudF9yZWNv",
-            "cmRlZBgIIAEoCBIRCgljYW5fc3RhcnQYCSABKAgSFAoMY2FuX2NvbnRpbnVl",
-            "GAogASgIEh4KFmNhbl9zZWxlY3RfZW5iX2FyY2hpdmUYCyABKAgSDgoGYWN0",
-            "aXZlGAwgASgIEg0KBXJlYWR5GA0gASgIEhIKCmNhbl9jYW5jZWwYDiABKAgq",
-            "zgQKEFNreXJpbVNldHVwUGhhc2USIgoeU0tZUklNX1NFVFVQX1BIQVNFX1VO",
-            "U1BFQ0lGSUVEEAASIgoeU0tZUklNX1NFVFVQX1BIQVNFX1VOQVZBSUxBQkxF",
-            "EAESJAogU0tZUklNX1NFVFVQX1BIQVNFX05FRURTX0NPTlNFTlQQAhIrCidT",
-            "S1lSSU1fU0VUVVBfUEhBU0VfUFJFUEFSSU5HX0RFUExPWU1FTlQQAxImCiJT",
-            "S1lSSU1fU0VUVVBfUEhBU0VfU0VUVElOR19VUF9TS1NFEAQSJwojU0tZUklN",
-            "X1NFVFVQX1BIQVNFX1dBSVRJTkdfRk9SX1NLU0UQBRIuCipTS1lSSU1fU0VU",
-            "VVBfUEhBU0VfV0FJVElOR19GT1JfRU5CX0FSQ0hJVkUQBhIlCiFTS1lSSU1f",
-            "U0VUVVBfUEhBU0VfU0VUVElOR19VUF9FTkIQBxImCiJTS1lSSU1fU0VUVVBf",
-            "UEhBU0VfU0VUVElOR19VUF9GTklTEAgSIQodU0tZUklNX1NFVFVQX1BIQVNF",
-            "X0ZOSVNfU1RBTEUQCRIjCh9TS1lSSU1fU0VUVVBfUEhBU0VfRk5JU19SVU5O",
-            "SU5HEAoSHAoYU0tZUklNX1NFVFVQX1BIQVNFX1JFQURZEAsSKAokU0tZUklN",
-            "X1NFVFVQX1BIQVNFX1JFQ09WRVJZX1JFUVVJUkVEEAwSHQoZU0tZUklNX1NF",
-            "VFVQX1BIQVNFX0ZBSUxFRBANEiAKHFNLWVJJTV9TRVRVUF9QSEFTRV9DQU5D",
-            "RUxMRUQQDjKBBAoVU2t5cmltU2V0dXBPcGVyYXRpb25zEl0KD1JlYWRTa3ly",
-            "aW1TZXR1cBInLm1vZGNvbmR1Y3Rvci52MS5SZWFkU2t5cmltU2V0dXBSZXF1",
-            "ZXN0GiEubW9kY29uZHVjdG9yLnYxLlNreXJpbVNldHVwU3RhdGUSXwoQU3Rh",
-            "cnRTa3lyaW1TZXR1cBIoLm1vZGNvbmR1Y3Rvci52MS5TdGFydFNreXJpbVNl",
-            "dHVwUmVxdWVzdBohLm1vZGNvbmR1Y3Rvci52MS5Ta3lyaW1TZXR1cFN0YXRl",
-            "El0KE0NvbnRpbnVlU2t5cmltU2V0dXASIy5tb2Rjb25kdWN0b3IudjEuU2t5",
-            "cmltU2V0dXBSZXF1ZXN0GiEubW9kY29uZHVjdG9yLnYxLlNreXJpbVNldHVw",
-            "U3RhdGUSbAobU2VsZWN0U2t5cmltU2V0dXBFbmJBcmNoaXZlEioubW9kY29u",
-            "ZHVjdG9yLnYxLlNreXJpbVNldHVwQXJjaGl2ZVJlcXVlc3QaIS5tb2Rjb25k",
-            "dWN0b3IudjEuU2t5cmltU2V0dXBTdGF0ZRJbChFDYW5jZWxTa3lyaW1TZXR1",
-            "cBIjLm1vZGNvbmR1Y3Rvci52MS5Ta3lyaW1TZXR1cFJlcXVlc3QaIS5tb2Rj",
-            "b25kdWN0b3IudjEuU2t5cmltU2V0dXBTdGF0ZUIbqgIYTW9kQ29uZHVjdG9y",
-            "LlByb3RvY29sLlYxYgZwcm90bzM="));
+            "dWN0b3IudjEiLgoWU2t5cmltU2V0dXBQYWdlUmVxdWVzdBIUCgxjb21wb25l",
+            "bnRfaWQYASABKAkiJgoUU2t5cmltU2V0dXBQYWdlUmVwbHkSDgoGb3BlbmVk",
+            "GAEgASgIIj4KElNreXJpbVNldHVwUmVxdWVzdBIUCgx3b3Jrc3BhY2VfaWQY",
+            "ASABKAkSEgoKcHJvZmlsZV9pZBgCIAEoCSJ8ChZSZWFkU2t5cmltU2V0dXBS",
+            "ZXF1ZXN0EhQKDHdvcmtzcGFjZV9pZBgBIAEoCRISCgpwcm9maWxlX2lkGAIg",
+            "ASgJEjgKCXNlbGVjdGlvbhgDIAEoCzIlLm1vZGNvbmR1Y3Rvci52MS5Ta3ly",
+            "aW1TZXR1cFNlbGVjdGlvbiKwAQoXU3RhcnRTa3lyaW1TZXR1cFJlcXVlc3QS",
+            "FAoMd29ya3NwYWNlX2lkGAEgASgJEhIKCnByb2ZpbGVfaWQYAiABKAkSOAoJ",
+            "c2VsZWN0aW9uGAMgASgLMiUubW9kY29uZHVjdG9yLnYxLlNreXJpbVNldHVw",
+            "U2VsZWN0aW9uEhIKCnBsYW5fdG9rZW4YBCABKAkSHQoVY2hhbmdlX3BsYW5f",
+            "Y29uZmlybWVkGAUgASgIIsUBChRTa3lyaW1TZXR1cFNlbGVjdGlvbhIwCgRz",
+            "a3NlGAEgASgOMiIubW9kY29uZHVjdG9yLnYxLlNreXJpbVNldHVwQWN0aW9u",
+            "Ei8KA2VuYhgCIAEoDjIiLm1vZGNvbmR1Y3Rvci52MS5Ta3lyaW1TZXR1cEFj",
+            "dGlvbhIwCgRmbmlzGAMgASgOMiIubW9kY29uZHVjdG9yLnYxLlNreXJpbVNl",
+            "dHVwQWN0aW9uEhgKEGVuYl9hcmNoaXZlX3BhdGgYBCABKAkiVgoRU2t5cmlt",
+            "U2V0dXBDaGFuZ2USDQoFdGl0bGUYASABKAkSDgoGZGV0YWlsGAIgASgJEg4K",
+            "BnNvdXJjZRgDIAEoCRISCgpzdXBwb3J0aW5nGAQgASgIIpMBChRTa3lyaW1T",
+            "ZXR1cENvbXBvbmVudBIMCgRuYW1lGAEgASgJEg4KBnN0YXR1cxgCIAEoCRIO",
+            "CgZkZXRhaWwYAyABKAkSDQoFcmVhZHkYBCABKAgSDgoGYWN0aXZlGAUgASgI",
+            "Eg8KB2Jsb2NrZWQYBiABKAgSCgoCaWQYByABKAkSEQoJaW5zdGFsbGVkGAgg",
+            "ASgIIpgDChBTa3lyaW1TZXR1cFN0YXRlEjAKBXBoYXNlGAEgASgOMiEubW9k",
+            "Y29uZHVjdG9yLnYxLlNreXJpbVNldHVwUGhhc2USDgoGc3RhdHVzGAIgASgJ",
+            "Eg4KBmRldGFpbBgDIAEoCRISCgpwbGFuX3Rva2VuGAQgASgJEjMKB2NoYW5n",
+            "ZXMYBSADKAsyIi5tb2Rjb25kdWN0b3IudjEuU2t5cmltU2V0dXBDaGFuZ2US",
+            "OQoKY29tcG9uZW50cxgGIAMoCzIlLm1vZGNvbmR1Y3Rvci52MS5Ta3lyaW1T",
+            "ZXR1cENvbXBvbmVudBI4CglzZWxlY3Rpb24YByABKAsyJS5tb2Rjb25kdWN0",
+            "b3IudjEuU2t5cmltU2V0dXBTZWxlY3Rpb24SGAoQY29uc2VudF9yZWNvcmRl",
+            "ZBgIIAEoCBIRCgljYW5fc3RhcnQYCSABKAgSFAoMY2FuX2NvbnRpbnVlGAog",
+            "ASgIEg4KBmFjdGl2ZRgMIAEoCBINCgVyZWFkeRgNIAEoCBISCgpjYW5fY2Fu",
+            "Y2VsGA4gASgIKpcBChFTa3lyaW1TZXR1cEFjdGlvbhIhCh1TS1lSSU1fU0VU",
+            "VVBfQUNUSU9OX1VOQ0hBTkdFRBAAEh8KG1NLWVJJTV9TRVRVUF9BQ1RJT05f",
+            "SU5TVEFMTBABEh4KGlNLWVJJTV9TRVRVUF9BQ1RJT05fUkVNT1ZFEAISHgoa",
+            "U0tZUklNX1NFVFVQX0FDVElPTl9VUERBVEUQAyrOBAoQU2t5cmltU2V0dXBQ",
+            "aGFzZRIiCh5TS1lSSU1fU0VUVVBfUEhBU0VfVU5TUEVDSUZJRUQQABIiCh5T",
+            "S1lSSU1fU0VUVVBfUEhBU0VfVU5BVkFJTEFCTEUQARIkCiBTS1lSSU1fU0VU",
+            "VVBfUEhBU0VfTkVFRFNfQ09OU0VOVBACEisKJ1NLWVJJTV9TRVRVUF9QSEFT",
+            "RV9QUkVQQVJJTkdfREVQTE9ZTUVOVBADEiYKIlNLWVJJTV9TRVRVUF9QSEFT",
+            "RV9TRVRUSU5HX1VQX1NLU0UQBBInCiNTS1lSSU1fU0VUVVBfUEhBU0VfV0FJ",
+            "VElOR19GT1JfU0tTRRAFEi4KKlNLWVJJTV9TRVRVUF9QSEFTRV9XQUlUSU5H",
+            "X0ZPUl9FTkJfQVJDSElWRRAGEiUKIVNLWVJJTV9TRVRVUF9QSEFTRV9TRVRU",
+            "SU5HX1VQX0VOQhAHEiYKIlNLWVJJTV9TRVRVUF9QSEFTRV9TRVRUSU5HX1VQ",
+            "X0ZOSVMQCBIhCh1TS1lSSU1fU0VUVVBfUEhBU0VfRk5JU19TVEFMRRAJEiMK",
+            "H1NLWVJJTV9TRVRVUF9QSEFTRV9GTklTX1JVTk5JTkcQChIcChhTS1lSSU1f",
+            "U0VUVVBfUEhBU0VfUkVBRFkQCxIoCiRTS1lSSU1fU0VUVVBfUEhBU0VfUkVD",
+            "T1ZFUllfUkVRVUlSRUQQDBIdChlTS1lSSU1fU0VUVVBfUEhBU0VfRkFJTEVE",
+            "EA0SIAocU0tZUklNX1NFVFVQX1BIQVNFX0NBTkNFTExFRBAOMvoDChVTa3ly",
+            "aW1TZXR1cE9wZXJhdGlvbnMSXQoPUmVhZFNreXJpbVNldHVwEicubW9kY29u",
+            "ZHVjdG9yLnYxLlJlYWRTa3lyaW1TZXR1cFJlcXVlc3QaIS5tb2Rjb25kdWN0",
+            "b3IudjEuU2t5cmltU2V0dXBTdGF0ZRJfChBTdGFydFNreXJpbVNldHVwEigu",
+            "bW9kY29uZHVjdG9yLnYxLlN0YXJ0U2t5cmltU2V0dXBSZXF1ZXN0GiEubW9k",
+            "Y29uZHVjdG9yLnYxLlNreXJpbVNldHVwU3RhdGUSXQoTQ29udGludWVTa3ly",
+            "aW1TZXR1cBIjLm1vZGNvbmR1Y3Rvci52MS5Ta3lyaW1TZXR1cFJlcXVlc3Qa",
+            "IS5tb2Rjb25kdWN0b3IudjEuU2t5cmltU2V0dXBTdGF0ZRJbChFDYW5jZWxT",
+            "a3lyaW1TZXR1cBIjLm1vZGNvbmR1Y3Rvci52MS5Ta3lyaW1TZXR1cFJlcXVl",
+            "c3QaIS5tb2Rjb25kdWN0b3IudjEuU2t5cmltU2V0dXBTdGF0ZRJlChNPcGVu",
+            "U2t5cmltU2V0dXBQYWdlEicubW9kY29uZHVjdG9yLnYxLlNreXJpbVNldHVw",
+            "UGFnZVJlcXVlc3QaJS5tb2Rjb25kdWN0b3IudjEuU2t5cmltU2V0dXBQYWdl",
+            "UmVwbHlCG6oCGE1vZENvbmR1Y3Rvci5Qcm90b2NvbC5WMWIGcHJvdG8z"));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { },
-          new pbr::GeneratedClrTypeInfo(new[] {typeof(global::ModConductor.Protocol.V1.SkyrimSetupPhase), }, null, new pbr::GeneratedClrTypeInfo[] {
+          new pbr::GeneratedClrTypeInfo(new[] {typeof(global::ModConductor.Protocol.V1.SkyrimSetupAction), typeof(global::ModConductor.Protocol.V1.SkyrimSetupPhase), }, null, new pbr::GeneratedClrTypeInfo[] {
+            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.SkyrimSetupPageRequest), global::ModConductor.Protocol.V1.SkyrimSetupPageRequest.Parser, new[]{ "ComponentId" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.SkyrimSetupPageReply), global::ModConductor.Protocol.V1.SkyrimSetupPageReply.Parser, new[]{ "Opened" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.SkyrimSetupRequest), global::ModConductor.Protocol.V1.SkyrimSetupRequest.Parser, new[]{ "WorkspaceId", "ProfileId" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ReadSkyrimSetupRequest), global::ModConductor.Protocol.V1.ReadSkyrimSetupRequest.Parser, new[]{ "WorkspaceId", "ProfileId", "IncludeFnis" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.StartSkyrimSetupRequest), global::ModConductor.Protocol.V1.StartSkyrimSetupRequest.Parser, new[]{ "WorkspaceId", "ProfileId", "IncludeFnis", "PlanToken", "ChangePlanConfirmed" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.SkyrimSetupArchiveRequest), global::ModConductor.Protocol.V1.SkyrimSetupArchiveRequest.Parser, new[]{ "WorkspaceId", "ProfileId", "OperationId", "Path" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.SkyrimSetupChange), global::ModConductor.Protocol.V1.SkyrimSetupChange.Parser, new[]{ "Title", "Detail" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.SkyrimSetupComponent), global::ModConductor.Protocol.V1.SkyrimSetupComponent.Parser, new[]{ "Name", "Status", "Detail", "Ready", "Active", "Blocked" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.SkyrimSetupState), global::ModConductor.Protocol.V1.SkyrimSetupState.Parser, new[]{ "Phase", "Status", "Detail", "PlanToken", "Changes", "Components", "IncludeFnis", "ConsentRecorded", "CanStart", "CanContinue", "CanSelectEnbArchive", "Active", "Ready", "CanCancel" }, null, null, null, null)
+            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ReadSkyrimSetupRequest), global::ModConductor.Protocol.V1.ReadSkyrimSetupRequest.Parser, new[]{ "WorkspaceId", "ProfileId", "Selection" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.StartSkyrimSetupRequest), global::ModConductor.Protocol.V1.StartSkyrimSetupRequest.Parser, new[]{ "WorkspaceId", "ProfileId", "Selection", "PlanToken", "ChangePlanConfirmed" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.SkyrimSetupSelection), global::ModConductor.Protocol.V1.SkyrimSetupSelection.Parser, new[]{ "Skse", "Enb", "Fnis", "EnbArchivePath" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.SkyrimSetupChange), global::ModConductor.Protocol.V1.SkyrimSetupChange.Parser, new[]{ "Title", "Detail", "Source", "Supporting" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.SkyrimSetupComponent), global::ModConductor.Protocol.V1.SkyrimSetupComponent.Parser, new[]{ "Name", "Status", "Detail", "Ready", "Active", "Blocked", "Id", "Installed" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.SkyrimSetupState), global::ModConductor.Protocol.V1.SkyrimSetupState.Parser, new[]{ "Phase", "Status", "Detail", "PlanToken", "Changes", "Components", "Selection", "ConsentRecorded", "CanStart", "CanContinue", "Active", "Ready", "CanCancel" }, null, null, null, null)
           }));
     }
     #endregion
 
   }
   #region Enums
+  public enum SkyrimSetupAction {
+    [pbr::OriginalName("SKYRIM_SETUP_ACTION_UNCHANGED")] Unchanged = 0,
+    [pbr::OriginalName("SKYRIM_SETUP_ACTION_INSTALL")] Install = 1,
+    [pbr::OriginalName("SKYRIM_SETUP_ACTION_REMOVE")] Remove = 2,
+    [pbr::OriginalName("SKYRIM_SETUP_ACTION_UPDATE")] Update = 3,
+  }
+
   public enum SkyrimSetupPhase {
     [pbr::OriginalName("SKYRIM_SETUP_PHASE_UNSPECIFIED")] Unspecified = 0,
     [pbr::OriginalName("SKYRIM_SETUP_PHASE_UNAVAILABLE")] Unavailable = 1,
@@ -111,6 +130,402 @@ namespace ModConductor.Protocol.V1 {
 
   #region Messages
   [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
+  public sealed partial class SkyrimSetupPageRequest : pb::IMessage<SkyrimSetupPageRequest>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
+    private static readonly pb::MessageParser<SkyrimSetupPageRequest> _parser = new pb::MessageParser<SkyrimSetupPageRequest>(() => new SkyrimSetupPageRequest());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pb::MessageParser<SkyrimSetupPageRequest> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::ModConductor.Protocol.V1.SkyrimSetupReflection.Descriptor.MessageTypes[0]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public SkyrimSetupPageRequest() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public SkyrimSetupPageRequest(SkyrimSetupPageRequest other) : this() {
+      componentId_ = other.componentId_;
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public SkyrimSetupPageRequest Clone() {
+      return new SkyrimSetupPageRequest(this);
+    }
+
+    /// <summary>Field number for the "component_id" field.</summary>
+    public const int ComponentIdFieldNumber = 1;
+    private string componentId_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string ComponentId {
+      get { return componentId_; }
+      set {
+        componentId_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override bool Equals(object other) {
+      return Equals(other as SkyrimSetupPageRequest);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool Equals(SkyrimSetupPageRequest other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (ComponentId != other.ComponentId) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (ComponentId.Length != 0) hash ^= ComponentId.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
+      if (ComponentId.Length != 0) {
+        output.WriteRawTag(10);
+        output.WriteString(ComponentId);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      if (ComponentId.Length != 0) {
+        output.WriteRawTag(10);
+        output.WriteString(ComponentId);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int CalculateSize() {
+      int size = 0;
+      if (ComponentId.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(ComponentId);
+      }
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(SkyrimSetupPageRequest other) {
+      if (other == null) {
+        return;
+      }
+      if (other.ComponentId.Length != 0) {
+        ComponentId = other.ComponentId;
+      }
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 10: {
+            ComponentId = input.ReadString();
+            break;
+          }
+        }
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 10: {
+            ComponentId = input.ReadString();
+            break;
+          }
+        }
+      }
+    }
+    #endif
+
+  }
+
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
+  public sealed partial class SkyrimSetupPageReply : pb::IMessage<SkyrimSetupPageReply>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
+    private static readonly pb::MessageParser<SkyrimSetupPageReply> _parser = new pb::MessageParser<SkyrimSetupPageReply>(() => new SkyrimSetupPageReply());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pb::MessageParser<SkyrimSetupPageReply> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::ModConductor.Protocol.V1.SkyrimSetupReflection.Descriptor.MessageTypes[1]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public SkyrimSetupPageReply() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public SkyrimSetupPageReply(SkyrimSetupPageReply other) : this() {
+      opened_ = other.opened_;
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public SkyrimSetupPageReply Clone() {
+      return new SkyrimSetupPageReply(this);
+    }
+
+    /// <summary>Field number for the "opened" field.</summary>
+    public const int OpenedFieldNumber = 1;
+    private bool opened_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool Opened {
+      get { return opened_; }
+      set {
+        opened_ = value;
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override bool Equals(object other) {
+      return Equals(other as SkyrimSetupPageReply);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool Equals(SkyrimSetupPageReply other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (Opened != other.Opened) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (Opened != false) hash ^= Opened.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
+      if (Opened != false) {
+        output.WriteRawTag(8);
+        output.WriteBool(Opened);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      if (Opened != false) {
+        output.WriteRawTag(8);
+        output.WriteBool(Opened);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int CalculateSize() {
+      int size = 0;
+      if (Opened != false) {
+        size += 1 + 1;
+      }
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(SkyrimSetupPageReply other) {
+      if (other == null) {
+        return;
+      }
+      if (other.Opened != false) {
+        Opened = other.Opened;
+      }
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 8: {
+            Opened = input.ReadBool();
+            break;
+          }
+        }
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 8: {
+            Opened = input.ReadBool();
+            break;
+          }
+        }
+      }
+    }
+    #endif
+
+  }
+
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class SkyrimSetupRequest : pb::IMessage<SkyrimSetupRequest>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
@@ -125,7 +540,7 @@ namespace ModConductor.Protocol.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::ModConductor.Protocol.V1.SkyrimSetupReflection.Descriptor.MessageTypes[0]; }
+      get { return global::ModConductor.Protocol.V1.SkyrimSetupReflection.Descriptor.MessageTypes[2]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -360,7 +775,7 @@ namespace ModConductor.Protocol.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::ModConductor.Protocol.V1.SkyrimSetupReflection.Descriptor.MessageTypes[1]; }
+      get { return global::ModConductor.Protocol.V1.SkyrimSetupReflection.Descriptor.MessageTypes[3]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -382,7 +797,7 @@ namespace ModConductor.Protocol.V1 {
     public ReadSkyrimSetupRequest(ReadSkyrimSetupRequest other) : this() {
       workspaceId_ = other.workspaceId_;
       profileId_ = other.profileId_;
-      includeFnis_ = other.includeFnis_;
+      selection_ = other.selection_ != null ? other.selection_.Clone() : null;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -416,15 +831,15 @@ namespace ModConductor.Protocol.V1 {
       }
     }
 
-    /// <summary>Field number for the "include_fnis" field.</summary>
-    public const int IncludeFnisFieldNumber = 3;
-    private bool includeFnis_;
+    /// <summary>Field number for the "selection" field.</summary>
+    public const int SelectionFieldNumber = 3;
+    private global::ModConductor.Protocol.V1.SkyrimSetupSelection selection_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public bool IncludeFnis {
-      get { return includeFnis_; }
+    public global::ModConductor.Protocol.V1.SkyrimSetupSelection Selection {
+      get { return selection_; }
       set {
-        includeFnis_ = value;
+        selection_ = value;
       }
     }
 
@@ -445,7 +860,7 @@ namespace ModConductor.Protocol.V1 {
       }
       if (WorkspaceId != other.WorkspaceId) return false;
       if (ProfileId != other.ProfileId) return false;
-      if (IncludeFnis != other.IncludeFnis) return false;
+      if (!object.Equals(Selection, other.Selection)) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -455,7 +870,7 @@ namespace ModConductor.Protocol.V1 {
       int hash = 1;
       if (WorkspaceId.Length != 0) hash ^= WorkspaceId.GetHashCode();
       if (ProfileId.Length != 0) hash ^= ProfileId.GetHashCode();
-      if (IncludeFnis != false) hash ^= IncludeFnis.GetHashCode();
+      if (selection_ != null) hash ^= Selection.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -482,9 +897,9 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(18);
         output.WriteString(ProfileId);
       }
-      if (IncludeFnis != false) {
-        output.WriteRawTag(24);
-        output.WriteBool(IncludeFnis);
+      if (selection_ != null) {
+        output.WriteRawTag(26);
+        output.WriteMessage(Selection);
       }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
@@ -504,9 +919,9 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(18);
         output.WriteString(ProfileId);
       }
-      if (IncludeFnis != false) {
-        output.WriteRawTag(24);
-        output.WriteBool(IncludeFnis);
+      if (selection_ != null) {
+        output.WriteRawTag(26);
+        output.WriteMessage(Selection);
       }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
@@ -524,8 +939,8 @@ namespace ModConductor.Protocol.V1 {
       if (ProfileId.Length != 0) {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(ProfileId);
       }
-      if (IncludeFnis != false) {
-        size += 1 + 1;
+      if (selection_ != null) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(Selection);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -545,8 +960,11 @@ namespace ModConductor.Protocol.V1 {
       if (other.ProfileId.Length != 0) {
         ProfileId = other.ProfileId;
       }
-      if (other.IncludeFnis != false) {
-        IncludeFnis = other.IncludeFnis;
+      if (other.selection_ != null) {
+        if (selection_ == null) {
+          Selection = new global::ModConductor.Protocol.V1.SkyrimSetupSelection();
+        }
+        Selection.MergeFrom(other.Selection);
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -575,8 +993,11 @@ namespace ModConductor.Protocol.V1 {
             ProfileId = input.ReadString();
             break;
           }
-          case 24: {
-            IncludeFnis = input.ReadBool();
+          case 26: {
+            if (selection_ == null) {
+              Selection = new global::ModConductor.Protocol.V1.SkyrimSetupSelection();
+            }
+            input.ReadMessage(Selection);
             break;
           }
         }
@@ -606,8 +1027,11 @@ namespace ModConductor.Protocol.V1 {
             ProfileId = input.ReadString();
             break;
           }
-          case 24: {
-            IncludeFnis = input.ReadBool();
+          case 26: {
+            if (selection_ == null) {
+              Selection = new global::ModConductor.Protocol.V1.SkyrimSetupSelection();
+            }
+            input.ReadMessage(Selection);
             break;
           }
         }
@@ -632,7 +1056,7 @@ namespace ModConductor.Protocol.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::ModConductor.Protocol.V1.SkyrimSetupReflection.Descriptor.MessageTypes[2]; }
+      get { return global::ModConductor.Protocol.V1.SkyrimSetupReflection.Descriptor.MessageTypes[4]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -654,7 +1078,7 @@ namespace ModConductor.Protocol.V1 {
     public StartSkyrimSetupRequest(StartSkyrimSetupRequest other) : this() {
       workspaceId_ = other.workspaceId_;
       profileId_ = other.profileId_;
-      includeFnis_ = other.includeFnis_;
+      selection_ = other.selection_ != null ? other.selection_.Clone() : null;
       planToken_ = other.planToken_;
       changePlanConfirmed_ = other.changePlanConfirmed_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
@@ -690,15 +1114,15 @@ namespace ModConductor.Protocol.V1 {
       }
     }
 
-    /// <summary>Field number for the "include_fnis" field.</summary>
-    public const int IncludeFnisFieldNumber = 3;
-    private bool includeFnis_;
+    /// <summary>Field number for the "selection" field.</summary>
+    public const int SelectionFieldNumber = 3;
+    private global::ModConductor.Protocol.V1.SkyrimSetupSelection selection_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public bool IncludeFnis {
-      get { return includeFnis_; }
+    public global::ModConductor.Protocol.V1.SkyrimSetupSelection Selection {
+      get { return selection_; }
       set {
-        includeFnis_ = value;
+        selection_ = value;
       }
     }
 
@@ -743,7 +1167,7 @@ namespace ModConductor.Protocol.V1 {
       }
       if (WorkspaceId != other.WorkspaceId) return false;
       if (ProfileId != other.ProfileId) return false;
-      if (IncludeFnis != other.IncludeFnis) return false;
+      if (!object.Equals(Selection, other.Selection)) return false;
       if (PlanToken != other.PlanToken) return false;
       if (ChangePlanConfirmed != other.ChangePlanConfirmed) return false;
       return Equals(_unknownFields, other._unknownFields);
@@ -755,7 +1179,7 @@ namespace ModConductor.Protocol.V1 {
       int hash = 1;
       if (WorkspaceId.Length != 0) hash ^= WorkspaceId.GetHashCode();
       if (ProfileId.Length != 0) hash ^= ProfileId.GetHashCode();
-      if (IncludeFnis != false) hash ^= IncludeFnis.GetHashCode();
+      if (selection_ != null) hash ^= Selection.GetHashCode();
       if (PlanToken.Length != 0) hash ^= PlanToken.GetHashCode();
       if (ChangePlanConfirmed != false) hash ^= ChangePlanConfirmed.GetHashCode();
       if (_unknownFields != null) {
@@ -784,9 +1208,9 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(18);
         output.WriteString(ProfileId);
       }
-      if (IncludeFnis != false) {
-        output.WriteRawTag(24);
-        output.WriteBool(IncludeFnis);
+      if (selection_ != null) {
+        output.WriteRawTag(26);
+        output.WriteMessage(Selection);
       }
       if (PlanToken.Length != 0) {
         output.WriteRawTag(34);
@@ -814,9 +1238,9 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(18);
         output.WriteString(ProfileId);
       }
-      if (IncludeFnis != false) {
-        output.WriteRawTag(24);
-        output.WriteBool(IncludeFnis);
+      if (selection_ != null) {
+        output.WriteRawTag(26);
+        output.WriteMessage(Selection);
       }
       if (PlanToken.Length != 0) {
         output.WriteRawTag(34);
@@ -842,8 +1266,8 @@ namespace ModConductor.Protocol.V1 {
       if (ProfileId.Length != 0) {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(ProfileId);
       }
-      if (IncludeFnis != false) {
-        size += 1 + 1;
+      if (selection_ != null) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(Selection);
       }
       if (PlanToken.Length != 0) {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(PlanToken);
@@ -869,8 +1293,11 @@ namespace ModConductor.Protocol.V1 {
       if (other.ProfileId.Length != 0) {
         ProfileId = other.ProfileId;
       }
-      if (other.IncludeFnis != false) {
-        IncludeFnis = other.IncludeFnis;
+      if (other.selection_ != null) {
+        if (selection_ == null) {
+          Selection = new global::ModConductor.Protocol.V1.SkyrimSetupSelection();
+        }
+        Selection.MergeFrom(other.Selection);
       }
       if (other.PlanToken.Length != 0) {
         PlanToken = other.PlanToken;
@@ -905,8 +1332,11 @@ namespace ModConductor.Protocol.V1 {
             ProfileId = input.ReadString();
             break;
           }
-          case 24: {
-            IncludeFnis = input.ReadBool();
+          case 26: {
+            if (selection_ == null) {
+              Selection = new global::ModConductor.Protocol.V1.SkyrimSetupSelection();
+            }
+            input.ReadMessage(Selection);
             break;
           }
           case 34: {
@@ -944,8 +1374,11 @@ namespace ModConductor.Protocol.V1 {
             ProfileId = input.ReadString();
             break;
           }
-          case 24: {
-            IncludeFnis = input.ReadBool();
+          case 26: {
+            if (selection_ == null) {
+              Selection = new global::ModConductor.Protocol.V1.SkyrimSetupSelection();
+            }
+            input.ReadMessage(Selection);
             break;
           }
           case 34: {
@@ -964,21 +1397,21 @@ namespace ModConductor.Protocol.V1 {
   }
 
   [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
-  public sealed partial class SkyrimSetupArchiveRequest : pb::IMessage<SkyrimSetupArchiveRequest>
+  public sealed partial class SkyrimSetupSelection : pb::IMessage<SkyrimSetupSelection>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
   #endif
   {
-    private static readonly pb::MessageParser<SkyrimSetupArchiveRequest> _parser = new pb::MessageParser<SkyrimSetupArchiveRequest>(() => new SkyrimSetupArchiveRequest());
+    private static readonly pb::MessageParser<SkyrimSetupSelection> _parser = new pb::MessageParser<SkyrimSetupSelection>(() => new SkyrimSetupSelection());
     private pb::UnknownFieldSet _unknownFields;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public static pb::MessageParser<SkyrimSetupArchiveRequest> Parser { get { return _parser; } }
+    public static pb::MessageParser<SkyrimSetupSelection> Parser { get { return _parser; } }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::ModConductor.Protocol.V1.SkyrimSetupReflection.Descriptor.MessageTypes[3]; }
+      get { return global::ModConductor.Protocol.V1.SkyrimSetupReflection.Descriptor.MessageTypes[5]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -989,7 +1422,7 @@ namespace ModConductor.Protocol.V1 {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public SkyrimSetupArchiveRequest() {
+    public SkyrimSetupSelection() {
       OnConstruction();
     }
 
@@ -997,87 +1430,87 @@ namespace ModConductor.Protocol.V1 {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public SkyrimSetupArchiveRequest(SkyrimSetupArchiveRequest other) : this() {
-      workspaceId_ = other.workspaceId_;
-      profileId_ = other.profileId_;
-      operationId_ = other.operationId_;
-      path_ = other.path_;
+    public SkyrimSetupSelection(SkyrimSetupSelection other) : this() {
+      skse_ = other.skse_;
+      enb_ = other.enb_;
+      fnis_ = other.fnis_;
+      enbArchivePath_ = other.enbArchivePath_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public SkyrimSetupArchiveRequest Clone() {
-      return new SkyrimSetupArchiveRequest(this);
+    public SkyrimSetupSelection Clone() {
+      return new SkyrimSetupSelection(this);
     }
 
-    /// <summary>Field number for the "workspace_id" field.</summary>
-    public const int WorkspaceIdFieldNumber = 1;
-    private string workspaceId_ = "";
+    /// <summary>Field number for the "skse" field.</summary>
+    public const int SkseFieldNumber = 1;
+    private global::ModConductor.Protocol.V1.SkyrimSetupAction skse_ = global::ModConductor.Protocol.V1.SkyrimSetupAction.Unchanged;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public string WorkspaceId {
-      get { return workspaceId_; }
+    public global::ModConductor.Protocol.V1.SkyrimSetupAction Skse {
+      get { return skse_; }
       set {
-        workspaceId_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+        skse_ = value;
       }
     }
 
-    /// <summary>Field number for the "profile_id" field.</summary>
-    public const int ProfileIdFieldNumber = 2;
-    private string profileId_ = "";
+    /// <summary>Field number for the "enb" field.</summary>
+    public const int EnbFieldNumber = 2;
+    private global::ModConductor.Protocol.V1.SkyrimSetupAction enb_ = global::ModConductor.Protocol.V1.SkyrimSetupAction.Unchanged;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public string ProfileId {
-      get { return profileId_; }
+    public global::ModConductor.Protocol.V1.SkyrimSetupAction Enb {
+      get { return enb_; }
       set {
-        profileId_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+        enb_ = value;
       }
     }
 
-    /// <summary>Field number for the "operation_id" field.</summary>
-    public const int OperationIdFieldNumber = 3;
-    private string operationId_ = "";
+    /// <summary>Field number for the "fnis" field.</summary>
+    public const int FnisFieldNumber = 3;
+    private global::ModConductor.Protocol.V1.SkyrimSetupAction fnis_ = global::ModConductor.Protocol.V1.SkyrimSetupAction.Unchanged;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public string OperationId {
-      get { return operationId_; }
+    public global::ModConductor.Protocol.V1.SkyrimSetupAction Fnis {
+      get { return fnis_; }
       set {
-        operationId_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+        fnis_ = value;
       }
     }
 
-    /// <summary>Field number for the "path" field.</summary>
-    public const int PathFieldNumber = 4;
-    private string path_ = "";
+    /// <summary>Field number for the "enb_archive_path" field.</summary>
+    public const int EnbArchivePathFieldNumber = 4;
+    private string enbArchivePath_ = "";
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public string Path {
-      get { return path_; }
+    public string EnbArchivePath {
+      get { return enbArchivePath_; }
       set {
-        path_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+        enbArchivePath_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
       }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
-      return Equals(other as SkyrimSetupArchiveRequest);
+      return Equals(other as SkyrimSetupSelection);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public bool Equals(SkyrimSetupArchiveRequest other) {
+    public bool Equals(SkyrimSetupSelection other) {
       if (ReferenceEquals(other, null)) {
         return false;
       }
       if (ReferenceEquals(other, this)) {
         return true;
       }
-      if (WorkspaceId != other.WorkspaceId) return false;
-      if (ProfileId != other.ProfileId) return false;
-      if (OperationId != other.OperationId) return false;
-      if (Path != other.Path) return false;
+      if (Skse != other.Skse) return false;
+      if (Enb != other.Enb) return false;
+      if (Fnis != other.Fnis) return false;
+      if (EnbArchivePath != other.EnbArchivePath) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -1085,10 +1518,10 @@ namespace ModConductor.Protocol.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override int GetHashCode() {
       int hash = 1;
-      if (WorkspaceId.Length != 0) hash ^= WorkspaceId.GetHashCode();
-      if (ProfileId.Length != 0) hash ^= ProfileId.GetHashCode();
-      if (OperationId.Length != 0) hash ^= OperationId.GetHashCode();
-      if (Path.Length != 0) hash ^= Path.GetHashCode();
+      if (Skse != global::ModConductor.Protocol.V1.SkyrimSetupAction.Unchanged) hash ^= Skse.GetHashCode();
+      if (Enb != global::ModConductor.Protocol.V1.SkyrimSetupAction.Unchanged) hash ^= Enb.GetHashCode();
+      if (Fnis != global::ModConductor.Protocol.V1.SkyrimSetupAction.Unchanged) hash ^= Fnis.GetHashCode();
+      if (EnbArchivePath.Length != 0) hash ^= EnbArchivePath.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -1107,21 +1540,21 @@ namespace ModConductor.Protocol.V1 {
     #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       output.WriteRawMessage(this);
     #else
-      if (WorkspaceId.Length != 0) {
-        output.WriteRawTag(10);
-        output.WriteString(WorkspaceId);
+      if (Skse != global::ModConductor.Protocol.V1.SkyrimSetupAction.Unchanged) {
+        output.WriteRawTag(8);
+        output.WriteEnum((int) Skse);
       }
-      if (ProfileId.Length != 0) {
-        output.WriteRawTag(18);
-        output.WriteString(ProfileId);
+      if (Enb != global::ModConductor.Protocol.V1.SkyrimSetupAction.Unchanged) {
+        output.WriteRawTag(16);
+        output.WriteEnum((int) Enb);
       }
-      if (OperationId.Length != 0) {
-        output.WriteRawTag(26);
-        output.WriteString(OperationId);
+      if (Fnis != global::ModConductor.Protocol.V1.SkyrimSetupAction.Unchanged) {
+        output.WriteRawTag(24);
+        output.WriteEnum((int) Fnis);
       }
-      if (Path.Length != 0) {
+      if (EnbArchivePath.Length != 0) {
         output.WriteRawTag(34);
-        output.WriteString(Path);
+        output.WriteString(EnbArchivePath);
       }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
@@ -1133,21 +1566,21 @@ namespace ModConductor.Protocol.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
-      if (WorkspaceId.Length != 0) {
-        output.WriteRawTag(10);
-        output.WriteString(WorkspaceId);
+      if (Skse != global::ModConductor.Protocol.V1.SkyrimSetupAction.Unchanged) {
+        output.WriteRawTag(8);
+        output.WriteEnum((int) Skse);
       }
-      if (ProfileId.Length != 0) {
-        output.WriteRawTag(18);
-        output.WriteString(ProfileId);
+      if (Enb != global::ModConductor.Protocol.V1.SkyrimSetupAction.Unchanged) {
+        output.WriteRawTag(16);
+        output.WriteEnum((int) Enb);
       }
-      if (OperationId.Length != 0) {
-        output.WriteRawTag(26);
-        output.WriteString(OperationId);
+      if (Fnis != global::ModConductor.Protocol.V1.SkyrimSetupAction.Unchanged) {
+        output.WriteRawTag(24);
+        output.WriteEnum((int) Fnis);
       }
-      if (Path.Length != 0) {
+      if (EnbArchivePath.Length != 0) {
         output.WriteRawTag(34);
-        output.WriteString(Path);
+        output.WriteString(EnbArchivePath);
       }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
@@ -1159,17 +1592,17 @@ namespace ModConductor.Protocol.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int CalculateSize() {
       int size = 0;
-      if (WorkspaceId.Length != 0) {
-        size += 1 + pb::CodedOutputStream.ComputeStringSize(WorkspaceId);
+      if (Skse != global::ModConductor.Protocol.V1.SkyrimSetupAction.Unchanged) {
+        size += 1 + pb::CodedOutputStream.ComputeEnumSize((int) Skse);
       }
-      if (ProfileId.Length != 0) {
-        size += 1 + pb::CodedOutputStream.ComputeStringSize(ProfileId);
+      if (Enb != global::ModConductor.Protocol.V1.SkyrimSetupAction.Unchanged) {
+        size += 1 + pb::CodedOutputStream.ComputeEnumSize((int) Enb);
       }
-      if (OperationId.Length != 0) {
-        size += 1 + pb::CodedOutputStream.ComputeStringSize(OperationId);
+      if (Fnis != global::ModConductor.Protocol.V1.SkyrimSetupAction.Unchanged) {
+        size += 1 + pb::CodedOutputStream.ComputeEnumSize((int) Fnis);
       }
-      if (Path.Length != 0) {
-        size += 1 + pb::CodedOutputStream.ComputeStringSize(Path);
+      if (EnbArchivePath.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(EnbArchivePath);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -1179,21 +1612,21 @@ namespace ModConductor.Protocol.V1 {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public void MergeFrom(SkyrimSetupArchiveRequest other) {
+    public void MergeFrom(SkyrimSetupSelection other) {
       if (other == null) {
         return;
       }
-      if (other.WorkspaceId.Length != 0) {
-        WorkspaceId = other.WorkspaceId;
+      if (other.Skse != global::ModConductor.Protocol.V1.SkyrimSetupAction.Unchanged) {
+        Skse = other.Skse;
       }
-      if (other.ProfileId.Length != 0) {
-        ProfileId = other.ProfileId;
+      if (other.Enb != global::ModConductor.Protocol.V1.SkyrimSetupAction.Unchanged) {
+        Enb = other.Enb;
       }
-      if (other.OperationId.Length != 0) {
-        OperationId = other.OperationId;
+      if (other.Fnis != global::ModConductor.Protocol.V1.SkyrimSetupAction.Unchanged) {
+        Fnis = other.Fnis;
       }
-      if (other.Path.Length != 0) {
-        Path = other.Path;
+      if (other.EnbArchivePath.Length != 0) {
+        EnbArchivePath = other.EnbArchivePath;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -1214,20 +1647,20 @@ namespace ModConductor.Protocol.V1 {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
-          case 10: {
-            WorkspaceId = input.ReadString();
+          case 8: {
+            Skse = (global::ModConductor.Protocol.V1.SkyrimSetupAction) input.ReadEnum();
             break;
           }
-          case 18: {
-            ProfileId = input.ReadString();
+          case 16: {
+            Enb = (global::ModConductor.Protocol.V1.SkyrimSetupAction) input.ReadEnum();
             break;
           }
-          case 26: {
-            OperationId = input.ReadString();
+          case 24: {
+            Fnis = (global::ModConductor.Protocol.V1.SkyrimSetupAction) input.ReadEnum();
             break;
           }
           case 34: {
-            Path = input.ReadString();
+            EnbArchivePath = input.ReadString();
             break;
           }
         }
@@ -1249,20 +1682,20 @@ namespace ModConductor.Protocol.V1 {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
-          case 10: {
-            WorkspaceId = input.ReadString();
+          case 8: {
+            Skse = (global::ModConductor.Protocol.V1.SkyrimSetupAction) input.ReadEnum();
             break;
           }
-          case 18: {
-            ProfileId = input.ReadString();
+          case 16: {
+            Enb = (global::ModConductor.Protocol.V1.SkyrimSetupAction) input.ReadEnum();
             break;
           }
-          case 26: {
-            OperationId = input.ReadString();
+          case 24: {
+            Fnis = (global::ModConductor.Protocol.V1.SkyrimSetupAction) input.ReadEnum();
             break;
           }
           case 34: {
-            Path = input.ReadString();
+            EnbArchivePath = input.ReadString();
             break;
           }
         }
@@ -1287,7 +1720,7 @@ namespace ModConductor.Protocol.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::ModConductor.Protocol.V1.SkyrimSetupReflection.Descriptor.MessageTypes[4]; }
+      get { return global::ModConductor.Protocol.V1.SkyrimSetupReflection.Descriptor.MessageTypes[6]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -1309,6 +1742,8 @@ namespace ModConductor.Protocol.V1 {
     public SkyrimSetupChange(SkyrimSetupChange other) : this() {
       title_ = other.title_;
       detail_ = other.detail_;
+      source_ = other.source_;
+      supporting_ = other.supporting_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -1342,6 +1777,30 @@ namespace ModConductor.Protocol.V1 {
       }
     }
 
+    /// <summary>Field number for the "source" field.</summary>
+    public const int SourceFieldNumber = 3;
+    private string source_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string Source {
+      get { return source_; }
+      set {
+        source_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "supporting" field.</summary>
+    public const int SupportingFieldNumber = 4;
+    private bool supporting_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool Supporting {
+      get { return supporting_; }
+      set {
+        supporting_ = value;
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -1359,6 +1818,8 @@ namespace ModConductor.Protocol.V1 {
       }
       if (Title != other.Title) return false;
       if (Detail != other.Detail) return false;
+      if (Source != other.Source) return false;
+      if (Supporting != other.Supporting) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -1368,6 +1829,8 @@ namespace ModConductor.Protocol.V1 {
       int hash = 1;
       if (Title.Length != 0) hash ^= Title.GetHashCode();
       if (Detail.Length != 0) hash ^= Detail.GetHashCode();
+      if (Source.Length != 0) hash ^= Source.GetHashCode();
+      if (Supporting != false) hash ^= Supporting.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -1394,6 +1857,14 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(18);
         output.WriteString(Detail);
       }
+      if (Source.Length != 0) {
+        output.WriteRawTag(26);
+        output.WriteString(Source);
+      }
+      if (Supporting != false) {
+        output.WriteRawTag(32);
+        output.WriteBool(Supporting);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -1412,6 +1883,14 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(18);
         output.WriteString(Detail);
       }
+      if (Source.Length != 0) {
+        output.WriteRawTag(26);
+        output.WriteString(Source);
+      }
+      if (Supporting != false) {
+        output.WriteRawTag(32);
+        output.WriteBool(Supporting);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -1427,6 +1906,12 @@ namespace ModConductor.Protocol.V1 {
       }
       if (Detail.Length != 0) {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(Detail);
+      }
+      if (Source.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(Source);
+      }
+      if (Supporting != false) {
+        size += 1 + 1;
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -1445,6 +1930,12 @@ namespace ModConductor.Protocol.V1 {
       }
       if (other.Detail.Length != 0) {
         Detail = other.Detail;
+      }
+      if (other.Source.Length != 0) {
+        Source = other.Source;
+      }
+      if (other.Supporting != false) {
+        Supporting = other.Supporting;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -1471,6 +1962,14 @@ namespace ModConductor.Protocol.V1 {
           }
           case 18: {
             Detail = input.ReadString();
+            break;
+          }
+          case 26: {
+            Source = input.ReadString();
+            break;
+          }
+          case 32: {
+            Supporting = input.ReadBool();
             break;
           }
         }
@@ -1500,6 +1999,14 @@ namespace ModConductor.Protocol.V1 {
             Detail = input.ReadString();
             break;
           }
+          case 26: {
+            Source = input.ReadString();
+            break;
+          }
+          case 32: {
+            Supporting = input.ReadBool();
+            break;
+          }
         }
       }
     }
@@ -1522,7 +2029,7 @@ namespace ModConductor.Protocol.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::ModConductor.Protocol.V1.SkyrimSetupReflection.Descriptor.MessageTypes[5]; }
+      get { return global::ModConductor.Protocol.V1.SkyrimSetupReflection.Descriptor.MessageTypes[7]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -1548,6 +2055,8 @@ namespace ModConductor.Protocol.V1 {
       ready_ = other.ready_;
       active_ = other.active_;
       blocked_ = other.blocked_;
+      id_ = other.id_;
+      installed_ = other.installed_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -1629,6 +2138,30 @@ namespace ModConductor.Protocol.V1 {
       }
     }
 
+    /// <summary>Field number for the "id" field.</summary>
+    public const int IdFieldNumber = 7;
+    private string id_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string Id {
+      get { return id_; }
+      set {
+        id_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "installed" field.</summary>
+    public const int InstalledFieldNumber = 8;
+    private bool installed_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool Installed {
+      get { return installed_; }
+      set {
+        installed_ = value;
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -1650,6 +2183,8 @@ namespace ModConductor.Protocol.V1 {
       if (Ready != other.Ready) return false;
       if (Active != other.Active) return false;
       if (Blocked != other.Blocked) return false;
+      if (Id != other.Id) return false;
+      if (Installed != other.Installed) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -1663,6 +2198,8 @@ namespace ModConductor.Protocol.V1 {
       if (Ready != false) hash ^= Ready.GetHashCode();
       if (Active != false) hash ^= Active.GetHashCode();
       if (Blocked != false) hash ^= Blocked.GetHashCode();
+      if (Id.Length != 0) hash ^= Id.GetHashCode();
+      if (Installed != false) hash ^= Installed.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -1705,6 +2242,14 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(48);
         output.WriteBool(Blocked);
       }
+      if (Id.Length != 0) {
+        output.WriteRawTag(58);
+        output.WriteString(Id);
+      }
+      if (Installed != false) {
+        output.WriteRawTag(64);
+        output.WriteBool(Installed);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -1739,6 +2284,14 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(48);
         output.WriteBool(Blocked);
       }
+      if (Id.Length != 0) {
+        output.WriteRawTag(58);
+        output.WriteString(Id);
+      }
+      if (Installed != false) {
+        output.WriteRawTag(64);
+        output.WriteBool(Installed);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -1765,6 +2318,12 @@ namespace ModConductor.Protocol.V1 {
         size += 1 + 1;
       }
       if (Blocked != false) {
+        size += 1 + 1;
+      }
+      if (Id.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(Id);
+      }
+      if (Installed != false) {
         size += 1 + 1;
       }
       if (_unknownFields != null) {
@@ -1796,6 +2355,12 @@ namespace ModConductor.Protocol.V1 {
       }
       if (other.Blocked != false) {
         Blocked = other.Blocked;
+      }
+      if (other.Id.Length != 0) {
+        Id = other.Id;
+      }
+      if (other.Installed != false) {
+        Installed = other.Installed;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -1838,6 +2403,14 @@ namespace ModConductor.Protocol.V1 {
           }
           case 48: {
             Blocked = input.ReadBool();
+            break;
+          }
+          case 58: {
+            Id = input.ReadString();
+            break;
+          }
+          case 64: {
+            Installed = input.ReadBool();
             break;
           }
         }
@@ -1883,6 +2456,14 @@ namespace ModConductor.Protocol.V1 {
             Blocked = input.ReadBool();
             break;
           }
+          case 58: {
+            Id = input.ReadString();
+            break;
+          }
+          case 64: {
+            Installed = input.ReadBool();
+            break;
+          }
         }
       }
     }
@@ -1905,7 +2486,7 @@ namespace ModConductor.Protocol.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::ModConductor.Protocol.V1.SkyrimSetupReflection.Descriptor.MessageTypes[6]; }
+      get { return global::ModConductor.Protocol.V1.SkyrimSetupReflection.Descriptor.MessageTypes[8]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -1931,11 +2512,10 @@ namespace ModConductor.Protocol.V1 {
       planToken_ = other.planToken_;
       changes_ = other.changes_.Clone();
       components_ = other.components_.Clone();
-      includeFnis_ = other.includeFnis_;
+      selection_ = other.selection_ != null ? other.selection_.Clone() : null;
       consentRecorded_ = other.consentRecorded_;
       canStart_ = other.canStart_;
       canContinue_ = other.canContinue_;
-      canSelectEnbArchive_ = other.canSelectEnbArchive_;
       active_ = other.active_;
       ready_ = other.ready_;
       canCancel_ = other.canCancel_;
@@ -2018,15 +2598,15 @@ namespace ModConductor.Protocol.V1 {
       get { return components_; }
     }
 
-    /// <summary>Field number for the "include_fnis" field.</summary>
-    public const int IncludeFnisFieldNumber = 7;
-    private bool includeFnis_;
+    /// <summary>Field number for the "selection" field.</summary>
+    public const int SelectionFieldNumber = 7;
+    private global::ModConductor.Protocol.V1.SkyrimSetupSelection selection_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public bool IncludeFnis {
-      get { return includeFnis_; }
+    public global::ModConductor.Protocol.V1.SkyrimSetupSelection Selection {
+      get { return selection_; }
       set {
-        includeFnis_ = value;
+        selection_ = value;
       }
     }
 
@@ -2063,18 +2643,6 @@ namespace ModConductor.Protocol.V1 {
       get { return canContinue_; }
       set {
         canContinue_ = value;
-      }
-    }
-
-    /// <summary>Field number for the "can_select_enb_archive" field.</summary>
-    public const int CanSelectEnbArchiveFieldNumber = 11;
-    private bool canSelectEnbArchive_;
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public bool CanSelectEnbArchive {
-      get { return canSelectEnbArchive_; }
-      set {
-        canSelectEnbArchive_ = value;
       }
     }
 
@@ -2135,11 +2703,10 @@ namespace ModConductor.Protocol.V1 {
       if (PlanToken != other.PlanToken) return false;
       if(!changes_.Equals(other.changes_)) return false;
       if(!components_.Equals(other.components_)) return false;
-      if (IncludeFnis != other.IncludeFnis) return false;
+      if (!object.Equals(Selection, other.Selection)) return false;
       if (ConsentRecorded != other.ConsentRecorded) return false;
       if (CanStart != other.CanStart) return false;
       if (CanContinue != other.CanContinue) return false;
-      if (CanSelectEnbArchive != other.CanSelectEnbArchive) return false;
       if (Active != other.Active) return false;
       if (Ready != other.Ready) return false;
       if (CanCancel != other.CanCancel) return false;
@@ -2156,11 +2723,10 @@ namespace ModConductor.Protocol.V1 {
       if (PlanToken.Length != 0) hash ^= PlanToken.GetHashCode();
       hash ^= changes_.GetHashCode();
       hash ^= components_.GetHashCode();
-      if (IncludeFnis != false) hash ^= IncludeFnis.GetHashCode();
+      if (selection_ != null) hash ^= Selection.GetHashCode();
       if (ConsentRecorded != false) hash ^= ConsentRecorded.GetHashCode();
       if (CanStart != false) hash ^= CanStart.GetHashCode();
       if (CanContinue != false) hash ^= CanContinue.GetHashCode();
-      if (CanSelectEnbArchive != false) hash ^= CanSelectEnbArchive.GetHashCode();
       if (Active != false) hash ^= Active.GetHashCode();
       if (Ready != false) hash ^= Ready.GetHashCode();
       if (CanCancel != false) hash ^= CanCancel.GetHashCode();
@@ -2200,9 +2766,9 @@ namespace ModConductor.Protocol.V1 {
       }
       changes_.WriteTo(output, _repeated_changes_codec);
       components_.WriteTo(output, _repeated_components_codec);
-      if (IncludeFnis != false) {
-        output.WriteRawTag(56);
-        output.WriteBool(IncludeFnis);
+      if (selection_ != null) {
+        output.WriteRawTag(58);
+        output.WriteMessage(Selection);
       }
       if (ConsentRecorded != false) {
         output.WriteRawTag(64);
@@ -2215,10 +2781,6 @@ namespace ModConductor.Protocol.V1 {
       if (CanContinue != false) {
         output.WriteRawTag(80);
         output.WriteBool(CanContinue);
-      }
-      if (CanSelectEnbArchive != false) {
-        output.WriteRawTag(88);
-        output.WriteBool(CanSelectEnbArchive);
       }
       if (Active != false) {
         output.WriteRawTag(96);
@@ -2260,9 +2822,9 @@ namespace ModConductor.Protocol.V1 {
       }
       changes_.WriteTo(ref output, _repeated_changes_codec);
       components_.WriteTo(ref output, _repeated_components_codec);
-      if (IncludeFnis != false) {
-        output.WriteRawTag(56);
-        output.WriteBool(IncludeFnis);
+      if (selection_ != null) {
+        output.WriteRawTag(58);
+        output.WriteMessage(Selection);
       }
       if (ConsentRecorded != false) {
         output.WriteRawTag(64);
@@ -2275,10 +2837,6 @@ namespace ModConductor.Protocol.V1 {
       if (CanContinue != false) {
         output.WriteRawTag(80);
         output.WriteBool(CanContinue);
-      }
-      if (CanSelectEnbArchive != false) {
-        output.WriteRawTag(88);
-        output.WriteBool(CanSelectEnbArchive);
       }
       if (Active != false) {
         output.WriteRawTag(96);
@@ -2316,8 +2874,8 @@ namespace ModConductor.Protocol.V1 {
       }
       size += changes_.CalculateSize(_repeated_changes_codec);
       size += components_.CalculateSize(_repeated_components_codec);
-      if (IncludeFnis != false) {
-        size += 1 + 1;
+      if (selection_ != null) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(Selection);
       }
       if (ConsentRecorded != false) {
         size += 1 + 1;
@@ -2326,9 +2884,6 @@ namespace ModConductor.Protocol.V1 {
         size += 1 + 1;
       }
       if (CanContinue != false) {
-        size += 1 + 1;
-      }
-      if (CanSelectEnbArchive != false) {
         size += 1 + 1;
       }
       if (Active != false) {
@@ -2366,8 +2921,11 @@ namespace ModConductor.Protocol.V1 {
       }
       changes_.Add(other.changes_);
       components_.Add(other.components_);
-      if (other.IncludeFnis != false) {
-        IncludeFnis = other.IncludeFnis;
+      if (other.selection_ != null) {
+        if (selection_ == null) {
+          Selection = new global::ModConductor.Protocol.V1.SkyrimSetupSelection();
+        }
+        Selection.MergeFrom(other.Selection);
       }
       if (other.ConsentRecorded != false) {
         ConsentRecorded = other.ConsentRecorded;
@@ -2377,9 +2935,6 @@ namespace ModConductor.Protocol.V1 {
       }
       if (other.CanContinue != false) {
         CanContinue = other.CanContinue;
-      }
-      if (other.CanSelectEnbArchive != false) {
-        CanSelectEnbArchive = other.CanSelectEnbArchive;
       }
       if (other.Active != false) {
         Active = other.Active;
@@ -2433,8 +2988,11 @@ namespace ModConductor.Protocol.V1 {
             components_.AddEntriesFrom(input, _repeated_components_codec);
             break;
           }
-          case 56: {
-            IncludeFnis = input.ReadBool();
+          case 58: {
+            if (selection_ == null) {
+              Selection = new global::ModConductor.Protocol.V1.SkyrimSetupSelection();
+            }
+            input.ReadMessage(Selection);
             break;
           }
           case 64: {
@@ -2447,10 +3005,6 @@ namespace ModConductor.Protocol.V1 {
           }
           case 80: {
             CanContinue = input.ReadBool();
-            break;
-          }
-          case 88: {
-            CanSelectEnbArchive = input.ReadBool();
             break;
           }
           case 96: {
@@ -2508,8 +3062,11 @@ namespace ModConductor.Protocol.V1 {
             components_.AddEntriesFrom(ref input, _repeated_components_codec);
             break;
           }
-          case 56: {
-            IncludeFnis = input.ReadBool();
+          case 58: {
+            if (selection_ == null) {
+              Selection = new global::ModConductor.Protocol.V1.SkyrimSetupSelection();
+            }
+            input.ReadMessage(Selection);
             break;
           }
           case 64: {
@@ -2522,10 +3079,6 @@ namespace ModConductor.Protocol.V1 {
           }
           case 80: {
             CanContinue = input.ReadBool();
-            break;
-          }
-          case 88: {
-            CanSelectEnbArchive = input.ReadBool();
             break;
           }
           case 96: {

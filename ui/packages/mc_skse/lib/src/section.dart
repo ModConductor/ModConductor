@@ -24,9 +24,8 @@ class SkyrimSetupSection extends StatefulWidget {
 
 class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
   SkyrimSetupStatus? status;
-  bool includeFnis = false;
+  SkyrimSetupSelection selection = const SkyrimSetupSelection();
   bool busy = false;
-  bool cancelling = false;
   String? problem;
   Timer? timer;
 
@@ -41,8 +40,9 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
     super.didUpdateWidget(old);
     if (old.workspaceId != widget.workspaceId ||
         old.profileId != widget.profileId) {
+      timer?.cancel();
       status = null;
-      includeFnis = false;
+      selection = const SkyrimSetupSelection();
       unawaited(load());
     }
   }
@@ -74,10 +74,7 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
     }
   }
 
-  Future<void> change(
-    Future<SkyrimSetupStatus> Function() action, {
-    bool preserveFnisChoice = false,
-  }) async {
+  Future<void> change(Future<SkyrimSetupStatus> Function() action) async {
     if (busy) return;
     setState(() {
       busy = true;
@@ -85,233 +82,217 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
     });
     SkyrimSetupStatus? next;
     try {
-      final value = await action();
+      next = await action();
       if (!mounted) return;
       setState(() {
-        status = value;
-        if (!preserveFnisChoice) includeFnis = value.includeFnis;
+        status = next;
+        if (next!.consentRecorded) {
+          selection = next.selection;
+        } else if (next.ready) {
+          selection = const SkyrimSetupSelection();
+        }
       });
-      next = value;
     } on Exception {
-      if (mounted) {
+      if (mounted)
         setState(() => problem = 'Skyrim setup could not be updated.');
-      }
     } finally {
       if (mounted) setState(() => busy = false);
     }
     if (next != null && mounted) schedule(next);
   }
 
-  Future<void> load({bool preserveFnisChoice = false}) => change(
+  Future<void> load() => change(
     () => widget.client.read(
       widget.workspaceId,
       widget.profileId,
-      includeFnis: includeFnis,
+      selection: selection,
     ),
-    preserveFnisChoice: preserveFnisChoice,
   );
 
-  Future<void> confirm() async {
+  void selectAction(String id, SkyrimSetupAction action) {
+    if (busy || status?.consentRecorded == true) return;
+    setState(() {
+      selection = selection.withAction(id, action);
+      if (id == 'enb' &&
+          action != SkyrimSetupAction.install &&
+          action != SkyrimSetupAction.update) {
+        selection = selection.withEnbArchive(null);
+      }
+    });
+    unawaited(load());
+  }
+
+  Future<void> chooseEnbArchive() async {
     if (busy) return;
+    final file = await widget.chooseArchive();
+    if (!mounted || file == null) return;
+    setState(() => selection = selection.withEnbArchive(file.path));
+    await load();
+  }
+
+  Future<void> review() async {
     final current = status;
-    if (current == null) return;
-    final agreed = await showDialog<bool>(
+    if (busy || current == null || !current.canStart || !selection.canReview)
+      return;
+    final primary = current.changes.where((item) => !item.supporting).toList();
+    final support = current.changes.where((item) => item.supporting).toList();
+    final approved = await showDialog<bool>(
       context: context,
       builder: (context) => McDialog(
-        title: 'Apply Skyrim setup changes?',
+        title: 'Review Skyrim setup',
+        contentWidth: 620,
+        children: [
+          McChangeSummary(
+            changes: [
+              for (final item in primary)
+                McChangeEntry(item.title, item.detail, item.source),
+            ],
+          ),
+          if (support.isNotEmpty) ...[
+            const SizedBox(height: McSpacing.large),
+            Text(
+              'Also required',
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+            const SizedBox(height: McSpacing.small),
+            for (final item in support)
+              Text('${item.detail} ${item.title.toLowerCase()}'),
+          ],
+        ],
         actions: [
           McAction(
-            label: 'Cancel',
+            label: 'Back',
             onPressed: () => Navigator.pop(context, false),
           ),
           McAction(
+            key: const ValueKey('apply-skyrim-setup'),
             label: 'Apply changes',
             emphasis: McActionEmphasis.primary,
             onPressed: () => Navigator.pop(context, true),
           ),
         ],
-        children: [
-          const Text(
-            'Review the complete change plan. Mod Conductor will preserve the selected installation, other profiles, foreign files and saves.',
-          ),
-          const SizedBox(height: McSpacing.medium),
-          for (final change in current.changes)
-            Material(
-              type: MaterialType.transparency,
-              child: ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(change.title),
-                subtitle: Text(change.detail),
-              ),
-            ),
-        ],
       ),
     );
-    if (agreed != true || !mounted) return;
+    if (approved != true || !mounted) return;
     await change(
       () => widget.client.start(
         widget.workspaceId,
         widget.profileId,
-        includeFnis: includeFnis,
+        selection: selection,
         planToken: current.planToken,
       ),
     );
   }
 
-  Future<void> cancelSetup() async {
-    if (cancelling) return;
-    setState(() {
-      cancelling = true;
-      problem = null;
-    });
-    SkyrimSetupStatus? next;
-    try {
-      final value = await widget.client.cancel(
-        widget.workspaceId,
-        widget.profileId,
-      );
-      if (!mounted) return;
-      setState(() {
-        status = value;
-        includeFnis = value.includeFnis;
-      });
-      next = value;
-    } on Exception {
-      if (mounted) {
-        setState(() => problem = 'Skyrim setup could not be updated.');
-      }
-    } finally {
-      if (mounted) setState(() => cancelling = false);
-    }
-    if (next != null && mounted) schedule(next);
-  }
+  Future<void> cancelSetup() =>
+      change(() => widget.client.cancel(widget.workspaceId, widget.profileId));
 
-  Future<void> selectArchive() async {
-    if (busy) return;
-    final selected = await widget.chooseArchive();
-    if (selected == null || !mounted) return;
-    await change(
-      () => widget.client.selectEnbArchive(
-        widget.workspaceId,
-        widget.profileId,
-        newOperationId(),
-        selected.path,
-      ),
-    );
-  }
+  SkyrimSetupAction actionFor(String id) => switch (id) {
+    'skse' => selection.skse,
+    'enb' => selection.enb,
+    'fnis' => selection.fnis,
+    _ => SkyrimSetupAction.unchanged,
+  };
 
   @override
   Widget build(BuildContext context) {
     final value = status;
-    final routineSetup =
-        value?.phase == SkyrimSetupStatusPhase.unavailable &&
-        value?.status == 'Skyrim needs its first Steam run';
+    final locked = value?.consentRecorded == true;
+    final components =
+        value?.components
+            .where((item) => const ['skse', 'enb', 'fnis'].contains(item.id))
+            .toList() ??
+        [];
     final failed =
         value != null &&
-        !routineSetup &&
-        (value.phase == SkyrimSetupStatusPhase.unavailable ||
-            value.phase == SkyrimSetupStatusPhase.recoveryRequired ||
-            value.phase == SkyrimSetupStatusPhase.failed);
-
+        (value.phase == SkyrimSetupStatusPhase.failed ||
+            value.phase == SkyrimSetupStatusPhase.recoveryRequired);
+    final canReview =
+        !busy && !locked && value?.canStart == true && selection.canReview;
     final content = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        McStatus(
-          title:
-              value?.status ??
-              (busy ? 'Checking Skyrim setup' : 'Skyrim setup is unavailable'),
-          detail: value?.detail.isEmpty == false
-              ? value!.detail
-              : 'Check the engine connection.',
-          tone: failed ? McStatusTone.error : McStatusTone.neutral,
-        ),
-        const SizedBox(height: McSpacing.small),
-        McAsyncStatusSlot(
-          active: busy || cancelling || value?.active == true,
-          problem: problem,
-        ),
-        if (value != null && value.components.isNotEmpty) ...[
-          const SizedBox(height: McSpacing.large),
-          for (final item in value.components) ...[
-            McStatus(
-              title: '${item.name}: ${item.status}',
-              detail: item.detail.isEmpty ? null : item.detail,
-              tone: item.blocked && !routineSetup
-                  ? McStatusTone.error
-                  : McStatusTone.neutral,
-            ),
-            const SizedBox(height: McSpacing.medium),
-          ],
+        if (problem != null) ...[
+          McStatus(title: problem!, tone: McStatusTone.error),
+          const SizedBox(height: McSpacing.medium),
         ],
-        if (value?.consentRecorded != true) ...[
-          Material(
-            type: MaterialType.transparency,
-            child: SwitchListTile(
-              key: const ValueKey('include-fnis'),
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Include FNIS'),
-              subtitle: const Text(
-                'Install FNIS and keep its active animation output current for this profile.',
-              ),
-              value: includeFnis,
-              onChanged: (selected) {
-                if (busy) return;
-                setState(() => includeFnis = selected);
-                unawaited(load(preserveFnisChoice: true));
-              },
-            ),
+        if (value != null &&
+            value.status.isNotEmpty &&
+            value.status != 'Choose an ENBSeries archive') ...[
+          McStatus(
+            title: value.status,
+            detail: value.detail.isEmpty ? null : value.detail,
+            tone: failed ? McStatusTone.error : McStatusTone.neutral,
           ),
+          const SizedBox(height: McSpacing.medium),
         ],
-        const SizedBox(height: McSpacing.medium),
+        if (components.isNotEmpty) ...[
+          LayoutBuilder(
+            builder: (_, bounds) => bounds.maxWidth < 680
+                ? const SizedBox.shrink()
+                : const Padding(
+                    padding: EdgeInsets.symmetric(vertical: McSpacing.small),
+                    child: Row(
+                      children: [
+                        Expanded(flex: 33, child: Text('Component')),
+                        Expanded(flex: 24, child: Text('Current')),
+                        Expanded(flex: 43, child: Text('Install')),
+                      ],
+                    ),
+                  ),
+          ),
+          for (final item in components) _component(item, locked),
+          const SizedBox(height: McSpacing.medium),
+        ],
         Wrap(
           spacing: McSpacing.medium,
           runSpacing: McSpacing.medium,
           children: [
+            if (selection.hasChange && !locked)
+              McAction(
+                label: 'Clear choices',
+                onPressed: busy
+                    ? null
+                    : () {
+                        setState(
+                          () => selection = const SkyrimSetupSelection(),
+                        );
+                        unawaited(load());
+                      },
+              ),
             McAction(
               key: const ValueKey('refresh-skyrim-setup'),
               label: 'Refresh',
               icon: Icons.refresh,
-              onPressed: load,
+              onPressed: busy ? null : load,
             ),
-            if (value?.canStart == true)
-              McAction(
-                key: const ValueKey('review-skyrim-setup'),
-                label: 'Review and apply setup',
-                icon: Icons.fact_check_outlined,
-                emphasis: McActionEmphasis.primary,
-                onPressed: confirm,
-              ),
-            if (value?.canSelectEnbArchive == true)
-              McAction(
-                label: 'Choose downloaded ENBSeries archive',
-                icon: Icons.folder_open,
-                emphasis: McActionEmphasis.primary,
-                onPressed: selectArchive,
-              ),
+            McAction(
+              key: const ValueKey('review-skyrim-setup'),
+              label: 'Review changes',
+              emphasis: McActionEmphasis.primary,
+              onPressed: canReview ? review : null,
+            ),
             if (value?.canCancel == true)
               McAction(
                 label: 'Cancel setup',
-                icon: Icons.cancel_outlined,
-                onPressed: cancelSetup,
+                onPressed: busy ? null : cancelSetup,
               ),
-            if (value?.canContinue == true &&
-                value?.phase == SkyrimSetupStatusPhase.failed)
+            if (failed && value.canContinue)
               McAction(
-                label: 'Try setup again',
-                icon: Icons.refresh,
-                emphasis: McActionEmphasis.primary,
-                onPressed: () => change(
-                  () => widget.client.continueSetup(
-                    widget.workspaceId,
-                    widget.profileId,
-                  ),
-                ),
+                label: 'Try again',
+                onPressed: busy
+                    ? null
+                    : () => change(
+                        () => widget.client.continueSetup(
+                          widget.workspaceId,
+                          widget.profileId,
+                        ),
+                      ),
               ),
           ],
         ),
       ],
     );
-
     return LayoutBuilder(
       builder: (context, constraints) => McSection(
         title: 'Skyrim setup',
@@ -322,6 +303,61 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
             content,
         ],
       ),
+    );
+  }
+
+  Widget _component(SkyrimSetupComponent item, bool locked) {
+    final action = actionFor(item.id);
+    final selected = switch (action) {
+      SkyrimSetupAction.install => true,
+      SkyrimSetupAction.remove => false,
+      _ => item.installed,
+    };
+    const skseIcon =
+        'https://shared.fastly.steamstatic.com/community_assets/images/apps/365720/48eaa1815ac4beddc4d7c9fec6c2517f6f0b718e.jpg';
+    final kind = switch (item.id) {
+      'skse' => 'Script extender',
+      'enb' => 'Graphics injector',
+      _ => 'Animation tool',
+    };
+    return McComponentChoiceRow(
+      key: ValueKey('setup-${item.id}'),
+      name: item.name,
+      kind: kind,
+      current: item.installed ? 'Installed' : 'Not installed',
+      installed: item.installed,
+      selected: selected,
+      updating: action == SkyrimSetupAction.update,
+      iconUrl: item.id == 'skse' ? skseIcon : null,
+      enabled: !busy && !locked,
+      onToggle: () => selectAction(
+        item.id,
+        selected
+            ? (item.installed
+                  ? SkyrimSetupAction.remove
+                  : SkyrimSetupAction.unchanged)
+            : (item.installed
+                  ? SkyrimSetupAction.unchanged
+                  : SkyrimSetupAction.install),
+      ),
+      onOpenPage: () => unawaited(widget.client.openProjectPage(item.id)),
+      onUpdate: item.installed
+          ? () => selectAction(
+              item.id,
+              action == SkyrimSetupAction.update
+                  ? SkyrimSetupAction.unchanged
+                  : SkyrimSetupAction.update,
+            )
+          : null,
+      onChooseArchive: item.id == 'enb' ? chooseEnbArchive : null,
+      onClearArchive: item.id == 'enb'
+          ? () {
+              setState(() => selection = selection.withEnbArchive(null));
+              unawaited(load());
+            }
+          : null,
+      archiveName: selection.enbArchivePath?.split(RegExp(r'[/\\]')).last,
+      archiveRequired: item.id == 'enb' && selection.needsEnbArchive,
     );
   }
 }

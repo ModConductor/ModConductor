@@ -54,12 +54,14 @@ class McIconAction extends StatelessWidget {
     required this.onPressed,
     this.focusNode,
     this.padding,
+    this.size,
   });
   final String label;
   final Widget icon;
   final VoidCallback? onPressed;
   final FocusNode? focusNode;
   final EdgeInsetsGeometry? padding;
+  final double? size;
 
   @override
   Widget build(BuildContext context) => MergeSemantics(
@@ -73,6 +75,9 @@ class McIconAction extends StatelessWidget {
           onPressed: onPressed,
           focusNode: focusNode,
           padding: padding,
+          constraints: size == null
+              ? null
+              : BoxConstraints.tightFor(width: size, height: size),
         ),
       ),
     ),

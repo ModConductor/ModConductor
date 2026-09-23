@@ -6,30 +6,38 @@ service SkyrimSetupOperations {
   rpc ReadSkyrimSetup(ReadSkyrimSetupRequest) returns (SkyrimSetupState);
   rpc StartSkyrimSetup(StartSkyrimSetupRequest) returns (SkyrimSetupState);
   rpc ContinueSkyrimSetup(SkyrimSetupRequest) returns (SkyrimSetupState);
-  rpc SelectSkyrimSetupEnbArchive(SkyrimSetupArchiveRequest) returns (SkyrimSetupState);
   rpc CancelSkyrimSetup(SkyrimSetupRequest) returns (SkyrimSetupState);
+  rpc OpenSkyrimSetupPage(SkyrimSetupPageRequest) returns (SkyrimSetupPageReply);
 }
+
+message SkyrimSetupPageRequest { string component_id = 1; }
+message SkyrimSetupPageReply { bool opened = 1; }
 
 message SkyrimSetupRequest { string workspace_id = 1; string profile_id = 2; }
 message ReadSkyrimSetupRequest {
   string workspace_id = 1;
   string profile_id = 2;
-  bool include_fnis = 3;
+  SkyrimSetupSelection selection = 3;
 }
 message StartSkyrimSetupRequest {
   string workspace_id = 1;
   string profile_id = 2;
-  bool include_fnis = 3;
+  SkyrimSetupSelection selection = 3;
   string plan_token = 4;
   bool change_plan_confirmed = 5;
 }
-message SkyrimSetupArchiveRequest {
-  string workspace_id = 1;
-  string profile_id = 2;
-  string operation_id = 3;
-  string path = 4;
+enum SkyrimSetupAction {
+  SKYRIM_SETUP_ACTION_UNCHANGED = 0;
+  SKYRIM_SETUP_ACTION_INSTALL = 1;
+  SKYRIM_SETUP_ACTION_REMOVE = 2;
+  SKYRIM_SETUP_ACTION_UPDATE = 3;
 }
-
+message SkyrimSetupSelection {
+  SkyrimSetupAction skse = 1;
+  SkyrimSetupAction enb = 2;
+  SkyrimSetupAction fnis = 3;
+  string enb_archive_path = 4;
+}
 enum SkyrimSetupPhase {
   SKYRIM_SETUP_PHASE_UNSPECIFIED = 0;
   SKYRIM_SETUP_PHASE_UNAVAILABLE = 1;
@@ -48,7 +56,7 @@ enum SkyrimSetupPhase {
   SKYRIM_SETUP_PHASE_CANCELLED = 14;
 }
 
-message SkyrimSetupChange { string title = 1; string detail = 2; }
+message SkyrimSetupChange { string title = 1; string detail = 2; string source = 3; bool supporting = 4; }
 message SkyrimSetupComponent {
   string name = 1;
   string status = 2;
@@ -56,6 +64,8 @@ message SkyrimSetupComponent {
   bool ready = 4;
   bool active = 5;
   bool blocked = 6;
+  string id = 7;
+  bool installed = 8;
 }
 message SkyrimSetupState {
   SkyrimSetupPhase phase = 1;
@@ -64,11 +74,10 @@ message SkyrimSetupState {
   string plan_token = 4;
   repeated SkyrimSetupChange changes = 5;
   repeated SkyrimSetupComponent components = 6;
-  bool include_fnis = 7;
+  SkyrimSetupSelection selection = 7;
   bool consent_recorded = 8;
   bool can_start = 9;
   bool can_continue = 10;
-  bool can_select_enb_archive = 11;
   bool active = 12;
   bool ready = 13;
   bool can_cancel = 14;

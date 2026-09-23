@@ -14,6 +14,35 @@ import 'dart:core' as $core;
 
 import 'package:protobuf/protobuf.dart' as $pb;
 
+class SkyrimSetupAction extends $pb.ProtobufEnum {
+  static const SkyrimSetupAction SKYRIM_SETUP_ACTION_UNCHANGED =
+      SkyrimSetupAction._(
+          0, _omitEnumNames ? '' : 'SKYRIM_SETUP_ACTION_UNCHANGED');
+  static const SkyrimSetupAction SKYRIM_SETUP_ACTION_INSTALL =
+      SkyrimSetupAction._(
+          1, _omitEnumNames ? '' : 'SKYRIM_SETUP_ACTION_INSTALL');
+  static const SkyrimSetupAction SKYRIM_SETUP_ACTION_REMOVE =
+      SkyrimSetupAction._(
+          2, _omitEnumNames ? '' : 'SKYRIM_SETUP_ACTION_REMOVE');
+  static const SkyrimSetupAction SKYRIM_SETUP_ACTION_UPDATE =
+      SkyrimSetupAction._(
+          3, _omitEnumNames ? '' : 'SKYRIM_SETUP_ACTION_UPDATE');
+
+  static const $core.List<SkyrimSetupAction> values = <SkyrimSetupAction>[
+    SKYRIM_SETUP_ACTION_UNCHANGED,
+    SKYRIM_SETUP_ACTION_INSTALL,
+    SKYRIM_SETUP_ACTION_REMOVE,
+    SKYRIM_SETUP_ACTION_UPDATE,
+  ];
+
+  static final $core.List<SkyrimSetupAction?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 3);
+  static SkyrimSetupAction? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const SkyrimSetupAction._(super.value, super.name);
+}
+
 class SkyrimSetupPhase extends $pb.ProtobufEnum {
   static const SkyrimSetupPhase SKYRIM_SETUP_PHASE_UNSPECIFIED =
       SkyrimSetupPhase._(

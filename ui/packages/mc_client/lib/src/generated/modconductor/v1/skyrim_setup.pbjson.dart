@@ -15,6 +15,23 @@ import 'dart:convert' as $convert;
 import 'dart:core' as $core;
 import 'dart:typed_data' as $typed_data;
 
+@$core.Deprecated('Use skyrimSetupActionDescriptor instead')
+const SkyrimSetupAction$json = {
+  '1': 'SkyrimSetupAction',
+  '2': [
+    {'1': 'SKYRIM_SETUP_ACTION_UNCHANGED', '2': 0},
+    {'1': 'SKYRIM_SETUP_ACTION_INSTALL', '2': 1},
+    {'1': 'SKYRIM_SETUP_ACTION_REMOVE', '2': 2},
+    {'1': 'SKYRIM_SETUP_ACTION_UPDATE', '2': 3},
+  ],
+};
+
+/// Descriptor for `SkyrimSetupAction`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List skyrimSetupActionDescriptor = $convert.base64Decode(
+    'ChFTa3lyaW1TZXR1cEFjdGlvbhIhCh1TS1lSSU1fU0VUVVBfQUNUSU9OX1VOQ0hBTkdFRBAAEh'
+    '8KG1NLWVJJTV9TRVRVUF9BQ1RJT05fSU5TVEFMTBABEh4KGlNLWVJJTV9TRVRVUF9BQ1RJT05f'
+    'UkVNT1ZFEAISHgoaU0tZUklNX1NFVFVQX0FDVElPTl9VUERBVEUQAw==');
+
 @$core.Deprecated('Use skyrimSetupPhaseDescriptor instead')
 const SkyrimSetupPhase$json = {
   '1': 'SkyrimSetupPhase',
@@ -51,6 +68,33 @@ final $typed_data.Uint8List skyrimSetupPhaseDescriptor = $convert.base64Decode(
     '9QSEFTRV9SRUNPVkVSWV9SRVFVSVJFRBAMEh0KGVNLWVJJTV9TRVRVUF9QSEFTRV9GQUlMRUQQ'
     'DRIgChxTS1lSSU1fU0VUVVBfUEhBU0VfQ0FOQ0VMTEVEEA4=');
 
+@$core.Deprecated('Use skyrimSetupPageRequestDescriptor instead')
+const SkyrimSetupPageRequest$json = {
+  '1': 'SkyrimSetupPageRequest',
+  '2': [
+    {'1': 'component_id', '3': 1, '4': 1, '5': 9, '10': 'componentId'},
+  ],
+};
+
+/// Descriptor for `SkyrimSetupPageRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List skyrimSetupPageRequestDescriptor =
+    $convert.base64Decode(
+        'ChZTa3lyaW1TZXR1cFBhZ2VSZXF1ZXN0EiEKDGNvbXBvbmVudF9pZBgBIAEoCVILY29tcG9uZW'
+        '50SWQ=');
+
+@$core.Deprecated('Use skyrimSetupPageReplyDescriptor instead')
+const SkyrimSetupPageReply$json = {
+  '1': 'SkyrimSetupPageReply',
+  '2': [
+    {'1': 'opened', '3': 1, '4': 1, '5': 8, '10': 'opened'},
+  ],
+};
+
+/// Descriptor for `SkyrimSetupPageReply`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List skyrimSetupPageReplyDescriptor =
+    $convert.base64Decode(
+        'ChRTa3lyaW1TZXR1cFBhZ2VSZXBseRIWCgZvcGVuZWQYASABKAhSBm9wZW5lZA==');
+
 @$core.Deprecated('Use skyrimSetupRequestDescriptor instead')
 const SkyrimSetupRequest$json = {
   '1': 'SkyrimSetupRequest',
@@ -71,15 +115,22 @@ const ReadSkyrimSetupRequest$json = {
   '2': [
     {'1': 'workspace_id', '3': 1, '4': 1, '5': 9, '10': 'workspaceId'},
     {'1': 'profile_id', '3': 2, '4': 1, '5': 9, '10': 'profileId'},
-    {'1': 'include_fnis', '3': 3, '4': 1, '5': 8, '10': 'includeFnis'},
+    {
+      '1': 'selection',
+      '3': 3,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.SkyrimSetupSelection',
+      '10': 'selection'
+    },
   ],
 };
 
 /// Descriptor for `ReadSkyrimSetupRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List readSkyrimSetupRequestDescriptor = $convert.base64Decode(
     'ChZSZWFkU2t5cmltU2V0dXBSZXF1ZXN0EiEKDHdvcmtzcGFjZV9pZBgBIAEoCVILd29ya3NwYW'
-    'NlSWQSHQoKcHJvZmlsZV9pZBgCIAEoCVIJcHJvZmlsZUlkEiEKDGluY2x1ZGVfZm5pcxgDIAEo'
-    'CFILaW5jbHVkZUZuaXM=');
+    'NlSWQSHQoKcHJvZmlsZV9pZBgCIAEoCVIJcHJvZmlsZUlkEkMKCXNlbGVjdGlvbhgDIAEoCzIl'
+    'Lm1vZGNvbmR1Y3Rvci52MS5Ta3lyaW1TZXR1cFNlbGVjdGlvblIJc2VsZWN0aW9u');
 
 @$core.Deprecated('Use startSkyrimSetupRequestDescriptor instead')
 const StartSkyrimSetupRequest$json = {
@@ -87,7 +138,14 @@ const StartSkyrimSetupRequest$json = {
   '2': [
     {'1': 'workspace_id', '3': 1, '4': 1, '5': 9, '10': 'workspaceId'},
     {'1': 'profile_id', '3': 2, '4': 1, '5': 9, '10': 'profileId'},
-    {'1': 'include_fnis', '3': 3, '4': 1, '5': 8, '10': 'includeFnis'},
+    {
+      '1': 'selection',
+      '3': 3,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.SkyrimSetupSelection',
+      '10': 'selection'
+    },
     {'1': 'plan_token', '3': 4, '4': 1, '5': 9, '10': 'planToken'},
     {
       '1': 'change_plan_confirmed',
@@ -102,26 +160,50 @@ const StartSkyrimSetupRequest$json = {
 /// Descriptor for `StartSkyrimSetupRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List startSkyrimSetupRequestDescriptor = $convert.base64Decode(
     'ChdTdGFydFNreXJpbVNldHVwUmVxdWVzdBIhCgx3b3Jrc3BhY2VfaWQYASABKAlSC3dvcmtzcG'
-    'FjZUlkEh0KCnByb2ZpbGVfaWQYAiABKAlSCXByb2ZpbGVJZBIhCgxpbmNsdWRlX2ZuaXMYAyAB'
-    'KAhSC2luY2x1ZGVGbmlzEh0KCnBsYW5fdG9rZW4YBCABKAlSCXBsYW5Ub2tlbhIyChVjaGFuZ2'
-    'VfcGxhbl9jb25maXJtZWQYBSABKAhSE2NoYW5nZVBsYW5Db25maXJtZWQ=');
+    'FjZUlkEh0KCnByb2ZpbGVfaWQYAiABKAlSCXByb2ZpbGVJZBJDCglzZWxlY3Rpb24YAyABKAsy'
+    'JS5tb2Rjb25kdWN0b3IudjEuU2t5cmltU2V0dXBTZWxlY3Rpb25SCXNlbGVjdGlvbhIdCgpwbG'
+    'FuX3Rva2VuGAQgASgJUglwbGFuVG9rZW4SMgoVY2hhbmdlX3BsYW5fY29uZmlybWVkGAUgASgI'
+    'UhNjaGFuZ2VQbGFuQ29uZmlybWVk');
 
-@$core.Deprecated('Use skyrimSetupArchiveRequestDescriptor instead')
-const SkyrimSetupArchiveRequest$json = {
-  '1': 'SkyrimSetupArchiveRequest',
+@$core.Deprecated('Use skyrimSetupSelectionDescriptor instead')
+const SkyrimSetupSelection$json = {
+  '1': 'SkyrimSetupSelection',
   '2': [
-    {'1': 'workspace_id', '3': 1, '4': 1, '5': 9, '10': 'workspaceId'},
-    {'1': 'profile_id', '3': 2, '4': 1, '5': 9, '10': 'profileId'},
-    {'1': 'operation_id', '3': 3, '4': 1, '5': 9, '10': 'operationId'},
-    {'1': 'path', '3': 4, '4': 1, '5': 9, '10': 'path'},
+    {
+      '1': 'skse',
+      '3': 1,
+      '4': 1,
+      '5': 14,
+      '6': '.modconductor.v1.SkyrimSetupAction',
+      '10': 'skse'
+    },
+    {
+      '1': 'enb',
+      '3': 2,
+      '4': 1,
+      '5': 14,
+      '6': '.modconductor.v1.SkyrimSetupAction',
+      '10': 'enb'
+    },
+    {
+      '1': 'fnis',
+      '3': 3,
+      '4': 1,
+      '5': 14,
+      '6': '.modconductor.v1.SkyrimSetupAction',
+      '10': 'fnis'
+    },
+    {'1': 'enb_archive_path', '3': 4, '4': 1, '5': 9, '10': 'enbArchivePath'},
   ],
 };
 
-/// Descriptor for `SkyrimSetupArchiveRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List skyrimSetupArchiveRequestDescriptor = $convert.base64Decode(
-    'ChlTa3lyaW1TZXR1cEFyY2hpdmVSZXF1ZXN0EiEKDHdvcmtzcGFjZV9pZBgBIAEoCVILd29ya3'
-    'NwYWNlSWQSHQoKcHJvZmlsZV9pZBgCIAEoCVIJcHJvZmlsZUlkEiEKDG9wZXJhdGlvbl9pZBgD'
-    'IAEoCVILb3BlcmF0aW9uSWQSEgoEcGF0aBgEIAEoCVIEcGF0aA==');
+/// Descriptor for `SkyrimSetupSelection`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List skyrimSetupSelectionDescriptor = $convert.base64Decode(
+    'ChRTa3lyaW1TZXR1cFNlbGVjdGlvbhI2CgRza3NlGAEgASgOMiIubW9kY29uZHVjdG9yLnYxLl'
+    'NreXJpbVNldHVwQWN0aW9uUgRza3NlEjQKA2VuYhgCIAEoDjIiLm1vZGNvbmR1Y3Rvci52MS5T'
+    'a3lyaW1TZXR1cEFjdGlvblIDZW5iEjYKBGZuaXMYAyABKA4yIi5tb2Rjb25kdWN0b3IudjEuU2'
+    't5cmltU2V0dXBBY3Rpb25SBGZuaXMSKAoQZW5iX2FyY2hpdmVfcGF0aBgEIAEoCVIOZW5iQXJj'
+    'aGl2ZVBhdGg=');
 
 @$core.Deprecated('Use skyrimSetupChangeDescriptor instead')
 const SkyrimSetupChange$json = {
@@ -129,13 +211,16 @@ const SkyrimSetupChange$json = {
   '2': [
     {'1': 'title', '3': 1, '4': 1, '5': 9, '10': 'title'},
     {'1': 'detail', '3': 2, '4': 1, '5': 9, '10': 'detail'},
+    {'1': 'source', '3': 3, '4': 1, '5': 9, '10': 'source'},
+    {'1': 'supporting', '3': 4, '4': 1, '5': 8, '10': 'supporting'},
   ],
 };
 
 /// Descriptor for `SkyrimSetupChange`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List skyrimSetupChangeDescriptor = $convert.base64Decode(
     'ChFTa3lyaW1TZXR1cENoYW5nZRIUCgV0aXRsZRgBIAEoCVIFdGl0bGUSFgoGZGV0YWlsGAIgAS'
-    'gJUgZkZXRhaWw=');
+    'gJUgZkZXRhaWwSFgoGc291cmNlGAMgASgJUgZzb3VyY2USHgoKc3VwcG9ydGluZxgEIAEoCFIK'
+    'c3VwcG9ydGluZw==');
 
 @$core.Deprecated('Use skyrimSetupComponentDescriptor instead')
 const SkyrimSetupComponent$json = {
@@ -147,6 +232,8 @@ const SkyrimSetupComponent$json = {
     {'1': 'ready', '3': 4, '4': 1, '5': 8, '10': 'ready'},
     {'1': 'active', '3': 5, '4': 1, '5': 8, '10': 'active'},
     {'1': 'blocked', '3': 6, '4': 1, '5': 8, '10': 'blocked'},
+    {'1': 'id', '3': 7, '4': 1, '5': 9, '10': 'id'},
+    {'1': 'installed', '3': 8, '4': 1, '5': 8, '10': 'installed'},
   ],
 };
 
@@ -154,7 +241,8 @@ const SkyrimSetupComponent$json = {
 final $typed_data.Uint8List skyrimSetupComponentDescriptor = $convert.base64Decode(
     'ChRTa3lyaW1TZXR1cENvbXBvbmVudBISCgRuYW1lGAEgASgJUgRuYW1lEhYKBnN0YXR1cxgCIA'
     'EoCVIGc3RhdHVzEhYKBmRldGFpbBgDIAEoCVIGZGV0YWlsEhQKBXJlYWR5GAQgASgIUgVyZWFk'
-    'eRIWCgZhY3RpdmUYBSABKAhSBmFjdGl2ZRIYCgdibG9ja2VkGAYgASgIUgdibG9ja2Vk');
+    'eRIWCgZhY3RpdmUYBSABKAhSBmFjdGl2ZRIYCgdibG9ja2VkGAYgASgIUgdibG9ja2VkEg4KAm'
+    'lkGAcgASgJUgJpZBIcCglpbnN0YWxsZWQYCCABKAhSCWluc3RhbGxlZA==');
 
 @$core.Deprecated('Use skyrimSetupStateDescriptor instead')
 const SkyrimSetupState$json = {
@@ -187,17 +275,17 @@ const SkyrimSetupState$json = {
       '6': '.modconductor.v1.SkyrimSetupComponent',
       '10': 'components'
     },
-    {'1': 'include_fnis', '3': 7, '4': 1, '5': 8, '10': 'includeFnis'},
+    {
+      '1': 'selection',
+      '3': 7,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.SkyrimSetupSelection',
+      '10': 'selection'
+    },
     {'1': 'consent_recorded', '3': 8, '4': 1, '5': 8, '10': 'consentRecorded'},
     {'1': 'can_start', '3': 9, '4': 1, '5': 8, '10': 'canStart'},
     {'1': 'can_continue', '3': 10, '4': 1, '5': 8, '10': 'canContinue'},
-    {
-      '1': 'can_select_enb_archive',
-      '3': 11,
-      '4': 1,
-      '5': 8,
-      '10': 'canSelectEnbArchive'
-    },
     {'1': 'active', '3': 12, '4': 1, '5': 8, '10': 'active'},
     {'1': 'ready', '3': 13, '4': 1, '5': 8, '10': 'ready'},
     {'1': 'can_cancel', '3': 14, '4': 1, '5': 8, '10': 'canCancel'},
@@ -211,9 +299,8 @@ final $typed_data.Uint8List skyrimSetupStateDescriptor = $convert.base64Decode(
     'IAEoCVIGZGV0YWlsEh0KCnBsYW5fdG9rZW4YBCABKAlSCXBsYW5Ub2tlbhI8CgdjaGFuZ2VzGA'
     'UgAygLMiIubW9kY29uZHVjdG9yLnYxLlNreXJpbVNldHVwQ2hhbmdlUgdjaGFuZ2VzEkUKCmNv'
     'bXBvbmVudHMYBiADKAsyJS5tb2Rjb25kdWN0b3IudjEuU2t5cmltU2V0dXBDb21wb25lbnRSCm'
-    'NvbXBvbmVudHMSIQoMaW5jbHVkZV9mbmlzGAcgASgIUgtpbmNsdWRlRm5pcxIpChBjb25zZW50'
-    'X3JlY29yZGVkGAggASgIUg9jb25zZW50UmVjb3JkZWQSGwoJY2FuX3N0YXJ0GAkgASgIUghjYW'
-    '5TdGFydBIhCgxjYW5fY29udGludWUYCiABKAhSC2NhbkNvbnRpbnVlEjMKFmNhbl9zZWxlY3Rf'
-    'ZW5iX2FyY2hpdmUYCyABKAhSE2NhblNlbGVjdEVuYkFyY2hpdmUSFgoGYWN0aXZlGAwgASgIUg'
-    'ZhY3RpdmUSFAoFcmVhZHkYDSABKAhSBXJlYWR5Eh0KCmNhbl9jYW5jZWwYDiABKAhSCWNhbkNh'
-    'bmNlbA==');
+    'NvbXBvbmVudHMSQwoJc2VsZWN0aW9uGAcgASgLMiUubW9kY29uZHVjdG9yLnYxLlNreXJpbVNl'
+    'dHVwU2VsZWN0aW9uUglzZWxlY3Rpb24SKQoQY29uc2VudF9yZWNvcmRlZBgIIAEoCFIPY29uc2'
+    'VudFJlY29yZGVkEhsKCWNhbl9zdGFydBgJIAEoCFIIY2FuU3RhcnQSIQoMY2FuX2NvbnRpbnVl'
+    'GAogASgIUgtjYW5Db250aW51ZRIWCgZhY3RpdmUYDCABKAhSBmFjdGl2ZRIUCgVyZWFkeRgNIA'
+    'EoCFIFcmVhZHkSHQoKY2FuX2NhbmNlbBgOIAEoCFIJY2FuQ2FuY2Vs');

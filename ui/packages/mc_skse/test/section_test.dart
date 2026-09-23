@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mc_artifacts/mc_artifacts.dart';
@@ -7,583 +5,316 @@ import 'package:mc_client/mc_client.dart';
 import 'package:mc_skse/mc_skse.dart';
 import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 
-SkyrimSetupStatus setupStatus({
-  SkyrimSetupStatusPhase phase = SkyrimSetupStatusPhase.needsConsent,
-  String status = 'Setup status',
-  String detail = 'Setup detail',
-  bool consent = false,
-  bool canStart = true,
-  bool canContinue = false,
-  bool canSelectArchive = false,
-  bool active = false,
-  bool ready = false,
-  bool includeFnis = false,
-  bool canCancel = false,
-  bool componentBlocked = false,
-}) => SkyrimSetupStatus(
-  phase: phase,
-  status: status,
-  detail: detail,
-  planToken: 'current-plan',
-  changes: const [
-    SkyrimSetupChange('Set up SKSE', 'Install the matching version.'),
-  ],
-  components: [
-    SkyrimSetupComponent(
-      name: 'SKSE',
-      status: 'Matching SKSE found',
-      detail: '',
-      ready: false,
-      active: false,
-      blocked: componentBlocked,
-    ),
-  ],
-  includeFnis: includeFnis,
-  consentRecorded: consent,
-  canStart: canStart,
-  canContinue: canContinue,
-  canSelectEnbArchive: canSelectArchive,
-  active: active,
-  ready: ready,
-  canCancel: canCancel,
-);
+class SetupClientFixture extends SkyrimSetupClient {
+  SetupClientFixture({this.installed = const {}});
+  final Set<String> installed;
+  SkyrimSetupSelection lastSelection = const SkyrimSetupSelection();
+  SkyrimSetupSelection? applied;
+  int starts = 0;
+  int pageOpens = 0;
 
-class SetupFixtureClient extends SkyrimSetupClient {
-  SetupFixtureClient(this.current);
-  SkyrimSetupStatus current;
-  int starts = 0, continues = 0, selections = 0;
-  int cancellations = 0;
-  bool? startedWithFnis;
-  String? selectedPath;
-  Completer<SkyrimSetupStatus>? blockedSelection;
-  Completer<SkyrimSetupStatus>? blockedRead;
-  SkyrimSetupStatus? nextContinue;
+  SkyrimSetupStatus state(
+    SkyrimSetupSelection selection, {
+    bool consent = false,
+  }) {
+    final choices = <String, SkyrimSetupAction>{
+      'skse': selection.skse,
+      'enb': selection.enb,
+      'fnis': selection.fnis,
+    };
+    final changes = <SkyrimSetupChange>[
+      for (final entry in choices.entries)
+        if (entry.value != SkyrimSetupAction.unchanged)
+          SkyrimSetupChange(
+            {'skse': 'SKSE', 'enb': 'ENBSeries', 'fnis': 'FNIS'}[entry.key]!,
+            switch (entry.value) {
+              SkyrimSetupAction.install => 'Install',
+              SkyrimSetupAction.remove => 'Remove',
+              SkyrimSetupAction.update => 'Update',
+              _ => '',
+            },
+            entry.key == 'enb'
+                ? (selection.enbArchivePath ?? 'Installed files')
+                : 'Matching game version',
+          ),
+    ];
+    if (installed.isEmpty && changes.any((item) => item.detail == 'Install')) {
+      changes.add(
+        const SkyrimSetupChange(
+          'Initial profile deployment',
+          'Create',
+          'Profile',
+          supporting: true,
+        ),
+      );
+    }
+    return SkyrimSetupStatus(
+      phase: consent
+          ? SkyrimSetupStatusPhase.settingUpSkse
+          : SkyrimSetupStatusPhase.needsConsent,
+      status: consent ? 'Installing' : '',
+      detail: '',
+      planToken:
+          'plan-${selection.skse.index}-${selection.enb.index}-${selection.fnis.index}-${selection.enbArchivePath}',
+      changes: changes,
+      components: [
+        for (final (id, name) in [
+          ('skse', 'SKSE'),
+          ('enb', 'ENBSeries'),
+          ('fnis', 'FNIS'),
+        ])
+          SkyrimSetupComponent(
+            id: id,
+            name: name,
+            status: installed.contains(id) ? 'Installed' : 'Not installed',
+            detail: '',
+            ready: installed.contains(id),
+            active: false,
+            blocked: false,
+            installed: installed.contains(id),
+          ),
+      ],
+      selection: selection,
+      consentRecorded: consent,
+      canStart: selection.canReview,
+      canContinue: false,
+      active: false,
+      ready: false,
+      canCancel: consent,
+    );
+  }
 
   @override
   Future<SkyrimSetupStatus> read(
     String workspace,
     String profile, {
-    required bool includeFnis,
+    required SkyrimSetupSelection selection,
   }) async {
-    final blocked = blockedRead;
-    if (blocked != null) return blocked.future;
-    return current;
+    lastSelection = selection;
+    return state(selection);
   }
 
   @override
   Future<SkyrimSetupStatus> start(
     String workspace,
     String profile, {
-    required bool includeFnis,
+    required SkyrimSetupSelection selection,
     required String planToken,
   }) async {
     starts++;
-    startedWithFnis = includeFnis;
-    return current = setupStatus(
-      phase: SkyrimSetupStatusPhase.waitingForEnbArchive,
-      consent: true,
-      canStart: false,
-      canSelectArchive: true,
-      includeFnis: includeFnis,
-    );
+    applied = selection;
+    expect(planToken, state(selection).planToken);
+    return state(selection, consent: true);
   }
 
   @override
   Future<SkyrimSetupStatus> continueSetup(
     String workspace,
     String profile,
-  ) async {
-    continues++;
-    final resumed = nextContinue;
-    if (resumed != null) {
-      nextContinue = null;
-      return current = resumed;
-    }
-    return current = setupStatus(
-      phase: SkyrimSetupStatusPhase.waitingForEnbArchive,
-      consent: true,
-      canStart: false,
-      canSelectArchive: true,
-      includeFnis: current.includeFnis,
-    );
-  }
-
+  ) async => state(lastSelection, consent: true);
   @override
-  Future<SkyrimSetupStatus> cancel(String workspace, String profile) async {
-    cancellations++;
-    return current = setupStatus(
-      phase: SkyrimSetupStatusPhase.cancelled,
-      canStart: true,
-      includeFnis: current.includeFnis,
-    );
-  }
-
+  Future<SkyrimSetupStatus> cancel(String workspace, String profile) async =>
+      state(lastSelection);
   @override
-  Future<SkyrimSetupStatus> selectEnbArchive(
-    String workspace,
-    String profile,
-    String operationId,
-    String path,
-  ) async {
-    selections++;
-    selectedPath = path;
-    final blocked = blockedSelection;
-    if (blocked != null) return blocked.future;
-    return current = setupStatus(
-      phase: SkyrimSetupStatusPhase.settingUpEnb,
-      consent: true,
-      canStart: false,
-      active: true,
-      includeFnis: current.includeFnis,
-    );
+  Future<void> openProjectPage(String componentId) async {
+    pageOpens++;
   }
 }
 
-Widget section(
-  SetupFixtureClient client, {
-  ArchiveChooser? chooseArchive,
-  double? height = 700,
-  ThemeData? theme,
-}) {
-  final setup = SkyrimSetupSection(
-    client: client,
-    chooseArchive:
-        chooseArchive ?? () async => const ArchiveFile('/tmp/enb.zip', 10),
-    workspaceId: 'workspace',
-    profileId: 'profile',
-  );
-  return MaterialApp(
-    theme: theme,
-    home: Scaffold(
-      body: height == null
-          ? SingleChildScrollView(child: setup)
-          : SizedBox(height: height, child: setup),
+Widget app(SetupClientFixture client, {ArchiveChooser? choose}) => MaterialApp(
+  home: Scaffold(
+    body: SizedBox(
+      height: 720,
+      child: SkyrimSetupSection(
+        client: client,
+        chooseArchive:
+            choose ??
+            () async => const ArchiveFile('/downloads/enbseries.zip', 42),
+        workspaceId: 'workspace',
+        profileId: 'profile',
+      ),
     ),
-  );
+  ),
+);
+
+Future<void> settle(WidgetTester tester) async {
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 100));
 }
 
 void main() {
-  testWidgets('a first-run requirement is setup guidance, not an error', (
-    tester,
-  ) async {
-    final client = SetupFixtureClient(
-      setupStatus(
-        phase: SkyrimSetupStatusPhase.unavailable,
-        status: 'Skyrim needs its first Steam run',
-        componentBlocked: true,
-      ),
-    );
-
-    await tester.pumpWidget(section(client));
-    await tester.pumpAndSettle();
-
-    final statuses = tester.widgetList<McStatus>(
-      find.descendant(
-        of: find.byType(SkyrimSetupSection),
-        matching: find.byType(McStatus),
-      ),
-    );
-    expect(statuses, isNotEmpty);
+  testWidgets('clean setup has no selected action or apply', (tester) async {
+    final client = SetupClientFixture();
+    await tester.pumpWidget(app(client));
+    await settle(tester);
+    expect(find.byType(McComponentChoiceRow), findsNWidgets(3));
+    expect(client.lastSelection.hasChange, isFalse);
     expect(
-      statuses.every((status) => status.tone == McStatusTone.neutral),
-      isTrue,
+      tester
+          .widget<McAction>(find.byKey(const ValueKey('review-skyrim-setup')))
+          .onPressed,
+      isNull,
     );
-  });
-
-  testWidgets('an unavailable setup failure retains its error state', (
-    tester,
-  ) async {
-    final client = SetupFixtureClient(
-      setupStatus(phase: SkyrimSetupStatusPhase.unavailable),
-    );
-
-    await tester.pumpWidget(section(client));
-    await tester.pumpAndSettle();
-
-    final firstStatus = tester.widget<McStatus>(
-      find
-          .descendant(
-            of: find.byType(SkyrimSetupSection),
-            matching: find.byType(McStatus),
-          )
-          .first,
-    );
-    expect(firstStatus.tone, McStatusTone.error);
-  });
-
-  testWidgets('setup layout should support parent and bounded scrolling', (
-    tester,
-  ) async {
-    final client = SetupFixtureClient(setupStatus());
-
-    await tester.pumpWidget(section(client, height: null));
-    await tester.pumpAndSettle();
-    expect(tester.takeException(), isNull);
-
-    await tester.pumpWidget(section(client, height: 180));
-    await tester.pumpAndSettle();
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets(
-    'refresh and FNIS changes keep valid setup content in a stable slot',
-    (tester) async {
-      tester.platformDispatcher.textScaleFactorTestValue = 1.5;
-      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
-      final client = SetupFixtureClient(setupStatus());
-      await tester.pumpWidget(section(client, height: null));
-      await tester.pumpAndSettle();
-
-      final sectionFinder = find.byType(McSection);
-      final includeFnis = find.byKey(const ValueKey('include-fnis'));
-      final refreshAction = find.byKey(const ValueKey('refresh-skyrim-setup'));
-      final reviewAction = find.byKey(const ValueKey('review-skyrim-setup'));
-      final originalHeight = tester.getSize(sectionFinder).height;
-      final originalFnis = tester.getRect(includeFnis);
-      final originalRefresh = tester.getRect(refreshAction);
-      final originalReview = tester.getRect(reviewAction);
-      expect(find.textContaining('Matching SKSE found'), findsOneWidget);
-
-      final refresh = Completer<SkyrimSetupStatus>();
-      client.blockedRead = refresh;
-      await tester.tap(find.text('Refresh'));
-      await tester.pump();
-
-      expect(find.textContaining('Matching SKSE found'), findsOneWidget);
-      expect(tester.getSize(sectionFinder).height, originalHeight);
-      expect(tester.getRect(includeFnis), originalFnis);
-      expect(tester.getRect(refreshAction), originalRefresh);
-      expect(tester.getRect(reviewAction), originalReview);
-      expect(tester.widget<SwitchListTile>(includeFnis).onChanged, isNotNull);
-      expect(
-        tester
-            .widget<OutlinedButton>(
-              find.descendant(
-                of: refreshAction,
-                matching: find.byType(OutlinedButton),
-              ),
-            )
-            .onPressed,
-        isNotNull,
-      );
-      expect(
-        tester
-            .widget<FilledButton>(
-              find.descendant(
-                of: reviewAction,
-                matching: find.byType(FilledButton),
-              ),
-            )
-            .onPressed,
-        isNotNull,
-      );
-      expect(find.byType(LinearProgressIndicator), findsNothing);
-      expect(
-        tester.widget<McAsyncStatusSlot>(find.byType(McAsyncStatusSlot)).active,
-        isTrue,
-      );
-
-      refresh.completeError(Exception('refresh failed'));
-      await tester.pumpAndSettle();
-
-      expect(find.textContaining('Matching SKSE found'), findsOneWidget);
-      expect(tester.getSize(sectionFinder).height, originalHeight);
-      expect(tester.getRect(includeFnis), originalFnis);
-      expect(tester.getRect(refreshAction), originalRefresh);
-      expect(tester.getRect(reviewAction), originalReview);
-      expect(
-        tester
-            .widget<McAsyncStatusSlot>(find.byType(McAsyncStatusSlot))
-            .problem,
-        isNotNull,
-      );
-
-      final fnis = Completer<SkyrimSetupStatus>();
-      client.blockedRead = fnis;
-      await tester.tap(find.text('Include FNIS'));
-      await tester.pump();
-
-      expect(find.textContaining('Matching SKSE found'), findsOneWidget);
-      expect(tester.getSize(sectionFinder).height, originalHeight);
-      expect(tester.getRect(includeFnis), originalFnis);
-      expect(tester.getRect(refreshAction), originalRefresh);
-      expect(tester.getRect(reviewAction), originalReview);
-      expect(
-        tester.widget<SwitchListTile>(find.byType(SwitchListTile)).value,
-        isTrue,
-      );
-
-      client.blockedRead = null;
-      fnis.complete(client.current);
-      await tester.pumpAndSettle();
-      expect(find.textContaining('Matching SKSE found'), findsOneWidget);
-      expect(tester.getSize(sectionFinder).height, originalHeight);
-    },
-  );
-
-  testWidgets('setup status slots retain valid content at 150% text', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(760, 900);
-    tester.view.devicePixelRatio = 1;
-    tester.platformDispatcher.textScaleFactorTestValue = 1.5;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
-    final client = SetupFixtureClient(setupStatus());
-    await tester.pumpWidget(section(client, theme: mcTheme(Brightness.dark)));
-    await tester.pumpAndSettle();
-
-    final statusRows = find.descendant(
-      of: find.byType(SkyrimSetupSection),
-      matching: find.byType(McStatus),
-    );
-    final retainedStatusRects = [
-      for (var index = 0; index < statusRows.evaluate().length; index++)
-        tester.getRect(statusRows.at(index)),
-    ];
-    final includeFnis = find.byKey(const ValueKey('include-fnis'));
-    final refreshAction = find.byKey(const ValueKey('refresh-skyrim-setup'));
-    final reviewAction = find.byKey(const ValueKey('review-skyrim-setup'));
-    final retainedFnisRect = tester.getRect(includeFnis);
-    final retainedRefreshRect = tester.getRect(refreshAction);
-    final retainedReviewRect = tester.getRect(reviewAction);
-
-    await expectLater(
-      find.byType(SkyrimSetupSection),
-      matchesGoldenFile('goldens/skyrim_setup_idle_dark_150.png'),
-    );
-
-    final refresh = Completer<SkyrimSetupStatus>();
-    client.blockedRead = refresh;
-    await tester.tap(find.text('Refresh'));
-    await tester.pump();
-    await expectLater(
-      find.byType(SkyrimSetupSection),
-      matchesGoldenFile('goldens/skyrim_setup_pending_dark_150.png'),
-    );
-
-    refresh.completeError(Exception('refresh failed'));
-    await tester.pumpAndSettle();
-    await expectLater(
-      find.byType(SkyrimSetupSection),
-      matchesGoldenFile('goldens/skyrim_setup_failure_dark_150.png'),
-    );
-
-    final fnis = Completer<SkyrimSetupStatus>();
-    client.blockedRead = fnis;
-    await tester.tap(find.text('Include FNIS'));
-    await tester.pump();
-    expect(statusRows, findsNWidgets(retainedStatusRects.length));
-    expect([
-      for (var index = 0; index < retainedStatusRects.length; index++)
-        tester.getRect(statusRows.at(index)),
-    ], retainedStatusRects);
-    expect(tester.getRect(includeFnis), retainedFnisRect);
-    expect(tester.getRect(refreshAction), retainedRefreshRect);
-    expect(tester.getRect(reviewAction), retainedReviewRect);
-    expect(
-      tester.widget<McAsyncStatusSlot>(find.byType(McAsyncStatusSlot)).active,
-      isTrue,
-    );
-    expect(tester.widget<SwitchListTile>(includeFnis).value, isTrue);
-    await expectLater(
-      find.byType(SkyrimSetupSection),
-      matchesGoldenFile('goldens/skyrim_setup_fnis_pending_dark_150.png'),
-    );
-    client.blockedRead = null;
-    fnis.complete(client.current);
-    await tester.pumpAndSettle();
-  });
-
-  testWidgets(
-    'setup should require one confirmed plan before starting writes',
-    (tester) async {
-      final client = SetupFixtureClient(setupStatus());
-      await tester.pumpWidget(section(client));
-      await tester.pumpAndSettle();
-
-      expect(client.starts, 0);
-      await tester.tap(find.text('Include FNIS'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Review and apply setup'));
-      await tester.pumpAndSettle();
-
-      expect(client.starts, 0);
-      await tester.tap(find.text('Apply changes'));
-      await tester.pumpAndSettle();
-
-      expect(client.starts, 1);
-      expect(client.startedWithFnis, isTrue);
-      expect(find.text('Choose downloaded ENBSeries archive'), findsOneWidget);
-    },
-  );
-
-  testWidgets(
-    'waiting ENB setup should route the selected archive through the workflow',
-    (tester) async {
-      final client = SetupFixtureClient(
-        setupStatus(
-          phase: SkyrimSetupStatusPhase.waitingForEnbArchive,
-          consent: true,
-          canStart: false,
-          canSelectArchive: true,
-        ),
-      );
-      await tester.pumpWidget(
-        section(
-          client,
-          chooseArchive: () async =>
-              const ArchiveFile('/downloads/enbseries.zip', 42),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('Choose downloaded ENBSeries archive'));
-      await tester.pump();
-
-      expect(client.selections, 1);
-      expect(client.selectedPath, '/downloads/enbseries.zip');
-    },
-  );
-
-  testWidgets('recorded consent should resume the next durable child step', (
-    tester,
-  ) async {
-    final client = SetupFixtureClient(
-      setupStatus(
-        phase: SkyrimSetupStatusPhase.waitingForSkse,
-        consent: true,
-        canStart: false,
-        canContinue: true,
-      ),
-    );
-    await tester.pumpWidget(section(client));
-    await tester.pumpAndSettle();
-
-    expect(client.continues, 1);
     expect(client.starts, 0);
   });
 
-  testWidgets(
-    'cancel should stop the combined workflow and retain its durable choice',
-    (tester) async {
-      final client = SetupFixtureClient(
-        setupStatus(
-          phase: SkyrimSetupStatusPhase.waitingForEnbArchive,
-          consent: true,
-          canStart: false,
-          canSelectArchive: true,
-          canCancel: true,
-          includeFnis: true,
-        ),
-      );
-      await tester.pumpWidget(section(client));
-      await tester.pumpAndSettle();
+  testWidgets('SKSE alone reviews and applies only SKSE', (tester) async {
+    final client = SetupClientFixture();
+    await tester.pumpWidget(app(client));
+    await settle(tester);
+    await tester.tap(find.byType(Switch).first);
+    await settle(tester);
+    expect(client.lastSelection.skse, SkyrimSetupAction.install);
+    expect(client.lastSelection.enb, SkyrimSetupAction.unchanged);
+    await tester.tap(find.byKey(const ValueKey('review-skyrim-setup')));
+    await settle(tester);
+    expect(find.byType(McChangeSummary), findsOneWidget);
+    expect(
+      tester
+          .widget<McChangeSummary>(find.byType(McChangeSummary))
+          .changes
+          .length,
+      1,
+    );
+    expect(find.text('ENBSeries'), findsOneWidget); // Setup row only.
+    expect(find.text('Also required'), findsOneWidget);
+    expect(client.starts, 0);
+    await tester.tap(find.byKey(const ValueKey('apply-skyrim-setup')));
+    await settle(tester);
+    expect(client.starts, 1);
+    expect(client.applied!.skse, SkyrimSetupAction.install);
+    expect(client.applied!.enb, SkyrimSetupAction.unchanged);
+    expect(client.applied!.fnis, SkyrimSetupAction.unchanged);
+  });
 
-      await tester.tap(find.text('Cancel setup'));
-      await tester.pumpAndSettle();
-
-      expect(client.cancellations, 1);
-      expect(client.current.phase, SkyrimSetupStatusPhase.cancelled);
-      expect(client.current.includeFnis, isTrue);
-    },
-  );
-
-  testWidgets('completed setup restores the retained FNIS choice', (
-    tester,
-  ) async {
-    final client = SetupFixtureClient(
-      setupStatus(
-        phase: SkyrimSetupStatusPhase.ready,
-        canStart: false,
-        ready: true,
-        includeFnis: true,
+  testWidgets('ENB archive is required before review', (tester) async {
+    final client = SetupClientFixture();
+    await tester.pumpWidget(app(client));
+    await settle(tester);
+    await tester.tap(find.byType(Switch).at(1));
+    await settle(tester);
+    expect(find.text('Choose an ENBSeries archive.'), findsOneWidget);
+    expect(
+      tester
+          .widget<McAction>(find.byKey(const ValueKey('review-skyrim-setup')))
+          .onPressed,
+      isNull,
+    );
+    await tester.tap(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is McIconAction &&
+            widget.label == 'Choose ENBSeries archive',
       ),
     );
-    await tester.pumpWidget(section(client));
-    await tester.pumpAndSettle();
+    await settle(tester);
+    expect(client.lastSelection.enbArchivePath, '/downloads/enbseries.zip');
+    expect(
+      tester
+          .widget<McAction>(find.byKey(const ValueKey('review-skyrim-setup')))
+          .onPressed,
+      isNotNull,
+    );
+  });
+
+  testWidgets('installed toggle removes and update is separate', (
+    tester,
+  ) async {
+    final client = SetupClientFixture(installed: {'skse', 'enb'});
+    await tester.pumpWidget(app(client));
+    await settle(tester);
+    expect(
+      tester.widgetList<Switch>(find.byType(Switch)).map((item) => item.value),
+      [true, true, false],
+    );
+    await tester.tap(find.byType(Switch).first);
+    await settle(tester);
+    expect(client.lastSelection.skse, SkyrimSetupAction.remove);
+    expect(client.lastSelection.enb, SkyrimSetupAction.unchanged);
+    await tester.tap(find.text('Update').first);
+    await settle(tester);
+    expect(
+      client.lastSelection.skse,
+      SkyrimSetupAction.remove,
+    ); // Disabled while off.
+    await tester.tap(find.byType(Switch).first);
+    await settle(tester);
+    await tester.tap(find.text('Update').first);
+    await settle(tester);
+    expect(client.lastSelection.skse, SkyrimSetupAction.update);
+  });
+
+  testWidgets('back from review does not apply', (tester) async {
+    final client = SetupClientFixture();
+    await tester.pumpWidget(app(client));
+    await settle(tester);
+    await tester.tap(find.byType(Switch).last);
+    await settle(tester);
+    await tester.tap(find.byKey(const ValueKey('review-skyrim-setup')));
+    await settle(tester);
+    await tester.tap(find.text('Back'));
+    await settle(tester);
+    expect(client.starts, 0);
+  });
+
+  testWidgets('component controls fit a narrow window', (tester) async {
+    tester.view.physicalSize = const Size(430, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    final client = SetupClientFixture(installed: {'skse', 'enb', 'fnis'});
+    await tester.pumpWidget(app(client));
+    await settle(tester);
+    expect(find.byType(McComponentChoiceRow), findsNWidgets(3));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('new and installed control rows keep their controls aligned', (
+    tester,
+  ) async {
+    final client = SetupClientFixture(installed: {'skse'});
+    await tester.pumpWidget(app(client));
+    await settle(tester);
+    await tester.tap(find.byType(Switch).at(1));
+    await settle(tester);
+
+    final skse = find.byKey(const ValueKey('setup-skse'));
+    final enb = find.byKey(const ValueKey('setup-enb'));
+    final skseSwitch = find.descendant(of: skse, matching: find.byType(Switch));
+    final enbSwitch = find.descendant(of: enb, matching: find.byType(Switch));
+    final sksePage = find.descendant(
+      of: skse,
+      matching: find.byType(McIconAction),
+    );
+    final enbActions = find.descendant(
+      of: enb,
+      matching: find.byType(McIconAction),
+    );
+    final update = find.descendant(of: skse, matching: find.text('Update'));
 
     expect(
-      tester.widget<SwitchListTile>(find.byType(SwitchListTile)).value,
-      isTrue,
+      tester.getRect(skseSwitch).center.dy,
+      tester.getRect(sksePage).center.dy,
     );
-  });
-
-  testWidgets('completed stale setup restores the retained FNIS choice', (
-    tester,
-  ) async {
-    final client = SetupFixtureClient(
-      setupStatus(
-        phase: SkyrimSetupStatusPhase.needsConsent,
-        canStart: true,
-        includeFnis: true,
-      ),
-    );
-    await tester.pumpWidget(section(client));
-    await tester.pumpAndSettle();
-
     expect(
-      tester.widget<SwitchListTile>(find.byType(SwitchListTile)).value,
-      isTrue,
+      tester.getRect(enbSwitch).center.dy,
+      tester.getRect(enbActions.at(0)).center.dy,
     );
-  });
-
-  testWidgets('active ENB selection keeps combined Cancel available', (
-    tester,
-  ) async {
-    final client = SetupFixtureClient(
-      setupStatus(
-        phase: SkyrimSetupStatusPhase.waitingForEnbArchive,
-        consent: true,
-        canStart: false,
-        canSelectArchive: true,
-        canCancel: true,
-      ),
+    expect(
+      tester.getRect(enbSwitch).center.dy,
+      tester.getRect(enbActions.at(1)).center.dy,
     );
-    final selection = Completer<SkyrimSetupStatus>();
-    client.blockedSelection = selection;
-    await tester.pumpWidget(section(client));
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text('Choose downloaded ENBSeries archive'));
-    await tester.pump();
-    await tester.tap(find.text('Cancel setup'));
-    await tester.pump();
-    await tester.pump();
-
-    expect(client.selections, 1);
-    expect(client.cancellations, 1);
-    expect(client.current.phase, SkyrimSetupStatusPhase.cancelled);
-
-    selection.complete(client.current);
-    await tester.pumpAndSettle();
+    expect(
+      tester.getRect(skseSwitch).center.dy,
+      tester.getRect(update).center.dy,
+    );
+    expect(
+      tester.getRect(enbActions.at(0)).right,
+      tester.getRect(enbActions.at(1)).left,
+    );
+    expect(find.text('Choose an ENBSeries archive.'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
-
-  testWidgets(
-    'recreated shared setup resumes a recorded pending cancellation',
-    (tester) async {
-      final client = SetupFixtureClient(
-        setupStatus(
-          phase: SkyrimSetupStatusPhase.recoveryRequired,
-          consent: true,
-          canStart: false,
-          canContinue: true,
-          includeFnis: true,
-        ),
-      );
-      client.nextContinue = setupStatus(
-        phase: SkyrimSetupStatusPhase.cancelled,
-        canStart: true,
-        includeFnis: true,
-      );
-
-      await tester.pumpWidget(section(client));
-      await tester.pumpAndSettle();
-
-      expect(client.continues, 1);
-      expect(client.current.phase, SkyrimSetupStatusPhase.cancelled);
-      expect(client.current.includeFnis, isTrue);
-    },
-  );
 }

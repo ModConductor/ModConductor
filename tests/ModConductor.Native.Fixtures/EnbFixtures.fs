@@ -99,17 +99,19 @@ module EnbFixtures =
         { ReadSkse = fun _ _ -> unusedCombinedDependency ()
           StartSkse = fun _ _ -> unusedCombinedDependency ()
           CancelSkse = fun _ _ -> unusedCombinedDependency ()
+          RemoveSkse = fun _ _ _ -> unusedCombinedDependency ()
           ReadEnb = fun workspace profile -> enb.Read(workspace, profile)
-          OpenEnb = fun workspace profile -> enb.OpenAuthorPage(workspace, profile)
           SelectEnb =
             fun workspace profile operation path token ->
                 enb.SelectArchive(workspace, profile, operation, path, token)
           CancelEnb = fun workspace profile -> enb.Cancel(workspace, profile)
+          RemoveEnb = fun _ _ _ -> unusedCombinedDependency ()
           RecoverEnb = fun workspace profile token -> enb.Recover(workspace, profile, token)
           ReadFnis = fun _ _ -> unusedCombinedDependency ()
           InstallFnis = fun _ _ -> unusedCombinedDependency ()
           UpdateFnis = fun _ _ -> unusedCombinedDependency ()
           CancelFnis = fun _ _ -> unusedCombinedDependency ()
+          RemoveFnis = fun _ _ _ -> unusedCombinedDependency ()
           RecoverFnis = fun _ _ _ -> unusedCombinedDependency ()
           InspectFnis = fun _ _ _ -> unusedCombinedDependency ()
           RunFnis = fun _ _ -> unusedCombinedDependency ()
@@ -580,14 +582,13 @@ module EnbFixtures =
         store.SkyrimSetups.Save
             { WorkspaceId = workspace
               ProfileId = profile
-              IncludeFnis = false
+              Selection = { SetupSelection.none with Enb = SetupAction.Install; EnbArchive = Some runtimePath }
               PlanToken = "production-enb-cancellation"
               Cancelled = false
               Completed = false
               Stage = "enb"
               ContextRevision = context.Revision
               ActionId = Some operation
-              ArchivePath = Some runtimePath
               CancelRequested = false
               CancelDetail = ""
               RequestedAt = DateTimeOffset.UtcNow }
@@ -658,7 +659,7 @@ module EnbFixtures =
             new SkyrimSetupCoordinator(reopened, combinedEnbDependencies restartedOwner)
 
         let afterRestart =
-            restartedCombined.Read(workspace, profile, false, CancellationToken.None)
+            restartedCombined.Read(workspace, profile, { SetupSelection.none with Enb = SetupAction.Install; EnbArchive = Some runtimePath }, CancellationToken.None)
             |> wait
 
         check
@@ -1167,9 +1168,9 @@ module EnbFixtures =
                 generation,
                 game,
                 row.Runtime.Version,
-                row.Preset.Version,
+                Some row.Preset.Version,
                 runtimeHash,
-                presetHash,
+                Some presetHash,
                 "cathedral:" + companionHash,
                 row.DllOverrides,
                 "GE-Proton",
@@ -1196,6 +1197,80 @@ module EnbFixtures =
             writer
             "generationScopedUpdateRemovalRecovery"
             (firstMatches && secondMatches && removed.IsNone)
+
+        let _ =
+            store.InstallEnb(
+                workspace,
+                profile,
+                EnbCatalogue.lean,
+                runtimeArtifact,
+                [ EnbCatalogue.lean.Preset, presetFile, presetArtifact
+                  EnbCatalogue.lean.Companions.Head, companionFile, companionArtifact ],
+                CancellationToken.None
+            )
+            |> wait
+
+        let beforeRuntimeRemoval = store.Deployments.Read profile |> wait |> result
+
+        let retainedBefore =
+            store.EnbSetups.Components(workspace, profile, beforeRuntimeRemoval.ActiveGeneration)
+            |> wait
+            |> List.filter (fun item -> item.Kind <> "runtime")
+
+        let _ = store.RemoveEnb(workspace, profile, CancellationToken.None, runtimeOnly = true) |> wait
+        let afterRuntimeRemoval = store.Deployments.Read profile |> wait |> result
+
+        let retainedAfter =
+            store.EnbSetups.Components(workspace, profile, afterRuntimeRemoval.ActiveGeneration)
+            |> wait
+
+        check
+            writer
+            "runtimeOnlyRemovalKeepsPresetAndCompanion"
+            (retainedBefore.Length = 2
+             && (retainedAfter |> List.map _.ModId) = (retainedBefore |> List.map _.ModId)
+             && not (File.Exists(Path.Combine(game, "d3d11.dll")))
+             && File.Exists(Path.Combine(game, "Data", "Cathedral Weathers.esp")))
+
+        let runtimeRow =
+            { EnbCatalogue.lean with
+                Runtime =
+                    EnbCatalogue.withHash runtimeArtifact.Sha256.Value EnbCatalogue.lean.Runtime }
+
+        use runtimeOwner =
+            new EnbCoordinator(
+                nexus,
+                store.Downloads,
+                store,
+                handoff,
+                runtimeRow,
+                eligibilityOverride = (fun _ -> Task.FromResult(Ok()))
+            )
+
+        let runtimeResult =
+            runtimeOwner.SelectRuntimeArchive(
+                workspace,
+                profile,
+                Guid.NewGuid(),
+                runtimePath,
+                CancellationToken.None
+            )
+            |> wait
+
+        let afterRuntimeInstall = store.Deployments.Read profile |> wait |> result
+
+        let componentsAfterRuntimeInstall =
+            store.EnbSetups.Components(workspace, profile, afterRuntimeInstall.ActiveGeneration)
+            |> wait
+
+        check
+            writer
+            "runtimeOnlySelectionAvoidsPresetAcquisition"
+            (runtimeResult.Phase = ModConductor.Protocol.V1.EnbPhase.Ready
+             && componentsAfterRuntimeInstall.Length = 3
+             && (componentsAfterRuntimeInstall
+                 |> List.filter (fun item -> item.Kind <> "runtime")
+                 |> List.map _.ModId) = (retainedBefore |> List.map _.ModId))
 
 
         coordinatorEvidence writer area EnbCatalogue.lean

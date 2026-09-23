@@ -1336,6 +1336,82 @@ type OperationStore
                 | Error _ -> return fail "FNIS removal needs deployment recovery."
         }
 
+    member internal this.RemoveSkse
+        (workspace: Guid, profile: Guid, token: Threading.CancellationToken)
+        =
+        task {
+            let! sources, existing =
+                (deploymentRepository :> ModConductor.Deployment.IDeploymentRepository).Read profile
+
+            if sources.Stamp.WorkspaceId <> workspace then
+                invalidOp "The profile deployment is unavailable."
+
+            let active = existing |> Option.bind _.Active
+            let! loader = skseLoaders.ReadStored(workspace, profile, active)
+
+            match loader with
+            | None -> return active
+            | Some loader ->
+                let staged =
+                    sources.Profile.Mods
+                    |> List.map (fun selected ->
+                        if selected.ModId = loader.ModId then
+                            { selected with Enabled = false }
+                        else selected)
+
+                let! profileName =
+                    database.Enqueue(fun () ->
+                        use query =
+                            Sqlite.command
+                                database.Connection
+                                null
+                                "SELECT name FROM profiles WHERE id=$id"
+                                [ "$id", box (string profile) ]
+
+                        match query.ExecuteScalar() with
+                        | :? string as value -> value
+                        | _ -> invalidOp "The selected profile is unavailable.")
+
+                let retained: ModConductor.DeploymentRecovery.SavedProfile =
+                    { Id = profile
+                      Name = profileName
+                      Revision = sources.Profile.Revision
+                      Mods =
+                        staged
+                        |> List.map (fun selected ->
+                            { ModId = selected.ModId
+                              VersionId = selected.Version |> Option.map _.Id
+                              Priority = selected.Priority
+                              Enabled = selected.Enabled })
+                      Hidden = sources.Hidden }
+
+                let deploymentId = Guid.NewGuid()
+
+                let! prepared =
+                    this.PrepareComponents(
+                        deploymentId,
+                        sources.Stamp,
+                        [],
+                        ignore,
+                        token,
+                        retainedProfile = retained
+                    )
+
+                let! started = generations.Start(prepared, [], cancellation = token)
+
+                let receipt =
+                    started
+                    |> Result.defaultWith (fun _ -> invalidOp "SKSE removal could not start.")
+
+                let! completed =
+                    generations.Run(receipt.Id, receipt.Revision, false, token, (fun _ _ -> ()), [])
+
+                return
+                    completed
+                    |> Result.map (fun value -> Some value.Proposed)
+                    |> Result.defaultWith (fun _ -> invalidOp "SKSE removal needs deployment recovery.")
+        }
+
     member internal this.InstallEnb
         (
             workspace: Guid,
@@ -1346,9 +1422,11 @@ type OperationStore
                 (ModConductor.Enb.EnbComponentPin *
                 ModConductor.Nexus.NexusFile *
                 ModConductor.ArtifactLibrary.Artifact) list,
-            token: Threading.CancellationToken
+            token: Threading.CancellationToken,
+            ?runtimeOnly: bool
         ) =
         task {
+            let runtimeOnly = defaultArg runtimeOnly false
             let fail detail = raise (IO.IOException detail)
 
             let! contextResult =
@@ -1535,7 +1613,9 @@ type OperationStore
                 installed <- installed @ [ value ]
 
             let components = installed |> List.map fst
-            let records = installed |> List.map snd
+            let records =
+                (installed |> List.map snd)
+                @ (if runtimeOnly then priorComponents |> List.filter (fun value -> value.Kind <> "runtime") else [])
 
             let! sources, existing =
                 (deploymentRepository :> ModConductor.Deployment.IDeploymentRepository)
@@ -1734,6 +1814,8 @@ type OperationStore
 
                 do! enbSetups.SaveGeneration(workspace, profile, generation, records)
 
+                let preset = records |> List.tryFind (fun value -> value.Kind = "preset")
+
                 do!
                     enbSetups.SaveLaunchPlan(
                         workspace,
@@ -1741,9 +1823,9 @@ type OperationStore
                         generation,
                         launch.GameSha256,
                         row.Runtime.Version,
-                        row.Preset.Version,
+                        (preset |> Option.map _.Version),
                         records |> List.find (fun value -> value.Kind = "runtime") |> _.Sha256,
-                        records |> List.find (fun value -> value.Kind = "preset") |> _.Sha256,
+                        (preset |> Option.map _.Sha256),
                         records
                         |> List.filter (fun value -> value.Kind.StartsWith("companion:"))
                         |> List.map (fun value -> value.Kind + ":" + value.Sha256)
@@ -1848,9 +1930,10 @@ type OperationStore
         }
 
     member internal this.RemoveEnb
-        (workspace: Guid, profile: Guid, token: Threading.CancellationToken)
+        (workspace: Guid, profile: Guid, token: Threading.CancellationToken, ?runtimeOnly: bool)
         =
         task {
+            let runtimeOnly = defaultArg runtimeOnly false
             let fail detail = raise (IO.IOException detail)
 
             let! sources, existing =
@@ -1862,16 +1945,20 @@ type OperationStore
             let active = existing |> Option.bind _.Active
             let! components = enbSetups.Components(workspace, profile, active)
 
-            if components.IsEmpty then
+            let selected =
+                if runtimeOnly then components |> List.filter (fun value -> value.Kind = "runtime")
+                else components
+
+            if selected.IsEmpty then
                 return active
             else
-                let removed = components |> List.map (fun value -> value.ModId, false)
+                let removed = selected |> List.map (fun value -> value.ModId, false)
 
                 let staged =
                     sources.Profile.Mods
                     |> List.map (fun selected ->
                         if
-                            components |> List.exists (fun value -> value.ModId = selected.ModId)
+                            removed |> List.exists (fun (id, _) -> id = selected.ModId)
                         then
                             { selected with Enabled = false }
                         else
@@ -1959,6 +2046,15 @@ type OperationStore
                 let completed =
                     result
                     |> Result.defaultWith (fun _ -> fail "ENB removal needs deployment recovery.")
+
+                if runtimeOnly then
+                    do!
+                        enbSetups.SaveGeneration(
+                            workspace,
+                            profile,
+                            completed.Proposed,
+                            components |> List.filter (fun value -> value.Kind <> "runtime")
+                        )
 
                 do! enbSetups.UpdateConfiguration(deploymentId, "restore_pending", None, "")
 

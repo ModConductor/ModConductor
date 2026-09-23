@@ -109,15 +109,17 @@ module FnisFixtures =
         { ReadSkse = fun _ _ -> unusedCombinedDependency ()
           StartSkse = fun _ _ -> unusedCombinedDependency ()
           CancelSkse = fun _ _ -> unusedCombinedDependency ()
+          RemoveSkse = fun _ _ _ -> unusedCombinedDependency ()
           ReadEnb = fun _ _ -> unusedCombinedDependency ()
-          OpenEnb = fun _ _ -> unusedCombinedDependency ()
           SelectEnb = fun _ _ _ _ _ -> unusedCombinedDependency ()
           CancelEnb = fun _ _ -> unusedCombinedDependency ()
+          RemoveEnb = fun _ _ _ -> unusedCombinedDependency ()
           RecoverEnb = fun _ _ _ -> unusedCombinedDependency ()
           ReadFnis = fun _ _ -> unusedCombinedDependency ()
           InstallFnis = fun _ _ -> unusedCombinedDependency ()
           UpdateFnis = fun _ _ -> unusedCombinedDependency ()
           CancelFnis = fun _ _ -> unusedCombinedDependency ()
+          RemoveFnis = fun _ _ _ -> unusedCombinedDependency ()
           RecoverFnis = fun _ _ _ -> unusedCombinedDependency ()
           InspectFnis = fun workspace profile token -> execution.Inspect(workspace, profile, token)
           RunFnis = fun request token -> execution.Run(request, token)
@@ -945,14 +947,13 @@ module FnisFixtures =
         store.SkyrimSetups.Save
             { WorkspaceId = workspace
               ProfileId = profile
-              IncludeFnis = true
+              Selection = { SetupSelection.none with Fnis = SetupAction.Install }
               PlanToken = "production-fnis-cancellation"
               Cancelled = false
               Completed = false
               Stage = "fnis-run"
               ContextRevision = context.Revision
               ActionId = Some cancelledId
-              ArchivePath = None
               CancelRequested = false
               CancelDetail = ""
               RequestedAt = DateTimeOffset.UtcNow }
@@ -1288,14 +1289,13 @@ module FnisFixtures =
         store.SkyrimSetups.Save
             { WorkspaceId = workspace
               ProfileId = profile
-              IncludeFnis = true
+              Selection = { SetupSelection.none with Fnis = SetupAction.Install }
               PlanToken = "production-fnis-pending-restart"
               Cancelled = false
               Completed = false
               Stage = "fnis-run"
               ContextRevision = context.Revision
               ActionId = Some abandonedId
-              ArchivePath = None
               CancelRequested = true
               CancelDetail = "Cancellation was recorded before the engine stopped."
               RequestedAt = DateTimeOffset.UtcNow }
@@ -1325,7 +1325,7 @@ module FnisFixtures =
             new SkyrimSetupCoordinator(reopened, combinedFnisDependencies restarted)
 
         let combinedAfterRestart =
-            restartedCombined.Read(workspace, profile, true, CancellationToken.None) |> wait
+            restartedCombined.Read(workspace, profile, { SetupSelection.none with Fnis = SetupAction.Install }, CancellationToken.None) |> wait
 
         let combinedCancellationCompleted =
             restartedCombined.Continue(workspace, profile, CancellationToken.None) |> wait
@@ -1356,7 +1356,7 @@ module FnisFixtures =
             writer
             "pendingCombinedFnisCancellationCompletesThroughProductionOwnerAfterRestart"
             (combinedAfterRestart.Phase = SkyrimSetupPhase.RecoveryRequired
-             && combinedAfterRestart.IncludeFnis
+             && combinedAfterRestart.Selection.Fnis = SetupAction.Install
              && combinedCancellationCompleted.Phase = SkyrimSetupPhase.Cancelled
              && combinedCancellationCompleted.Detail.Contains(
                  "interrupted",

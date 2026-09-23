@@ -495,7 +495,7 @@ type EnbCoordinator
                 return! advance workspace profile token
         }
 
-    let selectArchive (workspace, profile, operation, path: string, token) =
+    let selectArchive (runtimeOnly: bool) (workspace, profile, operation, path: string, token) =
         if not row.TermsApproved then
             Task.FromResult(adoptionView ())
         else
@@ -584,6 +584,33 @@ type EnbCoordinator
                                                 EnbPhase.Failed
                                                 "The ENBSeries archive was refused"
                                                 (EnbProblem.message problem))
+                                | Ok _ when runtimeOnly ->
+                                    let! _ =
+                                        persist
+                                            workspace
+                                            profile
+                                            (Some artifact.Id)
+                                            artifact.Sha256
+                                            { view EnbPhase.Installing "Installing ENBSeries" "" with PresetVersion = "" }
+
+                                    try
+                                        let! _ = store.InstallEnb(workspace, profile, row, artifact, [], token, runtimeOnly = true)
+
+                                        return!
+                                            persist
+                                                workspace
+                                                profile
+                                                (Some artifact.Id)
+                                                artifact.Sha256
+                                                { view EnbPhase.Ready "ENBSeries is installed" "" with PresetVersion = "" }
+                                    with error ->
+                                        return!
+                                            persist
+                                                workspace
+                                                profile
+                                                (Some artifact.Id)
+                                                artifact.Sha256
+                                                { view EnbPhase.Failed "ENBSeries setup failed" error.Message with PresetVersion = "" }
                                 | Ok _ ->
                                     let! _ =
                                         persist
@@ -815,7 +842,28 @@ type EnbCoordinator
                 if operations.TryAdd(key, cancellation) then
                     try
                         return!
-                            selectArchive (workspace, profile, operation, path, cancellation.Token)
+                            selectArchive false (workspace, profile, operation, path, cancellation.Token)
+                    finally
+                        match operations.TryRemove key with
+                        | true, owned -> owned.Dispose()
+                        | _ -> ()
+                else
+                    return! this.Read(workspace, profile)
+            }
+
+    member _.SelectRuntimeArchive(workspace, profile, operation, path: string, token) =
+        if not row.TermsApproved then
+            Task.FromResult(adoptionView ())
+        else
+            task {
+                let key = workspace, profile
+                use cancellation =
+                    CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token, token)
+
+                if operations.TryAdd(key, cancellation) then
+                    try
+                        return!
+                            selectArchive true (workspace, profile, operation, path, cancellation.Token)
                     finally
                         match operations.TryRemove key with
                         | true, owned -> owned.Dispose()
@@ -861,13 +909,13 @@ type EnbCoordinator
                                     "Choose the ENBSeries archive again.")
             }
 
-    member _.Remove(workspace, profile, token) =
+    member _.Remove(workspace, profile, token, ?runtimeOnly: bool) =
         if not row.TermsApproved then
             Task.FromResult(adoptionView ())
         else
             task {
                 try
-                    let! _ = store.RemoveEnb(workspace, profile, token)
+                    let! _ = store.RemoveEnb(workspace, profile, token, runtimeOnly = defaultArg runtimeOnly false)
                     do! store.EnbSetups.RemovePending(profile, None)
                     return! persist workspace profile None None (defaultView ())
                 with error ->

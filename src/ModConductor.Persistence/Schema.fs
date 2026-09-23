@@ -73,9 +73,9 @@ CREATE TABLE enb_launch_plans(
       generation_id TEXT NOT NULL,
       game_sha256 TEXT NOT NULL,
       runtime_version TEXT NOT NULL,
-      preset_version TEXT NOT NULL,
+      preset_version TEXT,
       runtime_sha256 TEXT NOT NULL,
-      preset_sha256 TEXT NOT NULL,
+      preset_sha256 TEXT,
       companion_provenance TEXT NOT NULL,
       dll_overrides TEXT NOT NULL,
       selected_runtime TEXT NOT NULL,
@@ -371,10 +371,12 @@ CREATE TABLE skse_replacement_intents(
 CREATE TABLE skyrim_setup_intents(
       profile_id TEXT PRIMARY KEY REFERENCES profiles(id) ON DELETE CASCADE,
       workspace_id TEXT NOT NULL REFERENCES workspaces(id),
-      include_fnis INTEGER NOT NULL CHECK(include_fnis IN (0,1)),
+      skse_action INTEGER NOT NULL CHECK(skse_action BETWEEN 0 AND 3),
+      enb_action INTEGER NOT NULL CHECK(enb_action BETWEEN 0 AND 3),
+      fnis_action INTEGER NOT NULL CHECK(fnis_action BETWEEN 0 AND 3),
       plan_token TEXT NOT NULL,
       requested_at TEXT NOT NULL
-    , cancelled INTEGER NOT NULL DEFAULT 0 CHECK(cancelled IN (0,1)), completed INTEGER NOT NULL DEFAULT 0 CHECK(completed IN (0,1)), stage TEXT NOT NULL DEFAULT 'setup', context_revision INTEGER NOT NULL DEFAULT 0, action_id TEXT, archive_path TEXT, cancel_requested INTEGER NOT NULL DEFAULT 0 CHECK(cancel_requested IN (0,1)), cancel_detail TEXT NOT NULL DEFAULT '');
+    , cancelled INTEGER NOT NULL DEFAULT 0 CHECK(cancelled IN (0,1)), completed INTEGER NOT NULL DEFAULT 0 CHECK(completed IN (0,1)), stage TEXT NOT NULL DEFAULT 'setup', context_revision INTEGER NOT NULL DEFAULT 0, action_id TEXT, enb_archive_path TEXT, cancel_requested INTEGER NOT NULL DEFAULT 0 CHECK(cancel_requested IN (0,1)), cancel_detail TEXT NOT NULL DEFAULT '');
 CREATE TABLE version_nexus_origins(version_id TEXT NOT NULL REFERENCES mod_versions(id) ON DELETE CASCADE,manual INTEGER NOT NULL,game TEXT NOT NULL,nexus_mod INTEGER NOT NULL,file_id INTEGER NOT NULL,version TEXT NOT NULL,PRIMARY KEY(version_id,manual));
 CREATE TABLE workspace_roots (id TEXT PRIMARY KEY, path TEXT NOT NULL, device_kind INTEGER NOT NULL, device TEXT NOT NULL, file_low TEXT NOT NULL, file_high TEXT NOT NULL, revision INTEGER NOT NULL);
 CREATE TABLE workspaces (id TEXT PRIMARY KEY REFERENCES workspace_roots(id), name TEXT NOT NULL, revision INTEGER NOT NULL, selected_profile TEXT, catalogue_revision INTEGER NOT NULL DEFAULT 0);

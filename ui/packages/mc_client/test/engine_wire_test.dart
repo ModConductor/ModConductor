@@ -183,7 +183,7 @@ void main() {
           final result = await engine.skyrimSetup.read(
             '11111111111111111111111111111111',
             '22222222222222222222222222222222',
-            includeFnis: true,
+            selection: const SkyrimSetupSelection(),
           );
           expect(result.phase, SkyrimSetupStatusPhase.unavailable);
           expect(result.canStart, isFalse);

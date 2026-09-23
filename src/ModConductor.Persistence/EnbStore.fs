@@ -130,9 +130,9 @@ type internal EnbStore(database: StateDatabase) =
                   "$generation", box (string generation)
                   "$game", box gameSha256
                   "$runtime", box runtime
-                  "$preset", box preset
+                  "$preset", preset |> Option.map box |> Option.defaultValue (box DBNull.Value)
                   "$runtimeHash", box runtimeHash
-                  "$presetHash", box presetHash
+                  "$presetHash", presetHash |> Option.map box |> Option.defaultValue (box DBNull.Value)
                   "$companions", box companions
                   "$overrides", box overrides
                   "$selectedRuntime", box selectedRuntime

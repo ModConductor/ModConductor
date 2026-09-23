@@ -131,14 +131,33 @@ class _GameContextBrowserState extends State<GameContextBrowser> {
                         : (c.canChange ? change : null),
                   ),
                 ] else ...[
-                  Text(
-                    state.definition!.name,
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${state.definition!.storefront} · ${evidence!.platform == GameContextPlatform.windows ? 'Windows' : 'Proton'}',
-                    style: Theme.of(context).textTheme.bodySmall,
+                  Row(
+                    children: [
+                      if (state.definition!.declaredSteamAppId == 489830) ...[
+                        const McIdentityIcon(
+                          name: 'Skyrim Special Edition',
+                          url: 'https://cdn.cloudflare.steamstatic.com/steamcommunity/public/images/apps/489830/0dfe3eed5658f9fbd8b62f8021038c0a4190f21d.jpg',
+                          size: 44,
+                        ),
+                        const SizedBox(width: 12),
+                      ],
+                      Flexible(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              state.definition!.name,
+                              style: Theme.of(context).textTheme.titleLarge,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${state.definition!.storefront} · ${evidence!.platform == GameContextPlatform.windows ? 'Windows' : 'Proton'}',
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 16),
                   McPathValue(path: binding.path),

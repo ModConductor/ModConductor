@@ -402,9 +402,18 @@ type SkseCoordinator
                                 downloads.FindNexus(workspace, reference selection false)
 
                             match existing with
-                            | Some artifact ->
+                            | Some _ ->
+                                let gameVersion, _ = facts context
+
                                 return!
-                                    prepareArtifact key context selection artifact "Preparing SKSE"
+                                    persist
+                                        key
+                                        { Phase = SksePhase.Available
+                                          GameVersion = gameVersion
+                                          ComponentVersion = string selection.Selection.Release.ComponentVersion
+                                          Status = "SKSE archive ready"
+                                          Detail = ""
+                                          FileId = Some selection.Selection.Release.File.Id }
                             | None ->
                                 let gameVersion, _ = facts context
 
@@ -433,14 +442,18 @@ type SkseCoordinator
                                     store.Artifacts.Read(workspace, cached.ArtifactId.Value)
 
                                 match artifact with
-                                | Ok artifact ->
+                                | Ok _ ->
+                                    let gameVersion, _ = facts context
+
                                     return!
-                                        prepareArtifact
+                                        persist
                                             key
-                                            context
-                                            { cached with ProfileId = Some profile }
-                                            artifact
-                                            "Installing cached SKSE"
+                                            { Phase = SksePhase.Available
+                                              GameVersion = gameVersion
+                                              ComponentVersion = string cached.Selection.Release.ComponentVersion
+                                              Status = "SKSE archive ready"
+                                              Detail = ""
+                                              FileId = Some cached.Selection.Release.File.Id }
                                 | Error _ -> return! unavailable key liveProblem
                             | None -> return! unavailable key liveProblem
             | _ -> return! unavailable key SkseProblem.GameUnavailable
@@ -750,6 +763,12 @@ type SkseCoordinator
                                 Ok()
                             else
                                 Error(state.Status + ". " + state.Detail)
+        }
+
+    member this.Remove(workspace, profile, token) =
+        task {
+            let! _ = store.RemoveSkse(workspace, profile, token)
+            return! this.Read(workspace, profile)
         }
 
     interface IDisposable with
