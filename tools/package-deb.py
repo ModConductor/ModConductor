@@ -55,6 +55,7 @@ def main() -> None:
         desktop = package / "usr/share/applications/dev.modconductor.mod_conductor.desktop"
         desktop.parent.mkdir(parents=True)
         shutil.copy2(ROOT / "packaging/dev.modconductor.mod_conductor.desktop", desktop)
+        shutil.copytree(payload / "share/icons/hicolor", package / "usr/share/icons/hicolor")
         documentation = package / "usr/share/doc/modconductor"
         documentation.parent.mkdir(parents=True)
         documentation.symlink_to("../../lib/modconductor/share/doc/modconductor", target_is_directory=True)

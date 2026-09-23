@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <title>Mod Conductor</title>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#7867e0"/>
+      <stop offset="1" stop-color="#6250cc"/>
+    </linearGradient>
+    <linearGradient id="tiles" x1="0" y1="0" x2="0.8" y2="1">
+      <stop stop-color="#f5f2ff"/>
+      <stop offset="1" stop-color="#e9e4fb"/>
+    </linearGradient>
+    <path id="baton" d="M145 391C133 419 108 431 90 412C72 395 85 374 105 361C127 347 145 333 163 315L414 93C418 89 424 89 428 93C432 97 432 103 428 107L183 337C166 354 155 371 145 391Z"/>
+    <path id="tile-edge" d="M128 251 256 319 384 251" fill="none" stroke="url(#tiles)" stroke-width="32" stroke-linecap="round" stroke-linejoin="round"/>
+    <mask id="baton-gap" maskUnits="userSpaceOnUse" x="0" y="0" width="512" height="512">
+      <rect width="512" height="512" fill="white"/>
+      <use href="#baton" fill="black" stroke="black" stroke-width="24" stroke-linejoin="round"/>
+    </mask>
+  </defs>
+  <rect x="8" y="8" width="496" height="496" rx="100" fill="url(#background)"/>
+  <g fill="url(#tiles)" mask="url(#baton-gap)">
+    <path d="M256 112 384 180 256 248 128 180Z" stroke="url(#tiles)" stroke-width="16" stroke-linejoin="round"/>
+    <use href="#tile-edge"/>
+    <use href="#tile-edge" transform="translate(0 80)"/>
+  </g>
+  <use href="#baton" fill="#fff"/>
+</svg>

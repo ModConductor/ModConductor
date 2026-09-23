@@ -18,7 +18,7 @@ let
     "Directory.Build.props" "Directory.Build.targets" "Directory.Packages.props"
     "NuGet.config" "global.json"
   ];
-  uiSource = sourceFor [ "ui" "docs" ] [ ];
+  uiSource = sourceFor [ "ui" "docs" "packaging" ] [ ];
   helperSource = sourceFor [ "native" ] [ ];
 
   nugetCache = pkgs.stdenvNoCC.mkDerivation {
@@ -127,6 +127,11 @@ let
     extraWrapProgramArgs = ''--prefix PATH : ${lib.makeBinPath [ pkgs.glib.bin pkgs.xdg-utils ]} --prefix XDG_DATA_DIRS : ${pkgs.gsettings-desktop-schemas}/share --prefix XDG_DATA_DIRS : ${pkgs.adwaita-icon-theme}/share --set-default FONTCONFIG_FILE ${pkgs.fontconfig.out}/etc/fonts/fonts.conf'';
     postInstall = ''
       mkdir -p "$out/app/modconductor/engine" "$out/share/applications" "$out/share/doc/modconductor"
+      for size in 48 256; do
+        mkdir -p "$out/share/icons/hicolor/''${size}x''${size}/apps"
+        cp ${uiSource}/packaging/icons/hicolor/''${size}x''${size}/apps/dev.modconductor.mod_conductor.png \
+          "$out/share/icons/hicolor/''${size}x''${size}/apps/"
+      done
       cp ${engine}/lib/modconductor-engine/ModConductor.Engine \
         ${engine}/lib/modconductor-engine/libe_sqlite3.so \
         ${engine}/lib/modconductor-engine/ModConductor.Engine.staticwebassets.endpoints.json \
@@ -142,7 +147,7 @@ let
       Type=Application
       Name=Mod Conductor
       Exec=$out/bin/modconductor
-      Icon=applications-games
+      Icon=dev.modconductor.mod_conductor
       Categories=Game;Utility;
       Terminal=false
       EOF

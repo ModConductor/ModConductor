@@ -100,6 +100,9 @@ def assemble(bundle: Path, engine: Path, helper: Path, output: Path, revision: s
     launcher.chmod(0o755)
     desktop = output / "share/applications/dev.modconductor.mod_conductor.desktop"
     copy_required(ROOT / "packaging/dev.modconductor.mod_conductor.desktop", desktop)
+    for size in (48, 256):
+        icon = f"icons/hicolor/{size}x{size}/apps/dev.modconductor.mod_conductor.png"
+        copy_required(ROOT / "packaging" / icon, output / "share" / icon)
 
     documents = output / "share/doc/modconductor"
     shutil.copytree(ROOT / "docs/third-party", documents / "third-party")

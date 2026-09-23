@@ -43,19 +43,7 @@ class _DesktopShell extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Container(
-                    width: 34,
-                    height: 34,
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary,
-                      borderRadius: BorderRadius.circular(9),
-                    ),
-                    child: Icon(
-                      Icons.layers_rounded,
-                      size: 22,
-                      color: Theme.of(context).colorScheme.onPrimary,
-                    ),
-                  ),
+                  const McAppMark(),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(

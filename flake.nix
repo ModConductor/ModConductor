@@ -26,6 +26,7 @@
           libx11
           clang
           python3
+          librsvg
           yq-go
           xvfb
           xauth

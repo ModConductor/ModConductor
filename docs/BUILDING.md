@@ -87,6 +87,13 @@ remove only those owned test directories after the results are retained.
 
 ## Desktop
 
+The approved application icon source is
+`ui/packages/mc_ui_foundation/assets/brand/modconductor.svg`. Regenerate the
+committed Flutter PNG, Linux hicolor PNGs, and Windows ICO with
+`python3 tools/generate-app-icons.py`. This needs `rsvg-convert` from librsvg,
+which the Nix development shell provides. The normal app build uses the
+committed images and does not need librsvg.
+
 From `ui/`:
 
 ```sh
