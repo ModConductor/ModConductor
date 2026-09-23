@@ -252,6 +252,18 @@ The cask links this exact AppImage on Linux and checks its SHA-256. It does
 not target macOS. Do not publish the cask or enable a package repository until
 the licence, hosting, and signing decisions are complete. An AppImage NXM
 handler uses the stable AppImage path, not its temporary mount path.
+Check an installed cask AppImage on a private Xvfb display:
+
+```sh
+python3 tools/smoke-linux-package.py "$HOME/Applications/modconductor-0.1.0-linux-x64.AppImage" \
+  --version 0.1.0 --appimage --close-window
+```
+
+This mode extracts the AppImage under checkout-owned scratch and does not test
+FUSE mounting. It needs Xvfb and xdotool.
+The optional shared Linux cask test uses this command after Homebrew installs
+the cask. The shared publisher needs an explicit existing tap repository and
+`publish_homebrew=true`; this project does not set either one yet.
 
 Test installation, upgrade, and removal in an isolated Ubuntu 24.04 guest.
 The package workflow does not publish a release or install the product on the
