@@ -22,7 +22,7 @@ class _DesktopShell extends StatelessWidget {
   final FocusNode workspacesFocus;
   final FocusNode preferencesFocus;
   final FocusNode quitFocus;
-  final VoidCallback onToggleTheme;
+  final VoidCallback? onToggleTheme;
   final AppLocalizations labels;
   final Widget child;
   final DesktopRequests? requests;

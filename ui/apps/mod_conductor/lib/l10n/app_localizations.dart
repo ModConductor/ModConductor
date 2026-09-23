@@ -304,6 +304,24 @@ abstract class AppLocalizations {
   /// **'The settings could not be saved.'**
   String get settingsSaveFailed;
 
+  /// No description provided for @settingsLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading settings'**
+  String get settingsLoading;
+
+  /// No description provided for @settingsSaving.
+  ///
+  /// In en, this message translates to:
+  /// **'Saving settings'**
+  String get settingsSaving;
+
+  /// No description provided for @settingsHelpDiagnostics.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Help > Diagnostics for technical details.'**
+  String get settingsHelpDiagnostics;
+
   /// No description provided for @workspaceSettingsUnavailable.
   ///
   /// In en, this message translates to:

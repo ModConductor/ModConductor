@@ -82,6 +82,45 @@ const _defaultPreferences = (
   contrast: ContrastPreference.system,
 );
 
+class _SettingsFormState {
+  _Preferences applied = _defaultPreferences;
+  _Preferences draft = _defaultPreferences;
+  bool inheritsApplied = true;
+  bool inheritsDraft = true;
+  bool hasConfirmed = false;
+  bool loaded = false;
+  bool loading = false;
+  bool saving = false;
+  String? problem;
+  String? diagnostic;
+  DateTime? savedAt;
+  int generation = 0;
+
+  void reset() {
+    generation++;
+    applied = draft = _defaultPreferences;
+    inheritsApplied = inheritsDraft = true;
+    hasConfirmed = loaded = loading = saving = false;
+    problem = diagnostic = null;
+    savedAt = null;
+  }
+
+  void accept(SettingsSnapshot snapshot) {
+    applied = draft = _preferences(snapshot);
+    inheritsApplied = inheritsDraft = snapshot.inheritsApplication;
+    hasConfirmed = true;
+    loaded = true;
+    loading = saving = false;
+    problem = diagnostic = null;
+  }
+
+  void cancel() {
+    draft = applied;
+    inheritsDraft = inheritsApplied;
+    problem = null;
+  }
+}
+
 const _profileSetupGames = [
   ProfileSetupGame(
     id: 'skyrim-se-steam',
@@ -253,18 +292,10 @@ class ModConductorApp extends StatefulWidget {
 class _ModConductorAppState extends State<ModConductorApp> {
   _Destination _destination = _Destination.workspaces;
   _PreferenceScope _preferenceScope = _PreferenceScope.application;
-  _Preferences _applicationApplied = _defaultPreferences;
-  _Preferences _applicationDraft = _defaultPreferences;
-  _Preferences _workspaceApplied = _defaultPreferences;
-  _Preferences _workspaceDraft = _defaultPreferences;
-  bool _workspaceInheritsApplied = true;
-  bool _workspaceInheritsDraft = true;
-  bool _settingsBusy = false;
-  String? _settingsProblem;
+  final _applicationSettings = _SettingsFormState();
+  final _workspaceSettings = _SettingsFormState();
   String? _settingsWorkspaceId;
-  DateTime? _settingsSavedAt;
-  int _applicationSettingsGeneration = 0;
-  int _workspaceSettingsGeneration = 0;
+  String? _settingsProfileId;
   final _workspacesFocus = FocusNode(debugLabel: 'Workspaces navigation');
   final _preferencesFocus = FocusNode(debugLabel: 'Preferences navigation');
   final _detailsFocus = FocusNode(debugLabel: 'Active preferences');
@@ -380,7 +411,16 @@ class _ModConductorAppState extends State<ModConductorApp> {
       editable: _workspaces.canEdit,
     );
     _syncCapabilityConsumers();
-    _loadWorkspaceSettings(_workspaces.workspace?.id);
+    final workspace = _workspaces.workspace;
+    final profileId = workspace?.selectedProfile?.id;
+    if (_settingsProfileId != profileId) {
+      _settingsProfileId = profileId;
+      _workspaceSettings.generation++;
+      if (_settingsWorkspaceId == workspace?.id && workspace != null) {
+        unawaited(_loadWorkspaceSettings(workspace.id, force: true));
+      }
+    }
+    unawaited(_loadWorkspaceSettings(workspace?.id));
   }
 
   void _syncCapabilityConsumers() {
@@ -465,51 +505,126 @@ class _ModConductorAppState extends State<ModConductorApp> {
   }
 
   _Preferences get _effectivePreferences =>
-      _settingsWorkspaceId != null && !_workspaceInheritsApplied
-      ? _workspaceApplied
-      : _applicationApplied;
+      _settingsWorkspaceId != null &&
+          _workspaceSettings.hasConfirmed &&
+          !_workspaceSettings.inheritsApplied
+      ? _workspaceSettings.applied
+      : _applicationSettings.applied;
+
+  _SettingsFormState get _selectedSettings =>
+      _preferenceScope == _PreferenceScope.application
+      ? _applicationSettings
+      : _workspaceSettings;
+
+  bool get _selectedSettingsLoaded =>
+      _selectedSettings.loaded &&
+      (_preferenceScope == _PreferenceScope.application ||
+          !_workspaceSettings.inheritsDraft ||
+          _applicationSettings.loaded);
+
+  bool get _selectedSettingsLoading =>
+      _selectedSettings.loading ||
+      (_preferenceScope == _PreferenceScope.workspace &&
+          _workspaceSettings.inheritsDraft &&
+          _applicationSettings.loading);
+
+  String? get _selectedSettingsProblem =>
+      _selectedSettings.problem ??
+      (_preferenceScope == _PreferenceScope.workspace &&
+              _workspaceSettings.inheritsDraft &&
+              !_applicationSettings.loaded
+          ? _applicationSettings.problem
+          : null);
 
   _Preferences get _selectedApplied =>
       _preferenceScope == _PreferenceScope.application
-      ? _applicationApplied
-      : _workspaceInheritsApplied
-      ? _applicationApplied
-      : _workspaceApplied;
+      ? _applicationSettings.applied
+      : _workspaceSettings.inheritsApplied
+      ? _applicationSettings.applied
+      : _workspaceSettings.applied;
 
   _Preferences get _selectedDraft =>
       _preferenceScope == _PreferenceScope.application
-      ? _applicationDraft
-      : _workspaceInheritsDraft
-      ? _applicationApplied
-      : _workspaceDraft;
+      ? _applicationSettings.draft
+      : _workspaceSettings.inheritsDraft
+      ? _applicationSettings.applied
+      : _workspaceSettings.draft;
 
   bool get _selectedInherits =>
-      _preferenceScope == _PreferenceScope.workspace && _workspaceInheritsDraft;
+      _preferenceScope == _PreferenceScope.workspace &&
+      _workspaceSettings.inheritsDraft;
 
-  Future<void> _loadApplicationSettings() async {
+  String _settingsDiagnostic(Object error) => error is SettingsException
+      ? '${error.fault.name}: ${error.detail}'
+      : '${error.runtimeType}: $error';
+
+  String? get _settingsHelpDiagnostic {
+    final failures = <String>[
+      if (_applicationSettings.problem != null &&
+          _applicationSettings.diagnostic != null)
+        'Application: ${_applicationSettings.diagnostic}',
+      if (_workspaceSettings.problem != null &&
+          _workspaceSettings.diagnostic != null &&
+          _settingsWorkspaceId != null)
+        'Workspace: ${_workspaceSettings.diagnostic}',
+    ];
+    return failures.isEmpty ? null : failures.join('\n');
+  }
+
+  Future<void> _loadSettings(
+    _PreferenceScope scope, {
+    String? workspaceId,
+  }) async {
+    final form = scope == _PreferenceScope.application
+        ? _applicationSettings
+        : _workspaceSettings;
     final client = widget.settings;
+    final generation = ++form.generation;
+    setState(() {
+      form.loaded = false;
+      form.loading = client != null;
+      form.saving = false;
+      form.problem = client == null ? 'load' : null;
+      form.diagnostic = client == null
+          ? 'Engine connection unavailable.'
+          : null;
+      form.savedAt = null;
+    });
     if (client == null) return;
-    final generation = ++_applicationSettingsGeneration;
+    bool current() =>
+        mounted &&
+        generation == form.generation &&
+        client == widget.settings &&
+        (scope == _PreferenceScope.application ||
+            workspaceId == _settingsWorkspaceId);
     try {
-      final loaded = await client.readApplication();
-      if (!mounted || generation != _applicationSettingsGeneration) return;
+      final loaded = scope == _PreferenceScope.application
+          ? await client.readApplication()
+          : await client.readWorkspace(workspaceId!);
+      if (!current()) return;
+      setState(() => form.accept(loaded));
+    } on Exception catch (error) {
+      if (!current()) return;
       setState(() {
-        _applicationApplied = _preferences(loaded);
-        _applicationDraft = _applicationApplied;
-        _settingsProblem = null;
+        form.loading = false;
+        form.problem = 'load';
+        form.diagnostic = _settingsDiagnostic(error);
       });
-    } on Exception {
-      if (!mounted || generation != _applicationSettingsGeneration) return;
-      setState(() => _settingsProblem = 'load');
     }
   }
 
-  Future<void> _loadWorkspaceSettings(String? workspaceId) async {
-    if (_settingsWorkspaceId == workspaceId) return;
-    _settingsWorkspaceId = workspaceId;
-    _workspaceApplied = _workspaceDraft = _applicationApplied;
-    _workspaceInheritsApplied = _workspaceInheritsDraft = true;
-    final generation = ++_workspaceSettingsGeneration;
+  Future<void> _loadApplicationSettings() =>
+      _loadSettings(_PreferenceScope.application);
+
+  Future<void> _loadWorkspaceSettings(
+    String? workspaceId, {
+    bool force = false,
+  }) async {
+    if (_settingsWorkspaceId == workspaceId && !force) return;
+    if (_settingsWorkspaceId != workspaceId) {
+      _settingsWorkspaceId = workspaceId;
+      _workspaceSettings.reset();
+    }
     if (workspaceId == null) {
       if (mounted) {
         setState(() {
@@ -520,125 +635,116 @@ class _ModConductorAppState extends State<ModConductorApp> {
       }
       return;
     }
-    final client = widget.settings;
-    if (client == null) return;
-    try {
-      final loaded = await client.readWorkspace(workspaceId);
-      if (!mounted ||
-          generation != _workspaceSettingsGeneration ||
-          workspaceId != _settingsWorkspaceId) {
-        return;
+    await _loadSettings(_PreferenceScope.workspace, workspaceId: workspaceId);
+  }
+
+  void _selectPreferenceScope(_PreferenceScope value) {
+    if (value == _preferenceScope) return;
+    setState(() {
+      for (final form in [_applicationSettings, _workspaceSettings]) {
+        form.generation++;
+        if (form.loading || form.saving) form.loaded = false;
+        form.loading = form.saving = false;
       }
-      setState(() {
-        _workspaceApplied = _preferences(loaded);
-        _workspaceDraft = _workspaceApplied;
-        _workspaceInheritsApplied = loaded.inheritsApplication;
-        _workspaceInheritsDraft = loaded.inheritsApplication;
-        _settingsProblem = null;
-      });
-    } on Exception {
-      if (!mounted ||
-          generation != _workspaceSettingsGeneration ||
-          workspaceId != _settingsWorkspaceId) {
-        return;
-      }
-      setState(() => _settingsProblem = 'load');
+      _selectedSettings.cancel();
+      _preferenceScope = value;
+      _selectedSettings.cancel();
+    });
+    if (value == _PreferenceScope.application && !_applicationSettings.loaded) {
+      unawaited(_loadApplicationSettings());
+    } else if (value == _PreferenceScope.workspace &&
+        !_workspaceSettings.loaded) {
+      unawaited(_loadWorkspaceSettings(_settingsWorkspaceId, force: true));
     }
   }
 
-  void _selectPreferenceScope(_PreferenceScope value) => setState(() {
-    _preferenceScope = value;
-    if (value == _PreferenceScope.application) {
-      _applicationDraft = _applicationApplied;
-    } else {
-      _workspaceDraft = _workspaceApplied;
-      _workspaceInheritsDraft = _workspaceInheritsApplied;
-    }
+  void _changePreferenceDraft(_Preferences value) => setState(() {
+    _selectedSettings.draft = value;
+    _selectedSettings.savedAt = null;
   });
 
-  void _changePreferenceDraft(_Preferences value) => setState(() {
-    if (_preferenceScope == _PreferenceScope.application) {
-      _applicationDraft = value;
-    } else {
-      _workspaceDraft = value;
+  Future<void> _retrySettings() {
+    if (widget.settings == null) {
+      widget.onRetry?.call();
+      return Future.value();
     }
-  });
+    return _preferenceScope == _PreferenceScope.application ||
+            (_preferenceScope == _PreferenceScope.workspace &&
+                _workspaceSettings.loaded &&
+                _workspaceSettings.inheritsDraft &&
+                !_applicationSettings.loaded)
+        ? _loadApplicationSettings()
+        : _loadWorkspaceSettings(_settingsWorkspaceId, force: true);
+  }
 
   Future<bool> _persistPreferences(
     _PreferenceScope scope,
     _Preferences value, {
     required bool inherits,
+    bool allowUnselectedScope = false,
   }) async {
     final client = widget.settings;
     final workspaceId = scope == _PreferenceScope.workspace
         ? _settingsWorkspaceId
         : null;
-    if (scope == _PreferenceScope.workspace && workspaceId == null) {
+    final form = scope == _PreferenceScope.application
+        ? _applicationSettings
+        : _workspaceSettings;
+    if (client == null ||
+        !form.loaded ||
+        form.saving ||
+        (scope == _PreferenceScope.workspace && workspaceId == null)) {
       return false;
     }
-    final generation = scope == _PreferenceScope.application
-        ? ++_applicationSettingsGeneration
-        : ++_workspaceSettingsGeneration;
-
-    bool isCurrent() => scope == _PreferenceScope.application
-        ? generation == _applicationSettingsGeneration
-        : generation == _workspaceSettingsGeneration &&
-              workspaceId == _settingsWorkspaceId;
-
-    SettingsSnapshot saved;
-    if (client == null) {
-      saved = _snapshot(value, inherits: inherits);
-    } else {
-      try {
-        saved = scope == _PreferenceScope.application
-            ? await client.saveApplication(_snapshot(value, inherits: false))
-            : await client.saveWorkspace(
-                workspaceId!,
-                _snapshot(value, inherits: inherits),
-              );
-      } on Exception {
-        if (mounted && isCurrent()) {
-          setState(() => _settingsProblem = 'save');
-        }
-        return false;
-      }
-    }
-    if (!mounted || !isCurrent()) return false;
+    final generation = ++form.generation;
     setState(() {
-      final applied = _preferences(saved);
-      if (scope == _PreferenceScope.application) {
-        _applicationApplied = _applicationDraft = applied;
-      } else {
-        _workspaceApplied = _workspaceDraft = applied;
-        _workspaceInheritsApplied = _workspaceInheritsDraft =
-            saved.inheritsApplication;
-      }
-      _settingsProblem = null;
-      _settingsSavedAt = DateTime.now();
+      form.saving = true;
+      form.problem = null;
+      form.savedAt = null;
     });
-    return true;
+    bool current() =>
+        mounted &&
+        generation == form.generation &&
+        (allowUnselectedScope || scope == _preferenceScope) &&
+        workspaceId ==
+            (scope == _PreferenceScope.workspace
+                ? _settingsWorkspaceId
+                : null) &&
+        client == widget.settings;
+    try {
+      final saved = scope == _PreferenceScope.application
+          ? await client.saveApplication(_snapshot(value, inherits: false))
+          : await client.saveWorkspace(
+              workspaceId!,
+              _snapshot(value, inherits: inherits),
+            );
+      if (!current()) return false;
+      setState(() {
+        form.accept(saved);
+        form.savedAt = DateTime.now();
+      });
+      return true;
+    } on Exception catch (error) {
+      if (current()) {
+        setState(() {
+          form.saving = false;
+          form.problem = 'save';
+          form.diagnostic = _settingsDiagnostic(error);
+        });
+      }
+      return false;
+    }
   }
 
   Future<void> _savePreferences() async {
-    if (_settingsBusy) return;
-    setState(() => _settingsBusy = true);
     await _persistPreferences(
       _preferenceScope,
       _selectedDraft,
       inherits: _selectedInherits,
     );
-    if (mounted) setState(() => _settingsBusy = false);
   }
 
-  void _cancelPreferences() => setState(() {
-    if (_preferenceScope == _PreferenceScope.application) {
-      _applicationDraft = _applicationApplied;
-    } else {
-      _workspaceDraft = _workspaceApplied;
-      _workspaceInheritsDraft = _workspaceInheritsApplied;
-    }
-    _settingsProblem = null;
-  });
+  void _cancelPreferences() => setState(() => _selectedSettings.cancel());
 
   @override
   void initState() {
@@ -681,8 +787,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
     _syncWorkspaceConsumers();
     if (oldWidget.settings != widget.settings) {
       unawaited(_loadApplicationSettings());
-      _settingsWorkspaceId = null;
-      unawaited(_loadWorkspaceSettings(_workspaces.workspace?.id));
+      unawaited(_loadWorkspaceSettings(_workspaces.workspace?.id, force: true));
     }
   }
 
@@ -729,17 +834,23 @@ class _ModConductorAppState extends State<ModConductorApp> {
   }
 
   Future<void> _quickTheme(AppearancePreference value) async {
-    final scope = _settingsWorkspaceId != null && !_workspaceInheritsApplied
+    final scope =
+        _settingsWorkspaceId != null &&
+            _workspaceSettings.loaded &&
+            !_workspaceSettings.inheritsApplied
         ? _PreferenceScope.workspace
         : _PreferenceScope.application;
-    final current = scope == _PreferenceScope.application
-        ? _applicationApplied
-        : _workspaceApplied;
-    await _persistPreferences(scope, (
-      appearance: value,
-      scale: current.scale,
-      contrast: current.contrast,
-    ), inherits: false);
+    final form = scope == _PreferenceScope.application
+        ? _applicationSettings
+        : _workspaceSettings;
+    if (!form.loaded) return;
+    final current = form.applied;
+    await _persistPreferences(
+      scope,
+      (appearance: value, scale: current.scale, contrast: current.contrast),
+      inherits: false,
+      allowUnselectedScope: true,
+    );
   }
 
   String _profileSetupFailure(Object failure) {
@@ -1053,13 +1164,15 @@ class _ModConductorAppState extends State<ModConductorApp> {
             preferencesFocus: _preferencesFocus,
             quitFocus: _quitFocus,
             labels: AppLocalizations.of(context),
-            onToggleTheme: () => unawaited(
-              _quickTheme(
-                Theme.of(context).brightness == Brightness.dark
-                    ? AppearancePreference.light
-                    : AppearancePreference.dark,
-              ),
-            ),
+            onToggleTheme: !_applicationSettings.loaded
+                ? null
+                : () => unawaited(
+                    _quickTheme(
+                      Theme.of(context).brightness == Brightness.dark
+                          ? AppearancePreference.light
+                          : AppearancePreference.dark,
+                    ),
+                  ),
             child: IndexedStack(
               index: _destination.index,
               children: [
@@ -1141,6 +1254,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
                           ? null
                           : (context, workspace, actions) => HelpBrowser(
                               controller: _diagnostics,
+                              settingsDiagnostic: _settingsHelpDiagnostic,
                               onCreateWorkspace: actions.createWorkspace,
                               onOpenWorkspace: actions.openWorkspace,
                               onCreateProfile: actions.createProfile,
@@ -1150,6 +1264,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
                           ? null
                           : (context, workspace, actions) => HelpBrowser(
                               controller: _diagnostics,
+                              settingsDiagnostic: _settingsHelpDiagnostic,
                               onCreateWorkspace: actions.createWorkspace,
                               onOpenWorkspace: actions.openWorkspace,
                               onCreateProfile: actions.createProfile,
@@ -1356,23 +1471,28 @@ class _ModConductorAppState extends State<ModConductorApp> {
                     scope: _preferenceScope,
                     onScope: _selectPreferenceScope,
                     workspaceAvailable: _settingsWorkspaceId != null,
-                    inheritsApplication: _workspaceInheritsDraft,
-                    inheritsApplicationApplied: _workspaceInheritsApplied,
+                    inheritsApplication: _workspaceSettings.inheritsDraft,
+                    inheritsApplicationApplied:
+                        _workspaceSettings.inheritsApplied,
                     onInheritsApplication: (value) => setState(() {
-                      _workspaceInheritsDraft = value;
-                      _workspaceDraft = value || _workspaceInheritsApplied
-                          ? _applicationApplied
-                          : _workspaceApplied;
+                      _workspaceSettings.inheritsDraft = value;
+                      _workspaceSettings.draft =
+                          value || _workspaceSettings.inheritsApplied
+                          ? _applicationSettings.applied
+                          : _workspaceSettings.applied;
                     }),
                     applied: _selectedApplied,
                     draft: _selectedDraft,
-                    busy: _settingsBusy,
-                    problem: _settingsProblem,
-                    savedAt: _settingsSavedAt,
+                    loaded: _selectedSettingsLoaded,
+                    loading: _selectedSettingsLoading,
+                    busy: _selectedSettings.saving,
+                    problem: _selectedSettingsProblem,
+                    savedAt: _selectedSettings.savedAt,
                     detailsFocus: _detailsFocus,
                     onDraft: _changePreferenceDraft,
                     onSave: () => unawaited(_savePreferences()),
                     onCancel: _cancelPreferences,
+                    onRetry: () => unawaited(_retrySettings()),
                   ),
                 ),
               ],

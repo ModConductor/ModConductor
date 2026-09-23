@@ -100,12 +100,15 @@ class _PreferencesPage extends StatelessWidget {
     required this.onInheritsApplication,
     required this.applied,
     required this.draft,
+    required this.loaded,
+    required this.loading,
     required this.busy,
     required this.problem,
     required this.savedAt,
     required this.onDraft,
     required this.onSave,
     required this.onCancel,
+    required this.onRetry,
     required this.detailsFocus,
   });
   final AppLocalizations labels;
@@ -120,12 +123,15 @@ class _PreferencesPage extends StatelessWidget {
   final ValueChanged<bool> onInheritsApplication;
   final _Preferences applied;
   final _Preferences draft;
+  final bool loaded;
+  final bool loading;
   final bool busy;
   final String? problem;
   final DateTime? savedAt;
   final ValueChanged<_Preferences> onDraft;
   final VoidCallback onSave;
   final VoidCallback onCancel;
+  final VoidCallback onRetry;
   final FocusNode detailsFocus;
 
   String _appearance(AppearancePreference value) => switch (value) {
@@ -146,7 +152,7 @@ class _PreferencesPage extends StatelessWidget {
     final changed =
         draft != applied ||
         (workspaceScope && inheritsApplication != inheritsApplicationApplied);
-    final enabled = !busy && !(workspaceScope && inheritsApplication);
+    final enabled = loaded && !busy && !(workspaceScope && inheritsApplication);
     return McPage(
       key: const PageStorageKey('preferences'),
       title: labels.preferences,
@@ -163,16 +169,34 @@ class _PreferencesPage extends StatelessWidget {
                 child: McSection(
                   title: labels.display,
                   children: [
-                    if (problem != null)
-                      McStatus(
-                        title: problem == 'load'
+                    if (loading)
+                      McActionFeedback(
+                        key: const ValueKey('preferences-feedback'),
+                        kind: McActionFeedbackKind.pending,
+                        message: labels.settingsLoading,
+                      )
+                    else if (busy)
+                      McActionFeedback(
+                        key: const ValueKey('preferences-feedback'),
+                        kind: McActionFeedbackKind.pending,
+                        message: labels.settingsSaving,
+                      )
+                    else if (problem != null)
+                      McActionFeedback(
+                        key: const ValueKey('preferences-feedback'),
+                        kind: McActionFeedbackKind.failure,
+                        message: problem == 'load'
                             ? labels.settingsLoadFailed
                             : labels.settingsSaveFailed,
-                        tone: McStatusTone.error,
+                        detail: labels.settingsHelpDiagnostics,
                       )
                     else if (savedAt case final saved?)
-                      McStatus(title: labels.preferencesSaved(saved)),
-                    if (problem != null || savedAt != null)
+                      McActionFeedback(
+                        key: const ValueKey('preferences-feedback'),
+                        kind: McActionFeedbackKind.success,
+                        message: labels.preferencesSaved(saved),
+                      ),
+                    if (loading || busy || problem != null || savedAt != null)
                       const SizedBox(height: McSpacing.large),
                     ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 480),
@@ -191,7 +215,14 @@ class _PreferencesPage extends StatelessWidget {
                                 : labels.currentWorkspace,
                             onChanged: onScope,
                           ),
-                          if (workspaceScope) ...[
+                          if (!workspaceAvailable)
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                top: McSpacing.small,
+                              ),
+                              child: Text(labels.workspaceSettingsUnavailable),
+                            ),
+                          if (loaded && workspaceScope) ...[
                             const SizedBox(height: McSpacing.large),
                             SwitchListTile(
                               contentPadding: EdgeInsets.zero,
@@ -200,49 +231,52 @@ class _PreferencesPage extends StatelessWidget {
                               onChanged: busy ? null : onInheritsApplication,
                             ),
                           ],
-                          const SizedBox(height: McSpacing.large),
-                          McChoice<AppearancePreference>(
-                            key: const ValueKey('preferences-theme'),
-                            label: labels.appearance,
-                            value: draft.appearance,
-                            choices: AppearancePreference.values,
-                            describe: _appearance,
-                            enabled: enabled,
-                            onChanged: (value) => onDraft((
-                              appearance: value,
-                              scale: draft.scale,
-                              contrast: draft.contrast,
-                            )),
-                          ),
-                          const SizedBox(height: McSpacing.large),
-                          McChoice<double>(
-                            key: const ValueKey('preferences-scale'),
-                            label: labels.textSize,
-                            value: draft.scale,
-                            choices: const [1, 1.25, 1.5],
-                            describe: (value) =>
-                                labels.textScalePercent((value * 100).round()),
-                            enabled: enabled,
-                            onChanged: (value) => onDraft((
-                              appearance: draft.appearance,
-                              scale: value,
-                              contrast: draft.contrast,
-                            )),
-                          ),
-                          const SizedBox(height: McSpacing.large),
-                          McChoice<ContrastPreference>(
-                            key: const ValueKey('preferences-contrast'),
-                            label: labels.contrast,
-                            value: draft.contrast,
-                            choices: ContrastPreference.values,
-                            describe: _contrast,
-                            enabled: enabled,
-                            onChanged: (value) => onDraft((
-                              appearance: draft.appearance,
-                              scale: draft.scale,
-                              contrast: value,
-                            )),
-                          ),
+                          if (loaded) ...[
+                            const SizedBox(height: McSpacing.large),
+                            McChoice<AppearancePreference>(
+                              key: const ValueKey('preferences-theme'),
+                              label: labels.appearance,
+                              value: draft.appearance,
+                              choices: AppearancePreference.values,
+                              describe: _appearance,
+                              enabled: enabled,
+                              onChanged: (value) => onDraft((
+                                appearance: value,
+                                scale: draft.scale,
+                                contrast: draft.contrast,
+                              )),
+                            ),
+                            const SizedBox(height: McSpacing.large),
+                            McChoice<double>(
+                              key: const ValueKey('preferences-scale'),
+                              label: labels.textSize,
+                              value: draft.scale,
+                              choices: const [1, 1.25, 1.5],
+                              describe: (value) => labels.textScalePercent(
+                                (value * 100).round(),
+                              ),
+                              enabled: enabled,
+                              onChanged: (value) => onDraft((
+                                appearance: draft.appearance,
+                                scale: value,
+                                contrast: draft.contrast,
+                              )),
+                            ),
+                            const SizedBox(height: McSpacing.large),
+                            McChoice<ContrastPreference>(
+                              key: const ValueKey('preferences-contrast'),
+                              label: labels.contrast,
+                              value: draft.contrast,
+                              choices: ContrastPreference.values,
+                              describe: _contrast,
+                              enabled: enabled,
+                              onChanged: (value) => onDraft((
+                                appearance: draft.appearance,
+                                scale: draft.scale,
+                                contrast: value,
+                              )),
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -251,29 +285,40 @@ class _PreferencesPage extends StatelessWidget {
                       spacing: 12,
                       runSpacing: 12,
                       children: [
+                        if (problem == 'load')
+                          McAction(
+                            key: const ValueKey('retry-preferences'),
+                            label: labels.retry,
+                            icon: Icons.refresh,
+                            onPressed: onRetry,
+                          ),
                         McAction(
                           key: const ValueKey('apply-preferences'),
                           label: labels.apply,
                           emphasis: McActionEmphasis.primary,
                           icon: Icons.check,
-                          onPressed: changed && !busy ? onSave : null,
+                          onPressed: loaded && changed && !busy ? onSave : null,
                         ),
                         McAction(
                           key: const ValueKey('cancel-preferences'),
                           label: labels.cancel,
-                          onPressed: changed && !busy ? onCancel : null,
+                          onPressed: loaded && changed && !busy
+                              ? onCancel
+                              : null,
                         ),
                         McAction(
                           key: const ValueKey('session-details'),
                           label: labels.activePreferences,
                           focusNode: detailsFocus,
-                          onPressed: () => _showActivePreferences(
-                            context,
-                            labels,
-                            applied,
-                            _appearance,
-                            _contrast,
-                          ),
+                          onPressed: !loaded
+                              ? null
+                              : () => _showActivePreferences(
+                                  context,
+                                  labels,
+                                  applied,
+                                  _appearance,
+                                  _contrast,
+                                ),
                         ),
                       ],
                     ),

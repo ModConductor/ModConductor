@@ -14,6 +14,8 @@ Future<void> mount(
   VoidCallback? onQuit,
   DesktopStatus status = const DesktopDisconnected(),
   SettingsClient? settings,
+  bool unavailableSettings = false,
+  DiagnosticsClient? diagnostics,
   WorkspacesClient? workspaces,
   GameContextsClient? gameContexts,
 }) async {
@@ -27,7 +29,8 @@ Future<void> mount(
     ModConductorApp(
       onQuit: onQuit,
       status: status,
-      settings: settings,
+      settings: unavailableSettings ? null : settings ?? _SettingsFake(),
+      diagnostics: diagnostics,
       workspaces: workspaces,
       gameContexts: gameContexts,
     ),
@@ -145,10 +148,19 @@ class _DelayedSettingsFake extends _SettingsFake {
   final reads = <String, Completer<SettingsSnapshot>>{};
   final values = <String, SettingsSnapshot>{};
   Completer<SettingsSnapshot>? save;
+  bool failWorkspaceRead = false;
   final savedWorkspaceIds = <String>[];
 
   @override
   Future<SettingsSnapshot> readWorkspace(String workspaceId) {
+    if (failWorkspaceRead) {
+      return Future.error(
+        const SettingsException(
+          SettingsFault.unavailable,
+          'Workspace read failed',
+        ),
+      );
+    }
     final delayed = reads[workspaceId];
     return delayed?.future ??
         Future.value(
@@ -199,6 +211,32 @@ class _SettingsFake implements SettingsClient {
     SettingsSnapshot settings,
   ) async => settings;
 }
+
+class _FailingSettingsFake extends _SettingsFake {
+  _FailingSettingsFake(this.readFault);
+
+  final SettingsFault readFault;
+  bool failRead = true;
+  bool failSave = false;
+
+  @override
+  Future<SettingsSnapshot> readApplication() async {
+    if (failRead) {
+      throw SettingsException(readFault, 'Settings boundary detail');
+    }
+    return super.readApplication();
+  }
+
+  @override
+  Future<SettingsSnapshot> saveApplication(SettingsSnapshot settings) async {
+    if (failSave) {
+      throw const SettingsException(SettingsFault.unavailable, 'Write failed');
+    }
+    return super.saveApplication(settings);
+  }
+}
+
+class _NoDiagnostics extends Fake implements DiagnosticsClient {}
 
 Future<void> choose(WidgetTester tester, String field, String option) async {
   await tester.ensureVisible(keyed(field));
@@ -356,6 +394,10 @@ void main() {
     await activate(tester, 'apply-preferences');
     expect(settings.applicationSaves, 1);
     expect(
+      tester.widget<McActionFeedback>(keyed('preferences-feedback')).kind,
+      McActionFeedbackKind.success,
+    );
+    expect(
       settings.application.presentation.appearance,
       AppearancePreference.dark,
     );
@@ -366,6 +408,151 @@ void main() {
     await mount(tester, settings: settings);
     expect(brightness(tester), Brightness.dark);
     expect(MediaQuery.highContrastOf(tester.element(keyed('quit'))), isTrue);
+  });
+
+  for (final fault in [
+    SettingsFault.invalidDocument,
+    SettingsFault.unavailable,
+  ]) {
+    testWidgets(
+      'failed application read hides values and retry recovers: $fault',
+      (tester) async {
+        final settings = _FailingSettingsFake(fault)
+          ..application = settingsSnapshot(AppearancePreference.dark);
+        await mount(tester, settings: settings);
+        await activate(tester, 'nav-preferences');
+        expect(keyed('preferences-theme'), findsNothing);
+        expect(
+          tester.widget<McActionFeedback>(keyed('preferences-feedback')).kind,
+          McActionFeedbackKind.failure,
+        );
+        expect(
+          tester.widget<McAction>(keyed('apply-preferences')).onPressed,
+          isNull,
+        );
+        expect(keyed('retry-preferences'), findsOneWidget);
+
+        settings.failRead = false;
+        await activate(tester, 'retry-preferences');
+        expect(keyed('preferences-theme'), findsOneWidget);
+        expect(
+          tester
+              .widget<McChoice<AppearancePreference>>(
+                keyed('preferences-theme'),
+              )
+              .value,
+          AppearancePreference.dark,
+        );
+        expect(
+          tester.widget<McAction>(keyed('apply-preferences')).onPressed,
+          isNull,
+        );
+      },
+    );
+  }
+
+  testWidgets('failed write keeps draft and confirmed settings until Cancel', (
+    tester,
+  ) async {
+    final settings = _FailingSettingsFake(SettingsFault.unavailable)
+      ..failRead = false
+      ..failSave = true
+      ..application = settingsSnapshot(AppearancePreference.light);
+    await mount(tester, settings: settings);
+    await activate(tester, 'nav-preferences');
+    await choose(tester, 'preferences-theme', 'Dark');
+    await activate(tester, 'apply-preferences');
+    expect(brightness(tester), Brightness.light);
+    expect(
+      tester.widget<McActionFeedback>(keyed('preferences-feedback')).kind,
+      McActionFeedbackKind.failure,
+    );
+    expect(
+      tester
+          .widget<McChoice<AppearancePreference>>(keyed('preferences-theme'))
+          .value,
+      AppearancePreference.dark,
+    );
+    await activate(tester, 'cancel-preferences');
+    expect(
+      tester
+          .widget<McChoice<AppearancePreference>>(keyed('preferences-theme'))
+          .value,
+      AppearancePreference.light,
+    );
+    expect(settings.applicationSaves, 0);
+  });
+
+  testWidgets(
+    'quick theme saves application while workspace scope inherits it',
+    (tester) async {
+      ignoreKnownWorkspaceListTileWarning();
+      final settings = _SettingsFake();
+      await mount(tester, settings: settings, workspaces: _WorkspacesFake());
+      await openWorkspace(tester, 'one');
+      await activate(tester, 'nav-preferences');
+      await choose(tester, 'preferences-scope', 'Current workspace');
+      await activate(tester, 'quick-theme');
+      expect(settings.applicationSaves, 1);
+      expect(
+        settings.application.presentation.appearance,
+        AppearancePreference.dark,
+      );
+      expect(brightness(tester), Brightness.dark);
+    },
+  );
+
+  testWidgets('connection loss hides unconfirmed form and reconnect loads it', (
+    tester,
+  ) async {
+    await mount(tester, unavailableSettings: true);
+    await activate(tester, 'nav-preferences');
+    expect(keyed('preferences-theme'), findsNothing);
+    expect(tester.widget<McIconAction>(keyed('quick-theme')).onPressed, isNull);
+    final settings = _SettingsFake()
+      ..application = settingsSnapshot(AppearancePreference.dark);
+    await mount(tester, settings: settings);
+    expect(
+      tester
+          .widget<McChoice<AppearancePreference>>(keyed('preferences-theme'))
+          .value,
+      AppearancePreference.dark,
+    );
+    expect(
+      tester.widget<McIconAction>(keyed('quick-theme')).onPressed,
+      isNotNull,
+    );
+  });
+
+  testWidgets('failed reload keeps the last confirmed workspace appearance', (
+    tester,
+  ) async {
+    ignoreKnownWorkspaceListTileWarning();
+    final workspaces = _WorkspacesFake();
+    final initial = _DelayedSettingsFake()
+      ..values['one'] = settingsSnapshot(AppearancePreference.dark);
+    await mount(tester, settings: initial, workspaces: workspaces);
+    await openWorkspace(tester, 'one');
+    expect(brightness(tester), Brightness.dark);
+
+    final disconnected = _DelayedSettingsFake()..failWorkspaceRead = true;
+    await mount(tester, settings: disconnected, workspaces: workspaces);
+    expect(brightness(tester), Brightness.dark);
+    await activate(tester, 'nav-preferences');
+    await choose(tester, 'preferences-scope', 'Current workspace');
+    expect(keyed('preferences-theme'), findsNothing);
+    expect(keyed('retry-preferences'), findsOneWidget);
+  });
+
+  testWidgets('settings failure keeps technical detail in Help diagnostics', (
+    tester,
+  ) async {
+    final settings = _FailingSettingsFake(SettingsFault.invalidDocument);
+    await mount(tester, settings: settings, diagnostics: _NoDiagnostics());
+    await activate(tester, 'open-entry-help');
+    await tester.tap(find.text('Technical details').first);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Settings boundary detail'), findsOneWidget);
   });
 
   testWidgets('standard contrast overrides platform high contrast', (
@@ -427,10 +614,17 @@ void main() {
     await choose(tester, 'preferences-theme', 'Dark');
     await tester.tap(keyed('apply-preferences'));
     await tester.pump();
+    expect(
+      tester.widget<McActionFeedback>(keyed('preferences-feedback')).kind,
+      McActionFeedbackKind.pending,
+    );
 
-    await activate(tester, 'nav-workspaces');
-    await activate(tester, 'close-workspace');
-    await openWorkspace(tester, 'two');
+    await tester.tap(keyed('nav-workspaces'));
+    await tester.pump();
+    await tester.tap(keyed('close-workspace'));
+    await tester.pump();
+    await tester.tap(keyed('workspace-two'));
+    await tester.pump();
     settings.save!.complete(settingsSnapshot(AppearancePreference.dark));
     await tester.pumpAndSettle();
 
@@ -445,24 +639,59 @@ void main() {
     expect(settings.savedWorkspaceIds, ['one']);
   });
 
-  testWidgets('a settings save rejects an older workspace read', (
+  testWidgets('a workspace change rejects an older settings read', (
+    tester,
+  ) async {
+    ignoreKnownWorkspaceListTileWarning();
+    final pendingRead = Completer<SettingsSnapshot>();
+    final settings = _DelayedSettingsFake()
+      ..reads['one'] = pendingRead
+      ..values['two'] = settingsSnapshot(AppearancePreference.dark);
+    await mount(tester, settings: settings, workspaces: _WorkspacesFake());
+    await tester.tap(keyed('workspace-one'));
+    await tester.pump();
+    await tester.tap(keyed('close-workspace'));
+    await tester.pump();
+    await tester.tap(keyed('workspace-two'));
+    await tester.pump();
+
+    pendingRead.complete(settingsSnapshot(AppearancePreference.light));
+    await tester.pumpAndSettle();
+    await activate(tester, 'nav-preferences');
+    await choose(tester, 'preferences-scope', 'Current workspace');
+    expect(
+      tester
+          .widget<McChoice<AppearancePreference>>(keyed('preferences-theme'))
+          .value,
+      AppearancePreference.dark,
+    );
+  });
+
+  testWidgets('a scope change rejects an older workspace read generation', (
     tester,
   ) async {
     ignoreKnownWorkspaceListTileWarning();
     final pendingRead = Completer<SettingsSnapshot>();
     final settings = _DelayedSettingsFake()..reads['one'] = pendingRead;
     await mount(tester, settings: settings, workspaces: _WorkspacesFake());
-    await tester.tap(keyed('workspace-one'));
-    await tester.pump();
+    await openWorkspace(tester, 'one');
     await activate(tester, 'nav-preferences');
-    await choose(tester, 'preferences-scope', 'Current workspace');
-    await tester.tap(find.byType(SwitchListTile));
+    await tester.tap(keyed('preferences-scope'));
     await tester.pump();
-    await choose(tester, 'preferences-theme', 'Dark');
-    await activate(tester, 'apply-preferences');
+    await tester.tap(find.text('Current workspace').last);
+    await tester.pump();
+    expect(keyed('preferences-theme'), findsNothing);
 
+    await tester.tap(keyed('preferences-scope'));
+    await tester.pump();
+    await tester.tap(find.text('Application').last);
+    await tester.pumpAndSettle();
+    settings.reads.remove('one');
+    settings.values['one'] = settingsSnapshot(AppearancePreference.dark);
     pendingRead.complete(settingsSnapshot(AppearancePreference.light));
     await tester.pumpAndSettle();
+
+    await choose(tester, 'preferences-scope', 'Current workspace');
     expect(
       tester
           .widget<McChoice<AppearancePreference>>(keyed('preferences-theme'))

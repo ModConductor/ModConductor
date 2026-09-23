@@ -130,6 +130,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsSaveFailed => 'The settings could not be saved.';
 
   @override
+  String get settingsLoading => 'Loading settings';
+
+  @override
+  String get settingsSaving => 'Saving settings';
+
+  @override
+  String get settingsHelpDiagnostics =>
+      'Open Help > Diagnostics for technical details.';
+
+  @override
   String get workspaceSettingsUnavailable =>
       'Open a workspace to change its settings.';
 

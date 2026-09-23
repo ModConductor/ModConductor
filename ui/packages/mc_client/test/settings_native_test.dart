@@ -150,6 +150,40 @@ void main() {
       );
 
       test(
+        'a corrected application file reads without restarting the engine',
+        () async {
+          final child = await start();
+          final settings = child.settings();
+          final file = File('${state.path}/settings.toml');
+          await file.writeAsString('version = 1\nversion = 1\n');
+          await expectLater(
+            settings.readApplication(),
+            throwsA(
+              isA<SettingsException>().having(
+                (error) => error.fault,
+                'fault',
+                SettingsFault.invalidDocument,
+              ),
+            ),
+          );
+          await file.writeAsString(
+            'version = 1\n[presentation]\nappearance = "dark"\ntext_scale = 1.0\ncontrast = "system"\n',
+          );
+          expect(
+            await settings.readApplication(),
+            SettingsSnapshot(
+              presentation: PresentationPreferences(
+                appearance: AppearancePreference.dark,
+                textScale: 1,
+                contrast: ContrastPreference.system,
+              ),
+              inheritsApplication: false,
+            ),
+          );
+        },
+      );
+
+      test(
         'missing authentication rejects settings before a file effect',
         () async {
           final child = await start();

@@ -300,12 +300,14 @@ class HelpBrowser extends StatefulWidget {
   const HelpBrowser({
     super.key,
     required this.controller,
+    this.settingsDiagnostic,
     this.onCreateWorkspace,
     this.onOpenWorkspace,
     this.onCreateProfile,
     this.onOpenSkyrimSetup,
   });
   final DiagnosticsController controller;
+  final String? settingsDiagnostic;
   final VoidCallback? onCreateWorkspace;
   final VoidCallback? onOpenWorkspace;
   final VoidCallback? onCreateProfile;
@@ -635,14 +637,28 @@ class _HelpBrowserState extends State<HelpBrowser> {
           ),
         ),
         children: [
-          McStatus(
-            title:
-                controller.problem ??
-                (controller.busy ? 'Diagnostics is active' : 'No problems'),
-            tone: controller.problem == null
-                ? McStatusTone.neutral
-                : McStatusTone.error,
-          ),
+          if (widget.settingsDiagnostic case final detail?) ...[
+            const McStatus(
+              title: 'Settings need attention.',
+              tone: McStatusTone.error,
+            ),
+            ExpansionTile(
+              title: const Text('Technical details'),
+              children: [SelectableText(detail)],
+            ),
+            const SizedBox(height: McSpacing.medium),
+          ],
+          if (widget.settingsDiagnostic == null ||
+              controller.busy ||
+              controller.problem != null)
+            McStatus(
+              title:
+                  controller.problem ??
+                  (controller.busy ? 'Diagnostics is active' : 'No problems'),
+              tone: controller.problem == null
+                  ? McStatusTone.neutral
+                  : McStatusTone.error,
+            ),
         ],
       );
     }

@@ -50,6 +50,9 @@
   },
   "settingsLoadFailed": "The settings could not be loaded.",
   "settingsSaveFailed": "The settings could not be saved.",
+  "settingsLoading": "Loading settings",
+  "settingsSaving": "Saving settings",
+  "settingsHelpDiagnostics": "Open Help > Diagnostics for technical details.",
   "workspaceSettingsUnavailable": "Open a workspace to change its settings.",
   "textScalePercent": "{value}%",
   "@textScalePercent": {
