@@ -79,6 +79,22 @@ committed Cargo.lock. The pinned libloot revision's
 [LICENSE](third-party/libloot-LICENSE.txt) accompanies the local artifacts.
 MC-067 still owns the final licence assessment before distribution.
 
+## Local AppImage packaging
+
+The Linux x64 AppImage generator uses appimagetool 1.9.1, linuxdeploy
+1-alpha-20251107-1, the GTK plugin at
+`7a3fbc31a9e5075073ff8790f26effbac5f84453`, and the type-2 runtime
+20251108. `tools/bootstrap-appimage-tools.py` pins their official download
+URLs and SHA-256 values. The type-2 runtime and GTK plugin hook are bundled;
+their [runtime](third-party/appimage-runtime-LICENSE.txt) and
+[plugin](third-party/linuxdeploy-plugin-gtk-LICENSE.txt) notices accompany the
+AppImage. appimagetool and linuxdeploy are build tools only. The Ubuntu 24.04
+build records the copied system-library package names, versions, source paths,
+and available package copyright files inside the AppImage at
+`usr/lib/modconductor/share/doc/modconductor/third-party/ubuntu-24.04`.
+Those records support the later MC-067 review; they do not settle the product
+licence or authorize publication.
+
 ## Local archive behavior reference
 
 MC-030 inspected `src/downloadmanager.h` and `src/downloadmanager.cpp` at the MO2

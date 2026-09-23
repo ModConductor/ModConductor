@@ -221,6 +221,38 @@ The RPM is unsigned and local-only. It does not register itself as the default
 NXM handler. Install, upgrade, and remove it in an isolated Fedora 44 guest;
 do not install it on the host for package tests.
 
+The same release archive also produces a Linux x64 AppImage and a Linux-only
+Homebrew cask for that AppImage. Build them locally with:
+
+```sh
+python3 tools/package-appimage.py \
+  --archive artifacts/release/modconductor-v0.1.0-linux-x64.tar.gz \
+  --output artifacts/release/modconductor-0.1.0-linux-x64.AppImage \
+  --version 0.1.0
+python3 tools/generate-linux-cask.py \
+  --appimage artifacts/release/modconductor-0.1.0-linux-x64.AppImage \
+  --output artifacts/release/modconductor.rb --version 0.1.0
+```
+
+The generator checks pinned appimagetool 1.9.1, linuxdeploy
+1-alpha-20251107-1, GTK plugin commit
+`7a3fbc31a9e5075073ff8790f26effbac5f84453`, and type-2 runtime
+20251108 before use. It builds from the Ubuntu 24.04 archive in a small
+container; the runtime is embedded from the pinned file, not downloaded by
+appimagetool. The AppImage includes GTK 3 libraries, GSettings schemas,
+`gsettings`, libsecret, Fontconfig, DejaVu fonts, and `xdg-utils` commands.
+It uses host glibc, graphics drivers, X11 or XWayland, and an available
+Secret Service provider. The package records bundled Ubuntu package versions
+and notices in `usr/lib/modconductor/share/doc/modconductor/third-party`.
+The GTK plugin currently selects X11. Test the AppImage on Ubuntu 24.04 and
+Fedora 44 before release. If FUSE is unavailable in a test container, use
+`--appimage-extract-and-run`; that does not prove direct FUSE mounting.
+
+The cask links this exact AppImage on Linux and checks its SHA-256. It does
+not target macOS. Do not publish the cask or enable a package repository until
+the licence, hosting, and signing decisions are complete. An AppImage NXM
+handler uses the stable AppImage path, not its temporary mount path.
+
 Test installation, upgrade, and removal in an isolated Ubuntu 24.04 guest.
 The package workflow does not publish a release or install the product on the
 host. MC-064 retains real-game qualification; MC-067 retains the source

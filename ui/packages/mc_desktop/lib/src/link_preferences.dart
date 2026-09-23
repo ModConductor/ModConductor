@@ -183,7 +183,12 @@ class _NexusLinkPreferencesState extends State<NexusLinkPreferences> {
                 label: windows ? labels.addWindows : labels.useModConductor,
                 emphasis: McActionEmphasis.primary,
                 onPressed: enabled
-                    ? () => run(() => client.add(Platform.resolvedExecutable))
+                    ? () => run(
+                        () => client.add(
+                          Platform.environment['APPIMAGE'] ??
+                              Platform.resolvedExecutable,
+                        ),
+                      )
                     : null,
               ),
             if (value?.canRemove == true)
