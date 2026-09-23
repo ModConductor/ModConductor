@@ -91,7 +91,7 @@ class EngineOwner {
       _state is EngineConnected ? _session?.protonContexts : null;
   SteamDiscoveryClient? get steamDiscovery =>
       _state is EngineConnected ? _session?.steamDiscovery : null;
-  BainClient? get bain => _session?.bain;
+  BainClient? get bain => _state is EngineConnected ? _session?.bain : null;
   LinkSetupClient? get linkSetup =>
       _state is EngineConnected ? _session?.linkSetup : null;
   NxmClient? get nxm => _state is EngineConnected ? _session?.nxm : null;
