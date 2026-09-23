@@ -36,10 +36,12 @@ module internal PluginOrderWire =
                     let row =
                         PluginOrderSetting(
                             Name = entry.Name,
-                            Required =
-                                ((value.Facts.Early @ value.Facts.Forced)
-                                 |> List.exists (fun name ->
-                                     name.Equals(entry.Name, StringComparison.OrdinalIgnoreCase)))
+                            Required = (OrderRules.requirement value.Facts entry.Name).IsSome,
+                            RequiredReason =
+                                (match OrderRules.requirement value.Facts entry.Name with
+                                 | Some PluginRequirement.Engine -> PluginRequiredReason.Engine
+                                 | Some PluginRequirement.SkyrimIni -> PluginRequiredReason.SkyrimIni
+                                 | None -> PluginRequiredReason.Unspecified)
                         )
 
                     entry.Enabled |> Option.iter (fun enabled -> row.Enabled <- enabled)

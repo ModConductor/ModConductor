@@ -33,6 +33,9 @@ type internal BuildRequest =
       Storage: Location
       SecondaryStorage: Location
       Roots: RootBinding list
+      LinkedBase: bool
+      Excluded: Set<TargetFile>
+      OwnedFiles: (TargetFile * byte array) list
       Working: WorkingLocation list
       Previous: Generation option
       Processes: ProcessIdentity list }

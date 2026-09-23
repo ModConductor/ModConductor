@@ -209,6 +209,8 @@ type DeploymentBackend internal (repository: IDeploymentRepository) =
             protect (fun () ->
                 task {
                     let! sources, context = repository.Read profile
+                    let! runnableRoot =
+                        repository.RunnableRoot(sources.Stamp.WorkspaceId, sources.Stamp.ProfileId)
 
                     let! active =
                         match context |> Option.bind _.Active with
@@ -218,6 +220,7 @@ type DeploymentBackend internal (repository: IDeploymentRepository) =
                     return
                         Ok
                             { WorkspaceId = sources.Stamp.WorkspaceId
+                              RunnableRoot = runnableRoot
                               Revision = context |> Option.map _.Revision |> Option.defaultValue 0L
                               ActiveGeneration = context |> Option.bind _.Active
                               Active = active

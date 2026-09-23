@@ -45,6 +45,7 @@ type ToolLaunchDescriptor =
     { ContextId: Guid
       Runtime: string
       GenerationId: Guid
+      ToolExecutable: string
       Launch: ModConductor.Platform.NativeLaunch }
 
 type IToolLaunchProjection =

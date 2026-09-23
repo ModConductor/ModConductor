@@ -32,6 +32,7 @@ module internal PluginPreparation =
                 let actual, file, bytes = PluginInputs.readFile root PluginInputs.fileName token
 
                 match context.PluginObserved with
+                | Some _ when incoming |> Option.exists (fun profile -> profile.PluginOrder.IsSome) -> ()
                 | Some observed when file <> observed ->
                     DataFiles.fail
                         "The game plugin list changed. Use game order or restore the list before playing."

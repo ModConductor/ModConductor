@@ -12,7 +12,7 @@ module internal Descriptor =
             StringComparison.OrdinalIgnoreCase
         )
 
-    let private toolPath root (relative: string) =
+    let private toolPath sourceRoot runnableRoot (relative: string) =
         let normalized =
             relative.Replace('/', IO.Path.DirectorySeparatorChar).Replace('\\', IO.Path.DirectorySeparatorChar)
 
@@ -20,26 +20,26 @@ module internal Descriptor =
             if IO.Path.IsPathFullyQualified normalized then
                 IO.Path.GetFullPath normalized
             else
-                IO.Path.GetFullPath(IO.Path.Combine(root, normalized))
+                IO.Path.GetFullPath(IO.Path.Combine(sourceRoot, normalized))
 
-        if not (inside (IO.Path.GetFullPath root) candidate) then
+        if not (inside (IO.Path.GetFullPath sourceRoot) candidate) then
             Error "The registered tool path is outside the selected game installation."
         else
-            Ok candidate
+            Ok(IO.Path.Combine(runnableRoot, IO.Path.GetRelativePath(sourceRoot, candidate)))
 
-    let private loaderPath root (loader: ComponentLoader) =
+    let private loaderPath sourceRoot runnableRoot (loader: ComponentLoader) =
         let candidate = IO.Path.GetFullPath loader.Executable
         let directory = IO.Path.GetDirectoryName candidate
 
         if
-            String.Equals(directory, IO.Path.GetFullPath root, StringComparison.OrdinalIgnoreCase)
+            String.Equals(directory, IO.Path.GetFullPath sourceRoot, StringComparison.OrdinalIgnoreCase)
             && String.Equals(
                 IO.Path.GetFileName candidate,
                 "skse64_loader.exe",
                 StringComparison.OrdinalIgnoreCase
             )
         then
-            Ok candidate
+            Ok(IO.Path.Combine(runnableRoot, "skse64_loader.exe"))
         else
             Error "The installed SKSE loader path is invalid. Check SKSE before Play."
 
@@ -47,6 +47,7 @@ module internal Descriptor =
         hostWindows
         hostLinux
         (state: GameContextState)
+        runnableRoot
         (loader: ComponentLoader option)
         (configuration: ComponentLaunchConfiguration option)
         =
@@ -61,10 +62,10 @@ module internal Descriptor =
 
             let selected =
                 match loader with
-                | None -> Ok evidence.Executable.Value.Path
+                | None -> Ok(IO.Path.Combine(runnableRoot, IO.Path.GetFileName evidence.Executable.Value.Path))
                 | Some loader when loader.GameSha256 <> evidence.Executable.Value.Sha256 ->
                     Error "Skyrim changed after SKSE was installed. Check SKSE before Play."
-                | Some loader -> loaderPath evidence.RootPath loader
+                | Some loader -> loaderPath evidence.RootPath runnableRoot loader
 
             let configured =
                 match configuration with
@@ -80,7 +81,7 @@ module internal Descriptor =
                     "Windows",
                     { Executable = executable
                       Arguments = []
-                      WorkingDirectory = evidence.RootPath
+                      WorkingDirectory = runnableRoot
                       Environment = environment }
                 )
             | Ok executable, ContextPlatform.Proton, Some proton when hostLinux ->
@@ -90,15 +91,19 @@ module internal Descriptor =
                     proton.RuntimeName,
                     { Executable = launch.Executable
                       Arguments = launch.Arguments @ [ executable ]
-                      WorkingDirectory = evidence.RootPath
+                      WorkingDirectory = runnableRoot
                       Environment =
                         environment
                         @ [ "STEAM_COMPAT_APP_ID", Some app
                             "STEAM_COMPAT_DATA_PATH", Some proton.Selection.CompatData
                             "STEAM_COMPAT_CLIENT_INSTALL_PATH", Some launch.SteamRoot
-                            "STEAM_COMPAT_INSTALL_PATH", Some evidence.RootPath
+                            "STEAM_COMPAT_INSTALL_PATH", Some runnableRoot
                             "STEAM_COMPAT_LIBRARY_PATHS",
-                            Some(String.concat (string IO.Path.PathSeparator) launch.Libraries)
+                            Some(
+                                String.concat
+                                    (string IO.Path.PathSeparator)
+                                    (launch.Libraries @ [ runnableRoot ])
+                            )
                             "STEAM_COMPAT_TOOL_PATHS", Some proton.Selection.RuntimeDirectory ] })
             | Ok _, ContextPlatform.Windows, _ ->
                 Error "This game uses Proton on Linux. Select and refresh its Proton context."
@@ -106,15 +111,16 @@ module internal Descriptor =
                 Error "Select a checked Proton launch context on Linux."
         | _ -> Error "Select and refresh the installation before playing."
 
-    let createWith state loader configuration =
+    let createWith state runnableRoot loader configuration =
         createWithHost
             (OperatingSystem.IsWindows())
             (OperatingSystem.IsLinux())
             state
+            runnableRoot
             loader
             configuration
 
-    let create state loader = createWith state loader None
+    let create state runnableRoot loader = createWith state runnableRoot loader None
 
     let projectTool platform (tool: string) (arguments: string list) (launch: NativeLaunch) =
         match platform with
@@ -133,15 +139,16 @@ module internal Descriptor =
         hostWindows
         hostLinux
         state
+        runnableRoot
         loader
         configuration
         generation
         executable
         arguments
         =
-        match createWithHost hostWindows hostLinux state loader configuration, state.Binding with
+        match createWithHost hostWindows hostLinux state runnableRoot loader configuration, state.Binding with
         | Ok(context, runtime, launch), Some binding ->
-            match toolPath binding.Evidence.RootPath executable with
+            match toolPath binding.Evidence.RootPath runnableRoot executable with
             | Error problem -> Error problem
             | Ok tool ->
                 let projected = projectTool binding.Evidence.Platform tool arguments launch
@@ -150,15 +157,17 @@ module internal Descriptor =
                     { ContextId = context
                       Runtime = runtime
                       GenerationId = generation
+                      ToolExecutable = tool
                       Launch = projected }
         | Error problem, _ -> Error problem
         | _, None -> Error "Select and refresh the installation before running FNIS."
 
-    let createToolWith state loader configuration generation executable arguments =
+    let createToolWith state runnableRoot loader configuration generation executable arguments =
         createToolWithHost
             (OperatingSystem.IsWindows())
             (OperatingSystem.IsLinux())
             state
+            runnableRoot
             loader
             configuration
             generation

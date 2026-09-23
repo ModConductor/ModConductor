@@ -28,43 +28,48 @@ namespace ModConductor.Protocol.V1 {
             "dWN0b3IudjEaJm1vZGNvbmR1Y3Rvci92MS9iZXRoZXNkYV9wbHVnaW5zLnBy",
             "b3RvGiJtb2Rjb25kdWN0b3IvdjEvcHJvZmlsZV9kYXRhLnByb3RvIlYKFlJl",
             "YWRQbHVnaW5PcmRlclJlcXVlc3QSFAoMd29ya3NwYWNlX2lkGAEgASgJEhIK",
-            "CnByb2ZpbGVfaWQYAiABKAkSEgoKaGVhZGVyc19pZBgDIAEoCSKCAQoSUGx1",
+            "CnByb2ZpbGVfaWQYAiABKAkSEgoKaGVhZGVyc19pZBgDIAEoCSLCAQoSUGx1",
             "Z2luT3JkZXJTZXR0aW5nEgwKBG5hbWUYASABKAkSFAoHZW5hYmxlZBgCIAEo",
             "CEgAiAEBEhkKDGxvY2tlZF9pbmRleBgDIAEoBUgBiAEBEhAKCHJlcXVpcmVk",
-            "GAQgASgIQgoKCF9lbmFibGVkQg8KDV9sb2NrZWRfaW5kZXgiMAoQUGx1Z2lu",
-            "T3JkZXJJc3N1ZRIMCgRuYW1lGAEgASgJEg4KBmRldGFpbBgCIAEoCSK2AwoS",
-            "UHJvZmlsZVBsdWdpbk9yZGVyEjIKCXJlZmVyZW5jZRgBIAEoCzIfLm1vZGNv",
-            "bmR1Y3Rvci52MS5Qcm9maWxlRGF0YVJlZhI4CgdoZWFkZXJzGAIgASgLMicu",
-            "bW9kY29uZHVjdG9yLnYxLkJldGhlc2RhUGx1Z2luU25hcHNob3QSNAoHZW50",
-            "cmllcxgDIAMoCzIjLm1vZGNvbmR1Y3Rvci52MS5QbHVnaW5PcmRlclNldHRp",
-            "bmcSMQoGaXNzdWVzGAQgAygLMiEubW9kY29uZHVjdG9yLnYxLlBsdWdpbk9y",
-            "ZGVySXNzdWUSDAoEZnVsbBgFIAEoBRINCgVsaWdodBgGIAEoBRISCgpmdWxs",
-            "X2xpbWl0GAcgASgFEg0KBXNhdmVkGAggASgIEg8KB2FwcGxpZWQYCSABKAgS",
-            "GAoQZXh0ZXJuYWxfY2hhbmdlZBgKIAEoCBIPCgdwZW5kaW5nGAsgASgIEjQK",
-            "B3Vua25vd24YDCADKAsyIy5tb2Rjb25kdWN0b3IudjEuUGx1Z2luT3JkZXJT",
-            "ZXR0aW5nEhcKD3BlbmRpbmdfcHJvYmxlbRgNIAEoCSKyAQoYQ2hhbmdlUGx1",
-            "Z2luT3JkZXJSZXF1ZXN0EjEKCGV4cGVjdGVkGAEgASgLMh8ubW9kY29uZHVj",
-            "dG9yLnYxLlByb2ZpbGVEYXRhUmVmEhIKCmhlYWRlcnNfaWQYAiABKAkSDQoF",
-            "bmFtZXMYAyADKAkSEQoHZW5hYmxlZBgEIAEoCEgAEhEKB21vdmVfdXAYBSAB",
-            "KAhIABIQCgZsb2NrZWQYBiABKAhIAEIICgZjaGFuZ2UiYgoZVXNlR2FtZVBs",
-            "dWdpbk9yZGVyUmVxdWVzdBIxCghleHBlY3RlZBgBIAEoCzIfLm1vZGNvbmR1",
-            "Y3Rvci52MS5Qcm9maWxlRGF0YVJlZhISCgpoZWFkZXJzX2lkGAIgASgJIosB",
-            "ChBQbHVnaW5PcmRlclJlcGx5EjQKBW9yZGVyGAEgASgLMiMubW9kY29uZHVj",
-            "dG9yLnYxLlByb2ZpbGVQbHVnaW5PcmRlckgAEjYKB3Byb2JsZW0YAiABKAsy",
-            "Iy5tb2Rjb25kdWN0b3IudjEuUHJvZmlsZURhdGFQcm9ibGVtSABCCQoHb3V0",
-            "Y29tZTK1AgoMUGx1Z2luT3JkZXJzEl0KD1JlYWRQbHVnaW5PcmRlchInLm1v",
-            "ZGNvbmR1Y3Rvci52MS5SZWFkUGx1Z2luT3JkZXJSZXF1ZXN0GiEubW9kY29u",
-            "ZHVjdG9yLnYxLlBsdWdpbk9yZGVyUmVwbHkSYQoRQ2hhbmdlUGx1Z2luT3Jk",
-            "ZXISKS5tb2Rjb25kdWN0b3IudjEuQ2hhbmdlUGx1Z2luT3JkZXJSZXF1ZXN0",
-            "GiEubW9kY29uZHVjdG9yLnYxLlBsdWdpbk9yZGVyUmVwbHkSYwoSVXNlR2Ft",
-            "ZVBsdWdpbk9yZGVyEioubW9kY29uZHVjdG9yLnYxLlVzZUdhbWVQbHVnaW5P",
-            "cmRlclJlcXVlc3QaIS5tb2Rjb25kdWN0b3IudjEuUGx1Z2luT3JkZXJSZXBs",
-            "eUIbqgIYTW9kQ29uZHVjdG9yLlByb3RvY29sLlYxYgZwcm90bzM="));
+            "GAQgASgIEj4KD3JlcXVpcmVkX3JlYXNvbhgFIAEoDjIlLm1vZGNvbmR1Y3Rv",
+            "ci52MS5QbHVnaW5SZXF1aXJlZFJlYXNvbkIKCghfZW5hYmxlZEIPCg1fbG9j",
+            "a2VkX2luZGV4IjAKEFBsdWdpbk9yZGVySXNzdWUSDAoEbmFtZRgBIAEoCRIO",
+            "CgZkZXRhaWwYAiABKAkitgMKElByb2ZpbGVQbHVnaW5PcmRlchIyCglyZWZl",
+            "cmVuY2UYASABKAsyHy5tb2Rjb25kdWN0b3IudjEuUHJvZmlsZURhdGFSZWYS",
+            "OAoHaGVhZGVycxgCIAEoCzInLm1vZGNvbmR1Y3Rvci52MS5CZXRoZXNkYVBs",
+            "dWdpblNuYXBzaG90EjQKB2VudHJpZXMYAyADKAsyIy5tb2Rjb25kdWN0b3Iu",
+            "djEuUGx1Z2luT3JkZXJTZXR0aW5nEjEKBmlzc3VlcxgEIAMoCzIhLm1vZGNv",
+            "bmR1Y3Rvci52MS5QbHVnaW5PcmRlcklzc3VlEgwKBGZ1bGwYBSABKAUSDQoF",
+            "bGlnaHQYBiABKAUSEgoKZnVsbF9saW1pdBgHIAEoBRINCgVzYXZlZBgIIAEo",
+            "CBIPCgdhcHBsaWVkGAkgASgIEhgKEGV4dGVybmFsX2NoYW5nZWQYCiABKAgS",
+            "DwoHcGVuZGluZxgLIAEoCBI0Cgd1bmtub3duGAwgAygLMiMubW9kY29uZHVj",
+            "dG9yLnYxLlBsdWdpbk9yZGVyU2V0dGluZxIXCg9wZW5kaW5nX3Byb2JsZW0Y",
+            "DSABKAkisgEKGENoYW5nZVBsdWdpbk9yZGVyUmVxdWVzdBIxCghleHBlY3Rl",
+            "ZBgBIAEoCzIfLm1vZGNvbmR1Y3Rvci52MS5Qcm9maWxlRGF0YVJlZhISCgpo",
+            "ZWFkZXJzX2lkGAIgASgJEg0KBW5hbWVzGAMgAygJEhEKB2VuYWJsZWQYBCAB",
+            "KAhIABIRCgdtb3ZlX3VwGAUgASgISAASEAoGbG9ja2VkGAYgASgISABCCAoG",
+            "Y2hhbmdlImIKGVVzZUdhbWVQbHVnaW5PcmRlclJlcXVlc3QSMQoIZXhwZWN0",
+            "ZWQYASABKAsyHy5tb2Rjb25kdWN0b3IudjEuUHJvZmlsZURhdGFSZWYSEgoK",
+            "aGVhZGVyc19pZBgCIAEoCSKLAQoQUGx1Z2luT3JkZXJSZXBseRI0CgVvcmRl",
+            "chgBIAEoCzIjLm1vZGNvbmR1Y3Rvci52MS5Qcm9maWxlUGx1Z2luT3JkZXJI",
+            "ABI2Cgdwcm9ibGVtGAIgASgLMiMubW9kY29uZHVjdG9yLnYxLlByb2ZpbGVE",
+            "YXRhUHJvYmxlbUgAQgkKB291dGNvbWUqiAEKFFBsdWdpblJlcXVpcmVkUmVh",
+            "c29uEiYKIlBMVUdJTl9SRVFVSVJFRF9SRUFTT05fVU5TUEVDSUZJRUQQABIh",
+            "Ch1QTFVHSU5fUkVRVUlSRURfUkVBU09OX0VOR0lORRABEiUKIVBMVUdJTl9S",
+            "RVFVSVJFRF9SRUFTT05fU0tZUklNX0lOSRACMrUCCgxQbHVnaW5PcmRlcnMS",
+            "XQoPUmVhZFBsdWdpbk9yZGVyEicubW9kY29uZHVjdG9yLnYxLlJlYWRQbHVn",
+            "aW5PcmRlclJlcXVlc3QaIS5tb2Rjb25kdWN0b3IudjEuUGx1Z2luT3JkZXJS",
+            "ZXBseRJhChFDaGFuZ2VQbHVnaW5PcmRlchIpLm1vZGNvbmR1Y3Rvci52MS5D",
+            "aGFuZ2VQbHVnaW5PcmRlclJlcXVlc3QaIS5tb2Rjb25kdWN0b3IudjEuUGx1",
+            "Z2luT3JkZXJSZXBseRJjChJVc2VHYW1lUGx1Z2luT3JkZXISKi5tb2Rjb25k",
+            "dWN0b3IudjEuVXNlR2FtZVBsdWdpbk9yZGVyUmVxdWVzdBohLm1vZGNvbmR1",
+            "Y3Rvci52MS5QbHVnaW5PcmRlclJlcGx5QhuqAhhNb2RDb25kdWN0b3IuUHJv",
+            "dG9jb2wuVjFiBnByb3RvMw=="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::ModConductor.Protocol.V1.BethesdaPluginsReflection.Descriptor, global::ModConductor.Protocol.V1.ProfileDataReflection.Descriptor, },
-          new pbr::GeneratedClrTypeInfo(null, null, new pbr::GeneratedClrTypeInfo[] {
+          new pbr::GeneratedClrTypeInfo(new[] {typeof(global::ModConductor.Protocol.V1.PluginRequiredReason), }, null, new pbr::GeneratedClrTypeInfo[] {
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ReadPluginOrderRequest), global::ModConductor.Protocol.V1.ReadPluginOrderRequest.Parser, new[]{ "WorkspaceId", "ProfileId", "HeadersId" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.PluginOrderSetting), global::ModConductor.Protocol.V1.PluginOrderSetting.Parser, new[]{ "Name", "Enabled", "LockedIndex", "Required" }, new[]{ "Enabled", "LockedIndex" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.PluginOrderSetting), global::ModConductor.Protocol.V1.PluginOrderSetting.Parser, new[]{ "Name", "Enabled", "LockedIndex", "Required", "RequiredReason" }, new[]{ "Enabled", "LockedIndex" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.PluginOrderIssue), global::ModConductor.Protocol.V1.PluginOrderIssue.Parser, new[]{ "Name", "Detail" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ProfilePluginOrder), global::ModConductor.Protocol.V1.ProfilePluginOrder.Parser, new[]{ "Reference", "Headers", "Entries", "Issues", "Full", "Light", "FullLimit", "Saved", "Applied", "ExternalChanged", "Pending", "Unknown", "PendingProblem" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ChangePluginOrderRequest), global::ModConductor.Protocol.V1.ChangePluginOrderRequest.Parser, new[]{ "Expected", "HeadersId", "Names", "Enabled", "MoveUp", "Locked" }, new[]{ "Change" }, null, null, null),
@@ -75,6 +80,15 @@ namespace ModConductor.Protocol.V1 {
     #endregion
 
   }
+  #region Enums
+  public enum PluginRequiredReason {
+    [pbr::OriginalName("PLUGIN_REQUIRED_REASON_UNSPECIFIED")] Unspecified = 0,
+    [pbr::OriginalName("PLUGIN_REQUIRED_REASON_ENGINE")] Engine = 1,
+    [pbr::OriginalName("PLUGIN_REQUIRED_REASON_SKYRIM_INI")] SkyrimIni = 2,
+  }
+
+  #endregion
+
   #region Messages
   [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class ReadPluginOrderRequest : pb::IMessage<ReadPluginOrderRequest>
@@ -389,6 +403,7 @@ namespace ModConductor.Protocol.V1 {
       enabled_ = other.enabled_;
       lockedIndex_ = other.lockedIndex_;
       required_ = other.required_;
+      requiredReason_ = other.requiredReason_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -476,6 +491,18 @@ namespace ModConductor.Protocol.V1 {
       }
     }
 
+    /// <summary>Field number for the "required_reason" field.</summary>
+    public const int RequiredReasonFieldNumber = 5;
+    private global::ModConductor.Protocol.V1.PluginRequiredReason requiredReason_ = global::ModConductor.Protocol.V1.PluginRequiredReason.Unspecified;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public global::ModConductor.Protocol.V1.PluginRequiredReason RequiredReason {
+      get { return requiredReason_; }
+      set {
+        requiredReason_ = value;
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -495,6 +522,7 @@ namespace ModConductor.Protocol.V1 {
       if (Enabled != other.Enabled) return false;
       if (LockedIndex != other.LockedIndex) return false;
       if (Required != other.Required) return false;
+      if (RequiredReason != other.RequiredReason) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -506,6 +534,7 @@ namespace ModConductor.Protocol.V1 {
       if (HasEnabled) hash ^= Enabled.GetHashCode();
       if (HasLockedIndex) hash ^= LockedIndex.GetHashCode();
       if (Required != false) hash ^= Required.GetHashCode();
+      if (RequiredReason != global::ModConductor.Protocol.V1.PluginRequiredReason.Unspecified) hash ^= RequiredReason.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -540,6 +569,10 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(32);
         output.WriteBool(Required);
       }
+      if (RequiredReason != global::ModConductor.Protocol.V1.PluginRequiredReason.Unspecified) {
+        output.WriteRawTag(40);
+        output.WriteEnum((int) RequiredReason);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -566,6 +599,10 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(32);
         output.WriteBool(Required);
       }
+      if (RequiredReason != global::ModConductor.Protocol.V1.PluginRequiredReason.Unspecified) {
+        output.WriteRawTag(40);
+        output.WriteEnum((int) RequiredReason);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -587,6 +624,9 @@ namespace ModConductor.Protocol.V1 {
       }
       if (Required != false) {
         size += 1 + 1;
+      }
+      if (RequiredReason != global::ModConductor.Protocol.V1.PluginRequiredReason.Unspecified) {
+        size += 1 + pb::CodedOutputStream.ComputeEnumSize((int) RequiredReason);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -611,6 +651,9 @@ namespace ModConductor.Protocol.V1 {
       }
       if (other.Required != false) {
         Required = other.Required;
+      }
+      if (other.RequiredReason != global::ModConductor.Protocol.V1.PluginRequiredReason.Unspecified) {
+        RequiredReason = other.RequiredReason;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -647,6 +690,10 @@ namespace ModConductor.Protocol.V1 {
             Required = input.ReadBool();
             break;
           }
+          case 40: {
+            RequiredReason = (global::ModConductor.Protocol.V1.PluginRequiredReason) input.ReadEnum();
+            break;
+          }
         }
       }
     #endif
@@ -680,6 +727,10 @@ namespace ModConductor.Protocol.V1 {
           }
           case 32: {
             Required = input.ReadBool();
+            break;
+          }
+          case 40: {
+            RequiredReason = (global::ModConductor.Protocol.V1.PluginRequiredReason) input.ReadEnum();
             break;
           }
         }

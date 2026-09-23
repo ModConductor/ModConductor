@@ -15,9 +15,12 @@ import 'dart:core' as $core;
 import 'package:protobuf/protobuf.dart' as $pb;
 
 import 'bethesda_plugins.pb.dart' as $2;
+import 'plugin_order.pbenum.dart';
 import 'profile_data.pb.dart' as $1;
 
 export 'package:protobuf/protobuf.dart' show GeneratedMessageGenericExtensions;
+
+export 'plugin_order.pbenum.dart';
 
 class ReadPluginOrderRequest extends $pb.GeneratedMessage {
   factory ReadPluginOrderRequest({
@@ -105,12 +108,14 @@ class PluginOrderSetting extends $pb.GeneratedMessage {
     $core.bool? enabled,
     $core.int? lockedIndex,
     $core.bool? required,
+    PluginRequiredReason? requiredReason,
   }) {
     final result = create();
     if (name != null) result.name = name;
     if (enabled != null) result.enabled = enabled;
     if (lockedIndex != null) result.lockedIndex = lockedIndex;
     if (required != null) result.required = required;
+    if (requiredReason != null) result.requiredReason = requiredReason;
     return result;
   }
 
@@ -132,6 +137,8 @@ class PluginOrderSetting extends $pb.GeneratedMessage {
     ..aOB(2, _omitFieldNames ? '' : 'enabled')
     ..aI(3, _omitFieldNames ? '' : 'lockedIndex')
     ..aOB(4, _omitFieldNames ? '' : 'required')
+    ..aE<PluginRequiredReason>(5, _omitFieldNames ? '' : 'requiredReason',
+        enumValues: PluginRequiredReason.values)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -188,6 +195,15 @@ class PluginOrderSetting extends $pb.GeneratedMessage {
   $core.bool hasRequired() => $_has(3);
   @$pb.TagNumber(4)
   void clearRequired() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  PluginRequiredReason get requiredReason => $_getN(4);
+  @$pb.TagNumber(5)
+  set requiredReason(PluginRequiredReason value) => $_setField(5, value);
+  @$pb.TagNumber(5)
+  $core.bool hasRequiredReason() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearRequiredReason() => $_clearField(5);
 }
 
 class PluginOrderIssue extends $pb.GeneratedMessage {

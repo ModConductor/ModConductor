@@ -377,7 +377,9 @@ module FnisFixtures =
             active store workspace profile
 
         let generator = initialGenerator.Value
-        let expectedExecutable = Path.Combine(game, FnisCatalogue.GeneratorPath)
+        let runnable = store.Deployments.Read profile |> wait |> result
+        let expectedExecutable = Path.Combine(runnable.RunnableRoot, FnisCatalogue.GeneratorPath)
+        let registeredExecutable = Path.Combine(game, FnisCatalogue.GeneratorPath)
 
         check
             writer
@@ -386,8 +388,9 @@ module FnisFixtures =
              && ready.Version = FnisCatalogue.SupportedVersion
              && initialGeneration.IsSome
              && initialEnabled.Contains generator.ModId
-             && generator.Executable = expectedExecutable
+             && generator.Executable = registeredExecutable
              && File.Exists expectedExecutable
+             && not (File.Exists registeredExecutable)
              && generator.ArchiveSha256.Length = 64
              && generator.Provider = FnisCatalogue.Provider
              && generator.ArtifactId <> Guid.Empty
@@ -519,7 +522,7 @@ module FnisFixtures =
                 downloadPolicy = policy
             )
 
-        let workspace, profile, _ = createWorkspace store scenario
+        let workspace, profile, game = createWorkspace store scenario
         configure server 751L (archive "execution" true 0)
 
         use coordinator =
@@ -561,6 +564,13 @@ module FnisFixtures =
             |> wait
             |> Option.get
 
+        let runnable = store.Deployments.Read profile |> wait |> result
+        let projectedGenerator =
+            Path.Combine(
+                runnable.RunnableRoot,
+                Path.GetRelativePath(game, installedGenerator.Executable)
+            )
+
         let selectedContext =
             (store.GameContexts :> IGameContexts).Read(workspace, profile) |> wait |> result
 
@@ -581,6 +591,7 @@ module FnisFixtures =
                 true
                 false
                 selectedWindowsContext
+                runnable.RunnableRoot
                 None
                 None
                 installedGenerator.GenerationId
@@ -593,14 +604,14 @@ module FnisFixtures =
             (selectedWindowsProjection
              |> Result.exists (fun projected ->
                  projected.Runtime = "Windows"
-                 && projected.Launch.Executable = installedGenerator.Executable
+                 && projected.Launch.Executable = projectedGenerator
                  && projected.Launch.Arguments = [ "RedirectFiles=C:\\owned"; "InstantExecute=1" ]))
 
-        let generatorDirectory = Path.GetDirectoryName installedGenerator.Executable
+        let generatorDirectory = Path.GetDirectoryName projectedGenerator
         let temporaryLogs = Path.Combine(generatorDirectory, "temporary_logs")
 
         let generatorBeforeLogs =
-            SHA256.HashData(File.ReadAllBytes installedGenerator.Executable)
+            SHA256.HashData(File.ReadAllBytes projectedGenerator)
 
         if OperatingSystem.IsLinux() then
             let mode = File.GetUnixFileMode generatorDirectory
@@ -1100,7 +1111,7 @@ module FnisFixtures =
         check
             writer
             "temporaryLogCleanupPreservesImmutableGenerator"
-            (SHA256.HashData(File.ReadAllBytes installedGenerator.Executable) = generatorBeforeLogs)
+            (SHA256.HashData(File.ReadAllBytes projectedGenerator) = generatorBeforeLogs)
 
         File.WriteAllText(mode, "success")
         let missingLogId = Guid.NewGuid()
@@ -1160,7 +1171,7 @@ module FnisFixtures =
              && not (Directory.Exists temporaryLogs)
              && restoredTreeWithoutTemporaryLogs = expectedTreeWithoutTemporaryLogs
              && restoredNewParentMetadata = expectedNewParentMetadata
-             && SHA256.HashData(File.ReadAllBytes installedGenerator.Executable) = generatorBeforeLogs)
+             && SHA256.HashData(File.ReadAllBytes projectedGenerator) = generatorBeforeLogs)
 
         let beforeStale = outputEntry () |> Option.get
         let mutable changedForRace = false

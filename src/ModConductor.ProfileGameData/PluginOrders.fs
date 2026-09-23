@@ -91,7 +91,7 @@ module internal PluginOrders =
             let order =
                 match change with
                 | Some change ->
-                    OrderRules.change input.Facts current.View.Order change
+                    OrderRules.change input.Facts header.Entries current.View.Order change
                     |> Result.defaultWith (fun detail ->
                         raise (ProfileDataException(ProfileDataError.Invalid detail)))
                 | None ->
@@ -191,9 +191,10 @@ module internal PluginOrders =
             let input = PluginInputs.read scope header.Entries token
 
             if
-                scope.Context
-                |> Option.bind _.PluginObserved
-                |> Option.exists (fun observed -> observed <> input.File)
+                saved.IsNone
+                && (scope.Context
+                    |> Option.bind _.PluginObserved
+                    |> Option.exists (fun observed -> observed <> input.File))
             then
                 raise (
                     ProfileDataException(
@@ -212,5 +213,5 @@ module internal PluginOrders =
             if not header.Problems.IsEmpty then
                 raise (ProfileDataException(ProfileDataError.Invalid header.Problems.Head))
 
-            return saved |> Option.map (fun _ -> OrderDocument.write input.Facts.Early order)
+            return saved |> Option.map (fun _ -> OrderDocument.write input.Facts.Implicit order)
         }

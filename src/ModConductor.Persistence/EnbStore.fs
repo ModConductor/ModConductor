@@ -124,7 +124,7 @@ type internal EnbStore(database: StateDatabase) =
             Sqlite.execute
                 database.Connection
                 null
-                "INSERT INTO enb_launch_plans VALUES($profile,$workspace,$generation,$game,$runtime,$preset,$runtimeHash,$presetHash,$companions,$overrides,$selectedRuntime,$previous,$configuration)"
+                "INSERT OR REPLACE INTO enb_launch_plans VALUES($profile,$workspace,$generation,$game,$runtime,$preset,$runtimeHash,$presetHash,$companions,$overrides,$selectedRuntime,$previous,$configuration)"
                 [ "$profile", box (string profile)
                   "$workspace", box (string workspace)
                   "$generation", box (string generation)
@@ -150,7 +150,7 @@ type internal EnbStore(database: StateDatabase) =
                 Sqlite.execute
                     database.Connection
                     transaction
-                    "INSERT INTO enb_generation_components VALUES($profile,$workspace,$generation,$kind,$mod,$versionId,$version,$hash,$nexusMod,$nexusFile,$source,$terms,$checked)"
+                    "INSERT OR REPLACE INTO enb_generation_components VALUES($profile,$workspace,$generation,$kind,$mod,$versionId,$version,$hash,$nexusMod,$nexusFile,$source,$terms,$checked)"
                     [ "$profile", box (string profile)
                       "$workspace", box (string workspace)
                       "$generation", box (string generation)

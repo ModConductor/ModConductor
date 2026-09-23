@@ -10,8 +10,14 @@ service PluginOrders {
   rpc UseGamePluginOrder(UseGamePluginOrderRequest) returns (PluginOrderReply);
 }
 message ReadPluginOrderRequest { string workspace_id = 1; string profile_id = 2; string headers_id = 3; }
+enum PluginRequiredReason {
+  PLUGIN_REQUIRED_REASON_UNSPECIFIED = 0;
+  PLUGIN_REQUIRED_REASON_ENGINE = 1;
+  PLUGIN_REQUIRED_REASON_SKYRIM_INI = 2;
+}
 message PluginOrderSetting {
   string name = 1; optional bool enabled = 2; optional int32 locked_index = 3; bool required = 4;
+  PluginRequiredReason required_reason = 5;
 }
 message PluginOrderIssue { string name = 1; string detail = 2; }
 message ProfilePluginOrder {

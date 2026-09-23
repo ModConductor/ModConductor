@@ -117,23 +117,12 @@ module internal DeploymentRows =
         while reader.Read() do
             let existing = DeploymentEncoding.contextFrom (bytes reader 0)
 
-            let sameWorkspace =
-                workspace
-                |> Option.exists (fun id ->
-                    existing.Roots |> List.exists (fun root -> root.Root.Id = id)
-                    && value.Roots |> List.exists (fun root -> root.Root.Id = id))
-
-            let inactive =
-                existing.Pending.IsNone
-                && existing.Links.IsEmpty
-                && existing.Directories.IsEmpty
-
-            if sameWorkspace && not inactive then
-                raise (RecoveryException RecoveryError.Busy)
-
             if
-                Preparation.overlappingRoots existing.Roots value.Roots
-                && not (sameWorkspace && inactive)
+                (existing.Pending.IsSome
+                 || not existing.Links.IsEmpty
+                 || not existing.Directories.IsEmpty
+                 || not existing.Originals.IsEmpty)
+                && Preparation.overlappingRoots existing.Roots value.Roots
             then
                 raise (
                     RecoveryException(

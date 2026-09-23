@@ -156,7 +156,12 @@ module internal PluginInputs =
           Bytes = bytes
           Facts =
             { Early = OrderRules.baseFiles @ creation
-              Forced = Ini.testFiles settings } }
+              DefaultEnabled = OrderRules.baseFiles @ creation
+              Required =
+                (OrderRules.mandatoryFiles |> List.map (fun name -> name, PluginRequirement.Engine))
+                @ (Ini.testFiles settings
+                   |> List.map (fun name -> name, PluginRequirement.SkyrimIni))
+              Implicit = OrderRules.mandatoryFiles } }
 
     let ensureRoot (input: PluginInputs) =
         match input.Root with

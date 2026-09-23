@@ -8,12 +8,20 @@ import 'generated/modconductor/v1/plugin_order.pbgrpc.dart' as wire;
 import 'generated/modconductor/v1/profile_data.pb.dart' as profile;
 import 'generated/modconductor/v1/bethesda_plugins.pb.dart' as headers;
 
+enum PluginRequirement { engine, skyrimIni }
+
 class PluginSetting {
-  const PluginSetting(this.name, this.enabled, this.lockedIndex, this.required);
+  const PluginSetting(
+    this.name,
+    this.enabled,
+    this.lockedIndex,
+    this.requirement,
+  );
   final String name;
   final bool? enabled;
   final int? lockedIndex;
-  final bool required;
+  final PluginRequirement? requirement;
+  bool get required => requirement != null;
 }
 
 class PluginOrderIssue {
@@ -156,13 +164,19 @@ class GrpcPluginOrderClient implements PluginOrderClient {
                 entry.name,
                 entry.hasEnabled() ? entry.enabled : null,
                 entry.hasLockedIndex() ? entry.lockedIndex : null,
-                entry.required,
+                switch (entry.requiredReason) {
+                  wire.PluginRequiredReason.PLUGIN_REQUIRED_REASON_ENGINE =>
+                    PluginRequirement.engine,
+                  wire.PluginRequiredReason.PLUGIN_REQUIRED_REASON_SKYRIM_INI =>
+                    PluginRequirement.skyrimIni,
+                  _ => null,
+                },
               ),
             ),
           ),
           List.unmodifiable(
             value.unknown.map(
-              (entry) => PluginSetting(entry.name, entry.enabled, null, false),
+              (entry) => PluginSetting(entry.name, entry.enabled, null, null),
             ),
           ),
           List.unmodifiable(

@@ -62,7 +62,7 @@ type GameLaunchSession
                     let! launch = launchConfiguration workspace profile deployed.ActiveGeneration
 
                     let runtime, problem =
-                        match Descriptor.createWith state loader launch with
+                        match Descriptor.createWith state deployed.RunnableRoot loader launch with
                         | Ok(_, runtime, _) -> runtime, None
                         | Error error -> "", Some error
 
@@ -135,7 +135,7 @@ type GameLaunchSession
                                 (dataRevision |> Result.defaultValue -1L)
                                 deployed.ActiveGeneration = request.SourceToken
                             ->
-                            match Descriptor.createWith state loader launch with
+                            match Descriptor.createWith state deployed.RunnableRoot loader launch with
                             | Error error -> return Error(ExecutableError.Unavailable error)
                             | Ok(context, runtime, launch) ->
                                 let game =
@@ -184,6 +184,7 @@ type GameLaunchSession
                     return
                         Descriptor.createToolWith
                             state
+                            deployed.RunnableRoot
                             loader
                             launch
                             generation

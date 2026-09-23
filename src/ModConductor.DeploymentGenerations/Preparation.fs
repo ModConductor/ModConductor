@@ -130,7 +130,9 @@ module internal GenerationPreparation =
 
         let managed =
             view.ReadOnlyFiles
-            |> List.filter (fun file -> file.Winner.Precedence.Tier <> LayerTier.Base)
+            |> List.filter (fun file ->
+                not (request.Excluded.Contains file.Target)
+                && (request.LinkedBase || file.Winner.Precedence.Tier <> LayerTier.Base))
 
         let working = view.Writable |> List.map declaredPath
 

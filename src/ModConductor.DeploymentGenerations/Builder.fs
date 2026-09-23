@@ -82,7 +82,7 @@ module internal GenerationBuilder =
                   Identity = identity
                   OwnerGeneration = Some request.Id }
 
-        let files =
+        let resolvedFiles =
             managed
             |> List.map (fun file ->
                 token.ThrowIfCancellationRequested()
@@ -95,6 +95,10 @@ module internal GenerationBuilder =
                         verify pin value
                         value
                     | LayerTier.Secondary -> copySecondary pin
+                    | LayerTier.Base when request.LinkedBase ->
+                        let value = source sources pin in
+                        verify pin value
+                        value
                     | LayerTier.Base -> invalidOp "Base files remain at the target."
 
                 let path =
@@ -119,6 +123,31 @@ module internal GenerationBuilder =
                   Length = length
                   Sha256 = hash
                   Backing = Some backing })
+
+        let ownedFiles =
+            request.OwnedFiles
+            |> List.map (fun (target, bytes) ->
+                token.ThrowIfCancellationRequested()
+
+                let path =
+                    logical (target.Root.ToString("N") :: LogicalPath.components target.Path)
+
+                let identity =
+                    withCreatedParent directory path (fun parent name ->
+                        let stream, identity = parent.Create name
+                        use stream = stream
+                        stream.Write(bytes, 0, bytes.Length)
+                        stream.Flush true
+                        identity)
+
+                { Target = target
+                  Path = path
+                  Identity = identity
+                  Length = int64 bytes.Length
+                  Sha256 = None
+                  Backing = None })
+
+        let files = resolvedFiles @ ownedFiles
 
         let workingBindings =
             bindings
@@ -162,7 +191,7 @@ module internal GenerationBuilder =
                   Identity = identity })
 
         let observed =
-            sources.Files
+            (if request.LinkedBase then Map.empty else sources.Files)
             |> Map.toList
             |> List.choose (fun (pin, backing) ->
                 match pin with

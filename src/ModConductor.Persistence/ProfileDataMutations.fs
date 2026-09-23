@@ -9,12 +9,83 @@ open ModConductor.Platform
 open ModConductor.ProfileGameData
 open ModConductor.Workspaces
 open ModConductor.Deployment
+open ModConductor.DeploymentRecovery
+open ModConductor.DeploymentGenerations
 
 [<Sealed>]
 type internal ProfileDataMutations
-    (database: StateDatabase, access: LibraryAccess, enter: Guid -> IDisposable option) =
+    (database: StateDatabase, access: LibraryAccess, recovery: Recovery, enter: Guid -> IDisposable option) =
     let connection = database.Connection
     let repository = ProfileDataRepository(database, access) :> IProfileDataRepository
+
+    let retireGameView workspace profile token =
+        task {
+            let! root = access.Root workspace
+
+            let workspaceLocation: Location =
+                root
+                |> Result.map (fun value ->
+                    { Path = value.Path
+                      Identity = value.Identity })
+                |> Result.defaultWith (fun _ ->
+                    raise (IOException "The workspace folder is unavailable."))
+
+            let! context =
+                database.Enqueue(fun () ->
+                    GameContextRows.read connection null database.OwnerId workspace profile)
+
+            let! ownedContexts =
+                database.Enqueue(fun () ->
+                    use query = Sqlite.command connection null "SELECT id FROM deployment_contexts" []
+                    use reader = query.ExecuteReader()
+                    let ids = [ while reader.Read() do yield Guid.Parse(reader.GetString 0) ]
+                    reader.Close()
+
+                    ids
+                    |> List.choose (fun id ->
+                        DeploymentRows.context connection null id
+                        |> Option.filter (fun value ->
+                            DeploymentContextId.create workspace profile value.Fingerprint = id)
+                        |> Option.map (fun value -> id, value)))
+
+            if ownedContexts |> List.exists (fun (_, value) -> value.Pending.IsSome) then
+                raise (IOException "Complete the pending profile deployment before deletion.")
+
+            match context |> Result.toOption |> Option.bind _.Binding with
+            | Some binding ->
+                try
+                    do!
+                        DeploymentPreparation.retireProfile
+                            database
+                            recovery
+                            workspaceLocation
+                            workspace
+                            profile
+                            binding.Evidence
+                            token
+                with RecoveryException error ->
+                    raise (IOException("The profile game folder could not be retired: " + string error))
+            | None -> GameViews.removeOwned workspaceLocation profile
+
+            let! generations =
+                database.Enqueue(fun () ->
+                    ownedContexts
+                    |> List.collect (fun (id, _) ->
+                        use query =
+                            Sqlite.command
+                                connection
+                                null
+                                "SELECT id FROM deployment_generations WHERE context_id=$context"
+                                [ "$context", box (string id) ]
+                        use reader = query.ExecuteReader()
+                        let generationIds =
+                            [ while reader.Read() do yield Guid.Parse(reader.GetString 0) ]
+                        reader.Close()
+                        generationIds
+                        |> List.choose (DeploymentRows.generation connection null id)))
+
+            return ownedContexts |> List.map fst, generations
+        }
 
     let actionId (context: Guid) (target: Guid) purpose =
         Guid(
@@ -321,6 +392,8 @@ type internal ProfileDataMutations
                                             "Restore global settings and saves before deleting this profile."
                                     )
                             else
+                                let! ownedContexts, generations =
+                                    retireGameView workspace target token
                                 for context, profile in records do
                                     let! context, action =
                                         claim
@@ -401,14 +474,32 @@ type internal ProfileDataMutations
                                         do! repository.Release action.Id
                                         raise error
 
+                                for generation in generations do
+                                    GenerationFiles.removeOwned generation
+
                                 return!
                                     database.Enqueue(fun () ->
-                                        WorkspaceProfiles.edit
-                                            connection
-                                            workspace
-                                            expected
-                                            command
-                                            beforeCommit)
+                                        use transaction =
+                                            connection.BeginTransaction(deferred = false)
+
+                                        let result =
+                                            WorkspaceProfiles.editIn
+                                                connection
+                                                transaction
+                                                workspace
+                                                expected
+                                                command
+
+                                        if Result.isOk result then
+                                            for contextId in ownedContexts do
+                                                let args = [ "$context", box (string contextId) ]
+                                                Sqlite.execute connection transaction "DELETE FROM deployment_receipts WHERE context_id=$context" args
+                                                Sqlite.execute connection transaction "DELETE FROM deployment_generations WHERE context_id=$context" args
+                                                Sqlite.execute connection transaction "DELETE FROM deployment_contexts WHERE id=$context" args
+
+                                        beforeCommit ()
+                                        transaction.Commit()
+                                        result)
                 with
                 | ProfileDataException ProfileDataError.Busy -> return Error WorkspaceError.Busy
                 | ProfileDataException error ->

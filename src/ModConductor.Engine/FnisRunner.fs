@@ -318,7 +318,7 @@ type FnisRunner
 
                         ()
                     | Ok projected ->
-                        let beforeLogs = logSnapshot stage.Generator
+                        let beforeLogs = logSnapshot projected.ToolExecutable
 
                         let! result =
                             NativeToolLaunch.runIn
@@ -331,7 +331,7 @@ type FnisRunner
                                   Timeout = timeout }
                                 run.Cancellation.Token
 
-                        runLog <- captureAndRestoreLogs stage.Generator beforeLogs
+                        runLog <- captureAndRestoreLogs projected.ToolExecutable beforeLogs
 
                         match result with
                         | Error NativeToolError.Cancelled ->

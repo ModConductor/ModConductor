@@ -17,6 +17,12 @@ module OrderRules =
           "HearthFires.esm"
           "Dragonborn.esm" ]
 
+    let mandatoryFiles = [ "Skyrim.esm"; "Update.esm" ]
+
+    let requirement (facts: PluginOrderFacts) name =
+        facts.Required
+        |> List.tryPick (fun (required, reason) -> if same required name then Some reason else None)
+
     let private locked (rows: PluginSetting list) =
         let mutable result = rows
         let active = rows |> List.filter (fun row -> row.Enabled = Some true) |> List.length
@@ -53,7 +59,8 @@ module OrderRules =
             |> List.filter found.Contains
             |> List.distinctBy _.ToUpperInvariant()
 
-        let forced = set (facts.Early @ facts.Forced)
+        let required = facts.Required |> List.map fst |> set
+        let defaultEnabled = set facts.DefaultEnabled
 
         let initial =
             match saved with
@@ -94,10 +101,10 @@ module OrderRules =
                |> List.filter (fun row -> not (existing.Contains row.Name))
                |> List.map (fun row ->
                    { Name = row.Name
-                     Enabled = Some false
+                     Enabled = Some(defaultEnabled.Contains row.Name)
                      LockedIndex = None }))
             |> List.map (fun row ->
-                if forced.Contains row.Name then
+                if required.Contains row.Name then
                     { row with Enabled = Some true }
                 else
                     row)
@@ -131,7 +138,7 @@ module OrderRules =
         let mutable light = 0
         let waiting = HashSet<string>(StringComparer.OrdinalIgnoreCase)
 
-        for required in baseFiles do
+        for required in mandatoryFiles do
             if not (index.ContainsKey required) then
                 problem (Some required) (required + " is missing.")
 
@@ -224,7 +231,7 @@ module OrderRules =
           Light = light
           FullLimit = fullLimit }
 
-    let change (facts: PluginOrderFacts) (order: PluginOrder) change =
+    let change (facts: PluginOrderFacts) (headers: PluginEntry list) (order: PluginOrder) change =
         let names =
             match change with
             | PluginOrderChange.Enable(names, _)
@@ -235,7 +242,28 @@ module OrderRules =
         let selected = set names
         let known = order.Entries |> List.map _.Name |> set
         let early = set facts.Early
-        let forced = set (facts.Early @ facts.Forced)
+        let required = facts.Required |> List.map fst |> set
+
+        let dependant =
+            match change with
+            | PluginOrderChange.Enable(_, false) ->
+                headers
+                |> List.tryPick (fun entry ->
+                    if
+                        not (selected.Contains entry.Name)
+                        && order.Entries
+                           |> List.exists (fun row ->
+                               same row.Name entry.Name && row.Enabled = Some true)
+                    then
+                        match entry.Header with
+                        | Ok header ->
+                            header.Masters
+                            |> List.tryFind selected.Contains
+                            |> Option.map (fun master -> master, entry.Name)
+                        | Error _ -> None
+                    else
+                        None)
+            | _ -> None
 
         if
             selected.Count = 0
@@ -248,8 +276,11 @@ module OrderRules =
             Error "Select current plugins first."
         else
             match change with
-            | PluginOrderChange.Enable(_, false) when selected |> Seq.exists forced.Contains ->
+            | PluginOrderChange.Enable(_, false) when selected |> Seq.exists required.Contains ->
                 Error "Required plugins cannot be disabled."
+            | PluginOrderChange.Enable(_, false) when dependant.IsSome ->
+                let master, plugin = dependant.Value
+                Error(plugin + " requires " + master + ". Disable " + plugin + " first.")
             | PluginOrderChange.Move _ when
                 order.Entries
                 |> List.exists (fun row ->

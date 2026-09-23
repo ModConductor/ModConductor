@@ -33,8 +33,8 @@ class _Orders implements PluginOrderClient {
     reference,
     headers,
     const [
-      PluginSetting('Patch.esp', true, null, false),
-      PluginSetting('Weather.esp', true, null, false),
+      PluginSetting('Patch.esp', true, null, null),
+      PluginSetting('Weather.esp', true, null, null),
     ],
     const [],
     const [],

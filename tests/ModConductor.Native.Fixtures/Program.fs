@@ -109,6 +109,16 @@ let main args =
             writer.WriteEndObject()
             writer.Flush()
             0
+        elif args.Length = 2 && args[0] = "--game-view" then
+            use writer =
+                new Utf8JsonWriter(Console.OpenStandardOutput(), JsonWriterOptions(Indented = true))
+
+            writer.WriteStartObject()
+            writer.WriteBoolean("nativeAot", not RuntimeFeature.IsDynamicCodeSupported)
+            GameViewFixtures.observe writer args[1]
+            writer.WriteEndObject()
+            writer.Flush()
+            0
         elif args.Length = 2 && args[0] = "--bethesda-files" then
             BethesdaSamples.files args[1] |> Console.WriteLine
             0

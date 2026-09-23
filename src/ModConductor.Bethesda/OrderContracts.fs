@@ -11,9 +11,16 @@ type PluginOrder =
     { Document: byte array
       Entries: PluginSetting list }
 
+[<RequireQualifiedAccess>]
+type PluginRequirement =
+    | Engine
+    | SkyrimIni
+
 type PluginOrderFacts =
     { Early: string list
-      Forced: string list }
+      DefaultEnabled: string list
+      Required: (string * PluginRequirement) list
+      Implicit: string list }
 
 type PluginOrderIssue = { Name: string option; Detail: string }
 

@@ -15,7 +15,7 @@ module internal DeploymentContextId =
         writer.Flush()
         SHA256.HashData(bytes.GetBuffer().AsSpan(0, int bytes.Length))
 
-    let fingerprint (evidence: InstallationEvidence) =
+    let private fingerprintFor (marker: string) (evidence: InstallationEvidence) =
         encode (fun writer ->
             let identity =
                 function
@@ -35,13 +35,17 @@ module internal DeploymentContextId =
                     writer.Write value.Low
                     writer.Write value.High
 
-            writer.Write "mc-data-target-v1"
+            writer.Write marker
             writer.Write(GameId.value evidence.DefinitionId)
             writer.Write evidence.RootPath
             identity evidence.RootIdentity
             writer.Write(defaultArg evidence.DataPath "")
             identity evidence.DataIdentity)
         |> Convert.ToHexStringLower
+
+    let fingerprint evidence = fingerprintFor "mc-profile-game-view-v2" evidence
+
+    let legacyFingerprint evidence = fingerprintFor "mc-data-target-v1" evidence
 
     let create (workspace: Guid) (profile: Guid) (fingerprint: string) =
         let digest =

@@ -150,9 +150,16 @@ module GameLaunchFixtures =
                 GameLaunchProcessFixture.observe writer area checkedContext.Binding.Value.Evidence
                 let api = store.GameLaunching
 
+                let launchResult stage =
+                    function
+                    | Ok value -> value
+                    | Error(ExecutableError.Unavailable detail)
+                    | Error(ExecutableError.Invalid detail) -> invalidOp (stage + ": " + detail)
+                    | Error _ -> invalidOp (stage + " failed.")
+
                 let request profile =
                     let current = ws.Read(workspace, None) |> wait |> result
-                    let launch = api.Read(workspace, profile) |> wait |> result
+                    let launch = api.Read(workspace, profile) |> wait |> launchResult "Game launch read"
 
                     { Id = Guid.NewGuid()
                       WorkspaceId = workspace
@@ -161,7 +168,7 @@ module GameLaunchFixtures =
                       ContextRevision = launch.ContextRevision
                       SourceToken = launch.SourceToken }
 
-                let play request = api.Begin request |> wait |> result
+                let play request = api.Begin request |> wait |> launchResult "Game launch begin"
 
                 let finished id =
                     until store.Executables workspace id (fun value ->
@@ -188,6 +195,7 @@ module GameLaunchFixtures =
                     (run.RootExitCode = Some 0 && read () = "intended managed bytes Ω")
 
                 let active = store.Deployments.Read profile |> wait |> result
+                let managedTarget = Path.Combine(active.RunnableRoot, "Data", "Marker.TXT")
 
                 check
                     "runPinsCompletedDeployment"
@@ -201,7 +209,8 @@ module GameLaunchFixtures =
 
                 check
                     "normalExitLeavesDeployment"
-                    (File.ReadAllText target = "intended managed bytes Ω")
+                    (File.ReadAllText managedTarget = "intended managed bytes Ω"
+                     && File.ReadAllText target = "original base")
 
                 let replay = play first
 
@@ -231,7 +240,7 @@ module GameLaunchFixtures =
                     "staleRequestHasNoRunOrEffects"
                     (store.Executables.Read(workspace, stale.Id) |> wait = Error
                         ExecutableError.NotFound
-                     && File.ReadAllText target = "intended managed bytes Ω")
+                     && File.ReadAllText managedTarget = "intended managed bytes Ω")
 
                 let selected = InventoryObservations.read store profile
 
@@ -271,7 +280,7 @@ module GameLaunchFixtures =
                          && failed.RootExitCode.IsSome
                          && failed.RootExitCode <> Some 0
                          && captured.Files.IsSome
-                         && File.ReadAllText target = "intended managed bytes Ω")
+                         && File.ReadAllText managedTarget = "intended managed bytes Ω")
 
                     check
                         "failedReplayDoesNotLaunchAgain"
@@ -297,9 +306,10 @@ module GameLaunchFixtures =
                     "externalExitLeavesAppliedFiles"
                     (terminated.RootExitCode.IsSome
                      && terminated.RootExitCode <> Some 0
-                     && File.ReadAllText target = "intended managed bytes Ω")
+                     && File.ReadAllText managedTarget = "intended managed bytes Ω")
 
                 File.WriteAllText(Path.Combine(controls, "finish"), "finish")
+                File.WriteAllText(manifest, "manifest { version 2 commandline \"/proton %verb%\" }")
                 let current = ws.Read(workspace, None) |> wait |> result
 
                 let changed =
@@ -311,17 +321,33 @@ module GameLaunchFixtures =
                     |> wait
                     |> result
 
+                (store.GameContexts :> IGameContexts)
+                    .Save(
+                        workspace,
+                        emptyProfile,
+                        0L,
+                        { GameId = GameId.SkyrimSpecialEditionSteam
+                          Path = game
+                          Proton = Some proton }
+                    )
+                |> wait
+                |> result
+                |> ignore
+
                 ws.Edit(workspace, changed.Workspace.Revision, ProfileEdit.Select emptyProfile)
                 |> wait
                 |> result
                 |> ignore
 
                 let empty = play (request emptyProfile) |> fun value -> finished value.Id
+                let emptyView = store.Deployments.Read emptyProfile |> wait |> result
+                let emptyTarget = Path.Combine(emptyView.RunnableRoot, "Data", "Marker.TXT")
 
                 check
                     "emptySelectedProfileAppliesBase"
                     (empty.RootExitCode = Some 0
                      && read () = "original base"
+                     && File.ReadAllText emptyTarget = "original base"
                      && empty.ProfileId = Some emptyProfile)
 
                 check "oldRunKeepsItsPins" ((play first).Source = run.Source)
@@ -335,7 +361,7 @@ module GameLaunchFixtures =
 
                 check
                     "detachLeavesFilesAndChild"
-                    (detached.Phase = RunPhase.Detached && File.ReadAllText target = "original base")
+                    (detached.Phase = RunPhase.Detached && File.ReadAllText emptyTarget = "original base")
 
                 File.WriteAllText(Path.Combine(controls, "finish"), "finish")
                 store.CloseExecutables() |> wait

@@ -118,6 +118,161 @@ module internal DeploymentPreparation =
 
         List.ofSeq known
 
+    let private clearOwnedLinks
+        (recovery: Recovery)
+        (workspace: Location)
+        workspaceId
+        profileId
+        fingerprint
+        token
+        =
+        task {
+            let contextId =
+                DeploymentContextId.create
+                    workspaceId
+                    profileId
+                    fingerprint
+
+            let! legacy = recovery.Context contextId
+
+            match legacy with
+            | None -> ()
+            | Some context when context.Pending.IsSome ->
+                raise (RecoveryException RecoveryError.Busy)
+            | Some context when context.Links.IsEmpty -> ()
+            | Some context ->
+                // Switch the old owned in-place generation to an empty one through the
+                // existing recovery journal, restoring only its recorded originals.
+                let id = Guid.NewGuid()
+                let directory = child workspace (".mc-generation-" + id.ToString("N"))
+
+                let empty: Generation =
+                    { Id = id
+                      PlanFingerprint = "mc-legacy-game-view-cutover"
+                      Directory = directory
+                      Files = []
+                      References = []
+                      Writable = []
+                      Roots = context.Roots |> List.map _.Root
+                      Observed = []
+                      Working = []
+                      NativeTargets = Map.empty
+                      Provenance = None }
+
+                let request: SwitchRequest =
+                    { Id = id
+                      ContextId = contextId
+                      ContextFingerprint = fingerprint
+                      ExpectedRevision = context.Revision
+                      Roots = context.Roots
+                      Generation = empty
+                      DirectoryBoundaries = []
+                      PreserveOriginals = []
+                      ExpectedSources = None }
+
+                let! started = recovery.Start(request, cancellation = token)
+                let receipt = started |> Result.defaultWith (fun error -> raise (RecoveryException error))
+                let! completed = recovery.Run(id, receipt.Revision, false, token, (fun _ _ -> ()))
+                completed |> Result.defaultWith (fun error -> raise (RecoveryException error)) |> ignore
+        }
+
+    let private clearPreviousViews
+        (database: StateDatabase)
+        (recovery: Recovery)
+        (workspace: Location)
+        workspaceId
+        profileId
+        currentId
+        token
+        =
+        task {
+            let gamePath = GameViews.rootPath workspace.Path profileId
+
+            let! previous =
+                database.Enqueue(fun () ->
+                    use query =
+                        Sqlite.command
+                            database.Connection
+                            null
+                            "SELECT id FROM deployment_contexts WHERE id<>$current"
+                            [ "$current", box (string currentId) ]
+
+                    use reader = query.ExecuteReader()
+                    let ids = [ while reader.Read() do yield Guid.Parse(reader.GetString 0) ]
+                    reader.Close()
+
+                    ids
+                    |> List.choose (fun id ->
+                        DeploymentRows.context database.Connection null id
+                        |> Option.filter (fun context ->
+                            context.Roots
+                            |> List.exists (fun root ->
+                                String.Equals(
+                                    HostPath.value root.Directory.Path,
+                                    gamePath,
+                                    StringComparison.OrdinalIgnoreCase
+                                )))
+                        |> Option.map _.Fingerprint))
+
+            for fingerprint in previous do
+                do!
+                    clearOwnedLinks
+                        recovery
+                        workspace
+                        workspaceId
+                        profileId
+                        fingerprint
+                        token
+        }
+
+    let retireProfile
+        (database: StateDatabase)
+        (recovery: Recovery)
+        (workspace: Location)
+        workspaceId
+        profileId
+        (evidence: ModConductor.GameContexts.InstallationEvidence)
+        token
+        =
+        task {
+            GameProcesses.checkWithRoot
+                evidence
+                (Some(GameViews.rootPath workspace.Path profileId))
+
+            let! owned =
+                database.Enqueue(fun () ->
+                    use query = Sqlite.command database.Connection null "SELECT id FROM deployment_contexts" []
+                    use reader = query.ExecuteReader()
+                    let ids = [ while reader.Read() do yield Guid.Parse(reader.GetString 0) ]
+                    reader.Close()
+
+                    ids
+                    |> List.choose (fun id ->
+                        DeploymentRows.context database.Connection null id
+                        |> Option.filter (fun context ->
+                            DeploymentContextId.create workspaceId profileId context.Fingerprint = id)))
+
+            for context in owned do
+                for root in context.Roots do
+                    let path = HostPath.value root.Directory.Path
+                    let gameRoot =
+                        if String.Equals(System.IO.Path.GetFileName path, "Data", StringComparison.OrdinalIgnoreCase) then
+                            System.IO.Path.GetDirectoryName path
+                        else path
+                    GameProcesses.checkWithRoot evidence (Some gameRoot)
+
+                do!
+                    clearOwnedLinks
+                        recovery
+                        workspace
+                        workspaceId
+                        profileId
+                        context.Fingerprint
+                        token
+
+            GameViews.removeOwned workspace profileId
+        }
+
     let private prepareWith
         componentMode
         (components: ReviewedComponent list)
@@ -132,10 +287,14 @@ module internal DeploymentPreparation =
         existing
         gameFolderOnly
         retainedProfile
+        retainedGeneration
         progress
         token
         =
         task {
+            let! components =
+                ComponentRoutes.read database sources existing components retainedProfile retainedGeneration
+
             let duplicateComponent =
                 components
                 |> List.groupBy _.Mod.ModId
@@ -150,7 +309,27 @@ module internal DeploymentPreparation =
             if duplicateComponent || duplicateWritable then
                 raise (RecoveryException RecoveryError.InvalidPlan)
 
-            let evidence = GameProcesses.validate sources.Context
+            let evidence = GameProcesses.validateContext sources.Context
+
+            let! root = access.Root sources.Stamp.WorkspaceId
+            let workspace = required root
+
+            let workspaceLocation: Location =
+                { Path = workspace.Path
+                  Identity = workspace.Identity }
+
+            GameProcesses.checkWithRoot
+                evidence
+                (Some(GameViews.rootPath workspace.Path sources.Stamp.ProfileId))
+
+            do!
+                clearOwnedLinks
+                    recovery
+                    workspaceLocation
+                    sources.Stamp.WorkspaceId
+                    sources.Stamp.ProfileId
+                    (DeploymentContextId.legacyFingerprint evidence)
+                    token
 
             let ownership = DeploymentContextId.fingerprint evidence
             let contextId =
@@ -158,6 +337,16 @@ module internal DeploymentPreparation =
                     sources.Stamp.WorkspaceId
                     sources.Stamp.ProfileId
                     ownership
+
+            do!
+                clearPreviousViews
+                    database
+                    recovery
+                    workspaceLocation
+                    sources.Stamp.WorkspaceId
+                    sources.Stamp.ProfileId
+                    contextId
+                    token
 
             let! acquired =
                 (plans :> IFilePlans)
@@ -194,43 +383,47 @@ module internal DeploymentPreparation =
                 plans.Observation summary.Id
                 |> Option.defaultWith (fun () -> raise (RecoveryException RecoveryError.Stale))
 
-            let! root = access.Root sources.Stamp.WorkspaceId
-            let workspace = required root
-
-            let workspaceLocation: Location =
-                { Path = workspace.Path
-                  Identity = workspace.Identity }
-
-            let target: Location =
+            let sourceData: Location =
                 { Path = observation.Root
                   Identity = observation.Identity }
 
-            let game: Location =
+            let sourceGame: Location =
                 { Path = HostPath.create evidence.RootPath |> Result.defaultWith invalidOp
                   Identity = evidence.RootIdentity.Value }
 
             let gameRoot =
-                if not componentMode then
-                    None
-                else
-                    let expected =
-                        ModConductor.GameContexts.ComponentRoots.gameRootId
-                            sources.Stamp.WorkspaceId
-                            evidence
-                        |> Result.defaultWith (fun text -> raise (System.IO.IOException text))
+                ModConductor.GameContexts.ComponentRoots.gameRootId
+                    sources.Stamp.WorkspaceId
+                    evidence
+                |> Result.defaultWith (fun text -> raise (System.IO.IOException text))
 
-                    if
-                        components |> List.exists (fun reviewed -> reviewed.GameRoot <> expected)
-                    then
-                        raise (RecoveryException RecoveryError.InvalidPlan)
+            if components |> List.exists (fun reviewed -> reviewed.GameRoot <> gameRoot) then
+                raise (RecoveryException RecoveryError.InvalidPlan)
 
-                    Some expected
+            let game, target, originals =
+                GameViews.ensure workspaceLocation sources.Stamp.ProfileId
+
+            let rootSource = GameViews.rootSource sourceGame gameRoot token
+
+            let! privateScope =
+                (ProfileDataRepository(database, access) :> ModConductor.ProfileGameData.IProfileDataRepository)
+                    .Read(sources.Stamp.WorkspaceId, sources.Stamp.ProfileId)
+
+            privateScope.Availability
+            |> Option.iter (fun detail ->
+                raise (RecoveryException(RecoveryError.Unavailable detail)))
+
+            let excluded, ownedFiles =
+                GameViews.selection
+                    sourceGame
+                    observation.Snapshot.Files
+                    (privateScope.Profile |> Option.bind _.PluginOrder)
+                    sources.Stamp.WorkspaceId
+                    gameRoot
+                    token
 
             let expectedLocations =
-                [ yield sources.Stamp.WorkspaceId, target
-                  match gameRoot with
-                  | Some id -> yield id, game
-                  | None -> () ]
+                [ sources.Stamp.WorkspaceId, target; gameRoot, game ]
 
             let mutable originalStorage: PreparedOriginalStorage option = None
             let mutable retainOriginalStorage = false
@@ -257,11 +450,6 @@ module internal DeploymentPreparation =
 
                     context.Roots
                 | None ->
-                    let originals =
-                        child game (".modconductor-originals-" + Guid.NewGuid().ToString("N"))
-
-                    originalStorage <- Some { Parent = game; Directory = originals }
-
                     expectedLocations
                     |> List.map (fun (root, directory) ->
                         { Root =
@@ -311,13 +499,16 @@ module internal DeploymentPreparation =
                   Storage = storage
                   SecondaryStorage = secondary
                   Roots = roots
+                  LinkedBase = true
+                  Excluded = excluded
+                  OwnedFiles = ownedFiles
                   Working = working
                   Previous = previous
                   Processes = [] }
 
             let snapshot: SnapshotSource =
                 { Snapshot = observation.Snapshot
-                  Directory = target
+                  Directory = sourceData
                   Files =
                     observation.Entries
                     |> List.filter (fun entry -> not entry.Directory)
@@ -329,7 +520,7 @@ module internal DeploymentPreparation =
                 generations.Build(
                     request,
                     sources.Stamp.ProfileId,
-                    [ snapshot ],
+                    [ snapshot; rootSource ],
                     writable,
                     token,
                     (fun location -> GenerationStorage.available location.Path location.Identity),
@@ -485,6 +676,8 @@ module internal DeploymentPreparation =
             return
                 { View = view
                   Context = sources.Context
+                  PluginSelectionRevision =
+                    privateScope.Profile |> Option.map _.Revision |> Option.defaultValue 0L
                   Switch = switch
                   OriginalStorage = originalStorage }
         }
@@ -500,6 +693,7 @@ module internal DeploymentPreparation =
         existing
         gameFolderOnly
         retainedProfile
+        retainedGeneration
         progress
         token
         =
@@ -516,6 +710,7 @@ module internal DeploymentPreparation =
             existing
             gameFolderOnly
             retainedProfile
+            retainedGeneration
             progress
             token
 
@@ -546,5 +741,6 @@ module internal DeploymentPreparation =
             existing
             false
             retainedProfile
+            None
             progress
             token

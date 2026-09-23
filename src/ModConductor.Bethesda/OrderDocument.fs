@@ -54,8 +54,8 @@ module OrderDocument =
         && not (name.StartsWith('#') || name.StartsWith('*'))
         && PluginText.encode name |> Option.isSome
 
-    let write (early: string list) (order: PluginOrder) =
-        let implicit = HashSet<string>(early, StringComparer.OrdinalIgnoreCase)
+    let write (implicitNames: string list) (order: PluginOrder) =
+        let implicit = HashSet<string>(implicitNames, StringComparer.OrdinalIgnoreCase)
 
         let known =
             HashSet<string>(order.Entries |> Seq.map _.Name, StringComparer.OrdinalIgnoreCase)

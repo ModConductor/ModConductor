@@ -54,6 +54,7 @@ type SavedDeploymentPage =
 
 type DeploymentStatus =
     { WorkspaceId: Guid
+      RunnableRoot: string
       Revision: int64
       ActiveGeneration: Guid option
       Active: SavedDeployment option
@@ -134,15 +135,28 @@ type IDeploymentBackend =
 type internal PreparedState =
     { View: PreparedDeployment
       Context: GameContextState
+      PluginSelectionRevision: int64
       Switch: SwitchRequest
       OriginalStorage: PreparedOriginalStorage option }
 
 module internal PreparedState =
     let abandon value =
+        if
+            value.Switch.Roots.Length = 2
+            && value.Switch.Roots
+               |> List.exists (fun root ->
+                   (ModConductor.Platform.HostPath.value root.Directory.Path).Contains(
+                       ".mc-game-views",
+                       StringComparison.Ordinal
+                   ))
+        then
+            ModConductor.DeploymentGenerations.GenerationFiles.removeOwned value.Switch.Generation
+
         value.OriginalStorage |> Option.iter Preparation.abandonOriginalStorage
 
 type internal IDeploymentRepository =
     abstract Read: Guid -> Task<PlanSources * Context option>
+    abstract RunnableRoot: Guid * Guid -> Task<string>
     abstract Saved: Guid * Guid option * int64 option -> Task<SavedDeploymentPage>
     abstract SavedOne: Guid * Guid -> Task<SavedDeployment option>
 

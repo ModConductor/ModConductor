@@ -126,7 +126,7 @@ type OperationStore
         )
 
     let profileMutations =
-        ProfileDataMutations(database, modLibrary.Access, deploymentBackend.TryAcquireWorkspace)
+        ProfileDataMutations(database, modLibrary.Access, deployment, deploymentBackend.TryAcquireWorkspace)
 
     let workspaces =
         WorkspaceStateStore(
@@ -373,6 +373,9 @@ type OperationStore
         profileGameData :> ModConductor.ProfileGameData.IProfilePluginOrders
 
     member _.Loot = loot :> ModConductor.Loot.ILootSorting
+
+    member internal _.LootProjectionForFixture(order, token) =
+        loot.ProjectionForFixture(order, token)
 
     member internal _.LootForFixture(helperPath, validator) =
         ModConductor.Loot.LootSession(

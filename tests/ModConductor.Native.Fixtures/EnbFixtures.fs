@@ -1012,6 +1012,7 @@ module EnbFixtures =
             |> wait
 
         let installedState = store.Deployments.Read profile |> wait |> result
+        let viewRoot = installedState.RunnableRoot
 
         let installedComponents =
             store.EnbSetups.Components(workspace, profile, installedState.ActiveGeneration)
@@ -1021,8 +1022,9 @@ module EnbFixtures =
 
         let installedEndToEnd =
             installedState.ActiveGeneration = Some installedGeneration
-            && File.Exists(Path.Combine(game, "d3d11.dll"))
-            && File.Exists(Path.Combine(game, "Data", "Cathedral Weathers.esp"))
+            && File.Exists(Path.Combine(viewRoot, "d3d11.dll"))
+            && File.Exists(Path.Combine(viewRoot, "Data", "Cathedral Weathers.esp"))
+            && not (File.Exists(Path.Combine(game, "d3d11.dll")))
             && File.ReadAllText(prefs).Contains("bSAOEnable=0")
             && launch.Problem.IsNone
             && installedComponents.Length = 3
@@ -1034,11 +1036,11 @@ module EnbFixtures =
             installedState.ActiveGeneration = Some installedGeneration
         )
 
-        writer.WriteBoolean("setupRootDll", File.Exists(Path.Combine(game, "d3d11.dll")))
+        writer.WriteBoolean("setupRootDll", File.Exists(Path.Combine(viewRoot, "d3d11.dll")))
 
         writer.WriteBoolean(
             "setupDataCompanion",
-            File.Exists(Path.Combine(game, "Data", "Cathedral Weathers.esp"))
+            File.Exists(Path.Combine(viewRoot, "Data", "Cathedral Weathers.esp"))
         )
 
         writer.WriteBoolean("setupConfiguration", File.ReadAllText(prefs).Contains("bSAOEnable=0"))
@@ -1096,7 +1098,7 @@ module EnbFixtures =
 
         let removedEndToEnd =
             removedState.ActiveGeneration <> Some installedGeneration
-            && not (File.Exists(Path.Combine(game, "d3d11.dll")))
+            && not (File.Exists(Path.Combine(viewRoot, "d3d11.dll")))
             && File.ReadAllText(currentPrefs ()).Contains("bSAOEnable=1")
 
         check
@@ -1229,8 +1231,8 @@ module EnbFixtures =
             "runtimeOnlyRemovalKeepsPresetAndCompanion"
             (retainedBefore.Length = 2
              && (retainedAfter |> List.map _.ModId) = (retainedBefore |> List.map _.ModId)
-             && not (File.Exists(Path.Combine(game, "d3d11.dll")))
-             && File.Exists(Path.Combine(game, "Data", "Cathedral Weathers.esp")))
+             && not (File.Exists(Path.Combine(viewRoot, "d3d11.dll")))
+             && File.Exists(Path.Combine(viewRoot, "Data", "Cathedral Weathers.esp")))
 
         let runtimeRow =
             { EnbCatalogue.lean with

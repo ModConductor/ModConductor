@@ -56,13 +56,15 @@
     <Compile Include="DeploymentProjection.fs" />
     <Compile Include="FilePlanRepository.fs" />
     <Compile Include="ProfileDataRepository.fs" />
-    <Compile Include="ProfileDataMutations.fs" />
     <Compile Include="GenerationProfile.fs" />
     <Compile Include="GenerationSources.fs" />
     <Compile Include="DeploymentGenerationStore.fs" />
     <Compile Include="SavedDeployments.fs" />
     <Compile Include="DeploymentOutputs.fs" />
+    <Compile Include="ComponentRoutes.fs" />
+    <Compile Include="GameViews.fs" />
     <Compile Include="DeploymentPreparation.fs" />
+    <Compile Include="ProfileDataMutations.fs" />
     <Compile Include="DeploymentBackendRepository.fs" />
     <Compile Include="ExecutableEncoding.fs" />
     <Compile Include="GameRunAdmission.fs" />

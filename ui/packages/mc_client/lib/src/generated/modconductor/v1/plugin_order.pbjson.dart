@@ -15,6 +15,22 @@ import 'dart:convert' as $convert;
 import 'dart:core' as $core;
 import 'dart:typed_data' as $typed_data;
 
+@$core.Deprecated('Use pluginRequiredReasonDescriptor instead')
+const PluginRequiredReason$json = {
+  '1': 'PluginRequiredReason',
+  '2': [
+    {'1': 'PLUGIN_REQUIRED_REASON_UNSPECIFIED', '2': 0},
+    {'1': 'PLUGIN_REQUIRED_REASON_ENGINE', '2': 1},
+    {'1': 'PLUGIN_REQUIRED_REASON_SKYRIM_INI', '2': 2},
+  ],
+};
+
+/// Descriptor for `PluginRequiredReason`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List pluginRequiredReasonDescriptor = $convert.base64Decode(
+    'ChRQbHVnaW5SZXF1aXJlZFJlYXNvbhImCiJQTFVHSU5fUkVRVUlSRURfUkVBU09OX1VOU1BFQ0'
+    'lGSUVEEAASIQodUExVR0lOX1JFUVVJUkVEX1JFQVNPTl9FTkdJTkUQARIlCiFQTFVHSU5fUkVR'
+    'VUlSRURfUkVBU09OX1NLWVJJTV9JTkkQAg==');
+
 @$core.Deprecated('Use readPluginOrderRequestDescriptor instead')
 const ReadPluginOrderRequest$json = {
   '1': 'ReadPluginOrderRequest',
@@ -55,6 +71,14 @@ const PluginOrderSetting$json = {
       '17': true
     },
     {'1': 'required', '3': 4, '4': 1, '5': 8, '10': 'required'},
+    {
+      '1': 'required_reason',
+      '3': 5,
+      '4': 1,
+      '5': 14,
+      '6': '.modconductor.v1.PluginRequiredReason',
+      '10': 'requiredReason'
+    },
   ],
   '8': [
     {'1': '_enabled'},
@@ -66,8 +90,9 @@ const PluginOrderSetting$json = {
 final $typed_data.Uint8List pluginOrderSettingDescriptor = $convert.base64Decode(
     'ChJQbHVnaW5PcmRlclNldHRpbmcSEgoEbmFtZRgBIAEoCVIEbmFtZRIdCgdlbmFibGVkGAIgAS'
     'gISABSB2VuYWJsZWSIAQESJgoMbG9ja2VkX2luZGV4GAMgASgFSAFSC2xvY2tlZEluZGV4iAEB'
-    'EhoKCHJlcXVpcmVkGAQgASgIUghyZXF1aXJlZEIKCghfZW5hYmxlZEIPCg1fbG9ja2VkX2luZG'
-    'V4');
+    'EhoKCHJlcXVpcmVkGAQgASgIUghyZXF1aXJlZBJOCg9yZXF1aXJlZF9yZWFzb24YBSABKA4yJS'
+    '5tb2Rjb25kdWN0b3IudjEuUGx1Z2luUmVxdWlyZWRSZWFzb25SDnJlcXVpcmVkUmVhc29uQgoK'
+    'CF9lbmFibGVkQg8KDV9sb2NrZWRfaW5kZXg=');
 
 @$core.Deprecated('Use pluginOrderIssueDescriptor instead')
 const PluginOrderIssue$json = {

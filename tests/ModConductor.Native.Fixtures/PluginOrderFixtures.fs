@@ -13,7 +13,18 @@ open ModConductor.Persistence
 
 module PluginOrderFixtures =
     let private wait = StorageWorker.wait
-    let private result = StorageWorker.result
+    let private result value =
+        value
+        |> Result.defaultWith (fun error ->
+            let detail =
+                match box error with
+                | :? ModConductor.FilePlanning.FilePlanError as value ->
+                    match value with
+                    | ModConductor.FilePlanning.FilePlanError.ContextUnavailable text -> text
+                    | _ -> string value
+                | _ -> string error
+
+            invalidOp ("Plugin order fixture request: " + detail))
     let private token = CancellationToken.None
 
     let observe (writer: Utf8JsonWriter) primary =
@@ -195,7 +206,7 @@ module PluginOrderFixtures =
         let retainedOriginal = File.ReadAllBytes file
         view <- read first view.Headers
 
-        let refusedFirst =
+        let appliedFirst =
             store.ApplyProfileDataAtCheckpoint(
                 Guid.NewGuid(),
                 workspace,
@@ -207,12 +218,13 @@ module PluginOrderFixtures =
             |> wait
 
         check
-            "firstApplicationMismatchDoesNotClaimReceipt"
+            "gameListRewriteDoesNotDiscardSavedSelection"
             (view.ExternalChanged
-             && Result.isError refusedFirst
+             && Result.isOk appliedFirst
              && (store.ProfileGameData.Read(workspace, first) |> wait |> result).Pending.IsNone
-             && File.ReadAllBytes(file) = retainedOriginal)
+             && File.ReadAllBytes(file) <> retainedOriginal)
 
+        view <- read first view.Headers
         view <-
             store.PluginOrders.UseGameOrder(view.Reference, view.Headers.Id)
             |> wait
@@ -268,6 +280,8 @@ module PluginOrderFixtures =
         let contexts = store.GameContexts :> IGameContexts
         let reloaded = contexts.Read(workspace, first) |> wait |> result
         contexts.Refresh(workspace, first, reloaded.Revision) |> wait |> result |> ignore
+        let reloadedOther = contexts.Read(workspace, second) |> wait |> result
+        contexts.Refresh(workspace, second, reloadedOther.Revision) |> wait |> result |> ignore
         let pending = store.ProfileGameData.Read(workspace, first) |> wait |> result
 
         let resumed =

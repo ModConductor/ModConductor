@@ -11,7 +11,6 @@ open System.Threading.Tasks
 open ModConductor.ArtifactLibrary
 open ModConductor.Credentials
 open ModConductor.Deployment
-open ModConductor.DeploymentRecovery
 open ModConductor.Engine
 open ModConductor.Executables
 open ModConductor.GameContexts
@@ -34,17 +33,6 @@ module SkseCoordinatorFixtures =
 
         if not value then
             failwith ("SKSE coordinator fixture failed: " + name)
-
-    let private recoveryError =
-        function
-        | RecoveryError.NotFound -> "not found"
-        | RecoveryError.Busy -> "busy"
-        | RecoveryError.Stale -> "stale"
-        | RecoveryError.InvalidPlan -> "invalid plan"
-        | RecoveryError.Limit -> "limit"
-        | RecoveryError.Mismatch detail -> "mismatch: " + detail
-        | RecoveryError.Corrupt detail -> "corrupt: " + detail
-        | RecoveryError.Unavailable detail -> "unavailable: " + detail
 
     let private until label read predicate =
         let deadline = DateTime.UtcNow.AddSeconds 30.
@@ -600,15 +588,6 @@ module SkseCoordinatorFixtures =
 
         let deployed = store.Deployments.Read profile |> wait |> result
 
-        let activeReceipt =
-            store.Deployment.Read(installedUpdate.Active.Value) |> wait |> Option.get
-
-        let context =
-            store.Deployment.Context(activeReceipt.Context.Id) |> wait |> Option.get
-
-        let retained =
-            store.Deployment.Generation(context.Id, initialGeneration) |> wait |> Option.get
-
         let targetLoader =
             store.SkseLoaders.ReadStored(workspace, profile, Some initialGeneration)
             |> wait
@@ -626,50 +605,33 @@ module SkseCoordinatorFixtures =
             operation,
             selectionRevision,
             Some activeLoader.ModId,
-            targetLoader,
+            { targetLoader with Loader = { targetLoader.Loader with GenerationId = operation } },
             workspace,
             profile
         )
         |> wait
 
-        let request: SwitchRequest =
-            { Id = operation
-              ContextId = context.Id
-              ContextFingerprint = context.Fingerprint
-              ExpectedRevision = context.Revision
-              Roots = context.Roots
-              Generation = retained
-              DirectoryBoundaries =
-                context.Links
-                |> List.filter (fun link -> link.Spec.Directory)
-                |> List.map _.Target
-              PreserveOriginals = context.Originals |> List.map _.Target
-              ExpectedSources = Some deployed.Sources }
-
-        let rollbackReceipt =
-            store.Generations.Start(request, [])
+        let prepared =
+            store.Deployments.PrepareRetained(
+                operation,
+                deployed.Sources,
+                Some initialGeneration,
+                ignore,
+                CancellationToken.None
+            )
             |> wait
-            |> Result.defaultWith (fun error ->
-                failwith ("retained activation start: " + recoveryError error))
+            |> result
 
-        store.Generations.Run(
-            rollbackReceipt.Id,
-            rollbackReceipt.Revision,
-            false,
-            CancellationToken.None,
-            (fun _ _ -> ()),
-            []
-        )
-        |> wait
-        |> Result.defaultWith (fun error ->
-            failwith ("retained activation run: " + recoveryError error))
-        |> ignore
+        let restored =
+            store.Deployments.Activate(prepared.Id, prepared.Sources, ignore, CancellationToken.None)
+            |> wait
+            |> result
 
         let preservedSetup = snapshot store workspace profile
 
         if
             installedUpdate.Active = Some initialGeneration
-            || preservedSetup.Active <> Some initialGeneration
+            || preservedSetup.Active <> Some restored.Proposed
         then
             failwith "The retained SKSE generation was not activated."
 
@@ -888,24 +850,25 @@ module SkseCoordinatorFixtures =
         let launchUsesLoader =
             match finished.Source with
             | RunSource.Game gameRun ->
-                if OperatingSystem.IsLinux() then
-                    (gameRun.Launch.Arguments |> List.tryLast) = (selected
-                                                                  |> Option.map (fun value ->
-                                                                      value.Loader.Executable))
-                else
+                let selectedPath =
                     selected
-                    |> Option.exists (fun value ->
-                        gameRun.Launch.Executable = value.Loader.Executable)
+                    |> Option.map (fun value ->
+                        Path.Combine(active.RunnableRoot, Path.GetFileName value.Loader.Executable))
+
+                if OperatingSystem.IsLinux() then
+                    (gameRun.Launch.Arguments |> List.tryLast) = selectedPath
+                else
+                    selectedPath = Some gameRun.Launch.Executable
             | _ -> false
 
         check
             writer
-            "retainedGenerationRollbackRestoresLoaderAfterRestart"
-            (active.ActiveGeneration = Some initialGeneration
+            "savedGenerationRestoreRebuildsLoaderAfterRestart"
+            (active.ActiveGeneration = Some restored.Proposed
              && ordinary.Problem.IsNone
              && selected
                 |> Option.exists (fun value ->
-                    value.Loader.GenerationId = initialGeneration
+                    value.Loader.GenerationId = restored.Proposed
                     && value.Loader.ComponentVersion = "2.2.0"
                     && value.Loader.RuntimeVersion = runtime)
              && restoredEnabled.Contains targetLoader.ModId

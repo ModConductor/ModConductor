@@ -57,12 +57,20 @@ module internal GameProcesses =
         else
             None
 
-    let check (evidence: InstallationEvidence) =
-        let names = [ Skyrim.definition.Executable; Skyrim.definition.Launcher ]
+    let checkWithRoot (evidence: InstallationEvidence) (runnableRoot: string option) =
+        let names =
+            [ Skyrim.definition.Executable
+              Skyrim.definition.Launcher
+              "skse64_loader.exe" ]
 
         let targets =
             (evidence.Executable |> Option.map _.Path |> Option.toList)
             @ (evidence.LauncherPath |> Option.toList)
+            @ (runnableRoot
+               |> Option.map (fun root ->
+                   [ Skyrim.definition.Executable; Skyrim.definition.Launcher; "skse64_loader.exe" ]
+                   |> List.map (fun name -> Path.Combine(root, name)))
+               |> Option.defaultValue [])
 
         for running in GameProcessObservation.read names do
             let paths =
@@ -95,6 +103,8 @@ module internal GameProcesses =
                     IOException
                         "A game process could not be excluded from this installation. Stop it before deployment."
                 )
+
+    let check evidence = checkWithRoot evidence None
 
     let validateContext (state: GameContextState) =
         match state.Binding with

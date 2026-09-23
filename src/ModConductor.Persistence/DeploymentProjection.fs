@@ -27,17 +27,28 @@ module internal DeploymentProjection =
                     expected.WorkspaceId
                     expected.ProfileId
 
-            let id =
+            let context =
                 selected
                 |> Result.toOption
                 |> Option.bind _.Binding
-                |> Option.map (fun binding ->
-                    ModConductor.Deployment.DeploymentContextId.create
-                        expected.WorkspaceId
-                        expected.ProfileId
-                        (ModConductor.Deployment.DeploymentContextId.fingerprint binding.Evidence))
+                |> Option.bind (fun binding ->
+                    let id fingerprint =
+                        ModConductor.Deployment.DeploymentContextId.create
+                            expected.WorkspaceId
+                            expected.ProfileId
+                            fingerprint
 
-            match id |> Option.bind (DeploymentRows.context connection transaction) with
+                    let current =
+                        ModConductor.Deployment.DeploymentContextId.fingerprint binding.Evidence
+                        |> id
+
+                    DeploymentRows.context connection transaction current
+                    |> Option.orElseWith (fun () ->
+                        ModConductor.Deployment.DeploymentContextId.legacyFingerprint binding.Evidence
+                        |> id
+                        |> DeploymentRows.context connection transaction))
+
+            match context with
             | None -> Ok GameProjection.empty
             | Some context when context.Pending.IsSome -> Error FilePlanError.Blocked
             | Some context ->
@@ -58,6 +69,14 @@ module internal DeploymentProjection =
                         |> List.tryFind (fun root -> root.Root.Id = expected.WorkspaceId)
 
                     match evidence, root with
+                    | Some _, Some root when
+                        (HostPath.value root.Directory.Path).Contains(
+                            ".mc-game-views",
+                            StringComparison.Ordinal
+                        ) ->
+                        // The selected installation is a source. Managed links live in the
+                        // separate profile root and must not enter its source inventory.
+                        Ok GameProjection.empty
                     | Some evidence, Some root when
                         evidence.DataIdentity = Some root.Directory.Identity
                         && evidence.DataPath = Some(HostPath.value root.Directory.Path)

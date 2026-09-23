@@ -16,6 +16,17 @@ type internal DeploymentBackendRepository
         generations: DeploymentGenerationStore
     ) =
     interface IDeploymentRepository with
+        member _.RunnableRoot(workspace, profile) =
+            task {
+                let! root = access.Root workspace
+
+                return
+                    root
+                    |> Result.map (fun value -> GameViews.rootPath value.Path profile)
+                    |> Result.defaultWith (fun _ ->
+                        raise (RecoveryException RecoveryError.NotFound))
+            }
+
         member _.Read profile =
             database.Enqueue(fun () ->
                 use transaction = database.Connection.BeginTransaction(deferred = true)
@@ -37,38 +48,6 @@ type internal DeploymentBackendRepository
 
                         DeploymentRows.context database.Connection transaction id)
 
-                if
-                    context
-                    |> Option.exists (fun context ->
-                        let evidence = sources.Context.Binding.Value.Evidence
-
-                        let matches id path identity =
-                            context.Roots
-                            |> List.tryFind (fun root -> root.Root.Id = id)
-                            |> Option.exists (fun root ->
-                                HostPath.value root.Directory.Path = path
-                                && root.Directory.Identity = identity)
-
-                        let dataMatches =
-                            match evidence.DataPath, evidence.DataIdentity with
-                            | Some path, Some identity ->
-                                matches sources.Stamp.WorkspaceId path identity
-                            | _ -> false
-
-                        let gameMatches =
-                            if context.Roots.Length = 1 then
-                                true
-                            else
-                                ComponentRoots.gameRootId sources.Stamp.WorkspaceId evidence
-                                |> Result.exists (fun id ->
-                                    matches id evidence.RootPath evidence.RootIdentity.Value)
-
-                        not dataMatches
-                        || not gameMatches
-                        || (context.Roots.Length <> 1 && context.Roots.Length <> 2))
-                then
-                    raise (RecoveryException RecoveryError.Stale)
-
                 transaction.Commit()
                 sources, context)
 
@@ -83,6 +62,7 @@ type internal DeploymentBackendRepository
                 sources
                 existing
                 false
+                None
                 None
                 progress
                 token
@@ -102,6 +82,7 @@ type internal DeploymentBackendRepository
                             sources
                             (Some context)
                             true
+                            None
                             None
                             progress
                             token
@@ -147,6 +128,7 @@ type internal DeploymentBackendRepository
                             (Some context)
                             provenance.Profile.IsNone
                             provenance.Profile
+                            (Some generationId)
                             progress
                             token
             }
@@ -211,7 +193,19 @@ type internal DeploymentBackendRepository
                     | _ -> raise (RecoveryException RecoveryError.NotFound))
 
         member _.Start(prepared, token) =
-            generations.Start(prepared, [], cancellation = token)
+            task {
+                let! scope =
+                    (ProfileDataRepository(database, access) :> ModConductor.ProfileGameData.IProfileDataRepository)
+                        .Read(prepared.View.WorkspaceId, prepared.View.Sources.ProfileId)
+
+                if
+                    (scope.Profile |> Option.map _.Revision |> Option.defaultValue 0L)
+                    <> prepared.PluginSelectionRevision
+                then
+                    return Error RecoveryError.Stale
+                else
+                    return! generations.Start(prepared, [], cancellation = token)
+            }
 
         member _.Run(id, revision, restore, token, checkpoint) =
             generations.Run(id, revision, restore, token, checkpoint, [])

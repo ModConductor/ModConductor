@@ -196,8 +196,16 @@ module LootFixtures =
         let loot = store.LootForFixture(helper, validator)
         let headers = store.Plugins.Scan(profile, CancellationToken.None) |> wait |> result
 
-        let order =
+        let initial =
             store.PluginOrders.Read(workspace, profile, headers.Id) |> wait |> result
+
+        let order =
+            store.PluginOrders.Change(
+                initial.Reference,
+                headers.Id,
+                PluginOrderChange.Enable([ "Dawnguard.esm" ], false)
+            )
+            |> wait |> result
 
         let proposal =
             loot.Preview(order, CancellationToken.None)
@@ -223,6 +231,13 @@ module LootFixtures =
                 proposal.Sorted |> List.map _.ToUpperInvariant()
             ))
 
+        check
+            "disabledOfficialRemainsOutsideLootMoves"
+            (proposal.Current |> List.contains "Dawnguard.esm"
+             && proposal.Moves |> List.exists (fun move ->
+                 move.Plugin.Equals("Dawnguard.esm", StringComparison.OrdinalIgnoreCase)) |> not
+             && position "Dawnguard.esm" proposal.Current = position "Dawnguard.esm" proposal.Sorted)
+
         let sorted =
             loot.ValidateApply(proposal.Id, proposal.Expected, proposal.HeadersId) |> result
 
@@ -236,6 +251,9 @@ module LootFixtures =
         check
             "explicitApplyChangesOnlySavedOrder"
             (saved.Saved
+             && (saved.View.Order.Entries
+                 |> List.find (fun row -> row.Name = "Dawnguard.esm")
+                 |> _.Enabled) = Some false
              && position patch (saved.View.Order.Entries |> List.map _.Name) < position
                  "NeedsPatch.esp"
                  (saved.View.Order.Entries |> List.map _.Name)

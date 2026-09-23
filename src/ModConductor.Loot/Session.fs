@@ -125,7 +125,7 @@ type LootSession
 
                     let mutable total = 0L
 
-                    for setting in value.View.Order.Entries do
+                    for setting in value.View.Order.Entries |> List.filter (fun row -> row.Enabled = Some true) do
                         token.ThrowIfCancellationRequested()
 
                         if not (validPluginName setting.Name) then
@@ -175,8 +175,27 @@ type LootSession
                                                 "The LOOT projection exceeds its 32 GiB byte limit."
                                         )
 
-                    let bytes = OrderDocument.write value.Facts.Early value.View.Order
+                    let bytes = OrderDocument.write value.Facts.Implicit value.View.Order
                     File.WriteAllBytes(Path.Combine(local, "Plugins.txt"), bytes)
+
+                    let enabled =
+                        value.View.Order.Entries
+                        |> List.filter (fun row -> row.Enabled = Some true)
+                        |> List.map _.Name
+
+                    let creation =
+                        value.Facts.Early
+                        |> List.filter (fun name ->
+                            not (OrderRules.baseFiles |> List.exists (fun baseName ->
+                                baseName.Equals(name, StringComparison.OrdinalIgnoreCase)))
+                            && (enabled |> List.exists (fun active ->
+                                active.Equals(name, StringComparison.OrdinalIgnoreCase))))
+
+                    File.WriteAllText(
+                        Path.Combine(game, "Skyrim.ccc"),
+                        (if creation.IsEmpty then "" else String.concat "\r\n" creation + "\r\n"),
+                        UTF8Encoding(false)
+                    )
 
                     match evidence.Executable with
                     | Some executable when executable.Length <= 1024L * 1024L * 1024L ->
@@ -313,8 +332,11 @@ type LootSession
                                     | Error error -> return Error error
                                     | Ok(root, game, local) ->
                                         try
+                                            let all = value.View.Order.Entries
                                             let current =
-                                                value.View.Order.Entries |> List.map _.Name
+                                                all
+                                                |> List.filter (fun row -> row.Enabled = Some true)
+                                                |> List.map _.Name
 
                                             let fingerprint = sourceFingerprint value
                                             let correlation = Guid.NewGuid().ToString("N")
@@ -344,15 +366,47 @@ type LootSession
                                                 with
                                                 | Error error -> return Error error
                                                 | Ok response ->
+                                                    let sorted = ResizeArray(response.Sorted)
+                                                    let mutable position = 0
+                                                    let fullSorted =
+                                                        all
+                                                        |> List.map (fun row ->
+                                                            if row.Enabled = Some true then
+                                                                let name = sorted[position]
+                                                                position <- position + 1
+                                                                name
+                                                            else row.Name)
+
+                                                    let fullCurrent = all |> List.map _.Name
+                                                    let positions =
+                                                        Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+
+                                                    fullSorted
+                                                    |> List.iteri (fun index name ->
+                                                        positions.Add(name, index + 1))
+
+                                                    let moves =
+                                                        fullCurrent
+                                                        |> List.mapi (fun index name ->
+                                                            let next = positions[name]
+                                                            if next = index + 1 then None
+                                                            else
+                                                                Some
+                                                                    { Plugin = name
+                                                                      Current = index + 1
+                                                                      Proposed = next
+                                                                      Reason = "LOOT order" })
+                                                        |> List.choose id
+
                                                     let next =
                                                         { Id = Guid.NewGuid()
                                                           Expected = value.Reference
                                                           HeadersId = value.Headers.Id
                                                           SourceFingerprint = fingerprint
                                                           CreatedAt = DateTimeOffset.UtcNow
-                                                          Current = current
-                                                          Sorted = response.Sorted
-                                                          Moves = response.Moves
+                                                          Current = fullCurrent
+                                                          Sorted = fullSorted
+                                                          Moves = moves
                                                           Messages = response.Messages
                                                           Metadata = metadata
                                                           HelperVersion = response.HelperRevision
@@ -457,6 +511,15 @@ type LootSession
                     | Error error -> return Error error
                 finally
                     lock gate (fun () -> busy <- false)
+        }
+
+    member internal _.ProjectionForFixture(value: ProfilePluginOrder, token) =
+        async {
+            let! loaded = repository.Read value.Reference.ProfileId |> Async.AwaitTask
+
+            match loaded with
+            | Error _ -> return Error LootError.Stale
+            | Ok sources -> return! buildProjection value sources token
         }
 
     interface ILootSorting with

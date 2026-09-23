@@ -258,12 +258,16 @@ module SkseFixtures =
             |> wait
 
         let launch =
-            ModConductor.GameLaunching.Descriptor.create state selection
+            ModConductor.GameLaunching.Descriptor.create
+                state
+                (Path.Combine(workspacePath, ".mc-game-views", profile.ToString("N"), "game"))
+                selection
             |> Result.defaultWith invalidOp
 
         let stale =
             ModConductor.GameLaunching.Descriptor.create
                 state
+                (Path.Combine(workspacePath, ".mc-game-views", profile.ToString("N"), "game"))
                 (selection
                  |> Option.map (fun value ->
                      { value with
@@ -288,7 +292,7 @@ module SkseFixtures =
         )
         |> wait
 
-        let firstGeneration =
+        let installedGeneration =
             store.InstallSkse(
                 workspace,
                 profile,
@@ -299,11 +303,52 @@ module SkseFixtures =
             )
             |> wait
 
+        let ordinarySource =
+            store.Deployments.Read profile |> wait |> required "ordinary redeploy source"
+
+        let ordinaryPrepared =
+            store.Deployments.Prepare(
+                Guid.NewGuid(),
+                ordinarySource.Sources,
+                ignore,
+                CancellationToken.None
+            )
+            |> wait
+            |> required "ordinary redeploy preparation"
+
+        let ordinaryReceipt =
+            store.Deployments.Activate(
+                ordinaryPrepared.Id,
+                ordinaryPrepared.Sources,
+                ignore,
+                CancellationToken.None
+            )
+            |> wait
+            |> required "ordinary redeploy activation"
+
+        let firstGeneration =
+            store.Deployments.Read profile
+            |> wait
+            |> required "ordinary redeploy state"
+            |> _.ActiveGeneration.Value
+
         let deployedFirst =
             store.Deployments.Read profile |> wait |> required "first deployment"
 
         let firstStored =
             store.SkseLoaders.ReadStored(workspace, profile, Some firstGeneration) |> wait
+
+        let genericComponentContinuity =
+            ordinaryReceipt.Phase = DeploymentPhase.Complete
+            && installedGeneration <> firstGeneration
+            && (firstStored |> Option.exists (fun value ->
+                value.Loader.GenerationId = firstGeneration
+                && File.Exists(Path.Combine(deployedFirst.RunnableRoot, "skse64_loader.exe"))))
+
+        let genericLaunch =
+            (store.GameLaunching.Read(workspace, profile) |> wait)
+            |> Result.toOption
+            |> Option.exists (fun value -> value.Problem.IsNone)
 
         let firstEnabled = InventoryObservations.read store profile
 
@@ -520,14 +565,19 @@ module SkseFixtures =
             selection.IsSome && wrongGeneration.IsNone && stale
         )
 
+        let runnableRoot =
+            Path.Combine(workspacePath, ".mc-game-views", profile.ToString("N"), "game")
+
+        let runnableLoader = Path.Combine(runnableRoot, "skse64_loader.exe")
+
         writer.WriteBoolean(
             "protonUsesLoader",
             if OperatingSystem.IsLinux() then
-                descriptor.Arguments |> List.tryLast = Some loaderPath
-                && descriptor.WorkingDirectory = game
+                descriptor.Arguments |> List.tryLast = Some runnableLoader
+                && descriptor.WorkingDirectory = runnableRoot
                 && runtimeName = evidence.Proton.Value.RuntimeName
             else
-                descriptor.Executable = loaderPath && descriptor.WorkingDirectory = game
+                descriptor.Executable = runnableLoader && descriptor.WorkingDirectory = runnableRoot
         )
 
         writer.WriteBoolean(
@@ -536,6 +586,8 @@ module SkseFixtures =
             && deployedFirst.ActiveGeneration = Some firstGeneration
             && (firstStored |> Option.exists (fun value -> value.Loader.Executable = loaderPath))
         )
+
+        writer.WriteBoolean("ordinaryRedeployRetainsComponentRouteAndLaunch", genericComponentContinuity && genericLaunch)
 
         writer.WriteBoolean(
             "failedReplacementPreservesSelectionGenerationAndLoader",
