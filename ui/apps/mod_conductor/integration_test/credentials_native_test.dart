@@ -104,7 +104,7 @@ void main() {
           (await owner.credentials!.status()).saved,
           SavedCredentials.present,
         );
-        await tap(action('Remove saved sign-in'));
+        await tap(action('Remove sign-in'));
         await capture('remove-confirm');
         await tap(action('Remove sign-in'));
         await ready();
@@ -116,7 +116,7 @@ void main() {
         await tap(find.byWidgetPredicate((w) => w is McChoice<CredentialMode>));
         await tap(find.text('This session only'));
         await capture('session-confirm');
-        await tap(action('Use this session only'));
+        await tap(action('This session only'));
         await ready();
         expect(
           (await owner.credentials!.status()).mode,
@@ -153,14 +153,16 @@ void main() {
           CredentialProblem.locked,
         );
         await capture('locked');
-        await tap(action('Remove saved sign-in'));
+        await tap(action('Remove sign-in'));
         await tap(action('Remove sign-in'));
         await ready();
         final failed = await owner.credentials!.status();
         expect(failed.saved, SavedCredentials.present);
         expect(failed.removalProblem, CredentialProblem.locked);
         await capture('removal-failed');
-        await tap(find.byTooltip('Sign-in storage details'));
+        await tap(find.byWidgetPredicate(
+          (w) => w is McIconAction && w.label == 'Sign-in storage details',
+        ));
         await capture('diagnostic');
         await tap(action('Close'));
         await owner.close();
@@ -204,7 +206,7 @@ void main() {
         await tap(find.byWidgetPredicate((w) => w is McChoice<CredentialMode>));
         await tap(find.text('This session only'));
         await capture('fallback-confirm');
-        await tap(action('Use this session only'));
+        await tap(action('This session only'));
         await ready();
         expect(
           (await owner.credentials!.status()).mode,

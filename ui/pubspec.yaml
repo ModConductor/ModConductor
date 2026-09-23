@@ -1,7 +1,7 @@
 name: mod_conductor_ui
 publish_to: none
 environment:
-  sdk: 3.13.2
+  sdk: 3.13.3
 workspace:
   - apps/mod_conductor
   - packages/mc_ui_foundation
