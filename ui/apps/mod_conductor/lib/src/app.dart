@@ -650,10 +650,10 @@ class _ModConductorAppState extends State<ModConductorApp> {
       _preferenceScope = value;
       _selectedSettings.cancel();
     });
-    if (value == _PreferenceScope.application && !_applicationSettings.loaded) {
+    if (!_applicationSettings.loaded) {
       unawaited(_loadApplicationSettings());
-    } else if (value == _PreferenceScope.workspace &&
-        !_workspaceSettings.loaded) {
+    }
+    if (value == _PreferenceScope.workspace && !_workspaceSettings.loaded) {
       unawaited(_loadWorkspaceSettings(_settingsWorkspaceId, force: true));
     }
   }

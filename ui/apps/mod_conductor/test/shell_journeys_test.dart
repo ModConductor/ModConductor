@@ -15,6 +15,7 @@ Future<void> mount(
   DesktopStatus status = const DesktopDisconnected(),
   SettingsClient? settings,
   bool unavailableSettings = false,
+  bool settle = true,
   DiagnosticsClient? diagnostics,
   WorkspacesClient? workspaces,
   GameContextsClient? gameContexts,
@@ -35,7 +36,7 @@ Future<void> mount(
       gameContexts: gameContexts,
     ),
   );
-  await tester.pumpAndSettle();
+  if (settle) await tester.pumpAndSettle();
 }
 
 SettingsSnapshot settingsSnapshot(
@@ -175,6 +176,17 @@ class _DelayedSettingsFake extends _SettingsFake {
   ) {
     savedWorkspaceIds.add(workspaceId);
     return save?.future ?? Future.value(settings);
+  }
+}
+
+class _DelayedApplicationSettingsFake extends _SettingsFake {
+  final firstRead = Completer<SettingsSnapshot>();
+  int applicationReads = 0;
+
+  @override
+  Future<SettingsSnapshot> readApplication() {
+    applicationReads++;
+    return applicationReads == 1 ? firstRead.future : super.readApplication();
   }
 }
 
@@ -699,6 +711,48 @@ void main() {
       AppearancePreference.dark,
     );
   });
+
+  testWidgets(
+    'workspace inheritance restarts an invalidated application read',
+    (tester) async {
+      ignoreKnownWorkspaceListTileWarning();
+      final settings = _DelayedApplicationSettingsFake()
+        ..application = settingsSnapshot(AppearancePreference.dark);
+      await mount(
+        tester,
+        settings: settings,
+        workspaces: _WorkspacesFake(),
+        settle: false,
+      );
+      await tester.pump();
+      await tester.tap(keyed('workspace-one'));
+      await tester.pump();
+      await tester.tap(keyed('nav-preferences'));
+      await tester.pump();
+      await tester.tap(keyed('preferences-scope'));
+      await tester.pump();
+      await tester.tap(find.text('Current workspace').last);
+      await tester.pumpAndSettle();
+
+      expect(settings.applicationReads, 2);
+      expect(
+        tester
+            .widget<McChoice<AppearancePreference>>(keyed('preferences-theme'))
+            .value,
+        AppearancePreference.dark,
+      );
+      expect(keyed('retry-preferences'), findsNothing);
+
+      settings.firstRead.complete(settingsSnapshot(AppearancePreference.light));
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<McChoice<AppearancePreference>>(keyed('preferences-theme'))
+            .value,
+        AppearancePreference.dark,
+      );
+    },
+  );
 
   testWidgets('unsupported and regional platform locales select English', (
     tester,
