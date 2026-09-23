@@ -146,6 +146,40 @@ installation for package smoke tests. Other Windows architectures, MSIX,
 system-wide installation, file associations, signing, and publication are not
 selected. MC-064 retains real-game qualification; MC-067 retains licence review.
 
+## Local Linux x64 desktop payload
+
+The Linux package hook builds inside an Ubuntu 24.04 FHS container. Docker builds
+the tool image from `tools/linux-package/` only; it bind-mounts this checkout and
+does not copy the checkout into the image. It checks the exact .NET 10.0.400,
+Flutter 3.47.4/Dart 3.13.3, and Rust 1.89.0 toolchains before building.
+Existing `.tools/flutter` must match the pin. If another SDK is installed there,
+pass `--flutter-sdk` with the path to the pinned SDK inside this checkout.
+
+```sh
+python3 tools/publish-linux.py \
+  --rid linux-x64 --version 0.1.0 --revision "$(git rev-parse HEAD)" \
+  --publish-directory .tools/packages/linux-x64
+python3 tools/smoke-linux-package.py \
+  .tools/packages/linux-x64/bin/modconductor --version 0.1.0
+```
+
+Use a new output directory for each build. The payload contains the Flutter
+bundle, NativeAOT engine, SQLite library, and pinned LOOT helper. Its launcher
+uses paths relative to the extracted directory. Notices, dependency locks,
+payload checksums, SPDX file inventory, and unsigned local provenance are in
+`share/doc/modconductor`. The shared package workflow uses this Python hook to
+make the Linux x64 tar archive; it restores execute modes for the launcher and
+all three child executables after artifact transfer. The archive checksum is a
+separate release artifact.
+
+The tar payload expects system GTK 3, libsecret, EGL/OpenGL, GSettings schemas,
+Fontconfig, fonts, and `xdg-utils`. Ubuntu 24.04 is the measured build and smoke
+environment, not a selected minimum Linux version. The existing Nix package remains a
+store-bound build; it is not the source of this portable payload. The packaging
+workflow does not publish a release or install the product. MC-064 retains
+real-game and target-system qualification; MC-067 retains the source licence
+decision.
+
 `python3 tools/check-linux-wire.py` runs the native Flutter connection check on a
 private Xvfb display. It requires Xvfb and xauth. Its `--workspaces` mode also
 requires xdotool for the isolated folder chooser. Use `--collections` for the

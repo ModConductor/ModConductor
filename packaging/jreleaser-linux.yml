@@ -1,0 +1,58 @@
+project:
+  name: modconductor
+  description: Desktop mod organiser
+  authors:
+    - Mod Conductor contributors
+  license: NOASSERTION
+  inceptionYear: "2026"
+  stereotype: DESKTOP
+  links:
+    homepage: https://github.com/alsi-lawr/ModConductor
+    documentation: https://github.com/alsi-lawr/ModConductor/tree/v{{projectVersion}}/docs
+
+release:
+  github:
+    owner: alsi-lawr
+    name: ModConductor
+    tagName: v{{projectVersion}}
+    skipRelease: true
+
+checksum:
+  artifacts: true
+  files: false
+  individual: false
+
+assemble:
+  archive:
+    modconductor-linux:
+      active: ALWAYS
+      exported: false
+      distributionType: BINARY
+      stereotype: DESKTOP
+      attachPlatform: false
+      archiveName: ModConductor-{{projectVersion}}-linux-x64
+      formats:
+        - TAR_GZ
+      applyDefaultMatrix: false
+      matrix:
+        rows:
+          - rid: linux-x64
+            os: linux
+            arch: x86_64
+      options:
+        timestamp: 2026-01-01T00:00:00Z
+        longFileMode: POSIX
+      fileSets:
+        - input: artifacts/publish/{{matrix.rid}}
+
+distributions:
+  modconductor:
+    type: BINARY
+    stereotype: DESKTOP
+    executable:
+      name: modconductor
+    extraProperties:
+      skipJava: "true"
+    artifacts:
+      - path: out/jreleaser/assemble/modconductor-linux/archive/ModConductor-{{projectVersion}}-linux-x64.tar.gz
+        platform: linux-x86_64
