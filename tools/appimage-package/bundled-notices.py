@@ -37,7 +37,8 @@ for path in sorted(libraries.rglob("*")):
         packages.setdefault(package, []).append((path.relative_to(appdir), source))
 
 for resource in ("gsettings-desktop-schemas", "libglib2.0-bin", "libgtk-3-0t64",
-                 "fontconfig", "fonts-dejavu-core", "xdg-utils", "libsecret-1-0"):
+                 "fontconfig", "fonts-dejavu-core", "xdg-utils", "libsecret-1-0",
+                 "adwaita-icon-theme", "shared-mime-info"):
     packages.setdefault(resource, [])
 
 with (documentation / "bundled-ubuntu-packages.tsv").open("w") as listing:

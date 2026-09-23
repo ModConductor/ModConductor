@@ -19,6 +19,7 @@ export DEPLOY_GTK_VERSION=3
   --library /usr/lib/x86_64-linux-gnu/libfribidi.so.0 \
   --library /usr/lib/x86_64-linux-gnu/libfreetype.so.6 \
   --library /usr/lib/x86_64-linux-gnu/libgraphite2.so.3 \
+  --library /usr/lib/x86_64-linux-gnu/libicui18n.so.74 \
   --executable /usr/bin/gsettings \
   --executable /usr/bin/gio \
   --desktop-file "$appdir/usr/share/applications/dev.modconductor.mod_conductor.desktop" \
@@ -31,6 +32,8 @@ chmod 755 "$appdir/AppRun"
 cp /usr/bin/xdg-open /usr/bin/xdg-mime "$appdir/usr/bin/"
 mkdir -p "$appdir/usr/share/fonts/truetype/dejavu" "$appdir/etc/fonts"
 cp /usr/share/fonts/truetype/dejavu/*.ttf "$appdir/usr/share/fonts/truetype/dejavu/"
+cp -a /usr/share/icons/Adwaita "$appdir/usr/share/icons/"
+cp -a /usr/share/mime "$appdir/usr/share/"
 cp /work/fonts.conf "$appdir/etc/fonts/fonts.conf"
 
 python3 /work/bundled-notices.py "$appdir"
