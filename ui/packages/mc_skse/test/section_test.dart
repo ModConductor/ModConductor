@@ -12,6 +12,7 @@ class SetupClientFixture extends SkyrimSetupClient {
   SkyrimSetupSelection? applied;
   int starts = 0;
   int pageOpens = 0;
+  bool cancelled = false;
 
   SkyrimSetupStatus state(
     SkyrimSetupSelection selection, {
@@ -51,8 +52,14 @@ class SetupClientFixture extends SkyrimSetupClient {
     return SkyrimSetupStatus(
       phase: consent
           ? SkyrimSetupStatusPhase.settingUpSkse
+          : cancelled
+          ? SkyrimSetupStatusPhase.cancelled
           : SkyrimSetupStatusPhase.needsConsent,
-      status: consent ? 'Installing' : '',
+      status: consent
+          ? 'Installing'
+          : cancelled
+          ? 'Setup cancelled'
+          : '',
       detail: '',
       planToken:
           'plan-${selection.skse.index}-${selection.enb.index}-${selection.fnis.index}-${selection.enbArchivePath}',
@@ -102,6 +109,7 @@ class SetupClientFixture extends SkyrimSetupClient {
     required String planToken,
   }) async {
     starts++;
+    cancelled = false;
     applied = selection;
     expect(planToken, state(selection).planToken);
     return state(selection, consent: true);
@@ -113,8 +121,11 @@ class SetupClientFixture extends SkyrimSetupClient {
     String profile,
   ) async => state(lastSelection, consent: true);
   @override
-  Future<SkyrimSetupStatus> cancel(String workspace, String profile) async =>
-      state(lastSelection);
+  Future<SkyrimSetupStatus> cancel(String workspace, String profile) async {
+    cancelled = true;
+    return state(const SkyrimSetupSelection());
+  }
+
   @override
   Future<void> openProjectPage(String componentId) async {
     pageOpens++;
@@ -255,6 +266,55 @@ void main() {
     await tester.tap(find.text('Back'));
     await settle(tester);
     expect(client.starts, 0);
+  });
+
+  testWidgets('cancelled setup keeps installed state and needs a new Apply', (
+    tester,
+  ) async {
+    final client = SetupClientFixture(installed: {'skse'});
+    await tester.pumpWidget(app(client));
+    await settle(tester);
+    await tester.tap(find.byType(Switch).at(1));
+    await settle(tester);
+    await tester.tap(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is McIconAction &&
+            widget.label == 'Choose ENBSeries archive',
+      ),
+    );
+    await settle(tester);
+    await tester.tap(find.byKey(const ValueKey('review-skyrim-setup')));
+    await settle(tester);
+    await tester.tap(find.byKey(const ValueKey('apply-skyrim-setup')));
+    await settle(tester);
+    expect(client.starts, 1);
+
+    await tester.tap(find.text('Cancel setup'));
+    await settle(tester);
+    expect(find.text('Clear choices'), findsNothing);
+    expect(client.starts, 1);
+    expect(
+      tester.widgetList<Switch>(find.byType(Switch)).map((item) => item.value),
+      [true, false, false],
+    );
+    expect(
+      tester
+          .widget<McAction>(find.byKey(const ValueKey('review-skyrim-setup')))
+          .onPressed,
+      isNull,
+    );
+
+    await tester.tap(find.byType(Switch).last);
+    await settle(tester);
+    expect(client.lastSelection.fnis, SkyrimSetupAction.install);
+    await tester.tap(find.byKey(const ValueKey('review-skyrim-setup')));
+    await settle(tester);
+    await tester.tap(find.byKey(const ValueKey('apply-skyrim-setup')));
+    await settle(tester);
+    expect(client.starts, 2);
+    expect(client.applied!.fnis, SkyrimSetupAction.install);
+    expect(client.applied!.enb, SkyrimSetupAction.unchanged);
   });
 
   testWidgets('component controls fit a narrow window', (tester) async {

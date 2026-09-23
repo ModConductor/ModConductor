@@ -668,4 +668,120 @@ module SkyrimSetupFixtures =
             "combinedChoicesExecuteOnceEach"
             (allState.SkseStarts = 1 && allState.EnbSelections = 1 && allState.FnisInstalls = 1)
 
+        let retryWorkspace, retryProfile, _ = createWorkspace store area "cancel-and-retry" true
+        let retryWorkflow = WorkflowState()
+        retryWorkflow.BlockEnb()
+        use retryOwner = new SkyrimSetupCoordinator(store, retryWorkflow.Dependencies)
+
+        let retryPlan =
+            retryOwner.Read(retryWorkspace, retryProfile, enbWithArchive, CancellationToken.None)
+            |> wait
+
+        let _ =
+            retryOwner.Start(
+                retryWorkspace,
+                retryProfile,
+                enbWithArchive,
+                retryPlan.PlanToken,
+                true,
+                CancellationToken.None
+            )
+            |> wait
+
+        let _ =
+            until
+                "ENB acquisition starts after confirmation"
+                (fun () ->
+                    let current = retryOwner.Read(retryWorkspace, retryProfile, noChoice, CancellationToken.None) |> wait
+
+                    if current.CanContinue then
+                        retryOwner.Continue(retryWorkspace, retryProfile, CancellationToken.None) |> wait
+                    else
+                        current)
+                (fun _ -> retryWorkflow.EnbSelections = 1)
+
+        if not (retryWorkflow.WaitForEnb()) then
+            failwith "Confirmed setup did not enter the ENB wait."
+
+        let activeGeneration =
+            (store.Deployments.Read retryProfile |> wait |> result).ActiveGeneration
+            |> Option.defaultWith (fun () -> failwith "Confirmed setup did not deploy the profile.")
+
+        let installedLoader = Path.Combine(area, "cancel-and-retry-skse64_loader.exe")
+        File.WriteAllText(installedLoader, "installed SKSE fixture")
+
+        store.SkseLoaders.Save(
+            retryWorkspace,
+            retryProfile,
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            activeGeneration,
+            installedLoader,
+            "2.2.6",
+            "1.6.1170",
+            String.replicate 64 "a",
+            String.replicate 64 "b",
+            1L,
+            2L
+        )
+        |> wait
+
+        let cancelledActive =
+            retryOwner.Cancel(retryWorkspace, retryProfile, CancellationToken.None) |> wait
+
+        let cancelledRead =
+            retryOwner.Read(retryWorkspace, retryProfile, noChoice, CancellationToken.None)
+            |> wait
+
+        check
+            writer
+            "activeCancellationShowsInstalledComponentsWithoutRetry"
+            (cancelledActive.Phase = SkyrimSetupPhase.Cancelled
+             && not cancelledActive.ConsentRecorded
+             && not cancelledActive.CanStart
+             && cancelledActive.Selection = noChoice
+             && (cancelledRead.Components |> List.exists (fun item -> item.Id = "skse" && item.Installed))
+             && (cancelledRead.Components |> List.exists (fun item -> item.Id = "enb" && not item.Installed))
+             && retryWorkflow.EnbSelections = 1
+             && retryWorkflow.FnisInstalls = 0)
+
+        let retrySelection = { noChoice with Fnis = SetupAction.Install }
+
+        let freshPlan =
+            retryOwner.Read(retryWorkspace, retryProfile, retrySelection, CancellationToken.None)
+            |> wait
+
+        check
+            writer
+            "cancelledSetupAcceptsNewSelection"
+            (freshPlan.CanStart && freshPlan.Selection = retrySelection)
+
+        let _ =
+            retryOwner.Start(
+                retryWorkspace,
+                retryProfile,
+                retrySelection,
+                freshPlan.PlanToken,
+                true,
+                CancellationToken.None
+            )
+            |> wait
+
+        let _ =
+            until
+                "fresh attempt applies after cancellation"
+                (fun () ->
+                    let current = retryOwner.Read(retryWorkspace, retryProfile, noChoice, CancellationToken.None) |> wait
+
+                    if current.CanContinue then
+                        retryOwner.Continue(retryWorkspace, retryProfile, CancellationToken.None) |> wait
+                    else
+                        current)
+                (fun _ -> retryWorkflow.FnisInstalls = 1)
+
+        check
+            writer
+            "explicitNewAttemptRunsOnlyChosenComponent"
+            (retryWorkflow.EnbSelections = 1 && retryWorkflow.FnisInstalls = 1)
+
         writer.WriteEndObject()

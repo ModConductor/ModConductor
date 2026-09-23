@@ -85,10 +85,12 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
       next = await action();
       if (!mounted) return;
       setState(() {
+        final wasCancelled = status?.phase == SkyrimSetupStatusPhase.cancelled;
         status = next;
         if (next!.consentRecorded) {
           selection = next.selection;
-        } else if (next.ready) {
+        } else if (next.ready ||
+            (next.phase == SkyrimSetupStatusPhase.cancelled && !wasCancelled)) {
           selection = const SkyrimSetupSelection();
         }
       });

@@ -808,30 +808,17 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                                     CanCancel = false }
                         elif intent |> Option.exists _.Cancelled then
                             let cancelled = intent.Value
+                            let! current = preview workspace profile selection deployed context.Revision
 
                             return
-                                view
-                                    SkyrimSetupPhase.Cancelled
-                                    "Skyrim setup is cancelled"
-                                    (if String.IsNullOrWhiteSpace cancelled.CancelDetail then
-                                         "Review your choices to try again."
-                                     else
-                                         cancelled.CancelDetail)
-                                    tokenValue
-                                    planned
-                                    [ componentView
-                                          "Setup"
-                                          "Cancelled"
-                                          "The profile is available."
-                                          false
-                                          false
-                                          false ]
-                                    selection
-                                    false
-                                    true
-                                    false
-                                    false
-                                    false
+                                { current with
+                                    Phase = SkyrimSetupPhase.Cancelled
+                                    Status = "Skyrim setup is cancelled"
+                                    Detail =
+                                        if String.IsNullOrWhiteSpace cancelled.CancelDetail then
+                                            "Review your choices to try again."
+                                        else
+                                            cancelled.CancelDetail }
                         elif deployed.ActiveGeneration.IsSome && deployed.PendingReceipt.IsSome then
                             return
                                 { view
@@ -1691,7 +1678,7 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                         CancelDetail = childDetail }
 
                 do! store.SkyrimSetups.Save cancelled
-                return! inspect workspace profile intent.Selection (Some cancelled) token
+                return! inspect workspace profile ModConductor.Persistence.SetupSelection.none (Some cancelled) token
         }
 
     let confirmPlan workspace profile selection expected =
@@ -1943,6 +1930,8 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
             let! existing = store.SkyrimSetups.Read(workspace, profile)
 
             match existing with
+            | Some intent when intent.CancelRequested ->
+                return! inspect workspace profile intent.Selection (Some intent) token
             | Some intent when
                 confirmed
                 && not intent.Cancelled
@@ -2060,7 +2049,7 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
             match intent with
             | None -> return! inspect workspace profile ModConductor.Persistence.SetupSelection.none None token
             | Some intent when intent.Cancelled || intent.Completed ->
-                return! inspect workspace profile intent.Selection (Some intent) token
+                return! inspect workspace profile ModConductor.Persistence.SetupSelection.none (Some intent) token
             | Some intent ->
                 let requested =
                     { intent with

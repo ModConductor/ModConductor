@@ -46,3 +46,9 @@ type SkyrimSetupTests() =
     member _.``child changes allow only expected plan rollover``() =
         flag "expectedChildOnlyDeltasAdvanceEveryRollover" |> should equal true
         flag "combinedChildAndUnrelatedDeltasInvalidateEveryRollover" |> should equal true
+
+    [<Test>]
+    member _.``cancelling an active setup should allow a fresh explicit attempt from installed state``() =
+        flag "activeCancellationShowsInstalledComponentsWithoutRetry" |> should equal true
+        flag "cancelledSetupAcceptsNewSelection" |> should equal true
+        flag "explicitNewAttemptRunsOnlyChosenComponent" |> should equal true
