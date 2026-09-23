@@ -213,7 +213,7 @@ type private FixtureLaunch(
         member _.Begin _ = Task.FromResult(Error ExecutableError.NotFound)
         member _.Cancel(_, _) = Task.FromResult(Error ExecutableError.NotFound)
 
-type private FixtureDeployments(workspaceId: Guid, profileId: Guid) =
+type private FixtureDeployments(workspaceId: Guid, profileId: Guid, runnableRoot: string) =
     let receiptId = Guid.NewGuid()
     let mutable statusProfile = profileId
     let mutable recoveries = 0
@@ -252,6 +252,7 @@ type private FixtureDeployments(workspaceId: Guid, profileId: Guid) =
                 Task.FromResult(
                     Ok
                         { WorkspaceId = workspaceId
+                          RunnableRoot = runnableRoot
                           Revision = 1L
                           ActiveGeneration = None
                           Active = None
@@ -392,7 +393,7 @@ type private DiagnosticFixtureEnvironment(
         |> ignore
 
     let plans = FixturePlans(workspaceId, profileId)
-    let fixtureDeployments = FixtureDeployments(workspaceId, profileId)
+    let fixtureDeployments = FixtureDeployments(workspaceId, profileId, root)
     let deploymentBackend =
         if defaultArg useFixtureDeployment false then fixtureDeployments :> IDeploymentBackend
         else store.Deployments
