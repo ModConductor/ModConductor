@@ -65,6 +65,20 @@ The source-informed investigation is not claimed to be clean-room work.
 Future reuse must be recorded as reuse rather than inferred to be original merely
 because it is rewritten in another language. This inventory is not a final GPL determination.
 
+## Local Windows packaging tools and notices
+
+The local Windows x64 installer is built with unmodified NSIS 3.12, using its
+built-in Modern UI 2 headers and LZMA module without optional plugins. Its
+[retained COPYING terms](third-party/nsis-LICENSE.txt) accompany both local
+Windows package formats. The official 3.12 archive and its SHA-256 pin are
+recorded in [the build procedure](BUILDING.md). This does not authorize signing
+or publication of the unlicensed Mod Conductor product.
+
+The Windows package requires the existing Rust LOOT helper built from the
+committed Cargo.lock. The pinned libloot revision's
+[LICENSE](third-party/libloot-LICENSE.txt) accompanies the local artifacts.
+MC-067 still owns the final licence assessment before distribution.
+
 ## Local archive behavior reference
 
 MC-030 inspected `src/downloadmanager.h` and `src/downloadmanager.cpp` at the MO2

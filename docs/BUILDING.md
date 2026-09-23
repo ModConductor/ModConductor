@@ -59,6 +59,9 @@ dotnet test tests/ModConductor.Native.Tests -c Release --no-build --no-restore
 On Windows, use `win-x64` and the `.exe` paths. Set environment variables with
 PowerShell's `$env:NAME = 'value'`. The managed FsUnit/NUnit runner consumes the
 actual native fixture. Missing native paths do not count as passes.
+For local Windows package verification, pass
+`-p:ModConductorLocalPublishVerificationOnly=true` to the engine publish. This
+does not authorize product publication.
 
 `MC_SECOND_FIXTURE_ROOT` selects an owned second-volume fixture location for
 cross-device tests. Do not select a physical game volume. `MC_NATIVE_REPORT`
@@ -105,6 +108,43 @@ Use `flutter build windows --release --no-pub` on Windows. The bundle tool copie
 the published engine and SQLite library beside Flutter. Keep that bundle intact.
 The executables are under `ui/apps/mod_conductor/build/linux/x64/release/bundle/`
 and `ui/apps/mod_conductor/build/windows/x64/runner/Release/`.
+
+## Local Windows x64 packages
+
+Build the pinned Windows Flutter release and local-verification NativeAOT engine
+as above. Build the LOOT helper with the pinned Rust 1.89 toolchain and locked
+dependencies (`cargo +1.89.0 build --locked --release --target
+x86_64-pc-windows-msvc` in `native/ModConductor.Loot.Helper`). Install the
+official NSIS 3.12 tool locally; no optional plugins are used. The official
+NSIS archive SHA-256 is
+`56581f90db321581c5381193d796fffcf2d24b2f8fed2160a6c6a3baa67f2c4f`.
+
+From the repository root on Windows:
+
+```powershell
+python tools/package-windows.py `
+  --loot-helper native/ModConductor.Loot.Helper/target/x86_64-pc-windows-msvc/release/modconductor-loot-helper.exe `
+  --output .tools/packages/windows-x64
+```
+
+Use a new output directory for each build. The script requires the real
+Flutter, NativeAOT, SQLite, static-web-assets, and LOOT helper outputs; it
+does not silently omit a missing native asset. It creates an unsigned per-user
+NSIS installer and portable ZIP from one payload, with bundled third-party
+notices. Adjacent files record payload hashes, artifact checksums, locked
+dependency manifests, an SPDX file inventory, and local build provenance.
+They are evidence for review, not a signing attestation or a licence grant.
+
+The installer writes under the current user's LocalAppData Programs directory,
+adds current-user Start Menu and desktop shortcuts, and supports upgrade and
+uninstall. The portable ZIP can be extracted and run without installation;
+replace the extracted binary directory to upgrade and remove it to uninstall.
+User state is under the user's LocalAppData `ModConductor` directory, and mods
+remain in the chosen workspace, not the binary directory. Test both formats in
+an isolated Windows user profile before release. Do not use a physical game
+installation for package smoke tests. Other Windows architectures, MSIX,
+system-wide installation, file associations, signing, and publication are not
+selected. MC-064 retains real-game qualification; MC-067 retains licence review.
 
 `python3 tools/check-linux-wire.py` runs the native Flutter connection check on a
 private Xvfb display. It requires Xvfb and xauth. Its `--workspaces` mode also

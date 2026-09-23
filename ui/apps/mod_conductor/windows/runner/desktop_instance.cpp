@@ -185,7 +185,7 @@ bool DesktopInstance::Forward(const desktop::Arguments& arguments) {
     DWORD confirmation = 0, written = 0;
     Transfer(pipe, &confirmation, sizeof(confirmation), true, written);
   }
-  std::fill(bytes.begin(), bytes.end(), 0);
+  std::fill(bytes.begin(), bytes.end(), BYTE{0});
   CloseHandle(pipe);
   return success;
 }

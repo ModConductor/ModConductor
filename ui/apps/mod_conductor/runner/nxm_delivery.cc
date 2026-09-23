@@ -132,7 +132,7 @@ bool NxmDelivery::Send(const Ingress& target, const PrivateRequest& request, boo
   valid = valid && transfer(frame.data(), frame.size(), true) && transfer(answer.data(), answer.size(), false);
   close(socket);
 #endif
-  std::fill(frame.begin(), frame.end(), 0);
+  std::fill(frame.begin(), frame.end(), uint8_t{0});
   return valid && answer == request.id;
 }
 }

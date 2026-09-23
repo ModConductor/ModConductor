@@ -97,10 +97,10 @@ jobs:
         run: flutter test --no-pub
       - name: Publish Linux NativeAOT engine
         if: runner.os == 'Linux'
-        run: dotnet publish src/ModConductor.Engine/ModConductor.Engine.fsproj --configuration Release --runtime linux-x64 --self-contained true --no-restore --output .tools/publish/linux-x64
+        run: dotnet publish src/ModConductor.Engine/ModConductor.Engine.fsproj --configuration Release --runtime linux-x64 --self-contained true --no-restore -p:ModConductorLocalPublishVerificationOnly=true --output .tools/publish/linux-x64
       - name: Publish Windows NativeAOT engine
         if: runner.os == 'Windows'
-        run: dotnet publish src/ModConductor.Engine/ModConductor.Engine.fsproj --configuration Release --runtime win-x64 --self-contained true --no-restore --output .tools/publish/win-x64
+        run: dotnet publish src/ModConductor.Engine/ModConductor.Engine.fsproj --configuration Release --runtime win-x64 --self-contained true --no-restore -p:ModConductorLocalPublishVerificationOnly=true --output .tools/publish/win-x64
       - name: Check Linux durable operations and session security
         if: runner.os == 'Linux'
         working-directory: ui/packages/mc_client
@@ -143,3 +143,21 @@ jobs:
         run: flutter build windows --release --no-pub
       - name: Assemble development bundle
         run: python tools/assemble-development.py
+      - name: Install pinned Windows packaging tools
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          rustup toolchain install 1.89.0 --profile minimal
+          $archive = "$env:GITHUB_WORKSPACE/.tools/nsis-3.12.zip"
+          Invoke-WebRequest 'https://downloads.sourceforge.net/project/nsis/NSIS%203/3.12/nsis-3.12.zip' -OutFile $archive
+          $hash = (Get-FileHash $archive -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($hash -ne '56581f90db321581c5381193d796fffcf2d24b2f8fed2160a6c6a3baa67f2c4f') { throw "NSIS archive hash mismatch: $hash" }
+          Expand-Archive $archive -DestinationPath "$env:GITHUB_WORKSPACE/.tools/nsis"
+          "$env:GITHUB_WORKSPACE/.tools/nsis/nsis-3.12" >> $env:GITHUB_PATH
+      - name: Build pinned Windows LOOT helper
+        if: runner.os == 'Windows'
+        working-directory: native/ModConductor.Loot.Helper
+        run: cargo +1.89.0 build --locked --release --target x86_64-pc-windows-msvc
+      - name: Construct local unsigned Windows distributions
+        if: runner.os == 'Windows'
+        run: python tools/package-windows.py --loot-helper native/ModConductor.Loot.Helper/target/x86_64-pc-windows-msvc/release/modconductor-loot-helper.exe --output .tools/packages/windows-x64
