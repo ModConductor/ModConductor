@@ -95,11 +95,10 @@ def assemble(bundle: Path, engine: Path, helper: Path, output: Path, revision: s
 
     launcher = output / "bin/modconductor"
     launcher.parent.mkdir(parents=True)
-    launcher.write_text('#!/bin/sh\nbase=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)\nexec "$base/app/modconductor/mod_conductor" "$@"\n')
+    copy_required(ROOT / "packaging/linux-launcher.sh", launcher)
     launcher.chmod(0o755)
     desktop = output / "share/applications/dev.modconductor.mod_conductor.desktop"
-    desktop.parent.mkdir(parents=True)
-    desktop.write_text("[Desktop Entry]\nType=Application\nName=Mod Conductor\nExec=modconductor\nIcon=applications-games\nCategories=Game;Utility;\nTerminal=false\n")
+    copy_required(ROOT / "packaging/dev.modconductor.mod_conductor.desktop", desktop)
 
     documents = output / "share/doc/modconductor"
     shutil.copytree(ROOT / "docs/third-party", documents / "third-party")

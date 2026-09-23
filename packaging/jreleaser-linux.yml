@@ -30,7 +30,7 @@ assemble:
       distributionType: BINARY
       stereotype: DESKTOP
       attachPlatform: false
-      archiveName: ModConductor-{{projectVersion}}-linux-x64
+      archiveName: modconductor-v{{projectVersion}}-linux-x64
       formats:
         - TAR_GZ
       applyDefaultMatrix: false
@@ -54,5 +54,5 @@ distributions:
     extraProperties:
       skipJava: "true"
     artifacts:
-      - path: out/jreleaser/assemble/modconductor-linux/archive/ModConductor-{{projectVersion}}-linux-x64.tar.gz
+      - path: out/jreleaser/assemble/modconductor-linux/archive/modconductor-v{{projectVersion}}-linux-x64.tar.gz
         platform: linux-x86_64

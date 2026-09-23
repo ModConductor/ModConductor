@@ -172,13 +172,34 @@ make the Linux x64 tar archive; it restores execute modes for the launcher and
 all three child executables after artifact transfer. The archive checksum is a
 separate release artifact.
 
-The tar payload expects system GTK 3, libsecret, EGL/OpenGL, GSettings schemas,
-Fontconfig, fonts, and `xdg-utils`. Ubuntu 24.04 is the measured build and smoke
-environment, not a selected minimum Linux version. The existing Nix package remains a
-store-bound build; it is not the source of this portable payload. The packaging
-workflow does not publish a release or install the product. MC-064 retains
-real-game and target-system qualification; MC-067 retains the source licence
-decision.
+The tar payload expects system GTK 3, libsecret, EGL/OpenGL, GSettings schemas
+and the `gsettings` command, Fontconfig, fonts, and `xdg-utils`. Ubuntu 24.04 is
+the selected Linux baseline. The existing Nix package remains a store-bound
+build; it is not the source of this portable payload.
+
+The shared package workflow also builds an Ubuntu 24.04 amd64 DEB from the same
+tar archive. To build it locally from an assembled archive:
+
+```sh
+python3 tools/package-deb.py \
+  --archive artifacts/release/modconductor-v0.1.0-linux-x64.tar.gz \
+  --output artifacts/release/ModConductor_0.1.0-1_amd64.deb \
+  --version 0.1.0
+```
+
+The DEB installs `modconductor` in `/usr/bin`, its desktop files in
+`/usr/share/applications`, and the application under `/usr/lib/modconductor`.
+Its dependencies include `libglib2.0-bin` because the folder chooser uses
+`gsettings`. The desktop entry accepts NXM links but does not change the
+user's default NXM handler. The launcher also works with no arguments. Secure
+storage needs an available, unlocked Secret Service provider in the user's
+desktop session; installing the package does not create or unlock a keyring.
+Upgrade and removal leave user state under the user's home directory intact.
+
+Test installation, upgrade, and removal in an isolated Ubuntu 24.04 guest.
+The package workflow does not publish a release or install the product on the
+host. MC-064 retains real-game qualification; MC-067 retains the source
+licence decision.
 
 `python3 tools/check-linux-wire.py` runs the native Flutter connection check on a
 private Xvfb display. It requires Xvfb and xauth. Its `--workspaces` mode also
