@@ -95,6 +95,16 @@ and available package copyright files inside the AppImage at
 Those records support the later MC-067 review; they do not settle the product
 licence or authorize publication.
 
+## Local Arch package tooling
+
+The `modconductor-bin` recipe is generated from the assembled Linux x64
+archive and the shared installed launcher. `makepkg --printsrcinfo` runs in
+the pinned Arch `base-devel` image at
+`sha256:8745817f349ed24373341ddb92776209eeec3f0364ea48f7f645ac5800d30a50`.
+`makepkg`, pacman, and namcap are verification tools, not bundled components.
+The recipe omits a licence declaration because the product licence remains
+unselected. Its local verification does not permit AUR publication.
+
 ## Local archive behavior reference
 
 MC-030 inspected `src/downloadmanager.h` and `src/downloadmanager.cpp` at the MO2

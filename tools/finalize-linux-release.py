@@ -49,10 +49,19 @@ def main() -> None:
         sys.executable, str(ROOT / "tools/generate-linux-cask.py"),
         "--appimage", str(appimage), "--output", str(cask), "--version", args.version,
     ], check=True)
+    subprocess.run([
+        sys.executable, str(ROOT / "tools/generate-aur-package.py"),
+        "--archive", str(archive), "--output-directory", str(args.release_directory),
+        "--version", args.version,
+    ], check=True)
+    aur_recipe = args.release_directory / "modconductor-bin.PKGBUILD"
+    aur_metadata = args.release_directory / "modconductor-bin.SRCINFO"
     checksum_file = args.release_directory / "checksums_sha256.txt"
     checksum_file.write_text(checksum_file.read_text().rstrip("\n") +
                              f"\n{sha256(package)}  {package.name}\n{sha256(rpm)}  {rpm.name}\n"
-                             f"{sha256(appimage)}  {appimage.name}\n{sha256(cask)}  {cask.name}\n")
+                             f"{sha256(appimage)}  {appimage.name}\n{sha256(cask)}  {cask.name}\n"
+                             f"{sha256(aur_recipe)}  {aur_recipe.name}\n"
+                             f"{sha256(aur_metadata)}  {aur_metadata.name}\n")
     args.metadata_directory.mkdir(parents=True, exist_ok=True)
     (args.metadata_directory / "modconductor-linux-x64.json").write_text(json.dumps({
         "version": args.version, "archive": archive.name, "archive_sha256": sha256(archive),
@@ -60,6 +69,8 @@ def main() -> None:
         "rpm": rpm.name, "rpm_sha256": sha256(rpm),
         "appimage": appimage.name, "appimage_sha256": sha256(appimage),
         "linux_homebrew_cask": cask.name,
+        "aur_recipe": aur_recipe.name, "aur_recipe_sha256": sha256(aur_recipe),
+        "aur_srcinfo": aur_metadata.name, "aur_srcinfo_sha256": sha256(aur_metadata),
         "signature": "unsigned-local-verification-only",
     }, indent=2) + "\n")
 

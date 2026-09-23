@@ -258,6 +258,32 @@ The package workflow does not publish a release or install the product on the
 host. MC-064 retains real-game qualification; MC-067 retains the source
 licence decision.
 
+## Local Arch package
+
+`tools/generate-aur-package.py` uses the assembled Linux x64 tar archive to
+write `modconductor-bin.PKGBUILD` and `modconductor-bin.SRCINFO`. It uses the
+pinned Arch `base-devel` image to generate `.SRCINFO`. It does not rebuild the
+desktop binaries. The release finalizer adds both files to the checksum list.
+The recipe installs the payload under `/usr/lib/modconductor` and uses the same
+installed launcher as the DEB and RPM packages.
+
+For a local check, use a new output directory in `.agent-workspace/`:
+
+```sh
+python3 tools/generate-aur-package.py \
+  --archive artifacts/release/modconductor-v0.1.0-linux-x64.tar.gz \
+  --version 0.1.0 \
+  --output-directory .agent-workspace/aur-check
+```
+
+The AUR recipe points at the matching release archive. Local verification can
+substitute a `file://` URL for that same archive. Build with `makepkg` as a
+non-root user, then install the resulting package in an isolated Arch system.
+This repository has not selected a product licence. Do not submit the recipe
+to the public AUR or publish the package before MC-067 is complete.
+
+## UI checks
+
 `python3 tools/check-linux-wire.py` runs the native Flutter connection check on a
 private Xvfb display. It requires Xvfb and xauth. Its `--workspaces` mode also
 requires xdotool for the isolated folder chooser. Use `--collections` for the
