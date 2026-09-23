@@ -29,6 +29,7 @@ class ArchivePolicyController extends ChangeNotifier {
       !stale &&
       !state!.pending &&
       !state!.applied &&
+      state!.changes.isNotEmpty &&
       state!.blockingProblems.isEmpty;
   bool get canRestore =>
       state != null &&
@@ -142,11 +143,16 @@ class ArchivePolicyController extends ChangeNotifier {
     notifyListeners();
     try {
       if (apply) {
-        await client.apply(
+        final noChange = await client.apply(
           newOperationId(),
           current.reference,
           current.snapshotId,
         );
+        if (noChange) {
+          writing = false;
+          await scan();
+          return;
+        }
       } else {
         await client.restore(newOperationId(), current.reference);
       }

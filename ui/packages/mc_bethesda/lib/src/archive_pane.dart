@@ -74,7 +74,10 @@ class _ArchivePolicyPaneState extends State<ArchivePolicyPane> {
             ),
             const SizedBox(height: 8),
           ] else if (state != null && !state.applied) ...[
-            const McStatus(title: 'Archive changes are ready'),
+            McStatus(
+              title: 'Archive changes',
+              detail: state.changes.join('\n'),
+            ),
             Align(
               alignment: Alignment.centerLeft,
               child: McAction(
@@ -109,8 +112,8 @@ class _ArchivePolicyPaneState extends State<ArchivePolicyPane> {
                   : '${state.entries.where((row) => row.state == ArchiveState.active).length} active · ${controller.stale
                         ? 'Previous scan'
                         : state.applied
-                        ? 'Applied'
-                        : 'Ready'}',
+                        ? 'Up to date'
+                        : 'Changes'}',
               empty: 'No archives found.',
               emptyContent: state == null
                   ? Center(

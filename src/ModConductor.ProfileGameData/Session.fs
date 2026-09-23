@@ -513,6 +513,7 @@ type ProfileGameDataSession
                     { Id = action.Id
                       State = state
                       Complete = true
+                      NoChange = false
                       CompletedFiles =
                         action.CompletedFiles
                         + (action.Deletion |> Option.map _.CompletedFiles |> Option.defaultValue 0)
@@ -537,6 +538,7 @@ type ProfileGameDataSession
                     { Id = action.Id
                       State = state
                       Complete = false
+                      NoChange = false
                       CompletedFiles =
                         action.CompletedFiles
                         + (action.Deletion |> Option.map _.CompletedFiles |> Option.defaultValue 0)
@@ -566,6 +568,7 @@ type ProfileGameDataSession
                         { Id = id
                           State = state
                           Complete = true
+                          NoChange = false
                           CompletedFiles = completedFiles value
                           Problem = value.Problem }
             | _ -> return None
@@ -825,7 +828,7 @@ type ProfileGameDataSession
                                     let! scope =
                                         repository.Read(expected.WorkspaceId, expected.ProfileId)
 
-                                    return scope, previous.Kind
+                                    return scope, Some previous.Kind
                                 }
                             | _ -> raise (ProfileDataException ProfileDataError.Stale)
                         | None ->
@@ -838,26 +841,44 @@ type ProfileGameDataSession
                                         snapshot
                                         token
 
-                                return scope, ProfileDataActionKind.ApplyArchives request
+                                return
+                                    scope,
+                                    request |> Option.map ProfileDataActionKind.ApplyArchives
                             }
 
-                    let! replayed =
-                        replay expected.WorkspaceId expected.ProfileId id kind expected.Revision
-
-                    match replayed with
-                    | Some result -> return Ok result
+                    match kind with
                     | None ->
-                        check scope expected
-                        let! context = DataInitialization.context repository scope
+                        let! state = read expected.WorkspaceId expected.ProfileId
 
-                        let! action =
-                            repository.Claim(context, initial id context scope.ProfileId kind)
+                        return
+                            Ok
+                                { Id = id
+                                  State = state
+                                  Complete = true
+                                  NoChange = true
+                                  CompletedFiles = 0
+                                  Problem = None }
+                    | Some kind ->
+                        let! replayed =
+                            replay expected.WorkspaceId expected.ProfileId id kind expected.Revision
 
-                        let! result =
-                            execute ignore None scope context action token progress (fun _ ->
-                                Task.FromResult())
+                        match replayed with
+                        | Some result -> return Ok result
+                        | None ->
+                            check scope expected
+                            let! context = DataInitialization.context repository scope
 
-                        return Ok result
+                            let! action =
+                                repository.Claim(context, initial id context scope.ProfileId kind)
+
+                            let! result =
+                                execute ignore None scope context action token progress (fun _ ->
+                                    Task.FromResult())
+
+                            if result.Complete then
+                                archives.Accept snapshot
+
+                            return Ok result
                 })
 
         member _.Restore(id, expected, progress, token) =
@@ -891,6 +912,9 @@ type ProfileGameDataSession
                         let! result =
                             execute ignore None scope context action token progress (fun _ ->
                                 Task.FromResult())
+
+                        if result.Complete then
+                            archives.ForgetObserved expected.ProfileId
 
                         return Ok result
                 })
@@ -937,7 +961,7 @@ type ProfileGameDataSession
 
                     let! prior = repository.Action(request.Expected.WorkspaceId, request.Id)
 
-                    let! scope, kind =
+                    let! scope, kind, archiveBefore =
                         match prior with
                         | Some previous ->
                             match previous.Kind with
@@ -957,7 +981,7 @@ type ProfileGameDataSession
                                             request.Expected.ProfileId
                                         )
 
-                                    return scope, previous.Kind
+                                    return scope, previous.Kind, None
                                 }
                             | _ -> raise (ProfileDataException ProfileDataError.Stale)
                         | None ->
@@ -1003,7 +1027,11 @@ type ProfileGameDataSession
                                         { PreviewId = preview.Public.PreviewId
                                           Name = preview.Public.Name
                                           Before = preview.Before
-                                          Bytes = bytes }
+                                          Bytes = bytes },
+                                    (if preview.Public.Name = "Skyrim.ini" then
+                                         Some preview.Bytes
+                                     else
+                                         None)
                             }
 
                     let! replayed =
@@ -1043,6 +1071,14 @@ type ProfileGameDataSession
                                 token
                                 progress
                                 (fun _ -> Task.FromResult())
+
+                        match result.Complete, archiveBefore, kind with
+                        | true, Some before, ProfileDataActionKind.EditConfiguration receipt ->
+                            let priorNames = ArchivePolicies.explicitNames before
+
+                            if priorNames <> ArchivePolicies.explicitNames receipt.Bytes then
+                                archives.NoteSettingsEdit(scope.ProfileId, priorNames)
+                        | _ -> ()
 
                         return Ok result
                 })
@@ -1098,6 +1134,7 @@ type ProfileGameDataSession
                             { Id = id
                               State = state
                               Complete = true
+                              NoChange = false
                               CompletedFiles = 0
                               Problem = None }
                 })
@@ -1306,6 +1343,7 @@ type ProfileGameDataSession
                                 { Id = id
                                   State = state
                                   Complete = true
+                                  NoChange = false
                                   CompletedFiles = completedFiles previous
                                   Problem = previous.Problem }
                     else

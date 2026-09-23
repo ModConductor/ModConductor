@@ -64,6 +64,8 @@ class _Orders implements PluginOrderClient {
 class _Archives implements ArchivePolicyClient {
   var applications = 0;
   var scans = 0;
+  var changed = false;
+  var noChange = false;
   ArchivePolicyView get view => ArchivePolicyView(
     reference: const ProfileDataRef(
       workspaceId: 'workspace',
@@ -100,7 +102,8 @@ class _Archives implements ArchivePolicyClient {
     problems: const [],
     blockingProblems: const [],
     saved: true,
-    applied: false,
+    applied: !changed,
+    changes: changed ? const ['Removed QuietRivers.bsa'] : const [],
     pending: false,
     pendingProblem: '',
     invalidation: 'Not available for this game',
@@ -122,12 +125,14 @@ class _Archives implements ArchivePolicyClient {
     String snapshot,
   ) async => view;
   @override
-  Future<void> apply(
+  Future<bool> apply(
     String id,
     ProfileDataRef expected,
     String snapshot,
   ) async {
     applications++;
+    changed = false;
+    return noChange;
   }
 
   @override
@@ -162,13 +167,12 @@ void main() {
           ),
         ),
       );
-      expect(find.text('Apply archive changes'), findsOneWidget);
+      expect(controller.canApply, false);
       expect(find.text('1'), findsOneWidget);
       expect(find.textContaining('Archive invalidation'), findsNothing);
-      await tester.tap(find.text('Apply archive changes'));
-      await tester.pumpAndSettle();
-      expect(client.applications, 1);
-      expect(client.scans, 2);
+      await controller.apply();
+      expect(client.applications, 0);
+      expect(client.scans, 1);
 
       controller.rows.select('Skyrim - Textures0.bsa');
       await tester.pumpWidget(
@@ -184,4 +188,48 @@ void main() {
       plugins.dispose();
     },
   );
+
+  test('an archive change enables one apply and a refresh clears it', () async {
+    final bethesda = _Bethesda();
+    final plugins = PluginsController()
+      ..attach(bethesda, 'profile', orders: _Orders(bethesda.snapshot));
+    await plugins.scan();
+    final client = _Archives()..changed = true;
+    final controller = ArchivePolicyController()
+      ..attach(client, plugins, 'workspace', 'profile');
+
+    await controller.scan();
+    expect(controller.canApply, true);
+    await controller.apply();
+    expect(client.applications, 1);
+    expect(client.scans, 2);
+    expect(controller.canApply, false);
+
+    controller.dispose();
+    plugins.dispose();
+  });
+
+  test('a no-change result refreshes without reporting a write', () async {
+    final bethesda = _Bethesda();
+    final plugins = PluginsController()
+      ..attach(bethesda, 'profile', orders: _Orders(bethesda.snapshot));
+    await plugins.scan();
+    final client = _Archives()
+      ..changed = true
+      ..noChange = true;
+    final controller = ArchivePolicyController()
+      ..attach(client, plugins, 'workspace', 'profile');
+    var changedEvents = 0;
+    controller.onChanged = () => changedEvents++;
+
+    await controller.scan();
+    await controller.apply();
+    expect(client.applications, 1);
+    expect(client.scans, 2);
+    expect(changedEvents, 0);
+    expect(controller.canApply, false);
+
+    controller.dispose();
+    plugins.dispose();
+  });
 }

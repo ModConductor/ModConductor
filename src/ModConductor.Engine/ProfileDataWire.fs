@@ -90,6 +90,7 @@ module internal ProfileDataWire =
                     Id = value.Id.ToString("N"),
                     State = state value.State,
                     Complete = value.Complete,
+                    NoChange = value.NoChange,
                     CompletedFiles = uint32 value.CompletedFiles
                 )
 

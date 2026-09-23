@@ -70,6 +70,7 @@ type ProfileDataResult =
     { Id: Guid
       State: ProfileDataState
       Complete: bool
+      NoChange: bool
       CompletedFiles: int
       Problem: string option }
 
@@ -193,6 +194,7 @@ type ProfileArchivePolicy =
       IniName: string
       Saved: bool
       Applied: bool
+      Changes: string list
       Pending: bool
       Problem: string option }
 

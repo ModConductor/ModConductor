@@ -19,6 +19,7 @@ type ArchivePolicySession(repository: IFileCandidateRepository, inspection: Insp
         TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)
 
     let mutable saved: ArchivePolicySnapshot option = None
+    let mutable observed: (Guid * string list) option = None
     do idle.SetResult()
 
     let label (sources: PlanSources) source =
@@ -137,7 +138,15 @@ type ArchivePolicySession(repository: IFileCandidateRepository, inspection: Insp
                         let! result = acquire profile input linked.Token
 
                         match result with
-                        | Ok value when retain -> lock gate (fun () -> saved <- Some value)
+                        | Ok value when retain ->
+                            lock gate (fun () ->
+                                if observed |> Option.exists (fun (profile, _) -> profile <> value.Stamp.ProfileId) then
+                                    observed <- None
+
+                                if observed.IsNone then
+                                    observed <- Some(value.Stamp.ProfileId, value.ExplicitNames)
+
+                                saved <- Some value)
                         | _ -> ()
 
                         return result
@@ -160,6 +169,31 @@ type ArchivePolicySession(repository: IFileCandidateRepository, inspection: Insp
     member this.Scan(profile, input, token) = this.ObserveCore(profile, input, token, true)
 
     member this.Observe(profile, input, token) = this.ObserveCore(profile, input, token, false)
+
+    member _.ObservedNames(profile) =
+        lock gate (fun () ->
+            observed
+            |> Option.filter (fun (value, _) -> value = profile)
+            |> Option.map snd)
+
+    member _.NoteSettingsEdit(profile, before: string list) =
+        lock gate (fun () ->
+            if observed |> Option.exists (fun (value, _) -> value <> profile) then
+                observed <- None
+
+            if observed.IsNone then
+                observed <- Some(profile, before))
+
+    member _.Accept(id) =
+        lock gate (fun () ->
+            saved
+            |> Option.filter (fun value -> value.Id = id)
+            |> Option.iter (fun value -> observed <- Some(value.Stamp.ProfileId, value.ExplicitNames)))
+
+    member _.ForgetObserved(profile) =
+        lock gate (fun () ->
+            if observed |> Option.exists (fun (value, _) -> value = profile) then
+                observed <- None)
 
     member _.Read id =
         task {
@@ -206,6 +240,7 @@ type ArchivePolicySession(repository: IFileCandidateRepository, inspection: Insp
             else
                 closing <- true
                 saved <- None
+                observed <- None
                 true)
 
     member _.Drain() =

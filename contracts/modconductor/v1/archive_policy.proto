@@ -52,6 +52,7 @@ message ArchivePolicyView {
   bool pending = 10;
   string pending_problem = 11;
   string invalidation = 12;
+  repeated string changes = 13;
 }
 
 message ArchivePolicyReply { oneof outcome { ArchivePolicyView policy = 1; ProfileDataProblem problem = 2; } }

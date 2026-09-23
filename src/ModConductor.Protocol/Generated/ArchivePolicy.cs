@@ -43,32 +43,33 @@ namespace ModConductor.Protocol.V1 {
             "aWF0ZWRfcGx1Z2luGAggASgJEg8KB3JlYXNvbnMYCSADKAkSNQoGc291cmNl",
             "GAogASgLMiUubW9kY29uZHVjdG9yLnYxLkJldGhlc2RhUGx1Z2luU291cmNl",
             "Eg4KBmZvcm1hdBgLIAEoCRIPCgdwcm9ibGVtGAwgASgJQgsKCV9wb3NpdGlv",
-            "bkIPCg1faW5pX3Bvc2l0aW9uIssCChFBcmNoaXZlUG9saWN5VmlldxIyCgly",
+            "bkIPCg1faW5pX3Bvc2l0aW9uItwCChFBcmNoaXZlUG9saWN5VmlldxIyCgly",
             "ZWZlcmVuY2UYASABKAsyHy5tb2Rjb25kdWN0b3IudjEuUHJvZmlsZURhdGFS",
             "ZWYSEwoLc25hcHNob3RfaWQYAiABKAkSGwoTb2JzZXJ2ZWRfYXRfdW5peF9t",
             "cxgDIAEoAxINCgVzdGFsZRgEIAEoCBI0CgdlbnRyaWVzGAUgAygLMiMubW9k",
             "Y29uZHVjdG9yLnYxLkFyY2hpdmVQb2xpY3lFbnRyeRIQCghwcm9ibGVtcxgG",
             "IAMoCRIZChFibG9ja2luZ19wcm9ibGVtcxgHIAMoCRINCgVzYXZlZBgIIAEo",
             "CBIPCgdhcHBsaWVkGAkgASgIEg8KB3BlbmRpbmcYCiABKAgSFwoPcGVuZGlu",
-            "Z19wcm9ibGVtGAsgASgJEhQKDGludmFsaWRhdGlvbhgMIAEoCSKNAQoSQXJj",
-            "aGl2ZVBvbGljeVJlcGx5EjQKBnBvbGljeRgBIAEoCzIiLm1vZGNvbmR1Y3Rv",
-            "ci52MS5BcmNoaXZlUG9saWN5Vmlld0gAEjYKB3Byb2JsZW0YAiABKAsyIy5t",
-            "b2Rjb25kdWN0b3IudjEuUHJvZmlsZURhdGFQcm9ibGVtSABCCQoHb3V0Y29t",
-            "ZSrKAQoSQXJjaGl2ZVBvbGljeVN0YXRlEiQKIEFSQ0hJVkVfUE9MSUNZX1NU",
-            "QVRFX1VOU1BFQ0lGSUVEEAASHwobQVJDSElWRV9QT0xJQ1lfU1RBVEVfQUNU",
-            "SVZFEAESIQodQVJDSElWRV9QT0xJQ1lfU1RBVEVfSU5BQ1RJVkUQAhIkCiBB",
-            "UkNISVZFX1BPTElDWV9TVEFURV9VTkFWQUlMQUJMRRADEiQKIEFSQ0hJVkVf",
-            "UE9MSUNZX1NUQVRFX1VOU1VQUE9SVEVEEAQyrQMKD0FyY2hpdmVQb2xpY2ll",
-            "cxJjChFTY2FuQXJjaGl2ZVBvbGljeRIpLm1vZGNvbmR1Y3Rvci52MS5TY2Fu",
-            "QXJjaGl2ZVBvbGljeVJlcXVlc3QaIy5tb2Rjb25kdWN0b3IudjEuQXJjaGl2",
-            "ZVBvbGljeVJlcGx5EmMKEVJlYWRBcmNoaXZlUG9saWN5EikubW9kY29uZHVj",
-            "dG9yLnYxLlJlYWRBcmNoaXZlUG9saWN5UmVxdWVzdBojLm1vZGNvbmR1Y3Rv",
-            "ci52MS5BcmNoaXZlUG9saWN5UmVwbHkSZQoSQXBwbHlBcmNoaXZlUG9saWN5",
-            "EioubW9kY29uZHVjdG9yLnYxLkFwcGx5QXJjaGl2ZVBvbGljeVJlcXVlc3Qa",
-            "IS5tb2Rjb25kdWN0b3IudjEuUHJvZmlsZURhdGFFdmVudDABEmkKFFJlc3Rv",
-            "cmVBcmNoaXZlUG9saWN5EiwubW9kY29uZHVjdG9yLnYxLlJlc3RvcmVBcmNo",
+            "Z19wcm9ibGVtGAsgASgJEhQKDGludmFsaWRhdGlvbhgMIAEoCRIPCgdjaGFu",
+            "Z2VzGA0gAygJIo0BChJBcmNoaXZlUG9saWN5UmVwbHkSNAoGcG9saWN5GAEg",
+            "ASgLMiIubW9kY29uZHVjdG9yLnYxLkFyY2hpdmVQb2xpY3lWaWV3SAASNgoH",
+            "cHJvYmxlbRgCIAEoCzIjLm1vZGNvbmR1Y3Rvci52MS5Qcm9maWxlRGF0YVBy",
+            "b2JsZW1IAEIJCgdvdXRjb21lKsoBChJBcmNoaXZlUG9saWN5U3RhdGUSJAog",
+            "QVJDSElWRV9QT0xJQ1lfU1RBVEVfVU5TUEVDSUZJRUQQABIfChtBUkNISVZF",
+            "X1BPTElDWV9TVEFURV9BQ1RJVkUQARIhCh1BUkNISVZFX1BPTElDWV9TVEFU",
+            "RV9JTkFDVElWRRACEiQKIEFSQ0hJVkVfUE9MSUNZX1NUQVRFX1VOQVZBSUxB",
+            "QkxFEAMSJAogQVJDSElWRV9QT0xJQ1lfU1RBVEVfVU5TVVBQT1JURUQQBDKt",
+            "AwoPQXJjaGl2ZVBvbGljaWVzEmMKEVNjYW5BcmNoaXZlUG9saWN5EikubW9k",
+            "Y29uZHVjdG9yLnYxLlNjYW5BcmNoaXZlUG9saWN5UmVxdWVzdBojLm1vZGNv",
+            "bmR1Y3Rvci52MS5BcmNoaXZlUG9saWN5UmVwbHkSYwoRUmVhZEFyY2hpdmVQ",
+            "b2xpY3kSKS5tb2Rjb25kdWN0b3IudjEuUmVhZEFyY2hpdmVQb2xpY3lSZXF1",
+            "ZXN0GiMubW9kY29uZHVjdG9yLnYxLkFyY2hpdmVQb2xpY3lSZXBseRJlChJB",
+            "cHBseUFyY2hpdmVQb2xpY3kSKi5tb2Rjb25kdWN0b3IudjEuQXBwbHlBcmNo",
             "aXZlUG9saWN5UmVxdWVzdBohLm1vZGNvbmR1Y3Rvci52MS5Qcm9maWxlRGF0",
-            "YUV2ZW50MAFCG6oCGE1vZENvbmR1Y3Rvci5Qcm90b2NvbC5WMWIGcHJvdG8z"));
+            "YUV2ZW50MAESaQoUUmVzdG9yZUFyY2hpdmVQb2xpY3kSLC5tb2Rjb25kdWN0",
+            "b3IudjEuUmVzdG9yZUFyY2hpdmVQb2xpY3lSZXF1ZXN0GiEubW9kY29uZHVj",
+            "dG9yLnYxLlByb2ZpbGVEYXRhRXZlbnQwAUIbqgIYTW9kQ29uZHVjdG9yLlBy",
+            "b3RvY29sLlYxYgZwcm90bzM="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::ModConductor.Protocol.V1.BethesdaPluginsReflection.Descriptor, global::ModConductor.Protocol.V1.ProfileDataReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(new[] {typeof(global::ModConductor.Protocol.V1.ArchivePolicyState), }, null, new pbr::GeneratedClrTypeInfo[] {
@@ -77,7 +78,7 @@ namespace ModConductor.Protocol.V1 {
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ApplyArchivePolicyRequest), global::ModConductor.Protocol.V1.ApplyArchivePolicyRequest.Parser, new[]{ "Id", "Expected", "SnapshotId" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.RestoreArchivePolicyRequest), global::ModConductor.Protocol.V1.RestoreArchivePolicyRequest.Parser, new[]{ "Id", "Expected" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ArchivePolicyEntry), global::ModConductor.Protocol.V1.ArchivePolicyEntry.Parser, new[]{ "Name", "Position", "State", "Required", "Explicit", "IniKey", "IniPosition", "AssociatedPlugin", "Reasons", "Source", "Format", "Problem" }, new[]{ "Position", "IniPosition" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ArchivePolicyView), global::ModConductor.Protocol.V1.ArchivePolicyView.Parser, new[]{ "Reference", "SnapshotId", "ObservedAtUnixMs", "Stale", "Entries", "Problems", "BlockingProblems", "Saved", "Applied", "Pending", "PendingProblem", "Invalidation" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ArchivePolicyView), global::ModConductor.Protocol.V1.ArchivePolicyView.Parser, new[]{ "Reference", "SnapshotId", "ObservedAtUnixMs", "Stale", "Entries", "Problems", "BlockingProblems", "Saved", "Applied", "Pending", "PendingProblem", "Invalidation", "Changes" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ArchivePolicyReply), global::ModConductor.Protocol.V1.ArchivePolicyReply.Parser, new[]{ "Policy", "Problem" }, new[]{ "Outcome" }, null, null, null)
           }));
     }
@@ -1847,6 +1848,7 @@ namespace ModConductor.Protocol.V1 {
       pending_ = other.pending_;
       pendingProblem_ = other.pendingProblem_;
       invalidation_ = other.invalidation_;
+      changes_ = other.changes_.Clone();
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -1997,6 +1999,17 @@ namespace ModConductor.Protocol.V1 {
       }
     }
 
+    /// <summary>Field number for the "changes" field.</summary>
+    public const int ChangesFieldNumber = 13;
+    private static readonly pb::FieldCodec<string> _repeated_changes_codec
+        = pb::FieldCodec.ForString(106);
+    private readonly pbc::RepeatedField<string> changes_ = new pbc::RepeatedField<string>();
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public pbc::RepeatedField<string> Changes {
+      get { return changes_; }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -2024,6 +2037,7 @@ namespace ModConductor.Protocol.V1 {
       if (Pending != other.Pending) return false;
       if (PendingProblem != other.PendingProblem) return false;
       if (Invalidation != other.Invalidation) return false;
+      if(!changes_.Equals(other.changes_)) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -2043,6 +2057,7 @@ namespace ModConductor.Protocol.V1 {
       if (Pending != false) hash ^= Pending.GetHashCode();
       if (PendingProblem.Length != 0) hash ^= PendingProblem.GetHashCode();
       if (Invalidation.Length != 0) hash ^= Invalidation.GetHashCode();
+      hash ^= changes_.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -2100,6 +2115,7 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(98);
         output.WriteString(Invalidation);
       }
+      changes_.WriteTo(output, _repeated_changes_codec);
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -2149,6 +2165,7 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(98);
         output.WriteString(Invalidation);
       }
+      changes_.WriteTo(ref output, _repeated_changes_codec);
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -2189,6 +2206,7 @@ namespace ModConductor.Protocol.V1 {
       if (Invalidation.Length != 0) {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(Invalidation);
       }
+      size += changes_.CalculateSize(_repeated_changes_codec);
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
       }
@@ -2234,6 +2252,7 @@ namespace ModConductor.Protocol.V1 {
       if (other.Invalidation.Length != 0) {
         Invalidation = other.Invalidation;
       }
+      changes_.Add(other.changes_);
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
 
@@ -2304,6 +2323,10 @@ namespace ModConductor.Protocol.V1 {
             Invalidation = input.ReadString();
             break;
           }
+          case 106: {
+            changes_.AddEntriesFrom(input, _repeated_changes_codec);
+            break;
+          }
         }
       }
     #endif
@@ -2372,6 +2395,10 @@ namespace ModConductor.Protocol.V1 {
           }
           case 98: {
             Invalidation = input.ReadString();
+            break;
+          }
+          case 106: {
+            changes_.AddEntriesFrom(ref input, _repeated_changes_codec);
             break;
           }
         }

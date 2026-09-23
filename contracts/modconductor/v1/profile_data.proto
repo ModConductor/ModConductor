@@ -68,6 +68,7 @@ message ProfileDataActionResult {
   bool complete = 3;
   uint32 completed_files = 4;
   optional string problem = 5;
+  bool no_change = 6;
 }
 enum ProfileDataProblemKind {
   PROFILE_DATA_PROBLEM_UNSPECIFIED = 0;

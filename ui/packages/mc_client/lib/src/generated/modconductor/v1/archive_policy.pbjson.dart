@@ -224,6 +224,7 @@ const ArchivePolicyView$json = {
     {'1': 'pending', '3': 10, '4': 1, '5': 8, '10': 'pending'},
     {'1': 'pending_problem', '3': 11, '4': 1, '5': 9, '10': 'pendingProblem'},
     {'1': 'invalidation', '3': 12, '4': 1, '5': 9, '10': 'invalidation'},
+    {'1': 'changes', '3': 13, '4': 3, '5': 9, '10': 'changes'},
   ],
 };
 
@@ -237,7 +238,7 @@ final $typed_data.Uint8List archivePolicyViewDescriptor = $convert.base64Decode(
     'oRYmxvY2tpbmdfcHJvYmxlbXMYByADKAlSEGJsb2NraW5nUHJvYmxlbXMSFAoFc2F2ZWQYCCAB'
     'KAhSBXNhdmVkEhgKB2FwcGxpZWQYCSABKAhSB2FwcGxpZWQSGAoHcGVuZGluZxgKIAEoCFIHcG'
     'VuZGluZxInCg9wZW5kaW5nX3Byb2JsZW0YCyABKAlSDnBlbmRpbmdQcm9ibGVtEiIKDGludmFs'
-    'aWRhdGlvbhgMIAEoCVIMaW52YWxpZGF0aW9u');
+    'aWRhdGlvbhgMIAEoCVIMaW52YWxpZGF0aW9uEhgKB2NoYW5nZXMYDSADKAlSB2NoYW5nZXM=');
 
 @$core.Deprecated('Use archivePolicyReplyDescriptor instead')
 const ArchivePolicyReply$json = {

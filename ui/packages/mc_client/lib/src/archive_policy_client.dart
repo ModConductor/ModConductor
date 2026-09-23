@@ -42,6 +42,7 @@ class ArchivePolicyView {
     required this.entries,
     required this.problems,
     required this.blockingProblems,
+    required this.changes,
     required this.saved,
     required this.applied,
     required this.pending,
@@ -54,6 +55,7 @@ class ArchivePolicyView {
   final bool stale, saved, applied, pending;
   final List<ArchivePolicyEntry> entries;
   final List<String> problems, blockingProblems;
+  final List<String> changes;
   final String pendingProblem, invalidation;
 }
 
@@ -68,7 +70,7 @@ abstract interface class ArchivePolicyClient {
     String profile,
     String snapshot,
   );
-  Future<void> apply(String id, ProfileDataRef expected, String snapshot);
+  Future<bool> apply(String id, ProfileDataRef expected, String snapshot);
   Future<void> restore(String id, ProfileDataRef expected);
 }
 
@@ -116,7 +118,7 @@ class GrpcArchivePolicyClient implements ArchivePolicyClient {
   );
 
   @override
-  Future<void> apply(String id, ProfileDataRef expected, String snapshot) =>
+  Future<bool> apply(String id, ProfileDataRef expected, String snapshot) =>
       _finish(
         _client.applyArchivePolicy(
           wire.ApplyArchivePolicyRequest(
@@ -128,21 +130,27 @@ class GrpcArchivePolicyClient implements ArchivePolicyClient {
       );
 
   @override
-  Future<void> restore(String id, ProfileDataRef expected) => _finish(
-    _client.restoreArchivePolicy(
-      wire.RestoreArchivePolicyRequest(id: id, expected: _reference(expected)),
-    ),
-  );
+  Future<void> restore(String id, ProfileDataRef expected) async {
+    await _finish(
+      _client.restoreArchivePolicy(
+        wire.RestoreArchivePolicyRequest(
+          id: id,
+          expected: _reference(expected),
+        ),
+      ),
+    );
+  }
 
-  static Future<void> _finish(Stream<profile.ProfileDataEvent> events) async {
-    var finished = false;
+  static Future<bool> _finish(Stream<profile.ProfileDataEvent> events) async {
+    bool? noChange;
     await for (final event in events) {
       if (event.hasProblem()) throw decodeProfileDataProblem(event.problem);
-      if (event.hasResult()) finished = true;
+      if (event.hasResult()) noChange = event.result.noChange;
     }
-    if (!finished) {
+    if (noChange == null) {
       throw const FormatException('The archive change did not finish.');
     }
+    return noChange;
   }
 
   static ArchivePolicyView _decode(wire.ArchivePolicyReply reply) {
@@ -167,6 +175,7 @@ class GrpcArchivePolicyClient implements ArchivePolicyClient {
       entries: List.unmodifiable(value.entries.map(_entry)),
       problems: List.unmodifiable(value.problems),
       blockingProblems: List.unmodifiable(value.blockingProblems),
+      changes: List.unmodifiable(value.changes),
       saved: value.saved,
       applied: value.applied,
       pending: value.pending,

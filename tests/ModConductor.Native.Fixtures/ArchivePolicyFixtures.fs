@@ -190,6 +190,7 @@ module ArchivePolicyFixtures =
                 "precedenceDedupAndAssociationsAreCaseInsensitive"
                 (policy.ExplicitNames = SkyrimArchives.required @ [ "extra.BSA"; "Missing.bsa" ]
                  && (row "QuietRivers.bsa").State = ArchivePolicyState.Active
+                 && (row "QuietRivers.bsa").AssociatedPlugin = Some "QuietRivers.esp"
                  && (row "Off.bsa").State = ArchivePolicyState.Inactive
                  && policy.Problems.Length = 2
                  && policy.BlockingProblems.IsEmpty)
@@ -388,13 +389,102 @@ module ArchivePolicyFixtures =
             let archiveApi = store.ArchivePolicies
             let first = archiveApi.Scan(workspace, profile, headers.Id, token) |> wait |> result
 
+            let beforeNoChange = profileApi.Read(workspace, profile) |> wait |> result
+            let noChangeId = Guid.NewGuid()
+            let noChange =
+                archiveApi.Apply(noChangeId, first.Reference, first.Snapshot.Id, ignore, token)
+                |> wait
+                |> result
+            let noChangeAction = store.ProfileDataActionBytes noChangeId |> wait
+
+            writer.WriteBoolean(
+                "initialScanDoesNotApplyArchiveChanges",
+                check
+                    "initialScanDoesNotApplyArchiveChanges"
+                    (first.Changes.IsEmpty
+                     && noChange.NoChange
+                     && noChange.CompletedFiles = 0
+                     && isNull noChangeAction
+                     && noChange.State.Reference = beforeNoChange.Reference
+                     && File.ReadAllBytes(documentsIni) = globalOriginal)
+            )
+
+            let editArchives expected content =
+                let opened =
+                    profileApi.ReadConfiguration(expected, "Skyrim.ini", token)
+                    |> wait
+                    |> result
+
+                profileApi.SaveConfiguration(
+                    { Id = Guid.NewGuid()
+                      PreviewId = opened.PreviewId
+                      Expected = opened.Expected
+                      Name = opened.Name
+                      Content = content },
+                    ignore,
+                    token
+                )
+                |> wait
+                |> result
+
+            let withoutQuiet =
+                "; original\n[Archive]\nSResourceArchiveList=\n[Display]\nfGamma=1.0\n"
+
+            let edited = editArchives first.Reference withoutQuiet
+            let headers = store.Plugins.Scan(profile, token) |> wait |> result
+            let changed = archiveApi.Scan(workspace, profile, headers.Id, token) |> wait |> result
+
+            writer.WriteBoolean(
+                "profileArchiveEditShowsOneDelta",
+                check
+                    "profileArchiveEditShowsOneDelta"
+                    (edited.Complete
+                     && changed.Changes.Length = 1
+                     && not (changed.Snapshot.ExplicitNames |> List.contains "QuietRivers.bsa")
+                     && not changed.Applied)
+            )
+
+            let refreshed = archiveApi.Scan(workspace, profile, headers.Id, token) |> wait |> result
+            let reverted =
+                editArchives
+                    refreshed.Reference
+                    "; original\n[Archive]\nSResourceArchiveList=QuietRivers.bsa\n[Display]\nfGamma=1.0\n"
+
+            let headers = store.Plugins.Scan(profile, token) |> wait |> result
+            let revertedPolicy = archiveApi.Scan(workspace, profile, headers.Id, token) |> wait |> result
+            let revertedNoChange =
+                archiveApi.Apply(
+                    Guid.NewGuid(),
+                    revertedPolicy.Reference,
+                    revertedPolicy.Snapshot.Id,
+                    ignore,
+                    token
+                )
+                |> wait
+                |> result
+
+            writer.WriteBoolean(
+                "refreshPreservesDeltaAndRevertClearsIt",
+                check
+                    "refreshPreservesDeltaAndRevertClearsIt"
+                    (refreshed.Changes = changed.Changes
+                     && reverted.Complete
+                     && revertedPolicy.Changes.IsEmpty
+                     && revertedNoChange.NoChange
+                     && File.ReadAllBytes(documentsIni) = globalOriginal)
+            )
+
+            editArchives revertedPolicy.Reference withoutQuiet |> ignore
+            let headers = store.Plugins.Scan(profile, token) |> wait |> result
+            let changed = archiveApi.Scan(workspace, profile, headers.Id, token) |> wait |> result
+
             let target = Path.Combine(data, SkyrimArchives.required.Head)
             let replacement = target + ".new"
             File.WriteAllBytes(replacement, bsaHeader)
             File.Move(replacement, target, true)
 
             let refused =
-                archiveApi.Apply(Guid.NewGuid(), first.Reference, first.Snapshot.Id, ignore, token)
+                archiveApi.Apply(Guid.NewGuid(), changed.Reference, changed.Snapshot.Id, ignore, token)
                 |> wait
 
             let afterRefusal = profileApi.Read(workspace, profile) |> wait |> result
@@ -402,11 +492,15 @@ module ArchivePolicyFixtures =
                 "changedArchiveRefusesBeforeReceipt",
                 check
                     "changedArchiveRefusesBeforeReceipt"
-                    (refused = Error ProfileDataError.Stale && afterRefusal.Pending.IsNone)
+                    (refused = Error ProfileDataError.Stale
+                     && afterRefusal.Pending.IsNone
+                     && File.ReadAllBytes(documentsIni) = globalOriginal)
             )
 
             let headers = store.Plugins.Scan(profile, token) |> wait |> result
             let policy = archiveApi.Scan(workspace, profile, headers.Id, token) |> wait |> result
+            check "stale input keeps archive draft" (policy.Changes = changed.Changes)
+            |> ignore
             let applied =
                 archiveApi.Apply(Guid.NewGuid(), policy.Reference, policy.Snapshot.Id, ignore, token)
                 |> wait
@@ -414,13 +508,14 @@ module ArchivePolicyFixtures =
 
             let privateIni = Path.Combine(applied.State.SettingsPath, "Skyrim.ini")
             let appliedBytes = File.ReadAllBytes privateIni
+            let editedBytes = Encoding.UTF8.GetBytes withoutQuiet
 
             writer.WriteBoolean(
                 "applyUsesReceiptAndIgnoresArchivesTxt",
                 check
                     "applyUsesReceiptAndIgnoresArchivesTxt"
                     (applied.Complete
-                     && Ini.archiveEntries appliedBytes |> List.map _.Name = SkyrimArchives.required @ [ "QuietRivers.bsa" ]
+                     && Ini.archiveEntries appliedBytes |> List.map _.Name = SkyrimArchives.required
                      && not (Encoding.UTF8.GetString(appliedBytes).Contains "Bogus.bsa")
                      && File.ReadAllText archivesTxt = "Bogus.bsa\n")
             )
@@ -435,11 +530,17 @@ module ArchivePolicyFixtures =
                 check
                     "divergentActiveDocumentsAndProfileRestoreExactOriginals"
                     (restored.Complete
-                     && File.ReadAllBytes(privateIni) = originalIni
+                     && File.ReadAllBytes(privateIni) = editedBytes
                      && File.ReadAllBytes(documentsIni) = globalOriginal)
             )
 
             File.Delete documentsIni
+            let afterRestore = profileApi.Read(workspace, profile) |> wait |> result
+            let changed =
+                editArchives
+                    afterRestore.Reference
+                    "; original\n[Archive]\nSResourceArchiveList=QuietRivers.bsa\n[Display]\nfGamma=1.0\n"
+
             let headers = store.Plugins.Scan(profile, token) |> wait |> result
             let policy = archiveApi.Scan(workspace, profile, headers.Id, token) |> wait |> result
 
@@ -457,9 +558,64 @@ module ArchivePolicyFixtures =
                 "absentActiveDocumentsIniIsRemovedOnRestore",
                 check
                     "absentActiveDocumentsIniIsRemovedOnRestore"
-                    (createdGlobal.Complete && removedGlobal.Complete && not (File.Exists documentsIni))
+                    (changed.Complete
+                     && policy.Changes.Length = 1
+                     && createdGlobal.Complete
+                     && removedGlobal.Complete
+                     && not (File.Exists documentsIni))
             )
 
+            let inactive = Guid.NewGuid()
+            let page = workspaces.Read(workspace, None) |> wait |> result
+
+            workspaces.Edit(
+                workspace,
+                page.Workspace.Revision,
+                ProfileEdit.Create { Id = inactive; Name = "Inactive" }
+            )
+            |> wait
+            |> result
+            |> ignore
+
+            (store.GameContexts :> IGameContexts)
+                .Save(workspace, inactive, 0L, { GameId = GameId.SkyrimSpecialEditionSteam
+                                                 Path = game; Proton = Some proton })
+            |> wait
+            |> result
+            |> ignore
+
+            let inactiveInitial = profileApi.Read(workspace, inactive) |> wait |> result
+
+            let inactiveEnabled =
+                profileApi.Edit(
+                    { Id = Guid.NewGuid()
+                      Expected = inactiveInitial.Reference
+                      Options = { Settings = true; Saves = false }
+                      InitialSaves = InitialSaves.Empty
+                      DisabledFiles = DisabledFiles.Keep },
+                    ignore,
+                    token
+                )
+                |> wait
+                |> result
+
+            let inactiveEdit = editArchives inactiveEnabled.State.Reference withoutQuiet
+            let headers = store.Plugins.Scan(inactive, token) |> wait |> result
+            let inactivePolicy =
+                archiveApi.Scan(workspace, inactive, headers.Id, token) |> wait |> result
+
+            writer.WriteBoolean(
+                "inactiveProfileEditNeedsNoArchiveApply",
+                check
+                    "inactiveProfileEditNeedsNoArchiveApply"
+                    (inactiveEdit.Complete
+                     && inactivePolicy.Changes.IsEmpty
+                     && inactivePolicy.Applied
+                     && not (File.Exists documentsIni))
+            )
+
+            let afterRestore = profileApi.Read(workspace, profile) |> wait |> result
+            editArchives afterRestore.Reference withoutQuiet |> ignore
             let headers = store.Plugins.Scan(profile, token) |> wait |> result
             let policy = archiveApi.Scan(workspace, profile, headers.Id, token) |> wait |> result
 

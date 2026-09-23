@@ -65,6 +65,7 @@ module internal ArchivePolicyWire =
                 )
 
             result.Entries.AddRange(value.Snapshot.Entries |> Seq.map entry)
+            result.Changes.AddRange value.Changes
             result.Problems.AddRange value.Snapshot.Problems
             result.BlockingProblems.AddRange value.Snapshot.BlockingProblems
 

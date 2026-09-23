@@ -1490,6 +1490,7 @@ class ProfileDataActionResult extends $pb.GeneratedMessage {
     $core.bool? complete,
     $core.int? completedFiles,
     $core.String? problem,
+    $core.bool? noChange,
   }) {
     final result = create();
     if (id != null) result.id = id;
@@ -1497,6 +1498,7 @@ class ProfileDataActionResult extends $pb.GeneratedMessage {
     if (complete != null) result.complete = complete;
     if (completedFiles != null) result.completedFiles = completedFiles;
     if (problem != null) result.problem = problem;
+    if (noChange != null) result.noChange = noChange;
     return result;
   }
 
@@ -1521,6 +1523,7 @@ class ProfileDataActionResult extends $pb.GeneratedMessage {
     ..aI(4, _omitFieldNames ? '' : 'completedFiles',
         fieldType: $pb.PbFieldType.OU3)
     ..aOS(5, _omitFieldNames ? '' : 'problem')
+    ..aOB(6, _omitFieldNames ? '' : 'noChange')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1589,6 +1592,15 @@ class ProfileDataActionResult extends $pb.GeneratedMessage {
   $core.bool hasProblem() => $_has(4);
   @$pb.TagNumber(5)
   void clearProblem() => $_clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.bool get noChange => $_getBF(5);
+  @$pb.TagNumber(6)
+  set noChange($core.bool value) => $_setBool(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasNoChange() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearNoChange() => $_clearField(6);
 }
 
 class ProfileDataProblem extends $pb.GeneratedMessage {

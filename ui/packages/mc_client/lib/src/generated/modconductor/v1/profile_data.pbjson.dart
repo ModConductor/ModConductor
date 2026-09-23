@@ -650,6 +650,7 @@ const ProfileDataActionResult$json = {
       '10': 'problem',
       '17': true
     },
+    {'1': 'no_change', '3': 6, '4': 1, '5': 8, '10': 'noChange'},
   ],
   '8': [
     {'1': '_problem'},
@@ -661,7 +662,8 @@ final $typed_data.Uint8List profileDataActionResultDescriptor = $convert.base64D
     'ChdQcm9maWxlRGF0YUFjdGlvblJlc3VsdBIOCgJpZBgBIAEoCVICaWQSNwoFc3RhdGUYAiABKA'
     'syIS5tb2Rjb25kdWN0b3IudjEuUHJvZmlsZURhdGFTdGF0ZVIFc3RhdGUSGgoIY29tcGxldGUY'
     'AyABKAhSCGNvbXBsZXRlEicKD2NvbXBsZXRlZF9maWxlcxgEIAEoDVIOY29tcGxldGVkRmlsZX'
-    'MSHQoHcHJvYmxlbRgFIAEoCUgAUgdwcm9ibGVtiAEBQgoKCF9wcm9ibGVt');
+    'MSHQoHcHJvYmxlbRgFIAEoCUgAUgdwcm9ibGVtiAEBEhsKCW5vX2NoYW5nZRgGIAEoCFIIbm9D'
+    'aGFuZ2VCCgoIX3Byb2JsZW0=');
 
 @$core.Deprecated('Use profileDataProblemDescriptor instead')
 const ProfileDataProblem$json = {

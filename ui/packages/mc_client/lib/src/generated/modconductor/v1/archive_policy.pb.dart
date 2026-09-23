@@ -539,6 +539,7 @@ class ArchivePolicyView extends $pb.GeneratedMessage {
     $core.bool? pending,
     $core.String? pendingProblem,
     $core.String? invalidation,
+    $core.Iterable<$core.String>? changes,
   }) {
     final result = create();
     if (reference != null) result.reference = reference;
@@ -554,6 +555,7 @@ class ArchivePolicyView extends $pb.GeneratedMessage {
     if (pending != null) result.pending = pending;
     if (pendingProblem != null) result.pendingProblem = pendingProblem;
     if (invalidation != null) result.invalidation = invalidation;
+    if (changes != null) result.changes.addAll(changes);
     return result;
   }
 
@@ -585,6 +587,7 @@ class ArchivePolicyView extends $pb.GeneratedMessage {
     ..aOB(10, _omitFieldNames ? '' : 'pending')
     ..aOS(11, _omitFieldNames ? '' : 'pendingProblem')
     ..aOS(12, _omitFieldNames ? '' : 'invalidation')
+    ..pPS(13, _omitFieldNames ? '' : 'changes')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -697,6 +700,9 @@ class ArchivePolicyView extends $pb.GeneratedMessage {
   $core.bool hasInvalidation() => $_has(11);
   @$pb.TagNumber(12)
   void clearInvalidation() => $_clearField(12);
+
+  @$pb.TagNumber(13)
+  $pb.PbList<$core.String> get changes => $_getList(12);
 }
 
 enum ArchivePolicyReply_Outcome { policy, problem, notSet }

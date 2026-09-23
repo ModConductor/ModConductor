@@ -102,11 +102,13 @@ class ProfileDataResult extends ProfileDataEvent {
     required this.state,
     required this.complete,
     required this.completedFiles,
+    this.noChange = false,
     this.problem,
   });
   final String id;
   final ProfileDataState state;
   final bool complete;
+  final bool noChange;
   final int completedFiles;
   final String? problem;
 }

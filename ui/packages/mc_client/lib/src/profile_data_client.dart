@@ -544,6 +544,7 @@ Stream<ProfileDataEvent> _events(Stream<wire.ProfileDataEvent> stream) =>
           id: event.result.id,
           state: _state(event.result.state),
           complete: event.result.complete,
+          noChange: event.result.noChange,
           completedFiles: event.result.completedFiles,
           problem: event.result.hasProblem() ? event.result.problem : null,
         ),
