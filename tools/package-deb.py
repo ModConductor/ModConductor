@@ -50,22 +50,14 @@ def main() -> None:
         shutil.copytree(payload, app)
         command = package / "usr/bin/modconductor"
         command.parent.mkdir(parents=True)
-        command.write_text(
-            '#!/bin/sh\n'
-            'if [ "$#" -eq 1 ]; then\n'
-            '  case "$1" in\n'
-            '    [nN][xX][mM]://*) exec /usr/lib/modconductor/bin/modconductor --uri "$1" ;;\n'
-            '  esac\n'
-            'fi\n'
-            'exec /usr/lib/modconductor/bin/modconductor "$@"\n'
-        )
+        shutil.copy2(ROOT / "packaging/linux-installed-launcher.sh", command)
         command.chmod(0o755)
         desktop = package / "usr/share/applications/dev.modconductor.mod_conductor.desktop"
         desktop.parent.mkdir(parents=True)
         shutil.copy2(ROOT / "packaging/dev.modconductor.mod_conductor.desktop", desktop)
         documentation = package / "usr/share/doc/modconductor"
         documentation.parent.mkdir(parents=True)
-        documentation.symlink_to("/usr/lib/modconductor/share/doc/modconductor", target_is_directory=True)
+        documentation.symlink_to("../../lib/modconductor/share/doc/modconductor", target_is_directory=True)
 
         control = package / "DEBIAN/control"
         control.parent.mkdir()

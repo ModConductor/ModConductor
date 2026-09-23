@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Record the assembled Linux archive checksum for package review."""
+"""Build native packages from the assembled Linux archive."""
 
 import argparse
 import hashlib
@@ -34,12 +34,19 @@ def main() -> None:
         sys.executable, str(ROOT / "tools/package-deb.py"),
         "--archive", str(archive), "--output", str(package), "--version", args.version,
     ], check=True)
+    rpm = args.release_directory / f"modconductor-{args.version}-1.fc44.x86_64.rpm"
+    subprocess.run([
+        sys.executable, str(ROOT / "tools/publish-rpm.py"),
+        "--archive", str(archive), "--output", str(rpm), "--version", args.version,
+    ], check=True)
     checksum_file = args.release_directory / "checksums_sha256.txt"
-    checksum_file.write_text(checksum_file.read_text().rstrip("\n") + f"\n{sha256(package)}  {package.name}\n")
+    checksum_file.write_text(checksum_file.read_text().rstrip("\n") +
+                             f"\n{sha256(package)}  {package.name}\n{sha256(rpm)}  {rpm.name}\n")
     args.metadata_directory.mkdir(parents=True, exist_ok=True)
     (args.metadata_directory / "modconductor-linux-x64.json").write_text(json.dumps({
         "version": args.version, "archive": archive.name, "archive_sha256": sha256(archive),
         "deb": package.name, "deb_sha256": sha256(package),
+        "rpm": rpm.name, "rpm_sha256": sha256(rpm),
         "signature": "unsigned-local-verification-only",
     }, indent=2) + "\n")
 

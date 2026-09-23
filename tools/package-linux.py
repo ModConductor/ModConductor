@@ -87,6 +87,7 @@ def assemble(bundle: Path, engine: Path, helper: Path, output: Path, revision: s
 
     app = output / "app/modconductor"
     shutil.copytree(bundle, app)
+    subprocess.run(["patchelf", "--remove-rpath", str(app / "lib/libfile_selector_linux_plugin.so")], check=True)
     for name in ("ModConductor.Engine", "libe_sqlite3.so", "ModConductor.Engine.staticwebassets.endpoints.json"):
         copy_required(engine / name, app / "engine" / name)
     copy_required(helper, app / "engine/modconductor-loot-helper")

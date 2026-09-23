@@ -196,6 +196,24 @@ storage needs an available, unlocked Secret Service provider in the user's
 desktop session; installing the package does not create or unlock a keyring.
 Upgrade and removal leave user state under the user's home directory intact.
 
+The same release hook also builds a Fedora 44 x86_64 RPM from that archive.
+For a local build, use:
+
+```sh
+python3 tools/publish-rpm.py \
+  --archive artifacts/release/modconductor-v0.1.0-linux-x64.tar.gz \
+  --output artifacts/release/modconductor-0.1.0-1.fc44.x86_64.rpm \
+  --version 0.1.0
+```
+
+The RPM installs the same application, `/usr/bin/modconductor` launcher, and
+desktop entry as the DEB. Its Fedora dependencies include GTK 3, libsecret,
+GSettings, fonts, graphics libraries, and `xdg-utils`. Fedora 44 x86_64 is the
+RPM test target; this is not a claim of support for other RPM distributions.
+The RPM is unsigned and local-only. It does not register itself as the default
+NXM handler. Install, upgrade, and remove it in an isolated Fedora 44 guest;
+do not install it on the host for package tests.
+
 Test installation, upgrade, and removal in an isolated Ubuntu 24.04 guest.
 The package workflow does not publish a release or install the product on the
 host. MC-064 retains real-game qualification; MC-067 retains the source

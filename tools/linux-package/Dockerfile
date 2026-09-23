@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libgtk-3-dev libepoxy-dev libx11-dev libsecret-1-dev liblzma-dev \
     zlib1g-dev libssl-dev libstdc++-12-dev libunwind-dev libicu-dev \
     fontconfig fonts-dejavu-core libglib2.0-bin xdg-utils xvfb xauth \
-    dbus-x11 file binutils \
+    dbus-x11 file binutils patchelf \
  && rm -rf /var/lib/apt/lists/*
 
 RUN curl -fsSL https://dot.net/v1/dotnet-install.sh -o /root/dotnet-install.sh \
