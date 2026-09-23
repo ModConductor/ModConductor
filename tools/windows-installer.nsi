@@ -1,4 +1,6 @@
 Unicode true
+!define MUI_ICON "${APP_ICON}"
+!define MUI_UNICON "${APP_ICON}"
 !include "MUI2.nsh"
 !include "LogicLib.nsh"
 

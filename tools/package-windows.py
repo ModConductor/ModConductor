@@ -137,7 +137,15 @@ def main() -> None:
     portable = output / f"ModConductor-{VERSION}-win-x64-portable.zip"
     write_zip(payload, portable)
     installer = output / f"ModConductor-{VERSION}-win-x64-setup.exe"
-    subprocess.run([args.makensis, f"/DPAYLOAD={nsis_path(payload)}", f"/DUNINSTALL_FILES={nsis_path(output / 'uninstall-files.nsh')}", f"/DOUTPUT={nsis_path(installer)}", f"/DVERSION={VERSION}", str(ROOT / "tools/windows-installer.nsi")], check=True)
+    subprocess.run([
+        args.makensis,
+        f"/DPAYLOAD={nsis_path(payload)}",
+        f"/DUNINSTALL_FILES={nsis_path(output / 'uninstall-files.nsh')}",
+        f"/DOUTPUT={nsis_path(installer)}",
+        f"/DVERSION={VERSION}",
+        f"/DAPP_ICON={nsis_path(ROOT / 'ui/apps/mod_conductor/windows/runner/resources/app_icon.ico')}",
+        str(ROOT / "tools/windows-installer.nsi"),
+    ], check=True)
     (output / "SHA256SUMS").write_text("".join(f"{sha256(path)}  {path.name}\n" for path in (installer, portable)))
     print(f"Local unsigned Windows packages: {installer} and {portable}")
 
