@@ -105,4 +105,18 @@ type NativeObservationSetup() =
 
         for path in [ primary; secondary ] do
             if path <> "" && Directory.Exists path then
+                let info =
+                    ProcessStartInfo(
+                        Environment.GetEnvironmentVariable "MC_NATIVE_FIXTURE",
+                        UseShellExecute = false
+                    )
+
+                info.ArgumentList.Add "--normalize-owned-fixture"
+                info.ArgumentList.Add path
+                use child = Process.Start info
+                child.WaitForExit()
+
+                if child.ExitCode <> 0 then
+                    invalidOp "The native fixture could not restore its test directory permissions."
+
                 Directory.Delete(path, true)

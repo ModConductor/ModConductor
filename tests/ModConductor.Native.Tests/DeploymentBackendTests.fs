@@ -12,47 +12,30 @@ type DeploymentBackendTests() =
             .GetBoolean()
 
     [<Test>]
-    member _.``checked deployment should preserve originals and expose the same logical file view across switches``
+    member _.``cancelled or stale preparation should leave original game files unchanged``
         ()
         =
         for name in
-            [ "contextDerivedTarget"
-              "caseVariantSingleEntry"
-              "missingParentCreated"
-              "activeReaderReconstructsBase"
-              "originalRestored"
-              "ownedParentRemoved"
-              "unrelatedBasePreserved"
-              "retainedGenerationReactivated"
-              "sourceBytesPreserved" ] do
+            [ "cancelledPreparationNoReceipt"
+              "stalePreparationNoEffects" ] do
             flag "deploymentBackend" name |> should equal true
 
     [<Test>]
-    member _.``interrupted parent changes should restore known identities and refuse unrecorded creations``
+    member _.``profile view should switch between managed files and original game files``
         ()
         =
         for name in
-            [ "removedParentInterruptionRecorded"
-              "pendingReaderUnavailable"
-              "removedParentRestored"
-              "unknownCreatedParentRefused"
-              "cancelledPreparationNoReceipt"
-              "stalePreparationNoEffects"
-              "cacheEvictionRemovedOriginalStore"
-              "mixedStoreCloseCleansEveryPreparedState" ] do
+            [ "profileViewContainsManagedWinner"
+              "sourceInventoryUnaffected"
+              "retainedBaselineUsesOriginalSource"
+              "retainedGenerationReactivated" ] do
             flag "deploymentBackend" name |> should equal true
 
     [<Test>]
-    member _.``changing an installation should preserve historical targets and exclude outstanding effects``
+    member _.``changing an installation should leave both game directories unchanged``
         ()
         =
-        for name in
-            [ "refreshedEvidenceKeepsTargetOwnership"
-              "newInstallationAfterDeactivation"
-              "oldReceiptCannotRetarget"
-              "otherActiveContextRefused"
-              "otherPendingContextRefused" ] do
-            flag "deploymentBackend" name |> should equal true
+        flag "deploymentBackend" "sourceChangeRetiresPriorView" |> should equal true
 
     [<Test>]
     member _.``process observation should refuse the selected executable without blocking an unrelated same name``
