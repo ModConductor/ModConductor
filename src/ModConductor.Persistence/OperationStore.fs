@@ -1066,7 +1066,7 @@ type OperationStore
             let! draft = installations.Prepare(reference, token)
 
             let plan =
-                ModConductor.Fnis.FnisArchiveLayout.review draft.Manifest
+                ModConductor.Fnis.FnisArchiveLayout.review draft
                 |> Result.defaultWith (ModConductor.Fnis.FnisProblem.message >> fail)
 
             let reviewed =

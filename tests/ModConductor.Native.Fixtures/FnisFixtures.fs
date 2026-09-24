@@ -9,6 +9,7 @@ open System.Text.Json
 open System.Threading
 open System.Threading.Tasks
 open ModConductor.ArtifactLibrary
+open ModConductor.ArchiveInstallation
 open ModConductor.Credentials
 open ModConductor.Engine
 open ModConductor.Fnis
@@ -134,7 +135,7 @@ module FnisFixtures =
             not status.Waiting && status.Account.IsSome)
         |> ignore
 
-    let private archive marker valid padding =
+    let private archiveAtRoot root includeDocs includeBehavior marker valid padding =
         use output = new MemoryStream()
         use zip = new ZipArchive(output, ZipArchiveMode.Create, true)
 
@@ -142,18 +143,21 @@ module FnisFixtures =
             use target = zip.CreateEntry(name, CompressionLevel.NoCompression).Open()
             target.Write bytes
 
-        let root = "FNIS Behavior SE 7_6/"
-
         if valid then
             write
                 (root + FnisCatalogue.GeneratorPath)
                 (Encoding.UTF8.GetBytes("generator-" + marker))
 
-            write
-                (root + "Data/meshes/actors/character/behaviors/0_master.hkx")
-                (Encoding.UTF8.GetBytes("behavior-" + marker))
+            if includeBehavior then
+                write
+                    (root + "Data/meshes/actors/character/behaviors/0_master.hkx")
+                    (Encoding.UTF8.GetBytes("behavior-" + marker))
         else
             write (root + "Data/readme.txt") (Encoding.UTF8.GetBytes marker)
+
+        if includeDocs then
+            write (root + "FNIS_Readme_7.6 SE.txt") (Encoding.UTF8.GetBytes "readme")
+            write (root + "FNISACweaponScript_EXAMPLE_SCRIPT.psc") (Encoding.UTF8.GetBytes "example")
 
         if padding > 0 then
             write
@@ -162,6 +166,9 @@ module FnisFixtures =
 
         zip.Dispose()
         output.ToArray()
+
+    let private archive marker valid padding =
+        archiveAtRoot "FNIS Behavior SE 7_6/" false true marker valid padding
 
     let private policy =
         { DownloadPolicy.Default with
@@ -280,8 +287,20 @@ module FnisFixtures =
                 |> Seq.toList
               TotalSize = zip.Entries |> Seq.sumBy _.Length }
 
-        let valid = FnisArchiveLayout.review (archive "valid" true 0 |> manifest)
-        let incomplete = FnisArchiveLayout.review (archive "invalid" false 0 |> manifest)
+        let draft bytes =
+            Layout.prepare
+                { WorkspaceId = Guid.Empty
+                  Id = Guid.Empty
+                  Revision = 0L }
+                "FNIS Behavior SE 7_6.zip"
+                (manifest bytes)
+
+        let valid = FnisArchiveLayout.review (archive "valid" true 0 |> draft)
+        let incomplete = FnisArchiveLayout.review (archive "invalid" false 0 |> draft)
+        let withDocs =
+            archiveAtRoot "Mirror/Extras/FNIS Behavior SE/" true false "docs" true 0
+            |> draft
+            |> FnisArchiveLayout.review
 
         let release =
             FnisCatalogue.release
@@ -315,6 +334,20 @@ module FnisFixtures =
                         && file.Use = ModConductor.DeploymentPlanning.ComponentFileUse.Immutable)))
 
         check writer "incompleteArchiveIsRefused" (Result.isError incomplete)
+
+        check
+            writer
+            "selectedDataFilesIgnoreOuterDocsAndFindGenerator"
+            (withDocs
+             |> Result.exists (fun plan ->
+                 plan.Generator = FnisCatalogue.GeneratorPath
+                 && plan.Files.Length = 1
+                 && plan.ComponentFiles.Length = 1
+                 && (plan.ComponentFiles
+                     |> List.forall (fun file ->
+                         file.Root = ModConductor.DeploymentPlanning.ComponentRoot.Data
+                         && LogicalPath.display file.Destination
+                            = "tools/GenerateFNIS_for_Users/GenerateFNISforUsers.exe"))))
 
         check
             writer
@@ -365,7 +398,7 @@ module FnisFixtures =
         let workspace, profile, game = createWorkspace store scenario
         let foreign = Path.Combine(game, "foreign-user-file.txt")
         File.WriteAllText(foreign, "keep")
-        configure server 701L (archive "initial" true 0)
+        configure server 701L (archiveAtRoot "Mirror/Extras/FNIS Behavior SE/" true true "initial" true 0)
 
         let coordinator =
             new FnisCoordinator(session, store.Downloads, store, server.Handoff)
@@ -390,6 +423,8 @@ module FnisFixtures =
              && initialEnabled.Contains generator.ModId
              && generator.Executable = registeredExecutable
              && File.Exists expectedExecutable
+             && not (File.Exists(Path.Combine(runnable.RunnableRoot, "Data", "FNIS_Readme_7.6 SE.txt")))
+             && not (File.Exists(Path.Combine(runnable.RunnableRoot, "Data", "FNISACweaponScript_EXAMPLE_SCRIPT.psc")))
              && not (File.Exists registeredExecutable)
              && generator.ArchiveSha256.Length = 64
              && generator.Provider = FnisCatalogue.Provider
