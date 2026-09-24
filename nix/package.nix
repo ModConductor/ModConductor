@@ -165,14 +165,19 @@ let
       EOF
       cd ../..
     '';
+    preFixup = ''
+      writeFinalPackageMetadata() {
+        python3 ${self.outPath}/nix/write-package-metadata.py \
+          --output "$out" --version 0.1.0 \
+          --revision ${lib.escapeShellArg sourceRevision} \
+          --source-date-epoch ${toString sourceDate}
+      }
+      postFixupHooks+=(writeFinalPackageMetadata)
+    '';
     postFixup = ''
       patchelf --add-rpath ${lib.makeLibraryPath [ pkgs.libsecret pkgs.glib ]} \
         "$out/app/modconductor/engine/ModConductor.Engine"
       ln -s mod_conductor "$out/bin/modconductor"
-      python3 ${self.outPath}/nix/write-package-metadata.py \
-        --output "$out" --version 0.1.0 \
-        --revision ${lib.escapeShellArg sourceRevision} \
-        --source-date-epoch ${toString sourceDate}
     '';
     meta = {
       platforms = [ "x86_64-linux" ];
