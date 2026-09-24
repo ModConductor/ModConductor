@@ -72,10 +72,13 @@ def main() -> None:
     parser.add_argument("--engine-publish", type=Path, default=ROOT / ".tools/publish/win-x64")
     parser.add_argument("--loot-helper", type=Path, required=True)
     parser.add_argument("--makensis", default="makensis")
+    parser.add_argument("--version", help="Expected release version")
     parser.add_argument("--source-revision", help="Exact source bundle identifier when no Git checkout is available")
     parser.add_argument("--source-date-epoch", type=int, help="Source timestamp when no Git checkout is available")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
+    if args.version is not None and args.version != VERSION:
+        parser.error(f"Expected application version {args.version}, found {VERSION}.")
     if (args.source_revision is None) != (args.source_date_epoch is None):
         parser.error("--source-revision and --source-date-epoch must be given together")
 

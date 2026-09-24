@@ -153,6 +153,18 @@ installation for package smoke tests. Other Windows architectures, MSIX,
 system-wide installation, file associations, signing, and publication are not
 selected. MC-064 retains real-game qualification; MC-067 retains licence review.
 
+The desktop package workflow uses `tools/publish-desktop.py` for Linux and
+Windows x64. On Windows, `tools/publish-windows.py` builds the NativeAOT engine,
+Flutter app, and LOOT helper once, then calls `tools/package-windows.py`. It
+checks the .NET 10.0.400, Flutter 3.47.4, Rust 1.89.0, and NSIS 3.12 pins.
+The output contains the complete `payload/`, the NSIS installer, and the local
+portable ZIP. The shared archive step makes the release ZIP from that same
+payload. `tools/finalize-desktop-release.py` adds the installer to release
+assets and writes Scoop, Chocolatey, and WinGet metadata from the archive and
+installer checksums. These are local, unsigned artifacts. The package workflow
+does not publish or submit them. WinGet's provisional `License` text is not a
+licence grant; public submission waits for MC-067.
+
 ## Local Linux x64 desktop payload
 
 The Linux package hook builds inside an Ubuntu 24.04 FHS container. Docker builds

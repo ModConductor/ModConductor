@@ -44,6 +44,25 @@ assemble:
         longFileMode: POSIX
       fileSets:
         - input: artifacts/publish/{{matrix.rid}}
+    modconductor-windows:
+      active: ALWAYS
+      exported: false
+      distributionType: BINARY
+      stereotype: DESKTOP
+      attachPlatform: false
+      archiveName: modconductor-v{{projectVersion}}-win-x64
+      formats:
+        - ZIP
+      applyDefaultMatrix: false
+      matrix:
+        rows:
+          - rid: win-x64
+            os: windows
+            arch: x86_64
+      options:
+        timestamp: 2026-01-01T00:00:00Z
+      fileSets:
+        - input: artifacts/publish/{{matrix.rid}}/payload
 
 distributions:
   modconductor:
@@ -56,3 +75,5 @@ distributions:
     artifacts:
       - path: out/jreleaser/assemble/modconductor-linux/archive/modconductor-v{{projectVersion}}-linux-x64.tar.gz
         platform: linux-x86_64
+      - path: out/jreleaser/assemble/modconductor-windows/archive/modconductor-v{{projectVersion}}-win-x64.zip
+        platform: windows-x86_64
