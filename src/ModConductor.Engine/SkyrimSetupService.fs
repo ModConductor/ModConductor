@@ -420,6 +420,32 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                         let recorded = intent |> Option.filter (fun value -> not value.Cancelled)
                         let mutable stage = recorded |> Option.map _.Stage |> Option.defaultValue ""
 
+                        let! skseWhilePending =
+                            if
+                                stage = "skse"
+                                && deployed.ActiveGeneration.IsSome
+                                && deployed.PendingReceipt.IsSome
+                                && not (intent |> Option.exists _.CancelRequested)
+                            then
+                                task {
+                                    let! state = dependencies.ReadSkse workspace profile
+                                    return Some state
+                                }
+                            else
+                                Task.FromResult None
+
+                        let! deployed =
+                            match skseWhilePending with
+                            | Some state when
+                                state.Phase <> SksePhase.Downloading
+                                && state.Phase <> SksePhase.Installing
+                                ->
+                                task {
+                                    let! latest = store.Deployments.Read profile
+                                    return latest |> Result.defaultValue deployed
+                                }
+                            | _ -> Task.FromResult deployed
+
                         if intent |> Option.exists _.CancelRequested then
                             let pending = intent.Value
 
@@ -458,6 +484,30 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                                             "Select components to try again."
                                         else
                                             cancelled.CancelDetail }
+                        elif
+                            skseWhilePending
+                            |> Option.exists (fun state ->
+                                state.Phase = SksePhase.Downloading
+                                || state.Phase = SksePhase.Installing)
+                        then
+                            let state = skseWhilePending.Value
+                            let! installed =
+                                store.SkseLoaders.ReadStored(workspace, profile, deployed.ActiveGeneration)
+
+                            return
+                                view
+                                    SkyrimSetupPhase.SettingUpSkse
+                                    state.Status
+                                    state.Detail
+                                    [ { componentView "SKSE" state.Status state.Detail false true false with
+                                          Id = "skse"
+                                          Installed = installed.IsSome } ]
+                                    selection
+                                    running
+                                    false
+                                    false
+                                    true
+                                    false
                         elif deployed.ActiveGeneration.IsSome && deployed.PendingReceipt.IsSome then
                             return
                                 { view

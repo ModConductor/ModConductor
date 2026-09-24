@@ -2,10 +2,14 @@ namespace ModConductor.Native.Fixtures
 
 open System
 open System.IO
+open System.IO.Compression
+open System.Security.Cryptography
+open System.Text
 open System.Text.Json
 open System.Threading
 open System.Threading.Tasks
 open ModConductor.Deployment
+open ModConductor.ArtifactLibrary
 open ModConductor.Engine
 open ModConductor.Enb
 open ModConductor.Executables
@@ -13,6 +17,8 @@ open ModConductor.FilePlanning
 open ModConductor.Fnis
 open ModConductor.GameContexts
 open ModConductor.GameLaunching
+open ModConductor.HttpDownloads
+open ModConductor.Nexus
 open ModConductor.Persistence
 open ModConductor.Protocol.V1
 open ModConductor.Skse
@@ -136,6 +142,7 @@ module SkyrimSetupFixtures =
         let mutable skseReads = 0
         let mutable skseStarts = 0
         let mutable failSkse = false
+        let mutable holdSkse = false
         let mutable enbSelections = 0
         let mutable fnisInstalls = 0
         let mutable enbCancels = 0
@@ -179,6 +186,7 @@ module SkyrimSetupFixtures =
             output <- ModConductor.Fnis.FnisOutputPhase.Stale
             latestRun <- None
             failSkse <- false
+            holdSkse <- false
             blockEnb <- false
             enbStarted.Reset()
             blockFnis <- false
@@ -215,6 +223,8 @@ module SkyrimSetupFixtures =
         member _.SkseStarts = skseStarts
         member _.FailSkse() = failSkse <- true
         member _.AllowSkse() = failSkse <- false
+        member _.HoldSkse() = holdSkse <- true
+        member _.CompleteSkse() = skse <- { skse with Phase = SksePhase.Ready; Status = "SKSE is current"; Detail = "" }
         member _.EnbSelections = enbSelections
         member _.FnisInstalls = fnisInstalls
         member _.EnbCancels = enbCancels
@@ -249,8 +259,14 @@ module SkyrimSetupFixtures =
                     skseStarts <- skseStarts + 1
                     skse <-
                         { skse with
-                            Phase = if failSkse then SksePhase.Failed else SksePhase.Ready
-                            Status = if failSkse then "SKSE install failed" else "SKSE is ready"
+                            Phase =
+                                if failSkse then SksePhase.Failed
+                                elif holdSkse then SksePhase.Installing
+                                else SksePhase.Ready
+                            Status =
+                                if failSkse then "SKSE install failed"
+                                elif holdSkse then "Installing SKSE"
+                                else "SKSE is ready"
                             Detail = if failSkse then "The archive could not be installed." else "" }
 
                     Task.FromResult skse
@@ -342,7 +358,18 @@ module SkyrimSetupFixtures =
         writer.WriteStartObject("skyrimSetup")
 
         let state = Directory.CreateDirectory(Path.Combine(area, "skyrim-setup-state")).FullName
-        use store = new OperationStore(state)
+        use releaseSkseGeneration = new ManualResetEventSlim(true)
+        use enteredSkseGeneration = new ManualResetEventSlim(false)
+
+        use store =
+            new OperationStore(
+                state,
+                skseCheckpoint =
+                    (fun name _ ->
+                        if name = "install-intent" && not releaseSkseGeneration.IsSet then
+                            enteredSkseGeneration.Set()
+                            releaseSkseGeneration.Wait(TimeSpan.FromSeconds 30.) |> ignore)
+            )
         let workspace, profile, _ = createWorkspace store area "selected" true
         let workflow = WorkflowState()
         use coordinator = new SkyrimSetupCoordinator(store, workflow.Dependencies)
@@ -628,5 +655,116 @@ module SkyrimSetupFixtures =
             writer
             "explicitNewAttemptRunsOnlyChosenComponent"
             (retryWorkflow.EnbSelections = 1 && retryWorkflow.FnisInstalls = 1)
+
+        let pausedWorkspace, pausedProfile, _ = createWorkspace store area "paused-skse" true
+        let pausedWorkflow = WorkflowState()
+        pausedWorkflow.HoldSkse()
+        use pausedOwner = new SkyrimSetupCoordinator(store, pausedWorkflow.Dependencies)
+        let _ = pausedOwner.Start(pausedWorkspace, pausedProfile, skseOnly, CancellationToken.None) |> wait
+        let installing = pausedOwner.Continue(pausedWorkspace, pausedProfile, CancellationToken.None) |> wait
+        let context =
+            (store.GameContexts :> IGameContexts).Read(pausedWorkspace, pausedProfile)
+            |> wait
+            |> result
+
+        let runtime = context.Binding.Value.Evidence.Executable.Value.FileVersion
+        use archive = new MemoryStream()
+
+        use zip = new ZipArchive(archive, ZipArchiveMode.Create, true)
+
+        for name in
+            [ "skse64_paused/skse64_loader.exe"
+              "skse64_paused/skse64_" + runtime.Replace('.', '_') + ".dll"
+              "skse64_paused/Data/Scripts/skse.pex" ] do
+            use entry = zip.CreateEntry(name).Open()
+            entry.Write(Encoding.UTF8.GetBytes name)
+
+        zip.Dispose()
+        let bytes = archive.ToArray()
+        use downloadServer = new DownloadServer(bytes)
+        let artifactId = Guid.NewGuid()
+
+        store.Downloads.Start
+            { Id = artifactId
+              WorkspaceId = pausedWorkspace
+              Name = "skse-paused.zip"
+              Sources = [ DownloadSource.Url(downloadServer.Url + "/good") ]
+              ExpectedLength = Some(int64 bytes.Length)
+              ExpectedSha256 = Some(Convert.ToHexStringLower(SHA256.HashData bytes)) }
+        |> wait
+        |> result
+        |> ignore
+
+        let artifact =
+            until
+                "paused SKSE artifact"
+                (fun () -> store.Artifacts.Read(pausedWorkspace, artifactId) |> wait |> result)
+                (fun value -> value.State = ArtifactState.Ready)
+
+        let release: SkseRelease =
+            { ModId = SkseResolver.NexusModId
+              File =
+                { Id = 911L
+                  Name = "skse-paused.zip"
+                  Version = "2.3.1"
+                  Category = "MAIN"
+                  Description = "Compatible with Skyrim Special Edition " + runtime + " from Steam"
+                  Bytes = Some(int64 bytes.Length) }
+              ComponentVersion = Version(2, 3, 1)
+              RuntimeVersion = Version.Parse runtime }
+
+        releaseSkseGeneration.Reset()
+
+        let installation =
+            store.InstallSkse(
+                pausedWorkspace,
+                pausedProfile,
+                release,
+                artifact,
+                DateTimeOffset.UtcNow,
+                CancellationToken.None
+            )
+
+        try
+            if not (enteredSkseGeneration.Wait(TimeSpan.FromSeconds 10.)) then
+                failwith "SKSE did not reach the held generation step."
+
+            let deployed = store.Deployments.Read pausedProfile |> wait |> result
+            let during = pausedOwner.Read(pausedWorkspace, pausedProfile, noChoice, CancellationToken.None) |> wait
+            let continued =
+                pausedOwner.Continue(pausedWorkspace, pausedProfile, CancellationToken.None) |> wait
+            let afterContinue = store.Deployments.Read pausedProfile |> wait |> result
+
+            check
+                writer
+                "activeSkseGenerationDoesNotTriggerParentRecovery"
+                (installing.Phase = SkyrimSetupPhase.SettingUpSkse
+                 && deployed.ActiveGeneration.IsSome
+                 && deployed.PendingReceipt.IsSome
+                 && during.Phase = SkyrimSetupPhase.SettingUpSkse
+                 && during.Active
+                 && not during.CanContinue
+                 && continued.Phase = SkyrimSetupPhase.SettingUpSkse
+                 && afterContinue.PendingReceipt = deployed.PendingReceipt
+                 && not installation.IsCompleted)
+        finally
+            releaseSkseGeneration.Set()
+
+        let installedGeneration = installation |> wait
+        pausedWorkflow.CompleteSkse()
+        let afterChild = pausedOwner.Read(pausedWorkspace, pausedProfile, noChoice, CancellationToken.None) |> wait
+        let completedChild =
+            pausedOwner.Continue(pausedWorkspace, pausedProfile, CancellationToken.None) |> wait
+        let finalDeployment = store.Deployments.Read pausedProfile |> wait |> result
+        let finalIntent = store.SkyrimSetups.Read(pausedWorkspace, pausedProfile) |> wait
+
+        check
+            writer
+            "finishedSkseGenerationCompletesParentSetup"
+            (afterChild.Phase = SkyrimSetupPhase.Ready
+             && completedChild.Phase = SkyrimSetupPhase.Ready
+             && finalDeployment.ActiveGeneration = Some installedGeneration
+             && finalDeployment.PendingReceipt.IsNone
+             && (finalIntent |> Option.exists _.Completed))
 
         writer.WriteEndObject()
