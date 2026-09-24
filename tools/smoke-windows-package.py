@@ -73,8 +73,8 @@ def main() -> None:
         home = Path(temporary)
         local = home / "AppData" / "Local"
         roaming = home / "AppData" / "Roaming"
-        local.mkdir()
-        roaming.mkdir()
+        local.mkdir(parents=True)
+        roaming.mkdir(parents=True)
         environment = dict(os.environ, USERPROFILE=str(home), LOCALAPPDATA=str(local), APPDATA=str(roaming))
         frontend = subprocess.Popen([str(executable)], env=environment, cwd=executable.parent)
         backend = None
