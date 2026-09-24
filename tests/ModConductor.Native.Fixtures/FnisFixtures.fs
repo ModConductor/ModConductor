@@ -584,7 +584,7 @@ module FnisFixtures =
             "#!/usr/bin/python3\nimport os,sys,time,subprocess\nmode_path="
             + "r'"
             + mode.Replace("'", "\\'")
-            + "'\nmode=open(mode_path).read().strip()\ntarget=next(a.split('=',1)[1] for a in sys.argv if a.startswith('RedirectFiles='))\ngenerator=next((a for a in sys.argv if a.lower().endswith('generatefnisforusers.exe')), '')\nlogs=os.path.join(os.path.dirname(generator),'temporary_logs')\nif mode=='shutdownchild':\n child=subprocess.Popen(['sleep','30'])\n open(mode_path+'.childpid','w').write(str(child.pid))\n time.sleep(30)\nif mode in ('cancel','timeout'): time.sleep(30)\nif mode=='fail':\n print('synthetic failure', file=sys.stderr)\n sys.exit(7)\nif mode=='outputlimit':\n print('x'*300000)\n sys.exit(0)\nif mode in ('successlog','successlognew'):\n parent=os.path.dirname(generator)\n os.makedirs(logs,exist_ok=True)\n existing=os.path.join(logs,'GenerateFNIS_LogFile.txt')\n if os.path.exists(existing): os.chmod(existing,0o600)\n open(existing,'wb').write(b'\\xffmalformed FNIS log')\n newlog=os.path.join(logs,'NewFNIS.log')\n open(newlog,'wb').write(b'new temporary log')\n os.chmod(existing,0o000)\n os.chmod(newlog,0o000)\n os.chmod(logs,0o000)\n os.chmod(parent,0o500)\nos.makedirs(os.path.join(target,'meshes','actors','character','behaviors'),exist_ok=True)\nopen(os.path.join(target,'meshes','actors','character','behaviors','generated.hkx'),'wb').write(('generated-'+mode).encode())\nprint(' '.join(sys.argv[1:]))\n"
+            + "'\nmode=open(mode_path).read().strip()\ntarget=next(a.split('=',1)[1] for a in sys.argv if a.startswith('RedirectFiles='))\ngenerator=next((a for a in sys.argv if a.lower().endswith('generatefnisforusers.exe')), '')\nlogs=os.path.join(os.path.dirname(generator),'temporary_logs')\nif mode=='shutdownchild':\n child=subprocess.Popen(['sleep','30'])\n open(mode_path+'.childpid','w').write(str(child.pid))\n time.sleep(30)\nif mode in ('cancel','timeout'): time.sleep(30)\nif mode=='fail':\n print('synthetic failure', file=sys.stderr)\n sys.exit(7)\nif mode=='outputlimit':\n print('x'*300000)\n sys.exit(0)\nif mode in ('successlog','successlognew'):\n parent=os.path.dirname(generator)\n os.makedirs(logs,exist_ok=True)\n existing=os.path.join(logs,'GenerateFNIS_LogFile.txt')\n if os.path.exists(existing): os.chmod(existing,0o600)\n open(existing,'wb').write(b'\\xffmalformed FNIS log')\n newlog=os.path.join(logs,'NewFNIS.log')\n open(newlog,'wb').write(b'new temporary log')\n os.chmod(existing,0o000)\n os.chmod(newlog,0o000)\n os.chmod(logs,0o000)\n os.chmod(parent,0o500)\nos.makedirs(os.path.join(target,'meshes','actors','character','behaviors'),exist_ok=True)\nopen(os.path.join(target,'meshes','actors','character','behaviors','generated.hkx'),'wb').write(('generated-'+mode).encode())\nprint(' '.join(sys.argv[1:]))\nif mode=='warn': sys.exit(7)\n"
         )
 
         File.SetUnixFileMode(
@@ -916,16 +916,42 @@ module FnisFixtures =
 
         check
             writer
-            "failedRunPreservesPriorOutputAndBoundedExitEvidence"
+            "runWithNoOutputPreservesPriorOutputAndExitCode"
             (afterFailure.ExitCode = Some 7
-             && afterFailure.Detail.Contains("exited with code 7")
+             && afterFailure.Detail.Contains("produced no generated files")
              && afterFailure.StandardError.Contains("synthetic failure")
              && enabled store profile = afterCompleted
+             && (outputEntry () |> Option.get).CurrentVersion = secondOutput.CurrentVersion
              && not (
                  Directory.Exists(
                      Path.Combine(scenario, "state", "fnis-runs", failedId.ToString("N"))
                  )
              ))
+
+        File.WriteAllText(mode, "warn")
+        let warningId = Guid.NewGuid()
+
+        execution.Run(
+            { Id = warningId
+              WorkspaceId = workspace
+              ProfileId = profile },
+            CancellationToken.None
+        )
+        |> wait
+        |> result
+        |> ignore
+
+        let warned = waitForRun warningId ModConductor.Fnis.FnisOutputPhase.Current
+        let warningOutput = outputEntry () |> Option.get
+
+        check
+            writer
+            "generatedFilesRemainAvailableAfterNonzeroExit"
+            (warned.ExitCode = Some 7
+             && warned.Status.Contains("exited with code 7")
+             && warningOutput.Id = secondOutput.Id
+             && warningOutput.CurrentVersion <> secondOutput.CurrentVersion
+             && enabled store profile = afterCompleted)
 
         File.WriteAllText(mode, "outputlimit")
         let outputLimitId = Guid.NewGuid()
@@ -1285,7 +1311,13 @@ module FnisFixtures =
         |> result
         |> ignore
 
-        until "sleeping FNIS child" (fun () -> File.Exists childPidFile) id |> ignore
+        until
+            "sleeping FNIS child"
+            (fun () ->
+                File.Exists childPidFile
+                && not (String.IsNullOrWhiteSpace(File.ReadAllText childPidFile)))
+            id
+        |> ignore
 
         let childPid = File.ReadAllText(childPidFile).Trim() |> Int32.Parse
         runner.Stop() |> wait

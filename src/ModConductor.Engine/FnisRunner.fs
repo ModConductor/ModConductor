@@ -405,21 +405,6 @@ type FnisRunner
                                     detail
 
                             ()
-                        | Ok result when result.ExitCode <> 0 ->
-                            stdout <- result.Output
-                            stderr <- result.Error
-
-                            let! _ =
-                                failure
-                                    stage.Request.Id
-                                    FnisOutputPhase.Failed
-                                    (Some result.ExitCode)
-                                    stdout
-                                    stderr
-                                    runLog
-                                    ("FNIS exited with code " + string result.ExitCode + ".")
-
-                            ()
                         | Ok result ->
                             stdout <- result.Output
                             stderr <- result.Error

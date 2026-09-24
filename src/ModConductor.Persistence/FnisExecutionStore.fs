@@ -199,6 +199,10 @@ type internal FnisExecutionStore
                     FnisOutputPhase.Stale,
                     "FNIS output is stale",
                     "Animation inputs changed. Run FNIS before playing."
+                | Some { Phase = FnisOutputPhase.Current; ExitCode = Some code }, _ when code <> 0 ->
+                    FnisOutputPhase.Current,
+                    "FNIS output is available, but FNIS exited with code " + string code,
+                    "Check the FNIS messages before you use these files."
                 | _ ->
                     FnisOutputPhase.Current,
                     "FNIS output is current",
