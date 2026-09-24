@@ -88,7 +88,9 @@ def main() -> None:
         f"PackageIdentifier: {PACKAGE_ID}\nPackageVersion: {args.version}\n"
         "InstallerType: nullsoft\nScope: user\nInstallModes:\n  - interactive\n  - silent\n"
         "InstallerSwitches:\n  Silent: /S\n  SilentWithProgress: /S\n"
-        "UpgradeBehavior: install\nInstallers:\n  - Architecture: x64\n"
+        "UpgradeBehavior: install\nProductCode: ModConductor\n"
+        "AppsAndFeaturesEntries:\n  - ProductCode: ModConductor\n"
+        "Installers:\n  - Architecture: x64\n"
         f"    InstallerUrl: {installer_url}\n    InstallerSha256: {sha256(installer).upper()}\n"
         "ManifestType: installer\nManifestVersion: 1.9.0\n"
     )
