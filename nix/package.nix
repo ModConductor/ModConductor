@@ -141,6 +141,7 @@ let
       cp ${lootHelper}/bin/modconductor-loot-helper "$out/app/modconductor/engine/"
       cp -r ${uiSource}/docs/third-party "$out/share/doc/modconductor/"
       chmod u+w "$out/share/doc/modconductor/third-party"
+      chmod u+w "$out/share/doc/modconductor/third-party/libloot-LICENSE.txt"
       cp ${liblootLicense} "$out/share/doc/modconductor/third-party/libloot-LICENSE.txt"
       ln -s libloot-LICENSE.txt \
         "$out/share/doc/modconductor/third-party/modconductor-loot-helper-LICENSE.txt"
