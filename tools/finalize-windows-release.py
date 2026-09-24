@@ -106,9 +106,32 @@ def main() -> None:
         "PackageUrl: https://github.com/alsi-lawr/ModConductor\n"
         "ManifestType: defaultLocale\nManifestVersion: 1.9.0\n"
     )
+    source = Path("artifacts/publish/win-x64")
+    sidecars = []
+    for name in ("payload-sha256.json", "sbom.spdx.json", "provenance.json"):
+        original = source / name
+        if not original.is_file():
+            parser.error(f"Windows package metadata is missing: {original}")
+        destination = release / f"modconductor-v{args.version}-win-x64-{name}"
+        shutil.copy2(original, destination)
+        sidecars.append(destination)
+    manifests = source / "dependency-manifests"
+    if not manifests.is_dir():
+        parser.error(f"Windows dependency manifests are missing: {manifests}")
+    manifest_files = sorted(path for path in manifests.rglob("*") if path.is_file())
+    if not manifest_files:
+        parser.error(f"Windows dependency manifests are empty: {manifests}")
+    manifest_archive = release / f"modconductor-v{args.version}-win-x64-dependency-manifests.zip"
+    with zipfile.ZipFile(manifest_archive, "w", compression=zipfile.ZIP_DEFLATED) as bundle:
+        for path in manifest_files:
+            entry = zipfile.ZipInfo(f"dependency-manifests/{path.relative_to(manifests).as_posix()}", date_time=(1980, 1, 1, 0, 0, 0))
+            entry.compress_type = zipfile.ZIP_DEFLATED
+            entry.external_attr = 0o644 << 16
+            bundle.writestr(entry, path.read_bytes())
     checksum_file = release / "checksums_sha256.txt"
     with checksum_file.open("a") as stream:
-        stream.write(f"{sha256(installer)}  {installer.name}\n")
+        for path in (installer, *sidecars, manifest_archive):
+            stream.write(f"{sha256(path)}  {path.name}\n")
     (args.metadata_directory / "modconductor-windows-x64.json").write_text(json.dumps({
         "version": args.version,
         "archive": archive.name,

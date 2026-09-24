@@ -20,6 +20,8 @@ let
   ];
   uiSource = sourceFor [ "ui" "docs" "packaging" ] [ ];
   helperSource = sourceFor [ "native" ] [ ];
+  sourceRevision = if self ? rev then self.rev else if self ? dirtyRev then self.dirtyRev else "unknown";
+  sourceDate = if self ? lastModified then self.lastModified else 0;
 
   nugetCache = pkgs.stdenvNoCC.mkDerivation {
     pname = "modconductor-nuget-cache";
@@ -116,7 +118,7 @@ let
     packageRoot = ".";
     pubspecLock = lib.importJSON ./pubspec.lock.json;
     flutterBuildFlags = [ "--no-pub" ];
-    nativeBuildInputs = [ pkgs.patchelf ];
+    nativeBuildInputs = [ pkgs.patchelf pkgs.python3 ];
     preBuild = ''
       mkdir -p apps/mod_conductor/linux/flutter/ephemeral/.plugin_symlinks
       ln -s "$(packagePath file_selector_linux)" \
@@ -142,6 +144,15 @@ let
       cp ${liblootLicense} "$out/share/doc/modconductor/third-party/libloot-LICENSE.txt"
       ln -s libloot-LICENSE.txt \
         "$out/share/doc/modconductor/third-party/modconductor-loot-helper-LICENSE.txt"
+      for file in .config/flutter-sdk.json global.json ui/pubspec.lock native/ModConductor.Loot.Helper/Cargo.lock; do
+        install -Dm644 "${self.outPath}/$file" \
+          "$out/share/doc/modconductor/dependency-manifests/$file"
+      done
+      for file in ${self.outPath}/src/*/packages.lock.json ${self.outPath}/tests/*/packages.lock.json; do
+        relative="''${file#${self.outPath}/}"
+        install -Dm644 "$file" \
+          "$out/share/doc/modconductor/dependency-manifests/$relative"
+      done
       cat > "$out/share/applications/dev.modconductor.mod_conductor.desktop" <<EOF
       [Desktop Entry]
       Type=Application
@@ -157,6 +168,10 @@ let
       patchelf --add-rpath ${lib.makeLibraryPath [ pkgs.libsecret pkgs.glib ]} \
         "$out/app/modconductor/engine/ModConductor.Engine"
       ln -s mod_conductor "$out/bin/modconductor"
+      python3 ${self.outPath}/nix/write-package-metadata.py \
+        --output "$out" --version 0.1.0 \
+        --revision ${lib.escapeShellArg sourceRevision} \
+        --source-date-epoch ${toString sourceDate}
     '';
     meta = {
       platforms = [ "x86_64-linux" ];
