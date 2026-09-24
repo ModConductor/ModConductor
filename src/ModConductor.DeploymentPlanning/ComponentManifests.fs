@@ -16,6 +16,7 @@ type ComponentRoot =
 type ComponentFileUse =
     | Immutable
     | WritableConfiguration
+    | WritableContainingDirectory
 
 type ComponentFile =
     { Source: LogicalPath
@@ -110,7 +111,12 @@ module ComponentManifests =
                     String.Equals(first, "Data", StringComparison.OrdinalIgnoreCase)
                 | _ -> false
 
-            if invalidRootPath || not (TargetPolicy.problems policy file.Destination).IsEmpty then
+            if
+                invalidRootPath
+                || not (TargetPolicy.problems policy file.Destination).IsEmpty
+                || (file.Use = ComponentFileUse.WritableContainingDirectory
+                    && (LogicalPath.components file.Destination).Length = 1)
+            then
                 problems.Add(ComponentProblem.InvalidDestination(file.Root, file.Destination))
             else
                 let destinationKey = key policy file
@@ -155,6 +161,19 @@ module ComponentManifests =
                                 WritableTarget.File(
                                     rootId dataRoot gameRoot file.Root,
                                     file.Destination
+                                ) }
+                    | ComponentFileUse.WritableContainingDirectory ->
+                        let parts = LogicalPath.components file.Destination
+                        let parent =
+                            LogicalPath.create (List.take (parts.Length - 1) parts)
+                            |> Result.defaultWith (fun _ -> invalidOp "Invalid component destination.")
+
+                        Some
+                            { Id = writableId manifest.Version.Id file
+                              Target =
+                                WritableTarget.Subtree(
+                                    rootId dataRoot gameRoot file.Root,
+                                    PlanPath.At parent
                                 ) })
 
             Ok

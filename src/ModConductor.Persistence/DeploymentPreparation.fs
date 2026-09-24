@@ -60,12 +60,15 @@ module internal DeploymentPreparation =
 
                 { Declaration = declaration.Id
                   Initialized =
-                    System.IO.File.Exists(
+                    let location =
                         System.IO.Path.Combine(
                             HostPath.value profileRoot.Path,
                             LogicalPath.display relative
                         )
-                    )
+
+                    match declaration.Target with
+                    | WritableTarget.File _ -> System.IO.File.Exists location
+                    | WritableTarget.Subtree _ -> System.IO.Directory.Exists location
                   Root = profileRoot
                   Path = relative })
 

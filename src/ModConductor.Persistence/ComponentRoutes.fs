@@ -1,6 +1,7 @@
 namespace ModConductor.Persistence
 
 open System
+open System.IO
 open ModConductor.DeploymentPlanning
 open ModConductor.DeploymentRecovery
 open ModConductor.FilePlanning
@@ -68,11 +69,15 @@ module internal ComponentRoutes =
                         row.ModId, (row.Enabled, (row.Version |> Option.map _.Id)))
                     |> Map.ofList)
 
-            let gameRoot =
+            let evidence =
                 sources.Context.Binding
                 |> Option.map _.Evidence
-                |> Option.map (ComponentRoots.gameRootId workspace)
-                |> Option.bind Result.toOption
+                |> Option.defaultWith (fun () -> raise (RecoveryException RecoveryError.Stale))
+
+            let gameRoot =
+                evidence
+                |> ComponentRoots.gameRootId workspace
+                |> Result.toOption
                 |> Option.defaultWith (fun () -> raise (RecoveryException RecoveryError.Stale))
 
             let make id versionId role useFile =
@@ -113,7 +118,25 @@ module internal ComponentRoutes =
                       |> Option.toList
                   yield!
                       fnis
-                      |> Option.bind (fun row -> make row.ModId row.VersionId "fnis" immutable)
+                      |> Option.bind (fun row ->
+                          let selected = Path.GetFullPath row.Executable
+
+                          let useFile destination =
+                              let candidate =
+                                  Path.GetFullPath(
+                                      Path.Combine(
+                                          evidence.RootPath,
+                                          "Data",
+                                          LogicalPath.display (logical destination)
+                                      )
+                                  )
+
+                              if same candidate selected then
+                                  ComponentFileUse.WritableContainingDirectory
+                              else
+                                  ComponentFileUse.Immutable
+
+                          make row.ModId row.VersionId "fnis" useFile)
                       |> Option.toList
                   for row in enb do
                       let useFile destination =

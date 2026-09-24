@@ -41,5 +41,11 @@ module FnisArchiveLayout =
         | Some (selectedGenerator, _, _) ->
             Ok
                 { Files = mapped |> List.map (fun (selected, _, _) -> selected)
-                  ComponentFiles = mapped |> List.map (fun (_, componentFile, _) -> componentFile)
+                  ComponentFiles =
+                    mapped
+                    |> List.map (fun (_, componentFile, _) ->
+                        if componentFile.Source = selectedGenerator.Destination then
+                            { componentFile with Use = ComponentFileUse.WritableContainingDirectory }
+                        else
+                            componentFile)
                   Generator = LogicalPath.display selectedGenerator.Destination }

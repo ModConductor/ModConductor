@@ -331,7 +331,11 @@ module FnisFixtures =
                  && plan.ComponentFiles
                     |> List.forall (fun file ->
                         file.Root = ModConductor.DeploymentPlanning.ComponentRoot.Data
-                        && file.Use = ModConductor.DeploymentPlanning.ComponentFileUse.Immutable)))
+                        && file.Use =
+                           (if LogicalPath.display file.Source = plan.Generator then
+                                ModConductor.DeploymentPlanning.ComponentFileUse.WritableContainingDirectory
+                            else
+                                ModConductor.DeploymentPlanning.ComponentFileUse.Immutable))))
 
         check writer "incompleteArchiveIsRefused" (Result.isError incomplete)
 
@@ -416,7 +420,7 @@ module FnisFixtures =
 
         check
             writer
-            "directAcquisitionPublishesImmutableGenerationAndProvenance"
+            "directAcquisitionPublishesGeneratorAndProvenance"
             (started.Phase = FnisPhase.Downloading
              && ready.Version = FnisCatalogue.SupportedVersion
              && initialGeneration.IsSome
@@ -436,6 +440,40 @@ module FnisFixtures =
              && generator.NexusFileId = 701L
              && generator.AcquiredAt > DateTimeOffset.MinValue
              && File.ReadAllText foreign = "keep")
+
+        let generatorDirectory = Path.GetDirectoryName expectedExecutable
+        let workingDirectory = DirectoryInfo(generatorDirectory).ResolveLinkTarget(true)
+        let sidecarName = "tool-output.tmp"
+        File.WriteAllText(Path.Combine(generatorDirectory, sidecarName), "generated")
+
+        let current = store.Deployments.Read profile |> wait |> result
+
+        let rebuilt =
+            store.Deployments.Prepare(Guid.NewGuid(), current.Sources, ignore, CancellationToken.None)
+            |> wait
+            |> result
+
+        store.Deployments.Activate(rebuilt.Id, rebuilt.Sources, ignore, CancellationToken.None)
+        |> wait
+        |> result
+        |> ignore
+
+        let rebuiltRoot = (store.Deployments.Read profile |> wait |> result).RunnableRoot
+        let rebuiltGenerator = Path.Combine(rebuiltRoot, FnisCatalogue.GeneratorPath)
+        let rebuiltSidecar = Path.Combine(Path.GetDirectoryName rebuiltGenerator, sidecarName)
+
+        check
+            writer
+            "generatorWritesUseOwnedWorkingDirectoryAcrossRebuild"
+            (workingDirectory <> null
+             && workingDirectory.FullName.Contains(".mc-component-working", StringComparison.Ordinal)
+             && File.ReadAllText rebuiltGenerator = "generator-initial"
+             && File.ReadAllText rebuiltSidecar = "generated"
+             && File.ReadAllText(Path.Combine(workingDirectory.FullName, sidecarName)) = "generated"
+             && not (File.Exists(Path.Combine(game, FnisCatalogue.GeneratorPath)))
+             && File.ReadAllText foreign = "keep")
+
+        let initialGeneration, initialEnabled, initialGenerator = active store workspace profile
 
         configure server 702L (archive "cancelled" true (2 * 1024 * 1024))
         server.Slow <- true
@@ -664,6 +702,14 @@ module FnisFixtures =
                  None
              else
                  Some(File.GetUnixFileMode path))
+
+        let sameParentMetadata
+            (_, leftWrite, leftAttributes, leftMode)
+            (_, rightWrite, rightAttributes, rightMode)
+            =
+            leftWrite = rightWrite
+            && leftAttributes = rightAttributes
+            && leftMode = rightMode
 
         let treeContents (root: string) =
             Directory.EnumerateFileSystemEntries(root, "*", SearchOption.AllDirectories)
@@ -1114,13 +1160,11 @@ module FnisFixtures =
 
         let originalParentMode = File.GetUnixFileMode generatorDirectory
         File.SetUnixFileMode(generatorDirectory, UnixFileMode.UserRead ||| UnixFileMode.UserExecute)
-        let parentAccess = DateTime(2026, 1, 2, 3, 4, 5, DateTimeKind.Utc)
         let parentWrite = DateTime(2026, 1, 2, 3, 4, 6, DateTimeKind.Utc)
         let directoryAccess = DateTime(2026, 1, 2, 3, 4, 7, DateTimeKind.Utc)
         let directoryWrite = DateTime(2026, 1, 2, 3, 4, 8, DateTimeKind.Utc)
         let fileAccess = DateTime(2026, 1, 2, 3, 4, 9, DateTimeKind.Utc)
         let fileWrite = DateTime(2026, 1, 2, 3, 4, 10, DateTimeKind.Utc)
-        File.SetLastAccessTimeUtc(generatorDirectory, parentAccess)
         File.SetLastWriteTimeUtc(generatorDirectory, parentWrite)
         File.SetLastAccessTimeUtc(temporaryLogs, directoryAccess)
         File.SetLastWriteTimeUtc(temporaryLogs, directoryWrite)
@@ -1163,7 +1207,7 @@ module FnisFixtures =
             writer
             "restrictiveTemporaryLogTreeRestoresContentMetadataModesAndTimestamps"
             (restoredGeneratorTree = expectedGeneratorTree
-             && restoredParentMetadata = expectedParentMetadata
+             && sameParentMetadata restoredParentMetadata expectedParentMetadata
              && restoredDirectoryMetadata = expectedDirectoryMetadata
              && restoredFileMetadata = expectedFileMetadata
              && File.GetUnixFileMode generatorDirectory = (UnixFileMode.UserRead ||| UnixFileMode.UserExecute))
@@ -1200,9 +1244,7 @@ module FnisFixtures =
         Directory.Delete(temporaryLogs, true)
         File.SetUnixFileMode(generatorDirectory, originalParentMode)
         let expectedTreeWithoutTemporaryLogs = treeContents generatorDirectory
-        let newParentAccess = DateTime(2026, 2, 3, 4, 5, 6, DateTimeKind.Utc)
         let newParentWrite = DateTime(2026, 2, 3, 4, 5, 7, DateTimeKind.Utc)
-        File.SetLastAccessTimeUtc(generatorDirectory, newParentAccess)
         File.SetLastWriteTimeUtc(generatorDirectory, newParentWrite)
         let expectedNewParentMetadata = pathMetadata generatorDirectory
         File.WriteAllText(mode, "successlognew")
@@ -1230,7 +1272,7 @@ module FnisFixtures =
             (newDirectoryLog.RunLog.Contains("malformed FNIS log")
              && not (Directory.Exists temporaryLogs)
              && restoredTreeWithoutTemporaryLogs = expectedTreeWithoutTemporaryLogs
-             && restoredNewParentMetadata = expectedNewParentMetadata
+             && sameParentMetadata restoredNewParentMetadata expectedNewParentMetadata
              && SHA256.HashData(File.ReadAllBytes projectedGenerator) = generatorBeforeLogs)
 
         let beforeStale = outputEntry () |> Option.get
