@@ -584,7 +584,7 @@ module FnisFixtures =
             "#!/usr/bin/python3\nimport os,sys,time,subprocess\nmode_path="
             + "r'"
             + mode.Replace("'", "\\'")
-            + "'\nmode=open(mode_path).read().strip()\ntarget=next(a.split('=',1)[1] for a in sys.argv if a.startswith('RedirectFiles='))\ngenerator=next((a for a in sys.argv if a.lower().endswith('generatefnisforusers.exe')), '')\nlogs=os.path.join(os.path.dirname(generator),'temporary_logs')\nif mode=='shutdownchild':\n child=subprocess.Popen(['sleep','30'])\n open(mode_path+'.childpid','w').write(str(child.pid))\n time.sleep(30)\nif mode in ('cancel','timeout'): time.sleep(30)\nif mode=='fail':\n print('synthetic failure', file=sys.stderr)\n sys.exit(7)\nif mode=='outputlimit':\n print('x'*300000)\n sys.exit(0)\nif mode in ('successlog','successlognew'):\n parent=os.path.dirname(generator)\n os.chmod(parent,0o700)\n os.makedirs(logs,exist_ok=True)\n os.chmod(logs,0o700)\n existing=os.path.join(logs,'GenerateFNIS_LogFile.txt')\n if os.path.exists(existing): os.chmod(existing,0o600)\n open(existing,'wb').write(b'\\xffmalformed FNIS log')\n newlog=os.path.join(logs,'NewFNIS.log')\n open(newlog,'wb').write(b'new temporary log')\n os.chmod(existing,0o000)\n os.chmod(newlog,0o000)\n os.chmod(logs,0o000)\n os.chmod(parent,0o500)\nos.makedirs(os.path.join(target,'meshes','actors','character','behaviors'),exist_ok=True)\nopen(os.path.join(target,'meshes','actors','character','behaviors','generated.hkx'),'wb').write(('generated-'+mode).encode())\nprint(' '.join(sys.argv[1:]))\n"
+            + "'\nmode=open(mode_path).read().strip()\ntarget=next(a.split('=',1)[1] for a in sys.argv if a.startswith('RedirectFiles='))\ngenerator=next((a for a in sys.argv if a.lower().endswith('generatefnisforusers.exe')), '')\nlogs=os.path.join(os.path.dirname(generator),'temporary_logs')\nif mode=='shutdownchild':\n child=subprocess.Popen(['sleep','30'])\n open(mode_path+'.childpid','w').write(str(child.pid))\n time.sleep(30)\nif mode in ('cancel','timeout'): time.sleep(30)\nif mode=='fail':\n print('synthetic failure', file=sys.stderr)\n sys.exit(7)\nif mode=='outputlimit':\n print('x'*300000)\n sys.exit(0)\nif mode in ('successlog','successlognew'):\n parent=os.path.dirname(generator)\n os.makedirs(logs,exist_ok=True)\n existing=os.path.join(logs,'GenerateFNIS_LogFile.txt')\n if os.path.exists(existing): os.chmod(existing,0o600)\n open(existing,'wb').write(b'\\xffmalformed FNIS log')\n newlog=os.path.join(logs,'NewFNIS.log')\n open(newlog,'wb').write(b'new temporary log')\n os.chmod(existing,0o000)\n os.chmod(newlog,0o000)\n os.chmod(logs,0o000)\n os.chmod(parent,0o500)\nos.makedirs(os.path.join(target,'meshes','actors','character','behaviors'),exist_ok=True)\nopen(os.path.join(target,'meshes','actors','character','behaviors','generated.hkx'),'wb').write(('generated-'+mode).encode())\nprint(' '.join(sys.argv[1:]))\n"
         )
 
         File.SetUnixFileMode(
@@ -1087,6 +1087,7 @@ module FnisFixtures =
         let expectedGeneratorTree = treeContents generatorDirectory
 
         let originalParentMode = File.GetUnixFileMode generatorDirectory
+        File.SetUnixFileMode(generatorDirectory, UnixFileMode.UserRead ||| UnixFileMode.UserExecute)
         let parentAccess = DateTime(2026, 1, 2, 3, 4, 5, DateTimeKind.Utc)
         let parentWrite = DateTime(2026, 1, 2, 3, 4, 6, DateTimeKind.Utc)
         let directoryAccess = DateTime(2026, 1, 2, 3, 4, 7, DateTimeKind.Utc)
@@ -1127,6 +1128,7 @@ module FnisFixtures =
             writer
             "malformedTemporaryLogIsCapturedBoundedInOwnedState"
             (logged.RunLog.Contains("malformed FNIS log")
+             && logged.RunLog.Contains("new temporary log")
              && Encoding.UTF8.GetByteCount logged.RunLog <= 256 * 1024
              && File.ReadAllText(existingLog) = "original temporary log"
              && not (File.Exists newLog))
@@ -1137,7 +1139,8 @@ module FnisFixtures =
             (restoredGeneratorTree = expectedGeneratorTree
              && restoredParentMetadata = expectedParentMetadata
              && restoredDirectoryMetadata = expectedDirectoryMetadata
-             && restoredFileMetadata = expectedFileMetadata)
+             && restoredFileMetadata = expectedFileMetadata
+             && File.GetUnixFileMode generatorDirectory = (UnixFileMode.UserRead ||| UnixFileMode.UserExecute))
 
         check
             writer

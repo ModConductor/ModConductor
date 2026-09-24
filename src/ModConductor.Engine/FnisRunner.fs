@@ -321,17 +321,28 @@ type FnisRunner
                         let beforeLogs = logSnapshot projected.ToolExecutable
 
                         let! result =
-                            NativeToolLaunch.runIn
-                                stage.Directory
-                                projected.Launch
-                                Array.empty
-                                { InputBytes = 1
-                                  OutputBytes = 256 * 1024
-                                  ErrorBytes = 256 * 1024
-                                  Timeout = timeout }
-                                run.Cancellation.Token
+                            task {
+                                try
+                                    makeWritable beforeLogs.Directory true
 
-                        runLog <- captureAndRestoreLogs projected.ToolExecutable beforeLogs
+                                    let temporary = Path.Combine(beforeLogs.Directory, "temporary_logs")
+
+                                    if Directory.Exists temporary then
+                                        makeWritable temporary true
+
+                                    return!
+                                        NativeToolLaunch.runIn
+                                            stage.Directory
+                                            projected.Launch
+                                            Array.empty
+                                            { InputBytes = 1
+                                              OutputBytes = 256 * 1024
+                                              ErrorBytes = 256 * 1024
+                                              Timeout = timeout }
+                                            run.Cancellation.Token
+                                finally
+                                    runLog <- captureAndRestoreLogs projected.ToolExecutable beforeLogs
+                            }
 
                         match result with
                         | Error NativeToolError.Cancelled ->
