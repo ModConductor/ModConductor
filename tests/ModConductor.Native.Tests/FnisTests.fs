@@ -54,6 +54,9 @@ type FnisTests() =
         flag "cancelledRunTerminatesAndPreservesPriorOutput" |> should equal true
         flag "combinedCancelUsesProductionFnisOwner" |> should equal true
 
+        flag "pendingCombinedFnisCancellationCompletesThroughProductionOwnerAfterRestart"
+        |> should equal true
+
         flag "runReturnsWhileCancellationIsReachable" |> should equal true
         flag "activeGeneratedOutputIsExcludedFromEffectiveInputs" |> should equal true
         flag "addedEffectiveInputMakesFnisStale" |> should equal true
@@ -87,9 +90,6 @@ type FnisTests() =
     [<Test>]
     member _.``removal and restart should preserve foreign files and retained provenance``() =
         flag "removalPublishesOwnedGenerationAndPreservesForeignFiles"
-        |> should equal true
-
-        flag "pendingCombinedFnisCancellationCompletesThroughProductionOwnerAfterRestart"
         |> should equal true
 
         flag "restartKeepsRemovalAndRetainedProvenanceDurable" |> should equal true
