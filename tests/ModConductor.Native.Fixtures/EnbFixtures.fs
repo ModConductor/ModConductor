@@ -148,7 +148,7 @@ module EnbFixtures =
           Entries = entries
           TotalSize = entries |> List.sumBy _.Size }
 
-    let private createWorkspace (store: OperationStore) area =
+    let private createWorkspace (store: OperationStore) area seedSettings =
         let workspace, profile = Guid.NewGuid(), Guid.NewGuid()
         let root = Directory.CreateDirectory(Path.Combine(area, "workspace")).FullName
         let workspaces = store.Workspaces :> IWorkspaceState
@@ -194,24 +194,30 @@ module EnbFixtures =
         |> result
         |> ignore
 
-        let data = store.ProfileGameData
-        let current = data.Read(workspace, profile) |> wait |> result
+        let prefs =
+            if seedSettings then
+                let data = store.ProfileGameData
+                let current = data.Read(workspace, profile) |> wait |> result
 
-        let enabled =
-            data.Edit(
-                { Id = Guid.NewGuid()
-                  Expected = current.Reference
-                  Options = { Settings = true; Saves = false }
-                  InitialSaves = InitialSaves.Empty
-                  DisabledFiles = DisabledFiles.Keep },
-                ignore,
-                CancellationToken.None
-            )
-            |> wait
-            |> result
+                let enabled =
+                    data.Edit(
+                        { Id = Guid.NewGuid()
+                          Expected = current.Reference
+                          Options = { Settings = true; Saves = false }
+                          InitialSaves = InitialSaves.Empty
+                          DisabledFiles = DisabledFiles.Keep },
+                        ignore,
+                        CancellationToken.None
+                    )
+                    |> wait
+                    |> result
 
-        let prefs = Path.Combine(enabled.State.SettingsPath, "SkyrimPrefs.ini")
-        File.WriteAllText(prefs, "[Display]\nbSAOEnable=1\nbEnableImprovedSnow=1\n")
+                let prefs = Path.Combine(enabled.State.SettingsPath, "SkyrimPrefs.ini")
+                File.WriteAllText(prefs, "[Display]\nbSAOEnable=1\nbEnableImprovedSnow=1\n")
+                prefs
+            else
+                ""
+
         workspace, profile, game, prefs
 
     let private archive path (entries: (string * string) list) =
@@ -245,6 +251,97 @@ module EnbFixtures =
         )
         |> wait
         |> result
+
+    let private freshProfileSettingsEvidence (writer: Utf8JsonWriter) area =
+        let scenario = Directory.CreateDirectory(Path.Combine(area, "fresh-profile-settings")).FullName
+        use store = new OperationStore(Path.Combine(scenario, "state"))
+        let workspace, profile, game, _ = createWorkspace store scenario false
+        let data = store.ProfileGameData
+        let before = data.Read(workspace, profile) |> wait |> result
+        let other = Guid.NewGuid()
+        let workspaces = store.Workspaces :> IWorkspaceState
+        let workspaceState = workspaces.Read(workspace, None) |> wait |> result
+
+        workspaces.Edit(
+            workspace,
+            workspaceState.Workspace.Revision,
+            ProfileEdit.Create { Id = other; Name = "Other profile" }
+        )
+        |> wait
+        |> result
+        |> ignore
+
+        let gameContexts = store.GameContexts :> IGameContexts
+        let binding = (gameContexts.Read(workspace, profile) |> wait |> result).Binding.Value
+
+        gameContexts.Save(
+            workspace,
+            other,
+            0L,
+            { GameId = binding.GameId; Path = game; Proton = binding.Proton }
+        )
+        |> wait
+        |> result
+        |> ignore
+
+        let otherBefore = data.Read(workspace, other) |> wait |> result
+        let runtimePath = Path.Combine(scenario, "enbseries_skyrimse_v0505.zip")
+
+        archive
+            runtimePath
+            [ "WrapperVersion/d3d11.dll", "runtime"
+              "WrapperVersion/d3dcompiler_46e.dll", "compiler" ]
+
+        let runtimeArtifact = artifact store workspace runtimePath
+
+        let generation =
+            store.InstallEnb(
+                workspace,
+                profile,
+                EnbCatalogue.lean,
+                runtimeArtifact,
+                [],
+                CancellationToken.None,
+                runtimeOnly = true
+            )
+            |> wait
+
+        let after = data.Read(workspace, profile) |> wait |> result
+        let otherAfter = data.Read(workspace, other) |> wait |> result
+        let prefs = Path.Combine(after.SettingsPath, "SkyrimPrefs.ini")
+        let installed = store.Deployments.Read profile |> wait |> result
+
+        check
+            writer
+            "freshProfileSettingsInitializedBeforeEnbInstall"
+            (not before.Options.Settings
+             && not before.SettingsInitialized
+             && after.Options.Settings
+             && after.SettingsInitialized
+             && not after.Options.Saves
+             && not otherBefore.Options.Settings
+             && not otherAfter.Options.Settings
+             && not otherAfter.SettingsInitialized
+             && installed.ActiveGeneration = Some generation
+             && File.Exists(Path.Combine(installed.RunnableRoot, "d3d11.dll"))
+             && File.Exists(prefs)
+             && not (File.Exists(Path.Combine(game, "d3d11.dll"))))
+
+        store.RemoveEnb(workspace, profile, CancellationToken.None, runtimeOnly = true)
+        |> wait
+        |> ignore
+
+        let removed = data.Read(workspace, profile) |> wait |> result
+        let deployment = store.Deployments.Read profile |> wait |> result
+
+        check
+            writer
+            "enbRemovalRetainsInitializedProfileSettings"
+            (removed.Options.Settings
+             && removed.SettingsInitialized
+             && not removed.Options.Saves
+             && File.Exists(prefs)
+             && not (File.Exists(Path.Combine(deployment.RunnableRoot, "d3d11.dll"))))
 
     type private Handoff() =
         let opened = ResizeArray<Uri>()
@@ -367,7 +464,7 @@ module EnbFixtures =
                                 raise (OperationCanceledException("fixture interruption")))
                 )
 
-            let workspace, profile, _, _ = createWorkspace store scenario
+            let workspace, profile, _, _ = createWorkspace store scenario true
             let runtimePath = Path.Combine(scenario, "enbseries_skyrimse_v0505.zip")
             archive runtimePath runtimeEntries
 
@@ -555,7 +652,7 @@ module EnbFixtures =
                         CheckpointBytes = 4096L }
             )
 
-        let workspace, profile, _, _ = createWorkspace store scenario
+        let workspace, profile, _, _ = createWorkspace store scenario true
         let runtimePath = Path.Combine(scenario, "enbseries_skyrimse_v0505.zip")
 
         archive
@@ -863,7 +960,7 @@ module EnbFixtures =
                             raise (OperationCanceledException()))
             )
 
-        let workspace, profile, game, prefs = createWorkspace store area
+        let workspace, profile, game, prefs = createWorkspace store area true
         let handoff = Handoff()
         use credentials = new CredentialSession(EmptyCredentialStore())
 
@@ -1270,6 +1367,7 @@ module EnbFixtures =
                  |> List.filter (fun item -> item.Kind <> "runtime")
                  |> List.map _.ModId) = (retainedBefore |> List.map _.ModId))
 
+        freshProfileSettingsEvidence writer area
 
         coordinatorEvidence writer area EnbCatalogue.lean
         combinedCancellationEvidence writer area

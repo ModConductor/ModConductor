@@ -23,6 +23,11 @@ type SkyrimSetupTests() =
         flag "missingEnbArchiveDoesNotStart" |> should equal true
 
     [<Test>]
+    member _.``failed ENB setup should wait for explicit Apply before retrying``() =
+        flag "automaticContinueKeepsEnbFailureWithoutRetry" |> should equal true
+        flag "explicitApplyRetriesFailedEnb" |> should equal true
+
+    [<Test>]
     member _.``Apply keeps the selected components across restart and starts them``() =
         flag "appliedChoiceRetained" |> should equal true
         flag "appliedChoiceSurvivesCoordinatorRestart" |> should equal true

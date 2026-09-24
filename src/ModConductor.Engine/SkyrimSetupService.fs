@@ -725,7 +725,9 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
 
                                     return
                                         view
-                                            (if waiting then
+                                            (if enbBlocked && selection.Enb <> SetupAction.Remove then
+                                                 SkyrimSetupPhase.Failed
+                                             elif waiting then
                                                  SkyrimSetupPhase.WaitingForEnbArchive
                                              else
                                                  SkyrimSetupPhase.SettingUpEnb)
@@ -1098,6 +1100,26 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                 return! inspect workspace profile ModConductor.Persistence.SetupSelection.none (Some cancelled) token
         }
 
+    let startEnbSelection workspace profile (intent: StoredSkyrimSetupIntent) token =
+        task {
+            let archive =
+                intent.Selection.EnbArchive
+                |> Option.defaultWith (fun () -> invalidOp "Choose an ENBSeries archive.")
+
+            let operation = Guid.NewGuid()
+            let running =
+                { intent with
+                    Stage = "enb"
+                    ActionId = Some operation }
+
+            do! store.SkyrimSetups.Save running
+            startWorker workspace profile (fun childToken ->
+                dependencies.SelectEnb workspace profile operation archive childToken)
+            |> ignore
+
+            return! inspect workspace profile running.Selection (Some running) token
+        }
+
     let advance workspace profile (intent: StoredSkyrimSetupIntent) retryFailed token =
         task {
             let! before = inspect workspace profile intent.Selection (Some intent) token
@@ -1167,22 +1189,7 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                     let! _ = dependencies.RemoveEnb workspace profile token
                     return! inspect workspace profile running.Selection (Some running) token
                 else
-                    let archive =
-                        intent.Selection.EnbArchive
-                        |> Option.defaultWith (fun () -> invalidOp "Choose an ENBSeries archive.")
-
-                    let operation = Guid.NewGuid()
-                    let running =
-                        { intent with
-                            Stage = "enb"
-                            ActionId = Some operation }
-
-                    do! store.SkyrimSetups.Save running
-                    startWorker workspace profile (fun childToken ->
-                        dependencies.SelectEnb workspace profile operation archive childToken)
-                    |> ignore
-
-                    return! inspect workspace profile running.Selection (Some running) token
+                    return! startEnbSelection workspace profile intent token
             | SkyrimSetupPhase.SettingUpFnis when before.CanContinue ->
                 let running =
                     { intent with
@@ -1281,6 +1288,11 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                 then
                     let! _ = dependencies.StartSkse workspace profile
                     return! inspect workspace profile intent.Selection (Some intent) token
+                elif
+                    intent.Selection.Enb <> SetupAction.Unchanged
+                    && enbState.Phase = EnbPhase.Failed
+                then
+                    return! startEnbSelection workspace profile intent token
                 elif fnisState.Phase = FnisPhase.Failed then
                     let! _ = dependencies.InstallFnis workspace profile
                     return! inspect workspace profile intent.Selection (Some intent) token

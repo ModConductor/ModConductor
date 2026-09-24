@@ -144,6 +144,7 @@ module SkyrimSetupFixtures =
         let mutable failSkse = false
         let mutable holdSkse = false
         let mutable enbSelections = 0
+        let mutable failEnb = false
         let mutable fnisInstalls = 0
         let mutable enbCancels = 0
         let mutable runCalls = 0
@@ -188,6 +189,7 @@ module SkyrimSetupFixtures =
             failSkse <- false
             holdSkse <- false
             blockEnb <- false
+            failEnb <- false
             enbStarted.Reset()
             blockFnis <- false
             fnisRelease.Reset()
@@ -226,6 +228,8 @@ module SkyrimSetupFixtures =
         member _.HoldSkse() = holdSkse <- true
         member _.CompleteSkse() = skse <- { skse with Phase = SksePhase.Ready; Status = "SKSE is current"; Detail = "" }
         member _.EnbSelections = enbSelections
+        member _.FailEnb() = failEnb <- true
+        member _.AllowEnb() = failEnb <- false
         member _.FnisInstalls = fnisInstalls
         member _.EnbCancels = enbCancels
         member _.RunCalls = runCalls
@@ -288,8 +292,9 @@ module SkyrimSetupFixtures =
 
                         enb <-
                             { enb with
-                                Phase = EnbPhase.Ready
-                                Status = "Lean ENB is ready" }
+                                Phase = if failEnb then EnbPhase.Failed else EnbPhase.Ready
+                                Status = if failEnb then "ENB setup failed" else "Lean ENB is ready"
+                                Detail = if failEnb then "The profile settings could not be initialized." else "" }
 
                         return enb
                     }
@@ -502,6 +507,86 @@ module SkyrimSetupFixtures =
             "explicitApplyRetriesFailedSkse"
             (failing.SkseStarts = 2
              && explicitRetry.Phase <> SkyrimSetupPhase.Failed)
+
+        let failedEnbWorkspace, failedEnbProfile, _ =
+            createWorkspace store area "failed-enb" true
+
+        let failingEnb = WorkflowState()
+        failingEnb.FailEnb()
+        use failedEnbOwner = new SkyrimSetupCoordinator(store, failingEnb.Dependencies)
+
+        let _ =
+            failedEnbOwner.Start(
+                failedEnbWorkspace,
+                failedEnbProfile,
+                enbWithArchive,
+                CancellationToken.None
+            )
+            |> wait
+
+        let failedEnb =
+            until
+                "ENB setup failure"
+                (fun () ->
+                    let current =
+                        failedEnbOwner.Read(
+                            failedEnbWorkspace,
+                            failedEnbProfile,
+                            noChoice,
+                            CancellationToken.None
+                        )
+                        |> wait
+
+                    if current.CanContinue && current.Phase <> SkyrimSetupPhase.Failed then
+                        failedEnbOwner.Continue(failedEnbWorkspace, failedEnbProfile, CancellationToken.None)
+                        |> wait
+                    else
+                        current)
+                (fun current -> current.Phase = SkyrimSetupPhase.Failed)
+
+        let repeatedEnb =
+            failedEnbOwner.Continue(failedEnbWorkspace, failedEnbProfile, CancellationToken.None)
+            |> wait
+
+        check
+            writer
+            "automaticContinueKeepsEnbFailureWithoutRetry"
+            (failingEnb.EnbSelections = 1
+             && repeatedEnb.Phase = SkyrimSetupPhase.Failed
+             && repeatedEnb.Status = failedEnb.Status
+             && repeatedEnb.Detail = failedEnb.Detail)
+
+        failingEnb.AllowEnb()
+
+        let _ =
+            failedEnbOwner.Start(
+                failedEnbWorkspace,
+                failedEnbProfile,
+                enbWithArchive,
+                CancellationToken.None
+            )
+            |> wait
+
+        let readyEnb =
+            until
+                "explicit ENB setup retry"
+                (fun () ->
+                    failedEnbOwner.Read(
+                        failedEnbWorkspace,
+                        failedEnbProfile,
+                        noChoice,
+                        CancellationToken.None
+                    )
+                    |> wait)
+                (fun current ->
+                    failingEnb.EnbSelections = 2
+                    && current.Phase <> SkyrimSetupPhase.Failed)
+
+        check
+            writer
+            "explicitApplyRetriesFailedEnb"
+            (failingEnb.EnbSelections = 2
+             && readyEnb.Phase <> SkyrimSetupPhase.Failed)
 
         let execute name selection expected =
             let freshWorkspace, freshProfile, _ = createWorkspace store area name true

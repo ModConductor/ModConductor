@@ -1460,6 +1460,20 @@ type OperationStore
             let runtimeOnly = defaultArg runtimeOnly false
             let fail detail = raise (IO.IOException detail)
 
+            let profileError =
+                function
+                | ModConductor.ProfileGameData.ProfileDataError.Invalid detail
+                | ModConductor.ProfileGameData.ProfileDataError.Unavailable detail
+                | ModConductor.ProfileGameData.ProfileDataError.Conflict detail -> detail
+                | ModConductor.ProfileGameData.ProfileDataError.Busy ->
+                    "Wait for the current profile settings change."
+                | ModConductor.ProfileGameData.ProfileDataError.Stale ->
+                    "The profile settings changed. Try again."
+                | ModConductor.ProfileGameData.ProfileDataError.Cancelled ->
+                    "The profile settings change was cancelled."
+                | ModConductor.ProfileGameData.ProfileDataError.NotFound ->
+                    "The profile settings are unavailable."
+
             let! contextResult =
                 (gameContexts :> ModConductor.GameContexts.IGameContexts).Read(workspace, profile)
 
@@ -1504,6 +1518,30 @@ type OperationStore
                                 ModConductor.Enb.EnbProblem.ForeignDllConflict name
                             )
                         )
+
+            let profiles = profileGameData :> ModConductor.ProfileGameData.IProfileGameData
+            let! profileState = profiles.Read(workspace, profile)
+            let profileState = profileState |> Result.defaultWith (profileError >> fail)
+
+            if not (profileState.Options.Settings && profileState.SettingsInitialized) then
+                let! initialized =
+                    profiles.Edit(
+                        { Id = Guid.NewGuid()
+                          Expected = profileState.Reference
+                          Options = { profileState.Options with Settings = true }
+                          InitialSaves = ModConductor.ProfileGameData.InitialSaves.Empty
+                          DisabledFiles = ModConductor.ProfileGameData.DisabledFiles.Keep },
+                        ignore,
+                        token
+                    )
+
+                let initialized = initialized |> Result.defaultWith (profileError >> fail)
+
+                if not initialized.Complete then
+                    fail (
+                        initialized.Problem
+                        |> Option.defaultValue "The profile settings could not be initialized."
+                    )
 
             let install
                 (pin: ModConductor.Enb.EnbComponentPin)
@@ -1715,17 +1753,13 @@ type OperationStore
 
             try
                 if previousAction.IsNone then
-                    let profiles = profileGameData :> ModConductor.ProfileGameData.IProfileGameData
                     let! state = profiles.Read(workspace, profile)
-                    let state = state |> Result.defaultWith (fun error -> fail (string error))
+                    let state = state |> Result.defaultWith (profileError >> fail)
 
                     let! document =
                         profiles.ReadConfiguration(state.Reference, "SkyrimPrefs.ini", token)
 
-                    let document =
-                        document
-                        |> Result.defaultWith (fun _ ->
-                            fail "Turn on local game settings before setting up ENB.")
+                    let document = document |> Result.defaultWith (profileError >> fail)
 
                     let content, previous =
                         ModConductor.Enb.EnbSetupPlanning.configureSkyrimPrefs
