@@ -176,12 +176,66 @@ module SkseFixtures =
               Name = "SKSE"
               Summary = "Fixture"
               Files =
-                [ nexusFile 10L "older" "2.0.0" ("For game version " + runtime)
-                  nexusFile 11L "matching" "2.2.0" ("Current game version " + runtime)
-                  nexusFile 12L "newer incompatible" "3.0.0" "Current game version 9.9.9.9"
+                [ nexusFile 10L "older" "2.0.0" ("For game version " + runtime + " from Steam")
+                  nexusFile 11L "matching" "2.2.0" ("Current game version " + runtime + " from Steam")
+                  nexusFile 12L "newer incompatible" "3.0.0" "Current game version 9.9.9.9 from Steam"
                   nexusFile 13L "label only" "4.0.0" "Anniversary Edition" ] }
 
         let releases = SkseResolver.releases modInfo
+
+        let publicFiles =
+            { modInfo with
+                Files =
+                    [ nexusFile
+                          20L
+                          "Skyrim Script Extender (SKSE64) Steam"
+                          "2.3.1"
+                          "Compatible with Skyrim Special Edition 1.7.104 from Steam"
+                      nexusFile
+                          21L
+                          "Skyrim Script Extender (SKSE64) GOG"
+                          "9.0.0"
+                          "Compatible with Skyrim Special Edition 1.7.104 from GOG.com"
+                      nexusFile
+                          22L
+                          "Skyrim Script Extender (SKSE64) VR"
+                          "9.0.0"
+                          "Compatible with Skyrim Special Edition 1.7.104 from Steam"
+                      nexusFile
+                          23L
+                          "Skyrim Script Extender (SKSE64) Steam"
+                          "9.0.0"
+                          "Compatible with Skyrim Special Edition 1.7.104.1 from Steam"
+                      nexusFile
+                          24L
+                          "Skyrim Script Extender (SKSE64)"
+                          "9.0.0"
+                          "Compatible with Skyrim Special Edition 1.7.104 from Steam and GOG"
+                      nexusFile
+                          25L
+                          "Skyrim Script Extender (SKSE64)"
+                          "9.0.0"
+                          "Current game version 1.7.104" ] }
+
+        let publicReleases = SkseResolver.releases publicFiles
+        let publicSelection = SkseResolver.resolve state publicReleases
+
+        let incompatibleSelection =
+            SkseResolver.resolve
+                state
+                (SkseResolver.releases
+                    { publicFiles with
+                        Files = publicFiles.Files |> List.filter (fun file -> file.Id <> 20L) })
+
+        let publicSteamMatches =
+            publicSelection
+            |> Result.toOption
+            |> Option.exists (fun release -> release.File.Id = 20L)
+
+        let incompatibleVersionsRejected =
+            match incompatibleSelection with
+            | Error SkseProblem.UnknownCompatibility -> true
+            | _ -> false
 
         let premium =
             SkseResolver.select
@@ -354,7 +408,7 @@ module SkseFixtures =
 
         let updateRelease =
             { premium.Release with
-                File = nexusFile 14L "matching update" "2.3.0" ("Current game version " + runtime)
+                File = nexusFile 14L "matching update" "2.3.0" ("Current game version " + runtime + " from Steam")
                 ComponentVersion = Version(2, 3, 0) }
 
         let updateArtifact =
@@ -548,6 +602,13 @@ module SkseFixtures =
         writer.WriteBoolean("exactRuntimeWins", premium.Release.File.Id = 11L)
         writer.WriteBoolean("newerIncompatibleRejected", premium.Release.File.Id <> 12L)
         writer.WriteBoolean("labelWithoutRuntimeRejected", releases.Length = 3)
+
+        writer.WriteBoolean("publicSteamVersionMatchesPeVersion", publicSteamMatches)
+
+        writer.WriteBoolean(
+            "otherStorefrontsMissingDeclarationsAndRevisionsRemainIncompatible",
+            incompatibleVersionsRejected
+        )
 
         writer.WriteBoolean(
             "ordinaryNexusRoutes",

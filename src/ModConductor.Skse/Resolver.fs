@@ -13,25 +13,52 @@ module SkseResolver =
         | true, parsed when parsed.Major >= 0 && parsed.Minor >= 0 -> Some parsed
         | _ -> None
 
-    let private declaredRuntime (description: string) =
+    let private tryRuntimeVersion (value: string) =
+        match tryVersion value with
+        | Some parsed when parsed.Build >= 0 ->
+            Some(Version(parsed.Major, parsed.Minor, parsed.Build, max 0 parsed.Revision))
+        | _ -> None
+
+    let private declaredRuntime (file: NexusFile) =
+        let description = file.Description
+
         if String.IsNullOrWhiteSpace description then
             None
+        elif
+            [ file.Name; description ]
+            |> List.exists (fun text ->
+                text.Contains("GOG", StringComparison.OrdinalIgnoreCase)
+                || text.Contains("VR", StringComparison.OrdinalIgnoreCase))
+        then
+            None
         else
-            let marker = "game version"
-            let at = description.IndexOf(marker, StringComparison.OrdinalIgnoreCase)
+            let parseAfter (marker: string) (requiredSuffix: string option) =
+                let at = description.IndexOf(marker, StringComparison.OrdinalIgnoreCase)
 
-            if at < 0 then
-                None
-            else
-                let tail = description.Substring(at + marker.Length).TrimStart()
+                if at < 0 then
+                    None
+                else
+                    let tail = description.Substring(at + marker.Length).TrimStart()
 
-                let value =
-                    tail
-                    |> Seq.takeWhile (fun c -> Char.IsDigit c || c = '.')
-                    |> Seq.toArray
-                    |> String
+                    let value =
+                        tail
+                        |> Seq.takeWhile (fun c -> Char.IsDigit c || c = '.')
+                        |> Seq.toArray
+                        |> String
 
-                tryVersion value
+                    let suffix = tail.Substring(value.Length).Trim()
+
+                    if
+                        requiredSuffix
+                        |> Option.exists (fun expected ->
+                            not (String.Equals(suffix, expected, StringComparison.OrdinalIgnoreCase)))
+                    then
+                        None
+                    else
+                        tryRuntimeVersion value
+
+            parseAfter "Compatible with Skyrim Special Edition " (Some "from Steam")
+            |> Option.orElseWith (fun () -> parseAfter "game version" (Some "from Steam"))
 
     let releases (value: NexusMod) =
         if value.Game <> "skyrimspecialedition" || value.Id <> NexusModId then
@@ -39,7 +66,7 @@ module SkseResolver =
         else
             value.Files
             |> List.choose (fun file ->
-                match tryVersion file.Version, declaredRuntime file.Description with
+                match tryVersion file.Version, declaredRuntime file with
                 | Some releaseVersion, Some runtime ->
                     Some
                         { ModId = value.Id
@@ -63,7 +90,7 @@ module SkseResolver =
             ->
             Error SkseProblem.UnsupportedStorefront
         | Some binding ->
-            match tryVersion binding.Evidence.Executable.Value.FileVersion with
+            match tryRuntimeVersion binding.Evidence.Executable.Value.FileVersion with
             | None -> Error SkseProblem.UnknownCompatibility
             | Some runtime ->
                 match

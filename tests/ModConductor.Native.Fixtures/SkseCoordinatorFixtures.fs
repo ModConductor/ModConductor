@@ -149,7 +149,7 @@ module SkseCoordinatorFixtures =
         server.Payload <- bytes
 
         server.SkseFiles <-
-            [ id, "skse-" + string id + ".zip", version, "Current game version " + runtime ]
+            [ id, "skse-" + string id + ".zip", version, "Current game version " + runtime + " from Steam" ]
 
     let private nxm id user expiry =
         "nxm://skyrimspecialedition/mods/30379/files/"
@@ -454,7 +454,7 @@ module SkseCoordinatorFixtures =
                   Name = "cached-skse.zip"
                   Version = "2.2.0"
                   Category = "Main files"
-                  Description = "Current game version " + evidence.FileVersion
+                  Description = "Current game version " + evidence.FileVersion + " from Steam"
                   Bytes = Some(int64 bytes.Length) }
 
             store.SkseLoaders.SaveArtifactSelection(

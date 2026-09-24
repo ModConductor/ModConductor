@@ -22,6 +22,9 @@ type SkseTests() =
         flag "exactRuntimeWins" |> should equal true
         flag "newerIncompatibleRejected" |> should equal true
         flag "labelWithoutRuntimeRejected" |> should equal true
+        flag "publicSteamVersionMatchesPeVersion" |> should equal true
+        flag "otherStorefrontsMissingDeclarationsAndRevisionsRemainIncompatible"
+        |> should equal true
         flag "ordinaryNexusRoutes" |> should equal true
 
     [<Test>]
@@ -74,6 +77,6 @@ type SkseTests() =
         |> should equal true
 
     [<Test>]
-    member _.``retained generation rollback should restore its loader after restart``() =
-        coordinatorFlag "retainedGenerationRollbackRestoresLoaderAfterRestart"
+    member _.``saved generation restore should rebuild its loader after restart``() =
+        coordinatorFlag "savedGenerationRestoreRebuildsLoaderAfterRestart"
         |> should equal true
