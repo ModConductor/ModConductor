@@ -44,3 +44,10 @@ type SkyrimSetupTests() =
         flag "activeCancellationShowsInstalledComponentsWithoutRetry" |> should equal true
         flag "cancelledSetupAcceptsNewSelection" |> should equal true
         flag "explicitNewAttemptRunsOnlyChosenComponent" |> should equal true
+
+    [<Test>]
+    member _.``active component generations should finish before parent setup resumes``() =
+        flag "activeSkseGenerationDoesNotTriggerParentRecovery" |> should equal true
+        flag "finishedSkseGenerationCompletesParentSetup" |> should equal true
+        flag "activeEnbGenerationDoesNotTriggerParentRecovery" |> should equal true
+        flag "finishedEnbGenerationCompletesParentSetup" |> should equal true

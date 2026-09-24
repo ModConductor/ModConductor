@@ -434,17 +434,65 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                             else
                                 Task.FromResult None
 
+                        let! enbWhilePending =
+                            if
+                                stage = "enb"
+                                && deployed.ActiveGeneration.IsSome
+                                && deployed.PendingReceipt.IsSome
+                                && not (intent |> Option.exists _.CancelRequested)
+                            then
+                                task {
+                                    let! state = dependencies.ReadEnb workspace profile
+                                    return Some state
+                                }
+                            else
+                                Task.FromResult None
+
+                        let! fnisWhilePending =
+                            if
+                                stage = "fnis-install"
+                                && deployed.ActiveGeneration.IsSome
+                                && deployed.PendingReceipt.IsSome
+                                && not (intent |> Option.exists _.CancelRequested)
+                            then
+                                task {
+                                    let! state = dependencies.ReadFnis workspace profile
+                                    return Some state
+                                }
+                            else
+                                Task.FromResult None
+
+                        let sksePendingActive =
+                            skseWhilePending
+                            |> Option.exists (fun state ->
+                                state.Phase = SksePhase.Downloading
+                                || state.Phase = SksePhase.Installing)
+
+                        let enbPendingActive =
+                            enbWhilePending
+                            |> Option.exists (fun state ->
+                                state.Phase = EnbPhase.Validating
+                                || state.Phase = EnbPhase.Acquiring
+                                || state.Phase = EnbPhase.Installing)
+
+                        let fnisPendingActive =
+                            fnisWhilePending
+                            |> Option.exists (fun state ->
+                                state.Phase = FnisPhase.Downloading
+                                || state.Phase = FnisPhase.Installing)
+
                         let! deployed =
-                            match skseWhilePending with
-                            | Some state when
-                                state.Phase <> SksePhase.Downloading
-                                && state.Phase <> SksePhase.Installing
-                                ->
+                            if
+                                (skseWhilePending.IsSome && not sksePendingActive)
+                                || (enbWhilePending.IsSome && not enbPendingActive)
+                                || (fnisWhilePending.IsSome && not fnisPendingActive)
+                            then
                                 task {
                                     let! latest = store.Deployments.Read profile
                                     return latest |> Result.defaultValue deployed
                                 }
-                            | _ -> Task.FromResult deployed
+                            else
+                                Task.FromResult deployed
 
                         if intent |> Option.exists _.CancelRequested then
                             let pending = intent.Value
@@ -484,12 +532,7 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                                             "Select components to try again."
                                         else
                                             cancelled.CancelDetail }
-                        elif
-                            skseWhilePending
-                            |> Option.exists (fun state ->
-                                state.Phase = SksePhase.Downloading
-                                || state.Phase = SksePhase.Installing)
-                        then
+                        elif sksePendingActive then
                             let state = skseWhilePending.Value
                             let! installed =
                                 store.SkseLoaders.ReadStored(workspace, profile, deployed.ActiveGeneration)
@@ -501,6 +544,44 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                                     state.Detail
                                     [ { componentView "SKSE" state.Status state.Detail false true false with
                                           Id = "skse"
+                                          Installed = installed.IsSome } ]
+                                    selection
+                                    running
+                                    false
+                                    false
+                                    true
+                                    false
+                        elif enbPendingActive then
+                            let state = enbWhilePending.Value
+                            let! installed =
+                                store.EnbSetups.Components(workspace, profile, deployed.ActiveGeneration)
+
+                            return
+                                view
+                                    SkyrimSetupPhase.SettingUpEnb
+                                    state.Status
+                                    state.Detail
+                                    [ { componentView "ENBSeries" state.Status state.Detail false true false with
+                                          Id = "enb"
+                                          Installed = installed |> List.exists (fun item -> item.Kind = "runtime") } ]
+                                    selection
+                                    running
+                                    false
+                                    false
+                                    true
+                                    false
+                        elif fnisPendingActive then
+                            let state = fnisWhilePending.Value
+                            let! installed =
+                                store.FnisSetups.ReadExact(workspace, profile, deployed.ActiveGeneration)
+
+                            return
+                                view
+                                    SkyrimSetupPhase.SettingUpFnis
+                                    state.Status
+                                    state.Detail
+                                    [ { componentView "FNIS" state.Status state.Detail false true false with
+                                          Id = "fnis"
                                           Installed = installed.IsSome } ]
                                     selection
                                     running

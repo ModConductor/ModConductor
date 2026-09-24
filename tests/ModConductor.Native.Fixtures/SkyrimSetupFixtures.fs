@@ -852,4 +852,127 @@ module SkyrimSetupFixtures =
              && finalDeployment.PendingReceipt.IsNone
              && (finalIntent |> Option.exists _.Completed))
 
+        let enbArea = Directory.CreateDirectory(Path.Combine(area, "paused-enb")).FullName
+        use releaseEnbGeneration = new ManualResetEventSlim(true)
+        use enteredEnbGeneration = new ManualResetEventSlim(false)
+
+        use enbStore =
+            new OperationStore(
+                Path.Combine(enbArea, "state"),
+                enbCheckpoint =
+                    (fun name _ ->
+                        if name = "install-intent" && not releaseEnbGeneration.IsSet then
+                            enteredEnbGeneration.Set()
+                            releaseEnbGeneration.Wait(TimeSpan.FromSeconds 30.) |> ignore)
+            )
+
+        let enbWorkspace, enbProfile, _ = createWorkspace enbStore enbArea "selected" true
+        let enbArchive = Path.Combine(enbArea, "enbseries_skyrimse_v0505.zip")
+
+        use archiveOutput = File.Create enbArchive
+        use enbZip = new ZipArchive(archiveOutput, ZipArchiveMode.Create, true)
+
+        for name in [ "WrapperVersion/d3d11.dll"; "WrapperVersion/d3dcompiler_46e.dll" ] do
+            use entry = enbZip.CreateEntry(name).Open()
+            entry.Write(Encoding.UTF8.GetBytes name)
+
+        enbZip.Dispose()
+        archiveOutput.Dispose()
+
+        let enbArtifact =
+            enbStore.Artifacts.Add(
+                { Id = Guid.NewGuid()
+                  WorkspaceId = enbWorkspace
+                  Path = enbArchive
+                  Storage = ArtifactStorage.Reference },
+                CancellationToken.None
+            )
+            |> wait
+            |> result
+
+        let enbWorkflow = WorkflowState()
+        let mutable enbChild =
+            { Phase = EnbPhase.Available
+              Status = "ENBSeries is available"
+              Detail = ""
+              RuntimeVersion = "0.505"
+              PresetVersion = "" }
+
+        let enbDependencies =
+            { enbWorkflow.Dependencies with
+                ReadEnb = fun _ _ -> Task.FromResult enbChild
+                SelectEnb =
+                    fun workspace profile _ _ token ->
+                        task {
+                            enbChild <-
+                                { enbChild with
+                                    Phase = EnbPhase.Installing
+                                    Status = "Installing ENBSeries" }
+
+                            let! _ =
+                                enbStore.InstallEnb(
+                                    workspace,
+                                    profile,
+                                    EnbCatalogue.lean,
+                                    enbArtifact,
+                                    [],
+                                    token,
+                                    runtimeOnly = true
+                                )
+
+                            enbChild <-
+                                { enbChild with
+                                    Phase = EnbPhase.Ready
+                                    Status = "ENBSeries is installed" }
+
+                            return enbChild
+                        } }
+
+        use enbOwner = new SkyrimSetupCoordinator(enbStore, enbDependencies)
+        let _ = enbOwner.Start(enbWorkspace, enbProfile, enbWithArchive, CancellationToken.None) |> wait
+        let _ = enbOwner.Continue(enbWorkspace, enbProfile, CancellationToken.None) |> wait
+        releaseEnbGeneration.Reset()
+        let startedEnb = enbOwner.Continue(enbWorkspace, enbProfile, CancellationToken.None) |> wait
+
+        try
+            if not (enteredEnbGeneration.Wait(TimeSpan.FromSeconds 10.)) then
+                failwith "ENB did not reach the held generation step."
+
+            let deployed = enbStore.Deployments.Read enbProfile |> wait |> result
+            let during = enbOwner.Read(enbWorkspace, enbProfile, noChoice, CancellationToken.None) |> wait
+            let continued = enbOwner.Continue(enbWorkspace, enbProfile, CancellationToken.None) |> wait
+            let afterContinue = enbStore.Deployments.Read enbProfile |> wait |> result
+
+            check
+                writer
+                "activeEnbGenerationDoesNotTriggerParentRecovery"
+                (startedEnb.Phase = SkyrimSetupPhase.SettingUpEnb
+                 && deployed.ActiveGeneration.IsSome
+                 && deployed.PendingReceipt.IsSome
+                 && during.Phase = SkyrimSetupPhase.SettingUpEnb
+                 && during.Active
+                 && not during.CanContinue
+                 && continued.Phase = SkyrimSetupPhase.SettingUpEnb
+                 && afterContinue.PendingReceipt = deployed.PendingReceipt)
+        finally
+            releaseEnbGeneration.Set()
+
+        let afterEnb =
+            until
+                "finished ENB generation"
+                (fun () -> enbOwner.Read(enbWorkspace, enbProfile, noChoice, CancellationToken.None) |> wait)
+                (fun value -> value.Phase = SkyrimSetupPhase.Ready)
+
+        let completedEnb = enbOwner.Continue(enbWorkspace, enbProfile, CancellationToken.None) |> wait
+        let finalEnbDeployment = enbStore.Deployments.Read enbProfile |> wait |> result
+        let finalEnbIntent = enbStore.SkyrimSetups.Read(enbWorkspace, enbProfile) |> wait
+
+        check
+            writer
+            "finishedEnbGenerationCompletesParentSetup"
+            (afterEnb.Phase = SkyrimSetupPhase.Ready
+             && completedEnb.Phase = SkyrimSetupPhase.Ready
+             && finalEnbDeployment.PendingReceipt.IsNone
+             && (finalEnbIntent |> Option.exists _.Completed))
+
         writer.WriteEndObject()
