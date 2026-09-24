@@ -556,6 +556,7 @@ let runWithNexus registration (handoff: ModConductor.Nexus.IOAuthHandoff) args =
     app.MapGrpcService<ModConductor.Engine.ModLibraryService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.ProfileModService>() |> ignore
     app.StartAsync().GetAwaiter().GetResult()
+    let savedNexusConnection = nexus.ConnectSaved()
 
     let address =
         app.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>().Addresses
@@ -587,6 +588,7 @@ let runWithNexus registration (handoff: ModConductor.Nexus.IOAuthHandoff) args =
     store.Installations.Stop().GetAwaiter().GetResult()
     store.Downloads.Stop().GetAwaiter().GetResult()
     nexus.Stop().GetAwaiter().GetResult()
+    savedNexusConnection.GetAwaiter().GetResult()
     coordinator.Drain().GetAwaiter().GetResult()
     store.DrainOutputs().GetAwaiter().GetResult()
     store.CloseExecutables().GetAwaiter().GetResult()

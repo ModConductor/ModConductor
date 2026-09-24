@@ -449,6 +449,19 @@ type NexusSession
             return status ()
         }
 
+    member _.ConnectSaved() =
+        task {
+            let epoch, token = context ()
+            let! saved = credentials.Status token
+
+            if saved.Saved = SavedPresence.Present then
+                let! result = NexusBoundary.protect (fun () -> access epoch token true)
+
+                match result with
+                | Error error -> fail epoch error
+                | Ok _ -> ()
+        }
+
     member _.CheckAccount() =
         task {
             let! _ =

@@ -248,6 +248,13 @@ module NexusFixtures =
                 "offlinePersonalApiKeyValidationIsStructured"
                 (offline.Problem = Some NexusProblem.Offline && rejectedMemory.Saves = 0)
 
+            let apiRequests = keyServer.ApiKeyRequests
+            rejectedSession.ConnectSaved() |> wait
+
+            check
+                "startupWithoutSavedKeyDoesNotConnect"
+                (rejectedSession.Status.Account.IsNone && keyServer.ApiKeyRequests = apiRequests)
+
         use rateServer = new NexusServer()
         let rateMemory = NexusMemoryStore()
 
@@ -392,6 +399,26 @@ module NexusFixtures =
                  && freeDownload = Error NexusProblem.Entitlement)
 
         do
+            use invalidCredentials = new CredentialSession(secureMemory)
+
+            use invalidSession =
+                new NexusSession(
+                    invalidCredentials,
+                    Some secureServer.Registration,
+                    secureServer.Handoff,
+                    (fun _ -> Task.CompletedTask),
+                    requestInterval = TimeSpan.Zero
+                )
+
+            secureServer.Mode <- "invalid-key"
+            invalidSession.ConnectSaved() |> wait
+
+            check
+                "invalidSavedPersonalApiKeyReportsFailure"
+                (invalidSession.Status.Account.IsNone
+                 && invalidSession.Status.Problem = Some NexusProblem.InvalidApiKey)
+
+        do
             use restoredCredentials = new CredentialSession(secureMemory)
 
             use restoredSession =
@@ -406,7 +433,8 @@ module NexusFixtures =
                 )
 
             secureServer.Mode <- "good"
-            let restored = restoredSession.Connect() |> wait
+            restoredSession.ConnectSaved() |> wait
+            let restored = restoredSession.Status
 
             check
                 "savedPersonalApiKeyRestoresOnlyInsideEngine"
