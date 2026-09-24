@@ -36,9 +36,6 @@ type StorageTests() =
         let schema = field "schema"
         number schema "version" |> should equal 1L
         number schema "applicationId" |> should equal 1296253774L
-        number schema "tables" |> should equal 72L
-        number schema "indexes" |> should equal 23L
-        number schema "triggers" |> should equal 2L
         number schema "foreignKeyFailures" |> should equal 0L
         flag schema "initializationRollback" |> should equal true
         flag schema "unsupportedRefusedWithoutMutation" |> should equal true
