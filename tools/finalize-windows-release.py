@@ -3,9 +3,11 @@
 
 import argparse
 import hashlib
+import io
 import json
 from pathlib import Path
 import shutil
+import tarfile
 import zipfile
 
 
@@ -121,13 +123,14 @@ def main() -> None:
     manifest_files = sorted(path for path in manifests.rglob("*") if path.is_file())
     if not manifest_files:
         parser.error(f"Windows dependency manifests are empty: {manifests}")
-    manifest_archive = release / f"modconductor-v{args.version}-win-x64-dependency-manifests.zip"
-    with zipfile.ZipFile(manifest_archive, "w", compression=zipfile.ZIP_DEFLATED) as bundle:
+    manifest_archive = release / f"modconductor-v{args.version}-win-x64-dependency-manifests.tar"
+    with tarfile.open(manifest_archive, "w") as bundle:
         for path in manifest_files:
-            entry = zipfile.ZipInfo(f"dependency-manifests/{path.relative_to(manifests).as_posix()}", date_time=(1980, 1, 1, 0, 0, 0))
-            entry.compress_type = zipfile.ZIP_DEFLATED
-            entry.external_attr = 0o644 << 16
-            bundle.writestr(entry, path.read_bytes())
+            contents = path.read_bytes()
+            entry = tarfile.TarInfo(f"dependency-manifests/{path.relative_to(manifests).as_posix()}")
+            entry.size = len(contents)
+            entry.mode = 0o644
+            bundle.addfile(entry, io.BytesIO(contents))
     checksum_file = release / "checksums_sha256.txt"
     with checksum_file.open("a") as stream:
         for path in (installer, *sidecars, manifest_archive):
