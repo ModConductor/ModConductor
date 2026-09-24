@@ -42,6 +42,13 @@ module Layout =
             |> List.collect (fun e ->
                 let parts = LogicalPath.components e.Path
 
+                let markerRoot index =
+                    let leading = List.take index parts
+
+                    match leading |> List.tryFindIndex (fun part -> part.Equals("Data", StringComparison.OrdinalIgnoreCase)) with
+                    | Some data -> List.take (data + 1) leading
+                    | None -> leading
+
                 [ for i in 0 .. parts.Length - 1 do
                       let name = parts[i].ToLowerInvariant()
 
@@ -50,7 +57,7 @@ module Layout =
                           || (i = parts.Length - 1
                               && List.contains (Path.GetExtension name) [ ".esp"; ".esm"; ".esl" ])
                       then
-                          yield List.take i parts
+                          yield markerRoot i
 
                       if i < parts.Length - 1 && name = "data" then
                           yield List.take (i + 1) parts ])

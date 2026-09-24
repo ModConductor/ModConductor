@@ -37,20 +37,34 @@ module InstallationFixtures =
 
         status
 
-    let private zip path =
+    let private zipEntries path (entries: (string * string) list) =
         use file = File.Create path
         use archive = new ZipArchive(file, ZipArchiveMode.Create)
 
-        for path, text in
-            [ "Rivière/Data/textures/water.dds", "water"
-              "Rivière/Data/textures/landscape/river.dds", "river"
-              "Rivière/Readme.txt", "not installed" ] do
+        for path, text in entries do
             use output = archive.CreateEntry(path).Open()
             output.Write(Encoding.UTF8.GetBytes text)
+
+    let private zip path =
+        zipEntries
+            path
+            [ "Rivière/Data/textures/water.dds", "water"
+              "Rivière/Data/textures/landscape/river.dds", "river"
+              "Rivière/Readme.txt", "not installed" ]
 
     let create area =
         Directory.CreateDirectory area |> ignore
         zip (Path.Combine(area, "Rivière textures.zip"))
+        zipEntries
+            (Path.Combine(area, "Nested data.zip"))
+            [ "Wrapper/Data/Meshes/actors/character/behaviors/0_master.hkx", "behavior"
+              "Wrapper/Data/source/scripts/FNIS_example.psc", "source"
+              "Wrapper/Data/FNIS.esp", "plugin"
+              "Wrapper/FNIS_Readme.txt", "not installed" ]
+        zipEntries
+            (Path.Combine(area, "Two data roots.zip"))
+            [ "First/Data/Meshes/a.nif", "first"
+              "Second/Data/Meshes/b.nif", "second" ]
         ArchiveInspectionFixtures.create area
         let malformed = Path.Combine(area, "wrong-size.zip")
         File.Copy(Path.Combine(area, "textures.zip"), malformed)
@@ -169,6 +183,26 @@ module InstallationFixtures =
                 )
                 |> wait
                 |> result
+
+            let nested = adopt (Path.Combine(area, "Nested data.zip"))
+            let nestedDraft = store.Installations.Prepare(reference nested, token) |> wait
+
+            check
+                "NestedMarkersUseExplicitDataRoot"
+                (nestedDraft.Root = [ "Wrapper"; "Data" ]
+                 && (nestedDraft.Files
+                     |> List.map (fun file -> LogicalPath.display file.Destination)
+                     |> Set.ofList)
+                    = set [ "Meshes/actors/character/behaviors/0_master.hkx"
+                            "source/scripts/FNIS_example.psc"
+                            "FNIS.esp" ])
+
+            let ambiguous = adopt (Path.Combine(area, "Two data roots.zip"))
+            let ambiguousDraft = store.Installations.Prepare(reference ambiguous, token) |> wait
+
+            check
+                "IndependentDataRootsStillNeedSelection"
+                (ambiguousDraft.Root.IsEmpty && ambiguousDraft.Files.IsEmpty)
 
             let originalArchive = File.ReadAllBytes(Path.Combine(area, "Rivière textures.zip"))
             let archive = adopt (Path.Combine(area, "Rivière textures.zip"))
