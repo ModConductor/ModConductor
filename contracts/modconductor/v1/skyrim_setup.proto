@@ -23,8 +23,6 @@ message StartSkyrimSetupRequest {
   string workspace_id = 1;
   string profile_id = 2;
   SkyrimSetupSelection selection = 3;
-  string plan_token = 4;
-  bool change_plan_confirmed = 5;
 }
 enum SkyrimSetupAction {
   SKYRIM_SETUP_ACTION_UNCHANGED = 0;
@@ -41,7 +39,7 @@ message SkyrimSetupSelection {
 enum SkyrimSetupPhase {
   SKYRIM_SETUP_PHASE_UNSPECIFIED = 0;
   SKYRIM_SETUP_PHASE_UNAVAILABLE = 1;
-  SKYRIM_SETUP_PHASE_NEEDS_CONSENT = 2;
+  SKYRIM_SETUP_PHASE_AVAILABLE = 2;
   SKYRIM_SETUP_PHASE_PREPARING_DEPLOYMENT = 3;
   SKYRIM_SETUP_PHASE_SETTING_UP_SKSE = 4;
   SKYRIM_SETUP_PHASE_WAITING_FOR_SKSE = 5;
@@ -56,7 +54,6 @@ enum SkyrimSetupPhase {
   SKYRIM_SETUP_PHASE_CANCELLED = 14;
 }
 
-message SkyrimSetupChange { string title = 1; string detail = 2; string source = 3; bool supporting = 4; }
 message SkyrimSetupComponent {
   string name = 1;
   string status = 2;
@@ -71,11 +68,8 @@ message SkyrimSetupState {
   SkyrimSetupPhase phase = 1;
   string status = 2;
   string detail = 3;
-  string plan_token = 4;
-  repeated SkyrimSetupChange changes = 5;
   repeated SkyrimSetupComponent components = 6;
   SkyrimSetupSelection selection = 7;
-  bool consent_recorded = 8;
   bool can_start = 9;
   bool can_continue = 10;
   bool active = 12;

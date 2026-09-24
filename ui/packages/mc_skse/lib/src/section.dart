@@ -59,9 +59,10 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
     timer?.cancel();
     if (value.active) {
       timer = Timer(const Duration(seconds: 1), () => unawaited(load()));
-    } else if (value.consentRecorded &&
-        value.canContinue &&
-        value.phase != SkyrimSetupStatusPhase.failed) {
+    } else if (value.canContinue &&
+        value.phase != SkyrimSetupStatusPhase.failed &&
+        value.phase != SkyrimSetupStatusPhase.available &&
+        value.phase != SkyrimSetupStatusPhase.cancelled) {
       timer = Timer(
         Duration.zero,
         () => unawaited(
@@ -89,7 +90,7 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
       setState(() {
         final wasCancelled = status?.phase == SkyrimSetupStatusPhase.cancelled;
         status = next;
-        if (next!.consentRecorded) {
+        if (next!.canCancel && next.phase != SkyrimSetupStatusPhase.failed) {
           selection = next.selection;
           userEdited = false;
         } else if (next.ready ||
@@ -118,7 +119,11 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
   );
 
   void selectAction(String id, SkyrimSetupAction action) {
-    if (busy || status?.consentRecorded == true) return;
+    if (busy ||
+        status?.active == true ||
+        (status?.canCancel == true &&
+            status?.phase != SkyrimSetupStatusPhase.failed))
+      return;
     setState(() {
       selection = selection.withAction(id, action);
       userEdited = true;
@@ -142,56 +147,14 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
     await load();
   }
 
-  Future<void> review() async {
+  Future<void> apply() async {
     final current = status;
-    if (busy || current == null || !current.canStart || !selection.canReview)
-      return;
-    final primary = current.changes.where((item) => !item.supporting).toList();
-    final support = current.changes.where((item) => item.supporting).toList();
-    final approved = await showDialog<bool>(
-      context: context,
-      builder: (context) => McDialog(
-        title: 'Review Skyrim setup',
-        contentWidth: 620,
-        children: [
-          McChangeSummary(
-            changes: [
-              for (final item in primary)
-                McChangeEntry(item.title, item.detail, item.source),
-            ],
-          ),
-          if (support.isNotEmpty) ...[
-            const SizedBox(height: McSpacing.large),
-            Text(
-              'Also required',
-              style: Theme.of(context).textTheme.titleSmall,
-            ),
-            const SizedBox(height: McSpacing.small),
-            for (final item in support)
-              Text('${item.detail} ${item.title.toLowerCase()}'),
-          ],
-        ],
-        actions: [
-          McAction(
-            label: 'Back',
-            onPressed: () => Navigator.pop(context, false),
-          ),
-          McAction(
-            key: const ValueKey('apply-skyrim-setup'),
-            label: 'Apply changes',
-            emphasis: McActionEmphasis.primary,
-            onPressed: () => Navigator.pop(context, true),
-          ),
-        ],
-      ),
-    );
-    if (approved != true || !mounted) return;
+    if (busy || current == null || !selection.canApply) return;
     await change(
       () => widget.client.start(
         widget.workspaceId,
         widget.profileId,
         selection: selection,
-        planToken: current.planToken,
       ),
     );
   }
@@ -209,7 +172,10 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
   @override
   Widget build(BuildContext context) {
     final value = status;
-    final locked = value?.consentRecorded == true;
+    final locked =
+        value?.active == true ||
+        (value?.canCancel == true &&
+            value?.phase != SkyrimSetupStatusPhase.failed);
     final components =
         value?.components
             .where((item) => const ['skse', 'enb', 'fnis'].contains(item.id))
@@ -219,8 +185,12 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
         value != null &&
         (value.phase == SkyrimSetupStatusPhase.failed ||
             value.phase == SkyrimSetupStatusPhase.recoveryRequired);
-    final canReview =
-        !busy && !locked && value?.canStart == true && selection.canReview;
+    final canApply =
+        !busy &&
+        !locked &&
+        (value?.canStart == true ||
+            value?.phase == SkyrimSetupStatusPhase.failed) &&
+        selection.canApply;
     final content = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -280,10 +250,10 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
               onPressed: busy ? null : load,
             ),
             McAction(
-              key: const ValueKey('review-skyrim-setup'),
-              label: 'Review changes',
+              key: const ValueKey('apply-skyrim-setup'),
+              label: 'Apply',
               emphasis: McActionEmphasis.primary,
-              onPressed: canReview ? review : null,
+              onPressed: canApply ? apply : null,
             ),
             if (value?.canCancel == true)
               McAction(
@@ -376,7 +346,10 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
       onChooseArchive: item.id == 'enb' ? chooseEnbArchive : null,
       onClearArchive: item.id == 'enb'
           ? () {
-              setState(() => selection = selection.withEnbArchive(null));
+              setState(() {
+                selection = selection.withEnbArchive(null);
+                userEdited = true;
+              });
               unawaited(load());
             }
           : null,

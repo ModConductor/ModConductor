@@ -4,7 +4,7 @@ import 'generated/modconductor/v1/skyrim_setup.pbgrpc.dart' as wire;
 
 enum SkyrimSetupStatusPhase {
   unavailable,
-  needsConsent,
+  available,
   preparingDeployment,
   settingUpSkse,
   waitingForSkse,
@@ -17,17 +17,6 @@ enum SkyrimSetupStatusPhase {
   recoveryRequired,
   failed,
   cancelled,
-}
-
-class SkyrimSetupChange {
-  const SkyrimSetupChange(
-    this.title,
-    this.detail,
-    this.source, {
-    this.supporting = false,
-  });
-  final String title, detail, source;
-  final bool supporting;
 }
 
 enum SkyrimSetupAction { unchanged, install, remove, update }
@@ -51,7 +40,7 @@ class SkyrimSetupSelection {
   bool get needsEnbArchive =>
       enb == SkyrimSetupAction.install || enb == SkyrimSetupAction.update;
 
-  bool get canReview =>
+  bool get canApply =>
       hasChange && (!needsEnbArchive || enbArchivePath?.isNotEmpty == true);
 
   SkyrimSetupSelection withAction(String id, SkyrimSetupAction action) =>
@@ -90,11 +79,8 @@ class SkyrimSetupStatus {
     required this.phase,
     required this.status,
     required this.detail,
-    required this.planToken,
-    required this.changes,
     required this.components,
     required this.selection,
-    required this.consentRecorded,
     required this.canStart,
     required this.canContinue,
     required this.active,
@@ -103,16 +89,10 @@ class SkyrimSetupStatus {
   });
 
   final SkyrimSetupStatusPhase phase;
-  final String status, detail, planToken;
-  final List<SkyrimSetupChange> changes;
+  final String status, detail;
   final List<SkyrimSetupComponent> components;
   final SkyrimSetupSelection selection;
-  final bool consentRecorded,
-      canStart,
-      canContinue,
-      active,
-      ready,
-      canCancel;
+  final bool canStart, canContinue, active, ready, canCancel;
 }
 
 abstract class SkyrimSetupClient {
@@ -131,7 +111,6 @@ abstract class SkyrimSetupClient {
     String workspace,
     String profile, {
     required SkyrimSetupSelection selection,
-    required String planToken,
   });
 
   Future<SkyrimSetupStatus> continueSetup(String workspace, String profile);
@@ -174,8 +153,8 @@ class _GrpcSkyrimSetupClient extends SkyrimSetupClient {
 
   SkyrimSetupStatus _decode(wire.SkyrimSetupState value) => SkyrimSetupStatus(
     phase: switch (value.phase) {
-      wire.SkyrimSetupPhase.SKYRIM_SETUP_PHASE_NEEDS_CONSENT =>
-        SkyrimSetupStatusPhase.needsConsent,
+      wire.SkyrimSetupPhase.SKYRIM_SETUP_PHASE_AVAILABLE =>
+        SkyrimSetupStatusPhase.available,
       wire.SkyrimSetupPhase.SKYRIM_SETUP_PHASE_PREPARING_DEPLOYMENT =>
         SkyrimSetupStatusPhase.preparingDeployment,
       wire.SkyrimSetupPhase.SKYRIM_SETUP_PHASE_SETTING_UP_SKSE =>
@@ -204,17 +183,6 @@ class _GrpcSkyrimSetupClient extends SkyrimSetupClient {
     },
     status: value.status,
     detail: value.detail,
-    planToken: value.planToken,
-    changes: List.unmodifiable(
-      value.changes.map(
-        (item) => SkyrimSetupChange(
-          item.title,
-          item.detail,
-          item.source,
-          supporting: item.supporting,
-        ),
-      ),
-    ),
     components: List.unmodifiable(
       value.components.map(
         (item) => SkyrimSetupComponent(
@@ -230,7 +198,6 @@ class _GrpcSkyrimSetupClient extends SkyrimSetupClient {
       ),
     ),
     selection: _selection(value.selection),
-    consentRecorded: value.consentRecorded,
     canStart: value.canStart,
     canContinue: value.canContinue,
     active: value.active,
@@ -258,15 +225,12 @@ class _GrpcSkyrimSetupClient extends SkyrimSetupClient {
     String workspace,
     String profile, {
     required SkyrimSetupSelection selection,
-    required String planToken,
   }) async => _decode(
     await _client.startSkyrimSetup(
       wire.StartSkyrimSetupRequest(
         workspaceId: workspace,
         profileId: profile,
         selection: _wireSelection(selection),
-        planToken: planToken,
-        changePlanConfirmed: true,
       ),
     ),
   );

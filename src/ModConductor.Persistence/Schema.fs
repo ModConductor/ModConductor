@@ -374,9 +374,8 @@ CREATE TABLE skyrim_setup_intents(
       skse_action INTEGER NOT NULL CHECK(skse_action BETWEEN 0 AND 3),
       enb_action INTEGER NOT NULL CHECK(enb_action BETWEEN 0 AND 3),
       fnis_action INTEGER NOT NULL CHECK(fnis_action BETWEEN 0 AND 3),
-      plan_token TEXT NOT NULL,
       requested_at TEXT NOT NULL
-    , cancelled INTEGER NOT NULL DEFAULT 0 CHECK(cancelled IN (0,1)), completed INTEGER NOT NULL DEFAULT 0 CHECK(completed IN (0,1)), stage TEXT NOT NULL DEFAULT 'setup', context_revision INTEGER NOT NULL DEFAULT 0, action_id TEXT, enb_archive_path TEXT, cancel_requested INTEGER NOT NULL DEFAULT 0 CHECK(cancel_requested IN (0,1)), cancel_detail TEXT NOT NULL DEFAULT '');
+    , cancelled INTEGER NOT NULL DEFAULT 0 CHECK(cancelled IN (0,1)), completed INTEGER NOT NULL DEFAULT 0 CHECK(completed IN (0,1)), stage TEXT NOT NULL DEFAULT 'setup', action_id TEXT, enb_archive_path TEXT, cancel_requested INTEGER NOT NULL DEFAULT 0 CHECK(cancel_requested IN (0,1)), cancel_detail TEXT NOT NULL DEFAULT '');
 CREATE TABLE version_nexus_origins(version_id TEXT NOT NULL REFERENCES mod_versions(id) ON DELETE CASCADE,manual INTEGER NOT NULL,game TEXT NOT NULL,nexus_mod INTEGER NOT NULL,file_id INTEGER NOT NULL,version TEXT NOT NULL,PRIMARY KEY(version_id,manual));
 CREATE TABLE workspace_roots (id TEXT PRIMARY KEY, path TEXT NOT NULL, device_kind INTEGER NOT NULL, device TEXT NOT NULL, file_low TEXT NOT NULL, file_high TEXT NOT NULL, revision INTEGER NOT NULL);
 CREATE TABLE workspaces (id TEXT PRIMARY KEY REFERENCES workspace_roots(id), name TEXT NOT NULL, revision INTEGER NOT NULL, selected_profile TEXT, catalogue_revision INTEGER NOT NULL DEFAULT 0);

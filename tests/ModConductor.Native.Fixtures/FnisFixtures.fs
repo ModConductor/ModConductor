@@ -953,17 +953,13 @@ module FnisFixtures =
         File.WriteAllText(mode, "cancel")
         let cancelledId = Guid.NewGuid()
 
-        let context = (store.GameContexts :> IGameContexts).Read(workspace, profile) |> wait |> result
-
         store.SkyrimSetups.Save
             { WorkspaceId = workspace
               ProfileId = profile
               Selection = { SetupSelection.none with Fnis = SetupAction.Install }
-              PlanToken = "production-fnis-cancellation"
               Cancelled = false
               Completed = false
               Stage = "fnis-run"
-              ContextRevision = context.Revision
               ActionId = Some cancelledId
               CancelRequested = false
               CancelDetail = ""
@@ -1301,11 +1297,9 @@ module FnisFixtures =
             { WorkspaceId = workspace
               ProfileId = profile
               Selection = { SetupSelection.none with Fnis = SetupAction.Install }
-              PlanToken = "production-fnis-pending-restart"
               Cancelled = false
               Completed = false
               Stage = "fnis-run"
-              ContextRevision = context.Revision
               ActionId = Some abandonedId
               CancelRequested = true
               CancelDetail = "Cancellation was recorded before the engine stopped."

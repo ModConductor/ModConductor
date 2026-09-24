@@ -38,7 +38,7 @@ const SkyrimSetupPhase$json = {
   '2': [
     {'1': 'SKYRIM_SETUP_PHASE_UNSPECIFIED', '2': 0},
     {'1': 'SKYRIM_SETUP_PHASE_UNAVAILABLE', '2': 1},
-    {'1': 'SKYRIM_SETUP_PHASE_NEEDS_CONSENT', '2': 2},
+    {'1': 'SKYRIM_SETUP_PHASE_AVAILABLE', '2': 2},
     {'1': 'SKYRIM_SETUP_PHASE_PREPARING_DEPLOYMENT', '2': 3},
     {'1': 'SKYRIM_SETUP_PHASE_SETTING_UP_SKSE', '2': 4},
     {'1': 'SKYRIM_SETUP_PHASE_WAITING_FOR_SKSE', '2': 5},
@@ -57,16 +57,16 @@ const SkyrimSetupPhase$json = {
 /// Descriptor for `SkyrimSetupPhase`. Decode as a `google.protobuf.EnumDescriptorProto`.
 final $typed_data.Uint8List skyrimSetupPhaseDescriptor = $convert.base64Decode(
     'ChBTa3lyaW1TZXR1cFBoYXNlEiIKHlNLWVJJTV9TRVRVUF9QSEFTRV9VTlNQRUNJRklFRBAAEi'
-    'IKHlNLWVJJTV9TRVRVUF9QSEFTRV9VTkFWQUlMQUJMRRABEiQKIFNLWVJJTV9TRVRVUF9QSEFT'
-    'RV9ORUVEU19DT05TRU5UEAISKwonU0tZUklNX1NFVFVQX1BIQVNFX1BSRVBBUklOR19ERVBMT1'
-    'lNRU5UEAMSJgoiU0tZUklNX1NFVFVQX1BIQVNFX1NFVFRJTkdfVVBfU0tTRRAEEicKI1NLWVJJ'
-    'TV9TRVRVUF9QSEFTRV9XQUlUSU5HX0ZPUl9TS1NFEAUSLgoqU0tZUklNX1NFVFVQX1BIQVNFX1'
-    'dBSVRJTkdfRk9SX0VOQl9BUkNISVZFEAYSJQohU0tZUklNX1NFVFVQX1BIQVNFX1NFVFRJTkdf'
-    'VVBfRU5CEAcSJgoiU0tZUklNX1NFVFVQX1BIQVNFX1NFVFRJTkdfVVBfRk5JUxAIEiEKHVNLWV'
-    'JJTV9TRVRVUF9QSEFTRV9GTklTX1NUQUxFEAkSIwofU0tZUklNX1NFVFVQX1BIQVNFX0ZOSVNf'
-    'UlVOTklORxAKEhwKGFNLWVJJTV9TRVRVUF9QSEFTRV9SRUFEWRALEigKJFNLWVJJTV9TRVRVUF'
-    '9QSEFTRV9SRUNPVkVSWV9SRVFVSVJFRBAMEh0KGVNLWVJJTV9TRVRVUF9QSEFTRV9GQUlMRUQQ'
-    'DRIgChxTS1lSSU1fU0VUVVBfUEhBU0VfQ0FOQ0VMTEVEEA4=');
+    'IKHlNLWVJJTV9TRVRVUF9QSEFTRV9VTkFWQUlMQUJMRRABEiAKHFNLWVJJTV9TRVRVUF9QSEFT'
+    'RV9BVkFJTEFCTEUQAhIrCidTS1lSSU1fU0VUVVBfUEhBU0VfUFJFUEFSSU5HX0RFUExPWU1FTl'
+    'QQAxImCiJTS1lSSU1fU0VUVVBfUEhBU0VfU0VUVElOR19VUF9TS1NFEAQSJwojU0tZUklNX1NF'
+    'VFVQX1BIQVNFX1dBSVRJTkdfRk9SX1NLU0UQBRIuCipTS1lSSU1fU0VUVVBfUEhBU0VfV0FJVE'
+    'lOR19GT1JfRU5CX0FSQ0hJVkUQBhIlCiFTS1lSSU1fU0VUVVBfUEhBU0VfU0VUVElOR19VUF9F'
+    'TkIQBxImCiJTS1lSSU1fU0VUVVBfUEhBU0VfU0VUVElOR19VUF9GTklTEAgSIQodU0tZUklNX1'
+    'NFVFVQX1BIQVNFX0ZOSVNfU1RBTEUQCRIjCh9TS1lSSU1fU0VUVVBfUEhBU0VfRk5JU19SVU5O'
+    'SU5HEAoSHAoYU0tZUklNX1NFVFVQX1BIQVNFX1JFQURZEAsSKAokU0tZUklNX1NFVFVQX1BIQV'
+    'NFX1JFQ09WRVJZX1JFUVVJUkVEEAwSHQoZU0tZUklNX1NFVFVQX1BIQVNFX0ZBSUxFRBANEiAK'
+    'HFNLWVJJTV9TRVRVUF9QSEFTRV9DQU5DRUxMRUQQDg==');
 
 @$core.Deprecated('Use skyrimSetupPageRequestDescriptor instead')
 const SkyrimSetupPageRequest$json = {
@@ -146,14 +146,6 @@ const StartSkyrimSetupRequest$json = {
       '6': '.modconductor.v1.SkyrimSetupSelection',
       '10': 'selection'
     },
-    {'1': 'plan_token', '3': 4, '4': 1, '5': 9, '10': 'planToken'},
-    {
-      '1': 'change_plan_confirmed',
-      '3': 5,
-      '4': 1,
-      '5': 8,
-      '10': 'changePlanConfirmed'
-    },
   ],
 };
 
@@ -161,9 +153,7 @@ const StartSkyrimSetupRequest$json = {
 final $typed_data.Uint8List startSkyrimSetupRequestDescriptor = $convert.base64Decode(
     'ChdTdGFydFNreXJpbVNldHVwUmVxdWVzdBIhCgx3b3Jrc3BhY2VfaWQYASABKAlSC3dvcmtzcG'
     'FjZUlkEh0KCnByb2ZpbGVfaWQYAiABKAlSCXByb2ZpbGVJZBJDCglzZWxlY3Rpb24YAyABKAsy'
-    'JS5tb2Rjb25kdWN0b3IudjEuU2t5cmltU2V0dXBTZWxlY3Rpb25SCXNlbGVjdGlvbhIdCgpwbG'
-    'FuX3Rva2VuGAQgASgJUglwbGFuVG9rZW4SMgoVY2hhbmdlX3BsYW5fY29uZmlybWVkGAUgASgI'
-    'UhNjaGFuZ2VQbGFuQ29uZmlybWVk');
+    'JS5tb2Rjb25kdWN0b3IudjEuU2t5cmltU2V0dXBTZWxlY3Rpb25SCXNlbGVjdGlvbg==');
 
 @$core.Deprecated('Use skyrimSetupSelectionDescriptor instead')
 const SkyrimSetupSelection$json = {
@@ -205,23 +195,6 @@ final $typed_data.Uint8List skyrimSetupSelectionDescriptor = $convert.base64Deco
     't5cmltU2V0dXBBY3Rpb25SBGZuaXMSKAoQZW5iX2FyY2hpdmVfcGF0aBgEIAEoCVIOZW5iQXJj'
     'aGl2ZVBhdGg=');
 
-@$core.Deprecated('Use skyrimSetupChangeDescriptor instead')
-const SkyrimSetupChange$json = {
-  '1': 'SkyrimSetupChange',
-  '2': [
-    {'1': 'title', '3': 1, '4': 1, '5': 9, '10': 'title'},
-    {'1': 'detail', '3': 2, '4': 1, '5': 9, '10': 'detail'},
-    {'1': 'source', '3': 3, '4': 1, '5': 9, '10': 'source'},
-    {'1': 'supporting', '3': 4, '4': 1, '5': 8, '10': 'supporting'},
-  ],
-};
-
-/// Descriptor for `SkyrimSetupChange`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List skyrimSetupChangeDescriptor = $convert.base64Decode(
-    'ChFTa3lyaW1TZXR1cENoYW5nZRIUCgV0aXRsZRgBIAEoCVIFdGl0bGUSFgoGZGV0YWlsGAIgAS'
-    'gJUgZkZXRhaWwSFgoGc291cmNlGAMgASgJUgZzb3VyY2USHgoKc3VwcG9ydGluZxgEIAEoCFIK'
-    'c3VwcG9ydGluZw==');
-
 @$core.Deprecated('Use skyrimSetupComponentDescriptor instead')
 const SkyrimSetupComponent$json = {
   '1': 'SkyrimSetupComponent',
@@ -258,15 +231,6 @@ const SkyrimSetupState$json = {
     },
     {'1': 'status', '3': 2, '4': 1, '5': 9, '10': 'status'},
     {'1': 'detail', '3': 3, '4': 1, '5': 9, '10': 'detail'},
-    {'1': 'plan_token', '3': 4, '4': 1, '5': 9, '10': 'planToken'},
-    {
-      '1': 'changes',
-      '3': 5,
-      '4': 3,
-      '5': 11,
-      '6': '.modconductor.v1.SkyrimSetupChange',
-      '10': 'changes'
-    },
     {
       '1': 'components',
       '3': 6,
@@ -283,7 +247,6 @@ const SkyrimSetupState$json = {
       '6': '.modconductor.v1.SkyrimSetupSelection',
       '10': 'selection'
     },
-    {'1': 'consent_recorded', '3': 8, '4': 1, '5': 8, '10': 'consentRecorded'},
     {'1': 'can_start', '3': 9, '4': 1, '5': 8, '10': 'canStart'},
     {'1': 'can_continue', '3': 10, '4': 1, '5': 8, '10': 'canContinue'},
     {'1': 'active', '3': 12, '4': 1, '5': 8, '10': 'active'},
@@ -296,11 +259,9 @@ const SkyrimSetupState$json = {
 final $typed_data.Uint8List skyrimSetupStateDescriptor = $convert.base64Decode(
     'ChBTa3lyaW1TZXR1cFN0YXRlEjcKBXBoYXNlGAEgASgOMiEubW9kY29uZHVjdG9yLnYxLlNreX'
     'JpbVNldHVwUGhhc2VSBXBoYXNlEhYKBnN0YXR1cxgCIAEoCVIGc3RhdHVzEhYKBmRldGFpbBgD'
-    'IAEoCVIGZGV0YWlsEh0KCnBsYW5fdG9rZW4YBCABKAlSCXBsYW5Ub2tlbhI8CgdjaGFuZ2VzGA'
-    'UgAygLMiIubW9kY29uZHVjdG9yLnYxLlNreXJpbVNldHVwQ2hhbmdlUgdjaGFuZ2VzEkUKCmNv'
-    'bXBvbmVudHMYBiADKAsyJS5tb2Rjb25kdWN0b3IudjEuU2t5cmltU2V0dXBDb21wb25lbnRSCm'
-    'NvbXBvbmVudHMSQwoJc2VsZWN0aW9uGAcgASgLMiUubW9kY29uZHVjdG9yLnYxLlNreXJpbVNl'
-    'dHVwU2VsZWN0aW9uUglzZWxlY3Rpb24SKQoQY29uc2VudF9yZWNvcmRlZBgIIAEoCFIPY29uc2'
-    'VudFJlY29yZGVkEhsKCWNhbl9zdGFydBgJIAEoCFIIY2FuU3RhcnQSIQoMY2FuX2NvbnRpbnVl'
-    'GAogASgIUgtjYW5Db250aW51ZRIWCgZhY3RpdmUYDCABKAhSBmFjdGl2ZRIUCgVyZWFkeRgNIA'
-    'EoCFIFcmVhZHkSHQoKY2FuX2NhbmNlbBgOIAEoCFIJY2FuQ2FuY2Vs');
+    'IAEoCVIGZGV0YWlsEkUKCmNvbXBvbmVudHMYBiADKAsyJS5tb2Rjb25kdWN0b3IudjEuU2t5cm'
+    'ltU2V0dXBDb21wb25lbnRSCmNvbXBvbmVudHMSQwoJc2VsZWN0aW9uGAcgASgLMiUubW9kY29u'
+    'ZHVjdG9yLnYxLlNreXJpbVNldHVwU2VsZWN0aW9uUglzZWxlY3Rpb24SGwoJY2FuX3N0YXJ0GA'
+    'kgASgIUghjYW5TdGFydBIhCgxjYW5fY29udGludWUYCiABKAhSC2NhbkNvbnRpbnVlEhYKBmFj'
+    'dGl2ZRgMIAEoCFIGYWN0aXZlEhQKBXJlYWR5GA0gASgIUgVyZWFkeRIdCgpjYW5fY2FuY2VsGA'
+    '4gASgIUgljYW5DYW5jZWw=');

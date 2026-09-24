@@ -19,33 +19,20 @@ type SkyrimSetupTests() =
         flag "cancelBeforeApplyDoesNotWrite" |> should equal true
 
     [<Test>]
-    member _.``only selected components enter a reviewable plan``() =
-        flag "enbNeedsArchiveBeforeApply" |> should equal true
-        flag "enbOnlyPlan" |> should equal true
-        flag "enbDoesNotSelectSkseOrFnis" |> should equal true
-        flag "enbArchiveEnablesReview" |> should equal true
-        flag "fnisOnlyPlan" |> should equal true
-        flag "skseOnlyPlan" |> should equal true
-        flag "combinedPlanNamesOnlySelectedComponents" |> should equal true
+    member _.``an ENB archive is required before setup starts``() =
+        flag "missingEnbArchiveDoesNotStart" |> should equal true
 
     [<Test>]
-    member _.``start requires the reviewed selection and explicit confirmation``() =
-        flag "selectionBoundToPlan" |> should equal true
-        flag "staleSelectionDoesNotWrite" |> should equal true
-        flag "unconfirmedPlanDoesNotWrite" |> should equal true
-        flag "confirmedChoiceRetained" |> should equal true
-        flag "confirmedChoiceSurvivesCoordinatorRestart" |> should equal true
-        flag "confirmedChoiceSurvivesStoreRestart" |> should equal true
+    member _.``Apply keeps the selected components across restart and starts them``() =
+        flag "appliedChoiceRetained" |> should equal true
+        flag "appliedChoiceSurvivesCoordinatorRestart" |> should equal true
+        flag "appliedChoiceSurvivesStoreRestart" |> should equal true
+        flag "completedSetupAcceptsNewChoices" |> should equal true
         flag "unselectedComponentsNotStarted" |> should equal true
         flag "selectedSkseOnlyExecutes" |> should equal true
         flag "selectedEnbOnlyExecutes" |> should equal true
         flag "selectedFnisOnlyExecutes" |> should equal true
         flag "combinedChoicesExecuteOnceEach" |> should equal true
-
-    [<Test>]
-    member _.``child changes allow only expected plan rollover``() =
-        flag "expectedChildOnlyDeltasAdvanceEveryRollover" |> should equal true
-        flag "combinedChildAndUnrelatedDeltasInvalidateEveryRollover" |> should equal true
 
     [<Test>]
     member _.``cancelling an active setup should allow a fresh explicit attempt from installed state``() =

@@ -46,173 +46,6 @@ module SkyrimSetupFixtures =
         if not value then
             failwith ("Skyrim setup fixture failed: " + name)
 
-    let private stageRolloverEvidence (writer: Utf8JsonWriter) =
-        let workspace, profile = Guid.NewGuid(), Guid.NewGuid()
-        let existingMod, existingVersion = Guid.NewGuid(), Guid.NewGuid()
-        let childMod, childVersion = Guid.NewGuid(), Guid.NewGuid()
-        let companionMod, companionVersion = Guid.NewGuid(), Guid.NewGuid()
-        let unrelatedMod, unrelatedVersion = Guid.NewGuid(), Guid.NewGuid()
-        let beforeGeneration, afterGeneration = Guid.NewGuid(), Guid.NewGuid()
-        let beforeDeployment = String.replicate 64 "a"
-        let expectedDeployment = String.replicate 64 "b"
-        let extraDeployment = String.replicate 64 "c"
-
-        let sources: SourceStamp =
-            { WorkspaceId = workspace
-              ProfileId = profile
-              SelectionRevision = 7L
-              ContextRevision = 11L
-              ExclusionRevision = 13L
-              OutputRevision = 17L
-              Versions = [ existingMod, Some existingVersion ]
-              Deployment = Some beforeDeployment }
-
-        let before =
-            { Sources = sources
-              DeploymentRevision = 23L
-              ActiveGeneration = Some beforeGeneration }
-
-        let expectedChildDeployment (versions: (Guid * Guid) list) (generation: Guid option) =
-            { Sources =
-                { sources with
-                    SelectionRevision = sources.SelectionRevision + int64 versions.Length + 1L
-                    Versions =
-                        sources.Versions
-                        @ (versions |> List.map (fun (modId, versionId) -> modId, Some versionId))
-                    Deployment = Some expectedDeployment }
-              DeploymentRevision = before.DeploymentRevision + 1L
-              ActiveGeneration = generation }
-
-        let deploymentBefore =
-            { before with
-                Sources = { sources with Deployment = None }
-                DeploymentRevision = 0L
-                ActiveGeneration = None }
-
-        let deploymentAfter =
-            { deploymentBefore with
-                Sources =
-                    { deploymentBefore.Sources with
-                        Deployment = Some expectedDeployment }
-                DeploymentRevision = deploymentBefore.DeploymentRevision + 1L
-                ActiveGeneration = Some afterGeneration }
-
-        let skseAfter =
-            expectedChildDeployment [ childMod, childVersion ] (Some afterGeneration)
-
-        let enbAfter =
-            expectedChildDeployment
-                [ childMod, childVersion; companionMod, companionVersion ]
-                (Some afterGeneration)
-
-        let fnisInstallAfter =
-            expectedChildDeployment [ childMod, childVersion ] (Some afterGeneration)
-
-        let fnisRunAfter =
-            { before with
-                Sources =
-                    { sources with
-                        SelectionRevision = sources.SelectionRevision + 2L
-                        Versions = sources.Versions @ [ childMod, Some childVersion ] } }
-
-        let recorded snapshot =
-            SkyrimSetupPlan.token workspace profile SetupSelection.none sources.ContextRevision snapshot
-            |> SkyrimSetupPlan.snapshot workspace profile SetupSelection.none sources.ContextRevision
-            |> Option.defaultWith (fun () -> failwith "The Skyrim setup plan snapshot was lost.")
-
-        let accepted =
-            [ SkyrimSetupPlan.permits
-                  (recorded deploymentBefore)
-                  deploymentAfter
-                  (SkyrimSetupStageChange.Deployment afterGeneration)
-              SkyrimSetupPlan.permits
-                  (recorded before)
-                  skseAfter
-                  (SkyrimSetupStageChange.ComponentDeployment(
-                      afterGeneration,
-                      [ childMod, childVersion ]
-                  ))
-              SkyrimSetupPlan.permits
-                  (recorded before)
-                  enbAfter
-                  (SkyrimSetupStageChange.ComponentDeployment(
-                      afterGeneration,
-                      [ childMod, childVersion; companionMod, companionVersion ]
-                  ))
-              SkyrimSetupPlan.permits
-                  (recorded before)
-                  fnisInstallAfter
-                  (SkyrimSetupStageChange.ComponentDeployment(
-                      afterGeneration,
-                      [ childMod, childVersion ]
-                  ))
-              SkyrimSetupPlan.permits
-                  (recorded before)
-                  fnisRunAfter
-                  (SkyrimSetupStageChange.FnisOutput(childMod, childVersion)) ]
-
-        let withExtraDeployment (snapshot: SkyrimSetupPlanSnapshot) =
-            { snapshot with
-                DeploymentRevision = snapshot.DeploymentRevision + 1L
-                Sources =
-                    { snapshot.Sources with
-                        Deployment = Some extraDeployment } }
-
-        let withUnrelatedVersion (snapshot: SkyrimSetupPlanSnapshot) =
-            { snapshot with
-                Sources =
-                    { snapshot.Sources with
-                        SelectionRevision = snapshot.Sources.SelectionRevision + 1L
-                        Versions =
-                            snapshot.Sources.Versions @ [ unrelatedMod, Some unrelatedVersion ] } }
-
-        let withChangedContext snapshot =
-            let extra = withExtraDeployment snapshot
-
-            { extra with
-                Sources =
-                    { extra.Sources with
-                        ContextRevision = extra.Sources.ContextRevision + 1L } }
-
-        let rejected =
-            [ SkyrimSetupPlan.permits
-                  (recorded deploymentBefore)
-                  (withExtraDeployment deploymentAfter)
-                  (SkyrimSetupStageChange.Deployment afterGeneration)
-              SkyrimSetupPlan.permits
-                  (recorded before)
-                  (withExtraDeployment (withUnrelatedVersion skseAfter))
-                  (SkyrimSetupStageChange.ComponentDeployment(
-                      afterGeneration,
-                      [ childMod, childVersion ]
-                  ))
-              SkyrimSetupPlan.permits
-                  (recorded before)
-                  (withChangedContext enbAfter)
-                  (SkyrimSetupStageChange.ComponentDeployment(
-                      afterGeneration,
-                      [ childMod, childVersion; companionMod, companionVersion ]
-                  ))
-              SkyrimSetupPlan.permits
-                  (recorded before)
-                  { withExtraDeployment fnisInstallAfter with
-                      ActiveGeneration = Some(Guid.NewGuid()) }
-                  (SkyrimSetupStageChange.ComponentDeployment(
-                      afterGeneration,
-                      [ childMod, childVersion ]
-                  ))
-              SkyrimSetupPlan.permits
-                  (recorded before)
-                  (withExtraDeployment (withUnrelatedVersion fnisRunAfter))
-                  (SkyrimSetupStageChange.FnisOutput(childMod, childVersion)) ]
-
-        check writer "expectedChildOnlyDeltasAdvanceEveryRollover" (accepted |> List.forall id)
-
-        check
-            writer
-            "combinedChildAndUnrelatedDeltasInvalidateEveryRollover"
-            (rejected |> List.forall not)
-
     let private prepareProton runtimeDirectory =
         if OperatingSystem.IsLinux() then
             let launcher = Path.Combine(runtimeDirectory, "proton")
@@ -502,7 +335,6 @@ module SkyrimSetupFixtures =
 
     let observe (writer: Utf8JsonWriter) area =
         writer.WriteStartObject("skyrimSetup")
-        stageRolloverEvidence writer
 
         let state = Directory.CreateDirectory(Path.Combine(area, "skyrim-setup-state")).FullName
         use store = new OperationStore(state)
@@ -513,7 +345,7 @@ module SkyrimSetupFixtures =
         let initial = coordinator.Read(workspace, profile, noChoice, CancellationToken.None) |> wait
         let before = store.Deployments.Read profile |> wait |> result
 
-        check writer "noDefaultComponentChoice" (initial.Changes.IsEmpty && not initial.CanStart)
+        check writer "noDefaultComponentChoice" (not initial.CanStart)
         check writer "noDefaultDeployment" (before.ActiveGeneration.IsNone)
         check writer "noDefaultIntent" ((store.SkyrimSetups.Read(workspace, profile) |> wait).IsNone)
 
@@ -522,73 +354,32 @@ module SkyrimSetupFixtures =
         check
             writer
             "cancelBeforeApplyDoesNotWrite"
-            (not cancelledBeforeApply.ConsentRecorded
+            (not cancelledBeforeApply.CanCancel
              && (store.SkyrimSetups.Read(workspace, profile) |> wait).IsNone
              && (store.Deployments.Read profile |> wait |> result).ActiveGeneration.IsNone)
 
-        let enbWithoutArchive =
-            { noChoice with Enb = SetupAction.Install }
-
-        let enbBlocked =
-            coordinator.Read(workspace, profile, enbWithoutArchive, CancellationToken.None) |> wait
-
-        check writer "enbNeedsArchiveBeforeApply" (not enbBlocked.CanStart)
-        check writer "enbOnlyPlan" (enbBlocked.Changes |> List.exists (fun change -> change.Title = "ENBSeries"))
-        check writer "enbDoesNotSelectSkseOrFnis" (enbBlocked.Changes |> List.forall (fun change -> change.Title <> "SKSE" && change.Title <> "FNIS"))
-
-        let enbWithArchive =
-            { enbWithoutArchive with EnbArchive = Some "downloaded-enb.zip" }
-
-        let enbPlan = coordinator.Read(workspace, profile, enbWithArchive, CancellationToken.None) |> wait
-        check writer "enbArchiveEnablesReview" enbPlan.CanStart
-
-        let fnisOnly = { noChoice with Fnis = SetupAction.Install }
-        let fnisPlan = coordinator.Read(workspace, profile, fnisOnly, CancellationToken.None) |> wait
+        let enbWithoutArchive = { noChoice with Enb = SetupAction.Install }
+        let enbBlocked = coordinator.Start(workspace, profile, enbWithoutArchive, CancellationToken.None) |> wait
 
         check
             writer
-            "fnisOnlyPlan"
-            (fnisPlan.CanStart
-             && (fnisPlan.Changes |> List.map _.Title) = [ "FNIS"; "Initial profile deployment" ])
+            "missingEnbArchiveDoesNotStart"
+            (not enbBlocked.CanStart
+             && (store.SkyrimSetups.Read(workspace, profile) |> wait).IsNone)
 
+        let enbWithArchive = { enbWithoutArchive with EnbArchive = Some "downloaded-enb.zip" }
+        let fnisOnly = { noChoice with Fnis = SetupAction.Install }
         let combined =
             { Skse = SetupAction.Install
               Enb = SetupAction.Install
               Fnis = SetupAction.Install
               EnbArchive = Some "downloaded-enb.zip" }
-
-        let combinedPlan = coordinator.Read(workspace, profile, combined, CancellationToken.None) |> wait
-
-        check
-            writer
-            "combinedPlanNamesOnlySelectedComponents"
-            (combinedPlan.CanStart
-             && (combinedPlan.Changes |> List.filter (fun item -> not item.Supporting) |> List.map _.Title)
-                = [ "SKSE"; "ENBSeries"; "FNIS" ])
-
         let skseOnly = { noChoice with Skse = SetupAction.Install }
-        let sksePlan = coordinator.Read(workspace, profile, skseOnly, CancellationToken.None) |> wait
-        check writer "skseOnlyPlan" (sksePlan.CanStart && (sksePlan.Changes |> List.map _.Title = [ "SKSE"; "Initial profile deployment" ]))
 
-        let staleSelection =
-            coordinator.Start(workspace, profile, enbWithoutArchive, sksePlan.PlanToken, true, CancellationToken.None)
-            |> wait
-
-        check writer "selectionBoundToPlan" (not staleSelection.ConsentRecorded)
-        check writer "staleSelectionDoesNotWrite" ((store.SkyrimSetups.Read(workspace, profile) |> wait).IsNone)
-
-        let unconfirmed =
-            coordinator.Start(workspace, profile, skseOnly, sksePlan.PlanToken, false, CancellationToken.None)
-            |> wait
-
-        check writer "unconfirmedPlanDoesNotWrite" (not unconfirmed.ConsentRecorded && (store.SkyrimSetups.Read(workspace, profile) |> wait).IsNone)
-
-        let started =
-            coordinator.Start(workspace, profile, skseOnly, sksePlan.PlanToken, true, CancellationToken.None)
-            |> wait
+        let started = coordinator.Start(workspace, profile, skseOnly, CancellationToken.None) |> wait
 
         let retained = store.SkyrimSetups.Read(workspace, profile) |> wait
-        check writer "confirmedChoiceRetained" (retained |> Option.exists (fun item -> item.Selection = skseOnly))
+        check writer "appliedChoiceRetained" (retained |> Option.exists (fun item -> item.Selection = skseOnly))
         check writer "unselectedComponentsNotStarted" (started.Selection.Enb = SetupAction.Unchanged && started.Selection.Fnis = SetupAction.Unchanged)
 
         use resumed = new SkyrimSetupCoordinator(store, workflow.Dependencies)
@@ -596,8 +387,8 @@ module SkyrimSetupFixtures =
 
         check
             writer
-            "confirmedChoiceSurvivesCoordinatorRestart"
-            (restored.ConsentRecorded && restored.Selection = skseOnly)
+            "appliedChoiceSurvivesCoordinatorRestart"
+            (restored.CanCancel && restored.Selection = skseOnly)
 
         let _ = resumed.Continue(workspace, profile, CancellationToken.None) |> wait
 
@@ -608,19 +399,38 @@ module SkyrimSetupFixtures =
 
         use reopened = new OperationStore(state)
         use afterRestart = new SkyrimSetupCoordinator(reopened, workflow.Dependencies)
+        let gameContext =
+            (reopened.GameContexts :> IGameContexts).Read(workspace, profile) |> wait |> result
+
+        (reopened.GameContexts :> IGameContexts).Refresh(workspace, profile, gameContext.Revision)
+        |> wait
+        |> result
+        |> ignore
+
         let retainedAfterRestart = afterRestart.Read(workspace, profile, noChoice, CancellationToken.None) |> wait
 
         check
             writer
-            "confirmedChoiceSurvivesStoreRestart"
+            "appliedChoiceSurvivesStoreRestart"
             (retainedAfterRestart.Selection = skseOnly)
+
+        let _ = afterRestart.Continue(workspace, profile, CancellationToken.None) |> wait
+        let completed = store.SkyrimSetups.Read(workspace, profile) |> wait
+        let availableAgain = afterRestart.Read(workspace, profile, noChoice, CancellationToken.None) |> wait
+
+        check
+            writer
+            "completedSetupAcceptsNewChoices"
+            (retainedAfterRestart.CanContinue
+             && (completed |> Option.exists _.Completed)
+             && availableAgain.Phase = SkyrimSetupPhase.Available
+             && availableAgain.Selection = noChoice)
 
         let execute name selection expected =
             let freshWorkspace, freshProfile, _ = createWorkspace store area name true
             let state = WorkflowState()
             use owner = new SkyrimSetupCoordinator(store, state.Dependencies)
-            let plan = owner.Read(freshWorkspace, freshProfile, selection, CancellationToken.None) |> wait
-            let initial = owner.Start(freshWorkspace, freshProfile, selection, plan.PlanToken, true, CancellationToken.None) |> wait
+            let initial = owner.Start(freshWorkspace, freshProfile, selection, CancellationToken.None) |> wait
 
             let _ =
                 until
@@ -645,7 +455,11 @@ module SkyrimSetupFixtures =
             (enbOnlyState.SkseStarts = 0
              && enbOnlyState.EnbSelections = 1
              && enbOnlyState.FnisInstalls = 0
-             && (enbOnlyIntent |> Option.exists (fun item -> item.Selection = enbWithArchive)))
+             && (enbOnlyIntent
+                 |> Option.exists (fun item ->
+                     item.Selection.Enb = SetupAction.Install
+                     && item.Selection.Skse = SetupAction.Unchanged
+                     && item.Selection.Fnis = SetupAction.Unchanged)))
 
         let _, fnisOnlyState, fnisOnlyIntent = execute "fnis-only" fnisOnly (fun state -> state.FnisInstalls = 1)
 
@@ -673,24 +487,13 @@ module SkyrimSetupFixtures =
         retryWorkflow.BlockEnb()
         use retryOwner = new SkyrimSetupCoordinator(store, retryWorkflow.Dependencies)
 
-        let retryPlan =
-            retryOwner.Read(retryWorkspace, retryProfile, enbWithArchive, CancellationToken.None)
-            |> wait
-
         let _ =
-            retryOwner.Start(
-                retryWorkspace,
-                retryProfile,
-                enbWithArchive,
-                retryPlan.PlanToken,
-                true,
-                CancellationToken.None
-            )
+            retryOwner.Start(retryWorkspace, retryProfile, enbWithArchive, CancellationToken.None)
             |> wait
 
         let _ =
             until
-                "ENB acquisition starts after confirmation"
+                "ENB acquisition starts after Apply"
                 (fun () ->
                     let current = retryOwner.Read(retryWorkspace, retryProfile, noChoice, CancellationToken.None) |> wait
 
@@ -701,11 +504,11 @@ module SkyrimSetupFixtures =
                 (fun _ -> retryWorkflow.EnbSelections = 1)
 
         if not (retryWorkflow.WaitForEnb()) then
-            failwith "Confirmed setup did not enter the ENB wait."
+            failwith "Setup did not enter the ENB wait."
 
         let activeGeneration =
             (store.Deployments.Read retryProfile |> wait |> result).ActiveGeneration
-            |> Option.defaultWith (fun () -> failwith "Confirmed setup did not deploy the profile.")
+            |> Option.defaultWith (fun () -> failwith "Setup did not deploy the profile.")
 
         let installedLoader = Path.Combine(area, "cancel-and-retry-skse64_loader.exe")
         File.WriteAllText(installedLoader, "installed SKSE fixture")
@@ -737,7 +540,6 @@ module SkyrimSetupFixtures =
             writer
             "activeCancellationShowsInstalledComponentsWithoutRetry"
             (cancelledActive.Phase = SkyrimSetupPhase.Cancelled
-             && not cancelledActive.ConsentRecorded
              && not cancelledActive.CanStart
              && cancelledActive.Selection = noChoice
              && (cancelledRead.Components |> List.exists (fun item -> item.Id = "skse" && item.Installed))
@@ -747,24 +549,17 @@ module SkyrimSetupFixtures =
 
         let retrySelection = { noChoice with Fnis = SetupAction.Install }
 
-        let freshPlan =
+        let fresh =
             retryOwner.Read(retryWorkspace, retryProfile, retrySelection, CancellationToken.None)
             |> wait
 
         check
             writer
             "cancelledSetupAcceptsNewSelection"
-            (freshPlan.CanStart && freshPlan.Selection = retrySelection)
+            (fresh.CanStart && fresh.Selection = retrySelection)
 
         let _ =
-            retryOwner.Start(
-                retryWorkspace,
-                retryProfile,
-                retrySelection,
-                freshPlan.PlanToken,
-                true,
-                CancellationToken.None
-            )
+            retryOwner.Start(retryWorkspace, retryProfile, retrySelection, CancellationToken.None)
             |> wait
 
         let _ =

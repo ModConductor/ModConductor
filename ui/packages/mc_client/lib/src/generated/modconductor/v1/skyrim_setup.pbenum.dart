@@ -50,9 +50,9 @@ class SkyrimSetupPhase extends $pb.ProtobufEnum {
   static const SkyrimSetupPhase SKYRIM_SETUP_PHASE_UNAVAILABLE =
       SkyrimSetupPhase._(
           1, _omitEnumNames ? '' : 'SKYRIM_SETUP_PHASE_UNAVAILABLE');
-  static const SkyrimSetupPhase SKYRIM_SETUP_PHASE_NEEDS_CONSENT =
+  static const SkyrimSetupPhase SKYRIM_SETUP_PHASE_AVAILABLE =
       SkyrimSetupPhase._(
-          2, _omitEnumNames ? '' : 'SKYRIM_SETUP_PHASE_NEEDS_CONSENT');
+          2, _omitEnumNames ? '' : 'SKYRIM_SETUP_PHASE_AVAILABLE');
   static const SkyrimSetupPhase SKYRIM_SETUP_PHASE_PREPARING_DEPLOYMENT =
       SkyrimSetupPhase._(
           3, _omitEnumNames ? '' : 'SKYRIM_SETUP_PHASE_PREPARING_DEPLOYMENT');
@@ -91,7 +91,7 @@ class SkyrimSetupPhase extends $pb.ProtobufEnum {
   static const $core.List<SkyrimSetupPhase> values = <SkyrimSetupPhase>[
     SKYRIM_SETUP_PHASE_UNSPECIFIED,
     SKYRIM_SETUP_PHASE_UNAVAILABLE,
-    SKYRIM_SETUP_PHASE_NEEDS_CONSENT,
+    SKYRIM_SETUP_PHASE_AVAILABLE,
     SKYRIM_SETUP_PHASE_PREPARING_DEPLOYMENT,
     SKYRIM_SETUP_PHASE_SETTING_UP_SKSE,
     SKYRIM_SETUP_PHASE_WAITING_FOR_SKSE,

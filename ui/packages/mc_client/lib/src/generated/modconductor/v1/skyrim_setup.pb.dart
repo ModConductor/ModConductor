@@ -286,16 +286,11 @@ class StartSkyrimSetupRequest extends $pb.GeneratedMessage {
     $core.String? workspaceId,
     $core.String? profileId,
     SkyrimSetupSelection? selection,
-    $core.String? planToken,
-    $core.bool? changePlanConfirmed,
   }) {
     final result = create();
     if (workspaceId != null) result.workspaceId = workspaceId;
     if (profileId != null) result.profileId = profileId;
     if (selection != null) result.selection = selection;
-    if (planToken != null) result.planToken = planToken;
-    if (changePlanConfirmed != null)
-      result.changePlanConfirmed = changePlanConfirmed;
     return result;
   }
 
@@ -317,8 +312,6 @@ class StartSkyrimSetupRequest extends $pb.GeneratedMessage {
     ..aOS(2, _omitFieldNames ? '' : 'profileId')
     ..aOM<SkyrimSetupSelection>(3, _omitFieldNames ? '' : 'selection',
         subBuilder: SkyrimSetupSelection.create)
-    ..aOS(4, _omitFieldNames ? '' : 'planToken')
-    ..aOB(5, _omitFieldNames ? '' : 'changePlanConfirmed')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -369,24 +362,6 @@ class StartSkyrimSetupRequest extends $pb.GeneratedMessage {
   void clearSelection() => $_clearField(3);
   @$pb.TagNumber(3)
   SkyrimSetupSelection ensureSelection() => $_ensure(2);
-
-  @$pb.TagNumber(4)
-  $core.String get planToken => $_getSZ(3);
-  @$pb.TagNumber(4)
-  set planToken($core.String value) => $_setString(3, value);
-  @$pb.TagNumber(4)
-  $core.bool hasPlanToken() => $_has(3);
-  @$pb.TagNumber(4)
-  void clearPlanToken() => $_clearField(4);
-
-  @$pb.TagNumber(5)
-  $core.bool get changePlanConfirmed => $_getBF(4);
-  @$pb.TagNumber(5)
-  set changePlanConfirmed($core.bool value) => $_setBool(4, value);
-  @$pb.TagNumber(5)
-  $core.bool hasChangePlanConfirmed() => $_has(4);
-  @$pb.TagNumber(5)
-  void clearChangePlanConfirmed() => $_clearField(5);
 }
 
 class SkyrimSetupSelection extends $pb.GeneratedMessage {
@@ -481,97 +456,6 @@ class SkyrimSetupSelection extends $pb.GeneratedMessage {
   $core.bool hasEnbArchivePath() => $_has(3);
   @$pb.TagNumber(4)
   void clearEnbArchivePath() => $_clearField(4);
-}
-
-class SkyrimSetupChange extends $pb.GeneratedMessage {
-  factory SkyrimSetupChange({
-    $core.String? title,
-    $core.String? detail,
-    $core.String? source,
-    $core.bool? supporting,
-  }) {
-    final result = create();
-    if (title != null) result.title = title;
-    if (detail != null) result.detail = detail;
-    if (source != null) result.source = source;
-    if (supporting != null) result.supporting = supporting;
-    return result;
-  }
-
-  SkyrimSetupChange._();
-
-  factory SkyrimSetupChange.fromBuffer($core.List<$core.int> data,
-          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(data, registry);
-  factory SkyrimSetupChange.fromJson($core.String json,
-          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromJson(json, registry);
-
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
-      _omitMessageNames ? '' : 'SkyrimSetupChange',
-      package:
-          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
-      createEmptyInstance: create)
-    ..aOS(1, _omitFieldNames ? '' : 'title')
-    ..aOS(2, _omitFieldNames ? '' : 'detail')
-    ..aOS(3, _omitFieldNames ? '' : 'source')
-    ..aOB(4, _omitFieldNames ? '' : 'supporting')
-    ..hasRequiredFields = false;
-
-  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  SkyrimSetupChange clone() => deepCopy();
-  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  SkyrimSetupChange copyWith(void Function(SkyrimSetupChange) updates) =>
-      super.copyWith((message) => updates(message as SkyrimSetupChange))
-          as SkyrimSetupChange;
-
-  @$core.override
-  $pb.BuilderInfo get info_ => _i;
-
-  @$core.pragma('dart2js:noInline')
-  static SkyrimSetupChange create() => SkyrimSetupChange._();
-  @$core.override
-  SkyrimSetupChange createEmptyInstance() => create();
-  @$core.pragma('dart2js:noInline')
-  static SkyrimSetupChange getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<SkyrimSetupChange>(create);
-  static SkyrimSetupChange? _defaultInstance;
-
-  @$pb.TagNumber(1)
-  $core.String get title => $_getSZ(0);
-  @$pb.TagNumber(1)
-  set title($core.String value) => $_setString(0, value);
-  @$pb.TagNumber(1)
-  $core.bool hasTitle() => $_has(0);
-  @$pb.TagNumber(1)
-  void clearTitle() => $_clearField(1);
-
-  @$pb.TagNumber(2)
-  $core.String get detail => $_getSZ(1);
-  @$pb.TagNumber(2)
-  set detail($core.String value) => $_setString(1, value);
-  @$pb.TagNumber(2)
-  $core.bool hasDetail() => $_has(1);
-  @$pb.TagNumber(2)
-  void clearDetail() => $_clearField(2);
-
-  @$pb.TagNumber(3)
-  $core.String get source => $_getSZ(2);
-  @$pb.TagNumber(3)
-  set source($core.String value) => $_setString(2, value);
-  @$pb.TagNumber(3)
-  $core.bool hasSource() => $_has(2);
-  @$pb.TagNumber(3)
-  void clearSource() => $_clearField(3);
-
-  @$pb.TagNumber(4)
-  $core.bool get supporting => $_getBF(3);
-  @$pb.TagNumber(4)
-  set supporting($core.bool value) => $_setBool(3, value);
-  @$pb.TagNumber(4)
-  $core.bool hasSupporting() => $_has(3);
-  @$pb.TagNumber(4)
-  void clearSupporting() => $_clearField(4);
 }
 
 class SkyrimSetupComponent extends $pb.GeneratedMessage {
@@ -718,11 +602,8 @@ class SkyrimSetupState extends $pb.GeneratedMessage {
     SkyrimSetupPhase? phase,
     $core.String? status,
     $core.String? detail,
-    $core.String? planToken,
-    $core.Iterable<SkyrimSetupChange>? changes,
     $core.Iterable<SkyrimSetupComponent>? components,
     SkyrimSetupSelection? selection,
-    $core.bool? consentRecorded,
     $core.bool? canStart,
     $core.bool? canContinue,
     $core.bool? active,
@@ -733,11 +614,8 @@ class SkyrimSetupState extends $pb.GeneratedMessage {
     if (phase != null) result.phase = phase;
     if (status != null) result.status = status;
     if (detail != null) result.detail = detail;
-    if (planToken != null) result.planToken = planToken;
-    if (changes != null) result.changes.addAll(changes);
     if (components != null) result.components.addAll(components);
     if (selection != null) result.selection = selection;
-    if (consentRecorded != null) result.consentRecorded = consentRecorded;
     if (canStart != null) result.canStart = canStart;
     if (canContinue != null) result.canContinue = canContinue;
     if (active != null) result.active = active;
@@ -764,14 +642,10 @@ class SkyrimSetupState extends $pb.GeneratedMessage {
         enumValues: SkyrimSetupPhase.values)
     ..aOS(2, _omitFieldNames ? '' : 'status')
     ..aOS(3, _omitFieldNames ? '' : 'detail')
-    ..aOS(4, _omitFieldNames ? '' : 'planToken')
-    ..pPM<SkyrimSetupChange>(5, _omitFieldNames ? '' : 'changes',
-        subBuilder: SkyrimSetupChange.create)
     ..pPM<SkyrimSetupComponent>(6, _omitFieldNames ? '' : 'components',
         subBuilder: SkyrimSetupComponent.create)
     ..aOM<SkyrimSetupSelection>(7, _omitFieldNames ? '' : 'selection',
         subBuilder: SkyrimSetupSelection.create)
-    ..aOB(8, _omitFieldNames ? '' : 'consentRecorded')
     ..aOB(9, _omitFieldNames ? '' : 'canStart')
     ..aOB(10, _omitFieldNames ? '' : 'canContinue')
     ..aOB(12, _omitFieldNames ? '' : 'active')
@@ -825,83 +699,62 @@ class SkyrimSetupState extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   void clearDetail() => $_clearField(3);
 
-  @$pb.TagNumber(4)
-  $core.String get planToken => $_getSZ(3);
-  @$pb.TagNumber(4)
-  set planToken($core.String value) => $_setString(3, value);
-  @$pb.TagNumber(4)
-  $core.bool hasPlanToken() => $_has(3);
-  @$pb.TagNumber(4)
-  void clearPlanToken() => $_clearField(4);
-
-  @$pb.TagNumber(5)
-  $pb.PbList<SkyrimSetupChange> get changes => $_getList(4);
-
   @$pb.TagNumber(6)
-  $pb.PbList<SkyrimSetupComponent> get components => $_getList(5);
+  $pb.PbList<SkyrimSetupComponent> get components => $_getList(3);
 
   @$pb.TagNumber(7)
-  SkyrimSetupSelection get selection => $_getN(6);
+  SkyrimSetupSelection get selection => $_getN(4);
   @$pb.TagNumber(7)
   set selection(SkyrimSetupSelection value) => $_setField(7, value);
   @$pb.TagNumber(7)
-  $core.bool hasSelection() => $_has(6);
+  $core.bool hasSelection() => $_has(4);
   @$pb.TagNumber(7)
   void clearSelection() => $_clearField(7);
   @$pb.TagNumber(7)
-  SkyrimSetupSelection ensureSelection() => $_ensure(6);
-
-  @$pb.TagNumber(8)
-  $core.bool get consentRecorded => $_getBF(7);
-  @$pb.TagNumber(8)
-  set consentRecorded($core.bool value) => $_setBool(7, value);
-  @$pb.TagNumber(8)
-  $core.bool hasConsentRecorded() => $_has(7);
-  @$pb.TagNumber(8)
-  void clearConsentRecorded() => $_clearField(8);
+  SkyrimSetupSelection ensureSelection() => $_ensure(4);
 
   @$pb.TagNumber(9)
-  $core.bool get canStart => $_getBF(8);
+  $core.bool get canStart => $_getBF(5);
   @$pb.TagNumber(9)
-  set canStart($core.bool value) => $_setBool(8, value);
+  set canStart($core.bool value) => $_setBool(5, value);
   @$pb.TagNumber(9)
-  $core.bool hasCanStart() => $_has(8);
+  $core.bool hasCanStart() => $_has(5);
   @$pb.TagNumber(9)
   void clearCanStart() => $_clearField(9);
 
   @$pb.TagNumber(10)
-  $core.bool get canContinue => $_getBF(9);
+  $core.bool get canContinue => $_getBF(6);
   @$pb.TagNumber(10)
-  set canContinue($core.bool value) => $_setBool(9, value);
+  set canContinue($core.bool value) => $_setBool(6, value);
   @$pb.TagNumber(10)
-  $core.bool hasCanContinue() => $_has(9);
+  $core.bool hasCanContinue() => $_has(6);
   @$pb.TagNumber(10)
   void clearCanContinue() => $_clearField(10);
 
   @$pb.TagNumber(12)
-  $core.bool get active => $_getBF(10);
+  $core.bool get active => $_getBF(7);
   @$pb.TagNumber(12)
-  set active($core.bool value) => $_setBool(10, value);
+  set active($core.bool value) => $_setBool(7, value);
   @$pb.TagNumber(12)
-  $core.bool hasActive() => $_has(10);
+  $core.bool hasActive() => $_has(7);
   @$pb.TagNumber(12)
   void clearActive() => $_clearField(12);
 
   @$pb.TagNumber(13)
-  $core.bool get ready => $_getBF(11);
+  $core.bool get ready => $_getBF(8);
   @$pb.TagNumber(13)
-  set ready($core.bool value) => $_setBool(11, value);
+  set ready($core.bool value) => $_setBool(8, value);
   @$pb.TagNumber(13)
-  $core.bool hasReady() => $_has(11);
+  $core.bool hasReady() => $_has(8);
   @$pb.TagNumber(13)
   void clearReady() => $_clearField(13);
 
   @$pb.TagNumber(14)
-  $core.bool get canCancel => $_getBF(12);
+  $core.bool get canCancel => $_getBF(9);
   @$pb.TagNumber(14)
-  set canCancel($core.bool value) => $_setBool(12, value);
+  set canCancel($core.bool value) => $_setBool(9, value);
   @$pb.TagNumber(14)
-  $core.bool hasCanCancel() => $_has(12);
+  $core.bool hasCanCancel() => $_has(9);
   @$pb.TagNumber(14)
   void clearCanCancel() => $_clearField(14);
 }

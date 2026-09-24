@@ -575,19 +575,15 @@ module EnbFixtures =
 
         owner.OpenAuthorPage(workspace, profile) |> wait |> ignore
 
-        let context = (store.GameContexts :> IGameContexts).Read(workspace, profile) |> wait |> result
-
         let operation = Guid.NewGuid()
 
         store.SkyrimSetups.Save
             { WorkspaceId = workspace
               ProfileId = profile
               Selection = { SetupSelection.none with Enb = SetupAction.Install; EnbArchive = Some runtimePath }
-              PlanToken = "production-enb-cancellation"
               Cancelled = false
               Completed = false
               Stage = "enb"
-              ContextRevision = context.Revision
               ActionId = Some operation
               CancelRequested = false
               CancelDetail = ""

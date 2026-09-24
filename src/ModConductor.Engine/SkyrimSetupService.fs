@@ -2,9 +2,6 @@ namespace ModConductor.Engine
 
 open System
 open System.Collections.Concurrent
-open System.IO
-open System.Security.Cryptography
-open System.Text
 open System.Threading
 open System.Threading.Tasks
 open ModConductor.Deployment
@@ -27,264 +24,17 @@ type SkyrimSetupComponentView =
       Active: bool
       Blocked: bool }
 
-type SkyrimSetupChangeView = { Title: string; Detail: string; Source: string; Supporting: bool }
-
 type internal SkyrimSetupView =
     { Phase: SkyrimSetupPhase
       Status: string
       Detail: string
-      PlanToken: string
-      Changes: SkyrimSetupChangeView list
       Components: SkyrimSetupComponentView list
       Selection: ModConductor.Persistence.SetupSelection
-      ConsentRecorded: bool
       CanStart: bool
       CanContinue: bool
       Active: bool
       CanCancel: bool
       Ready: bool }
-
-type internal SkyrimSetupPlanSnapshot =
-    { Sources: SourceStamp
-      DeploymentRevision: int64
-      ActiveGeneration: Guid option }
-
-[<RequireQualifiedAccess>]
-type internal SkyrimSetupStageChange =
-    | Deployment of generation: Guid
-    | ComponentDeployment of generation: Guid * versions: (Guid * Guid) list
-    | ComponentRemoval of generation: Guid
-    | FnisOutput of modId: Guid * versionId: Guid
-
-module internal SkyrimSetupPlan =
-    let private writeSnapshot (snapshot: SkyrimSetupPlanSnapshot) =
-        use stream = new MemoryStream()
-        use writer = new BinaryWriter(stream, Encoding.UTF8, true)
-        let sources = snapshot.Sources
-        writer.Write 2uy
-        writer.Write(sources.WorkspaceId.ToByteArray())
-        writer.Write(sources.ProfileId.ToByteArray())
-        writer.Write sources.SelectionRevision
-        writer.Write sources.ContextRevision
-        writer.Write sources.ExclusionRevision
-        writer.Write sources.OutputRevision
-        writer.Write snapshot.DeploymentRevision
-        writer.Write sources.Versions.Length
-
-        for modId, versionId in sources.Versions do
-            writer.Write(modId.ToByteArray())
-            writer.Write versionId.IsSome
-            versionId |> Option.iter (fun value -> writer.Write(value.ToByteArray()))
-
-        writer.Write sources.Deployment.IsSome
-        sources.Deployment |> Option.iter writer.Write
-        writer.Write snapshot.ActiveGeneration.IsSome
-
-        snapshot.ActiveGeneration
-        |> Option.iter (fun value -> writer.Write(value.ToByteArray()))
-
-        writer.Flush()
-        stream.ToArray()
-
-    let private readGuid (reader: BinaryReader) =
-        let bytes = reader.ReadBytes 16
-
-        if bytes.Length <> 16 then
-            raise (EndOfStreamException())
-
-        Guid bytes
-
-    let private readSnapshot (bytes: byte array) =
-        try
-            use stream = new MemoryStream(bytes, false)
-            use reader = new BinaryReader(stream, Encoding.UTF8, true)
-
-            if reader.ReadByte() <> 2uy then
-                None
-            else
-                let workspace = readGuid reader
-                let profile = readGuid reader
-                let selection = reader.ReadInt64()
-                let context = reader.ReadInt64()
-                let exclusion = reader.ReadInt64()
-                let output = reader.ReadInt64()
-                let deploymentRevision = reader.ReadInt64()
-                let count = reader.ReadInt32()
-
-                if count < 0 || count > 100000 then
-                    None
-                else
-                    let versions =
-                        [ for _ in 1..count do
-                              let modId = readGuid reader
-
-                              let versionId =
-                                  if reader.ReadBoolean() then Some(readGuid reader) else None
-
-                              yield modId, versionId ]
-
-                    let deployment =
-                        if reader.ReadBoolean() then
-                            Some(reader.ReadString())
-                        else
-                            None
-
-                    let generation = if reader.ReadBoolean() then Some(readGuid reader) else None
-
-                    if stream.Position <> stream.Length then
-                        None
-                    else
-                        Some
-                            { Sources =
-                                { WorkspaceId = workspace
-                                  ProfileId = profile
-                                  SelectionRevision = selection
-                                  ContextRevision = context
-                                  ExclusionRevision = exclusion
-                                  OutputRevision = output
-                                  Versions = versions
-                                  Deployment = deployment }
-                              DeploymentRevision = deploymentRevision
-                              ActiveGeneration = generation }
-        with
-        | :? EndOfStreamException
-        | :? IOException
-        | :? FormatException -> None
-
-    let private base64 (bytes: byte array) =
-        Convert.ToBase64String bytes
-        |> fun value -> value.TrimEnd('=').Replace('+', '-').Replace('/', '_')
-
-    let private tryBase64 (value: string) =
-        try
-            let padded = value.Replace('-', '+').Replace('_', '/')
-            let padded = padded + String.replicate ((4 - padded.Length % 4) % 4) "="
-            Some(Convert.FromBase64String padded)
-        with :? FormatException ->
-            None
-
-    let private hash
-        (workspace: Guid)
-        (profile: Guid)
-        (selection: ModConductor.Persistence.SetupSelection)
-        contextRevision
-        (payload: byte array)
-        =
-        use incremental = IncrementalHash.CreateHash HashAlgorithmName.SHA256
-        incremental.AppendData(Encoding.UTF8.GetBytes "mc-skyrim-setup-v4")
-        incremental.AppendData(workspace.ToByteArray())
-        incremental.AppendData(profile.ToByteArray())
-        incremental.AppendData([| byte selection.Skse; byte selection.Enb; byte selection.Fnis |])
-        incremental.AppendData(Encoding.UTF8.GetBytes(selection.EnbArchive |> Option.defaultValue ""))
-        let revision = Array.zeroCreate<byte> 8
-        Buffers.Binary.BinaryPrimitives.WriteInt64LittleEndian(revision, contextRevision)
-        incremental.AppendData revision
-        incremental.AppendData payload
-        Convert.ToHexStringLower(incremental.GetHashAndReset())
-
-    let token workspace profile selection contextRevision snapshot =
-        let payload = writeSnapshot snapshot
-
-        hash workspace profile selection contextRevision payload
-        + "."
-        + base64 payload
-
-    let snapshot workspace profile selection contextRevision (value: string) =
-        match value.Split('.', 2) with
-        | [| expected; encoded |] ->
-            match tryBase64 encoded with
-            | Some payload when
-                CryptographicOperations.FixedTimeEquals(
-                    Encoding.ASCII.GetBytes expected,
-                    Encoding.ASCII.GetBytes(
-                        hash workspace profile selection contextRevision payload
-                    )
-                )
-                ->
-                readSnapshot payload
-            | _ -> None
-        | _ -> None
-
-    let private stableSourceData (before: SourceStamp) (after: SourceStamp) =
-        before.WorkspaceId = after.WorkspaceId
-        && before.ProfileId = after.ProfileId
-        && before.ContextRevision = after.ContextRevision
-        && before.ExclusionRevision = after.ExclusionRevision
-        && before.OutputRevision = after.OutputRevision
-
-    let private stableSources (before: SourceStamp) (after: SourceStamp) =
-        stableSourceData before after && before.Deployment = after.Deployment
-
-    let private expectedDeploymentTransition before after =
-        after.DeploymentRevision = before.DeploymentRevision + 1L
-        && after.Sources.Deployment.IsSome
-        && after.Sources.Deployment <> before.Sources.Deployment
-
-    let private versionChanges expected before after =
-        let before = before |> Map.ofList
-        let after = after |> Map.ofList
-
-        let changed =
-            Set.union (before |> Map.keys |> Set.ofSeq) (after |> Map.keys |> Set.ofSeq)
-            |> Set.filter (fun key -> before.TryFind key <> after.TryFind key)
-
-        let expectedIds = expected |> List.map fst |> Set.ofList
-
-        if
-            not changed.IsEmpty
-            && changed.IsSubsetOf expectedIds
-            && (expected
-                |> List.forall (fun (modId, versionId) ->
-                    after.TryFind modId = Some(Some versionId)))
-        then
-            Some changed.Count
-        else
-            None
-
-    let permits (before: SkyrimSetupPlanSnapshot) (after: SkyrimSetupPlanSnapshot) change =
-        match change with
-        | SkyrimSetupStageChange.Deployment generation ->
-            stableSourceData before.Sources after.Sources
-            && before.ActiveGeneration.IsNone
-            && after.ActiveGeneration = Some generation
-            && after.Sources.Deployment.IsSome
-            && after.DeploymentRevision = before.DeploymentRevision + 1L
-            && before.Sources.SelectionRevision = after.Sources.SelectionRevision
-            && before.Sources.Versions = after.Sources.Versions
-        | SkyrimSetupStageChange.ComponentDeployment(generation, versions) ->
-            stableSourceData before.Sources after.Sources
-            && expectedDeploymentTransition before after
-            && after.ActiveGeneration = Some generation
-            && (match versionChanges versions before.Sources.Versions after.Sources.Versions with
-                | Some count ->
-                    after.Sources.SelectionRevision = before.Sources.SelectionRevision
-                                                      + int64 count
-                                                      + 1L
-                | None -> false)
-        | SkyrimSetupStageChange.ComponentRemoval generation ->
-            stableSourceData before.Sources after.Sources
-            && expectedDeploymentTransition before after
-            && after.ActiveGeneration = Some generation
-            && before.Sources.Versions = after.Sources.Versions
-            && after.Sources.SelectionRevision = before.Sources.SelectionRevision + 1L
-        | SkyrimSetupStageChange.FnisOutput(modId, versionId) ->
-            stableSources before.Sources after.Sources
-            && after.DeploymentRevision = before.DeploymentRevision
-            && after.ActiveGeneration = before.ActiveGeneration
-            && (match
-                    versionChanges
-                        [ modId, versionId ]
-                        before.Sources.Versions
-                        after.Sources.Versions
-                with
-                | Some _ ->
-                    let alreadyRegistered =
-                        before.Sources.Versions |> List.exists (fun (id, _) -> id = modId)
-
-                    after.Sources.SelectionRevision = before.Sources.SelectionRevision
-                                                      + (if alreadyRegistered then 1L else 2L)
-                | None -> false)
-
 
 type internal SkyrimSetupDependencies =
     { ReadSkse: Guid -> Guid -> System.Threading.Tasks.Task<SkseView>
@@ -399,22 +149,6 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
     let firstRunInstruction =
         "Start Skyrim once through Steam. Close it, then select Refresh."
 
-    let planToken
-        (workspace: Guid)
-        (profile: Guid)
-        selection
-        contextRevision
-        (deployment: DeploymentStatus)
-        =
-        SkyrimSetupPlan.token
-            workspace
-            profile
-            selection
-            contextRevision
-            { Sources = deployment.Sources
-              DeploymentRevision = deployment.Revision
-              ActiveGeneration = deployment.ActiveGeneration }
-
     let componentView (name: string) status detail ready active blocked =
         { Id = name.ToLowerInvariant()
           Name = name
@@ -425,62 +159,16 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
           Active = active
           Blocked = blocked }
 
-    let changes (selection: ModConductor.Persistence.SetupSelection) hasDeployment =
-        let change name action source =
-            if action = SetupAction.Unchanged then None
-            else
-                Some
-                    { Title = name
-                      Detail =
-                        match action with
-                        | SetupAction.Install -> "Install"
-                        | SetupAction.Remove -> "Remove"
-                        | SetupAction.Update -> "Update"
-                        | _ -> ""
-                      Source = source
-                      Supporting = false }
-
-        [ change "SKSE" selection.Skse "Matching game version"
-          change
-              "ENBSeries"
-              selection.Enb
-              (if selection.Enb = SetupAction.Install || selection.Enb = SetupAction.Update then
-                   selection.EnbArchive |> Option.map Path.GetFileName |> Option.defaultValue "Downloaded archive"
-               else
-                   "Installed files")
-          change "FNIS" selection.Fnis "Matching game version" ]
-        |> List.choose id
-        |> fun selected ->
-            if not hasDeployment && selected |> List.exists (fun item -> item.Detail <> "Remove") then
-                selected @ [ { Title = "Initial profile deployment"; Detail = "Create"; Source = "Profile"; Supporting = true } ]
-            else selected
-
-    let view
-        phase
-        status
-        detail
-        token
-        planned
-        components
-        selection
-        consent
-        start
-        continueSetup
-        active
-        ready
-        =
+    let view phase status detail components selection running start continueSetup active ready =
         { Phase = phase
           Status = status
           Detail = detail
-          PlanToken = token
-          Changes = planned
           Components = components
           Selection = selection
-          ConsentRecorded = consent
           CanStart = start
           CanContinue = continueSetup
           Active = active
-          CanCancel = consent && not ready
+          CanCancel = running && not ready
           Ready = ready }
 
     let unavailable selection status detail =
@@ -488,8 +176,6 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
             SkyrimSetupPhase.Unavailable
             status
             detail
-            ""
-            []
             [ componentView "Skyrim installation" status detail false false true ]
             selection
             false
@@ -498,7 +184,7 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
             false
             false
 
-    let preview workspace profile (selection: ModConductor.Persistence.SetupSelection) (deployed: DeploymentStatus) contextRevision =
+    let preview workspace profile (selection: ModConductor.Persistence.SetupSelection) (deployed: DeploymentStatus) =
         task {
             let! skse = store.SkseLoaders.ReadStored(workspace, profile, deployed.ActiveGeneration)
             let! enb = store.EnbSetups.Components(workspace, profile, deployed.ActiveGeneration)
@@ -523,10 +209,8 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                 not archiveRequired
                 || (selection.EnbArchive |> Option.exists (not << String.IsNullOrWhiteSpace))
 
-
-            let hasChange = ModConductor.Persistence.SetupSelection.hasChange selection
             let canStart =
-                hasChange
+                ModConductor.Persistence.SetupSelection.hasChange selection
                 && valid
                 && archiveSupplied
                 && deployed.PendingReceipt.IsNone
@@ -548,11 +232,9 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
 
             return
                 view
-                    SkyrimSetupPhase.NeedsConsent
+                    SkyrimSetupPhase.Available
                     (if not archiveSupplied then "Choose an ENBSeries archive" elif not valid then "Check the selected components" else "")
                     ""
-                    (planToken workspace profile selection contextRevision deployed)
-                    (changes selection deployed.ActiveGeneration.IsSome)
                     components
                     selection
                     false
@@ -668,7 +350,7 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
 
     let inspect workspace profile selection (intent: StoredSkyrimSetupIntent option) token =
         task {
-            let consent =
+            let running =
                 intent
                 |> Option.exists (fun value -> not value.Cancelled && not value.Completed)
 
@@ -732,61 +414,11 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                                 selection
                                 "The selected profile is unavailable"
                                 "Select a profile from this workspace."
-                    | Ok deployed when not consent && not (intent |> Option.exists _.Cancelled) ->
-                        return! preview workspace profile selection deployed context.Revision
+                    | Ok deployed when not running && not (intent |> Option.exists _.Cancelled) ->
+                        return! preview workspace profile selection deployed
                     | Ok deployed ->
-                        let tokenValue =
-                            planToken workspace profile selection context.Revision deployed
-
-                        let currentSnapshot =
-                            { Sources = deployed.Sources
-                              DeploymentRevision = deployed.Revision
-                              ActiveGeneration = deployed.ActiveGeneration }
-
-                        let planned = changes selection deployed.ActiveGeneration.IsSome
-
                         let recorded = intent |> Option.filter (fun value -> not value.Cancelled)
-
-                        let mutable tokenChanged =
-                            recorded |> Option.exists (fun value -> value.PlanToken <> tokenValue)
-
                         let mutable stage = recorded |> Option.map _.Stage |> Option.defaultValue ""
-
-                        let contextChanged =
-                            recorded
-                            |> Option.exists (fun value ->
-                                value.ContextRevision <> context.Revision)
-
-                        let permitsStageChange (value: StoredSkyrimSetupIntent) change =
-                            SkyrimSetupPlan.snapshot
-                                workspace
-                                profile
-                                selection
-                                value.ContextRevision
-                                value.PlanToken
-                            |> Option.exists (fun before ->
-                                SkyrimSetupPlan.permits before currentSnapshot change)
-
-                        let stalePlan components =
-                            view
-                                SkyrimSetupPhase.NeedsConsent
-                                "The Skyrim setup plan changed"
-                                "The game or profile changed. Review your choices again."
-                                tokenValue
-                                planned
-                                components
-                                selection
-                                false
-                                true
-                                false
-                                false
-                                false
-
-                        let staleActivePlan components =
-                            { stalePlan components with
-                                CanStart = false
-                                Active = true
-                                CanCancel = true }
 
                         if intent |> Option.exists _.CancelRequested then
                             let pending = intent.Value
@@ -799,8 +431,6 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                                            "Select Continue to finish cancelling."
                                        else
                                            pending.CancelDetail)
-                                      tokenValue
-                                      planned
                                       [ componentView
                                             "Setup"
                                             "Cancellation recorded"
@@ -809,7 +439,7 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                                             false
                                             true ]
                                       selection
-                                      consent
+                                      running
                                       false
                                       true
                                       false
@@ -817,7 +447,7 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                                     CanCancel = false }
                         elif intent |> Option.exists _.Cancelled then
                             let cancelled = intent.Value
-                            let! current = preview workspace profile selection deployed context.Revision
+                            let! current = preview workspace profile selection deployed
 
                             return
                                 { current with
@@ -825,7 +455,7 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                                     Status = "Skyrim setup is cancelled"
                                     Detail =
                                         if String.IsNullOrWhiteSpace cancelled.CancelDetail then
-                                            "Review your choices to try again."
+                                            "Select components to try again."
                                         else
                                             cancelled.CancelDetail }
                         elif deployed.ActiveGeneration.IsSome && deployed.PendingReceipt.IsSome then
@@ -834,8 +464,6 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                                       SkyrimSetupPhase.RecoveryRequired
                                       "The deployment needs recovery"
                                       "Finish the current operation before changing a component."
-                                      tokenValue
-                                      planned
                                       [ componentView
                                             "Deployment"
                                             "Recovery required"
@@ -844,31 +472,24 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                                             false
                                             true ]
                                       selection
-                                      consent
+                                      running
                                       false
-                                      consent
+                                      running
                                       false
                                       false with
                                     CanCancel = false }
                         elif deployed.ActiveGeneration.IsNone then
                             return
                                 view
-                                    (if consent then
-                                         SkyrimSetupPhase.PreparingDeployment
-                                     else
-                                         SkyrimSetupPhase.NeedsConsent)
+                                    SkyrimSetupPhase.PreparingDeployment
                                     (if deployed.PendingReceipt.IsSome then
                                          "The first deployment needs recovery"
-                                     elif consent then
-                                         "The first deployment is ready to prepare"
                                      else
-                                         "Review the Skyrim setup changes")
+                                         "Preparing the profile")
                                     (if deployed.PendingReceipt.IsSome then
                                          "Select Continue to finish this step."
                                      else
                                          "The profile must be ready before components are installed.")
-                                    tokenValue
-                                    planned
                                     [ componentView
                                           "Deployment"
                                           (if deployed.PendingReceipt.IsSome then
@@ -880,21 +501,11 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                                           false
                                           deployed.PendingReceipt.IsSome ]
                                     selection
-                                    consent
-                                    (not consent && deployed.PendingReceipt.IsNone)
-                                    consent
+                                    running
+                                    false
+                                    running
                                     false
                                     false
-                        elif contextChanged then
-                            return
-                                stalePlan
-                                    [ componentView
-                                          "Skyrim installation"
-                                          "Plan changed"
-                                          "The selected installation context changed."
-                                          false
-                                          false
-                                          true ]
                         elif workers.ContainsKey((workspace, profile)) then
                             let workerPhase, workerName, workerStatus, workerDetail =
                                 match stage with
@@ -912,51 +523,39 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                             let workerComponent =
                                 componentView workerName workerStatus workerDetail false true false
 
-                            if tokenChanged then
-                                return staleActivePlan [ workerComponent ]
-                            else
-                                return
-                                    view
-                                        workerPhase
-                                        workerStatus
-                                        workerDetail
-                                        tokenValue
-                                        planned
-                                        [ workerComponent ]
-                                        selection
-                                        consent
-                                        false
-                                        false
-                                        true
-                                        false
+                            return
+                                view
+                                    workerPhase
+                                    workerStatus
+                                    workerDetail
+                                    [ workerComponent ]
+                                    selection
+                                    running
+                                    false
+                                    false
+                                    true
+                                    false
                         else
                             match recorded with
-                            | Some value when tokenChanged && stage = "deployment-running" ->
+                            | Some value when stage = "deployment-running" ->
                                 let! receipt =
                                     match value.ActionId with
                                     | Some action -> store.Deployments.Receipt action
                                     | None -> Task.FromResult(Error DeploymentError.NotFound)
 
-                                let caused =
-                                    match receipt, deployed.ActiveGeneration with
-                                    | Ok receipt, Some active ->
-                                        receipt.Phase = ModConductor.Deployment.DeploymentPhase.Complete
-                                        && receipt.Proposed = active
-                                        && permitsStageChange
-                                            value
-                                            (SkyrimSetupStageChange.Deployment active)
-                                    | _ -> false
-
-                                if caused then
+                                match receipt, deployed.ActiveGeneration with
+                                | Ok receipt, Some active when
+                                    receipt.Phase = ModConductor.Deployment.DeploymentPhase.Complete
+                                    && receipt.Proposed = active
+                                    ->
                                     do!
                                         store.SkyrimSetups.Save
                                             { value with
-                                                PlanToken = tokenValue
                                                 Stage = "skse-start"
                                                 ActionId = None }
 
-                                    tokenChanged <- false
                                     stage <- "skse-start"
+                                | _ -> ()
                             | _ -> ()
 
                             let! skseState = dependencies.ReadSkse workspace profile
@@ -999,93 +598,28 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                                     elif skseActive then SkyrimSetupPhase.SettingUpSkse
                                     else SkyrimSetupPhase.WaitingForSkse
 
-                                if tokenChanged then
-                                    if skseActive then
-                                        return staleActivePlan [ skseComponent ]
-                                    else
-                                        return stalePlan [ skseComponent ]
-                                else
-                                    return
-                                        view
-                                            (if consent then
-                                                 phase
-                                             else
-                                                 SkyrimSetupPhase.NeedsConsent)
-                                            skseState.Status
-                                            skseState.Detail
-                                            tokenValue
-                                            planned
-                                            [ skseComponent ]
-                                            selection
-                                            consent
-                                            (not consent)
-                                            (consent
-                                             && not skseActive
-                                             && (selection.Skse = SetupAction.Remove
-                                                 || skseState.Phase = SksePhase.Available
-                                                 || skseState.Phase = SksePhase.UpdateAvailable
-                                                 || skseState.Phase = SksePhase.Failed
-                                                 || selection.Skse = SetupAction.Update))
-                                            skseActive
-                                            false
+                                return
+                                    view
+                                        phase
+                                        skseState.Status
+                                        skseState.Detail
+                                        [ skseComponent ]
+                                        selection
+                                        running
+                                        false
+                                        (running
+                                         && not skseActive
+                                         && (selection.Skse = SetupAction.Remove
+                                             || skseState.Phase = SksePhase.Available
+                                             || skseState.Phase = SksePhase.UpdateAvailable
+                                             || skseState.Phase = SksePhase.Failed
+                                             || selection.Skse = SetupAction.Update))
+                                        skseActive
+                                        false
                             else
-                                let! skseTransition =
-                                    if tokenChanged && stage = "skse-remove" then
-                                        Task.FromResult(
-                                            deployed.ActiveGeneration
-                                            |> Option.exists (fun generation ->
-                                                recorded
-                                                |> Option.exists (fun intent ->
-                                                    permitsStageChange
-                                                        intent
-                                                        (SkyrimSetupStageChange.ComponentRemoval generation)))
-                                        )
-                                    elif tokenChanged && stage = "skse" then
-                                        task {
-                                            let! installed =
-                                                store.SkseLoaders.ReadStored(
-                                                    workspace,
-                                                    profile,
-                                                    deployed.ActiveGeneration
-                                                )
-
-                                            return
-                                                match installed, recorded with
-                                                | Some installed, Some intent ->
-                                                    permitsStageChange
-                                                        intent
-                                                        (SkyrimSetupStageChange.ComponentDeployment(
-                                                            installed.Loader.GenerationId,
-                                                            [ installed.ModId, installed.VersionId ]
-                                                        ))
-                                                | _ -> false
-                                        }
-                                    else
-                                        Task.FromResult false
-
                                 match recorded with
-                                | Some value when
-                                    tokenChanged
-                                    && (stage = "skse" || stage = "skse-remove")
-                                    && skseTransition
-                                    ->
-                                    do!
-                                        store.SkyrimSetups.Save
-                                            { value with
-                                                PlanToken = tokenValue
-                                                Stage = "enb-start" }
-
-                                    tokenChanged <- false
-                                    stage <- "enb-start"
-                                | Some value when
-                                    not tokenChanged && (stage = "skse" || stage = "skse-remove" || stage = "skse-start")
-                                    ->
-                                    do!
-                                        store.SkyrimSetups.Save
-                                            { value with
-                                                PlanToken = tokenValue
-                                                Stage = "enb-start" }
-
+                                | Some value when stage = "skse" || stage = "skse-remove" || stage = "skse-start" ->
+                                    do! store.SkyrimSetups.Save { value with Stage = "enb-start" }
                                     stage <- "enb-start"
                                 | _ -> ()
 
@@ -1139,105 +673,33 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                                 if not enbDone then
                                     let waiting = enbState.Phase = EnbPhase.WaitingForArchive
 
-                                    if tokenChanged then
-                                        if enbActive then
-                                            return staleActivePlan [ skseComponent; enbComponent ]
-                                        else
-                                            return stalePlan [ skseComponent; enbComponent ]
-                                    else
-                                        return
-                                            view
-                                                (if consent then
-                                                     if waiting then
-                                                         SkyrimSetupPhase.WaitingForEnbArchive
-                                                     else
-                                                         SkyrimSetupPhase.SettingUpEnb
-                                                 else
-                                                     SkyrimSetupPhase.NeedsConsent)
-                                                enbState.Status
-                                                enbState.Detail
-                                                tokenValue
-                                                planned
-                                                [ skseComponent; enbComponent ]
-                                                selection
-                                                consent
-                                                (not consent)
-                                                (consent
-                                                 && not enbActive
-                                                 && (selection.Enb = SetupAction.Remove
-                                                     || selection.Enb = SetupAction.Update
-                                                     || enbState.Phase = EnbPhase.Available
-                                                     || enbState.Phase = EnbPhase.Failed))
-                                                enbActive
-                                                false
+                                    return
+                                        view
+                                            (if waiting then
+                                                 SkyrimSetupPhase.WaitingForEnbArchive
+                                             else
+                                                 SkyrimSetupPhase.SettingUpEnb)
+                                            enbState.Status
+                                            enbState.Detail
+                                            [ skseComponent; enbComponent ]
+                                            selection
+                                            running
+                                            false
+                                            (running
+                                             && not enbActive
+                                             && (selection.Enb = SetupAction.Remove
+                                                 || selection.Enb = SetupAction.Update
+                                                 || enbState.Phase = EnbPhase.Available
+                                                 || enbState.Phase = EnbPhase.Failed))
+                                            enbActive
+                                            false
                                 else
-                                    let! enbTransition =
-                                        if tokenChanged && stage = "enb-remove" then
-                                            Task.FromResult(
-                                                deployed.ActiveGeneration
-                                                |> Option.exists (fun generation ->
-                                                    recorded
-                                                    |> Option.exists (fun intent ->
-                                                        permitsStageChange
-                                                            intent
-                                                            (SkyrimSetupStageChange.ComponentRemoval generation)))
-                                            )
-                                        elif tokenChanged && stage = "enb" then
-                                            task {
-                                                let! components =
-                                                    store.EnbSetups.Components(
-                                                        workspace,
-                                                        profile,
-                                                        deployed.ActiveGeneration
-                                                    )
-
-                                                return
-                                                    match recorded, deployed.ActiveGeneration with
-                                                    | Some intent, Some generation ->
-                                                        not components.IsEmpty
-                                                        && permitsStageChange
-                                                            intent
-                                                            (SkyrimSetupStageChange
-                                                                .ComponentDeployment(
-                                                                    generation,
-                                                                    components
-                                                                    |> List.map (fun item ->
-                                                                        item.ModId, item.VersionId)
-                                                                ))
-                                                    | _ -> false
-                                            }
-                                        else
-                                            Task.FromResult false
-
                                     match recorded with
-                                    | Some value when
-                                        tokenChanged
-                                        && (stage = "enb" || stage = "enb-remove")
-                                        && enbTransition
-                                        ->
+                                    | Some value when stage = "enb" || stage = "enb-remove" || stage = "enb-start" ->
                                         let nextStage =
                                             if selection.Fnis <> SetupAction.Unchanged then "fnis-start" else "readiness"
 
-                                        do!
-                                            store.SkyrimSetups.Save
-                                                { value with
-                                                    PlanToken = tokenValue
-                                                    Stage = nextStage }
-
-                                        tokenChanged <- false
-                                        stage <- nextStage
-                                    | Some value when
-                                        not tokenChanged && (stage = "enb" || stage = "enb-remove" || stage = "enb-start")
-                                        ->
-                                        let nextStage =
-                                            if selection.Fnis <> SetupAction.Unchanged then "fnis-start" else "readiness"
-
-                                        do!
-                                            store.SkyrimSetups.Save
-                                                { value with
-                                                    PlanToken = tokenValue
-                                                    Stage = nextStage }
-
+                                        do! store.SkyrimSetups.Save { value with Stage = nextStage }
                                         stage <- nextStage
                                     | _ -> ()
 
@@ -1279,6 +741,11 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                                             | Some state, Some output ->
                                                 state.Phase = FnisPhase.Ready
                                                 && output.Phase = ModConductor.Fnis.FnisOutputPhase.Current
+                                                && (stage <> "fnis-run"
+                                                    || (recorded
+                                                        |> Option.bind _.ActionId
+                                                        |> Option.exists (fun action ->
+                                                            output.LatestRunId = Some action)))
                                             | _ -> false
 
                                     let fnisActive =
@@ -1338,144 +805,41 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                                         if selection.Fnis = SetupAction.Remove || fnisReady then "readiness"
                                         else "fnis-run"
 
-                                    let! fnisInstallTransition =
-                                        if tokenChanged && stage = "fnis-remove" then
-                                            Task.FromResult(
-                                                deployed.ActiveGeneration
-                                                |> Option.exists (fun generation ->
-                                                    recorded
-                                                    |> Option.exists (fun intent ->
-                                                        permitsStageChange
-                                                            intent
-                                                            (SkyrimSetupStageChange.ComponentRemoval generation)))
-                                            )
-                                        elif
-                                            tokenChanged && stage = "fnis-install" && fnisSetupReady
-                                        then
-                                            task {
-                                                let! installed =
-                                                    store.FnisSetups.ReadExact(
-                                                        workspace,
-                                                        profile,
-                                                        deployed.ActiveGeneration
-                                                    )
-
-                                                return
-                                                    match installed, recorded with
-                                                    | Some installed, Some intent ->
-                                                        permitsStageChange
-                                                            intent
-                                                            (SkyrimSetupStageChange
-                                                                .ComponentDeployment(
-                                                                    installed.GenerationId,
-                                                                    [ installed.ModId,
-                                                                      installed.VersionId ]
-                                                                ))
-                                                    | _ -> false
-                                            }
-                                        else
-                                            Task.FromResult false
-
-                                    let! fnisRunTransition =
-                                        if tokenChanged && stage = "fnis-run" && fnisReady then
-                                            task {
-                                                match
-                                                    recorded |> Option.bind _.ActionId,
-                                                    output,
-                                                    recorded
-                                                with
-                                                | Some expected, Some observed, Some intent when
-                                                    observed.LatestRunId = Some expected
-                                                    ->
-                                                    let! published =
-                                                        store.FnisSetups.PublishedOutput(
-                                                            workspace,
-                                                            profile,
-                                                            expected
-                                                        )
-
-                                                    return
-                                                        published
-                                                        |> Option.exists (fun (modId, versionId) ->
-                                                            permitsStageChange
-                                                                intent
-                                                                (SkyrimSetupStageChange.FnisOutput(
-                                                                    modId,
-                                                                    versionId
-                                                                )))
-                                                | _ -> return false
-                                            }
-                                        else
-                                            Task.FromResult false
-
                                     match recorded with
                                     | Some value when
-                                        tokenChanged
-                                        && (stage = "fnis-install" || stage = "fnis-remove")
+                                        (stage = "fnis-install" || stage = "fnis-remove")
                                         && fnisSetupReady
-                                        && fnisInstallTransition
                                         ->
                                         do!
                                             store.SkyrimSetups.Save
                                                 { value with
-                                                    PlanToken = tokenValue
                                                     Stage = nextFnisStage
                                                     ActionId = None }
 
-                                        tokenChanged <- false
                                         stage <- nextFnisStage
-                                    | Some value when
-                                        tokenChanged
-                                        && stage = "fnis-run"
-                                        && fnisReady
-                                        && fnisRunTransition
-                                        ->
+                                    | Some value when stage = "fnis-run" && fnisReady ->
                                         do!
                                             store.SkyrimSetups.Save
                                                 { value with
-                                                    PlanToken = tokenValue
                                                     Stage = "readiness"
                                                     ActionId = None }
-
-                                        tokenChanged <- false
-                                        stage <- "readiness"
-                                    | Some value when
-                                        not tokenChanged
-                                        && (stage = "fnis-install" || stage = "fnis-remove")
-                                        && fnisSetupReady
-                                        ->
-                                        do!
-                                            store.SkyrimSetups.Save
-                                                { value with Stage = nextFnisStage }
-
-                                        stage <- nextFnisStage
-                                    | Some value when
-                                        not tokenChanged && stage = "fnis-run" && fnisReady
-                                        ->
-                                        do!
-                                            store.SkyrimSetups.Save
-                                                { value with Stage = "readiness" }
 
                                         stage <- "readiness"
                                     | _ -> ()
 
-                                    if not fnisReady && tokenChanged then
-                                        if fnisActive then
-                                            return staleActivePlan components
-                                        else
-                                            return stalePlan components
-                                    elif not fnisReady then
+                                    if not fnisReady then
                                         let stale =
-                                            output
-                                            |> Option.exists (fun value ->
-                                                value.Phase
-                                                <> ModConductor.Fnis.FnisOutputPhase.Current
-                                                && value.Phase
-                                                   <> ModConductor.Fnis.FnisOutputPhase.Running)
+                                            (stage = "fnis-run" && not fnisReady)
+                                            || (output
+                                                |> Option.exists (fun value ->
+                                                    value.Phase
+                                                    <> ModConductor.Fnis.FnisOutputPhase.Current
+                                                    && value.Phase
+                                                       <> ModConductor.Fnis.FnisOutputPhase.Running))
 
                                         return
                                             view
-                                                (if consent then
+                                                (if running then
                                                      if
                                                          output
                                                          |> Option.exists (fun value ->
@@ -1489,20 +853,16 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                                                      else
                                                          SkyrimSetupPhase.SettingUpFnis
                                                  else
-                                                     SkyrimSetupPhase.NeedsConsent)
+                                                     SkyrimSetupPhase.Available)
                                                 (components |> List.last).Status
                                                 (components |> List.last).Detail
-                                                tokenValue
-                                                planned
                                                 components
                                                 selection
-                                                consent
-                                                (not consent)
-                                                (consent && not fnisActive)
+                                                running
+                                                (not running)
+                                                (running && not fnisActive)
                                                 fnisActive
                                                 false
-                                    elif tokenChanged then
-                                        return stalePlan components
                                     else
                                         let! pluginPreflight =
                                             dependencies.PluginPreflight workspace profile token
@@ -1567,13 +927,11 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                                                      ""
                                                  else
                                                      launchDetail)
-                                                tokenValue
-                                                planned
                                                 components
                                                 selection
-                                                consent
+                                                running
                                                 false
-                                                false
+                                                (running && launchReady)
                                                 false
                                                 launchReady
         }
@@ -1688,20 +1046,6 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
 
                 do! store.SkyrimSetups.Save cancelled
                 return! inspect workspace profile ModConductor.Persistence.SetupSelection.none (Some cancelled) token
-        }
-
-    let confirmPlan workspace profile selection expected =
-        task {
-            let! contextResult =
-                (store.GameContexts :> IGameContexts).Read(workspace, profile)
-            let! deploymentResult = store.Deployments.Read profile
-
-            match contextResult, deploymentResult with
-            | Ok context, Ok deployment when deployment.WorkspaceId = workspace ->
-                let current = planToken workspace profile selection context.Revision deployment
-
-                return if current = expected then Some context.Revision else None
-            | _ -> return None
         }
 
     let advance workspace profile (intent: StoredSkyrimSetupIntent) token =
@@ -1897,7 +1241,6 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                         { intent with
                             Completed = true
                             Stage = "complete"
-                            PlanToken = before.PlanToken
                             ActionId = None
                             Selection = { intent.Selection with EnbArchive = None }
                             CancelRequested = false
@@ -1905,7 +1248,6 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
 
                 return
                     { before with
-                        ConsentRecorded = false
                         CanCancel = false }
             | _ -> return before
         }
@@ -1934,7 +1276,7 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
             return current
         }
 
-    member _.Start(workspace, profile, (selection: ModConductor.Persistence.SetupSelection), expectedPlan, confirmed, token) =
+    member _.Start(workspace, profile, (selection: ModConductor.Persistence.SetupSelection), token) =
         task {
             let! existing = store.SkyrimSetups.Read(workspace, profile)
 
@@ -1942,102 +1284,51 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
             | Some intent when intent.CancelRequested ->
                 return! inspect workspace profile intent.Selection (Some intent) token
             | Some intent when
-                confirmed
-                && not intent.Cancelled
+                not intent.Cancelled
                 && not intent.Completed
                 && selection = intent.Selection
-                && expectedPlan = intent.PlanToken
                 ->
                 return! advance workspace profile intent token
-            | Some intent ->
-                let! planned = inspect workspace profile selection None token
+            | _ ->
+                let! current =
+                    match existing with
+                    | Some intent when not intent.Cancelled && not intent.Completed ->
+                        inspect workspace profile intent.Selection (Some intent) token
+                    | _ -> inspect workspace profile selection existing token
 
-                if not confirmed || not planned.CanStart || planned.PlanToken <> expectedPlan then
-                    return
-                        { planned with
-                            Status = "Choices changed"
-                            Detail = "Review your choices again."
-                            CanStart = planned.CanStart }
+                if current.Active || current.Phase = SkyrimSetupPhase.RecoveryRequired then
+                    return current
                 else
-                    let! contextRevision = confirmPlan workspace profile selection expectedPlan
+                    let! available = inspect workspace profile selection None token
 
-                    match contextRevision with
-                    | None ->
-                        return
-                            { planned with
-                                Status = "The game or profile changed"
-                                Detail = "Review your choices again."
-                                CanStart = true }
-                    | Some contextRevision ->
-                        let initialStage =
-                            if
-                                planned.Changes
-                                |> List.exists (fun item -> item.Title = "Initial profile deployment")
-                            then
-                                "deployment"
-                            else
-                                "skse-start"
+                    if not available.CanStart then
+                        return available
+                    else
+                        let! deployed = store.Deployments.Read profile
 
-                        let replacement =
-                            { intent with
-                                Selection = selection
-                                PlanToken = expectedPlan
-                                Cancelled = false
-                                Completed = false
-                                Stage = initialStage
-                                ContextRevision = contextRevision
-                                ActionId = None
-                                CancelRequested = false
-                                CancelDetail = ""
-                                RequestedAt = DateTimeOffset.UtcNow }
+                        match deployed with
+                        | Error error ->
+                            return unavailable selection "The deployment is unavailable" (deploymentError error)
+                        | Ok deployment when deployment.WorkspaceId <> workspace ->
+                            return unavailable selection "The selected profile is unavailable" "Select a profile from this workspace."
+                        | Ok deployment ->
+                            let initialStage =
+                                if deployment.ActiveGeneration.IsNone then "deployment" else "skse-start"
 
-                        do! store.SkyrimSetups.Save replacement
-                        return! advance workspace profile replacement token
-            | None ->
-                let! planned = inspect workspace profile selection None token
+                            let next =
+                                { WorkspaceId = workspace
+                                  ProfileId = profile
+                                  Selection = selection
+                                  Cancelled = false
+                                  Completed = false
+                                  Stage = initialStage
+                                  ActionId = None
+                                  CancelRequested = false
+                                  CancelDetail = ""
+                                  RequestedAt = DateTimeOffset.UtcNow }
 
-                if not confirmed || not planned.CanStart || planned.PlanToken <> expectedPlan then
-                    return
-                        { planned with
-                            Status = "Choices changed"
-                            Detail = "Review your choices again."
-                            CanStart = planned.CanStart }
-                else
-                    let! contextRevision = confirmPlan workspace profile selection expectedPlan
-
-                    match contextRevision with
-                    | None ->
-                        return
-                            { planned with
-                                Status = "The game or profile changed"
-                                Detail = "Review your choices again."
-                                CanStart = true }
-                    | Some contextRevision ->
-                        let initialStage =
-                            if
-                                planned.Changes
-                                |> List.exists (fun item -> item.Title = "Initial profile deployment")
-                            then
-                                "deployment"
-                            else
-                                "skse-start"
-
-                        let intent =
-                            { WorkspaceId = workspace
-                              ProfileId = profile
-                              Selection = selection
-                              PlanToken = expectedPlan
-                              Cancelled = false
-                              Completed = false
-                              Stage = initialStage
-                              ContextRevision = contextRevision
-                              ActionId = None
-                              CancelRequested = false
-                              CancelDetail = ""
-                              RequestedAt = DateTimeOffset.UtcNow }
-
-                        do! store.SkyrimSetups.Save intent
-                        return! advance workspace profile intent token
+                            do! store.SkyrimSetups.Save next
+                            return! advance workspace profile next token
         }
 
     member _.Continue(workspace, profile, token) =
@@ -2119,21 +1410,13 @@ type internal SkyrimSetupService(coordinator: SkyrimSetupCoordinator) =
                 Phase = value.Phase,
                 Status = value.Status,
                 Detail = value.Detail,
-                PlanToken = value.PlanToken,
                 Selection = selectionWire value.Selection,
-                ConsentRecorded = value.ConsentRecorded,
                 CanStart = value.CanStart,
                 CanContinue = value.CanContinue,
                 Active = value.Active,
                 CanCancel = value.CanCancel,
                 Ready = value.Ready
             )
-
-        result.Changes.AddRange(
-            value.Changes
-            |> Seq.map (fun change ->
-                SkyrimSetupChange(Title = change.Title, Detail = change.Detail, Source = change.Source, Supporting = change.Supporting))
-        )
 
         result.Components.AddRange(
             value.Components
@@ -2171,8 +1454,6 @@ type internal SkyrimSetupService(coordinator: SkyrimSetupCoordinator) =
                     workspace,
                     profile,
                     selectionFromWire request.Selection,
-                    request.PlanToken,
-                    request.ChangePlanConfirmed,
                     context.CancellationToken
                 )
 
