@@ -36,8 +36,7 @@ type NexusDownloadLinks(session: NexusSession) =
                     result
                     |> Result.map (fun lease ->
                         { Url = lease.Url
-                          Expires = lease.Expires
-                          Origins = session.DownloadOrigins })
+                          Expires = lease.Expires })
                     |> Result.mapError NexusProblem.message
             }
 

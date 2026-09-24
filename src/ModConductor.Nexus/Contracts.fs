@@ -61,8 +61,7 @@ type NexusRegistration =
       ClientId: string
       Scopes: string list
       RedirectPath: string
-      RedirectPort: int
-      DownloadOrigins: Uri list }
+      RedirectPort: int }
 
 type OAuthCallback =
     { Code: string
@@ -139,13 +138,11 @@ module internal Registration =
 
         if
             ([ value.Issuer; value.Authorize; value.Token; value.UserInfo; value.Api ]
-             @ value.DownloadOrigins
              |> List.exists (allowed >> not))
             || ([ value.Authorize; value.Token; value.UserInfo ]
                 |> List.exists (fun uri -> origin uri <> origin value.Issuer))
             || String.IsNullOrWhiteSpace value.ClientId
             || value.Scopes.IsEmpty
-            || value.DownloadOrigins.IsEmpty
             || not (value.RedirectPath.StartsWith("/", StringComparison.Ordinal))
             || value.RedirectPath.Contains('?')
             || value.RedirectPath.Contains('#')

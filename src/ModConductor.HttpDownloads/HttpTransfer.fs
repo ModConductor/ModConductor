@@ -154,17 +154,7 @@ module internal HttpTransfer =
                 if source.Expires <= DateTimeOffset.UtcNow then
                     stop "The download link expired. Try again." false
 
-                if
-                    not (
-                        source.Origins
-                        |> List.exists (fun origin ->
-                            origin.GetLeftPart(UriPartial.Authority) = uri.GetLeftPart(
-                                UriPartial.Authority
-                            ))
-                    )
-                    || uri.UserInfo <> ""
-                    || uri.Fragment <> ""
-                then
+                if uri.UserInfo <> "" || uri.Fragment <> "" then
                     stop "Nexus Mods returned an unexpected download location." false
             | None -> ()
 

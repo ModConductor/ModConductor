@@ -19,10 +19,7 @@ type DownloadSource =
     | Url of string
     | Nexus of NexusFileReference
 
-type PrivateDownload =
-    { Url: Uri
-      Origins: Uri list
-      Expires: DateTimeOffset }
+type PrivateDownload = { Url: Uri; Expires: DateTimeOffset }
 
 type INexusDownloadLinks =
     abstract Reject: NexusFileReference * Uri -> unit

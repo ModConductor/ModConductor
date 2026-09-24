@@ -391,16 +391,6 @@ module NexusFixtures =
                 (freeAccount.Account |> Option.exists (fun value -> value.Premium = Some false)
                  && freeDownload = Error NexusProblem.Entitlement)
 
-            secureServer.Premium <- true
-            secureServer.Mode <- "bad-origin"
-
-            let confined =
-                secureSession.Resolve("skyrimspecialedition", 64012L, 502L, "42") |> wait
-
-            check
-                "personalApiKeyDownloadOriginIsConfined"
-                (confined = Error NexusProblem.InvalidResponse)
-
         do
             use restoredCredentials = new CredentialSession(secureMemory)
 
@@ -635,6 +625,41 @@ module NexusFixtures =
             (complete.Length = Some 1048576L
              && complete.Download.Value.Source = "Nexus Mods"
              && complete.OriginalPath = "Nexus Mods")
+
+        use redirectServer = new NexusServer()
+        server.DownloadBase <- redirectServer.Root
+        redirectServer.PayloadRedirect <- server.Root
+        let redirectedId = Guid.NewGuid()
+        let originalPayloadRequests = server.Count "/payload"
+
+        store.Downloads.Start
+            { Id = redirectedId
+              WorkspaceId = workspace
+              Name = "Redirected rivers.7z"
+              Sources =
+                [ DownloadSource.Nexus
+                      { Account = "42"
+                        Game = "skyrimspecialedition"
+                        ModId = 64012L
+                        FileId = 502L
+                        Keyed = false
+                        Version = None } ]
+              ExpectedLength = Some 1048576L
+              ExpectedSha256 = None }
+        |> wait
+        |> result
+        |> ignore
+
+        until (fun () ->
+            let redirected = store.Artifacts.Read(workspace, redirectedId) |> wait |> result
+            redirected.Download.Value.State = DownloadState.Complete)
+
+        check
+            "nexusDownloadFollowsReturnedUrlAndRedirectAcrossServers"
+            (redirectServer.Count "/payload" > 0
+             && server.Count "/payload" > originalPayloadRequests
+             && not redirectServer.PrivateHeader
+             && not server.PrivateHeader)
 
         use db =
             new Microsoft.Data.Sqlite.SqliteConnection(

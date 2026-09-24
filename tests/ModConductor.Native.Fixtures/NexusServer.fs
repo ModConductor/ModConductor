@@ -39,6 +39,8 @@ type NexusServer() =
     let mutable held: TaskCompletionSource<unit> option = None
     let mutable payload = Array.init (1024 * 1024) (fun n -> byte (n % 251))
     let mutable downloadKey = "synthetic-signed-key-A"
+    let mutable downloadBase = root
+    let mutable payloadRedirect = None
     let mutable nxmRequests = 0
     let mutable apiKeyRequests = 0
     let mutable privateHeader = false
@@ -238,17 +240,11 @@ type NexusServer() =
                                         else
                                             None)
 
-                                let origin =
-                                    if mode = "bad-origin" then
-                                        "https://outside.invalid/"
-                                    else
-                                        root
-
                                 write
                                     200
                                     (("[{"
                                       + "\"name\":\"Fixture CDN\",\"short_name\":\"fixture\",\"URI\":\""
-                                      + origin
+                                      + downloadBase
                                       + "payload?mod="
                                       + (modId |> Option.map string |> Option.defaultValue "")
                                       + "&key="
@@ -577,6 +573,18 @@ type NexusServer() =
                             do! write 200 (file 501 "Quiet rivers.7z" "Main files")
                         else
                             do! write 404 "{}"
+                elif path = "/payload" && payloadRedirect.IsSome then
+                    if
+                        request.Headers["Authorization"] <> null
+                        || request.Headers["APIKEY"] <> null
+                        || request.Headers["Cookie"] <> null
+                    then
+                        privateHeader <- true
+
+                    response.StatusCode <- 302
+
+                    response.RedirectLocation <-
+                        payloadRedirect.Value + "payload" + request.Url.Query
                 elif path = "/payload" && mode = "link-refused" then
                     do! write 403 "{\"error\":\"synthetic-signed-key-expired\"}"
                 elif path = "/payload" then
@@ -669,8 +677,7 @@ type NexusServer() =
           ClientId = "isolated-fixture-client"
           Scopes = [ "openid"; "profile" ]
           RedirectPath = "/oauth/callback"
-          RedirectPort = 0
-          DownloadOrigins = [ Uri root ] }
+          RedirectPort = 0 }
 
     member _.Handoff: IOAuthHandoff =
         OAuthHandoff(fun (uri, token) ->
@@ -713,6 +720,12 @@ type NexusServer() =
 
     member _.DownloadKey
         with set value = downloadKey <- value
+
+    member _.DownloadBase
+        with set value = downloadBase <- value
+
+    member _.PayloadRedirect
+        with set value = payloadRedirect <- Some value
 
     member _.Metadata
         with set value = metadata <- value

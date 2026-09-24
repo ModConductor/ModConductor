@@ -27,13 +27,6 @@ type NexusSession
         |> Option.map _.Api
         |> Option.defaultValue (Uri "https://api.nexusmods.com/v1/")
 
-    let downloadOrigins =
-        registration
-        |> Option.map _.DownloadOrigins
-        |> Option.defaultValue
-            [ Uri "https://cf-files.nexusmods.com/"
-              Uri "https://premium-files.nexusmods.com/" ]
-
     let transport =
         new NexusTransport(api, defaultArg requestInterval (TimeSpan.FromSeconds 1.))
 
@@ -1001,17 +994,7 @@ type NexusSession
 
                     let url = Uri(NexusJson.text "URI" first, UriKind.Absolute)
 
-                    if
-                        url.UserInfo <> ""
-                        || url.Fragment <> ""
-                        || not (
-                            downloadOrigins
-                            |> List.exists (fun origin ->
-                                origin.GetLeftPart(UriPartial.Authority) = url.GetLeftPart(
-                                    UriPartial.Authority
-                                ))
-                        )
-                    then
+                    if url.UserInfo <> "" || url.Fragment <> "" then
                         NexusJson.fail ()
 
                     let lease =
@@ -1032,8 +1015,6 @@ type NexusSession
             match leases.TryGetValue key with
             | true, lease when lease.Url = url -> leases.Remove key |> ignore
             | _ -> ())
-
-    member _.DownloadOrigins = downloadOrigins
 
     member _.Stop() =
         task {
