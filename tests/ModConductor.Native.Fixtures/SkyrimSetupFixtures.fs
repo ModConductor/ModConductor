@@ -135,6 +135,7 @@ module SkyrimSetupFixtures =
         let mutable latestRun = None
         let mutable skseReads = 0
         let mutable skseStarts = 0
+        let mutable failSkse = false
         let mutable enbSelections = 0
         let mutable fnisInstalls = 0
         let mutable enbCancels = 0
@@ -177,6 +178,7 @@ module SkyrimSetupFixtures =
 
             output <- ModConductor.Fnis.FnisOutputPhase.Stale
             latestRun <- None
+            failSkse <- false
             blockEnb <- false
             enbStarted.Reset()
             blockFnis <- false
@@ -211,6 +213,8 @@ module SkyrimSetupFixtures =
 
         member _.SkseReads = skseReads
         member _.SkseStarts = skseStarts
+        member _.FailSkse() = failSkse <- true
+        member _.AllowSkse() = failSkse <- false
         member _.EnbSelections = enbSelections
         member _.FnisInstalls = fnisInstalls
         member _.EnbCancels = enbCancels
@@ -245,8 +249,9 @@ module SkyrimSetupFixtures =
                     skseStarts <- skseStarts + 1
                     skse <-
                         { skse with
-                            Phase = SksePhase.Ready
-                            Status = "SKSE is ready" }
+                            Phase = if failSkse then SksePhase.Failed else SksePhase.Ready
+                            Status = if failSkse then "SKSE install failed" else "SKSE is ready"
+                            Detail = if failSkse then "The archive could not be installed." else "" }
 
                     Task.FromResult skse
               CancelSkse = fun _ _ -> Task.FromResult skse
@@ -425,6 +430,51 @@ module SkyrimSetupFixtures =
              && (completed |> Option.exists _.Completed)
              && availableAgain.Phase = SkyrimSetupPhase.Available
              && availableAgain.Selection = noChoice)
+
+        let failedWorkspace, failedProfile, _ = createWorkspace store area "failed-skse" true
+        let failing = WorkflowState()
+        failing.FailSkse()
+        use failedOwner = new SkyrimSetupCoordinator(store, failing.Dependencies)
+        let _ = failedOwner.Start(failedWorkspace, failedProfile, skseOnly, CancellationToken.None) |> wait
+
+        let failed =
+            until
+                "SKSE setup failure"
+                (fun () ->
+                    let current =
+                        failedOwner.Read(failedWorkspace, failedProfile, noChoice, CancellationToken.None)
+                        |> wait
+
+                    if current.CanContinue && current.Phase <> SkyrimSetupPhase.Failed then
+                        failedOwner.Continue(failedWorkspace, failedProfile, CancellationToken.None)
+                        |> wait
+                    else
+                        current)
+                (fun current -> current.Phase = SkyrimSetupPhase.Failed)
+
+        let repeated =
+            failedOwner.Continue(failedWorkspace, failedProfile, CancellationToken.None)
+            |> wait
+
+        check
+            writer
+            "automaticContinueKeepsSkseFailureWithoutRetry"
+            (failing.SkseStarts = 1
+             && repeated.Phase = SkyrimSetupPhase.Failed
+             && repeated.Status = failed.Status
+             && repeated.Detail = failed.Detail)
+
+        failing.AllowSkse()
+
+        let explicitRetry =
+            failedOwner.Start(failedWorkspace, failedProfile, skseOnly, CancellationToken.None)
+            |> wait
+
+        check
+            writer
+            "explicitApplyRetriesFailedSkse"
+            (failing.SkseStarts = 2
+             && explicitRetry.Phase <> SkyrimSetupPhase.Failed)
 
         let execute name selection expected =
             let freshWorkspace, freshProfile, _ = createWorkspace store area name true

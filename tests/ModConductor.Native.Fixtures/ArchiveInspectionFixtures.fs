@@ -136,6 +136,48 @@ module ArchiveInspectionFixtures =
             check (hash path = before)
             writer.WriteBoolean(name + "MetadataAndLazyBytesUnchanged", true)
 
+        let windowsAttributes =
+            adopt (
+                Path.Combine(
+                    AppContext.BaseDirectory,
+                    "fixtures",
+                    "archives",
+                    "windows-attributes.7z"
+                )
+            )
+
+        store.ArchiveInspection.WithContents(
+            reference windowsAttributes,
+            token,
+            fun contents ->
+                let entry = contents.Manifest.Entries |> List.exactlyOne
+                check (LogicalPath.display entry.Path = "file.txt" && not entry.Directory)
+
+                contents.ReadEntry(
+                    entry.Index,
+                    fun stream ->
+                        use output = new MemoryStream()
+                        stream.CopyTo output
+
+                        check (
+                            output.ToArray() =
+                                Encoding.UTF8.GetBytes("synthetic 7z attribute fixture\n")
+                        )
+                )
+        )
+        |> wait
+        |> result
+
+        writer.WriteBoolean("Windows7zFileAttributesAllowOrdinaryFile", true)
+
+        let unixSymlink =
+            adopt (
+                Path.Combine(AppContext.BaseDirectory, "fixtures", "archives", "unix-symlink.7z")
+            )
+
+        check (safeError (fun () -> inspect unixSymlink |> ignore) |> Option.isSome)
+        writer.WriteBoolean("Unix7zSymlinkRefused", true)
+
         for name in
             [ "rar5-store.rar"
               "test_read_format_rar5_compressed.rar"

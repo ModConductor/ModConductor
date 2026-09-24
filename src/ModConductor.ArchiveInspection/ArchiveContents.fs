@@ -77,7 +77,7 @@ type internal SharpArchiveContents
                   match entry with
                   | :? RarEntry -> attr &&& 0xF000
                   | :? SevenZipEntry as seven when seven.ExtendedAttrib.HasValue ->
-                      seven.ExtendedAttrib.Value &&& 0xF000
+                      (seven.ExtendedAttrib.Value >>> 16) &&& 0xF000
                   | _ -> (attr >>> 16) &&& 0xF000
 
               if

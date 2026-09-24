@@ -17,6 +17,7 @@ class SetupClientFixture extends SkyrimSetupClient {
   SkyrimSetupSelection lastSelection = const SkyrimSetupSelection();
   SkyrimSetupSelection? applied;
   int starts = 0;
+  int continues = 0;
   int pageOpens = 0;
   bool cancelled = false;
 
@@ -60,7 +61,7 @@ class SetupClientFixture extends SkyrimSetupClient {
       ],
       selection: selection,
       canStart: selection.canApply,
-      canContinue: false,
+      canContinue: failed,
       active: false,
       ready: false,
       canCancel: running || failed,
@@ -97,7 +98,10 @@ class SetupClientFixture extends SkyrimSetupClient {
   Future<SkyrimSetupStatus> continueSetup(
     String workspace,
     String profile,
-  ) async => state(lastSelection, running: true);
+  ) async {
+    continues++;
+    return state(lastSelection, running: true);
+  }
   @override
   Future<SkyrimSetupStatus> cancel(String workspace, String profile) async {
     cancelled = true;
@@ -259,6 +263,23 @@ void main() {
     expect(client.starts, 2);
     expect(client.applied!.skse, SkyrimSetupAction.install);
     expect(client.applied!.fnis, SkyrimSetupAction.unchanged);
+  });
+
+  testWidgets('Try again starts the failed setup explicitly', (tester) async {
+    final client = SetupClientFixture(failFirstStart: true);
+    await tester.pumpWidget(app(client));
+    await settle(tester);
+    await tester.tap(find.byType(Switch).first);
+    await settle(tester);
+    await tester.tap(find.byKey(const ValueKey('apply-skyrim-setup')));
+    await settle(tester);
+    expect(client.starts, 1);
+
+    await tester.tap(find.text('Try again'));
+    await settle(tester);
+    expect(client.starts, 2);
+    expect(client.continues, 0);
+    expect(client.applied!.skse, SkyrimSetupAction.install);
   });
 
   testWidgets('installed toggle removes and update is separate', (

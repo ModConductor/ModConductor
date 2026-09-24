@@ -266,9 +266,10 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
                 onPressed: busy
                     ? null
                     : () => change(
-                        () => widget.client.continueSetup(
+                        () => widget.client.start(
                           widget.workspaceId,
                           widget.profileId,
+                          selection: selection,
                         ),
                       ),
               ),

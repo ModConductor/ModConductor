@@ -1048,11 +1048,12 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                 return! inspect workspace profile ModConductor.Persistence.SetupSelection.none (Some cancelled) token
         }
 
-    let advance workspace profile (intent: StoredSkyrimSetupIntent) token =
+    let advance workspace profile (intent: StoredSkyrimSetupIntent) retryFailed token =
         task {
             let! before = inspect workspace profile intent.Selection (Some intent) token
 
             match before.Phase with
+            | SkyrimSetupPhase.Failed when not retryFailed -> return before
             | SkyrimSetupPhase.PreparingDeployment
             | SkyrimSetupPhase.RecoveryRequired ->
                 let! deployment = store.Deployments.Read profile
@@ -1288,7 +1289,7 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                 && not intent.Completed
                 && selection = intent.Selection
                 ->
-                return! advance workspace profile intent token
+                return! advance workspace profile intent true token
             | _ ->
                 let! current =
                     match existing with
@@ -1328,7 +1329,7 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                                   RequestedAt = DateTimeOffset.UtcNow }
 
                             do! store.SkyrimSetups.Save next
-                            return! advance workspace profile next token
+                            return! advance workspace profile next true token
         }
 
     member _.Continue(workspace, profile, token) =
@@ -1338,7 +1339,7 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
             match intent with
             | Some value when value.CancelRequested ->
                 return! completeCancellation workspace profile value token
-            | Some value -> return! advance workspace profile value token
+            | Some value -> return! advance workspace profile value false token
             | None -> return! inspect workspace profile ModConductor.Persistence.SetupSelection.none None token
         }
 

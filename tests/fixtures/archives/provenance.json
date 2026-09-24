@@ -18,5 +18,15 @@
     "file": "rar5-encrypted.rar",
     "sha256": "72b69a1d5f5757511e683a9207166c60e91ce0846ae446b8b332b085f9e0ba48",
     "source": "https://github.com/libarchive/libarchive/blob/c719b9b1f56621d92063a85361cc8d114f5575a9/libarchive/test/test_read_format_rar5_encrypted.rar.uu"
+  },
+  {
+    "file": "windows-attributes.7z",
+    "sha256": "f4bbb0f3aead38ea54818198c173b99556aff8936fff0da01aa5b13b19b68945",
+    "source": "MC generated: p7zip Copy archive with synthetic file; 7z header attributes set to Windows 0x2020 and CRCs updated"
+  },
+  {
+    "file": "unix-symlink.7z",
+    "sha256": "dd92222a6d60212eeb49faf0383ec7edfd73b9075f644c2cf81c9bae7f59a3e8",
+    "source": "MC generated: p7zip -snl archive with a file and a relative Unix symlink"
   }
 ]

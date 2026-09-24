@@ -52,5 +52,6 @@
     <ProjectReference Include="../../src/ModConductor.SteamDiscovery/ModConductor.SteamDiscovery.fsproj"/>
     <PackageReference Include="FSharp.Core"/><PackageReference Include="K4os.Compression.LZ4"/>
     <Content Include="../fixtures/archives/*.rar" Link="fixtures/archives/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest"/>
+    <Content Include="../fixtures/archives/*.7z" Link="fixtures/archives/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest"/>
   </ItemGroup>
 </Project>

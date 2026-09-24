@@ -175,107 +175,101 @@ type SkseCoordinator
         (context: ModConductor.GameContexts.GameContextState)
         (selection: StoredSkseSelection)
         (artifact: Artifact)
+        (local: CancellationTokenSource)
         =
-        let local = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token)
+        (task {
+            let gameVersion, _ = facts context
+            let release = selection.Selection.Release
 
-        if workers.TryAdd(key, local) then
-            (task {
-                let gameVersion, _ = facts context
-                let release = selection.Selection.Release
+            try
+                let waitForArtifact () =
+                    Task.Run(fun () ->
+                        let mutable current = artifact
+                        let mutable waiting = true
 
-                try
-                    let waitForArtifact () =
-                        Task.Run(fun () ->
-                            let mutable current = artifact
-                            let mutable waiting = true
+                        while waiting do
+                            local.Token.ThrowIfCancellationRequested()
 
-                            while waiting do
-                                local.Token.ThrowIfCancellationRequested()
-
-                                match current.State, current.Download with
-                                | (ArtifactState.Ready | ArtifactState.Installed), _ ->
-                                    waiting <- false
-                                | ArtifactState.Incomplete, Some download when
-                                    download.State = DownloadState.Failed
-                                    || download.State = DownloadState.Paused
-                                    ->
-                                    raise (
-                                        IO.IOException(
-                                            current.Problem
-                                            |> Option.defaultValue "The SKSE download stopped."
-                                        )
+                            match current.State, current.Download with
+                            | (ArtifactState.Ready | ArtifactState.Installed), _ ->
+                                waiting <- false
+                            | ArtifactState.Incomplete, Some download when
+                                download.State = DownloadState.Failed
+                                || download.State = DownloadState.Paused
+                                ->
+                                raise (
+                                    IO.IOException(
+                                        current.Problem
+                                        |> Option.defaultValue "The SKSE download stopped."
                                     )
-                                | _ ->
-                                    Task.Delay(100, local.Token).GetAwaiter().GetResult()
+                                )
+                            | _ ->
+                                Task.Delay(100, local.Token).GetAwaiter().GetResult()
 
-                                    current <-
-                                        store.Artifacts
-                                            .Read(fst key, current.Id)
-                                            .GetAwaiter()
-                                            .GetResult()
-                                        |> Result.defaultWith (fun _ ->
-                                            raise (
-                                                IO.IOException "The SKSE archive is unavailable."
-                                            ))
+                                current <-
+                                    store.Artifacts
+                                        .Read(fst key, current.Id)
+                                        .GetAwaiter()
+                                        .GetResult()
+                                    |> Result.defaultWith (fun _ ->
+                                        raise (IO.IOException "The SKSE archive is unavailable."))
 
-                            current)
+                        current)
 
-                    let! current = waitForArtifact ()
+                let! current = waitForArtifact ()
 
-                    if not local.IsCancellationRequested then
-                        do! saveArtifact current selection
+                if not local.IsCancellationRequested then
+                    do! saveArtifact current selection
 
-                        let! _ =
-                            persist
-                                key
-                                { Phase = SksePhase.Installing
-                                  GameVersion = gameVersion
-                                  ComponentVersion = string release.ComponentVersion
-                                  Status = "Installing SKSE"
-                                  Detail = ""
-                                  FileId = Some release.File.Id }
+                    let! _ =
+                        persist
+                            key
+                            { Phase = SksePhase.Installing
+                              GameVersion = gameVersion
+                              ComponentVersion = string release.ComponentVersion
+                              Status = "Installing SKSE"
+                              Detail = ""
+                              FileId = Some release.File.Id }
 
-                        let! _ =
-                            store.InstallSkse(
-                                fst key,
-                                snd key,
-                                release,
-                                current,
-                                selection.CheckedAt,
-                                local.Token
-                            )
+                    let! _ =
+                        store.InstallSkse(
+                            fst key,
+                            snd key,
+                            release,
+                            current,
+                            selection.CheckedAt,
+                            local.Token
+                        )
 
-                        let! _ =
-                            persist
-                                key
-                                { Phase = SksePhase.Ready
-                                  GameVersion = gameVersion
-                                  ComponentVersion = string release.ComponentVersion
-                                  Status = "SKSE is current"
-                                  Detail = "Play uses the installed SKSE loader."
-                                  FileId = Some release.File.Id }
+                    let! _ =
+                        persist
+                            key
+                            { Phase = SksePhase.Ready
+                              GameVersion = gameVersion
+                              ComponentVersion = string release.ComponentVersion
+                              Status = "SKSE is current"
+                              Detail = "Play uses the installed SKSE loader."
+                              FileId = Some release.File.Id }
 
-                        ()
-                with
-                | :? OperationCanceledException when local.IsCancellationRequested -> ()
-                | error ->
-                    failed
-                        key
-                        gameVersion
-                        (string release.ComponentVersion)
-                        (Some release.File.Id)
-                        "SKSE setup failed"
-                        error.Message
-                    |> fun pending -> pending.GetAwaiter().GetResult() |> ignore
+                    ()
+            with
+            | :? OperationCanceledException when local.IsCancellationRequested -> ()
+            | error ->
+                failed
+                    key
+                    gameVersion
+                    (string release.ComponentVersion)
+                    (Some release.File.Id)
+                    "SKSE setup failed"
+                    error.Message
+                |> fun pending -> pending.GetAwaiter().GetResult() |> ignore
 
-                let mutable removed = Unchecked.defaultof<CancellationTokenSource>
-                workers.TryRemove(key, &removed) |> ignore
-                local.Dispose()
-            }
-            :> Task)
-            |> ignore
-        else
+            let mutable removed = Unchecked.defaultof<CancellationTokenSource>
+            workers.TryRemove(key, &removed) |> ignore
             local.Dispose()
+        }
+        :> Task)
+        |> ignore
 
     let prepareArtifact
         key
@@ -285,21 +279,32 @@ type SkseCoordinator
         (label: string)
         =
         task {
-            do! saveArtifact artifact selection
+            let local = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token)
             let gameVersion, _ = facts context
 
-            let! view =
-                persist
-                    key
-                    { Phase = SksePhase.Downloading
-                      GameVersion = gameVersion
-                      ComponentVersion = string selection.Selection.Release.ComponentVersion
-                      Status = label
-                      Detail = ""
-                      FileId = Some selection.Selection.Release.File.Id }
+            let downloading =
+                { Phase = SksePhase.Downloading
+                  GameVersion = gameVersion
+                  ComponentVersion = string selection.Selection.Release.ComponentVersion
+                  Status = label
+                  Detail = ""
+                  FileId = Some selection.Selection.Release.File.Id }
 
-            monitor key context selection artifact
-            return view
+            if workers.TryAdd(key, local) then
+                try
+                    do! saveArtifact artifact selection
+                    let! view = persist key downloading
+                    monitor key context selection artifact local
+                    return view
+                with error ->
+                    let mutable removed = Unchecked.defaultof<CancellationTokenSource>
+                    workers.TryRemove(key, &removed) |> ignore
+                    local.Dispose()
+                    return raise error
+            else
+                local.Dispose()
+                let! status = store.SkseLoaders.ReadStatus(fst key, snd key)
+                return status |> Option.map fromStored |> Option.defaultValue downloading
         }
 
     let installedState
@@ -387,6 +392,18 @@ type SkseCoordinator
                 match saved with
                 | Some status when status.Phase = "waiting" || status.Phase = "failed" ->
                     return fromStored status
+                | Some status when status.Phase = "downloading" || status.Phase = "installing" ->
+                    if workers.ContainsKey key then
+                        return fromStored status
+                    else
+                        return!
+                            failed
+                                key
+                                status.GameVersion
+                                status.ComponentVersion
+                                status.NexusFileId
+                                "SKSE setup stopped"
+                                "Select Try again to install the downloaded archive."
                 | _ ->
                     let! loader =
                         store.SkseLoaders.ReadStored(workspace, profile, deployed.ActiveGeneration)

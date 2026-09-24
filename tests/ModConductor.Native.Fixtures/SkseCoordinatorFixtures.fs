@@ -693,6 +693,7 @@ module SkseCoordinatorFixtures =
             server.Mode <- mode
             configure server runtime fileId version bytes
             let started = coordinator.Start(workspace, profile) |> wait
+            let during = coordinator.Read(workspace, profile) |> wait
 
             if changeGame then
                 GameContextFixtures.create game 105
@@ -712,6 +713,7 @@ module SkseCoordinatorFixtures =
                 |> ignore
 
             let failed = waitForStatus store workspace profile "failed"
+            let afterFailure = coordinator.Read(workspace, profile) |> wait
             let preserved = snapshot store workspace profile = preservedSetup
             failurePoint <- ""
             server.Mode <- "good"
@@ -733,7 +735,14 @@ module SkseCoordinatorFixtures =
                 |> result
                 |> ignore
 
-            started.Phase = SksePhase.Downloading && failed.Detail <> "" && preserved
+            started.Phase = SksePhase.Downloading
+            && (during.Phase = SksePhase.Downloading
+                || during.Phase = SksePhase.Installing
+                || during.Phase = SksePhase.Failed)
+            && afterFailure.Phase = SksePhase.Failed
+            && afterFailure.Detail = failed.Detail
+            && failed.Detail <> ""
+            && preserved
 
         let transfer =
             failedReplacement
