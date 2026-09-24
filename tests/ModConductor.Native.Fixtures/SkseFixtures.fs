@@ -8,6 +8,7 @@ open System.Text
 open System.Text.Json
 open System.Threading
 open ModConductor.ArchiveInspection
+open ModConductor.ArchiveInstallation
 open ModConductor.ArtifactLibrary
 open ModConductor.Deployment
 open ModConductor.GameContexts
@@ -50,7 +51,8 @@ module SkseFixtures =
             [ "skse64_" + marker + "/skse64_loader.exe", "loader-" + marker
               "skse64_" + marker + "/skse64_" + runtime.Replace('.', '_') + ".dll",
               "runtime-" + marker
-              "skse64_" + marker + "/Data/Scripts/skse.pex", "script-" + marker ] do
+              "skse64_" + marker + "/Data/Scripts/skse.pex", "script-" + marker
+              "skse64_" + marker + "/src/readme.txt", "source-" + marker ] do
             use target = zip.CreateEntry(name).Open()
             let bytes = Encoding.UTF8.GetBytes content
             target.Write(bytes)
@@ -351,6 +353,15 @@ module SkseFixtures =
               CheckedAt = DateTimeOffset.UtcNow }
         )
         |> wait
+
+        let genericDraft =
+            store.Installations.Prepare(
+                { WorkspaceId = workspace
+                  Id = firstArtifact.Id
+                  Revision = firstArtifact.Revision },
+                CancellationToken.None
+            )
+            |> wait
 
         let installedGeneration =
             store.InstallSkse(
@@ -654,7 +665,8 @@ module SkseFixtures =
 
         writer.WriteBoolean(
             "transferArchiveInstallGeneration",
-            firstArtifact.Download |> Option.exists (fun value -> value.ChecksumMatched)
+            genericDraft.Installer = InstallationMode.Bain
+            && (firstArtifact.Download |> Option.exists (fun value -> value.ChecksumMatched))
             && deployedFirst.ActiveGeneration = Some firstGeneration
             && (firstStored |> Option.exists (fun value -> value.Loader.Executable = loaderPath))
         )

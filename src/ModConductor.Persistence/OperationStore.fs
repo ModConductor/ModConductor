@@ -792,6 +792,17 @@ type OperationStore
                 ModConductor.Skse.SkseArchiveLayout.review release draft.Manifest
                 |> Result.defaultWith (ModConductor.Skse.SkseProblem.message >> fail)
 
+            let draft =
+                if draft.Installer = ModConductor.ArchiveInstallation.InstallationMode.Manual then
+                    draft
+                else
+                    installations.UseInstaller(
+                        workspace,
+                        draft.Id,
+                        draft.Revision,
+                        ModConductor.ArchiveInstallation.InstallationMode.Manual
+                    )
+
             let reviewed =
                 installations.SelectReviewed(
                     workspace,
