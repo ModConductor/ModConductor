@@ -572,8 +572,7 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
         match binding.Evidence.Platform with
         | ContextPlatform.Windows -> explicitlyMissing
         | ContextPlatform.Proton ->
-            binding.Evidence.Proton.IsNone
-            || explicitlyMissing
+            explicitlyMissing
             || (binding.NeedsCheck
                 && binding.Failure
                    |> Option.exists (fun detail ->
@@ -685,6 +684,15 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                         "Select and refresh the Skyrim Special Edition Steam installation."
             | Ok context ->
                 match context.Binding with
+                | Some binding when
+                    binding.Evidence.Platform = ContextPlatform.Proton
+                    && binding.Proton.IsNone
+                    ->
+                    return
+                        unavailable
+                            selection
+                            "Proton is not selected"
+                            "Select Proton in the game installation. Then select Refresh."
                 | Some binding when missingFirstRun binding ->
                     return
                         unavailable

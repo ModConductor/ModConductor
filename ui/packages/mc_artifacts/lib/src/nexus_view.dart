@@ -211,10 +211,7 @@ class _NexusFilesViewState extends State<NexusFilesView> {
               ],
             ),
             const SizedBox(height: 12),
-            if (account?.configured == false) ...[
-              const McStatus(title: 'Sign-in is not configured in this build.'),
-              const SizedBox(height: 12),
-            ] else if (account != null && account?.name == null) ...[
+            if (account != null && account?.name == null) ...[
               const McStatus(title: 'Nexus Mods is not connected'),
               const SizedBox(height: 12),
             ],
