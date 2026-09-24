@@ -884,7 +884,8 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                                     let fnisActive =
                                         match fnisState, output with
                                         | Some state, _ when
-                                            state.Phase = FnisPhase.Downloading
+                                            state.Phase = FnisPhase.WaitingForNexus
+                                            || state.Phase = FnisPhase.Downloading
                                             || state.Phase = FnisPhase.Installing
                                             ->
                                             true

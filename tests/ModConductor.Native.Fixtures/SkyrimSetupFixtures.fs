@@ -146,6 +146,7 @@ module SkyrimSetupFixtures =
         let mutable enbSelections = 0
         let mutable failEnb = false
         let mutable fnisInstalls = 0
+        let mutable waitForFnisNexus = false
         let mutable enbCancels = 0
         let mutable runCalls = 0
         let mutable blockEnb = false
@@ -231,6 +232,9 @@ module SkyrimSetupFixtures =
         member _.FailEnb() = failEnb <- true
         member _.AllowEnb() = failEnb <- false
         member _.FnisInstalls = fnisInstalls
+        member _.WaitForFnisNexus() = waitForFnisNexus <- true
+        member _.CompleteFnisNexusSelection() =
+            fnis <- { fnis with Phase = FnisPhase.Ready; Status = "FNIS is ready" }
         member _.EnbCancels = enbCancels
         member _.RunCalls = runCalls
 
@@ -316,8 +320,8 @@ module SkyrimSetupFixtures =
                     fnisInstalls <- fnisInstalls + 1
                     fnis <-
                         { fnis with
-                            Phase = FnisPhase.Ready
-                            Status = "FNIS is ready" }
+                            Phase = if waitForFnisNexus then FnisPhase.WaitingForNexus else FnisPhase.Ready
+                            Status = if waitForFnisNexus then "Waiting for Nexus Mods" else "FNIS is ready" }
 
                     Task.FromResult fnis
               UpdateFnis = fun _ _ -> Task.FromResult fnis
@@ -632,6 +636,55 @@ module SkyrimSetupFixtures =
              && fnisOnlyState.EnbSelections = 0
              && fnisOnlyState.FnisInstalls = 1
              && (fnisOnlyIntent |> Option.exists (fun item -> item.Selection = fnisOnly)))
+
+        let waitingWorkspace, waitingProfile, _ = createWorkspace store area "waiting-fnis" true
+        let waitingWorkflow = WorkflowState()
+        waitingWorkflow.WaitForFnisNexus()
+        use waitingOwner = new SkyrimSetupCoordinator(store, waitingWorkflow.Dependencies)
+        let _ = waitingOwner.Start(waitingWorkspace, waitingProfile, fnisOnly, CancellationToken.None) |> wait
+
+        let waiting =
+            until
+                "FNIS waits for Nexus selection"
+                (fun () ->
+                    let current = waitingOwner.Read(waitingWorkspace, waitingProfile, noChoice, CancellationToken.None) |> wait
+
+                    if current.CanContinue then
+                        waitingOwner.Continue(waitingWorkspace, waitingProfile, CancellationToken.None) |> wait
+                    else
+                        current)
+                (fun _ -> waitingWorkflow.FnisInstalls = 1)
+
+        let repeatedWait =
+            waitingOwner.Continue(waitingWorkspace, waitingProfile, CancellationToken.None) |> wait
+
+        check
+            writer
+            "waitingFnisDoesNotReopenNexus"
+            (waiting.Active
+             && not waiting.CanContinue
+             && repeatedWait.Active
+             && not repeatedWait.CanContinue
+             && waitingWorkflow.FnisInstalls = 1)
+
+        waitingWorkflow.CompleteFnisNexusSelection()
+
+        let afterNexus =
+            until
+                "FNIS continues after Nexus selection"
+                (fun () ->
+                    let current = waitingOwner.Read(waitingWorkspace, waitingProfile, noChoice, CancellationToken.None) |> wait
+
+                    if current.CanContinue then
+                        waitingOwner.Continue(waitingWorkspace, waitingProfile, CancellationToken.None) |> wait
+                    else
+                        current)
+                (fun current -> current.Ready && waitingWorkflow.RunCalls = 1)
+
+        check
+            writer
+            "fnisContinuesAfterNexusSelection"
+            (afterNexus.Ready && waitingWorkflow.FnisInstalls = 1 && waitingWorkflow.RunCalls = 1)
 
         let _, allState, _ =
             execute
