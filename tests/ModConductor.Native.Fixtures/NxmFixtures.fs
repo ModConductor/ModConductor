@@ -155,7 +155,8 @@ module NxmFixtures =
 
                 NexusLinkRequest(
                     Reference = id.ToString("N"),
-                    WorkspaceId = workspace.ToString("N")
+                    WorkspaceId = workspace.ToString("N"),
+                    ProfileId = profile.ToString("N")
                 )
 
             let invoke request =

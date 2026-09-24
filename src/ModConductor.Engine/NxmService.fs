@@ -47,56 +47,52 @@ type NxmService
                 if file.Game <> "skyrimspecialedition" then
                     result.Problem <- "This download is for a different game"
                     result.ProblemDetail <- "Use a download for this workspace’s game."
-                elif not session.Status.Configured then
-                    result.Problem <- "Nexus downloads are not available in this build."
-                else
-                    if request.WorkspaceId <> "" then
-                        let! game =
-                            games.Read(
-                                ModLibraryWire.id request.WorkspaceId,
-                                ModLibraryWire.id request.ProfileId
-                            )
+                elif request.WorkspaceId <> "" then
+                    let! game =
+                        games.Read(
+                            ModLibraryWire.id request.WorkspaceId,
+                            ModLibraryWire.id request.ProfileId
+                        )
 
-                        match game with
-                        | Ok value when
-                            value.Binding
-                            |> Option.exists (fun binding ->
-                                binding.Evidence.DefinitionId =
-                                    GameId.SkyrimSpecialEditionSteam)
-                            ->
-                            ()
-                        | _ ->
-                            result.Problem <-
-                                "This workspace needs a matching Skyrim Special Edition game context."
+                    match game with
+                    | Ok value when
+                        value.Binding
+                        |> Option.exists (fun binding ->
+                            binding.Evidence.DefinitionId = GameId.SkyrimSpecialEditionSteam)
+                        ->
+                        ()
+                    | _ ->
+                        result.Problem <-
+                            "This workspace needs a matching Skyrim Special Edition game context."
 
-                    if result.Problem = "" then
-                        match session.Status.Account with
-                        | None ->
-                            result.Problem <- "Sign in to Nexus Mods."
-                            result.SignInRequired <- true
-                        | Some account ->
-                            match session.ValidateNxm(id, account.Subject) with
-                            | Error detail ->
-                                result.Problem <- detail.Title
-                                result.ProblemDetail <- detail.Detail
-                            | Ok _ ->
-                                let! metadata = session.ReadFile(file.Game, file.ModId, file.FileId)
+                if result.Problem = "" then
+                    match session.Status.Account with
+                    | None ->
+                        result.Problem <- "Sign in to Nexus Mods."
+                        result.SignInRequired <- true
+                    | Some account ->
+                        match session.ValidateNxm(id, account.Subject) with
+                        | Error detail ->
+                            result.Problem <- detail.Title
+                            result.ProblemDetail <- detail.Detail
+                        | Ok _ ->
+                            let! metadata = session.ReadFile(file.Game, file.ModId, file.FileId)
 
-                                match metadata with
-                                | Error problem -> result.Problem <- NexusProblem.message problem
-                                | Ok value ->
-                                    result.File <- NexusWire.file value
+                            match metadata with
+                            | Error problem -> result.Problem <- NexusProblem.message problem
+                            | Ok value ->
+                                result.File <- NexusWire.file value
 
-                                    if request.WorkspaceId <> "" then
-                                        let! existing =
-                                            downloads.FindNexus(
-                                                ModLibraryWire.id request.WorkspaceId,
-                                                identity file account.Subject
-                                            )
+                                if request.WorkspaceId <> "" then
+                                    let! existing =
+                                        downloads.FindNexus(
+                                            ModLibraryWire.id request.WorkspaceId,
+                                            identity file account.Subject
+                                        )
 
-                                        existing
-                                        |> Option.iter (fun artifact ->
-                                            result.Artifact <- ArtifactWire.artifact artifact)
+                                    existing
+                                    |> Option.iter (fun artifact ->
+                                        result.Artifact <- ArtifactWire.artifact artifact)
 
             return result
         }

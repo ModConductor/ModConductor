@@ -686,6 +686,7 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                 match context.Binding with
                 | Some binding when
                     binding.Evidence.Platform = ContextPlatform.Proton
+                    && binding.Evidence.DefinitionId = Skyrim.definition.Id
                     && binding.Proton.IsNone
                     ->
                     return
