@@ -999,6 +999,98 @@ module FnisFixtures =
              && warningOutput.CurrentVersion <> secondOutput.CurrentVersion
              && enabled store profile = afterCompleted)
 
+        let beforeRebuild = store.Deployments.Read profile |> wait |> result
+
+        let unrelatedGeneration =
+            store.Deployments.Prepare(
+                Guid.NewGuid(),
+                beforeRebuild.Sources,
+                ignore,
+                CancellationToken.None
+            )
+            |> wait
+            |> result
+
+        store.Deployments.Activate(
+            unrelatedGeneration.Id,
+            unrelatedGeneration.Sources,
+            ignore,
+            CancellationToken.None
+        )
+        |> wait
+        |> result
+        |> ignore
+
+        let rebuiltGeneration =
+            (store.Deployments.Read profile |> wait |> result).ActiveGeneration
+
+        let mutable skseState =
+            { Phase = SksePhase.Available
+              GameVersion = "1.6.1170.0"
+              ComponentVersion = "2.2.6"
+              Status = "SKSE is available"
+              Detail = ""
+              FileId = None }
+
+        let mutable skseStarts = 0
+
+        let setupDependencies =
+            { combinedFnisDependencies execution with
+                ReadSkse = fun _ _ -> Task.FromResult skseState
+                StartSkse =
+                    fun _ _ ->
+                        skseStarts <- skseStarts + 1
+                        skseState <-
+                            { skseState with
+                                Phase = SksePhase.Ready
+                                Status = "SKSE is ready" }
+
+                        Task.FromResult skseState
+                ReadLaunch =
+                    fun workspace profile ->
+                        Task.FromResult(
+                            Ok
+                                { WorkspaceId = workspace
+                                  ProfileId = profile
+                                  ContextRevision = 1L
+                                  SourceToken = "fixture-source"
+                                  Name = "SKSE"
+                                  Runtime = "Proton fixture"
+                                  Problem = None
+                                  Latest = None }
+                        )
+                PluginPreflight = fun _ _ _ -> Task.FromResult(Ok()) }
+
+        use setup = new SkyrimSetupCoordinator(store, setupDependencies)
+        let skseOnly = { SetupSelection.none with Skse = SetupAction.Install }
+        let startedSetup = setup.Start(workspace, profile, skseOnly, CancellationToken.None) |> wait
+
+        let afterSkse =
+            until
+                "SKSE-only setup after nonzero FNIS output"
+                (fun () ->
+                    let current = setup.Read(workspace, profile, SetupSelection.none, CancellationToken.None) |> wait
+
+                    if current.CanContinue then
+                        setup.Continue(workspace, profile, CancellationToken.None) |> wait
+                    else
+                        current)
+                (fun current -> current.Ready && skseStarts = 1)
+
+        let completedSetup = setup.Continue(workspace, profile, CancellationToken.None) |> wait
+        let reopenedSetup = setup.Read(workspace, profile, SetupSelection.none, CancellationToken.None) |> wait
+
+        check
+            writer
+            "nonzeroFnisWarningSurvivesLaterSkseOnlySetup"
+            (rebuiltGeneration <> beforeRebuild.ActiveGeneration
+             && (store.FnisSetups.ReadStored(workspace, profile, rebuiltGeneration) |> wait).IsSome
+             && startedSetup.Selection.Fnis = SetupAction.Unchanged
+             && afterSkse.Status.Contains("FNIS exited with code 7")
+             && completedSetup.Status.Contains("FNIS exited with code 7")
+             && reopenedSetup.Status.Contains("FNIS exited with code 7")
+             && skseStarts = 1)
+
         File.WriteAllText(mode, "outputlimit")
         let outputLimitId = Guid.NewGuid()
 

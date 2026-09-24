@@ -196,7 +196,7 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
         task {
             let! skse = store.SkseLoaders.ReadStored(workspace, profile, deployed.ActiveGeneration)
             let! enb = store.EnbSetups.Components(workspace, profile, deployed.ActiveGeneration)
-            let! fnis = store.FnisSetups.ReadExact(workspace, profile, deployed.ActiveGeneration)
+            let! fnis = store.FnisSetups.ReadStored(workspace, profile, deployed.ActiveGeneration)
             let installed = [ skse.IsSome; enb |> List.exists (fun item -> item.Kind = "runtime"); fnis.IsSome ]
             let actions = [ selection.Skse; selection.Enb; selection.Fnis ]
 
@@ -225,7 +225,7 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                 && (deployed.ActiveGeneration.IsSome || actions |> List.exists (fun action -> action = SetupAction.Install))
 
             let! output =
-                if deployed.ActiveGeneration.IsSome then
+                if fnis.IsSome then
                     task {
                         let! inspected = dependencies.InspectFnis workspace profile token
                         return Result.toOption inspected
@@ -598,7 +598,7 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                         elif fnisPendingActive then
                             let state = fnisWhilePending.Value
                             let! installed =
-                                store.FnisSetups.ReadExact(workspace, profile, deployed.ActiveGeneration)
+                                store.FnisSetups.ReadStored(workspace, profile, deployed.ActiveGeneration)
 
                             return
                                 view
@@ -864,7 +864,7 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                                     let baseComponents = [ skseComponent; enbComponent ]
 
                                     let! fnisStored =
-                                        store.FnisSetups.ReadExact(workspace, profile, deployed.ActiveGeneration)
+                                        store.FnisSetups.ReadStored(workspace, profile, deployed.ActiveGeneration)
 
                                     let! fnisState, output =
                                         if selection.Fnis <> SetupAction.Unchanged then
@@ -886,6 +886,13 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                                                     return Some value, Result.toOption inspected
                                                 else
                                                     return Some value, None
+                                            }
+                                        elif fnisStored.IsSome then
+                                            task {
+                                                let! inspected =
+                                                    dependencies.InspectFnis workspace profile token
+
+                                                return None, Result.toOption inspected
                                             }
                                         else
                                             task { return None, None }

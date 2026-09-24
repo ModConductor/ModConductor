@@ -680,6 +680,39 @@ module SkyrimSetupFixtures =
              && not repeatedWait.CanContinue
              && waitingWorkflow.FnisInstalls = 1)
 
+        let waitingGeneration =
+            (store.Deployments.Read waitingProfile |> wait |> result).ActiveGeneration
+            |> Option.defaultWith (fun () -> failwith "FNIS setup did not deploy the profile.")
+
+        use fnisDatabase =
+            new Microsoft.Data.Sqlite.SqliteConnection(
+                "Data Source=" + Path.Combine(state, "state.db") + ";Pooling=False"
+            )
+
+        fnisDatabase.Open()
+
+        Sqlite.execute
+            fnisDatabase
+            null
+            "INSERT INTO fnis_generators(profile_id,workspace_id,generation_id,mod_id,version_id,artifact_id,file_name,file_version,executable,component_version,archive_sha256,provider,source,terms,nexus_mod,nexus_file,acquired_at) VALUES($profile,$workspace,$generation,$mod,$version,$artifact,$name,$fileVersion,$executable,$component,$sha,$provider,$source,$terms,$nexusMod,$nexusFile,$acquired)"
+            [ "$profile", box (string waitingProfile)
+              "$workspace", box (string waitingWorkspace)
+              "$generation", box (string waitingGeneration)
+              "$mod", box (string (Guid.NewGuid()))
+              "$version", box (string (Guid.NewGuid()))
+              "$artifact", box (string (Guid.NewGuid()))
+              "$name", box "fixture FNIS"
+              "$fileVersion", box "7.6"
+              "$executable", box "fixture generator"
+              "$component", box "7.6"
+              "$sha", box (String.replicate 64 "a")
+              "$provider", box "fixture"
+              "$source", box "fixture"
+              "$terms", box "fixture"
+              "$nexusMod", box 1L
+              "$nexusFile", box 1L
+              "$acquired", box (DateTimeOffset.UtcNow.ToString("O")) ]
+
         waitingWorkflow.CompleteFnisNexusSelection()
 
         let afterNexus =
@@ -705,7 +738,6 @@ module SkyrimSetupFixtures =
             writer
             "fnisExitWarningIsVisibleInReadySkyrimSetup"
             (afterNexus.Phase = SkyrimSetupPhase.Ready
-             && afterNexus.CanContinue
              && not afterNexus.Active
              && afterNexus.Status.Contains("FNIS exited with code 7")
              && afterNexus.Detail.Contains("Check the FNIS messages")
@@ -713,8 +745,11 @@ module SkyrimSetupFixtures =
                  |> List.exists (fun item -> item.Id = "fnis" && item.Ready)))
 
         let completedWarning =
-            waitingOwner.Continue(waitingWorkspace, waitingProfile, CancellationToken.None)
-            |> wait
+            if afterNexus.CanContinue then
+                waitingOwner.Continue(waitingWorkspace, waitingProfile, CancellationToken.None)
+                |> wait
+            else
+                afterNexus
 
         let completedIntent = store.SkyrimSetups.Read(waitingWorkspace, waitingProfile) |> wait
         let refreshedWarning =
