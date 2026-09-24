@@ -366,7 +366,18 @@ module NxmFixtures =
               ExpectedLength = Some 1048576L
               ExpectedSha256 = None }
 
+        server.Mode <- "malformed-download-link"
+        let failedLinkId = Guid.NewGuid()
+
+        if not (restoredSession.AcceptNxm(failedLinkId, link)) then
+            failwith "Failed-download NXM fixture admission failed."
+
+        use failedAdmission =
+            restoredSession.AdmitNxm(failedLinkId, "42")
+            |> Result.defaultWith (fun _ -> failwith "failed-download grant")
+
         let replacement = resumed.Downloads.Start newRequest |> wait |> result
+        failedAdmission.Complete()
 
         let duplicate =
             resumed.Downloads.Start { newRequest with Id = Guid.NewGuid() }
@@ -379,6 +390,65 @@ module NxmFixtures =
              && replacement.Id <> original
              && duplicate.Id = replacement.Id
              && (readResumed ()).State = ArtifactState.Detached)
+
+        let readReplacement () =
+            resumed.Artifacts.Read(workspace, replacement.Id) |> wait |> result
+
+        until (fun () -> (readReplacement ()).Download.Value.State = DownloadState.Failed)
+        let failed = readReplacement ()
+        let beforeManualRetry = server.NxmRequests
+
+        let resumedFailure =
+            resumed.Downloads.Control(workspace, replacement.Id, DownloadAction.Resume)
+            |> wait
+            |> result
+
+        until (fun () ->
+            server.NxmRequests > beforeManualRetry
+            && (readReplacement ()).Download.Value.State = DownloadState.Failed)
+
+        check
+            "explicitRetryRequeuesFailedDownload"
+            (resumedFailure.Id = replacement.Id
+             && (readReplacement ()).Download.Value.State = DownloadState.Failed)
+
+        server.Mode <- "good"
+        let beforeLinks = server.NxmRequests
+
+        use retryIngress =
+            new PrivateIngress(
+                (fun (reference, input) -> restoredSession.AcceptNxm(reference, input)),
+                restoredSession.DismissNxm
+            )
+
+        use retryService =
+            new NxmService(restoredSession, retryIngress, resumed.Downloads, resumed.GameContexts)
+
+        let retryId = Guid.NewGuid()
+
+        if not (restoredSession.AcceptNxm(retryId, link)) then
+            failwith "Fresh NXM fixture admission failed."
+
+        let retried =
+            retryService.DownloadNexusLink(
+                NexusLinkRequest(
+                    Reference = retryId.ToString("N"),
+                    WorkspaceId = workspace.ToString("N"),
+                    ProfileId = profile.ToString("N")
+                ),
+                Unchecked.defaultof<_>
+            )
+            |> wait
+
+        until (fun () -> (readReplacement ()).Download.Value.State = DownloadState.Complete)
+
+        check
+            "freshNxmLinkRetriesFailedArtifactWithoutNewIdentity"
+            (failed.Download.Value.Bytes = 0L
+             && failed.Download.Value.State = DownloadState.Failed
+             && retried.Artifact.Id = replacement.Id.ToString("N")
+             && (readReplacement ()).State = ArtifactState.Ready
+             && server.NxmRequests > beforeLinks)
 
         resumed.Downloads.Stop() |> wait
 

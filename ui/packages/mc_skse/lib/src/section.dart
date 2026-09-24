@@ -25,6 +25,7 @@ class SkyrimSetupSection extends StatefulWidget {
 class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
   SkyrimSetupStatus? status;
   SkyrimSetupSelection selection = const SkyrimSetupSelection();
+  bool userEdited = false;
   bool busy = false;
   String? problem;
   Timer? timer;
@@ -43,6 +44,7 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
       timer?.cancel();
       status = null;
       selection = const SkyrimSetupSelection();
+      userEdited = false;
       unawaited(load());
     }
   }
@@ -89,9 +91,13 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
         status = next;
         if (next!.consentRecorded) {
           selection = next.selection;
+          userEdited = false;
         } else if (next.ready ||
             (next.phase == SkyrimSetupStatusPhase.cancelled && !wasCancelled)) {
           selection = const SkyrimSetupSelection();
+          userEdited = false;
+        } else if (!userEdited) {
+          selection = next.selection;
         }
       });
     } on Exception {
@@ -115,6 +121,7 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
     if (busy || status?.consentRecorded == true) return;
     setState(() {
       selection = selection.withAction(id, action);
+      userEdited = true;
       if (id == 'enb' &&
           action != SkyrimSetupAction.install &&
           action != SkyrimSetupAction.update) {
@@ -128,7 +135,10 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
     if (busy) return;
     final file = await widget.chooseArchive();
     if (!mounted || file == null) return;
-    setState(() => selection = selection.withEnbArchive(file.path));
+    setState(() {
+      selection = selection.withEnbArchive(file.path);
+      userEdited = true;
+    });
     await load();
   }
 
@@ -256,9 +266,10 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
                 onPressed: busy
                     ? null
                     : () {
-                        setState(
-                          () => selection = const SkyrimSetupSelection(),
-                        );
+                        setState(() {
+                          selection = const SkyrimSetupSelection();
+                          userEdited = true;
+                        });
                         unawaited(load());
                       },
               ),

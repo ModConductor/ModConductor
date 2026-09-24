@@ -6,8 +6,9 @@ import 'package:mc_skse/mc_skse.dart';
 import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 
 class SetupClientFixture extends SkyrimSetupClient {
-  SetupClientFixture({this.installed = const {}});
+  SetupClientFixture({this.installed = const {}, this.savedSelection});
   final Set<String> installed;
+  final SkyrimSetupSelection? savedSelection;
   SkyrimSetupSelection lastSelection = const SkyrimSetupSelection();
   SkyrimSetupSelection? applied;
   int starts = 0;
@@ -98,7 +99,7 @@ class SetupClientFixture extends SkyrimSetupClient {
     required SkyrimSetupSelection selection,
   }) async {
     lastSelection = selection;
-    return state(selection);
+    return state(savedSelection ?? selection);
   }
 
   @override
@@ -166,6 +167,54 @@ void main() {
           .onPressed,
       isNull,
     );
+    expect(client.starts, 0);
+  });
+
+  testWidgets('saved setup choices can be reviewed and need Apply', (
+    tester,
+  ) async {
+    final client = SetupClientFixture(
+      savedSelection: const SkyrimSetupSelection(
+        skse: SkyrimSetupAction.install,
+      ),
+    );
+    await tester.pumpWidget(app(client));
+    await settle(tester);
+    expect(tester.widget<Switch>(find.byType(Switch).first).value, isTrue);
+    expect(
+      tester
+          .widget<McAction>(find.byKey(const ValueKey('review-skyrim-setup')))
+          .onPressed,
+      isNotNull,
+    );
+    expect(client.starts, 0);
+
+    await tester.tap(find.byKey(const ValueKey('refresh-skyrim-setup')));
+    await settle(tester);
+    expect(tester.widget<Switch>(find.byType(Switch).first).value, isTrue);
+    await tester.tap(find.byKey(const ValueKey('review-skyrim-setup')));
+    await settle(tester);
+    expect(find.byType(McChangeSummary), findsOneWidget);
+    expect(client.starts, 0);
+    await tester.tap(find.byKey(const ValueKey('apply-skyrim-setup')));
+    await settle(tester);
+    expect(client.starts, 1);
+    expect(client.applied!.skse, SkyrimSetupAction.install);
+  });
+
+  testWidgets('refresh keeps an edited setup choice', (tester) async {
+    final client = SetupClientFixture(
+      savedSelection: const SkyrimSetupSelection(
+        skse: SkyrimSetupAction.install,
+      ),
+    );
+    await tester.pumpWidget(app(client));
+    await settle(tester);
+    await tester.tap(find.byType(Switch).first);
+    await settle(tester);
+    await tester.tap(find.byKey(const ValueKey('refresh-skyrim-setup')));
+    await settle(tester);
+    expect(tester.widget<Switch>(find.byType(Switch).first).value, isFalse);
     expect(client.starts, 0);
   });
 

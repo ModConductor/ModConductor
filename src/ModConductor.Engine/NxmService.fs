@@ -6,6 +6,7 @@ open Google.Protobuf
 open ModConductor.Nexus
 open ModConductor.Desktop
 open ModConductor.HttpDownloads
+open ModConductor.ArtifactLibrary
 open ModConductor.GameContexts
 open ModConductor.Protocol.V1
 
@@ -160,8 +161,27 @@ type NxmService
                                                 None
                                           ExpectedSha256 = None }
 
-                                result.Artifact <-
-                                    ArtifactWire.artifact (ArtifactWire.result started)
+                                let artifact = ArtifactWire.result started
+
+                                let! artifact =
+                                    match artifact.Download with
+                                    | Some download when download.State = DownloadState.Failed ->
+                                        task {
+                                            let! retried =
+                                                downloads.Control(
+                                                    artifact.WorkspaceId,
+                                                    artifact.Id,
+                                                    (if download.RestartRequired then
+                                                         DownloadAction.Restart
+                                                     else
+                                                         DownloadAction.Resume)
+                                                )
+
+                                            return ArtifactWire.result retried
+                                        }
+                                    | _ -> Task.FromResult artifact
+
+                                result.Artifact <- ArtifactWire.artifact artifact
 
                                 prepared.Complete()
 

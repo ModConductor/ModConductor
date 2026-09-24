@@ -227,6 +227,8 @@ type NexusServer() =
                             do! write 403 "{\"error\":\"synthetic-nxm-private-grant\"}"
                         elif mode = "entitlement" then
                             do! write 403 "{\"error\":\"synthetic-signed-secret\"}"
+                        elif mode = "malformed-download-link" then
+                            do! write 200 "[{\"URI\":\"not a URL\"}]"
                         else
                             do!
                                 let modId =
