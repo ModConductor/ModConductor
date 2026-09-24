@@ -40,6 +40,7 @@ type NexusSession
     let mutable disconnecting = false
     let mutable problem = None
     let mutable signIn: Task = Task.CompletedTask
+    let mutable savedConnection: Task = Task.CompletedTask
     let nxm = NxmAuthorizations()
     let interactions = InteractionMemory()
 
@@ -222,6 +223,7 @@ type NexusSession
 
     let run action =
         task {
+            do! lock gate (fun () -> savedConnection)
             let epoch, token = context ()
 
             let! result =
@@ -243,6 +245,8 @@ type NexusSession
         }
 
     member _.Status = status ()
+
+    member _.SavedConnection = lock gate (fun () -> savedConnection)
 
     member _.SignIn() =
         task {
@@ -450,17 +454,21 @@ type NexusSession
         }
 
     member _.ConnectSaved() =
-        task {
-            let epoch, token = context ()
-            let! saved = credentials.Status token
+        let pending =
+            task {
+                let epoch, token = context ()
+                let! saved = credentials.Status token
 
-            if saved.Saved = SavedPresence.Present then
-                let! result = NexusBoundary.protect (fun () -> access epoch token true)
+                if saved.Saved = SavedPresence.Present then
+                    let! result = NexusBoundary.protect (fun () -> access epoch token true)
 
-                match result with
-                | Error error -> fail epoch error
-                | Ok _ -> ()
-        }
+                    match result with
+                    | Error error -> fail epoch error
+                    | Ok _ -> ()
+            }
+
+        lock gate (fun () -> savedConnection <- pending)
+        pending
 
     member _.CheckAccount() =
         task {

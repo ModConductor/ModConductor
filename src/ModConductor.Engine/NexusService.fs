@@ -61,7 +61,10 @@ type NexusService
         }
 
     override _.ReadNexusStatus(_, _) =
-        Task.FromResult(NexusWire.status session.Status)
+        task {
+            do! session.SavedConnection
+            return NexusWire.status session.Status
+        }
 
     override _.BeginNexusSignIn(_, _) =
         task {
@@ -113,6 +116,7 @@ type NexusService
 
     override _.DownloadNexusFile(request, _) =
         task {
+            do! session.SavedConnection
             let workspace = ModLibraryWire.id request.WorkspaceId
             let! mapped = game workspace (ModLibraryWire.id request.ProfileId)
 

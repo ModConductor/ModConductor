@@ -31,6 +31,7 @@ type NxmService
 
     let read (request: NexusLinkRequest) =
         task {
+            do! session.SavedConnection
             let id = ModLibraryWire.id request.Reference
             let result = NexusLinkReply()
 

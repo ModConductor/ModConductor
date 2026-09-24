@@ -13,6 +13,7 @@ open ModConductor.HttpDownloads
 open ModConductor.ArtifactLibrary
 open ModConductor.Persistence
 open ModConductor.Workspaces
+open ModConductor.Protocol.V1
 
 type internal NexusMemoryStore() =
     let mutable bytes: byte[] option = None
@@ -134,6 +135,72 @@ module NexusFixtures =
                      text.Contains("synthetic-refresh-secret")
                      && not (text.Contains("synthetic-access-secret")))))
 
+        do
+            use restored =
+                new NexusSession(
+                    credentials,
+                    Some server.Registration,
+                    server.Handoff,
+                    (fun _ -> Task.CompletedTask),
+                    requestInterval = TimeSpan.Zero
+                )
+
+            let before = server.TokenCount
+            let hold = server.HoldToken()
+            let connecting = restored.ConnectSaved()
+            until (fun () -> server.TokenCount > before)
+
+            let reference = Guid.NewGuid()
+
+            let link =
+                "nxm://skyrimspecialedition/mods/64012/files/501?key=synthetic-nxm-private-grant&expires="
+                + DateTimeOffset.UtcNow.AddMinutes(5.).ToUnixTimeSeconds().ToString()
+                + "&user_id=42"
+
+            if not (restored.AcceptNxm(reference, link)) then
+                failwith "The startup NXM fixture link was not accepted."
+
+            let nexus =
+                new NexusService(
+                    restored,
+                    Unchecked.defaultof<_>,
+                    Unchecked.defaultof<_>,
+                    server.Handoff
+                )
+
+            use nxm =
+                new NxmService(
+                    restored,
+                    Unchecked.defaultof<_>,
+                    Unchecked.defaultof<_>,
+                    Unchecked.defaultof<_>
+                )
+
+            let firstStatus =
+                nexus.ReadNexusStatus(NexusStatusRequest(), Unchecked.defaultof<_>)
+
+            let firstLink =
+                nxm.ReadNexusLink(
+                    NexusLinkRequest(Reference = reference.ToString("N")),
+                    Unchecked.defaultof<_>
+                )
+
+            check
+                "firstNexusStatusAndLinkWaitForSavedConnection"
+                (not firstStatus.IsCompleted && not firstLink.IsCompleted)
+
+            hold.TrySetResult() |> ignore
+            connecting |> wait
+            let status = firstStatus |> wait
+            let resolved = firstLink |> wait
+
+            check
+                "firstNexusStatusAndLinkUseRestoredAccount"
+                (status.AccountName = "Rowan"
+                 && not resolved.SignInRequired
+                 && resolved.Problem = ""
+                 && resolved.File.Id = 501L)
+
         let before = server.TokenCount
         let a = session.ReadMod("skyrimspecialedition", 64012L)
         let b = session.ReadMod("skyrimspecialedition", 64012L)
@@ -216,6 +283,32 @@ module NexusFixtures =
             (cancelledRemoval.Saved = SavedPresence.Present
              && cancelledRemoval.RemovalProblem = Some StorageProblem.Cancelled
              && racer.Status.Account.IsSome)
+
+        do
+            use restoring =
+                new NexusSession(
+                    credentials,
+                    Some server.Registration,
+                    server.Handoff,
+                    (fun _ -> Task.CompletedTask),
+                    requestInterval = TimeSpan.Zero
+                )
+
+            let before = server.TokenCount
+            let hold = server.HoldToken()
+            let connecting = restoring.ConnectSaved()
+            until (fun () -> server.TokenCount > before)
+            let firstRead = restoring.ReadMod("skyrimspecialedition", 64012L)
+            let removed = restoring.Disconnect token |> wait
+            hold.TrySetResult() |> ignore
+            connecting |> wait
+            let afterDisconnect = firstRead |> wait
+
+            check
+                "disconnectWinsDuringSavedConnectionAndFirstRead"
+                (removed.Saved = SavedPresence.Absent
+                 && restoring.Status.Account.IsNone
+                 && afterDisconnect = Error NexusProblem.SignInRequired)
 
         writer.WriteEndObject()
 

@@ -96,6 +96,7 @@ type NexusMetadataService
 
     override _.DownloadModNexusFile(request, _) =
         task {
+            do! session.SavedConnection
             let! expected = NexusMetadataWire.expected details request.Reference
 
             match expected, session.Status.Account with
