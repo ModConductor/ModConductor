@@ -629,6 +629,39 @@ module SkseFixtures =
         |> result
         |> ignore
 
+        (store.GameContexts :> IGameContexts)
+            .Save(
+                workspace,
+                otherProfile,
+                0L,
+                { GameId = GameId.SkyrimSpecialEditionSteam
+                  Path = game
+                  Proton = if OperatingSystem.IsLinux() then Some proton else None }
+            )
+        |> wait
+        |> result
+        |> ignore
+
+        let otherGeneration =
+            store.InstallSkse(
+                workspace,
+                otherProfile,
+                updateRelease,
+                updateArtifact,
+                DateTimeOffset.UtcNow,
+                CancellationToken.None
+            )
+            |> wait
+
+        let otherInstalled =
+            store.SkseLoaders.ReadStored(workspace, otherProfile, Some otherGeneration)
+            |> wait
+            |> Option.get
+
+        let otherFirstInstall =
+            otherInstalled.ModId = updatedStored.Value.ModId
+            && otherInstalled.VersionId = updatedStored.Value.VersionId
+
         let otherBefore = InventoryObservations.read store otherProfile
 
         let library = store.ModLibrary :> IModLibrary
@@ -697,6 +730,31 @@ module SkseFixtures =
             && (store.SkseLoaders.ReadStored(workspace, profile, Some restoredGeneration)
                 |> wait
                 |> Option.exists (fun value -> value.ModId = imported.ModId))
+
+        let nextRelease =
+            { updateRelease with
+                File = nexusFile 15L "later update" "2.4.0" ("Current game version " + runtime + " from Steam")
+                ComponentVersion = Version(2, 4, 0) }
+
+        let nextArtifact =
+            downloaded store workspace "skse-after-delete.zip" (createArchive runtime "after-delete")
+
+        let afterDeleteGeneration =
+            store.InstallSkse(
+                workspace,
+                profile,
+                nextRelease,
+                nextArtifact,
+                DateTimeOffset.UtcNow,
+                CancellationToken.None
+            )
+            |> wait
+
+        let importAfterDeletion =
+            store.SkseLoaders.ReadStored(workspace, profile, Some afterDeleteGeneration)
+            |> wait
+            |> Option.exists (fun value ->
+                value.ModId <> firstMod && value.ModId <> imported.ModId)
 
         writer.WriteStartObject("skse")
         writer.WriteBoolean("exactRuntimeWins", premium.Release.File.Id = 11L)
@@ -789,8 +847,10 @@ module SkseFixtures =
         writer.WriteBoolean("nxmWaitingAndFailureAreDurable", durableWaiting && durableFailure)
 
         writer.WriteBoolean("sameSkseSourceReusesImportedVersionAfterRemoval", sameReleaseReused)
+        writer.WriteBoolean("secondProfileUsesAvailableSkseVersion", otherFirstInstall)
         writer.WriteBoolean("differentSkseReleaseStaysDistinct", firstMod <> imported.ModId)
         writer.WriteBoolean("deletingOldSkseModRemovesOnlyItsLoaderHistory", deletedSkseReferences)
+        writer.WriteBoolean("newSkseReleaseImportsAfterDeletingOlderMod", importAfterDeletion)
 
         GenerationCleanup.normalize area
         writer.WriteEndObject()

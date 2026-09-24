@@ -54,8 +54,13 @@ type SkseTests() =
     [<Test>]
     member _.``reinstalling the same SKSE archive should reuse its version after removal``() =
         flag "sameSkseSourceReusesImportedVersionAfterRemoval" |> should equal true
+        flag "secondProfileUsesAvailableSkseVersion" |> should equal true
         flag "differentSkseReleaseStaysDistinct" |> should equal true
+
+    [<Test>]
+    member _.``deleting an older SKSE mod should leave later installs available``() =
         flag "deletingOldSkseModRemovesOnlyItsLoaderHistory" |> should equal true
+        flag "newSkseReleaseImportsAfterDeletingOlderMod" |> should equal true
 
     [<Test>]
     member _.``NXM handoff should complete or publish each durable coordinator failure``() =

@@ -82,7 +82,7 @@ module internal SelectionRows =
             Sqlite.execute
                 connection
                 transaction
-                "INSERT INTO profile_mods SELECT p.id,$mod,(SELECT count(*) FROM profile_mods s WHERE s.profile_id=p.id),$enabled FROM profiles p WHERE p.workspace_id=$workspace"
+                "INSERT INTO profile_mods SELECT p.id,$mod,(SELECT COALESCE(MAX(s.priority)+1,0) FROM profile_mods s WHERE s.profile_id=p.id),$enabled FROM profiles p WHERE p.workspace_id=$workspace"
                 [ "$mod", box (string modId)
                   "$workspace", box (string workspace)
                   "$enabled", if kind = ModKind.Regular then box 0 else box DBNull.Value ]
