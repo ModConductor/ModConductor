@@ -71,8 +71,8 @@ def main() -> None:
     scratch.mkdir(exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="windows-package-smoke-", dir=scratch) as temporary:
         home = Path(temporary)
-        local = home / "LocalAppData"
-        roaming = home / "AppData"
+        local = home / "AppData" / "Local"
+        roaming = home / "AppData" / "Roaming"
         local.mkdir()
         roaming.mkdir()
         environment = dict(os.environ, USERPROFILE=str(home), LOCALAPPDATA=str(local), APPDATA=str(roaming))
@@ -103,6 +103,10 @@ def main() -> None:
             if frontend.poll() is None:
                 frontend.kill()
                 frontend.wait()
+            if backend is not None:
+                deadline = time.monotonic() + 10
+                while process_alive(backend) and time.monotonic() < deadline:
+                    time.sleep(0.1)
 
 
 if __name__ == "__main__":
