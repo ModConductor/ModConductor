@@ -1047,18 +1047,23 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                                                     false
                                                     (not launchReady) ]
 
+                                        let readyStatus, readyDetail =
+                                            match output with
+                                            | Some value when
+                                                value.Phase = ModConductor.Fnis.FnisOutputPhase.Current
+                                                && (value.ExitCode |> Option.exists ((<>) 0))
+                                                -> value.Status, value.Detail
+                                            | _ -> "Skyrim setup is ready", ""
+
                                         return
                                             view
                                                 (if launchReady then
                                                      SkyrimSetupPhase.Ready
                                                  else
                                                      SkyrimSetupPhase.Failed)
+                                                (if launchReady then readyStatus else launchStatus)
                                                 (if launchReady then
-                                                     "Skyrim setup is ready"
-                                                 else
-                                                     launchStatus)
-                                                (if launchReady then
-                                                     ""
+                                                     readyDetail
                                                  else
                                                      launchDetail)
                                                 components

@@ -139,6 +139,7 @@ module SkyrimSetupFixtures =
 
         let mutable output = ModConductor.Fnis.FnisOutputPhase.Stale
         let mutable latestRun = None
+        let mutable fnisExitCode = None
         let mutable skseReads = 0
         let mutable skseStarts = 0
         let mutable failSkse = false
@@ -156,6 +157,11 @@ module SkyrimSetupFixtures =
         let mutable retainActiveFnisCancellation = false
 
         let inspection () =
+            let exitWarning =
+                match output, fnisExitCode with
+                | ModConductor.Fnis.FnisOutputPhase.Current, Some code when code <> 0 -> Some code
+                | _ -> None
+
             { WorkspaceId = Guid.Empty
               ProfileId = Guid.Empty
               GenerationId = generation
@@ -163,13 +169,17 @@ module SkyrimSetupFixtures =
               Fingerprint = "fixture-fingerprint"
               Phase = output
               Status =
-                if output = ModConductor.Fnis.FnisOutputPhase.Current then
-                    "FNIS output is current"
+                match exitWarning with
+                | Some code -> "FNIS output is available, but FNIS exited with code " + string code
+                | None when output = ModConductor.Fnis.FnisOutputPhase.Current -> "FNIS output is current"
+                | None -> "FNIS output is stale"
+              Detail =
+                if exitWarning.IsSome then
+                    "Check the FNIS messages before you use these files."
                 else
-                    "FNIS output is stale"
-              Detail = "The combined coordinator owns the next action."
+                    "The combined coordinator owns the next action."
               LatestRunId = latestRun
-              ExitCode = None
+              ExitCode = if output = ModConductor.Fnis.FnisOutputPhase.Current then fnisExitCode else None
               StandardOutput = ""
               StandardError = ""
               RunLog = "" }
@@ -187,6 +197,7 @@ module SkyrimSetupFixtures =
 
             output <- ModConductor.Fnis.FnisOutputPhase.Stale
             latestRun <- None
+            fnisExitCode <- None
             failSkse <- false
             holdSkse <- false
             blockEnb <- false
@@ -232,6 +243,7 @@ module SkyrimSetupFixtures =
         member _.FailEnb() = failEnb <- true
         member _.AllowEnb() = failEnb <- false
         member _.FnisInstalls = fnisInstalls
+        member _.FnisExitCode(code) = fnisExitCode <- Some code
         member _.WaitForFnisNexus() = waitForFnisNexus <- true
         member _.CompleteFnisNexusSelection() =
             fnis <- { fnis with Phase = FnisPhase.Ready; Status = "FNIS is ready" }
@@ -640,6 +652,7 @@ module SkyrimSetupFixtures =
         let waitingWorkspace, waitingProfile, _ = createWorkspace store area "waiting-fnis" true
         let waitingWorkflow = WorkflowState()
         waitingWorkflow.WaitForFnisNexus()
+        waitingWorkflow.FnisExitCode 7
         use waitingOwner = new SkyrimSetupCoordinator(store, waitingWorkflow.Dependencies)
         let _ = waitingOwner.Start(waitingWorkspace, waitingProfile, fnisOnly, CancellationToken.None) |> wait
 
@@ -684,7 +697,18 @@ module SkyrimSetupFixtures =
         check
             writer
             "fnisContinuesAfterNexusSelection"
-            (afterNexus.Ready && waitingWorkflow.FnisInstalls = 1 && waitingWorkflow.RunCalls = 1)
+            (afterNexus.Ready
+             && waitingWorkflow.FnisInstalls = 1
+             && waitingWorkflow.RunCalls = 1)
+
+        check
+            writer
+            "fnisExitWarningIsVisibleInReadySkyrimSetup"
+            (afterNexus.Phase = SkyrimSetupPhase.Ready
+             && afterNexus.Status.Contains("FNIS exited with code 7")
+             && afterNexus.Detail.Contains("Check the FNIS messages")
+             && (afterNexus.Components
+                 |> List.exists (fun item -> item.Id = "fnis" && item.Ready)))
 
         let _, allState, _ =
             execute
