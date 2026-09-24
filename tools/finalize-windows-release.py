@@ -74,6 +74,9 @@ def main() -> None:
         "$tools = Split-Path -Parent $MyInvocation.MyCommand.Definition\n"
         f"Install-ChocolateyZipPackage -PackageName 'modconductor' -Url '{archive_url}' "
         f"-UnzipLocation $tools -Checksum '{sha256(archive)}' -ChecksumType 'sha256'\n"
+        f"$engine = Join-Path $tools '{archive.stem}\\engine'\n"
+        "New-Item -ItemType File -Path (Join-Path $engine 'ModConductor.Engine.exe.ignore') -Force | Out-Null\n"
+        "New-Item -ItemType File -Path (Join-Path $engine 'modconductor-loot-helper.exe.ignore') -Force | Out-Null\n"
     )
 
     winget = args.metadata_directory / "manifests/a/alsi-lawr/ModConductor" / args.version
