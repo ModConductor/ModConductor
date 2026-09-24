@@ -490,7 +490,10 @@ type NexusServer() =
                                 + "\",\"category_name\":\"Main files\",\"category_id\":1,\"uploaded_timestamp\":1789238400,\"description\":\""
                                 + description
                                 + "\",\"size_in_bytes\":"
-                                + string payload.Length
+                                + (if mode = "null-size" && id = 7001L then
+                                       "null"
+                                   else
+                                       string payload.Length)
                                 + "}"
 
                             do!

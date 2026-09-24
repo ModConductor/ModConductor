@@ -37,9 +37,12 @@ module internal NexusJson =
     let optionalNumber name value =
         field name value
         |> Option.bind (fun item ->
-            match item.TryGetInt64() with
-            | true, n -> Some n
-            | _ -> None)
+            if item.ValueKind <> JsonValueKind.Number then
+                None
+            else
+                match item.TryGetInt64() with
+                | true, n -> Some n
+                | _ -> None)
 
     let private profileImage name value =
         optionalText name value

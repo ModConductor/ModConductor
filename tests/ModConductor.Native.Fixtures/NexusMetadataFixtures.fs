@@ -145,6 +145,25 @@ module NexusMetadataFixtures =
         session.SignIn() |> wait |> ignore
         until (fun () -> not session.Status.Waiting)
         check "syntheticAccountConnected" session.Status.Account.IsSome
+
+        server.FnisFiles <-
+            [ 7001L, "fnis-archive.zip", "7.6", "FNIS archive"
+              7002L, "fnis-guide.txt", "7.6", "FNIS guide" ]
+
+        server.Mode <- "null-size"
+        let fnis = session.ReadMod("skyrimspecialedition", 3038L) |> wait
+
+        check
+            "nullOptionalFileSizeKeepsFnisMetadataReadable"
+            (match fnis with
+             | Ok value ->
+                 value.Files.Length = 2
+                 && (value.Files |> List.find (fun file -> file.Id = 7001L)).Bytes.IsNone
+                 && (value.Files |> List.find (fun file -> file.Id = 7002L)).Bytes.IsSome
+             | Error _ -> false)
+
+        server.Mode <- "good"
+        server.FnisFiles <- []
         let workspace = Guid.NewGuid()
         let state = Path.Combine(area, "state")
         let root = Directory.CreateDirectory(Path.Combine(area, "workspace")).FullName
