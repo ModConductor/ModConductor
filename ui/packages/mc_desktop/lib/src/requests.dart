@@ -56,7 +56,12 @@ class DesktopRequests extends ChangeNotifier {
     startingNexus = true;
     notifyListeners();
     try {
-      final result = await client.read(reference, workspace, download: true);
+      final result = await client.read(
+        reference,
+        workspace,
+        profile: profileId,
+        download: true,
+      );
       if (disposed || reference != nexusReference) return null;
       nexusLink = result;
       problem = result.problem;
