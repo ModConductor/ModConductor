@@ -243,7 +243,7 @@ module SkyrimSetupFixtures =
         member _.FailEnb() = failEnb <- true
         member _.AllowEnb() = failEnb <- false
         member _.FnisInstalls = fnisInstalls
-        member _.FnisExitCode(code) = fnisExitCode <- Some code
+        member _.FnisExitCode(code) = fnisExitCode <- code
         member _.WaitForFnisNexus() = waitForFnisNexus <- true
         member _.CompleteFnisNexusSelection() =
             fnis <- { fnis with Phase = FnisPhase.Ready; Status = "FNIS is ready" }
@@ -652,7 +652,7 @@ module SkyrimSetupFixtures =
         let waitingWorkspace, waitingProfile, _ = createWorkspace store area "waiting-fnis" true
         let waitingWorkflow = WorkflowState()
         waitingWorkflow.WaitForFnisNexus()
-        waitingWorkflow.FnisExitCode 7
+        waitingWorkflow.FnisExitCode(Some 7)
         use waitingOwner = new SkyrimSetupCoordinator(store, waitingWorkflow.Dependencies)
         let _ = waitingOwner.Start(waitingWorkspace, waitingProfile, fnisOnly, CancellationToken.None) |> wait
 
@@ -705,10 +705,79 @@ module SkyrimSetupFixtures =
             writer
             "fnisExitWarningIsVisibleInReadySkyrimSetup"
             (afterNexus.Phase = SkyrimSetupPhase.Ready
+             && afterNexus.CanContinue
+             && not afterNexus.Active
              && afterNexus.Status.Contains("FNIS exited with code 7")
              && afterNexus.Detail.Contains("Check the FNIS messages")
              && (afterNexus.Components
                  |> List.exists (fun item -> item.Id = "fnis" && item.Ready)))
+
+        let completedWarning =
+            waitingOwner.Continue(waitingWorkspace, waitingProfile, CancellationToken.None)
+            |> wait
+
+        let completedIntent = store.SkyrimSetups.Read(waitingWorkspace, waitingProfile) |> wait
+        let refreshedWarning =
+            waitingOwner.Read(waitingWorkspace, waitingProfile, noChoice, CancellationToken.None)
+            |> wait
+
+        use reopenedWarningOwner = new SkyrimSetupCoordinator(store, waitingWorkflow.Dependencies)
+        let reopenedWarning =
+            reopenedWarningOwner.Read(waitingWorkspace, waitingProfile, noChoice, CancellationToken.None)
+            |> wait
+
+        check
+            writer
+            "fnisExitWarningRemainsAfterAutomaticContinueAndRefresh"
+            (completedWarning.Ready
+             && not completedWarning.CanContinue
+             && not completedWarning.Active
+             && (completedIntent |> Option.exists _.Completed)
+             && refreshedWarning.Phase = SkyrimSetupPhase.Available
+             && refreshedWarning.Status.Contains("FNIS exited with code 7")
+             && reopenedWarning.Status = refreshedWarning.Status
+             && reopenedWarning.Detail = refreshedWarning.Detail)
+
+        use restartedWarningStore = new OperationStore(state)
+        let restartedWarningContext =
+            (restartedWarningStore.GameContexts :> IGameContexts)
+                .Read(waitingWorkspace, waitingProfile)
+            |> wait
+            |> result
+
+        (restartedWarningStore.GameContexts :> IGameContexts)
+            .Refresh(waitingWorkspace, waitingProfile, restartedWarningContext.Revision)
+        |> wait
+        |> result
+        |> ignore
+
+        use restartedWarningOwner =
+            new SkyrimSetupCoordinator(restartedWarningStore, waitingWorkflow.Dependencies)
+
+        let restartedWarning =
+            restartedWarningOwner.Read(waitingWorkspace, waitingProfile, noChoice, CancellationToken.None)
+            |> wait
+
+        check
+            writer
+            "fnisExitWarningRemainsAfterStoreRestart"
+            (restartedWarning.Phase = SkyrimSetupPhase.Available
+             && restartedWarning.Status = refreshedWarning.Status
+             && restartedWarning.Detail = refreshedWarning.Detail)
+
+        waitingWorkflow.ReadyWithCurrentFnis(Some(Guid.NewGuid()))
+        waitingWorkflow.FnisExitCode(Some 0)
+
+        let afterSuccessfulRun =
+            restartedWarningOwner.Read(waitingWorkspace, waitingProfile, noChoice, CancellationToken.None)
+            |> wait
+
+        check
+            writer
+            "laterSuccessfulFnisRunClearsSetupWarning"
+            (afterSuccessfulRun.Phase = SkyrimSetupPhase.Available
+             && afterSuccessfulRun.Status = ""
+             && afterSuccessfulRun.Detail = "")
 
         let _, allState, _ =
             execute

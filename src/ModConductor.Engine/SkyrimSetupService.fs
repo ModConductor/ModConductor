@@ -171,6 +171,14 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
           CanCancel = running && not ready
           Ready = ready }
 
+    let fnisExitWarning (output: FnisInspection option) =
+        match output with
+        | Some value when
+            value.Phase = ModConductor.Fnis.FnisOutputPhase.Current
+            && (value.ExitCode |> Option.exists ((<>) 0))
+            -> Some(value.Status, value.Detail)
+        | _ -> None
+
     let unavailable selection status detail =
         view
             SkyrimSetupPhase.Unavailable
@@ -184,7 +192,7 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
             false
             false
 
-    let preview workspace profile (selection: ModConductor.Persistence.SetupSelection) (deployed: DeploymentStatus) =
+    let preview workspace profile (selection: ModConductor.Persistence.SetupSelection) (deployed: DeploymentStatus) token =
         task {
             let! skse = store.SkseLoaders.ReadStored(workspace, profile, deployed.ActiveGeneration)
             let! enb = store.EnbSetups.Components(workspace, profile, deployed.ActiveGeneration)
@@ -216,6 +224,23 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                 && deployed.PendingReceipt.IsNone
                 && (deployed.ActiveGeneration.IsSome || actions |> List.exists (fun action -> action = SetupAction.Install))
 
+            let! output =
+                if deployed.ActiveGeneration.IsSome then
+                    task {
+                        let! inspected = dependencies.InspectFnis workspace profile token
+                        return Result.toOption inspected
+                    }
+                else
+                    Task.FromResult None
+
+            let status, detail =
+                if not archiveSupplied then
+                    "Choose an ENBSeries archive", ""
+                elif not valid then
+                    "Check the selected components", ""
+                else
+                    fnisExitWarning output |> Option.defaultValue ("", "")
+
             let components =
                 [ "SKSE", "skse", installed[0]
                   "ENBSeries", "enb", installed[1]
@@ -233,8 +258,8 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
             return
                 view
                     SkyrimSetupPhase.Available
-                    (if not archiveSupplied then "Choose an ENBSeries archive" elif not valid then "Check the selected components" else "")
-                    ""
+                    status
+                    detail
                     components
                     selection
                     false
@@ -415,7 +440,7 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                                 "The selected profile is unavailable"
                                 "Select a profile from this workspace."
                     | Ok deployed when not running && not (intent |> Option.exists _.Cancelled) ->
-                        return! preview workspace profile selection deployed
+                        return! preview workspace profile selection deployed token
                     | Ok deployed ->
                         let recorded = intent |> Option.filter (fun value -> not value.Cancelled)
                         let mutable stage = recorded |> Option.map _.Stage |> Option.defaultValue ""
@@ -521,7 +546,7 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                                     CanCancel = false }
                         elif intent |> Option.exists _.Cancelled then
                             let cancelled = intent.Value
-                            let! current = preview workspace profile selection deployed
+                            let! current = preview workspace profile selection deployed token
 
                             return
                                 { current with
@@ -1048,12 +1073,8 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                                                     (not launchReady) ]
 
                                         let readyStatus, readyDetail =
-                                            match output with
-                                            | Some value when
-                                                value.Phase = ModConductor.Fnis.FnisOutputPhase.Current
-                                                && (value.ExitCode |> Option.exists ((<>) 0))
-                                                -> value.Status, value.Detail
-                                            | _ -> "Skyrim setup is ready", ""
+                                            fnisExitWarning output
+                                            |> Option.defaultValue ("Skyrim setup is ready", "")
 
                                         return
                                             view
@@ -1398,7 +1419,9 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
 
                 return
                     { before with
-                        CanCancel = false }
+                        CanCancel = false
+                        CanContinue = false
+                        Active = false }
             | _ -> return before
         }
 

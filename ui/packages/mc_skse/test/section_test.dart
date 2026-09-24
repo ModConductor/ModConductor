@@ -10,16 +10,20 @@ class SetupClientFixture extends SkyrimSetupClient {
     this.installed = const {},
     this.savedSelection,
     this.failFirstStart = false,
+    this.completeWithFnisWarning = false,
   });
   final Set<String> installed;
   final SkyrimSetupSelection? savedSelection;
   final bool failFirstStart;
+  final bool completeWithFnisWarning;
   SkyrimSetupSelection lastSelection = const SkyrimSetupSelection();
   SkyrimSetupSelection? applied;
   int starts = 0;
   int continues = 0;
   int pageOpens = 0;
   bool cancelled = false;
+  bool completed = false;
+  final warningStatus = 'FNIS output is available, but FNIS exited with code 7';
 
   SkyrimSetupStatus state(
     SkyrimSetupSelection selection, {
@@ -68,6 +72,25 @@ class SetupClientFixture extends SkyrimSetupClient {
     );
   }
 
+  SkyrimSetupStatus fnisWarningState(
+    SkyrimSetupSelection selection, {
+    required bool ready,
+    required bool canContinue,
+  }) => SkyrimSetupStatus(
+    phase: ready
+        ? SkyrimSetupStatusPhase.ready
+        : SkyrimSetupStatusPhase.available,
+    status: warningStatus,
+    detail: 'Check the FNIS messages before you use these files.',
+    components: state(selection).components,
+    selection: selection,
+    canStart: false,
+    canContinue: canContinue,
+    active: false,
+    ready: ready,
+    canCancel: false,
+  );
+
   @override
   Future<SkyrimSetupStatus> read(
     String workspace,
@@ -75,6 +98,9 @@ class SetupClientFixture extends SkyrimSetupClient {
     required SkyrimSetupSelection selection,
   }) async {
     lastSelection = selection;
+    if (completeWithFnisWarning && completed) {
+      return fnisWarningState(selection, ready: false, canContinue: false);
+    }
     return state(savedSelection ?? selection);
   }
 
@@ -87,6 +113,9 @@ class SetupClientFixture extends SkyrimSetupClient {
     starts++;
     cancelled = false;
     applied = selection;
+    if (completeWithFnisWarning) {
+      return fnisWarningState(selection, ready: true, canContinue: true);
+    }
     return state(
       selection,
       running: !(failFirstStart && starts == 1),
@@ -100,8 +129,13 @@ class SetupClientFixture extends SkyrimSetupClient {
     String profile,
   ) async {
     continues++;
+    if (completeWithFnisWarning) {
+      completed = true;
+      return fnisWarningState(lastSelection, ready: true, canContinue: false);
+    }
     return state(lastSelection, running: true);
   }
+
   @override
   Future<SkyrimSetupStatus> cancel(String workspace, String profile) async {
     cancelled = true;
@@ -136,6 +170,31 @@ Future<void> settle(WidgetTester tester) async {
 }
 
 void main() {
+  testWidgets('FNIS exit warning remains after setup completes and refreshes', (
+    tester,
+  ) async {
+    final client = SetupClientFixture(completeWithFnisWarning: true);
+    await tester.pumpWidget(app(client));
+    await settle(tester);
+    await tester.tap(find.byType(Switch).last);
+    await settle(tester);
+    await tester.tap(find.byKey(const ValueKey('apply-skyrim-setup')));
+    await settle(tester);
+    await tester.pump();
+    await settle(tester);
+
+    expect(client.starts, 1);
+    expect(client.continues, 1);
+    expect(find.text(client.warningStatus), findsOneWidget);
+
+    await tester.pump(const Duration(seconds: 2));
+    expect(client.continues, 1);
+
+    await tester.tap(find.byKey(const ValueKey('refresh-skyrim-setup')));
+    await settle(tester);
+    expect(find.text(client.warningStatus), findsOneWidget);
+  });
+
   testWidgets('clean setup has no selected action or apply', (tester) async {
     final client = SetupClientFixture();
     await tester.pumpWidget(app(client));
