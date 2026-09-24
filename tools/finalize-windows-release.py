@@ -79,10 +79,12 @@ def main() -> None:
     winget = args.metadata_directory / "manifests/a/alsi-lawr/ModConductor" / args.version
     winget.mkdir(parents=True, exist_ok=True)
     (winget / f"{PACKAGE_ID}.yaml").write_text(
+        "# yaml-language-server: $schema=https://aka.ms/winget-manifest.version.1.9.0.schema.json\n\n"
         f"PackageIdentifier: {PACKAGE_ID}\nPackageVersion: {args.version}\n"
         "DefaultLocale: en-US\nManifestType: version\nManifestVersion: 1.9.0\n"
     )
     (winget / f"{PACKAGE_ID}.installer.yaml").write_text(
+        "# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.9.0.schema.json\n\n"
         f"PackageIdentifier: {PACKAGE_ID}\nPackageVersion: {args.version}\n"
         "InstallerType: nullsoft\nScope: user\nInstallModes:\n  - interactive\n  - silent\n"
         "InstallerSwitches:\n  Silent: /S\n  SilentWithProgress: /S\n"
@@ -91,6 +93,7 @@ def main() -> None:
         "ManifestType: installer\nManifestVersion: 1.9.0\n"
     )
     (winget / f"{PACKAGE_ID}.locale.en-US.yaml").write_text(
+        "# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.9.0.schema.json\n\n"
         f"PackageIdentifier: {PACKAGE_ID}\nPackageVersion: {args.version}\n"
         "PackageLocale: en-US\nPublisher: Mod Conductor contributors\n"
         "PackageName: Mod Conductor\nLicense: Not yet licensed\n"
