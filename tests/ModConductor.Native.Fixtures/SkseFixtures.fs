@@ -50,7 +50,6 @@ module SkseFixtures =
             [ "skse64_" + marker + "/skse64_loader.exe", "loader-" + marker
               "skse64_" + marker + "/skse64_" + runtime.Replace('.', '_') + ".dll",
               "runtime-" + marker
-              "skse64_" + marker + "/skse64_steam_loader.dll", "steam-" + marker
               "skse64_" + marker + "/Data/Scripts/skse.pex", "script-" + marker ] do
             use target = zip.CreateEntry(name).Open()
             let bytes = Encoding.UTF8.GetBytes content
@@ -273,6 +272,13 @@ module SkseFixtures =
         let plan =
             SkseArchiveLayout.review premium.Release manifest
             |> Result.defaultWith (fun _ -> invalidOp "SKSE archive review failed.")
+
+        let currentReleaseLayout =
+            SkseArchiveLayout.review
+                premium.Release
+                { manifest with
+                    Entries = manifest.Entries |> List.filter (fun entry -> entry.Index <> 2) }
+            |> Result.toOption
 
         let invalidLayout =
             SkseArchiveLayout.review
@@ -618,7 +624,12 @@ module SkseFixtures =
 
         writer.WriteBoolean(
             "reviewedArchiveLayout",
-            plan.Files.Length = 4 && plan.ComponentFiles.Length = 4 && invalidLayout
+            plan.Files.Length = 4
+            && plan.ComponentFiles.Length = 4
+            && (currentReleaseLayout
+                |> Option.exists (fun current ->
+                    current.Files.Length = 3 && current.ComponentFiles.Length = 3))
+            && invalidLayout
         )
 
         writer.WriteBoolean(

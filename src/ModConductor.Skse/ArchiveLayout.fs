@@ -10,7 +10,7 @@ open ModConductor.Platform
 module SkseArchiveLayout =
     let private path parts =
         LogicalPath.create parts
-        |> Result.defaultWith (fun _ -> invalidOp "The reviewed SKSE path is invalid.")
+        |> Result.defaultWith (fun _ -> invalidOp "The SKSE path is invalid.")
 
     let private startsWith (prefix: string list) (parts: string list) =
         prefix.Length <= parts.Length
@@ -33,7 +33,6 @@ module SkseArchiveLayout =
             let componentFiles = ResizeArray<ComponentFile>()
             let mutable loader = None
             let mutable runtimeDll = false
-            let mutable steamLoader = false
 
             for entry in files do
                 let parts = LogicalPath.components entry.Path
@@ -54,7 +53,6 @@ module SkseArchiveLayout =
                             StringComparison.OrdinalIgnoreCase
                         )
                         ->
-                        steamLoader <- true
                         Some(ComponentRoot.GameRoot, relative)
                     | [ value ] when
                         value.StartsWith("skse64_", StringComparison.OrdinalIgnoreCase)
@@ -90,10 +88,10 @@ module SkseArchiveLayout =
                           Use = ComponentFileUse.Immutable }
                     )
 
-            if loader.IsNone || not runtimeDll || not steamLoader then
+            if loader.IsNone || not runtimeDll then
                 Error(
                     SkseProblem.InvalidArchive
-                        "The archive does not contain the reviewed SKSE loader and runtime files. No files were installed."
+                        "The archive is missing the SKSE loader or runtime DLL."
                 )
             elif
                 componentFiles
