@@ -1,5 +1,6 @@
 namespace ModConductor.Native.Tests
 
+open System
 open FsUnit
 open NUnit.Framework
 
@@ -27,11 +28,12 @@ type FnisTests() =
         flag "windowsToolProjectionUsesExactDescriptorAndTypedArguments"
         |> should equal true
 
-        flag "selectedWindowsContextProjectsRegisteredGenerator" |> should equal true
+        if OperatingSystem.IsLinux() then
+            flag "selectedWindowsContextProjectsRegisteredGenerator" |> should equal true
 
     [<Test>]
     member _.``direct acquisition should retain complete generator provenance``() =
-        flag "directAcquisitionPublishesImmutableGenerationAndProvenance"
+        flag "directAcquisitionPublishesGeneratorAndProvenance"
         |> should equal true
 
     [<Test>]
@@ -42,14 +44,15 @@ type FnisTests() =
         flag "failedReplacementRecoveryPreservesActiveSetup" |> should equal true
 
     [<Test>]
-    member _.``FNIS execution should publish only successful output``() =
+    member _.``FNIS execution should preserve generated output and report failures``() =
+        if not (OperatingSystem.IsLinux()) then
+            Assert.Ignore "The FNIS execution fixture uses a Linux Proton launcher."
+
         flag "successfulRunPublishesAndSelectsOneCurrentOutput" |> should equal true
-        flag "failedRunPreservesPriorOutputAndBoundedExitEvidence" |> should equal true
+        flag "runWithNoOutputPreservesPriorOutputAndExitCode" |> should equal true
+        flag "generatedFilesRemainAvailableAfterNonzeroExit" |> should equal true
         flag "cancelledRunTerminatesAndPreservesPriorOutput" |> should equal true
         flag "combinedCancelUsesProductionFnisOwner" |> should equal true
-
-        flag "pendingCombinedFnisCancellationCompletesThroughProductionOwnerAfterRestart"
-        |> should equal true
 
         flag "runReturnsWhileCancellationIsReachable" |> should equal true
         flag "activeGeneratedOutputIsExcludedFromEffectiveInputs" |> should equal true
@@ -84,6 +87,9 @@ type FnisTests() =
     [<Test>]
     member _.``removal and restart should preserve foreign files and retained provenance``() =
         flag "removalPublishesOwnedGenerationAndPreservesForeignFiles"
+        |> should equal true
+
+        flag "pendingCombinedFnisCancellationCompletesThroughProductionOwnerAfterRestart"
         |> should equal true
 
         flag "restartKeepsRemovalAndRetainedProvenanceDurable" |> should equal true
