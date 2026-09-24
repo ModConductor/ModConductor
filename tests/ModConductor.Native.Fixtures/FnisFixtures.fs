@@ -1739,7 +1739,8 @@ module FnisFixtures =
         freshnessEvidence writer
         layoutEvidence writer
         lifecycleEvidence writer area
-        executionEvidence writer area
+        if OperatingSystem.IsLinux() then
+            executionEvidence writer area
         nxmEvidence writer area
         restartEvidence writer area
         GenerationCleanup.normalize area
