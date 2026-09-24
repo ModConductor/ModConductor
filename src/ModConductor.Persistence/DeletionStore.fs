@@ -445,7 +445,7 @@ module private DirectDeletion =
             Sqlite.execute
                 connection
                 transaction
-                "DELETE FROM artifact_links WHERE mod_id=$mod; DELETE FROM mod_categories WHERE mod_id=$mod; DELETE FROM hidden_mod_files WHERE mod_id=$mod; DELETE FROM file_visibility_changes WHERE mod_id=$mod; DELETE FROM profile_mods WHERE mod_id=$mod; UPDATE mods SET current_version=NULL WHERE id=$mod"
+                "DELETE FROM skse_loader_selections WHERE mod_id=$mod; DELETE FROM skse_replacement_intents WHERE mod_id=$mod OR previous_mod_id=$mod; DELETE FROM artifact_links WHERE mod_id=$mod; DELETE FROM mod_categories WHERE mod_id=$mod; DELETE FROM hidden_mod_files WHERE mod_id=$mod; DELETE FROM file_visibility_changes WHERE mod_id=$mod; DELETE FROM profile_mods WHERE mod_id=$mod; UPDATE mods SET current_version=NULL WHERE id=$mod"
                 args
 
             for installation in

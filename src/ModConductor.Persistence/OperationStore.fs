@@ -792,53 +792,70 @@ type OperationStore
                 ModConductor.Skse.SkseArchiveLayout.review release draft.Manifest
                 |> Result.defaultWith (ModConductor.Skse.SkseProblem.message >> fail)
 
-            let draft =
-                if draft.Installer = ModConductor.ArchiveInstallation.InstallationMode.Manual then
-                    draft
-                else
-                    installations.UseInstaller(
-                        workspace,
-                        draft.Id,
-                        draft.Revision,
-                        ModConductor.ArchiveInstallation.InstallationMode.Manual
-                    )
-
-            let reviewed =
-                installations.SelectReviewed(
+            let! reusable =
+                skseLoaders.ReusableVersion(
                     workspace,
-                    draft.Id,
-                    draft.Revision,
-                    "Skyrim Script Extender",
-                    string release.ComponentVersion,
-                    plan.Files
+                    profile,
+                    artifact.Id,
+                    artifact.Sha256.Value,
+                    release
                 )
 
-            let installationId = Guid.NewGuid()
+            let! modId, versionId =
+                task {
+                    match reusable with
+                    | Some existing -> return existing
+                    | None ->
+                        let draft =
+                            if draft.Installer = ModConductor.ArchiveInstallation.InstallationMode.Manual then
+                                draft
+                            else
+                                installations.UseInstaller(
+                                    workspace,
+                                    draft.Id,
+                                    draft.Revision,
+                                    ModConductor.ArchiveInstallation.InstallationMode.Manual
+                                )
 
-            let started =
-                installations.Start(workspace, reviewed.Id, reviewed.Revision, installationId)
+                        let reviewed =
+                            installations.SelectReviewed(
+                                workspace,
+                                draft.Id,
+                                draft.Revision,
+                                "Skyrim Script Extender",
+                                string release.ComponentVersion,
+                                plan.Files
+                            )
 
-            let mutable installed = started
+                        let installationId = Guid.NewGuid()
 
-            while installed.State = ModConductor.ArchiveInstallation.InstallationState.Running do
-                do! System.Threading.Tasks.Task.Delay(25, token)
-                let! current = installations.Read(workspace, installationId)
-                installed <- current
+                        let started =
+                            installations.Start(workspace, reviewed.Id, reviewed.Revision, installationId)
 
-            if
-                installed.State <> ModConductor.ArchiveInstallation.InstallationState.Complete
-                || installed.ModId.IsNone
-                || installed.VersionId.IsNone
-            then
-                fail (
-                    installed.Problem
-                    |> Option.defaultValue
-                        "SKSE installation did not complete. No component was published."
-                )
+                        let mutable installed = started
+
+                        while installed.State = ModConductor.ArchiveInstallation.InstallationState.Running do
+                            do! System.Threading.Tasks.Task.Delay(25, token)
+                            let! current = installations.Read(workspace, installationId)
+                            installed <- current
+
+                        if
+                            installed.State <> ModConductor.ArchiveInstallation.InstallationState.Complete
+                            || installed.ModId.IsNone
+                            || installed.VersionId.IsNone
+                        then
+                            fail (
+                                installed.Problem
+                                |> Option.defaultValue
+                                    "SKSE installation did not complete. No component was published."
+                            )
+
+                        return installed.ModId.Value, installed.VersionId.Value
+                }
 
             let! version =
                 database.Enqueue(fun () ->
-                    LibraryRows.version database.Connection null installed.VersionId.Value 0 20001
+                    LibraryRows.version database.Connection null versionId 0 20001
                     |> Option.map (fun value -> { value with NextOffset = None }))
 
             let version =
@@ -872,7 +889,7 @@ type OperationStore
                     workspace
                     gameRoot
                     ModConductor.GameContexts.Skyrim.definition.TargetPolicy
-                    { ModId = installed.ModId.Value
+                    { ModId = modId
                       Version = version
                       Priority = 0
                       Files = plan.ComponentFiles }
@@ -893,7 +910,7 @@ type OperationStore
             let stagedMods =
                 sources.Profile.Mods
                 |> List.map (fun selected ->
-                    if selected.ModId = installed.ModId.Value then
+                    if selected.ModId = modId then
                         { selected with Enabled = true }
                     elif previousMod = Some selected.ModId then
                         { selected with Enabled = false }
@@ -902,7 +919,7 @@ type OperationStore
 
             if
                 stagedMods
-                |> List.exists (fun selected -> selected.ModId = installed.ModId.Value)
+                |> List.exists (fun selected -> selected.ModId = modId)
                 |> not
             then
                 fail "The installed SKSE component is unavailable to this profile."
@@ -956,8 +973,8 @@ type OperationStore
                           ComponentVersion = string release.ComponentVersion
                           RuntimeVersion = string release.RuntimeVersion
                           GameSha256 = evidence.Executable.Value.Sha256 }
-                      ModId = installed.ModId.Value
-                      VersionId = installed.VersionId.Value
+                      ModId = modId
+                      VersionId = versionId
                       ArchiveSha256 = artifact.Sha256.Value
                       NexusModId = release.ModId
                       NexusFileId = release.File.Id

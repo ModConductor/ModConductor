@@ -14,6 +14,7 @@ open ModConductor.Deployment
 open ModConductor.GameContexts
 open ModConductor.GameLaunching
 open ModConductor.HttpDownloads
+open ModConductor.ModLibrary
 open ModConductor.ModSelection
 open ModConductor.ModOrganization
 open ModConductor.Nexus
@@ -615,6 +616,88 @@ module SkseFixtures =
                 value.Phase = "failed"
                 && value.Status = "This link belongs to another Nexus account")
 
+        let otherProfile = Guid.NewGuid()
+        let workspaceRevision =
+            (workspaces.Read(workspace, None) |> wait |> result).Workspace.Revision
+
+        workspaces.Edit(
+            workspace,
+            workspaceRevision,
+            ProfileEdit.Create { Id = otherProfile; Name = "Other profile" }
+        )
+        |> wait
+        |> result
+        |> ignore
+
+        let otherBefore = InventoryObservations.read store otherProfile
+
+        let library = store.ModLibrary :> IModLibrary
+        let imported = updatedStored.Value
+        let importedContents = library.Version(imported.VersionId, 0) |> wait |> result
+        let linksBefore = (store.Artifacts.Read(workspace, updateArtifact.Id) |> wait |> result).Links
+
+        let reusedGeneration =
+            store.InstallSkse(
+                workspace,
+                profile,
+                updateRelease,
+                updateArtifact,
+                DateTimeOffset.UtcNow,
+                CancellationToken.None
+            )
+            |> wait
+
+        let reused =
+            store.SkseLoaders.ReadStored(workspace, profile, Some reusedGeneration)
+            |> wait
+            |> Option.get
+
+        store.RemoveSkse(workspace, profile, CancellationToken.None) |> wait |> ignore
+
+        let restoredGeneration =
+            store.InstallSkse(
+                workspace,
+                profile,
+                updateRelease,
+                updateArtifact,
+                DateTimeOffset.UtcNow,
+                CancellationToken.None
+            )
+            |> wait
+
+        let restored =
+            store.SkseLoaders.ReadStored(workspace, profile, Some restoredGeneration)
+            |> wait
+            |> Option.get
+
+        let linksAfter = (store.Artifacts.Read(workspace, updateArtifact.Id) |> wait |> result).Links
+        let restoredContents = library.Version(restored.VersionId, 0) |> wait |> result
+        let otherAfter = InventoryObservations.read store otherProfile
+
+        let sameReleaseReused =
+            reused.ModId = imported.ModId
+            && reused.VersionId = imported.VersionId
+            && restored.ModId = imported.ModId
+            && restored.VersionId = imported.VersionId
+            && linksAfter = linksBefore
+            && restoredContents.Entries = importedContents.Entries
+            && otherAfter.SelectionRevision = otherBefore.SelectionRevision
+            && otherAfter.Entries = otherBefore.Entries
+
+        let firstMod = firstStored.Value.ModId
+
+        let firstEntry =
+            (library.Scan(workspace, 100) |> wait |> result).Entries
+            |> List.find (fun entry -> entry.Id = firstMod)
+
+        store.Deletions.Delete(workspace, firstMod, firstEntry.Revision) |> wait
+
+        let deletedSkseReferences =
+            (store.SkseLoaders.ReadStored(workspace, profile, Some firstGeneration) |> wait).IsNone
+            && (store.SkseLoaders.ReadStored(workspace, profile, Some restoredGeneration)
+                |> wait
+                |> Option.exists (fun value -> value.ModId = imported.ModId))
+
         writer.WriteStartObject("skse")
         writer.WriteBoolean("exactRuntimeWins", premium.Release.File.Id = 11L)
         writer.WriteBoolean("newerIncompatibleRejected", premium.Release.File.Id <> 12L)
@@ -704,6 +787,10 @@ module SkseFixtures =
         )
 
         writer.WriteBoolean("nxmWaitingAndFailureAreDurable", durableWaiting && durableFailure)
+
+        writer.WriteBoolean("sameSkseSourceReusesImportedVersionAfterRemoval", sameReleaseReused)
+        writer.WriteBoolean("differentSkseReleaseStaysDistinct", firstMod <> imported.ModId)
+        writer.WriteBoolean("deletingOldSkseModRemovesOnlyItsLoaderHistory", deletedSkseReferences)
 
         GenerationCleanup.normalize area
         writer.WriteEndObject()

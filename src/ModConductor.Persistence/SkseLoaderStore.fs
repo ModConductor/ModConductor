@@ -197,6 +197,41 @@ type internal SkseLoaderStore(database: StateDatabase) =
     let selectionColumns =
         "workspace_id,account_id,game_version,game_sha256,nexus_mod,nexus_file,file_name,file_version,file_category,file_description,file_bytes,component_version,runtime_version,acquisition,checked_at"
 
+    member _.ReusableVersion
+        (workspace: Guid, profile: Guid, artifact: Guid, archiveSha256: string, release: SkseRelease)
+        =
+        database.Enqueue(fun () ->
+            use query =
+                Sqlite.command
+                    database.Connection
+                    null
+                    """SELECT s.mod_id,s.version_id
+                       FROM skse_loader_selections s
+                       JOIN mods m ON m.id=s.mod_id AND m.workspace_id=$workspace AND m.current_version=s.version_id
+                       JOIN mod_versions v ON v.id=s.version_id AND v.mod_id=m.id AND v.phase=3 AND v.busy=0
+                       JOIN archive_version_origins o ON o.version_id=v.id AND o.artifact_id=$artifact
+                       JOIN artifact_links l ON l.artifact_id=o.artifact_id AND l.mod_id=m.id AND l.version_id=v.id
+                       WHERE s.workspace_id=$workspace AND s.archive_sha256=$archive
+                         AND s.component_version=$component AND s.runtime_version=$runtime
+                         AND s.nexus_mod=$nexusMod AND s.nexus_file=$nexusFile
+                       ORDER BY CASE WHEN s.profile_id=$profile THEN 0 ELSE 1 END,s.rowid DESC
+                       LIMIT 1"""
+                    [ "$workspace", box (string workspace)
+                      "$profile", box (string profile)
+                      "$artifact", box (string artifact)
+                      "$archive", box archiveSha256
+                      "$component", box (string release.ComponentVersion)
+                      "$runtime", box (string release.RuntimeVersion)
+                      "$nexusMod", box release.ModId
+                      "$nexusFile", box release.File.Id ]
+
+            use reader = query.ExecuteReader()
+
+            if reader.Read() then
+                Some(Guid.Parse(reader.GetString 0), Guid.Parse(reader.GetString 1))
+            else
+                None)
+
     member _.ReadStored(workspace: Guid, profile: Guid, activeGeneration: Guid option) =
         database.Enqueue(fun () ->
             match activeGeneration with

@@ -52,6 +52,12 @@ type SkseTests() =
         flag "nxmWaitingAndFailureAreDurable" |> should equal true
 
     [<Test>]
+    member _.``reinstalling the same SKSE archive should reuse its version after removal``() =
+        flag "sameSkseSourceReusesImportedVersionAfterRemoval" |> should equal true
+        flag "differentSkseReleaseStaysDistinct" |> should equal true
+        flag "deletingOldSkseModRemovesOnlyItsLoaderHistory" |> should equal true
+
+    [<Test>]
     member _.``NXM handoff should complete or publish each durable coordinator failure``() =
         coordinatorFlag "acceptNxmCompletesExpectedHandoff" |> should equal true
         coordinatorFlag "acceptNxmWrongAccountIsDurable" |> should equal true
