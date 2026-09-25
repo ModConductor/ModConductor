@@ -521,6 +521,9 @@ module NxmFixtures =
                     | true, value -> Some value
                     | _ -> None
 
+                member _.ProtocolRegistered _ =
+                    entries.ContainsKey(("Software\\Classes\\nxm", "URL Protocol"))
+
                 member _.Write value =
                     entries[(value.Path, value.Name)] <- value.Value
 

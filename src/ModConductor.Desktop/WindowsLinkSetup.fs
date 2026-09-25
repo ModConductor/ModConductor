@@ -14,6 +14,7 @@ type LinkSetupValue =
 
 type IWindowsLinkValues =
     abstract Read: string * string -> string option
+    abstract ProtocolRegistered: string -> bool
     abstract Write: LinkSetupValue -> unit
     abstract Remove: string * string -> unit
     abstract Default: unit -> LinkDefault
@@ -48,6 +49,12 @@ type WindowsLinkValues() =
                 | :? string as value -> Some value
                 | _ -> None
 
+        member _.ProtocolRegistered scheme =
+            use key = Registry.ClassesRoot.OpenSubKey scheme
+
+            not (isNull key)
+            && key.GetValue("URL Protocol", null) :? string
+
         member _.Write value =
             use key = Registry.CurrentUser.CreateSubKey value.Path
             key.SetValue(value.Name, value.Value, RegistryValueKind.String)
@@ -74,6 +81,8 @@ type WindowsLinkValues() =
                     LinkDefault.ModConductor
                 else
                     LinkDefault.AnotherApp
+            elif result = int 0x80070483u then // ERROR_NO_ASSOCIATION
+                LinkDefault.None
             else
                 LinkDefault.Unknown
 
@@ -84,6 +93,15 @@ type WindowsLinkSetup
     (stateDirectory: string, values: IWindowsLinkValues, openSettings: unit -> unit) =
     let gate = obj ()
     let receipt = Path.Combine(stateDirectory, "nxm-windows-setup")
+    let registrationName = "Mod Conductor"
+
+    let protocolEntries executable =
+        [ { Path = "Software\\Classes\\nxm"
+            Name = "URL Protocol"
+            Value = "" }
+          { Path = "Software\\Classes\\nxm\\shell\\open\\command"
+            Name = ""
+            Value = "\"" + executable + "\" --uri \"%1\"" } ]
 
     let entries executable =
         let app = "Software\\ModConductor\\NexusLinks\\Capabilities"
@@ -107,7 +125,7 @@ type WindowsLinkSetup
             Name = "nxm"
             Value = "ModConductor.Nxm" }
           { Path = "Software\\RegisteredApplications"
-            Name = "ModConductor.NexusLinks"
+            Name = registrationName
             Value = app } ]
 
     let saved () =
@@ -131,6 +149,7 @@ type WindowsLinkSetup
             |> Option.exists (
                 List.forall (fun value -> values.Read(value.Path, value.Name) = Some value.Value)
             )
+            && values.ProtocolRegistered "nxm"
 
         let current = values.Default()
 
@@ -159,8 +178,17 @@ type WindowsLinkSetup
                 if executable.Contains '"' then
                     SetupFiles.refuse "The Mod Conductor app path cannot be used for Nexus links."
 
-                let desired = entries executable
                 let previous = saved () |> Option.defaultValue []
+                let ownsProtocol =
+                    previous
+                    |> List.exists (fun value -> value.Path = "Software\\Classes\\nxm")
+
+                let desired =
+                    entries executable
+                    @ if ownsProtocol || not (values.ProtocolRegistered "nxm") then
+                          protocolEntries executable
+                      else
+                          []
 
                 for value in desired do
                     match values.Read(value.Path, value.Name) with
@@ -225,7 +253,7 @@ module LinkSetup =
                     use started =
                         System.Diagnostics.Process.Start(
                             System.Diagnostics.ProcessStartInfo(
-                                "ms-settings:defaultapps?registeredAppUser=ModConductor.NexusLinks",
+                                "ms-settings:defaultapps?registeredAppUser=Mod%20Conductor",
                                 UseShellExecute = true
                             )
                         )

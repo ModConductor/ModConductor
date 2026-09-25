@@ -40,8 +40,8 @@ bool FlutterWindow::OnCreate() {
 }
 
 void FlutterWindow::OnDestroy() {
-  desktop_.Detach();
   if (flutter_controller_) {
+    desktop_.Detach();
     flutter_controller_ = nullptr;
   }
 
