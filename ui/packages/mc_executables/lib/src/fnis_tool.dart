@@ -24,6 +24,7 @@ class _FnisToolState extends State<FnisTool> {
   String? problem;
   bool busy = false;
   int epoch = 0;
+  StreamSubscription<FnisStatus>? runSubscription;
 
   @override
   void initState() {
@@ -40,6 +41,9 @@ class _FnisToolState extends State<FnisTool> {
       return;
     }
     epoch++;
+    final previous = runSubscription;
+    if (previous != null) unawaited(previous.cancel());
+    runSubscription = null;
     status = null;
     problem = null;
     busy = false;
@@ -49,7 +53,37 @@ class _FnisToolState extends State<FnisTool> {
   Future<void> _read() =>
       _request(() => widget.client.read(widget.workspaceId, widget.profileId));
 
-  Future<void> _request(Future<FnisStatus> Function() action) async {
+  Future<void> _run() async {
+    final id = newOperationId();
+    await _request(
+      () => widget.client.run(widget.workspaceId, widget.profileId, id),
+      onResult: (value) {
+        if (value.outputPhase != FnisOutputStatusPhase.running ||
+            value.runId != id) {
+          return;
+        }
+        final current = epoch;
+        runSubscription = widget.client
+            .observeRun(widget.workspaceId, widget.profileId, id)
+            .listen(
+              (event) {
+                if (!mounted || current != epoch || event.runId != id) return;
+                setState(() => status = event);
+              },
+              onError: (Object _) {
+                if (mounted && current == epoch) {
+                  setState(() => problem = 'FNIS run result is unavailable.');
+                }
+              },
+            );
+      },
+    );
+  }
+
+  Future<void> _request(
+    Future<FnisStatus> Function() action, {
+    void Function(FnisStatus)? onResult,
+  }) async {
     if (busy) return;
     final current = epoch;
     setState(() {
@@ -58,7 +92,10 @@ class _FnisToolState extends State<FnisTool> {
     });
     try {
       final value = await action();
-      if (mounted && current == epoch) setState(() => status = value);
+      if (mounted && current == epoch) {
+        setState(() => status = value);
+        onResult?.call(value);
+      }
     } on Object {
       if (mounted && current == epoch && status != null) {
         setState(
@@ -68,6 +105,13 @@ class _FnisToolState extends State<FnisTool> {
     } finally {
       if (mounted && current == epoch) setState(() => busy = false);
     }
+  }
+
+  @override
+  void dispose() {
+    final previous = runSubscription;
+    if (previous != null) unawaited(previous.cancel());
+    super.dispose();
   }
 
   @override
@@ -108,15 +152,7 @@ class _FnisToolState extends State<FnisTool> {
                 emphasis: McActionEmphasis.primary,
                 onPressed: busy || value?.canRun != true
                     ? null
-                    : () => unawaited(
-                        _request(
-                          () => widget.client.run(
-                            widget.workspaceId,
-                            widget.profileId,
-                            newOperationId(),
-                          ),
-                        ),
-                      ),
+                    : () => unawaited(_run()),
               ),
               if (value?.canCancelRun == true)
                 McAction(
@@ -145,17 +181,21 @@ class _FnisToolState extends State<FnisTool> {
     );
   }
 
-  Widget _runDetails(FnisStatus value) => ExpansionTile(
-    tilePadding: EdgeInsets.zero,
-    title: const Text('Last run'),
-    subtitle: value.exitCode == null
-        ? null
-        : Text('Exit code ${value.exitCode}'),
-    children: [
-      if (value.standardOutput.isNotEmpty) _log('Output', value.standardOutput),
-      if (value.standardError.isNotEmpty) _log('Errors', value.standardError),
-      if (value.runLog.isNotEmpty) _log('FNIS log', value.runLog),
-    ],
+  Widget _runDetails(FnisStatus value) => Material(
+    type: MaterialType.transparency,
+    child: ExpansionTile(
+      tilePadding: EdgeInsets.zero,
+      title: const Text('Last run'),
+      subtitle: value.exitCode == null
+          ? null
+          : Text('Exit code ${value.exitCode}'),
+      children: [
+        if (value.standardOutput.isNotEmpty)
+          _log('Output', value.standardOutput),
+        if (value.standardError.isNotEmpty) _log('Errors', value.standardError),
+        if (value.runLog.isNotEmpty) _log('FNIS log', value.runLog),
+      ],
+    ),
   );
 
   Widget _log(String title, String content) =>

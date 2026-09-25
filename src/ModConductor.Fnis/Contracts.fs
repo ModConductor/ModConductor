@@ -103,6 +103,10 @@ type IFnisExecution =
         request: FnisRunRequest * cancellation: CancellationToken ->
             System.Threading.Tasks.Task<Result<FnisInspection, FnisExecutionError>>
 
+    abstract WaitForRun:
+        request: FnisRunRequest * cancellation: CancellationToken ->
+            System.Threading.Tasks.Task<Result<FnisInspection, FnisExecutionError>>
+
     abstract Cancel:
         workspace: Guid * profile: Guid ->
             System.Threading.Tasks.Task<Result<FnisInspection, FnisExecutionError>>

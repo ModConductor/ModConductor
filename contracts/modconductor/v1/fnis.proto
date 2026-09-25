@@ -10,6 +10,7 @@ service FnisOperations {
   rpc RemoveFnis(FnisRequest) returns (FnisState);
   rpc RecoverFnis(FnisRequest) returns (FnisState);
   rpc RunFnis(FnisRunRequest) returns (FnisState);
+  rpc ObserveFnisRun(FnisRunRequest) returns (stream FnisState);
   rpc CancelFnisRun(FnisRequest) returns (FnisState);
 }
 

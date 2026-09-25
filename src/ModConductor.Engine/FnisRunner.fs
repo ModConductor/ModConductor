@@ -12,7 +12,8 @@ open ModConductor.Persistence
 open ModConductor.Platform
 
 type private ActiveFnisRun =
-    { Cancellation: CancellationTokenSource
+    { Id: Guid
+      Cancellation: CancellationTokenSource
       Completion: TaskCompletionSource<unit> }
 
 type private FnisPathMetadata =
@@ -643,6 +644,34 @@ type FnisRunner
         member _.Inspect(workspace, profile, token) = inspect workspace profile token
 
     interface IFnisExecution with
+        member _.WaitForRun(request, token) =
+            task {
+                let! observed = inspect request.WorkspaceId request.ProfileId token
+
+                match observed with
+                | Error error -> return Error error
+                | Ok value when value.LatestRunId <> Some request.Id ->
+                    return Error FnisExecutionError.NotFound
+                | Ok value when value.Phase <> FnisOutputPhase.Running -> return Ok value
+                | Ok _ ->
+                    let key = request.WorkspaceId, request.ProfileId
+
+                    match active.TryGetValue key with
+                    | true, run when run.Id = request.Id ->
+                        do! run.Completion.Task.WaitAsync token
+                    | _ -> ()
+
+                    let! completed = inspect request.WorkspaceId request.ProfileId token
+
+                    return
+                        match completed with
+                        | Ok value when value.LatestRunId <> Some request.Id ->
+                            Error FnisExecutionError.NotFound
+                        | Ok value when value.Phase = FnisOutputPhase.Running ->
+                            Error(FnisExecutionError.Unavailable "The FNIS run is not active.")
+                        | other -> other
+            }
+
         member _.Run(request, token) =
             task {
                 if
@@ -677,7 +706,8 @@ type FnisRunner
                                 return! inspect request.WorkspaceId request.ProfileId token
                             | Ok(stage, true, _) ->
                                 let run =
-                                    { Cancellation = new CancellationTokenSource()
+                                    { Id = request.Id
+                                      Cancellation = new CancellationTokenSource()
                                       Completion =
                                         TaskCompletionSource<unit>(
                                             TaskCreationOptions.RunContinuationsAsynchronously

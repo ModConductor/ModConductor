@@ -53,7 +53,7 @@ namespace ModConductor.Protocol.V1 {
             "VVRQVVRfUEhBU0VfU1RBTEUQAxIdChlGTklTX09VVFBVVF9QSEFTRV9DVVJS",
             "RU5UEAQSHQoZRk5JU19PVVRQVVRfUEhBU0VfUlVOTklORxAFEhwKGEZOSVNf",
             "T1VUUFVUX1BIQVNFX0ZBSUxFRBAGEh8KG0ZOSVNfT1VUUFVUX1BIQVNFX0NB",
-            "TkNFTExFRBAHEh8KG0ZOSVNfT1VUUFVUX1BIQVNFX0FCQU5ET05FRBAIMtME",
+            "TkNFTExFRBAHEh8KG0ZOSVNfT1VUUFVUX1BIQVNFX0FCQU5ET05FRBAIMqQF",
             "Cg5GbmlzT3BlcmF0aW9ucxJECghSZWFkRm5pcxIcLm1vZGNvbmR1Y3Rvci52",
             "MS5GbmlzUmVxdWVzdBoaLm1vZGNvbmR1Y3Rvci52MS5GbmlzU3RhdGUSRwoL",
             "SW5zdGFsbEZuaXMSHC5tb2Rjb25kdWN0b3IudjEuRm5pc1JlcXVlc3QaGi5t",
@@ -65,10 +65,11 @@ namespace ModConductor.Protocol.V1 {
             "b3IudjEuRm5pc1N0YXRlEkcKC1JlY292ZXJGbmlzEhwubW9kY29uZHVjdG9y",
             "LnYxLkZuaXNSZXF1ZXN0GhoubW9kY29uZHVjdG9yLnYxLkZuaXNTdGF0ZRJG",
             "CgdSdW5GbmlzEh8ubW9kY29uZHVjdG9yLnYxLkZuaXNSdW5SZXF1ZXN0Ghou",
-            "bW9kY29uZHVjdG9yLnYxLkZuaXNTdGF0ZRJJCg1DYW5jZWxGbmlzUnVuEhwu",
-            "bW9kY29uZHVjdG9yLnYxLkZuaXNSZXF1ZXN0GhoubW9kY29uZHVjdG9yLnYx",
-            "LkZuaXNTdGF0ZUIbqgIYTW9kQ29uZHVjdG9yLlByb3RvY29sLlYxYgZwcm90",
-            "bzM="));
+            "bW9kY29uZHVjdG9yLnYxLkZuaXNTdGF0ZRJPCg5PYnNlcnZlRm5pc1J1bhIf",
+            "Lm1vZGNvbmR1Y3Rvci52MS5GbmlzUnVuUmVxdWVzdBoaLm1vZGNvbmR1Y3Rv",
+            "ci52MS5GbmlzU3RhdGUwARJJCg1DYW5jZWxGbmlzUnVuEhwubW9kY29uZHVj",
+            "dG9yLnYxLkZuaXNSZXF1ZXN0GhoubW9kY29uZHVjdG9yLnYxLkZuaXNTdGF0",
+            "ZUIbqgIYTW9kQ29uZHVjdG9yLlByb3RvY29sLlYxYgZwcm90bzM="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { },
           new pbr::GeneratedClrTypeInfo(new[] {typeof(global::ModConductor.Protocol.V1.FnisPhase), typeof(global::ModConductor.Protocol.V1.FnisOutputPhase), }, null, new pbr::GeneratedClrTypeInfo[] {

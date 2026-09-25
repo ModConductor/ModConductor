@@ -109,6 +109,14 @@ namespace ModConductor.Protocol.V1 {
         __Marshaller_modconductor_v1_FnisState);
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::ModConductor.Protocol.V1.FnisRunRequest, global::ModConductor.Protocol.V1.FnisState> __Method_ObserveFnisRun = new grpc::Method<global::ModConductor.Protocol.V1.FnisRunRequest, global::ModConductor.Protocol.V1.FnisState>(
+        grpc::MethodType.ServerStreaming,
+        __ServiceName,
+        "ObserveFnisRun",
+        __Marshaller_modconductor_v1_FnisRunRequest,
+        __Marshaller_modconductor_v1_FnisState);
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Method<global::ModConductor.Protocol.V1.FnisRequest, global::ModConductor.Protocol.V1.FnisState> __Method_CancelFnisRun = new grpc::Method<global::ModConductor.Protocol.V1.FnisRequest, global::ModConductor.Protocol.V1.FnisState>(
         grpc::MethodType.Unary,
         __ServiceName,
@@ -164,6 +172,12 @@ namespace ModConductor.Protocol.V1 {
 
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V1.FnisState> RunFnis(global::ModConductor.Protocol.V1.FnisRunRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task ObserveFnisRun(global::ModConductor.Protocol.V1.FnisRunRequest request, grpc::IServerStreamWriter<global::ModConductor.Protocol.V1.FnisState> responseStream, grpc::ServerCallContext context)
       {
         throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
       }
@@ -344,6 +358,16 @@ namespace ModConductor.Protocol.V1 {
         return CallInvoker.AsyncUnaryCall(__Method_RunFnis, null, options, request);
       }
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncServerStreamingCall<global::ModConductor.Protocol.V1.FnisState> ObserveFnisRun(global::ModConductor.Protocol.V1.FnisRunRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return ObserveFnisRun(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncServerStreamingCall<global::ModConductor.Protocol.V1.FnisState> ObserveFnisRun(global::ModConductor.Protocol.V1.FnisRunRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncServerStreamingCall(__Method_ObserveFnisRun, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       public virtual global::ModConductor.Protocol.V1.FnisState CancelFnisRun(global::ModConductor.Protocol.V1.FnisRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
       {
         return CancelFnisRun(request, new grpc::CallOptions(headers, deadline, cancellationToken));
@@ -384,6 +408,7 @@ namespace ModConductor.Protocol.V1 {
           .AddMethod(__Method_RemoveFnis, serviceImpl.RemoveFnis)
           .AddMethod(__Method_RecoverFnis, serviceImpl.RecoverFnis)
           .AddMethod(__Method_RunFnis, serviceImpl.RunFnis)
+          .AddMethod(__Method_ObserveFnisRun, serviceImpl.ObserveFnisRun)
           .AddMethod(__Method_CancelFnisRun, serviceImpl.CancelFnisRun).Build();
     }
 
@@ -401,6 +426,7 @@ namespace ModConductor.Protocol.V1 {
       serviceBinder.AddMethod(__Method_RemoveFnis, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.FnisRequest, global::ModConductor.Protocol.V1.FnisState>(serviceImpl.RemoveFnis));
       serviceBinder.AddMethod(__Method_RecoverFnis, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.FnisRequest, global::ModConductor.Protocol.V1.FnisState>(serviceImpl.RecoverFnis));
       serviceBinder.AddMethod(__Method_RunFnis, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.FnisRunRequest, global::ModConductor.Protocol.V1.FnisState>(serviceImpl.RunFnis));
+      serviceBinder.AddMethod(__Method_ObserveFnisRun, serviceImpl == null ? null : new grpc::ServerStreamingServerMethod<global::ModConductor.Protocol.V1.FnisRunRequest, global::ModConductor.Protocol.V1.FnisState>(serviceImpl.ObserveFnisRun));
       serviceBinder.AddMethod(__Method_CancelFnisRun, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.FnisRequest, global::ModConductor.Protocol.V1.FnisState>(serviceImpl.CancelFnisRun));
     }
 

@@ -4,6 +4,7 @@ open System
 open System.Collections.Concurrent
 open System.Threading
 open System.Threading.Tasks
+open Grpc.Core
 open ModConductor.ArtifactLibrary
 open ModConductor.Fnis
 open ModConductor.GameContexts
@@ -997,6 +998,31 @@ type internal FnisService(coordinator: FnisCoordinator, execution: IFnisExecutio
 
             let! setup = coordinator.Read(workspace, profile)
             return wire setup (Result.toOption output)
+        }
+
+    override _.ObserveFnisRun(request, stream, context) =
+        task {
+            let run =
+                { Id = ModLibraryWire.id request.Id
+                  WorkspaceId = ModLibraryWire.id request.WorkspaceId
+                  ProfileId = ModLibraryWire.id request.ProfileId }
+
+            let requireObserved =
+                function
+                | Ok value when value.LatestRunId = Some run.Id -> value
+                | _ ->
+                    raise (RpcException(Status(StatusCode.NotFound, "The FNIS run was not found.")))
+
+            let! initial = execution.Inspect(run.WorkspaceId, run.ProfileId, context.CancellationToken)
+            let initial = requireObserved initial
+            let! setup = coordinator.Read(run.WorkspaceId, run.ProfileId)
+            do! stream.WriteAsync(wire setup (Some initial), context.CancellationToken)
+
+            if initial.Phase = ModConductor.Fnis.FnisOutputPhase.Running then
+                let! completed = execution.WaitForRun(run, context.CancellationToken)
+                let completed = requireObserved completed
+                let! latestSetup = coordinator.Read(run.WorkspaceId, run.ProfileId)
+                do! stream.WriteAsync(wire latestSetup (Some completed), context.CancellationToken)
         }
 
     override _.CancelFnisRun(request, _) =

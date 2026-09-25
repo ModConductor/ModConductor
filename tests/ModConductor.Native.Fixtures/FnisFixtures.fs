@@ -1,6 +1,7 @@
 namespace ModConductor.Native.Fixtures
 
 open System
+open System.Collections.Concurrent
 open System.IO
 open System.IO.Compression
 open System.Security.Cryptography
@@ -8,6 +9,7 @@ open System.Text
 open System.Text.Json
 open System.Threading
 open System.Threading.Tasks
+open Grpc.Core
 open ModConductor.ArtifactLibrary
 open ModConductor.ArchiveInstallation
 open ModConductor.Credentials
@@ -28,6 +30,33 @@ open ModConductor.Workspaces
 module FnisFixtures =
     let private wait = StorageWorker.wait
     let private result = StorageWorker.result
+
+    type private StreamContext() =
+        inherit ServerCallContext()
+        let mutable status = Status.DefaultSuccess
+        let mutable options = null
+        override _.MethodCore = "/modconductor.v1.FnisOperations/ObserveFnisRun"
+        override _.HostCore = "localhost"
+        override _.PeerCore = "fixture"
+        override _.DeadlineCore = DateTime.MaxValue
+        override _.RequestHeadersCore = Metadata()
+        override _.CancellationTokenCore = CancellationToken.None
+        override _.ResponseTrailersCore = Metadata()
+        override _.StatusCore with get () = status and set value = status <- value
+        override _.WriteOptionsCore with get () = options and set value = options <- value
+        override _.AuthContextCore = Unchecked.defaultof<AuthContext>
+        override _.CreatePropagationTokenCore _ = Unchecked.defaultof<ContextPropagationToken>
+        override _.WriteResponseHeadersAsyncCore _ = Task.CompletedTask
+
+    type private StateStream() =
+        let states = ConcurrentQueue<FnisState>()
+        let mutable options = null
+        member _.States = states.ToArray() |> Array.toList
+        interface IServerStreamWriter<FnisState> with
+            member _.WriteOptions with get () = options and set value = options <- value
+            member _.WriteAsync(value) =
+                states.Enqueue value
+                Task.CompletedTask
 
     let private check (writer: Utf8JsonWriter) (name: string) (value: bool) =
         writer.WriteBoolean(name, value)
@@ -926,6 +955,34 @@ module FnisFixtures =
             |> result
 
         let completed = waitForRun completedId ModConductor.Fnis.FnisOutputPhase.Current
+        let runService = FnisService(coordinator, execution)
+        let completedStream = StateStream()
+        let completedReference =
+            ModConductor.Protocol.V1.FnisRunRequest(
+                Id = completedId.ToString("N"),
+                WorkspaceId = workspace.ToString("N"),
+                ProfileId = profile.ToString("N")
+            )
+
+        runService.ObserveFnisRun(completedReference, completedStream, StreamContext()).GetAwaiter().GetResult()
+
+        check
+            writer
+            "completedFnisRunStreamsTerminalStateWithoutWaiting"
+            (completedStream.States.Length = 1
+             && completedStream.States.Head.OutputPhase =
+                ModConductor.Protocol.V1.FnisOutputPhase.Current)
+
+        let unknownReference = completedReference.Clone()
+        unknownReference.Id <- Guid.NewGuid().ToString("N")
+        let unknownRunRejected =
+            try
+                runService.ObserveFnisRun(unknownReference, StateStream(), StreamContext()).GetAwaiter().GetResult()
+                false
+            with :? RpcException as error ->
+                error.StatusCode = StatusCode.NotFound
+
+        check writer "unknownFnisRunStreamReturnsNotFound" unknownRunRejected
         let afterCompleted = enabled store profile
         let firstTransientGeneration =
             (store.Deployments.Read profile |> wait |> result).ActiveGeneration.Value
@@ -1439,8 +1496,26 @@ module FnisFixtures =
         |> result
         |> ignore
 
+        let runningStream = StateStream()
+        let runningReference =
+            ModConductor.Protocol.V1.FnisRunRequest(
+                Id = cancelledId.ToString("N"),
+                WorkspaceId = workspace.ToString("N"),
+                ProfileId = profile.ToString("N")
+            )
+        let observedRun =
+            runService.ObserveFnisRun(runningReference, runningStream, StreamContext())
+
+        until
+            "FNIS run stream started"
+            (fun () -> runningStream.States.Length)
+            (fun count -> count > 0)
+        |> ignore
+
         let combinedCancelled =
             combined.Cancel(workspace, profile, CancellationToken.None) |> wait
+
+        observedRun.GetAwaiter().GetResult()
 
         let cancelled =
             execution.Inspect(workspace, profile, CancellationToken.None) |> wait |> result
@@ -1460,6 +1535,15 @@ module FnisFixtures =
                      Path.Combine(scenario, "state", "fnis-runs", cancelledId.ToString("N"))
                  )
              ))
+
+        check
+            writer
+            "runningFnisStreamFinishesAfterCancellation"
+            (runningStream.States.Length = 2
+             && runningStream.States.Head.OutputPhase =
+                ModConductor.Protocol.V1.FnisOutputPhase.Running
+             && runningStream.States[1].OutputPhase =
+                ModConductor.Protocol.V1.FnisOutputPhase.Cancelled)
 
         check
             writer
@@ -1716,7 +1800,24 @@ module FnisFixtures =
         |> ignore
 
         let childPid = File.ReadAllText(childPidFile).Trim() |> Int32.Parse
+        let shutdownStream = StateStream()
+        let shutdownReference =
+            ModConductor.Protocol.V1.FnisRunRequest(
+                Id = shutdownId.ToString("N"),
+                WorkspaceId = workspace.ToString("N"),
+                ProfileId = profile.ToString("N")
+            )
+        let shutdownObservation =
+            runService.ObserveFnisRun(shutdownReference, shutdownStream, StreamContext())
+
+        until
+            "FNIS shutdown stream started"
+            (fun () -> shutdownStream.States.Length)
+            (fun count -> count > 0)
+        |> ignore
+
         runner.Stop() |> wait
+        shutdownObservation.GetAwaiter().GetResult()
 
         let stopped =
             execution.Inspect(workspace, profile, CancellationToken.None) |> wait |> result
@@ -1732,6 +1833,13 @@ module FnisFixtures =
                      Path.Combine(scenario, "state", "fnis-runs", shutdownId.ToString("N"))
                  )
              ))
+
+        check
+            writer
+            "engineShutdownCompletesFnisRunStream"
+            (shutdownStream.States.Length = 2
+             && shutdownStream.States[1].OutputPhase =
+                ModConductor.Protocol.V1.FnisOutputPhase.Cancelled)
 
         let beforeRestart = outputEntry () |> Option.get
 

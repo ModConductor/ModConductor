@@ -1,5 +1,6 @@
 import 'package:grpc/grpc.dart';
 
+import 'completed_events.dart';
 import 'generated/modconductor/v1/fnis.pbgrpc.dart' as wire;
 
 enum FnisStatusPhase {
@@ -52,7 +53,11 @@ class FnisStatus {
   final String version, status, detail;
   final bool canInstall, canCancel, canUpdate, canRemove, canRecover;
   final FnisOutputStatusPhase outputPhase;
-  final String outputStatus, outputDetail, standardOutput, standardError, runLog;
+  final String outputStatus,
+      outputDetail,
+      standardOutput,
+      standardError,
+      runLog;
   final bool canRun, canCancelRun;
   final String? runId;
   final int? exitCode;
@@ -143,6 +148,19 @@ class FnisClient {
             profileId: profile,
           ),
         ),
+      );
+  Stream<FnisStatus> observeRun(String workspace, String profile, String id) =>
+      completedEvents(
+        _client.observeFnisRun(
+          wire.FnisRunRequest(
+            id: id,
+            workspaceId: workspace,
+            profileId: profile,
+          ),
+        ),
+        (event) =>
+            event.outputPhase != wire.FnisOutputPhase.FNIS_OUTPUT_PHASE_RUNNING,
+        _decode,
       );
   Future<FnisStatus> cancelRun(String workspace, String profile) async =>
       _decode(await _client.cancelFnisRun(_request(workspace, profile)));

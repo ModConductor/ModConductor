@@ -81,6 +81,15 @@ class FnisOperationsClient extends $grpc.Client {
     return $createUnaryCall(_$runFnis, request, options: options);
   }
 
+  $grpc.ResponseStream<$0.FnisState> observeFnisRun(
+    $0.FnisRunRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createStreamingCall(
+        _$observeFnisRun, $async.Stream.fromIterable([request]),
+        options: options);
+  }
+
   $grpc.ResponseFuture<$0.FnisState> cancelFnisRun(
     $0.FnisRequest request, {
     $grpc.CallOptions? options,
@@ -118,6 +127,11 @@ class FnisOperationsClient extends $grpc.Client {
       '/modconductor.v1.FnisOperations/RunFnis',
       ($0.FnisRunRequest value) => value.writeToBuffer(),
       $0.FnisState.fromBuffer);
+  static final _$observeFnisRun =
+      $grpc.ClientMethod<$0.FnisRunRequest, $0.FnisState>(
+          '/modconductor.v1.FnisOperations/ObserveFnisRun',
+          ($0.FnisRunRequest value) => value.writeToBuffer(),
+          $0.FnisState.fromBuffer);
   static final _$cancelFnisRun =
       $grpc.ClientMethod<$0.FnisRequest, $0.FnisState>(
           '/modconductor.v1.FnisOperations/CancelFnisRun',
@@ -177,6 +191,13 @@ abstract class FnisOperationsServiceBase extends $grpc.Service {
         runFnis_Pre,
         false,
         false,
+        ($core.List<$core.int> value) => $0.FnisRunRequest.fromBuffer(value),
+        ($0.FnisState value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.FnisRunRequest, $0.FnisState>(
+        'ObserveFnisRun',
+        observeFnisRun_Pre,
+        false,
+        true,
         ($core.List<$core.int> value) => $0.FnisRunRequest.fromBuffer(value),
         ($0.FnisState value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$0.FnisRequest, $0.FnisState>(
@@ -242,6 +263,14 @@ abstract class FnisOperationsServiceBase extends $grpc.Service {
   }
 
   $async.Future<$0.FnisState> runFnis(
+      $grpc.ServiceCall call, $0.FnisRunRequest request);
+
+  $async.Stream<$0.FnisState> observeFnisRun_Pre($grpc.ServiceCall $call,
+      $async.Future<$0.FnisRunRequest> $request) async* {
+    yield* observeFnisRun($call, await $request);
+  }
+
+  $async.Stream<$0.FnisState> observeFnisRun(
       $grpc.ServiceCall call, $0.FnisRunRequest request);
 
   $async.Future<$0.FnisState> cancelFnisRun_Pre(
