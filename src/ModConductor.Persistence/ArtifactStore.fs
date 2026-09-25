@@ -182,7 +182,7 @@ type internal ArtifactStore(database: StateDatabase, access: LibraryAccess) =
                         token.ThrowIfCancellationRequested()
 
                         let ids =
-                            db (fun () -> ArtifactRows.ids connection workspace cursor)
+                            db (fun () -> ArtifactRows.reconcileIds connection workspace cursor)
                             |> List.truncate 64
 
                         for id in ids do

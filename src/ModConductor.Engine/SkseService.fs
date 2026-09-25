@@ -163,6 +163,31 @@ type SkseCoordinator
                 return! store.SkseLoaders.Cached(workspace, account.Subject, gameSha256)
         }
 
+    let retainedArchive workspace profile =
+        task {
+            let! context = games.Read(workspace, profile)
+            let! deployed = store.Deployments.Read profile
+
+            match context, deployed with
+            | Ok context, Ok deployed when
+                context.Binding.IsSome && deployed.WorkspaceId = workspace
+                ->
+                let! installed =
+                    store.SkseLoaders.ReadStored(workspace, profile, deployed.ActiveGeneration)
+
+                match installed with
+                | Some _ -> return None
+                | None ->
+                    let! cached = cacheFor context workspace
+
+                    match cached with
+                    | None -> return None
+                    | Some selection ->
+                        let! artifact = store.Artifacts.Read(workspace, selection.ArtifactId.Value)
+                        return artifact |> Result.toOption |> Option.map (fun value -> context, selection, value)
+            | _ -> return None
+        }
+
     let saveArtifact artifact selection =
         store.SkseLoaders.SaveArtifactSelection(
             artifact,
@@ -308,74 +333,30 @@ type SkseCoordinator
         }
 
     let installedState
-        key
         (context: ModConductor.GameContexts.GameContextState)
         (loader: StoredSkseLoader)
+        (saved: StoredSkseStatus option)
         =
-        task {
-            let gameVersion, gameSha256 = facts context
-            let! current = resolve (fst key) (snd key)
+        let gameVersion, gameSha256 = facts context
 
-            match current with
-            | Error SkseProblem.UnknownCompatibility ->
-                return!
-                    persist
-                        key
-                        { Phase = SksePhase.Incompatible
-                          GameVersion = gameVersion
-                          ComponentVersion = loader.Loader.ComponentVersion
-                          Status = "Installed SKSE is incompatible"
-                          Detail =
-                            "No author release declares support for the checked Skyrim version. The working setup was not replaced."
-                          FileId = Some loader.NexusFileId }
-            | Error problem ->
-                return!
-                    persist
-                        key
-                        { Phase = SksePhase.SourceUnavailable
-                          GameVersion = gameVersion
-                          ComponentVersion = loader.Loader.ComponentVersion
-                          Status = "SKSE update check unavailable"
-                          Detail =
-                            SkseProblem.message problem + " The installed setup was not replaced."
-                          FileId = Some loader.NexusFileId }
-            | Ok(_, selection) when loader.Loader.GameSha256 <> gameSha256 ->
-                return!
-                    persist
-                        key
-                        { Phase = SksePhase.Incompatible
-                          GameVersion = gameVersion
-                          ComponentVersion = loader.Loader.ComponentVersion
-                          Status = "Skyrim changed"
-                          Detail =
-                            "The installed SKSE loader was validated for a different game build. The working setup was not replaced."
-                          FileId = Some loader.NexusFileId }
-            | Ok(_, selection) when
-                selection.Selection.Release.File.Id <> loader.NexusFileId
-                || string selection.Selection.Release.ComponentVersion
-                   <> loader.Loader.ComponentVersion
-                ->
-                return!
-                    persist
-                        key
-                        { Phase = SksePhase.UpdateAvailable
-                          GameVersion = gameVersion
-                          ComponentVersion = string selection.Selection.Release.ComponentVersion
-                          Status = "SKSE update available"
-                          Detail =
-                            "The installed version remains selected until you choose Set up SKSE."
-                          FileId = Some selection.Selection.Release.File.Id }
-            | Ok _ ->
-                return!
-                    persist
-                        key
-                        { Phase = SksePhase.Ready
-                          GameVersion = gameVersion
-                          ComponentVersion = loader.Loader.ComponentVersion
-                          Status = "SKSE is current"
-                          Detail = "Play uses the installed SKSE loader."
-                          FileId = Some loader.NexusFileId }
-        }
+        if loader.Loader.GameSha256 <> gameSha256 then
+            { Phase = SksePhase.Incompatible
+              GameVersion = gameVersion
+              ComponentVersion = loader.Loader.ComponentVersion
+              Status = "Skyrim changed"
+              Detail = "The installed SKSE loader is for a different Skyrim build."
+              FileId = Some loader.NexusFileId }
+        else
+            match saved with
+            | Some status when status.Phase = "update" && status.GameVersion = gameVersion ->
+                fromStored status
+            | _ ->
+                { Phase = SksePhase.Ready
+                  GameVersion = gameVersion
+                  ComponentVersion = loader.Loader.ComponentVersion
+                  Status = "SKSE is installed"
+                  Detail = ""
+                  FileId = Some loader.NexusFileId }
 
     member _.Read(workspace, profile) =
         task {
@@ -409,77 +390,28 @@ type SkseCoordinator
                         store.SkseLoaders.ReadStored(workspace, profile, deployed.ActiveGeneration)
 
                     match loader with
-                    | Some loader -> return! installedState key context loader
+                    | Some loader -> return installedState context loader saved
                     | None ->
-                        let! resolved = resolve workspace profile
+                        let gameVersion, _ = facts context
 
-                        match resolved with
-                        | Ok(context, selection) ->
-                            let! existing =
-                                downloads.FindNexus(workspace, reference selection false)
-
-                            match existing with
-                            | Some _ ->
-                                let gameVersion, _ = facts context
-
-                                return!
-                                    persist
-                                        key
-                                        { Phase = SksePhase.Available
-                                          GameVersion = gameVersion
-                                          ComponentVersion = string selection.Selection.Release.ComponentVersion
-                                          Status = "SKSE archive ready"
-                                          Detail = ""
-                                          FileId = Some selection.Selection.Release.File.Id }
-                            | None ->
-                                let gameVersion, _ = facts context
-
-                                return!
-                                    persist
-                                        key
-                                        { Phase = SksePhase.Available
-                                          GameVersion = gameVersion
-                                          ComponentVersion =
-                                            string selection.Selection.Release.ComponentVersion
-                                          Status = "Matching SKSE found"
-                                          Detail =
-                                            if
-                                                selection.Selection.Acquisition = SkseAcquisition.Direct
-                                            then
-                                                "Download and setup can finish in Mod Conductor."
-                                            else
-                                                "Nexus Mods requires Mod Manager Download before setup can continue."
-                                          FileId = Some selection.Selection.Release.File.Id }
-                        | Error liveProblem ->
-                            let! cached = cacheFor context workspace
-
-                            match cached with
-                            | Some cached ->
-                                let! artifact =
-                                    store.Artifacts.Read(workspace, cached.ArtifactId.Value)
-
-                                match artifact with
-                                | Ok _ ->
-                                    let gameVersion, _ = facts context
-
-                                    return!
-                                        persist
-                                            key
-                                            { Phase = SksePhase.Available
-                                              GameVersion = gameVersion
-                                              ComponentVersion = string cached.Selection.Release.ComponentVersion
-                                              Status = "SKSE archive ready"
-                                              Detail = ""
-                                              FileId = Some cached.Selection.Release.File.Id }
-                                | Error _ -> return! unavailable key liveProblem
-                            | None -> return! unavailable key liveProblem
+                        return
+                            { Phase = SksePhase.Available
+                              GameVersion = gameVersion
+                              ComponentVersion = ""
+                              Status = "SKSE is not installed"
+                              Detail = ""
+                              FileId = None }
             | _ -> return! unavailable key SkseProblem.GameUnavailable
         }
 
     member _.Start(workspace, profile) =
         task {
             let key = workspace, profile
-            let! resolved = resolve workspace profile
+            let! retained = retainedArchive workspace profile
+            let! resolved =
+                match retained with
+                | Some(context, selection, _) -> Task.FromResult(Ok(context, selection))
+                | None -> resolve workspace profile
 
             match resolved with
             | Error liveProblem ->
@@ -507,7 +439,10 @@ type SkseCoordinator
                 | _ -> return! unavailable key liveProblem
             | Ok(context, selection) ->
                 let release = selection.Selection.Release
-                let! existing = downloads.FindNexus(workspace, reference selection false)
+                let! existing =
+                    match retained with
+                    | Some(_, _, artifact) -> Task.FromResult(Some artifact)
+                    | None -> downloads.FindNexus(workspace, reference selection false)
 
                 match existing with
                 | Some artifact ->
@@ -616,7 +551,9 @@ type SkseCoordinator
                     let! context = games.Read(workspace, profile)
 
                     match context with
-                    | Ok context -> return! installedState key context loader
+                    | Ok context when context.Binding.IsSome ->
+                        return installedState context loader None
+                    | Ok _
                     | Error _ -> return! this.Read(workspace, profile)
                 | None ->
                     return!
@@ -772,14 +709,15 @@ type SkseCoordinator
                     match context with
                     | Error _ ->
                         return Error "Refresh the selected Skyrim installation before Play."
-                    | Ok context ->
-                        let! state = installedState (workspace, profile) context loader
+                    | Ok context when context.Binding.IsSome ->
+                        let _, gameSha256 = facts context
 
                         return
-                            if state.Phase = SksePhase.Ready then
+                            if loader.Loader.GameSha256 = gameSha256 then
                                 Ok()
                             else
-                                Error(state.Status + ". " + state.Detail)
+                                Error "The installed SKSE loader is for a different Skyrim build."
+                    | Ok _ -> return Error "Refresh the selected Skyrim installation before Play."
         }
 
     member this.Remove(workspace, profile, token) =

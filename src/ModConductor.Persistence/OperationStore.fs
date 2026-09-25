@@ -786,12 +786,6 @@ type OperationStore
                   Id = artifact.Id
                   Revision = artifact.Revision }
 
-            let! draft = installations.Prepare(reference, token)
-
-            let plan =
-                ModConductor.Skse.SkseArchiveLayout.review release draft.Manifest
-                |> Result.defaultWith (ModConductor.Skse.SkseProblem.message >> fail)
-
             let! reusable =
                 skseLoaders.ReusableVersion(
                     workspace,
@@ -801,11 +795,17 @@ type OperationStore
                     release
                 )
 
-            let! modId, versionId =
+            let! modId, versionId, importedPlan =
                 task {
                     match reusable with
-                    | Some existing -> return existing
+                    | Some(modId, versionId) -> return modId, versionId, None
                     | None ->
+                        let! draft = installations.Prepare(reference, token)
+
+                        let plan =
+                            ModConductor.Skse.SkseArchiveLayout.review release draft.Manifest
+                            |> Result.defaultWith (ModConductor.Skse.SkseProblem.message >> fail)
+
                         let draft =
                             if draft.Installer = ModConductor.ArchiveInstallation.InstallationMode.Manual then
                                 draft
@@ -850,7 +850,7 @@ type OperationStore
                                     "SKSE installation did not complete. No component was published."
                             )
 
-                        return installed.ModId.Value, installed.VersionId.Value
+                        return installed.ModId.Value, installed.VersionId.Value, Some plan
                 }
 
             let! version =
@@ -861,6 +861,14 @@ type OperationStore
             let version =
                 version
                 |> Option.defaultWith (fun () -> fail "The installed SKSE version is unavailable.")
+
+            let componentFiles, loader =
+                match importedPlan with
+                | Some plan -> plan.ComponentFiles, plan.Loader
+                | None ->
+                    version.Entries
+                    |> List.map _.Path
+                    |> ModConductor.Skse.SkseArchiveLayout.imported
 
             let! contextResult =
                 (gameContexts :> ModConductor.GameContexts.IGameContexts).Read(workspace, profile)
@@ -892,7 +900,7 @@ type OperationStore
                     { ModId = modId
                       Version = version
                       Priority = 0
-                      Files = plan.ComponentFiles }
+                      Files = componentFiles }
                 |> Result.defaultWith (fun _ ->
                     fail "The reviewed SKSE component no longer matches the installed archive.")
 
@@ -969,7 +977,7 @@ type OperationStore
                     previousMod,
                     { Loader =
                         { GenerationId = prepared.Switch.Generation.Id
-                          Executable = IO.Path.Combine(evidence.RootPath, plan.Loader)
+                          Executable = IO.Path.Combine(evidence.RootPath, loader)
                           ComponentVersion = string release.ComponentVersion
                           RuntimeVersion = string release.RuntimeVersion
                           GameSha256 = evidence.Executable.Value.Sha256 }

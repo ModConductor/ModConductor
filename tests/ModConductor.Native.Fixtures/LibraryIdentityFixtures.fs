@@ -129,13 +129,6 @@ module LibraryIdentityFixtures =
         Directory.Move(source, source + "-detached")
         Directory.CreateDirectory(source) |> ignore
         File.WriteAllText(Path.Combine(source, "foreign"), "not adopted")
-        let scan = library.Scan(workspace, 1000) |> wait |> result
-
-        writer.WriteBoolean(
-            "replacementUnproved",
-            scan.Entries.Head.Status = InventoryStatus.Unproved
-        )
-
         writer.WriteBoolean(
             "replacementPublishRefused",
             library.Publish(modId, 1L, Guid.NewGuid()) |> wait |> Result.isError

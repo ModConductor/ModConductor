@@ -112,3 +112,33 @@ module SkseArchiveLayout =
                 SkseProblem.InvalidArchive
                     "The SKSE archive has an unexpected root layout. No files were installed."
             )
+
+    let imported (paths: LogicalPath list) =
+        let files =
+            paths
+            |> List.map (fun source ->
+                match LogicalPath.components source with
+                | "Root" :: target ->
+                    { Source = source
+                      Root = ComponentRoot.GameRoot
+                      Destination = path target
+                      Use = ComponentFileUse.Immutable }
+                | "Data" :: target ->
+                    { Source = source
+                      Root = ComponentRoot.Data
+                      Destination = path target
+                      Use = ComponentFileUse.Immutable }
+                | _ -> invalidOp "The imported SKSE layout is unavailable.")
+
+        let loader =
+            files
+            |> List.tryPick (fun file ->
+                match file.Root, LogicalPath.components file.Destination with
+                | ComponentRoot.GameRoot, [ name ] when
+                    String.Equals(name, "skse64_loader.exe", StringComparison.OrdinalIgnoreCase)
+                    ->
+                    Some name
+                | _ -> None)
+            |> Option.defaultWith (fun () -> invalidOp "The imported SKSE loader is unavailable.")
+
+        files, loader

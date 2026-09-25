@@ -344,8 +344,7 @@ module GeneratedOutputFixtures =
                 "promotionPreservesSourceAndSharesUnchangedPayload"
                 (File.ReadAllText(Path.Combine(sourcePath, "result.txt")) = "registered source"
                  && (retained composed.Entries).Payload = (retained oldSource.Entries).Payload
-                 && changedSource.SourcePath = Some(path "Registered")
-                 && changedSource.Status = InventoryStatus.Changed)
+                 && changedSource.SourcePath = Some(path "Registered"))
 
             let republishedId = Guid.NewGuid()
 

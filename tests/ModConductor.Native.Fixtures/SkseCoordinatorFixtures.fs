@@ -350,7 +350,7 @@ module SkseCoordinatorFixtures =
             writer
             "acceptNxmCompletesExpectedHandoff"
             (waiting.Phase = SksePhase.WaitingForNexus
-             && ready.Status = "SKSE is current"
+             && ready.Phase = SksePhase.Ready
              && launch.Problem.IsNone)
 
         check
@@ -510,21 +510,59 @@ module SkseCoordinatorFixtures =
                 server.Handoff
             )
 
+        let metadataRequests () =
+            [ "/api/games/skyrimspecialedition.json"
+              "/api/games/skyrimspecialedition/mods/30379.json"
+              "/api/games/skyrimspecialedition/mods/30379/files.json" ]
+            |> List.sumBy server.Count
+
+        let beforeLocal = metadataRequests ()
         let cold = coordinator.Read(workspace, profile) |> wait
         let beforeChoice = restarted.SkseLoaders.ReadStored(workspace, profile, None) |> wait
         let started = coordinator.Start(workspace, profile) |> wait
+        let afterLocal = metadataRequests ()
         let ready = waitForStatus restarted workspace profile "current"
         let launch = restarted.GameLaunching.Read(workspace, profile) |> wait |> result
 
         check
             writer
-            "coldCoordinatorWaitsForChoiceThenUsesCacheOffline"
+            "coldCoordinatorUsesRetainedArchiveWithoutNexus"
             (cold.Phase = SksePhase.Available
-             && cold.Status = "SKSE archive ready"
              && beforeChoice.IsNone
              && started.Phase = SksePhase.Downloading
-             && ready.Status = "SKSE is current"
+             && afterLocal = beforeLocal
+             && ready.Phase = "current"
              && launch.Problem.IsNone)
+
+        let deployed = restarted.Deployments.Read profile |> wait |> result
+
+        let firstLoader =
+            restarted.SkseLoaders.ReadStored(workspace, profile, deployed.ActiveGeneration)
+            |> wait
+            |> Option.get
+
+        let beforeRemove = metadataRequests ()
+        let removed = coordinator.Remove(workspace, profile, CancellationToken.None) |> wait
+        let afterRemove = metadataRequests ()
+        let restartedSetup = coordinator.Start(workspace, profile) |> wait
+        waitForStatus restarted workspace profile "current" |> ignore
+        let afterReinstall = metadataRequests ()
+        let deployed = restarted.Deployments.Read profile |> wait |> result
+
+        let secondLoader =
+            restarted.SkseLoaders.ReadStored(workspace, profile, deployed.ActiveGeneration)
+            |> wait
+            |> Option.get
+
+        check
+            writer
+            "localRemovalAndReinstallReuseRetainedSkseImport"
+            (removed.Phase = SksePhase.Available
+             && restartedSetup.Phase = SksePhase.Downloading
+             && beforeRemove = afterRemove
+             && afterRemove = afterReinstall
+             && firstLoader.ModId = secondLoader.ModId
+             && firstLoader.VersionId = secondLoader.VersionId)
 
     let private installedEvidence writer area =
         let scenario =
@@ -572,13 +610,27 @@ module SkseCoordinatorFixtures =
         let initial = snapshot store workspace profile
         let initialGeneration = initial.Active.Value
 
+        let requests () =
+            [ "/api/games/skyrimspecialedition.json"
+              "/api/games/skyrimspecialedition/mods/30379.json"
+              "/api/games/skyrimspecialedition/mods/30379/files.json" ]
+            |> List.sumBy server.Count
+        let mutable localRequests = true
+        let before = requests ()
         let current = coordinator.Read(workspace, profile) |> wait
+        localRequests <- localRequests && requests () = before
+        let before = requests ()
         let currentGate = coordinator.CheckBeforePlay(workspace, profile) |> wait
+        localRequests <- localRequests && requests () = before
 
         let updateId = 502L
         configure server runtime updateId "2.3.0" (archive runtime "update" true 0)
+        let before = requests ()
         let update = coordinator.Read(workspace, profile) |> wait
+        localRequests <- localRequests && requests () = before
+        let before = requests ()
         let updateGate = coordinator.CheckBeforePlay(workspace, profile) |> wait
+        localRequests <- localRequests && requests () = before
 
         server.Mode <- "good"
         configure server runtime updateId "2.3.0" (archive runtime "update" true 0)
@@ -673,20 +725,23 @@ module SkseCoordinatorFixtures =
         |> ignore
 
         server.Mode <- "offline"
+        let beforeUnavailable = requests ()
         let unavailable = coordinator.Read(workspace, profile) |> wait
         let unavailableGate = coordinator.CheckBeforePlay(workspace, profile) |> wait
+        localRequests <- localRequests && requests () = beforeUnavailable
 
         check
             writer
-            "coordinatorLaunchGatesCurrentUpdateIncompatibleAndUnavailable"
+            "localSkseReadsAndPlayIgnoreNexusButRejectChangedGame"
             (current.Phase = SksePhase.Ready
+             && localRequests
              && Result.isOk currentGate
-             && update.Phase = SksePhase.UpdateAvailable
-             && Result.isError updateGate
+             && update.Phase = SksePhase.Ready
+             && Result.isOk updateGate
              && incompatible.Phase = SksePhase.Incompatible
              && Result.isError incompatibleGate
-             && unavailable.Phase = SksePhase.SourceUnavailable
-             && Result.isError unavailableGate)
+             && unavailable.Phase = SksePhase.Ready
+             && Result.isOk unavailableGate)
 
         let failedReplacement fileId version bytes mode point changeGame =
             failurePoint <- point

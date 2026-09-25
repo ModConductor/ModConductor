@@ -33,8 +33,14 @@ type internal ArtifactCapture(operations: ArtifactAccess) =
                 if row.Artifact.Sha256.IsNone then
                     row
                 else
-                    ArtifactFiles.verify token row.Artifact.Length row.Artifact.Sha256 file
-                    if row.Phase = 2 then row else finish row 2 None
+                    if row.Phase = 2 then
+                        if Some file.Length <> row.Artifact.Length then
+                            raise (IOException "The archive does not match the saved file.")
+
+                        row
+                    else
+                        ArtifactFiles.verify token row.Artifact.Length row.Artifact.Sha256 file
+                        finish row 2 None
             elif row.Phase = 0 && row.Artifact.Download.IsSome && row.StoredIdentity.IsSome then
                 use directory = library row.Artifact.WorkspaceId
 
@@ -72,11 +78,13 @@ type internal ArtifactCapture(operations: ArtifactAccess) =
                         if row.StoredIdentity.IsNone then
                             raise (IOException "The library file has no saved identity.")
 
-                        ArtifactFiles.verify token row.Artifact.Length row.Artifact.Sha256 file
-
                         if row.Phase = 2 then
+                            if Some file.Length <> row.Artifact.Length then
+                                raise (IOException "The archive does not match the saved file.")
+
                             row
                         else
+                            ArtifactFiles.verify token row.Artifact.Length row.Artifact.Sha256 file
                             finish
                                 { row with
                                     StoredIdentity = Some identity }

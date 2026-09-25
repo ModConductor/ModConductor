@@ -140,6 +140,20 @@ module internal ArtifactRows =
         [ while reader.Read() do
               yield Guid.Parse(reader.GetString 0) ]
 
+    let reconcileIds connection workspace after =
+        use query =
+            Sqlite.command
+                connection
+                null
+                "SELECT id FROM artifacts WHERE workspace_id=$workspace AND phase<>2 AND id>$after ORDER BY id LIMIT 65"
+                [ "$workspace", box (string workspace)
+                  "$after", box (after |> Option.map string |> Option.defaultValue "") ]
+
+        use reader = query.ExecuteReader()
+
+        [ while reader.Read() do
+              yield Guid.Parse(reader.GetString 0) ]
+
     let nullable value =
         value |> Option.map box |> Option.defaultValue (box DBNull.Value)
 
