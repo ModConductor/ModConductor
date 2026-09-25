@@ -332,7 +332,7 @@ class _SavedDeploymentsDialogState extends State<SavedDeploymentsDialog> {
             ),
           const SizedBox(height: 16),
           const Text(
-            'Restored deployments keep their saved mod versions. Shared output files do not roll back.',
+            'A saved deployment restores its mod versions and FNIS files. It does not restore shared output files.',
           ),
         ],
       );

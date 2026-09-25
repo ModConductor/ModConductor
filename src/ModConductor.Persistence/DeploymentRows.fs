@@ -159,11 +159,12 @@ module internal DeploymentRows =
             Sqlite.execute
                 connection
                 transaction
-                "INSERT INTO deployment_generations(context_id,id,body,digest) VALUES($context,$id,$body,$digest)"
+                "INSERT INTO deployment_generations(context_id,id,body,digest,saved) VALUES($context,$id,$body,$digest,$saved)"
                 [ "$context", identifier contextId
                   "$id", identifier value.Id
                   "$body", box body
-                  "$digest", box (DeploymentEncoding.hash body) ]
+                  "$digest", box (DeploymentEncoding.hash body)
+                  "$saved", box (if value.Provenance.IsSome then 1 else 0) ]
 
     let insert connection transaction owner (value: Receipt) =
         let body = DeploymentEncoding.receiptBytes value

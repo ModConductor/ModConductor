@@ -73,6 +73,20 @@ type FilePlanRepository
                         return root |> Result.mapError rootError |> Result.map (fun _ -> sources)
                 })
 
+        member _.ReadFnisCandidate(profile, run) =
+            protect (fun () ->
+                task {
+                    let! result =
+                        transact false (fun c t ->
+                            FilePlanRows.readFnisCandidate c t database.OwnerId profile run)
+
+                    match result with
+                    | Error error -> return Error error
+                    | Ok sources ->
+                        let! root = access.Root sources.Stamp.WorkspaceId
+                        return root |> Result.mapError rootError |> Result.map (fun _ -> sources)
+                })
+
         member _.GameProjection(expected, token) =
             protect (fun () ->
                 transact false (fun c t ->

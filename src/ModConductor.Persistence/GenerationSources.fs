@@ -20,6 +20,7 @@ module internal GenerationSources =
         writable
         components
         (retained: SavedProfile option)
+        candidate
         =
         task {
             let! read =
@@ -27,7 +28,16 @@ module internal GenerationSources =
                     use transaction = database.Connection.BeginTransaction(deferred = true)
 
                     let sources =
-                        FilePlanRows.read database.Connection transaction database.OwnerId profile
+                        match candidate with
+                        | Some run ->
+                            FilePlanRows.readFnisCandidate
+                                database.Connection
+                                transaction
+                                database.OwnerId
+                                profile
+                                run
+                        | None ->
+                            FilePlanRows.read database.Connection transaction database.OwnerId profile
 
                     let result =
                         sources

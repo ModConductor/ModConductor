@@ -64,6 +64,7 @@ type internal DeploymentGenerationStore
             ?gameFolderOnly: bool,
             ?retainedProfile: SavedProfile,
             ?recordProfile: bool,
+            ?fnisCandidate: Guid,
             ?components: ReviewedComponent list
         ) =
         prepare (fun () ->
@@ -82,6 +83,7 @@ type internal DeploymentGenerationStore
                                         writable
                                         (defaultArg components [])
                                         retainedProfile
+                                        fnisCandidate
 
                                 let sources =
                                     if defaultArg gameFolderOnly false then

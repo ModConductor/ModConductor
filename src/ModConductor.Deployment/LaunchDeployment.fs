@@ -17,6 +17,7 @@ module internal LaunchDeployment =
                 -> Task<Result<DeploymentReceipt, DeploymentError>>)
         id
         (expected: SourceStamp)
+        candidate
         progress
         (token: CancellationToken)
         =
@@ -30,7 +31,11 @@ module internal LaunchDeployment =
             else
                 token.ThrowIfCancellationRequested()
                 GameProcesses.validate sources.Context |> ignore
-                let! prepared = repository.Prepare(id, sources, context, progress, token)
+                let! prepared =
+                    match candidate with
+                    | Some run ->
+                        repository.PrepareTransient(id, sources, context, run, progress, token)
+                    | None -> repository.Prepare(id, sources, context, progress, token)
                 let mutable durable = false
 
                 try

@@ -4,7 +4,7 @@ open System.Threading
 open System.Threading.Tasks
 open ModConductor.DeploymentPlanning
 
-type internal SnapshotAcquisition(repository: IFilePlanRepository, cache: SnapshotCache) =
+type internal SnapshotAcquisition(repository: IFilePlanRepository, cache: SnapshotCache) as this =
     let describe snapshot =
         PlanSnapshot.summary (cache.Stale snapshot) snapshot
 
@@ -43,9 +43,14 @@ type internal SnapshotAcquisition(repository: IFilePlanRepository, cache: Snapsh
                         | Ok true -> snapshot |> Result.map (keep false)
         }
 
-    member _.Acquire(profile, refresh, progress, token: CancellationToken) =
+    member private _.AcquireWith(candidate, profile, refresh, progress, token: CancellationToken) =
         task {
-            let! sources = repository.Read profile
+            let! baseSources = repository.Read profile
+
+            let! sources =
+                match candidate, baseSources with
+                | Some run, Ok _ -> repository.ReadFnisCandidate(profile, run)
+                | _ -> Task.FromResult baseSources
 
             match sources with
             | Error error -> return Error error
@@ -53,7 +58,8 @@ type internal SnapshotAcquisition(repository: IFilePlanRepository, cache: Snapsh
                 match PlanSnapshot.context sources with
                 | Error error -> return Error error
                 | Ok evidence ->
-                    let! projected = repository.GameProjection(sources.Stamp, token)
+                    let! projected =
+                        repository.GameProjection(baseSources |> Result.map _.Stamp |> Result.defaultValue sources.Stamp, token)
 
                     match projected with
                     | Error error -> return Error error
@@ -116,7 +122,21 @@ type internal SnapshotAcquisition(repository: IFilePlanRepository, cache: Snapsh
                             else
                                 let! snapshot = create sources (Some observation)
                                 token.ThrowIfCancellationRequested()
-                                let! current = repository.Current sources.Stamp
+                                let! current =
+                                    match candidate with
+                                    | None -> repository.Current sources.Stamp
+                                    | Some run ->
+                                        task {
+                                            let! baseCurrent =
+                                                repository.Current(baseSources |> Result.map _.Stamp |> Result.defaultValue sources.Stamp)
+                                            let! candidateCurrent = repository.ReadFnisCandidate(profile, run)
+                                            return
+                                                match baseCurrent, candidateCurrent with
+                                                | Ok true, Ok value -> Ok(value.Stamp = sources.Stamp)
+                                                | Ok false, _ -> Ok false
+                                                | Error error, _ -> Error error
+                                                | _, Error error -> Error error
+                                        }
 
                                 return
                                     match current with
@@ -125,3 +145,9 @@ type internal SnapshotAcquisition(repository: IFilePlanRepository, cache: Snapsh
                                     | Ok true ->
                                         snapshot |> Result.map (keep (refresh || cached.IsNone))
         }
+
+    member _.Acquire(profile, refresh, progress, token) =
+        this.AcquireWith(None, profile, refresh, progress, token)
+
+    member _.AcquireFnisCandidate(profile, run, progress, token) =
+        this.AcquireWith(Some run, profile, false, progress, token)

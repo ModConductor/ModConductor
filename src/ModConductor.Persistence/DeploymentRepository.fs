@@ -260,6 +260,24 @@ type internal DeploymentRepository(database: StateDatabase) =
                     else
                         None
 
+                retired
+                |> Option.iter (fun generation ->
+                    let transient =
+                        Sqlite.number
+                            connection
+                            transaction
+                            "SELECT count(*) FROM deployment_generations WHERE context_id=$context AND id=$id AND saved=0"
+                            [ "$context", box (string context.Id)
+                              "$id", box (string generation.Id) ] = 1L
+
+                    if transient && (receipt.Phase = ReceiptPhase.Complete || receipt.Phase = ReceiptPhase.Restored) then
+                        Sqlite.execute
+                            connection
+                            transaction
+                            "DELETE FROM deployment_receipts WHERE context_id=$context AND proposed_id=$id AND phase IN (2,3); DELETE FROM deployment_generations WHERE context_id=$context AND id=$id AND saved=0"
+                            [ "$context", box (string context.Id)
+                              "$id", box (string generation.Id) ])
+
                 transaction.Commit()
 
                 retired

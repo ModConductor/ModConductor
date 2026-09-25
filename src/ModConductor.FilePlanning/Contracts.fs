@@ -121,6 +121,7 @@ type SavedCopy =
 /// Persistence owns these reads and the single transaction that checks and records a change.
 type IFilePlanRepository =
     abstract Read: Guid -> Task<Result<PlanSources, FilePlanError>>
+    abstract ReadFnisCandidate: Guid * Guid -> Task<Result<PlanSources, FilePlanError>>
     abstract Copy: Guid * ModFile -> Task<Result<SavedCopy, FilePlanError>>
     abstract Current: SourceStamp -> Task<Result<bool, FilePlanError>>
 
@@ -328,6 +329,10 @@ type IFilePlans =
 
     abstract Acquire:
         Guid * bool * (AcquisitionProgress -> unit) * CancellationToken ->
+            Task<Result<FilePlanSummary, FilePlanError>>
+
+    abstract AcquireFnisCandidate:
+        Guid * Guid * (AcquisitionProgress -> unit) * CancellationToken ->
             Task<Result<FilePlanSummary, FilePlanError>>
 
     abstract Read: Guid -> Task<Result<FilePlanSummary, FilePlanError>>

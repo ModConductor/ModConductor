@@ -35,18 +35,76 @@ type FnisRunner
     (
         store: OperationStore,
         ?timeout: TimeSpan,
-        ?publicationCheckpoint: FnisRunRequest -> unit
+        ?publicationCheckpoint: FnisRunRequest -> unit,
+        ?candidateCheckpoint: FnisRunRequest -> unit,
+        ?activationCheckpoint: FnisRunRequest -> unit
     ) =
     let active = ConcurrentDictionary<Guid * Guid, ActiveFnisRun>()
     let lifetime = obj ()
     let mutable closing = false
     let timeout = defaultArg timeout (TimeSpan.FromMinutes 5.)
     let publicationCheckpoint = defaultArg publicationCheckpoint ignore
+    let candidateCheckpoint = defaultArg candidateCheckpoint ignore
+    let activationCheckpoint = defaultArg activationCheckpoint ignore
     let logLimit = 256 * 1024
+
+    let restorePending profile run =
+        task {
+            let! state = store.Deployments.Read profile
+
+            match state with
+            | Ok state when state.PendingReceipt = Some run ->
+                let! receipt = store.Deployments.Receipt run
+
+                match receipt with
+                | Error _ -> return false
+                | Ok receipt ->
+                    let! restored =
+                        store.Deployments.Recover(
+                            run,
+                            receipt.Revision,
+                            true,
+                            ignore,
+                            CancellationToken.None
+                        )
+
+                    return Result.isOk restored
+            | Ok _ -> return true
+            | Error _ -> return false
+        }
+
+    let reconcile workspace profile =
+        task {
+            let! interrupted = store.FnisExecution.Interrupted profile
+
+            match interrupted with
+            | None -> ()
+            | Some run ->
+                let! _ = restorePending profile run
+
+                let! state = store.Deployments.Read profile
+                let! receipt = store.Deployments.Receipt run
+
+                match state, receipt with
+                | Ok state, _ when state.PendingReceipt = Some run -> ()
+                | Ok state, Ok receipt when
+                    state.WorkspaceId = workspace
+                    && receipt.Phase = ModConductor.Deployment.DeploymentPhase.Complete
+                    && state.ActiveGeneration = Some receipt.Proposed
+                    ->
+                    do! store.FnisExecution.Complete run
+                    let! _ = store.FnisExecution.PrunePrevious run
+                    do! store.FnisExecution.MarkCurrent run
+                    ()
+                | _ ->
+                    let! _ = store.FnisExecution.PruneCandidate run
+                    ()
+        }
 
     let inspect (workspace: Guid) (profile: Guid) (token: CancellationToken) =
         task {
             token.ThrowIfCancellationRequested()
+            do! reconcile workspace profile
             let! deployment = store.Deployments.Read profile
 
             match deployment with
@@ -102,6 +160,19 @@ type FnisRunner
             File.SetAttributes(path, value.Attributes)
         else
             value.UnixMode |> Option.iter (fun mode -> File.SetUnixFileMode(path, mode))
+
+    let restoreLogMetadata (before: FnisLogSnapshot) =
+        for KeyValue(path, value) in before.Files do
+            if File.Exists path then
+                restoreMetadata path value.Metadata
+
+        before.TemporaryDirectoryMetadata
+        |> Option.iter (fun value ->
+            let path = Path.Combine(before.Directory, "temporary_logs")
+            if Directory.Exists path then restoreMetadata path value)
+
+        if Directory.Exists before.Directory then
+            restoreMetadata before.Directory before.DirectoryMetadata
 
     let logPaths (generator: string) =
         let directory = Path.GetDirectoryName generator
@@ -286,6 +357,7 @@ type FnisRunner
             let mutable stdout = Array.empty<byte>
             let mutable stderr = Array.empty<byte>
             let mutable runLog = Array.empty<byte>
+            let mutable candidatePublished = false
 
             try
                 try
@@ -425,7 +497,66 @@ type FnisRunner
                                 )
 
                             match published with
-                            | Ok() -> ()
+                            | Ok() ->
+                                candidatePublished <- true
+                                candidateCheckpoint stage.Request
+                                let! deployment =
+                                    store.Deployments.Read stage.Request.ProfileId
+
+                                let! refreshed =
+                                    match deployment with
+                                    | Error _ ->
+                                        Task.FromResult(
+                                            Error ModConductor.Deployment.DeploymentError.Stale
+                                        )
+                                    | Ok state ->
+                                        store.Deployments.RefreshFnis(
+                                            stage.Request.Id,
+                                            state.Sources,
+                                            stage.Request.Id,
+                                            ignore,
+                                            run.Cancellation.Token
+                                        )
+
+                                match refreshed with
+                                | Ok _ ->
+                                    activationCheckpoint stage.Request
+                                    do! store.FnisExecution.Complete stage.Request.Id
+                                    let! _ = store.FnisExecution.PrunePrevious stage.Request.Id
+                                    do! store.FnisExecution.MarkCurrent stage.Request.Id
+                                    ()
+                                | Error error ->
+                                    let! restored =
+                                        restorePending stage.Request.ProfileId stage.Request.Id
+
+                                    if not restored then
+                                        do! store.FnisExecution.Defer stage.Request.Id
+
+                                    let detail =
+                                        match error with
+                                        | ModConductor.Deployment.DeploymentError.Cancelled ->
+                                            "FNIS output activation was cancelled. The previous output remains active."
+                                        | _ ->
+                                            "FNIS output could not be activated. The previous output remains active."
+
+                                    if restored then
+                                        let! _ =
+                                            failure
+                                                stage.Request.Id
+                                                (if error = ModConductor.Deployment.DeploymentError.Cancelled then
+                                                     FnisOutputPhase.Cancelled
+                                                 else
+                                                     FnisOutputPhase.Failed)
+                                                (Some result.ExitCode)
+                                                stdout
+                                                stderr
+                                                runLog
+                                                detail
+
+                                        let! _ = store.FnisExecution.PruneCandidate stage.Request.Id
+                                        ()
+
+                                    ()
                             | Error error ->
                                 let detail =
                                     match error with
@@ -451,31 +582,39 @@ type FnisRunner
                                         detail
 
                                 ()
+
+                        restoreLogMetadata beforeLogs
                 with
                 | :? OperationCanceledException ->
-                    let! _ =
-                        failure
-                            stage.Request.Id
-                            FnisOutputPhase.Cancelled
-                            None
-                            stdout
-                            stderr
-                            runLog
-                            "FNIS was cancelled. The previous generated output remains active."
+                    if candidatePublished then
+                        do! store.FnisExecution.Defer stage.Request.Id
+                    else
+                        let! _ =
+                            failure
+                                stage.Request.Id
+                                FnisOutputPhase.Cancelled
+                                None
+                                stdout
+                                stderr
+                                runLog
+                                "FNIS was cancelled. The previous generated output remains active."
 
-                    ()
+                        ()
                 | error ->
-                    let! _ =
-                        failure
-                            stage.Request.Id
-                            FnisOutputPhase.Failed
-                            None
-                            stdout
-                            stderr
-                            runLog
-                            (error.Message + " The previous generated output remains active.")
+                    if candidatePublished then
+                        do! store.FnisExecution.Defer stage.Request.Id
+                    else
+                        let! _ =
+                            failure
+                                stage.Request.Id
+                                FnisOutputPhase.Failed
+                                None
+                                stdout
+                                stderr
+                                runLog
+                                (error.Message + " The previous generated output remains active.")
 
-                    ()
+                        ()
             finally
                 store.FnisExecution.CleanupStage stage.Request.Id
                 let key = stage.Request.WorkspaceId, stage.Request.ProfileId

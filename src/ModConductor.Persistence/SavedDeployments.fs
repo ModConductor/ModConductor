@@ -28,7 +28,7 @@ module internal SavedDeployments =
             Sqlite.command
                 connection
                 transaction
-                "SELECT rowid,id FROM deployment_generations WHERE context_id=$context AND ($before IS NULL OR rowid<$before) ORDER BY rowid DESC LIMIT 33"
+                "SELECT rowid,id FROM deployment_generations WHERE context_id=$context AND saved=1 AND ($before IS NULL OR rowid<$before) ORDER BY rowid DESC LIMIT 33"
                 [ "$context", box (string context)
                   "$before", before |> Option.map box |> Option.defaultValue (box DBNull.Value) ]
 

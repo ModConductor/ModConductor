@@ -163,6 +163,10 @@ type FilePlanSession(repository: IFileCandidateRepository) =
         member _.Acquire(profile, refresh, progress, token) =
             run token (fun token -> acquisition.Acquire(profile, refresh, progress, token))
 
+        member _.AcquireFnisCandidate(profile, candidateRun, progress, token) =
+            run token (fun token ->
+                acquisition.AcquireFnisCandidate(profile, candidateRun, progress, token))
+
         member _.Read id =
             run CancellationToken.None (fun _ ->
                 task {

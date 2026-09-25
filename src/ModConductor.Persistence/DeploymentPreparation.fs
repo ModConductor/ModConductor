@@ -287,6 +287,8 @@ module internal DeploymentPreparation =
 
     let private prepareWith
         componentMode
+        recordProfile
+        candidate
         (components: ReviewedComponent list)
 
         (database: StateDatabase)
@@ -360,19 +362,19 @@ module internal DeploymentPreparation =
                     contextId
                     token
 
+            let report (value: AcquisitionProgress) =
+                progress
+                    { Phase = DeploymentPhase.Preparing
+                      Completed = value.Files
+                      Total = value.TotalFiles
+                      Bytes = value.Bytes }
+
             let! acquired =
-                (plans :> IFilePlans)
-                    .Acquire(
-                        sources.Stamp.ProfileId,
-                        false,
-                        (fun value ->
-                            progress
-                                { Phase = DeploymentPhase.Preparing
-                                  Completed = value.Files
-                                  Total = value.TotalFiles
-                                  Bytes = value.Bytes }),
-                        token
-                    )
+                match candidate with
+                | Some run ->
+                    (plans :> IFilePlans).AcquireFnisCandidate(sources.Stamp.ProfileId, run, report, token)
+                | None ->
+                    (plans :> IFilePlans).Acquire(sources.Stamp.ProfileId, false, report, token)
 
             let summary =
                 acquired
@@ -538,14 +540,15 @@ module internal DeploymentPreparation =
                     (fun location -> GenerationStorage.available location.Path location.Identity),
                     gameFolderOnly = gameFolderOnly,
                     ?retainedProfile = retainedProfile,
-                    recordProfile = true,
+                    recordProfile = recordProfile,
+                    ?fnisCandidate = candidate,
                     components = components
                 )
 
             let built =
                 built |> Result.defaultWith (fun error -> raise (RecoveryException error))
 
-            if built.Sources <> sources.Stamp then
+            if candidate.IsNone && built.Sources <> sources.Stamp then
                 raise (RecoveryException RecoveryError.Stale)
 
             do! DeploymentOutputs.initialized database sources.Stamp outputWorking
@@ -657,7 +660,7 @@ module internal DeploymentPreparation =
                   Generation = generation
                   DirectoryBoundaries = boundaries
                   PreserveOriginals = collisions
-                  ExpectedSources = Some built.Sources }
+                  ExpectedSources = Some sources.Stamp }
 
             let paths =
                 (ModConductor.DeploymentRecovery.Preparation.projection switch |> List.map fst)
@@ -670,7 +673,7 @@ module internal DeploymentPreparation =
                 { Id = id
                   WorkspaceId = sources.Stamp.WorkspaceId
                   Fingerprint = built.Generation.PlanFingerprint
-                  Sources = built.Sources
+                  Sources = sources.Stamp
                   Profile =
                     generation.Provenance
                     |> Option.bind _.Profile
@@ -710,6 +713,8 @@ module internal DeploymentPreparation =
         =
         prepareWith
             false
+            true
+            None
             []
             database
             access
@@ -722,6 +727,38 @@ module internal DeploymentPreparation =
             gameFolderOnly
             retainedProfile
             retainedGeneration
+            progress
+            token
+
+    let transient
+        database
+        access
+        plans
+        generations
+        recovery
+        id
+        sources
+        existing
+        candidate
+        progress
+        token
+        =
+        prepareWith
+            false
+            false
+            (Some candidate)
+            []
+            database
+            access
+            plans
+            generations
+            recovery
+            id
+            sources
+            existing
+            false
+            None
+            None
             progress
             token
 
@@ -741,6 +778,8 @@ module internal DeploymentPreparation =
         =
         prepareWith
             true
+            true
+            None
             reviewed
             database
             access

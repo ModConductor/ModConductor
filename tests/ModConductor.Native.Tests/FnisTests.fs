@@ -62,7 +62,13 @@ type FnisTests() =
         flag "activeGeneratedOutputIsExcludedFromEffectiveInputs" |> should equal true
         flag "addedEffectiveInputMakesFnisStale" |> should equal true
         flag "removedEffectiveInputRestoresFingerprint" |> should equal true
-        flag "distinctRunIdsCreateVersionsOfOneStableOutput" |> should equal true
+        flag "firstRunUpdatesActiveGameViewWithoutSavingDeployment" |> should equal true
+        flag "rerunReplacesPriorOutputWithoutSavingDeployment" |> should equal true
+        flag "successorReceiptRemainsReadableAfterTransientPredecessorIsPruned" |> should equal true
+        flag "interruptionBeforeActivationPreservesPriorViewAndWorkingOutput" |> should equal true
+        flag "interruptionAfterActivationFinalizesWorkingOutput" |> should equal true
+        flag "savedDeploymentRestoresExactFnisFilesAndMarksWorkingOutputStale" |> should equal true
+        flag "deletingOwnerProfileDeletesPrivateFnisOutputAndKeepsOtherProfile" |> should equal true
         flag "timedOutRunRetainsDetailAndRemovesStage" |> should equal true
         flag "outputLimitFailureRetainsDetailAndRemovesStage" |> should equal true
         flag "launchFailureRetainsDetailAndRemovesStage" |> should equal true

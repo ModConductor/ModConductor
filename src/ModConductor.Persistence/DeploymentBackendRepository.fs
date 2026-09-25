@@ -67,6 +67,20 @@ type internal DeploymentBackendRepository
                 progress
                 token
 
+        member _.PrepareTransient(id, sources, existing, candidate, progress, token) =
+            DeploymentPreparation.transient
+                database
+                access
+                plans
+                generations
+                recovery
+                id
+                sources
+                existing
+                candidate
+                progress
+                token
+
         member _.Retained(id, sources, context, generation, progress, token) =
             task {
                 match generation with

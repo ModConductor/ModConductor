@@ -477,6 +477,9 @@ type internal ProfileDataMutations
                                 for generation in generations do
                                     GenerationFiles.removeOwned generation
 
+                                let! fnisOutput =
+                                    FnisOutputCleanup.removeProfileFiles database access workspace target
+
                                 return!
                                     database.Enqueue(fun () ->
                                         use transaction =
@@ -496,6 +499,9 @@ type internal ProfileDataMutations
                                                 Sqlite.execute connection transaction "DELETE FROM deployment_receipts WHERE context_id=$context" args
                                                 Sqlite.execute connection transaction "DELETE FROM deployment_generations WHERE context_id=$context" args
                                                 Sqlite.execute connection transaction "DELETE FROM deployment_contexts WHERE id=$context" args
+
+                                            fnisOutput
+                                            |> Option.iter (FnisOutputCleanup.removeProfileRows connection transaction)
 
                                         beforeCommit ()
                                         transaction.Commit()

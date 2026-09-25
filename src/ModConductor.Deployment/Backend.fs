@@ -182,7 +182,7 @@ type DeploymentBackend internal (repository: IDeploymentRepository) =
                 try
                     let! result =
                         protect (fun () ->
-                            LaunchDeployment.prepare repository execute id expected progress token)
+                            LaunchDeployment.prepare repository execute id expected None progress token)
 
                     match result with
                     | Error error -> return Error error
@@ -315,6 +315,15 @@ type DeploymentBackend internal (repository: IDeploymentRepository) =
                                 finally
                                     if not retained then
                                         abandon value
+                })
+
+        member _.RefreshFnis(id, expected, candidate, progress, token) =
+            run expected.WorkspaceId (fun () ->
+                task {
+                    let! refreshed =
+                        LaunchDeployment.prepare repository execute id expected (Some candidate) progress token
+
+                    return refreshed |> Result.map (fun (_, receipt) -> receipt)
                 })
 
         member _.Activate(id, expected, progress, token) =

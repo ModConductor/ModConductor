@@ -8,6 +8,21 @@ open ModConductor.DeploymentPlanning
 open ModConductor.FilePlanning
 
 module internal FilePlanRows =
+    let private fnisCandidate connection transaction profile run =
+        use command =
+            Sqlite.command
+                connection
+                transaction
+                "SELECT f.output_mod_id,f.output_version_id FROM fnis_runs f JOIN mod_versions v ON v.id=f.output_version_id AND v.mod_id=f.output_mod_id AND v.phase=3 WHERE f.id=$run AND f.profile_id=$profile AND f.busy=1 AND f.phase=0"
+                [ "$run", box (string run); "$profile", box (string profile) ]
+
+        use reader = command.ExecuteReader()
+
+        if reader.Read() then
+            Some(Guid.Parse(reader.GetString 0), Guid.Parse(reader.GetString 1))
+        else
+            None
+
     let revision connection transaction workspace =
         Sqlite.number
             connection
@@ -15,14 +30,15 @@ module internal FilePlanRows =
             "SELECT COALESCE((SELECT revision FROM file_visibility_state WHERE workspace_id=$workspace),0)"
             [ "$workspace", box (string workspace) ]
 
-    let versions connection transaction workspace profile =
+    let private versionsWith candidate connection transaction workspace profile =
         use command =
             Sqlite.command
                 connection
                 transaction
-                "SELECT m.id,m.current_version FROM mods m WHERE m.workspace_id=$workspace AND (m.kind=1 OR (m.kind=5 AND EXISTS(SELECT 1 FROM fnis_outputs f WHERE f.profile_id=$profile AND f.mod_id=m.id))) ORDER BY m.id LIMIT $limit"
+                "SELECT m.id,m.current_version FROM mods m WHERE m.workspace_id=$workspace AND (m.kind=1 OR (m.kind=5 AND (EXISTS(SELECT 1 FROM fnis_outputs f WHERE f.profile_id=$profile AND f.mod_id=m.id) OR m.id=$candidate))) ORDER BY m.id LIMIT $limit"
                 [ "$workspace", box (string workspace)
                   "$profile", box (string profile)
+                  "$candidate", candidate |> Option.map (fst >> string >> box) |> Option.defaultValue (box DBNull.Value)
                   "$limit", box (Limits.entries + 1) ]
 
         use reader = command.ExecuteReader()
@@ -30,12 +46,15 @@ module internal FilePlanRows =
         [ while reader.Read() do
               yield
                   Guid.Parse(reader.GetString 0),
-                  (if reader.IsDBNull 1 then
-                       None
-                   else
-                       Some(Guid.Parse(reader.GetString 1))) ]
+                  (match candidate with
+                   | Some(modId, version) when modId = Guid.Parse(reader.GetString 0) -> Some version
+                   | _ when reader.IsDBNull 1 -> None
+                   | _ -> Some(Guid.Parse(reader.GetString 1))) ]
 
-    let stamp connection transaction profile =
+    let versions connection transaction workspace profile =
+        versionsWith None connection transaction workspace profile
+
+    let private stampWith candidate connection transaction profile =
         SelectionRows.profile connection transaction profile
         |> Option.map (fun (workspace, selection) ->
             { WorkspaceId = workspace
@@ -54,7 +73,7 @@ module internal FilePlanRows =
                     transaction
                     "SELECT COALESCE(SUM(revision),0) FROM output_contexts WHERE workspace_id=$workspace"
                     [ "$workspace", box (string workspace) ]
-              Versions = versions connection transaction workspace profile
+              Versions = versionsWith candidate connection transaction workspace profile
               Deployment =
                 match GameContextRows.read connection transaction "" workspace profile with
                 | Ok state ->
@@ -79,6 +98,9 @@ module internal FilePlanRows =
                         | _ -> None)
                 | Error _ -> None })
 
+    let stamp connection transaction profile =
+        stampWith None connection transaction profile
+
     let hidden connection transaction workspace =
         use command =
             Sqlite.command
@@ -96,8 +118,8 @@ module internal FilePlanRows =
                     Path = LibraryEncoding.readPath (reader.GetString 2) } ]
         |> Set.ofList
 
-    let read connection transaction owner profile =
-        match stamp connection transaction profile with
+    let private readWith candidate connection transaction owner profile =
+        match stampWith candidate connection transaction profile with
         | None -> Error FilePlanError.NotFound
         | Some stamp when stamp.Versions.Length > Limits.entries ->
             Error(FilePlanError.LimitExceeded "The mod inventory exceeds the entry limit.")
@@ -111,16 +133,19 @@ module internal FilePlanRows =
                     |> Map.ofList
 
                 let generatedOutput =
-                    use command =
-                        Sqlite.command
-                            connection
-                            transaction
-                            "SELECT mod_id FROM fnis_outputs WHERE profile_id=$profile"
-                            [ "$profile", box (string profile) ]
+                    match candidate with
+                    | Some(modId, _) -> Some modId
+                    | None ->
+                        use command =
+                            Sqlite.command
+                                connection
+                                transaction
+                                "SELECT mod_id FROM fnis_outputs WHERE profile_id=$profile"
+                                [ "$profile", box (string profile) ]
 
-                    match command.ExecuteScalar() with
-                    | :? string as value -> Some(Guid.Parse value)
-                    | _ -> None
+                        match command.ExecuteScalar() with
+                        | :? string as value -> Some(Guid.Parse value)
+                        | _ -> None
 
                 let mutable remaining = Limits.entries
                 let mutable bytes = 0L
@@ -274,6 +299,14 @@ module internal FilePlanRows =
                                     )
 
                                 declarations }
+
+    let read connection transaction owner profile =
+        readWith None connection transaction owner profile
+
+    let readFnisCandidate connection transaction owner profile run =
+        match fnisCandidate connection transaction profile run with
+        | None -> Error FilePlanError.Stale
+        | Some candidate -> readWith (Some candidate) connection transaction owner profile
 
     let savedCopy connection transaction workspace (copy: ModFile) =
         use command =

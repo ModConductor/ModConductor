@@ -911,6 +911,8 @@ module FnisFixtures =
         select false inputMod
 
         let beforeCompleted = enabled store profile
+        let savedBeforeRun =
+            store.Deployments.Saved(profile, None) |> wait |> result |> _.Entries.Length
         let completedId = Guid.NewGuid()
 
         let started =
@@ -925,8 +927,44 @@ module FnisFixtures =
 
         let completed = waitForRun completedId ModConductor.Fnis.FnisOutputPhase.Current
         let afterCompleted = enabled store profile
+        let firstTransientGeneration =
+            (store.Deployments.Read profile |> wait |> result).ActiveGeneration.Value
         let firstOutput = outputEntry () |> Option.get
         let firstVersion = firstOutput.CurrentVersion
+        let gameOutput =
+            Path.Combine(
+                runnable.RunnableRoot,
+                "Data",
+                "meshes",
+                "actors",
+                "character",
+                "behaviors",
+                "generated.hkx"
+            )
+
+        let firstPayload =
+            use connection =
+                new Microsoft.Data.Sqlite.SqliteConnection(
+                    "Data Source=" + Path.Combine(scenario, "state", "state.db") + ";Pooling=False"
+                )
+
+            connection.Open()
+            use query =
+                Sqlite.command
+                    connection
+                    null
+                    "SELECT l.directory,p.id FROM mod_libraries l JOIN mod_payloads p ON p.workspace_id=l.workspace_id JOIN mod_manifest m ON m.payload_id=p.id WHERE m.version_id=$version LIMIT 1"
+                    [ "$version", box (string firstVersion.Value) ]
+
+            use reader = query.ExecuteReader()
+            reader.Read() |> ignore
+            Path.Combine(scenario, "workspace", reader.GetString 0, reader.GetString 1 + ".payload")
+
+        check
+            writer
+            "firstRunUpdatesActiveGameViewWithoutSavingDeployment"
+            (File.ReadAllText gameOutput = "generated-success"
+             && (store.Deployments.Saved(profile, None) |> wait |> result).Entries.Length = savedBeforeRun)
 
         let otherProfile = Guid.NewGuid()
         let workspaces = store.Workspaces :> IWorkspaceState
@@ -978,7 +1016,7 @@ module FnisFixtures =
             "activeGeneratedOutputIsExcludedFromEffectiveInputs"
             (completed.Fingerprint = initialFingerprint)
 
-        File.WriteAllText(mode, "success")
+        File.WriteAllText(mode, "success2")
         let distinctId = Guid.NewGuid()
 
         execution.Run(
@@ -993,16 +1031,55 @@ module FnisFixtures =
 
         let distinct = waitForRun distinctId ModConductor.Fnis.FnisOutputPhase.Current
         let secondOutput = outputEntry () |> Option.get
+        let successorReceipt = store.Deployments.Receipt distinctId |> wait |> result
+
+        let oldVersionCount =
+            use connection =
+                new Microsoft.Data.Sqlite.SqliteConnection(
+                    "Data Source=" + Path.Combine(scenario, "state", "state.db") + ";Pooling=False"
+                )
+
+            connection.Open()
+            Sqlite.number
+                connection
+                null
+                "SELECT count(*) FROM mod_versions WHERE id=$version"
+                [ "$version", box (string firstVersion.Value) ]
 
         check
             writer
-            "distinctRunIdsCreateVersionsOfOneStableOutput"
+            "rerunReplacesPriorOutputWithoutSavingDeployment"
             (distinct.LatestRunId = Some distinctId
              && secondOutput.Id = firstOutput.Id
              && secondOutput.CurrentVersion <> firstVersion
+             && File.ReadAllText gameOutput = "generated-success2"
+             && oldVersionCount = 0L
+             && not (File.Exists firstPayload)
+             && (store.Deployments.Saved(profile, None) |> wait |> result).Entries.Length = savedBeforeRun
              && (InventoryObservations.read store profile).Entries
                 |> List.filter (fun row -> row.Entry.Mod.Metadata.Name = "FNIS generated output")
                 |> List.length = 1)
+
+        let retiredTransientRows =
+            use connection =
+                new Microsoft.Data.Sqlite.SqliteConnection(
+                    "Data Source=" + Path.Combine(scenario, "state", "state.db") + ";Pooling=False"
+                )
+
+            connection.Open()
+            Sqlite.number
+                connection
+                null
+                "SELECT count(*) FROM deployment_generations WHERE id=$generation"
+                [ "$generation", box (string firstTransientGeneration) ]
+
+        check
+            writer
+            "successorReceiptRemainsReadableAfterTransientPredecessorIsPruned"
+            (successorReceipt.Phase = ModConductor.Deployment.DeploymentPhase.Complete
+             && successorReceipt.Previous = Some firstTransientGeneration
+             && retiredTransientRows = 0L
+             && (store.Deployments.Receipt completedId |> wait |> Result.isError))
 
         File.WriteAllText(mode, "fail")
         let failedId = Guid.NewGuid()
@@ -1058,6 +1135,64 @@ module FnisFixtures =
              && warningOutput.CurrentVersion <> secondOutput.CurrentVersion
              && enabled store profile = afterCompleted)
 
+        let beforeCandidateInterrupt = warningOutput.CurrentVersion
+        let beforeCandidateBytes = File.ReadAllText gameOutput
+        let candidateInterruptId = Guid.NewGuid()
+        use candidateInterruptedRunner =
+            new FnisRunner(store, candidateCheckpoint = (fun _ -> failwith "candidate interrupt"))
+        let candidateInterrupted = candidateInterruptedRunner :> IFnisExecution
+
+        candidateInterrupted.Run(
+            { Id = candidateInterruptId
+              WorkspaceId = workspace
+              ProfileId = profile },
+            CancellationToken.None
+        )
+        |> wait
+        |> result
+        |> ignore
+
+        let abandonedCandidate =
+            until
+                "interrupted FNIS candidate"
+                (fun () -> candidateInterrupted.Inspect(workspace, profile, CancellationToken.None) |> wait |> result)
+                (fun value -> value.LatestRunId = Some candidateInterruptId && value.Phase = ModConductor.Fnis.FnisOutputPhase.Abandoned)
+
+        check
+            writer
+            "interruptionBeforeActivationPreservesPriorViewAndWorkingOutput"
+            (abandonedCandidate.Phase = ModConductor.Fnis.FnisOutputPhase.Abandoned
+             && File.ReadAllText gameOutput = beforeCandidateBytes
+             && (outputEntry () |> Option.get).CurrentVersion = beforeCandidateInterrupt)
+
+        let activationInterruptId = Guid.NewGuid()
+        use activationInterruptedRunner =
+            new FnisRunner(store, activationCheckpoint = (fun _ -> failwith "activation interrupt"))
+        let activationInterrupted = activationInterruptedRunner :> IFnisExecution
+
+        activationInterrupted.Run(
+            { Id = activationInterruptId
+              WorkspaceId = workspace
+              ProfileId = profile },
+            CancellationToken.None
+        )
+        |> wait
+        |> result
+        |> ignore
+
+        let recoveredActivation =
+            until
+                "interrupted FNIS activation"
+                (fun () -> activationInterrupted.Inspect(workspace, profile, CancellationToken.None) |> wait |> result)
+                (fun value -> value.LatestRunId = Some activationInterruptId && value.Phase = ModConductor.Fnis.FnisOutputPhase.Current)
+
+        check
+            writer
+            "interruptionAfterActivationFinalizesWorkingOutput"
+            (recoveredActivation.Phase = ModConductor.Fnis.FnisOutputPhase.Current
+             && File.ReadAllText gameOutput = "generated-warn"
+             && (outputEntry () |> Option.get).CurrentVersion <> beforeCandidateInterrupt)
+
         let beforeRebuild = store.Deployments.Read profile |> wait |> result
 
         let unrelatedGeneration =
@@ -1079,6 +1214,74 @@ module FnisFixtures =
         |> wait
         |> result
         |> ignore
+
+        let savedFnisVersion = (outputEntry () |> Option.get).CurrentVersion
+        let savedFnisGeneration =
+            (store.Deployments.Read profile |> wait |> result).ActiveGeneration.Value
+
+        File.WriteAllText(mode, "success2")
+        let afterSavedId = Guid.NewGuid()
+
+        execution.Run(
+            { Id = afterSavedId
+              WorkspaceId = workspace
+              ProfileId = profile },
+            CancellationToken.None
+        )
+        |> wait
+        |> result
+        |> ignore
+
+        let afterSaved = waitForRun afterSavedId ModConductor.Fnis.FnisOutputPhase.Current
+        let workingVersion = (outputEntry () |> Option.get).CurrentVersion
+        let beforeRestore = store.Deployments.Read profile |> wait |> result
+
+        let restoring =
+            store.Deployments.PrepareRetained(
+                Guid.NewGuid(),
+                beforeRestore.Sources,
+                Some savedFnisGeneration,
+                ignore,
+                CancellationToken.None
+            )
+            |> wait
+            |> result
+
+        store.Deployments.Activate(
+            restoring.Id,
+            restoring.Sources,
+            ignore,
+            CancellationToken.None
+        )
+        |> wait
+        |> result
+        |> ignore
+
+        let restoredFnis = execution.Inspect(workspace, profile, CancellationToken.None) |> wait |> result
+
+        check
+            writer
+            "savedDeploymentRestoresExactFnisFilesAndMarksWorkingOutputStale"
+            (afterSaved.Phase = ModConductor.Fnis.FnisOutputPhase.Current
+             && savedFnisVersion <> workingVersion
+             && File.ReadAllText gameOutput = "generated-warn"
+             && restoredFnis.Phase = ModConductor.Fnis.FnisOutputPhase.Stale
+             && (outputEntry () |> Option.get).CurrentVersion = workingVersion)
+
+        File.WriteAllText(mode, "warn")
+        let postRestoreId = Guid.NewGuid()
+
+        execution.Run(
+            { Id = postRestoreId
+              WorkspaceId = workspace
+              ProfileId = profile },
+            CancellationToken.None
+        )
+        |> wait
+        |> result
+        |> ignore
+
+        waitForRun postRestoreId ModConductor.Fnis.FnisOutputPhase.Current |> ignore
 
         let rebuiltGeneration =
             (store.Deployments.Read profile |> wait |> result).ActiveGeneration
@@ -1630,6 +1833,66 @@ module FnisFixtures =
                  "interrupted",
                  StringComparison.OrdinalIgnoreCase
              ))
+
+        let ownedPayloads =
+            use connection =
+                new Microsoft.Data.Sqlite.SqliteConnection(
+                    "Data Source=" + Path.Combine(scenario, "state", "state.db") + ";Pooling=False"
+                )
+
+            connection.Open()
+            use query =
+                Sqlite.command
+                    connection
+                    null
+                    "SELECT l.directory,p.id FROM mod_libraries l JOIN mod_payloads p ON p.workspace_id=l.workspace_id JOIN mod_versions v ON v.id=p.publication_id WHERE v.mod_id=$mod"
+                    [ "$mod", box (string afterRestart.Id) ]
+
+            use reader = query.ExecuteReader()
+            [ while reader.Read() do
+                  yield Path.Combine(scenario, "workspace", reader.GetString 0, reader.GetString 1 + ".payload") ]
+
+        let reopenedWorkspaces = reopened.Workspaces :> IWorkspaceState
+        let beforeDelete = reopenedWorkspaces.Read(workspace, None) |> wait |> result
+        let selectedOther =
+            reopenedWorkspaces.Edit(
+                workspace,
+                beforeDelete.Workspace.Revision,
+                ProfileEdit.Select otherProfile
+            )
+            |> wait
+            |> result
+
+        let removedOwner =
+            reopenedWorkspaces.Edit(
+                workspace,
+                selectedOther.Workspace.Revision,
+                ProfileEdit.Delete profile
+            )
+            |> wait
+            |> result
+
+        let ownedRows =
+            use connection =
+                new Microsoft.Data.Sqlite.SqliteConnection(
+                    "Data Source=" + Path.Combine(scenario, "state", "state.db") + ";Pooling=False"
+                )
+
+            connection.Open()
+            Sqlite.number
+                connection
+                null
+                "SELECT (SELECT count(*) FROM mods WHERE id=$mod)+(SELECT count(*) FROM mod_versions WHERE mod_id=$mod)+(SELECT count(*) FROM fnis_outputs WHERE profile_id=$profile)"
+                [ "$mod", box (string afterRestart.Id)
+                  "$profile", box (string profile) ]
+
+        check
+            writer
+            "deletingOwnerProfileDeletesPrivateFnisOutputAndKeepsOtherProfile"
+            (removedOwner.Deleted = Some profile
+             && removedOwner.Workspace.SelectedProfile.Value.Id = otherProfile
+             && ownedRows = 0L
+             && (ownedPayloads |> List.forall (File.Exists >> not)))
 
     let private nxmEvidence writer area =
         let scenario = Directory.CreateDirectory(Path.Combine(area, "nxm")).FullName
