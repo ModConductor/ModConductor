@@ -148,10 +148,14 @@ class SetupClientFixture extends SkyrimSetupClient {
   }
 }
 
-Widget app(SetupClientFixture client, {ArchiveChooser? choose}) => MaterialApp(
+Widget app(
+  SetupClientFixture client, {
+  ArchiveChooser? choose,
+  double height = 720,
+}) => MaterialApp(
   home: Scaffold(
     body: SizedBox(
-      height: 720,
+      height: height,
       child: SkyrimSetupSection(
         client: client,
         chooseArchive:
@@ -268,6 +272,22 @@ void main() {
     expect(client.applied!.skse, SkyrimSetupAction.install);
     expect(client.applied!.enb, SkyrimSetupAction.unchanged);
     expect(client.applied!.fnis, SkyrimSetupAction.unchanged);
+  });
+
+  testWidgets('cancelled setup can be applied without scrolling', (
+    tester,
+  ) async {
+    final client = SetupClientFixture()..cancelled = true;
+    await tester.pumpWidget(app(client, height: 310));
+    await settle(tester);
+
+    await tester.tap(find.byType(Switch).first);
+    await settle(tester);
+    await tester.tap(find.byKey(const ValueKey('apply-skyrim-setup')));
+    await settle(tester);
+
+    expect(client.starts, 1);
+    expect(client.applied!.skse, SkyrimSetupAction.install);
   });
 
   testWidgets('ENB archive is required before Apply', (tester) async {

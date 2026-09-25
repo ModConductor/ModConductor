@@ -191,6 +191,52 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
         (value?.canStart == true ||
             value?.phase == SkyrimSetupStatusPhase.failed) &&
         selection.canApply;
+    final actions = Wrap(
+      spacing: McSpacing.medium,
+      runSpacing: McSpacing.medium,
+      children: [
+        McAction(
+          key: const ValueKey('apply-skyrim-setup'),
+          label: 'Apply',
+          emphasis: McActionEmphasis.primary,
+          onPressed: canApply ? apply : null,
+        ),
+        if (selection.hasChange && !locked)
+          McAction(
+            label: 'Clear choices',
+            onPressed: busy
+                ? null
+                : () {
+                    setState(() {
+                      selection = const SkyrimSetupSelection();
+                      userEdited = true;
+                    });
+                    unawaited(load());
+                  },
+          ),
+        McAction(
+          key: const ValueKey('refresh-skyrim-setup'),
+          label: 'Refresh',
+          icon: Icons.refresh,
+          onPressed: busy ? null : load,
+        ),
+        if (value?.canCancel == true)
+          McAction(label: 'Cancel setup', onPressed: busy ? null : cancelSetup),
+        if (failed && value.canContinue)
+          McAction(
+            label: 'Try again',
+            onPressed: busy
+                ? null
+                : () => change(
+                    () => widget.client.start(
+                      widget.workspaceId,
+                      widget.profileId,
+                      selection: selection,
+                    ),
+                  ),
+          ),
+      ],
+    );
     final content = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -200,6 +246,8 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
         ],
         if (value != null &&
             value.status.isNotEmpty &&
+            !(value.phase == SkyrimSetupStatusPhase.cancelled &&
+                selection.hasChange) &&
             value.status != 'Choose an ENBSeries archive') ...[
           McStatus(
             title: value.status,
@@ -208,7 +256,9 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
           ),
           const SizedBox(height: McSpacing.medium),
         ],
+        actions,
         if (components.isNotEmpty) ...[
+          const SizedBox(height: McSpacing.medium),
           LayoutBuilder(
             builder: (_, bounds) => bounds.maxWidth < 680
                 ? const SizedBox.shrink()
@@ -224,57 +274,7 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
                   ),
           ),
           for (final item in components) _component(item, locked),
-          const SizedBox(height: McSpacing.medium),
         ],
-        Wrap(
-          spacing: McSpacing.medium,
-          runSpacing: McSpacing.medium,
-          children: [
-            if (selection.hasChange && !locked)
-              McAction(
-                label: 'Clear choices',
-                onPressed: busy
-                    ? null
-                    : () {
-                        setState(() {
-                          selection = const SkyrimSetupSelection();
-                          userEdited = true;
-                        });
-                        unawaited(load());
-                      },
-              ),
-            McAction(
-              key: const ValueKey('refresh-skyrim-setup'),
-              label: 'Refresh',
-              icon: Icons.refresh,
-              onPressed: busy ? null : load,
-            ),
-            McAction(
-              key: const ValueKey('apply-skyrim-setup'),
-              label: 'Apply',
-              emphasis: McActionEmphasis.primary,
-              onPressed: canApply ? apply : null,
-            ),
-            if (value?.canCancel == true)
-              McAction(
-                label: 'Cancel setup',
-                onPressed: busy ? null : cancelSetup,
-              ),
-            if (failed && value.canContinue)
-              McAction(
-                label: 'Try again',
-                onPressed: busy
-                    ? null
-                    : () => change(
-                        () => widget.client.start(
-                          widget.workspaceId,
-                          widget.profileId,
-                          selection: selection,
-                        ),
-                      ),
-              ),
-          ],
-        ),
       ],
     );
     return LayoutBuilder(
