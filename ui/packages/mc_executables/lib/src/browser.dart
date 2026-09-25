@@ -7,6 +7,7 @@ import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 
 import 'controller.dart';
 import 'editor.dart';
+import 'fnis_tool.dart';
 import 'run_details.dart';
 import 'run_presentation.dart';
 export 'run_presentation.dart' show executableRunLabel;
@@ -17,9 +18,13 @@ class ExecutablesBrowser extends StatefulWidget {
     required this.controller,
     required this.chooseExecutable,
     required this.chooseDirectory,
+    this.fnis,
+    this.workspace,
   });
   final ExecutablesController controller;
   final ExecutablePathChooser chooseExecutable, chooseDirectory;
+  final FnisClient? fnis;
+  final WorkspaceInfo? workspace;
   @override
   State<ExecutablesBrowser> createState() => _ExecutablesBrowserState();
 }
@@ -218,132 +223,156 @@ class _ExecutablesBrowserState extends State<ExecutablesBrowser> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Expanded(
-                child: c.needsRead && (c.problem != null || c.uncertain)
-                    ? SingleChildScrollView(
-                        child: McSection(
-                          title: 'Executable result',
-                          children: [
-                            if (c.problem != null)
-                              McStatus(
-                                title: c.problem!,
-                                tone: McStatusTone.error,
+                child: Column(
+                  children: [
+                    if (widget.fnis != null &&
+                        widget.workspace?.selectedProfile != null)
+                      FnisTool(
+                        client: widget.fnis!,
+                        workspaceId: widget.workspace!.id,
+                        profileId: widget.workspace!.selectedProfile!.id,
+                      ),
+                    Expanded(
+                      child: c.needsRead && (c.problem != null || c.uncertain)
+                          ? SingleChildScrollView(
+                              child: McSection(
+                                title: 'Executable result',
+                                children: [
+                                  if (c.problem != null)
+                                    McStatus(
+                                      title: c.problem!,
+                                      tone: McStatusTone.error,
+                                    ),
+                                  const SizedBox(height: 16),
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children: [
+                                      if (c.pendingLaunch != null ||
+                                          c.pendingStop != null ||
+                                          c.selectedRun != null)
+                                        McAction(
+                                          label: 'Read result',
+                                          onPressed: c.changing
+                                              ? null
+                                              : () => unawaited(c.readRun()),
+                                        ),
+                                      if (c.pendingLaunch != null)
+                                        McAction(
+                                          label: 'Continue',
+                                          onPressed: c.changing
+                                              ? null
+                                              : () => unawaited(
+                                                  c.continueLaunch(),
+                                                ),
+                                        ),
+                                      if (!c.uncertain)
+                                        McAction(
+                                          label: 'Refresh executables',
+                                          onPressed: c.changing
+                                              ? null
+                                              : () => unawaited(
+                                                  c.load(refresh: true),
+                                                ),
+                                        ),
+                                    ],
+                                  ),
+                                ],
                               ),
-                            const SizedBox(height: 16),
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: [
-                                if (c.pendingLaunch != null ||
-                                    c.pendingStop != null ||
-                                    c.selectedRun != null)
+                            )
+                          : McCollection<String, ExecutablePreset>(
+                              model: c.presets,
+                              title: 'Executables',
+                              filterLabel: 'Filter executables',
+                              countLabel:
+                                  '${c.presets.length} ${c.presets.length == 1 ? 'executable' : 'executables'}',
+                              empty: 'No executables.',
+                              actions: [
+                                McIconAction(
+                                  label: 'Add executable',
+                                  icon: const Icon(Icons.add),
+                                  onPressed: c.canChange
+                                      ? () => _edit(null)
+                                      : null,
+                                ),
+                                McIconMenu<String>(
+                                  label: 'Executable options',
+                                  onSelected: (v) {
+                                    switch (v) {
+                                      case 'edit':
+                                        _edit(c.selected);
+                                      case 'remove':
+                                        unawaited(_remove(c.selected!));
+                                      case 'history':
+                                        _history();
+                                    }
+                                  },
+                                  itemBuilder: (_) => [
+                                    PopupMenuItem(
+                                      value: 'edit',
+                                      enabled:
+                                          c.canChange && c.selected != null,
+                                      child: const Text('Edit'),
+                                    ),
+                                    PopupMenuItem(
+                                      value: 'remove',
+                                      enabled:
+                                          c.canChange && c.selected != null,
+                                      child: const Text('Remove'),
+                                    ),
+                                    PopupMenuItem(
+                                      value: 'history',
+                                      enabled: c.connected,
+                                      child: const Text('Recent runs'),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                              toolbar: Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: [
+                                  _runAction(),
                                   McAction(
-                                    label: 'Read result',
-                                    onPressed: c.changing
+                                    label: 'Details',
+                                    icon: Icons.info_outline,
+                                    onPressed: c.selected == null
                                         ? null
-                                        : () => unawaited(c.readRun()),
+                                        : () => _details(compact),
                                   ),
-                                if (c.pendingLaunch != null)
-                                  McAction(
-                                    label: 'Continue',
-                                    onPressed: c.changing
-                                        ? null
-                                        : () => unawaited(c.continueLaunch()),
-                                  ),
-                                if (!c.uncertain)
-                                  McAction(
-                                    label: 'Refresh executables',
-                                    onPressed: c.changing
-                                        ? null
-                                        : () =>
-                                              unawaited(c.load(refresh: true)),
+                                ],
+                              ),
+                              columns: [
+                                McColumn('Name', (v) => Text(v.name)),
+                                McColumn(
+                                  'Latest run',
+                                  (v) =>
+                                      Text(executableRunLabel(c.latest[v.id])),
+                                ),
+                                if (!narrow)
+                                  McColumn(
+                                    'Executable',
+                                    (v) => Text(
+                                      v.executable,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
                                   ),
                               ],
+                              onSelect: c.select,
+                              onActivate: (_) => _details(compact),
+                              loading: c.reading,
+                              problem: c.problem,
+                              onLoad: c.canLoad
+                                  ? () => unawaited(c.load())
+                                  : null,
+                              onRefresh:
+                                  c.connected && !c.changing && !c.uncertain
+                                  ? () => unawaited(c.load(refresh: true))
+                                  : null,
                             ),
-                          ],
-                        ),
-                      )
-                    : McCollection<String, ExecutablePreset>(
-                        model: c.presets,
-                        title: 'Executables',
-                        filterLabel: 'Filter executables',
-                        countLabel:
-                            '${c.presets.length} ${c.presets.length == 1 ? 'executable' : 'executables'}',
-                        empty: 'No executables.',
-                        actions: [
-                          McIconAction(
-                            label: 'Add executable',
-                            icon: const Icon(Icons.add),
-                            onPressed: c.canChange ? () => _edit(null) : null,
-                          ),
-                          McIconMenu<String>(
-                            label: 'Executable options',
-                            onSelected: (v) {
-                              switch (v) {
-                                case 'edit':
-                                  _edit(c.selected);
-                                case 'remove':
-                                  unawaited(_remove(c.selected!));
-                                case 'history':
-                                  _history();
-                              }
-                            },
-                            itemBuilder: (_) => [
-                              PopupMenuItem(
-                                value: 'edit',
-                                enabled: c.canChange && c.selected != null,
-                                child: const Text('Edit'),
-                              ),
-                              PopupMenuItem(
-                                value: 'remove',
-                                enabled: c.canChange && c.selected != null,
-                                child: const Text('Remove'),
-                              ),
-                              PopupMenuItem(
-                                value: 'history',
-                                enabled: c.connected,
-                                child: const Text('Recent runs'),
-                              ),
-                            ],
-                          ),
-                        ],
-                        toolbar: Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            _runAction(),
-                            McAction(
-                              label: 'Details',
-                              icon: Icons.info_outline,
-                              onPressed: c.selected == null
-                                  ? null
-                                  : () => _details(compact),
-                            ),
-                          ],
-                        ),
-                        columns: [
-                          McColumn('Name', (v) => Text(v.name)),
-                          McColumn(
-                            'Latest run',
-                            (v) => Text(executableRunLabel(c.latest[v.id])),
-                          ),
-                          if (!narrow)
-                            McColumn(
-                              'Executable',
-                              (v) => Text(
-                                v.executable,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                        ],
-                        onSelect: c.select,
-                        onActivate: (_) => _details(compact),
-                        loading: c.reading,
-                        problem: c.problem,
-                        onLoad: c.canLoad ? () => unawaited(c.load()) : null,
-                        onRefresh: c.connected && !c.changing && !c.uncertain
-                            ? () => unawaited(c.load(refresh: true))
-                            : null,
-                      ),
+                    ),
+                  ],
+                ),
               ),
               if (!compact && _inspection) ...[
                 const SizedBox(width: 16),

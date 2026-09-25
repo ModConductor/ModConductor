@@ -1220,6 +1220,8 @@ class _ModConductorAppState extends State<ModConductorApp> {
                               controller: _executables,
                               chooseExecutable: widget.chooseExecutable,
                               chooseDirectory: widget.chooseGameDirectory,
+                              fnis: widget.fnis,
+                              workspace: workspace,
                             ),
                       artifactBuilder:
                           !_supportsArchives || widget.artifacts == null
