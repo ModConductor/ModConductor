@@ -19,6 +19,7 @@ Future<void> mount(
   DiagnosticsClient? diagnostics,
   WorkspacesClient? workspaces,
   GameContextsClient? gameContexts,
+  SkseClient? skse,
 }) async {
   tester.view.devicePixelRatio = 1;
   tester.view.physicalSize = const Size(1280, 800);
@@ -34,6 +35,7 @@ Future<void> mount(
       diagnostics: diagnostics,
       workspaces: workspaces,
       gameContexts: gameContexts,
+      skse: skse,
     ),
   );
   if (settle) await tester.pumpAndSettle();
@@ -250,6 +252,33 @@ class _FailingSettingsFake extends _SettingsFake {
 
 class _NoDiagnostics extends Fake implements DiagnosticsClient {}
 
+class _DelayedSkse extends Fake implements SkseClient {
+  final result = Completer<SkseStatus>();
+  int checks = 0;
+
+  @override
+  Future<SkseStatus> checkUpdate(String workspace, String profile) {
+    checks++;
+    return result.future;
+  }
+}
+
+class _ProfileSkse extends Fake implements SkseClient {
+  final checked = <String>[];
+
+  @override
+  Future<SkseStatus> checkUpdate(String workspace, String profile) async {
+    checked.add(workspace);
+    return SkseStatus(
+      workspace == 'one' ? SkseStatusPhase.available : SkseStatusPhase.ready,
+      '1.6.1170.0',
+      workspace == 'one' ? '' : '2.2.0',
+      workspace == 'one' ? 'SKSE is not installed' : 'SKSE is installed',
+      '',
+    );
+  }
+}
+
 Future<void> choose(WidgetTester tester, String field, String option) async {
   await tester.ensureVisible(keyed(field));
   await tester.tap(keyed(field));
@@ -286,6 +315,67 @@ Brightness brightness(WidgetTester tester) =>
     Theme.of(tester.element(keyed('quit'))).brightness;
 
 void main() {
+  testWidgets('launch check waits for a profile and does not hold navigation', (
+    tester,
+  ) async {
+    final skse = _DelayedSkse();
+    await mount(
+      tester,
+      status: const DesktopConnected((
+        runtime: (architecture: 'x64', nativeAot: true, sqliteVersion: '3'),
+        heartbeats: 1,
+      )),
+      workspaces: _WorkspacesFake(),
+      gameContexts: _CapabilityGameContexts(),
+      skse: skse,
+    );
+    expect(skse.checks, 0);
+
+    await openWorkspace(tester, 'one');
+    expect(skse.checks, 1);
+    await tester.tap(keyed('close-workspace'));
+    await tester.pumpAndSettle();
+    await openWorkspace(tester, 'two');
+    expect(skse.checks, 1);
+
+    skse.result.complete(
+      const SkseStatus(
+        SkseStatusPhase.ready,
+        '1.6.1170.0',
+        '2.2.0',
+        'SKSE is installed',
+        '',
+      ),
+    );
+    await tester.pump();
+  });
+
+  testWidgets('launch check skips absent SKSE and checks the next profile', (
+    tester,
+  ) async {
+    final skse = _ProfileSkse();
+    await mount(
+      tester,
+      status: const DesktopConnected((
+        runtime: (architecture: 'x64', nativeAot: true, sqliteVersion: '3'),
+        heartbeats: 1,
+      )),
+      workspaces: _WorkspacesFake(),
+      gameContexts: _CapabilityGameContexts(),
+      skse: skse,
+    );
+    await openWorkspace(tester, 'one');
+    expect(skse.checked, ['one']);
+    await tester.tap(keyed('close-workspace'));
+    await tester.pumpAndSettle();
+    await openWorkspace(tester, 'one');
+    expect(skse.checked, ['one']);
+    await tester.tap(keyed('close-workspace'));
+    await tester.pumpAndSettle();
+    await openWorkspace(tester, 'two');
+    expect(skse.checked, ['one', 'two']);
+  });
+
   testWidgets('an unbound profile shows setup without the workbench', (
     tester,
   ) async {

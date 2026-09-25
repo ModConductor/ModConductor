@@ -69,8 +69,10 @@ class SkyrimSetupComponent {
     required this.active,
     required this.blocked,
     required this.installed,
+    this.updateVersion,
   });
   final String id, name, status, detail;
+  final String? updateVersion;
   final bool ready, active, blocked, installed;
 }
 
@@ -194,6 +196,7 @@ class _GrpcSkyrimSetupClient extends SkyrimSetupClient {
           active: item.active,
           blocked: item.blocked,
           installed: item.installed,
+          updateVersion: item.updateVersion.isEmpty ? null : item.updateVersion,
         ),
       ),
     ),

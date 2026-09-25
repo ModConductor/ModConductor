@@ -66,4 +66,11 @@ class SkseClient {
       wire.SkseRequest(workspaceId: workspace, profileId: profile),
     ),
   );
+
+  Future<SkseStatus> checkUpdate(String workspace, String profile) async =>
+      _decode(
+        await _client.checkSkseUpdate(
+          wire.SkseRequest(workspaceId: workspace, profileId: profile),
+        ),
+      );
 }

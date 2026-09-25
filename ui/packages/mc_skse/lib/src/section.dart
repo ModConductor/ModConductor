@@ -12,11 +12,13 @@ class SkyrimSetupSection extends StatefulWidget {
     required this.chooseArchive,
     required this.workspaceId,
     required this.profileId,
+    this.updateRevision = 0,
   });
 
   final SkyrimSetupClient client;
   final ArchiveChooser chooseArchive;
   final String workspaceId, profileId;
+  final int updateRevision;
 
   @override
   State<SkyrimSetupSection> createState() => _SkyrimSetupSectionState();
@@ -27,6 +29,7 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
   SkyrimSetupSelection selection = const SkyrimSetupSelection();
   bool userEdited = false;
   bool busy = false;
+  bool pendingUpdateReload = false;
   String? problem;
   Timer? timer;
 
@@ -45,7 +48,14 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
       status = null;
       selection = const SkyrimSetupSelection();
       userEdited = false;
+      pendingUpdateReload = false;
       unawaited(load());
+    } else if (old.updateRevision != widget.updateRevision) {
+      if (busy) {
+        pendingUpdateReload = true;
+      } else {
+        unawaited(load());
+      }
     }
   }
 
@@ -100,12 +110,24 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
         } else if (!userEdited) {
           selection = next.selection;
         }
+        if (selection.skse == SkyrimSetupAction.update &&
+            !next.components.any(
+              (item) => item.id == 'skse' && item.updateVersion != null,
+            )) {
+          selection = selection.withAction('skse', SkyrimSetupAction.unchanged);
+        }
       });
     } on Exception {
       if (mounted)
         setState(() => problem = 'Skyrim setup could not be updated.');
     } finally {
-      if (mounted) setState(() => busy = false);
+      if (mounted) {
+        setState(() => busy = false);
+        if (pendingUpdateReload) {
+          pendingUpdateReload = false;
+          unawaited(load());
+        }
+      }
     }
     if (next != null && mounted) schedule(next);
   }
@@ -314,6 +336,7 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
       installed: item.installed,
       selected: selected,
       updating: action == SkyrimSetupAction.update,
+      updateVersion: item.updateVersion,
       iconUrl: switch (item.id) {
         'skse' => skseIcon,
         'enb' => enbIcon,
@@ -336,7 +359,8 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
                   : SkyrimSetupAction.install),
       ),
       onOpenPage: () => unawaited(widget.client.openProjectPage(item.id)),
-      onUpdate: item.installed
+      onUpdate:
+          item.installed && (item.id != 'skse' || item.updateVersion != null)
           ? () => selectAction(
               item.id,
               action == SkyrimSetupAction.update

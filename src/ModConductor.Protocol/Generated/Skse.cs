@@ -37,11 +37,13 @@ namespace ModConductor.Protocol.V1 {
             "U0VfUEhBU0VfSU5TVEFMTElORxAFEhQKEFNLU0VfUEhBU0VfUkVBRFkQBhIV",
             "ChFTS1NFX1BIQVNFX0ZBSUxFRBAHEh8KG1NLU0VfUEhBU0VfVVBEQVRFX0FW",
             "QUlMQUJMRRAIEhsKF1NLU0VfUEhBU0VfSU5DT01QQVRJQkxFEAkSIQodU0tT",
-            "RV9QSEFTRV9TT1VSQ0VfVU5BVkFJTEFCTEUQCjKdAQoOU2tzZU9wZXJhdGlv",
+            "RV9QSEFTRV9TT1VSQ0VfVU5BVkFJTEFCTEUQCjLqAQoOU2tzZU9wZXJhdGlv",
             "bnMSRAoIUmVhZFNrc2USHC5tb2Rjb25kdWN0b3IudjEuU2tzZVJlcXVlc3Qa",
             "Gi5tb2Rjb25kdWN0b3IudjEuU2tzZVN0YXRlEkUKCVN0YXJ0U2tzZRIcLm1v",
             "ZGNvbmR1Y3Rvci52MS5Ta3NlUmVxdWVzdBoaLm1vZGNvbmR1Y3Rvci52MS5T",
-            "a3NlU3RhdGVCG6oCGE1vZENvbmR1Y3Rvci5Qcm90b2NvbC5WMWIGcHJvdG8z"));
+            "a3NlU3RhdGUSSwoPQ2hlY2tTa3NlVXBkYXRlEhwubW9kY29uZHVjdG9yLnYx",
+            "LlNrc2VSZXF1ZXN0GhoubW9kY29uZHVjdG9yLnYxLlNrc2VTdGF0ZUIbqgIY",
+            "TW9kQ29uZHVjdG9yLlByb3RvY29sLlYxYgZwcm90bzM="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { },
           new pbr::GeneratedClrTypeInfo(new[] {typeof(global::ModConductor.Protocol.V1.SksePhase), }, null, new pbr::GeneratedClrTypeInfo[] {

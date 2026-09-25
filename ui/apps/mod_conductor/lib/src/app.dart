@@ -319,6 +319,9 @@ class _ModConductorAppState extends State<ModConductorApp> {
   final _executables = ExecutablesController();
   final _play = GamePlayController();
   final _profileData = ProfileDataController();
+  bool _skseLaunchCheckStarted = false;
+  final _skseProfilesWithoutInstall = <String>{};
+  int _skseUpdateRevision = 0;
   int? _selectionRevision, _catalogueRevision;
   int? _contextRevision;
   bool get _gameReady {
@@ -408,6 +411,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
   }
 
   void _syncWorkspaceConsumers() {
+    _startSkseLaunchCheck();
     _game.attach(
       widget.gameContexts,
       workspaceId: _workspaces.workspace?.id,
@@ -425,6 +429,50 @@ class _ModConductorAppState extends State<ModConductorApp> {
       }
     }
     unawaited(_loadWorkspaceSettings(workspace?.id));
+  }
+
+  void _startSkseLaunchCheck() {
+    final workspace = _workspaces.workspace;
+    final profile = workspace?.selectedProfile;
+    final skse = widget.skse;
+    final profileKey = workspace == null || profile == null
+        ? null
+        : '${workspace.id}:${profile.id}';
+    if (_skseLaunchCheckStarted ||
+        widget.status is! DesktopConnected ||
+        workspace == null ||
+        profile == null ||
+        _skseProfilesWithoutInstall.contains(profileKey) ||
+        skse == null) {
+      return;
+    }
+    _skseLaunchCheckStarted = true;
+    unawaited(_checkSkseUpdate(skse, workspace.id, profile.id));
+  }
+
+  Future<void> _checkSkseUpdate(
+    SkseClient client,
+    String workspaceId,
+    String profileId,
+  ) async {
+    try {
+      final checked = await client.checkUpdate(workspaceId, profileId);
+      if (checked.phase == SkseStatusPhase.available ||
+          checked.phase == SkseStatusPhase.unavailable) {
+        _skseProfilesWithoutInstall.add('$workspaceId:$profileId');
+        _skseLaunchCheckStarted = false;
+        _startSkseLaunchCheck();
+        return;
+      }
+      if (!mounted) return;
+      if (_workspaces.workspace?.id != workspaceId ||
+          _workspaces.workspace?.selectedProfile?.id != profileId) {
+        return;
+      }
+      setState(() => _skseUpdateRevision++);
+    } on Exception {
+      // The installed setup remains usable when the update check is unavailable.
+    }
   }
 
   void _syncCapabilityConsumers() {
@@ -1346,6 +1394,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
                                         workspaceId: workspace.id,
                                         profileId:
                                             workspace.selectedProfile!.id,
+                                        updateRevision: _skseUpdateRevision,
                                       ),
                                     ),
                             ),

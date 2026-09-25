@@ -51,6 +51,7 @@ class McComponentChoiceRow extends StatelessWidget {
     this.iconFit = BoxFit.contain,
     this.updating = false,
     this.onUpdate,
+    this.updateVersion,
     this.onChooseArchive,
     this.onClearArchive,
     this.archiveName,
@@ -59,7 +60,7 @@ class McComponentChoiceRow extends StatelessWidget {
   });
 
   final String name, kind, current;
-  final String? iconUrl, archiveName;
+  final String? iconUrl, archiveName, updateVersion;
   final Map<String, String>? iconHeaders;
   final BoxFit iconFit;
   final bool installed, selected, updating, archiveRequired, enabled;
@@ -139,11 +140,27 @@ class McComponentChoiceRow extends StatelessWidget {
             ),
           if (installed && onUpdate != null) ...[
             const Spacer(),
+            if (updateVersion != null) ...[
+              Text(
+                updateVersion!,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(width: 8),
+            ],
             SizedBox(
               height: 40,
               child: OutlinedButton(
+                style: updateVersion == null
+                    ? null
+                    : OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                      ),
                 onPressed: enabled && selected ? onUpdate : null,
-                child: Text(updating ? 'Undo update' : 'Update'),
+                child: Text(
+                  updating
+                      ? (updateVersion == null ? 'Undo update' : 'Undo')
+                      : 'Update',
+                ),
               ),
             ),
           ],

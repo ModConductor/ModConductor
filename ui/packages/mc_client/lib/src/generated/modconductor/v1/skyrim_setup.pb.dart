@@ -468,6 +468,7 @@ class SkyrimSetupComponent extends $pb.GeneratedMessage {
     $core.bool? blocked,
     $core.String? id,
     $core.bool? installed,
+    $core.String? updateVersion,
   }) {
     final result = create();
     if (name != null) result.name = name;
@@ -478,6 +479,7 @@ class SkyrimSetupComponent extends $pb.GeneratedMessage {
     if (blocked != null) result.blocked = blocked;
     if (id != null) result.id = id;
     if (installed != null) result.installed = installed;
+    if (updateVersion != null) result.updateVersion = updateVersion;
     return result;
   }
 
@@ -503,6 +505,7 @@ class SkyrimSetupComponent extends $pb.GeneratedMessage {
     ..aOB(6, _omitFieldNames ? '' : 'blocked')
     ..aOS(7, _omitFieldNames ? '' : 'id')
     ..aOB(8, _omitFieldNames ? '' : 'installed')
+    ..aOS(9, _omitFieldNames ? '' : 'updateVersion')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -595,6 +598,15 @@ class SkyrimSetupComponent extends $pb.GeneratedMessage {
   $core.bool hasInstalled() => $_has(7);
   @$pb.TagNumber(8)
   void clearInstalled() => $_clearField(8);
+
+  @$pb.TagNumber(9)
+  $core.String get updateVersion => $_getSZ(8);
+  @$pb.TagNumber(9)
+  set updateVersion($core.String value) => $_setString(8, value);
+  @$pb.TagNumber(9)
+  $core.bool hasUpdateVersion() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearUpdateVersion() => $_clearField(9);
 }
 
 class SkyrimSetupState extends $pb.GeneratedMessage {

@@ -63,6 +63,7 @@ message SkyrimSetupComponent {
   bool blocked = 6;
   string id = 7;
   bool installed = 8;
+  string update_version = 9;
 }
 message SkyrimSetupState {
   SkyrimSetupPhase phase = 1;

@@ -518,6 +518,7 @@ module SkseCoordinatorFixtures =
 
         let beforeLocal = metadataRequests ()
         let cold = coordinator.Read(workspace, profile) |> wait
+        let absentCheck = coordinator.CheckUpdate(workspace, profile) |> wait
         let beforeChoice = restarted.SkseLoaders.ReadStored(workspace, profile, None) |> wait
         let started = coordinator.Start(workspace, profile) |> wait
         let afterLocal = metadataRequests ()
@@ -528,6 +529,7 @@ module SkseCoordinatorFixtures =
             writer
             "coldCoordinatorUsesRetainedArchiveWithoutNexus"
             (cold.Phase = SksePhase.Available
+             && absentCheck.Phase = SksePhase.Available
              && beforeChoice.IsNone
              && started.Phase = SksePhase.Downloading
              && afterLocal = beforeLocal
@@ -623,6 +625,30 @@ module SkseCoordinatorFixtures =
         let currentGate = coordinator.CheckBeforePlay(workspace, profile) |> wait
         localRequests <- localRequests && requests () = before
 
+        let beforeHeld = server.Count "/api/games/skyrimspecialedition/mods/30379.json"
+        server.HoldMetadata() |> ignore
+        let pending = coordinator.CheckUpdate(workspace, profile)
+
+        until
+            "held SKSE update metadata"
+            (fun () -> server.Count "/api/games/skyrimspecialedition/mods/30379.json")
+            (fun count -> count > beforeHeld)
+        |> ignore
+
+        let duringCheck = coordinator.Read(workspace, profile) |> wait
+        let duringPlay = coordinator.CheckBeforePlay(workspace, profile) |> wait
+        let background = not pending.IsCompleted
+        server.ReleaseMetadata()
+        let noUpdate = pending |> wait
+
+        check
+            writer
+            "backgroundUpdateCheckDoesNotHoldLocalActions"
+            (background
+             && duringCheck.Phase = SksePhase.Ready
+             && Result.isOk duringPlay
+             && noUpdate.Phase = SksePhase.Ready)
+
         let updateId = 502L
         configure server runtime updateId "2.3.0" (archive runtime "update" true 0)
         let before = requests ()
@@ -631,6 +657,29 @@ module SkseCoordinatorFixtures =
         let before = requests ()
         let updateGate = coordinator.CheckBeforePlay(workspace, profile) |> wait
         localRequests <- localRequests && requests () = before
+
+        let beforeCheck = requests ()
+        let confirmed = coordinator.CheckUpdate(workspace, profile) |> wait
+        let visible = coordinator.Read(workspace, profile) |> wait
+        let confirmedPlay = coordinator.CheckBeforePlay(workspace, profile) |> wait
+
+        check
+            writer
+            "confirmedNewerSkseAppearsWithoutBlockingPlay"
+            (confirmed.Phase = SksePhase.UpdateAvailable
+             && confirmed.ComponentVersion = "2.3.0"
+             && visible.Phase = SksePhase.UpdateAvailable
+             && Result.isOk confirmedPlay
+             && requests () > beforeCheck)
+
+        configure server runtime initialId "2.2.0" (archive runtime "initial" true 0)
+        let cleared = coordinator.CheckUpdate(workspace, profile) |> wait
+        let clearedRead = coordinator.Read(workspace, profile) |> wait
+
+        check
+            writer
+            "confirmedNoUpdateClearsPreviousUpdate"
+            (cleared.Phase = SksePhase.Ready && clearedRead.Phase = SksePhase.Ready)
 
         server.Mode <- "good"
         configure server runtime updateId "2.3.0" (archive runtime "update" true 0)

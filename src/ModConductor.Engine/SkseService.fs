@@ -123,25 +123,26 @@ type SkseCoordinator
           Selection = selection
           CheckedAt = DateTimeOffset.UtcNow }
 
+    let resolveContext workspace profile context =
+        task {
+            let! source = nexus.ReadMod("skyrimspecialedition", SkseResolver.NexusModId)
+
+            return
+                source
+                |> Result.mapError (NexusProblem.message >> SkseProblem.SourceUnavailable)
+                |> Result.bind (fun source ->
+                    SkseResolver.select context (SkseResolver.releases source) nexus.Status.Account)
+                |> Result.map (fun selection ->
+                    context, storedSelection workspace profile context selection)
+        }
+
     let resolve workspace profile =
         task {
             let! context = games.Read(workspace, profile)
 
             match context with
             | Error _ -> return Error SkseProblem.GameUnavailable
-            | Ok context ->
-                let! source = nexus.ReadMod("skyrimspecialedition", SkseResolver.NexusModId)
-
-                return
-                    source
-                    |> Result.mapError (NexusProblem.message >> SkseProblem.SourceUnavailable)
-                    |> Result.bind (fun source ->
-                        SkseResolver.select
-                            context
-                            (SkseResolver.releases source)
-                            nexus.Status.Account)
-                    |> Result.map (fun selection ->
-                        context, storedSelection workspace profile context selection)
+            | Ok context -> return! resolveContext workspace profile context
         }
 
     let reference (selection: StoredSkseSelection) keyed =
@@ -402,6 +403,86 @@ type SkseCoordinator
                               Detail = ""
                               FileId = None }
             | _ -> return! unavailable key SkseProblem.GameUnavailable
+        }
+
+    member this.CheckUpdate(workspace, profile) =
+        task {
+            let! context = games.Read(workspace, profile)
+            let! deployed = store.Deployments.Read profile
+
+            match context, deployed with
+            | Ok context, Ok deployed when
+                context.Binding.IsSome && deployed.WorkspaceId = workspace
+                ->
+                let! loader =
+                    store.SkseLoaders.ReadStored(workspace, profile, deployed.ActiveGeneration)
+
+                match loader with
+                | None ->
+                    return
+                        { Phase = SksePhase.Available
+                          GameVersion = fst (facts context)
+                          ComponentVersion = ""
+                          Status = "SKSE is not installed"
+                          Detail = ""
+                          FileId = None }
+                | Some loader ->
+                    let! saved = store.SkseLoaders.ReadStatus(workspace, profile)
+
+                    match saved with
+                    | Some state when
+                        state.Phase = "waiting"
+                        || state.Phase = "failed"
+                        || state.Phase = "downloading"
+                        || state.Phase = "installing"
+                        -> return fromStored state
+                    | _ ->
+                        let! resolved = resolveContext workspace profile context
+
+                        match resolved with
+                        | Error _ -> return! this.Read(workspace, profile)
+                        | Ok(_, selection) ->
+                            let! current = store.Deployments.Read profile
+
+                            let! active =
+                                store.SkseLoaders.ReadStored(
+                                    workspace,
+                                    profile,
+                                    current |> Result.toOption |> Option.bind _.ActiveGeneration
+                                )
+
+                            let sameLoader =
+                                active |> Option.exists (fun value -> value.VersionId = loader.VersionId)
+
+                            if workers.ContainsKey(workspace, profile) || not sameLoader then
+                                return! this.Read(workspace, profile)
+                            else
+                                let latest = selection.Selection.Release.ComponentVersion
+
+                                let newer =
+                                    match Version.TryParse loader.Loader.ComponentVersion with
+                                    | true, installed -> latest > installed
+                                    | _ -> false
+
+                                let state =
+                                    if newer then
+                                        { Phase = SksePhase.UpdateAvailable
+                                          GameVersion = fst (facts context)
+                                          ComponentVersion = string latest
+                                          Status = "SKSE update available"
+                                          Detail = ""
+                                          FileId = Some selection.Selection.Release.File.Id }
+                                    else installedState context loader None
+
+                                return! persist (workspace, profile) state
+            | _ ->
+                return
+                    { Phase = SksePhase.Unavailable
+                      GameVersion = ""
+                      ComponentVersion = ""
+                      Status = "SKSE is unavailable"
+                      Detail = ""
+                      FileId = None }
         }
 
     member _.Start(workspace, profile) =
@@ -768,5 +849,12 @@ type internal SkseService(coordinator: SkseCoordinator) =
         task {
             let workspace, profile = ids request
             let! value = coordinator.Start(workspace, profile)
+            return wire value
+        }
+
+    override _.CheckSkseUpdate(request, _) =
+        task {
+            let workspace, profile = ids request
+            let! value = coordinator.CheckUpdate(workspace, profile)
             return wire value
         }

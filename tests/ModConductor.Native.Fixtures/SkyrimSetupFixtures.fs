@@ -239,6 +239,9 @@ module SkyrimSetupFixtures =
         member _.AllowSkse() = failSkse <- false
         member _.HoldSkse() = holdSkse <- true
         member _.CompleteSkse() = skse <- { skse with Phase = SksePhase.Ready; Status = "SKSE is current"; Detail = "" }
+        member _.SkseUpdate(version) =
+            skse <- { skse with Phase = SksePhase.UpdateAvailable; ComponentVersion = version }
+
         member _.EnbSelections = enbSelections
         member _.FailEnb() = failEnb <- true
         member _.AllowEnb() = failEnb <- false
@@ -900,6 +903,22 @@ module SkyrimSetupFixtures =
             writer
             "cancelledSetupAcceptsNewSelection"
             (fresh.CanStart && fresh.Selection = retrySelection)
+
+        let skseUpdate = { noChoice with Skse = SetupAction.Update }
+        let withoutUpdate = retryOwner.Read(retryWorkspace, retryProfile, skseUpdate, CancellationToken.None) |> wait
+        retryWorkflow.SkseUpdate "2.3.0"
+        let withUpdate = retryOwner.Read(retryWorkspace, retryProfile, skseUpdate, CancellationToken.None) |> wait
+        retryWorkflow.CompleteSkse()
+        let clearedUpdate = retryOwner.Read(retryWorkspace, retryProfile, skseUpdate, CancellationToken.None) |> wait
+
+        check
+            writer
+            "skseUpdateRequiresConfirmedVersion"
+            (not withoutUpdate.CanStart
+             && withUpdate.CanStart
+             && (withUpdate.Components |> List.exists (fun item -> item.Id = "skse" && item.UpdateVersion = Some "2.3.0"))
+             && not clearedUpdate.CanStart
+             && (clearedUpdate.Components |> List.exists (fun item -> item.Id = "skse" && item.UpdateVersion.IsNone)))
 
         let _ =
             retryOwner.Start(retryWorkspace, retryProfile, retrySelection, CancellationToken.None)

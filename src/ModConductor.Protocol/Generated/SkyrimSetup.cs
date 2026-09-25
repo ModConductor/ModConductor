@@ -38,46 +38,47 @@ namespace ModConductor.Protocol.V1 {
             "KA4yIi5tb2Rjb25kdWN0b3IudjEuU2t5cmltU2V0dXBBY3Rpb24SLwoDZW5i",
             "GAIgASgOMiIubW9kY29uZHVjdG9yLnYxLlNreXJpbVNldHVwQWN0aW9uEjAK",
             "BGZuaXMYAyABKA4yIi5tb2Rjb25kdWN0b3IudjEuU2t5cmltU2V0dXBBY3Rp",
-            "b24SGAoQZW5iX2FyY2hpdmVfcGF0aBgEIAEoCSKTAQoUU2t5cmltU2V0dXBD",
+            "b24SGAoQZW5iX2FyY2hpdmVfcGF0aBgEIAEoCSKrAQoUU2t5cmltU2V0dXBD",
             "b21wb25lbnQSDAoEbmFtZRgBIAEoCRIOCgZzdGF0dXMYAiABKAkSDgoGZGV0",
             "YWlsGAMgASgJEg0KBXJlYWR5GAQgASgIEg4KBmFjdGl2ZRgFIAEoCBIPCgdi",
-            "bG9ja2VkGAYgASgIEgoKAmlkGAcgASgJEhEKCWluc3RhbGxlZBgIIAEoCCK1",
-            "AgoQU2t5cmltU2V0dXBTdGF0ZRIwCgVwaGFzZRgBIAEoDjIhLm1vZGNvbmR1",
-            "Y3Rvci52MS5Ta3lyaW1TZXR1cFBoYXNlEg4KBnN0YXR1cxgCIAEoCRIOCgZk",
-            "ZXRhaWwYAyABKAkSOQoKY29tcG9uZW50cxgGIAMoCzIlLm1vZGNvbmR1Y3Rv",
-            "ci52MS5Ta3lyaW1TZXR1cENvbXBvbmVudBI4CglzZWxlY3Rpb24YByABKAsy",
-            "JS5tb2Rjb25kdWN0b3IudjEuU2t5cmltU2V0dXBTZWxlY3Rpb24SEQoJY2Fu",
-            "X3N0YXJ0GAkgASgIEhQKDGNhbl9jb250aW51ZRgKIAEoCBIOCgZhY3RpdmUY",
-            "DCABKAgSDQoFcmVhZHkYDSABKAgSEgoKY2FuX2NhbmNlbBgOIAEoCCqXAQoR",
-            "U2t5cmltU2V0dXBBY3Rpb24SIQodU0tZUklNX1NFVFVQX0FDVElPTl9VTkNI",
-            "QU5HRUQQABIfChtTS1lSSU1fU0VUVVBfQUNUSU9OX0lOU1RBTEwQARIeChpT",
-            "S1lSSU1fU0VUVVBfQUNUSU9OX1JFTU9WRRACEh4KGlNLWVJJTV9TRVRVUF9B",
-            "Q1RJT05fVVBEQVRFEAMqygQKEFNreXJpbVNldHVwUGhhc2USIgoeU0tZUklN",
-            "X1NFVFVQX1BIQVNFX1VOU1BFQ0lGSUVEEAASIgoeU0tZUklNX1NFVFVQX1BI",
-            "QVNFX1VOQVZBSUxBQkxFEAESIAocU0tZUklNX1NFVFVQX1BIQVNFX0FWQUlM",
-            "QUJMRRACEisKJ1NLWVJJTV9TRVRVUF9QSEFTRV9QUkVQQVJJTkdfREVQTE9Z",
-            "TUVOVBADEiYKIlNLWVJJTV9TRVRVUF9QSEFTRV9TRVRUSU5HX1VQX1NLU0UQ",
-            "BBInCiNTS1lSSU1fU0VUVVBfUEhBU0VfV0FJVElOR19GT1JfU0tTRRAFEi4K",
-            "KlNLWVJJTV9TRVRVUF9QSEFTRV9XQUlUSU5HX0ZPUl9FTkJfQVJDSElWRRAG",
-            "EiUKIVNLWVJJTV9TRVRVUF9QSEFTRV9TRVRUSU5HX1VQX0VOQhAHEiYKIlNL",
-            "WVJJTV9TRVRVUF9QSEFTRV9TRVRUSU5HX1VQX0ZOSVMQCBIhCh1TS1lSSU1f",
-            "U0VUVVBfUEhBU0VfRk5JU19TVEFMRRAJEiMKH1NLWVJJTV9TRVRVUF9QSEFT",
-            "RV9GTklTX1JVTk5JTkcQChIcChhTS1lSSU1fU0VUVVBfUEhBU0VfUkVBRFkQ",
-            "CxIoCiRTS1lSSU1fU0VUVVBfUEhBU0VfUkVDT1ZFUllfUkVRVUlSRUQQDBId",
-            "ChlTS1lSSU1fU0VUVVBfUEhBU0VfRkFJTEVEEA0SIAocU0tZUklNX1NFVFVQ",
-            "X1BIQVNFX0NBTkNFTExFRBAOMvoDChVTa3lyaW1TZXR1cE9wZXJhdGlvbnMS",
-            "XQoPUmVhZFNreXJpbVNldHVwEicubW9kY29uZHVjdG9yLnYxLlJlYWRTa3ly",
-            "aW1TZXR1cFJlcXVlc3QaIS5tb2Rjb25kdWN0b3IudjEuU2t5cmltU2V0dXBT",
-            "dGF0ZRJfChBTdGFydFNreXJpbVNldHVwEigubW9kY29uZHVjdG9yLnYxLlN0",
-            "YXJ0U2t5cmltU2V0dXBSZXF1ZXN0GiEubW9kY29uZHVjdG9yLnYxLlNreXJp",
-            "bVNldHVwU3RhdGUSXQoTQ29udGludWVTa3lyaW1TZXR1cBIjLm1vZGNvbmR1",
-            "Y3Rvci52MS5Ta3lyaW1TZXR1cFJlcXVlc3QaIS5tb2Rjb25kdWN0b3IudjEu",
-            "U2t5cmltU2V0dXBTdGF0ZRJbChFDYW5jZWxTa3lyaW1TZXR1cBIjLm1vZGNv",
-            "bmR1Y3Rvci52MS5Ta3lyaW1TZXR1cFJlcXVlc3QaIS5tb2Rjb25kdWN0b3Iu",
-            "djEuU2t5cmltU2V0dXBTdGF0ZRJlChNPcGVuU2t5cmltU2V0dXBQYWdlEicu",
-            "bW9kY29uZHVjdG9yLnYxLlNreXJpbVNldHVwUGFnZVJlcXVlc3QaJS5tb2Rj",
-            "b25kdWN0b3IudjEuU2t5cmltU2V0dXBQYWdlUmVwbHlCG6oCGE1vZENvbmR1",
-            "Y3Rvci5Qcm90b2NvbC5WMWIGcHJvdG8z"));
+            "bG9ja2VkGAYgASgIEgoKAmlkGAcgASgJEhEKCWluc3RhbGxlZBgIIAEoCBIW",
+            "Cg51cGRhdGVfdmVyc2lvbhgJIAEoCSK1AgoQU2t5cmltU2V0dXBTdGF0ZRIw",
+            "CgVwaGFzZRgBIAEoDjIhLm1vZGNvbmR1Y3Rvci52MS5Ta3lyaW1TZXR1cFBo",
+            "YXNlEg4KBnN0YXR1cxgCIAEoCRIOCgZkZXRhaWwYAyABKAkSOQoKY29tcG9u",
+            "ZW50cxgGIAMoCzIlLm1vZGNvbmR1Y3Rvci52MS5Ta3lyaW1TZXR1cENvbXBv",
+            "bmVudBI4CglzZWxlY3Rpb24YByABKAsyJS5tb2Rjb25kdWN0b3IudjEuU2t5",
+            "cmltU2V0dXBTZWxlY3Rpb24SEQoJY2FuX3N0YXJ0GAkgASgIEhQKDGNhbl9j",
+            "b250aW51ZRgKIAEoCBIOCgZhY3RpdmUYDCABKAgSDQoFcmVhZHkYDSABKAgS",
+            "EgoKY2FuX2NhbmNlbBgOIAEoCCqXAQoRU2t5cmltU2V0dXBBY3Rpb24SIQod",
+            "U0tZUklNX1NFVFVQX0FDVElPTl9VTkNIQU5HRUQQABIfChtTS1lSSU1fU0VU",
+            "VVBfQUNUSU9OX0lOU1RBTEwQARIeChpTS1lSSU1fU0VUVVBfQUNUSU9OX1JF",
+            "TU9WRRACEh4KGlNLWVJJTV9TRVRVUF9BQ1RJT05fVVBEQVRFEAMqygQKEFNr",
+            "eXJpbVNldHVwUGhhc2USIgoeU0tZUklNX1NFVFVQX1BIQVNFX1VOU1BFQ0lG",
+            "SUVEEAASIgoeU0tZUklNX1NFVFVQX1BIQVNFX1VOQVZBSUxBQkxFEAESIAoc",
+            "U0tZUklNX1NFVFVQX1BIQVNFX0FWQUlMQUJMRRACEisKJ1NLWVJJTV9TRVRV",
+            "UF9QSEFTRV9QUkVQQVJJTkdfREVQTE9ZTUVOVBADEiYKIlNLWVJJTV9TRVRV",
+            "UF9QSEFTRV9TRVRUSU5HX1VQX1NLU0UQBBInCiNTS1lSSU1fU0VUVVBfUEhB",
+            "U0VfV0FJVElOR19GT1JfU0tTRRAFEi4KKlNLWVJJTV9TRVRVUF9QSEFTRV9X",
+            "QUlUSU5HX0ZPUl9FTkJfQVJDSElWRRAGEiUKIVNLWVJJTV9TRVRVUF9QSEFT",
+            "RV9TRVRUSU5HX1VQX0VOQhAHEiYKIlNLWVJJTV9TRVRVUF9QSEFTRV9TRVRU",
+            "SU5HX1VQX0ZOSVMQCBIhCh1TS1lSSU1fU0VUVVBfUEhBU0VfRk5JU19TVEFM",
+            "RRAJEiMKH1NLWVJJTV9TRVRVUF9QSEFTRV9GTklTX1JVTk5JTkcQChIcChhT",
+            "S1lSSU1fU0VUVVBfUEhBU0VfUkVBRFkQCxIoCiRTS1lSSU1fU0VUVVBfUEhB",
+            "U0VfUkVDT1ZFUllfUkVRVUlSRUQQDBIdChlTS1lSSU1fU0VUVVBfUEhBU0Vf",
+            "RkFJTEVEEA0SIAocU0tZUklNX1NFVFVQX1BIQVNFX0NBTkNFTExFRBAOMvoD",
+            "ChVTa3lyaW1TZXR1cE9wZXJhdGlvbnMSXQoPUmVhZFNreXJpbVNldHVwEicu",
+            "bW9kY29uZHVjdG9yLnYxLlJlYWRTa3lyaW1TZXR1cFJlcXVlc3QaIS5tb2Rj",
+            "b25kdWN0b3IudjEuU2t5cmltU2V0dXBTdGF0ZRJfChBTdGFydFNreXJpbVNl",
+            "dHVwEigubW9kY29uZHVjdG9yLnYxLlN0YXJ0U2t5cmltU2V0dXBSZXF1ZXN0",
+            "GiEubW9kY29uZHVjdG9yLnYxLlNreXJpbVNldHVwU3RhdGUSXQoTQ29udGlu",
+            "dWVTa3lyaW1TZXR1cBIjLm1vZGNvbmR1Y3Rvci52MS5Ta3lyaW1TZXR1cFJl",
+            "cXVlc3QaIS5tb2Rjb25kdWN0b3IudjEuU2t5cmltU2V0dXBTdGF0ZRJbChFD",
+            "YW5jZWxTa3lyaW1TZXR1cBIjLm1vZGNvbmR1Y3Rvci52MS5Ta3lyaW1TZXR1",
+            "cFJlcXVlc3QaIS5tb2Rjb25kdWN0b3IudjEuU2t5cmltU2V0dXBTdGF0ZRJl",
+            "ChNPcGVuU2t5cmltU2V0dXBQYWdlEicubW9kY29uZHVjdG9yLnYxLlNreXJp",
+            "bVNldHVwUGFnZVJlcXVlc3QaJS5tb2Rjb25kdWN0b3IudjEuU2t5cmltU2V0",
+            "dXBQYWdlUmVwbHlCG6oCGE1vZENvbmR1Y3Rvci5Qcm90b2NvbC5WMWIGcHJv",
+            "dG8z"));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { },
           new pbr::GeneratedClrTypeInfo(new[] {typeof(global::ModConductor.Protocol.V1.SkyrimSetupAction), typeof(global::ModConductor.Protocol.V1.SkyrimSetupPhase), }, null, new pbr::GeneratedClrTypeInfo[] {
@@ -87,7 +88,7 @@ namespace ModConductor.Protocol.V1 {
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ReadSkyrimSetupRequest), global::ModConductor.Protocol.V1.ReadSkyrimSetupRequest.Parser, new[]{ "WorkspaceId", "ProfileId", "Selection" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.StartSkyrimSetupRequest), global::ModConductor.Protocol.V1.StartSkyrimSetupRequest.Parser, new[]{ "WorkspaceId", "ProfileId", "Selection" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.SkyrimSetupSelection), global::ModConductor.Protocol.V1.SkyrimSetupSelection.Parser, new[]{ "Skse", "Enb", "Fnis", "EnbArchivePath" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.SkyrimSetupComponent), global::ModConductor.Protocol.V1.SkyrimSetupComponent.Parser, new[]{ "Name", "Status", "Detail", "Ready", "Active", "Blocked", "Id", "Installed" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.SkyrimSetupComponent), global::ModConductor.Protocol.V1.SkyrimSetupComponent.Parser, new[]{ "Name", "Status", "Detail", "Ready", "Active", "Blocked", "Id", "Installed", "UpdateVersion" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.SkyrimSetupState), global::ModConductor.Protocol.V1.SkyrimSetupState.Parser, new[]{ "Phase", "Status", "Detail", "Components", "Selection", "CanStart", "CanContinue", "Active", "Ready", "CanCancel" }, null, null, null, null)
           }));
     }
@@ -1668,6 +1669,7 @@ namespace ModConductor.Protocol.V1 {
       blocked_ = other.blocked_;
       id_ = other.id_;
       installed_ = other.installed_;
+      updateVersion_ = other.updateVersion_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -1773,6 +1775,18 @@ namespace ModConductor.Protocol.V1 {
       }
     }
 
+    /// <summary>Field number for the "update_version" field.</summary>
+    public const int UpdateVersionFieldNumber = 9;
+    private string updateVersion_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string UpdateVersion {
+      get { return updateVersion_; }
+      set {
+        updateVersion_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -1796,6 +1810,7 @@ namespace ModConductor.Protocol.V1 {
       if (Blocked != other.Blocked) return false;
       if (Id != other.Id) return false;
       if (Installed != other.Installed) return false;
+      if (UpdateVersion != other.UpdateVersion) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -1811,6 +1826,7 @@ namespace ModConductor.Protocol.V1 {
       if (Blocked != false) hash ^= Blocked.GetHashCode();
       if (Id.Length != 0) hash ^= Id.GetHashCode();
       if (Installed != false) hash ^= Installed.GetHashCode();
+      if (UpdateVersion.Length != 0) hash ^= UpdateVersion.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -1861,6 +1877,10 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(64);
         output.WriteBool(Installed);
       }
+      if (UpdateVersion.Length != 0) {
+        output.WriteRawTag(74);
+        output.WriteString(UpdateVersion);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -1903,6 +1923,10 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(64);
         output.WriteBool(Installed);
       }
+      if (UpdateVersion.Length != 0) {
+        output.WriteRawTag(74);
+        output.WriteString(UpdateVersion);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -1936,6 +1960,9 @@ namespace ModConductor.Protocol.V1 {
       }
       if (Installed != false) {
         size += 1 + 1;
+      }
+      if (UpdateVersion.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(UpdateVersion);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -1972,6 +1999,9 @@ namespace ModConductor.Protocol.V1 {
       }
       if (other.Installed != false) {
         Installed = other.Installed;
+      }
+      if (other.UpdateVersion.Length != 0) {
+        UpdateVersion = other.UpdateVersion;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -2024,6 +2054,10 @@ namespace ModConductor.Protocol.V1 {
             Installed = input.ReadBool();
             break;
           }
+          case 74: {
+            UpdateVersion = input.ReadString();
+            break;
+          }
         }
       }
     #endif
@@ -2073,6 +2107,10 @@ namespace ModConductor.Protocol.V1 {
           }
           case 64: {
             Installed = input.ReadBool();
+            break;
+          }
+          case 74: {
+            UpdateVersion = input.ReadString();
             break;
           }
         }

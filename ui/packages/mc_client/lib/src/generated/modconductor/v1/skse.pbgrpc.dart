@@ -46,6 +46,13 @@ class SkseOperationsClient extends $grpc.Client {
     return $createUnaryCall(_$startSkse, request, options: options);
   }
 
+  $grpc.ResponseFuture<$0.SkseState> checkSkseUpdate(
+    $0.SkseRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$checkSkseUpdate, request, options: options);
+  }
+
   // method descriptors
 
   static final _$readSkse = $grpc.ClientMethod<$0.SkseRequest, $0.SkseState>(
@@ -56,6 +63,11 @@ class SkseOperationsClient extends $grpc.Client {
       '/modconductor.v1.SkseOperations/StartSkse',
       ($0.SkseRequest value) => value.writeToBuffer(),
       $0.SkseState.fromBuffer);
+  static final _$checkSkseUpdate =
+      $grpc.ClientMethod<$0.SkseRequest, $0.SkseState>(
+          '/modconductor.v1.SkseOperations/CheckSkseUpdate',
+          ($0.SkseRequest value) => value.writeToBuffer(),
+          $0.SkseState.fromBuffer);
 }
 
 @$pb.GrpcServiceName('modconductor.v1.SkseOperations')
@@ -77,6 +89,13 @@ abstract class SkseOperationsServiceBase extends $grpc.Service {
         false,
         ($core.List<$core.int> value) => $0.SkseRequest.fromBuffer(value),
         ($0.SkseState value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.SkseRequest, $0.SkseState>(
+        'CheckSkseUpdate',
+        checkSkseUpdate_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.SkseRequest.fromBuffer(value),
+        ($0.SkseState value) => value.writeToBuffer()));
   }
 
   $async.Future<$0.SkseState> readSkse_Pre(
@@ -93,5 +112,13 @@ abstract class SkseOperationsServiceBase extends $grpc.Service {
   }
 
   $async.Future<$0.SkseState> startSkse(
+      $grpc.ServiceCall call, $0.SkseRequest request);
+
+  $async.Future<$0.SkseState> checkSkseUpdate_Pre(
+      $grpc.ServiceCall $call, $async.Future<$0.SkseRequest> $request) async {
+    return checkSkseUpdate($call, await $request);
+  }
+
+  $async.Future<$0.SkseState> checkSkseUpdate(
       $grpc.ServiceCall call, $0.SkseRequest request);
 }

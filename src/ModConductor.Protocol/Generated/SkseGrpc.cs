@@ -66,6 +66,14 @@ namespace ModConductor.Protocol.V1 {
         __Marshaller_modconductor_v1_SkseRequest,
         __Marshaller_modconductor_v1_SkseState);
 
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::ModConductor.Protocol.V1.SkseRequest, global::ModConductor.Protocol.V1.SkseState> __Method_CheckSkseUpdate = new grpc::Method<global::ModConductor.Protocol.V1.SkseRequest, global::ModConductor.Protocol.V1.SkseState>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "CheckSkseUpdate",
+        __Marshaller_modconductor_v1_SkseRequest,
+        __Marshaller_modconductor_v1_SkseState);
+
     /// <summary>Service descriptor</summary>
     public static global::Google.Protobuf.Reflection.ServiceDescriptor Descriptor
     {
@@ -84,6 +92,12 @@ namespace ModConductor.Protocol.V1 {
 
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V1.SkseState> StartSkse(global::ModConductor.Protocol.V1.SkseRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V1.SkseState> CheckSkseUpdate(global::ModConductor.Protocol.V1.SkseRequest request, grpc::ServerCallContext context)
       {
         throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
       }
@@ -157,6 +171,26 @@ namespace ModConductor.Protocol.V1 {
       {
         return CallInvoker.AsyncUnaryCall(__Method_StartSkse, null, options, request);
       }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V1.SkseState CheckSkseUpdate(global::ModConductor.Protocol.V1.SkseRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return CheckSkseUpdate(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V1.SkseState CheckSkseUpdate(global::ModConductor.Protocol.V1.SkseRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_CheckSkseUpdate, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.SkseState> CheckSkseUpdateAsync(global::ModConductor.Protocol.V1.SkseRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return CheckSkseUpdateAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.SkseState> CheckSkseUpdateAsync(global::ModConductor.Protocol.V1.SkseRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_CheckSkseUpdate, null, options, request);
+      }
       /// <summary>Creates a new instance of client from given <c>ClientBaseConfiguration</c>.</summary>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       protected override SkseOperationsClient NewInstance(ClientBaseConfiguration configuration)
@@ -172,7 +206,8 @@ namespace ModConductor.Protocol.V1 {
     {
       return grpc::ServerServiceDefinition.CreateBuilder()
           .AddMethod(__Method_ReadSkse, serviceImpl.ReadSkse)
-          .AddMethod(__Method_StartSkse, serviceImpl.StartSkse).Build();
+          .AddMethod(__Method_StartSkse, serviceImpl.StartSkse)
+          .AddMethod(__Method_CheckSkseUpdate, serviceImpl.CheckSkseUpdate).Build();
     }
 
     /// <summary>Register service method with a service binder with or without implementation. Useful when customizing the service binding logic.
@@ -184,6 +219,7 @@ namespace ModConductor.Protocol.V1 {
     {
       serviceBinder.AddMethod(__Method_ReadSkse, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.SkseRequest, global::ModConductor.Protocol.V1.SkseState>(serviceImpl.ReadSkse));
       serviceBinder.AddMethod(__Method_StartSkse, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.SkseRequest, global::ModConductor.Protocol.V1.SkseState>(serviceImpl.StartSkse));
+      serviceBinder.AddMethod(__Method_CheckSkseUpdate, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.SkseRequest, global::ModConductor.Protocol.V1.SkseState>(serviceImpl.CheckSkseUpdate));
     }
 
   }

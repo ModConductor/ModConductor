@@ -207,6 +207,7 @@ const SkyrimSetupComponent$json = {
     {'1': 'blocked', '3': 6, '4': 1, '5': 8, '10': 'blocked'},
     {'1': 'id', '3': 7, '4': 1, '5': 9, '10': 'id'},
     {'1': 'installed', '3': 8, '4': 1, '5': 8, '10': 'installed'},
+    {'1': 'update_version', '3': 9, '4': 1, '5': 9, '10': 'updateVersion'},
   ],
 };
 
@@ -215,7 +216,8 @@ final $typed_data.Uint8List skyrimSetupComponentDescriptor = $convert.base64Deco
     'ChRTa3lyaW1TZXR1cENvbXBvbmVudBISCgRuYW1lGAEgASgJUgRuYW1lEhYKBnN0YXR1cxgCIA'
     'EoCVIGc3RhdHVzEhYKBmRldGFpbBgDIAEoCVIGZGV0YWlsEhQKBXJlYWR5GAQgASgIUgVyZWFk'
     'eRIWCgZhY3RpdmUYBSABKAhSBmFjdGl2ZRIYCgdibG9ja2VkGAYgASgIUgdibG9ja2VkEg4KAm'
-    'lkGAcgASgJUgJpZBIcCglpbnN0YWxsZWQYCCABKAhSCWluc3RhbGxlZA==');
+    'lkGAcgASgJUgJpZBIcCglpbnN0YWxsZWQYCCABKAhSCWluc3RhbGxlZBIlCg51cGRhdGVfdmVy'
+    'c2lvbhgJIAEoCVINdXBkYXRlVmVyc2lvbg==');
 
 @$core.Deprecated('Use skyrimSetupStateDescriptor instead')
 const SkyrimSetupState$json = {

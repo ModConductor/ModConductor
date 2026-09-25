@@ -19,6 +19,7 @@ type SkyrimSetupComponentView =
       Name: string
       Status: string
       Detail: string
+      UpdateVersion: string option
       Installed: bool
       Ready: bool
       Active: bool
@@ -154,6 +155,7 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
           Name = name
           Status = status
           Detail = detail
+          UpdateVersion = None
           Installed = ready
           Ready = ready
           Active = active
@@ -195,6 +197,18 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
     let preview workspace profile (selection: ModConductor.Persistence.SetupSelection) (deployed: DeploymentStatus) token =
         task {
             let! skse = store.SkseLoaders.ReadStored(workspace, profile, deployed.ActiveGeneration)
+            let! skseUpdateVersion =
+                task {
+                    match skse with
+                    | None -> return None
+                    | Some _ ->
+                        let! state = dependencies.ReadSkse workspace profile
+
+                        return
+                            if state.Phase = SksePhase.UpdateAvailable then
+                                Some state.ComponentVersion
+                            else None
+                }
             let! enb = store.EnbSetups.Components(workspace, profile, deployed.ActiveGeneration)
             let! fnis = store.FnisSetups.ReadStored(workspace, profile, deployed.ActiveGeneration)
             let installed = [ skse.IsSome; enb |> List.exists (fun item -> item.Kind = "runtime"); fnis.IsSome ]
@@ -209,6 +223,7 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                     | SetupAction.Update
                     | SetupAction.Remove -> present
                     | _ -> false)
+                && (selection.Skse <> SetupAction.Update || skseUpdateVersion.IsSome)
 
             let archiveRequired =
                 selection.Enb = SetupAction.Install || selection.Enb = SetupAction.Update
@@ -250,6 +265,8 @@ type internal SkyrimSetupCoordinator(store: OperationStore, dependencies: Skyrim
                       Name = name
                       Status = if present then "Installed" else "Not installed"
                       Detail = ""
+                      UpdateVersion =
+                        if id = "skse" then skseUpdateVersion else None
                       Installed = present
                       Ready = present
                       Active = false
@@ -1606,6 +1623,7 @@ type internal SkyrimSetupService(coordinator: SkyrimSetupCoordinator) =
                     Name = item.Name,
                     Status = item.Status,
                     Detail = item.Detail,
+                    UpdateVersion = (item.UpdateVersion |> Option.defaultValue ""),
                     Installed = item.Installed,
                     Ready = item.Ready,
                     Active = item.Active,

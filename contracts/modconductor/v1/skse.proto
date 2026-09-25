@@ -5,6 +5,7 @@ option csharp_namespace = "ModConductor.Protocol.V1";
 service SkseOperations {
   rpc ReadSkse(SkseRequest) returns (SkseState);
   rpc StartSkse(SkseRequest) returns (SkseState);
+  rpc CheckSkseUpdate(SkseRequest) returns (SkseState);
 }
 
 message SkseRequest { string workspace_id = 1; string profile_id = 2; }

@@ -11,11 +11,13 @@ class SetupClientFixture extends SkyrimSetupClient {
     this.savedSelection,
     this.failFirstStart = false,
     this.completeWithFnisWarning = false,
+    this.updateVersion,
   });
   final Set<String> installed;
   final SkyrimSetupSelection? savedSelection;
   final bool failFirstStart;
   final bool completeWithFnisWarning;
+  String? updateVersion;
   SkyrimSetupSelection lastSelection = const SkyrimSetupSelection();
   SkyrimSetupSelection? applied;
   int starts = 0;
@@ -61,6 +63,7 @@ class SetupClientFixture extends SkyrimSetupClient {
             active: false,
             blocked: false,
             installed: installed.contains(id),
+            updateVersion: id == 'skse' ? updateVersion : null,
           ),
       ],
       selection: selection,
@@ -152,6 +155,7 @@ Widget app(
   SetupClientFixture client, {
   ArchiveChooser? choose,
   double height = 720,
+  int updateRevision = 0,
 }) => MaterialApp(
   home: Scaffold(
     body: SizedBox(
@@ -163,6 +167,7 @@ Widget app(
             () async => const ArchiveFile('/downloads/enbseries.zip', 42),
         workspaceId: 'workspace',
         profileId: 'profile',
+        updateRevision: updateRevision,
       ),
     ),
   ),
@@ -364,7 +369,10 @@ void main() {
   testWidgets('installed toggle removes and update is separate', (
     tester,
   ) async {
-    final client = SetupClientFixture(installed: {'skse', 'enb'});
+    final client = SetupClientFixture(
+      installed: {'skse', 'enb'},
+      updateVersion: '2.3.0',
+    );
     await tester.pumpWidget(app(client));
     await settle(tester);
     expect(
@@ -386,6 +394,48 @@ void main() {
     await tester.tap(find.text('Update').first);
     await settle(tester);
     expect(client.lastSelection.skse, SkyrimSetupAction.update);
+  });
+
+  testWidgets('confirmed SKSE update appears and clears in the open setup', (
+    tester,
+  ) async {
+    final client = SetupClientFixture(installed: {'skse'});
+    await tester.pumpWidget(app(client));
+    await settle(tester);
+    final skse = find.byKey(const ValueKey('setup-skse'));
+    expect(
+      find.descendant(of: skse, matching: find.text('Update')),
+      findsNothing,
+    );
+
+    client.updateVersion = '2.3.0';
+    await tester.pumpWidget(app(client, updateRevision: 1));
+    await settle(tester);
+    expect(
+      find.descendant(of: skse, matching: find.text('Update')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: skse, matching: find.text('2.3.0')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.descendant(of: skse, matching: find.text('Update')));
+    await settle(tester);
+    expect(client.lastSelection.skse, SkyrimSetupAction.update);
+
+    client.updateVersion = null;
+    await tester.pumpWidget(app(client, updateRevision: 2));
+    await settle(tester);
+    expect(
+      find.descendant(of: skse, matching: find.text('Update')),
+      findsNothing,
+    );
+    expect(find.byKey(const ValueKey('apply-skyrim-setup')), findsOneWidget);
+    expect(client.lastSelection.skse, SkyrimSetupAction.update);
+    await tester.tap(find.byIcon(Icons.refresh).first);
+    await settle(tester);
+    expect(client.lastSelection.skse, SkyrimSetupAction.unchanged);
   });
 
   testWidgets('cancelled setup keeps installed state and needs a new Apply', (
@@ -450,7 +500,10 @@ void main() {
   testWidgets('new and installed control rows keep their controls aligned', (
     tester,
   ) async {
-    final client = SetupClientFixture(installed: {'skse'});
+    final client = SetupClientFixture(
+      installed: {'skse'},
+      updateVersion: '2.3.0',
+    );
     await tester.pumpWidget(app(client));
     await settle(tester);
     await tester.tap(find.byType(Switch).at(1));
