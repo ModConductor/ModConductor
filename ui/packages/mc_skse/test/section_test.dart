@@ -183,7 +183,10 @@ class SetupClientFixture extends SkyrimSetupClient {
 }
 
 class ReconnectSetupFixture extends SetupClientFixture {
-  ReconnectSetupFixture() : super(installed: <String>{});
+  ReconnectSetupFixture({Set<String>? installed, String? updateVersion})
+    : super(installed: installed ?? <String>{}, updateVersion: updateVersion);
+
+  Completer<void>? snapshotGate;
 
   @override
   Stream<SkyrimSetupStatus> watch(
@@ -194,6 +197,7 @@ class ReconnectSetupFixture extends SetupClientFixture {
     final controller = StreamController<SkyrimSetupStatus>.broadcast();
     updates['$workspace:$profile'] = controller;
     scheduleMicrotask(() async {
+      await snapshotGate?.future;
       controller.add(await read(workspace, profile, selection: selection));
     });
     return controller.stream;
@@ -253,6 +257,59 @@ void main() {
     },
   );
 
+  testWidgets('a failed watch withholds stale update until a fresh snapshot', (
+    tester,
+  ) async {
+    final client = ReconnectSetupFixture(
+      installed: {'skse'},
+      updateVersion: '2.3.0',
+    );
+    await tester.pumpWidget(app(client));
+    await settle(tester);
+    final skse = find.byKey(const ValueKey('setup-skse'));
+    await tester.tap(find.descendant(of: skse, matching: find.text('Update')));
+    await settle(tester);
+    expect(client.lastSelection.skse, SkyrimSetupAction.update);
+
+    client.snapshotGate = Completer<void>();
+    client.updates['workspace:profile']!.addError(
+      StateError('connection lost'),
+    );
+    await tester.pump();
+    expect(
+      find.descendant(of: skse, matching: find.text('Update')),
+      findsNothing,
+    );
+    expect(
+      find.descendant(of: skse, matching: find.text('2.3.0')),
+      findsNothing,
+    );
+    expect(
+      tester
+          .widget<McAction>(find.byKey(const ValueKey('apply-skyrim-setup')))
+          .onPressed,
+      isNull,
+    );
+    await tester.pump(const Duration(milliseconds: 1100));
+    expect(
+      find.descendant(of: skse, matching: find.text('Update')),
+      findsNothing,
+    );
+    expect(client.starts, 0);
+
+    client.snapshotGate!.complete();
+    await settle(tester);
+    expect(
+      find.descendant(of: skse, matching: find.text('Update')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: skse, matching: find.text('2.3.0')),
+      findsOneWidget,
+    );
+    expect(client.starts, 0);
+  });
+
   testWidgets(
     'setup events update the open controls without reads or Continue',
     (tester) async {
@@ -284,12 +341,17 @@ void main() {
   testWidgets('a previous profile event cannot replace the current setup', (
     tester,
   ) async {
-    final client = SetupClientFixture();
+    final client = SetupClientFixture(
+      installed: {'skse'},
+      updateVersion: '2.3.0',
+    );
     await tester.pumpWidget(app(client));
     await settle(tester);
 
+    client.updateVersion = null;
     await tester.pumpWidget(app(client, profileId: 'other'));
     await settle(tester);
+    client.updateVersion = '2.3.0';
     client.emit(
       'workspace',
       'profile',
@@ -297,6 +359,7 @@ void main() {
     );
     await settle(tester);
     expect(find.text('Cancel setup'), findsNothing);
+    expect(find.text('Update'), findsNothing);
   });
 
   testWidgets('FNIS exit warning remains after setup completes and refreshes', (
@@ -336,6 +399,17 @@ void main() {
           .onPressed,
       isNull,
     );
+    expect(client.starts, 0);
+  });
+
+  testWidgets('installed components without targets offer no update', (
+    tester,
+  ) async {
+    final client = SetupClientFixture(installed: {'skse', 'enb', 'fnis'});
+    await tester.pumpWidget(app(client));
+    await settle(tester);
+    expect(find.text('Update'), findsNothing);
+    expect(client.lastSelection.hasChange, isFalse);
     expect(client.starts, 0);
   });
 

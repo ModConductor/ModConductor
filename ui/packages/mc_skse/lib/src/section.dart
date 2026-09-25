@@ -32,6 +32,7 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
   Timer? _watchReconnect;
   int _epoch = 0;
   int _watchAttempt = 0;
+  bool _updateEvidenceFresh = false;
 
   @override
   void initState() {
@@ -49,6 +50,7 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
       _watchReconnect?.cancel();
       unawaited(_watch?.cancel() ?? Future.value());
       status = null;
+      _updateEvidenceFresh = false;
       selection = const SkyrimSetupSelection();
       userEdited = false;
       busy = false;
@@ -72,6 +74,10 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
     unawaited(_watch?.cancel() ?? Future.value());
     void reconnect() {
       if (!mounted || epoch != _epoch || attempt != _watchAttempt) return;
+      setState(() {
+        _updateEvidenceFresh = false;
+        _clearUpdateChoices();
+      });
       _watchReconnect?.cancel();
       _watchReconnect = Timer(const Duration(seconds: 1), () {
         if (mounted && epoch == _epoch && attempt == _watchAttempt) _observe();
@@ -100,6 +106,7 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
     setState(() {
       final wasCancelled = status?.phase == SkyrimSetupStatusPhase.cancelled;
       status = next;
+      _updateEvidenceFresh = true;
       if (next.canCancel && next.phase != SkyrimSetupStatusPhase.failed) {
         selection = next.selection;
         userEdited = false;
@@ -110,14 +117,25 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
       } else if (!userEdited) {
         selection = next.selection;
       }
-      if (selection.skse == SkyrimSetupAction.update &&
-          !next.components.any(
-            (item) => item.id == 'skse' && item.updateVersion != null,
-          )) {
-        selection = selection.withAction('skse', SkyrimSetupAction.unchanged);
+      for (final id in const ['skse', 'enb', 'fnis']) {
+        if (actionFor(id) == SkyrimSetupAction.update &&
+            !next.components.any(
+              (item) =>
+                  item.id == id && item.installed && item.updateVersion != null,
+            )) {
+          selection = selection.withAction(id, SkyrimSetupAction.unchanged);
+        }
       }
       problem = null;
     });
+  }
+
+  void _clearUpdateChoices() {
+    for (final id in const ['skse', 'enb', 'fnis']) {
+      if (actionFor(id) == SkyrimSetupAction.update) {
+        selection = selection.withAction(id, SkyrimSetupAction.unchanged);
+      }
+    }
   }
 
   Future<void> change(Future<SkyrimSetupStatus> Function() action) async {
@@ -333,6 +351,7 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
 
   Widget _component(SkyrimSetupComponent item, bool locked) {
     final action = actionFor(item.id);
+    final updateVersion = _updateEvidenceFresh ? item.updateVersion : null;
     final selected = switch (action) {
       SkyrimSetupAction.install => true,
       SkyrimSetupAction.remove => false,
@@ -354,8 +373,8 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
       current: item.installed ? 'Installed' : 'Not installed',
       installed: item.installed,
       selected: selected,
-      updating: action == SkyrimSetupAction.update,
-      updateVersion: item.updateVersion,
+      updating: action == SkyrimSetupAction.update && updateVersion != null,
+      updateVersion: updateVersion,
       iconUrl: switch (item.id) {
         'skse' => skseIcon,
         'enb' => enbIcon,
@@ -378,8 +397,7 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
                   : SkyrimSetupAction.install),
       ),
       onOpenPage: () => unawaited(widget.client.openProjectPage(item.id)),
-      onUpdate:
-          item.installed && (item.id != 'skse' || item.updateVersion != null)
+      onUpdate: item.installed && updateVersion != null
           ? () => selectAction(
               item.id,
               action == SkyrimSetupAction.update
