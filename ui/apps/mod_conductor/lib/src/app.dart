@@ -406,18 +406,19 @@ class _ModConductorAppState extends State<ModConductorApp> {
     }
     if (revision != _contextRevision) _play.invalidate();
     _contextRevision = revision;
+    _startSkseLaunchCheck();
     _syncCapabilityConsumers();
     if (mounted) setState(() {});
   }
 
   void _syncWorkspaceConsumers() {
-    _startSkseLaunchCheck();
     _game.attach(
       widget.gameContexts,
       workspaceId: _workspaces.workspace?.id,
       profileId: _workspaces.workspace?.selectedProfile?.id,
       editable: _workspaces.canEdit,
     );
+    _startSkseLaunchCheck();
     _syncCapabilityConsumers();
     final workspace = _workspaces.workspace;
     final profileId = workspace?.selectedProfile?.id;
@@ -440,6 +441,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
         : '${workspace.id}:${profile.id}';
     if (_skseLaunchCheckStarted ||
         widget.status is! DesktopConnected ||
+        !_supportsSkyrim ||
         workspace == null ||
         profile == null ||
         _skseProfilesWithoutInstall.contains(profileKey) ||
@@ -457,11 +459,18 @@ class _ModConductorAppState extends State<ModConductorApp> {
   ) async {
     try {
       final checked = await client.checkUpdate(workspaceId, profileId);
-      if (checked.phase == SkseStatusPhase.available ||
-          checked.phase == SkseStatusPhase.unavailable) {
+      if (checked.phase == SkseStatusPhase.available) {
         _skseProfilesWithoutInstall.add('$workspaceId:$profileId');
         _skseLaunchCheckStarted = false;
         _startSkseLaunchCheck();
+        return;
+      }
+      if (checked.phase == SkseStatusPhase.unavailable) {
+        _skseLaunchCheckStarted = false;
+        if (_workspaces.workspace?.id != workspaceId ||
+            _workspaces.workspace?.selectedProfile?.id != profileId) {
+          _startSkseLaunchCheck();
+        }
         return;
       }
       if (!mounted) return;

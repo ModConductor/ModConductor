@@ -76,6 +76,9 @@ class _WorkspacesFake extends Fake implements WorkspacesClient {
 }
 
 class _CapabilityGameContexts extends Fake implements GameContextsClient {
+  _CapabilityGameContexts({this.skyrim = false});
+  final bool skyrim;
+
   static const definition = GameDefinitionInfo(
     id: 'example-steam-game',
     revision: 1,
@@ -105,7 +108,31 @@ class _CapabilityGameContexts extends Fake implements GameContextsClient {
         workspaceId: workspaceId,
         profileId: profileId,
         revision: 1,
-        definition: definition,
+        definition: skyrim
+            ? GameDefinitionInfo(
+                id: definition.id,
+                revision: definition.revision,
+                name: definition.name,
+                storefront: definition.storefront,
+                declaredSteamAppId: definition.declaredSteamAppId,
+                capabilities: [
+                  ...definition.capabilities,
+                  const GameCapability(
+                    id: GameCapabilityId.skyrimSpecialEdition,
+                    revision: 1,
+                    name: 'Skyrim Special Edition',
+                    kind: GameCapabilityKind.gameAdapter,
+                    contexts: [
+                      GameCapabilityContext(
+                        definitionId: 'example-steam-game',
+                        platforms: [GameContextPlatform.windows],
+                      ),
+                    ],
+                    disposition: GameCapabilityDisposition.available,
+                  ),
+                ],
+              )
+            : definition,
         binding: GameBindingInfo(
           id: 'binding',
           path: '/games/example',
@@ -145,6 +172,22 @@ class _UnboundGameContexts extends Fake implements GameContextsClient {
         definition: null,
         binding: null,
       );
+}
+
+class _DelayedSkyrimGameContexts extends _CapabilityGameContexts {
+  _DelayedSkyrimGameContexts() : super(skyrim: true);
+  final pending = Completer<GameContextState>();
+  late String workspaceId, profileId;
+
+  @override
+  Future<GameContextState> read(String workspace, String profile) {
+    workspaceId = workspace;
+    profileId = profile;
+    return pending.future;
+  }
+
+  Future<void> finish() async =>
+      pending.complete(await super.read(workspaceId, profileId));
 }
 
 class _DelayedSettingsFake extends _SettingsFake {
@@ -279,6 +322,22 @@ class _ProfileSkse extends Fake implements SkseClient {
   }
 }
 
+class _TemporaryUnavailableSkse extends Fake implements SkseClient {
+  int checks = 0;
+
+  @override
+  Future<SkseStatus> checkUpdate(String workspace, String profile) async {
+    checks++;
+    return SkseStatus(
+      checks == 1 ? SkseStatusPhase.unavailable : SkseStatusPhase.ready,
+      '1.6.1170.0',
+      checks == 1 ? '' : '2.2.0',
+      checks == 1 ? 'SKSE is unavailable' : 'SKSE is installed',
+      '',
+    );
+  }
+}
+
 Future<void> choose(WidgetTester tester, String field, String option) async {
   await tester.ensureVisible(keyed(field));
   await tester.tap(keyed(field));
@@ -326,7 +385,7 @@ void main() {
         heartbeats: 1,
       )),
       workspaces: _WorkspacesFake(),
-      gameContexts: _CapabilityGameContexts(),
+      gameContexts: _CapabilityGameContexts(skyrim: true),
       skse: skse,
     );
     expect(skse.checks, 0);
@@ -361,7 +420,7 @@ void main() {
         heartbeats: 1,
       )),
       workspaces: _WorkspacesFake(),
-      gameContexts: _CapabilityGameContexts(),
+      gameContexts: _CapabilityGameContexts(skyrim: true),
       skse: skse,
     );
     await openWorkspace(tester, 'one');
@@ -374,6 +433,78 @@ void main() {
     await tester.pumpAndSettle();
     await openWorkspace(tester, 'two');
     expect(skse.checked, ['one', 'two']);
+  });
+
+  testWidgets('launch check waits for the selected game context', (
+    tester,
+  ) async {
+    final contexts = _DelayedSkyrimGameContexts();
+    final skse = _ProfileSkse();
+    await mount(
+      tester,
+      status: const DesktopConnected((
+        runtime: (architecture: 'x64', nativeAot: true, sqliteVersion: '3'),
+        heartbeats: 1,
+      )),
+      workspaces: _WorkspacesFake(),
+      gameContexts: contexts,
+      skse: skse,
+    );
+    await tester.tap(keyed('workspace-one'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(skse.checked, isEmpty);
+    await contexts.finish();
+    await tester.pumpAndSettle();
+    expect(skse.checked, ['one']);
+  });
+
+  testWidgets('temporary SKSE unavailability allows a later profile check', (
+    tester,
+  ) async {
+    final skse = _TemporaryUnavailableSkse();
+    await mount(
+      tester,
+      status: const DesktopConnected((
+        runtime: (architecture: 'x64', nativeAot: true, sqliteVersion: '3'),
+        heartbeats: 1,
+      )),
+      workspaces: _WorkspacesFake(),
+      gameContexts: _CapabilityGameContexts(skyrim: true),
+      skse: skse,
+    );
+    await openWorkspace(tester, 'one');
+    expect(skse.checks, 1);
+    await tester.tap(keyed('close-workspace'));
+    await tester.pumpAndSettle();
+    await openWorkspace(tester, 'one');
+    expect(skse.checks, 2);
+  });
+
+  testWidgets('unavailable check follows a profile change made while pending', (
+    tester,
+  ) async {
+    final skse = _DelayedSkse();
+    await mount(
+      tester,
+      status: const DesktopConnected((
+        runtime: (architecture: 'x64', nativeAot: true, sqliteVersion: '3'),
+        heartbeats: 1,
+      )),
+      workspaces: _WorkspacesFake(),
+      gameContexts: _CapabilityGameContexts(skyrim: true),
+      skse: skse,
+    );
+    await openWorkspace(tester, 'one');
+    await tester.tap(keyed('close-workspace'));
+    await tester.pumpAndSettle();
+    await openWorkspace(tester, 'two');
+    expect(skse.checks, 1);
+    skse.result.complete(
+      const SkseStatus(SkseStatusPhase.unavailable, '', '', '', ''),
+    );
+    await tester.pumpAndSettle();
+    expect(skse.checks, 2);
   });
 
   testWidgets('an unbound profile shows setup without the workbench', (

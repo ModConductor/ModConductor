@@ -333,6 +333,11 @@ type SkseCoordinator
                 return status |> Option.map fromStored |> Option.defaultValue downloading
         }
 
+    let newerVersion (offered: string) (installed: string) =
+        match Version.TryParse offered, Version.TryParse installed with
+        | (true, latest), (true, current) -> latest > current
+        | _ -> false
+
     let installedState
         (context: ModConductor.GameContexts.GameContextState)
         (loader: StoredSkseLoader)
@@ -349,7 +354,11 @@ type SkseCoordinator
               FileId = Some loader.NexusFileId }
         else
             match saved with
-            | Some status when status.Phase = "update" && status.GameVersion = gameVersion ->
+            | Some status when
+                status.Phase = "update"
+                && status.GameVersion = gameVersion
+                && newerVersion status.ComponentVersion loader.Loader.ComponentVersion
+                ->
                 fromStored status
             | _ ->
                 { Phase = SksePhase.Ready
@@ -432,7 +441,6 @@ type SkseCoordinator
                     match saved with
                     | Some state when
                         state.Phase = "waiting"
-                        || state.Phase = "failed"
                         || state.Phase = "downloading"
                         || state.Phase = "installing"
                         -> return fromStored state
@@ -451,18 +459,29 @@ type SkseCoordinator
                                     current |> Result.toOption |> Option.bind _.ActiveGeneration
                                 )
 
-                            let sameLoader =
-                                active |> Option.exists (fun value -> value.VersionId = loader.VersionId)
+                            let! latestStatus = store.SkseLoaders.ReadStatus(workspace, profile)
 
-                            if workers.ContainsKey(workspace, profile) || not sameLoader then
+                            let sameLoader =
+                                active
+                                |> Option.exists (fun value ->
+                                    value.VersionId = loader.VersionId
+                                    && value.Loader.GenerationId = loader.Loader.GenerationId)
+
+                            let busyOrFailed =
+                                latestStatus
+                                |> Option.exists (fun state ->
+                                    state.Phase = "waiting"
+                                    || state.Phase = "downloading"
+                                    || state.Phase = "installing"
+                                    || state.Phase = "failed")
+
+                            if workers.ContainsKey(workspace, profile) || not sameLoader || busyOrFailed then
                                 return! this.Read(workspace, profile)
                             else
                                 let latest = selection.Selection.Release.ComponentVersion
 
                                 let newer =
-                                    match Version.TryParse loader.Loader.ComponentVersion with
-                                    | true, installed -> latest > installed
-                                    | _ -> false
+                                    newerVersion (string latest) loader.Loader.ComponentVersion
 
                                 let state =
                                     if newer then

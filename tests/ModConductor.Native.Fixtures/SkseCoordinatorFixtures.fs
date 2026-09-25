@@ -681,6 +681,30 @@ module SkseCoordinatorFixtures =
             "confirmedNoUpdateClearsPreviousUpdate"
             (cleared.Phase = SksePhase.Ready && clearedRead.Phase = SksePhase.Ready)
 
+        configure server runtime updateId "2.3.0" (archive runtime "update" true 0)
+        let beforeConcurrent = server.Count "/api/games/skyrimspecialedition/mods/30379.json"
+        server.HoldMetadata() |> ignore
+        let concurrentCheck = coordinator.CheckUpdate(workspace, profile)
+
+        until
+            "held update check before SKSE reinstall"
+            (fun () -> server.Count "/api/games/skyrimspecialedition/mods/30379.json")
+            (fun count -> count > beforeConcurrent)
+        |> ignore
+
+        coordinator.Remove(workspace, profile, CancellationToken.None) |> wait |> ignore
+        coordinator.Start(workspace, profile) |> wait |> ignore
+        waitForStatus store workspace profile "current" |> ignore
+        server.ReleaseMetadata()
+        let afterConcurrent = concurrentCheck |> wait
+        let installedAfterConcurrent = coordinator.Read(workspace, profile) |> wait
+
+        check
+            writer
+            "concurrentReinstallDoesNotPublishOldUpdateCheck"
+            (afterConcurrent.Phase = SksePhase.Ready
+             && installedAfterConcurrent.Phase = SksePhase.Ready)
+
         server.Mode <- "good"
         configure server runtime updateId "2.3.0" (archive runtime "update" true 0)
         coordinator.Start(workspace, profile) |> wait |> ignore
@@ -897,6 +921,17 @@ module SkseCoordinatorFixtures =
             writer
             "failedReplacementBoundariesPreserveInstalledSetup"
             (transfer && layout && preparation && deployment && publication)
+
+        let beforeFailedCheck = requests ()
+        let failedCheck = coordinator.CheckUpdate(workspace, profile) |> wait
+        let afterFailedCheck = coordinator.Read(workspace, profile) |> wait
+
+        check
+            writer
+            "installedLoaderChecksUpdatesWithoutClearingSetupFailure"
+            (requests () > beforeFailedCheck
+             && failedCheck.Phase = SksePhase.Failed
+             && afterFailedCheck.Phase = SksePhase.Failed)
 
         (coordinator :> IDisposable).Dispose()
         (store :> IDisposable).Dispose()
