@@ -66,6 +66,16 @@ type NexusService
             return NexusWire.status session.Status
         }
 
+    override _.WatchNexusStatus(_, stream, context) =
+        task {
+            do! session.SavedConnection
+
+            while not context.CancellationToken.IsCancellationRequested do
+                let revision, value = session.StatusWithRevision
+                do! stream.WriteAsync(NexusWire.status value, context.CancellationToken)
+                do! session.WaitForStatusChange(revision, context.CancellationToken)
+        } :> Task
+
     override _.BeginNexusSignIn(_, _) =
         task {
             let! value = session.SignIn()

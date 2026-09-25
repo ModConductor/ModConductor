@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 import 'package:mc_client/mc_client.dart';
+import 'package:mc_skse/mc_skse.dart';
 import 'package:mod_conductor/src/app.dart';
 
 Finder keyed(String value) => find.byKey(ValueKey(value));
@@ -20,6 +21,10 @@ Future<void> mount(
   WorkspacesClient? workspaces,
   GameContextsClient? gameContexts,
   SkseClient? skse,
+  SkyrimSetupClient? skyrimSetup,
+  ProfileModsClient? profileMods,
+  ModOrganizationClient? modOrganization,
+  ModLibraryClient? modLibrary,
 }) async {
   tester.view.devicePixelRatio = 1;
   tester.view.physicalSize = const Size(1280, 800);
@@ -36,6 +41,10 @@ Future<void> mount(
       workspaces: workspaces,
       gameContexts: gameContexts,
       skse: skse,
+      skyrimSetup: skyrimSetup,
+      profileMods: profileMods,
+      modOrganization: modOrganization,
+      modLibrary: modLibrary,
     ),
   );
   if (settle) await tester.pumpAndSettle();
@@ -74,6 +83,93 @@ class _WorkspacesFake extends Fake implements WorkspacesClient {
     return WorkspacePage(selected, [selected.selectedProfile!], null);
   }
 }
+
+class _SetupEvents extends Fake implements SkyrimSetupClient {
+  final streams = <String, StreamController<SkyrimSetupStatus>>{};
+  int watches = 0;
+
+  SkyrimSetupStatus get idle => const SkyrimSetupStatus(
+    phase: SkyrimSetupStatusPhase.available,
+    status: '',
+    detail: '',
+    components: [],
+    selection: SkyrimSetupSelection(),
+    canStart: false,
+    canContinue: false,
+    active: false,
+    ready: false,
+    canCancel: false,
+  );
+
+  SkyrimSetupStatus phase(
+    SkyrimSetupStatusPhase phase, {
+    bool active = false,
+    bool canCancel = false,
+  }) => SkyrimSetupStatus(
+    phase: phase,
+    status: '',
+    detail: '',
+    components: const [],
+    selection: const SkyrimSetupSelection(),
+    canStart: false,
+    canContinue: false,
+    active: active,
+    ready: false,
+    canCancel: canCancel,
+  );
+
+  @override
+  Stream<SkyrimSetupStatus> watch(
+    String workspace,
+    String profile, {
+    required SkyrimSetupSelection selection,
+  }) {
+    watches++;
+    final controller = streams.putIfAbsent(
+      '$workspace:$profile',
+      () => StreamController<SkyrimSetupStatus>.broadcast(),
+    );
+    scheduleMicrotask(() => controller.add(idle));
+    return controller.stream;
+  }
+
+  void emit(String workspace, SkyrimSetupStatus value) =>
+      streams['$workspace:profile']?.add(value);
+
+  void fail(String workspace) =>
+      streams['$workspace:profile']?.addError(StateError('Connection lost'));
+}
+
+class _SetupQuery extends Fake implements ModOrganizationClient {
+  int reads = 0;
+
+  @override
+  Future<ModQueryPage> query(
+    String profile,
+    ModQuery query, {
+    ModQueryCursor? cursor,
+    String? inspectedId,
+  }) async {
+    reads++;
+    return const ModQueryPage(
+      catalogueRevision: 1,
+      selectionRevision: 1,
+      queryIdentity: 'setup-fixture',
+      entries: [],
+      context: [],
+      inspected: null,
+      next: null,
+      matchingMods: 0,
+      matchingSeparators: 0,
+      totalMods: 0,
+      enabledCount: 0,
+    );
+  }
+}
+
+class _SetupProfileMods extends Fake implements ProfileModsClient {}
+
+class _SetupModLibrary extends Fake implements ModLibraryClient {}
 
 class _CapabilityGameContexts extends Fake implements GameContextsClient {
   _CapabilityGameContexts({this.skyrim = false});
@@ -374,6 +470,72 @@ Brightness brightness(WidgetTester tester) =>
     Theme.of(tester.element(keyed('quit'))).brightness;
 
 void main() {
+  testWidgets('setup completion refreshes open mods without the setup view', (
+    tester,
+  ) async {
+    final setup = _SetupEvents();
+    final query = _SetupQuery();
+    await mount(
+      tester,
+      status: const DesktopConnected((
+        runtime: (architecture: 'x64', nativeAot: true, sqliteVersion: '3'),
+        heartbeats: 1,
+      )),
+      workspaces: _WorkspacesFake(),
+      gameContexts: _CapabilityGameContexts(skyrim: true),
+      skyrimSetup: setup,
+      profileMods: _SetupProfileMods(),
+      modOrganization: query,
+      modLibrary: _SetupModLibrary(),
+    );
+    await openWorkspace(tester, 'one');
+    expect(find.byType(SkyrimSetupSection), findsNothing);
+    final initial = query.reads;
+    expect(initial, greaterThan(0));
+    expect(setup.streams['one:profile']?.hasListener, isTrue);
+
+    setup.emit('one', setup.phase(SkyrimSetupStatusPhase.settingUpSkse,
+        active: true, canCancel: true));
+    await tester.pump();
+    setup.emit('one', setup.idle);
+    await tester.pumpAndSettle();
+    expect(query.reads, initial + 1);
+
+    setup.fail('one');
+    await tester.pump();
+    expect(setup.streams['one:profile']?.hasListener, isFalse);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 1100));
+    await tester.pumpAndSettle();
+    expect(setup.watches, greaterThan(1));
+    expect(query.reads, initial + 2);
+
+    setup.emit('one', setup.phase(SkyrimSetupStatusPhase.settingUpEnb,
+        active: true, canCancel: true));
+    await tester.pump();
+    setup.emit('one', setup.phase(SkyrimSetupStatusPhase.failed,
+        canCancel: true));
+    await tester.pumpAndSettle();
+    expect(query.reads, initial + 3);
+
+    setup.emit('one', setup.phase(SkyrimSetupStatusPhase.settingUpFnis,
+        active: true, canCancel: true));
+    await tester.pump();
+    setup.emit('one', setup.phase(SkyrimSetupStatusPhase.cancelled));
+    await tester.pumpAndSettle();
+    expect(query.reads, initial + 4);
+
+    await tester.tap(keyed('close-workspace'));
+    await tester.pumpAndSettle();
+    await openWorkspace(tester, 'two');
+    final switched = query.reads;
+    setup.emit('one', setup.phase(SkyrimSetupStatusPhase.settingUpSkse,
+        active: true, canCancel: true));
+    setup.emit('one', setup.idle);
+    await tester.pumpAndSettle();
+    expect(query.reads, switched);
+  });
+
   testWidgets('launch check waits for a profile and does not hold navigation', (
     tester,
   ) async {

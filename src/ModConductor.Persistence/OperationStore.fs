@@ -1,6 +1,8 @@
 namespace ModConductor.Persistence
 
 open System
+open System.Threading
+open System.Threading.Tasks
 open ModConductor.Operations
 
 module private EnbConfigurationEncoding =
@@ -167,6 +169,14 @@ type OperationStore
         )
 
     let connection = database.Connection
+    let changesGate = obj ()
+    let mutable changes = TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)
+
+    let notifyChanges () =
+        lock changesGate (fun () ->
+            let prior = changes
+            changes <- TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)
+            prior.TrySetResult() |> ignore)
 
     let state transaction =
         OperationJournal.state connection transaction
@@ -452,6 +462,9 @@ type OperationStore
                             Ok(snapshot, true)
 
                 transaction.Commit()
+                match result with
+                | Ok(_, true) -> notifyChanges ()
+                | _ -> ()
                 result)
 
         member _.Advance(id, progress, runtime) =
@@ -488,6 +501,7 @@ type OperationStore
                     save transaction snapshot
 
                 transaction.Commit()
+                if snapshot <> current then notifyChanges ()
                 snapshot)
 
         member _.Cancel(id) =
@@ -504,6 +518,9 @@ type OperationStore
                     | Some snapshot -> Ok snapshot
 
                 transaction.Commit()
+                match result with
+                | Ok snapshot when snapshot.Phase = Cancelled -> notifyChanges ()
+                | _ -> ()
                 result)
 
         member _.Get(id) =
@@ -515,6 +532,17 @@ type OperationStore
         member _.Changes(cursor) =
             enqueue (fun () -> feed false (Some cursor))
 
+        member _.WaitForChanges(cursor, token) =
+            task {
+                let! pending =
+                    enqueue (fun () ->
+                        let _, current = state null
+                        if current > cursor then Task.CompletedTask
+                        else lock changesGate (fun () -> changes.Task))
+
+                do! pending.WaitAsync(token)
+            } :> Task
+
         member _.Interrupt(id) =
             enqueueInternal (fun () ->
                 use transaction = connection.BeginTransaction(deferred = false)
@@ -522,10 +550,10 @@ type OperationStore
                 match find transaction id with
                 | Some snapshot when snapshot.Phase = Running ->
                     save transaction { snapshot with Phase = Interrupted }
+                    transaction.Commit()
+                    notifyChanges ()
                 | Some _
-                | None -> ()
-
-                transaction.Commit())
+                | None -> transaction.Commit())
 
     member internal _.ApplyOutputAtCheckpoint
         (id, snapshot, selected, action, token, afterPublication)

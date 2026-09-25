@@ -252,8 +252,21 @@ module ExecutableFixtures =
                     (waiting.RootExitCode = Some 0
                      && waiting.ActiveProcesses |> Option.exists ((<) 0))
 
+                use changedTimeout = new CancellationTokenSource(TimeSpan.FromSeconds 5.)
+                let changed =
+                    api.WaitForChange(
+                        workspace,
+                        chainRequest.Id,
+                        waiting.Revision,
+                        changedTimeout.Token
+                    )
+                Thread.Sleep 150
+                check "idleExecutableWatchWaitsForChange" (not changed.IsCompleted)
+
                 File.WriteAllText(Path.Combine(chain, "grandchild-now"), "continue")
                 ExecutableChild.waitFile (Path.Combine(chain, "grandchild.started"))
+                changed.GetAwaiter().GetResult()
+                check "childProcessChangeWakesExecutableWatch" changed.IsCompletedSuccessfully
 
                 let grandchildren =
                     until api workspace chainRequest.Id (fun run ->

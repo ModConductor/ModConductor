@@ -438,20 +438,60 @@ module SkyrimSetupFixtures =
         check writer "appliedChoiceRetained" (retained |> Option.exists (fun item -> item.Selection = skseOnly))
         check writer "unselectedComponentsNotStarted" (started.Selection.Enb = SetupAction.Unchanged && started.Selection.Fnis = SetupAction.Unchanged)
 
-        use resumed = new SkyrimSetupCoordinator(store, workflow.Dependencies)
-        let restored = resumed.Read(workspace, profile, noChoice, CancellationToken.None) |> wait
-
-        check
-            writer
-            "appliedChoiceSurvivesCoordinatorRestart"
-            (restored.CanCancel && restored.Selection = skseOnly)
-
-        let _ = resumed.Continue(workspace, profile, CancellationToken.None) |> wait
+        let _ =
+            until
+                "engine starts the selected SKSE component"
+                (fun () -> workflow.SkseStarts)
+                ((=) 1)
 
         check
             writer
             "selectedSkseOnlyExecutes"
             (workflow.SkseStarts = 1 && workflow.EnbSelections = 0 && workflow.FnisInstalls = 0)
+
+        let completed =
+            until
+                "setup completes without a view or Continue request"
+                (fun () -> store.SkyrimSetups.Read(workspace, profile) |> wait)
+                (Option.exists _.Completed)
+
+        check writer "engineCompletesWithoutView" (completed |> Option.exists _.Completed)
+
+        let resumeWorkspace, resumeProfile, _ = createWorkspace store area "restart-active" true
+        let resumeWorkflow = WorkflowState()
+        resumeWorkflow.HoldSkse()
+        let originalOwner = new SkyrimSetupCoordinator(store, resumeWorkflow.Dependencies)
+        originalOwner.Start(resumeWorkspace, resumeProfile, skseOnly, CancellationToken.None)
+        |> wait
+        |> ignore
+        until "SKSE starts before owner restart" (fun () -> resumeWorkflow.SkseStarts) ((=) 1)
+        |> ignore
+        (originalOwner :> IDisposable).Dispose()
+        resumeWorkflow.CompleteSkse()
+        use resumedStore = new OperationStore(state)
+        use resumedOwner = new SkyrimSetupCoordinator(resumedStore, resumeWorkflow.Dependencies)
+        let resumedContext =
+            (resumedStore.GameContexts :> IGameContexts).Read(resumeWorkspace, resumeProfile)
+            |> wait
+            |> result
+        (resumedStore.GameContexts :> IGameContexts)
+            .Refresh(resumeWorkspace, resumeProfile, resumedContext.Revision)
+        |> wait
+        |> result
+        |> ignore
+        resumedOwner.Read(resumeWorkspace, resumeProfile, noChoice, CancellationToken.None)
+        |> wait
+        |> ignore
+        let resumedIntent =
+            until
+                "persisted active setup completes after owner restart"
+                (fun () -> resumedStore.SkyrimSetups.Read(resumeWorkspace, resumeProfile) |> wait)
+                (Option.exists _.Completed)
+
+        check
+            writer
+            "activeSetupResumesOnInitialReadAfterRestart"
+            ((resumedIntent |> Option.exists _.Completed) && resumeWorkflow.SkseStarts = 1)
 
         use reopened = new OperationStore(state)
         use afterRestart = new SkyrimSetupCoordinator(reopened, workflow.Dependencies)
@@ -463,22 +503,12 @@ module SkyrimSetupFixtures =
         |> result
         |> ignore
 
-        let retainedAfterRestart = afterRestart.Read(workspace, profile, noChoice, CancellationToken.None) |> wait
-
-        check
-            writer
-            "appliedChoiceSurvivesStoreRestart"
-            (retainedAfterRestart.Selection = skseOnly)
-
-        let _ = afterRestart.Continue(workspace, profile, CancellationToken.None) |> wait
-        let completed = store.SkyrimSetups.Read(workspace, profile) |> wait
         let availableAgain = afterRestart.Read(workspace, profile, noChoice, CancellationToken.None) |> wait
 
         check
             writer
             "completedSetupAcceptsNewChoices"
-            (retainedAfterRestart.CanContinue
-             && (completed |> Option.exists _.Completed)
+            ((completed |> Option.exists _.Completed)
              && availableAgain.Phase = SkyrimSetupPhase.Available
              && availableAgain.Selection = noChoice)
 
@@ -656,7 +686,13 @@ module SkyrimSetupFixtures =
         let waitingWorkflow = WorkflowState()
         waitingWorkflow.WaitForFnisNexus()
         waitingWorkflow.FnisExitCode(Some 7)
-        use waitingOwner = new SkyrimSetupCoordinator(store, waitingWorkflow.Dependencies)
+        let waitingChanges = Event<Guid * Guid>()
+        use waitingOwner =
+            new SkyrimSetupCoordinator(
+                store,
+                waitingWorkflow.Dependencies,
+                childChanges = [ waitingChanges.Publish ]
+            )
         let _ = waitingOwner.Start(waitingWorkspace, waitingProfile, fnisOnly, CancellationToken.None) |> wait
 
         let waiting =
@@ -717,44 +753,39 @@ module SkyrimSetupFixtures =
               "$acquired", box (DateTimeOffset.UtcNow.ToString("O")) ]
 
         waitingWorkflow.CompleteFnisNexusSelection()
+        waitingChanges.Trigger(waitingWorkspace, waitingProfile)
 
-        let afterNexus =
+        let afterNexusIntent =
             until
                 "FNIS continues after Nexus selection"
-                (fun () ->
-                    let current = waitingOwner.Read(waitingWorkspace, waitingProfile, noChoice, CancellationToken.None) |> wait
-
-                    if current.CanContinue then
-                        waitingOwner.Continue(waitingWorkspace, waitingProfile, CancellationToken.None) |> wait
-                    else
-                        current)
-                (fun current -> current.Ready && waitingWorkflow.RunCalls = 1)
+                (fun () -> store.SkyrimSetups.Read(waitingWorkspace, waitingProfile) |> wait)
+                (fun current -> (current |> Option.exists _.Completed) && waitingWorkflow.RunCalls = 1)
+        let afterNexus =
+            waitingOwner.Read(waitingWorkspace, waitingProfile, noChoice, CancellationToken.None)
+            |> wait
 
         check
             writer
             "fnisContinuesAfterNexusSelection"
-            (afterNexus.Ready
+            ((afterNexusIntent |> Option.exists _.Completed)
              && waitingWorkflow.FnisInstalls = 1
              && waitingWorkflow.RunCalls = 1)
 
         check
             writer
-            "fnisExitWarningIsVisibleInReadySkyrimSetup"
-            (afterNexus.Phase = SkyrimSetupPhase.Ready
+            "fnisExitWarningVisibleAfterCompletion"
+            (afterNexus.Phase = SkyrimSetupPhase.Available
              && not afterNexus.Active
              && afterNexus.Status.Contains("FNIS exited with code 7")
              && afterNexus.Detail.Contains("Check the FNIS messages")
              && (afterNexus.Components
                  |> List.exists (fun item -> item.Id = "fnis" && item.Ready)))
 
-        let completedWarning =
-            if afterNexus.CanContinue then
-                waitingOwner.Continue(waitingWorkspace, waitingProfile, CancellationToken.None)
-                |> wait
-            else
-                afterNexus
-
-        let completedIntent = store.SkyrimSetups.Read(waitingWorkspace, waitingProfile) |> wait
+        let completedIntent =
+            until
+                "FNIS warning setup completes without Continue"
+                (fun () -> store.SkyrimSetups.Read(waitingWorkspace, waitingProfile) |> wait)
+                (Option.exists _.Completed)
         let refreshedWarning =
             waitingOwner.Read(waitingWorkspace, waitingProfile, noChoice, CancellationToken.None)
             |> wait
@@ -767,10 +798,7 @@ module SkyrimSetupFixtures =
         check
             writer
             "fnisExitWarningRemainsAfterAutomaticContinueAndRefresh"
-            (completedWarning.Ready
-             && not completedWarning.CanContinue
-             && not completedWarning.Active
-             && (completedIntent |> Option.exists _.Completed)
+            ((completedIntent |> Option.exists _.Completed)
              && refreshedWarning.Phase = SkyrimSetupPhase.Available
              && refreshedWarning.Status.Contains("FNIS exited with code 7")
              && reopenedWarning.Status = refreshedWarning.Status
@@ -875,6 +903,16 @@ module SkyrimSetupFixtures =
         )
         |> wait
 
+        let observedWhileActorRuns =
+            retryOwner.Continue(retryWorkspace, retryProfile, CancellationToken.None)
+            |> wait
+
+        check
+            writer
+            "concurrentContinueObservesActorWithoutDuplicateWork"
+            (observedWhileActorRuns.Phase = SkyrimSetupPhase.SettingUpEnb
+             && retryWorkflow.EnbSelections = 1)
+
         let cancelledActive =
             retryOwner.Cancel(retryWorkspace, retryProfile, CancellationToken.None) |> wait
 
@@ -892,6 +930,48 @@ module SkyrimSetupFixtures =
              && (cancelledRead.Components |> List.exists (fun item -> item.Id = "enb" && not item.Installed))
              && retryWorkflow.EnbSelections = 1
              && retryWorkflow.FnisInstalls = 0)
+
+        let recoveryWorkspace, recoveryProfile, _ = createWorkspace store area "cancel-recovery" true
+
+        store.SkyrimSetups.Save
+            { WorkspaceId = recoveryWorkspace
+              ProfileId = recoveryProfile
+              Selection = skseOnly
+              Cancelled = false
+              Completed = false
+              Stage = "deployment"
+              ActionId = None
+              CancelRequested = true
+              CancelDetail = "Cancellation was requested."
+              RequestedAt = DateTimeOffset.UtcNow }
+        |> wait
+
+        use recoveryStore = new OperationStore(state)
+        use recoveryOwner = new SkyrimSetupCoordinator(recoveryStore, retryWorkflow.Dependencies)
+        let recoveryContext =
+            (recoveryStore.GameContexts :> IGameContexts).Read(recoveryWorkspace, recoveryProfile)
+            |> wait
+            |> result
+        (recoveryStore.GameContexts :> IGameContexts)
+            .Refresh(recoveryWorkspace, recoveryProfile, recoveryContext.Revision)
+        |> wait
+        |> result
+        |> ignore
+        let recoveryBefore =
+            recoveryOwner.Read(recoveryWorkspace, recoveryProfile, noChoice, CancellationToken.None)
+            |> wait
+        let recoveryAfter =
+            recoveryOwner.Continue(recoveryWorkspace, recoveryProfile, CancellationToken.None)
+            |> wait
+        let recoveredIntent = recoveryStore.SkyrimSetups.Read(recoveryWorkspace, recoveryProfile) |> wait
+
+        check
+            writer
+            "cancelRecoveryContinuesAfterRestart"
+            (recoveryBefore.Phase = SkyrimSetupPhase.RecoveryRequired
+             && recoveryBefore.CanContinue
+             && recoveryAfter.Phase = SkyrimSetupPhase.Cancelled
+             && (recoveredIntent |> Option.exists _.Cancelled))
 
         let retrySelection = { noChoice with Fnis = SetupAction.Install }
 
@@ -944,9 +1024,17 @@ module SkyrimSetupFixtures =
         let pausedWorkspace, pausedProfile, _ = createWorkspace store area "paused-skse" true
         let pausedWorkflow = WorkflowState()
         pausedWorkflow.HoldSkse()
-        use pausedOwner = new SkyrimSetupCoordinator(store, pausedWorkflow.Dependencies)
+        let pausedChanges = Event<Guid * Guid>()
+        use pausedOwner =
+            new SkyrimSetupCoordinator(
+                store,
+                pausedWorkflow.Dependencies,
+                childChanges = [ pausedChanges.Publish ]
+            )
         let _ = pausedOwner.Start(pausedWorkspace, pausedProfile, skseOnly, CancellationToken.None) |> wait
-        let installing = pausedOwner.Continue(pausedWorkspace, pausedProfile, CancellationToken.None) |> wait
+        until "held SKSE component starts" (fun () -> pausedWorkflow.SkseStarts) ((=) 1)
+        |> ignore
+        let installing = pausedOwner.Read(pausedWorkspace, pausedProfile, noChoice, CancellationToken.None) |> wait
         let context =
             (store.GameContexts :> IGameContexts).Read(pausedWorkspace, pausedProfile)
             |> wait
@@ -1037,18 +1125,18 @@ module SkyrimSetupFixtures =
 
         let installedGeneration = installation |> wait
         pausedWorkflow.CompleteSkse()
-        let afterChild = pausedOwner.Read(pausedWorkspace, pausedProfile, noChoice, CancellationToken.None) |> wait
-        let completedChild =
-            pausedOwner.Continue(pausedWorkspace, pausedProfile, CancellationToken.None) |> wait
+        pausedChanges.Trigger(pausedWorkspace, pausedProfile)
+        let finalIntent =
+            until
+                "SKSE child completion finishes parent setup"
+                (fun () -> store.SkyrimSetups.Read(pausedWorkspace, pausedProfile) |> wait)
+                (Option.exists _.Completed)
         let finalDeployment = store.Deployments.Read pausedProfile |> wait |> result
-        let finalIntent = store.SkyrimSetups.Read(pausedWorkspace, pausedProfile) |> wait
 
         check
             writer
             "finishedSkseGenerationCompletesParentSetup"
-            (afterChild.Phase = SkyrimSetupPhase.Ready
-             && completedChild.Phase = SkyrimSetupPhase.Ready
-             && finalDeployment.ActiveGeneration = Some installedGeneration
+            (finalDeployment.ActiveGeneration = Some installedGeneration
              && finalDeployment.PendingReceipt.IsNone
              && (finalIntent |> Option.exists _.Completed))
 
@@ -1129,16 +1217,15 @@ module SkyrimSetupFixtures =
                         } }
 
         use enbOwner = new SkyrimSetupCoordinator(enbStore, enbDependencies)
-        let _ = enbOwner.Start(enbWorkspace, enbProfile, enbWithArchive, CancellationToken.None) |> wait
-        let _ = enbOwner.Continue(enbWorkspace, enbProfile, CancellationToken.None) |> wait
         releaseEnbGeneration.Reset()
-        let startedEnb = enbOwner.Continue(enbWorkspace, enbProfile, CancellationToken.None) |> wait
+        let _ = enbOwner.Start(enbWorkspace, enbProfile, enbWithArchive, CancellationToken.None) |> wait
 
         try
             if not (enteredEnbGeneration.Wait(TimeSpan.FromSeconds 10.)) then
                 failwith "ENB did not reach the held generation step."
 
             let deployed = enbStore.Deployments.Read enbProfile |> wait |> result
+            let startedEnb = enbOwner.Read(enbWorkspace, enbProfile, noChoice, CancellationToken.None) |> wait
             let during = enbOwner.Read(enbWorkspace, enbProfile, noChoice, CancellationToken.None) |> wait
             let continued = enbOwner.Continue(enbWorkspace, enbProfile, CancellationToken.None) |> wait
             let afterContinue = enbStore.Deployments.Read enbProfile |> wait |> result
@@ -1161,17 +1248,19 @@ module SkyrimSetupFixtures =
             until
                 "finished ENB generation"
                 (fun () -> enbOwner.Read(enbWorkspace, enbProfile, noChoice, CancellationToken.None) |> wait)
-                (fun value -> value.Phase = SkyrimSetupPhase.Ready)
+                (fun value -> value.Phase = SkyrimSetupPhase.Ready || value.Phase = SkyrimSetupPhase.Available)
 
-        let completedEnb = enbOwner.Continue(enbWorkspace, enbProfile, CancellationToken.None) |> wait
+        let finalEnbIntent =
+            until
+                "ENB child completion finishes parent setup"
+                (fun () -> enbStore.SkyrimSetups.Read(enbWorkspace, enbProfile) |> wait)
+                (Option.exists _.Completed)
         let finalEnbDeployment = enbStore.Deployments.Read enbProfile |> wait |> result
-        let finalEnbIntent = enbStore.SkyrimSetups.Read(enbWorkspace, enbProfile) |> wait
 
         check
             writer
             "finishedEnbGenerationCompletesParentSetup"
-            (afterEnb.Phase = SkyrimSetupPhase.Ready
-             && completedEnb.Phase = SkyrimSetupPhase.Ready
+            ((afterEnb.Phase = SkyrimSetupPhase.Ready || afterEnb.Phase = SkyrimSetupPhase.Available)
              && finalEnbDeployment.PendingReceipt.IsNone
              && (finalEnbIntent |> Option.exists _.Completed))
 

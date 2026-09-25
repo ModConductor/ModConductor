@@ -32,6 +32,7 @@ type EnbCoordinator
     ) as this =
     let lifetime = new CancellationTokenSource()
     let operations = ConcurrentDictionary<Guid * Guid, CancellationTokenSource>()
+    let changed = Event<Guid * Guid>()
 
     let phaseName =
         function
@@ -81,6 +82,7 @@ type EnbCoordinator
                       ArchiveSha256 = hash
                       CheckedAt = DateTimeOffset.UtcNow }
 
+            changed.Trigger(workspace, profile)
             return value
         }
 
@@ -656,8 +658,33 @@ type EnbCoordinator
                     task {
                         try
                             try
-                                let! _ = advance workspace profile cancellation.Token
-                                ()
+                                let mutable acquiring = true
+
+                                while acquiring do
+                                    let! current = advance workspace profile cancellation.Token
+
+                                    if current.Phase = EnbPhase.Acquiring then
+                                        let! pending = pendingFor profile
+                                        let! artifacts =
+                                            pending
+                                            |> List.map (fun source ->
+                                                downloads.FindNexus(
+                                                    workspace,
+                                                    reference source.AccountId source.NexusModId source.File false
+                                                ))
+                                            |> Task.WhenAll
+
+                                        let revisions =
+                                            artifacts
+                                            |> Array.choose (Option.map (fun artifact -> artifact.Id, artifact.Revision))
+                                            |> Array.toList
+
+                                        if revisions.IsEmpty then
+                                            acquiring <- false
+                                        else
+                                            do! downloads.WaitForChange(workspace, revisions, cancellation.Token)
+                                    else
+                                        acquiring <- false
                             with :? OperationCanceledException when
                                 cancellation.IsCancellationRequested ->
                                 ()
@@ -665,6 +692,7 @@ type EnbCoordinator
                             match operations.TryRemove key with
                             | true, owned -> owned.Dispose()
                             | _ -> ()
+                            changed.Trigger key
                     }
                     :> Task)
                 |> ignore
@@ -673,6 +701,8 @@ type EnbCoordinator
 
             return saved |> Option.map fromStored |> Option.defaultWith defaultView
         }
+
+    member _.Changed = changed.Publish
 
     member _.Read(workspace, profile) =
         if not row.TermsApproved then

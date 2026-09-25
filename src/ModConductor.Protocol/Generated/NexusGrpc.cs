@@ -69,6 +69,14 @@ namespace ModConductor.Protocol.V1 {
         __Marshaller_modconductor_v1_NexusAccountStatus);
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::ModConductor.Protocol.V1.NexusStatusRequest, global::ModConductor.Protocol.V1.NexusAccountStatus> __Method_WatchNexusStatus = new grpc::Method<global::ModConductor.Protocol.V1.NexusStatusRequest, global::ModConductor.Protocol.V1.NexusAccountStatus>(
+        grpc::MethodType.ServerStreaming,
+        __ServiceName,
+        "WatchNexusStatus",
+        __Marshaller_modconductor_v1_NexusStatusRequest,
+        __Marshaller_modconductor_v1_NexusAccountStatus);
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Method<global::ModConductor.Protocol.V1.NexusStatusRequest, global::ModConductor.Protocol.V1.NexusAccountStatus> __Method_BeginNexusSignIn = new grpc::Method<global::ModConductor.Protocol.V1.NexusStatusRequest, global::ModConductor.Protocol.V1.NexusAccountStatus>(
         grpc::MethodType.Unary,
         __ServiceName,
@@ -144,6 +152,12 @@ namespace ModConductor.Protocol.V1 {
     {
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V1.NexusAccountStatus> ReadNexusStatus(global::ModConductor.Protocol.V1.NexusStatusRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task WatchNexusStatus(global::ModConductor.Protocol.V1.NexusStatusRequest request, grpc::IServerStreamWriter<global::ModConductor.Protocol.V1.NexusAccountStatus> responseStream, grpc::ServerCallContext context)
       {
         throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
       }
@@ -244,6 +258,16 @@ namespace ModConductor.Protocol.V1 {
       public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.NexusAccountStatus> ReadNexusStatusAsync(global::ModConductor.Protocol.V1.NexusStatusRequest request, grpc::CallOptions options)
       {
         return CallInvoker.AsyncUnaryCall(__Method_ReadNexusStatus, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncServerStreamingCall<global::ModConductor.Protocol.V1.NexusAccountStatus> WatchNexusStatus(global::ModConductor.Protocol.V1.NexusStatusRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return WatchNexusStatus(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncServerStreamingCall<global::ModConductor.Protocol.V1.NexusAccountStatus> WatchNexusStatus(global::ModConductor.Protocol.V1.NexusStatusRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncServerStreamingCall(__Method_WatchNexusStatus, null, options, request);
       }
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       public virtual global::ModConductor.Protocol.V1.NexusAccountStatus BeginNexusSignIn(global::ModConductor.Protocol.V1.NexusStatusRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
@@ -420,6 +444,7 @@ namespace ModConductor.Protocol.V1 {
     {
       return grpc::ServerServiceDefinition.CreateBuilder()
           .AddMethod(__Method_ReadNexusStatus, serviceImpl.ReadNexusStatus)
+          .AddMethod(__Method_WatchNexusStatus, serviceImpl.WatchNexusStatus)
           .AddMethod(__Method_BeginNexusSignIn, serviceImpl.BeginNexusSignIn)
           .AddMethod(__Method_CancelNexusSignIn, serviceImpl.CancelNexusSignIn)
           .AddMethod(__Method_ConnectNexus, serviceImpl.ConnectNexus)
@@ -438,6 +463,7 @@ namespace ModConductor.Protocol.V1 {
     public static void BindService(grpc::ServiceBinderBase serviceBinder, NexusBase serviceImpl)
     {
       serviceBinder.AddMethod(__Method_ReadNexusStatus, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.NexusStatusRequest, global::ModConductor.Protocol.V1.NexusAccountStatus>(serviceImpl.ReadNexusStatus));
+      serviceBinder.AddMethod(__Method_WatchNexusStatus, serviceImpl == null ? null : new grpc::ServerStreamingServerMethod<global::ModConductor.Protocol.V1.NexusStatusRequest, global::ModConductor.Protocol.V1.NexusAccountStatus>(serviceImpl.WatchNexusStatus));
       serviceBinder.AddMethod(__Method_BeginNexusSignIn, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.NexusStatusRequest, global::ModConductor.Protocol.V1.NexusAccountStatus>(serviceImpl.BeginNexusSignIn));
       serviceBinder.AddMethod(__Method_CancelNexusSignIn, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.NexusStatusRequest, global::ModConductor.Protocol.V1.NexusAccountStatus>(serviceImpl.CancelNexusSignIn));
       serviceBinder.AddMethod(__Method_ConnectNexus, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.NexusStatusRequest, global::ModConductor.Protocol.V1.NexusAccountStatus>(serviceImpl.ConnectNexus));

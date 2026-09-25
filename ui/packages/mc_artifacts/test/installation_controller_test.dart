@@ -83,6 +83,56 @@ class Client implements InstallationsClient {
 }
 
 void main() {
+  test('leaving installation view hands running job to app observer', () async {
+    final client = Client();
+    final detached = <InstallationStatus>[];
+    final completed = <String>[];
+    StreamSubscription<InstallationStatus>? appWatch;
+    final controller = InstallationController(
+      client,
+      artifact,
+      () => fail('disposed view must not publish completion'),
+      onDetached: (running) {
+        detached.add(running);
+        appWatch = client.watch(running).listen((next) {
+          if (next.phase == InstallationPhase.complete) completed.add(next.id);
+        });
+      },
+    );
+    await controller.open();
+    final starting = controller.install();
+    final job = client.job!;
+    controller.dispose();
+    client.starting.complete(status(job, InstallationPhase.running));
+    await starting;
+    expect(detached.map((entry) => entry.id), [job]);
+    expect(client.closed, [draft.id]);
+    client.events.add(status(job, InstallationPhase.complete));
+    await Future<void>.delayed(Duration.zero);
+    expect(completed, [job]);
+    await appWatch!.cancel();
+    await client.events.close();
+  });
+
+  test('completed start response after navigation still reaches app observer', () async {
+    final client = Client();
+    final detached = <InstallationStatus>[];
+    final controller = InstallationController(
+      client,
+      artifact,
+      () => fail('disposed view must not publish completion'),
+      onDetached: detached.add,
+    );
+    await controller.open();
+    final starting = controller.install();
+    final job = client.job!;
+    controller.dispose();
+    client.starting.complete(status(job, InstallationPhase.complete));
+    await starting;
+    expect(detached.single.phase, InstallationPhase.complete);
+    expect(detached.single.id, job);
+  });
+
   test('navigation during start retains the job and late cancellation cannot undo completion', () async {
     final client = Client();
     var notifications = 0;

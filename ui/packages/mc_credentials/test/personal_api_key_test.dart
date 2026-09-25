@@ -17,6 +17,7 @@ const _status = CredentialStatus(
 
 class _Nexus extends Fake implements NexusClient {
   NexusAccount account = const NexusAccount(false, false, null, null, null);
+  final events = StreamController<NexusAccount>.broadcast();
   final submitted = <String>[];
   Completer<NexusAccount>? pendingCheck;
   Object? checkError;
@@ -24,6 +25,9 @@ class _Nexus extends Fake implements NexusClient {
 
   @override
   Future<NexusAccount> status() async => account;
+
+  @override
+  Stream<NexusAccount> watchStatus() => events.stream;
 
   @override
   Future<NexusAccount> submitPersonalApiKey(String apiKey) async {
@@ -42,9 +46,13 @@ class _Nexus extends Fake implements NexusClient {
 class _Credentials extends Fake implements CredentialsClient {
   _Credentials(this.nexus);
   final _Nexus nexus;
+  int statusReads = 0;
 
   @override
-  Future<CredentialStatus> status() async => _status;
+  Future<CredentialStatus> status() async {
+    statusReads++;
+    return _status;
+  }
 
   @override
   Future<CredentialStatus> remove() async {
@@ -102,6 +110,35 @@ CredentialPreferencesLabels get _labels => CredentialPreferencesLabels(
 );
 
 void main() {
+  testWidgets(
+    'background account connection updates Preferences from an event',
+    (tester) async {
+      final nexus = _Nexus();
+      final credentials = _Credentials(nexus);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: mcTheme(Brightness.dark),
+          home: Scaffold(
+            body: CredentialPreferences(
+              client: credentials,
+              nexus: nexus,
+              labels: _labels,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final initialReads = credentials.statusReads;
+
+      nexus.account = const NexusAccount(false, false, 'Rowan', true, null);
+      nexus.events.add(nexus.account);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(McIdentityCard), findsOneWidget);
+      expect(credentials.statusReads, initialReads + 1);
+    },
+  );
+
   testWidgets(
     'personal API key visibility and candidate live only in one Preferences instance',
     (tester) async {

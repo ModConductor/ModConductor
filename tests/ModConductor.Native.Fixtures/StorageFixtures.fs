@@ -3,12 +3,39 @@ namespace ModConductor.Native.Fixtures
 open System
 open System.IO
 open System.Text.Json
+open System.Threading
+open System.Threading.Tasks
+open ModConductor.Engine
+open ModConductor.Protocol.V1
 open Microsoft.Data.Sqlite
 open ModConductor.Persistence
 open ModConductor.Platform
 open ModConductor.Operations
 
 module StorageFixtures =
+    type private CountingOperations(inner: IOperationStore) =
+        let mutable initial = 0
+        let mutable changes = 0
+        let mutable waits = 0
+        member _.Initial = Volatile.Read(&initial)
+        member _.Changes = Volatile.Read(&changes)
+        member _.Waits = Volatile.Read(&waits)
+        interface IOperationStore with
+            member _.Begin value = inner.Begin value
+            member _.Advance(id, progress, runtime) = inner.Advance(id, progress, runtime)
+            member _.Cancel id = inner.Cancel id
+            member _.Get id = inner.Get id
+            member _.InitialFeed after =
+                Interlocked.Increment(&initial) |> ignore
+                inner.InitialFeed after
+            member _.Changes cursor =
+                Interlocked.Increment(&changes) |> ignore
+                inner.Changes cursor
+            member _.WaitForChanges(cursor, token) =
+                Interlocked.Increment(&waits) |> ignore
+                inner.WaitForChanges(cursor, token)
+            member _.Interrupt id = inner.Interrupt id
+
     let private wait = StorageWorker.wait
     let private result = StorageWorker.result
     let private select = StorageWorker.select
@@ -287,6 +314,50 @@ module StorageFixtures =
 
             writer.WriteEndObject()
 
+        do
+            let watchState = Directory.CreateDirectory(Path.Combine(directory, "operation-watch-counts")).FullName
+            use store = new OperationStore(watchState)
+            let counted = CountingOperations(store :> IOperationStore)
+            let operations = counted :> IOperationStore
+            let coordinator = Coordinator(operations, fun () -> Unchecked.defaultof<_>)
+            let service = OperationService(operations, coordinator)
+            use cancellation = new CancellationTokenSource()
+            let stream = WatchCountFixtures.CounterStream<OperationBatch>()
+            let context = WatchCountFixtures.StreamContext(cancellation.Token)
+            let watching = service.WatchOperations(WatchRequest(), stream, context)
+            if not (SpinWait.SpinUntil((fun () -> counted.Waits = 1 && stream.Count = 1), TimeSpan.FromSeconds 3.)) then
+                failwith $"Initial operation watch: initial={counted.Initial}, changes={counted.Changes}, waits={counted.Waits}, writes={stream.Count}, task={watching.Status}, error={watching.Exception}"
+            let initial = counted.Initial, counted.Changes, counted.Waits
+            Thread.Sleep 150
+            let idle = counted.Initial, counted.Changes, counted.Waits
+            let feed = (store :> IOperationStore).InitialFeed None |> wait
+            let begun =
+                operations.Begin { Id = Guid.NewGuid().ToString("N"); ExpectedRevision = feed.Revision; Count = 1 }
+                |> wait
+            if not (SpinWait.SpinUntil((fun () -> counted.Changes >= 1 && stream.Count >= 2), TimeSpan.FromSeconds 3.)) then
+                failwith $"Operation change: begun={begun}, feed={feed.Revision}/{feed.Cursor}, initial={counted.Initial}, changes={counted.Changes}, waits={counted.Waits}, writes={stream.Count}, task={watching.Status}, error={watching.Exception}"
+            let changed = counted.Initial, counted.Changes, counted.Waits
+            cancellation.Cancel()
+            try watching.GetAwaiter().GetResult() with :? OperationCanceledException -> ()
+            writer.WriteStartObject("operationWatchCounts")
+            let initialFeed, initialChanges, initialWaits = initial
+            let idleFeed, idleChanges, idleWaits = idle
+            let changedFeed, changedChanges, changedWaits = changed
+            writer.WriteNumber("initialFeedReads", initialFeed)
+            writer.WriteNumber("initialChangeReads", initialChanges)
+            writer.WriteNumber("initialWaitChecks", initialWaits)
+            writer.WriteNumber("idleFeedReads", idleFeed)
+            writer.WriteNumber("idleChangeReads", idleChanges)
+            writer.WriteNumber("idleWaitChecks", idleWaits)
+            writer.WriteNumber("afterChangeFeedReads", changedFeed)
+            writer.WriteNumber("afterChangeChangeReads", changedChanges)
+            writer.WriteNumber("afterChangeWaitChecks", changedWaits)
+            writer.WriteBoolean("idleUnchanged", (initial = idle))
+            writer.WriteBoolean("oneChangeRead", (changedChanges = initialChanges + 1))
+            writer.WriteEndObject()
+            if initial <> idle || changedChanges <> initialChanges + 1 then
+                failwith "Operation watch repeated a read while idle or missed its change."
+
         for scenario in [ "live"; "slow" ] do
             let state, root, id = area scenario
             use child = worker scenario state root id
@@ -356,6 +427,27 @@ module StorageFixtures =
                 not (File.Exists(Path.Combine(root + "-original", RootIdentityFile.name)))
             )
 
+            writer.WriteEndObject()
+
+        let state, _, _ = area "operation-events"
+
+        do
+            use store = new OperationStore(state)
+            let operations = store :> IOperationStore
+            let initial = operations.InitialFeed None |> wait
+            use cancellation = new CancellationTokenSource()
+            let pending = operations.WaitForChanges(initial.Cursor, cancellation.Token)
+            Thread.Sleep 150
+            let idle = not pending.IsCompleted
+            let id = Guid.NewGuid().ToString("N")
+            let begun =
+                operations.Begin { Id = id; ExpectedRevision = initial.Revision; Count = 1 }
+                |> wait
+            pending.WaitAsync(TimeSpan.FromSeconds 3.).GetAwaiter().GetResult()
+            let feed = operations.Changes initial.Cursor |> wait
+            writer.WriteStartObject("operationEvents")
+            writer.WriteBoolean("idleWaits", idle)
+            writer.WriteBoolean("commitWakes", Result.isOk begun && feed.Changes.Length = 1)
             writer.WriteEndObject()
 
         writer.WriteEndObject()

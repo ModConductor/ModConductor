@@ -90,7 +90,13 @@ type InstallationService(store: InstallationStore) =
                     running <- status.State = InstallationState.Running
 
                     if running then
-                        do! Task.Delay(500, context.CancellationToken)
+                        do!
+                            store.WaitForChange(
+                                workspace,
+                                id,
+                                status,
+                                context.CancellationToken
+                            )
             })
 
     override _.CancelInstallation(request, _) =

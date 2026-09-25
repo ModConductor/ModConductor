@@ -10,12 +10,14 @@ module internal RunLifecycle =
         (repository: IExecutableRepository)
         (state: ExecutionState)
         (failed: TaskCompletionSource)
+        (changed: Guid -> unit)
         (owner: RunOwner)
         =
         let record (owner: RunOwner) value =
             task {
                 let! saved = repository.Update value
                 owner.Snapshot <- saved
+                changed saved.Id
                 return saved
             }
 

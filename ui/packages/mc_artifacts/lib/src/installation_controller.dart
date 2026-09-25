@@ -8,6 +8,8 @@ class InstallationController extends ChangeNotifier {
     this.client,
     this.artifact,
     this.onCommitted, {
+    this.onDetached,
+    this.onAttached,
     this.initialDraft,
     this.initialStatus,
   });
@@ -16,6 +18,8 @@ class InstallationController extends ChangeNotifier {
   final InstallationsClient client;
   final Artifact artifact;
   final VoidCallback onCommitted;
+  final void Function(InstallationStatus)? onDetached;
+  final void Function(InstallationStatus)? onAttached;
   InstallationDraft? draft;
   InstallationStatus? status;
   UpdatePreview? updatePreview;
@@ -116,6 +120,9 @@ class InstallationController extends ChangeNotifier {
     try {
       final value = await client.start(current, startId!);
       if (_disposed) {
+        if (value.phase == InstallationPhase.running ||
+            value.phase == InstallationPhase.complete)
+          onDetached?.call(value);
         await client.closeDraft(current);
       } else {
         _accept(value);
@@ -175,6 +182,9 @@ class InstallationController extends ChangeNotifier {
     try {
       final value = await maintenance.startUpdate(preview, startId!);
       if (_disposed) {
+        if (value.phase == InstallationPhase.running ||
+            value.phase == InstallationPhase.complete)
+          onDetached?.call(value);
         await client.closeDraft(current);
       } else {
         _accept(value);
@@ -195,6 +205,9 @@ class InstallationController extends ChangeNotifier {
         value.phase == InstallationPhase.running)
       return;
     status = value;
+    if (value.phase == InstallationPhase.running &&
+        before?.phase != InstallationPhase.running)
+      onAttached?.call(value);
     if (value.phase == InstallationPhase.complete &&
         before?.phase != InstallationPhase.complete)
       onCommitted();
@@ -248,10 +261,12 @@ class InstallationController extends ChangeNotifier {
 
   @override
   void dispose() {
+    final running = status;
     _disposed = true;
     ++_epoch;
     final watch = _watch;
     if (watch != null) unawaited(watch.cancel());
+    if (running?.phase == InstallationPhase.running) onDetached?.call(running!);
     final preparation = _preparation;
     if (preparation != null)
       unawaited(preparation.cancel().onError<Exception>((_, _) {}));

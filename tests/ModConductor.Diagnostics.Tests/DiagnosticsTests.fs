@@ -82,6 +82,7 @@ type private FixturePlans(workspaceId: Guid, profileId: Guid) =
     interface IFilePlans with
         member _.Open(_, _) = unused ()
         member _.Acquire(_, _, _, _) = unused ()
+        member _.AcquireFnisCandidate(_, _, _, _) = unused ()
 
         member _.Read id =
             if id <> snapshotId then Task.FromResult(Error FilePlanError.NotFound)
@@ -263,6 +264,7 @@ type private FixtureDeployments(workspaceId: Guid, profileId: Guid, runnableRoot
         member _.Saved(_, _) = Task.FromResult(Error DeploymentError.NotFound)
         member _.Prepare(_, _, _, _) = Task.FromResult(Error DeploymentError.NotFound)
         member _.PrepareRetained(_, _, _, _, _) = Task.FromResult(Error DeploymentError.NotFound)
+        member _.RefreshFnis(_, _, _, _, _) = Task.FromResult(Error DeploymentError.NotFound)
         member _.Activate(_, _, _, _) = Task.FromResult(Error DeploymentError.NotFound)
 
         member _.Recover(id, revision, restore, _, _) =

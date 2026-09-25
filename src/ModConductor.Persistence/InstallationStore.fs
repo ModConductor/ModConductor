@@ -23,10 +23,28 @@ type InstallationStore
     let preparing = HashSet<Guid>()
     let updates = Dictionary<Guid, UpdatePreview>()
     let workers = Dictionary<Guid, CancellationTokenSource * Task>()
+    let changes = Dictionary<Guid, TaskCompletionSource>()
     let mutable closing = false
     let wait (value: Task<'a>) = value.GetAwaiter().GetResult()
     let db action = database.EnqueueInternal action |> wait
     let refuse message = raise (InstallationException message)
+
+    let changed id =
+        lock gate (fun () ->
+            match changes.TryGetValue id with
+            | true, signal ->
+                changes.Remove id |> ignore
+                signal.TrySetResult() |> ignore
+            | _ -> ())
+
+    let waitSignal id =
+        lock gate (fun () ->
+            match changes.TryGetValue id with
+            | true, signal -> signal.Task
+            | _ ->
+                let signal = TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)
+                changes.Add(id, signal)
+                signal.Task)
 
     let draftReference (workspace, id, revision) =
         if closing then
@@ -81,17 +99,21 @@ type InstallationStore
     let payloads = InstallationPayloads(database, access)
 
     let extract id (plan: InstallationPlan) token checkpoint =
+        let observed name =
+            if name = "file-observed" || name = "after-publication" then changed id
+            checkpoint name
+
         inspection.WithInput(
             plan.Artifact,
             plan.Nested,
             token,
             fun contents ->
                 Layout.confirm plan contents.Manifest
-                payloads.Write(id, plan, contents, token, checkpoint)
+                payloads.Write(id, plan, contents, token, observed)
                 token.ThrowIfCancellationRequested()
                 checkpoint "before-publication"
                 db (fun () -> InstallationRows.publish connection database.OwnerId id plan)
-                checkpoint "after-publication"
+                observed "after-publication"
         )
 
     let execute id plan token checkpoint =
@@ -120,6 +142,7 @@ type InstallationStore
                 do!
                     database.EnqueueInternal(fun () ->
                         InstallationRows.stopped connection database.OwnerId id message)
+                changed id
         }
 
     member private _.PrepareInput
@@ -328,6 +351,8 @@ type InstallationStore
                         (fun transaction ->
                             choices.Check connection transaction plan.Artifact.WorkspaceId))
 
+            if fresh then changed snapshot.Id
+
             if fresh then
                 let cancellation = new CancellationTokenSource()
 
@@ -428,6 +453,13 @@ type InstallationStore
 
     member _.Read(workspace, id) =
         database.Enqueue(fun () -> snapshot workspace id)
+
+    member _.WaitForChange(workspace, id, observed: Installation, token: CancellationToken) =
+        task {
+            let pending = waitSignal id
+            let! current = database.Enqueue(fun () -> snapshot workspace id)
+            if current = observed then do! pending.WaitAsync(token)
+        } :> Task
 
     member _.Recent(workspace) =
         database.Enqueue(fun () ->

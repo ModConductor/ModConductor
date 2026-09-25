@@ -1,6 +1,7 @@
 namespace ModConductor.Operations
 
 open System
+open System.Threading
 open System.Threading.Tasks
 
 type RuntimeResult =
@@ -49,6 +50,7 @@ type IOperationStore =
     abstract Get: string -> Task<Result<Snapshot, Rejection>>
     abstract InitialFeed: int64 option -> Task<Feed>
     abstract Changes: int64 -> Task<Feed>
+    abstract WaitForChanges: int64 * CancellationToken -> Task
     abstract Interrupt: string -> Task<unit>
 
 type CapacityException() =

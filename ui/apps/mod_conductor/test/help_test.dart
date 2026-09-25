@@ -160,6 +160,17 @@ class FakeWorkspaces extends Fake implements WorkspacesClient {
 
 class FakeSkyrimSetup extends Fake implements SkyrimSetupClient {
   int reads = 0;
+  final _changes = StreamController<SkyrimSetupStatus>.broadcast();
+
+  @override
+  Stream<SkyrimSetupStatus> watch(
+    String workspace,
+    String profile, {
+    required SkyrimSetupSelection selection,
+  }) async* {
+    yield await read(workspace, profile, selection: selection);
+    yield* _changes.stream;
+  }
 
   @override
   Future<SkyrimSetupStatus> read(

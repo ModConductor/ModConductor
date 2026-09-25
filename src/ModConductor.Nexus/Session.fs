@@ -41,6 +41,8 @@ type NexusSession
     let mutable problem = None
     let mutable signIn: Task = Task.CompletedTask
     let mutable savedConnection: Task = Task.CompletedTask
+    let mutable statusRevision = 0L
+    let mutable statusChanged = TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)
     let nxm = NxmAuthorizations()
     let interactions = InteractionMemory()
 
@@ -58,12 +60,19 @@ type NexusSession
         registration
         |> Option.defaultWith (fun () -> raise (NexusException NexusProblem.NotConfigured))
 
-    let status () =
-        lock gate (fun () ->
-            { Configured = registration.IsSome
-              Waiting = waiting
-              Account = account
-              Problem = problem })
+    let statusUnsafe () =
+        { Configured = registration.IsSome
+          Waiting = waiting
+          Account = account
+          Problem = problem }
+
+    let status () = lock gate (fun () -> statusUnsafe ())
+
+    let changed () =
+        let previous = statusChanged
+        statusRevision <- statusRevision + 1L
+        statusChanged <- TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)
+        previous.TrySetResult() |> ignore
 
     let context () =
         lock gate (fun () -> generation, lifetime.Token)
@@ -86,7 +95,9 @@ type NexusSession
                 if error = NexusProblem.InvalidApiKey then
                     authorization <- None
                     account <- None
-                    interactions.Clear())
+                    interactions.Clear()
+
+                changed ())
 
     let require epoch (token: CancellationToken) =
         token.ThrowIfCancellationRequested()
@@ -127,7 +138,8 @@ type NexusSession
                             tokens <- Some value
                             authorization <- Some(NexusAuthorization.OAuth value.Access)
                             waiting <- false
-                            problem <- None)
+                            problem <- None
+                            changed ())
                 finally
                     commit.Release() |> ignore
             finally
@@ -195,6 +207,7 @@ type NexusSession
                         tokens <- None
                         authorization <- Some value
                         problem <- None
+                        changed ()
                         value)
         }
 
@@ -246,12 +259,23 @@ type NexusSession
 
     member _.Status = status ()
 
+    member _.StatusWithRevision = lock gate (fun () -> statusRevision, statusUnsafe ())
+
+    member _.WaitForStatusChange(revision, token: CancellationToken) =
+        let pending =
+            lock gate (fun () ->
+                if statusRevision <> revision then Task.CompletedTask
+                else statusChanged.Task)
+        pending.WaitAsync(token)
+
     member _.SavedConnection = lock gate (fun () -> savedConnection)
 
     member _.SignIn() =
         task {
             match registration with
-            | None -> lock gate (fun () -> problem <- Some NexusProblem.NotConfigured)
+            | None -> lock gate (fun () ->
+                problem <- Some NexusProblem.NotConfigured
+                changed ())
             | Some config ->
                 let attempt =
                     lock gate (fun () ->
@@ -260,6 +284,7 @@ type NexusSession
                         else
                             waiting <- true
                             problem <- None
+                            changed ()
                             Some(generation, lifetime.Token))
 
                 match attempt with
@@ -429,7 +454,8 @@ type NexusSession
                                         authorization <-
                                             Some(NexusAuthorization.PersonalApiKey key)
 
-                                        problem <- None)
+                                        problem <- None
+                                        changed ())
                             finally
                                 commit.Release() |> ignore
                         finally
@@ -441,7 +467,8 @@ type NexusSession
                 lock gate (fun () ->
                     if generation = epoch then
                         problem <- Some error
-                        waiting <- false)
+                        waiting <- false
+                        changed ())
             | Ok() -> ()
 
             return status ()
@@ -501,7 +528,8 @@ type NexusSession
                                 raise (NexusException NexusProblem.AccountChanged)
 
                             account <- Some value
-                            problem <- None)
+                            problem <- None
+                            changed ())
                     })
 
             return status ()
@@ -518,6 +546,7 @@ type NexusSession
                         lifetime <- new CancellationTokenSource()
                         waiting <- false
                         problem <- None
+                        changed ()
 
                     signIn)
 
@@ -544,6 +573,7 @@ type NexusSession
                     authorization <- None
                     waiting <- false
                     problem <- None
+                    changed ()
                     subject, signIn, generation)
             // Invalidating work precedes storage removal; an in-flight save holds the same commit gate.
             do! commit.WaitAsync()
@@ -559,7 +589,8 @@ type NexusSession
             finally
                 lock gate (fun () ->
                     if generation = epoch then
-                        disconnecting <- false)
+                        disconnecting <- false
+                        changed ())
 
                 commit.Release() |> ignore
         }

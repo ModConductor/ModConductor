@@ -14,6 +14,12 @@ type StorageTests() =
     let flag (value: JsonElement) (name: string) = value.GetProperty(name).GetBoolean()
 
     [<Test>]
+    member _.``operation observers should wait while idle and wake on a committed change``() =
+        let events = field "operationEvents"
+        flag events "idleWaits" |> should equal true
+        flag events "commitWakes" |> should equal true
+
+    [<Test>]
     member _.``persisted values should reject every development version marker``() =
         let codecs = field "codecVersions"
 

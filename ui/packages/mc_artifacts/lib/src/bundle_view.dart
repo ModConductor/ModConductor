@@ -45,6 +45,8 @@ class ModBundleView extends StatefulWidget {
     this.profileId,
     required this.onBack,
     required this.onCommitted,
+    this.onDetached,
+    this.onAttached,
     required this.onOpenMods,
   });
   final Artifact artifact;
@@ -54,6 +56,8 @@ class ModBundleView extends StatefulWidget {
   final BainClient? bain;
   final String? profileId;
   final VoidCallback onBack, onCommitted, onOpenMods;
+  final void Function(InstallationStatus)? onDetached;
+  final void Function(InstallationStatus)? onAttached;
   @override
   State<ModBundleView> createState() => _ModBundleViewState();
 }
@@ -456,6 +460,8 @@ class _ModBundleViewState extends State<ModBundleView> {
         backLabel: 'Back to bundle',
         onBack: () => unawaited(controller.back()),
         onCommitted: widget.onCommitted,
+        onDetached: widget.onDetached,
+        onAttached: widget.onAttached,
         onOpenMods: widget.onOpenMods,
       );
     }

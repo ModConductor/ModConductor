@@ -382,8 +382,23 @@ module InstallationFixtures =
             if not (arrived.Wait 10000) then
                 failwith "Installation observation checkpoint was not reached."
 
+            let held = store.Installations.Read(workspace, cancelId) |> wait
+            use changedTimeout = new CancellationTokenSource(TimeSpan.FromSeconds 5.)
+            let changed =
+                store.Installations.WaitForChange(
+                    workspace,
+                    cancelId,
+                    held,
+                    changedTimeout.Token
+                )
+            Thread.Sleep 150
+            check "IdleInstallationWatchWaitsForChange" (not changed.IsCompleted)
+
             store.Installations.Cancel(workspace, cancelId) |> wait |> ignore
             release.Set()
+
+            changed.GetAwaiter().GetResult()
+            check "CancelledInstallationWakesWatch" changed.IsCompletedSuccessfully
 
             check
                 "CancelledBeforePublication"

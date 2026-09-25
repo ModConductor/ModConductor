@@ -4,12 +4,31 @@ open System
 open System.IO
 open System.Text.Json
 open System.Threading
+open System.Threading.Tasks
+open ModConductor.Engine
+open ModConductor.Protocol.V1
 open ModConductor.ArtifactLibrary
 open ModConductor.HttpDownloads
 open ModConductor.Persistence
 open ModConductor.Workspaces
 
 module DownloadFixtures =
+    type private CountingArtifacts(inner: IArtifactLibrary) =
+        let mutable reads = 0
+        member _.Reads = Volatile.Read(&reads)
+        interface IArtifactLibrary with
+            member _.List(workspace, after, incomplete, token) = inner.List(workspace, after, incomplete, token)
+            member _.LinkOptions(workspace, after) = inner.LinkOptions(workspace, after)
+            member _.Read(workspace, id) =
+                Interlocked.Increment(&reads) |> ignore
+                inner.Read(workspace, id)
+            member _.Add(value, token) = inner.Add(value, token)
+            member _.Retry(value, token) = inner.Retry(value, token)
+            member _.Locate(value, path, token) = inner.Locate(value, path, token)
+            member _.Link(value, modId, versionId, active) = inner.Link(value, modId, versionId, active)
+            member _.DeleteCopy value = inner.DeleteCopy value
+            member _.Remove value = inner.Remove value
+
     let private wait = StorageWorker.wait
     let private result = StorageWorker.result
 
@@ -20,7 +39,7 @@ module DownloadFixtures =
             RetryDelay = TimeSpan.FromMilliseconds 30.
             CheckpointBytes = 16384L }
 
-    let private read (store: OperationStore) workspace id =
+    let private read (store: OperationStore) workspace id : Artifact =
         store.Artifacts.Read(workspace, id) |> wait |> result
 
     let private until (store: OperationStore) workspace id condition =
@@ -44,6 +63,20 @@ module DownloadFixtures =
     let private terminal (a: Artifact) =
         a.Download.Value.State = DownloadState.Complete
         || a.Download.Value.State = DownloadState.Failed
+
+    let private untilChanged (store: OperationStore) workspace id (initial: Artifact) (condition: Artifact -> bool) =
+        use cancellation = new CancellationTokenSource(TimeSpan.FromSeconds 12.)
+        let mutable value = initial
+        let mutable changes = 0
+
+        while not (condition value) do
+            store.Downloads.WaitForChange(workspace, [ id, value.Revision ], cancellation.Token)
+                .GetAwaiter()
+                .GetResult()
+            value <- read store workspace id
+            changes <- changes + 1
+
+        value, changes
 
     let private request workspace id url hash =
         { Id = id
@@ -131,12 +164,52 @@ module DownloadFixtures =
                  && restored.Download.Value.ExpectedSha256 = Some server.Checksum
                  && server.Count "/slow" = requests)
 
+            use idle = new CancellationTokenSource()
+            let idleWatch =
+                store.Downloads.WaitForChange(
+                    workspace,
+                    [ crashed, restored.Revision ],
+                    idle.Token
+                )
+            Thread.Sleep 150
+            check "idleDownloadWatchWaitsForChange" (not idleWatch.IsCompleted)
+            idle.Cancel()
+
+            let counted = CountingArtifacts(store.Artifacts)
+            let service = DownloadService(store.Downloads, counted :> IArtifactLibrary)
+            use watchCancellation = new CancellationTokenSource()
+            let stream = WatchCountFixtures.CounterStream<ArchiveArtifact>()
+            let context = WatchCountFixtures.StreamContext(watchCancellation.Token)
+            let watchRequest = DownloadWatchRequest(WorkspaceId = workspace.ToString("N"))
+            watchRequest.Ids.Add(crashed.ToString("N"))
+            let watching = service.WatchDownloads(watchRequest, stream, context)
+            if not (SpinWait.SpinUntil((fun () -> stream.Count = 1), TimeSpan.FromSeconds 3.)) then
+                failwith $"Initial download watch: reads={counted.Reads}, writes={stream.Count}, task={watching.Status}, error={watching.Exception}"
+            let initialReads = counted.Reads
+            Thread.Sleep 150
+            let idleReads = counted.Reads
+            store.Downloads.Control(workspace, crashed, DownloadAction.Pause)
+            |> wait |> result |> ignore
+            WatchCountFixtures.until "download owner change" (fun () -> stream.Count = 2)
+            let changedReads = counted.Reads
+            watchCancellation.Cancel()
+            try watching.GetAwaiter().GetResult() with :? OperationCanceledException -> ()
+            writer.WriteStartObject("watchRequestCounts")
+            writer.WriteNumber("initialArtifactReads", initialReads)
+            writer.WriteNumber("idleArtifactReads", idleReads)
+            writer.WriteNumber("afterChangeArtifactReads", changedReads)
+            check "idleArtifactReadsUnchanged" (initialReads = 1 && idleReads = initialReads)
+            check "oneArtifactReadOnChange" (changedReads = initialReads + 1)
+            writer.WriteEndObject()
+
             store.Downloads.Control(workspace, crashed, DownloadAction.Resume)
             |> wait
             |> result
             |> ignore
 
-            let completed = until store workspace crashed terminal
+            let completed, changes = untilChanged store workspace crashed restored terminal
+
+            check "downloadCompletionWakesObserver" (changes > 0)
 
             check
                 "strongRangeResumePublishesExactBytes"

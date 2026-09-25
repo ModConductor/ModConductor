@@ -2,6 +2,8 @@ namespace ModConductor.Persistence
 
 open System
 open System.IO
+open System.Collections.Generic
+open System.Threading
 open System.Threading.Tasks
 open ModConductor.ArtifactLibrary
 open ModConductor.HttpDownloads
@@ -12,6 +14,25 @@ type internal DownloadRepository(database: StateDatabase, access: LibraryAccess)
     let operations = ArtifactAccess(database, access)
     let db action = database.EnqueueInternal action
     let refuse error = raise (ArtifactException error)
+    let changesGate = obj ()
+    let changes = Dictionary<Guid, TaskCompletionSource>()
+
+    let changed id =
+        lock changesGate (fun () ->
+            match changes.TryGetValue id with
+            | true, signal ->
+                changes.Remove id |> ignore
+                signal.TrySetResult() |> ignore
+            | _ -> ())
+
+    let waitSignal id =
+        lock changesGate (fun () ->
+            match changes.TryGetValue id with
+            | true, signal -> signal.Task
+            | _ ->
+                let signal = TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)
+                changes.Add(id, signal)
+                signal.Task)
 
     let find tx workspace id =
         ArtifactRows.find connection tx workspace id
@@ -172,6 +193,7 @@ type internal DownloadRepository(database: StateDatabase, access: LibraryAccess)
                         selected)
 
                 let! artifact = read request.WorkspaceId actualId
+                changed actualId
                 return Ok artifact
             })
 
@@ -252,6 +274,7 @@ type internal DownloadRepository(database: StateDatabase, access: LibraryAccess)
                         tx.Commit())
 
                 let! artifact = read workspace id
+                changed id
                 return Ok artifact
             })
 
@@ -300,6 +323,29 @@ type internal DownloadRepository(database: StateDatabase, access: LibraryAccess)
                     return Ok artifact
                 })
 
+        member _.WaitForChange(workspace, revisions, token) =
+            task {
+                if revisions.IsEmpty then
+                    do! Task.Delay(Timeout.InfiniteTimeSpan, token)
+                else
+                    let! pending =
+                        db (fun () ->
+                            if
+                                revisions
+                                |> List.exists (fun (id, revision) ->
+                                    ArtifactRows.find connection null workspace id
+                                    |> Option.exists (fun row -> row.Artifact.Revision <> revision))
+                            then
+                                Task.CompletedTask
+                            else
+                                revisions
+                                |> List.map (fst >> waitSignal)
+                                |> Task.WhenAny
+                                :> Task)
+
+                    do! pending.WaitAsync(token)
+            } :> Task
+
         member _.Start request = start request
         member _.Control(workspace, id, action) = control workspace id action
 
@@ -338,6 +384,7 @@ type internal DownloadRepository(database: StateDatabase, access: LibraryAccess)
 
                     let work = DownloadRows.work connection tx id
                     tx.Commit()
+                    changed id
                     work)
 
         member _.NextDue() =
@@ -353,7 +400,7 @@ type internal DownloadRepository(database: StateDatabase, access: LibraryAccess)
                 | :? int64 as value -> Some(DateTimeOffset.FromUnixTimeMilliseconds value)
                 | _ -> None)
 
-        member _.Open work = DownloadTarget.Open(operations, work)
+        member _.Open work = DownloadTarget.Open(operations, work, changed)
 
         member _.Finish(work, outcome) : Task =
             db (fun () ->
@@ -401,4 +448,5 @@ type internal DownloadRepository(database: StateDatabase, access: LibraryAccess)
                     "UPDATE artifacts SET busy=0,problem=$problem,revision=revision+1 WHERE id=$id"
                     (parameters @ [ "$problem", ArtifactRows.nullable message ])
 
-                tx.Commit())
+                tx.Commit()
+                changed work.Request.Id)

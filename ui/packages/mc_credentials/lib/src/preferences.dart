@@ -117,7 +117,8 @@ class CredentialPreferences extends StatefulWidget {
 class _CredentialPreferencesState extends State<CredentialPreferences> {
   CredentialStatus? _status;
   NexusAccount? _account;
-  Timer? _poll;
+  StreamSubscription<NexusAccount>? _accountWatch;
+  bool _accountEventPending = false;
   bool _busy = false, _connectionProblem = false;
   bool _checkingAccount = false,
       _accountChecked = false,
@@ -129,6 +130,7 @@ class _CredentialPreferencesState extends State<CredentialPreferences> {
   void initState() {
     super.initState();
     _refresh();
+    _observeAccount();
   }
 
   @override
@@ -142,8 +144,10 @@ class _CredentialPreferencesState extends State<CredentialPreferences> {
       _checkingAccount = false;
       _accountChecked = false;
       _accountCheckFailed = false;
-      _poll?.cancel();
+      if (_accountWatch != null) unawaited(_accountWatch!.cancel());
+      _accountEventPending = false;
       _refresh();
+      _observeAccount();
     }
   }
 
@@ -168,9 +172,10 @@ class _CredentialPreferencesState extends State<CredentialPreferences> {
     } finally {
       if (mounted && generation == _generation) {
         setState(() => _busy = false);
-        _poll?.cancel();
-        if (_account?.waiting == true)
-          _poll = Timer(const Duration(milliseconds: 500), _refresh);
+        if (_accountEventPending) {
+          _accountEventPending = false;
+          _refresh();
+        }
       }
     }
   }
@@ -180,9 +185,30 @@ class _CredentialPreferencesState extends State<CredentialPreferences> {
     if (client != null) _run(client.status);
   }
 
+  void _observeAccount() {
+    final nexus = widget.nexus;
+    if (nexus == null) return;
+    final generation = _generation;
+    _accountWatch = nexus.watchStatus().listen(
+      (account) {
+        if (!mounted || generation != _generation) return;
+        setState(() => _account = account);
+        if (_busy) {
+          _accountEventPending = true;
+        } else {
+          _refresh();
+        }
+      },
+      onError: (Object _) {
+        if (mounted && generation == _generation)
+          setState(() => _connectionProblem = true);
+      },
+    );
+  }
+
   @override
   void dispose() {
-    _poll?.cancel();
+    if (_accountWatch != null) unawaited(_accountWatch!.cancel());
     _personalApiKey.dispose();
     super.dispose();
   }

@@ -125,5 +125,11 @@ type ExecutableService(executables: IExecutables) =
                     watching <- not (ExecutablePolicy.terminal value.Phase)
 
                 if watching then
-                    do! Task.Delay(200, context.CancellationToken)
+                    do!
+                        executables.WaitForChange(
+                            fst key,
+                            snd key,
+                            revision,
+                            context.CancellationToken
+                        )
         }

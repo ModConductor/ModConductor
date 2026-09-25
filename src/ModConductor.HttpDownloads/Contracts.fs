@@ -72,6 +72,7 @@ type IDownloadRepository =
     abstract FindNexus: Guid * NexusFileReference -> Task<Artifact option>
     abstract AccountDownloads: string -> Task<(Guid * Guid) list>
     abstract Read: Guid * Guid -> Task<Result<Artifact, ArtifactError>>
+    abstract WaitForChange: Guid * (Guid * int64) list * CancellationToken -> Task
     abstract Start: DownloadRequest -> Task<Result<Artifact, ArtifactError>>
     abstract Control: Guid * Guid * DownloadAction -> Task<Result<Artifact, ArtifactError>>
     abstract Take: unit -> Task<DownloadWork option>

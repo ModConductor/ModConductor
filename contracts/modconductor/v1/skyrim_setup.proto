@@ -4,6 +4,7 @@ option csharp_namespace = "ModConductor.Protocol.V1";
 
 service SkyrimSetupOperations {
   rpc ReadSkyrimSetup(ReadSkyrimSetupRequest) returns (SkyrimSetupState);
+  rpc WatchSkyrimSetup(ReadSkyrimSetupRequest) returns (stream SkyrimSetupState);
   rpc StartSkyrimSetup(StartSkyrimSetupRequest) returns (SkyrimSetupState);
   rpc ContinueSkyrimSetup(SkyrimSetupRequest) returns (SkyrimSetupState);
   rpc CancelSkyrimSetup(SkyrimSetupRequest) returns (SkyrimSetupState);

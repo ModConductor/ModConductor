@@ -574,6 +574,9 @@ let runWithNexus registration (handoff: ModConductor.Nexus.IOAuthHandoff) args =
     coordinator.Failed.ContinueWith(fun (_: Task) -> lifetime.StopApplication())
     |> ignore
 
+    skyrimSetup.Failed.ContinueWith(fun (_: Task) -> lifetime.StopApplication())
+    |> ignore
+
     Task.Run(fun () ->
         input.ReadByte() |> ignore
         lifetime.StopApplication())

@@ -154,13 +154,12 @@ type OperationService(store: IOperationStore, coordinator: Coordinator) =
                 let mutable cursor = initial.Cursor
 
                 while not context.CancellationToken.IsCancellationRequested do
+                    do! store.WaitForChanges(cursor, context.CancellationToken)
                     let! feed = store.Changes cursor
 
                     if feed.ResyncRequired || not feed.Changes.IsEmpty then
                         do! response.WriteAsync(OperationWire.batch feed, context.CancellationToken)
                         cursor <- feed.Cursor
-                    else
-                        do! Task.Delay(40, context.CancellationToken)
             finally
                 readers.Release() |> ignore
         }

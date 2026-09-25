@@ -10,12 +10,30 @@ type ExecutableSession(repository: IExecutableRepository) =
     let state = ExecutionState()
     let gate, runs, roots = state.Gate, state.Runs, state.Roots
     let admission = new SemaphoreSlim(1, 1)
+    let notifications = Dictionary<Guid, TaskCompletionSource>()
+
+    let signal id =
+        lock gate (fun () ->
+            match notifications.TryGetValue id with
+            | true, waiting ->
+                notifications.Remove id |> ignore
+                waiting.TrySetResult() |> ignore
+            | _ -> ())
+
+    let waiting id =
+        lock gate (fun () ->
+            match notifications.TryGetValue id with
+            | true, current -> current.Task
+            | _ ->
+                let current = TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)
+                notifications.Add(id, current)
+                current.Task)
 
     let failed =
         TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)
 
     let launch owner =
-        RunLifecycle.start repository state failed owner
+        RunLifecycle.start repository state failed signal owner
 
     let beginRun (request: RunRequest) =
         task {
@@ -58,6 +76,7 @@ type ExecutableSession(repository: IExecutableRepository) =
                     | Error problem -> return Error problem
                     | Ok(snapshot, false) -> return Ok snapshot
                     | Ok(snapshot, true) ->
+                        signal snapshot.Id
                         let owner = RunOwner(snapshot, None)
                         lock gate (fun () -> runs.Add(request.Id, owner))
                         owner.Completion <- launch owner
@@ -94,6 +113,7 @@ type ExecutableSession(repository: IExecutableRepository) =
                 | Error error -> return Error error
                 | Ok(value, false) -> return Ok value
                 | Ok(value, true) ->
+                    signal value.Id
                     let owner = RunOwner(value, Some prepare)
                     lock gate (fun () -> runs.Add(value.Id, owner))
                     owner.Completion <- launch owner
@@ -128,6 +148,7 @@ type ExecutableSession(repository: IExecutableRepository) =
                                 Problem = None }
 
                     owner |> Option.iter (fun current -> current.Snapshot <- saved)
+                    signal saved.Id
                     return Ok saved
             finally
                 owner |> Option.iter (fun value -> value.Gate.Release() |> ignore)
@@ -215,6 +236,16 @@ type ExecutableSession(repository: IExecutableRepository) =
                 Task.FromResult(Error(unavailable ()))
             else
                 repository.Read(workspace, id)
+
+        member _.WaitForChange(workspace, id, revision, token) =
+            task {
+                let pending = waiting id
+                let! current = repository.Read(workspace, id)
+
+                match current with
+                | Ok value when value.Revision = revision -> do! pending.WaitAsync(token)
+                | _ -> ()
+            } :> Task
 
         member _.Recent(workspace, after) =
             if lock gate (fun () -> state.Closing) then

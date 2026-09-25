@@ -32,6 +32,8 @@ class ArtifactBrowser extends StatefulWidget {
     this.profileId,
     this.updateTargets,
     this.onInstalled,
+    this.onInstallationDetached,
+    this.onInstallationAttached,
     this.onOpenMods,
   });
   final ArtifactController controller;
@@ -46,6 +48,8 @@ class ArtifactBrowser extends StatefulWidget {
   final String? profileId;
   final Future<ModQueryPage> Function(ModQueryCursor?)? updateTargets;
   final Future<void> Function()? onInstalled;
+  final void Function(InstallationStatus)? onInstallationDetached;
+  final void Function(InstallationStatus)? onInstallationAttached;
   final VoidCallback? onOpenMods;
   @override
   State<ArtifactBrowser> createState() => _ArtifactBrowserState();
@@ -242,10 +246,12 @@ class _ArtifactBrowserState extends State<ArtifactBrowser> {
             onBack: () => setState(() => bundle = null),
             onCommitted: () {
               installationRefresh = () async {
-                await controller.load();
-                if (mounted) await widget.onInstalled?.call();
+                await widget.onInstalled?.call();
+                if (mounted) await controller.load();
               }();
             },
+            onDetached: widget.onInstallationDetached,
+            onAttached: widget.onInstallationAttached,
             onOpenMods: () async {
               await installationRefresh;
               if (mounted) widget.onOpenMods?.call();
@@ -283,10 +289,12 @@ class _ArtifactBrowserState extends State<ArtifactBrowser> {
             }),
             onCommitted: () {
               installationRefresh = () async {
-                await controller.load();
-                if (mounted) await widget.onInstalled?.call();
+                await widget.onInstalled?.call();
+                if (mounted) await controller.load();
               }();
             },
+            onDetached: widget.onInstallationDetached,
+            onAttached: widget.onInstallationAttached,
             onOpenMods: () async {
               await installationRefresh;
               if (mounted) widget.onOpenMods?.call();

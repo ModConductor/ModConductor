@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mc_artifacts/mc_artifacts.dart';
@@ -22,9 +24,13 @@ class SetupClientFixture extends SkyrimSetupClient {
   SkyrimSetupSelection? applied;
   int starts = 0;
   int continues = 0;
+  int reads = 0;
   int pageOpens = 0;
+  final updates = <String, StreamController<SkyrimSetupStatus>>{};
   bool cancelled = false;
   bool completed = false;
+  bool recoveryRequired = false;
+  bool running = false, failed = false;
   final warningStatus = 'FNIS output is available, but FNIS exited with code 7';
 
   SkyrimSetupStatus state(
@@ -33,14 +39,18 @@ class SetupClientFixture extends SkyrimSetupClient {
     bool failed = false,
   }) {
     return SkyrimSetupStatus(
-      phase: failed
+      phase: recoveryRequired
+          ? SkyrimSetupStatusPhase.recoveryRequired
+          : failed
           ? SkyrimSetupStatusPhase.failed
           : running
           ? SkyrimSetupStatusPhase.settingUpSkse
           : cancelled
           ? SkyrimSetupStatusPhase.cancelled
           : SkyrimSetupStatusPhase.available,
-      status: failed
+      status: recoveryRequired
+          ? 'Cancellation needs completion'
+          : failed
           ? 'Setup failed'
           : running
           ? 'Installing'
@@ -68,7 +78,7 @@ class SetupClientFixture extends SkyrimSetupClient {
       ],
       selection: selection,
       canStart: selection.canApply,
-      canContinue: failed,
+      canContinue: failed || recoveryRequired,
       active: false,
       ready: false,
       canCancel: running || failed,
@@ -100,12 +110,31 @@ class SetupClientFixture extends SkyrimSetupClient {
     String profile, {
     required SkyrimSetupSelection selection,
   }) async {
+    reads++;
     lastSelection = selection;
     if (completeWithFnisWarning && completed) {
       return fnisWarningState(selection, ready: false, canContinue: false);
     }
-    return state(savedSelection ?? selection);
+    return state(savedSelection ?? selection, running: running, failed: failed);
   }
+
+  @override
+  Stream<SkyrimSetupStatus> watch(
+    String workspace,
+    String profile, {
+    required SkyrimSetupSelection selection,
+  }) async* {
+    yield await read(workspace, profile, selection: selection);
+    yield* updates
+        .putIfAbsent(
+          '$workspace:$profile',
+          () => StreamController<SkyrimSetupStatus>.broadcast(),
+        )
+        .stream;
+  }
+
+  void emit(String workspace, String profile, SkyrimSetupStatus status) =>
+      updates['$workspace:$profile']?.add(status);
 
   @override
   Future<SkyrimSetupStatus> start(
@@ -117,13 +146,12 @@ class SetupClientFixture extends SkyrimSetupClient {
     cancelled = false;
     applied = selection;
     if (completeWithFnisWarning) {
+      completed = true;
       return fnisWarningState(selection, ready: true, canContinue: true);
     }
-    return state(
-      selection,
-      running: !(failFirstStart && starts == 1),
-      failed: failFirstStart && starts == 1,
-    );
+    failed = failFirstStart && starts == 1;
+    running = !failed;
+    return state(selection, running: running, failed: failed);
   }
 
   @override
@@ -132,6 +160,7 @@ class SetupClientFixture extends SkyrimSetupClient {
     String profile,
   ) async {
     continues++;
+    recoveryRequired = false;
     if (completeWithFnisWarning) {
       completed = true;
       return fnisWarningState(lastSelection, ready: true, canContinue: false);
@@ -142,6 +171,8 @@ class SetupClientFixture extends SkyrimSetupClient {
   @override
   Future<SkyrimSetupStatus> cancel(String workspace, String profile) async {
     cancelled = true;
+    running = false;
+    failed = false;
     return state(const SkyrimSetupSelection());
   }
 
@@ -155,7 +186,7 @@ Widget app(
   SetupClientFixture client, {
   ArchiveChooser? choose,
   double height = 720,
-  int updateRevision = 0,
+  String profileId = 'profile',
 }) => MaterialApp(
   home: Scaffold(
     body: SizedBox(
@@ -166,8 +197,7 @@ Widget app(
             choose ??
             () async => const ArchiveFile('/downloads/enbseries.zip', 42),
         workspaceId: 'workspace',
-        profileId: 'profile',
-        updateRevision: updateRevision,
+        profileId: profileId,
       ),
     ),
   ),
@@ -179,6 +209,52 @@ Future<void> settle(WidgetTester tester) async {
 }
 
 void main() {
+  testWidgets(
+    'setup events update the open controls without reads or Continue',
+    (tester) async {
+      final client = SetupClientFixture();
+      await tester.pumpWidget(app(client));
+      await settle(tester);
+      final reads = client.reads;
+
+      client.emit(
+        'workspace',
+        'profile',
+        client.state(const SkyrimSetupSelection(), running: true),
+      );
+      await settle(tester);
+      expect(find.text('Cancel setup'), findsOneWidget);
+
+      client.emit(
+        'workspace',
+        'profile',
+        client.state(const SkyrimSetupSelection(), failed: true),
+      );
+      await settle(tester);
+      expect(find.text('Try again'), findsOneWidget);
+      expect(client.reads, reads);
+      expect(client.continues, 0);
+    },
+  );
+
+  testWidgets('a previous profile event cannot replace the current setup', (
+    tester,
+  ) async {
+    final client = SetupClientFixture();
+    await tester.pumpWidget(app(client));
+    await settle(tester);
+
+    await tester.pumpWidget(app(client, profileId: 'other'));
+    await settle(tester);
+    client.emit(
+      'workspace',
+      'profile',
+      client.state(const SkyrimSetupSelection(), running: true),
+    );
+    await settle(tester);
+    expect(find.text('Cancel setup'), findsNothing);
+  });
+
   testWidgets('FNIS exit warning remains after setup completes and refreshes', (
     tester,
   ) async {
@@ -193,11 +269,11 @@ void main() {
     await settle(tester);
 
     expect(client.starts, 1);
-    expect(client.continues, 1);
+    expect(client.continues, 0);
     expect(find.text(client.warningStatus), findsOneWidget);
 
     await tester.pump(const Duration(seconds: 2));
-    expect(client.continues, 1);
+    expect(client.continues, 0);
 
     await tester.tap(find.byKey(const ValueKey('refresh-skyrim-setup')));
     await settle(tester);
@@ -366,6 +442,20 @@ void main() {
     expect(client.applied!.skse, SkyrimSetupAction.install);
   });
 
+  testWidgets('Continue recovery resumes persisted cancellation', (
+    tester,
+  ) async {
+    final client = SetupClientFixture()..recoveryRequired = true;
+    await tester.pumpWidget(app(client));
+    await settle(tester);
+    expect(find.text('Continue recovery'), findsOneWidget);
+
+    await tester.tap(find.text('Continue recovery'));
+    await settle(tester);
+    expect(client.continues, 1);
+    expect(client.starts, 0);
+  });
+
   testWidgets('installed toggle removes and update is separate', (
     tester,
   ) async {
@@ -409,7 +499,11 @@ void main() {
     );
 
     client.updateVersion = '2.3.0';
-    await tester.pumpWidget(app(client, updateRevision: 1));
+    client.emit(
+      'workspace',
+      'profile',
+      client.state(const SkyrimSetupSelection()),
+    );
     await settle(tester);
     expect(
       find.descendant(of: skse, matching: find.text('Update')),
@@ -425,7 +519,11 @@ void main() {
     expect(client.lastSelection.skse, SkyrimSetupAction.update);
 
     client.updateVersion = null;
-    await tester.pumpWidget(app(client, updateRevision: 2));
+    client.emit(
+      'workspace',
+      'profile',
+      client.state(const SkyrimSetupSelection(skse: SkyrimSetupAction.update)),
+    );
     await settle(tester);
     expect(
       find.descendant(of: skse, matching: find.text('Update')),

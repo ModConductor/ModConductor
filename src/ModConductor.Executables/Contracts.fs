@@ -155,6 +155,7 @@ type IExecutables =
     abstract Delete: Guid * Guid * int64 -> Task<Result<unit, ExecutableError>>
     abstract Begin: RunRequest -> Task<Result<ExecutableRun, ExecutableError>>
     abstract Read: Guid * Guid -> Task<Result<ExecutableRun, ExecutableError>>
+    abstract WaitForChange: Guid * Guid * int64 * CancellationToken -> Task
 
     abstract Recent:
         Guid * Guid option -> Task<Result<ExecutableRun list * Guid option, ExecutableError>>

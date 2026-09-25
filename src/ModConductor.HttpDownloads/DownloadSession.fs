@@ -208,6 +208,9 @@ type DownloadSession
     member _.FindNexus(workspace, reference) =
         repository.FindNexus(workspace, reference)
 
+    member _.WaitForChange(workspace, revisions, token) =
+        repository.WaitForChange(workspace, revisions, token)
+
     member _.Start request =
         guarded (fun () ->
             task {

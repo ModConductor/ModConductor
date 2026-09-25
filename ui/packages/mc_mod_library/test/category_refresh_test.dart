@@ -9,6 +9,27 @@ import 'organization_fakes.dart';
 import 'profile_mods_test.dart' show row, ProfileClient;
 
 void main() {
+  test('setup event catalogue refresh retains content and selection until FNIS arrives', () async {
+    final pending = Completer<ModQueryPage>();
+    final queries = QueryClient()
+      ..onQuery = (_, _, _, _) async =>
+          queryPage([row('skse', 0)], catalogue: 1);
+    final state = ProfileModsController();
+    addTearDown(state.dispose);
+    state.attach(ProfileClient(), queries, 'workspace', 'profile');
+    await settle();
+    state.model.select((modId: 'skse'));
+    queries.onQuery = (_, _, _, _) => pending.future;
+
+    final updating = state.refreshCatalogue();
+    expect(state.model.visible, [(modId: 'skse')]);
+    expect(state.model.selectedId, (modId: 'skse'));
+    pending.complete(queryPage([row('skse', 0), row('fnis', 1)], catalogue: 2));
+    await updating;
+    expect(state.model.visible, [(modId: 'skse'), (modId: 'fnis')]);
+    expect(state.model.selectedId, (modId: 'skse'));
+  });
+
   test('flat priority keeps locked rows after saved order while name sort follows the query', () async {
     final regular = row('z', 0);
     final locked = OrganizedMod(

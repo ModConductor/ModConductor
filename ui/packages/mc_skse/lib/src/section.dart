@@ -12,13 +12,11 @@ class SkyrimSetupSection extends StatefulWidget {
     required this.chooseArchive,
     required this.workspaceId,
     required this.profileId,
-    this.updateRevision = 0,
   });
 
   final SkyrimSetupClient client;
   final ArchiveChooser chooseArchive;
   final String workspaceId, profileId;
-  final int updateRevision;
 
   @override
   State<SkyrimSetupSection> createState() => _SkyrimSetupSectionState();
@@ -29,107 +27,101 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
   SkyrimSetupSelection selection = const SkyrimSetupSelection();
   bool userEdited = false;
   bool busy = false;
-  bool pendingUpdateReload = false;
   String? problem;
-  Timer? timer;
+  StreamSubscription<SkyrimSetupStatus>? _watch;
+  int _epoch = 0;
 
   @override
   void initState() {
     super.initState();
-    unawaited(load());
+    _observe();
   }
 
   @override
   void didUpdateWidget(covariant SkyrimSetupSection old) {
     super.didUpdateWidget(old);
     if (old.workspaceId != widget.workspaceId ||
-        old.profileId != widget.profileId) {
-      timer?.cancel();
+        old.profileId != widget.profileId ||
+        old.client != widget.client) {
+      ++_epoch;
+      unawaited(_watch?.cancel() ?? Future.value());
       status = null;
       selection = const SkyrimSetupSelection();
       userEdited = false;
-      pendingUpdateReload = false;
-      unawaited(load());
-    } else if (old.updateRevision != widget.updateRevision) {
-      if (busy) {
-        pendingUpdateReload = true;
-      } else {
-        unawaited(load());
-      }
+      busy = false;
+      _observe();
     }
   }
 
   @override
   void dispose() {
-    timer?.cancel();
+    ++_epoch;
+    unawaited(_watch?.cancel() ?? Future.value());
     super.dispose();
   }
 
-  void schedule(SkyrimSetupStatus value) {
-    timer?.cancel();
-    if (value.active) {
-      timer = Timer(const Duration(seconds: 1), () => unawaited(load()));
-    } else if (value.canContinue &&
-        value.phase != SkyrimSetupStatusPhase.failed &&
-        value.phase != SkyrimSetupStatusPhase.available &&
-        value.phase != SkyrimSetupStatusPhase.cancelled) {
-      timer = Timer(
-        Duration.zero,
-        () => unawaited(
-          change(
-            () => widget.client.continueSetup(
-              widget.workspaceId,
-              widget.profileId,
-            ),
-          ),
-        ),
-      );
-    }
+  void _observe() {
+    final epoch = _epoch;
+    _watch = widget.client
+        .watch(widget.workspaceId, widget.profileId, selection: selection)
+        .listen(
+          (next) {
+            if (!mounted || epoch != _epoch) return;
+            _accept(next);
+          },
+          onError: (Object _) {
+            if (mounted && epoch == _epoch) {
+              setState(() => problem = 'Skyrim setup updates are unavailable.');
+            }
+          },
+        );
+  }
+
+  void _accept(SkyrimSetupStatus next) {
+    setState(() {
+      final wasCancelled = status?.phase == SkyrimSetupStatusPhase.cancelled;
+      status = next;
+      if (next.canCancel && next.phase != SkyrimSetupStatusPhase.failed) {
+        selection = next.selection;
+        userEdited = false;
+      } else if (next.ready ||
+          (next.phase == SkyrimSetupStatusPhase.cancelled && !wasCancelled)) {
+        selection = const SkyrimSetupSelection();
+        userEdited = false;
+      } else if (!userEdited) {
+        selection = next.selection;
+      }
+      if (selection.skse == SkyrimSetupAction.update &&
+          !next.components.any(
+            (item) => item.id == 'skse' && item.updateVersion != null,
+          )) {
+        selection = selection.withAction('skse', SkyrimSetupAction.unchanged);
+      }
+      problem = null;
+    });
   }
 
   Future<void> change(Future<SkyrimSetupStatus> Function() action) async {
     if (busy) return;
+    final epoch = ++_epoch;
+    unawaited(_watch?.cancel() ?? Future.value());
     setState(() {
       busy = true;
       problem = null;
     });
-    SkyrimSetupStatus? next;
     try {
-      next = await action();
-      if (!mounted) return;
-      setState(() {
-        final wasCancelled = status?.phase == SkyrimSetupStatusPhase.cancelled;
-        status = next;
-        if (next!.canCancel && next.phase != SkyrimSetupStatusPhase.failed) {
-          selection = next.selection;
-          userEdited = false;
-        } else if (next.ready ||
-            (next.phase == SkyrimSetupStatusPhase.cancelled && !wasCancelled)) {
-          selection = const SkyrimSetupSelection();
-          userEdited = false;
-        } else if (!userEdited) {
-          selection = next.selection;
-        }
-        if (selection.skse == SkyrimSetupAction.update &&
-            !next.components.any(
-              (item) => item.id == 'skse' && item.updateVersion != null,
-            )) {
-          selection = selection.withAction('skse', SkyrimSetupAction.unchanged);
-        }
-      });
+      final next = await action();
+      if (!mounted || epoch != _epoch) return;
+      _accept(next);
     } on Exception {
-      if (mounted)
+      if (mounted && epoch == _epoch)
         setState(() => problem = 'Skyrim setup could not be updated.');
     } finally {
-      if (mounted) {
+      if (mounted && epoch == _epoch) {
         setState(() => busy = false);
-        if (pendingUpdateReload) {
-          pendingUpdateReload = false;
-          unawaited(load());
-        }
+        _observe();
       }
     }
-    if (next != null && mounted) schedule(next);
   }
 
   Future<void> load() => change(
@@ -246,15 +238,22 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
           McAction(label: 'Cancel setup', onPressed: busy ? null : cancelSetup),
         if (failed && value.canContinue)
           McAction(
-            label: 'Try again',
+            label: value.phase == SkyrimSetupStatusPhase.recoveryRequired
+                ? 'Continue recovery'
+                : 'Try again',
             onPressed: busy
                 ? null
                 : () => change(
-                    () => widget.client.start(
-                      widget.workspaceId,
-                      widget.profileId,
-                      selection: selection,
-                    ),
+                    () => value.phase == SkyrimSetupStatusPhase.recoveryRequired
+                        ? widget.client.continueSetup(
+                            widget.workspaceId,
+                            widget.profileId,
+                          )
+                        : widget.client.start(
+                            widget.workspaceId,
+                            widget.profileId,
+                            selection: selection,
+                          ),
                   ),
           ),
       ],

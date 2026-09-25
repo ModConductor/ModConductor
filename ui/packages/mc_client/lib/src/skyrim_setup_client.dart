@@ -109,6 +109,12 @@ abstract class SkyrimSetupClient {
     required SkyrimSetupSelection selection,
   });
 
+  Stream<SkyrimSetupStatus> watch(
+    String workspace,
+    String profile, {
+    required SkyrimSetupSelection selection,
+  });
+
   Future<SkyrimSetupStatus> start(
     String workspace,
     String profile, {
@@ -127,6 +133,21 @@ class _GrpcSkyrimSetupClient extends SkyrimSetupClient {
     : _client = wire.SkyrimSetupOperationsClient(channel, options: options);
 
   final wire.SkyrimSetupOperationsClient _client;
+
+  @override
+  Stream<SkyrimSetupStatus> watch(
+    String workspace,
+    String profile, {
+    required SkyrimSetupSelection selection,
+  }) => _client
+      .watchSkyrimSetup(
+        wire.ReadSkyrimSetupRequest(
+          workspaceId: workspace,
+          profileId: profile,
+          selection: _wireSelection(selection),
+        ),
+      )
+      .map(_decode);
 
   @override
   Future<void> openProjectPage(String componentId) async {

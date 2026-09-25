@@ -30,6 +30,7 @@ type SkseCoordinator
     ) =
     let lifetime = new CancellationTokenSource()
     let workers = ConcurrentDictionary<Guid * Guid, CancellationTokenSource>()
+    let changed = Event<Guid * Guid>()
 
     let phaseName (value: SksePhase) =
         match value with
@@ -79,6 +80,7 @@ type SkseCoordinator
     let persist key (value: SkseView) =
         task {
             do! store.SkseLoaders.SaveStatus(storedStatus key value)
+            changed.Trigger key
             return value
         }
 
@@ -208,41 +210,38 @@ type SkseCoordinator
             let release = selection.Selection.Release
 
             try
-                let waitForArtifact () =
-                    Task.Run(fun () ->
-                        let mutable current = artifact
-                        let mutable waiting = true
+                let mutable current = artifact
+                let mutable waiting = true
 
-                        while waiting do
-                            local.Token.ThrowIfCancellationRequested()
+                while waiting do
+                    local.Token.ThrowIfCancellationRequested()
 
-                            match current.State, current.Download with
-                            | (ArtifactState.Ready | ArtifactState.Installed), _ ->
-                                waiting <- false
-                            | ArtifactState.Incomplete, Some download when
-                                download.State = DownloadState.Failed
-                                || download.State = DownloadState.Paused
-                                ->
-                                raise (
-                                    IO.IOException(
-                                        current.Problem
-                                        |> Option.defaultValue "The SKSE download stopped."
-                                    )
-                                )
-                            | _ ->
-                                Task.Delay(100, local.Token).GetAwaiter().GetResult()
+                    match current.State, current.Download with
+                    | (ArtifactState.Ready | ArtifactState.Installed), _ -> waiting <- false
+                    | ArtifactState.Incomplete, Some download when
+                        download.State = DownloadState.Failed
+                        || download.State = DownloadState.Paused
+                        ->
+                        raise (
+                            IO.IOException(
+                                current.Problem
+                                |> Option.defaultValue "The SKSE download stopped."
+                            )
+                        )
+                    | _ ->
+                        do!
+                            downloads.WaitForChange(
+                                fst key,
+                                [ current.Id, current.Revision ],
+                                local.Token
+                            )
 
-                                current <-
-                                    store.Artifacts
-                                        .Read(fst key, current.Id)
-                                        .GetAwaiter()
-                                        .GetResult()
-                                    |> Result.defaultWith (fun _ ->
-                                        raise (IO.IOException "The SKSE archive is unavailable."))
+                        let! latest = store.Artifacts.Read(fst key, current.Id)
 
-                        current)
-
-                let! current = waitForArtifact ()
+                        current <-
+                            latest
+                            |> Result.defaultWith (fun _ ->
+                                raise (IO.IOException "The SKSE archive is unavailable."))
 
                 if not local.IsCancellationRequested then
                     do! saveArtifact current selection
@@ -293,6 +292,7 @@ type SkseCoordinator
             let mutable removed = Unchecked.defaultof<CancellationTokenSource>
             workers.TryRemove(key, &removed) |> ignore
             local.Dispose()
+            changed.Trigger key
         }
         :> Task)
         |> ignore
@@ -676,6 +676,8 @@ type SkseCoordinator
                               FileId = None }
             | Error _ -> return! this.Read(workspace, profile)
         }
+
+    member _.Changed = changed.Publish
 
     member _.AcceptNxm(id: Guid) =
         Task.Run(fun () ->

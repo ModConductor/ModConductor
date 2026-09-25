@@ -39,6 +39,15 @@ class NexusClient extends $grpc.Client {
     return $createUnaryCall(_$readNexusStatus, request, options: options);
   }
 
+  $grpc.ResponseStream<$0.NexusAccountStatus> watchNexusStatus(
+    $0.NexusStatusRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createStreamingCall(
+        _$watchNexusStatus, $async.Stream.fromIterable([request]),
+        options: options);
+  }
+
   $grpc.ResponseFuture<$0.NexusAccountStatus> beginNexusSignIn(
     $0.NexusStatusRequest request, {
     $grpc.CallOptions? options,
@@ -103,6 +112,11 @@ class NexusClient extends $grpc.Client {
           '/modconductor.v1.Nexus/ReadNexusStatus',
           ($0.NexusStatusRequest value) => value.writeToBuffer(),
           $0.NexusAccountStatus.fromBuffer);
+  static final _$watchNexusStatus =
+      $grpc.ClientMethod<$0.NexusStatusRequest, $0.NexusAccountStatus>(
+          '/modconductor.v1.Nexus/WatchNexusStatus',
+          ($0.NexusStatusRequest value) => value.writeToBuffer(),
+          $0.NexusAccountStatus.fromBuffer);
   static final _$beginNexusSignIn =
       $grpc.ClientMethod<$0.NexusStatusRequest, $0.NexusAccountStatus>(
           '/modconductor.v1.Nexus/BeginNexusSignIn',
@@ -156,6 +170,15 @@ abstract class NexusServiceBase extends $grpc.Service {
             readNexusStatus_Pre,
             false,
             false,
+            ($core.List<$core.int> value) =>
+                $0.NexusStatusRequest.fromBuffer(value),
+            ($0.NexusAccountStatus value) => value.writeToBuffer()));
+    $addMethod(
+        $grpc.ServiceMethod<$0.NexusStatusRequest, $0.NexusAccountStatus>(
+            'WatchNexusStatus',
+            watchNexusStatus_Pre,
+            false,
+            true,
             ($core.List<$core.int> value) =>
                 $0.NexusStatusRequest.fromBuffer(value),
             ($0.NexusAccountStatus value) => value.writeToBuffer()));
@@ -236,6 +259,15 @@ abstract class NexusServiceBase extends $grpc.Service {
   }
 
   $async.Future<$0.NexusAccountStatus> readNexusStatus(
+      $grpc.ServiceCall call, $0.NexusStatusRequest request);
+
+  $async.Stream<$0.NexusAccountStatus> watchNexusStatus_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.NexusStatusRequest> $request) async* {
+    yield* watchNexusStatus($call, await $request);
+  }
+
+  $async.Stream<$0.NexusAccountStatus> watchNexusStatus(
       $grpc.ServiceCall call, $0.NexusStatusRequest request);
 
   $async.Future<$0.NexusAccountStatus> beginNexusSignIn_Pre(

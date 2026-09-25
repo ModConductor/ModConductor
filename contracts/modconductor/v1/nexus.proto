@@ -5,6 +5,7 @@ import "modconductor/v1/artifacts.proto";
 
 service Nexus {
   rpc ReadNexusStatus(NexusStatusRequest) returns (NexusAccountStatus);
+  rpc WatchNexusStatus(NexusStatusRequest) returns (stream NexusAccountStatus);
   rpc BeginNexusSignIn(NexusStatusRequest) returns (NexusAccountStatus);
   rpc CancelNexusSignIn(NexusStatusRequest) returns (NexusAccountStatus);
   rpc ConnectNexus(NexusStatusRequest) returns (NexusAccountStatus);

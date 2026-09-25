@@ -7,7 +7,7 @@ open ModConductor.HttpDownloads
 open ModConductor.Platform
 
 type internal DownloadTarget
-    (operations: ArtifactAccess, work: DownloadWork, directory: HeldDirectory, output: FileStream) =
+    (operations: ArtifactAccess, work: DownloadWork, directory: HeldDirectory, output: FileStream, changed: Guid -> unit) =
     let database = operations.Database
     let connection = database.Connection
     let id = work.Request.Id
@@ -33,6 +33,7 @@ type internal DownloadTarget
                     execute
                         "UPDATE artifacts SET length=$total,revision=revision+1 WHERE id=$id"
                         [ "$total", ArtifactRows.nullable observation.Total ]
+                changed id
             }
 
         member _.Checkpoint bytes =
@@ -43,6 +44,7 @@ type internal DownloadTarget
                         [ "$bytes", box bytes ]
 
                 do! execute "UPDATE artifacts SET revision=revision+1 WHERE id=$id" []
+                changed id
             }
 
         member _.Publish(length, digest) =
@@ -66,6 +68,7 @@ type internal DownloadTarget
                             (parameter @ [ "$matched", box work.Request.ExpectedSha256.IsSome ])
 
                         transaction.Commit())
+                changed id
 
                 ArtifactFiles.promote directory id row.StoredIdentity
 
@@ -86,13 +89,14 @@ type internal DownloadTarget
                             (parameter @ [ "$matched", box work.Request.ExpectedSha256.IsSome ])
 
                         transaction.Commit())
+                changed id
             }
 
         member _.Dispose() =
             output.Dispose()
             (directory :> IDisposable).Dispose()
 
-    static member Open(operations: ArtifactAccess, work: DownloadWork) =
+    static member Open(operations: ArtifactAccess, work: DownloadWork, changed: Guid -> unit) =
         task {
             let root = operations.Root work.Request.WorkspaceId
             let! prepared = operations.LibraryAccess.PrepareLibrary(root, ignore)
@@ -140,7 +144,7 @@ type internal DownloadTarget
                                         ) } }
 
                     return
-                        new DownloadTarget(operations, work, directory, output) :> IDownloadTarget
+                        new DownloadTarget(operations, work, directory, output, changed) :> IDownloadTarget
                 with error ->
                     output.Dispose()
                     return raise error

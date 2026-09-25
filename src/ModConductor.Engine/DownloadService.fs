@@ -54,6 +54,8 @@ type DownloadService(downloads: DownloadSession, artifacts: IArtifactLibrary) =
             let workspace = ModLibraryWire.id request.WorkspaceId
             let ids = request.Ids |> Seq.map ModLibraryWire.id |> Seq.distinct |> Seq.toArray
             let revisions = Dictionary<Guid, int64>()
+            for id in ids do
+                revisions[id] <- -1L
 
             while not context.CancellationToken.IsCancellationRequested do
                 for id in ids do
@@ -75,5 +77,10 @@ type DownloadService(downloads: DownloadSession, artifacts: IArtifactLibrary) =
                     | Error ArtifactError.NotFound -> ()
                     | Error error -> ArtifactWire.result (Error error) |> ignore
 
-                do! Task.Delay(500, context.CancellationToken)
+                do!
+                    downloads.WaitForChange(
+                        workspace,
+                        [ for item in revisions -> item.Key, item.Value ],
+                        context.CancellationToken
+                    )
         }

@@ -51,6 +51,7 @@ class NexusMod {
 
 abstract interface class NexusClient {
   Future<NexusAccount> status();
+  Stream<NexusAccount> watchStatus();
   Future<NexusAccount> signIn();
   Future<NexusAccount> cancel();
   Future<NexusAccount> connect();
@@ -107,6 +108,21 @@ class GrpcNexusClient implements NexusClient {
   @override
   Future<NexusAccount> status() =>
       _account(() => _client.readNexusStatus(wire.NexusStatusRequest()));
+  @override
+  Stream<NexusAccount> watchStatus() => _client
+      .watchNexusStatus(wire.NexusStatusRequest())
+      .asyncMap(
+        (value) async => NexusAccount(
+          value.configured,
+          value.waiting,
+          value.hasAccountName() ? value.accountName : null,
+          value.hasPremium() ? value.premium : null,
+          value.hasFailure() ? _problem(value.failure) : null,
+          value.hasProfileImageUrl()
+              ? Uri.tryParse(value.profileImageUrl)
+              : null,
+        ),
+      );
   @override
   Future<NexusAccount> signIn() =>
       _account(() => _client.beginNexusSignIn(wire.NexusStatusRequest()));

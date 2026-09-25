@@ -40,6 +40,15 @@ class SkyrimSetupOperationsClient extends $grpc.Client {
     return $createUnaryCall(_$readSkyrimSetup, request, options: options);
   }
 
+  $grpc.ResponseStream<$0.SkyrimSetupState> watchSkyrimSetup(
+    $0.ReadSkyrimSetupRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createStreamingCall(
+        _$watchSkyrimSetup, $async.Stream.fromIterable([request]),
+        options: options);
+  }
+
   $grpc.ResponseFuture<$0.SkyrimSetupState> startSkyrimSetup(
     $0.StartSkyrimSetupRequest request, {
     $grpc.CallOptions? options,
@@ -75,6 +84,11 @@ class SkyrimSetupOperationsClient extends $grpc.Client {
           '/modconductor.v1.SkyrimSetupOperations/ReadSkyrimSetup',
           ($0.ReadSkyrimSetupRequest value) => value.writeToBuffer(),
           $0.SkyrimSetupState.fromBuffer);
+  static final _$watchSkyrimSetup =
+      $grpc.ClientMethod<$0.ReadSkyrimSetupRequest, $0.SkyrimSetupState>(
+          '/modconductor.v1.SkyrimSetupOperations/WatchSkyrimSetup',
+          ($0.ReadSkyrimSetupRequest value) => value.writeToBuffer(),
+          $0.SkyrimSetupState.fromBuffer);
   static final _$startSkyrimSetup =
       $grpc.ClientMethod<$0.StartSkyrimSetupRequest, $0.SkyrimSetupState>(
           '/modconductor.v1.SkyrimSetupOperations/StartSkyrimSetup',
@@ -108,6 +122,15 @@ abstract class SkyrimSetupOperationsServiceBase extends $grpc.Service {
             readSkyrimSetup_Pre,
             false,
             false,
+            ($core.List<$core.int> value) =>
+                $0.ReadSkyrimSetupRequest.fromBuffer(value),
+            ($0.SkyrimSetupState value) => value.writeToBuffer()));
+    $addMethod(
+        $grpc.ServiceMethod<$0.ReadSkyrimSetupRequest, $0.SkyrimSetupState>(
+            'WatchSkyrimSetup',
+            watchSkyrimSetup_Pre,
+            false,
+            true,
             ($core.List<$core.int> value) =>
                 $0.ReadSkyrimSetupRequest.fromBuffer(value),
             ($0.SkyrimSetupState value) => value.writeToBuffer()));
@@ -154,6 +177,15 @@ abstract class SkyrimSetupOperationsServiceBase extends $grpc.Service {
   }
 
   $async.Future<$0.SkyrimSetupState> readSkyrimSetup(
+      $grpc.ServiceCall call, $0.ReadSkyrimSetupRequest request);
+
+  $async.Stream<$0.SkyrimSetupState> watchSkyrimSetup_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.ReadSkyrimSetupRequest> $request) async* {
+    yield* watchSkyrimSetup($call, await $request);
+  }
+
+  $async.Stream<$0.SkyrimSetupState> watchSkyrimSetup(
       $grpc.ServiceCall call, $0.ReadSkyrimSetupRequest request);
 
   $async.Future<$0.SkyrimSetupState> startSkyrimSetup_Pre(
