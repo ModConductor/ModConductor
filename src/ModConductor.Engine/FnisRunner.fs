@@ -91,8 +91,12 @@ type FnisRunner
             File.SetUnixFileMode(path, File.GetUnixFileMode(path) ||| required)
 
     let restoreMetadata (path: string) (value: FnisPathMetadata) =
-        File.SetLastAccessTimeUtc(path, value.LastAccessUtc)
-        File.SetLastWriteTimeUtc(path, value.LastWriteUtc)
+        if value.Attributes.HasFlag FileAttributes.Directory then
+            Directory.SetLastAccessTimeUtc(path, value.LastAccessUtc)
+            Directory.SetLastWriteTimeUtc(path, value.LastWriteUtc)
+        else
+            File.SetLastAccessTimeUtc(path, value.LastAccessUtc)
+            File.SetLastWriteTimeUtc(path, value.LastWriteUtc)
 
         if OperatingSystem.IsWindows() then
             File.SetAttributes(path, value.Attributes)
