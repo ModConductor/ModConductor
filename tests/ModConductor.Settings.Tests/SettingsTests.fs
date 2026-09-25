@@ -28,6 +28,7 @@ type SettingsTests() =
     let presentation appearance scale contrast =
         { Appearance = appearance
           TextScale = scale
+          InterfaceScale = 1.0
           Contrast = contrast }
 
     [<Test>]
@@ -61,7 +62,9 @@ type SettingsTests() =
                       InheritsApplication = false }
 
                 let scoped =
-                    { Presentation = presentation Appearance.Light 1.5 Contrast.High
+                    { Presentation =
+                        { presentation Appearance.Light 1.5 Contrast.High with
+                            InterfaceScale = 0.9 }
                       InheritsApplication = false }
 
                 let! _ = owner.Save(SettingsScope.Application, application, CancellationToken.None)
@@ -150,6 +153,41 @@ type SettingsTests() =
             |> should equal (SettingsError.UnsupportedVersion 2L)
         finally
             root.Delete true
+
+    [<Test>]
+    member _.``unsupported interface size should not replace saved settings``() =
+        task {
+            let root = directory ()
+
+            try
+                let owner = SettingsOwner root.FullName
+
+                let previous =
+                    { Presentation = presentation Appearance.Light 1.0 Contrast.System
+                      InheritsApplication = false }
+
+                let invalid =
+                    { previous with
+                        Presentation =
+                            { previous.Presentation with
+                                InterfaceScale = 0.8 } }
+
+                let! _ = owner.Save(SettingsScope.Application, previous, CancellationToken.None)
+
+                let! rejected =
+                    owner.Save(SettingsScope.Application, invalid, CancellationToken.None)
+
+                rejected
+                |> error
+                |> should
+                    equal
+                    (SettingsError.InvalidValue "The interface scale value is not supported.")
+
+                owner.Read SettingsScope.Application |> value |> should equal previous
+            finally
+                root.Delete true
+        }
+        :> Task
 
     [<Test>]
     member _.``file size depth and encoding limits should reject bounded input``() =

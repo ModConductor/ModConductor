@@ -74,9 +74,11 @@ and profile behavior. Decorative icons do not add semantic names.
 - **Ctrl+Q** or **Quit** requests native application exit.
 - **Tab** and **Shift+Tab** move focus. **Escape** dismisses a dialog unless an accepted Save is still in progress.
 
-Preference drafts remain across navigation and resize. **Apply** updates the
-current appearance and text size. **Cancel** restores active values. Appearance
-preferences are not saved after exit.
+Preference drafts remain across navigation and resize. **Apply** saves the
+current appearance, interface size, text size, and contrast for the selected
+application or workspace scope. **Cancel** restores active values. Interface
+size scales the whole window, including dialogs and menus. Text size remains
+separate from interface size and system text scaling.
 
 See [Architecture](ARCHITECTURE.md) for state ownership and
 [Build instructions](BUILDING.md) for component and native checks.

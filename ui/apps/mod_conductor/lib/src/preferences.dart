@@ -242,7 +242,27 @@ class _PreferencesPage extends StatelessWidget {
                               enabled: enabled,
                               onChanged: (value) => onDraft((
                                 appearance: value,
-                                scale: draft.scale,
+                                textScale: draft.textScale,
+                                interfaceScale: draft.interfaceScale,
+                                contrast: draft.contrast,
+                              )),
+                            ),
+                            const SizedBox(height: McSpacing.large),
+                            McChoice<double>(
+                              key: const ValueKey(
+                                'preferences-interface-scale',
+                              ),
+                              label: labels.interfaceSize,
+                              value: draft.interfaceScale,
+                              choices: const [0.9, 1],
+                              describe: (value) => labels.textScalePercent(
+                                (value * 100).round(),
+                              ),
+                              enabled: enabled,
+                              onChanged: (value) => onDraft((
+                                appearance: draft.appearance,
+                                textScale: draft.textScale,
+                                interfaceScale: value,
                                 contrast: draft.contrast,
                               )),
                             ),
@@ -250,7 +270,7 @@ class _PreferencesPage extends StatelessWidget {
                             McChoice<double>(
                               key: const ValueKey('preferences-scale'),
                               label: labels.textSize,
-                              value: draft.scale,
+                              value: draft.textScale,
                               choices: const [1, 1.25, 1.5],
                               describe: (value) => labels.textScalePercent(
                                 (value * 100).round(),
@@ -258,7 +278,8 @@ class _PreferencesPage extends StatelessWidget {
                               enabled: enabled,
                               onChanged: (value) => onDraft((
                                 appearance: draft.appearance,
-                                scale: value,
+                                textScale: value,
+                                interfaceScale: draft.interfaceScale,
                                 contrast: draft.contrast,
                               )),
                             ),
@@ -272,7 +293,8 @@ class _PreferencesPage extends StatelessWidget {
                               enabled: enabled,
                               onChanged: (value) => onDraft((
                                 appearance: draft.appearance,
-                                scale: draft.scale,
+                                textScale: draft.textScale,
+                                interfaceScale: draft.interfaceScale,
                                 contrast: value,
                               )),
                             ),
@@ -381,11 +403,20 @@ Future<void> _showActivePreferences(
               Text(appearance(applied.appearance)),
               const SizedBox(height: McSpacing.large),
               Text(
+                labels.interfaceSize,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: McSpacing.small),
+              Text(
+                labels.textScalePercent((applied.interfaceScale * 100).round()),
+              ),
+              const SizedBox(height: McSpacing.large),
+              Text(
                 labels.textSize,
                 style: Theme.of(context).textTheme.bodySmall,
               ),
               const SizedBox(height: McSpacing.small),
-              Text(labels.textScalePercent((applied.scale * 100).round())),
+              Text(labels.textScalePercent((applied.textScale * 100).round())),
               const SizedBox(height: McSpacing.large),
               Text(
                 labels.contrast,

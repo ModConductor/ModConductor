@@ -3,6 +3,7 @@ export 'src/app_mark.dart';
 export 'src/forms.dart';
 export 'src/surfaces.dart';
 export 'src/theme.dart';
+export 'src/ui_scale.dart';
 export 'src/dialogs.dart';
 
 export 'src/inspector.dart';

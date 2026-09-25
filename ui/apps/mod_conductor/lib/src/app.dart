@@ -50,7 +50,8 @@ enum _PreferenceScope { application, workspace }
 
 typedef _Preferences = ({
   AppearancePreference appearance,
-  double scale,
+  double textScale,
+  double interfaceScale,
   ContrastPreference contrast,
 });
 
@@ -78,7 +79,8 @@ class _PreferenceTextScaler extends TextScaler {
 
 const _defaultPreferences = (
   appearance: AppearancePreference.system,
-  scale: 1.0,
+  textScale: 1.0,
+  interfaceScale: 1.0,
   contrast: ContrastPreference.system,
 );
 
@@ -151,7 +153,8 @@ ThemeMode _themeMode(AppearancePreference value) => switch (value) {
 
 _Preferences _preferences(SettingsSnapshot value) => (
   appearance: value.presentation.appearance,
-  scale: value.presentation.textScale,
+  textScale: value.presentation.textScale,
+  interfaceScale: value.presentation.interfaceScale,
   contrast: value.presentation.contrast,
 );
 
@@ -159,7 +162,8 @@ SettingsSnapshot _snapshot(_Preferences value, {required bool inherits}) =>
     SettingsSnapshot(
       presentation: PresentationPreferences(
         appearance: value.appearance,
-        textScale: value.scale,
+        textScale: value.textScale,
+        interfaceScale: value.interfaceScale,
         contrast: value.contrast,
       ),
       inheritsApplication: inherits,
@@ -847,7 +851,12 @@ class _ModConductorAppState extends State<ModConductorApp> {
     final current = form.applied;
     await _persistPreferences(
       scope,
-      (appearance: value, scale: current.scale, contrast: current.contrast),
+      (
+        appearance: value,
+        textScale: current.textScale,
+        interfaceScale: current.interfaceScale,
+        contrast: current.contrast,
+      ),
       inherits: false,
       allowUnselectedScope: true,
     );
@@ -1097,17 +1106,20 @@ class _ModConductorAppState extends State<ModConductorApp> {
       themeMode: _themeMode(preferences.appearance),
       builder: (context, child) {
         final media = MediaQuery.of(context);
-        return McUiLocalization(
-          labels: _uiLabels(AppLocalizations.of(context)),
-          child: MediaQuery(
-            data: media.copyWith(
-              textScaler: _PreferenceTextScaler(
-                media.textScaler,
-                preferences.scale,
-              ),
-              highContrast: systemContrast ? media.highContrast : explicitHigh,
+        return MediaQuery(
+          data: media.copyWith(
+            textScaler: _PreferenceTextScaler(
+              media.textScaler,
+              preferences.textScale,
             ),
-            child: child!,
+            highContrast: systemContrast ? media.highContrast : explicitHigh,
+          ),
+          child: McUiScale(
+            scale: preferences.interfaceScale,
+            child: McUiLocalization(
+              labels: _uiLabels(AppLocalizations.of(context)),
+              child: child!,
+            ),
           ),
         );
       },

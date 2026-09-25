@@ -80,6 +80,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get textSize => 'Text size';
 
   @override
+  String get interfaceSize => 'Interface size';
+
+  @override
   String get contrast => 'Contrast';
 
   @override

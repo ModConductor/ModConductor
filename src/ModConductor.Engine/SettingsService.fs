@@ -26,6 +26,7 @@ module private SettingsWire =
                 PresentationSettings(
                     Appearance = appearance value.Presentation.Appearance,
                     TextScale = value.Presentation.TextScale,
+                    InterfaceScale = value.Presentation.InterfaceScale,
                     Contrast = contrast value.Presentation.Contrast
                 ),
             InheritsApplication = value.InheritsApplication
@@ -72,6 +73,11 @@ module private SettingsWire =
                     { Presentation =
                         { Appearance = appearance
                           TextScale = value.Presentation.TextScale
+                          InterfaceScale =
+                            if value.Presentation.InterfaceScale = 0.0 then
+                                1.0
+                            else
+                                value.Presentation.InterfaceScale
                           Contrast = contrast }
                       InheritsApplication = value.InheritsApplication }
             | Error detail, _

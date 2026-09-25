@@ -32,6 +32,7 @@ message PresentationSettings {
   AppearancePreference appearance = 1;
   double text_scale = 2;
   ContrastPreference contrast = 3;
+  double interface_scale = 4;
 }
 
 message SettingsSnapshot {

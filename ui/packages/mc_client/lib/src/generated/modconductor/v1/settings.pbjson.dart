@@ -110,6 +110,7 @@ const PresentationSettings$json = {
       '6': '.modconductor.v1.ContrastPreference',
       '10': 'contrast'
     },
+    {'1': 'interface_scale', '3': 4, '4': 1, '5': 1, '10': 'interfaceScale'},
   ],
 };
 
@@ -118,7 +119,8 @@ final $typed_data.Uint8List presentationSettingsDescriptor = $convert.base64Deco
     'ChRQcmVzZW50YXRpb25TZXR0aW5ncxJFCgphcHBlYXJhbmNlGAEgASgOMiUubW9kY29uZHVjdG'
     '9yLnYxLkFwcGVhcmFuY2VQcmVmZXJlbmNlUgphcHBlYXJhbmNlEh0KCnRleHRfc2NhbGUYAiAB'
     'KAFSCXRleHRTY2FsZRI/Cghjb250cmFzdBgDIAEoDjIjLm1vZGNvbmR1Y3Rvci52MS5Db250cm'
-    'FzdFByZWZlcmVuY2VSCGNvbnRyYXN0');
+    'FzdFByZWZlcmVuY2VSCGNvbnRyYXN0EicKD2ludGVyZmFjZV9zY2FsZRgEIAEoAVIOaW50ZXJm'
+    'YWNlU2NhbGU=');
 
 @$core.Deprecated('Use settingsSnapshotDescriptor instead')
 const SettingsSnapshot$json = {

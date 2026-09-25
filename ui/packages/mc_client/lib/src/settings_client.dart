@@ -10,11 +10,13 @@ class PresentationPreferences {
   const PresentationPreferences({
     required this.appearance,
     required this.textScale,
+    this.interfaceScale = 1,
     required this.contrast,
   });
 
   final AppearancePreference appearance;
   final double textScale;
+  final double interfaceScale;
   final ContrastPreference contrast;
 
   @override
@@ -22,10 +24,12 @@ class PresentationPreferences {
       other is PresentationPreferences &&
       appearance == other.appearance &&
       textScale == other.textScale &&
+      interfaceScale == other.interfaceScale &&
       contrast == other.contrast;
 
   @override
-  int get hashCode => Object.hash(appearance, textScale, contrast);
+  int get hashCode =>
+      Object.hash(appearance, textScale, interfaceScale, contrast);
 }
 
 class SettingsSnapshot {
@@ -130,6 +134,7 @@ wire.SettingsSnapshot _encode(SettingsSnapshot value) => wire.SettingsSnapshot(
         wire.AppearancePreference.APPEARANCE_PREFERENCE_DARK,
     },
     textScale: value.presentation.textScale,
+    interfaceScale: value.presentation.interfaceScale,
     contrast: switch (value.presentation.contrast) {
       ContrastPreference.system =>
         wire.ContrastPreference.CONTRAST_PREFERENCE_SYSTEM,
@@ -154,6 +159,9 @@ SettingsSnapshot _decode(wire.SettingsSnapshot value) => SettingsSnapshot(
       _ => throw const FormatException('Unsupported appearance preference.'),
     },
     textScale: value.presentation.textScale,
+    interfaceScale: value.presentation.interfaceScale == 0
+        ? 1
+        : value.presentation.interfaceScale,
     contrast: switch (value.presentation.contrast) {
       wire.ContrastPreference.CONTRAST_PREFERENCE_SYSTEM =>
         ContrastPreference.system,

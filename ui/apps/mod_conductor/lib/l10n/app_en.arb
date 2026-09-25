@@ -27,6 +27,7 @@
   "currentWorkspace": "Current workspace",
   "appearance": "Appearance",
   "textSize": "Text size",
+  "interfaceSize": "Interface size",
   "contrast": "Contrast",
   "useApplicationSettings": "Use application settings",
   "systemAppearance": "Use system appearance",

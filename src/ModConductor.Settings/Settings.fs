@@ -22,6 +22,7 @@ type Contrast =
 type Presentation =
     { Appearance: Appearance
       TextScale: double
+      InterfaceScale: double
       Contrast: Contrast }
 
 [<RequireQualifiedAccess>]
@@ -47,6 +48,7 @@ type SettingsOwner(applicationDirectory: string) =
     let defaults =
         { Appearance = Appearance.System
           TextScale = 1.0
+          InterfaceScale = 1.0
           Contrast = Contrast.System }
 
     let path =
@@ -89,6 +91,12 @@ type SettingsOwner(applicationDirectory: string) =
                 && presentation.TextScale <> 1.5)
         then
             Error(SettingsError.InvalidValue "The text scale value is not supported.")
+        elif
+            Double.IsNaN presentation.InterfaceScale
+            || Double.IsInfinity presentation.InterfaceScale
+            || (presentation.InterfaceScale <> 0.9 && presentation.InterfaceScale <> 1.0)
+        then
+            Error(SettingsError.InvalidValue "The interface scale value is not supported.")
         else
             Ok presentation
 
@@ -111,6 +119,7 @@ type SettingsOwner(applicationDirectory: string) =
                     validate
                         { Appearance = appearance
                           TextScale = value.TextScale
+                          InterfaceScale = value.InterfaceScale
                           Contrast = contrast }
                     |> Result.map (fun presentation ->
                         { Presentation = presentation
@@ -126,6 +135,7 @@ type SettingsOwner(applicationDirectory: string) =
                 PresentationDocument(
                     Appearance = encodeAppearance snapshot.Presentation.Appearance,
                     TextScale = snapshot.Presentation.TextScale,
+                    InterfaceScale = snapshot.Presentation.InterfaceScale,
                     Contrast = encodeContrast snapshot.Presentation.Contrast
                 )
 

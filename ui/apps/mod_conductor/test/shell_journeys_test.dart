@@ -402,6 +402,7 @@ void main() {
     await activate(tester, 'cancel-preferences');
     expect(settings.applicationSaves, 0);
     await choose(tester, 'preferences-theme', 'Dark');
+    await choose(tester, 'preferences-interface-scale', '90%');
     await choose(tester, 'preferences-contrast', 'High contrast');
     await activate(tester, 'apply-preferences');
     expect(settings.applicationSaves, 1);
@@ -414,11 +415,20 @@ void main() {
       AppearancePreference.dark,
     );
     expect(settings.application.presentation.contrast, ContrastPreference.high);
+    expect(settings.application.presentation.interfaceScale, 0.9);
     expect(MediaQuery.highContrastOf(tester.element(keyed('quit'))), isTrue);
+    expect(
+      MediaQuery.sizeOf(tester.element(keyed('quit'))).width,
+      closeTo(1280 / 0.9, 0.01),
+    );
 
     await tester.pumpWidget(const SizedBox.shrink());
     await mount(tester, settings: settings);
     expect(brightness(tester), Brightness.dark);
+    expect(
+      MediaQuery.sizeOf(tester.element(keyed('quit'))).width,
+      closeTo(1280 / 0.9, 0.01),
+    );
     expect(MediaQuery.highContrastOf(tester.element(keyed('quit'))), isTrue);
   });
 
@@ -609,6 +619,40 @@ void main() {
       MediaQuery.textScalerOf(tester.element(keyed('quit'))).scale(1),
       1.875,
     );
+  });
+
+  testWidgets('interface size leaves platform and chosen text size separate', (
+    tester,
+  ) async {
+    var quits = 0;
+    tester.platformDispatcher.textScaleFactorTestValue = 1.25;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    await mount(tester, settings: _SettingsFake(), onQuit: () => quits++);
+    await activate(tester, 'nav-preferences');
+    await choose(tester, 'preferences-interface-scale', '90%');
+    await activate(tester, 'apply-preferences');
+    expect(
+      MediaQuery.textScalerOf(tester.element(keyed('quit'))).scale(1),
+      1.25,
+    );
+    await choose(tester, 'preferences-scale', '150%');
+    await activate(tester, 'apply-preferences');
+    expect(
+      MediaQuery.textScalerOf(tester.element(keyed('quit'))).scale(1),
+      1.875,
+    );
+
+    tester.view.physicalSize = const Size(900, 650);
+    await tester.pumpAndSettle();
+    await activate(tester, 'session-details');
+    final corner = tester.getBottomRight(find.byType(AlertDialog));
+    expect(corner.dx, lessThanOrEqualTo(900));
+    expect(corner.dy, lessThanOrEqualTo(650));
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    await activate(tester, 'quit');
+    expect(quits, 1);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('a workspace change rejects a pending settings save', (

@@ -19,6 +19,7 @@ const lightWorkspace = SettingsSnapshot(
   presentation: PresentationPreferences(
     appearance: AppearancePreference.light,
     textScale: 1.5,
+    interfaceScale: 0.9,
     contrast: ContrastPreference.high,
   ),
   inheritsApplication: false,

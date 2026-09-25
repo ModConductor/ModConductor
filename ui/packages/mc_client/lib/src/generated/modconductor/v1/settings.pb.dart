@@ -109,11 +109,13 @@ class PresentationSettings extends $pb.GeneratedMessage {
     AppearancePreference? appearance,
     $core.double? textScale,
     ContrastPreference? contrast,
+    $core.double? interfaceScale,
   }) {
     final result = create();
     if (appearance != null) result.appearance = appearance;
     if (textScale != null) result.textScale = textScale;
     if (contrast != null) result.contrast = contrast;
+    if (interfaceScale != null) result.interfaceScale = interfaceScale;
     return result;
   }
 
@@ -136,6 +138,7 @@ class PresentationSettings extends $pb.GeneratedMessage {
     ..aD(2, _omitFieldNames ? '' : 'textScale')
     ..aE<ContrastPreference>(3, _omitFieldNames ? '' : 'contrast',
         enumValues: ContrastPreference.values)
+    ..aD(4, _omitFieldNames ? '' : 'interfaceScale')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -183,6 +186,15 @@ class PresentationSettings extends $pb.GeneratedMessage {
   $core.bool hasContrast() => $_has(2);
   @$pb.TagNumber(3)
   void clearContrast() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.double get interfaceScale => $_getN(3);
+  @$pb.TagNumber(4)
+  set interfaceScale($core.double value) => $_setDouble(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasInterfaceScale() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearInterfaceScale() => $_clearField(4);
 }
 
 class SettingsSnapshot extends $pb.GeneratedMessage {

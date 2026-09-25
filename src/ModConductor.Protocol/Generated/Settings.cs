@@ -26,46 +26,47 @@ namespace ModConductor.Protocol.V1 {
           string.Concat(
             "Ch5tb2Rjb25kdWN0b3IvdjEvc2V0dGluZ3MucHJvdG8SD21vZGNvbmR1Y3Rv",
             "ci52MSJJCg5TZXR0aW5nc1RhcmdldBIVCgthcHBsaWNhdGlvbhgBIAEoCEgA",
-            "EhYKDHdvcmtzcGFjZV9pZBgCIAEoCUgAQggKBnRhcmdldCKcAQoUUHJlc2Vu",
+            "EhYKDHdvcmtzcGFjZV9pZBgCIAEoCUgAQggKBnRhcmdldCK1AQoUUHJlc2Vu",
             "dGF0aW9uU2V0dGluZ3MSOQoKYXBwZWFyYW5jZRgBIAEoDjIlLm1vZGNvbmR1",
             "Y3Rvci52MS5BcHBlYXJhbmNlUHJlZmVyZW5jZRISCgp0ZXh0X3NjYWxlGAIg",
             "ASgBEjUKCGNvbnRyYXN0GAMgASgOMiMubW9kY29uZHVjdG9yLnYxLkNvbnRy",
-            "YXN0UHJlZmVyZW5jZSJtChBTZXR0aW5nc1NuYXBzaG90EjsKDHByZXNlbnRh",
-            "dGlvbhgBIAEoCzIlLm1vZGNvbmR1Y3Rvci52MS5QcmVzZW50YXRpb25TZXR0",
-            "aW5ncxIcChRpbmhlcml0c19hcHBsaWNhdGlvbhgCIAEoCCJRCg1TZXR0aW5n",
-            "c0ZhdWx0EjAKBGNvZGUYASABKA4yIi5tb2Rjb25kdWN0b3IudjEuU2V0dGlu",
-            "Z3NGYXVsdENvZGUSDgoGZGV0YWlsGAIgASgJIkYKE1JlYWRTZXR0aW5nc1Jl",
-            "cXVlc3QSLwoGdGFyZ2V0GAEgASgLMh8ubW9kY29uZHVjdG9yLnYxLlNldHRp",
-            "bmdzVGFyZ2V0InsKE1NhdmVTZXR0aW5nc1JlcXVlc3QSLwoGdGFyZ2V0GAEg",
-            "ASgLMh8ubW9kY29uZHVjdG9yLnYxLlNldHRpbmdzVGFyZ2V0EjMKCHNldHRp",
-            "bmdzGAIgASgLMiEubW9kY29uZHVjdG9yLnYxLlNldHRpbmdzU25hcHNob3Qi",
-            "ggEKDVNldHRpbmdzUmVwbHkSNQoIc2V0dGluZ3MYASABKAsyIS5tb2Rjb25k",
-            "dWN0b3IudjEuU2V0dGluZ3NTbmFwc2hvdEgAEi8KBWZhdWx0GAIgASgLMh4u",
-            "bW9kY29uZHVjdG9yLnYxLlNldHRpbmdzRmF1bHRIAEIJCgdvdXRjb21lKqAB",
-            "ChRBcHBlYXJhbmNlUHJlZmVyZW5jZRIlCiFBUFBFQVJBTkNFX1BSRUZFUkVO",
-            "Q0VfVU5TUEVDSUZJRUQQABIgChxBUFBFQVJBTkNFX1BSRUZFUkVOQ0VfU1lT",
-            "VEVNEAESHwobQVBQRUFSQU5DRV9QUkVGRVJFTkNFX0xJR0hUEAISHgoaQVBQ",
-            "RUFSQU5DRV9QUkVGRVJFTkNFX0RBUksQAyqZAQoSQ29udHJhc3RQcmVmZXJl",
-            "bmNlEiMKH0NPTlRSQVNUX1BSRUZFUkVOQ0VfVU5TUEVDSUZJRUQQABIeChpD",
-            "T05UUkFTVF9QUkVGRVJFTkNFX1NZU1RFTRABEiAKHENPTlRSQVNUX1BSRUZF",
-            "UkVOQ0VfU1RBTkRBUkQQAhIcChhDT05UUkFTVF9QUkVGRVJFTkNFX0hJR0gQ",
-            "AyqvAgoRU2V0dGluZ3NGYXVsdENvZGUSIwofU0VUVElOR1NfRkFVTFRfQ09E",
-            "RV9VTlNQRUNJRklFRBAAEiUKIVNFVFRJTkdTX0ZBVUxUX0NPREVfSU5WQUxJ",
-            "RF9TQ09QRRABEigKJFNFVFRJTkdTX0ZBVUxUX0NPREVfSU5WQUxJRF9ET0NV",
-            "TUVOVBACEisKJ1NFVFRJTkdTX0ZBVUxUX0NPREVfVU5TVVBQT1JURURfVkVS",
-            "U0lPThADEiUKIVNFVFRJTkdTX0ZBVUxUX0NPREVfSU5WQUxJRF9WQUxVRRAE",
-            "EiMKH1NFVFRJTkdTX0ZBVUxUX0NPREVfVU5BVkFJTEFCTEUQBRIrCidTRVRU",
-            "SU5HU19GQVVMVF9DT0RFX1dPUktTUEFDRV9OT1RfRk9VTkQQBjLAAQoSU2V0",
-            "dGluZ3NPcGVyYXRpb25zElQKDFJlYWRTZXR0aW5ncxIkLm1vZGNvbmR1Y3Rv",
-            "ci52MS5SZWFkU2V0dGluZ3NSZXF1ZXN0Gh4ubW9kY29uZHVjdG9yLnYxLlNl",
-            "dHRpbmdzUmVwbHkSVAoMU2F2ZVNldHRpbmdzEiQubW9kY29uZHVjdG9yLnYx",
-            "LlNhdmVTZXR0aW5nc1JlcXVlc3QaHi5tb2Rjb25kdWN0b3IudjEuU2V0dGlu",
-            "Z3NSZXBseUIbqgIYTW9kQ29uZHVjdG9yLlByb3RvY29sLlYxYgZwcm90bzM="));
+            "YXN0UHJlZmVyZW5jZRIXCg9pbnRlcmZhY2Vfc2NhbGUYBCABKAEibQoQU2V0",
+            "dGluZ3NTbmFwc2hvdBI7CgxwcmVzZW50YXRpb24YASABKAsyJS5tb2Rjb25k",
+            "dWN0b3IudjEuUHJlc2VudGF0aW9uU2V0dGluZ3MSHAoUaW5oZXJpdHNfYXBw",
+            "bGljYXRpb24YAiABKAgiUQoNU2V0dGluZ3NGYXVsdBIwCgRjb2RlGAEgASgO",
+            "MiIubW9kY29uZHVjdG9yLnYxLlNldHRpbmdzRmF1bHRDb2RlEg4KBmRldGFp",
+            "bBgCIAEoCSJGChNSZWFkU2V0dGluZ3NSZXF1ZXN0Ei8KBnRhcmdldBgBIAEo",
+            "CzIfLm1vZGNvbmR1Y3Rvci52MS5TZXR0aW5nc1RhcmdldCJ7ChNTYXZlU2V0",
+            "dGluZ3NSZXF1ZXN0Ei8KBnRhcmdldBgBIAEoCzIfLm1vZGNvbmR1Y3Rvci52",
+            "MS5TZXR0aW5nc1RhcmdldBIzCghzZXR0aW5ncxgCIAEoCzIhLm1vZGNvbmR1",
+            "Y3Rvci52MS5TZXR0aW5nc1NuYXBzaG90IoIBCg1TZXR0aW5nc1JlcGx5EjUK",
+            "CHNldHRpbmdzGAEgASgLMiEubW9kY29uZHVjdG9yLnYxLlNldHRpbmdzU25h",
+            "cHNob3RIABIvCgVmYXVsdBgCIAEoCzIeLm1vZGNvbmR1Y3Rvci52MS5TZXR0",
+            "aW5nc0ZhdWx0SABCCQoHb3V0Y29tZSqgAQoUQXBwZWFyYW5jZVByZWZlcmVu",
+            "Y2USJQohQVBQRUFSQU5DRV9QUkVGRVJFTkNFX1VOU1BFQ0lGSUVEEAASIAoc",
+            "QVBQRUFSQU5DRV9QUkVGRVJFTkNFX1NZU1RFTRABEh8KG0FQUEVBUkFOQ0Vf",
+            "UFJFRkVSRU5DRV9MSUdIVBACEh4KGkFQUEVBUkFOQ0VfUFJFRkVSRU5DRV9E",
+            "QVJLEAMqmQEKEkNvbnRyYXN0UHJlZmVyZW5jZRIjCh9DT05UUkFTVF9QUkVG",
+            "RVJFTkNFX1VOU1BFQ0lGSUVEEAASHgoaQ09OVFJBU1RfUFJFRkVSRU5DRV9T",
+            "WVNURU0QARIgChxDT05UUkFTVF9QUkVGRVJFTkNFX1NUQU5EQVJEEAISHAoY",
+            "Q09OVFJBU1RfUFJFRkVSRU5DRV9ISUdIEAMqrwIKEVNldHRpbmdzRmF1bHRD",
+            "b2RlEiMKH1NFVFRJTkdTX0ZBVUxUX0NPREVfVU5TUEVDSUZJRUQQABIlCiFT",
+            "RVRUSU5HU19GQVVMVF9DT0RFX0lOVkFMSURfU0NPUEUQARIoCiRTRVRUSU5H",
+            "U19GQVVMVF9DT0RFX0lOVkFMSURfRE9DVU1FTlQQAhIrCidTRVRUSU5HU19G",
+            "QVVMVF9DT0RFX1VOU1VQUE9SVEVEX1ZFUlNJT04QAxIlCiFTRVRUSU5HU19G",
+            "QVVMVF9DT0RFX0lOVkFMSURfVkFMVUUQBBIjCh9TRVRUSU5HU19GQVVMVF9D",
+            "T0RFX1VOQVZBSUxBQkxFEAUSKwonU0VUVElOR1NfRkFVTFRfQ09ERV9XT1JL",
+            "U1BBQ0VfTk9UX0ZPVU5EEAYywAEKElNldHRpbmdzT3BlcmF0aW9ucxJUCgxS",
+            "ZWFkU2V0dGluZ3MSJC5tb2Rjb25kdWN0b3IudjEuUmVhZFNldHRpbmdzUmVx",
+            "dWVzdBoeLm1vZGNvbmR1Y3Rvci52MS5TZXR0aW5nc1JlcGx5ElQKDFNhdmVT",
+            "ZXR0aW5ncxIkLm1vZGNvbmR1Y3Rvci52MS5TYXZlU2V0dGluZ3NSZXF1ZXN0",
+            "Gh4ubW9kY29uZHVjdG9yLnYxLlNldHRpbmdzUmVwbHlCG6oCGE1vZENvbmR1",
+            "Y3Rvci5Qcm90b2NvbC5WMWIGcHJvdG8z"));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { },
           new pbr::GeneratedClrTypeInfo(new[] {typeof(global::ModConductor.Protocol.V1.AppearancePreference), typeof(global::ModConductor.Protocol.V1.ContrastPreference), typeof(global::ModConductor.Protocol.V1.SettingsFaultCode), }, null, new pbr::GeneratedClrTypeInfo[] {
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.SettingsTarget), global::ModConductor.Protocol.V1.SettingsTarget.Parser, new[]{ "Application", "WorkspaceId" }, new[]{ "Target" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.PresentationSettings), global::ModConductor.Protocol.V1.PresentationSettings.Parser, new[]{ "Appearance", "TextScale", "Contrast" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.PresentationSettings), global::ModConductor.Protocol.V1.PresentationSettings.Parser, new[]{ "Appearance", "TextScale", "Contrast", "InterfaceScale" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.SettingsSnapshot), global::ModConductor.Protocol.V1.SettingsSnapshot.Parser, new[]{ "Presentation", "InheritsApplication" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.SettingsFault), global::ModConductor.Protocol.V1.SettingsFault.Parser, new[]{ "Code", "Detail" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ReadSettingsRequest), global::ModConductor.Protocol.V1.ReadSettingsRequest.Parser, new[]{ "Target" }, null, null, null, null),
@@ -438,6 +439,7 @@ namespace ModConductor.Protocol.V1 {
       appearance_ = other.appearance_;
       textScale_ = other.textScale_;
       contrast_ = other.contrast_;
+      interfaceScale_ = other.interfaceScale_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -483,6 +485,18 @@ namespace ModConductor.Protocol.V1 {
       }
     }
 
+    /// <summary>Field number for the "interface_scale" field.</summary>
+    public const int InterfaceScaleFieldNumber = 4;
+    private double interfaceScale_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public double InterfaceScale {
+      get { return interfaceScale_; }
+      set {
+        interfaceScale_ = value;
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -501,6 +515,7 @@ namespace ModConductor.Protocol.V1 {
       if (Appearance != other.Appearance) return false;
       if (!pbc::ProtobufEqualityComparers.BitwiseDoubleEqualityComparer.Equals(TextScale, other.TextScale)) return false;
       if (Contrast != other.Contrast) return false;
+      if (!pbc::ProtobufEqualityComparers.BitwiseDoubleEqualityComparer.Equals(InterfaceScale, other.InterfaceScale)) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -511,6 +526,7 @@ namespace ModConductor.Protocol.V1 {
       if (Appearance != global::ModConductor.Protocol.V1.AppearancePreference.Unspecified) hash ^= Appearance.GetHashCode();
       if (TextScale != 0D) hash ^= pbc::ProtobufEqualityComparers.BitwiseDoubleEqualityComparer.GetHashCode(TextScale);
       if (Contrast != global::ModConductor.Protocol.V1.ContrastPreference.Unspecified) hash ^= Contrast.GetHashCode();
+      if (InterfaceScale != 0D) hash ^= pbc::ProtobufEqualityComparers.BitwiseDoubleEqualityComparer.GetHashCode(InterfaceScale);
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -541,6 +557,10 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(24);
         output.WriteEnum((int) Contrast);
       }
+      if (InterfaceScale != 0D) {
+        output.WriteRawTag(33);
+        output.WriteDouble(InterfaceScale);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -563,6 +583,10 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(24);
         output.WriteEnum((int) Contrast);
       }
+      if (InterfaceScale != 0D) {
+        output.WriteRawTag(33);
+        output.WriteDouble(InterfaceScale);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -581,6 +605,9 @@ namespace ModConductor.Protocol.V1 {
       }
       if (Contrast != global::ModConductor.Protocol.V1.ContrastPreference.Unspecified) {
         size += 1 + pb::CodedOutputStream.ComputeEnumSize((int) Contrast);
+      }
+      if (InterfaceScale != 0D) {
+        size += 1 + 8;
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -602,6 +629,9 @@ namespace ModConductor.Protocol.V1 {
       }
       if (other.Contrast != global::ModConductor.Protocol.V1.ContrastPreference.Unspecified) {
         Contrast = other.Contrast;
+      }
+      if (other.InterfaceScale != 0D) {
+        InterfaceScale = other.InterfaceScale;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -634,6 +664,10 @@ namespace ModConductor.Protocol.V1 {
             Contrast = (global::ModConductor.Protocol.V1.ContrastPreference) input.ReadEnum();
             break;
           }
+          case 33: {
+            InterfaceScale = input.ReadDouble();
+            break;
+          }
         }
       }
     #endif
@@ -663,6 +697,10 @@ namespace ModConductor.Protocol.V1 {
           }
           case 24: {
             Contrast = (global::ModConductor.Protocol.V1.ContrastPreference) input.ReadEnum();
+            break;
+          }
+          case 33: {
+            InterfaceScale = input.ReadDouble();
             break;
           }
         }

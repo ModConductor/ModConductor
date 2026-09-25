@@ -214,6 +214,12 @@ abstract class AppLocalizations {
   /// **'Text size'**
   String get textSize;
 
+  /// No description provided for @interfaceSize.
+  ///
+  /// In en, this message translates to:
+  /// **'Interface size'**
+  String get interfaceSize;
+
   /// No description provided for @contrast.
   ///
   /// In en, this message translates to:

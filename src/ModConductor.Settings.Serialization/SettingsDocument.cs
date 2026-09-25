@@ -22,6 +22,9 @@ public sealed class PresentationDocument
   [JsonPropertyName("text_scale")]
   public double TextScale { get; set; } = 1.0;
 
+  [JsonPropertyName("interface_scale")]
+  public double InterfaceScale { get; set; } = 1.0;
+
   [JsonPropertyName("contrast")]
   public string Contrast { get; set; } = "system";
 }
