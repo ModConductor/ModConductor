@@ -146,14 +146,19 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
     setState(() {
       busy = true;
       problem = null;
+      _updateEvidenceFresh = false;
     });
     try {
       final next = await action();
       if (!mounted || epoch != _epoch) return;
       _accept(next);
     } on Exception {
-      if (mounted && epoch == _epoch)
-        setState(() => problem = 'Skyrim setup could not be updated.');
+      if (mounted && epoch == _epoch) {
+        setState(() {
+          problem = 'Skyrim setup could not be updated.';
+          _clearUpdateChoices();
+        });
+      }
     } finally {
       if (mounted && epoch == _epoch) {
         setState(() => busy = false);

@@ -26,6 +26,7 @@ class SetupClientFixture extends SkyrimSetupClient {
   int continues = 0;
   int reads = 0;
   int pageOpens = 0;
+  Completer<SkyrimSetupStatus>? nextReadResult;
   final updates = <String, StreamController<SkyrimSetupStatus>>{};
   bool cancelled = false;
   bool completed = false;
@@ -112,6 +113,11 @@ class SetupClientFixture extends SkyrimSetupClient {
   }) async {
     reads++;
     lastSelection = selection;
+    final pending = nextReadResult;
+    if (pending != null) {
+      nextReadResult = null;
+      return await pending.future;
+    }
     if (completeWithFnisWarning && completed) {
       return fnisWarningState(selection, ready: false, canContinue: false);
     }
@@ -294,6 +300,61 @@ void main() {
     expect(
       find.descendant(of: skse, matching: find.text('Update')),
       findsNothing,
+    );
+    expect(client.starts, 0);
+
+    client.snapshotGate!.complete();
+    await settle(tester);
+    expect(
+      find.descendant(of: skse, matching: find.text('Update')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: skse, matching: find.text('2.3.0')),
+      findsOneWidget,
+    );
+    expect(client.starts, 0);
+  });
+
+  testWidgets('a failed refresh cannot expose the previous update target', (
+    tester,
+  ) async {
+    final client = ReconnectSetupFixture(
+      installed: {'skse'},
+      updateVersion: '2.3.0',
+    );
+    await tester.pumpWidget(app(client));
+    await settle(tester);
+    final skse = find.byKey(const ValueKey('setup-skse'));
+    await tester.tap(find.descendant(of: skse, matching: find.text('Update')));
+    await settle(tester);
+    expect(client.lastSelection.skse, SkyrimSetupAction.update);
+
+    client.snapshotGate = Completer<void>();
+    final pendingRead = Completer<SkyrimSetupStatus>();
+    client.nextReadResult = pendingRead;
+    await tester.tap(find.byKey(const ValueKey('refresh-skyrim-setup')));
+    await tester.pump();
+    expect(
+      find.descendant(of: skse, matching: find.text('Update')),
+      findsNothing,
+    );
+    expect(
+      find.descendant(of: skse, matching: find.text('2.3.0')),
+      findsNothing,
+    );
+
+    pendingRead.completeError(Exception('read failed'));
+    await settle(tester);
+    expect(
+      find.descendant(of: skse, matching: find.text('Update')),
+      findsNothing,
+    );
+    expect(
+      tester
+          .widget<McAction>(find.byKey(const ValueKey('apply-skyrim-setup')))
+          .onPressed,
+      isNull,
     );
     expect(client.starts, 0);
 
