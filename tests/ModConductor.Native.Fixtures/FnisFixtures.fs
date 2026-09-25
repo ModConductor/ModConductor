@@ -2079,6 +2079,9 @@ module FnisFixtures =
                 |> fun (_, _, registered) ->
                     registered |> Option.exists (fun value -> value.NexusFileId = 801L))
 
+        // The Ready snapshot may precede the transfer worker's final cleanup.
+        store.Downloads.Stop() |> wait
+
     let private restartEvidence writer area =
         let scenario = Directory.CreateDirectory(Path.Combine(area, "restart")).FullName
         let statePath = Path.Combine(scenario, "state")
@@ -2124,8 +2127,8 @@ module FnisFixtures =
             configure server 902L (archive "restart-update" true (2 * 1024 * 1024))
             server.Slow <- true
             coordinator.Update(workspace, profile) |> wait |> ignore
-            store.Downloads.Stop() |> wait
             (coordinator :> IDisposable).Dispose()
+            store.Downloads.Stop() |> wait
             (store :> IDisposable).Dispose()
 
         server.Slow <- false
@@ -2162,6 +2165,21 @@ module FnisFixtures =
              && after
                 |> fun (_, _, registered) ->
                     registered |> Option.exists (fun value -> value.NexusFileId = 902L))
+
+        configure server 903L (archive "user-pause" true (2 * 1024 * 1024))
+        server.Slow <- true
+        let downloading = coordinator.Update(workspace, profile) |> wait
+        let artifactId = downloading.ArtifactId.Value
+        restarted.Downloads.Control(workspace, artifactId, DownloadAction.Pause)
+        |> wait
+        |> result
+        |> ignore
+        let paused = waitForPhase coordinator workspace profile FnisPhase.Failed
+
+        check
+            writer
+            "userPausedDownloadStillReportsFailure"
+            (paused.Detail.Contains("download stopped", StringComparison.OrdinalIgnoreCase))
 
     let observe (writer: Utf8JsonWriter) primary =
         let area = Directory.CreateDirectory(Path.Combine(primary, "fnis")).FullName

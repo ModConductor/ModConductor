@@ -2,6 +2,7 @@ namespace ModConductor.Engine
 
 open System
 open System.Collections.Concurrent
+open System.Collections.Generic
 open System.Threading
 open System.Threading.Tasks
 open ModConductor.ArtifactLibrary
@@ -31,8 +32,35 @@ type EnbCoordinator
         ?eligibilityOverride: Guid * Guid -> Task<Result<unit, EnbProblem>>
     ) as this =
     let lifetime = new CancellationTokenSource()
-    let operations = ConcurrentDictionary<Guid * Guid, CancellationTokenSource>()
+    let operations =
+        ConcurrentDictionary<Guid * Guid, CancellationTokenSource * TaskCompletionSource>()
     let changed = Event<Guid * Guid>()
+    let wakeGate = obj ()
+    let wakes = Dictionary<Guid * Guid, int64 * TaskCompletionSource>()
+
+    let wakeState key =
+        lock wakeGate (fun () ->
+            match wakes.TryGetValue key with
+            | true, value -> value
+            | _ ->
+                let value = 0L, TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)
+                wakes.Add(key, value)
+                value)
+
+    let signal key =
+        lock wakeGate (fun () ->
+            let revision, waiting = wakeState key
+            wakes[key] <-
+                revision + 1L,
+                TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)
+            waiting.TrySetResult() |> ignore)
+
+    let awaitSignal key revision (token: CancellationToken) =
+        let pending =
+            lock wakeGate (fun () ->
+                let current, waiting = wakeState key
+                if current <> revision then Task.CompletedTask else waiting.Task)
+        pending.WaitAsync(token)
 
     let phaseName =
         function
@@ -651,9 +679,10 @@ type EnbCoordinator
         task {
             let key = workspace, profile
             let cancellation = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token)
+            let finished = TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)
             let! saved = store.EnbSetups.ReadStatus(workspace, profile)
 
-            if operations.TryAdd(key, cancellation) then
+            if operations.TryAdd(key, (cancellation, finished)) then
                 Task.Run(fun () ->
                     task {
                         try
@@ -661,6 +690,7 @@ type EnbCoordinator
                                 let mutable acquiring = true
 
                                 while acquiring do
+                                    let revision = fst (wakeState key)
                                     let! current = advance workspace profile cancellation.Token
 
                                     if current.Phase = EnbPhase.Acquiring then
@@ -674,15 +704,24 @@ type EnbCoordinator
                                                 ))
                                             |> Task.WhenAll
 
-                                        let revisions =
+                                        let waiting =
                                             artifacts
-                                            |> Array.choose (Option.map (fun artifact -> artifact.Id, artifact.Revision))
+                                            |> Array.choose (Option.bind (fun artifact ->
+                                                if
+                                                    artifact.State = ArtifactState.Ready
+                                                    || artifact.State = ArtifactState.Installed
+                                                then
+                                                    None
+                                                else
+                                                    Some(artifact.Id, artifact.Revision)))
                                             |> Array.toList
 
-                                        if revisions.IsEmpty then
+                                        if pending.IsEmpty then
                                             acquiring <- false
-                                        else
-                                            do! downloads.WaitForChange(workspace, revisions, cancellation.Token)
+                                        elif current.Status = "Waiting for Nexus Mods" then
+                                            do! awaitSignal key revision cancellation.Token
+                                        elif not waiting.IsEmpty then
+                                            do! downloads.WaitForChange(workspace, waiting, cancellation.Token)
                                     else
                                         acquiring <- false
                             with :? OperationCanceledException when
@@ -690,8 +729,9 @@ type EnbCoordinator
                                 ()
                         finally
                             match operations.TryRemove key with
-                            | true, owned -> owned.Dispose()
+                            | true, (owned, _) -> owned.Dispose()
                             | _ -> ()
+                            finished.TrySetResult() |> ignore
                             changed.Trigger key
                     }
                     :> Task)
@@ -810,13 +850,12 @@ type EnbCoordinator
                 let key = workspace, profile
 
                 match operations.TryGetValue key with
-                | true, cancellation -> cancellation.Cancel()
+                | true, (cancellation, finished) ->
+                    try cancellation.Cancel() with :? ObjectDisposedException -> ()
+                    try
+                        do! finished.Task.WaitAsync(TimeSpan.FromSeconds 10.)
+                    with :? TimeoutException -> ()
                 | _ -> ()
-
-                let deadline = DateTime.UtcNow.AddSeconds 10.
-
-                while operations.ContainsKey key && DateTime.UtcNow < deadline do
-                    do! Task.Delay 20
 
                 let! configuration = store.EnbSetups.ConfigurationOperation(workspace, profile)
                 let! deployed = store.Deployments.Read profile
@@ -868,15 +907,24 @@ type EnbCoordinator
 
                 use cancellation =
                     CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token, token)
+                let finished = TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)
 
-                if operations.TryAdd(key, cancellation) then
-                    try
-                        return!
-                            selectArchive false (workspace, profile, operation, path, cancellation.Token)
-                    finally
-                        match operations.TryRemove key with
-                        | true, owned -> owned.Dispose()
-                        | _ -> ()
+                if operations.TryAdd(key, (cancellation, finished)) then
+                    let! selected =
+                        task {
+                            try
+                                return!
+                                    selectArchive false (workspace, profile, operation, path, cancellation.Token)
+                            finally
+                                match operations.TryRemove key with
+                                | true, (owned, _) -> owned.Dispose()
+                                | _ -> ()
+                                finished.TrySetResult() |> ignore
+                        }
+                    if selected.Phase = EnbPhase.Acquiring then
+                        let! _ = runAdvance workspace profile
+                        ()
+                    return selected
                 else
                     return! this.Read(workspace, profile)
             }
@@ -889,15 +937,24 @@ type EnbCoordinator
                 let key = workspace, profile
                 use cancellation =
                     CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token, token)
+                let finished = TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)
 
-                if operations.TryAdd(key, cancellation) then
-                    try
-                        return!
-                            selectArchive true (workspace, profile, operation, path, cancellation.Token)
-                    finally
-                        match operations.TryRemove key with
-                        | true, owned -> owned.Dispose()
-                        | _ -> ()
+                if operations.TryAdd(key, (cancellation, finished)) then
+                    let! selected =
+                        task {
+                            try
+                                return!
+                                    selectArchive true (workspace, profile, operation, path, cancellation.Token)
+                            finally
+                                match operations.TryRemove key with
+                                | true, (owned, _) -> owned.Dispose()
+                                | _ -> ()
+                                finished.TrySetResult() |> ignore
+                        }
+                    if selected.Phase = EnbPhase.Acquiring then
+                        let! _ = runAdvance workspace profile
+                        ()
+                    return selected
                 else
                     return! this.Read(workspace, profile)
             }
@@ -925,7 +982,12 @@ type EnbCoordinator
                     let! artifact = store.Artifacts.Read(workspace, id)
 
                     match artifact with
-                    | Ok value -> return! beginAcquisition workspace profile value lifetime.Token
+                    | Ok value ->
+                        let! started = beginAcquisition workspace profile value lifetime.Token
+                        if started.Phase = EnbPhase.Acquiring then
+                            let! _ = runAdvance workspace profile
+                            ()
+                        return started
                     | Error _ ->
                         return!
                             persist
@@ -1141,6 +1203,11 @@ type EnbCoordinator
                                         (Some source.RuntimeSha256)
                                         (view EnbPhase.Failed title detail)
 
+                                match operations.TryGetValue((source.WorkspaceId, source.ProfileId)) with
+                                | true, (cancellation, _) ->
+                                    try cancellation.Cancel() with :? ObjectDisposedException -> ()
+                                | _ -> ()
+
                                 ()
                         }
 
@@ -1182,6 +1249,7 @@ type EnbCoordinator
 
                                     if Result.isOk started then
                                         admitted.Complete()
+                                        signal (source.WorkspaceId, source.ProfileId)
                                     else
                                         do!
                                             failSources
@@ -1223,12 +1291,20 @@ type EnbCoordinator
                 :> Task)
             |> ignore
 
-    interface IDisposable with
-        member _.Dispose() =
+    member internal _.Stop() =
+        task {
             lifetime.Cancel()
 
-            for cancellation in operations.Values do
-                cancellation.Cancel()
+            let running =
+                [| for _, finished in operations.Values do
+                       finished.Task |]
+
+            do! Task.WhenAll running
+        }
+
+    interface IDisposable with
+        member this.Dispose() =
+            this.Stop().GetAwaiter().GetResult()
 
             lifetime.Dispose()
 

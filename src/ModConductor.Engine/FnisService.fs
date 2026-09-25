@@ -25,7 +25,8 @@ type FnisCoordinator
     (nexus: NexusSession, downloads: DownloadSession, store: OperationStore, handoff: IOAuthHandoff)
     =
     let lifetime = new CancellationTokenSource()
-    let workers = ConcurrentDictionary<Guid * Guid, CancellationTokenSource>()
+    let workers =
+        ConcurrentDictionary<Guid * Guid, CancellationTokenSource * TaskCompletionSource>()
     let changed = Event<Guid * Guid>()
 
     let phaseName =
@@ -176,9 +177,10 @@ type FnisCoordinator
 
     let monitor key (selection: StoredFnisSelection) (artifact: Artifact) =
         let local = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token)
+        let finished = TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)
 
-        if workers.TryAdd(key, local) then
-            (task {
+        if workers.TryAdd(key, (local, finished)) then
+            let work: Task = task {
                 let release = selection.Selection.Release
 
                 try
@@ -272,12 +274,14 @@ type FnisCoordinator
                           ArtifactId = Some artifact.Id }
                     |> fun pending -> pending.GetAwaiter().GetResult() |> ignore
 
-                let mutable removed = Unchecked.defaultof<CancellationTokenSource>
+            }
+
+            work.ContinueWith(fun (_: Task) ->
+                let mutable removed = Unchecked.defaultof<CancellationTokenSource * TaskCompletionSource>
                 workers.TryRemove(key, &removed) |> ignore
                 local.Dispose()
-                changed.Trigger key
-            }
-            :> Task)
+                finished.TrySetResult() |> ignore
+                changed.Trigger key)
             |> ignore
         else
             local.Dispose()
@@ -584,13 +588,14 @@ type FnisCoordinator
             let key = workspace, profile
 
             match workers.TryGetValue key with
-            | true, cancellation -> cancellation.Cancel()
+            | true, (cancellation, finished) ->
+                try
+                    cancellation.Cancel()
+                with :? ObjectDisposedException -> ()
+                try
+                    do! finished.Task.WaitAsync(TimeSpan.FromSeconds 5.)
+                with :? TimeoutException -> ()
             | _ -> ()
-
-            let deadline = DateTime.UtcNow.AddSeconds 5.
-
-            while workers.ContainsKey key && DateTime.UtcNow < deadline do
-                do! Task.Delay 10
 
             let! saved = store.FnisSetups.ReadStatus(workspace, profile)
 
@@ -671,12 +676,13 @@ type FnisCoordinator
                           ArtifactId = None }
         }
 
-    member this.Recover(workspace, profile, token) =
+    member this.Recover(workspace, profile, token: CancellationToken) =
         task {
             let key = workspace, profile
 
-            while workers.ContainsKey key do
-                do! Task.Delay(10, token)
+            match workers.TryGetValue key with
+            | true, (_, finished) -> do! finished.Task.WaitAsync(token)
+            | _ -> ()
 
             let! state = store.Deployments.Read profile
 
@@ -857,15 +863,20 @@ type FnisCoordinator
             :> Task)
         |> ignore
 
-    interface IDisposable with
-        member _.Dispose() =
+    member internal _.Stop() =
+        task {
             lifetime.Cancel()
 
-            for worker in workers.Values do
-                try
-                    worker.Cancel()
-                with :? ObjectDisposedException ->
-                    ()
+            let running =
+                [| for _, finished in workers.Values do
+                       finished.Task |]
+
+            do! Task.WhenAll running
+        }
+
+    interface IDisposable with
+        member this.Dispose() =
+            this.Stop().GetAwaiter().GetResult()
 
             lifetime.Dispose()
 

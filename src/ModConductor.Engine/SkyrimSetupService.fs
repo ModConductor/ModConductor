@@ -120,7 +120,8 @@ module internal SkyrimSetupDependencies =
 type internal SkyrimSetupCoordinator
     (store: OperationStore, dependencies: SkyrimSetupDependencies, ?childChanges: IObservable<Guid * Guid> list) =
     let lifetime = new CancellationTokenSource()
-    let workers = ConcurrentDictionary<Guid * Guid, CancellationTokenSource>()
+    let workers =
+        ConcurrentDictionary<Guid * Guid, CancellationTokenSource * TaskCompletionSource>()
     let progression =
         ConcurrentDictionary<Guid * Guid, CancellationTokenSource * TaskCompletionSource>()
     let failed = TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)
@@ -151,8 +152,9 @@ type internal SkyrimSetupCoordinator
     let startWorker workspace profile action =
         let key = workspace, profile
         let cancellation = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token)
+        let finished = TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)
 
-        if workers.TryAdd(key, cancellation) then
+        if workers.TryAdd(key, (cancellation, finished)) then
             Task.Run(fun () ->
                 task {
                     try
@@ -164,8 +166,9 @@ type internal SkyrimSetupCoordinator
                         | error -> failed.TrySetException error |> ignore
                     finally
                         match workers.TryRemove key with
-                        | true, owned -> owned.Dispose()
+                        | true, (owned, _) -> owned.Dispose()
                         | _ -> ()
+                        finished.TrySetResult() |> ignore
                         notify key
                 }
                 :> Task)
@@ -1154,7 +1157,7 @@ type internal SkyrimSetupCoordinator
             let key = workspace, profile
 
             match workers.TryGetValue key with
-            | true, cancellation -> cancellation.Cancel()
+            | true, (cancellation, _) -> cancellation.Cancel()
             | _ -> ()
 
             let! childResult =
@@ -1693,21 +1696,22 @@ type internal SkyrimSetupCoordinator
                 return current
         }
 
-    interface IDisposable with
-        member _.Dispose() =
+    member internal _.Stop() =
+        task {
             lifetime.Cancel()
 
-            for key in workers.Keys do
-                match workers.TryRemove key with
-                | true, cancellation ->
-                    cancellation.Cancel()
-                    cancellation.Dispose()
-                | _ -> ()
+            let running =
+                [| for _, finished in workers.Values do
+                       finished.Task
+                   for _, finished in progression.Values do
+                       finished.Task |]
 
-            for key in progression.Keys do
-                match progression.TryGetValue key with
-                | true, (cancellation, _) -> cancellation.Cancel()
-                | _ -> ()
+            do! Task.WhenAll running
+        }
+
+    interface IDisposable with
+        member this.Dispose() =
+            this.Stop().GetAwaiter().GetResult()
 
             for subscription in subscriptions do
                 subscription.Dispose()

@@ -182,6 +182,24 @@ class SetupClientFixture extends SkyrimSetupClient {
   }
 }
 
+class ReconnectSetupFixture extends SetupClientFixture {
+  ReconnectSetupFixture() : super(installed: <String>{});
+
+  @override
+  Stream<SkyrimSetupStatus> watch(
+    String workspace,
+    String profile, {
+    required SkyrimSetupSelection selection,
+  }) {
+    final controller = StreamController<SkyrimSetupStatus>.broadcast();
+    updates['$workspace:$profile'] = controller;
+    scheduleMicrotask(() async {
+      controller.add(await read(workspace, profile, selection: selection));
+    });
+    return controller.stream;
+  }
+}
+
 Widget app(
   SetupClientFixture client, {
   ArchiveChooser? choose,
@@ -209,6 +227,32 @@ Future<void> settle(WidgetTester tester) async {
 }
 
 void main() {
+  testWidgets(
+    'setup watch reconnects with current state after stream failure',
+    (tester) async {
+      final client = ReconnectSetupFixture();
+      await tester.pumpWidget(app(client));
+      await settle(tester);
+      final reads = client.reads;
+      client.updates['workspace:profile']!.addError(
+        StateError('connection lost'),
+      );
+      await tester.pump();
+      client.installed.add('fnis');
+      await tester.pump(const Duration(milliseconds: 1100));
+      await settle(tester);
+      expect(client.reads, reads + 1);
+      expect(find.text('Installed'), findsWidgets);
+      await tester.pump(const Duration(milliseconds: 1100));
+      expect(client.reads, reads + 1);
+      await client.updates['workspace:profile']!.close();
+      client.installed.add('skse');
+      await tester.pump(const Duration(milliseconds: 1100));
+      await settle(tester);
+      expect(client.reads, reads + 2);
+    },
+  );
+
   testWidgets(
     'setup events update the open controls without reads or Continue',
     (tester) async {

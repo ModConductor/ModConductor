@@ -16,8 +16,19 @@ const _status = CredentialStatus(
 );
 
 class _Nexus extends Fake implements NexusClient {
+  _Nexus() {
+    replaceEvents();
+  }
+
+  void replaceEvents() {
+    events = StreamController<NexusAccount>.broadcast(
+      onListen: () => scheduleMicrotask(() => events.add(account)),
+    );
+  }
+
   NexusAccount account = const NexusAccount(false, false, null, null, null);
-  final events = StreamController<NexusAccount>.broadcast();
+  late StreamController<NexusAccount> events;
+  int watches = 0;
   final submitted = <String>[];
   Completer<NexusAccount>? pendingCheck;
   Object? checkError;
@@ -27,7 +38,10 @@ class _Nexus extends Fake implements NexusClient {
   Future<NexusAccount> status() async => account;
 
   @override
-  Stream<NexusAccount> watchStatus() => events.stream;
+  Stream<NexusAccount> watchStatus() {
+    watches++;
+    return events.stream;
+  }
 
   @override
   Future<NexusAccount> submitPersonalApiKey(String apiKey) async {
@@ -110,6 +124,41 @@ CredentialPreferencesLabels get _labels => CredentialPreferencesLabels(
 );
 
 void main() {
+  testWidgets(
+    'account watch reconnects to current status after stream failure',
+    (tester) async {
+      final nexus = _Nexus();
+      final credentials = _Credentials(nexus);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: CredentialPreferences(
+              client: credentials,
+              nexus: nexus,
+              labels: _labels,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(nexus.watches, 1);
+      nexus.events.addError(StateError('connection lost'));
+      await tester.pump();
+      nexus.account = const NexusAccount(false, false, 'Rowan', true, null);
+      await tester.pump(const Duration(milliseconds: 1100));
+      await tester.pumpAndSettle();
+      expect(nexus.watches, 2);
+      expect(find.byType(McIdentityCard), findsOneWidget);
+      await tester.pump(const Duration(milliseconds: 1100));
+      expect(nexus.watches, 2);
+      await nexus.events.close();
+      nexus.replaceEvents();
+      await tester.pump(const Duration(milliseconds: 1100));
+      await tester.pumpAndSettle();
+      expect(nexus.watches, 3);
+    },
+  );
+
   testWidgets(
     'background account connection updates Preferences from an event',
     (tester) async {

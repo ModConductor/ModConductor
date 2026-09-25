@@ -537,6 +537,37 @@ module EnbFixtures =
 
                 accept EnbCatalogue.CathedralModId 7002L
 
+            if premium then
+                let account = nexus.Status.Account.Value.Subject
+
+                let findSource modId fileId version =
+                    store.Downloads.FindNexus(
+                        workspace,
+                        { Account = account
+                          Game = "skyrimspecialedition"
+                          ModId = modId
+                          FileId = fileId
+                          Keyed = false
+                          Version = Some version }
+                    )
+                    |> wait
+
+                until
+                    "premium preset source ready"
+                    (fun () -> findSource EnbCatalogue.LeanModId 7001L "1.0.0")
+                    (Option.exists (fun artifact ->
+                        artifact.State = ArtifactState.Ready
+                        || artifact.State = ArtifactState.Installed))
+                |> ignore
+
+                let next =
+                    until
+                        "premium companion admitted after ready preset"
+                        (fun () -> findSource EnbCatalogue.CathedralModId 7002L "2.50")
+                        Option.isSome
+
+                check writer "premiumReadySourceStartsNextWithoutPolling" next.IsSome
+
             let ready =
                 until
                     (name + " ENB coordinator")

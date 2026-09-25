@@ -29,7 +29,9 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
   bool busy = false;
   String? problem;
   StreamSubscription<SkyrimSetupStatus>? _watch;
+  Timer? _watchReconnect;
   int _epoch = 0;
+  int _watchAttempt = 0;
 
   @override
   void initState() {
@@ -44,6 +46,7 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
         old.profileId != widget.profileId ||
         old.client != widget.client) {
       ++_epoch;
+      _watchReconnect?.cancel();
       unawaited(_watch?.cancel() ?? Future.value());
       status = null;
       selection = const SkyrimSetupSelection();
@@ -56,24 +59,40 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
   @override
   void dispose() {
     ++_epoch;
+    _watchReconnect?.cancel();
     unawaited(_watch?.cancel() ?? Future.value());
     super.dispose();
   }
 
   void _observe() {
     final epoch = _epoch;
+    final attempt = ++_watchAttempt;
+    _watchReconnect?.cancel();
+    _watchReconnect = null;
+    unawaited(_watch?.cancel() ?? Future.value());
+    void reconnect() {
+      if (!mounted || epoch != _epoch || attempt != _watchAttempt) return;
+      _watchReconnect?.cancel();
+      _watchReconnect = Timer(const Duration(seconds: 1), () {
+        if (mounted && epoch == _epoch && attempt == _watchAttempt) _observe();
+      });
+    }
+
     _watch = widget.client
         .watch(widget.workspaceId, widget.profileId, selection: selection)
         .listen(
           (next) {
-            if (!mounted || epoch != _epoch) return;
+            if (!mounted || epoch != _epoch || attempt != _watchAttempt) return;
             _accept(next);
           },
           onError: (Object _) {
-            if (mounted && epoch == _epoch) {
+            if (mounted && epoch == _epoch && attempt == _watchAttempt) {
               setState(() => problem = 'Skyrim setup updates are unavailable.');
+              reconnect();
             }
           },
+          onDone: reconnect,
+          cancelOnError: true,
         );
   }
 
@@ -104,6 +123,7 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
   Future<void> change(Future<SkyrimSetupStatus> Function() action) async {
     if (busy) return;
     final epoch = ++_epoch;
+    _watchReconnect?.cancel();
     unawaited(_watch?.cancel() ?? Future.value());
     setState(() {
       busy = true;

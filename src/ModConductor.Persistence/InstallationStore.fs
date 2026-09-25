@@ -461,6 +461,14 @@ type InstallationStore
             if current = observed then do! pending.WaitAsync(token)
         } :> Task
 
+    member _.WaitForWorker(id, token: CancellationToken) =
+        let pending =
+            lock gate (fun () ->
+                match workers.TryGetValue id with
+                | true, (_, work) -> work
+                | _ -> Task.CompletedTask)
+        pending.WaitAsync(token)
+
     member _.Recent(workspace) =
         database.Enqueue(fun () ->
             use query =

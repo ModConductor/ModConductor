@@ -118,6 +118,8 @@ class _CredentialPreferencesState extends State<CredentialPreferences> {
   CredentialStatus? _status;
   NexusAccount? _account;
   StreamSubscription<NexusAccount>? _accountWatch;
+  Timer? _accountReconnect;
+  int _accountWatchAttempt = 0;
   bool _accountEventPending = false;
   bool _busy = false, _connectionProblem = false;
   bool _checkingAccount = false,
@@ -145,6 +147,7 @@ class _CredentialPreferencesState extends State<CredentialPreferences> {
       _accountChecked = false;
       _accountCheckFailed = false;
       if (_accountWatch != null) unawaited(_accountWatch!.cancel());
+      _accountReconnect?.cancel();
       _accountEventPending = false;
       _refresh();
       _observeAccount();
@@ -189,10 +192,34 @@ class _CredentialPreferencesState extends State<CredentialPreferences> {
     final nexus = widget.nexus;
     if (nexus == null) return;
     final generation = _generation;
+    final attempt = ++_accountWatchAttempt;
+    _accountReconnect?.cancel();
+    _accountReconnect = null;
+    unawaited(_accountWatch?.cancel() ?? Future.value());
+    void reconnect() {
+      if (!mounted ||
+          generation != _generation ||
+          attempt != _accountWatchAttempt)
+        return;
+      _accountReconnect?.cancel();
+      _accountReconnect = Timer(const Duration(seconds: 1), () {
+        if (mounted &&
+            generation == _generation &&
+            attempt == _accountWatchAttempt)
+          _observeAccount();
+      });
+    }
+
     _accountWatch = nexus.watchStatus().listen(
       (account) {
-        if (!mounted || generation != _generation) return;
-        setState(() => _account = account);
+        if (!mounted ||
+            generation != _generation ||
+            attempt != _accountWatchAttempt)
+          return;
+        setState(() {
+          _account = account;
+          _connectionProblem = false;
+        });
         if (_busy) {
           _accountEventPending = true;
         } else {
@@ -200,14 +227,22 @@ class _CredentialPreferencesState extends State<CredentialPreferences> {
         }
       },
       onError: (Object _) {
-        if (mounted && generation == _generation)
+        if (mounted &&
+            generation == _generation &&
+            attempt == _accountWatchAttempt) {
           setState(() => _connectionProblem = true);
+          reconnect();
+        }
       },
+      onDone: reconnect,
+      cancelOnError: true,
     );
   }
 
   @override
   void dispose() {
+    ++_generation;
+    _accountReconnect?.cancel();
     if (_accountWatch != null) unawaited(_accountWatch!.cancel());
     _personalApiKey.dispose();
     super.dispose();

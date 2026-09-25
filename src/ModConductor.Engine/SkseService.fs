@@ -29,7 +29,8 @@ type SkseCoordinator
         handoff: IOAuthHandoff
     ) =
     let lifetime = new CancellationTokenSource()
-    let workers = ConcurrentDictionary<Guid * Guid, CancellationTokenSource>()
+    let workers =
+        ConcurrentDictionary<Guid * Guid, CancellationTokenSource * TaskCompletionSource>()
     let changed = Event<Guid * Guid>()
 
     let phaseName (value: SksePhase) =
@@ -204,8 +205,9 @@ type SkseCoordinator
         (selection: StoredSkseSelection)
         (artifact: Artifact)
         (local: CancellationTokenSource)
+        (finished: TaskCompletionSource)
         =
-        (task {
+        let work: Task = task {
             let gameVersion, _ = facts context
             let release = selection.Selection.Release
 
@@ -289,12 +291,15 @@ type SkseCoordinator
                     error.Message
                 |> fun pending -> pending.GetAwaiter().GetResult() |> ignore
 
-            let mutable removed = Unchecked.defaultof<CancellationTokenSource>
+        }
+
+        work.ContinueWith(fun (_: Task) ->
+            let mutable removed = Unchecked.defaultof<CancellationTokenSource * TaskCompletionSource>
             workers.TryRemove(key, &removed) |> ignore
             local.Dispose()
-            changed.Trigger key
-        }
-        :> Task)
+            finished.TrySetResult() |> ignore
+            changed.Trigger key)
+        |> ignore
         |> ignore
 
     let prepareArtifact
@@ -306,6 +311,7 @@ type SkseCoordinator
         =
         task {
             let local = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token)
+            let finished = TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)
             let gameVersion, _ = facts context
 
             let downloading =
@@ -316,16 +322,17 @@ type SkseCoordinator
                   Detail = ""
                   FileId = Some selection.Selection.Release.File.Id }
 
-            if workers.TryAdd(key, local) then
+            if workers.TryAdd(key, (local, finished)) then
                 try
                     do! saveArtifact artifact selection
                     let! view = persist key downloading
-                    monitor key context selection artifact local
+                    monitor key context selection artifact local finished
                     return view
                 with error ->
-                    let mutable removed = Unchecked.defaultof<CancellationTokenSource>
+                    let mutable removed = Unchecked.defaultof<CancellationTokenSource * TaskCompletionSource>
                     workers.TryRemove(key, &removed) |> ignore
                     local.Dispose()
+                    finished.TrySetResult() |> ignore
                     return raise error
             else
                 local.Dispose()
@@ -639,13 +646,12 @@ type SkseCoordinator
             let key = workspace, profile
 
             match workers.TryGetValue key with
-            | true, cancellation -> cancellation.Cancel()
+            | true, (cancellation, finished) ->
+                try cancellation.Cancel() with :? ObjectDisposedException -> ()
+                try
+                    do! finished.Task.WaitAsync(TimeSpan.FromSeconds 5.)
+                with :? TimeoutException -> ()
             | _ -> ()
-
-            let deadline = DateTime.UtcNow.AddSeconds 5.
-
-            while workers.ContainsKey key && DateTime.UtcNow < deadline do
-                do! Task.Delay 10
 
             do! store.SkseLoaders.RemovePending profile
             let! deployed = store.Deployments.Read profile
@@ -837,15 +843,20 @@ type SkseCoordinator
             return! this.Read(workspace, profile)
         }
 
-    interface IDisposable with
-        member _.Dispose() =
+    member internal _.Stop() =
+        task {
             lifetime.Cancel()
 
-            for worker in workers.Values do
-                try
-                    worker.Cancel()
-                with :? ObjectDisposedException ->
-                    ()
+            let running =
+                [| for _, finished in workers.Values do
+                       finished.Task |]
+
+            do! Task.WhenAll running
+        }
+
+    interface IDisposable with
+        member this.Dispose() =
+            this.Stop().GetAwaiter().GetResult()
 
             lifetime.Dispose()
 

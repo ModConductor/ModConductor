@@ -586,8 +586,12 @@ let runWithNexus registration (handoff: ModConductor.Nexus.IOAuthHandoff) args =
     |> ignore
 
     app.WaitForShutdownAsync().GetAwaiter().GetResult()
-    fnisRunner.Stop().GetAwaiter().GetResult()
     nxmIngress.Stop().GetAwaiter().GetResult()
+    skyrimSetup.Stop().GetAwaiter().GetResult()
+    fnisRunner.Stop().GetAwaiter().GetResult()
+    skse.Stop().GetAwaiter().GetResult()
+    enb.Stop().GetAwaiter().GetResult()
+    fnis.Stop().GetAwaiter().GetResult()
     store.Installations.Stop().GetAwaiter().GetResult()
     store.Downloads.Stop().GetAwaiter().GetResult()
     nexus.Stop().GetAwaiter().GetResult()

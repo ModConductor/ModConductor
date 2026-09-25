@@ -863,9 +863,11 @@ type OperationStore
                         let mutable installed = started
 
                         while installed.State = ModConductor.ArchiveInstallation.InstallationState.Running do
-                            do! System.Threading.Tasks.Task.Delay(25, token)
+                            do! installations.WaitForChange(workspace, installationId, installed, token)
                             let! current = installations.Read(workspace, installationId)
                             installed <- current
+
+                        do! installations.WaitForWorker(installationId, token)
 
                         if
                             installed.State <> ModConductor.ArchiveInstallation.InstallationState.Complete
@@ -1121,9 +1123,11 @@ type OperationStore
                 installations.Start(workspace, reviewed.Id, reviewed.Revision, installationId)
 
             while installed.State = ModConductor.ArchiveInstallation.InstallationState.Running do
-                do! Threading.Tasks.Task.Delay(25, token)
+                do! installations.WaitForChange(workspace, installationId, installed, token)
                 let! current = installations.Read(workspace, installationId)
                 installed <- current
+
+            do! installations.WaitForWorker(installationId, token)
 
             if
                 installed.State <> ModConductor.ArchiveInstallation.InstallationState.Complete
@@ -1645,9 +1649,11 @@ type OperationStore
                         )
 
                     while installed.State = ModConductor.ArchiveInstallation.InstallationState.Running do
-                        do! Threading.Tasks.Task.Delay(25, token)
+                        do! installations.WaitForChange(workspace, installationId, installed, token)
                         let! current = installations.Read(workspace, installationId)
                         installed <- current
+
+                    do! installations.WaitForWorker(installationId, token)
 
                     if
                         installed.State
