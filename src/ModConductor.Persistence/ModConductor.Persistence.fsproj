@@ -19,7 +19,6 @@
     <Compile Include="SelectionRows.fs" />
     <Compile Include="WorkspaceProfiles.fs" />
     <Compile Include="StateDatabase.fs" />
-    <Compile Include="SkseLoaderStore.fs" />
     <Compile Include="EnbStore.fs" />
     <Compile Include="FnisStore.fs" />
     <Compile Include="SkyrimSetupStore.fs" />
@@ -45,6 +44,7 @@
     <Compile Include="ProtonEncoding.fs" />
     <Compile Include="GameContextEncoding.fs" />
     <Compile Include="GameContextStore.fs" />
+    <Compile Include="SkseLoaderStore.fs" />
     <Compile Include="OutputRows.fs" />
     <Compile Include="OutputEncoding.fs" />
     <Compile Include="OutputLocationStore.fs" />

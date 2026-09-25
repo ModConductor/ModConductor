@@ -65,20 +65,20 @@ type SkseCoordinator
           Detail = value.Detail
           FileId = value.NexusFileId }
 
-    let persist (workspace, profile) (value: SkseView) =
-        task {
-            do!
-                store.SkseLoaders.SaveStatus
-                    { WorkspaceId = workspace
-                      ProfileId = profile
-                      Phase = phaseName value.Phase
-                      GameVersion = value.GameVersion
-                      ComponentVersion = value.ComponentVersion
-                      Status = value.Status
-                      Detail = value.Detail
-                      NexusFileId = value.FileId
-                      CheckedAt = DateTimeOffset.UtcNow }
+    let storedStatus (workspace, profile) (value: SkseView) =
+        { WorkspaceId = workspace
+          ProfileId = profile
+          Phase = phaseName value.Phase
+          GameVersion = value.GameVersion
+          ComponentVersion = value.ComponentVersion
+          Status = value.Status
+          Detail = value.Detail
+          NexusFileId = value.FileId
+          CheckedAt = DateTimeOffset.UtcNow }
 
+    let persist key (value: SkseView) =
+        task {
+            do! store.SkseLoaders.SaveStatus(storedStatus key value)
             return value
         }
 
@@ -493,7 +493,16 @@ type SkseCoordinator
                                           FileId = Some selection.Selection.Release.File.Id }
                                     else installedState context loader None
 
-                                return! persist (workspace, profile) state
+                                let! published =
+                                    store.SkseLoaders.SaveCheckedUpdateStatus(
+                                        loader.Loader.GenerationId,
+                                        loader.VersionId,
+                                        saved,
+                                        storedStatus (workspace, profile) state
+                                    )
+
+                                if published then return state
+                                else return! this.Read(workspace, profile)
             | _ ->
                 return
                     { Phase = SksePhase.Unavailable

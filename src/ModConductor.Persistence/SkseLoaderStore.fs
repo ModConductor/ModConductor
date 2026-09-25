@@ -3,6 +3,7 @@ namespace ModConductor.Persistence
 open System
 open Microsoft.Data.Sqlite
 open ModConductor.ArtifactLibrary
+open ModConductor.Deployment
 open ModConductor.GameLaunching
 open ModConductor.Nexus
 open ModConductor.Skse
@@ -98,6 +99,57 @@ module internal SkseRows =
           "$runtime", box (string release.RuntimeVersion)
           "$acquisition", box (acquisitionValue value.Selection.Acquisition)
           "$checked", box (value.CheckedAt.ToString("O")) ]
+
+    let readStatus connection transaction workspace profile =
+        use query =
+            Sqlite.command
+                connection
+                transaction
+                "SELECT phase,game_version,component_version,status,detail,nexus_file,checked_at FROM skse_profile_status WHERE profile_id=$profile AND workspace_id=$workspace"
+                [ "$profile", box (string profile); "$workspace", box (string workspace) ]
+
+        use reader = query.ExecuteReader()
+
+        if reader.Read() then
+            Some
+                { WorkspaceId = workspace
+                  ProfileId = profile
+                  Phase = reader.GetString 0
+                  GameVersion = reader.GetString 1
+                  ComponentVersion = reader.GetString 2
+                  Status = reader.GetString 3
+                  Detail = reader.GetString 4
+                  NexusFileId = if reader.IsDBNull 5 then None else Some(reader.GetInt64 5)
+                  CheckedAt = DateTimeOffset.Parse(reader.GetString 6) }
+        else None
+
+    let writeStatus connection transaction (value: StoredSkseStatus) =
+        Sqlite.execute
+            connection
+            transaction
+            "INSERT INTO skse_profile_status(profile_id,workspace_id,phase,game_version,component_version,status,detail,nexus_file,checked_at) SELECT $profile,$workspace,$phase,$game,$component,$status,$detail,$file,$checked WHERE EXISTS(SELECT 1 FROM profiles WHERE id=$profile AND workspace_id=$workspace) ON CONFLICT(profile_id) DO UPDATE SET workspace_id=excluded.workspace_id,phase=excluded.phase,game_version=excluded.game_version,component_version=excluded.component_version,status=excluded.status,detail=excluded.detail,nexus_file=excluded.nexus_file,checked_at=excluded.checked_at"
+            [ "$profile", box (string value.ProfileId)
+              "$workspace", box (string value.WorkspaceId)
+              "$phase", box value.Phase
+              "$game", box value.GameVersion
+              "$component", box value.ComponentVersion
+              "$status", box value.Status
+              "$detail", box value.Detail
+              "$file", value.NexusFileId |> Option.map box |> Option.defaultValue (box DBNull.Value)
+              "$checked", box (value.CheckedAt.ToString("O")) ]
+
+    let activeGeneration connection transaction owner workspace profile =
+        GameContextRows.read connection transaction owner workspace profile
+        |> Result.toOption
+        |> Option.bind _.Binding
+        |> Option.bind (fun binding ->
+            let id =
+                DeploymentContextId.create
+                    workspace
+                    profile
+                    (DeploymentContextId.fingerprint binding.Evidence)
+
+            DeploymentRows.context connection transaction id |> Option.bind _.Active)
 
     let completeReplacement connection transaction receiptId publish =
         use query =
@@ -304,45 +356,47 @@ type internal SkseLoaderStore(database: StateDatabase) =
 
     member _.SaveStatus(value: StoredSkseStatus) =
         database.EnqueueInternal(fun () ->
-            Sqlite.execute
-                database.Connection
-                null
-                "INSERT INTO skse_profile_status(profile_id,workspace_id,phase,game_version,component_version,status,detail,nexus_file,checked_at) SELECT $profile,$workspace,$phase,$game,$component,$status,$detail,$file,$checked WHERE EXISTS(SELECT 1 FROM profiles WHERE id=$profile AND workspace_id=$workspace) ON CONFLICT(profile_id) DO UPDATE SET workspace_id=excluded.workspace_id,phase=excluded.phase,game_version=excluded.game_version,component_version=excluded.component_version,status=excluded.status,detail=excluded.detail,nexus_file=excluded.nexus_file,checked_at=excluded.checked_at"
-                [ "$profile", box (string value.ProfileId)
-                  "$workspace", box (string value.WorkspaceId)
-                  "$phase", box value.Phase
-                  "$game", box value.GameVersion
-                  "$component", box value.ComponentVersion
-                  "$status", box value.Status
-                  "$detail", box value.Detail
-                  "$file",
-                  value.NexusFileId |> Option.map box |> Option.defaultValue (box DBNull.Value)
-                  "$checked", box (value.CheckedAt.ToString("O")) ])
+            SkseRows.writeStatus database.Connection null value)
 
     member _.ReadStatus(workspace: Guid, profile: Guid) =
         database.Enqueue(fun () ->
-            use query =
-                Sqlite.command
+            SkseRows.readStatus database.Connection null workspace profile)
+
+    member _.SaveCheckedUpdateStatus
+        (generation: Guid, version: Guid, observed: StoredSkseStatus option, value: StoredSkseStatus)
+        =
+        database.EnqueueInternal(fun () ->
+            use transaction = database.Connection.BeginTransaction(deferred = false)
+            let workspace, profile = value.WorkspaceId, value.ProfileId
+
+            let active =
+                SkseRows.activeGeneration
                     database.Connection
-                    null
-                    "SELECT phase,game_version,component_version,status,detail,nexus_file,checked_at FROM skse_profile_status WHERE profile_id=$profile AND workspace_id=$workspace"
-                    [ "$profile", box (string profile); "$workspace", box (string workspace) ]
+                    transaction
+                    database.OwnerId
+                    workspace
+                    profile
 
-            use reader = query.ExecuteReader()
+            let installed =
+                Sqlite.number
+                    database.Connection
+                    transaction
+                    "SELECT count(*) FROM skse_loader_selections WHERE workspace_id=$workspace AND profile_id=$profile AND generation_id=$generation AND version_id=$version"
+                    [ "$workspace", box (string workspace)
+                      "$profile", box (string profile)
+                      "$generation", box (string generation)
+                      "$version", box (string version) ] = 1L
 
-            if reader.Read() then
-                Some
-                    { WorkspaceId = workspace
-                      ProfileId = profile
-                      Phase = reader.GetString 0
-                      GameVersion = reader.GetString 1
-                      ComponentVersion = reader.GetString 2
-                      Status = reader.GetString 3
-                      Detail = reader.GetString 4
-                      NexusFileId = if reader.IsDBNull 5 then None else Some(reader.GetInt64 5)
-                      CheckedAt = DateTimeOffset.Parse(reader.GetString 6) }
-            else
-                None)
+            let unchanged =
+                SkseRows.readStatus database.Connection transaction workspace profile = observed
+
+            let publish = active = Some generation && installed && unchanged
+
+            if publish then
+                SkseRows.writeStatus database.Connection transaction value
+
+            transaction.Commit()
+            publish)
 
     member _.SavePending(value: StoredSkseSelection) =
         database.EnqueueInternal(fun () ->

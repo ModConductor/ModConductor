@@ -681,16 +681,59 @@ module SkseCoordinatorFixtures =
             "confirmedNoUpdateClearsPreviousUpdate"
             (cleared.Phase = SksePhase.Ready && clearedRead.Phase = SksePhase.Ready)
 
-        configure server runtime updateId "2.3.0" (archive runtime "update" true 0)
-        let beforeConcurrent = server.Count "/api/games/skyrimspecialedition/mods/30379.json"
-        server.HoldMetadata() |> ignore
-        let concurrentCheck = coordinator.CheckUpdate(workspace, profile)
+        let holdUpdate label =
+            let endpoint = "/api/games/skyrimspecialedition/mods/30379.json"
+            let before = server.Count endpoint
+            server.HoldMetadata() |> ignore
+            let pending = coordinator.CheckUpdate(workspace, profile)
+            until label (fun () -> server.Count endpoint) (fun count -> count > before)
+            |> ignore
+            pending
 
-        until
-            "held update check before SKSE reinstall"
-            (fun () -> server.Count "/api/games/skyrimspecialedition/mods/30379.json")
-            (fun count -> count > beforeConcurrent)
-        |> ignore
+        configure server runtime updateId "2.3.0" (archive runtime "update" true 0)
+        let failedCheck = holdUpdate "held update check before failed SKSE setup"
+        coordinator.Remove(workspace, profile, CancellationToken.None) |> wait |> ignore
+        failurePoint <- "install-intent"
+        coordinator.Start(workspace, profile) |> wait |> ignore
+        waitForStatus store workspace profile "failed" |> ignore
+        failurePoint <- ""
+        server.ReleaseMetadata()
+        let failedCheckResult = failedCheck |> wait
+        let retainedFailure = store.SkseLoaders.ReadStatus(workspace, profile) |> wait
+
+        check
+            writer
+            "heldUpdateCannotReplaceConcurrentSetupFailure"
+            (failedCheckResult.Phase = SksePhase.Failed
+             && (retainedFailure |> Option.exists (fun state -> state.Phase = "failed")))
+
+        coordinator.Start(workspace, profile) |> wait |> ignore
+        waitForStatus store workspace profile "current" |> ignore
+
+        let cancelledCheck = holdUpdate "held update check before cancelled SKSE setup"
+        coordinator.Remove(workspace, profile, CancellationToken.None) |> wait |> ignore
+        coordinator.Cancel(workspace, profile) |> wait |> ignore
+        server.ReleaseMetadata()
+        cancelledCheck |> wait |> ignore
+        let retainedCancellation = store.SkseLoaders.ReadStatus(workspace, profile) |> wait
+
+        check
+            writer
+            "heldUpdateCannotReplaceConcurrentSetupCancellation"
+            (retainedCancellation
+             |> Option.exists (fun state ->
+                 state.Phase = "available" && state.Status = "SKSE setup was cancelled"))
+
+        coordinator.Start(workspace, profile) |> wait |> ignore
+        waitForStatus store workspace profile "current" |> ignore
+
+        let beforeReplacementGeneration = (store.Deployments.Read profile |> wait |> result).ActiveGeneration.Value
+        let beforeReplacementLoader =
+            store.SkseLoaders.ReadStored(workspace, profile, Some beforeReplacementGeneration)
+            |> wait
+            |> Option.get
+
+        let concurrentCheck = holdUpdate "held update check before SKSE reinstall"
 
         coordinator.Remove(workspace, profile, CancellationToken.None) |> wait |> ignore
         coordinator.Start(workspace, profile) |> wait |> ignore
@@ -698,12 +741,23 @@ module SkseCoordinatorFixtures =
         server.ReleaseMetadata()
         let afterConcurrent = concurrentCheck |> wait
         let installedAfterConcurrent = coordinator.Read(workspace, profile) |> wait
+        let currentStatus = store.SkseLoaders.ReadStatus(workspace, profile) |> wait
+        let staleGenerationPublished =
+            store.SkseLoaders.SaveCheckedUpdateStatus(
+                beforeReplacementGeneration,
+                beforeReplacementLoader.VersionId,
+                currentStatus,
+                { currentStatus.Value with Phase = "update"; ComponentVersion = "2.3.0" }
+            )
+            |> wait
 
         check
             writer
             "concurrentReinstallDoesNotPublishOldUpdateCheck"
             (afterConcurrent.Phase = SksePhase.Ready
-             && installedAfterConcurrent.Phase = SksePhase.Ready)
+             && installedAfterConcurrent.Phase = SksePhase.Ready
+             && not staleGenerationPublished
+             && (store.SkseLoaders.ReadStatus(workspace, profile) |> wait) = currentStatus)
 
         server.Mode <- "good"
         configure server runtime updateId "2.3.0" (archive runtime "update" true 0)
@@ -872,6 +926,13 @@ module SkseCoordinatorFixtures =
             && failed.Detail <> ""
             && preserved
 
+        let beforeFailureStatus = store.SkseLoaders.ReadStatus(workspace, profile) |> wait
+        let beforeFailureGeneration = (store.Deployments.Read profile |> wait |> result).ActiveGeneration.Value
+        let beforeFailureLoader =
+            store.SkseLoaders.ReadStored(workspace, profile, Some beforeFailureGeneration)
+            |> wait
+            |> Option.get
+
         let transfer =
             failedReplacement
                 503L
@@ -921,6 +982,23 @@ module SkseCoordinatorFixtures =
             writer
             "failedReplacementBoundariesPreserveInstalledSetup"
             (transfer && layout && preparation && deployment && publication)
+
+        let staleFailurePublished =
+            store.SkseLoaders.SaveCheckedUpdateStatus(
+                beforeFailureGeneration,
+                beforeFailureLoader.VersionId,
+                beforeFailureStatus,
+                { beforeFailureStatus.Value with Phase = "update"; ComponentVersion = "3.0.0" }
+            )
+            |> wait
+
+        check
+            writer
+            "changedSetupStatusRejectsLateUpdatePublication"
+            (not staleFailurePublished
+             && (store.SkseLoaders.ReadStatus(workspace, profile)
+                 |> wait
+                 |> Option.exists (fun state -> state.Phase = "failed")))
 
         let beforeFailedCheck = requests ()
         let failedCheck = coordinator.CheckUpdate(workspace, profile) |> wait
