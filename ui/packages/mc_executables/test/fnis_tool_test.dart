@@ -8,6 +8,8 @@ import 'package:mc_executables/mc_executables.dart';
 class FakeFnis implements FnisClient {
   FnisStatus current = status(FnisStatusPhase.available);
   int runs = 0;
+  int reads = 0;
+  bool failRead = false;
   int cancelledListeners = 0;
   String? observedRun;
   late final StreamController<FnisStatus> events =
@@ -16,7 +18,11 @@ class FakeFnis implements FnisClient {
       );
 
   @override
-  Future<FnisStatus> read(String workspace, String profile) async => current;
+  Future<FnisStatus> read(String workspace, String profile) async {
+    reads++;
+    if (failRead) throw StateError('read failed');
+    return current;
+  }
 
   @override
   Future<FnisStatus> run(String workspace, String profile, String id) async {
@@ -180,5 +186,65 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('Old profile result'), findsNothing);
+  });
+
+  testWidgets('stream failure reads the finished FNIS run once', (
+    tester,
+  ) async {
+    final fnis = FakeFnis()..current = status(FnisStatusPhase.ready);
+    addTearDown(fnis.events.close);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: FnisTool(client: fnis, workspaceId: 'w', profileId: 'p'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Run FNIS'));
+    await tester.pumpAndSettle();
+
+    fnis.current = status(
+      FnisStatusPhase.ready,
+      runId: fnis.observedRun,
+      exitCode: 7,
+      outputStatus: 'FNIS finished with warnings',
+      runLog: 'Generator warning details',
+    );
+    fnis.events.addError(StateError('stream lost'));
+    await tester.pumpAndSettle();
+
+    expect(fnis.reads, 2);
+    expect(find.text('FNIS finished with warnings'), findsOneWidget);
+    expect(find.text('FNIS is running'), findsNothing);
+    expect(find.byIcon(Icons.error_outline), findsOneWidget);
+    await tester.tap(find.text('Last run'));
+    await tester.pumpAndSettle();
+    expect(find.text('Generator warning details'), findsOneWidget);
+  });
+
+  testWidgets('failed stream and read show unavailable instead of running', (
+    tester,
+  ) async {
+    final fnis = FakeFnis()..current = status(FnisStatusPhase.ready);
+    addTearDown(fnis.events.close);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: FnisTool(client: fnis, workspaceId: 'w', profileId: 'p'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Run FNIS'));
+    await tester.pumpAndSettle();
+
+    fnis.failRead = true;
+    fnis.events.addError(StateError('stream lost'));
+    await tester.pumpAndSettle();
+
+    expect(fnis.reads, 2);
+    expect(find.text('FNIS run status is unavailable.'), findsOneWidget);
+    expect(find.text('FNIS is running'), findsNothing);
   });
 }

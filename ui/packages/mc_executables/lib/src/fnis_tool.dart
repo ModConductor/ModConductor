@@ -71,13 +71,42 @@ class _FnisToolState extends State<FnisTool> {
                 setState(() => status = event);
               },
               onError: (Object _) {
-                if (mounted && current == epoch) {
-                  setState(() => problem = 'FNIS run result is unavailable.');
-                }
+                unawaited(_recoverRun(current, id));
               },
             );
       },
     );
+  }
+
+  bool _awaitingRun(int current, String id) =>
+      mounted &&
+      current == epoch &&
+      status?.runId == id &&
+      status?.outputPhase == FnisOutputStatusPhase.running;
+
+  Future<void> _recoverRun(int current, String id) async {
+    if (!_awaitingRun(current, id)) return;
+    try {
+      final recovered = await widget.client.read(
+        widget.workspaceId,
+        widget.profileId,
+      );
+      if (!_awaitingRun(current, id)) return;
+      if (recovered.runId == id &&
+          recovered.outputPhase != FnisOutputStatusPhase.running) {
+        setState(() {
+          status = recovered;
+          problem = null;
+        });
+        return;
+      }
+    } on Object {
+      if (!_awaitingRun(current, id)) return;
+    }
+    setState(() {
+      status = null;
+      problem = 'FNIS run status is unavailable.';
+    });
   }
 
   Future<void> _request(
