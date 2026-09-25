@@ -455,7 +455,7 @@ type internal FnisExecutionStore
                                 row.Entry, false
                             | Some _ -> raise (InvalidDataException "The FNIS output identity is already in use.")
                             | None ->
-                                (InventoryCommands.createFromOutputs
+                                (InventoryCommands.createFnisOutput
                                     database.Connection
                                     transaction
                                     run.Request.WorkspaceId
@@ -538,34 +538,6 @@ type internal FnisExecutionStore
                                 else
                                     let output = outputId run.Request.ProfileId
 
-                                    let previous =
-                                        use command =
-                                            Sqlite.command
-                                                connection
-                                                transaction
-                                                "SELECT mod_id FROM fnis_outputs WHERE profile_id=$profile"
-                                                [ "$profile", box (string run.Request.ProfileId) ]
-
-                                        match command.ExecuteScalar() with
-                                        | :? string as value -> Some(Guid.Parse value)
-                                        | _ -> None
-
-                                    let changed =
-                                        SelectionRows.all connection transaction run.Request.ProfileId
-                                        |> List.map (fun row ->
-                                            if row.Id = output then
-                                                { row with Enabled = Some true }
-                                            elif previous = Some row.Id then
-                                                { row with Enabled = Some false }
-                                            else
-                                                row)
-
-                                    SelectionRows.apply
-                                        connection
-                                        transaction
-                                        run.Request.ProfileId
-                                        changed
-
                                     Sqlite.execute
                                         connection
                                         transaction
@@ -577,6 +549,12 @@ type internal FnisExecutionStore
                                           "$run", box (string run.Request.Id)
                                           "$fingerprint", box run.Fingerprint
                                           "$updated", box (DateTimeOffset.UtcNow.ToString("O")) ]
+
+                                    Sqlite.execute
+                                        connection
+                                        transaction
+                                        "UPDATE profiles SET selection_revision=selection_revision+1 WHERE id=$profile"
+                                        [ "$profile", box (string run.Request.ProfileId) ]
 
                                     Sqlite.execute
                                         connection

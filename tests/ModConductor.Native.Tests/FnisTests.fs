@@ -49,6 +49,7 @@ type FnisTests() =
             Assert.Ignore "The FNIS execution fixture uses a Linux Proton launcher."
 
         flag "successfulRunPublishesAndSelectsOneCurrentOutput" |> should equal true
+        flag "generatedFnisOutputIsPrivateToOwningProfile" |> should equal true
         flag "runWithNoOutputPreservesPriorOutputAndExitCode" |> should equal true
         flag "generatedFilesRemainAvailableAfterNonzeroExit" |> should equal true
         flag "cancelledRunTerminatesAndPreservesPriorOutput" |> should equal true

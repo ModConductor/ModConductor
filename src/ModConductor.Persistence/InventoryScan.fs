@@ -212,6 +212,8 @@ module internal InventoryScan =
                                             | ModKind.Regular, _
                                             | ModKind.Backup, _ ->
                                                 InventoryStatus.Unproved, 1, false
+                                            | ModKind.GeneratedOutput, _ when row.Entry.SourcePath.IsNone ->
+                                                row.Entry.Status, 1, false
                                             | ModKind.Unmanaged, _
                                             | ModKind.GeneratedOutput, _ ->
                                                 use source =

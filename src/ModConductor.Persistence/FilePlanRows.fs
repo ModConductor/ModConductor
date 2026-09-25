@@ -15,13 +15,15 @@ module internal FilePlanRows =
             "SELECT COALESCE((SELECT revision FROM file_visibility_state WHERE workspace_id=$workspace),0)"
             [ "$workspace", box (string workspace) ]
 
-    let versions connection transaction workspace =
+    let versions connection transaction workspace profile =
         use command =
             Sqlite.command
                 connection
                 transaction
-                "SELECT id,current_version FROM mods WHERE workspace_id=$workspace AND kind=1 ORDER BY id LIMIT $limit"
-                [ "$workspace", box (string workspace); "$limit", box (Limits.entries + 1) ]
+                "SELECT m.id,m.current_version FROM mods m WHERE m.workspace_id=$workspace AND (m.kind=1 OR (m.kind=5 AND EXISTS(SELECT 1 FROM fnis_outputs f WHERE f.profile_id=$profile AND f.mod_id=m.id))) ORDER BY m.id LIMIT $limit"
+                [ "$workspace", box (string workspace)
+                  "$profile", box (string profile)
+                  "$limit", box (Limits.entries + 1) ]
 
         use reader = command.ExecuteReader()
 
@@ -52,7 +54,7 @@ module internal FilePlanRows =
                     transaction
                     "SELECT COALESCE(SUM(revision),0) FROM output_contexts WHERE workspace_id=$workspace"
                     [ "$workspace", box (string workspace) ]
-              Versions = versions connection transaction workspace
+              Versions = versions connection transaction workspace profile
               Deployment =
                 match GameContextRows.read connection transaction "" workspace profile with
                 | Ok state ->
@@ -107,6 +109,18 @@ module internal FilePlanRows =
                     SelectionRows.all connection transaction profile
                     |> List.map (fun row -> row.Id, row)
                     |> Map.ofList
+
+                let generatedOutput =
+                    use command =
+                        Sqlite.command
+                            connection
+                            transaction
+                            "SELECT mod_id FROM fnis_outputs WHERE profile_id=$profile"
+                            [ "$profile", box (string profile) ]
+
+                    match command.ExecuteScalar() with
+                    | :? string as value -> Some(Guid.Parse value)
+                    | _ -> None
 
                 let mutable remaining = Limits.entries
                 let mutable bytes = 0L
@@ -190,13 +204,16 @@ module internal FilePlanRows =
                                 limited <- true
 
                             let position = selection.TryFind id
+                            let selectedGenerated = generatedOutput = Some id
 
                             selected.Add
                                 { ModId = id
                                   Priority =
-                                    position |> Option.map _.Priority |> Option.defaultValue 0
+                                    if selectedGenerated then selection.Count else
+                                        position |> Option.map _.Priority |> Option.defaultValue 0
                                   Enabled =
-                                    position |> Option.bind _.Enabled |> Option.defaultValue false
+                                    selectedGenerated
+                                    || (position |> Option.bind _.Enabled |> Option.defaultValue false)
                                   Version = version
                                   Mappings =
                                     [ { SourcePrefix = PlanPath.Root

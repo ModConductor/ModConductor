@@ -35,6 +35,14 @@ module internal OrganizationQuery =
             let joined id =
                 LibraryRows.find connection transaction id
                 |> Option.filter (fun row -> row.Entry.WorkspaceId = workspace)
+                |> Option.filter (fun row ->
+                    row.Entry.Kind <> ModKind.GeneratedOutput
+                    || row.Entry.SourcePath.IsSome
+                    || Sqlite.number
+                        connection
+                        transaction
+                        "SELECT count(*) FROM fnis_outputs WHERE profile_id=$profile AND mod_id=$mod"
+                        [ "$profile", box (string profile); "$mod", box (string id) ] = 1L)
                 |> Option.map (fun row ->
                     let selected = SelectionRows.find connection transaction profile id
 
@@ -188,7 +196,8 @@ module internal OrganizationQuery =
                         Sqlite.number
                             connection
                             transaction
-                            "SELECT count(*) FROM mods WHERE workspace_id=$workspace AND kind<>2"
-                            [ "$workspace", box (string workspace) ]
+                            "SELECT count(*) FROM mods m WHERE m.workspace_id=$workspace AND m.kind<>2 AND (m.kind<>5 OR m.source_path IS NOT NULL OR EXISTS(SELECT 1 FROM fnis_outputs f WHERE f.profile_id=$profile AND f.mod_id=m.id))"
+                            [ "$workspace", box (string workspace)
+                              "$profile", box (string profile) ]
                         |> int
                       EnabledCount = SelectionRows.enabledCount connection transaction profile }

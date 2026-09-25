@@ -286,6 +286,9 @@ module FnisFixtures =
         |> List.choose (fun row ->
             match row.Entry.Selection with
             | SelectionState.Managed(_, true) -> Some row.Entry.Mod.Id
+            | SelectionState.Locked SelectionRestriction.Automatic when
+                row.Entry.Mod.Kind = ModConductor.ModLibrary.ModKind.GeneratedOutput ->
+                Some row.Entry.Mod.Id
             | _ -> None)
         |> Set.ofList
 
@@ -924,6 +927,26 @@ module FnisFixtures =
         let afterCompleted = enabled store profile
         let firstOutput = outputEntry () |> Option.get
         let firstVersion = firstOutput.CurrentVersion
+
+        let otherProfile = Guid.NewGuid()
+        let workspaces = store.Workspaces :> IWorkspaceState
+        let workspaceState = workspaces.Read(workspace, None) |> wait |> result
+
+        workspaces.Edit(
+            workspace,
+            workspaceState.Workspace.Revision,
+            ProfileEdit.Create { Id = otherProfile; Name = "Other profile" }
+        )
+        |> wait
+        |> result
+        |> ignore
+
+        check
+            writer
+            "generatedFnisOutputIsPrivateToOwningProfile"
+            (firstOutput.Kind = ModConductor.ModLibrary.ModKind.GeneratedOutput
+             && (InventoryObservations.read store otherProfile).Entries
+                |> List.forall (fun row -> row.Entry.Mod.Id <> firstOutput.Id))
 
         let repeated =
             execution.Run(

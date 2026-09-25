@@ -24,6 +24,13 @@ type internal PersistedEdit =
       Digest: string }
 
 module internal PublicationRows =
+    let private generatedFnisOutput connection transaction modId version =
+        Sqlite.number
+            connection
+            transaction
+            "SELECT count(*) FROM fnis_runs WHERE output_mod_id=$mod AND output_version_id=$version AND busy=1"
+            [ "$mod", box (string modId); "$version", box (string version) ] = 1L
+
     let readPhase =
         function
         | 1 -> PublicationPhase.Intent
@@ -177,7 +184,12 @@ module internal PublicationRows =
                 |> Option.exists (fun input -> input.SourceVersion <> row.Entry.CurrentVersion)
                 ->
                 Error LibraryError.StaleRevision
-            | None, Some row when row.Entry.Kind <> ModKind.Regular ->
+            | None, Some row when
+                row.Entry.Kind <> ModKind.Regular
+                && not (
+                    row.Entry.Kind = ModKind.GeneratedOutput
+                    && generatedFnisOutput connection transaction modId version
+                ) ->
                 Error LibraryError.UnsupportedAction
             | None, Some _ when
                 Sqlite.number
