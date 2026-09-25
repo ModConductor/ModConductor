@@ -44,10 +44,7 @@ void main() {
             (w is McAction && w.label == label) ||
             (w is McIconAction && w.label == label),
       );
-      Finder requestButton() => find.widgetWithText(
-        TextButton,
-        'Open requests${requests.count == 0 ? '' : ' (${requests.count})'}',
-      );
+      Finder requestButton() => find.byKey(const ValueKey('open-requests'));
       Future<void> until(bool Function() ready) async {
         final deadline = DateTime.now().add(const Duration(seconds: 30));
         while (!ready() && DateTime.now().isBefore(deadline)) {
@@ -228,10 +225,14 @@ void main() {
             .writeAsString(channel.toString());
         await capture('pending-with-open-form');
         await tap(action('Cancel'));
-        await tap(requestButton());
         await until(
-          () => requests.nexusLink?.artifact != null && !requests.resolving,
+          () =>
+              requests.nexusLink?.artifact != null &&
+              !requests.resolving &&
+              find.text('Nexus Mods download').evaluate().isNotEmpty,
         );
+        expect((await owner.artifacts!.list(workspace)).entries.length, 1);
+        expect(controller().selected!.download!.bytes, keptBytes);
         await capture('partial-request');
         await tap(action('Close'));
         expect(requests.count, 1);
@@ -282,9 +283,12 @@ void main() {
           wrong,
         ]).timeout(const Duration(seconds: 15));
         expect(launchResult.exitCode, 0);
-        await until(() => requests.nexusLink?.problem != null);
-        await tap(requestButton());
-        await until(() => !requests.resolving && requests.problem != null);
+        await until(
+          () =>
+              requests.nexusLink?.problem != null &&
+              !requests.resolving &&
+              find.text('Nexus Mods download').evaluate().isNotEmpty,
+        );
         await capture('system-open-wrong-account');
         expect((await owner.artifacts!.list(workspace)).entries.length, 1);
         await tap(action('Dismiss'));
@@ -305,7 +309,7 @@ void main() {
         );
         await capture('link-setup-restored');
         await File('$output/observations.txt').writeAsString(
-          'Actual Linux native queue/private ingress: duplicate after acknowledgement coalesced; raw NXM/key absent from method channel; open form and navigation retained pending work; keyed request reused ordinary paused artifact without losing bytes; Resume completed through existing owner; private gio URI launch reached the same instance and refused mismatched account without new artifact; opt-in/opt-out restored prior private association. No install action or host account/default/browser access.\n',
+          'Actual Linux native queue/private ingress: duplicate after acknowledgement coalesced; raw NXM/key absent from method channel; pending link surfaced automatically after an open form closed without download; navigation retained pending work; keyed request reused ordinary paused artifact without losing bytes; Resume completed through existing owner; private gio URI launch reached the same instance and automatically surfaced a mismatched-account refusal without new artifact; opt-in/opt-out restored prior private association. No install action or host account/default/browser access.\n',
         );
       } finally {
         await tester.pumpWidget(const SizedBox.shrink());

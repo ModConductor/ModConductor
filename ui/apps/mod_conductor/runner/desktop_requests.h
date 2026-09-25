@@ -6,6 +6,7 @@
 #include <random>
 #include <algorithm>
 #include <deque>
+#include <iterator>
 #include <mutex>
 #include <optional>
 #include <string>
@@ -90,8 +91,11 @@ class Requests {
     std::lock_guard<std::mutex> guard(mutex_);
     if (stopping_) return false;
     if (!nxm && args.empty()) return true;
-    for (const auto& item : queue_)
-      if (nxm ? item.fingerprint == fingerprint : (!item.view.private_pending && item.view.reference.empty() && item.view.arguments == args)) return true;
+    for (auto item = queue_.begin(); item != queue_.end(); ++item)
+      if (nxm ? item->fingerprint == fingerprint : (!item->view.private_pending && item->view.reference.empty() && item->view.arguments == args)) {
+        if (nxm) std::rotate(queue_.begin(), item, std::next(item));
+        return true;
+      }
     if (queue_.size() >= 16) return false;
     Entry entry;
     entry.view.id = ++serial_;
@@ -104,7 +108,10 @@ class Requests {
       for (auto& value : entry.key) value = static_cast<uint8_t>(random());
       entry.view.reference = Reference(entry.key);
     }
-    queue_.push_back(std::move(entry));
+    if (nxm)
+      queue_.push_front(std::move(entry));
+    else
+      queue_.push_back(std::move(entry));
     return true;
   }
   Snapshot Read() {

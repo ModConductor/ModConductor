@@ -2,6 +2,7 @@ part of 'app.dart';
 
 class _DesktopShell extends StatelessWidget {
   const _DesktopShell({
+    super.key,
     required this.destination,
     required this.connectionStatus,
     required this.onNavigate,
@@ -110,6 +111,7 @@ class _DesktopShell extends StatelessWidget {
                       ListenableBuilder(
                         listenable: requests,
                         builder: (context, _) => TextButton(
+                          key: const ValueKey('open-requests'),
                           onPressed: onRequests,
                           child: McIconLabel(
                             icon: const Icon(

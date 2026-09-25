@@ -77,6 +77,22 @@ class _PreferenceTextScaler extends TextScaler {
   int get hashCode => Object.hash(platform, multiplier);
 }
 
+class _RequestRouteObserver extends NavigatorObserver {
+  _RequestRouteObserver(this.onRouteClosed);
+
+  final VoidCallback onRouteClosed;
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    onRouteClosed();
+  }
+
+  @override
+  void didRemove(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    onRouteClosed();
+  }
+}
+
 const _defaultPreferences = (
   appearance: AppearancePreference.system,
   textScale: 1.0,
@@ -294,6 +310,14 @@ class ModConductorApp extends StatefulWidget {
 }
 
 class _ModConductorAppState extends State<ModConductorApp> {
+  late final _RequestRouteObserver _requestRoutes = _RequestRouteObserver(
+    _scheduleIncomingRequest,
+  );
+  final _requestShellKey = GlobalKey();
+  int? _presentedRequestId;
+  bool _requestPresentationScheduled = false;
+  bool _requestDialogOpen = false;
+  DesktopRequests? _dialogRequests;
   _Destination _destination = _Destination.workspaces;
   _PreferenceScope _preferenceScope = _PreferenceScope.application;
   final _applicationSettings = _SettingsFormState();
@@ -1009,6 +1033,8 @@ class _ModConductorAppState extends State<ModConductorApp> {
   @override
   void initState() {
     super.initState();
+    widget.desktopRequests?.addListener(_requestsChanged);
+    _scheduleIncomingRequest();
     _game.addListener(_gameChanged);
     _mods.addListener(_modsChanged);
     _files.addListener(_diagnosticInputsChanged);
@@ -1043,6 +1069,12 @@ class _ModConductorAppState extends State<ModConductorApp> {
   @override
   void didUpdateWidget(ModConductorApp oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.desktopRequests != widget.desktopRequests) {
+      oldWidget.desktopRequests?.removeListener(_requestsChanged);
+      widget.desktopRequests?.addListener(_requestsChanged);
+      _presentedRequestId = null;
+      _scheduleIncomingRequest();
+    }
     _workspaces.attach(widget.workspaces);
     _syncWorkspaceConsumers();
     if (oldWidget.settings != widget.settings) {
@@ -1053,6 +1085,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
 
   @override
   void dispose() {
+    widget.desktopRequests?.removeListener(_requestsChanged);
     ++_setupEventEpoch;
     _syncInstallationScope(null, null, null);
     _setupReconnect?.cancel();
@@ -1095,6 +1128,73 @@ class _ModConductorAppState extends State<ModConductorApp> {
     }
     (value == _Destination.workspaces ? _workspacesFocus : _preferencesFocus)
         .requestFocus();
+  }
+
+  void _requestsChanged() {
+    final requests = widget.desktopRequests;
+    if (requests == null || !requests.isNexus || requests.id == null) return;
+    if (identical(_dialogRequests, requests)) _presentedRequestId = requests.id;
+    _scheduleIncomingRequest();
+  }
+
+  void _scheduleIncomingRequest() {
+    if (_requestPresentationScheduled || !mounted) return;
+    _requestPresentationScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _requestPresentationScheduled = false;
+      if (!mounted) return;
+      final requests = widget.desktopRequests;
+      final context = _requestShellKey.currentContext;
+      if (requests == null ||
+          !requests.isNexus ||
+          requests.id == null ||
+          requests.id == _presentedRequestId ||
+          _requestDialogOpen ||
+          context == null ||
+          !context.mounted ||
+          ModalRoute.of(context)?.isCurrent != true) {
+        return;
+      }
+      unawaited(_presentRequests(context));
+    });
+  }
+
+  Future<void> _presentRequests(BuildContext context) async {
+    final requests = widget.desktopRequests;
+    if (requests == null || _requestDialogOpen) return;
+    _requestDialogOpen = true;
+    _dialogRequests = requests;
+    if (requests.isNexus) _presentedRequestId = requests.id;
+    try {
+      requests.selectContext(
+        _workspaces.workspace?.id,
+        _workspaces.workspace?.selectedProfile?.id,
+      );
+      final choice = await showDialog<DesktopRequestChoice>(
+        context: context,
+        builder: (_) => OpenRequestsDialog(
+          requests: requests,
+          workspaces: _workspaces,
+          onRetry: widget.onRetry,
+          onPreferences: () => _navigate(_Destination.preferences),
+        ),
+      );
+      if (choice != null && context.mounted) {
+        await openDesktopRequest(
+          context,
+          choice,
+          requests: requests,
+          workspaces: _workspaces,
+          artifacts: _artifacts,
+          chooseFile: widget.chooseArchive,
+          onWorkspaceOpened: () => _navigate(_Destination.workspaces),
+        );
+      }
+    } finally {
+      _requestDialogOpen = false;
+      _dialogRequests = null;
+      _scheduleIncomingRequest();
+    }
   }
 
   Future<void> _quickTheme(AppearancePreference value) async {
@@ -1343,6 +1443,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
     final allowPlatformHighContrast =
         preferences.contrast != ContrastPreference.standard;
     return MaterialApp(
+      navigatorObservers: [_requestRoutes],
       onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
       debugShowCheckedModeBanner: false,
       localizationsDelegates: const [
@@ -1399,35 +1500,9 @@ class _ModConductorAppState extends State<ModConductorApp> {
                 widget.onQuit ?? _quitDesktop,
           },
           child: _DesktopShell(
+            key: _requestShellKey,
             requests: widget.desktopRequests,
-            onRequests: () async {
-              final requests = widget.desktopRequests;
-              if (requests == null) return;
-              requests.selectContext(
-                _workspaces.workspace?.id,
-                _workspaces.workspace?.selectedProfile?.id,
-              );
-              final choice = await showDialog<DesktopRequestChoice>(
-                context: context,
-                builder: (_) => OpenRequestsDialog(
-                  requests: requests,
-                  workspaces: _workspaces,
-                  onRetry: widget.onRetry,
-                  onPreferences: () => _navigate(_Destination.preferences),
-                ),
-              );
-              if (choice != null && context.mounted) {
-                await openDesktopRequest(
-                  context,
-                  choice,
-                  requests: requests,
-                  workspaces: _workspaces,
-                  artifacts: _artifacts,
-                  chooseFile: widget.chooseArchive,
-                  onWorkspaceOpened: () => _navigate(_Destination.workspaces),
-                );
-              }
-            },
+            onRequests: () => unawaited(_presentRequests(context)),
             connectionStatus: widget.status,
             destination: _destination,
             onNavigate: _navigate,

@@ -13,6 +13,29 @@ using namespace std::chrono_literals;
 void check(bool value, const char* detail) {
   if (!value) throw std::runtime_error(detail);
 }
+void check_queue_order() {
+  desktop::Requests queued;
+  const desktop::Arguments olderA{"--workspace", "/older-a"};
+  const desktop::Arguments olderB{"--workspace", "/older-b"};
+  const desktop::Arguments linkA{"--uri", "nxm://skyrimspecialedition/mods/1/files/1?key=a"};
+  const desktop::Arguments linkB{"--uri", "nxm://skyrimspecialedition/mods/1/files/2?key=b"};
+  check(queued.Add(olderA) && queued.Add(olderB) && queued.Add(linkA), "Queue setup failed.");
+  const auto firstLink = queued.Read().first.value();
+  check(firstLink.reference.size() == 32 && queued.Read().count == 3, "Incoming NXM did not lead older requests.");
+  check(queued.Add(linkB), "Second NXM was refused.");
+  const auto secondLink = queued.Read().first.value();
+  check(secondLink.id != firstLink.id && queued.Read().count == 4, "Newest NXM did not lead the queue.");
+  check(queued.Add(linkA) && queued.Read().first->id == firstLink.id && queued.Read().count == 4,
+        "Repeated NXM did not expose its existing request.");
+  check(queued.Add(linkB) && queued.Read().first->id == secondLink.id && queued.Read().count == 4,
+        "Repeated NXM created a duplicate or lost newest priority.");
+  queued.Dismiss(secondLink.id);
+  check(queued.Read().first->id == firstLink.id, "Earlier NXM was discarded.");
+  queued.Dismiss(firstLink.id);
+  check(queued.Read().first->arguments == olderA && queued.Read().count == 2, "First older request was discarded or reordered.");
+  queued.Dismiss(queued.Read().first->id);
+  check(queued.Read().first->arguments == olderB, "Second older request was discarded or reordered.");
+}
 template<class Predicate> void until(Predicate ready) {
   const auto end = std::chrono::steady_clock::now() + 10s;
   while (!ready() && std::chrono::steady_clock::now() < end) std::this_thread::sleep_for(5ms);
@@ -103,7 +126,12 @@ class Relay {
 };
 int main(int argc, char** argv) {
   try {
+    if (argc == 2 && std::string(argv[1]) == "--queue") {
+      check_queue_order();
+      return 0;
+    }
     check(argc == 2, "Expected a private fixture directory.");
+    check_queue_order();
     std::string endpoint, capability, pid;
     check(bool(std::getline(std::cin, endpoint)) && bool(std::getline(std::cin, capability)) && bool(std::getline(std::cin, pid)), "Missing private fixture descriptor.");
     std::vector<uint8_t> bytes;

@@ -46,10 +46,7 @@ void main() {
             (w is McAction && w.label == label) ||
             (w is McIconAction && w.label == label),
       );
-      Finder requestButton() => find.widgetWithText(
-        TextButton,
-        'Open requests${requests.count == 0 ? '' : ' (${requests.count})'}',
-      );
+      Finder requestButton() => find.byKey(const ValueKey('open-requests'));
       Future<void> until(bool Function() ready) async {
         final deadline = DateTime.now().add(const Duration(seconds: 30));
         while (!ready() && DateTime.now().isBefore(deadline)) {
