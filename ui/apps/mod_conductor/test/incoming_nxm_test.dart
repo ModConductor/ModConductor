@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mc_artifacts/mc_artifacts.dart';
 import 'package:mc_client/mc_client.dart';
 import 'package:mc_desktop/mc_desktop.dart';
 import 'package:mod_conductor/src/app.dart';
@@ -38,18 +39,27 @@ class _NxmFake extends Fake implements NxmClient {
 }
 
 class _DesktopFake extends Fake implements DesktopClient {
+  _DesktopFake({this.kind = DesktopIntentKind.workspace});
+  final DesktopIntentKind kind;
+
   @override
-  Future<DesktopIntent> resolve(List<String> arguments) async =>
-      const DesktopIntent(DesktopIntentKind.workspace, '/older', 'older', 0);
+  Future<DesktopIntent> resolve(List<String> arguments) async => DesktopIntent(
+    kind,
+    kind == DesktopIntentKind.archive ? '/archive.zip' : '/older',
+    'older',
+    0,
+  );
 }
 
 class _WorkspacesFake extends Fake implements WorkspacesClient {
+  _WorkspacesFake({this.recentWorkspaces = const []});
+  final List<WorkspaceInfo> recentWorkspaces;
   final opened = Completer<WorkspacePage>();
   String? openedPath;
 
   @override
   Future<WorkspaceList> recent({String? after}) async =>
-      const WorkspaceList([], null);
+      WorkspaceList(recentWorkspaces, null);
 
   @override
   Future<WorkspacePage> open(String path) {
@@ -188,7 +198,7 @@ void main() {
     requests.dispose();
   });
 
-  testWidgets('new NXM waits for a preempted workspace action, then opens', (
+  testWidgets('new NXM opens before a preempted workspace action completes', (
     tester,
   ) async {
     nativeState = {
@@ -216,7 +226,10 @@ void main() {
     };
     await requests.refresh();
     await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text('Request newer'), findsNothing);
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('Request newer'), findsOneWidget);
+    expect(workspaces.opened.isCompleted, isFalse);
+    expect(dismissed, isEmpty);
 
     workspaces.opened.complete(
       const WorkspacePage(
@@ -232,6 +245,145 @@ void main() {
     expect(find.text('Request newer'), findsOneWidget);
     expect(nxm.downloads, 0);
 
+    await tester.pumpWidget(const SizedBox.shrink());
+    requests.dispose();
+  });
+
+  testWidgets('an old dialog action cannot adopt the new request ID', (
+    tester,
+  ) async {
+    nativeState = {
+      'available': true,
+      'count': 1,
+      'id': 1,
+      'arguments': ['--workspace', '/older'],
+      'processId': 42,
+    };
+    final workspaces = _WorkspacesFake();
+    await mount(tester, desktop: _DesktopFake(), workspaces: workspaces);
+    await tester.tap(find.byKey(const ValueKey('open-requests')));
+    await tester.pumpAndSettle();
+
+    nativeState = {
+      'available': true,
+      'count': 2,
+      'id': 2,
+      'nxmReference': 'newer',
+      'processId': 42,
+    };
+    await requests.refresh();
+    await tester.tap(find.text('Open workspace').last);
+    await tester.pumpAndSettle();
+    expect(workspaces.openedPath, isNull);
+    expect(find.text('Request newer'), findsOneWidget);
+    expect(dismissed, isEmpty);
+    expect(nxm.downloads, 0);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    requests.dispose();
+  });
+
+  testWidgets('a stale Nexus download action cannot start the new link', (
+    tester,
+  ) async {
+    nativeState = {
+      'available': true,
+      'count': 1,
+      'id': 1,
+      'nxmReference': 'older',
+      'processId': 42,
+    };
+    const workspace = WorkspaceInfo(
+      id: 'older',
+      name: 'Older',
+      path: '/older',
+      revision: 1,
+    );
+    await mount(
+      tester,
+      workspaces: _WorkspacesFake(recentWorkspaces: [workspace]),
+    );
+    await tester.tap(find.text('Choose a workspace').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Older').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Download'), findsOneWidget);
+
+    nativeState = {
+      'available': true,
+      'count': 2,
+      'id': 2,
+      'nxmReference': 'newer',
+      'processId': 42,
+    };
+    await requests.refresh();
+    await tester.tap(find.text('Download').last);
+    await tester.pumpAndSettle();
+    expect(nxm.downloads, 0);
+    expect(find.text('Request newer'), findsOneWidget);
+    expect(dismissed, isEmpty);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    requests.dispose();
+  });
+
+  testWidgets('archive form waits for the new NXM dialog to close', (
+    tester,
+  ) async {
+    nativeState = {
+      'available': true,
+      'count': 1,
+      'id': 1,
+      'arguments': ['--archive', '/archive.zip'],
+      'processId': 42,
+    };
+    const workspace = WorkspaceInfo(
+      id: 'older',
+      name: 'Older',
+      path: '/older',
+      revision: 1,
+    );
+    final workspaces = _WorkspacesFake(recentWorkspaces: [workspace]);
+    await mount(
+      tester,
+      desktop: _DesktopFake(kind: DesktopIntentKind.archive),
+      workspaces: workspaces,
+    );
+    await tester.tap(find.byKey(const ValueKey('open-requests')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Choose a workspace').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Older').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Review archive').last);
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(workspaces.openedPath, '/older');
+    expect(workspaces.opened.isCompleted, isFalse);
+
+    nativeState = {
+      'available': true,
+      'count': 2,
+      'id': 2,
+      'nxmReference': 'newer',
+      'processId': 42,
+    };
+    await requests.refresh();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('Request newer'), findsOneWidget);
+    workspaces.opened.complete(const WorkspacePage(workspace, [], null));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.byType(ArchiveFileForm), findsNothing);
+    expect(dismissed, isEmpty);
+
+    await tester.tap(find.text('Close').last);
+    await tester.pumpAndSettle();
+    expect(find.byType(ArchiveFileForm), findsOneWidget);
+    expect(requests.count, 2);
+    expect(nxm.downloads, 0);
+
+    await tester.tap(find.text('Cancel').last);
+    await tester.pumpAndSettle();
     await tester.pumpWidget(const SizedBox.shrink());
     requests.dispose();
   });

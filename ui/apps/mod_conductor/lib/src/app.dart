@@ -311,13 +311,15 @@ class ModConductorApp extends StatefulWidget {
 
 class _ModConductorAppState extends State<ModConductorApp> {
   late final _RequestRouteObserver _requestRoutes = _RequestRouteObserver(
-    _scheduleIncomingRequest,
+    _requestRouteClosed,
   );
   final _requestShellKey = GlobalKey();
+  final _modalSpaceWaiters = <Completer<void>>[];
   int? _presentedRequestId;
   bool _requestPresentationScheduled = false;
   bool _requestDialogOpen = false;
   DesktopRequests? _dialogRequests;
+  ModalRoute<dynamic>? _requestDialogRoute;
   _Destination _destination = _Destination.workspaces;
   _PreferenceScope _preferenceScope = _PreferenceScope.application;
   final _applicationSettings = _SettingsFormState();
@@ -1086,6 +1088,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
   @override
   void dispose() {
     widget.desktopRequests?.removeListener(_requestsChanged);
+    _wakeModalSpaceWaiters();
     ++_setupEventEpoch;
     _syncInstallationScope(null, null, null);
     _setupReconnect?.cancel();
@@ -1121,20 +1124,53 @@ class _ModConductorAppState extends State<ModConductorApp> {
     super.dispose();
   }
 
-  void _navigate(_Destination value) {
+  void _navigate(_Destination value, {bool focus = true}) {
     setState(() => _destination = value);
     if (value == _Destination.workspaces && _nexusDetails.viewing) {
       unawaited(_nexusDetails.readAccount());
     }
-    (value == _Destination.workspaces ? _workspacesFocus : _preferencesFocus)
-        .requestFocus();
+    if (focus) {
+      (value == _Destination.workspaces ? _workspacesFocus : _preferencesFocus)
+          .requestFocus();
+    }
   }
 
   void _requestsChanged() {
     final requests = widget.desktopRequests;
     if (requests == null || !requests.isNexus || requests.id == null) return;
-    if (identical(_dialogRequests, requests)) _presentedRequestId = requests.id;
+    if (identical(_dialogRequests, requests) &&
+        _requestDialogRoute?.isCurrent == true) {
+      _presentedRequestId = requests.id;
+    }
     _scheduleIncomingRequest();
+  }
+
+  void _wakeModalSpaceWaiters() {
+    for (final waiter in _modalSpaceWaiters) {
+      waiter.complete();
+    }
+    _modalSpaceWaiters.clear();
+  }
+
+  void _requestRouteClosed() {
+    _scheduleIncomingRequest();
+    _wakeModalSpaceWaiters();
+  }
+
+  Future<void> _waitForArchiveForm() async {
+    while (mounted) {
+      _scheduleIncomingRequest();
+      await WidgetsBinding.instance.endOfFrame;
+      if (!mounted) return;
+      final context = _requestShellKey.currentContext;
+      if (context == null || !context.mounted) return;
+      if (!_requestDialogOpen && ModalRoute.of(context)?.isCurrent == true) {
+        return;
+      }
+      final waiter = Completer<void>();
+      _modalSpaceWaiters.add(waiter);
+      await waiter.future;
+    }
   }
 
   void _scheduleIncomingRequest() {
@@ -1165,36 +1201,47 @@ class _ModConductorAppState extends State<ModConductorApp> {
     _requestDialogOpen = true;
     _dialogRequests = requests;
     if (requests.isNexus) _presentedRequestId = requests.id;
+    DesktopRequestChoice? choice;
     try {
       requests.selectContext(
         _workspaces.workspace?.id,
         _workspaces.workspace?.selectedProfile?.id,
       );
-      final choice = await showDialog<DesktopRequestChoice>(
+      choice = await showDialog<DesktopRequestChoice>(
         context: context,
-        builder: (_) => OpenRequestsDialog(
-          requests: requests,
-          workspaces: _workspaces,
-          onRetry: widget.onRetry,
-          onPreferences: () => _navigate(_Destination.preferences),
-        ),
+        builder: (dialogContext) {
+          _requestDialogRoute = ModalRoute.of(dialogContext);
+          if (requests.isNexus && _requestDialogRoute?.isCurrent == true) {
+            _presentedRequestId = requests.id;
+          }
+          return OpenRequestsDialog(
+            requests: requests,
+            workspaces: _workspaces,
+            onRetry: widget.onRetry,
+            onPreferences: () => _navigate(_Destination.preferences),
+          );
+        },
       );
-      _dialogRequests = null;
-      if (choice != null && context.mounted) {
-        await openDesktopRequest(
-          context,
-          choice,
-          requests: requests,
-          workspaces: _workspaces,
-          artifacts: _artifacts,
-          chooseFile: widget.chooseArchive,
-          onWorkspaceOpened: () => _navigate(_Destination.workspaces),
-        );
-      }
     } finally {
       _requestDialogOpen = false;
       _dialogRequests = null;
-      _scheduleIncomingRequest();
+      _requestDialogRoute = null;
+      _requestRouteClosed();
+    }
+    if (choice != null && context.mounted) {
+      await openDesktopRequest(
+        context,
+        choice,
+        requests: requests,
+        workspaces: _workspaces,
+        artifacts: _artifacts,
+        chooseFile: widget.chooseArchive,
+        beforeArchiveForm: _waitForArchiveForm,
+        onWorkspaceOpened: () => _navigate(
+          _Destination.workspaces,
+          focus: ModalRoute.of(context)?.isCurrent == true,
+        ),
+      );
     }
   }
 

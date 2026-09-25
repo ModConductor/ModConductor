@@ -19,6 +19,8 @@ class NexusRequestDialog extends StatelessWidget {
   final VoidCallback? onPreferences;
   @override
   Widget build(BuildContext context) {
+    final requestId = requests.id!;
+    final requestReference = requests.nexusReference;
     final link = requests.nexusLink;
     final file = link?.file;
     final selected = workspaces.recent
@@ -106,9 +108,11 @@ class NexusRequestDialog extends StatelessWidget {
           onPressed: requests.startingNexus
               ? null
               : () async {
-                  final id = requests.id!;
-                  final reference = requests.nexusReference;
-                  await requests.dismiss(id, nexusReference: reference);
+                  if (requests.id != requestId) return;
+                  await requests.dismiss(
+                    requestId,
+                    nexusReference: requestReference,
+                  );
                   if (context.mounted) Navigator.pop(context);
                 },
         ),
@@ -137,18 +141,18 @@ class NexusRequestDialog extends StatelessWidget {
                     requests.startingNexus
                 ? null
                 : () async {
-                    final id = requests.id!;
+                    if (requests.id != requestId) return;
                     final artifact = await requests.startNexus(selected.id);
                     if (context.mounted &&
                         artifact != null &&
-                        requests.id == id)
+                        requests.id == requestId)
                       Navigator.pop(
                         context,
                         DesktopRequestChoice.nexus(
-                          id,
+                          requestId,
                           artifact,
                           selected,
-                          requests.nexusReference!,
+                          requestReference!,
                         ),
                       );
                   },

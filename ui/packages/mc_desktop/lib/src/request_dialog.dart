@@ -56,6 +56,7 @@ class OpenRequestsDialog extends StatelessWidget {
           onPreferences: onPreferences,
         );
       final intent = requests.intent;
+      final requestId = requests.id;
       final archive = intent?.kind == DesktopIntentKind.archive;
       final selected = workspaces.recent
           .where(
@@ -135,6 +136,7 @@ class OpenRequestsDialog extends StatelessWidget {
             McAction(
               label: 'Dismiss',
               onPressed: () async {
+                if (requests.id != id) return;
                 await requests.dismiss(id);
                 if (context.mounted) Navigator.pop(context);
               },
@@ -147,16 +149,19 @@ class OpenRequestsDialog extends StatelessWidget {
               onPressed: onRetry,
               emphasis: McActionEmphasis.primary,
             ),
-          if (intent != null)
+          if (intent != null && requestId != null)
             McAction(
               label: archive ? 'Review archive' : 'Open workspace',
               emphasis: McActionEmphasis.primary,
               onPressed: archive && selected == null
                   ? null
-                  : () => Navigator.pop(
-                      context,
-                      DesktopRequestChoice(requests.id!, intent, selected),
-                    ),
+                  : () {
+                      if (requests.id != requestId) return;
+                      Navigator.pop(
+                        context,
+                        DesktopRequestChoice(requestId, intent, selected),
+                      );
+                    },
             ),
         ],
       );
@@ -171,6 +176,7 @@ Future<void> openDesktopRequest(
   required WorkspaceController workspaces,
   required ArtifactController artifacts,
   required ArchiveChooser chooseFile,
+  required Future<void> Function() beforeArchiveForm,
   required VoidCallback onWorkspaceOpened,
 }) async {
   final archive = choice.intent.kind == DesktopIntentKind.archive;
@@ -186,6 +192,8 @@ Future<void> openDesktopRequest(
     workspaces.showArchives();
   if (archive) {
     if (artifacts.needsRead) await artifacts.load();
+    if (!context.mounted) return;
+    await beforeArchiveForm();
     if (!context.mounted) return;
     final result =
         await showDialog<({ArchiveFile file, ArtifactStorage storage})>(
