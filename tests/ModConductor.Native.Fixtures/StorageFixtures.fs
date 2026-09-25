@@ -326,7 +326,7 @@ module StorageFixtures =
             let context = WatchCountFixtures.StreamContext(cancellation.Token)
             let watching = service.WatchOperations(WatchRequest(), stream, context)
             if not (SpinWait.SpinUntil((fun () -> counted.Waits = 1 && stream.Count = 1), TimeSpan.FromSeconds 3.)) then
-                failwith $"Initial operation watch: initial={counted.Initial}, changes={counted.Changes}, waits={counted.Waits}, writes={stream.Count}, task={watching.Status}, error={watching.Exception}"
+                failwith "The operation watch did not publish its initial snapshot."
             let initial = counted.Initial, counted.Changes, counted.Waits
             Thread.Sleep 150
             let idle = counted.Initial, counted.Changes, counted.Waits
@@ -335,7 +335,7 @@ module StorageFixtures =
                 operations.Begin { Id = Guid.NewGuid().ToString("N"); ExpectedRevision = feed.Revision; Count = 1 }
                 |> wait
             if not (SpinWait.SpinUntil((fun () -> counted.Changes >= 1 && stream.Count >= 2), TimeSpan.FromSeconds 3.)) then
-                failwith $"Operation change: begun={begun}, feed={feed.Revision}/{feed.Cursor}, initial={counted.Initial}, changes={counted.Changes}, waits={counted.Waits}, writes={stream.Count}, task={watching.Status}, error={watching.Exception}"
+                failwith "The operation watch did not publish the owner change."
             let changed = counted.Initial, counted.Changes, counted.Waits
             cancellation.Cancel()
             try watching.GetAwaiter().GetResult() with :? OperationCanceledException -> ()

@@ -184,7 +184,7 @@ module DownloadFixtures =
             watchRequest.Ids.Add(crashed.ToString("N"))
             let watching = service.WatchDownloads(watchRequest, stream, context)
             if not (SpinWait.SpinUntil((fun () -> stream.Count = 1), TimeSpan.FromSeconds 3.)) then
-                failwith $"Initial download watch: reads={counted.Reads}, writes={stream.Count}, task={watching.Status}, error={watching.Exception}"
+                failwith "The download watch did not publish its initial snapshot."
             let initialReads = counted.Reads
             Thread.Sleep 150
             let idleReads = counted.Reads
