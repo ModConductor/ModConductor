@@ -12,6 +12,8 @@ import re
 import shutil
 import subprocess
 
+from package_metadata import spdx_document
+
 
 ROOT = Path(__file__).resolve().parents[1]
 APP = ROOT / "ui/apps/mod_conductor"
@@ -116,15 +118,10 @@ def assemble(bundle: Path, engine: Path, helper: Path, output: Path, revision: s
     manifest = documents / "payload-sha256.json"
     manifest.write_text(json.dumps(inventory, indent=2) + "\n")
     date = datetime.fromtimestamp(int(subprocess.check_output(["git", "log", "-1", "--format=%ct"], cwd=ROOT, text=True)), timezone.utc)
-    sbom = {
-        "spdxVersion": "SPDX-2.3", "dataLicense": "CC0-1.0", "SPDXID": "SPDXRef-DOCUMENT",
-        "name": f"ModConductor-Linux-x64-{VERSION}",
-        "documentNamespace": f"https://modconductor.invalid/spdx/linux/{VERSION}/{sha256(manifest)}",
-        "creationInfo": {"created": date.strftime("%Y-%m-%dT%H:%M:%SZ"), "creators": ["Tool: tools/package-linux.py"]},
-        "packages": [{"name": "Mod Conductor", "SPDXID": "SPDXRef-ModConductor", "versionInfo": VERSION, "downloadLocation": "NOASSERTION", "filesAnalyzed": True, "licenseConcluded": "NOASSERTION", "licenseDeclared": "NOASSERTION", "copyrightText": "NOASSERTION"}],
-        "files": [{"fileName": "./" + item["path"], "SPDXID": f"SPDXRef-File-{index}", "checksums": [{"algorithm": "SHA256", "checksumValue": item["sha256"]}], "licenseConcluded": "NOASSERTION", "copyrightText": "NOASSERTION"} for index, item in enumerate(inventory)],
-        "relationships": [{"spdxElementId": "SPDXRef-DOCUMENT", "relatedSpdxElement": "SPDXRef-ModConductor", "relationshipType": "DESCRIBES"}] + [{"spdxElementId": "SPDXRef-ModConductor", "relatedSpdxElement": f"SPDXRef-File-{index}", "relationshipType": "CONTAINS"} for index in range(len(inventory))],
-    }
+    sbom = spdx_document(
+        inventory, VERSION, "Linux-x64", "linux", sha256(manifest),
+        date.strftime("%Y-%m-%dT%H:%M:%SZ"), "tools/package-linux.py",
+    )
     (documents / "sbom.spdx.json").write_text(json.dumps(sbom, indent=2) + "\n")
     (documents / "provenance.json").write_text(json.dumps({
         "source_revision": revision, "linux_rid": "linux-x64", "flutter_sdk": "3.47.4", "dotnet_sdk": "10.0.400", "rust_toolchain": "1.89.0",

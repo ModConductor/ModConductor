@@ -13,6 +13,37 @@ import sys
 import tempfile
 import time
 
+def handle_picker(request: Path, window: str, fixture: Path, env: dict[str, str], output: Path | None) -> None:
+    def key(*parts):
+        subprocess.run(['xdotool', *parts], env=env, check=True)
+    value = json.loads(request.read_text())
+    subprocess.run(['xdotool', 'windowmove', window, '20', '20', 'windowsize', window, '1000', '760'], env=env, check=True)
+    if output and shutil.which('import'):
+        subprocess.run(['import', '-window', 'root', str(fixture / (request.stem + '.png'))], env=env, check=True)
+    key('windowfocus', '--sync', window)
+    time.sleep(.3)
+    if value['cancel']:
+        key('key', 'Escape')
+    else:
+        key('key', 'alt+Home')
+        time.sleep(.5)
+        key('key', 'ctrl+l')
+        time.sleep(.3)
+        key('type', '--clearmodifiers', '--delay', '1', value['path'])
+        key('key', 'Return')
+        time.sleep(.5)
+        still_open = subprocess.run(['xdotool', 'search', '--onlyvisible', '--name', '^Choose Directory$'], env=env, capture_output=True)
+        if still_open.returncode == 0:
+            key('key', 'Return')
+    close_deadline = time.monotonic() + 10
+    while subprocess.run(['xdotool', 'search', '--onlyvisible', '--name', '^Choose Directory$'], env=env, capture_output=True).returncode == 0:
+        if time.monotonic() >= close_deadline:
+            if output and shutil.which('import'):
+                subprocess.run(['import', '-window', 'root', str(fixture / (request.stem + '-after.png'))], env=env, check=True)
+            raise RuntimeError('The private directory dialog did not close.')
+        time.sleep(.1)
+    request.with_suffix('.done').touch()
+
 parser = argparse.ArgumentParser()
 journey = parser.add_mutually_exclusive_group()
 journey.add_argument('--workspaces', action='store_true')
@@ -79,36 +110,8 @@ with tempfile.TemporaryDirectory(prefix='wire-display-', dir=root / '.agent-work
                         windows = found.stdout.split()
                         if len(windows) != 1:
                             raise RuntimeError('Expected one private directory dialog.')
-                        def key(*parts):
-                            subprocess.run(['xdotool', *parts], env=env, check=True)
-                        value = json.loads(request.read_text())
-                        subprocess.run(['xdotool', 'windowmove', windows[0], '20', '20', 'windowsize', windows[0], '1000', '760'], env=env, check=True)
-                        if args.output and shutil.which('import'):
-                            subprocess.run(['import', '-window', 'root', str(fixture / (request.stem + '.png'))], env=env, check=True)
-                        key('windowfocus', '--sync', windows[0])
-                        time.sleep(.3)
-                        if value['cancel']:
-                            key('key', 'Escape')
-                        else:
-                            key('key', 'alt+Home')
-                            time.sleep(.5)
-                            key('key', 'ctrl+l')
-                            time.sleep(.3)
-                            key('type', '--clearmodifiers', '--delay', '1', value['path'])
-                            key('key', 'Return')
-                            time.sleep(.5)
-                            still_open = subprocess.run(['xdotool', 'search', '--onlyvisible', '--name', '^Choose Directory$'], env=env, capture_output=True)
-                            if still_open.returncode == 0:
-                                key('key', 'Return')
-                        close_deadline = time.monotonic() + 10
-                        while subprocess.run(['xdotool', 'search', '--onlyvisible', '--name', '^Choose Directory$'], env=env, capture_output=True).returncode == 0:
-                            if time.monotonic() >= close_deadline:
-                                if args.output and shutil.which('import'):
-                                    subprocess.run(['import', '-window', 'root', str(fixture / (request.stem + '-after.png'))], env=env, check=True)
-                                raise RuntimeError('The private directory dialog did not close.')
-                            time.sleep(.1)
+                        handle_picker(request, windows[0], fixture, env, args.output)
                         handled.add(request.name)
-                        request.with_suffix('.done').touch()
                     time.sleep(.1)
                 code = check.returncode
             except subprocess.TimeoutExpired:

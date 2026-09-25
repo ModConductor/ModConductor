@@ -638,6 +638,394 @@ module FnisFixtures =
                     value.NexusFileId = 702L
                     && value.ArchiveSha256 = updatedGenerator.Value.ArchiveSha256))
 
+    let private logEvidence writer (mode: string) (projectedGenerator: string) (execution: IFnisExecution) workspace profile =
+        let generatorDirectory = Path.GetDirectoryName projectedGenerator
+        let temporaryLogs = Path.Combine(generatorDirectory, "temporary_logs")
+
+        let generatorBeforeLogs =
+            SHA256.HashData(File.ReadAllBytes projectedGenerator)
+
+        if OperatingSystem.IsLinux() then
+            let mode = File.GetUnixFileMode generatorDirectory
+            File.SetUnixFileMode(generatorDirectory, mode ||| UnixFileMode.UserWrite)
+            Directory.CreateDirectory temporaryLogs |> ignore
+            File.SetUnixFileMode(generatorDirectory, mode)
+        else
+            Directory.CreateDirectory temporaryLogs |> ignore
+
+        let pathMetadata (path: string) =
+            File.GetLastAccessTimeUtc path,
+            File.GetLastWriteTimeUtc path,
+            File.GetAttributes path,
+            (if OperatingSystem.IsWindows() then
+                 None
+             else
+                 Some(File.GetUnixFileMode path))
+
+        let sameParentMetadata
+            (_, leftWrite, leftAttributes, leftMode)
+            (_, rightWrite, rightAttributes, rightMode)
+            =
+            leftWrite = rightWrite
+            && leftAttributes = rightAttributes
+            && leftMode = rightMode
+
+        let treeContents (root: string) =
+            Directory.EnumerateFileSystemEntries(root, "*", SearchOption.AllDirectories)
+            |> Seq.map (fun path ->
+                let relative = Path.GetRelativePath(root, path)
+
+                if Directory.Exists path then
+                    relative + "/"
+                else
+                    relative + ":" + Convert.ToHexString(SHA256.HashData(File.ReadAllBytes path)))
+            |> Seq.sortWith (fun left right -> StringComparer.Ordinal.Compare(left, right))
+            |> Seq.toList
+
+        let waitForRun id expected =
+            until
+                ("FNIS log run " + string id)
+                (fun () ->
+                    execution.Inspect(workspace, profile, CancellationToken.None) |> wait |> result)
+                (fun value -> value.LatestRunId = Some id && value.Phase = expected)
+
+        let existingLog = Path.Combine(temporaryLogs, "GenerateFNIS_LogFile.txt")
+        let newLog = Path.Combine(temporaryLogs, "NewFNIS.log")
+        File.WriteAllText(existingLog, "original temporary log")
+        let expectedGeneratorTree = treeContents generatorDirectory
+
+        let originalParentMode = File.GetUnixFileMode generatorDirectory
+        File.SetUnixFileMode(generatorDirectory, UnixFileMode.UserRead ||| UnixFileMode.UserExecute)
+        let parentWrite = DateTime(2026, 1, 2, 3, 4, 6, DateTimeKind.Utc)
+        let directoryAccess = DateTime(2026, 1, 2, 3, 4, 7, DateTimeKind.Utc)
+        let directoryWrite = DateTime(2026, 1, 2, 3, 4, 8, DateTimeKind.Utc)
+        let fileAccess = DateTime(2026, 1, 2, 3, 4, 9, DateTimeKind.Utc)
+        let fileWrite = DateTime(2026, 1, 2, 3, 4, 10, DateTimeKind.Utc)
+        File.SetLastWriteTimeUtc(generatorDirectory, parentWrite)
+        File.SetLastAccessTimeUtc(temporaryLogs, directoryAccess)
+        File.SetLastWriteTimeUtc(temporaryLogs, directoryWrite)
+        File.SetLastAccessTimeUtc(existingLog, fileAccess)
+        File.SetLastWriteTimeUtc(existingLog, fileWrite)
+        File.SetUnixFileMode(existingLog, UnixFileMode.UserRead)
+        File.SetUnixFileMode(temporaryLogs, UnixFileMode.UserRead ||| UnixFileMode.UserExecute)
+        let expectedParentMetadata = pathMetadata generatorDirectory
+        let expectedDirectoryMetadata = pathMetadata temporaryLogs
+        let expectedFileMetadata = pathMetadata existingLog
+        File.WriteAllText(mode, "successlog")
+        let logId = Guid.NewGuid()
+
+        execution.Run(
+            { Id = logId
+              WorkspaceId = workspace
+              ProfileId = profile },
+            CancellationToken.None
+        )
+        |> wait
+        |> result
+        |> ignore
+
+        let logged = waitForRun logId ModConductor.Fnis.FnisOutputPhase.Current
+        let restoredParentMetadata = pathMetadata generatorDirectory
+        let restoredDirectoryMetadata = pathMetadata temporaryLogs
+        let restoredFileMetadata = pathMetadata existingLog
+        let restoredGeneratorTree = treeContents generatorDirectory
+
+        check
+            writer
+            "malformedTemporaryLogIsCapturedBoundedInOwnedState"
+            (logged.RunLog.Contains("malformed FNIS log")
+             && logged.RunLog.Contains("new temporary log")
+             && Encoding.UTF8.GetByteCount logged.RunLog <= 256 * 1024
+             && File.ReadAllText(existingLog) = "original temporary log"
+             && not (File.Exists newLog))
+
+        check
+            writer
+            "restrictiveTemporaryLogTreeRestoresContentMetadataModesAndTimestamps"
+            (restoredGeneratorTree = expectedGeneratorTree
+             && sameParentMetadata restoredParentMetadata expectedParentMetadata
+             && restoredDirectoryMetadata = expectedDirectoryMetadata
+             && restoredFileMetadata = expectedFileMetadata
+             && File.GetUnixFileMode generatorDirectory = (UnixFileMode.UserRead ||| UnixFileMode.UserExecute))
+
+        check
+            writer
+            "temporaryLogCleanupPreservesImmutableGenerator"
+            (SHA256.HashData(File.ReadAllBytes projectedGenerator) = generatorBeforeLogs)
+
+        File.WriteAllText(mode, "success")
+        let missingLogId = Guid.NewGuid()
+
+        execution.Run(
+            { Id = missingLogId
+              WorkspaceId = workspace
+              ProfileId = profile },
+            CancellationToken.None
+        )
+        |> wait
+        |> result
+        |> ignore
+
+        let missingLog = waitForRun missingLogId ModConductor.Fnis.FnisOutputPhase.Current
+        check writer "missingTemporaryLogIsAnEmptyOwnedRecord" (missingLog.RunLog = "")
+
+        File.SetUnixFileMode(generatorDirectory, originalParentMode ||| UnixFileMode.UserWrite)
+
+        File.SetUnixFileMode(
+            temporaryLogs,
+            UnixFileMode.UserRead ||| UnixFileMode.UserWrite ||| UnixFileMode.UserExecute
+        )
+
+        File.SetUnixFileMode(existingLog, UnixFileMode.UserRead ||| UnixFileMode.UserWrite)
+        Directory.Delete(temporaryLogs, true)
+        File.SetUnixFileMode(generatorDirectory, originalParentMode)
+        let expectedTreeWithoutTemporaryLogs = treeContents generatorDirectory
+        let newParentWrite = DateTime(2026, 2, 3, 4, 5, 7, DateTimeKind.Utc)
+        File.SetLastWriteTimeUtc(generatorDirectory, newParentWrite)
+        let expectedNewParentMetadata = pathMetadata generatorDirectory
+        File.WriteAllText(mode, "successlognew")
+        let newLogDirectoryId = Guid.NewGuid()
+
+        execution.Run(
+            { Id = newLogDirectoryId
+              WorkspaceId = workspace
+              ProfileId = profile },
+            CancellationToken.None
+        )
+        |> wait
+        |> result
+        |> ignore
+
+        let newDirectoryLog =
+            waitForRun newLogDirectoryId ModConductor.Fnis.FnisOutputPhase.Current
+
+        let restoredNewParentMetadata = pathMetadata generatorDirectory
+        let restoredTreeWithoutTemporaryLogs = treeContents generatorDirectory
+
+        check
+            writer
+            "newRestrictiveTemporaryLogDirectoryIsCapturedAndRemoved"
+            (newDirectoryLog.RunLog.Contains("malformed FNIS log")
+             && not (Directory.Exists temporaryLogs)
+             && restoredTreeWithoutTemporaryLogs = expectedTreeWithoutTemporaryLogs
+             && sameParentMetadata restoredNewParentMetadata expectedNewParentMetadata
+             && SHA256.HashData(File.ReadAllBytes projectedGenerator) = generatorBeforeLogs)
+
+    let private failureEvidence writer (scenario: string) (mode: string) (launcher: string) (execution: IFnisExecution) workspace profile =
+        let waitForRun id expected =
+            until
+                ("FNIS run " + string id)
+                (fun () ->
+                    execution.Inspect(workspace, profile, CancellationToken.None) |> wait |> result)
+                (fun value -> value.LatestRunId = Some id && value.Phase = expected)
+
+        File.WriteAllText(mode, "outputlimit")
+        let outputLimitId = Guid.NewGuid()
+
+        execution.Run(
+            { Id = outputLimitId
+              WorkspaceId = workspace
+              ProfileId = profile },
+            CancellationToken.None
+        )
+        |> wait
+        |> result
+        |> ignore
+
+        let outputLimited =
+            waitForRun outputLimitId ModConductor.Fnis.FnisOutputPhase.Failed
+
+        check
+            writer
+            "outputLimitFailureRetainsDetailAndRemovesStage"
+            (outputLimited.Detail.Contains("exceeded 256 KiB")
+             && not (
+                 Directory.Exists(
+                     Path.Combine(scenario, "state", "fnis-runs", outputLimitId.ToString("N"))
+                 )
+             ))
+
+        if OperatingSystem.IsLinux() then
+            File.SetUnixFileMode(launcher, UnixFileMode.UserRead ||| UnixFileMode.UserWrite)
+
+        let launchId = Guid.NewGuid()
+
+        execution.Run(
+            { Id = launchId
+              WorkspaceId = workspace
+              ProfileId = profile },
+            CancellationToken.None
+        )
+        |> wait
+        |> result
+        |> ignore
+
+        let launchFailed = waitForRun launchId ModConductor.Fnis.FnisOutputPhase.Failed
+
+        File.SetUnixFileMode(
+            launcher,
+            UnixFileMode.UserRead ||| UnixFileMode.UserWrite ||| UnixFileMode.UserExecute
+        )
+
+        check
+            writer
+            "launchFailureRetainsDetailAndRemovesStage"
+            (launchFailed.Detail.Length > 0
+             && not (
+                 Directory.Exists(
+                     Path.Combine(scenario, "state", "fnis-runs", launchId.ToString("N"))
+                 )
+             ))
+
+    let private cancellationEvidence writer (scenario: string) (mode: string) (store: OperationStore) (execution: IFnisExecution) (runService: FnisService) workspace profile afterCompleted =
+        let waitForRun id expected =
+            until
+                ("FNIS run " + string id)
+                (fun () ->
+                    execution.Inspect(workspace, profile, CancellationToken.None) |> wait |> result)
+                (fun value -> value.LatestRunId = Some id && value.Phase = expected)
+
+        File.WriteAllText(mode, "cancel")
+        let cancelledId = Guid.NewGuid()
+
+        store.SkyrimSetups.Save
+            { WorkspaceId = workspace
+              ProfileId = profile
+              Selection = { SetupSelection.none with Fnis = SetupAction.Install }
+              Cancelled = false
+              Completed = false
+              Stage = "fnis-run"
+              ActionId = Some cancelledId
+              CancelRequested = false
+              CancelDetail = ""
+              RequestedAt = DateTimeOffset.UtcNow }
+        |> wait
+
+        let combined = new SkyrimSetupCoordinator(store, combinedFnisDependencies execution)
+
+        execution.Run(
+            { Id = cancelledId
+              WorkspaceId = workspace
+              ProfileId = profile },
+            CancellationToken.None
+        )
+        |> wait
+        |> result
+        |> ignore
+
+        let runningStream = StateStream()
+        let runningReference =
+            ModConductor.Protocol.V1.FnisRunRequest(
+                Id = cancelledId.ToString("N"),
+                WorkspaceId = workspace.ToString("N"),
+                ProfileId = profile.ToString("N")
+            )
+        let observedRun =
+            runService.ObserveFnisRun(runningReference, runningStream, StreamContext())
+
+        until
+            "FNIS run stream started"
+            (fun () -> runningStream.States.Length)
+            (fun count -> count > 0)
+        |> ignore
+
+        let directCancellation = execution.Cancel(workspace, profile)
+        let combinedCancellation = combined.Cancel(workspace, profile, CancellationToken.None)
+        let directCancelled = directCancellation |> wait |> result
+        let stageDrained =
+            not (
+                Directory.Exists(
+                    Path.Combine(scenario, "state", "fnis-runs", cancelledId.ToString("N"))
+                )
+            )
+        let combinedCancelled = combinedCancellation |> wait
+        let lateCancelled = execution.Cancel(workspace, profile) |> wait |> result
+
+        observedRun.GetAwaiter().GetResult()
+
+        let cancelled =
+            execution.Inspect(workspace, profile, CancellationToken.None) |> wait |> result
+
+        let cancelledIntent = store.SkyrimSetups.Read(workspace, profile) |> wait
+
+        (combined :> IDisposable).Dispose()
+
+        check
+            writer
+            "cancelledRunTerminatesAndPreservesPriorOutput"
+            (cancelled.LatestRunId = Some cancelledId
+             && cancelled.Phase = ModConductor.Fnis.FnisOutputPhase.Cancelled
+             && enabled store profile = afterCompleted
+             && not (
+                 Directory.Exists(
+                     Path.Combine(scenario, "state", "fnis-runs", cancelledId.ToString("N"))
+                 )
+             ))
+
+        check
+            writer
+            "concurrentAndLateCancelObserveDrainedRun"
+            (directCancelled.LatestRunId = Some cancelledId
+             && directCancelled.Phase = ModConductor.Fnis.FnisOutputPhase.Cancelled
+             && stageDrained
+             && lateCancelled.LatestRunId = Some cancelledId
+             && lateCancelled.Phase = ModConductor.Fnis.FnisOutputPhase.Cancelled)
+
+        check
+            writer
+            "runningFnisStreamFinishesAfterCancellation"
+            (runningStream.States.Length = 2
+             && runningStream.States.Head.OutputPhase =
+                ModConductor.Protocol.V1.FnisOutputPhase.Running
+             && runningStream.States[1].OutputPhase =
+                ModConductor.Protocol.V1.FnisOutputPhase.Cancelled)
+
+        check
+            writer
+            "combinedCancelUsesProductionFnisOwner"
+            (combinedCancelled.Phase = SkyrimSetupPhase.Cancelled
+             && combinedCancelled.Detail.Contains("FNIS was cancelled", StringComparison.Ordinal)
+             && (cancelledIntent
+                 |> Option.exists (fun value ->
+                     value.Cancelled && not value.CancelRequested && value.ActionId.IsNone)))
+
+        File.WriteAllText(mode, "timeout")
+        use timeoutRunner = new FnisRunner(store, timeout = TimeSpan.FromMilliseconds 100.)
+        let timeoutExecution = timeoutRunner :> IFnisExecution
+        let timeoutId = Guid.NewGuid()
+
+        timeoutExecution.Run(
+            { Id = timeoutId
+              WorkspaceId = workspace
+              ProfileId = profile },
+            CancellationToken.None
+        )
+        |> wait
+        |> result
+        |> ignore
+
+        let timedOut =
+            until
+                "timed-out FNIS run"
+                (fun () ->
+                    timeoutExecution.Inspect(workspace, profile, CancellationToken.None)
+                    |> wait
+                    |> result)
+                (fun value ->
+                    value.LatestRunId = Some timeoutId
+                    && value.Phase = ModConductor.Fnis.FnisOutputPhase.Failed)
+
+        check
+            writer
+            "timedOutRunRetainsDetailAndRemovesStage"
+            (timedOut.Detail.Contains("timed out")
+             && timedOut.RunLog = ""
+             && not (
+                 Directory.Exists(
+                     Path.Combine(scenario, "state", "fnis-runs", timeoutId.ToString("N"))
+                 )
+             ))
+
     let private executionEvidence writer area =
         let scenario = Directory.CreateDirectory(Path.Combine(area, "execution")).FullName
         use server = new NexusServer()
@@ -747,49 +1135,6 @@ module FnisFixtures =
                  projected.Runtime = "Windows"
                  && projected.Launch.Executable = projectedGenerator
                  && projected.Launch.Arguments = [ "RedirectFiles=C:\\owned"; "InstantExecute=1" ]))
-
-        let generatorDirectory = Path.GetDirectoryName projectedGenerator
-        let temporaryLogs = Path.Combine(generatorDirectory, "temporary_logs")
-
-        let generatorBeforeLogs =
-            SHA256.HashData(File.ReadAllBytes projectedGenerator)
-
-        if OperatingSystem.IsLinux() then
-            let mode = File.GetUnixFileMode generatorDirectory
-            File.SetUnixFileMode(generatorDirectory, mode ||| UnixFileMode.UserWrite)
-            Directory.CreateDirectory temporaryLogs |> ignore
-            File.SetUnixFileMode(generatorDirectory, mode)
-        else
-            Directory.CreateDirectory temporaryLogs |> ignore
-
-        let pathMetadata (path: string) =
-            File.GetLastAccessTimeUtc path,
-            File.GetLastWriteTimeUtc path,
-            File.GetAttributes path,
-            (if OperatingSystem.IsWindows() then
-                 None
-             else
-                 Some(File.GetUnixFileMode path))
-
-        let sameParentMetadata
-            (_, leftWrite, leftAttributes, leftMode)
-            (_, rightWrite, rightAttributes, rightMode)
-            =
-            leftWrite = rightWrite
-            && leftAttributes = rightAttributes
-            && leftMode = rightMode
-
-        let treeContents (root: string) =
-            Directory.EnumerateFileSystemEntries(root, "*", SearchOption.AllDirectories)
-            |> Seq.map (fun path ->
-                let relative = Path.GetRelativePath(root, path)
-
-                if Directory.Exists path then
-                    relative + "/"
-                else
-                    relative + ":" + Convert.ToHexString(SHA256.HashData(File.ReadAllBytes path)))
-            |> Seq.sortWith (fun left right -> StringComparer.Ordinal.Compare(left, right))
-            |> Seq.toList
 
         use runner = new FnisRunner(store)
         let execution = runner :> IFnisExecution
@@ -1410,326 +1755,10 @@ module FnisFixtures =
              && reopenedSetup.Status.Contains("FNIS exited with code 7")
              && skseStarts = 1)
 
-        File.WriteAllText(mode, "outputlimit")
-        let outputLimitId = Guid.NewGuid()
+        failureEvidence writer scenario mode launcher execution workspace profile
+        cancellationEvidence writer scenario mode store execution runService workspace profile afterCompleted
 
-        execution.Run(
-            { Id = outputLimitId
-              WorkspaceId = workspace
-              ProfileId = profile },
-            CancellationToken.None
-        )
-        |> wait
-        |> result
-        |> ignore
-
-        let outputLimited =
-            waitForRun outputLimitId ModConductor.Fnis.FnisOutputPhase.Failed
-
-        check
-            writer
-            "outputLimitFailureRetainsDetailAndRemovesStage"
-            (outputLimited.Detail.Contains("exceeded 256 KiB")
-             && not (
-                 Directory.Exists(
-                     Path.Combine(scenario, "state", "fnis-runs", outputLimitId.ToString("N"))
-                 )
-             ))
-
-        if OperatingSystem.IsLinux() then
-            File.SetUnixFileMode(launcher, UnixFileMode.UserRead ||| UnixFileMode.UserWrite)
-
-        let launchId = Guid.NewGuid()
-
-        execution.Run(
-            { Id = launchId
-              WorkspaceId = workspace
-              ProfileId = profile },
-            CancellationToken.None
-        )
-        |> wait
-        |> result
-        |> ignore
-
-        let launchFailed = waitForRun launchId ModConductor.Fnis.FnisOutputPhase.Failed
-
-        File.SetUnixFileMode(
-            launcher,
-            UnixFileMode.UserRead ||| UnixFileMode.UserWrite ||| UnixFileMode.UserExecute
-        )
-
-        check
-            writer
-            "launchFailureRetainsDetailAndRemovesStage"
-            (launchFailed.Detail.Length > 0
-             && not (
-                 Directory.Exists(
-                     Path.Combine(scenario, "state", "fnis-runs", launchId.ToString("N"))
-                 )
-             ))
-
-        File.WriteAllText(mode, "cancel")
-        let cancelledId = Guid.NewGuid()
-
-        store.SkyrimSetups.Save
-            { WorkspaceId = workspace
-              ProfileId = profile
-              Selection = { SetupSelection.none with Fnis = SetupAction.Install }
-              Cancelled = false
-              Completed = false
-              Stage = "fnis-run"
-              ActionId = Some cancelledId
-              CancelRequested = false
-              CancelDetail = ""
-              RequestedAt = DateTimeOffset.UtcNow }
-        |> wait
-
-        let combined = new SkyrimSetupCoordinator(store, combinedFnisDependencies execution)
-
-        execution.Run(
-            { Id = cancelledId
-              WorkspaceId = workspace
-              ProfileId = profile },
-            CancellationToken.None
-        )
-        |> wait
-        |> result
-        |> ignore
-
-        let runningStream = StateStream()
-        let runningReference =
-            ModConductor.Protocol.V1.FnisRunRequest(
-                Id = cancelledId.ToString("N"),
-                WorkspaceId = workspace.ToString("N"),
-                ProfileId = profile.ToString("N")
-            )
-        let observedRun =
-            runService.ObserveFnisRun(runningReference, runningStream, StreamContext())
-
-        until
-            "FNIS run stream started"
-            (fun () -> runningStream.States.Length)
-            (fun count -> count > 0)
-        |> ignore
-
-        let directCancellation = execution.Cancel(workspace, profile)
-        let combinedCancellation = combined.Cancel(workspace, profile, CancellationToken.None)
-        let directCancelled = directCancellation |> wait |> result
-        let stageDrained =
-            not (
-                Directory.Exists(
-                    Path.Combine(scenario, "state", "fnis-runs", cancelledId.ToString("N"))
-                )
-            )
-        let combinedCancelled = combinedCancellation |> wait
-        let lateCancelled = execution.Cancel(workspace, profile) |> wait |> result
-
-        observedRun.GetAwaiter().GetResult()
-
-        let cancelled =
-            execution.Inspect(workspace, profile, CancellationToken.None) |> wait |> result
-
-        let cancelledIntent = store.SkyrimSetups.Read(workspace, profile) |> wait
-
-        (combined :> IDisposable).Dispose()
-
-        check
-            writer
-            "cancelledRunTerminatesAndPreservesPriorOutput"
-            (cancelled.LatestRunId = Some cancelledId
-             && cancelled.Phase = ModConductor.Fnis.FnisOutputPhase.Cancelled
-             && enabled store profile = afterCompleted
-             && not (
-                 Directory.Exists(
-                     Path.Combine(scenario, "state", "fnis-runs", cancelledId.ToString("N"))
-                 )
-             ))
-
-        check
-            writer
-            "concurrentAndLateCancelObserveDrainedRun"
-            (directCancelled.LatestRunId = Some cancelledId
-             && directCancelled.Phase = ModConductor.Fnis.FnisOutputPhase.Cancelled
-             && stageDrained
-             && lateCancelled.LatestRunId = Some cancelledId
-             && lateCancelled.Phase = ModConductor.Fnis.FnisOutputPhase.Cancelled)
-
-        check
-            writer
-            "runningFnisStreamFinishesAfterCancellation"
-            (runningStream.States.Length = 2
-             && runningStream.States.Head.OutputPhase =
-                ModConductor.Protocol.V1.FnisOutputPhase.Running
-             && runningStream.States[1].OutputPhase =
-                ModConductor.Protocol.V1.FnisOutputPhase.Cancelled)
-
-        check
-            writer
-            "combinedCancelUsesProductionFnisOwner"
-            (combinedCancelled.Phase = SkyrimSetupPhase.Cancelled
-             && combinedCancelled.Detail.Contains("FNIS was cancelled", StringComparison.Ordinal)
-             && (cancelledIntent
-                 |> Option.exists (fun value ->
-                     value.Cancelled && not value.CancelRequested && value.ActionId.IsNone)))
-
-        File.WriteAllText(mode, "timeout")
-        use timeoutRunner = new FnisRunner(store, timeout = TimeSpan.FromMilliseconds 100.)
-        let timeoutExecution = timeoutRunner :> IFnisExecution
-        let timeoutId = Guid.NewGuid()
-
-        timeoutExecution.Run(
-            { Id = timeoutId
-              WorkspaceId = workspace
-              ProfileId = profile },
-            CancellationToken.None
-        )
-        |> wait
-        |> result
-        |> ignore
-
-        let timedOut =
-            until
-                "timed-out FNIS run"
-                (fun () ->
-                    timeoutExecution.Inspect(workspace, profile, CancellationToken.None)
-                    |> wait
-                    |> result)
-                (fun value ->
-                    value.LatestRunId = Some timeoutId
-                    && value.Phase = ModConductor.Fnis.FnisOutputPhase.Failed)
-
-        check
-            writer
-            "timedOutRunRetainsDetailAndRemovesStage"
-            (timedOut.Detail.Contains("timed out")
-             && timedOut.RunLog = ""
-             && not (
-                 Directory.Exists(
-                     Path.Combine(scenario, "state", "fnis-runs", timeoutId.ToString("N"))
-                 )
-             ))
-
-        let existingLog = Path.Combine(temporaryLogs, "GenerateFNIS_LogFile.txt")
-        let newLog = Path.Combine(temporaryLogs, "NewFNIS.log")
-        File.WriteAllText(existingLog, "original temporary log")
-        let expectedGeneratorTree = treeContents generatorDirectory
-
-        let originalParentMode = File.GetUnixFileMode generatorDirectory
-        File.SetUnixFileMode(generatorDirectory, UnixFileMode.UserRead ||| UnixFileMode.UserExecute)
-        let parentWrite = DateTime(2026, 1, 2, 3, 4, 6, DateTimeKind.Utc)
-        let directoryAccess = DateTime(2026, 1, 2, 3, 4, 7, DateTimeKind.Utc)
-        let directoryWrite = DateTime(2026, 1, 2, 3, 4, 8, DateTimeKind.Utc)
-        let fileAccess = DateTime(2026, 1, 2, 3, 4, 9, DateTimeKind.Utc)
-        let fileWrite = DateTime(2026, 1, 2, 3, 4, 10, DateTimeKind.Utc)
-        File.SetLastWriteTimeUtc(generatorDirectory, parentWrite)
-        File.SetLastAccessTimeUtc(temporaryLogs, directoryAccess)
-        File.SetLastWriteTimeUtc(temporaryLogs, directoryWrite)
-        File.SetLastAccessTimeUtc(existingLog, fileAccess)
-        File.SetLastWriteTimeUtc(existingLog, fileWrite)
-        File.SetUnixFileMode(existingLog, UnixFileMode.UserRead)
-        File.SetUnixFileMode(temporaryLogs, UnixFileMode.UserRead ||| UnixFileMode.UserExecute)
-        let expectedParentMetadata = pathMetadata generatorDirectory
-        let expectedDirectoryMetadata = pathMetadata temporaryLogs
-        let expectedFileMetadata = pathMetadata existingLog
-        File.WriteAllText(mode, "successlog")
-        let logId = Guid.NewGuid()
-
-        execution.Run(
-            { Id = logId
-              WorkspaceId = workspace
-              ProfileId = profile },
-            CancellationToken.None
-        )
-        |> wait
-        |> result
-        |> ignore
-
-        let logged = waitForRun logId ModConductor.Fnis.FnisOutputPhase.Current
-        let restoredParentMetadata = pathMetadata generatorDirectory
-        let restoredDirectoryMetadata = pathMetadata temporaryLogs
-        let restoredFileMetadata = pathMetadata existingLog
-        let restoredGeneratorTree = treeContents generatorDirectory
-
-        check
-            writer
-            "malformedTemporaryLogIsCapturedBoundedInOwnedState"
-            (logged.RunLog.Contains("malformed FNIS log")
-             && logged.RunLog.Contains("new temporary log")
-             && Encoding.UTF8.GetByteCount logged.RunLog <= 256 * 1024
-             && File.ReadAllText(existingLog) = "original temporary log"
-             && not (File.Exists newLog))
-
-        check
-            writer
-            "restrictiveTemporaryLogTreeRestoresContentMetadataModesAndTimestamps"
-            (restoredGeneratorTree = expectedGeneratorTree
-             && sameParentMetadata restoredParentMetadata expectedParentMetadata
-             && restoredDirectoryMetadata = expectedDirectoryMetadata
-             && restoredFileMetadata = expectedFileMetadata
-             && File.GetUnixFileMode generatorDirectory = (UnixFileMode.UserRead ||| UnixFileMode.UserExecute))
-
-        check
-            writer
-            "temporaryLogCleanupPreservesImmutableGenerator"
-            (SHA256.HashData(File.ReadAllBytes projectedGenerator) = generatorBeforeLogs)
-
-        File.WriteAllText(mode, "success")
-        let missingLogId = Guid.NewGuid()
-
-        execution.Run(
-            { Id = missingLogId
-              WorkspaceId = workspace
-              ProfileId = profile },
-            CancellationToken.None
-        )
-        |> wait
-        |> result
-        |> ignore
-
-        let missingLog = waitForRun missingLogId ModConductor.Fnis.FnisOutputPhase.Current
-        check writer "missingTemporaryLogIsAnEmptyOwnedRecord" (missingLog.RunLog = "")
-
-        File.SetUnixFileMode(generatorDirectory, originalParentMode ||| UnixFileMode.UserWrite)
-
-        File.SetUnixFileMode(
-            temporaryLogs,
-            UnixFileMode.UserRead ||| UnixFileMode.UserWrite ||| UnixFileMode.UserExecute
-        )
-
-        File.SetUnixFileMode(existingLog, UnixFileMode.UserRead ||| UnixFileMode.UserWrite)
-        Directory.Delete(temporaryLogs, true)
-        File.SetUnixFileMode(generatorDirectory, originalParentMode)
-        let expectedTreeWithoutTemporaryLogs = treeContents generatorDirectory
-        let newParentWrite = DateTime(2026, 2, 3, 4, 5, 7, DateTimeKind.Utc)
-        File.SetLastWriteTimeUtc(generatorDirectory, newParentWrite)
-        let expectedNewParentMetadata = pathMetadata generatorDirectory
-        File.WriteAllText(mode, "successlognew")
-        let newLogDirectoryId = Guid.NewGuid()
-
-        execution.Run(
-            { Id = newLogDirectoryId
-              WorkspaceId = workspace
-              ProfileId = profile },
-            CancellationToken.None
-        )
-        |> wait
-        |> result
-        |> ignore
-
-        let newDirectoryLog =
-            waitForRun newLogDirectoryId ModConductor.Fnis.FnisOutputPhase.Current
-
-        let restoredNewParentMetadata = pathMetadata generatorDirectory
-        let restoredTreeWithoutTemporaryLogs = treeContents generatorDirectory
-
-        check
-            writer
-            "newRestrictiveTemporaryLogDirectoryIsCapturedAndRemoved"
-            (newDirectoryLog.RunLog.Contains("malformed FNIS log")
-             && not (Directory.Exists temporaryLogs)
-             && restoredTreeWithoutTemporaryLogs = expectedTreeWithoutTemporaryLogs
-             && sameParentMetadata restoredNewParentMetadata expectedNewParentMetadata
-             && SHA256.HashData(File.ReadAllBytes projectedGenerator) = generatorBeforeLogs)
+        logEvidence writer mode projectedGenerator execution workspace profile
 
         let beforeStale = outputEntry () |> Option.get
         let mutable changedForRace = false

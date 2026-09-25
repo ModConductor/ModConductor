@@ -11,6 +11,8 @@ import shutil
 import subprocess
 import zipfile
 
+from package_metadata import spdx_document
+
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = re.search(
@@ -113,17 +115,11 @@ def main() -> None:
     (output / "payload-sha256.json").write_text(json.dumps(inventory, indent=2) + "\n")
     source_revision = args.source_revision or subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
     source_date_epoch = args.source_date_epoch or int(subprocess.check_output(["git", "log", "-1", "--format=%ct"], cwd=ROOT, text=True))
-    sbom = {
-        "spdxVersion": "SPDX-2.3",
-        "dataLicense": "CC0-1.0",
-        "SPDXID": "SPDXRef-DOCUMENT",
-        "name": f"ModConductor-Windows-x64-{VERSION}",
-        "documentNamespace": f"https://modconductor.invalid/spdx/windows/{VERSION}/{sha256(output / 'payload-sha256.json')}",
-        "creationInfo": {"created": datetime.fromtimestamp(source_date_epoch, timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), "creators": ["Tool: tools/package-windows.py"]},
-        "packages": [{"name": "Mod Conductor", "SPDXID": "SPDXRef-ModConductor", "versionInfo": VERSION, "downloadLocation": "NOASSERTION", "filesAnalyzed": True, "licenseConcluded": "NOASSERTION", "licenseDeclared": "NOASSERTION", "copyrightText": "NOASSERTION"}],
-        "files": [{"fileName": "./" + item["path"], "SPDXID": f"SPDXRef-File-{index}", "checksums": [{"algorithm": "SHA256", "checksumValue": item["sha256"]}], "licenseConcluded": "NOASSERTION", "copyrightText": "NOASSERTION"} for index, item in enumerate(inventory)],
-        "relationships": [{"spdxElementId": "SPDXRef-DOCUMENT", "relatedSpdxElement": "SPDXRef-ModConductor", "relationshipType": "DESCRIBES"}] + [{"spdxElementId": "SPDXRef-ModConductor", "relatedSpdxElement": f"SPDXRef-File-{index}", "relationshipType": "CONTAINS"} for index in range(len(inventory))],
-    }
+    sbom = spdx_document(
+        inventory, VERSION, "Windows-x64", "windows", sha256(output / "payload-sha256.json"),
+        datetime.fromtimestamp(source_date_epoch, timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "tools/package-windows.py",
+    )
     (output / "sbom.spdx.json").write_text(json.dumps(sbom, indent=2) + "\n")
     (output / "provenance.json").write_text(json.dumps({
         "source_revision": source_revision,
