@@ -10,9 +10,15 @@ import 'requests.dart';
 
 class DesktopRequestChoice {
   const DesktopRequestChoice(this.id, this.intent, this.workspace)
-    : artifact = null;
-  DesktopRequestChoice.nexus(this.id, Artifact value, WorkspaceInfo target)
-    : artifact = value,
+    : artifact = null,
+      nexusReference = null;
+  DesktopRequestChoice.nexus(
+    this.id,
+    Artifact value,
+    WorkspaceInfo target,
+    String reference,
+  ) : artifact = value,
+      nexusReference = reference,
       workspace = target,
       intent = DesktopIntent(
         DesktopIntentKind.archives,
@@ -21,6 +27,7 @@ class DesktopRequestChoice {
         0,
       );
   final Artifact? artifact;
+  final String? nexusReference;
   final int id;
   final DesktopIntent intent;
   final WorkspaceInfo? workspace;
@@ -211,5 +218,5 @@ Future<void> openDesktopRequest(
   }
   if (choice.artifact case final artifact?)
     artifacts.acceptDownload(artifact, select: true);
-  await requests.dismiss(choice.id);
+  await requests.dismiss(choice.id, nexusReference: choice.nexusReference);
 }

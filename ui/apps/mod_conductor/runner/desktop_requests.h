@@ -143,7 +143,9 @@ class Requests {
   }
   void Dismiss(int64_t id) {
     std::lock_guard<std::mutex> guard(mutex_);
-    if (!queue_.empty() && queue_.front().view.id == id) queue_.pop_front();
+    const auto item = std::find_if(queue_.begin(), queue_.end(),
+                                   [id](const Entry& entry) { return entry.view.id == id; });
+    if (item != queue_.end()) queue_.erase(item);
   }
   void Stop() {
     std::lock_guard<std::mutex> guard(mutex_);

@@ -35,6 +35,15 @@ void check_queue_order() {
   check(queued.Read().first->arguments == olderA && queued.Read().count == 2, "First older request was discarded or reordered.");
   queued.Dismiss(queued.Read().first->id);
   check(queued.Read().first->arguments == olderB, "Second older request was discarded or reordered.");
+
+  desktop::Requests preempted;
+  check(preempted.Add(olderA), "Older request admission failed.");
+  const auto oldId = preempted.Read().first->id;
+  check(preempted.Add(linkA), "Preempting NXM was refused.");
+  const auto newId = preempted.Read().first->id;
+  preempted.Dismiss(oldId);
+  check(preempted.Read().count == 1 && preempted.Read().first->id == newId,
+        "Dismissing preempted work removed the incoming NXM or retained old work.");
 }
 template<class Predicate> void until(Predicate ready) {
   const auto end = std::chrono::steady_clock::now() + 10s;

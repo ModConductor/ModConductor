@@ -106,7 +106,9 @@ class NexusRequestDialog extends StatelessWidget {
           onPressed: requests.startingNexus
               ? null
               : () async {
-                  await requests.dismiss(requests.id!);
+                  final id = requests.id!;
+                  final reference = requests.nexusReference;
+                  await requests.dismiss(id, nexusReference: reference);
                   if (context.mounted) Navigator.pop(context);
                 },
         ),
@@ -142,7 +144,12 @@ class NexusRequestDialog extends StatelessWidget {
                         requests.id == id)
                       Navigator.pop(
                         context,
-                        DesktopRequestChoice.nexus(id, artifact, selected),
+                        DesktopRequestChoice.nexus(
+                          id,
+                          artifact,
+                          selected,
+                          requests.nexusReference!,
+                        ),
                       );
                   },
           ),

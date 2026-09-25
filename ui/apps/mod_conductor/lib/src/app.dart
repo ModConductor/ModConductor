@@ -1179,6 +1179,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
           onPreferences: () => _navigate(_Destination.preferences),
         ),
       );
+      _dialogRequests = null;
       if (choice != null && context.mounted) {
         await openDesktopRequest(
           context,

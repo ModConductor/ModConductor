@@ -227,10 +227,11 @@ class DesktopRequests extends ChangeNotifier {
     }
   }
 
-  Future<void> dismiss(int requestId) async {
+  Future<void> dismiss(int requestId, {String? nexusReference}) async {
     try {
-      if (requestId == id && nexusReference != null && _nxm != null)
-        await _nxm!.dismiss(nexusReference!);
+      final reference =
+          nexusReference ?? (requestId == id ? this.nexusReference : null);
+      if (reference != null && _nxm != null) await _nxm!.dismiss(reference);
       await _channel.invokeMethod<Object?>('dismiss', requestId);
       await refresh();
     } on DesktopNexusProblem catch (error) {
