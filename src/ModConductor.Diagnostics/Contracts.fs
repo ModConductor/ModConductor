@@ -105,8 +105,18 @@ type FnisDiagnosticState =
       Detail: string
       Fingerprint: string }
 
-type FnisDiagnosticSource =
-    Guid -> Guid -> CancellationToken -> Task<FnisDiagnosticState option>
+[<RequireQualifiedAccess>]
+type SkyrimComponent =
+    | Skse
+    | Fnis
+    | Enb
+
+type SkyrimComponentDiagnosticState =
+    { Applicable: Set<SkyrimComponent>
+      FnisOutput: FnisDiagnosticState option }
+
+type SkyrimComponentDiagnosticSource =
+    Guid -> Guid -> CancellationToken -> Task<SkyrimComponentDiagnosticState>
 
 type RemediationItem = { Label: string; Value: string }
 

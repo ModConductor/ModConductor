@@ -283,34 +283,87 @@ let runWithNexus registration (handoff: ModConductor.Nexus.IOAuthHandoff) args =
             store.ProfileGameData,
             store.GameContexts,
             store.PluginOrders,
-            fnis =
+            components =
                 (fun workspace profile token ->
                     task {
-                        let! value =
-                            (fnisRunner :> ModConductor.Fnis.IFnisInspection)
-                                .Inspect(workspace, profile, token)
+                        token.ThrowIfCancellationRequested()
+                        let! deployment = store.Deployments.Read profile
 
-                        return
-                            value
-                            |> Result.toOption
-                            |> Option.map (fun value ->
-                                let stale =
-                                    match value.Phase with
-                                    | ModConductor.Fnis.FnisOutputPhase.Missing
-                                    | ModConductor.Fnis.FnisOutputPhase.Stale
-                                    | ModConductor.Fnis.FnisOutputPhase.Running
-                                    | ModConductor.Fnis.FnisOutputPhase.Failed
-                                    | ModConductor.Fnis.FnisOutputPhase.Cancelled
-                                    | ModConductor.Fnis.FnisOutputPhase.Abandoned -> true
-                                    | _ -> false
+                        match deployment with
+                        | Ok state when state.WorkspaceId = workspace ->
+                            let! skse =
+                                store.SkseLoaders.ReadStored(
+                                    workspace,
+                                    profile,
+                                    state.ActiveGeneration
+                                )
 
-                                let diagnostic: ModConductor.Diagnostics.FnisDiagnosticState =
-                                    { Stale = stale
-                                      Status = value.Status
-                                      Detail = value.Detail
-                                      Fingerprint = value.Fingerprint }
+                            let! fnis =
+                                store.FnisSetups.ReadStored(
+                                    workspace,
+                                    profile,
+                                    state.ActiveGeneration
+                                )
 
-                                diagnostic)
+                            let! enb =
+                                (store.EnbSetups
+                                 :> ModConductor.GameLaunching.IComponentLaunchConfigurationSelection)
+                                    .Read(workspace, profile, state.ActiveGeneration)
+
+                            let applicable =
+                                [ if skse.IsSome then
+                                      ModConductor.Diagnostics.SkyrimComponent.Skse
+                                  if fnis.IsSome then
+                                      ModConductor.Diagnostics.SkyrimComponent.Fnis
+                                  if enb.IsSome then
+                                      ModConductor.Diagnostics.SkyrimComponent.Enb ]
+                                |> Set.ofList
+
+                            let! output =
+                                match state.ActiveGeneration, fnis with
+                                | Some generation, Some _ ->
+                                    task {
+                                        let! inspected =
+                                            store.FnisExecution.Inspect(workspace, profile, generation)
+
+                                        return Result.toOption inspected
+                                    }
+                                | _ -> Task.FromResult None
+
+                            token.ThrowIfCancellationRequested()
+
+                            let diagnostic =
+                                output
+                                |> Option.map (fun value ->
+                                    let stale =
+                                        match value.Phase with
+                                        | ModConductor.Fnis.FnisOutputPhase.Missing
+                                        | ModConductor.Fnis.FnisOutputPhase.Stale
+                                        | ModConductor.Fnis.FnisOutputPhase.Running
+                                        | ModConductor.Fnis.FnisOutputPhase.Failed
+                                        | ModConductor.Fnis.FnisOutputPhase.Cancelled
+                                        | ModConductor.Fnis.FnisOutputPhase.Abandoned -> true
+                                        | _ -> false
+
+                                    let diagnostic: ModConductor.Diagnostics.FnisDiagnosticState =
+                                        { Stale = stale
+                                          Status = value.Status
+                                          Detail = value.Detail
+                                          Fingerprint = value.Fingerprint }
+
+                                    diagnostic)
+
+                            let result: ModConductor.Diagnostics.SkyrimComponentDiagnosticState =
+                                { Applicable = applicable
+                                  FnisOutput = diagnostic }
+
+                            return result
+                        | _ ->
+                            let result: ModConductor.Diagnostics.SkyrimComponentDiagnosticState =
+                                { Applicable = Set.empty
+                                  FnisOutput = None }
+
+                            return result
                     })
         )
     )

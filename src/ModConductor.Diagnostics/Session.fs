@@ -62,7 +62,7 @@ type DiagnosticSession(
     profileData: IProfileGameData,
     gameContexts: IGameContexts,
     pluginOrders: IProfilePluginOrders,
-    ?fnis: FnisDiagnosticSource
+    ?components: SkyrimComponentDiagnosticSource
 ) =
     let gate = obj ()
     let snapshots = Dictionary<Guid, StoredSnapshot>()
@@ -205,39 +205,31 @@ type DiagnosticSession(
                     |> Option.map (fun binding -> state, binding))
         }
 
-    let fnisFindings (workspace: Workspace) (profile: Profile) token =
-        task {
-            match fnis with
-            | None -> return []
-            | Some owner ->
-                let! result = owner workspace.Id profile.Id token
-
-                return
-                    match result with
-                    | Some value when value.Stale ->
-                        [ { Id = "fnis-output"
-                            Code = "fnis-output-stale"
-                            Severity = DiagnosticSeverity.Warning
-                            WorkspaceId = workspace.Id
-                            ProfileId = profile.Id
-                            WorkspaceName = workspace.Name
-                            ProfileName = profile.Name
-                            GameName = "Skyrim Special Edition"
-                            Title = value.Status
-                            Summary = value.Detail
-                            Detail = None
-                            Area = "FNIS"
-                            Evidence = [ { Label = "Input fingerprint"; Value = value.Fingerprint } ]
-                            NextAction = "Run FNIS"
-                            Fixability = Fixability.NotFixable
-                            FixDetail = "Run FNIS from Skyrim setup or the Play check."
-                            Correlations =
-                                [ { Kind = CorrelationKind.Profile
-                                    Id = profile.Id
-                                    Revision = None } ]
-                            Action = DiagnosticAction.None } ]
-                    | _ -> []
-        }
+    let fnisFindings (workspace: Workspace) (profile: Profile) (state: SkyrimComponentDiagnosticState) =
+        match state.FnisOutput with
+        | Some value when state.Applicable.Contains SkyrimComponent.Fnis && value.Stale ->
+            [ { Id = "fnis-output"
+                Code = "fnis-output-stale"
+                Severity = DiagnosticSeverity.Warning
+                WorkspaceId = workspace.Id
+                ProfileId = profile.Id
+                WorkspaceName = workspace.Name
+                ProfileName = profile.Name
+                GameName = "Skyrim Special Edition"
+                Title = value.Status
+                Summary = value.Detail
+                Detail = None
+                Area = "FNIS"
+                Evidence = [ { Label = "Input fingerprint"; Value = value.Fingerprint } ]
+                NextAction = "Run FNIS"
+                Fixability = Fixability.NotFixable
+                FixDetail = "Run FNIS from Skyrim setup or the Play check."
+                Correlations =
+                    [ { Kind = CorrelationKind.Profile
+                        Id = profile.Id
+                        Revision = None } ]
+                Action = DiagnosticAction.None } ]
+        | _ -> []
 
     let skseFindings
         (request: DiagnosticRequest)
@@ -373,11 +365,19 @@ type DiagnosticSession(
                         match fileFindings with
                         | Error error -> return Error error
                         | Ok fileFindings ->
+                            let! componentState =
+                                match gameContext, components with
+                                | Some _, Some owner -> owner workspace.Id profile.Id token
+                                | _ ->
+                                    Task.FromResult
+                                        { Applicable = Set.empty
+                                          FnisOutput = None }
+
                             let! skyrimFindings =
                                 match gameContext with
-                                | None -> Task.FromResult []
-                                | Some(state, binding) ->
+                                | Some(state, binding) when componentState.Applicable.Contains SkyrimComponent.Skse ->
                                     skseFindings request workspace profile launch state binding token
+                                | _ -> Task.FromResult []
 
                             let! oldForms =
                                 match gameContext, request.PluginSnapshotId with
@@ -415,7 +415,10 @@ type DiagnosticSession(
                                                 | _ -> []
                                         }
 
-                                    let! fnisOutputFindings = fnisFindings workspace profile token
+                                    let fnisOutputFindings =
+                                        match gameContext with
+                                        | Some _ -> fnisFindings workspace profile componentState
+                                        | None -> []
 
                                     token.ThrowIfCancellationRequested()
                                     let findings =

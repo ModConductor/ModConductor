@@ -363,7 +363,8 @@ type private DiagnosticFixtureEnvironment(
     ?useFixtureDeployment: bool,
     ?documents: string,
     ?unavailableDocuments: string,
-    ?latestContextRevision: int64
+    ?latestContextRevision: int64,
+    ?components: SkyrimComponentDiagnosticState
 ) =
     let directory =
         Path.Combine(Path.GetTempPath(), "mod-conductor-diagnostics-" + Guid.NewGuid().ToString "N")
@@ -427,6 +428,12 @@ type private DiagnosticFixtureEnvironment(
             defaultArg latestContextRevision 4L
         )
 
+    let mutable componentState =
+        defaultArg
+            components
+            { Applicable = Set.empty
+              FnisOutput = None }
+
     let diagnostics =
         DiagnosticSession(
             workspaces,
@@ -435,7 +442,8 @@ type private DiagnosticFixtureEnvironment(
             launches :> IGameLaunching,
             store.ProfileGameData,
             gameContexts,
-            store.PluginOrders
+            store.PluginOrders,
+            components = (fun _ _ _ -> Task.FromResult componentState)
         )
         :> IDiagnostics
 
@@ -452,6 +460,28 @@ type private DiagnosticFixtureEnvironment(
     member _.Request = request
     member _.WorkspaceId = workspaceId
     member _.ProfileId = profileId
+    member _.Store = store
+    member _.SetComponents(value) = componentState <- value
+
+    member _.SelectOtherProfile() =
+        let other = Guid.NewGuid()
+        let current = workspaces.Read(workspaceId, None) |> wait |> result
+
+        let created =
+            workspaces.Edit(
+                workspaceId,
+                current.Workspace.Revision,
+                ProfileEdit.Create { Id = other; Name = "Other" }
+            )
+            |> wait
+            |> result
+
+        workspaces.Edit(workspaceId, created.Workspace.Revision, ProfileEdit.Select other)
+        |> wait
+        |> result
+        |> ignore
+
+        other
     member _.Wait(value: Task<'value>) = wait value
     member _.Result value = result value
 
@@ -687,6 +717,259 @@ type SkyrimDiagnosticSessionTests() =
         )
 
     [<Test>]
+    member _.``skse log checks should follow the selected profile installation state``() =
+        let documents =
+            Directory.CreateDirectory(
+                Path.Combine(Path.GetTempPath(), "mod-conductor-skse-gate-" + Guid.NewGuid().ToString "N")
+            ).FullName
+
+        try
+            use environment = new DiagnosticFixtureEnvironment(documents = documents)
+
+            let check () =
+                environment.Diagnostics.Check(environment.Request, CancellationToken.None)
+                |> environment.Wait
+                |> environment.Result
+
+            let skseFindings (snapshot: DiagnosticSnapshot) =
+                snapshot.Findings
+                |> List.filter (fun finding -> finding.Code.StartsWith("skse-", StringComparison.Ordinal))
+
+            Assert.That(skseFindings (check ()), Is.Empty)
+
+            environment.SetComponents
+                { Applicable = Set.singleton SkyrimComponent.Skse
+                  FnisOutput = None }
+
+            let installed = skseFindings (check ())
+            Assert.That(installed.Length, Is.EqualTo 1)
+            Assert.That(installed.Head.Code, Is.EqualTo "skse-log-missing")
+            Assert.That(installed.Head.Action, Is.EqualTo DiagnosticAction.CheckAgain)
+            Assert.That(installed.Head.Fixability, Is.EqualTo Fixability.NotFixable)
+
+            environment.SetComponents
+                { Applicable = Set.empty
+                  FnisOutput = None }
+
+            Assert.That(skseFindings (check ()), Is.Empty)
+            Assert.That(environment.Plans.Changes, Is.Zero)
+        finally
+            Directory.Delete(documents, true)
+
+    [<Test>]
+    member _.``installed skse should report a stale log with a rerun action``() =
+        let documents =
+            Directory.CreateDirectory(
+                Path.Combine(Path.GetTempPath(), "mod-conductor-skse-stale-" + Guid.NewGuid().ToString "N")
+            ).FullName
+
+        let logDirectory = Directory.CreateDirectory(Path.Combine(documents, "SKSE")).FullName
+        let log = Path.Combine(logDirectory, "skse64.log")
+        File.WriteAllText(log, "SKSE started")
+        File.SetLastWriteTimeUtc(log, DateTime.UtcNow.AddHours -1.)
+
+        try
+            use environment =
+                new DiagnosticFixtureEnvironment(
+                    documents = documents,
+                    components =
+                        { Applicable = Set.singleton SkyrimComponent.Skse
+                          FnisOutput = None }
+                )
+
+            let snapshot =
+                environment.Diagnostics.Check(environment.Request, CancellationToken.None)
+                |> environment.Wait
+                |> environment.Result
+
+            let stale =
+                snapshot.Findings
+                |> List.find (fun finding -> finding.Code = "skse-log-stale")
+
+            Assert.That(stale.Action, Is.EqualTo DiagnosticAction.CheckAgain)
+            Assert.That(stale.Fixability, Is.EqualTo Fixability.NotFixable)
+            Assert.That(environment.Plans.Changes, Is.Zero)
+            Assert.That(File.Exists log, Is.True)
+        finally
+            Directory.Delete(documents, true)
+
+    [<Test>]
+    member _.``fnis output findings should require its selected component and never apply a fix``() =
+        let documents =
+            Directory.CreateDirectory(
+                Path.Combine(Path.GetTempPath(), "mod-conductor-fnis-gate-" + Guid.NewGuid().ToString "N")
+            ).FullName
+
+        try
+            use environment = new DiagnosticFixtureEnvironment(documents = documents)
+
+            let state status =
+                { Stale = true
+                  Status = status
+                  Detail = "The previous output remains active."
+                  Fingerprint = "fixture-inputs" }
+
+            let check () =
+                environment.Diagnostics.Check(environment.Request, CancellationToken.None)
+                |> environment.Wait
+                |> environment.Result
+                |> _.Findings
+                |> List.filter (fun finding -> finding.Code = "fnis-output-stale")
+
+            environment.SetComponents
+                { Applicable = Set.singleton SkyrimComponent.Enb
+                  FnisOutput = Some(state "FNIS output is missing") }
+
+            Assert.That(check (), Is.Empty)
+
+            environment.SetComponents
+                { Applicable = Set.singleton SkyrimComponent.Fnis
+                  FnisOutput = Some(state "FNIS output is missing") }
+
+            let missing = check ()
+            Assert.That(missing.Length, Is.EqualTo 1)
+            Assert.That(missing.Head.Action, Is.EqualTo DiagnosticAction.None)
+            Assert.That(missing.Head.NextAction, Is.EqualTo "Run FNIS")
+
+            environment.SetComponents
+                { Applicable = Set.singleton SkyrimComponent.Fnis
+                  FnisOutput = Some(state "FNIS run failed") }
+
+            let failed = check ()
+            Assert.That(failed.Length, Is.EqualTo 1)
+            Assert.That(failed.Head.Title, Is.EqualTo "FNIS run failed")
+
+            environment.SetComponents
+                { Applicable = Set.singleton SkyrimComponent.Fnis
+                  FnisOutput = Some { state "FNIS output is current" with Stale = false } }
+
+            Assert.That(check (), Is.Empty)
+
+            environment.SetComponents
+                { Applicable = Set.empty
+                  FnisOutput = Some(state "FNIS run failed") }
+
+            Assert.That(check (), Is.Empty)
+            Assert.That(environment.Plans.Changes, Is.Zero)
+        finally
+            Directory.Delete(documents, true)
+
+    [<Test>]
+    member _.``read-only fnis owner queries and diagnostics should preserve saved state``() =
+        use environment = new DiagnosticFixtureEnvironment()
+        let store = environment.Store
+        let workspace, profile = environment.WorkspaceId, environment.ProfileId
+
+        store.FnisSetups.SaveStatus
+            { WorkspaceId = workspace
+              ProfileId = profile
+              Phase = "failed"
+              ComponentVersion = "7.6"
+              Status = "FNIS setup failed"
+              Detail = "No generator was selected."
+              NexusFileId = None
+              ArtifactId = None
+              CheckedAt = DateTimeOffset.UtcNow }
+        |> environment.Wait
+
+        let deployment () =
+            store.Deployments.Read profile |> environment.Wait |> environment.Result
+
+        let fnisStatus () =
+            store.FnisSetups.ReadStatus(workspace, profile) |> environment.Wait
+
+        let interrupted () =
+            store.FnisExecution.Interrupted profile |> environment.Wait
+
+        let beforeDeployment = deployment ()
+        let beforeStatus = fnisStatus ()
+        let beforeInterrupted = interrupted ()
+
+        let selected =
+            store.FnisSetups.ReadStored(workspace, profile, beforeDeployment.ActiveGeneration)
+            |> environment.Wait
+
+        let output =
+            store.FnisExecution.Inspect(workspace, profile, Guid.NewGuid())
+            |> environment.Wait
+
+        let snapshot =
+            environment.Diagnostics.Check(environment.Request, CancellationToken.None)
+            |> environment.Wait
+            |> environment.Result
+
+        Assert.That(selected |> Option.isNone, Is.True)
+        let missingOutput =
+            match output with
+            | Error ModConductor.Fnis.FnisExecutionError.NotFound -> true
+            | _ -> false
+
+        Assert.That(missingOutput, Is.True)
+        Assert.That(snapshot.Findings |> List.exists (fun value -> value.Code = "fnis-output-stale"), Is.False)
+        Assert.That(deployment (), Is.EqualTo beforeDeployment)
+        Assert.That(fnisStatus (), Is.EqualTo beforeStatus)
+        Assert.That(interrupted (), Is.EqualTo beforeInterrupted)
+        Assert.That(environment.Plans.Changes, Is.Zero)
+
+    [<Test>]
+    member _.``unbound and other profiles should not inherit skyrim component findings``() =
+        let documents =
+            Directory.CreateDirectory(
+                Path.Combine(Path.GetTempPath(), "mod-conductor-component-profile-" + Guid.NewGuid().ToString "N")
+            ).FullName
+
+        let installed =
+            { Applicable = Set.ofList [ SkyrimComponent.Skse; SkyrimComponent.Fnis ]
+              FnisOutput =
+                Some
+                    { Stale = true
+                      Status = "FNIS output is missing"
+                      Detail = "Run FNIS."
+                      Fingerprint = "fixture-inputs" } }
+
+        let optionalFindings (snapshot: DiagnosticSnapshot) =
+            snapshot.Findings
+            |> List.filter (fun finding ->
+                finding.Code.StartsWith("skse-", StringComparison.Ordinal)
+                || finding.Code = "fnis-output-stale")
+
+        try
+            use unbound = new DiagnosticFixtureEnvironment(components = installed)
+
+            let unboundSnapshot =
+                unbound.Diagnostics.Check(unbound.Request, CancellationToken.None)
+                |> unbound.Wait
+                |> unbound.Result
+
+            Assert.That(optionalFindings unboundSnapshot, Is.Empty)
+
+            use environment =
+                new DiagnosticFixtureEnvironment(documents = documents, components = installed)
+
+            let selected =
+                environment.Diagnostics.Check(environment.Request, CancellationToken.None)
+                |> environment.Wait
+                |> environment.Result
+
+            Assert.That(optionalFindings selected |> List.length, Is.EqualTo 2)
+
+            let other = environment.SelectOtherProfile()
+            let otherRequest =
+                { environment.Request with
+                    ProfileId = other
+                    FileSnapshotId = None }
+
+            let otherSnapshot =
+                environment.Diagnostics.Check(otherRequest, CancellationToken.None)
+                |> environment.Wait
+                |> environment.Result
+
+            Assert.That(optionalFindings otherSnapshot, Is.Empty)
+            Assert.That(environment.Plans.Changes, Is.Zero)
+        finally
+            Directory.Delete(documents, true)
+
+    [<Test>]
     member _.``SKSE plugin findings should use known mod origins and keep unknown origins``() =
         let documents =
             Path.Combine(
@@ -705,7 +988,13 @@ type SkyrimDiagnosticSessionTests() =
         )
 
         try
-            use environment = new DiagnosticFixtureEnvironment(documents = documents)
+            use environment =
+                new DiagnosticFixtureEnvironment(
+                    documents = documents,
+                    components =
+                        { Applicable = Set.singleton SkyrimComponent.Skse
+                          FnisOutput = None }
+                )
             File.SetLastWriteTimeUtc(log, DateTime.UtcNow.AddMinutes 1.)
 
             let snapshot =
@@ -752,7 +1041,10 @@ type SkyrimDiagnosticSessionTests() =
             use environment =
                 new DiagnosticFixtureEnvironment(
                     documents = documents,
-                    latestContextRevision = 3L
+                    latestContextRevision = 3L,
+                    components =
+                        { Applicable = Set.singleton SkyrimComponent.Skse
+                          FnisOutput = None }
                 )
 
             let snapshot =
@@ -779,7 +1071,12 @@ type SkyrimDiagnosticSessionTests() =
         let disclosed = "/home/private/secret-documents token=secret-value"
 
         use environment =
-            new DiagnosticFixtureEnvironment(unavailableDocuments = disclosed)
+            new DiagnosticFixtureEnvironment(
+                unavailableDocuments = disclosed,
+                components =
+                    { Applicable = Set.singleton SkyrimComponent.Skse
+                      FnisOutput = None }
+            )
 
         let snapshot =
             environment.Diagnostics.Check(environment.Request, CancellationToken.None)
