@@ -1512,8 +1512,17 @@ module FnisFixtures =
             (fun count -> count > 0)
         |> ignore
 
-        let combinedCancelled =
-            combined.Cancel(workspace, profile, CancellationToken.None) |> wait
+        let directCancellation = execution.Cancel(workspace, profile)
+        let combinedCancellation = combined.Cancel(workspace, profile, CancellationToken.None)
+        let directCancelled = directCancellation |> wait |> result
+        let stageDrained =
+            not (
+                Directory.Exists(
+                    Path.Combine(scenario, "state", "fnis-runs", cancelledId.ToString("N"))
+                )
+            )
+        let combinedCancelled = combinedCancellation |> wait
+        let lateCancelled = execution.Cancel(workspace, profile) |> wait |> result
 
         observedRun.GetAwaiter().GetResult()
 
@@ -1535,6 +1544,15 @@ module FnisFixtures =
                      Path.Combine(scenario, "state", "fnis-runs", cancelledId.ToString("N"))
                  )
              ))
+
+        check
+            writer
+            "concurrentAndLateCancelObserveDrainedRun"
+            (directCancelled.LatestRunId = Some cancelledId
+             && directCancelled.Phase = ModConductor.Fnis.FnisOutputPhase.Cancelled
+             && stageDrained
+             && lateCancelled.LatestRunId = Some cancelledId
+             && lateCancelled.Phase = ModConductor.Fnis.FnisOutputPhase.Cancelled)
 
         check
             writer

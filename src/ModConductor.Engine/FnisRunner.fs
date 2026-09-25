@@ -754,13 +754,15 @@ type FnisRunner
         member _.Cancel(workspace, profile) =
             task {
                 match active.TryGetValue((workspace, profile)) with
-                | true, run -> run.Cancellation.Cancel()
+                | true, run ->
+                    try
+                        run.Cancellation.Cancel()
+                    with :? ObjectDisposedException -> ()
+
+                    try
+                        do! run.Completion.Task.WaitAsync(TimeSpan.FromSeconds 10.)
+                    with :? TimeoutException -> ()
                 | _ -> ()
-
-                let deadline = DateTime.UtcNow.AddSeconds 10.
-
-                while active.ContainsKey((workspace, profile)) && DateTime.UtcNow < deadline do
-                    do! Task.Delay 20
 
                 return! inspect workspace profile CancellationToken.None
             }
