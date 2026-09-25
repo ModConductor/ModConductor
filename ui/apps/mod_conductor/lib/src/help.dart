@@ -841,7 +841,8 @@ class _HelpBrowserState extends State<HelpBrowser> {
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, bounds) {
       _compact =
-          bounds.maxWidth < 900 * MediaQuery.textScalerOf(context).scale(1);
+          bounds.maxWidth * McUiScale.of(context) <
+          900 * MediaQuery.textScalerOf(context).scale(1);
       final inspector = _inspector();
       final body = Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,

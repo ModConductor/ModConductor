@@ -423,6 +423,7 @@ Future<void> mountApp(
   GameContextsClient? gameContexts,
   SteamDiscoveryClient? steamDiscovery,
   DirectoryChooser? chooseDirectory,
+  SettingsClient? settings,
   Size size = const Size(1280, 800),
 }) async {
   tester.view.devicePixelRatio = 1;
@@ -430,6 +431,7 @@ Future<void> mountApp(
   await tester.pumpWidget(
     ModConductorApp(
       workspaces: workspaces,
+      settings: settings,
       diagnostics: diagnostics,
       skyrimSetup: skyrimSetup,
       gameContexts: gameContexts,
@@ -499,6 +501,40 @@ Future<DiagnosticsController> mount(
   );
   await tester.pumpAndSettle();
   return controller;
+}
+
+class _DisplaySettings implements SettingsClient {
+  _DisplaySettings(this.interfaceScale);
+
+  final double interfaceScale;
+
+  @override
+  Future<SettingsSnapshot> readApplication() async => SettingsSnapshot(
+    presentation: PresentationPreferences(
+      appearance: AppearancePreference.light,
+      textScale: 1,
+      interfaceScale: interfaceScale,
+      contrast: ContrastPreference.system,
+    ),
+    inheritsApplication: false,
+  );
+
+  @override
+  Future<SettingsSnapshot> readWorkspace(String workspaceId) async =>
+      SettingsSnapshot(
+        presentation: (await readApplication()).presentation,
+        inheritsApplication: true,
+      );
+
+  @override
+  Future<SettingsSnapshot> saveApplication(SettingsSnapshot settings) async =>
+      settings;
+
+  @override
+  Future<SettingsSnapshot> saveWorkspace(
+    String workspaceId,
+    SettingsSnapshot settings,
+  ) async => settings;
 }
 
 void main() {
@@ -856,6 +892,61 @@ void main() {
           'goldens/help_navigation_${visualCase.name}_dark.png',
         ),
       );
+    }
+  });
+
+  testWidgets('Help stays readable at a 900 pixel window at both sizes', (
+    tester,
+  ) async {
+    await (FontLoader('packages/mc_ui_foundation/Roboto')..addFont(
+          rootBundle.load(
+            'packages/mc_ui_foundation/assets/fonts/Roboto-Regular.ttf',
+          ),
+        ))
+        .load();
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    for (final interfaceScale in [1.0, 0.9]) {
+      await tester.pumpWidget(const SizedBox.shrink());
+      await mountApp(
+        tester,
+        workspaces: FakeWorkspaces(
+          savedWorkspace: WorkspaceInfo(
+            id: 'workspace-1',
+            name: 'My workspace',
+            path: '/games/my-workspace',
+            revision: 1,
+            selectedProfile: const ProfileInfo('profile-1', 'Main'),
+          ),
+        ),
+        diagnostics: FakeDiagnostics(
+          checkResult: DiagnosticSnapshot(
+            'visual-check',
+            'workspace-1',
+            'profile-1',
+            DateTime.utc(2026, 9, 25),
+            const [],
+          ),
+        ),
+        gameContexts: FakeGameContexts(),
+        settings: _DisplaySettings(interfaceScale),
+        size: const Size(900, 650),
+      );
+      await tester.tap(find.byKey(const ValueKey('workspace-workspace-1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('workspace-help-tab')));
+      await tester.pumpAndSettle();
+
+      final filter = find.byType(TextField).first;
+      final filterStart = tester.getTopLeft(filter);
+      final filterEnd = tester.getBottomRight(filter);
+      final guides = tester.getCenter(
+        find.byKey(const ValueKey('help-guides-section')),
+      );
+      expect(guides.dy, lessThan(filterStart.dy));
+      expect(filterEnd.dx - filterStart.dx, greaterThan(500));
+      expect(filterEnd.dx, lessThanOrEqualTo(900));
+      expect(tester.takeException(), isNull);
     }
   });
 
