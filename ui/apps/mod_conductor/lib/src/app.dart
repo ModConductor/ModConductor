@@ -33,7 +33,9 @@ part 'shell.dart';
 part 'preferences.dart';
 part 'status.dart';
 part 'desktop_host.dart';
-part 'help.dart';
+part 'help_articles.dart';
+part 'diagnostics_controller.dart';
+part 'help_browser.dart';
 
 void _quitDesktop() {
   ServicesBinding.instance.exitApplication(AppExitType.cancelable);
@@ -54,6 +56,16 @@ typedef _Preferences = ({
   double interfaceScale,
   ContrastPreference contrast,
 });
+
+class _ProfileCreationAttempt {
+  final profileId = newOperationId();
+  ProfileInfo? created;
+  GameContextState? committedContext;
+  GameContextsClient? committedClient;
+  ProfileSetupSelection? committedSelection;
+  ProfileSetupSelection? attemptedSelection;
+  bool selectionAttempted = false;
+}
 
 class _PreferenceTextScaler extends TextScaler {
   const _PreferenceTextScaler(this.platform, this.multiplier);
@@ -1370,13 +1382,7 @@ class _ModConductorAppState extends State<ModConductorApp> {
     BuildContext context,
     WorkspaceInfo workspace,
   ) async {
-    final pendingProfileId = newOperationId();
-    ProfileInfo? created;
-    GameContextState? committedContext;
-    GameContextsClient? committedClient;
-    ProfileSetupSelection? committedSelection;
-    ProfileSetupSelection? attemptedSelection;
-    var selectionAttempted = false;
+    final attempt = _ProfileCreationAttempt();
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => Dialog(
@@ -1391,77 +1397,113 @@ class _ModConductorAppState extends State<ModConductorApp> {
             canCancel: true,
             onCancel: () => Navigator.pop(dialogContext),
             onComplete: () => Navigator.pop(dialogContext),
-            onSubmit: (selection) async {
-              if (_workspaces.workspace?.id != workspace.id) {
-                return 'The workspace changed. Start profile setup again.';
-              }
-              final client = widget.gameContexts;
-              if (client == null) {
-                return 'The profile setup is not available.';
-              }
-              created ??= await _workspaces.createProfile(
-                selection.name,
-                profileId: pendingProfileId,
-              );
-              final profile = created;
-              if (profile == null) {
-                return _workspaces.currentProblem ??
-                    'The profile could not be created.';
-              }
-              try {
-                var saved = committedContext;
-                if (saved == null ||
-                    !identical(committedClient, client) ||
-                    !_sameProfileSetup(committedSelection, selection)) {
-                  final loaded = await client.read(workspace.id, profile.id);
-                  if (_sameProfileSetup(attemptedSelection, selection) &&
-                      _profileSetupIsReady(loaded, selection)) {
-                    saved = loaded;
-                  } else {
-                    attemptedSelection = selection;
-                    committedContext = null;
-                    committedClient = null;
-                    committedSelection = null;
-                    saved = await client.save(
-                      workspace.id,
-                      profile.id,
-                      selection.game.id,
-                      loaded.revision,
-                      selection.installation,
-                    );
-                  }
-                  committedContext = saved;
-                  committedClient = client;
-                  committedSelection = selection;
-                }
-                if (selectionAttempted) {
-                  await _workspaces.refresh();
-                  if (_workspaces.currentProblem != null) {
-                    return _workspaces.currentProblem;
-                  }
-                }
-                if (_workspaces.workspace?.id != workspace.id) {
-                  return 'The workspace changed. Start profile setup again.';
-                }
-                if (_workspaces.workspace?.selectedProfile?.id != profile.id) {
-                  selectionAttempted = true;
-                  await _workspaces.select(profile);
-                }
-                if (_workspaces.workspace?.selectedProfile?.id != profile.id) {
-                  return _workspaces.currentProblem ??
-                      'The profile was created but did not open.';
-                }
-                selectionAttempted = false;
-                _game.accept(saved, client);
-                return null;
-              } on Exception catch (failure) {
-                return _profileSetupFailure(failure);
-              }
-            },
+            onSubmit: (selection) =>
+                _submitProfileCreation(workspace, attempt, selection),
           ),
         ),
       ),
     );
+  }
+
+  Future<String?> _submitProfileCreation(
+    WorkspaceInfo workspace,
+    _ProfileCreationAttempt attempt,
+    ProfileSetupSelection selection,
+  ) async {
+    if (_workspaces.workspace?.id != workspace.id) {
+      return 'The workspace changed. Start profile setup again.';
+    }
+    final client = widget.gameContexts;
+    if (client == null) {
+      return 'The profile setup is not available.';
+    }
+    attempt.created ??= await _workspaces.createProfile(
+      selection.name,
+      profileId: attempt.profileId,
+    );
+    final profile = attempt.created;
+    if (profile == null) {
+      return _workspaces.currentProblem ?? 'The profile could not be created.';
+    }
+    try {
+      final saved = await _saveCreatedProfileContext(
+        workspace,
+        profile,
+        client,
+        selection,
+        attempt,
+      );
+      final problem = await _selectCreatedProfile(workspace, profile, attempt);
+      if (problem != null) {
+        return problem;
+      }
+      _game.accept(saved, client);
+      return null;
+    } on Exception catch (failure) {
+      return _profileSetupFailure(failure);
+    }
+  }
+
+  Future<GameContextState> _saveCreatedProfileContext(
+    WorkspaceInfo workspace,
+    ProfileInfo profile,
+    GameContextsClient client,
+    ProfileSetupSelection selection,
+    _ProfileCreationAttempt attempt,
+  ) async {
+    var saved = attempt.committedContext;
+    if (saved != null &&
+        identical(attempt.committedClient, client) &&
+        _sameProfileSetup(attempt.committedSelection, selection)) {
+      return saved;
+    }
+    final loaded = await client.read(workspace.id, profile.id);
+    if (_sameProfileSetup(attempt.attemptedSelection, selection) &&
+        _profileSetupIsReady(loaded, selection)) {
+      saved = loaded;
+    } else {
+      attempt.attemptedSelection = selection;
+      attempt.committedContext = null;
+      attempt.committedClient = null;
+      attempt.committedSelection = null;
+      saved = await client.save(
+        workspace.id,
+        profile.id,
+        selection.game.id,
+        loaded.revision,
+        selection.installation,
+      );
+    }
+    attempt.committedContext = saved;
+    attempt.committedClient = client;
+    attempt.committedSelection = selection;
+    return saved;
+  }
+
+  Future<String?> _selectCreatedProfile(
+    WorkspaceInfo workspace,
+    ProfileInfo profile,
+    _ProfileCreationAttempt attempt,
+  ) async {
+    if (attempt.selectionAttempted) {
+      await _workspaces.refresh();
+      if (_workspaces.currentProblem != null) {
+        return _workspaces.currentProblem;
+      }
+    }
+    if (_workspaces.workspace?.id != workspace.id) {
+      return 'The workspace changed. Start profile setup again.';
+    }
+    if (_workspaces.workspace?.selectedProfile?.id != profile.id) {
+      attempt.selectionAttempted = true;
+      await _workspaces.select(profile);
+    }
+    if (_workspaces.workspace?.selectedProfile?.id != profile.id) {
+      return _workspaces.currentProblem ??
+          'The profile was created but did not open.';
+    }
+    attempt.selectionAttempted = false;
+    return null;
   }
 
   bool _sameProfileSetup(
