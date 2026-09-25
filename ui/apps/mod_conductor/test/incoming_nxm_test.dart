@@ -75,6 +75,7 @@ void main() {
   late DesktopRequests requests;
   late _NxmFake nxm;
   late List<int> dismissed;
+  void Function(int)? onDismiss;
 
   Future<void> mount(
     WidgetTester tester, {
@@ -103,6 +104,7 @@ void main() {
   setUp(() {
     nativeState = {'available': true, 'count': 0, 'processId': 42};
     dismissed = [];
+    onDismiss = null;
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async {
           if (call.method == 'state') return nativeState;
@@ -110,7 +112,9 @@ void main() {
           if (call.method == 'dismiss') {
             final id = call.arguments as int;
             dismissed.add(id);
-            if (nativeState['id'] == id) {
+            if (onDismiss case final handler?) {
+              handler(id);
+            } else if (nativeState['id'] == id) {
               nativeState = {'available': true, 'count': 0, 'processId': 42};
             } else {
               nativeState = {
@@ -244,6 +248,80 @@ void main() {
     expect(requests.count, 1);
     expect(find.text('Request newer'), findsOneWidget);
     expect(nxm.downloads, 0);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    requests.dispose();
+  });
+
+  testWidgets('old action failure stays with the old queued request', (
+    tester,
+  ) async {
+    final oldState = <String, Object?>{
+      'available': true,
+      'count': 1,
+      'id': 1,
+      'arguments': ['--workspace', '/older'],
+      'processId': 42,
+    };
+    nativeState = {...oldState};
+    const workspace = WorkspaceInfo(
+      id: 'older',
+      name: 'Older',
+      path: '/older',
+      revision: 1,
+    );
+    final workspaces = _WorkspacesFake(recentWorkspaces: [workspace]);
+    await mount(tester, desktop: _DesktopFake(), workspaces: workspaces);
+    await tester.tap(find.byKey(const ValueKey('open-requests')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Open workspace').last);
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(workspaces.openedPath, '/older');
+
+    nativeState = {
+      'available': true,
+      'count': 2,
+      'id': 2,
+      'nxmReference': 'newer',
+      'processId': 42,
+    };
+    await requests.refresh();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('Request newer'), findsOneWidget);
+    await tester.tap(find.text('Choose a workspace').last);
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.tap(find.text('Older').last);
+    await tester.pump(const Duration(milliseconds: 300));
+
+    const oldError = 'Older workspace unavailable.';
+    workspaces.opened.completeError(
+      const WorkspaceException(WorkspaceFault.notFound, oldError),
+    );
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(requests.id, 2);
+    expect(requests.problem, isNull);
+    expect(find.text('Request newer'), findsOneWidget);
+    expect(find.text('Download'), findsOneWidget);
+    expect(nxm.downloads, 0);
+    expect(dismissed, isEmpty);
+
+    onDismiss = (id) {
+      if (id == 2) nativeState = {...oldState};
+    };
+    await requests.dismiss(2);
+    await tester.pumpAndSettle();
+    expect(requests.id, 1);
+    expect(requests.problem, oldError);
+    expect(
+      find.descendant(
+        of: find.byType(OpenRequestsDialog),
+        matching: find.text(oldError),
+      ),
+      findsOneWidget,
+    );
+    expect(nxm.downloads, 0);
+    expect(dismissed, [2]);
 
     await tester.pumpWidget(const SizedBox.shrink());
     requests.dispose();
@@ -415,4 +493,52 @@ void main() {
     expect(requests.count, 1);
     requests.dispose();
   });
+
+  test(
+    'archive operation identity remains owned by its original request',
+    () async {
+      nativeState = {
+        'available': true,
+        'count': 1,
+        'id': 1,
+        'arguments': ['--archive', '/archive.zip'],
+        'processId': 42,
+      };
+      requests = DesktopRequests();
+      await requests.refresh();
+      final oldOperation = requests.operationId(
+        1,
+        'older',
+        '/archive.zip',
+        ArtifactStorage.reference,
+      );
+      nativeState = {
+        'available': true,
+        'count': 2,
+        'id': 2,
+        'nxmReference': 'newer',
+        'processId': 42,
+      };
+      await requests.refresh();
+      expect(
+        requests.operationId(
+          1,
+          'older',
+          '/archive.zip',
+          ArtifactStorage.reference,
+        ),
+        oldOperation,
+      );
+      expect(
+        requests.operationId(
+          2,
+          'older',
+          '/archive.zip',
+          ArtifactStorage.reference,
+        ),
+        isNot(oldOperation),
+      );
+      requests.dispose();
+    },
+  );
 }

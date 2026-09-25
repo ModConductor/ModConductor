@@ -86,18 +86,27 @@ class DesktopRequests extends ChangeNotifier {
   List<String> arguments = const [];
   DesktopIntent? intent;
   String? problem, workspaceId, profileId;
-  String? _adoptionKey, _operationId;
+  final _actionProblems = <int, String>{};
+  final _operations = <int, ({String key, String id})>{};
   bool get connected => _client != null;
-  String operationId(String workspace, String path, ArtifactStorage storage) {
-    final key = '$id\n$workspace\n$path\n${storage.name}';
-    if (_adoptionKey != key) {
-      _adoptionKey = key;
-      _operationId = newOperationId();
-    }
-    return _operationId!;
+  String operationId(
+    int requestId,
+    String workspace,
+    String path,
+    ArtifactStorage storage,
+  ) {
+    final key = '$workspace\n$path\n${storage.name}';
+    final existing = _operations[requestId];
+    if (existing != null && existing.key == key) return existing.id;
+    final next = newOperationId();
+    _operations[requestId] = (key: key, id: next);
+    return next;
   }
 
-  Future<void> recheck() => _resolve();
+  Future<void> recheck() {
+    _actionProblems.remove(id);
+    return _resolve();
+  }
 
   void selectWorkspace(String? value) => selectContext(value, profileId);
 
@@ -112,6 +121,11 @@ class DesktopRequests extends ChangeNotifier {
   void fail(String detail) {
     problem = detail;
     notifyListeners();
+  }
+
+  void failFor(int requestId, String detail) {
+    _actionProblems[requestId] = detail;
+    if (requestId == id) fail(detail);
   }
 
   void attach(DesktopClient? client, {NxmClient? nxm}) {
@@ -150,8 +164,6 @@ class DesktopRequests extends ChangeNotifier {
             .cast<String>();
         workspaceId = null;
         hasWorkspaceSelection = false;
-        _adoptionKey = null;
-        _operationId = null;
         await _resolve();
       } else if (nxmChanged) {
         await _resolve();
@@ -173,11 +185,12 @@ class DesktopRequests extends ChangeNotifier {
 
   Future<void> _resolve() async {
     final generation = ++_generation, client = _client;
+    final requestId = id;
     intent = null;
     nexusLink = null;
-    problem = null;
+    problem = requestId == null ? null : _actionProblems[requestId];
     resolving = false;
-    if (id == null) {
+    if (requestId == null) {
       if (!disposed) notifyListeners();
       return;
     }
@@ -204,7 +217,10 @@ class DesktopRequests extends ChangeNotifier {
         }
         resolving = false;
       }
-      if (!disposed && generation == _generation) notifyListeners();
+      if (!disposed && generation == _generation) {
+        problem = _actionProblems[requestId] ?? problem;
+        notifyListeners();
+      }
       return;
     }
     if (arguments.firstOrNull == '--unsupported-link')
@@ -222,6 +238,7 @@ class DesktopRequests extends ChangeNotifier {
       }
     }
     if (!disposed && generation == _generation) {
+      problem = _actionProblems[requestId] ?? problem;
       resolving = false;
       notifyListeners();
     }
@@ -233,13 +250,15 @@ class DesktopRequests extends ChangeNotifier {
           nexusReference ?? (requestId == id ? this.nexusReference : null);
       if (reference != null && _nxm != null) await _nxm!.dismiss(reference);
       await _channel.invokeMethod<Object?>('dismiss', requestId);
+      _actionProblems.remove(requestId);
+      _operations.remove(requestId);
       await refresh();
     } on DesktopNexusProblem catch (error) {
-      if (!disposed) fail(error.message);
+      if (!disposed) failFor(requestId, error.message);
     } on PlatformException {
       if (!disposed) {
         available = false;
-        fail('The request could not be dismissed.');
+        failFor(requestId, 'The request could not be dismissed.');
       }
     }
   }

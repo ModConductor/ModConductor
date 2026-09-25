@@ -184,7 +184,10 @@ Future<void> openDesktopRequest(
   await workspaces.open(target);
   if (!context.mounted) return;
   if (workspaces.workspace?.path != target || workspaces.problem != null) {
-    requests.fail(workspaces.problem ?? 'The workspace could not be opened.');
+    requests.failFor(
+      choice.id,
+      workspaces.problem ?? 'The workspace could not be opened.',
+    );
     return;
   }
   onWorkspaceOpened();
@@ -206,6 +209,7 @@ Future<void> openDesktopRequest(
         );
     if (result == null || !context.mounted) return;
     final id = requests.operationId(
+      choice.id,
       choice.workspace!.id,
       result.file.path,
       result.storage,
@@ -217,7 +221,8 @@ Future<void> openDesktopRequest(
     );
     if (!context.mounted) return;
     if (!changed) {
-      requests.fail(
+      requests.failFor(
+        choice.id,
         artifacts.problem ??
             'An archive operation is still in progress. Try again.',
       );
