@@ -33,6 +33,73 @@ type internal Recovery(repository: IRecoveryRepository) =
             Some(RecoveryError.Unavailable "Symbolic-link operations are unavailable.")
         | _ -> None
 
+    let restoring (receipt: Receipt) requested =
+        requested
+        || receipt.Phase = ReceiptPhase.Restoring
+        || (receipt.Changes
+            |> List.exists (fun change ->
+                change.Phase = EntryPhase.RestoreIntent
+                || change.Phase = EntryPhase.Restored))
+
+    let verifyCompleted cancellation (receipt: Receipt) restoring =
+        receipt.Changes
+        |> List.choose (fun change ->
+            let state, observed =
+                if restoring then
+                    change.Before, change.RestoredEntry
+                else
+                    change.After, change.Observed
+
+            let checkedState =
+                match state with
+                | EntryState.Link(spec, _) ->
+                    let entry =
+                        observed
+                        |> Option.defaultWith (fun () ->
+                            RecoveryFiles.fail "A completed link has no observed identity.")
+
+                    EntryState.Link(spec, Some entry)
+                | _ -> state
+
+            if
+                not (
+                    RecoveryFiles.stateMatches
+                        cancellation
+                        receipt.Context
+                        change.Target
+                        checkedState
+                        (RecoveryFiles.observe receipt.Context change.Target)
+                )
+            then
+                match checkedState with
+                | EntryState.Link _ -> RecoveryFiles.fail "A completed link changed."
+                | _ -> RecoveryFiles.fail "A completed path changed."
+
+            match checkedState with
+            | EntryState.Link(spec, Some entry) ->
+                Some
+                    { Target = change.Target
+                      Spec = spec
+                      Entry = entry }
+            | _ -> None)
+
+    let completedContext (receipt: Receipt) restoring links =
+        { receipt.Context with
+            Revision = receipt.Context.Revision + 1L
+            Active =
+                (if restoring then
+                     receipt.Previous
+                 else
+                     Some receipt.Proposed)
+            Links = links
+            Directories = RecoveryParents.completed receipt restoring
+            Originals =
+                (if restoring then
+                     receipt.Context.Originals
+                 else
+                     receipt.Originals)
+            Pending = None }
+
     member _.Start(request: SwitchRequest, ?cancellation: CancellationToken) =
         task {
             if not (enter request.Id) then
@@ -42,18 +109,22 @@ type internal Recovery(repository: IRecoveryRepository) =
                     try
                         let! context = repository.Context request.ContextId
                         let token = defaultArg cancellation CancellationToken.None
-                        let! receipt = Task.Run(fun () -> Preparation.prepare token context request)
-                        token.ThrowIfCancellationRequested()
+                        let! prepared = Task.Run(fun () -> Preparation.prepare token context request)
 
-                        let! saved =
-                            repository.Begin(
-                                context,
-                                receipt,
-                                request.Generation,
-                                request.ExpectedSources
-                            )
+                        match prepared with
+                        | Error error -> return Error error
+                        | Ok receipt ->
+                            token.ThrowIfCancellationRequested()
 
-                        return Ok saved
+                            let! saved =
+                                repository.Begin(
+                                    context,
+                                    receipt,
+                                    request.Generation,
+                                    request.ExpectedSources
+                                )
+
+                            return Ok saved
                     with error ->
                         match convert error with
                         | Some failure -> return Error failure
@@ -127,13 +198,7 @@ type internal Recovery(repository: IRecoveryRepository) =
                                 RecoveryFiles.verifyGenerationWith cancellation (required old)
                             | None -> ()
 
-                            let restoring =
-                                restore
-                                || claimed.Phase = ReceiptPhase.Restoring
-                                || (claimed.Changes
-                                    |> List.exists (fun change ->
-                                        change.Phase = EntryPhase.RestoreIntent
-                                        || change.Phase = EntryPhase.Restored))
+                            let restoring = restoring claimed restore
 
                             let! starting =
                                 save
@@ -155,76 +220,11 @@ type internal Recovery(repository: IRecoveryRepository) =
 
                             let! receipt = RecoveryParents.remove save boundary receipt restoring
 
-                            let links =
-                                receipt.Changes
-                                |> List.choose (fun change ->
-                                    let state, observed =
-                                        if restoring then
-                                            change.Before, change.RestoredEntry
-                                        else
-                                            change.After, change.Observed
-
-                                    match state with
-                                    | EntryState.Link(spec, _) ->
-                                        let entry =
-                                            observed
-                                            |> Option.defaultWith (fun () ->
-                                                RecoveryFiles.fail
-                                                    "A completed link has no observed identity.")
-
-                                        if
-                                            not (
-                                                RecoveryFiles.stateMatches
-                                                    cancellation
-                                                    receipt.Context
-                                                    change.Target
-                                                    (EntryState.Link(spec, Some entry))
-                                                    (RecoveryFiles.observe
-                                                        receipt.Context
-                                                        change.Target)
-                                            )
-                                        then
-                                            RecoveryFiles.fail "A completed link changed."
-
-                                        Some
-                                            { Target = change.Target
-                                              Spec = spec
-                                              Entry = entry }
-                                    | _ ->
-                                        if
-                                            not (
-                                                RecoveryFiles.stateMatches
-                                                    cancellation
-                                                    receipt.Context
-                                                    change.Target
-                                                    state
-                                                    (RecoveryFiles.observe
-                                                        receipt.Context
-                                                        change.Target)
-                                            )
-                                        then
-                                            RecoveryFiles.fail "A completed path changed."
-
-                                        None)
+                            let links = verifyCompleted cancellation receipt restoring
 
                             boundary "verified" -1
 
-                            let context =
-                                { receipt.Context with
-                                    Revision = receipt.Context.Revision + 1L
-                                    Active =
-                                        (if restoring then
-                                             receipt.Previous
-                                         else
-                                             Some receipt.Proposed)
-                                    Links = links
-                                    Directories = RecoveryParents.completed receipt restoring
-                                    Originals =
-                                        (if restoring then
-                                             receipt.Context.Originals
-                                         else
-                                             receipt.Originals)
-                                    Pending = None }
+                            let context = completedContext receipt restoring links
 
                             boundary "publication" -1
 

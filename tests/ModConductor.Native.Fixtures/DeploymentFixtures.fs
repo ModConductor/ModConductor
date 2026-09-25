@@ -149,6 +149,18 @@ module DeploymentFixtures =
                  | _ -> false)
 
             let current = context store
+            let invalidRequest =
+                { request area (id 1006) current.Revision area.Second with
+                    ContextFingerprint = "" }
+
+            flag
+                writer
+                "invalidRequestHasNoReceipt"
+                (match get (store.Deployment.Start invalidRequest) with
+                 | Error RecoveryError.InvalidPlan ->
+                     get (store.Deployment.Read invalidRequest.Id) |> Option.isNone
+                 | _ -> false)
+
             let pending = start store area (id 1005) current.Revision area.Second
 
             flag

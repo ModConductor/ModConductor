@@ -72,6 +72,26 @@ type FilePlanSession(repository: IFileCandidateRepository) =
                 return current |> Result.map (fun current -> snapshot, not current)
         }
 
+    let previewRow (snapshot: PlanSnapshot) source =
+        let target = FilePreviewRendering.target source
+
+        InspectionProjection.inspect target None snapshot
+        |> Result.bind (fun (copies, _) ->
+            match copies |> List.tryFind (fun row -> row.Source = source) with
+            | Some row -> Ok row
+            | None -> Error FilePlanError.Stale)
+
+    let editBytes (source: ManagedPreviewSource) original content =
+        TextDocuments.encode original content
+        |> Result.mapError FilePlanError.InvalidEdit
+        |> Result.bind (fun bytes ->
+            let digest = Convert.ToHexStringLower(SHA256.HashData bytes)
+
+            if int64 bytes.Length = source.Length && digest = source.Sha256 then
+                Error(FilePlanError.InvalidEdit "The draft has no changes to save.")
+            else
+                Ok bytes)
+
     let describe stale snapshot =
         PlanSnapshot.summary (stale || cache.Stale snapshot) snapshot
 
@@ -444,84 +464,74 @@ type FilePlanSession(repository: IFileCandidateRepository) =
                     | Error error -> return Error error
                     | Ok(_, true) -> return Error FilePlanError.Stale
                     | Ok(snapshot, false) ->
-                        let target = FilePreviewRendering.target source
-
-                        let rows =
-                            match InspectionProjection.inspect target None snapshot with
-                            | Error error -> Error error
-                            | Ok(copies, _) -> Ok copies
-
-                        match rows with
+                        match previewRow snapshot source with
                         | Error error -> return Error error
-                        | Ok copies ->
-                            match copies |> List.tryFind (fun row -> row.Source = source) with
-                            | None -> return Error FilePlanError.Stale
-                            | Some row ->
-                                match source with
-                                | FilePreviewSource.ManagedCopy managed ->
-                                    let! saved =
-                                        repository.Copy(
-                                            snapshot.Sources.Stamp.WorkspaceId,
-                                            managed.Copy
+                        | Ok row ->
+                            match source with
+                            | FilePreviewSource.ManagedCopy managed ->
+                                let! saved =
+                                    repository.Copy(
+                                        snapshot.Sources.Stamp.WorkspaceId,
+                                        managed.Copy
+                                    )
+
+                                match saved with
+                                | Error error -> return Error error
+                                | Ok saved when
+                                    not saved.Current
+                                    || saved.Entry.Path <> managed.SourcePath
+                                    || saved.Entry.Payload.Id <> managed.PayloadId
+                                    || saved.Entry.Payload.Length <> managed.Length
+                                    || saved.Entry.Payload.Sha256 <> managed.Sha256
+                                    ->
+                                    return Error FilePlanError.Stale
+                                | Ok saved ->
+                                    let pin =
+                                        SourcePin.Mod(
+                                            managed.Copy.ModId,
+                                            managed.Copy.VersionId,
+                                            saved.Entry
                                         )
 
-                                    match saved with
+                                    let! opened =
+                                        repository.OpenManaged(
+                                            snapshot.Sources.Stamp.WorkspaceId,
+                                            pin,
+                                            token
+                                        )
+
+                                    match opened with
                                     | Error error -> return Error error
-                                    | Ok saved when
-                                        not saved.Current
-                                        || saved.Entry.Path <> managed.SourcePath
-                                        || saved.Entry.Payload.Id <> managed.PayloadId
-                                        || saved.Entry.Payload.Length <> managed.Length
-                                        || saved.Entry.Payload.Sha256 <> managed.Sha256
-                                        ->
-                                        return Error FilePlanError.Stale
-                                    | Ok saved ->
-                                        let pin =
-                                            SourcePin.Mod(
-                                                managed.Copy.ModId,
-                                                managed.Copy.VersionId,
-                                                saved.Entry
-                                            )
+                                    | Ok stream ->
+                                        use stream = stream
 
-                                        let! opened =
-                                            repository.OpenManaged(
-                                                snapshot.Sources.Stamp.WorkspaceId,
-                                                pin,
-                                                token
-                                            )
-
-                                        match opened with
-                                        | Error error -> return Error error
-                                        | Ok stream ->
-                                            use stream = stream
-
-                                            return
-                                                Ok(
-                                                    FilePreviewRendering.render
-                                                        source
-                                                        row.Standing
-                                                        representation
-                                                        stream
-                                                        token
-                                                )
-                                | FilePreviewSource.CheckedGameFile game ->
-                                    match snapshot.Game with
-                                    | None -> return Error FilePlanError.Stale
-                                    | Some observation ->
                                         return
-                                            GameFiles.readChecked
-                                                observation
-                                                game
-                                                token
-                                                (fun stream ->
-                                                    FilePreviewRendering.render
-                                                        source
-                                                        row.Standing
-                                                        representation
-                                                        stream
-                                                        token)
-                                | FilePreviewSource.QualifiedArchiveEntry _ ->
-                                    return Error FilePlanError.InvalidCopy
+                                            Ok(
+                                                FilePreviewRendering.render
+                                                    source
+                                                    row.Standing
+                                                    representation
+                                                    stream
+                                                    token
+                                            )
+                            | FilePreviewSource.CheckedGameFile game ->
+                                match snapshot.Game with
+                                | None -> return Error FilePlanError.Stale
+                                | Some observation ->
+                                    return
+                                        GameFiles.readChecked
+                                            observation
+                                            game
+                                            token
+                                            (fun stream ->
+                                                FilePreviewRendering.render
+                                                    source
+                                                    row.Standing
+                                                    representation
+                                                    stream
+                                                    token)
+                            | FilePreviewSource.QualifiedArchiveEntry _ ->
+                                return Error FilePlanError.InvalidCopy
                 })
 
         member _.OpenManagedText(id, source, token) =
@@ -557,38 +567,26 @@ type FilePlanSession(repository: IFileCandidateRepository) =
                             match original with
                             | Error error -> return Error error
                             | Ok original ->
-                                match TextDocuments.encode original content with
-                                | Error detail -> return Error(FilePlanError.InvalidEdit detail)
+                                match editBytes source original content with
+                                | Error error -> return Error error
                                 | Ok bytes ->
-                                    let digest = Convert.ToHexStringLower(SHA256.HashData bytes)
+                                    let! published =
+                                        repository.PublishText(
+                                            snapshot.Sources.Stamp,
+                                            action,
+                                            source,
+                                            bytes,
+                                            token
+                                        )
 
-                                    if
-                                        int64 bytes.Length = source.Length
-                                        && digest = source.Sha256
-                                    then
-                                        return
-                                            Error(
-                                                FilePlanError.InvalidEdit
-                                                    "The draft has no changes to save."
-                                            )
-                                    else
-                                        let! published =
-                                            repository.PublishText(
-                                                snapshot.Sources.Stamp,
-                                                action,
-                                                source,
-                                                bytes,
-                                                token
-                                            )
+                                    return
+                                        published
+                                        |> Result.map (fun version ->
+                                            cache.MarkStale snapshot
 
-                                        return
-                                            published
-                                            |> Result.map (fun version ->
-                                                cache.MarkStale snapshot
-
-                                                { Id = action
-                                                  VersionId = version
-                                                  Source = source })
+                                            { Id = action
+                                              VersionId = version
+                                              Source = source })
                 })
 
         member _.AbandonManagedText(action) =

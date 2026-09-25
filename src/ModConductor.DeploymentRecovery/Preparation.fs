@@ -245,73 +245,74 @@ module internal Preparation =
                      Directory = working.Directory }))
         |> List.map (fun (target, spec) -> RecoveryFiles.nativeTarget generation target, spec)
 
-    let prepare token (existing: Context option) (request: SwitchRequest) =
+    let private validateRequest (existing: Context option) (request: SwitchRequest) =
         if
             request.Id = Guid.Empty
             || request.ContextId = Guid.Empty
             || request.Generation.Id = Guid.Empty
             || String.IsNullOrWhiteSpace request.ContextFingerprint
         then
-            raise (RecoveryException RecoveryError.InvalidPlan)
-
-        if
+            Error RecoveryError.InvalidPlan
+        elif
             request.Roots.IsEmpty
             || request.Roots.Length > 8
             || request.DirectoryBoundaries.Length > 4096
             || request.PreserveOriginals.Length > 4096
         then
-            raise (RecoveryException RecoveryError.Limit)
-
-        if
+            Error RecoveryError.Limit
+        elif
             request.Roots
             |> List.map (fun value -> value.Root.Id)
             |> List.distinct
             |> List.length
             <> request.Roots.Length
         then
-            raise (RecoveryException RecoveryError.InvalidPlan)
-
-        if
+            Error RecoveryError.InvalidPlan
+        elif
             (request.Roots |> List.map (fun value -> value.Root) |> List.sort)
             <> List.sort request.Generation.Roots
         then
-            raise (RecoveryException RecoveryError.InvalidPlan)
+            Error RecoveryError.InvalidPlan
+        else
+            let context =
+                match existing with
+                | None when request.ExpectedRevision = 0L ->
+                    Ok
+                        { Id = request.ContextId
+                          Fingerprint = request.ContextFingerprint
+                          Roots = request.Roots
+                          Revision = 0L
+                          Active = None
+                          Links = []
+                          Directories = []
+                          Originals = []
+                          Pending = None }
+                | None -> Error RecoveryError.Stale
+                | Some value when value.Revision <> request.ExpectedRevision ->
+                    Error RecoveryError.Stale
+                | Some value when value.Pending.IsSome -> Error RecoveryError.Busy
+                | Some value when
+                    value.Fingerprint <> request.ContextFingerprint || value.Roots <> request.Roots
+                    -> Error(RecoveryError.Mismatch "The activation context changed.")
+                | Some value -> Ok value
 
-        let context =
-            match existing with
-            | None when request.ExpectedRevision = 0L ->
-                { Id = request.ContextId
-                  Fingerprint = request.ContextFingerprint
-                  Roots = request.Roots
-                  Revision = 0L
-                  Active = None
-                  Links = []
-                  Directories = []
-                  Originals = []
-                  Pending = None }
-            | None -> raise (RecoveryException RecoveryError.Stale)
-            | Some value when value.Revision <> request.ExpectedRevision ->
-                raise (RecoveryException RecoveryError.Stale)
-            | Some value when value.Pending.IsSome -> raise (RecoveryException RecoveryError.Busy)
-            | Some value when
-                value.Fingerprint <> request.ContextFingerprint || value.Roots <> request.Roots
-                ->
-                RecoveryFiles.fail "The activation context changed."
-            | Some value -> value
+            context
+            |> Result.bind (fun context ->
+                let nativeTargetsMatch =
+                    request.Generation.NativeTargets
+                    |> Seq.forall (fun (KeyValue(target, nativePath)) ->
+                        context.Roots
+                        |> List.tryFind (fun root -> root.Root.Id = target.Root)
+                        |> Option.exists (fun root ->
+                            (TargetPolicy.comparer root.Root.Policy)
+                                .Equals(
+                                    TargetPolicy.key root.Root.Policy target.Path,
+                                    TargetPolicy.key root.Root.Policy nativePath
+                                )))
 
-        for KeyValue(target, nativePath) in request.Generation.NativeTargets do
-            let root = context.Roots |> List.tryFind (fun root -> root.Root.Id = target.Root)
+                if nativeTargetsMatch then Ok context else Error RecoveryError.InvalidPlan)
 
-            match root with
-            | Some root when
-                (ModConductor.Platform.TargetPolicy.comparer root.Root.Policy)
-                    .Equals(
-                        ModConductor.Platform.TargetPolicy.key root.Root.Policy target.Path,
-                        ModConductor.Platform.TargetPolicy.key root.Root.Policy nativePath
-                    )
-                ->
-                ()
-            | _ -> raise (RecoveryException RecoveryError.InvalidPlan)
+    let private prepareValidated token (context: Context) (request: SwitchRequest) =
 
         checkLocations context.Roots request.DirectoryBoundaries request.Generation
         checkExternalLocations context.Roots request.Generation
@@ -400,3 +401,7 @@ module internal Preparation =
           Parents = RecoveryParents.prepare context (proposed |> List.map fst)
           Originals = originals
           Detail = "" }
+
+    let prepare token existing request =
+        validateRequest existing request
+        |> Result.map (fun context -> prepareValidated token context request)
