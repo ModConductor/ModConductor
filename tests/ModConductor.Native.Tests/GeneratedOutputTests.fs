@@ -14,6 +14,7 @@ type GeneratedOutputTests() =
         =
         flag "toolFolderStartsEmptyOutsideGame" |> should equal true
         flag "changedReviewedFileRemainsUntouched" |> should equal true
+        flag "invalidOutputRequestsReturnErrorsWithoutChangingFiles" |> should equal true
         flag "keepAcknowledgesCurrentBytes" |> should equal true
         flag "laterOutputChangeNeedsReview" |> should equal true
         flag "outputPagingKeepsCompleteRowsAndViewIdentity" |> should equal true

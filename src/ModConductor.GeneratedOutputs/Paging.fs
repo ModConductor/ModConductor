@@ -8,9 +8,9 @@ open System.Text
 module internal OutputPaging =
     let query (filter: string) =
         if not (OutputPolicy.text 1024 filter) then
-            raise (OutputException(OutputError.Invalid "The filter is too long."))
-
-        filter.Trim()
+            Error(OutputError.Invalid "The filter is too long.")
+        else
+            Ok(filter.Trim())
 
     let private identity (snapshot: Guid) (query: string) =
         snapshot.ToString("N")
@@ -24,7 +24,7 @@ module internal OutputPaging =
 
     let private offset snapshot query (cursor: string option) =
         match cursor with
-        | None -> 0
+        | None -> Ok 0
         | Some value when value.Length <= 256 ->
             try
                 let parts = Encoding.UTF8.GetString(Convert.FromBase64String value).Split ':'
@@ -32,12 +32,31 @@ module internal OutputPaging =
                 match parts with
                 | [| id; hash; number |] when id + ":" + hash = identity snapshot query ->
                     match Int32.TryParse number with
-                    | true, value when value >= 0 -> value
-                    | _ -> raise (OutputException OutputError.Stale)
-                | _ -> raise (OutputException OutputError.Stale)
+                    | true, value when value >= 0 -> Ok value
+                    | _ -> Error OutputError.Stale
+                | _ -> Error OutputError.Stale
             with :? FormatException ->
-                raise (OutputException OutputError.Stale)
-        | Some _ -> raise (OutputException OutputError.Stale)
+                Error OutputError.Stale
+        | Some _ -> Error OutputError.Stale
+
+    let private entries (matching: OutputObservation array) start =
+        let count = min OutputLimits.pageRows (matching.Length - start)
+
+        let rec gather index remaining found =
+            if index = count then
+                Ok(List.rev found)
+            else
+                let file = matching[start + index].File
+                let bytes = OutputPolicy.fileSize file
+
+                if bytes > OutputLimits.pageBytes then
+                    Error OutputError.LimitExceeded
+                elif bytes > remaining then
+                    Ok(List.rev found)
+                else
+                    gather (index + 1) (remaining - bytes) (file :: found)
+
+        gather 0 OutputLimits.pageBytes []
 
     let page
         (snapshot: OutputSnapshot)
@@ -47,33 +66,19 @@ module internal OutputPaging =
         unreviewed
         cursor
         =
-        let offset = offset snapshot.Id query cursor
-
-        if offset > matching.Length then
-            raise (OutputException OutputError.Stale)
-
-        let mutable remaining = OutputLimits.pageBytes
-
-        let values =
-            matching
-            |> fun files ->
-                Array.sub files offset (min OutputLimits.pageRows (files.Length - offset))
-            |> Array.takeWhile (fun value ->
-                let bytes = OutputPolicy.fileSize value.File
-
-                if bytes > OutputLimits.pageBytes then
-                    raise (OutputException OutputError.LimitExceeded)
-
-                remaining <- remaining - bytes
-                remaining >= 0)
-
-        { Snapshot = snapshot
-          Entries = values |> Array.map _.File |> Array.toList
-          MatchedEntries = matching.Length
-          Files = present
-          Unreviewed = unreviewed
-          NextCursor =
-            if offset + values.Length < matching.Length then
-                Some(encode snapshot.Id query (offset + values.Length))
-            else
-                None }
+        match offset snapshot.Id query cursor with
+        | Error error -> Error error
+        | Ok start when start > matching.Length -> Error OutputError.Stale
+        | Ok start ->
+            entries matching start
+            |> Result.map (fun values ->
+                { Snapshot = snapshot
+                  Entries = values
+                  MatchedEntries = matching.Length
+                  Files = present
+                  Unreviewed = unreviewed
+                  NextCursor =
+                    if start + values.Length < matching.Length then
+                        Some(encode snapshot.Id query (start + values.Length))
+                    else
+                        None })

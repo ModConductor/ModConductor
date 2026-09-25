@@ -173,6 +173,39 @@ module GeneratedOutputFixtures =
                 (staleAction = Error OutputError.Stale
                  && File.ReadAllText(output) = "changed output")
 
+            let invalidName =
+                outputs.Add(Guid.NewGuid(), scope (), " ", OutputPurpose.ToolFolder)
+                |> wait
+
+            let missingSnapshot =
+                outputs.Preview(Guid.NewGuid(), [ select tool.Id "result.txt" ], OutputAction.Keep)
+                |> wait
+
+            let emptySelection =
+                outputs.Apply(Guid.NewGuid(), stale.Id, [], OutputAction.Keep, token)
+                |> wait
+
+            let invalidCursor =
+                outputs.Page(stale.Id, OutputView.ToolOutputs, Some "not a cursor", "")
+                |> wait
+
+            let invalidFilter =
+                outputs.Page(stale.Id, OutputView.ToolOutputs, None, String('x', 1025))
+                |> wait
+
+            check
+                "invalidOutputRequestsReturnErrorsWithoutChangingFiles"
+                ((match invalidName with
+                  | Error(OutputError.Invalid _) -> true
+                  | _ -> false)
+                 && missingSnapshot = Error OutputError.Stale
+                 && emptySelection = Error OutputError.LimitExceeded
+                 && invalidCursor = Error OutputError.Stale
+                 && (match invalidFilter with
+                     | Error(OutputError.Invalid _) -> true
+                     | _ -> false)
+                 && File.ReadAllText(output) = "changed output")
+
             let current = observe ()
 
             outputs.Apply(

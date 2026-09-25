@@ -75,16 +75,86 @@ type GeneratedOutputSession internal (repository: IOutputRepository) =
                             drained.TrySetResult() |> ignore)
         }
 
-    let required =
-        function
-        | Ok value -> value
-        | Error error -> raise (OutputException error)
-
     let cached id =
         lock gate (fun () ->
             match snapshots.TryGetValue id with
-            | true, value -> value
-            | _ -> raise (OutputException OutputError.Stale))
+            | true, value -> Ok value
+            | _ -> Error OutputError.Stale)
+
+    let selectedFiles (value: CachedOutput) selected action =
+        match OutputPolicy.action value.Snapshot.Scope.Locations selected action with
+        | Error error -> Error error
+        | Ok() ->
+            let files =
+                selected
+                |> List.choose (fun file -> value.Index.TryFind(file.LocationId, file.Path))
+
+            if files.Length <> selected.Length then
+                Error OutputError.Stale
+            elif files |> List.exists (fun file -> file.File.Identity.IsNone) then
+                Error(OutputError.Invalid "Select files that are present.")
+            else
+                Ok files
+
+    let previewFiles snapshot selected action =
+        OutputPolicy.selection selected
+        |> Result.bind (fun selected ->
+            cached snapshot
+            |> Result.bind (fun value ->
+                selectedFiles value selected action
+                |> Result.map (fun files -> value, files)))
+
+    let queryIdentity view query =
+        (match view with
+         | OutputView.ToolOutputs -> "tools:"
+         | OutputView.WritableFiles -> "writable:")
+        + query
+
+    let matchingFiles (value: CachedOutput) view (query: string) =
+        let included (observation: OutputObservation) =
+            let purposeMatches =
+                match observation.Backing.Location.Purpose, view with
+                | OutputPurpose.ToolFolder, OutputView.ToolOutputs
+                | OutputPurpose.WritableFile _, OutputView.WritableFiles -> true
+                | _ -> false
+
+            purposeMatches
+            && String.Join("/", LogicalPath.components observation.File.Path)
+                .Contains(query, StringComparison.OrdinalIgnoreCase)
+
+        let files = value.Files |> List.filter included |> List.toArray
+
+        { Identity = queryIdentity view query
+          Entries = files
+          Files = files |> Array.filter (fun file -> file.File.Identity.IsSome) |> Array.length
+          Unreviewed =
+            files
+            |> Array.filter (fun file ->
+                file.File.State = OutputFileState.New
+                || file.File.State = OutputFileState.Changed)
+            |> Array.length }
+
+    let pageCached (value: CachedOutput) view cursor filter =
+        OutputPaging.query filter
+        |> Result.bind (fun query ->
+            let identity = queryIdentity view query
+
+            let matching =
+                lock gate (fun () ->
+                    match value.Query with
+                    | Some previous when previous.Identity = identity -> previous
+                    | _ ->
+                        let matching = matchingFiles value view query
+                        value.Query <- Some matching
+                        matching)
+
+            OutputPaging.page
+                value.Snapshot
+                matching.Entries
+                matching.Identity
+                matching.Files
+                matching.Unreviewed
+                cursor)
 
     let remember value =
         lock gate (fun () ->
@@ -160,6 +230,49 @@ type GeneratedOutputSession internal (repository: IOutputRepository) =
                 repository.Release(record.Id).GetAwaiter().GetResult()
         }
 
+    let replayMatches snapshot action selected (record: OutputActionRecord) =
+        record.SnapshotId = snapshot
+        && record.Action = action
+        && (record.Files
+            |> List.map (fun value ->
+                { LocationId = value.File.LocationId
+                  Path = value.File.Path })) = selected
+
+    let newRecord id snapshot (value: CachedOutput) action selected files =
+        { Id = id
+          SnapshotId = snapshot
+          Scope = value.Snapshot.Scope
+          Action = action
+          Files = files
+          Result =
+            { Published = false
+              Id = id
+              VersionId = None
+              Entries =
+                selected
+                |> List.map (fun file ->
+                    { File = file
+                      Disposition = OutputDisposition.Pending })
+              Complete = false } }
+
+    let applyNew id snapshot selected action token afterPublication (value: CachedOutput) =
+        run value.Snapshot.Scope.WorkspaceId (fun () ->
+            task {
+                match selectedFiles value selected action with
+                | Error error -> return Error error
+                | Ok files ->
+                    let! valid =
+                        Task.Run(fun () -> files |> List.forall (fun file -> OutputFiles.current file token))
+
+                    if not valid then
+                        return Error OutputError.Stale
+                    else
+                        let record = newRecord id snapshot value action selected files
+                        do! repository.CheckAction record
+                        let! record = repository.Claim record
+                        return! execute record token afterPublication
+            })
+
     member _.Drain() = lock gate (fun () -> drained.Task)
 
     member _.TryClose(next: unit -> bool) =
@@ -174,85 +287,30 @@ type GeneratedOutputSession internal (repository: IOutputRepository) =
     member internal _.ApplyAtCheckpoint(id, snapshot, selected, action, token, afterPublication) =
         protect (fun () ->
             task {
-                let selected = OutputPolicy.selection selected |> required
-                let! existing = repository.FindAction id
+                match OutputPolicy.selection selected with
+                | Error error -> return Error error
+                | Ok selected ->
+                    let! existing = repository.FindAction id
 
-                match existing with
-                | Some record when
-                    record.SnapshotId = snapshot
-                    && record.Action = action
-                    && (record.Files
-                        |> List.map (fun value ->
-                            { LocationId = value.File.LocationId
-                              Path = value.File.Path })) = selected
-                    ->
-                    return!
-                        run record.Scope.WorkspaceId (fun () ->
-                            task {
-                                let! record = repository.Resume id
-                                return! execute record token afterPublication
-                            })
-                | Some _ ->
-                    return
-                        Error(
-                            OutputError.Invalid
-                                "This action identity already belongs to another request."
-                        )
-                | None ->
-                    let value = cached snapshot
-
-                    return!
-                        run value.Snapshot.Scope.WorkspaceId (fun () ->
-                            task {
-                                OutputPolicy.action value.Snapshot.Scope.Locations selected action
-                                |> required
-
-                                let files =
-                                    selected
-                                    |> List.map (fun selected ->
-                                        value.Index
-                                        |> Map.tryFind (selected.LocationId, selected.Path)
-                                        |> Option.defaultWith (fun () ->
-                                            raise (OutputException OutputError.Stale)))
-
-                                if
-                                    files |> List.exists (fun value -> value.File.Identity.IsNone)
-                                then
-                                    return
-                                        Error(
-                                            OutputError.Invalid "Select files that are present."
-                                        )
-                                else
-                                    let! valid =
-                                        Task.Run(fun () ->
-                                            files
-                                            |> List.forall (fun value ->
-                                                OutputFiles.current value token))
-
-                                    if not valid then
-                                        return Error OutputError.Stale
-                                    else
-                                        let record =
-                                            { Id = id
-                                              SnapshotId = snapshot
-                                              Scope = value.Snapshot.Scope
-                                              Action = action
-                                              Files = files
-                                              Result =
-                                                { Published = false
-                                                  Id = id
-                                                  VersionId = None
-                                                  Entries =
-                                                    selected
-                                                    |> List.map (fun file ->
-                                                        { File = file
-                                                          Disposition = OutputDisposition.Pending })
-                                                  Complete = false } }
-
-                                        do! repository.CheckAction record
-                                        let! record = repository.Claim record
-                                        return! execute record token afterPublication
-                            })
+                    match existing with
+                    | Some record when replayMatches snapshot action selected record ->
+                        return!
+                            run record.Scope.WorkspaceId (fun () ->
+                                task {
+                                    let! record = repository.Resume id
+                                    return! execute record token afterPublication
+                                })
+                    | Some _ ->
+                        return
+                            Error(
+                                OutputError.Invalid
+                                    "This action identity already belongs to another request."
+                            )
+                    | None ->
+                        match cached snapshot with
+                        | Error error -> return Error error
+                        | Ok value ->
+                            return! applyNew id snapshot selected action token afterPublication value
             })
 
     interface IGeneratedOutputs with
@@ -266,9 +324,11 @@ type GeneratedOutputSession internal (repository: IOutputRepository) =
         member _.Add(id, expected, name, purpose) =
             run expected.WorkspaceId (fun () ->
                 task {
-                    let name = OutputPolicy.name name |> required
-                    let! created = repository.Add(id, expected, name, purpose)
-                    return Ok created
+                    match OutputPolicy.name name with
+                    | Error error -> return Error error
+                    | Ok name ->
+                        let! created = repository.Add(id, expected, name, purpose)
+                        return Ok created
                 })
 
         member _.StopUsing(id, revision) =
@@ -351,95 +411,23 @@ type GeneratedOutputSession internal (repository: IOutputRepository) =
         member _.Page(id, view, cursor, filter) =
             protect (fun () ->
                 task {
-                    let value = cached id
-                    let! current = repository.Current value.Snapshot.Scope
+                    match cached id with
+                    | Error error -> return Error error
+                    | Ok value ->
+                        let! current = repository.Current value.Snapshot.Scope
 
-                    if not current then
-                        return Error OutputError.Stale
-                    else
-                        let query = OutputPaging.query filter
-
-                        let identity =
-                            (match view with
-                             | OutputView.ToolOutputs -> "tools:"
-                             | OutputView.WritableFiles -> "writable:")
-                            + query
-
-                        let matching =
-                            lock gate (fun () ->
-                                match value.Query with
-                                | Some previous when previous.Identity = identity -> previous
-                                | _ ->
-                                    let files =
-                                        value.Files
-                                        |> List.filter (fun value ->
-                                            let included =
-                                                match value.Backing.Location.Purpose, view with
-                                                | OutputPurpose.ToolFolder,
-                                                  OutputView.ToolOutputs
-                                                | OutputPurpose.WritableFile _,
-                                                  OutputView.WritableFiles -> true
-                                                | _ -> false
-
-                                            included
-                                            && String
-                                                .Join(
-                                                    "/",
-                                                    LogicalPath.components value.File.Path
-                                                )
-                                                .Contains(
-                                                    query,
-                                                    StringComparison.OrdinalIgnoreCase
-                                                ))
-                                        |> List.toArray
-
-                                    let cached =
-                                        { Identity = identity
-                                          Entries = files
-                                          Files =
-                                            files
-                                            |> Array.filter (fun value ->
-                                                value.File.Identity.IsSome)
-                                            |> Array.length
-                                          Unreviewed =
-                                            files
-                                            |> Array.filter (fun value ->
-                                                value.File.State = OutputFileState.New
-                                                || value.File.State = OutputFileState.Changed)
-                                            |> Array.length }
-
-                                    value.Query <- Some cached
-                                    cached)
-
-                        return
-                            Ok(
-                                OutputPaging.page
-                                    value.Snapshot
-                                    matching.Entries
-                                    matching.Identity
-                                    matching.Files
-                                    matching.Unreviewed
-                                    cursor
-                            )
+                        if not current then
+                            return Error OutputError.Stale
+                        else
+                            return pageCached value view cursor filter
                 })
 
         member _.Preview(snapshot, selected, action) =
             protect (fun () ->
                 task {
-                    let selected = OutputPolicy.selection selected |> required
-                    let value = cached snapshot
-                    OutputPolicy.action value.Snapshot.Scope.Locations selected action |> required
-
-                    let files =
-                        selected
-                        |> List.map (fun selected ->
-                            value.Index.TryFind(selected.LocationId, selected.Path)
-                            |> Option.defaultWith (fun () ->
-                                raise (OutputException OutputError.Stale)))
-
-                    if files |> List.exists (fun value -> value.File.Identity.IsNone) then
-                        return Error(OutputError.Invalid "Select files that are present.")
-                    else
+                    match previewFiles snapshot selected action with
+                    | Error error -> return Error error
+                    | Ok(value, files) ->
                         let! result =
                             repository.Preview(
                                 { Id = Guid.Empty
