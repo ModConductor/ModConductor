@@ -15,6 +15,8 @@ open ModConductor.Engine
 open ModConductor.Fnis
 open ModConductor.GameContexts
 open ModConductor.GameLaunching
+open ModConductor.Deployment
+open ModConductor.DeploymentPlanning
 open ModConductor.HttpDownloads
 open ModConductor.ModSelection
 open ModConductor.Nexus
@@ -68,6 +70,40 @@ module FnisFixtures =
             (not (FnisFreshness.relevant (path "textures/a.dds")))
 
         check writer "effectiveInputFilterIncludesSkeletons" (FnisFreshness.relevant skeleton.Path)
+
+        let scripts: TargetFile = { Root = Guid.NewGuid(); Path = path "Scripts" }
+        let fnisScript = { scripts with Path = path "scripts/FNISVersion.pex" }
+
+        check
+            writer
+            "windowsOwnedScriptsCoverFnisCaseVariant"
+            (DeploymentPreparation.ownedLinkCovers TargetPolicy.windows scripts fnisScript)
+
+        check
+            writer
+            "linuxOwnedScriptsKeepCaseDistinct"
+            (not (DeploymentPreparation.ownedLinkCovers TargetPolicy.linux scripts fnisScript))
+
+        check
+            writer
+            "ownedScriptsDoNotCoverSibling"
+            (not
+                (DeploymentPreparation.ownedLinkCovers
+                    TargetPolicy.windows
+                    scripts
+                    { scripts with Path = path "ScriptsExtra/FNISVersion.pex" }))
+
+        let native =
+            PhysicalTargets.map
+                TargetPolicy.windows
+                [ scripts.Path ]
+                [ fnisScript ]
+                CancellationToken.None
+
+        check
+            writer
+            "existingScriptsSpellingsMapFnisFiles"
+            (native[fnisScript] = path "Scripts/FNISVersion.pex")
 
         let windows =
             Descriptor.projectTool

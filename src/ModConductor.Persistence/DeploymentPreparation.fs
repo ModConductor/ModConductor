@@ -11,6 +11,15 @@ open ModConductor.DeploymentGenerations
 open ModConductor.Deployment
 
 module internal DeploymentPreparation =
+    let ownedLinkCovers policy (owned: TargetFile) (target: TargetFile) =
+        let parent = TargetPolicy.key policy owned.Path
+        let child = TargetPolicy.key policy target.Path
+
+        owned.Root = target.Root
+        && child.Length >= parent.Length
+        && (TargetPolicy.comparer policy).Equals(parent, child.Substring(0, parent.Length))
+        && (child.Length = parent.Length || child[parent.Length] = '/')
+
     let private required =
         function
         | Ok value -> value
@@ -552,9 +561,10 @@ module internal DeploymentPreparation =
                     @ (observation.Projection.Links |> List.map _.Path)
                     @ (existing
                        |> Option.map (fun context ->
-                           context.Directories
-                           |> List.filter (fun value -> value.Target.Root = binding.Root.Id)
-                           |> List.map (fun value -> value.Target.Path))
+                           (context.Links |> List.map _.Target)
+                           @ (context.Directories |> List.map _.Target)
+                           |> List.filter (fun target -> target.Root = binding.Root.Id)
+                           |> List.map _.Path)
                        |> Option.defaultValue [])
                 else
                     knownAtRoot
@@ -620,13 +630,11 @@ module internal DeploymentPreparation =
                 |> Option.map (fun context -> context.Links |> List.map _.Target)
                 |> Option.defaultValue []
 
+            let policies = roots |> List.map (fun root -> root.Root.Id, root.Root.Policy) |> Map.ofList
+
             let insideExisting (target: TargetFile) =
                 existingLinks
-                |> List.exists (fun (owned: TargetFile) ->
-                    let parent = LogicalPath.components owned.Path
-
-                    owned.Root = target.Root
-                    && List.truncate parent.Length (LogicalPath.components target.Path) = parent)
+                |> List.exists (fun owned -> ownedLinkCovers policies[target.Root] owned target)
 
             let collisions =
                 (generation.Files |> List.map _.Target)
