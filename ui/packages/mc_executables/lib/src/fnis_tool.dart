@@ -60,7 +60,7 @@ class _FnisToolState extends State<FnisTool> {
       final value = await action();
       if (mounted && current == epoch) setState(() => status = value);
     } on Object {
-      if (mounted && current == epoch) {
+      if (mounted && current == epoch && status != null) {
         setState(
           () => problem = 'The FNIS request failed. Refresh its status.',
         );
@@ -77,6 +77,7 @@ class _FnisToolState extends State<FnisTool> {
     if (value != null &&
         value.phase != FnisStatusPhase.ready &&
         value.phase != FnisStatusPhase.updateAvailable &&
+        value.phase != FnisStatusPhase.sourceUnavailable &&
         value.outputPhase != FnisOutputStatusPhase.running) {
       return const SizedBox.shrink();
     }
