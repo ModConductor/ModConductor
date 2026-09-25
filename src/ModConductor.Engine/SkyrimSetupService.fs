@@ -193,6 +193,110 @@ type internal SkyrimSetupCoordinator
           Active = active
           Blocked = blocked }
 
+    let evaluateSkse selection stage (state: SkseView) installed =
+        let ready = state.Phase = SksePhase.Ready
+        let doneSetup =
+            match selection with
+            | SetupAction.Unchanged -> true
+            | SetupAction.Install -> ready
+            | SetupAction.Update -> stage <> "skse-start" && ready
+            | SetupAction.Remove -> not installed
+            | _ -> false
+
+        let active = state.Phase = SksePhase.Downloading || state.Phase = SksePhase.Installing
+        let blocked =
+            state.Phase = SksePhase.Failed
+            || state.Phase = SksePhase.Incompatible
+            || state.Phase = SksePhase.SourceUnavailable
+            || state.Phase = SksePhase.Unavailable
+
+        let item =
+            { componentView "SKSE" state.Status state.Detail ready active blocked with
+                Id = "skse"
+                Installed = installed }
+
+        doneSetup, active, blocked, item
+
+    let evaluateEnb selection stage (state: EnbView) installed =
+        let ready = state.Phase = EnbPhase.Ready
+        let doneSetup =
+            match selection with
+            | SetupAction.Unchanged -> true
+            | SetupAction.Install -> ready
+            | SetupAction.Update -> stage <> "enb-start" && ready
+            | SetupAction.Remove -> not installed
+            | _ -> false
+
+        let active =
+            state.Phase = EnbPhase.Validating
+            || state.Phase = EnbPhase.Acquiring
+            || state.Phase = EnbPhase.Installing
+
+        let blocked =
+            state.Phase = EnbPhase.Blocked
+            || state.Phase = EnbPhase.Failed
+            || state.Phase = EnbPhase.Conflict
+            || state.Phase = EnbPhase.Unavailable
+
+        let item =
+            { componentView "ENBSeries" state.Status state.Detail ready active blocked with
+                Id = "enb"
+                Installed = installed }
+
+        doneSetup, active, blocked, item
+
+    let evaluateFnis selection stage actionId installed (state: FnisView option) (output: FnisInspection option) =
+        let ready =
+            if selection = SetupAction.Unchanged then true
+            elif selection = SetupAction.Remove then not installed
+            elif selection = SetupAction.Update && stage = "fnis-start" then false
+            else
+                match state, output with
+                | Some state, Some output ->
+                    state.Phase = FnisPhase.Ready
+                    && output.Phase = ModConductor.Fnis.FnisOutputPhase.Current
+                    && (stage <> "fnis-run"
+                        || (actionId |> Option.exists (fun action -> output.LatestRunId = Some action)))
+                | _ -> false
+
+        let active =
+            match state, output with
+            | Some state, _ when
+                state.Phase = FnisPhase.WaitingForNexus
+                || state.Phase = FnisPhase.Downloading
+                || state.Phase = FnisPhase.Installing
+                -> true
+            | _, Some output when output.Phase = ModConductor.Fnis.FnisOutputPhase.Running -> true
+            | _ -> false
+
+        let blocked =
+            match state with
+            | Some state ->
+                state.Phase = FnisPhase.Failed
+                || state.Phase = FnisPhase.RecoveryRequired
+                || state.Phase = FnisPhase.SourceUnavailable
+                || state.Phase = FnisPhase.Unavailable
+                || (output
+                    |> Option.exists (fun value ->
+                        value.Phase = ModConductor.Fnis.FnisOutputPhase.Failed
+                        || value.Phase = ModConductor.Fnis.FnisOutputPhase.Cancelled
+                        || value.Phase = ModConductor.Fnis.FnisOutputPhase.Abandoned))
+            | None -> false
+
+        let item =
+            state
+            |> Option.map (fun state ->
+                let status, detail =
+                    match output with
+                    | Some output -> output.Status, output.Detail
+                    | None -> state.Status, state.Detail
+
+                { componentView "FNIS" status detail ready active blocked with
+                    Id = "fnis"
+                    Installed = installed })
+
+        ready, active, blocked, item
+
     let view phase status detail components selection running start continueSetup active ready =
         { Phase = phase
           Status = status
@@ -764,38 +868,11 @@ type internal SkyrimSetupCoordinator
                             | _ -> ()
 
                             let! skseState = dependencies.ReadSkse workspace profile
-                            let skseReady = skseState.Phase = SksePhase.Ready
                             let! skseStored =
                                 store.SkseLoaders.ReadStored(workspace, profile, deployed.ActiveGeneration)
 
-                            let skseDone =
-                                match selection.Skse with
-                                | SetupAction.Unchanged -> true
-                                | SetupAction.Install -> skseReady
-                                | SetupAction.Update -> stage <> "skse-start" && skseReady
-                                | SetupAction.Remove -> skseStored.IsNone
-                                | _ -> false
-
-                            let skseActive =
-                                skseState.Phase = SksePhase.Downloading
-                                || skseState.Phase = SksePhase.Installing
-
-                            let skseBlocked =
-                                skseState.Phase = SksePhase.Failed
-                                || skseState.Phase = SksePhase.Incompatible
-                                || skseState.Phase = SksePhase.SourceUnavailable
-                                || skseState.Phase = SksePhase.Unavailable
-
-                            let skseComponent =
-                                { componentView
-                                    "SKSE"
-                                    skseState.Status
-                                    skseState.Detail
-                                    skseReady
-                                    skseActive
-                                    skseBlocked with
-                                    Id = "skse"
-                                    Installed = skseStored.IsSome }
+                            let skseDone, skseActive, skseBlocked, skseComponent =
+                                evaluateSkse selection.Skse stage skseState skseStored.IsSome
 
                             if not skseDone then
                                 let phase =
@@ -843,37 +920,8 @@ type internal SkyrimSetupCoordinator
                                               PresetVersion = "" }
                                     else dependencies.ReadEnb workspace profile
 
-                                let enbReady = enbState.Phase = EnbPhase.Ready
-
-                                let enbDone =
-                                    match selection.Enb with
-                                    | SetupAction.Unchanged -> true
-                                    | SetupAction.Install -> enbReady
-                                    | SetupAction.Update -> stage <> "enb-start" && enbReady
-                                    | SetupAction.Remove -> not enbInstalled
-                                    | _ -> false
-
-                                let enbActive =
-                                    enbState.Phase = EnbPhase.Validating
-                                    || enbState.Phase = EnbPhase.Acquiring
-                                    || enbState.Phase = EnbPhase.Installing
-
-                                let enbBlocked =
-                                    enbState.Phase = EnbPhase.Blocked
-                                    || enbState.Phase = EnbPhase.Failed
-                                    || enbState.Phase = EnbPhase.Conflict
-                                    || enbState.Phase = EnbPhase.Unavailable
-
-                                let enbComponent =
-                                    { componentView
-                                        "ENBSeries"
-                                        enbState.Status
-                                        enbState.Detail
-                                        enbReady
-                                        enbActive
-                                        enbBlocked with
-                                        Id = "enb"
-                                        Installed = enbInstalled }
+                                let enbDone, enbActive, enbBlocked, enbComponent =
+                                    evaluateEnb selection.Enb stage enbState enbInstalled
 
                                 if not enbDone then
                                     let waiting = enbState.Phase = EnbPhase.WaitingForArchive
@@ -946,69 +994,16 @@ type internal SkyrimSetupCoordinator
                                         else
                                             task { return None, None }
 
-                                    let fnisReady =
-                                        if selection.Fnis = SetupAction.Unchanged then true
-                                        elif selection.Fnis = SetupAction.Remove then fnisStored.IsNone
-                                        elif selection.Fnis = SetupAction.Update && stage = "fnis-start" then false
-                                        else
-                                            match fnisState, output with
-                                            | Some state, Some output ->
-                                                state.Phase = FnisPhase.Ready
-                                                && output.Phase = ModConductor.Fnis.FnisOutputPhase.Current
-                                                && (stage <> "fnis-run"
-                                                    || (recorded
-                                                        |> Option.bind _.ActionId
-                                                        |> Option.exists (fun action ->
-                                                            output.LatestRunId = Some action)))
-                                            | _ -> false
+                                    let fnisReady, fnisActive, fnisBlocked, fnisComponent =
+                                        evaluateFnis
+                                            selection.Fnis
+                                            stage
+                                            (recorded |> Option.bind _.ActionId)
+                                            fnisStored.IsSome
+                                            fnisState
+                                            output
 
-                                    let fnisActive =
-                                        match fnisState, output with
-                                        | Some state, _ when
-                                            state.Phase = FnisPhase.WaitingForNexus
-                                            || state.Phase = FnisPhase.Downloading
-                                            || state.Phase = FnisPhase.Installing
-                                            ->
-                                            true
-                                        | _, Some output when
-                                            output.Phase = ModConductor.Fnis.FnisOutputPhase.Running
-                                            ->
-                                            true
-                                        | _ -> false
-
-                                    let fnisBlocked =
-                                        match fnisState, output with
-                                        | Some state, _ ->
-                                            state.Phase = FnisPhase.Failed
-                                            || state.Phase = FnisPhase.RecoveryRequired
-                                            || state.Phase = FnisPhase.SourceUnavailable
-                                            || state.Phase = FnisPhase.Unavailable
-                                            || (output
-                                                |> Option.exists (fun value ->
-                                                    value.Phase = ModConductor.Fnis.FnisOutputPhase.Failed
-                                                    || value.Phase = ModConductor.Fnis.FnisOutputPhase.Cancelled
-                                                    || value.Phase = ModConductor.Fnis.FnisOutputPhase.Abandoned))
-                                        | None, _ -> false
-
-                                    let components =
-                                        match fnisState with
-                                        | None -> baseComponents
-                                        | Some state ->
-                                            let status, detail =
-                                                match output with
-                                                | Some output -> output.Status, output.Detail
-                                                | None -> state.Status, state.Detail
-
-                                            baseComponents
-                                            @ [ { componentView
-                                                    "FNIS"
-                                                    status
-                                                    detail
-                                                    fnisReady
-                                                    fnisActive
-                                                    fnisBlocked with
-                                                    Id = "fnis"
-                                                    Installed = fnisStored.IsSome } ]
+                                    let components = baseComponents @ Option.toList fnisComponent
 
                                     let fnisSetupReady =
                                         if selection.Fnis = SetupAction.Remove then fnisStored.IsNone
@@ -1717,134 +1712,3 @@ type internal SkyrimSetupCoordinator
                 subscription.Dispose()
 
             lifetime.Dispose()
-
-type internal SkyrimSetupService(coordinator: SkyrimSetupCoordinator) =
-    inherit SkyrimSetupOperations.SkyrimSetupOperationsBase()
-
-    let ids workspace profile =
-        ModLibraryWire.id workspace, ModLibraryWire.id profile
-
-    let selectionFromWire (value: ModConductor.Protocol.V1.SkyrimSetupSelection) =
-        let choice (action: ModConductor.Protocol.V1.SkyrimSetupAction) =
-            match action with
-            | ModConductor.Protocol.V1.SkyrimSetupAction.Install -> SetupAction.Install
-            | ModConductor.Protocol.V1.SkyrimSetupAction.Remove -> SetupAction.Remove
-            | ModConductor.Protocol.V1.SkyrimSetupAction.Update -> SetupAction.Update
-            | _ -> SetupAction.Unchanged
-
-        if isNull value then ModConductor.Persistence.SetupSelection.none
-        else
-            { Skse = choice value.Skse
-              Enb = choice value.Enb
-              Fnis = choice value.Fnis
-              EnbArchive = if String.IsNullOrWhiteSpace value.EnbArchivePath then None else Some value.EnbArchivePath }
-
-    let selectionWire (value: ModConductor.Persistence.SetupSelection) =
-        ModConductor.Protocol.V1.SkyrimSetupSelection(
-            Skse = enum<ModConductor.Protocol.V1.SkyrimSetupAction> (int value.Skse),
-            Enb = enum<ModConductor.Protocol.V1.SkyrimSetupAction> (int value.Enb),
-            Fnis = enum<ModConductor.Protocol.V1.SkyrimSetupAction> (int value.Fnis),
-            EnbArchivePath = (value.EnbArchive |> Option.defaultValue "")
-        )
-
-    let wire (value: SkyrimSetupView) =
-        let result =
-            SkyrimSetupState(
-                Phase = value.Phase,
-                Status = value.Status,
-                Detail = value.Detail,
-                Selection = selectionWire value.Selection,
-                CanStart = value.CanStart,
-                CanContinue = value.CanContinue,
-                Active = value.Active,
-                CanCancel = value.CanCancel,
-                Ready = value.Ready
-            )
-
-        result.Components.AddRange(
-            value.Components
-            |> Seq.map (fun item ->
-                SkyrimSetupComponent(
-                    Id = item.Id,
-                    Name = item.Name,
-                    Status = item.Status,
-                    Detail = item.Detail,
-                    UpdateVersion = (item.UpdateVersion |> Option.defaultValue ""),
-                    Installed = item.Installed,
-                    Ready = item.Ready,
-                    Active = item.Active,
-                    Blocked = item.Blocked
-                ))
-        )
-
-        result
-
-    override _.ReadSkyrimSetup(request, context) =
-        let workspace, profile = ids request.WorkspaceId request.ProfileId
-
-        task {
-            let! value =
-                coordinator.Read(workspace, profile, selectionFromWire request.Selection, context.CancellationToken)
-
-            return wire value
-        }
-
-    override _.WatchSkyrimSetup(request, stream, context) =
-        let workspace, profile = ids request.WorkspaceId request.ProfileId
-        task {
-            while not context.CancellationToken.IsCancellationRequested do
-                let revision = coordinator.CurrentRevision(workspace, profile)
-                let! value =
-                    coordinator.Read(
-                        workspace,
-                        profile,
-                        selectionFromWire request.Selection,
-                        context.CancellationToken
-                    )
-                do! stream.WriteAsync(wire value, context.CancellationToken)
-                do! coordinator.WaitForChange(workspace, profile, revision, context.CancellationToken)
-        } :> Task
-
-    override _.StartSkyrimSetup(request, context) =
-        let workspace, profile = ids request.WorkspaceId request.ProfileId
-
-        task {
-            let! value =
-                coordinator.Start(
-                    workspace,
-                    profile,
-                    selectionFromWire request.Selection,
-                    context.CancellationToken
-                )
-
-            return wire value
-        }
-
-    override _.ContinueSkyrimSetup(request, context) =
-        let workspace, profile = ids request.WorkspaceId request.ProfileId
-
-        task {
-            let! value = coordinator.Continue(workspace, profile, context.CancellationToken)
-            return wire value
-        }
-
-    override _.CancelSkyrimSetup(request, context) =
-        let workspace, profile = ids request.WorkspaceId request.ProfileId
-
-        task {
-            let! value = coordinator.Cancel(workspace, profile, context.CancellationToken)
-            return wire value
-        }
-
-    override _.OpenSkyrimSetupPage(request, context) =
-        task {
-            let address =
-                match request.ComponentId with
-                | "skse" -> "https://skse.silverlock.org/"
-                | "enb" -> ModConductor.Enb.EnbCatalogue.OfficialPage
-                | "fnis" -> ModConductor.Fnis.FnisCatalogue.Source
-                | _ -> invalidArg "component_id" "The selected component is unavailable."
-
-            do! ModConductor.Desktop.WebLink.openBrowser(Uri address, context.CancellationToken)
-            return SkyrimSetupPageReply(Opened = true)
-        }

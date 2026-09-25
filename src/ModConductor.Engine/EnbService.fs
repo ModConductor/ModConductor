@@ -203,6 +203,232 @@ type EnbCoordinator
             return pending |> List.filter (fun value -> value.ProfileId = profile)
         }
 
+    let classifyPending workspace (pending: StoredEnbPendingSource list) =
+        task {
+            let mutable available = []
+            let mutable missing = []
+            let mutable active = false
+            let mutable stopped: (string * string) option = None
+
+            for source in pending do
+                let sourceReference = reference source.AccountId source.NexusModId source.File false
+                let! artifact = downloads.FindNexus(workspace, sourceReference)
+
+                match artifact with
+                | Some artifact when
+                    artifact.State = ArtifactState.Ready
+                    || artifact.State = ArtifactState.Installed
+                    ->
+                    let pin =
+                        (row.Preset :: row.Companions)
+                        |> List.find (fun pin -> pin.NexusModId = Some source.NexusModId)
+
+                    available <- available @ [ pin, source.File, artifact ]
+                | Some artifact when
+                    artifact.Download
+                    |> Option.exists (fun download ->
+                        download.State = DownloadState.Failed
+                        || download.State = DownloadState.Paused)
+                    ->
+                    stopped <-
+                        Some(
+                            source.File.Name + " download stopped",
+                            artifact.Problem |> Option.defaultValue "Retry the Nexus download."
+                        )
+                | Some _ -> active <- true
+                | None -> missing <- missing @ [ source ]
+
+            return available, missing, active, stopped
+        }
+
+    let installReady workspace profile (runtime: Artifact) available token =
+        task {
+            let! _ =
+                persist
+                    workspace
+                    profile
+                    (Some runtime.Id)
+                    runtime.Sha256
+                    (view
+                        EnbPhase.Installing
+                        "Installing Lean ENB"
+                        "Reviewing owned root, Data and configuration targets.")
+
+            try
+                let! _ = store.InstallEnb(workspace, profile, row, runtime, available, token)
+                do! store.EnbSetups.RemovePending(profile, None)
+
+                return!
+                    persist
+                        workspace
+                        profile
+                        (Some runtime.Id)
+                        runtime.Sha256
+                        (view
+                            EnbPhase.Ready
+                            "Lean ENB is ready"
+                            "Play uses the selected profile generation and its preserved runtime settings.")
+            with error ->
+                let conflict =
+                    error.Message.Contains("owns", StringComparison.OrdinalIgnoreCase)
+                    || error.Message.Contains("already contains", StringComparison.OrdinalIgnoreCase)
+
+                return!
+                    persist
+                        workspace
+                        profile
+                        (Some runtime.Id)
+                        runtime.Sha256
+                        (view
+                            (if conflict then EnbPhase.Conflict else EnbPhase.Failed)
+                            "Lean ENB setup failed"
+                            error.Message)
+        }
+
+    let acquirePremium workspace profile (runtime: Artifact) (next: StoredEnbPendingSource) (account: Account) token =
+        task {
+            let! lease =
+                nexus.Resolve(
+                    "skyrimspecialedition",
+                    next.NexusModId,
+                    next.File.Id,
+                    account.Subject
+                )
+
+            match lease with
+            | Error problem ->
+                return!
+                    persist
+                        workspace
+                        profile
+                        (Some runtime.Id)
+                        runtime.Sha256
+                        (view
+                            EnbPhase.Unavailable
+                            "Nexus source unavailable"
+                            (NexusProblem.message problem))
+            | Ok _ ->
+                let! started =
+                    downloads.Start
+                        { Id = Guid.NewGuid()
+                          WorkspaceId = workspace
+                          Name = next.File.Name
+                          Sources =
+                            [ DownloadSource.Nexus(
+                                  reference
+                                      account.Subject
+                                      next.NexusModId
+                                      next.File
+                                      false
+                              ) ]
+                          ExpectedLength = next.File.Bytes
+                          ExpectedSha256 = None }
+
+                match started with
+                | Error problem ->
+                    return!
+                        persist
+                            workspace
+                            profile
+                            (Some runtime.Id)
+                            runtime.Sha256
+                            (view
+                                EnbPhase.Failed
+                                "The Nexus download could not start"
+                                (string problem))
+                | Ok _ ->
+                    return!
+                        persist
+                            workspace
+                            profile
+                            (Some runtime.Id)
+                            runtime.Sha256
+                            (view
+                                EnbPhase.Acquiring
+                                "Downloading Lean ENB components"
+                                "The active setup remains unchanged until every archive is verified.")
+        }
+
+    let openNexusPage workspace profile (runtime: Artifact) (saved: StoredEnbStatus option) (next: StoredEnbPendingSource) token =
+        task {
+            match saved with
+            | Some state when
+                state.Status = "Waiting for Nexus Mods"
+                && state.Detail.Contains(
+                    next.File.Name,
+                    StringComparison.Ordinal
+                )
+                ->
+                return fromStored state
+            | _ ->
+                try
+                    do!
+                        handoff.Open(
+                            Uri(
+                                "https://www.nexusmods.com/skyrimspecialedition/mods/"
+                                + string next.NexusModId
+                                + "?tab=files&file_id="
+                                + string next.File.Id
+                            ),
+                            token
+                        )
+
+                    return!
+                        persist
+                            workspace
+                            profile
+                            (Some runtime.Id)
+                            runtime.Sha256
+                            (view
+                                EnbPhase.Acquiring
+                                "Waiting for Nexus Mods"
+                                ("Select Mod Manager Download for "
+                                 + next.File.Name
+                                 + "."))
+                with error ->
+                    return!
+                        persist
+                            workspace
+                            profile
+                            (Some runtime.Id)
+                            runtime.Sha256
+                            (view
+                                EnbPhase.Failed
+                                "Nexus Mods could not be opened"
+                                error.Message)
+        }
+
+    let acquireNext workspace profile (runtime: Artifact) (saved: StoredEnbStatus option) (next: StoredEnbPendingSource) token =
+        task {
+            match nexus.Status.Account with
+            | None ->
+                return!
+                    persist
+                        workspace
+                        profile
+                        (Some runtime.Id)
+                        runtime.Sha256
+                        (view
+                            EnbPhase.Unavailable
+                            "Nexus Mods is unavailable"
+                            (EnbProblem.message EnbProblem.SignInRequired))
+            | Some account when account.Subject <> next.AccountId ->
+                return!
+                    persist
+                        workspace
+                        profile
+                        (Some runtime.Id)
+                        runtime.Sha256
+                        (view
+                            EnbPhase.Unavailable
+                            "Nexus account changed"
+                            "Use the Nexus account that started this ENB setup.")
+            | Some account when account.Premium = Some true ->
+                return! acquirePremium workspace profile runtime next account token
+            | Some _ ->
+                return! openNexusPage workspace profile runtime saved next token
+        }
+
     let rec advance workspace profile (token: CancellationToken) =
         task {
             let! saved = store.EnbSetups.ReadStatus(workspace, profile)
@@ -239,40 +465,7 @@ type EnbCoordinator
                                     "Lean ENB sources are unavailable"
                                     "Refresh the setup to resolve its approved Nexus files again.")
                     else
-                        let mutable available = []
-                        let mutable missing = []
-                        let mutable active = false
-                        let mutable stopped: (string * string) option = None
-
-                        for source in pending do
-                            let r = reference source.AccountId source.NexusModId source.File false
-                            let! artifact = downloads.FindNexus(workspace, r)
-
-                            match artifact with
-                            | Some artifact when
-                                artifact.State = ArtifactState.Ready
-                                || artifact.State = ArtifactState.Installed
-                                ->
-                                let pin =
-                                    (row.Preset :: row.Companions)
-                                    |> List.find (fun pin ->
-                                        pin.NexusModId = Some source.NexusModId)
-
-                                available <- available @ [ pin, source.File, artifact ]
-                            | Some artifact when
-                                artifact.Download
-                                |> Option.exists (fun download ->
-                                    download.State = DownloadState.Failed
-                                    || download.State = DownloadState.Paused)
-                                ->
-                                stopped <-
-                                    Some(
-                                        source.File.Name + " download stopped",
-                                        artifact.Problem
-                                        |> Option.defaultValue "Retry the Nexus download."
-                                    )
-                            | Some _ -> active <- true
-                            | None -> missing <- missing @ [ source ]
+                        let! available, missing, active, stopped = classifyPending workspace pending
 
                         match stopped with
                         | Some(status, detail) ->
@@ -284,61 +477,7 @@ type EnbCoordinator
                                     runtime.Sha256
                                     (view EnbPhase.Failed status detail)
                         | None when available.Length = pending.Length ->
-                            let! _ =
-                                persist
-                                    workspace
-                                    profile
-                                    (Some runtime.Id)
-                                    runtime.Sha256
-                                    (view
-                                        EnbPhase.Installing
-                                        "Installing Lean ENB"
-                                        "Reviewing owned root, Data and configuration targets.")
-
-                            try
-                                let! _ =
-                                    store.InstallEnb(
-                                        workspace,
-                                        profile,
-                                        row,
-                                        runtime,
-                                        available,
-                                        token
-                                    )
-
-                                do! store.EnbSetups.RemovePending(profile, None)
-
-                                return!
-                                    persist
-                                        workspace
-                                        profile
-                                        (Some runtime.Id)
-                                        runtime.Sha256
-                                        (view
-                                            EnbPhase.Ready
-                                            "Lean ENB is ready"
-                                            "Play uses the selected profile generation and its preserved runtime settings.")
-                            with error ->
-                                let conflict =
-                                    error.Message.Contains(
-                                        "owns",
-                                        StringComparison.OrdinalIgnoreCase
-                                    )
-                                    || error.Message.Contains(
-                                        "already contains",
-                                        StringComparison.OrdinalIgnoreCase
-                                    )
-
-                                return!
-                                    persist
-                                        workspace
-                                        profile
-                                        (Some runtime.Id)
-                                        runtime.Sha256
-                                        (view
-                                            (if conflict then EnbPhase.Conflict else EnbPhase.Failed)
-                                            "Lean ENB setup failed"
-                                            error.Message)
+                            return! installReady workspace profile runtime available token
                         | None when active ->
                             return!
                                 persist
@@ -351,138 +490,7 @@ type EnbCoordinator
                                         "Downloading Lean ENB components"
                                         "The active setup remains unchanged until every archive is verified.")
                         | None ->
-                            let next = missing.Head
-
-                            match nexus.Status.Account with
-                            | None ->
-                                return!
-                                    persist
-                                        workspace
-                                        profile
-                                        (Some runtime.Id)
-                                        runtime.Sha256
-                                        (view
-                                            EnbPhase.Unavailable
-                                            "Nexus Mods is unavailable"
-                                            (EnbProblem.message EnbProblem.SignInRequired))
-                            | Some account when account.Subject <> next.AccountId ->
-                                return!
-                                    persist
-                                        workspace
-                                        profile
-                                        (Some runtime.Id)
-                                        runtime.Sha256
-                                        (view
-                                            EnbPhase.Unavailable
-                                            "Nexus account changed"
-                                            "Use the Nexus account that started this ENB setup.")
-                            | Some account when account.Premium = Some true ->
-                                let! lease =
-                                    nexus.Resolve(
-                                        "skyrimspecialedition",
-                                        next.NexusModId,
-                                        next.File.Id,
-                                        account.Subject
-                                    )
-
-                                match lease with
-                                | Error problem ->
-                                    return!
-                                        persist
-                                            workspace
-                                            profile
-                                            (Some runtime.Id)
-                                            runtime.Sha256
-                                            (view
-                                                EnbPhase.Unavailable
-                                                "Nexus source unavailable"
-                                                (NexusProblem.message problem))
-                                | Ok _ ->
-                                    let! started =
-                                        downloads.Start
-                                            { Id = Guid.NewGuid()
-                                              WorkspaceId = workspace
-                                              Name = next.File.Name
-                                              Sources =
-                                                [ DownloadSource.Nexus(
-                                                      reference
-                                                          account.Subject
-                                                          next.NexusModId
-                                                          next.File
-                                                          false
-                                                  ) ]
-                                              ExpectedLength = next.File.Bytes
-                                              ExpectedSha256 = None }
-
-                                    match started with
-                                    | Error problem ->
-                                        return!
-                                            persist
-                                                workspace
-                                                profile
-                                                (Some runtime.Id)
-                                                runtime.Sha256
-                                                (view
-                                                    EnbPhase.Failed
-                                                    "The Nexus download could not start"
-                                                    (string problem))
-                                    | Ok _ ->
-                                        return!
-                                            persist
-                                                workspace
-                                                profile
-                                                (Some runtime.Id)
-                                                runtime.Sha256
-                                                (view
-                                                    EnbPhase.Acquiring
-                                                    "Downloading Lean ENB components"
-                                                    "The active setup remains unchanged until every archive is verified.")
-                            | Some _ ->
-                                match saved with
-                                | Some state when
-                                    state.Status = "Waiting for Nexus Mods"
-                                    && state.Detail.Contains(
-                                        next.File.Name,
-                                        StringComparison.Ordinal
-                                    )
-                                    ->
-                                    return fromStored state
-                                | _ ->
-                                    try
-                                        do!
-                                            handoff.Open(
-                                                Uri(
-                                                    "https://www.nexusmods.com/skyrimspecialedition/mods/"
-                                                    + string next.NexusModId
-                                                    + "?tab=files&file_id="
-                                                    + string next.File.Id
-                                                ),
-                                                token
-                                            )
-
-                                        return!
-                                            persist
-                                                workspace
-                                                profile
-                                                (Some runtime.Id)
-                                                runtime.Sha256
-                                                (view
-                                                    EnbPhase.Acquiring
-                                                    "Waiting for Nexus Mods"
-                                                    ("Select Mod Manager Download for "
-                                                     + next.File.Name
-                                                     + "."))
-                                    with error ->
-                                        return!
-                                            persist
-                                                workspace
-                                                profile
-                                                (Some runtime.Id)
-                                                runtime.Sha256
-                                                (view
-                                                    EnbPhase.Failed
-                                                    "Nexus Mods could not be opened"
-                                                    error.Message)
+                            return! acquireNext workspace profile runtime saved missing.Head token
         }
 
     let beginAcquisition workspace profile (runtime: Artifact) token =
@@ -1307,88 +1315,3 @@ type EnbCoordinator
             this.Stop().GetAwaiter().GetResult()
 
             lifetime.Dispose()
-
-type internal EnbService(coordinator: EnbCoordinator) =
-    inherit EnbOperations.EnbOperationsBase()
-
-    let ids (request: EnbRequest) =
-        ModLibraryWire.id request.WorkspaceId, ModLibraryWire.id request.ProfileId
-
-    let wire value =
-        EnbState(
-            Phase = value.Phase,
-            Status = value.Status,
-            Detail = value.Detail,
-            RuntimeVersion = value.RuntimeVersion,
-            PresetVersion = value.PresetVersion,
-            CanOpenAuthorPage =
-                (value.Phase = EnbPhase.Available
-                 || value.Phase = EnbPhase.WaitingForArchive
-                 || value.Phase = EnbPhase.Failed),
-            CanSelectArchive =
-                (value.Phase = EnbPhase.WaitingForArchive || value.Phase = EnbPhase.Failed),
-            CanCancel = (value.Phase = EnbPhase.WaitingForArchive),
-            CanUpdate = (value.Phase = EnbPhase.Ready),
-            CanRemove = (value.Phase = EnbPhase.Ready),
-            CanRecover = (value.Phase = EnbPhase.Failed || value.Phase = EnbPhase.Conflict)
-        )
-
-    override _.ReadEnb(request, _) =
-        task {
-            let workspace, profile = ids request
-            let! value = coordinator.Read(workspace, profile)
-            return wire value
-        }
-
-    override _.OpenEnbAuthorPage(request, _) =
-        task {
-            let workspace, profile = ids request
-            let! value = coordinator.OpenAuthorPage(workspace, profile)
-            return wire value
-        }
-
-    override _.CancelEnbWait(request, _) =
-        task {
-            let workspace, profile = ids request
-            let! value = coordinator.Cancel(workspace, profile)
-            return wire value
-        }
-
-    override _.SelectEnbArchive(request, context) =
-        task {
-            let workspace = ModLibraryWire.id request.WorkspaceId
-            let profile = ModLibraryWire.id request.ProfileId
-            let operation = ModLibraryWire.id request.OperationId
-
-            let! value =
-                coordinator.SelectArchive(
-                    workspace,
-                    profile,
-                    operation,
-                    request.Path,
-                    context.CancellationToken
-                )
-
-            return wire value
-        }
-
-    override _.UpdateEnb(request, _) =
-        task {
-            let workspace, profile = ids request
-            let! value = coordinator.Update(workspace, profile)
-            return wire value
-        }
-
-    override _.RemoveEnb(request, context) =
-        task {
-            let workspace, profile = ids request
-            let! value = coordinator.Remove(workspace, profile, context.CancellationToken)
-            return wire value
-        }
-
-    override _.RecoverEnb(request, context) =
-        task {
-            let workspace, profile = ids request
-            let! value = coordinator.Recover(workspace, profile, context.CancellationToken)
-            return wire value
-        }
