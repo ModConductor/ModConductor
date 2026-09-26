@@ -10,6 +10,12 @@
     <Compile Include="ModOrganizerProfiles.fs" />
     <Compile Include="ModOrganizerDownloads.fs" />
     <Compile Include="ModOrganizer.fs" />
+    <Compile Include="VortexSource.fs" />
+    <Compile Include="VortexJson.fs" />
+    <Compile Include="VortexProfiles.fs" />
+    <Compile Include="VortexMods.fs" />
+    <Compile Include="VortexOrder.fs" />
+    <Compile Include="VortexDownloads.fs" />
     <Compile Include="Vortex.fs" />
     <ProjectReference Include="../ModConductor.Platform/ModConductor.Platform.fsproj" />
     <ProjectReference Include="../ModConductor.ModLibrary/ModConductor.ModLibrary.fsproj" />
