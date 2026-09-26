@@ -53,6 +53,9 @@
     <Compile Include="EnbOperationLoop.fs" />
     <Compile Include="EnbService.fs" />
     <Compile Include="EnbGrpcService.fs" />
+    <Compile Include="FnisRunLogs.fs" />
+    <Compile Include="FnisRunRecovery.fs" />
+    <Compile Include="FnisRunExecution.fs" />
     <Compile Include="FnisRunner.fs" />
     <Compile Include="FnisService.fs" />
     <Compile Include="SkyrimSetupModel.fs" />
