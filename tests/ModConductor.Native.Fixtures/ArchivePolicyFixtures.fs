@@ -149,21 +149,6 @@ module ArchivePolicyFixtures =
             check "changedIniRefusesRestore" refused
         )
 
-        let overlong =
-            [ "First"; "Second"; "Third" ]
-            |> List.map (fun prefix -> prefix + String('A', 200) + ".bsa")
-            |> fun names -> Ini.applyArchives names (Some original)
-
-        writer.WriteBoolean(
-            "archiveNamesThatExceedTwoKeysAreRejected",
-            check
-                "archiveNamesThatExceedTwoKeysAreRejected"
-                (match overlong with
-                 | Error(ProfileDataError.Invalid detail) ->
-                     detail = "The Skyrim archive list does not fit its two keys."
-                 | _ -> false)
-        )
-
     let private observeResolution (writer: Utf8JsonWriter) =
         let explicit =
             [ { Name = "extra.BSA"
@@ -644,6 +629,83 @@ module ArchivePolicyFixtures =
 
 
             observeInactiveProfile ()
+
+            let observeOverlongApply () =
+                let require stage =
+                    function
+                    | Ok value -> value
+                    | Error _ -> failwith ("Overlong archive " + stage + " failed.")
+
+                let names =
+                    [ "First"; "Second"; "Third" ]
+                    |> List.map (fun prefix -> prefix + String('A', 200) + ".bsa")
+
+                for name in names do
+                    File.WriteAllBytes(Path.Combine(data, name), bsaHeader)
+
+                let current = profileApi.Read(workspace, profile) |> wait |> require "read"
+                let content = "[Archive]\nSResourceArchiveList=" + String.concat ", " names + "\n"
+                let opened =
+                    profileApi.ReadConfiguration(current.Reference, "Skyrim.ini", token)
+                    |> wait
+                    |> require "open"
+
+                let edited =
+                    profileApi.SaveConfiguration(
+                        { Id = Guid.NewGuid()
+                          PreviewId = opened.PreviewId
+                          Expected = opened.Expected
+                          Name = opened.Name
+                          Content = content },
+                        ignore,
+                        token
+                    )
+                    |> wait
+                    |> require "edit"
+
+                let headers = store.Plugins.Scan(profile, token) |> wait |> result
+                let policy =
+                    archiveApi.Scan(workspace, profile, headers.Id, token)
+                    |> wait
+                    |> require "scan"
+                let privateIni = Path.Combine(edited.State.SettingsPath, "Skyrim.ini")
+                let privateBefore = File.ReadAllBytes privateIni
+                let documentsBytes () =
+                    if File.Exists documentsIni then
+                        Some(File.ReadAllBytes documentsIni)
+                    else
+                        None
+
+                let documentsBefore = documentsBytes ()
+                let actionId = Guid.NewGuid()
+
+                let refused =
+                    archiveApi.Apply(actionId, policy.Reference, policy.Snapshot.Id, ignore, token)
+                    |> wait
+
+                let claimed = store.ProfileDataActionBytes actionId |> wait
+                let after = profileApi.Read(workspace, profile) |> wait |> require "after"
+
+                writer.WriteBoolean(
+                    "overlongArchiveListRefusesBeforeClaimWithoutChangingIni",
+                    check
+                        "overlongArchiveListRefusesBeforeClaimWithoutChangingIni"
+                        (edited.Complete
+                         && not policy.Changes.IsEmpty
+                         && policy.Snapshot.BlockingProblems.IsEmpty
+                         && (match refused with
+                             | Error(ProfileDataError.Invalid _) -> true
+                             | _ -> false)
+                         && isNull claimed
+                         && after.Pending.IsNone
+                         && File.ReadAllBytes(privateIni) = privateBefore
+                         && documentsBytes () = documentsBefore)
+                )
+
+                let reverted = editArchives after.Reference opened.Document.Content
+                check "overlong fixture restored profile settings" reverted.Complete |> ignore
+
+            observeOverlongApply ()
 
             let observeChangedIniRestore () =
                 let afterRestore = profileApi.Read(workspace, profile) |> wait |> result
