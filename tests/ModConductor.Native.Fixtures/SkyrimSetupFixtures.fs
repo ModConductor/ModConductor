@@ -249,7 +249,7 @@ module SkyrimSetupFixtures =
 
                     Task.FromResult skse
               CancelSkse = fun _ _ -> Task.FromResult skse
-              RemoveSkse = fun _ _ _ -> Task.FromResult skse
+              RemoveSkse = fun _ _ _ -> Task.FromResult(Ok skse)
               ReadEnb = fun _ _ -> Task.FromResult enb
               SelectEnb =
                 fun _ _ _ _ token ->
@@ -345,7 +345,7 @@ module SkyrimSetupFixtures =
                 waitingWorkflow.Dependencies,
                 childChanges = [ waitingChanges.Publish ]
             )
-        let _ = waitingOwner.Start(waitingWorkspace, waitingProfile, fnisOnly, CancellationToken.None) |> wait
+        let _ = waitingOwner.Start(waitingWorkspace, waitingProfile, fnisOnly, CancellationToken.None) |> wait |> result
 
         let waiting =
             until
@@ -354,13 +354,13 @@ module SkyrimSetupFixtures =
                     let current = waitingOwner.Read(waitingWorkspace, waitingProfile, noChoice, CancellationToken.None) |> wait
 
                     if current.CanContinue then
-                        waitingOwner.Continue(waitingWorkspace, waitingProfile, CancellationToken.None) |> wait
+                        waitingOwner.Continue(waitingWorkspace, waitingProfile, CancellationToken.None) |> wait |> result
                     else
                         current)
                 (fun _ -> waitingWorkflow.FnisInstalls = 1)
 
         let repeatedWait =
-            waitingOwner.Continue(waitingWorkspace, waitingProfile, CancellationToken.None) |> wait
+            waitingOwner.Continue(waitingWorkspace, waitingProfile, CancellationToken.None) |> wait |> result
 
         check
             writer
@@ -577,7 +577,7 @@ module SkyrimSetupFixtures =
 
         use enbOwner = new SkyrimSetupCoordinator(enbStore, enbDependencies)
         releaseEnbGeneration.Reset()
-        let _ = enbOwner.Start(enbWorkspace, enbProfile, enbWithArchive, CancellationToken.None) |> wait
+        let _ = enbOwner.Start(enbWorkspace, enbProfile, enbWithArchive, CancellationToken.None) |> wait |> result
 
         try
             if not (enteredEnbGeneration.Wait(TimeSpan.FromSeconds 10.)) then
@@ -586,7 +586,7 @@ module SkyrimSetupFixtures =
             let deployed = enbStore.Deployments.Read enbProfile |> wait |> result
             let startedEnb = enbOwner.Read(enbWorkspace, enbProfile, noChoice, CancellationToken.None) |> wait
             let during = enbOwner.Read(enbWorkspace, enbProfile, noChoice, CancellationToken.None) |> wait
-            let continued = enbOwner.Continue(enbWorkspace, enbProfile, CancellationToken.None) |> wait
+            let continued = enbOwner.Continue(enbWorkspace, enbProfile, CancellationToken.None) |> wait |> result
             let afterContinue = enbStore.Deployments.Read enbProfile |> wait |> result
 
             check
@@ -638,7 +638,7 @@ module SkyrimSetupFixtures =
                 pausedWorkflow.Dependencies,
                 childChanges = [ pausedChanges.Publish ]
             )
-        let _ = pausedOwner.Start(pausedWorkspace, pausedProfile, skseOnly, CancellationToken.None) |> wait
+        let _ = pausedOwner.Start(pausedWorkspace, pausedProfile, skseOnly, CancellationToken.None) |> wait |> result
         until "held SKSE component starts" (fun () -> pausedWorkflow.SkseStarts) ((=) 1)
         |> ignore
         let installing = pausedOwner.Read(pausedWorkspace, pausedProfile, noChoice, CancellationToken.None) |> wait
@@ -712,7 +712,7 @@ module SkyrimSetupFixtures =
             let deployed = store.Deployments.Read pausedProfile |> wait |> result
             let during = pausedOwner.Read(pausedWorkspace, pausedProfile, noChoice, CancellationToken.None) |> wait
             let continued =
-                pausedOwner.Continue(pausedWorkspace, pausedProfile, CancellationToken.None) |> wait
+                pausedOwner.Continue(pausedWorkspace, pausedProfile, CancellationToken.None) |> wait |> result
             let afterContinue = store.Deployments.Read pausedProfile |> wait |> result
 
             check
@@ -785,7 +785,7 @@ module SkyrimSetupFixtures =
              && (store.Deployments.Read profile |> wait |> result).ActiveGeneration.IsNone)
 
         let enbWithoutArchive = { noChoice with Enb = SetupAction.Install }
-        let enbBlocked = coordinator.Start(workspace, profile, enbWithoutArchive, CancellationToken.None) |> wait
+        let enbBlocked = coordinator.Start(workspace, profile, enbWithoutArchive, CancellationToken.None) |> wait |> result
 
         check
             writer
@@ -802,7 +802,7 @@ module SkyrimSetupFixtures =
               EnbArchive = Some "downloaded-enb.zip" }
         let skseOnly = { noChoice with Skse = SetupAction.Install }
 
-        let started = coordinator.Start(workspace, profile, skseOnly, CancellationToken.None) |> wait
+        let started = coordinator.Start(workspace, profile, skseOnly, CancellationToken.None) |> wait |> result
 
         let retained = store.SkyrimSetups.Read(workspace, profile) |> wait
         check writer "appliedChoiceRetained" (retained |> Option.exists (fun item -> item.Selection = skseOnly))
@@ -832,7 +832,7 @@ module SkyrimSetupFixtures =
         resumeWorkflow.HoldSkse()
         let originalOwner = new SkyrimSetupCoordinator(store, resumeWorkflow.Dependencies)
         originalOwner.Start(resumeWorkspace, resumeProfile, skseOnly, CancellationToken.None)
-        |> wait
+        |> wait |> result
         |> ignore
         until "SKSE starts before owner restart" (fun () -> resumeWorkflow.SkseStarts) ((=) 1)
         |> ignore
@@ -886,7 +886,7 @@ module SkyrimSetupFixtures =
         let failing = WorkflowState()
         failing.FailSkse()
         use failedOwner = new SkyrimSetupCoordinator(store, failing.Dependencies)
-        let _ = failedOwner.Start(failedWorkspace, failedProfile, skseOnly, CancellationToken.None) |> wait
+        let _ = failedOwner.Start(failedWorkspace, failedProfile, skseOnly, CancellationToken.None) |> wait |> result
 
         let failed =
             until
@@ -898,14 +898,14 @@ module SkyrimSetupFixtures =
 
                     if current.CanContinue && current.Phase <> SkyrimSetupPhase.Failed then
                         failedOwner.Continue(failedWorkspace, failedProfile, CancellationToken.None)
-                        |> wait
+                        |> wait |> result
                     else
                         current)
                 (fun current -> current.Phase = SkyrimSetupPhase.Failed)
 
         let repeated =
             failedOwner.Continue(failedWorkspace, failedProfile, CancellationToken.None)
-            |> wait
+            |> wait |> result
 
         check
             writer
@@ -919,7 +919,7 @@ module SkyrimSetupFixtures =
 
         let explicitRetry =
             failedOwner.Start(failedWorkspace, failedProfile, skseOnly, CancellationToken.None)
-            |> wait
+            |> wait |> result
 
         check
             writer
@@ -941,7 +941,7 @@ module SkyrimSetupFixtures =
                 enbWithArchive,
                 CancellationToken.None
             )
-            |> wait
+            |> wait |> result
 
         let failedEnb =
             until
@@ -958,14 +958,14 @@ module SkyrimSetupFixtures =
 
                     if current.CanContinue && current.Phase <> SkyrimSetupPhase.Failed then
                         failedEnbOwner.Continue(failedEnbWorkspace, failedEnbProfile, CancellationToken.None)
-                        |> wait
+                        |> wait |> result
                     else
                         current)
                 (fun current -> current.Phase = SkyrimSetupPhase.Failed)
 
         let repeatedEnb =
             failedEnbOwner.Continue(failedEnbWorkspace, failedEnbProfile, CancellationToken.None)
-            |> wait
+            |> wait |> result
 
         check
             writer
@@ -984,7 +984,7 @@ module SkyrimSetupFixtures =
                 enbWithArchive,
                 CancellationToken.None
             )
-            |> wait
+            |> wait |> result
 
         let readyEnb =
             until
@@ -1011,7 +1011,7 @@ module SkyrimSetupFixtures =
             let freshWorkspace, freshProfile, _ = createWorkspace store area name true
             let state = WorkflowState()
             use owner = new SkyrimSetupCoordinator(store, state.Dependencies)
-            let initial = owner.Start(freshWorkspace, freshProfile, selection, CancellationToken.None) |> wait
+            let initial = owner.Start(freshWorkspace, freshProfile, selection, CancellationToken.None) |> wait |> result
 
             let _ =
                 until
@@ -1020,7 +1020,7 @@ module SkyrimSetupFixtures =
                         let current = owner.Read(freshWorkspace, freshProfile, noChoice, CancellationToken.None) |> wait
 
                         if current.CanContinue then
-                            owner.Continue(freshWorkspace, freshProfile, CancellationToken.None) |> wait
+                            owner.Continue(freshWorkspace, freshProfile, CancellationToken.None) |> wait |> result
                         else
                             current)
                     (fun _ -> expected state)
@@ -1072,7 +1072,7 @@ module SkyrimSetupFixtures =
 
         let _ =
             retryOwner.Start(retryWorkspace, retryProfile, enbWithArchive, CancellationToken.None)
-            |> wait
+            |> wait |> result
 
         let _ =
             until
@@ -1081,7 +1081,7 @@ module SkyrimSetupFixtures =
                     let current = retryOwner.Read(retryWorkspace, retryProfile, noChoice, CancellationToken.None) |> wait
 
                     if current.CanContinue then
-                        retryOwner.Continue(retryWorkspace, retryProfile, CancellationToken.None) |> wait
+                        retryOwner.Continue(retryWorkspace, retryProfile, CancellationToken.None) |> wait |> result
                     else
                         current)
                 (fun _ -> retryWorkflow.EnbSelections = 1)
@@ -1114,7 +1114,7 @@ module SkyrimSetupFixtures =
 
         let observedWhileActorRuns =
             retryOwner.Continue(retryWorkspace, retryProfile, CancellationToken.None)
-            |> wait
+            |> wait |> result
 
         check
             writer
@@ -1171,7 +1171,7 @@ module SkyrimSetupFixtures =
             |> wait
         let recoveryAfter =
             recoveryOwner.Continue(recoveryWorkspace, recoveryProfile, CancellationToken.None)
-            |> wait
+            |> wait |> result
         let recoveredIntent = recoveryStore.SkyrimSetups.Read(recoveryWorkspace, recoveryProfile) |> wait
 
         check
@@ -1211,7 +1211,7 @@ module SkyrimSetupFixtures =
 
         let _ =
             retryOwner.Start(retryWorkspace, retryProfile, retrySelection, CancellationToken.None)
-            |> wait
+            |> wait |> result
 
         let _ =
             until
@@ -1220,7 +1220,7 @@ module SkyrimSetupFixtures =
                     let current = retryOwner.Read(retryWorkspace, retryProfile, noChoice, CancellationToken.None) |> wait
 
                     if current.CanContinue then
-                        retryOwner.Continue(retryWorkspace, retryProfile, CancellationToken.None) |> wait
+                        retryOwner.Continue(retryWorkspace, retryProfile, CancellationToken.None) |> wait |> result
                     else
                         current)
                 (fun _ -> retryWorkflow.FnisInstalls = 1)

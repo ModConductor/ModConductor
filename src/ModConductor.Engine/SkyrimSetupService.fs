@@ -115,6 +115,12 @@ type internal SkyrimSetupCoordinator
     let completeCancellation = cancellation.Complete
     let unavailable = inspection.Unavailable
 
+    let success (operation: Task<SkyrimSetupView>) =
+        task {
+            let! value = operation
+            return Ok value
+        }
+
     let waitForChange key revision (token: CancellationToken) =
         let pending =
             lock notificationGate (fun () ->
@@ -164,7 +170,7 @@ type internal SkyrimSetupCoordinator
                                         && before.Phase <> SkyrimSetupPhase.Failed
                                         && before.Phase <> SkyrimSetupPhase.WaitingForEnbArchive
                                     then
-                                        let! after =
+                                        let! outcome =
                                             advance
                                                 workspace
                                                 profile
@@ -172,10 +178,20 @@ type internal SkyrimSetupCoordinator
                                                 false
                                                 cancellation.Token
 
-                                        if after <> before then
+                                        match outcome with
+                                        | Error detail ->
+                                            failed.TrySetException(
+                                                InvalidOperationException detail
+                                            )
+                                            |> ignore
+
                                             notify key
-                                        else
-                                            do! waitForChange key revision cancellation.Token
+                                            active <- false
+                                        | Ok after ->
+                                            if after <> before then
+                                                notify key
+                                            else
+                                                do! waitForChange key revision cancellation.Token
                                     elif before.Active then
                                         do! waitForChange key revision cancellation.Token
                                     else
@@ -255,14 +271,18 @@ type internal SkyrimSetupCoordinator
 
             match existing with
             | Some intent when intent.CancelRequested ->
-                return! inspect workspace profile intent.Selection (Some intent) token
+                return! success (inspect workspace profile intent.Selection (Some intent) token)
             | Some intent when
                 not intent.Cancelled && not intent.Completed && selection = intent.Selection
                 ->
                 let! current = advance workspace profile intent true token
-                notify (workspace, profile)
-                startProgression workspace profile
-                return current
+
+                match current with
+                | Error detail -> return Error detail
+                | Ok current ->
+                    notify (workspace, profile)
+                    startProgression workspace profile
+                    return Ok current
             | _ ->
                 let! current =
                     match existing with
@@ -274,28 +294,32 @@ type internal SkyrimSetupCoordinator
                     if current.Active then
                         startProgression workspace profile
 
-                    return current
+                    return Ok current
                 else
                     let! available = inspect workspace profile selection None token
 
                     if not available.CanStart then
-                        return available
+                        return Ok available
                     else
                         let! deployed = store.Deployments.Read profile
 
                         match deployed with
                         | Error error ->
                             return
-                                unavailable
-                                    selection
-                                    "The deployment is unavailable"
-                                    (SkyrimSetupDeployment.error error)
+                                Ok(
+                                    unavailable
+                                        selection
+                                        "The deployment is unavailable"
+                                        (SkyrimSetupDeployment.error error)
+                                )
                         | Ok deployment when deployment.WorkspaceId <> workspace ->
                             return
-                                unavailable
-                                    selection
-                                    "The selected profile is unavailable"
-                                    "Select a profile from this workspace."
+                                Ok(
+                                    unavailable
+                                        selection
+                                        "The selected profile is unavailable"
+                                        "Select a profile from this workspace."
+                                )
                         | Ok deployment ->
                             let initialStage =
                                 if deployment.ActiveGeneration.IsNone then
@@ -317,9 +341,13 @@ type internal SkyrimSetupCoordinator
 
                             do! store.SkyrimSetups.Save next
                             let! current = advance workspace profile next true token
-                            notify (workspace, profile)
-                            startProgression workspace profile
-                            return current
+
+                            match current with
+                            | Error detail -> return Error detail
+                            | Ok current ->
+                                notify (workspace, profile)
+                                startProgression workspace profile
+                                return Ok current
         }
 
     member _.Continue(workspace, profile, token) =
@@ -329,21 +357,26 @@ type internal SkyrimSetupCoordinator
             let! current =
                 match intent with
                 | Some value when progression.ContainsKey((workspace, profile)) ->
-                    inspect workspace profile value.Selection intent token
+                    success (inspect workspace profile value.Selection intent token)
                 | Some value when value.CancelRequested ->
-                    completeCancellation workspace profile value token
+                    success (completeCancellation workspace profile value token)
                 | Some value -> advance workspace profile value false token
                 | None ->
-                    inspect
-                        workspace
-                        profile
-                        ModConductor.Persistence.SetupSelection.none
-                        None
-                        token
+                    success (
+                        inspect
+                            workspace
+                            profile
+                            ModConductor.Persistence.SetupSelection.none
+                            None
+                            token
+                    )
 
-            notify (workspace, profile)
-            startProgression workspace profile
-            return current
+            match current with
+            | Error detail -> return Error detail
+            | Ok current ->
+                notify (workspace, profile)
+                startProgression workspace profile
+                return Ok current
         }
 
     member _.Cancel(workspace, profile, token) =

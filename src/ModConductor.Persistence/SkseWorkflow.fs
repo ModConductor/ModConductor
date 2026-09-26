@@ -23,14 +23,6 @@ type internal SkseWorkflow
                 -> Threading.Tasks.Task<ModConductor.Deployment.PreparedState>),
         skseCheckpoint: string -> int -> unit
     ) =
-    let cancelledGeneration =
-        function
-        | ModConductor.DeploymentRecovery.RecoveryError.Unavailable detail ->
-            detail = "Deployment preparation was cancelled."
-            || detail = "Generation preparation was cancelled."
-            || detail = "The operation stopped at a recorded boundary."
-        | _ -> false
-
     let checkedComponent
         (workspace: Guid)
         (profile: Guid)
@@ -227,19 +219,21 @@ type internal SkseWorkflow
                     do! skseLoaders.RemoveReplacement deploymentId
                     return Error "The SKSE deployment could not start."
                 | Ok receipt ->
+                    let mutable checkpointCancelled = false
+
+                    let checkpoint name index =
+                        try
+                            skseCheckpoint name index
+                        with :? OperationCanceledException as error ->
+                            checkpointCancelled <- true
+                            raise error
+
                     let! completed =
-                        generations.Run(
-                            receipt.Id,
-                            receipt.Revision,
-                            false,
-                            token,
-                            skseCheckpoint,
-                            []
-                        )
+                        generations.Run(receipt.Id, receipt.Revision, false, token, checkpoint, [])
 
                     match completed with
                     | Ok value -> return Ok value.Proposed
-                    | Error failure ->
+                    | Error _ ->
                         let! pending = deployment.Read(receipt.Id)
 
                         match pending with
@@ -257,7 +251,7 @@ type internal SkseWorkflow
                             if Result.isError restored then
                                 return
                                     Error "The failed SKSE replacement needs deployment recovery."
-                            elif cancelledGeneration failure then
+                            elif checkpointCancelled || token.IsCancellationRequested then
                                 return
                                     raise (
                                         IO.IOException
@@ -268,7 +262,7 @@ type internal SkseWorkflow
                                     Error
                                         "The SKSE deployment did not complete. The previous setup was restored."
                         | None ->
-                            if cancelledGeneration failure then
+                            if checkpointCancelled || token.IsCancellationRequested then
                                 return
                                     raise (
                                         IO.IOException
@@ -362,7 +356,7 @@ type internal SkseWorkflow
 
                             match completed with
                             | Ok value -> return Ok(Some value.Proposed)
-                            | Error failure when cancelledGeneration failure ->
+                            | Error _ when token.IsCancellationRequested ->
                                 return invalidOp "SKSE removal needs deployment recovery."
                             | Error _ -> return Error "SKSE removal needs deployment recovery."
         }

@@ -43,12 +43,18 @@ type internal SkyrimSetupActions
             return! inspect workspace profile running.Selection (Some running) token
         }
 
+    let success (operation: Task<SkyrimSetupView>) =
+        task {
+            let! value = operation
+            return Ok value
+        }
+
     let advance workspace profile (intent: StoredSkyrimSetupIntent) retryFailed token =
         task {
             let! before = inspect workspace profile intent.Selection (Some intent) token
 
             match before.Phase with
-            | SkyrimSetupPhase.Failed when not retryFailed -> return before
+            | SkyrimSetupPhase.Failed when not retryFailed -> return Ok before
             | SkyrimSetupPhase.PreparingDeployment
             | SkyrimSetupPhase.RecoveryRequired ->
                 let! deployment = store.Deployments.Read profile
@@ -56,12 +62,13 @@ type internal SkyrimSetupActions
                 match deployment with
                 | Error error ->
                     return
-                        { before with
-                            Phase = SkyrimSetupPhase.Failed
-                            Status = "The first deployment could not be prepared"
-                            Detail = deploymentError error
-                            Active = false
-                            CanContinue = true }
+                        Ok
+                            { before with
+                                Phase = SkyrimSetupPhase.Failed
+                                Status = "The first deployment could not be prepared"
+                                Detail = deploymentError error
+                                Active = false
+                                CanContinue = true }
                 | Ok deployment ->
                     let running =
                         if deployment.ActiveGeneration.IsNone then
@@ -83,14 +90,18 @@ type internal SkyrimSetupActions
                     match result with
                     | Error detail ->
                         return
-                            { before with
-                                Phase = SkyrimSetupPhase.Failed
-                                Status = "The first deployment could not be prepared"
-                                Detail = detail
-                                Active = false
-                                CanContinue = true }
+                            Ok
+                                { before with
+                                    Phase = SkyrimSetupPhase.Failed
+                                    Status = "The first deployment could not be prepared"
+                                    Detail = detail
+                                    Active = false
+                                    CanContinue = true }
                     | Ok() ->
-                        return! inspect workspace profile intent.Selection (Some running) token
+                        return!
+                            success (
+                                inspect workspace profile intent.Selection (Some running) token
+                            )
             | SkyrimSetupPhase.WaitingForSkse when before.CanContinue ->
                 let running =
                     { intent with
@@ -102,21 +113,31 @@ type internal SkyrimSetupActions
 
                 do! store.SkyrimSetups.Save running
 
-                let! _ =
-                    if intent.Selection.Skse = SetupAction.Remove then
-                        dependencies.RemoveSkse workspace profile token
-                    else
-                        dependencies.StartSkse workspace profile
+                if intent.Selection.Skse = SetupAction.Remove then
+                    let! removed = dependencies.RemoveSkse workspace profile token
 
-                return! inspect workspace profile running.Selection (Some running) token
+                    match removed with
+                    | Error detail -> return Error detail
+                    | Ok _ ->
+                        return!
+                            success (
+                                inspect workspace profile running.Selection (Some running) token
+                            )
+                else
+                    let! _ = dependencies.StartSkse workspace profile
+
+                    return!
+                        success (inspect workspace profile running.Selection (Some running) token)
             | SkyrimSetupPhase.SettingUpEnb when before.CanContinue ->
                 if intent.Selection.Enb = SetupAction.Remove then
                     let running = { intent with Stage = "enb-remove" }
                     do! store.SkyrimSetups.Save running
                     let! _ = dependencies.RemoveEnb workspace profile token
-                    return! inspect workspace profile running.Selection (Some running) token
+
+                    return!
+                        success (inspect workspace profile running.Selection (Some running) token)
                 else
-                    return! startEnbSelection workspace profile intent token
+                    return! success (startEnbSelection workspace profile intent token)
             | SkyrimSetupPhase.SettingUpFnis when before.CanContinue ->
                 let running =
                     { intent with
@@ -143,7 +164,7 @@ type internal SkyrimSetupActions
                                 return! dependencies.InstallFnis workspace profile
                         }
 
-                return! inspect workspace profile running.Selection (Some running) token
+                return! success (inspect workspace profile running.Selection (Some running) token)
             | SkyrimSetupPhase.FnisStale when before.CanContinue ->
                 let run = Guid.NewGuid()
 
@@ -163,7 +184,7 @@ type internal SkyrimSetupActions
                     :> Task)
                 |> ignore
 
-                return! inspect workspace profile intent.Selection (Some running) token
+                return! success (inspect workspace profile intent.Selection (Some running) token)
             | SkyrimSetupPhase.Failed when before.CanContinue ->
                 let! deployment = store.Deployments.Read profile
 
@@ -205,32 +226,33 @@ type internal SkyrimSetupActions
                         :> Task)
                     |> ignore
 
-                    return! inspect workspace profile intent.Selection (Some running) token
+                    return!
+                        success (inspect workspace profile intent.Selection (Some running) token)
                 elif
                     deployment |> Result.toOption |> Option.bind _.PendingReceipt |> Option.isSome
                     && (enbState.Phase = EnbPhase.Failed || enbState.Phase = EnbPhase.Conflict)
                 then
                     let! _ = dependencies.RecoverEnb workspace profile token
-                    return! inspect workspace profile intent.Selection (Some intent) token
+                    return! success (inspect workspace profile intent.Selection (Some intent) token)
                 elif fnisState.Phase = FnisPhase.RecoveryRequired then
                     let! _ = dependencies.RecoverFnis workspace profile token
-                    return! inspect workspace profile intent.Selection (Some intent) token
+                    return! success (inspect workspace profile intent.Selection (Some intent) token)
                 elif
                     skseState.Phase = SksePhase.Failed
                     || skseState.Phase = SksePhase.UpdateAvailable
                 then
                     let! _ = dependencies.StartSkse workspace profile
-                    return! inspect workspace profile intent.Selection (Some intent) token
+                    return! success (inspect workspace profile intent.Selection (Some intent) token)
                 elif
                     intent.Selection.Enb <> SetupAction.Unchanged
                     && enbState.Phase = EnbPhase.Failed
                 then
-                    return! startEnbSelection workspace profile intent token
+                    return! success (startEnbSelection workspace profile intent token)
                 elif fnisState.Phase = FnisPhase.Failed then
                     let! _ = dependencies.InstallFnis workspace profile
-                    return! inspect workspace profile intent.Selection (Some intent) token
+                    return! success (inspect workspace profile intent.Selection (Some intent) token)
                 else
-                    return before
+                    return Ok before
             | SkyrimSetupPhase.Ready ->
                 do!
                     store.SkyrimSetups.Save
@@ -245,11 +267,12 @@ type internal SkyrimSetupActions
                             CancelDetail = "" }
 
                 return
-                    { before with
-                        CanCancel = false
-                        CanContinue = false
-                        Active = false }
-            | _ -> return before
+                    Ok
+                        { before with
+                            CanCancel = false
+                            CanContinue = false
+                            Active = false }
+            | _ -> return Ok before
         }
 
 

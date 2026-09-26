@@ -498,8 +498,23 @@ module SkseCoordinatorFixtures =
             |> wait
             |> Option.get
 
+        let wrongWorkspace = Guid.NewGuid()
+        let statusBeforeRefusal = restarted.SkseLoaders.ReadStatus(workspace, profile) |> wait
+        let refusedRemoval = coordinator.Remove(wrongWorkspace, profile, CancellationToken.None) |> wait
+        let statusAfterRefusal = restarted.SkseLoaders.ReadStatus(workspace, profile) |> wait
+        let wrongWorkspaceStatus = restarted.SkseLoaders.ReadStatus(wrongWorkspace, profile) |> wait
+        let deploymentAfterRefusal = restarted.Deployments.Read profile |> wait |> result
+
+        check
+            writer
+            "refusedSkseRemovalLeavesStatusAndGenerationUnchanged"
+            (refusedRemoval = Error "The profile deployment is unavailable."
+             && statusAfterRefusal = statusBeforeRefusal
+             && wrongWorkspaceStatus.IsNone
+             && deploymentAfterRefusal.ActiveGeneration = deployed.ActiveGeneration)
+
         let beforeRemove = metadataRequests ()
-        let removed = coordinator.Remove(workspace, profile, CancellationToken.None) |> wait
+        let removed = coordinator.Remove(workspace, profile, CancellationToken.None) |> wait |> result
         let afterRemove = metadataRequests ()
         let restartedSetup = coordinator.Start(workspace, profile) |> wait
         waitForStatus restarted workspace profile "current" |> ignore
@@ -737,7 +752,7 @@ module SkseCoordinatorFixtures =
 
         configure server runtime updateId "2.3.0" (archive runtime "update" true 0)
         let failedCheck = holdUpdate "held update check before failed SKSE setup"
-        coordinator.Remove(workspace, profile, CancellationToken.None) |> wait |> ignore
+        coordinator.Remove(workspace, profile, CancellationToken.None) |> wait |> result |> ignore
         failurePoint <- "install-intent"
         coordinator.Start(workspace, profile) |> wait |> ignore
         waitForStatus store workspace profile "failed" |> ignore
@@ -756,7 +771,7 @@ module SkseCoordinatorFixtures =
         waitForStatus store workspace profile "current" |> ignore
 
         let cancelledCheck = holdUpdate "held update check before cancelled SKSE setup"
-        coordinator.Remove(workspace, profile, CancellationToken.None) |> wait |> ignore
+        coordinator.Remove(workspace, profile, CancellationToken.None) |> wait |> result |> ignore
         coordinator.Cancel(workspace, profile) |> wait |> ignore
         server.ReleaseMetadata()
         cancelledCheck |> wait |> ignore
@@ -780,7 +795,7 @@ module SkseCoordinatorFixtures =
 
         let concurrentCheck = holdUpdate "held update check before SKSE reinstall"
 
-        coordinator.Remove(workspace, profile, CancellationToken.None) |> wait |> ignore
+        coordinator.Remove(workspace, profile, CancellationToken.None) |> wait |> result |> ignore
         coordinator.Start(workspace, profile) |> wait |> ignore
         waitForStatus store workspace profile "current" |> ignore
         server.ReleaseMetadata()

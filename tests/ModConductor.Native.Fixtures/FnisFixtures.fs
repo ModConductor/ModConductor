@@ -1052,7 +1052,7 @@ module FnisFixtures =
             restartedCombined.Read(workspace, profile, { SetupSelection.none with Fnis = SetupAction.Install }, CancellationToken.None) |> wait
 
         let combinedCancellationCompleted =
-            restartedCombined.Continue(workspace, profile, CancellationToken.None) |> wait
+            restartedCombined.Continue(workspace, profile, CancellationToken.None) |> wait |> result
 
         let abandoned =
             restarted.Inspect(workspace, profile, CancellationToken.None) |> wait |> result
@@ -1849,7 +1849,7 @@ module FnisFixtures =
 
         use setup = new SkyrimSetupCoordinator(store, setupDependencies)
         let skseOnly = { SetupSelection.none with Skse = SetupAction.Install }
-        let startedSetup = setup.Start(workspace, profile, skseOnly, CancellationToken.None) |> wait
+        let startedSetup = setup.Start(workspace, profile, skseOnly, CancellationToken.None) |> wait |> result
 
         let afterSkse =
             until
@@ -1858,12 +1858,12 @@ module FnisFixtures =
                     let current = setup.Read(workspace, profile, SetupSelection.none, CancellationToken.None) |> wait
 
                     if current.CanContinue then
-                        setup.Continue(workspace, profile, CancellationToken.None) |> wait
+                        setup.Continue(workspace, profile, CancellationToken.None) |> wait |> result
                     else
                         current)
                 (fun current -> current.Ready && skseStarts = 1)
 
-        let completedSetup = setup.Continue(workspace, profile, CancellationToken.None) |> wait
+        let completedSetup = setup.Continue(workspace, profile, CancellationToken.None) |> wait |> result
         let reopenedSetup = setup.Read(workspace, profile, SetupSelection.none, CancellationToken.None) |> wait
 
         check

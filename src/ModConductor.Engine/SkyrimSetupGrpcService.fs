@@ -2,6 +2,7 @@ namespace ModConductor.Engine
 
 open System
 open System.Threading.Tasks
+open Grpc.Core
 open ModConductor.Persistence
 open ModConductor.Protocol.V1
 
@@ -66,6 +67,12 @@ type internal SkyrimSetupService(coordinator: SkyrimSetupCoordinator) =
 
         result
 
+    let wireOutcome =
+        function
+        | Ok value -> wire value
+        | Error _ ->
+            raise (RpcException(Status(StatusCode.Unknown, "Exception was thrown by handler.")))
+
     override _.ReadSkyrimSetup(request, context) =
         let workspace, profile = ids request.WorkspaceId request.ProfileId
 
@@ -104,7 +111,7 @@ type internal SkyrimSetupService(coordinator: SkyrimSetupCoordinator) =
                     context.CancellationToken
                 )
 
-            return wire value
+            return wireOutcome value
         }
 
     override _.ContinueSkyrimSetup(request, context) =
@@ -112,7 +119,7 @@ type internal SkyrimSetupService(coordinator: SkyrimSetupCoordinator) =
 
         task {
             let! value = coordinator.Continue(workspace, profile, context.CancellationToken)
-            return wire value
+            return wireOutcome value
         }
 
     override _.CancelSkyrimSetup(request, context) =

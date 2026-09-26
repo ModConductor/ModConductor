@@ -35,7 +35,8 @@ type internal SkyrimSetupView =
 type internal SkyrimSetupDependencies =
     { ReadSkse: Guid -> Guid -> System.Threading.Tasks.Task<SkseView>
       StartSkse: Guid -> Guid -> System.Threading.Tasks.Task<SkseView>
-      RemoveSkse: Guid -> Guid -> CancellationToken -> System.Threading.Tasks.Task<SkseView>
+      RemoveSkse:
+          Guid -> Guid -> CancellationToken -> System.Threading.Tasks.Task<Result<SkseView, string>>
       CancelSkse: Guid -> Guid -> System.Threading.Tasks.Task<SkseView>
       ReadEnb: Guid -> Guid -> System.Threading.Tasks.Task<EnbView>
       RemoveEnb: Guid -> Guid -> CancellationToken -> System.Threading.Tasks.Task<EnbView>

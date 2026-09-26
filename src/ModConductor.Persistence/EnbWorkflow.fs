@@ -25,14 +25,6 @@ type internal EnbWorkflow
                 -> Threading.Tasks.Task<ModConductor.Deployment.PreparedState>),
         enbCheckpoint: string -> int -> unit
     ) =
-    let cancelledGeneration =
-        function
-        | ModConductor.DeploymentRecovery.RecoveryError.Unavailable detail ->
-            detail = "Deployment preparation was cancelled."
-            || detail = "Generation preparation was cancelled."
-            || detail = "The operation stopped at a recorded boundary."
-        | _ -> false
-
     member private _.PrepareEnbTarget(workspace, profile, token) =
         task {
             let! contextResult =
@@ -431,13 +423,22 @@ type internal EnbWorkflow
                                                             Error
                                                                 "The ENB deployment could not start."
                                                     | Ok receipt ->
+                                                        let mutable checkpointCancelled = false
+
+                                                        let checkpoint name index =
+                                                            try
+                                                                enbCheckpoint name index
+                                                            with :? OperationCanceledException as error ->
+                                                                checkpointCancelled <- true
+                                                                raise error
+
                                                         let! completed =
                                                             generations.Run(
                                                                 receipt.Id,
                                                                 receipt.Revision,
                                                                 false,
                                                                 token,
-                                                                enbCheckpoint,
+                                                                checkpoint,
                                                                 []
                                                             )
 
@@ -449,7 +450,7 @@ type internal EnbWorkflow
                                                                         deploymentId
 
                                                             return Ok value.Proposed
-                                                        | Error failure ->
+                                                        | Error _ ->
                                                             let! pending =
                                                                 deployment.Read(receipt.Id)
 
@@ -468,7 +469,10 @@ type internal EnbWorkflow
                                                                 ()
                                                             | None -> ()
 
-                                                            if cancelledGeneration failure then
+                                                            if
+                                                                checkpointCancelled
+                                                                || token.IsCancellationRequested
+                                                            then
                                                                 return
                                                                     raise (
                                                                         IO.IOException
@@ -635,7 +639,7 @@ type internal EnbWorkflow
                                 )
 
                             match completed with
-                            | Error failure when cancelledGeneration failure ->
+                            | Error _ when token.IsCancellationRequested ->
                                 return
                                     raise (IO.IOException "ENB removal needs deployment recovery.")
                             | Error _ -> return Error "ENB removal needs deployment recovery."

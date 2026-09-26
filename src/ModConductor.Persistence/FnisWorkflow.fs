@@ -22,14 +22,6 @@ type internal FnisWorkflow
                 -> Threading.Tasks.Task<ModConductor.Deployment.PreparedState>),
         fnisCheckpoint: string -> int -> unit
     ) =
-    let cancelledGeneration =
-        function
-        | ModConductor.DeploymentRecovery.RecoveryError.Unavailable detail ->
-            detail = "Deployment preparation was cancelled."
-            || detail = "Generation preparation was cancelled."
-            || detail = "The operation stopped at a recorded boundary."
-        | _ -> false
-
     let savedProfile
         (profile: Guid)
         (sources: ModConductor.FilePlanning.PlanSources)
@@ -238,19 +230,21 @@ type internal FnisWorkflow
                     do! fnisSetups.RemoveIntent deploymentId
                     return Error "The FNIS deployment could not start."
                 | Ok receipt ->
+                    let mutable checkpointCancelled = false
+
+                    let checkpoint name index =
+                        try
+                            fnisCheckpoint name index
+                        with :? OperationCanceledException as error ->
+                            checkpointCancelled <- true
+                            raise error
+
                     let! completed =
-                        generations.Run(
-                            receipt.Id,
-                            receipt.Revision,
-                            false,
-                            token,
-                            fnisCheckpoint,
-                            []
-                        )
+                        generations.Run(receipt.Id, receipt.Revision, false, token, checkpoint, [])
 
                     match completed with
                     | Ok value -> return Ok value.Proposed
-                    | Error failure when cancelledGeneration failure ->
+                    | Error _ when checkpointCancelled || token.IsCancellationRequested ->
                         return
                             raise (
                                 IO.IOException
@@ -320,19 +314,28 @@ type internal FnisWorkflow
                             do! fnisSetups.RemoveIntent deploymentId
                             return Error "FNIS removal could not start."
                         | Ok receipt ->
+                            let mutable checkpointCancelled = false
+
+                            let checkpoint name index =
+                                try
+                                    fnisCheckpoint name index
+                                with :? OperationCanceledException as error ->
+                                    checkpointCancelled <- true
+                                    raise error
+
                             let! completed =
                                 generations.Run(
                                     receipt.Id,
                                     receipt.Revision,
                                     false,
                                     token,
-                                    fnisCheckpoint,
+                                    checkpoint,
                                     []
                                 )
 
                             match completed with
                             | Ok value -> return Ok(Some value.Proposed)
-                            | Error failure when cancelledGeneration failure ->
+                            | Error _ when checkpointCancelled || token.IsCancellationRequested ->
                                 return
                                     raise (IO.IOException "FNIS removal needs deployment recovery.")
                             | Error _ -> return Error "FNIS removal needs deployment recovery."
