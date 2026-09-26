@@ -30,15 +30,15 @@ type ModLibraryStore internal (database: StateDatabase, roots: OwnedWorkspaceRoo
 
     member internal _.EditAtCheckpoint(id, expected, metadata, beforeCommit) =
         access.Run(fun () ->
-            InventoryCommands.edit database access id expected metadata beforeCommit)
+            InventoryEditing.edit database access id expected metadata beforeCommit)
 
     interface IModLibrary with
         member _.Register(workspace, id, metadata, registration) =
             access.Run(fun () ->
-                InventoryCommands.register database access workspace id metadata registration)
+                InventoryRegistration.register database access workspace id metadata registration)
 
         member _.Edit(id, expected, metadata) =
-            access.Run(fun () -> InventoryCommands.edit database access id expected metadata ignore)
+            access.Run(fun () -> InventoryEditing.edit database access id expected metadata ignore)
 
         member _.Scan(workspace, limit) =
             access.Run(fun () -> InventoryScan.run database access workspace limit)

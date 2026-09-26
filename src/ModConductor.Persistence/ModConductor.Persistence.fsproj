@@ -30,7 +30,9 @@
     <Compile Include="OwnedWorkspaceRootStore.fs" />
     <Compile Include="WorkspaceStateStore.fs" />
     <Compile Include="LibraryAccess.fs" />
-    <Compile Include="InventoryCommands.fs" />
+    <Compile Include="InventoryRegistration.fs" />
+    <Compile Include="InventoryEditing.fs" />
+    <Compile Include="InventoryOutput.fs" />
     <Compile Include="LibraryComposition.fs" />
     <Compile Include="PublicationRows.fs" />
     <Compile Include="LibraryPublication.fs" />

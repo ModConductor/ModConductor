@@ -216,7 +216,7 @@ module internal OutputActionRows =
                       Comment = ""
                       Categories = [] }
 
-                InventoryCommands.createFromOutputs
+                InventoryOutput.createFromOutputs
                     database.Connection
                     transaction
                     record.Scope.WorkspaceId

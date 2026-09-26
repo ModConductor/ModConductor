@@ -85,7 +85,7 @@ type internal FnisOutputPublisher
                                         "The FNIS output identity is already in use."
                                 )
                             | None ->
-                                (InventoryCommands.createFnisOutput
+                                (InventoryOutput.createFnisOutput
                                     database.Connection
                                     transaction
                                     run.Request.WorkspaceId
