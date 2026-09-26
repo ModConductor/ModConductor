@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
-"""Copy the already published engine into the already built native Flutter bundle."""
+"""Add the published engine and pinned LOOT helper to a local Flutter bundle."""
 from pathlib import Path
+import os
 import shutil
+import subprocess
 import sys
 
 root = Path(__file__).resolve().parents[1]
@@ -17,6 +19,20 @@ native_sqlite = 'e_sqlite3.dll' if platform == 'windows' else 'libe_sqlite3.so'
 sqlite = published.parent / native_sqlite
 if not sqlite.is_file():
     raise SystemExit('The published engine is missing its SQLite native library.')
+assets = published.parent / 'ModConductor.Engine.staticwebassets.endpoints.json'
+if not assets.is_file():
+    raise SystemExit('The published engine is missing its static web assets.')
+target = root / '.tools/loot-helper-target'
+environment = dict(os.environ, CARGO_TARGET_DIR=str(target))
+command = ['cargo', '+1.89.0', 'build', '--locked', '--release']
+if platform == 'windows':
+    command.extend(['--target', 'x86_64-pc-windows-msvc'])
+subprocess.run(command, cwd=root / 'native/ModConductor.Loot.Helper', env=environment, check=True)
+helper = target / ('x86_64-pc-windows-msvc/release' if platform == 'windows' else 'release') / ('modconductor-loot-helper.exe' if platform == 'windows' else 'modconductor-loot-helper')
+if not helper.is_file():
+    raise SystemExit('The pinned LOOT helper build did not produce an executable.')
 shutil.copy2(published, bundle / 'engine' / name)
 shutil.copy2(sqlite, bundle / 'engine' / native_sqlite)
+shutil.copy2(assets, bundle / 'engine' / assets.name)
+shutil.copy2(helper, bundle / 'engine' / helper.name)
 print(bundle / 'engine' / name)

@@ -62,7 +62,8 @@ type DiagnosticSession(
     profileData: IProfileGameData,
     gameContexts: IGameContexts,
     pluginOrders: IProfilePluginOrders,
-    ?components: SkyrimComponentDiagnosticSource
+    ?components: SkyrimComponentDiagnosticSource,
+    ?helperDiagnostic: unit -> string option
 ) =
     let gate = obj ()
     let snapshots = Dictionary<Guid, StoredSnapshot>()
@@ -420,6 +421,32 @@ type DiagnosticSession(
                                         | Some _ -> fnisFindings workspace profile componentState
                                         | None -> []
 
+                                    let helperFindings =
+                                        match gameContext, helperDiagnostic with
+                                        | Some _, Some diagnostic ->
+                                            match diagnostic() with
+                                            | Some detail ->
+                                                [ { Id = "loot-helper:" + profile.Id.ToString "N"
+                                                    Code = "loot-helper-unavailable"
+                                                    Severity = DiagnosticSeverity.Error
+                                                    WorkspaceId = workspace.Id
+                                                    ProfileId = profile.Id
+                                                    WorkspaceName = workspace.Name
+                                                    ProfileName = profile.Name
+                                                    GameName = game
+                                                    Title = "LOOT sorting is unavailable"
+                                                    Summary = "The package helper is missing or incompatible."
+                                                    Detail = None
+                                                    Area = "Plugin order"
+                                                    Evidence = [ { Label = "Package details"; Value = detail } ]
+                                                    NextAction = "Install a complete package, then select Check again."
+                                                    Fixability = Fixability.NotFixable
+                                                    FixDetail = "The package needs repair."
+                                                    Correlations = []
+                                                    Action = DiagnosticAction.CheckAgain } ]
+                                            | None -> []
+                                        | _ -> []
+
                                     token.ThrowIfCancellationRequested()
                                     let findings =
                                         (launchFindings
@@ -428,7 +455,8 @@ type DiagnosticSession(
                                          @ oldFormFindings
                                          @ deploymentFindings
                                          @ profileFindings
-                                         @ fnisOutputFindings)
+                                         @ fnisOutputFindings
+                                         @ helperFindings)
                                         |> List.truncate Limits.findings
 
                                     let view =

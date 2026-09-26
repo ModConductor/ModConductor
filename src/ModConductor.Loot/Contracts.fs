@@ -58,6 +58,7 @@ type LootState =
 
 type ILootSorting =
     abstract Read: unit -> LootState
+    abstract HelperDiagnostic: unit -> string option
 
     abstract Preview:
         ProfilePluginOrder * Threading.CancellationToken -> Async<Result<LootProposal, LootError>>

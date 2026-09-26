@@ -283,6 +283,7 @@ let runWithNexus registration (handoff: ModConductor.Nexus.IOAuthHandoff) args =
             store.ProfileGameData,
             store.GameContexts,
             store.PluginOrders,
+            helperDiagnostic = store.Loot.HelperDiagnostic,
             components =
                 (fun workspace profile token ->
                     task {

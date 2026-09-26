@@ -53,13 +53,15 @@ type LootSession
 
     let state () =
         let metadata = cache.Current()
-        let helper = File.Exists helperPath
+        let helper = HelperAvailability.check helperPath stateDirectory |> Result.isOk
+        if not helper then
+            lock gate (fun () -> proposal <- None)
 
         { CapabilityId = "skyrim-se-steam"
-          Available = helper && metadata.IsSome
+          Available = helper
           Reason =
             if not helper then
-                Some "The local LOOT helper has not been built."
+                Some "LOOT sorting is unavailable."
             elif metadata.IsNone then
                 Some "Refresh LOOT metadata before previewing a sort."
             else
@@ -303,11 +305,11 @@ type LootSession
                     lock gate (fun () -> proposal <- None)
 
                     try
-                        if not (File.Exists helperPath) then
+                        if HelperAvailability.check helperPath stateDirectory |> Result.isError then
                             return
                                 Error(
                                     LootError.HelperUnavailable
-                                        "The local LOOT helper has not been built."
+                                        "LOOT sorting is unavailable."
                                 )
                         else
                             match cache.Current() with
@@ -430,11 +432,11 @@ type LootSession
     let refresh token =
         let validateMetadata metadata =
             async {
-                if not (File.Exists helperPath) then
+                if HelperAvailability.check helperPath stateDirectory |> Result.isError then
                     return
                         Error(
                             LootError.HelperUnavailable
-                                "Build the local LOOT helper before refreshing metadata."
+                                "LOOT sorting is unavailable."
                         )
                 else
                     let root =
@@ -502,13 +504,16 @@ type LootSession
                 return Error LootError.Busy
             else
                 try
-                    let! result = cache.Refresh(token, validateMetadata)
+                    if HelperAvailability.check helperPath stateDirectory |> Result.isError then
+                        return Error(LootError.HelperUnavailable "LOOT sorting is unavailable.")
+                    else
+                        let! result = cache.Refresh(token, validateMetadata)
 
-                    match result with
-                    | Ok value ->
-                        lock gate (fun () -> proposal <- None)
-                        return Ok value
-                    | Error error -> return Error error
+                        match result with
+                        | Ok value ->
+                            lock gate (fun () -> proposal <- None)
+                            return Ok value
+                        | Error error -> return Error error
                 finally
                     lock gate (fun () -> busy <- false)
         }
@@ -524,16 +529,29 @@ type LootSession
 
     interface ILootSorting with
         member _.Read() = state ()
+        member _.HelperDiagnostic() =
+            match HelperAvailability.check helperPath stateDirectory with
+            | Ok() -> None
+            | Error detail ->
+                Some(
+                    "Package helper: "
+                    + helperPath
+                    + ". Expected protocol 1, helper 0.1.0, libloot 0.29.6 at 136f3983. "
+                    + detail
+                )
         member _.Preview(value, token) = preview value token
 
         member _.ValidateApply(id, expected, headers) =
-            lock gate (fun () ->
-                match proposal with
-                | Some value when
-                    value.Id = id && value.Expected = expected && value.HeadersId = headers
-                    ->
-                    Ok value.Sorted
-                | _ -> Error LootError.Stale)
+            if HelperAvailability.check helperPath stateDirectory |> Result.isError then
+                Error(LootError.HelperUnavailable "LOOT sorting is unavailable.")
+            else
+                lock gate (fun () ->
+                    match proposal with
+                    | Some value when
+                        value.Id = id && value.Expected = expected && value.HeadersId = headers
+                        ->
+                        Ok value.Sorted
+                    | _ -> Error LootError.Stale)
 
         member _.Applied id =
             lock gate (fun () ->

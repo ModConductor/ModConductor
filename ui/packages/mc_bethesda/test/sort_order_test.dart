@@ -70,9 +70,17 @@ class _Orders implements PluginOrderClient {
 class _Loot implements LootClient {
   _Loot(this.order);
   final ProfilePluginOrder order;
-  int applies = 0;
-  LootStateView get empty =>
-      const LootStateView('skyrim-se-steam', true, '', null, null);
+  int applies = 0, refreshes = 0, previews = 0;
+  bool available = true;
+  LootStateView get empty => LootStateView(
+    'skyrim-se-steam',
+    available,
+    available ? '' : 'LOOT sorting is unavailable.',
+    available
+        ? LootMetadataView('m:p', 'm', 'p', 'm', 'p', DateTime.utc(2026))
+        : null,
+    null,
+  );
   LootStateView get proposed => LootStateView(
     'skyrim-se-steam',
     true,
@@ -116,7 +124,11 @@ class _Loot implements LootClient {
     String workspace,
     String profile,
     String headers,
-  ) async => proposed;
+  ) async {
+    previews++;
+    return proposed;
+  }
+
   @override
   Future<ProfilePluginOrder> apply(
     String proposal,
@@ -130,7 +142,10 @@ class _Loot implements LootClient {
   @override
   Future<LootStateView> dismiss(String proposal) async => empty;
   @override
-  Future<LootStateView> refreshMetadata() async => empty;
+  Future<LootStateView> refreshMetadata() async {
+    refreshes++;
+    return empty;
+  }
 }
 
 void main() {
@@ -213,4 +228,48 @@ void main() {
     controller.dispose();
     plugins.dispose();
   });
+
+  testWidgets(
+    'a missing helper disables sort and refresh until retry succeeds',
+    (tester) async {
+      final bethesda = _Bethesda(), orders = _Orders(_Bethesda().snapshot);
+      final plugins = PluginsController()
+        ..attach(bethesda, 'profile', orders: orders);
+      await plugins.scan();
+      final client = _Loot(orders.value)..available = false;
+      final controller = SortOrderController()
+        ..attach(client, plugins, 'profile');
+      await tester.pump();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 1000,
+              height: 700,
+              child: SortOrderPane(
+                controller: controller,
+                narrow: false,
+                onInspect: () {},
+              ),
+            ),
+          ),
+        ),
+      );
+      expect(controller.canPreview, isFalse);
+      expect(controller.canRefreshMetadata, isFalse);
+      expect(find.text('LOOT sorting is unavailable.'), findsOneWidget);
+      expect(find.text('Check again'), findsOneWidget);
+      await controller.preview();
+      await controller.refreshMetadata();
+      expect(client.previews, 0);
+      expect(client.refreshes, 0);
+      client.available = true;
+      await tester.tap(find.text('Check again'));
+      await tester.pumpAndSettle();
+      expect(controller.canPreview, isTrue);
+      expect(controller.canRefreshMetadata, isTrue);
+      controller.dispose();
+      plugins.dispose();
+    },
+  );
 }

@@ -42,6 +42,8 @@ class SortOrderController extends ChangeNotifier {
       left?.revision == right.revision;
   bool get canPreview =>
       _client != null &&
+      state?.available == true &&
+      state?.metadata != null &&
       _plugins?.order != null &&
       !reading &&
       !writing &&
@@ -49,10 +51,15 @@ class SortOrderController extends ChangeNotifier {
       _plugins!.order!.issues.isEmpty;
   bool get canApply =>
       proposal != null &&
+      state?.available == true &&
       !stale &&
       !reading &&
       !writing &&
       _sameReference(_plugins?.order?.reference, proposal!.expected);
+  bool get canRefreshMetadata =>
+      _client != null && state?.available == true && !reading && !writing;
+  bool get canCheckAgain =>
+      _client != null && state?.available == false && !reading && !writing;
 
   void attach(LootClient? client, PluginsController plugins, String? profile) {
     if (identical(client, _client) &&
@@ -97,8 +104,10 @@ class SortOrderController extends ChangeNotifier {
     );
   }
 
-  Future<void> refreshMetadata() async =>
-      _run(() => _client!.refreshMetadata(), requireClient: true);
+  Future<void> refreshMetadata() async {
+    if (!canRefreshMetadata) return;
+    await _run(() => _client!.refreshMetadata());
+  }
 
   Future<void> dismiss() async {
     final current = proposal;
@@ -128,8 +137,17 @@ class SortOrderController extends ChangeNotifier {
       await _plugins!.scan();
     } on LootFailure catch (error) {
       if (!_disposed && epoch == _epoch) {
-        problem = error.detail;
-        stale = error.kind == LootFailureKind.stale;
+        if (error.kind == LootFailureKind.helper) {
+          try {
+            _set(await _client!.read());
+            problem = state?.available == false ? null : error.detail;
+          } on Exception {
+            problem = error.detail;
+          }
+        } else {
+          problem = error.detail;
+          stale = error.kind == LootFailureKind.stale;
+        }
       }
     } on Exception {
       if (!_disposed && epoch == _epoch) {
@@ -161,8 +179,17 @@ class SortOrderController extends ChangeNotifier {
       _set(await action());
     } on LootFailure catch (error) {
       if (!_disposed && epoch == _epoch) {
-        problem = error.detail;
-        stale = error.kind == LootFailureKind.stale;
+        if (error.kind == LootFailureKind.helper) {
+          try {
+            _set(await _client!.read());
+            problem = state?.available == false ? null : error.detail;
+          } on Exception {
+            problem = error.detail;
+          }
+        } else {
+          problem = error.detail;
+          stale = error.kind == LootFailureKind.stale;
+        }
       }
     } on Exception {
       if (!_disposed && epoch == _epoch) {

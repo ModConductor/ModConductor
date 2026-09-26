@@ -12,12 +12,13 @@ an existing installation. Put `.tools/flutter/bin` on the current shell's PATH.
 Use its bundled Dart SDK. Python 3.12 or later is required.
 
 Linux needs Clang, pkg-config, CMake, Ninja, GTK 3 development libraries, zlib,
-and the OpenSSL runtime. Windows needs standalone Microsoft C++ Build Tools,
+the OpenSSL runtime, and the pinned Rust 1.89 toolchain. Windows needs standalone Microsoft C++ Build Tools,
 the Windows SDK, and Flutter's CMake tools. The Visual Studio IDE is not required.
 Flutter plugin builds require symbolic-link creation privileges on Windows.
 
-CMake belongs only to Flutter native integration. Use `dotnet` to build and publish
-the engine. An ordinary managed build is not a NativeAOT publication.
+CMake is used by Flutter and native dependencies. The bundle command builds the
+LOOT helper with locked dependencies. Use `dotnet` to publish the engine.
+An ordinary managed build is not a NativeAOT publication.
 
 Optional `DOTNET_CLI_HOME`, `NUGET_PACKAGES`, and `PUB_CACHE` paths can isolate
 caches under `.tools/`. Set them before restore. Keep
@@ -111,30 +112,29 @@ cd ../../..
 python3 tools/assemble-development.py
 ```
 
-Use `flutter build windows --release --no-pub` on Windows. The bundle tool copies
-the published engine and SQLite library beside Flutter. Keep that bundle intact.
+Use `flutter build windows --release --no-pub` on Windows. The bundle tool builds
+the pinned LOOT helper and copies it with the engine, SQLite library, and static
+web assets beside Flutter. Keep that bundle intact.
 The executables are under `ui/apps/mod_conductor/build/linux/x64/release/bundle/`
 and `ui/apps/mod_conductor/build/windows/x64/runner/Release/`.
 
 ## Local Windows x64 packages
 
-Build the pinned Windows Flutter release and local-verification NativeAOT engine
-as above. Build the LOOT helper with the pinned Rust 1.89 toolchain and locked
-dependencies (`cargo +1.89.0 build --locked --release --target
-x86_64-pc-windows-msvc` in `native/ModConductor.Loot.Helper`). Install the
-official NSIS 3.12 tool locally; no optional plugins are used. The official
+The top-level Windows package command builds the Flutter release, NativeAOT
+engine, and pinned LOOT helper. It obtains NSIS 3.12 locally. No optional
+plugins are used. The official
 NSIS archive SHA-256 is
 `56581f90db321581c5381193d796fffcf2d24b2f8fed2160a6c6a3baa67f2c4f`.
 
 From the repository root on Windows:
 
 ```powershell
-python tools/package-windows.py `
-  --loot-helper native/ModConductor.Loot.Helper/target/x86_64-pc-windows-msvc/release/modconductor-loot-helper.exe `
-  --output .tools/packages/windows-x64
+python tools/publish-windows.py `
+  --rid win-x64 --version 0.1.0 --revision (git rev-parse HEAD) `
+  --publish-directory .tools/packages/windows-x64
 ```
 
-Use a new output directory for each build. The script requires the real
+Use a new output directory for each build. The package step requires the real
 Flutter, NativeAOT, SQLite, static-web-assets, and LOOT helper outputs; it
 does not silently omit a missing native asset. It creates an unsigned per-user
 NSIS installer and portable ZIP from one payload, with bundled third-party

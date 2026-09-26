@@ -88,7 +88,7 @@ module LootFixtures =
         writer.WriteEndObject()
         writer.Flush()
 
-    let observe (writer: Utf8JsonWriter) primary helper masterlist prelude =
+    let observe (writer: Utf8JsonWriter) primary (helper: string) masterlist prelude =
         writer.WriteStartObject "loot"
 
         let check (name: string) (value: bool) =
@@ -193,6 +193,23 @@ module LootFixtures =
              && retained.PreludeSha256 = metadata.PreludeSha256)
 
         let validator (state: GameContextState) = state.Binding.Value.Evidence
+        let bundle = Directory.CreateDirectory(Path.Combine(area, "bundle")).FullName
+        let bundledHelper = Path.Combine(bundle, Path.GetFileName helper)
+        let installed = store.LootForFixture(bundledHelper, validator)
+        check
+            "missingHelperIsUnavailable"
+            (not (installed.Read().Available) && installed.HelperDiagnostic().IsSome)
+
+        File.Copy(helper, bundledHelper)
+        check
+            "helperRepairRestoresAvailability"
+            (installed.Read().Available && installed.HelperDiagnostic().IsNone)
+
+        File.Copy(Environment.ProcessPath, bundledHelper, true)
+        check
+            "incompatibleHelperIsUnavailable"
+            (not (installed.Read().Available) && installed.HelperDiagnostic().IsSome)
+
         let loot = store.LootForFixture(helper, validator)
         let headers = store.Plugins.Scan(profile, CancellationToken.None) |> wait |> result
 

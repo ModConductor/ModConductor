@@ -257,6 +257,25 @@ fn execute(request: Request) -> Result<Response, String> {
 }
 
 fn run() -> Result<(), String> {
+    if std::env::args().nth(1).as_deref() == Some("--identity") {
+        let response = Response {
+            protocol: PROTOCOL,
+            helper_revision: HELPER_REVISION.into(),
+            libloot_version: libloot_version(),
+            libloot_revision: libloot_revision(),
+            correlation_id: String::new(),
+            capability_id: "skyrim-se-steam".into(),
+            source_fingerprint: String::new(),
+            metadata_revision: String::new(),
+            current: Vec::new(),
+            sorted: Vec::new(),
+            moves: Vec::new(),
+            messages: Vec::new(),
+        };
+        serde_json::to_writer(io::stdout(), &response)
+            .map_err(|error| format!("The helper identity cannot be written: {error}"))?;
+        return Ok(());
+    }
     let mut input = Vec::new();
     io::stdin()
         .take(INPUT_LIMIT + 1)

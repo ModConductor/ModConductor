@@ -41,7 +41,7 @@ class SortOrderPane extends StatelessWidget {
             ),
             const SizedBox(height: 8),
           ] else if (controller.state case final state?) ...[
-            if (!state.available)
+            if (!state.available || state.metadata == null)
               McStatus(
                 title: state.reason.isEmpty
                     ? 'LOOT sorting is not available.'
@@ -83,10 +83,16 @@ class SortOrderPane extends StatelessWidget {
               McAction(
                 label: 'Refresh metadata',
                 icon: Icons.cloud_download_outlined,
-                onPressed: controller.reading || controller.writing
-                    ? null
-                    : () => unawaited(controller.refreshMetadata()),
+                onPressed: controller.canRefreshMetadata
+                    ? () => unawaited(controller.refreshMetadata())
+                    : null,
               ),
+              if (controller.canCheckAgain)
+                McAction(
+                  label: 'Check again',
+                  icon: Icons.refresh,
+                  onPressed: () => unawaited(controller.read()),
+                ),
             ],
           ),
           const SizedBox(height: 12),
