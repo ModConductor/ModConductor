@@ -257,6 +257,97 @@ type NexusSession
             return result
         }
 
+    let runExpected action =
+        task {
+            do! lock gate (fun () -> savedConnection)
+            let epoch, token = context ()
+
+            let! protectedResult =
+                NexusBoundary.protect (fun () ->
+                    task {
+                        if lock gate (fun () -> disconnecting) then
+                            raise (NexusException NexusProblem.SignInRequired)
+
+                        let! result = action epoch token
+
+                        if Result.isOk result then
+                            require epoch token
+
+                        return result
+                    })
+
+            match protectedResult with
+            | Error error ->
+                fail epoch error
+                return Error error
+            | Ok result -> return result
+        }
+
+    let resolveLease epoch token bearer (key: string * int64 * int64 * string) (grant: NxmGrant option) =
+        task {
+            let game, modId, fileId, _ = key
+            let query =
+                grant
+                |> Option.map (fun g ->
+                    "?key="
+                    + Uri.EscapeDataString g.Key
+                    + "&expires="
+                    + g.Expires
+                        .ToUnixTimeSeconds()
+                        .ToString(System.Globalization.CultureInfo.InvariantCulture))
+                |> Option.defaultValue ""
+
+            let cached =
+                lock gate (fun () ->
+                    leases
+                    |> Seq.filter (fun entry -> entry.Value.Expires <= DateTimeOffset.UtcNow)
+                    |> Seq.map (fun entry -> entry.Key)
+                    |> Seq.toArray
+                    |> Array.iter (fun key -> leases.Remove key |> ignore)
+
+                    match leases.TryGetValue key with
+                    | true, value -> Some value
+                    | _ -> None)
+
+            match cached with
+            | Some value -> return value
+            | None ->
+                use! reply =
+                    transport.Api(
+                        ("games/"
+                         + game
+                         + "/mods/"
+                         + (modId).ToString(System.Globalization.CultureInfo.InvariantCulture)
+                         + "/files/"
+                         + (fileId).ToString(System.Globalization.CultureInfo.InvariantCulture)
+                         + "/download_link.json"
+                         + query),
+                        bearer,
+                        true,
+                        token
+                    )
+
+                let first =
+                    reply.RootElement.EnumerateArray()
+                    |> Seq.tryHead
+                    |> Option.defaultWith NexusJson.fail
+
+                let url = Uri(NexusJson.text "URI" first, UriKind.Absolute)
+
+                if url.UserInfo <> "" || url.Fragment <> "" then
+                    NexusJson.fail ()
+
+                let lease =
+                    { Url = url
+                      Expires = DateTimeOffset.UtcNow.AddSeconds 60. }
+
+                lock gate (fun () ->
+                    require epoch token
+                    leases[key] <- lease)
+
+                return lease
+        }
+
     member _.Status = status ()
 
     member _.StatusWithRevision = lock gate (fun () -> statusRevision, statusUnsafe ())
@@ -978,86 +1069,27 @@ type NexusSession
     member _.Resolve
         (game: string, modId: int64, fileId: int64, subject: string, ?requiresLink: bool)
         =
-        run (fun epoch token ->
+        runExpected (fun epoch token ->
             task {
                 if game <> "skyrimspecialedition" || modId <= 0L || fileId <= 0L then
-                    raise (NexusException NexusProblem.NotFound)
+                    return Error NexusProblem.NotFound
+                else
+                    let! bearer = access epoch token false
 
-                let! bearer = access epoch token false
+                    if
+                        lock gate (fun () ->
+                            account |> Option.forall (fun value -> value.Subject <> subject))
+                    then
+                        return Error NexusProblem.DownloadAccount
+                    else
+                        let key = game, modId, fileId, subject
+                        let grant = lock gate (fun () -> nxm.Grant key)
 
-                if
-                    lock gate (fun () ->
-                        account |> Option.forall (fun value -> value.Subject <> subject))
-                then
-                    raise (NexusException NexusProblem.DownloadAccount)
-
-                let key = game, modId, fileId, subject
-
-                let grant = lock gate (fun () -> nxm.Grant key)
-
-                if defaultArg requiresLink false && grant.IsNone then
-                    raise (NexusException NexusProblem.DownloadLinkNeeded)
-
-                let query =
-                    grant
-                    |> Option.map (fun g ->
-                        "?key="
-                        + Uri.EscapeDataString g.Key
-                        + "&expires="
-                        + g.Expires
-                            .ToUnixTimeSeconds()
-                            .ToString(System.Globalization.CultureInfo.InvariantCulture))
-                    |> Option.defaultValue ""
-
-                let cached =
-                    lock gate (fun () ->
-                        leases
-                        |> Seq.filter (fun entry -> entry.Value.Expires <= DateTimeOffset.UtcNow)
-                        |> Seq.map (fun entry -> entry.Key)
-                        |> Seq.toArray
-                        |> Array.iter (fun key -> leases.Remove key |> ignore)
-
-                        match leases.TryGetValue key with
-                        | true, value -> Some value
-                        | _ -> None)
-
-                match cached with
-                | Some value -> return value
-                | None ->
-                    use! reply =
-                        transport.Api(
-                            ("games/"
-                             + game
-                             + "/mods/"
-                             + (modId).ToString(System.Globalization.CultureInfo.InvariantCulture)
-                             + "/files/"
-                             + (fileId).ToString(System.Globalization.CultureInfo.InvariantCulture)
-                             + "/download_link.json"
-                             + query),
-                            bearer,
-                            true,
-                            token
-                        )
-
-                    let first =
-                        reply.RootElement.EnumerateArray()
-                        |> Seq.tryHead
-                        |> Option.defaultWith NexusJson.fail
-
-                    let url = Uri(NexusJson.text "URI" first, UriKind.Absolute)
-
-                    if url.UserInfo <> "" || url.Fragment <> "" then
-                        NexusJson.fail ()
-
-                    let lease =
-                        { Url = url
-                          Expires = DateTimeOffset.UtcNow.AddSeconds 60. }
-
-                    lock gate (fun () ->
-                        require epoch token
-                        leases[key] <- lease)
-
-                    return lease
+                        if defaultArg requiresLink false && grant.IsNone then
+                            return Error NexusProblem.DownloadLinkNeeded
+                        else
+                            let! lease = resolveLease epoch token bearer key grant
+                            return Ok lease
             })
 
     member _.RejectLease(game, modId, fileId, subject, url) =

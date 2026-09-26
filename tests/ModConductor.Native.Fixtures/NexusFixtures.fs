@@ -466,6 +466,34 @@ module NexusFixtures =
                  && changed.Problem.IsNone
                  && secureServer.ApiKeyRequests >= 3)
 
+            let beforeRejectedDownloads = secureSession.StatusWithRevision
+            let downloadRequests = secureServer.ApiKeyRequests
+
+            let invalidDownload =
+                secureSession.Resolve("skyrimspecialedition", 64012L, 0L, "42") |> wait
+
+            let wrongAccount =
+                secureSession.Resolve("skyrimspecialedition", 64012L, 501L, "someone-else")
+                |> wait
+
+            let missingLink =
+                secureSession.Resolve(
+                    "skyrimspecialedition",
+                    64012L,
+                    501L,
+                    "42",
+                    requiresLink = true
+                )
+                |> wait
+
+            check
+                "downloadRejectionsDoNotChangeConnectionOrContactNexus"
+                (invalidDownload = Error NexusProblem.NotFound
+                 && wrongAccount = Error NexusProblem.DownloadAccount
+                 && missingLink = Error NexusProblem.DownloadLinkNeeded
+                 && secureSession.StatusWithRevision = beforeRejectedDownloads
+                 && secureServer.ApiKeyRequests = downloadRequests)
+
             let savedBeforeRejectedCandidate = secureMemory.Bytes
             let rejectedCandidate = secureSession.SubmitPersonalApiKey("wrong-key") |> wait
 
