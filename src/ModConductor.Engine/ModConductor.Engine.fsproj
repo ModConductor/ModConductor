@@ -80,6 +80,11 @@
     <Compile Include="NexusInteractionsService.fs" />
     <Compile Include="NxmService.fs" />
     <Compile Include="LinkSetupService.fs" />
+    <Compile Include="NxmIngress.fs" />
+    <Compile Include="DiagnosticComposition.fs" />
+    <Compile Include="EngineComposition.fs" />
+    <Compile Include="GrpcComposition.fs" />
+    <Compile Include="EngineLifetime.fs" />
     <Compile Include="Program.fs" />
     <ProjectReference Include="../ModConductor.Desktop/ModConductor.Desktop.fsproj" />
     <ProjectReference Include="../ModConductor.Nexus/ModConductor.Nexus.fsproj" />
