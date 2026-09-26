@@ -168,6 +168,65 @@ module FilePlanningFixtures =
                 let context = contexts.Save(workspace, profile, 0L, selection) |> wait |> result
                 finalContextRevision <- context.Revision
 
+            let evidence =
+                (contexts.Read(workspace, first) |> wait |> result).Binding.Value.Evidence
+
+            let watched = Path.Combine(data, "watched")
+            Directory.CreateDirectory watched |> ignore
+
+            let expectedDirectory =
+                let dataPath = HostPath.create data |> result
+                use held = HeldDirectory.Open(dataPath, evidence.DataIdentity.Value)
+                (held.InspectEntry "watched").Value.Identity
+
+            let originalWatched = watched + "-original"
+            Directory.Move(watched, originalWatched)
+            Directory.CreateDirectory watched |> ignore
+
+            let mutable nested = data
+
+            for _ in 0..Limits.depth do
+                nested <- Path.Combine(nested, "d")
+                Directory.CreateDirectory nested |> ignore
+
+            let projection =
+                { GameProjection.empty with
+                    Directories = Map.ofList [ path "watched", expectedDirectory ] }
+
+            let stale =
+                GameFiles.acquireProjected projection evidence (Guid.NewGuid()) ignore CancellationToken.None
+
+            let bounded =
+                GameFiles.acquireProjected GameProjection.empty evidence (Guid.NewGuid()) ignore CancellationToken.None
+
+            Directory.Delete(Path.Combine(data, "d"), true)
+            Directory.Delete(watched, true)
+            Directory.Delete(originalWatched, true)
+
+            writer.WriteBoolean(
+                "projectedDirectoryReplacementReturnsStaleBeforeDepthLimit",
+                match stale with
+                | Error FilePlanError.Stale -> true
+                | _ -> false
+            )
+
+            writer.WriteBoolean(
+                "gameTreeDepthLimitReturnsTypedError",
+                match bounded with
+                | Error(FilePlanError.LimitExceeded "The game folder exceeds the depth limit.") -> true
+                | _ -> false
+            )
+
+            let limitedCandidates =
+                CandidateFiles.observe evidence GameProjection.empty (fun _ -> true) 1 CancellationToken.None
+
+            writer.WriteBoolean(
+                "candidateLimitReturnsTypedError",
+                match limitedCandidates with
+                | Error(FilePlanError.LimitExceeded "The plugin scan exceeds its candidate limit.") -> true
+                | _ -> false
+            )
+
             let concurrentReads =
                 [ for _ in 1..16 do
                       let inventory =

@@ -13,11 +13,9 @@ open ModConductor.DeploymentPlanning
 module GameFiles =
     let private protect action =
         try
-            Ok(action ())
+            action ()
         with
         | :? OperationCanceledException -> Error FilePlanError.Cancelled
-        | :? ScanLimitException as e -> Error(FilePlanError.LimitExceeded e.Message)
-        | :? ScanChangedException -> Error FilePlanError.Stale
         | :? IOException as e -> Error(FilePlanError.FileUnavailable e.Message)
         | :? UnauthorizedAccessException ->
             Error(FilePlanError.FileUnavailable "The game files cannot be read.")
@@ -27,7 +25,7 @@ module GameFiles =
         (evidence: InstallationEvidence)
         rootId
         (progress: AcquisitionProgress -> unit)
-        token
+        (token: CancellationToken)
         =
         protect (fun () ->
             let directory =
@@ -46,112 +44,130 @@ module GameFiles =
                     raise (IOException("The checked Data path is invalid.")))
 
             use root = HeldDirectory.Open(rootPath, identity)
-            let entries, total, metadata = GameInventory.inventory root projection token
+            let produce ((entries, total, metadata): ObservedEntry list * int64 * int64) =
+                let totalFiles =
+                    entries |> List.filter (fun entry -> not entry.Directory) |> List.length
 
-            let totalFiles =
-                entries |> List.filter (fun entry -> not entry.Directory) |> List.length
+                let files = ResizeArray<SnapshotFile>()
+                let mutable doneBytes = 0L
+                let clock = Stopwatch.StartNew()
 
-            let files = ResizeArray<SnapshotFile>()
-            let mutable doneBytes = 0L
-            let clock = Stopwatch.StartNew()
+                let notify force =
+                    if force || clock.ElapsedMilliseconds >= 100L then
+                        progress
+                            { Files = files.Count
+                              TotalFiles = totalFiles
+                              Bytes = doneBytes
+                              TotalBytes = total }
 
-            let notify force =
-                if force || clock.ElapsedMilliseconds >= 100L then
-                    progress
-                        { Files = files.Count
-                          TotalFiles = totalFiles
-                          Bytes = doneBytes
-                          TotalBytes = total }
+                        clock.Restart()
 
-                    clock.Restart()
-
-            notify true
-
-            for entry in entries do
-                token.ThrowIfCancellationRequested()
-
-                if not entry.Directory then
-                    files.Add
-                        { Path = entry.Path
-                          Identity =
-                            SnapshotFileIdentity.Metadata
-                                { Identity = entry.Identity
-                                  Length = entry.Length
-                                  Modified = entry.Modified } }
-
-                    doneBytes <- doneBytes + entry.Length
-                    notify false
-
-            notify true
-
-            let generation =
-                use data = new MemoryStream()
-                use writer = new BinaryWriter(data, Encoding.UTF8, true)
-                writer.Write evidence.Fingerprint
+                notify true
 
                 for entry in entries do
-                    writer.Write(LogicalPath.display entry.Path)
+                    token.ThrowIfCancellationRequested()
 
-                    match entry.Identity.Device with
-                    | LinuxDevice(major, minor) ->
-                        writer.Write 1
-                        writer.Write major
-                        writer.Write minor
-                    | WindowsVolume serial ->
-                        writer.Write 2
-                        writer.Write serial
+                    if not entry.Directory then
+                        files.Add
+                            { Path = entry.Path
+                              Identity =
+                                SnapshotFileIdentity.Metadata
+                                    { Identity = entry.Identity
+                                      Length = entry.Length
+                                      Modified = entry.Modified } }
 
-                    writer.Write entry.Identity.Low
-                    writer.Write entry.Identity.High
-                    writer.Write entry.Directory
-                    writer.Write entry.Length
-                    writer.Write entry.Modified.Ticks
+                        doneBytes <- doneBytes + entry.Length
+                        notify false
 
-                writer.Flush()
+                notify true
 
-                SHA256.HashData(data.GetBuffer().AsSpan(0, int data.Length))
-                |> Convert.ToHexStringLower
+                let generation =
+                    use data = new MemoryStream()
+                    use writer = new BinaryWriter(data, Encoding.UTF8, true)
+                    writer.Write evidence.Fingerprint
 
-            { ContextFingerprint = evidence.Fingerprint
-              Root = rootPath
-              Identity = identity
-              Entries = entries
-              Projection = projection
-              EncodedBytes = metadata
-              ObservedAt = DateTimeOffset.UtcNow
-              Snapshot =
-                { Id = rootId
-                  Generation = generation
-                  Kind = ReadOnlyLayerKind.Base
-                  Priority = 0
-                  Complete = true
-                  Files = List.ofSeq files
-                  Mappings =
-                    [ { SourcePrefix = PlanPath.Root
-                        TargetRoot = rootId
-                        TargetPrefix = PlanPath.Root } ]
-                  Archives = [] } })
+                    for entry in entries do
+                        writer.Write(LogicalPath.display entry.Path)
+
+                        match entry.Identity.Device with
+                        | LinuxDevice(major, minor) ->
+                            writer.Write 1
+                            writer.Write major
+                            writer.Write minor
+                        | WindowsVolume serial ->
+                            writer.Write 2
+                            writer.Write serial
+
+                        writer.Write entry.Identity.Low
+                        writer.Write entry.Identity.High
+                        writer.Write entry.Directory
+                        writer.Write entry.Length
+                        writer.Write entry.Modified.Ticks
+
+                    writer.Flush()
+
+                    SHA256.HashData(data.GetBuffer().AsSpan(0, int data.Length))
+                    |> Convert.ToHexStringLower
+
+                { ContextFingerprint = evidence.Fingerprint
+                  Root = rootPath
+                  Identity = identity
+                  Entries = entries
+                  Projection = projection
+                  EncodedBytes = metadata
+                  ObservedAt = DateTimeOffset.UtcNow
+                  Snapshot =
+                    { Id = rootId
+                      Generation = generation
+                      Kind = ReadOnlyLayerKind.Base
+                      Priority = 0
+                      Complete = true
+                      Files = List.ofSeq files
+                      Mappings =
+                        [ { SourcePrefix = PlanPath.Root
+                            TargetRoot = rootId
+                            TargetPrefix = PlanPath.Root } ]
+                      Archives = [] } }
+
+            GameInventory.inventory root projection token |> Result.map produce)
 
     let current (observation: GameObservation) token =
         protect (fun () ->
             use root = HeldDirectory.Open(observation.Root, observation.Identity)
-            let entries, _, _ = GameInventory.inventory root observation.Projection token
-            entries = observation.Entries)
+            GameInventory.inventory root observation.Projection token
+            |> Result.map (fun (entries, _, _) -> entries = observation.Entries))
 
     let internal reuse projection (observation: GameObservation) token =
         protect (fun () ->
             use root = HeldDirectory.Open(observation.Root, observation.Identity)
-            let entries, _, metadata = GameInventory.inventory root projection token
-
-            if entries <> observation.Entries then
-                raise (ScanChangedException())
-
-            { observation with
-                Projection = projection
-                EncodedBytes = metadata })
+            GameInventory.inventory root projection token
+            |> Result.bind (fun (entries, _, metadata) ->
+                if entries <> observation.Entries then
+                    Error FilePlanError.Stale
+                else
+                    Ok
+                        { observation with
+                            Projection = projection
+                            EncodedBytes = metadata }))
 
     let acquire evidence rootId progress token =
         acquireProjected GameProjection.empty evidence rootId progress token
+
+    let private checkedEntry (observation: GameObservation) (source: CheckedGamePreviewSource) =
+        if
+            observation.Snapshot.Id <> source.SnapshotId
+            || observation.Snapshot.Generation <> source.Generation
+            || observation.Snapshot.Kind <> source.Kind
+        then
+            Error FilePlanError.Stale
+        else
+            match
+                observation.Entries
+                |> List.tryFind (fun entry ->
+                    not entry.Directory && entry.Path = source.SourcePath)
+            with
+            | Some entry when entry.Length = source.Length -> Ok entry
+            | _ -> Error FilePlanError.Stale
 
     let readChecked
         (observation: GameObservation)
@@ -160,38 +176,23 @@ module GameFiles =
         consume
         =
         protect (fun () ->
-            if
-                observation.Snapshot.Id <> source.SnapshotId
-                || observation.Snapshot.Generation <> source.Generation
-                || observation.Snapshot.Kind <> source.Kind
-            then
-                raise (ScanChangedException())
+            checkedEntry observation source
+            |> Result.bind (fun entry ->
+                use root = HeldDirectory.Open(observation.Root, observation.Identity)
+                let stream, _ = GameInventory.read root observation.Projection entry
+                use stream = stream
 
-            let entry =
-                observation.Entries
-                |> List.tryFind (fun entry ->
-                    not entry.Directory && entry.Path = source.SourcePath)
-                |> Option.defaultWith (fun () -> raise (ScanChangedException()))
+                let unchanged () =
+                    stream.Length = entry.Length
+                    && File.GetLastWriteTimeUtc stream.SafeFileHandle = entry.Modified
 
-            if entry.Length <> source.Length then
-                raise (ScanChangedException())
+                if not (unchanged ()) then
+                    Error FilePlanError.Stale
+                else
+                    let result = consume stream
 
-            use root = HeldDirectory.Open(observation.Root, observation.Identity)
-            let stream, _ = GameInventory.read root observation.Projection entry
-            use stream = stream
-
-            if
-                stream.Length <> entry.Length
-                || File.GetLastWriteTimeUtc stream.SafeFileHandle <> entry.Modified
-            then
-                raise (ScanChangedException())
-
-            let result = consume stream
-
-            if
-                stream.Length <> entry.Length
-                || File.GetLastWriteTimeUtc stream.SafeFileHandle <> entry.Modified
-            then
-                raise (ScanChangedException())
-
-            result)
+                    if unchanged () then
+                        Ok result
+                    else
+                        Error FilePlanError.Stale
+            ))

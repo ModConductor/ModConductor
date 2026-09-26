@@ -6,12 +6,6 @@ open System.Text
 open System.Threading
 open ModConductor.Platform
 
-type internal ScanLimitException(message: string) =
-    inherit IOException(message)
-
-type internal ScanChangedException() =
-    inherit IOException("Game files changed. Refresh to check them again.")
-
 module internal GameInventory =
     let private path components =
         LogicalPath.create components
@@ -47,50 +41,69 @@ module internal GameInventory =
 
     let projectionBytes (projection: GameProjection) (token: CancellationToken) =
         let mutable metadata = 0L
+        let mutable failure = None
 
         let account (text: string) fixedBytes =
-            metadata <- metadata + int64 (Encoding.UTF8.GetByteCount text) + fixedBytes
+            if failure.IsNone then
+                let next = metadata + int64 (Encoding.UTF8.GetByteCount text) + fixedBytes
 
-            if metadata > Limits.snapshotBytes then
-                raise (ScanLimitException("The game file inventory exceeds the metadata limit."))
+                if next > Limits.snapshotBytes then
+                    failure <-
+                        Some(FilePlanError.LimitExceeded "The game file inventory exceeds the metadata limit.")
+                else
+                    metadata <- next
 
-        for link in projection.Links do
+        use links = (projection.Links :> seq<_>).GetEnumerator()
+
+        while failure.IsNone && links.MoveNext() do
             token.ThrowIfCancellationRequested()
+            let link = links.Current
             account (LogicalPath.display link.Path) 128L
             link.Entry.LinkTarget |> Option.iter (fun target -> account target 0L)
 
-        for KeyValue(path, _) in projection.Directories do
-            token.ThrowIfCancellationRequested()
-            account (LogicalPath.display path) 96L
+        use directories = (projection.Directories :> seq<_>).GetEnumerator()
 
-        for KeyValue(path, source) in projection.Originals do
+        while failure.IsNone && directories.MoveNext() do
             token.ThrowIfCancellationRequested()
+            account (LogicalPath.display directories.Current.Key) 96L
+
+        use originals = (projection.Originals :> seq<_>).GetEnumerator()
+
+        while failure.IsNone && originals.MoveNext() do
+            token.ThrowIfCancellationRequested()
+            let path, source = originals.Current.Key, originals.Current.Value
             account (LogicalPath.display path) 160L
             account (HostPath.value source.Root) 0L
             account (LogicalPath.display source.Path) 0L
 
-        metadata
+        match failure with
+        | Some error -> Error error
+        | None -> Ok metadata
 
-    let inventory (root: HeldDirectory) (projection: GameProjection) (token: CancellationToken) =
-        let result = ResizeArray<ObservedEntry>()
-        let mutable bytes = 0L
-        let mutable metadata = projectionBytes projection token
+    let private validateProjection
+        (root: HeldDirectory)
+        (projection: GameProjection)
+        (token: CancellationToken)
+        =
+        let mutable failure = None
+        use links = (projection.Links :> seq<_>).GetEnumerator()
 
-        let links =
-            projection.Links |> List.map (fun link -> link.Path, link.Entry) |> Map.ofList
-
-        for link in projection.Links do
+        while failure.IsNone && links.MoveNext() do
             token.ThrowIfCancellationRequested()
+            let link = links.Current
 
             let actual =
                 withParent root (LogicalPath.components link.Path) (fun parent name ->
                     parent.InspectEntry name)
 
             if actual <> Some link.Entry || link.Entry.Kind <> EntryKind.Link then
-                raise (ScanChangedException())
+                failure <- Some FilePlanError.Stale
 
-        for KeyValue(path, expected) in projection.Directories do
+        use directories = (projection.Directories :> seq<_>).GetEnumerator()
+
+        while failure.IsNone && directories.MoveNext() do
             token.ThrowIfCancellationRequested()
+            let path, expected = directories.Current.Key, directories.Current.Value
 
             let actual =
                 withParent root (LogicalPath.components path) (fun parent name ->
@@ -98,85 +111,112 @@ module internal GameInventory =
 
             match actual with
             | Some entry when entry.Kind = EntryKind.Directory && entry.Identity = expected -> ()
-            | _ -> raise (ScanChangedException())
+            | _ -> failure <- Some FilePlanError.Stale
 
-        let add (entry: ObservedEntry) =
-            if result.Count >= Limits.entries then
-                raise (ScanLimitException("The game folder exceeds the entry limit."))
+        match failure with
+        | Some error -> Error error
+        | None -> Ok()
 
-            metadata <-
-                metadata
-                + int64 (Encoding.UTF8.GetByteCount(LogicalPath.display entry.Path))
-                + 128L
+    let inventory (root: HeldDirectory) (projection: GameProjection) (token: CancellationToken) =
+        projectionBytes projection token
+        |> Result.bind (fun initialMetadata ->
+            let result = ResizeArray<ObservedEntry>()
+            let mutable bytes = 0L
+            let mutable metadata = initialMetadata
 
-            if metadata > Limits.snapshotBytes then
-                raise (ScanLimitException("The game file inventory exceeds the metadata limit."))
+            let links =
+                projection.Links |> List.map (fun link -> link.Path, link.Entry) |> Map.ofList
 
-            bytes <- bytes + entry.Length
+            let add (entry: ObservedEntry) =
+                if result.Count >= Limits.entries then
+                    Error(FilePlanError.LimitExceeded "The game folder exceeds the entry limit.")
+                else
+                    let nextMetadata =
+                        metadata
+                        + int64 (Encoding.UTF8.GetByteCount(LogicalPath.display entry.Path))
+                        + 128L
 
-            if bytes > Limits.contentBytes then
-                raise (ScanLimitException("The game files exceed the 64 GiB content limit."))
+                    if nextMetadata > Limits.snapshotBytes then
+                        Error(FilePlanError.LimitExceeded "The game file inventory exceeds the metadata limit.")
+                    elif bytes + entry.Length > Limits.contentBytes then
+                        Error(FilePlanError.LimitExceeded "The game files exceed the 64 GiB content limit.")
+                    else
+                        metadata <- nextMetadata
+                        bytes <- bytes + entry.Length
+                        result.Add entry
+                        Ok()
 
-            result.Add entry
+            let rec walk (directory: HeldDirectory) components depth =
+                if depth > Limits.depth then
+                    Error(FilePlanError.LimitExceeded "The game folder exceeds the depth limit.")
+                else
+                    use names = directory.Names.GetEnumerator()
+                    let mutable outcome = Ok()
 
-        let rec walk (directory: HeldDirectory) components depth =
-            if depth > Limits.depth then
-                raise (ScanLimitException("The game folder exceeds the depth limit."))
+                    while Result.isOk outcome && names.MoveNext() do
+                        token.ThrowIfCancellationRequested()
+                        let name = names.Current
+                        let parts = components @ [ name ]
+                        let logical = path parts
 
-            for name in directory.Names do
-                token.ThrowIfCancellationRequested()
-                let parts = components @ [ name ]
-                let logical = path parts
+                        if not (links.ContainsKey logical) then
+                            outcome <-
+                                match directory.InspectEntry name with
+                                | Some entry when entry.Kind = EntryKind.Directory ->
+                                    use child = directory.Directory(name, Some entry.Identity)
 
-                if not (links.ContainsKey logical) then
-                    match directory.InspectEntry name with
-                    | Some entry when entry.Kind = EntryKind.Directory ->
-                        use child = directory.Directory(name, Some entry.Identity)
+                                    match projection.Directories.TryFind logical with
+                                    | Some expected when expected <> child.Identity ->
+                                        Error FilePlanError.Stale
+                                    | Some _ -> walk child parts (depth + 1)
+                                    | None ->
+                                        add
+                                            { Path = logical
+                                              Identity = child.Identity
+                                              Directory = true
+                                              Length = 0L
+                                              Modified = DateTime.MinValue }
+                                        |> Result.bind (fun () -> walk child parts (depth + 1))
+                                | Some entry when entry.Kind = EntryKind.RegularFile ->
+                                    let file = directory.InspectFile(name, Some entry.Identity)
 
-                        match projection.Directories.TryFind logical with
-                        | Some expected when expected = child.Identity -> ()
-                        | Some _ -> raise (ScanChangedException())
-                        | None ->
+                                    add
+                                        { Path = logical
+                                          Identity = file.Identity
+                                          Directory = false
+                                          Length = file.Length
+                                          Modified = file.Modified }
+                                | _ ->
+                                    raise (
+                                        IOException(
+                                            "The game folder contains an unowned link or unavailable entry."
+                                        )
+                                    )
+
+                    outcome
+
+            validateProjection root projection token
+            |> Result.bind (fun () -> walk root [] 0)
+            |> Result.bind (fun () ->
+                let existingPaths = result |> Seq.map _.Path |> Set.ofSeq
+                use originals = (projection.Originals :> seq<_>).GetEnumerator()
+                let mutable outcome = Ok()
+
+                while Result.isOk outcome && originals.MoveNext() do
+                    token.ThrowIfCancellationRequested()
+                    let logical, source = originals.Current.Key, originals.Current.Value
+                    let file = inspectSource source
+
+                    outcome <-
+                        if existingPaths.Contains logical then
+                            Error FilePlanError.Stale
+                        else
                             add
                                 { Path = logical
-                                  Identity = child.Identity
-                                  Directory = true
-                                  Length = 0L
-                                  Modified = DateTime.MinValue }
+                                  Identity = file.Identity
+                                  Directory = false
+                                  Length = file.Length
+                                  Modified = file.Modified }
 
-                        walk child parts (depth + 1)
-                    | Some entry when entry.Kind = EntryKind.RegularFile ->
-                        let file = directory.InspectFile(name, Some entry.Identity)
-
-                        add
-                            { Path = logical
-                              Identity = file.Identity
-                              Directory = false
-                              Length = file.Length
-                              Modified = file.Modified }
-                    | _ ->
-                        raise (
-                            IOException(
-                                "The game folder contains an unowned link or unavailable entry."
-                            )
-                        )
-
-        walk root [] 0
-
-        let existingPaths = result |> Seq.map _.Path |> Set.ofSeq
-
-        for KeyValue(logical, source) in projection.Originals do
-            token.ThrowIfCancellationRequested()
-            let file = inspectSource source
-
-            if existingPaths.Contains logical then
-                raise (ScanChangedException())
-
-            add
-                { Path = logical
-                  Identity = file.Identity
-                  Directory = false
-                  Length = file.Length
-                  Modified = file.Modified }
-
-        result |> Seq.sortBy _.Path |> Seq.toList, bytes, metadata
+                outcome)
+            |> Result.map (fun () -> result |> Seq.sortBy _.Path |> Seq.toList, bytes, metadata))

@@ -8,7 +8,7 @@ open ModConductor.Platform
 open ModConductor.DeploymentPlanning
 
 module CandidateFiles =
-    let private observe
+    let internal observe
         (evidence: ModConductor.GameContexts.InstallationEvidence)
         (projection: GameProjection)
         predicate
@@ -27,15 +27,19 @@ module CandidateFiles =
             projection.Links |> List.map (fun link -> link.Path, link.Entry) |> Map.ofList
 
         let found = ResizeArray<ObservedCandidate>()
+        let mutable limitReached = false
 
         let add target source =
             if found.Count >= limit then
-                raise (ScanLimitException "The plugin scan exceeds its candidate limit.")
+                limitReached <- true
+            else
+                found.Add { Target = target; Source = source }
 
-            found.Add { Target = target; Source = source }
+        use names = root.Names.GetEnumerator()
 
-        for name in root.Names do
+        while not limitReached && names.MoveNext() do
             token.ThrowIfCancellationRequested()
+            let name = names.Current
 
             match LogicalPath.create [ name ] with
             | Error _ -> ()
@@ -51,11 +55,18 @@ module CandidateFiles =
                           Identity = entry.Identity }
             | Ok _ -> ()
 
-        for KeyValue(logical, original) in projection.Originals do
+        use originals = (projection.Originals :> seq<_>).GetEnumerator()
+
+        while not limitReached && originals.MoveNext() do
+            let logical, original = originals.Current.Key, originals.Current.Value
+
             if predicate logical then
                 add logical original
 
-        List.ofSeq found
+        if limitReached then
+            Error(FilePlanError.LimitExceeded "The plugin scan exceeds its candidate limit.")
+        else
+            Ok(List.ofSeq found)
 
     let acquire (repository: IFileCandidateRepository) profile predicate limit token =
         task {
@@ -78,21 +89,24 @@ module CandidateFiles =
                                 token
                             )
 
-                        let plan =
-                            Candidates.resolve
-                                { Planning =
-                                    { Profile = sources.Profile
-                                      Roots =
-                                        [ { Id = sources.Stamp.WorkspaceId
-                                            Policy =
-                                              ModConductor.GameContexts.Skyrim.definition.TargetPolicy } ]
-                                      ReadOnly = []
-                                      Writable = sources.Writable }
-                                  Hidden = sources.Hidden }
-                                sources.Stamp.WorkspaceId
-                                observed
+                        match observed with
+                        | Error error -> return Error error
+                        | Ok candidates ->
+                            let plan =
+                                Candidates.resolve
+                                    { Planning =
+                                        { Profile = sources.Profile
+                                          Roots =
+                                            [ { Id = sources.Stamp.WorkspaceId
+                                                Policy =
+                                                  ModConductor.GameContexts.Skyrim.definition.TargetPolicy } ]
+                                          ReadOnly = []
+                                          Writable = sources.Writable }
+                                      Hidden = sources.Hidden }
+                                    sources.Stamp.WorkspaceId
+                                    candidates
 
-                        return Ok { Sources = sources; Plan = plan }
+                            return Ok { Sources = sources; Plan = plan }
         }
 
     let openObserved source = GameInventory.readSource source |> fst
