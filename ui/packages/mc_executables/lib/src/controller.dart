@@ -4,30 +4,29 @@ import 'package:flutter/foundation.dart';
 import 'package:mc_client/mc_client.dart';
 import 'package:mc_ui_collections/mc_ui_collections.dart';
 
+part 'runs.dart';
+
 class ExecutablesController extends ChangeNotifier {
   final presets = McCollectionModel<String, ExecutablePreset>(
     idOf: (v) => v.id,
     labelOf: (v) => v.name,
   );
-  final latest = <String, ExecutableRun>{};
-  final history = <ExecutableRun>[];
+  late final _runs = _ExecutableRuns(this);
+  Map<String, ExecutableRun> get latest => _runs.latest;
+  List<ExecutableRun> get history => _runs.history;
   ExecutablesClient? client;
   WorkspaceInfo? workspace;
-  bool _available = false,
-      _disposed = false,
-      _loaded = false,
-      _historyLoaded = false;
+  bool _available = false, _disposed = false, _loaded = false;
   int _epoch = 0;
-  bool reading = false,
-      changing = false,
-      needsRead = false,
-      readingHistory = false;
-  String? problem, _next, _historyNext;
+  bool reading = false, changing = false, needsRead = false;
+  bool get readingHistory => _runs.readingHistory;
+  set readingHistory(bool value) => _runs.readingHistory = value;
+  String? problem, _next;
   String? selectedId;
-  ExecutableRunRequest? pendingLaunch;
-  String? pendingStop;
-  StreamSubscription<ExecutableRun>? _watch;
-  String? _watchId;
+  ExecutableRunRequest? get pendingLaunch => _runs.pendingLaunch;
+  set pendingLaunch(ExecutableRunRequest? value) => _runs.pendingLaunch = value;
+  String? get pendingStop => _runs.pendingStop;
+  set pendingStop(String? value) => _runs.pendingStop = value;
   ExecutablePreset? get selected =>
       selectedId == null ? null : presets[selectedId!];
   ExecutableRun? get selectedRun =>
@@ -35,7 +34,7 @@ class ExecutablesController extends ChangeNotifier {
   bool get connected => client != null && workspace != null && _available;
   bool get canLoad => connected && !reading && (!_loaded || _next != null);
   bool get canLoadHistory =>
-      connected && !readingHistory && (!_historyLoaded || _historyNext != null);
+      connected && !readingHistory && _runs.hasMoreHistory;
   bool get uncertain => pendingLaunch != null || pendingStop != null;
   bool get canChange => connected && !changing && !needsRead;
   void _notify() {
@@ -56,21 +55,13 @@ class ExecutablesController extends ChangeNotifier {
       return;
     }
     ++_epoch;
-    unawaited(_watch?.cancel());
-    _watch = null;
-    _watchId = null;
+    _runs.reset();
     client = api;
     presets.clear();
-    latest.clear();
-    history.clear();
     selectedId = null;
-    pendingLaunch = null;
-    pendingStop = null;
     problem = null;
     _next = null;
-    _historyNext = null;
-    reading = changing = needsRead = readingHistory = _loaded = _historyLoaded =
-        false;
+    reading = changing = needsRead = _loaded = false;
     if (connected) unawaited(load());
     _notify();
   }
@@ -78,67 +69,8 @@ class ExecutablesController extends ChangeNotifier {
   void select(ExecutablePreset value) {
     selectedId = value.id;
     presets.select(value.id);
-    _observeSelected();
+    _runs.observeSelected();
     _notify();
-  }
-
-  void _applyRun(ExecutableRun value) {
-    if (value.preset == null) return;
-    final previous = latest[value.preset!.id];
-    if (previous == null ||
-        (previous.id == value.id && value.revision >= previous.revision) ||
-        (previous.id != value.id &&
-            value.requestedAt.isAfter(previous.requestedAt))) {
-      latest[value.preset!.id] = value;
-    }
-    final index = history.indexWhere((row) => row.id == value.id);
-    if (index >= 0 && value.revision >= history[index].revision) {
-      history[index] = value;
-    }
-  }
-
-  void _observeSelected() {
-    final run = selectedRun, api = client;
-    if (run == null || run.terminal || api == null) {
-      unawaited(_watch?.cancel());
-      _watch = null;
-      _watchId = null;
-      return;
-    }
-    if (_watchId == run.id) return;
-    unawaited(_watch?.cancel());
-    _watchId = run.id;
-    final epoch = _epoch, id = run.id;
-    _watch = api
-        .observe(run.workspaceId, id)
-        .listen(
-          (value) {
-            if (epoch != _epoch || _watchId != id) return;
-            _applyRun(value);
-            _notify();
-          },
-          onError: (Object error) {
-            if (epoch != _epoch || _watchId != id) return;
-            unawaited(_watch?.cancel());
-            _watch = null;
-            _watchId = null;
-            needsRead = true;
-            problem =
-                'The run status is unavailable. Read it again to reconnect.';
-            _notify();
-          },
-          onDone: () {
-            if (epoch == _epoch && _watchId == id) {
-              _watch = null;
-              _watchId = null;
-              if (selectedRun?.terminal == false) {
-                needsRead = true;
-                problem = "The run status ended before completion was confirmed. Read it again.";
-                _notify();
-              }
-            }
-          },
-        );
   }
 
   Future<void> load({bool refresh = false}) async {
@@ -161,20 +93,20 @@ class ExecutablesController extends ChangeNotifier {
       if (epoch != _epoch) return;
       if (refresh) {
         presets.clear();
-        latest.clear();
+        _runs.latest.clear();
       }
       presets.apply(upserts: page.presets);
       _next = page.next;
       _loaded = true;
       for (final run in page.latestRuns) {
-        _applyRun(run);
+        _runs.applyRun(run);
       }
       if (selectedId == null || !presets.ids.contains(selectedId)) {
         selectedId = page.presets.firstOrNull?.id;
       }
       if (selectedId != null) presets.select(selectedId!);
       needsRead = false;
-      _observeSelected();
+      _runs.observeSelected();
     } on Object catch (error) {
       if (epoch == _epoch) problem = errorMessage(error);
     } finally {
@@ -262,9 +194,9 @@ class ExecutablesController extends ChangeNotifier {
       await api.delete(value.workspaceId, value.id, value.revision);
       if (epoch != _epoch) return;
       presets.apply(removed: [value.id]);
-      latest.remove(value.id);
+      _runs.latest.remove(value.id);
       selectedId = presets.ids.firstOrNull;
-      _observeSelected();
+      _runs.observeSelected();
     } on Object catch (error) {
       if (epoch == _epoch) {
         problem = errorMessage(error);
@@ -278,158 +210,11 @@ class ExecutablesController extends ChangeNotifier {
     }
   }
 
-  Future<void> run() async {
-    final tool = selected, ws = workspace;
-    if (tool == null || ws == null || !canChange || uncertain) return;
-    final request = ExecutableRunRequest(
-      id: newOperationId(),
-      workspaceId: ws.id,
-      workspaceRevision: ws.revision,
-      presetId: tool.id,
-      presetRevision: tool.revision,
-    );
-    pendingLaunch = request;
-    await continueLaunch();
-  }
-
-  Future<void> continueLaunch() async {
-    final request = pendingLaunch, api = client;
-    if (request == null || api == null || !connected || changing) return;
-    final epoch = _epoch;
-    changing = true;
-    problem = null;
-    _notify();
-    try {
-      final value = await api.begin(request);
-      if (epoch != _epoch) return;
-      _applyRun(value);
-      pendingLaunch = null;
-      needsRead = false;
-      _historyLoaded = false;
-      _observeSelected();
-    } on ExecutableException catch (error) {
-      if (epoch == _epoch) {
-        pendingLaunch = null;
-        needsRead = error.failure == ExecutableFailure.staleRevision;
-        problem = error.detail;
-      }
-    } on Object {
-      if (epoch == _epoch) {
-        needsRead = true;
-        problem = 'The launch result is unknown. Read the result before starting another run.';
-      }
-    } finally {
-      if (epoch == _epoch) {
-        changing = false;
-        _notify();
-      }
-    }
-  }
-
-  Future<void> stopWaiting() async {
-    final run = selectedRun, api = client;
-    if (run == null ||
-        run.terminal ||
-        api == null ||
-        !connected ||
-        changing ||
-        uncertain) {
-      return;
-    }
-    final epoch = _epoch;
-    changing = true;
-    pendingStop = run.id;
-    problem = null;
-    _notify();
-    try {
-      final value = await api.stopWaiting(run.workspaceId, run.id);
-      if (epoch != _epoch) return;
-      _applyRun(value);
-      pendingStop = null;
-      needsRead = false;
-      _observeSelected();
-    } on Object {
-      if (epoch == _epoch) {
-        needsRead = true;
-        problem = 'The stop-waiting result is unknown. Read the run status.';
-      }
-    } finally {
-      if (epoch == _epoch) {
-        changing = false;
-        _notify();
-      }
-    }
-  }
-
-  Future<void> readRun() async {
-    final id = pendingLaunch?.id ?? pendingStop ?? selectedRun?.id,
-        api = client,
-        ws = workspace?.id;
-    if (id == null || api == null || ws == null || !connected || changing) {
-      return;
-    }
-    final epoch = _epoch;
-    changing = true;
-    problem = null;
-    _notify();
-    try {
-      final value = await api.read(ws, id);
-      if (epoch != _epoch) return;
-      _applyRun(value);
-      pendingLaunch = null;
-      pendingStop = null;
-      needsRead = false;
-      _observeSelected();
-    } on ExecutableException catch (error) {
-      if (epoch == _epoch) {
-        problem =
-            error.failure == ExecutableFailure.notFound && pendingLaunch != null
-            ? 'The launch is not recorded. Continue uses the same request.'
-            : error.detail;
-        needsRead = true;
-      }
-    } on Object {
-      if (epoch == _epoch) {
-        problem = 'The run status is unavailable.';
-        needsRead = true;
-      }
-    } finally {
-      if (epoch == _epoch) {
-        changing = false;
-        _notify();
-      }
-    }
-  }
-
-  Future<void> loadHistory() async {
-    final api = client, id = workspace?.id;
-    if (!canLoadHistory || api == null || id == null) return;
-    final epoch = _epoch;
-    readingHistory = true;
-    _notify();
-    try {
-      final page = await api.recent(
-        id,
-        after: _historyLoaded ? _historyNext : null,
-      );
-      if (epoch != _epoch) return;
-      if (!_historyLoaded) history.clear();
-      for (final run in page.runs) {
-        if (!history.any((v) => v.id == run.id)) {
-          history.add(run);
-        }
-      }
-      _historyNext = page.next;
-      _historyLoaded = true;
-    } on Object catch (error) {
-      if (epoch == _epoch) problem = errorMessage(error);
-    } finally {
-      if (epoch == _epoch) {
-        readingHistory = false;
-        _notify();
-      }
-    }
-  }
+  Future<void> run() => _runs.run();
+  Future<void> continueLaunch() => _runs.continueLaunch();
+  Future<void> stopWaiting() => _runs.stopWaiting();
+  Future<void> readRun() => _runs.readRun();
+  Future<void> loadHistory() => _runs.loadHistory();
 
   static String errorMessage(Object error) => error is ExecutableException
       ? error.detail
@@ -438,7 +223,7 @@ class ExecutablesController extends ChangeNotifier {
   void dispose() {
     _disposed = true;
     ++_epoch;
-    unawaited(_watch?.cancel());
+    _runs.dispose();
     presets.dispose();
     super.dispose();
   }
