@@ -84,4 +84,3 @@ module internal Ba2Texture =
             writeU32 bytes 140 1u
 
         bytes
-
