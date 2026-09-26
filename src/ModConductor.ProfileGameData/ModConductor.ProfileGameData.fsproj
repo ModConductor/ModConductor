@@ -3,7 +3,7 @@
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="Contracts.fs" />
-    <Compile Include="SessionResult.fs" />
+    <Compile Include="ProfileDataFlow.fs" />
     <Compile Include="IniDocument.fs" />
     <Compile Include="IniArchives.fs" />
     <Compile Include="IniSavePaths.fs" />
@@ -20,6 +20,9 @@
     <Compile Include="Initialization.fs" />
     <Compile Include="PluginOrders.fs" />
     <Compile Include="SaveDiagnostics.fs" />
+    <Compile Include="SaveGroupSource.fs" />
+    <Compile Include="SaveGroupPaging.fs" />
+    <Compile Include="SaveGroupInspection.fs" />
     <Compile Include="SaveGroups.fs" />
     <Compile Include="PluginPreparation.fs" />
     <Compile Include="ArchivePolicyProjection.fs" />

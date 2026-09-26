@@ -33,7 +33,7 @@ type internal ProfileSaveOperations
             resultTask {
                 do! requireIds [ workspace; profile ]
                 let! scope = repository.Read(workspace, profile)
-                return SaveGroups.page scope source after
+                return! SaveGroupPaging.page scope source after
             })
 
     member _.InspectSave(workspace, profile, source, name, headers, token) =
@@ -46,9 +46,8 @@ type internal ProfileSaveOperations
 
                 let! scope = repository.Read(workspace, profile)
 
-                let! value = SaveGroups.inspect repository plugins scope source name headers token
-
-                return value
+                return!
+                    SaveGroupInspection.inspect repository plugins scope source name headers token
             })
 
     member _.PreviewSaveAction(expected: ProfileDataRef, action: ProfileSaveAction, names, token) =
@@ -61,7 +60,7 @@ type internal ProfileSaveOperations
                 stopped scope.Game
                 let id = Guid.NewGuid()
 
-                let receipt, source, destination, files =
+                let! receipt, source, destination, files =
                     SaveGroups.prepare id scope action names token
 
                 let preview =
@@ -119,7 +118,7 @@ type internal ProfileSaveOperations
                     let! scope = repository.Read(expected.WorkspaceId, expected.ProfileId)
                     do! check scope expected
                     stopped scope.Game
-                    SaveGroups.checkReceipt scope receipt token
+                    do! SaveGroups.checkReceipt scope receipt token
                     let! context = DataInitialization.context repository scope
 
                     let! action =

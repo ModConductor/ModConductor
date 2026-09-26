@@ -5,6 +5,10 @@ open System.Threading
 open ModConductor.Platform
 
 module internal SavePreparation =
+    let private checkReceipt scope receipt token =
+        SaveGroups.checkReceipt scope receipt token
+        |> Result.defaultWith (fun error -> raise (ProfileDataException error))
+
     let private clear (root: DataRoot) =
         use directory = HeldDirectory.Open(root.Path, root.Identity)
 
@@ -33,7 +37,7 @@ module internal SavePreparation =
                     | ProfileDataActionKind.SaveFiles value -> value
                     | _ -> invalidOp "Use save preparation only for save actions."
 
-                SaveGroups.checkReceipt scope receipt token
+                checkReceipt scope receipt token
 
                 let changed =
                     { profile with
@@ -87,7 +91,7 @@ module internal SavePreparation =
                                           File = replacement }
                                   BackupName = "save-original-" + string index } }
 
-                    SaveGroups.checkReceipt scope receipt token
+                    checkReceipt scope receipt token
 
                     let prepared =
                         { staged with
