@@ -68,100 +68,104 @@ module internal PluginInputs =
         match game.Binding with
         | Some binding when not binding.NeedsCheck && binding.Evidence.Valid ->
             match binding.Evidence.Locations.LocalAppData with
-            | Location.Located(path, _) -> path
-            | Location.Unavailable reason ->
-                raise (ProfileDataException(ProfileDataError.Unavailable reason))
-        | _ ->
-            raise (
-                ProfileDataException(
-                    ProfileDataError.Unavailable "Select and refresh the game installation first."
-                )
-            )
+            | Location.Located(path, _) -> Ok path
+            | Location.Unavailable reason -> Error(ProfileDataError.Unavailable reason)
+        | _ -> Error(ProfileDataError.Unavailable "Select and refresh the game installation first.")
 
     let read (scope: ProfileDataScope) (headers: PluginEntry list) token =
-        let selected = location scope.Game
+        ProfileDataResultFlow.result {
+            let! selected = location scope.Game
 
-        let root =
-            if Directory.Exists selected || File.Exists selected then
-                Some(DataLocations.root selected)
-            else
-                None
+            let root =
+                if Directory.Exists selected || File.Exists selected then
+                    Some(DataLocations.root selected)
+                else
+                    None
 
-        scope.Context
-        |> Option.bind _.PluginRoot
-        |> Option.iter (fun previous ->
-            if Some previous <> root then
-                DataFiles.fail
-                    "The plugin list folder changed. Restore the previous context first.")
+            scope.Context
+            |> Option.bind _.PluginRoot
+            |> Option.iter (fun previous ->
+                if Some previous <> root then
+                    DataFiles.fail
+                        "The plugin list folder changed. Restore the previous context first.")
 
-        let _, file, bytes =
-            match root with
-            | Some root -> readFile root fileName token
-            | None -> fileName, None, [||]
+            let _, file, bytes =
+                match root with
+                | Some root -> readFile root fileName token
+                | None -> fileName, None, [||]
 
-        let binding = scope.Game.Binding.Value
+            let binding = scope.Game.Binding.Value
 
-        let gameRoot =
-            { Path = HostPath.create binding.Evidence.RootPath |> Result.defaultWith invalidOp
-              Identity = binding.Evidence.RootIdentity.Value }
+            let gameRoot =
+                { Path = HostPath.create binding.Evidence.RootPath |> Result.defaultWith invalidOp
+                  Identity = binding.Evidence.RootIdentity.Value }
 
-        let _, _, ccc = readFile gameRoot "Skyrim.ccc" token
+            let _, _, ccc = readFile gameRoot "Skyrim.ccc" token
 
-        let installed name =
-            headers
-            |> List.exists (fun entry ->
-                entry.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
+            let installed name =
+                headers
+                |> List.exists (fun entry ->
+                    entry.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
 
-        let creation =
-            UTF8Encoding(false, true)
-                .GetString(ccc)
-                .Split([| '\r'; '\n' |], StringSplitOptions.RemoveEmptyEntries)
-            |> Array.map _.Trim()
-            |> Array.filter installed
-            |> Array.toList
+            let creation =
+                UTF8Encoding(false, true)
+                    .GetString(ccc)
+                    .Split([| '\r'; '\n' |], StringSplitOptions.RemoveEmptyEntries)
+                |> Array.map _.Trim()
+                |> Array.filter installed
+                |> Array.toList
 
-        let context = scope.Context
+            let context = scope.Context
 
-        let settings =
-            match scope.Profile with
-            | Some profile when profile.Options.Settings && profile.SettingsInitialized ->
-                match context |> Option.bind _.Applied with
-                | Some active when active.ProfileId = profile.ProfileId && active.Options.Settings ->
-                    let documents = DataLocations.documents scope.Game
-                    let _, _, bytes = readFile documents "Skyrim.ini" token
-                    bytes
-                | _ ->
-                    let _, _, bytes = readFile profile.Settings.Value "Skyrim.ini" token
-                    bytes
-            | _ ->
-                match context with
-                | Some context ->
-                    SettingsSource.globalSettings context token
-                    |> List.tryFind (fun (name, _) -> name = "Skyrim.ini")
-                    |> Option.bind snd
-                    |> Option.defaultValue [||]
-                | None ->
-                    match binding.Evidence.Locations.Documents with
-                    | Location.Located(path, _) when not (Directory.Exists path || File.Exists path) ->
-                        [||]
+            let! settings =
+                match scope.Profile with
+                | Some profile when profile.Options.Settings && profile.SettingsInitialized ->
+                    match context |> Option.bind _.Applied with
+                    | Some active when
+                        active.ProfileId = profile.ProfileId && active.Options.Settings
+                        ->
+                        let documents = DataLocations.documents scope.Game
+                        let _, _, bytes = readFile documents "Skyrim.ini" token
+                        Ok bytes
                     | _ ->
-                        let _, _, bytes =
-                            readFile (DataLocations.documents scope.Game) "Skyrim.ini" token
+                        let _, _, bytes = readFile profile.Settings.Value "Skyrim.ini" token
+                        Ok bytes
+                | _ ->
+                    match context with
+                    | Some context ->
+                        SettingsSource.globalSettings context token
+                        |> Result.map (fun files ->
+                            files
+                            |> List.tryFind (fun (name, _) -> name = "Skyrim.ini")
+                            |> Option.bind snd
+                            |> Option.defaultValue [||])
+                    | None ->
+                        match binding.Evidence.Locations.Documents with
+                        | Location.Located(path, _) when
+                            not (Directory.Exists path || File.Exists path)
+                            ->
+                            Ok [||]
+                        | _ ->
+                            let _, _, bytes =
+                                readFile (DataLocations.documents scope.Game) "Skyrim.ini" token
 
-                        bytes
+                            Ok bytes
 
-        { Root = root
-          Path = selected
-          File = file
-          Bytes = bytes
-          Facts =
-            { Early = OrderRules.baseFiles @ creation
-              DefaultEnabled = OrderRules.baseFiles @ creation
-              Required =
-                (OrderRules.mandatoryFiles |> List.map (fun name -> name, PluginRequirement.Engine))
-                @ (Ini.testFiles settings
-                   |> List.map (fun name -> name, PluginRequirement.SkyrimIni))
-              Implicit = OrderRules.mandatoryFiles } }
+            return
+                { Root = root
+                  Path = selected
+                  File = file
+                  Bytes = bytes
+                  Facts =
+                    { Early = OrderRules.baseFiles @ creation
+                      DefaultEnabled = OrderRules.baseFiles @ creation
+                      Required =
+                        (OrderRules.mandatoryFiles
+                         |> List.map (fun name -> name, PluginRequirement.Engine))
+                        @ (Ini.testFiles settings
+                           |> List.map (fun name -> name, PluginRequirement.SkyrimIni))
+                      Implicit = OrderRules.mandatoryFiles } }
+        }
 
     let ensureRoot (input: PluginInputs) =
         match input.Root with

@@ -168,6 +168,14 @@ module internal ProfileCloneMutation =
                 | None -> ()
         }
 
+    let private workspaceError =
+        function
+        | ProfileDataError.Busy -> WorkspaceError.Busy
+        | ProfileDataError.Invalid detail
+        | ProfileDataError.Unavailable detail
+        | ProfileDataError.Conflict detail -> WorkspaceError.ProfileData detail
+        | error -> WorkspaceError.ProfileData(DataErrors.problemMessage error)
+
     let run
         (services: ProfileMutationServices)
         (request: ProfileMutationRequest)
@@ -182,8 +190,8 @@ module internal ProfileCloneMutation =
 
             let claimed = ResizeArray<ProfileDataContext * Guid>()
 
-            try
-                for context, profile in records do
+            let prepareOne (context, profile) =
+                task {
                     request.Token.ThrowIfCancellationRequested()
                     do! validateActiveContext services request.Workspace source context
 
@@ -202,7 +210,7 @@ module internal ProfileCloneMutation =
                             { Files = value.Files
                               Bytes = value.Bytes }
 
-                    let! context, action, copy =
+                    return!
                         ProfileCloning.prepare
                             services.Repository
                             context
@@ -211,8 +219,30 @@ module internal ProfileCloneMutation =
                             request.Token
                             notify
                             request.CaptureCheckpoint
+                }
 
-                    completed.Add(context, action, copy)
+            let rec prepareAll =
+                function
+                | [] -> System.Threading.Tasks.Task.FromResult(Ok())
+                | item :: remaining ->
+                    task {
+                        let! prepared = prepareOne item
+
+                        match prepared with
+                        | Error error -> return Error error
+                        | Ok copy ->
+                            completed.Add copy
+                            return! prepareAll remaining
+                    }
+
+            try
+                let! prepared = prepareAll records
+
+                match prepared with
+                | Error error ->
+                    do! releaseClaims services claimed
+                    return Error(workspaceError error)
+                | Ok() -> ()
 
                 request.Token.ThrowIfCancellationRequested()
                 let! committed = commit services request completed

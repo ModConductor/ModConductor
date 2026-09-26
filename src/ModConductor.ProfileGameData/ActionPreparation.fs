@@ -69,7 +69,7 @@ module internal DataActionPreparation =
         =
         task {
             if action.Prepared then
-                return context, action
+                return Ok(context, action)
             else
                 let! context, action = stages repository context action
 
@@ -86,7 +86,7 @@ module internal DataActionPreparation =
                     | Some active -> repository.Profile(context.Id, active.ProfileId)
                     | None -> System.Threading.Tasks.Task.FromResult None
 
-                let effects, link, proposed =
+                let settings =
                     SettingsPreparation.prepare
                         context
                         incoming
@@ -95,23 +95,26 @@ module internal DataActionPreparation =
                         action.DocumentsStage.Value
                         token
 
-                let! context, action, pluginEffects, proposed =
-                    PluginPreparation.prepare
-                        repository
-                        context
-                        action
-                        incoming
-                        desiredPlugins
-                        proposed
-                        token
+                match settings with
+                | Error error -> return Error error
+                | Ok(effects, link, proposed) ->
+                    let! context, action, pluginEffects, proposed =
+                        PluginPreparation.prepare
+                            repository
+                            context
+                            action
+                            incoming
+                            desiredPlugins
+                            proposed
+                            token
 
-                let prepared =
-                    { action with
-                        Prepared = true
-                        Files = effects @ pluginEffects
-                        Link = link
-                        Proposed = proposed }
+                    let prepared =
+                        { action with
+                            Prepared = true
+                            Files = effects @ pluginEffects
+                            Link = link
+                            Proposed = proposed }
 
-                do! repository.SaveAction prepared
-                return context, prepared
+                    do! repository.SaveAction prepared
+                    return Ok(context, prepared)
         }

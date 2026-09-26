@@ -1,7 +1,6 @@
 namespace ModConductor.ProfileGameData
 
 open System
-open System.IO
 open ModConductor.ProfileGameData.IniDocument
 
 module internal IniSavePaths =
@@ -22,31 +21,32 @@ module internal IniSavePaths =
             None
 
     let private locate (content: ResizeArray<string>) =
-        let mutable general = false
-        let mutable header = None
-        let mutable found = None
-
-        for index in 0 .. content.Count - 1 do
-            match section content[index] with
-            | Some name ->
-                general <- name.Equals("General", StringComparison.OrdinalIgnoreCase)
-
-                if general then
+        let rec scan index general (header: int option) (found: (int * string) option) =
+            if index = content.Count then
+                Ok(header, found)
+            else
+                match section content[index] with
+                | Some name when name.Equals("General", StringComparison.OrdinalIgnoreCase) ->
                     if header.IsSome then
-                        raise (IOException "The settings file has more than one General section.")
+                        Error(
+                            ProfileDataError.Unavailable
+                                "The settings file has more than one General section."
+                        )
+                    else
+                        scan (index + 1) true (Some index) found
+                | Some _ -> scan (index + 1) false header found
+                | None when general ->
+                    match key content[index] with
+                    | Some _ when found.IsSome ->
+                        Error(
+                            ProfileDataError.Unavailable
+                                "The settings file has more than one save path."
+                        )
+                    | Some value -> scan (index + 1) general header (Some(index, value))
+                    | None -> scan (index + 1) general header found
+                | None -> scan (index + 1) general header found
 
-                    header <- Some index
-            | None when general ->
-                match key content[index] with
-                | Some value ->
-                    if found.IsSome then
-                        raise (IOException "The settings file has more than one save path.")
-
-                    found <- Some(index, value)
-                | None -> ()
-            | None -> ()
-
-        header, found
+        scan 0 false None None
 
     let testFiles bytes =
         let _, text = decode bytes
@@ -72,25 +72,20 @@ module internal IniSavePaths =
                           | _ -> ()
               | None -> () ]
 
-    let apply value (original: byte array option) =
-        let bytes = original |> Option.defaultValue [||]
-
-        if
-            String.IsNullOrWhiteSpace value
-            || value.IndexOfAny([| '\r'; '\n'; '\000' |]) >= 0
-        then
-            invalidArg (nameof value) "Select a save directory."
-
-        let kind, text = decode bytes
-        let content = lines text
-
+    let private applyLocated
+        value
+        (original: byte array option)
+        kind
+        (text: string)
+        (content: ResizeArray<string>)
+        (header, found)
+        =
         let newline =
             if text.Contains("\r\n") || not (text.Contains '\n') then
                 "\r\n"
             else
                 "\n"
 
-        let header, found = locate content
         let previous = found |> Option.map (fun (index, _) -> content[index])
         let mutable separator = false
 
@@ -127,11 +122,25 @@ module internal IniSavePaths =
           AddedSeparator = separator
           AbsentFile = original.IsNone }
 
-    let remove (patch: SavePathOverride) bytes =
-        let kind, text = decode bytes
-        let content = lines text
-        let header, found = locate content
+    let apply value (original: byte array option) =
+        if
+            String.IsNullOrWhiteSpace value
+            || value.IndexOfAny([| '\r'; '\n'; '\000' |]) >= 0
+        then
+            Error(ProfileDataError.Invalid "Select a save directory.")
+        else
+            let bytes = original |> Option.defaultValue [||]
+            let kind, text = decode bytes
+            let content = lines text
 
+            locate content |> Result.map (applyLocated value original kind text content)
+
+    let private removeLocated
+        (patch: SavePathOverride)
+        kind
+        (content: ResizeArray<string>)
+        (header, found)
+        =
         match found with
         | Some(index, value) when value = patch.Value ->
             match patch.PreviousLine with
@@ -163,11 +172,17 @@ module internal IniSavePaths =
             let bytes = encode kind (String.Concat content)
 
             if patch.AbsentFile && bytes.Length = 0 then
-                None
+                Ok None
             else
-                Some bytes
+                Ok(Some bytes)
         | _ ->
-            raise (
-                IOException
+            Error(
+                ProfileDataError.Unavailable
                     "The active save path changed. Read the settings again before restoration."
             )
+
+    let remove (patch: SavePathOverride) bytes =
+        let kind, text = decode bytes
+        let content = lines text
+
+        locate content |> Result.bind (removeLocated patch kind content)

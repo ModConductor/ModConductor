@@ -14,7 +14,7 @@ module internal ProfileCloning =
         progress
         captureCheckpoint
         =
-        task {
+        ProfileDataResultTask.resultTask {
             let targetId =
                 match initial.Kind with
                 | ProfileDataActionKind.Clone(target, _, _) -> target
@@ -35,7 +35,7 @@ module internal ProfileCloning =
                     context <- nextContext
                     action <- staged
 
-                    let files, _, _ =
+                    let! files, _, _ =
                         SettingsPreparation.prepare
                             context
                             (Some source)
@@ -83,9 +83,7 @@ module internal ProfileCloning =
                       PluginOrder = source.PluginOrder
                       ArchiveList =
                         source.ArchiveList
-                        |> Option.map (fun receipt ->
-                            { receipt with
-                                Documents = None }) }
+                        |> Option.map (fun receipt -> { receipt with Documents = None }) }
 
             let saveTarget () =
                 task {
@@ -126,7 +124,7 @@ module internal ProfileCloning =
 
             if source.SettingsInitialized && not target.SettingsInitialized then
                 SaveTrees.clearPrepared target.Settings.Value
-                let tree = SaveTrees.observe source.Settings.Value token progress
+                let! tree = SaveTrees.observe source.Settings.Value token progress
                 SaveTrees.copy tree target.Settings.Value token progress
 
                 target <-
@@ -137,7 +135,7 @@ module internal ProfileCloning =
 
             if source.SavesInitialized && not target.SavesInitialized then
                 SaveTrees.clearPrepared target.Saves.Value
-                let tree = SaveTrees.observe source.Saves.Value token progress
+                let! tree = SaveTrees.observe source.Saves.Value token progress
                 SaveTrees.copy tree target.Saves.Value token progress
                 target <- { target with SavesInitialized = true }
                 do! saveTarget ()

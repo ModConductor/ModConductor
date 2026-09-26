@@ -15,7 +15,7 @@ module internal SettingsSource =
         let originals = context.Applied |> Option.map _.Originals |> Option.defaultValue []
 
         DataLocations.iniNames documents
-        |> List.map (fun (declared, actual) ->
+        |> ProfileDataResultFlow.traverse (fun (declared, actual) ->
             let bytes =
                 match
                     originals
@@ -23,13 +23,13 @@ module internal SettingsSource =
                         value.Name.Equals(actual, StringComparison.OrdinalIgnoreCase))
                 with
                 | Some original when context.Applied.Value.Options.Settings ->
-                    original.Original |> Option.bind (fun file -> readStored file token)
+                    Ok(original.Original |> Option.bind (fun file -> readStored file token))
                 | _ ->
                     let observed = DataFiles.observe documents actual token
                     let current = DataFiles.readIni documents actual observed token
 
                     match context.Applied |> Option.bind _.SaveOverride, current with
                     | Some patch, Some bytes when declared = "Skyrim.ini" -> Ini.remove patch bytes
-                    | _ -> current
+                    | _ -> Ok current
 
-            declared, bytes)
+            bytes |> Result.map (fun value -> declared, value))

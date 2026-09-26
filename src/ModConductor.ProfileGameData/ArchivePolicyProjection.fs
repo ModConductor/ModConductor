@@ -139,9 +139,9 @@ module internal ArchivePolicyProjection =
             actual, observed, bytes, stamp)
 
     let input scope (headers: PluginSnapshot) token =
-        ini scope token
-        |> Result.map (fun (actual, observed, bytes, stamp) ->
-            let pluginInput = PluginInputs.read scope headers.Entries token
+        ProfileDataResultFlow.result {
+            let! actual, observed, bytes, stamp = ini scope token
+            let! pluginInput = PluginInputs.read scope headers.Entries token
             let saved = scope.Profile |> Option.bind _.PluginOrder
 
             let order =
@@ -149,17 +149,19 @@ module internal ArchivePolicyProjection =
 
             let view = OrderRules.inspect pluginInput.Facts headers.Entries order
 
-            { Scope = scope
-              IniName = actual
-              IniFile = observed
-              IniBytes = bytes
-              IniStamp = stamp
-              Policy =
-                Some
-                    { Headers = headers
-                      Order = view
-                      Explicit = Ini.archiveEntries bytes
-                      Ini = stamp } })
+            return
+                { Scope = scope
+                  IniName = actual
+                  IniFile = observed
+                  IniBytes = bytes
+                  IniStamp = stamp
+                  Policy =
+                    Some
+                        { Headers = headers
+                          Order = view
+                          Explicit = Ini.archiveEntries bytes
+                          Ini = stamp } }
+        }
 
     let reference (scope: ProfileDataScope) =
         { WorkspaceId = scope.WorkspaceId

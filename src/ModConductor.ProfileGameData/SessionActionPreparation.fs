@@ -17,7 +17,7 @@ module internal ProfileDataActionPreparation =
             | ProfileDataActionKind.Edit(options, saves, _) ->
                 let! privateData = DataInitialization.profile repository context action.ProfileId
 
-                let! initialized =
+                let! initialization =
                     DataInitialization.seed
                         repository
                         context
@@ -28,22 +28,26 @@ module internal ProfileDataActionPreparation =
                         token
                         progress
 
-                let changed =
-                    { initialized with
-                        Options = options
-                        Revision = initialized.Revision + 1L }
-
-                let incoming =
-                    match context.Applied with
-                    | Some active when active.ProfileId = action.ProfileId ->
-                        Some
+                return
+                    initialization
+                    |> Result.map (fun initialized ->
+                        let changed =
                             { initialized with
-                                Options =
-                                    { Settings = active.Options.Settings && options.Settings
-                                      Saves = active.Options.Saves && options.Saves } }
-                    | _ -> None
+                                Options = options
+                                Revision = initialized.Revision + 1L }
 
-                return Ok(incoming, Some changed)
+                        let incoming =
+                            match context.Applied with
+                            | Some active when active.ProfileId = action.ProfileId ->
+                                Some
+                                    { initialized with
+                                        Options =
+                                            { Settings =
+                                                active.Options.Settings && options.Settings
+                                              Saves = active.Options.Saves && options.Saves } }
+                            | _ -> None
+
+                        incoming, Some changed)
             | ProfileDataActionKind.Apply
             | ProfileDataActionKind.ApplyArchives _
             | ProfileDataActionKind.RestoreArchives
@@ -102,19 +106,7 @@ module internal ProfileDataActionPreparation =
 
                 return prepared |> Result.map (fun action -> context, action)
             }
-        | _ ->
-            task {
-                let! prepared =
-                    DataActionPreparation.prepare
-                        repository
-                        context
-                        action
-                        incoming
-                        desiredPlugins
-                        token
-
-                return Ok prepared
-            }
+        | _ -> DataActionPreparation.prepare repository context action incoming desiredPlugins token
 
     let finishDeletion
         (repository: IProfileDataRepository)
@@ -123,17 +115,22 @@ module internal ProfileDataActionPreparation =
         token
         progress
         =
-        task {
+        ProfileDataResultTask.resultTask {
             match action.Kind, changed with
             | ProfileDataActionKind.Edit(options, _, DisabledFiles.Delete), Some profile ->
                 let mutable action = action
 
                 if action.Deletion.IsNone then
-                    let trees =
+                    let roots =
                         [ if not options.Settings then
-                              yield SaveTrees.observe profile.Settings.Value token progress
+                              yield profile.Settings.Value
                           if not options.Saves then
-                              yield SaveTrees.observe profile.Saves.Value token progress ]
+                              yield profile.Saves.Value ]
+
+                    let! trees =
+                        roots
+                        |> ProfileDataResultFlow.traverse (fun root ->
+                            SaveTrees.observe root token progress)
 
                     action <-
                         { action with

@@ -65,7 +65,7 @@ module internal PluginOrders =
             let! headerResult = headers plugins workspace profile id
             let! header = headerResult
             let! scope = repository.Read(workspace, profile)
-            let input = PluginInputs.read scope header.Entries CancellationToken.None
+            let! input = PluginInputs.read scope header.Entries CancellationToken.None
             let value = view scope header input
 
             match scope.Context |> Option.bind _.Pending with
@@ -83,7 +83,7 @@ module internal PluginOrders =
             let! headerResult = headers plugins expected.WorkspaceId expected.ProfileId id
             let! header = headerResult
             let! scope = repository.Read(expected.WorkspaceId, expected.ProfileId)
-            let input = PluginInputs.read scope header.Entries CancellationToken.None
+            let! input = PluginInputs.read scope header.Entries CancellationToken.None
             let current = view scope header input
 
             if current.Reference <> expected then
@@ -189,7 +189,7 @@ module internal PluginOrders =
                 | Error FilePlanError.Busy -> Error ProfileDataError.Busy
                 | _ -> Error(ProfileDataError.Unavailable "Refresh the plugins before playing.")
 
-            let input = PluginInputs.read scope header.Entries token
+            let! input = PluginInputs.read scope header.Entries token
 
             if
                 saved.IsNone

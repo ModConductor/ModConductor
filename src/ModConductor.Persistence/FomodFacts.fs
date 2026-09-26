@@ -103,12 +103,13 @@ module internal FomodFacts =
                                             Threading.CancellationToken.None
 
                                     return
-                                        Some(
+                                        inputs
+                                        |> Result.toOption
+                                        |> Option.map (fun value ->
                                             ModConductor.ProfileGameData.PluginOrders.view
                                                 scope
                                                 headers
-                                                inputs
-                                        )
+                                                value)
                                 with
                                 | ModConductor.ProfileGameData.ProfileDataException _ -> return None
                                 | :? IOException -> return None

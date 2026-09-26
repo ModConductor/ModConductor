@@ -107,16 +107,17 @@ module internal DataInitialization =
         (token: CancellationToken)
         progress
         =
-        task {
+        ProfileDataResultTask.resultTask {
             let mutable value = profile
 
             if options.Settings && not value.SettingsInitialized then
-                let globals = SettingsSource.globalSettings context token
+                let! globals = SettingsSource.globalSettings context token
 
                 use settings =
                     HeldDirectory.Open(value.Settings.Value.Path, value.Settings.Value.Identity)
 
-                for name, bytes in globals do
+                globals
+                |> List.iter (fun (name, bytes) ->
                     token.ThrowIfCancellationRequested()
 
                     match DataFiles.observe settings name token with
@@ -125,7 +126,7 @@ module internal DataInitialization =
 
                     bytes
                     |> Option.iter (fun bytes ->
-                        DataFiles.stage settings name bytes token |> ignore)
+                        DataFiles.stage settings name bytes token |> ignore))
 
                 value <-
                     { value with
@@ -135,7 +136,7 @@ module internal DataInitialization =
 
             if options.Saves && not value.SavesInitialized then
                 let destination = value.Saves.Value
-                let existing = SaveTrees.observe destination token ignore
+                let! existing = SaveTrees.observe destination token ignore
                 SaveTrees.remove existing token ignore
 
                 match initialSaves with
@@ -146,18 +147,17 @@ module internal DataInitialization =
                         let source = DataLocations.root path
 
                         if source.Identity = destination.Identity then
-                            raise (
-                                ProfileDataException(
+                            return!
+                                Error(
                                     ProfileDataError.Invalid
                                         "The global and private save folders are the same."
                                 )
-                            )
 
-                        let observed = SaveTrees.observe source token progress
+                        let! observed = SaveTrees.observe source token progress
                         SaveTrees.copy observed destination token progress
                     | Location.Located(_, false) -> ()
                     | Location.Unavailable reason ->
-                        raise (ProfileDataException(ProfileDataError.Unavailable reason))
+                        return! Error(ProfileDataError.Unavailable reason)
 
                 value <- { value with SavesInitialized = true }
                 do! repository.SaveProfile(context.Id, value)

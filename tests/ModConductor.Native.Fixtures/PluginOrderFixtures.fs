@@ -99,6 +99,23 @@ module PluginOrderFixtures =
                 |> result)
             |> List.head
 
+        let uncheckedScope =
+            { WorkspaceId = workspace
+              ProfileId = first
+              Workspace = DataLocations.root root
+              Game = { context with Binding = None }
+              Availability = None
+              Context = None
+              Profile = None }
+            : ProfileDataScope
+
+        check
+            "uncheckedGameRefusesPluginInputs"
+            (match PluginInputs.read uncheckedScope [] token with
+             | Error(ProfileDataError.Unavailable detail) ->
+                 detail = "Select and refresh the game installation first."
+             | _ -> false)
+
         let local =
             match context.Binding.Value.Evidence.Locations.LocalAppData with
             | Location.Located(path, _) -> path
@@ -279,6 +296,7 @@ module PluginOrderFixtures =
         store <- new OperationStore(Path.Combine(area, "state"))
         let contexts = store.GameContexts :> IGameContexts
         let reloaded = contexts.Read(workspace, first) |> wait |> result
+
         contexts.Refresh(workspace, first, reloaded.Revision) |> wait |> result |> ignore
         let reloadedOther = contexts.Read(workspace, second) |> wait |> result
         contexts.Refresh(workspace, second, reloadedOther.Revision) |> wait |> result |> ignore

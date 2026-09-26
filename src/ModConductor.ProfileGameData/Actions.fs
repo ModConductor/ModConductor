@@ -130,13 +130,15 @@ module internal ProfileDataActions =
                     else
                         action <- { action with Prepared = true }
 
-                    let! completedAction, completedProfile =
+                    let! completion =
                         ProfileDataActionPreparation.finishDeletion
                             repository
                             action
                             changed
                             token
                             progress
+
+                    let! completedAction, completedProfile = completion
 
                     action <- completedAction
                     changed <- completedProfile

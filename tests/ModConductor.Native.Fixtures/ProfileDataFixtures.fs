@@ -46,6 +46,31 @@ module ProfileDataFixtures =
 
             let area = Directory.CreateDirectory(Path.Combine(primary, "profile-data")).FullName
 
+            let saveValue = "ProfileSaves\\"
+
+            let preparedSave =
+                Ini.apply saveValue (Some(System.Text.Encoding.UTF8.GetBytes "[General]\n"))
+
+            let staleSave =
+                preparedSave
+                |> Result.bind (fun (_, patch) ->
+                    Ini.remove
+                        patch
+                        (System.Text.Encoding.UTF8.GetBytes "[General]\nsLocalSavePath=Other\\\n"))
+
+            check
+                "changedSavePathRefusesRestoration"
+                (match staleSave with
+                 | Error(ProfileDataError.Unavailable detail) ->
+                     detail = "The active save path changed. Read the settings again before restoration."
+                 | _ -> false)
+
+            check
+                "invalidSavePathValueIsRefused"
+                (match Ini.apply "Bad\nPath" None with
+                 | Error(ProfileDataError.Invalid detail) -> detail = "Select a save directory."
+                 | _ -> false)
+
             let workspacePath =
                 Directory.CreateDirectory(Path.Combine(area, "workspace")).FullName
 
@@ -267,6 +292,31 @@ module ProfileDataFixtures =
                 "restorationKeepsEnabledOptions"
                 ((read second).Options = { Settings = true; Saves = true })
 
+            let firstIni = Path.Combine(enabled.State.SettingsPath, "Skyrim.ini")
+            let duplicateGeneral = "[General]\nsLocalSavePath=First\\\n[General]\n"
+            File.WriteAllText(firstIni, duplicateGeneral)
+            let duplicateRun = start first
+
+            check
+                "duplicateGeneralRefusesApplicationWithoutChangingSettings"
+                (duplicateRun.Phase = RunPhase.Failed
+                 && duplicateRun.ProcessId.IsNone
+                 && File.ReadAllText(firstIni) = duplicateGeneral
+                 && (read first).Pending.IsNone)
+
+            let duplicatePath = "[General]\nsLocalSavePath=First\\\nsLocalSavePath=Second\\\n"
+            File.WriteAllText(firstIni, duplicatePath)
+            let duplicateRun = start first
+
+            check
+                "duplicateSavePathRefusesApplicationWithoutChangingSettings"
+                (duplicateRun.Phase = RunPhase.Failed
+                 && duplicateRun.ProcessId.IsNone
+                 && File.ReadAllText(firstIni) = duplicatePath
+                 && (read first).Pending.IsNone)
+
+            File.Delete firstIni
+
             File.WriteAllText(prefs, "[Display]\r\niSize W=1920\r\n")
             play first |> ignore
 
@@ -364,6 +414,14 @@ module ProfileDataFixtures =
             let nested =
                 Directory.CreateDirectory(Path.Combine(cloneData.SavesPath, "Nested")).FullName
 
+            let invalidSaveFolder = api.SaveFiles(workspace, clone, [ ".." ], None) |> wait
+
+            check
+                "invalidSaveFolderDoesNotPreventBrowsing"
+                (match invalidSaveFolder with
+                 | Error(ProfileDataError.Invalid _) -> true
+                 | _ -> false)
+
             for index in 1..70 do
                 File.WriteAllText(
                     Path.Combine(nested, index.ToString("D3") + ".ess"),
@@ -385,6 +443,20 @@ module ProfileDataFixtures =
             check
                 "saveBrowsingContinuesWithoutMissingOrDuplicateFiles"
                 (pages = 3 && loaded.Length = 70 && (List.distinct loaded).Length = 70)
+
+            let linkedSave = Path.Combine(cloneData.SavesPath, "linked.ess")
+            File.CreateSymbolicLink(linkedSave, cloneSave) |> ignore
+            let linkedBrowse = api.SaveFiles(workspace, clone, [], None) |> wait
+            let linkedState = read clone
+
+            check
+                "linkedSaveIsUnavailableInBrowsingAndState"
+                ((match linkedBrowse with
+                  | Error(ProfileDataError.Unavailable _) -> true
+                  | _ -> false)
+                 && linkedState.Problem.IsSome)
+
+            File.Delete linkedSave
 
             let large = Path.Combine(kept.SavesPath, "copy-cancellation.ess")
             File.WriteAllBytes(large, Array.create (8 * 1024 * 1024) 42uy)
@@ -494,8 +566,8 @@ module ProfileDataFixtures =
             api <- store.ProfileGameData
             let contexts = store.GameContexts :> IGameContexts
             let reloaded = contexts.Read(workspace, first) |> wait |> result
-            contexts.Refresh(workspace, first, reloaded.Revision) |> wait |> result |> ignore
 
+            contexts.Refresh(workspace, first, reloaded.Revision) |> wait |> result |> ignore
             let resumed =
                 store.ProfileGameData.Resume(workspace, interruptedId, token) |> wait |> result
 
