@@ -22,7 +22,7 @@ type internal FilePlanSessionState(repository: IFileCandidateRepository, cache: 
         }
 
     member _.Describe stale snapshot =
-        PlanSnapshot.summary (stale || cache.Stale snapshot) snapshot
+        PlanSnapshotPaging.summary (stale || cache.Stale snapshot) snapshot
 
     member this.Keep fresh snapshot =
         cache.Put(snapshot, fresh)

@@ -9,9 +9,9 @@ module internal InspectionProjection =
     let size (row: InspectedCopy) =
         Encoding.UTF8.GetByteCount row.Name
         + Encoding.UTF8.GetByteCount row.VersionLabel
-        + PlanSnapshot.pathBytes row.SourcePath
+        + PlanSnapshotPaging.pathBytes row.SourcePath
         + (row.Copy
-           |> Option.map (fun copy -> PlanSnapshot.pathBytes copy.Path)
+           |> Option.map (fun copy -> PlanSnapshotPaging.pathBytes copy.Path)
            |> Option.defaultValue 0)
         + 512
 
@@ -138,8 +138,8 @@ module internal InspectionProjection =
             |> List.toArray
 
 
-        PlanSnapshot.page
-            (PlanSnapshot.queryIdentity snapshot "inspect" (Some target) "")
+        PlanSnapshotPaging.page
+            (PlanSnapshotPaging.queryIdentity snapshot "inspect" (Some target) "")
             cursor
             size
             (modCopies.Length + gameCopies.Length)

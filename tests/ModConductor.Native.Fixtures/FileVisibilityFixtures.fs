@@ -139,7 +139,10 @@ module FileVisibilityFixtures =
                     RecordedAt = DateTimeOffset.UnixEpoch.AddSeconds(float id) } ]
 
         let first =
-            changes |> List.truncate 32 |> PlanSnapshot.historyPage |> StorageWorker.result
+            changes
+            |> List.truncate 32
+            |> PlanSnapshotPaging.historyPage
+            |> StorageWorker.result
 
         let collected = ResizeArray<FileChange>(first.Changes)
         let mutable next = first.NextBeforeId
@@ -151,7 +154,7 @@ module FileVisibilityFixtures =
                 changes
                 |> List.filter (fun change -> change.Id < before)
                 |> List.truncate 32
-                |> PlanSnapshot.historyPage
+                |> PlanSnapshotPaging.historyPage
                 |> StorageWorker.result
 
             collected.AddRange page.Changes

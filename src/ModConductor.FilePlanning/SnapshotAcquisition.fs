@@ -6,7 +6,7 @@ open ModConductor.DeploymentPlanning
 
 type internal SnapshotAcquisition(repository: IFilePlanRepository, cache: SnapshotCache) as this =
     let describe snapshot =
-        PlanSnapshot.summary (cache.Stale snapshot) snapshot
+        PlanSnapshotPaging.summary (cache.Stale snapshot) snapshot
 
     let keep fresh snapshot =
         cache.Put(snapshot, fresh)

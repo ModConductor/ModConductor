@@ -30,7 +30,7 @@ type internal FilePlanQueryHandler(state: FilePlanSessionState) =
                     if stale then
                         Error FilePlanError.Stale
                     else
-                        PlanSnapshot.children parent query cursor snapshot
+                        PlanSnapshotPaging.children parent query cursor snapshot
                         |> Result.map (fun (nodes, next) ->
                             { Snapshot = describe false snapshot
                               Nodes = nodes
@@ -41,7 +41,7 @@ type internal FilePlanQueryHandler(state: FilePlanSessionState) =
         task {
             match cache.Find id with
             | None -> return Error FilePlanError.Expired
-            | Some snapshot -> return PlanSnapshot.problems cursor snapshot
+            | Some snapshot -> return PlanSnapshotPaging.problems cursor snapshot
         }
 
     member _.DiagnosticProblems id =
@@ -54,7 +54,7 @@ type internal FilePlanQueryHandler(state: FilePlanSessionState) =
                     if stale then
                         Error FilePlanError.Stale
                     else
-                        Ok(PlanSnapshot.diagnosticProblems snapshot))
+                        Ok(PlanSnapshotPaging.diagnosticProblems snapshot))
         }
 
     member _.Inspect(id, target, cursor) =
@@ -169,5 +169,5 @@ type internal FilePlanQueryHandler(state: FilePlanSessionState) =
             | Some snapshot ->
                 let! changes = repository.History(snapshot.Sources.Stamp.WorkspaceId, copy, after)
 
-                return changes |> Result.bind PlanSnapshot.historyPage
+                return changes |> Result.bind PlanSnapshotPaging.historyPage
         }
