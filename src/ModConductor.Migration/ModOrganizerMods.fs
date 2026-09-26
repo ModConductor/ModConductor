@@ -10,6 +10,7 @@ open ModConductor.Platform
 module internal ModOrganizerMods =
     open ModOrganizerInput
     open ModOrganizerSettings
+    open MigrationResult
 
     let private modKind (name: string) =
         if name.EndsWith("_separator", StringComparison.OrdinalIgnoreCase) then
@@ -35,48 +36,62 @@ module internal ModOrganizerMods =
             name
 
     let private metadata root directory entries (stamps: ResizeArray<Stamp>) =
-        match exactChild directory entries "meta.ini" with
-        | Some entry when entry.TargetKind = EntryKind.RegularFile ->
-            let observed = stamp root entry
-            stamps.Add observed
-            ini (text observed)
-        | Some _ -> refuse (Error.UnsafeSource "A mod metadata file is not a regular file.")
-        | None -> Dictionary<string * string, string>()
+        result {
+            match exactChild directory entries "meta.ini" with
+            | Some entry when entry.TargetKind = EntryKind.RegularFile ->
+                let! observed = stamp root entry
+                stamps.Add observed
+                let! content = text observed
+                return ini content
+            | Some _ ->
+                return! Error(Error.UnsafeSource "A mod metadata file is not a regular file.")
+            | None -> return Dictionary<string * string, string>()
+        }
 
     let private installedFiles meta =
-        qsettingsArray "installedFiles" meta
-        |> List.map (fun item ->
-            let number key =
-                match item |> Map.tryFind key with
-                | Some value ->
-                    match Int32.TryParse value with
-                    | true, parsed -> parsed
-                    | _ -> 0
-                | None -> 0
+        result {
+            let! values = qsettingsArray "installedFiles" meta
 
-            number "modid", number "fileid")
+            return
+                values
+                |> List.map (fun item ->
+                    let number key =
+                        match item |> Map.tryFind key with
+                        | Some value ->
+                            match Int32.TryParse value with
+                            | true, parsed -> parsed
+                            | _ -> 0
+                        | None -> 0
+
+                    number "modid", number "fileid")
+        }
 
     let private files root directory entries (stamps: ResizeArray<Stamp>) =
-        entries
-        |> List.choose (fun entry ->
-            match components entry with
-            | first :: rest when
-                String.Equals(first, directory, StringComparison.Ordinal)
-                && entry.TargetKind = EntryKind.RegularFile
-                && not (
-                    rest.Length = 1
-                    && String.Equals(rest[0], "meta.ini", StringComparison.OrdinalIgnoreCase)
-                )
-                ->
-                let logical =
-                    LogicalPath.create rest
-                    |> Result.defaultWith (fun _ ->
-                        refuse (Error.InvalidSource "A mod file path is invalid."))
+        result {
+            let files = ResizeArray<SourceFile>()
 
-                let observed = stamp root entry
-                stamps.Add observed
-                Some { Stamp = observed; Path = logical }
-            | _ -> None)
+            for entry in entries do
+                match components entry with
+                | first :: rest when
+                    String.Equals(first, directory, StringComparison.Ordinal)
+                    && entry.TargetKind = EntryKind.RegularFile
+                    && not (
+                        rest.Length = 1
+                        && String.Equals(rest[0], "meta.ini", StringComparison.OrdinalIgnoreCase)
+                    )
+                    ->
+                    let! logical =
+                        LogicalPath.create rest
+                        |> Result.mapError (fun _ ->
+                            Error.InvalidSource "A mod file path is invalid.")
+
+                    let! observed = stamp root entry
+                    stamps.Add observed
+                    files.Add { Stamp = observed; Path = logical }
+                | _ -> ()
+
+            return List.ofSeq files
+        }
 
     let private readMod
         root
@@ -85,38 +100,44 @@ module internal ModOrganizerMods =
         (stamps: ResizeArray<Stamp>)
         (installationFiles: Dictionary<string, Guid>)
         =
-        let id, versionId = Guid.NewGuid(), Guid.NewGuid()
-        let kind = modKind directory
-        let meta = metadata root directory entries stamps
-        let get name = setting "General" name "" meta
-        let categories = get "category" |> categoryIds
-        let installationFile = get "installationFile"
-        let installed = installedFiles meta
+        result {
+            let id, versionId = Guid.NewGuid(), Guid.NewGuid()
+            let kind = modKind directory
+            let! meta = metadata root directory entries stamps
+            let get name = setting "General" name "" meta
+            let categories = get "category" |> categoryIds
+            let installationFile = get "installationFile"
+            let! installed = installedFiles meta
 
-        if installationFile <> "" then
-            installationFiles[Path.GetFileName installationFile] <- id
+            if installationFile <> "" then
+                installationFiles[Path.GetFileName installationFile] <- id
 
-        let details =
-            { Name = modName directory kind
-              Notes = get "notes"
-              Comment = get "comments"
-              Version = get "version"
-              Source = installationFile
-              Categories = [] }
+            let details =
+                { Name = modName directory kind
+                  Notes = get "notes"
+                  Comment = get "comments"
+                  Version = get "version"
+                  Source = installationFile
+                  Categories = [] }
 
-        InventoryPolicy.metadata details
-        |> Result.defaultWith (fun _ ->
-            refuse (Error.InvalidSource("The metadata is invalid for mod " + directory + ".")))
-        |> ignore
+            do!
+                InventoryPolicy.metadata details
+                |> Result.mapError (fun _ ->
+                    Error.InvalidSource("The metadata is invalid for mod " + directory + "."))
+                |> Result.map ignore
 
-        { Id = id
-          VersionId = versionId
-          Name = directory
-          Kind = kind
-          Metadata = details
-          CategorySourceIds = categories
-          InstalledFiles = installed
-          Files = files root directory entries stamps }
+            let! modFiles = files root directory entries stamps
+
+            return
+                { Id = id
+                  VersionId = versionId
+                  Name = directory
+                  Kind = kind
+                  Metadata = details
+                  CategorySourceIds = categories
+                  InstalledFiles = installed
+                  Files = modFiles }
+        }
 
     let private installedIds (mods: SourceMod list) =
         let installedIds = Dictionary<string, Guid option>(StringComparer.Ordinal)
@@ -134,11 +155,14 @@ module internal ModOrganizerMods =
         installedIds
 
     let readMods root entries =
-        let stamps = ResizeArray<Stamp>()
-        let installationFiles = Dictionary<string, Guid>(StringComparer.OrdinalIgnoreCase)
+        result {
+            let stamps = ResizeArray<Stamp>()
+            let installationFiles = Dictionary<string, Guid>(StringComparer.OrdinalIgnoreCase)
 
-        let mods =
-            rootDirectories entries
-            |> List.map (fun directory -> readMod root entries directory stamps installationFiles)
+            let! mods =
+                rootDirectories entries
+                |> traverse (fun directory ->
+                    readMod root entries directory stamps installationFiles)
 
-        mods, List.ofSeq stamps, installationFiles, installedIds mods
+            return mods, List.ofSeq stamps, installationFiles, installedIds mods
+        }

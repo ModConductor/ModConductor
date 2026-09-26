@@ -43,9 +43,7 @@ module internal Direct =
           Artifacts: Artifact list
           Verify: CancellationToken -> Result<unit, Error> }
 
-    exception private Refused of Error
-
-    let private refuse error = raise (Refused error)
+    open MigrationResult
 
     let private remove path =
         if Directory.Exists path then
@@ -67,151 +65,174 @@ module internal Direct =
             try
                 try
                     let! loaded = Task.Run(readSource, token)
-                    let source = loaded |> Result.defaultWith refuse
-                    token.ThrowIfCancellationRequested()
-                    let action = Guid.NewGuid()
-                    let staged = ".mod-conductor-migration-" + action.ToString("N") + ".partial"
-                    let final = ".mod-conductor-library-" + Guid.NewGuid().ToString("N")
-                    let! begun = store.Begin(workspace, action, staged, final)
-                    let targetValue = begun |> Result.defaultWith refuse
-                    target <- Some targetValue
 
-                    let total =
-                        source.Mods
-                        |> List.sumBy (fun item -> item.Files.Length)
-                        |> (+) source.Artifacts.Length
-
-                    let mutable completed = 0
-
-                    use root =
-                        HeldDirectory.Open(targetValue.WorkspacePath, targetValue.WorkspaceIdentity)
-
-                    use stage = root.CreateDirectory staged
-                    let preparedMods = ResizeArray<ModConductor.Migration.Mod>()
-
-                    for item in source.Mods do
-                        let files = ResizeArray<ModConductor.Migration.File>()
-
-                        for file in item.Files do
-                            token.ThrowIfCancellationRequested()
-                            let id = Guid.NewGuid()
-                            let output, identity = stage.Create(id.ToString("N") + ".payload")
-                            use output = output
-                            let length, sha = file.Read output token |> Result.defaultWith refuse
-
-                            files.Add
-                                { Id = id
-                                  Path = file.Path
-                                  Length = length
-                                  Sha256 = sha
-                                  Identity = identity }
-
-                            completed <- completed + 1
-
-                            progress
-                                { Completed = completed
-                                  Total = total
-                                  Message = "Copying mods" }
-
-                        preparedMods.Add
-                            { Id = item.Id
-                              VersionId = item.VersionId
-                              Kind = item.Kind
-                              Metadata = item.Metadata
-                              CategorySourceIds = item.CategorySourceIds
-                              Files = List.ofSeq files }
-
-                    let preparedArtifacts = ResizeArray<ModConductor.Migration.Artifact>()
-
-                    for item in source.Artifacts do
-                        token.ThrowIfCancellationRequested()
-
-                        let fileName =
-                            "artifact-"
-                            + item.Id.ToString("N")
-                            + if item.Partial then ".partial" else ".archive"
-
-                        let output, identity = stage.Create fileName
-                        use output = output
-                        let length, sha = item.File.Read output token |> Result.defaultWith refuse
-
-                        preparedArtifacts.Add
-                            { Id = item.Id
-                              OriginalName = item.OriginalName
-                              OriginalPath = item.OriginalPath
-                              FileName = fileName
-                              File =
-                                { Id = item.Id
-                                  Path = item.File.Path
-                                  Length = length
-                                  Sha256 = sha
-                                  Identity = identity }
-                              Partial = item.Partial
-                              Sources = item.Sources
-                              InstalledMod = item.InstalledMod }
-
-                        completed <- completed + 1
-
-                        progress
-                            { Completed = completed
-                              Total = total
-                              Message = "Copying downloads" }
-
-                    checkpoint "before-source-recheck"
-                    token.ThrowIfCancellationRequested()
-                    source.Verify token |> Result.defaultWith refuse
-                    checkpoint "before-publication"
-                    token.ThrowIfCancellationRequested()
-
-                    let! ready = store.Ready targetValue
-                    ready |> Result.defaultWith refuse
-                    token.ThrowIfCancellationRequested()
-
-                    let stagedEntry =
-                        match root.InspectEntry staged with
-                        | Some entry when
-                            entry.Kind = EntryKind.Directory && entry.Identity = stage.Identity
-                            ->
-                            entry
-                        | _ -> refuse Error.SourceChanged
-
-                    root.MoveOriginal(staged, stagedEntry, root, final)
-                    published <- true
-                    checkpoint "after-publication"
-                    token.ThrowIfCancellationRequested()
-
-                    let! result =
-                        store.Complete
-                            { Target = targetValue
-                              LibraryIdentity = stagedEntry.Identity
-                              Categories = source.Categories
-                              Mods = List.ofSeq preparedMods
-                              Profiles =
-                                source.Profiles
-                                |> List.map (fun value ->
-                                    { Id = value.Id
-                                      Name = value.Name
-                                      Mods = value.Mods })
-                              SelectedProfile = source.SelectedProfile
-                              Artifacts = List.ofSeq preparedArtifacts }
-
-                    match result with
-                    | Ok value ->
-                        committed <- true
-
-                        progress
-                            { Completed = total
-                              Total = total
-                              Message = "Migration complete" }
-
-                        return Ok value
+                    match loaded with
                     | Error error -> return Error error
+                    | Ok source ->
+                        token.ThrowIfCancellationRequested()
+                        let action = Guid.NewGuid()
+                        let staged = ".mod-conductor-migration-" + action.ToString("N") + ".partial"
+                        let final = ".mod-conductor-library-" + Guid.NewGuid().ToString("N")
+                        let! begun = store.Begin(workspace, action, staged, final)
+
+                        match begun with
+                        | Error error -> return Error error
+                        | Ok targetValue ->
+                            target <- Some targetValue
+
+                            let total =
+                                source.Mods
+                                |> List.sumBy (fun item -> item.Files.Length)
+                                |> (+) source.Artifacts.Length
+
+                            let mutable completed = 0
+
+                            use root =
+                                HeldDirectory.Open(
+                                    targetValue.WorkspacePath,
+                                    targetValue.WorkspaceIdentity
+                                )
+
+                            use stage = root.CreateDirectory staged
+                            let preparedMods = ResizeArray<ModConductor.Migration.Mod>()
+                            let preparedArtifacts = ResizeArray<ModConductor.Migration.Artifact>()
+
+                            let prepared =
+                                result {
+                                    for item in source.Mods do
+                                        let files = ResizeArray<ModConductor.Migration.File>()
+
+                                        for file in item.Files do
+                                            token.ThrowIfCancellationRequested()
+                                            let id = Guid.NewGuid()
+
+                                            let output, identity =
+                                                stage.Create(id.ToString("N") + ".payload")
+
+                                            use output = output
+                                            let! length, sha = file.Read output token
+
+                                            files.Add
+                                                { Id = id
+                                                  Path = file.Path
+                                                  Length = length
+                                                  Sha256 = sha
+                                                  Identity = identity }
+
+                                            completed <- completed + 1
+
+                                            progress
+                                                { Completed = completed
+                                                  Total = total
+                                                  Message = "Copying mods" }
+
+                                        preparedMods.Add
+                                            { Id = item.Id
+                                              VersionId = item.VersionId
+                                              Kind = item.Kind
+                                              Metadata = item.Metadata
+                                              CategorySourceIds = item.CategorySourceIds
+                                              Files = List.ofSeq files }
+
+                                    for item in source.Artifacts do
+                                        token.ThrowIfCancellationRequested()
+
+                                        let fileName =
+                                            "artifact-"
+                                            + item.Id.ToString("N")
+                                            + if item.Partial then ".partial" else ".archive"
+
+                                        let output, identity = stage.Create fileName
+                                        use output = output
+                                        let! length, sha = item.File.Read output token
+
+                                        preparedArtifacts.Add
+                                            { Id = item.Id
+                                              OriginalName = item.OriginalName
+                                              OriginalPath = item.OriginalPath
+                                              FileName = fileName
+                                              File =
+                                                { Id = item.Id
+                                                  Path = item.File.Path
+                                                  Length = length
+                                                  Sha256 = sha
+                                                  Identity = identity }
+                                              Partial = item.Partial
+                                              Sources = item.Sources
+                                              InstalledMod = item.InstalledMod }
+
+                                        completed <- completed + 1
+
+                                        progress
+                                            { Completed = completed
+                                              Total = total
+                                              Message = "Copying downloads" }
+
+                                    checkpoint "before-source-recheck"
+                                    token.ThrowIfCancellationRequested()
+                                    do! source.Verify token
+                                    checkpoint "before-publication"
+                                    token.ThrowIfCancellationRequested()
+                                }
+
+                            match prepared with
+                            | Error error -> return Error error
+                            | Ok() ->
+                                let! ready = store.Ready targetValue
+
+                                match ready with
+                                | Error error -> return Error error
+                                | Ok() ->
+                                    token.ThrowIfCancellationRequested()
+
+                                    let stagedEntry =
+                                        match root.InspectEntry staged with
+                                        | Some entry when
+                                            entry.Kind = EntryKind.Directory
+                                            && entry.Identity = stage.Identity
+                                            ->
+                                            Some entry
+                                        | _ -> None
+
+                                    match stagedEntry with
+                                    | None -> return Error Error.SourceChanged
+                                    | Some stagedEntry ->
+                                        root.MoveOriginal(staged, stagedEntry, root, final)
+                                        published <- true
+                                        checkpoint "after-publication"
+                                        token.ThrowIfCancellationRequested()
+
+                                        let! result =
+                                            store.Complete
+                                                { Target = targetValue
+                                                  LibraryIdentity = stagedEntry.Identity
+                                                  Categories = source.Categories
+                                                  Mods = List.ofSeq preparedMods
+                                                  Profiles =
+                                                    source.Profiles
+                                                    |> List.map (fun value ->
+                                                        { Id = value.Id
+                                                          Name = value.Name
+                                                          Mods = value.Mods })
+                                                  SelectedProfile = source.SelectedProfile
+                                                  Artifacts = List.ofSeq preparedArtifacts }
+
+                                        match result with
+                                        | Ok value ->
+                                            committed <- true
+
+                                            progress
+                                                { Completed = total
+                                                  Total = total
+                                                  Message = "Migration complete" }
+
+                                            return Ok value
+                                        | Error error -> return Error error
                 with
                 | :? OperationCanceledException -> return Error Error.Cancelled
                 | :? IOException as error -> return Error(Error.Unavailable error.Message)
                 | :? UnauthorizedAccessException ->
                     return Error(Error.Unavailable "A source or workspace file is unavailable.")
-                | Refused error -> return Error error
             finally
                 match target with
                 | Some value when not committed ->

@@ -10,69 +10,83 @@ module ModOrganizer =
     open ModOrganizerMods
     open ModOrganizerProfiles
     open ModOrganizerDownloads
+    open MigrationResult
 
     let private readSource folder =
-        let sourceFolder = Path.GetFullPath folder
-        let iniPath = Path.Combine(sourceFolder, "ModOrganizer.ini")
+        result {
+            let sourceFolder = Path.GetFullPath folder
+            let iniPath = Path.Combine(sourceFolder, "ModOrganizer.ini")
 
-        if not (File.Exists iniPath) then
-            refuse (
-                Error.InvalidSource "Choose a Mod Organizer folder that contains ModOrganizer.ini."
-            )
+            if not (File.Exists iniPath) then
+                return!
+                    Error(
+                        Error.InvalidSource
+                            "Choose a Mod Organizer folder that contains ModOrganizer.ini."
+                    )
 
-        let iniStamp = directFile iniPath
-        let settings = ini (text iniStamp)
-        let basePath = path sourceFolder sourceFolder "base_directory" settings
+            let! iniStamp = directFile iniPath
+            let! iniText = text iniStamp
+            let settings = ini iniText
+            let basePath = path sourceFolder sourceFolder "base_directory" settings
+            let modsPath = path basePath "mods" "mod_directory" settings
+            let profilesPath = path basePath "profiles" "profiles_directory" settings
+            let downloadsPath = path basePath "downloads" "download_directory" settings
+            let selected = setting "General" "selected_profile" "" settings
 
-        let modsPath = path basePath "mods" "mod_directory" settings
-        let profilesPath = path basePath "profiles" "profiles_directory" settings
-        let downloadsPath = path basePath "downloads" "download_directory" settings
-        let selected = setting "General" "selected_profile" "" settings
+            if String.IsNullOrWhiteSpace selected then
+                return! Error(Error.InvalidSource "ModOrganizer.ini does not select a profile.")
 
-        if String.IsNullOrWhiteSpace selected then
-            refuse (Error.InvalidSource "ModOrganizer.ini does not select a profile.")
+            let! categories, categoryStamps, categoryAbsent = readCategories sourceFolder basePath
+            let! modsRoot, modEntries, modsManifest = scanRoot modsPath
+            let! mods, modStamps, installationFiles, installedIds = readMods modsRoot modEntries
+            let! profileRoot, profileEntries, profilesManifest = scanRoot profilesPath
 
-        let categories, categoryStamps, categoryAbsent =
-            readCategories sourceFolder basePath
+            let! profiles, selectedProfile, profileStamps =
+                readProfiles profileRoot profileEntries mods selected
 
-        let modsRoot, modEntries, modsManifest = scanRoot modsPath
-        let mods, modStamps, installationFiles, installedIds = readMods modsRoot modEntries
-        let profileRoot, profileEntries, profilesManifest = scanRoot profilesPath
+            let! artifacts, artifactStamps, downloadManifest, downloadAbsent =
+                if pathExists downloadsPath then
+                    result {
+                        let! downloadRoot, downloadEntries, manifest = scanRoot downloadsPath
 
-        let profiles, selectedProfile, profileStamps =
-            readProfiles profileRoot profileEntries mods selected
+                        let! artifacts, stamps =
+                            readArtifacts
+                                downloadRoot
+                                downloadEntries
+                                installationFiles
+                                installedIds
 
-        let artifacts, artifactStamps, downloadManifest, downloadAbsent =
-            if pathExists downloadsPath then
-                let downloadRoot, downloadEntries, manifest = scanRoot downloadsPath
+                        return artifacts, stamps, Some manifest, []
+                    }
+                else
+                    Ok([], [], None, [ downloadsPath ])
 
-                let artifacts, stamps =
-                    readArtifacts downloadRoot downloadEntries installationFiles installedIds
+            let knownCategories = categories |> List.map _.SourceId |> Set.ofList
 
-                artifacts, stamps, Some manifest, []
-            else
-                [], [], None, [ downloadsPath ]
+            match
+                mods
+                |> List.collect _.CategorySourceIds
+                |> List.tryFind (fun id -> not (knownCategories.Contains id))
+            with
+            | Some id ->
+                return! Error(Error.InvalidSource("A mod uses missing category " + string id + "."))
+            | None -> ()
 
-        let knownCategories = categories |> List.map _.SourceId |> Set.ofList
-
-        mods
-        |> List.collect _.CategorySourceIds
-        |> List.tryFind (fun id -> not (knownCategories.Contains id))
-        |> Option.iter (fun id ->
-            refuse (Error.InvalidSource("A mod uses missing category " + string id + ".")))
-
-        { Categories = categories
-          Mods = mods
-          Profiles = profiles
-          SelectedProfile = selectedProfile
-          Artifacts = artifacts
-          Stamps = iniStamp :: (categoryStamps @ modStamps @ profileStamps @ artifactStamps)
-          Manifests = modsManifest :: profilesManifest :: (downloadManifest |> Option.toList)
-          AbsentPaths = categoryAbsent @ downloadAbsent }
+            return
+                { Categories = categories
+                  Mods = mods
+                  Profiles = profiles
+                  SelectedProfile = selectedProfile
+                  Artifacts = artifacts
+                  Stamps = iniStamp :: (categoryStamps @ modStamps @ profileStamps @ artifactStamps)
+                  Manifests =
+                    modsManifest :: profilesManifest :: (downloadManifest |> Option.toList)
+                  AbsentPaths = categoryAbsent @ downloadAbsent }
+        }
 
     let private directSource folder =
-        try
-            let source = readSource folder
+        result {
+            let! source = readSource folder
 
             let mods: Direct.Mod list =
                 source.Mods
@@ -103,24 +117,21 @@ module ModOrganizer =
                       InstalledMod = item.InstalledMod })
 
             let verifySource (token: CancellationToken) =
-                try
+                result {
                     for manifest in source.Manifests do
                         token.ThrowIfCancellationRequested()
-                        verifyManifest manifest
+                        do! verifyManifest manifest
 
                     for path in source.AbsentPaths do
                         token.ThrowIfCancellationRequested()
 
                         if pathExists path then
-                            refuse Error.SourceChanged
+                            return! Error Error.SourceChanged
 
                     for stamp in source.Stamps do
                         token.ThrowIfCancellationRequested()
-                        verify stamp
-
-                    Ok()
-                with Refused error ->
-                    Error error
+                        do! verify stamp
+                }
 
             let direct: Direct.Input =
                 { Categories = source.Categories
@@ -130,9 +141,8 @@ module ModOrganizer =
                   Artifacts = artifacts
                   Verify = verifySource }
 
-            Ok direct
-        with Refused error ->
-            Error error
+            return direct
+        }
 
     let internal migrateAtCheckpoint
         (store: IStore)

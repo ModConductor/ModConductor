@@ -5,123 +5,135 @@ open System.Text.Json
 
 module internal VortexJson =
     open VortexSource
+    open MigrationResult
 
     let maxBackupBytes = 64L * 1024L * 1024L
 
     let property (name: string) (value: JsonElement) =
         if value.ValueKind <> JsonValueKind.Object then
             invalid ("The Vortex backup has invalid " + name + " data.")
-
-        let mutable result = Unchecked.defaultof<JsonElement>
-
-        if value.TryGetProperty(name, &result) then
-            result
         else
-            invalid ("The Vortex backup is missing " + name + ".")
+            let mutable item = Unchecked.defaultof<JsonElement>
+
+            if value.TryGetProperty(name, &item) then
+                Ok item
+            else
+                invalid ("The Vortex backup is missing " + name + ".")
 
     let tryProperty (name: string) (value: JsonElement) =
         if value.ValueKind <> JsonValueKind.Object then
             None
         else
-            let mutable result = Unchecked.defaultof<JsonElement>
+            let mutable item = Unchecked.defaultof<JsonElement>
 
-            if value.TryGetProperty(name, &result) then
-                Some result
+            if value.TryGetProperty(name, &item) then
+                Some item
             else
                 None
 
     let text (name: string) (value: JsonElement) =
-        let item = property name value
+        result {
+            let! item = property name value
 
-        if item.ValueKind <> JsonValueKind.String then
-            invalid ("The Vortex backup has an invalid " + name + ".")
+            if item.ValueKind <> JsonValueKind.String then
+                return! invalid ("The Vortex backup has an invalid " + name + ".")
 
-        let result = item.GetString()
+            let text = item.GetString()
 
-        if String.IsNullOrWhiteSpace result then
-            invalid ("The Vortex backup has an empty " + name + ".")
+            if String.IsNullOrWhiteSpace text then
+                return! invalid ("The Vortex backup has an empty " + name + ".")
 
-        result
+            return text
+        }
 
     let tryText (name: string) (value: JsonElement) =
         match tryProperty name value with
-        | None -> None
-        | Some item when item.ValueKind = JsonValueKind.Null -> None
+        | None -> Ok None
+        | Some item when item.ValueKind = JsonValueKind.Null -> Ok None
         | Some item when item.ValueKind = JsonValueKind.String ->
-            let result = item.GetString()
+            let text = item.GetString()
 
-            if String.IsNullOrWhiteSpace result then
-                None
+            if String.IsNullOrWhiteSpace text then
+                Ok None
             else
-                Some result
+                Ok(Some text)
         | Some _ -> invalid ("The Vortex backup has an invalid " + name + ".")
 
     let boolean (name: string) (value: JsonElement) =
-        match (property name value).ValueKind with
-        | JsonValueKind.True -> true
-        | JsonValueKind.False -> false
-        | _ -> invalid ("The Vortex backup has an invalid " + name + ".")
+        result {
+            let! item = property name value
+
+            match item.ValueKind with
+            | JsonValueKind.True -> return true
+            | JsonValueKind.False -> return false
+            | _ -> return! invalid ("The Vortex backup has an invalid " + name + ".")
+        }
 
     let tryBoolean (name: string) (value: JsonElement) =
         match tryProperty name value with
-        | None -> None
-        | Some item when item.ValueKind = JsonValueKind.True -> Some true
-        | Some item when item.ValueKind = JsonValueKind.False -> Some false
+        | None -> Ok None
+        | Some item when item.ValueKind = JsonValueKind.True -> Ok(Some true)
+        | Some item when item.ValueKind = JsonValueKind.False -> Ok(Some false)
         | Some _ -> invalid ("The Vortex backup has an invalid " + name + ".")
 
     let int64Value (name: string) (value: JsonElement) =
-        let item = property name value
-        let mutable result = 0L
+        result {
+            let! item = property name value
+            let mutable parsed = 0L
 
-        if
-            item.ValueKind <> JsonValueKind.Number
-            || not (item.TryGetInt64(&result))
-            || result < 0L
-        then
-            invalid ("The Vortex backup has an invalid " + name + ".")
+            if
+                item.ValueKind <> JsonValueKind.Number
+                || not (item.TryGetInt64(&parsed))
+                || parsed < 0L
+            then
+                return! invalid ("The Vortex backup has an invalid " + name + ".")
 
-        result
+            return parsed
+        }
 
     let objectEntries name (value: JsonElement) =
         if value.ValueKind <> JsonValueKind.Object then
             invalid ("The Vortex backup has invalid " + name + " data.")
+        else
+            let entries = value.EnumerateObject() |> Seq.toList
 
-        let entries = value.EnumerateObject() |> Seq.toList
-
-        if entries.Length > maxEntries then
-            invalid ("The Vortex backup contains too many " + name + " entries.")
-
-        entries
+            if entries.Length > maxEntries then
+                invalid ("The Vortex backup contains too many " + name + " entries.")
+            else
+                Ok entries
 
     let arrayItems name (value: JsonElement) =
         if value.ValueKind <> JsonValueKind.Array then
             invalid ("The Vortex backup has invalid " + name + " data.")
+        else
+            let items = value.EnumerateArray() |> Seq.toList
 
-        let items = value.EnumerateArray() |> Seq.toList
-
-        if items.Length > maxEntries then
-            invalid ("The Vortex backup contains too many " + name + " entries.")
-
-        items
+            if items.Length > maxEntries then
+                invalid ("The Vortex backup contains too many " + name + " entries.")
+            else
+                Ok items
 
     let document stamp =
-        if stamp.Length > maxBackupBytes then
-            invalid "The Vortex backup is too large."
+        result {
+            if stamp.Length > maxBackupBytes then
+                return! invalid "The Vortex backup is too large."
 
-        let stream, identity = openEntry stamp.Root stamp.Path stamp.Identity
-        use stream = stream
+            let! stream, identity = openEntry stamp.Root stamp.Path stamp.Identity
+            use stream = stream
 
-        if identity <> stamp.Identity || stream.Length <> stamp.Length then
-            refuse Error.SourceChanged
+            if identity <> stamp.Identity || stream.Length <> stamp.Length then
+                return! Error Error.SourceChanged
 
-        try
-            JsonDocument.Parse(
-                stream,
-                JsonDocumentOptions(
-                    AllowTrailingCommas = false,
-                    CommentHandling = JsonCommentHandling.Disallow,
-                    MaxDepth = maxDepth
-                )
-            )
-        with :? JsonException ->
-            invalid "The Vortex backup is not valid JSON."
+            try
+                return
+                    JsonDocument.Parse(
+                        stream,
+                        JsonDocumentOptions(
+                            AllowTrailingCommas = false,
+                            CommentHandling = JsonCommentHandling.Disallow,
+                            MaxDepth = maxDepth
+                        )
+                    )
+            with :? JsonException ->
+                return! invalid "The Vortex backup is not valid JSON."
+        }

@@ -9,81 +9,122 @@ module internal VortexOrder =
     open VortexSource
     open VortexJson
     open VortexMods
+    open MigrationResult
 
     let private validateRules (mods: (ParsedMod * bool) list) =
-        let known = mods |> List.map (fun (item, _) -> item.SourceId) |> Set.ofList
-        let edges = ResizeArray<string * string>()
+        result {
+            let known = mods |> List.map (fun (item, _) -> item.SourceId) |> Set.ofList
+            let edges = ResizeArray<string * string>()
 
-        for item, _ in mods do
-            match item.Rules with
-            | None -> ()
-            | Some rules ->
-                for rule in arrayItems "mod rules" rules do
-                    let relation = text "type" rule
+            for item, _ in mods do
+                match item.Rules with
+                | None -> ()
+                | Some rules ->
+                    let! rules = arrayItems "mod rules" rules
 
-                    if relation <> "before" && relation <> "after" then
-                        unsupported ("The mod " + item.Metadata.Name + " uses an unsupported rule.")
+                    for rule in rules do
+                        let! relation = text "type" rule
 
-                    if tryBoolean "ignored" rule = Some true then
-                        unsupported (
-                            "The mod " + item.Metadata.Name + " has an ignored ordering rule."
-                        )
+                        if relation <> "before" && relation <> "after" then
+                            return!
+                                unsupported (
+                                    "The mod " + item.Metadata.Name + " uses an unsupported rule."
+                                )
 
-                    let reference = property "reference" rule
-                    let target = text "id" reference
+                        let! ignored = tryBoolean "ignored" rule
 
-                    if not (known.Contains target) then
-                        unsupported (
-                            "The mod " + item.Metadata.Name + " has a rule for a missing mod."
-                        )
+                        if ignored = Some true then
+                            return!
+                                unsupported (
+                                    "The mod "
+                                    + item.Metadata.Name
+                                    + " has an ignored ordering rule."
+                                )
 
-                    if target = item.SourceId then
-                        unsupported ("The mod " + item.Metadata.Name + " has a rule cycle.")
+                        let! reference = property "reference" rule
+                        let! target = text "id" reference
 
-                    if relation = "before" then
-                        edges.Add(item.SourceId, target)
-                    else
-                        edges.Add(target, item.SourceId)
+                        if not (known.Contains target) then
+                            return!
+                                unsupported (
+                                    "The mod "
+                                    + item.Metadata.Name
+                                    + " has a rule for a missing mod."
+                                )
 
-        List.ofSeq edges
+                        if target = item.SourceId then
+                            return!
+                                unsupported ("The mod " + item.Metadata.Name + " has a rule cycle.")
+
+                        if relation = "before" then
+                            edges.Add(item.SourceId, target)
+                        else
+                            edges.Add(target, item.SourceId)
+
+            return List.ofSeq edges
+        }
 
     let private explicitOrder (persistent: JsonElement) (profileId: string) (known: Set<string>) =
-        match tryProperty "loadOrder" persistent with
-        | None -> None
-        | Some all ->
-            match tryProperty profileId all with
-            | None -> None
+        result {
+            match tryProperty "loadOrder" persistent |> Option.bind (tryProperty profileId) with
+            | None -> return None
             | Some value when value.ValueKind = JsonValueKind.Object ->
-                let positions =
-                    objectEntries "load order" value
-                    |> List.map (fun entry ->
-                        if not (known.Contains entry.Name) then
-                            unsupported "The Vortex load order contains an unknown mod."
+                let! entries = objectEntries "load order" value
 
-                        if tryBoolean "external" entry.Value = Some true then
-                            unsupported "The Vortex load order contains an externally managed mod."
+                let! positions =
+                    entries
+                    |> traverse (fun entry ->
+                        result {
+                            if not (known.Contains entry.Name) then
+                                return!
+                                    unsupported "The Vortex load order contains an unknown mod."
 
-                        let position = int64Value "pos" entry.Value
-                        entry.Name, position)
+                            let! external = tryBoolean "external" entry.Value
+
+                            if external = Some true then
+                                return!
+                                    unsupported
+                                        "The Vortex load order contains an externally managed mod."
+
+                            let! position = int64Value "pos" entry.Value
+                            return entry.Name, position
+                        })
 
                 if positions |> List.map snd |> Set.ofList |> Set.count <> positions.Length then
-                    invalid "The Vortex load order contains duplicate positions."
+                    return! invalid "The Vortex load order contains duplicate positions."
 
-                Some(positions |> List.sortBy (fun (id, position) -> position, id) |> List.map fst)
+                return
+                    Some(
+                        positions
+                        |> List.sortBy (fun (id, position) -> position, id)
+                        |> List.map fst
+                    )
             | Some value when value.ValueKind = JsonValueKind.Array ->
-                let ids =
-                    arrayItems "load order" value
-                    |> List.map (fun entry ->
-                        match tryText "modId" entry with
-                        | Some id when known.Contains id -> id
-                        | Some _ -> unsupported "The Vortex load order contains an unknown mod."
-                        | None -> unsupported "The Vortex load order contains an unmanaged entry.")
+                let! entries = arrayItems "load order" value
+
+                let! ids =
+                    entries
+                    |> traverse (fun entry ->
+                        result {
+                            let! modId = tryText "modId" entry
+
+                            match modId with
+                            | Some id when known.Contains id -> return id
+                            | Some _ ->
+                                return!
+                                    unsupported "The Vortex load order contains an unknown mod."
+                            | None ->
+                                return!
+                                    unsupported
+                                        "The Vortex load order contains an unmanaged entry."
+                        })
 
                 if ids |> Set.ofList |> Set.count <> ids.Length then
-                    invalid "The Vortex load order contains a mod more than once."
+                    return! invalid "The Vortex load order contains a mod more than once."
 
-                Some ids
-            | Some _ -> invalid "The Vortex load order is invalid."
+                return Some ids
+            | Some _ -> return! invalid "The Vortex load order is invalid."
+        }
 
     let private ruleOrder (ids: string list) (edges: (string * string) list) =
         let outgoing = Dictionary<string, ResizeArray<string>>(StringComparer.Ordinal)
@@ -120,29 +161,33 @@ module internal VortexOrder =
 
         if ordered.Count <> ids.Length then
             unsupported "The Vortex mod rules contain a cycle."
-
-        List.ofSeq ordered
+        else
+            Ok(List.ofSeq ordered)
 
     let orderedMods (persistent: JsonElement) (profileId: string) (mods: (ParsedMod * bool) list) =
-        let edges = validateRules mods
-        let ids = mods |> List.map (fun (item, _) -> item.SourceId)
-        let known = Set.ofList ids
-        let rules = ruleOrder ids edges
+        result {
+            let! edges = validateRules mods
+            let ids = mods |> List.map (fun (item, _) -> item.SourceId)
+            let known = Set.ofList ids
+            let! rules = ruleOrder ids edges
+            let! explicit = explicitOrder persistent profileId known
 
-        let order =
-            match explicitOrder persistent profileId known with
-            | Some listed ->
-                listed
-                @ (ids |> List.filter (fun id -> not (List.contains id listed)) |> List.sort)
-            | None -> rules
+            let order =
+                match explicit with
+                | Some listed ->
+                    listed
+                    @ (ids |> List.filter (fun id -> not (List.contains id listed)) |> List.sort)
+                | None -> rules
 
-        let byId =
-            mods |> Seq.map (fun (item, enabled) -> item.SourceId, (item, enabled)) |> dict
+            let byId =
+                mods |> Seq.map (fun (item, enabled) -> item.SourceId, (item, enabled)) |> dict
 
-        order
-        |> List.mapi (fun priority id ->
-            let item, enabled = byId[id]
+            return
+                order
+                |> List.mapi (fun priority id ->
+                    let item, enabled = byId[id]
 
-            { Id = item.Id
-              Priority = priority
-              Enabled = Some enabled })
+                    { Id = item.Id
+                      Priority = priority
+                      Enabled = Some enabled })
+        }

@@ -10,39 +10,52 @@ module internal VortexDownloads =
     open VortexSource
     open VortexJson
     open VortexMods
+    open MigrationResult
 
     let private safeUrls value =
-        match tryProperty "urls" value with
-        | None -> []
-        | Some urls ->
-            arrayItems "download addresses" urls
-            |> List.choose (fun item ->
-                if item.ValueKind <> JsonValueKind.String then
-                    invalid "A Vortex download address is invalid."
+        result {
+            match tryProperty "urls" value with
+            | None -> return []
+            | Some urls ->
+                let! items = arrayItems "download addresses" urls
 
-                let address = item.GetString()
+                let! addresses =
+                    items
+                    |> traverse (fun item ->
+                        if item.ValueKind <> JsonValueKind.String then
+                            invalid "A Vortex download address is invalid."
+                        else
+                            let address = item.GetString()
 
-                match Uri.TryCreate(address, UriKind.Absolute) with
-                | true, uri when
-                    (uri.Scheme = Uri.UriSchemeHttp || uri.Scheme = Uri.UriSchemeHttps)
-                    && String.IsNullOrEmpty uri.UserInfo
-                    ->
-                    let builder = UriBuilder uri
-                    builder.Query <- ""
-                    builder.Fragment <- ""
-                    Some(builder.Uri.AbsoluteUri)
-                | _ -> None)
-            |> List.distinct
+                            match Uri.TryCreate(address, UriKind.Absolute) with
+                            | true, uri when
+                                (uri.Scheme = Uri.UriSchemeHttp || uri.Scheme = Uri.UriSchemeHttps)
+                                && String.IsNullOrEmpty uri.UserInfo
+                                ->
+                                let builder = UriBuilder uri
+                                builder.Query <- ""
+                                builder.Fragment <- ""
+                                Ok(Some(builder.Uri.AbsoluteUri))
+                            | _ -> Ok None)
+
+                return addresses |> List.choose id |> List.distinct
+        }
 
     let private downloadApplies (gameId: string) (value: JsonElement) =
-        property "game" value
-        |> arrayItems "download games"
-        |> List.map (fun item ->
-            if item.ValueKind <> JsonValueKind.String then
-                invalid "A Vortex download has an invalid game ID."
+        result {
+            let! game = property "game" value
+            let! items = arrayItems "download games" game
 
-            item.GetString())
-        |> List.contains gameId
+            let! ids =
+                items
+                |> traverse (fun item ->
+                    if item.ValueKind <> JsonValueKind.String then
+                        invalid "A Vortex download has an invalid game ID."
+                    else
+                        Ok(item.GetString()))
+
+            return List.contains gameId ids
+        }
 
     let private archiveExtension (name: string) =
         set
@@ -59,12 +72,15 @@ module internal VortexDownloads =
         |> Set.contains (Path.GetExtension(name).ToLowerInvariant())
 
     let private downloadFile (entries: PathEntry list) (name: string) =
-        entries
-        |> List.tryFind (fun entry ->
-            match components entry with
-            | [ file ] -> file = name && entry.TargetKind = EntryKind.RegularFile
-            | _ -> false)
-        |> Option.defaultWith (fun () -> invalid ("The download file is missing: " + name + "."))
+        match
+            entries
+            |> List.tryFind (fun entry ->
+                match components entry with
+                | [ file ] -> file = name && entry.TargetKind = EntryKind.RegularFile
+                | _ -> false)
+        with
+        | Some file -> Ok file
+        | None -> invalid ("The download file is missing: " + name + ".")
 
     let private readArtifact
         (downloadRoot: SelectedRoot)
@@ -73,70 +89,72 @@ module internal VortexDownloads =
         id
         (value: JsonElement)
         =
-        if text "state" value <> "finished" then
-            unsupported ("The Vortex download " + id + " is not finished.")
+        result {
+            let! state = text "state" value
 
-        let name = text "localPath" value
+            if state <> "finished" then
+                return! unsupported ("The Vortex download " + id + " is not finished.")
 
-        if
-            name.Contains('/')
-            || name.Contains('\\')
-            || Path.GetFileName name <> name
-            || not (archiveExtension name)
-        then
-            unsupported ("The Vortex download " + id + " is not a supported archive.")
+            let! name = text "localPath" value
 
-        let expectedLength = int64Value "size" value
-        let expectedMd5 = text "fileMD5" value
+            if
+                name.Contains('/')
+                || name.Contains('\\')
+                || Path.GetFileName name <> name
+                || not (archiveExtension name)
+            then
+                return! unsupported ("The Vortex download " + id + " is not a supported archive.")
 
-        if expectedMd5.Length <> 32 || not (expectedMd5 |> Seq.forall Uri.IsHexDigit) then
-            invalid ("The Vortex download " + id + " has an invalid digest.")
+            let! expectedLength = int64Value "size" value
+            let! expectedMd5 = text "fileMD5" value
 
-        let file = downloadFile entries name
+            if expectedMd5.Length <> 32 || not (expectedMd5 |> Seq.forall Uri.IsHexDigit) then
+                return! invalid ("The Vortex download " + id + " has an invalid digest.")
 
-        let identity =
-            match file.Facts.File with
-            | Known value -> value
-            | Unknown detail -> refuse (Error.UnsafeSource detail)
+            let! file = downloadFile entries name
 
-        let stamp = observe downloadRoot file.Logical identity
+            let! identity =
+                match file.Facts.File with
+                | Known value -> Ok value
+                | Unknown detail -> Error(Error.UnsafeSource detail)
 
-        if
-            stamp.Length <> expectedLength
-            || not (stamp.Md5.Equals(expectedMd5, StringComparison.OrdinalIgnoreCase))
-        then
-            invalid ("The Vortex download " + id + " does not match its backup data.")
+            let! stamp = observe downloadRoot file.Logical identity
 
-        let logical =
-            LogicalPath.create [ name ]
-            |> Result.defaultWith (fun _ -> invalid "A download file name is invalid.")
+            if
+                stamp.Length <> expectedLength
+                || not (stamp.Md5.Equals(expectedMd5, StringComparison.OrdinalIgnoreCase))
+            then
+                return! invalid ("The Vortex download " + id + " does not match its backup data.")
 
-        let artifact: Direct.Artifact =
-            { Id = Guid.NewGuid()
-              OriginalName = name
-              OriginalPath = HostPath.value file.Resolved
-              File = transferFile logical stamp
-              Partial = false
-              Sources = safeUrls value
-              InstalledMod =
-                match installed.TryGetValue id with
-                | true, modId -> Some modId
-                | _ -> None }
+            let! logical =
+                LogicalPath.create [ name ]
+                |> Result.mapError (fun _ -> Error.InvalidSource "A download file name is invalid.")
 
-        artifact, stamp
+            let! urls = safeUrls value
+
+            let artifact: Direct.Artifact =
+                { Id = Guid.NewGuid()
+                  OriginalName = name
+                  OriginalPath = HostPath.value file.Resolved
+                  File = transferFile logical stamp
+                  Partial = false
+                  Sources = urls
+                  InstalledMod =
+                    match installed.TryGetValue id with
+                    | true, modId -> Some modId
+                    | _ -> None }
+
+            return artifact, stamp
+        }
 
     let private archiveReferences (mods: (ParsedMod * bool) list) =
         let references =
             mods
             |> List.choose (fun (item, _) -> item.ArchiveId |> Option.map (fun id -> id, item.Id))
 
-        references
-        |> List.countBy fst
-        |> List.tryFind (fun (_, count) -> count > 1)
-        |> Option.iter (fun (id, _) ->
-            unsupported ("More than one mod uses the Vortex download " + id + "."))
-
-        references
+        match references |> List.countBy fst |> List.tryFind (fun (_, count) -> count > 1) with
+        | Some(id, _) -> unsupported ("More than one mod uses the Vortex download " + id + ".")
+        | None -> Ok references
 
     let artifacts
         (persistent: JsonElement)
@@ -145,36 +163,43 @@ module internal VortexDownloads =
         (entries: PathEntry list)
         (mods: (ParsedMod * bool) list)
         =
-        let references = archiveReferences mods
-        let installed = references |> dict
-        let required = references |> List.map fst |> Set.ofList
-        let found = HashSet<string>(StringComparer.Ordinal)
-        let stamps = ResizeArray<Stamp>()
-        let downloads = property "downloads" persistent
-        let files = property "files" downloads |> objectEntries "downloads"
+        result {
+            let! references = archiveReferences mods
+            let installed = references |> dict
+            let required = references |> List.map fst |> Set.ofList
+            let found = HashSet<string>(StringComparer.Ordinal)
+            let stamps = ResizeArray<Stamp>()
+            let! downloads = property "downloads" persistent
+            let! downloadFiles = property "files" downloads
+            let! files = objectEntries "downloads" downloadFiles
 
-        let artifacts =
-            files
-            |> List.choose (fun entry ->
-                let value = entry.Value
-                let id = text "id" value
+            let! artifacts =
+                files
+                |> traverse (fun entry ->
+                    result {
+                        let value = entry.Value
+                        let! id = text "id" value
 
-                if id <> entry.Name then
-                    invalid "A Vortex download ID does not match its backup key."
+                        if id <> entry.Name then
+                            return! invalid "A Vortex download ID does not match its backup key."
 
-                let appliesToGame = downloadApplies gameId value
+                        let! appliesToGame = downloadApplies gameId value
 
-                if not (required.Contains id || appliesToGame) then
-                    None
-                else
-                    found.Add id |> ignore
-                    let artifact, stamp = readArtifact downloadRoot entries installed id value
-                    stamps.Add stamp
-                    Some artifact)
+                        if not (required.Contains id || appliesToGame) then
+                            return None
+                        else
+                            found.Add id |> ignore
 
-        required
-        |> Set.iter (fun id ->
-            if not (found.Contains id) then
-                invalid ("The backup is missing the download used by mod " + id + "."))
+                            let! artifact, stamp =
+                                readArtifact downloadRoot entries installed id value
 
-        artifacts, List.ofSeq stamps
+                            stamps.Add stamp
+                            return Some artifact
+                    })
+
+            for id in required do
+                if not (found.Contains id) then
+                    return! invalid ("The backup is missing the download used by mod " + id + ".")
+
+            return List.choose id artifacts, List.ofSeq stamps
+        }

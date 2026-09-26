@@ -24,48 +24,55 @@ module internal VortexSource =
           Entries: (string * EntryKind * EntryKind * Observation<FileIdentity>) list
           Diagnostics: PathDiagnostic list }
 
-    exception Refused of Error
+    open MigrationResult
 
-    let refuse error = raise (Refused error)
+    let invalid detail = Error(Error.InvalidSource detail)
 
-    let invalid detail = refuse (Error.InvalidSource detail)
-
-    let unsupported detail = refuse (Error.UnsupportedData detail)
+    let unsupported detail = Error(Error.UnsupportedData detail)
 
     let private rootIdentity root =
         match (RootSelection.facts root).File with
-        | Known identity -> identity
-        | Unknown detail -> refuse (Error.UnsafeSource detail)
+        | Known identity -> Ok identity
+        | Unknown detail -> Error(Error.UnsafeSource detail)
 
     let private selectedRoot (path: string) label =
-        if String.IsNullOrWhiteSpace path then
-            invalid ("Choose the " + label + ".")
+        result {
+            if String.IsNullOrWhiteSpace path then
+                return! invalid ("Choose the " + label + ".")
 
-        let full = Path.GetFullPath path
+            let full = Path.GetFullPath path
 
-        match HostPath.create full with
-        | Error _ -> invalid ("The " + label + " is unavailable.")
-        | Ok value ->
-            RootSelection.select value
-            |> Result.defaultWith (fun _ -> invalid ("The " + label + " is unavailable."))
+            let! host =
+                HostPath.create full
+                |> Result.mapError (fun _ ->
+                    Error.InvalidSource("The " + label + " is unavailable."))
+
+            return!
+                RootSelection.select host
+                |> Result.mapError (fun _ ->
+                    Error.InvalidSource("The " + label + " is unavailable."))
+        }
 
     let openEntry root path expected =
-        let components = LogicalPath.components path
-        let mutable current = HeldDirectory.Open(RootSelection.path root, rootIdentity root)
-        let parents = ResizeArray<HeldDirectory>()
+        result {
+            let! rootId = rootIdentity root
+            let components = LogicalPath.components path
+            let mutable current = HeldDirectory.Open(RootSelection.path root, rootId)
+            let parents = ResizeArray<HeldDirectory>()
 
-        try
-            for name in components |> List.take (components.Length - 1) do
-                let next = current.Directory(name, None)
-                parents.Add current
-                current <- next
+            try
+                for name in components |> List.take (components.Length - 1) do
+                    let next = current.Directory(name, None)
+                    parents.Add current
+                    current <- next
 
-            current.Read(List.last components, Some expected)
-        finally
-            (current :> IDisposable).Dispose()
+                return current.Read(List.last components, Some expected)
+            finally
+                (current :> IDisposable).Dispose()
 
-            for parent in parents do
-                (parent :> IDisposable).Dispose()
+                for parent in parents do
+                    (parent :> IDisposable).Dispose()
+        }
 
     let private digest (stream: Stream) =
         use sha = IncrementalHash.CreateHash HashAlgorithmName.SHA256
@@ -89,164 +96,184 @@ module internal VortexSource =
         Convert.ToHexStringLower(md5.GetHashAndReset())
 
     let observe root path identity =
-        let stream, actual = openEntry root path identity
-        use stream = stream
-        let length, sha, md5 = digest stream
+        result {
+            let! stream, actual = openEntry root path identity
+            use stream = stream
+            let length, sha, md5 = digest stream
 
-        { Root = root
-          Path = path
-          Identity = actual
-          Length = length
-          Sha256 = sha
-          Md5 = md5 }
+            return
+                { Root = root
+                  Path = path
+                  Identity = actual
+                  Length = length
+                  Sha256 = sha
+                  Md5 = md5 }
+        }
 
     let directFile path label =
-        let full = Path.GetFullPath path
-        let parent = Path.GetDirectoryName full
-        let root = selectedRoot parent label
-        let name = Path.GetFileName full
+        result {
+            let full = Path.GetFullPath path
+            let parent = Path.GetDirectoryName full
+            let! root = selectedRoot parent label
+            let! rootId = rootIdentity root
+            let name = Path.GetFileName full
 
-        let logical =
-            LogicalPath.create [ name ]
-            |> Result.defaultWith (fun _ -> invalid ("The " + label + " name is invalid."))
+            let! logical =
+                LogicalPath.create [ name ]
+                |> Result.mapError (fun _ ->
+                    Error.InvalidSource("The " + label + " name is invalid."))
 
-        let entry =
-            use directory = HeldDirectory.Open(RootSelection.path root, rootIdentity root)
+            let! entry =
+                use directory = HeldDirectory.Open(RootSelection.path root, rootId)
 
-            match directory.InspectEntry name with
-            | Some value when value.Kind = EntryKind.RegularFile -> value
-            | Some _ ->
-                refuse (Error.UnsafeSource("The " + label + " is a link or unsupported file."))
-            | None -> invalid ("The " + label + " is missing.")
+                match directory.InspectEntry name with
+                | Some value when value.Kind = EntryKind.RegularFile -> Ok value
+                | Some _ ->
+                    Error(Error.UnsafeSource("The " + label + " is a link or unsupported file."))
+                | None -> invalid ("The " + label + " is missing.")
 
-        observe root logical entry.Identity
+            return! observe root logical entry.Identity
+        }
 
     let private inspectRoot path label =
-        let root = selectedRoot path label
+        result {
+            let! root = selectedRoot path label
+            let! rootId = rootIdentity root
 
-        let result =
-            PathPreflight.inspect
-                { Candidates = maxEntries
-                  Depth = maxDepth
-                  Diagnostics = 64 }
-                TargetPolicy.windows
-                root
+            let scan =
+                PathPreflight.inspect
+                    { Candidates = maxEntries
+                      Depth = maxDepth
+                      Diagnostics = 64 }
+                    TargetPolicy.windows
+                    root
 
-        let manifest =
-            { Path = Path.GetFullPath path
-              RootIdentity = rootIdentity root
-              Entries =
-                result.Entries
-                |> List.map (fun entry ->
-                    LogicalPath.display entry.Logical,
-                    entry.Kind,
-                    entry.TargetKind,
-                    entry.Facts.File)
-                |> List.sortBy (fun (name, _, _, _) -> name)
-              Diagnostics = result.Diagnostics |> List.sortBy _.Path }
+            let manifest =
+                { Path = Path.GetFullPath path
+                  RootIdentity = rootId
+                  Entries =
+                    scan.Entries
+                    |> List.map (fun entry ->
+                        LogicalPath.display entry.Logical,
+                        entry.Kind,
+                        entry.TargetKind,
+                        entry.Facts.File)
+                    |> List.sortBy (fun (name, _, _, _) -> name)
+                  Diagnostics = scan.Diagnostics |> List.sortBy _.Path }
 
-        root, result, manifest
+            return root, scan, manifest
+        }
 
     let scanRoot path label =
-        let root, result, manifest = inspectRoot path label
+        result {
+            let! root, scan, manifest = inspectRoot path label
 
-        result.Diagnostics
-        |> List.tryFind (fun item ->
-            item.Problem = TargetCollision || item.Problem = FileDirectoryConflict)
-        |> Option.iter (fun item -> refuse (Error.CaseCollision item.Path))
+            match
+                scan.Diagnostics
+                |> List.tryFind (fun item ->
+                    item.Problem = TargetCollision || item.Problem = FileDirectoryConflict)
+            with
+            | Some item -> return! Error(Error.CaseCollision item.Path)
+            | None -> ()
 
-        result.Diagnostics
-        |> List.tryHead
-        |> Option.iter (fun item ->
-            refuse (Error.UnsafeSource("The " + label + " contains an unsafe entry: " + item.Path)))
+            match scan.Diagnostics |> List.tryHead with
+            | Some item ->
+                return!
+                    Error(
+                        Error.UnsafeSource(
+                            "The " + label + " contains an unsafe entry: " + item.Path
+                        )
+                    )
+            | None -> ()
 
-        result.Entries
-        |> List.tryFind (fun item -> item.Kind = EntryKind.Link || item.Kind = EntryKind.Other)
-        |> Option.iter (fun item ->
-            refuse (
-                Error.UnsafeSource(
-                    "The "
-                    + label
-                    + " contains a link or unsupported file: "
-                    + LogicalPath.display item.Logical
-                )
-            ))
+            match
+                scan.Entries
+                |> List.tryFind (fun item ->
+                    item.Kind = EntryKind.Link || item.Kind = EntryKind.Other)
+            with
+            | Some item ->
+                return!
+                    Error(
+                        Error.UnsafeSource(
+                            "The "
+                            + label
+                            + " contains a link or unsupported file: "
+                            + LogicalPath.display item.Logical
+                        )
+                    )
+            | None -> ()
 
-        root, result.Entries, manifest
+            return root, scan.Entries, manifest
+        }
 
     let verifyManifest expected label =
         let current =
             try
-                let _, _, value = inspectRoot expected.Path label
-                Some value
+                inspectRoot expected.Path label |> Result.map (fun (_, _, value) -> value)
             with
             | :? IOException
-            | :? UnauthorizedAccessException
-            | Refused _ -> None
+            | :? UnauthorizedAccessException -> Error Error.SourceChanged
 
-        if current <> Some expected then
-            refuse Error.SourceChanged
+        match current with
+        | Ok value when value = expected -> Ok()
+        | _ -> Error Error.SourceChanged
 
     let verify stamp =
         let current =
             try
-                Some(observe stamp.Root stamp.Path stamp.Identity)
+                observe stamp.Root stamp.Path stamp.Identity
             with
             | :? IOException
-            | :? UnauthorizedAccessException
-            | Refused _ -> None
+            | :? UnauthorizedAccessException -> Error Error.SourceChanged
 
-        if
-            current
-            |> Option.forall (fun value ->
-                value.Identity <> stamp.Identity
-                || value.Length <> stamp.Length
-                || value.Sha256 <> stamp.Sha256)
-        then
-            refuse Error.SourceChanged
+        match current with
+        | Ok value when
+            value.Identity = stamp.Identity
+            && value.Length = stamp.Length
+            && value.Sha256 = stamp.Sha256
+            ->
+            Ok()
+        | _ -> Error Error.SourceChanged
 
     let private copy stamp (destination: FileStream) (token: CancellationToken) =
-        let source, identity = openEntry stamp.Root stamp.Path stamp.Identity
-        use source = source
+        result {
+            let! source, identity = openEntry stamp.Root stamp.Path stamp.Identity
+            use source = source
 
-        if identity <> stamp.Identity || source.Length <> stamp.Length then
-            refuse Error.SourceChanged
+            if identity <> stamp.Identity || source.Length <> stamp.Length then
+                return! Error Error.SourceChanged
 
-        let buffer = Array.zeroCreate<byte> 65536
-        use hash = IncrementalHash.CreateHash HashAlgorithmName.SHA256
-        let mutable read = 0L
+            let buffer = Array.zeroCreate<byte> 65536
+            use hash = IncrementalHash.CreateHash HashAlgorithmName.SHA256
+            let mutable read = 0L
 
-        while read < stamp.Length do
-            token.ThrowIfCancellationRequested()
+            while read < stamp.Length do
+                token.ThrowIfCancellationRequested()
 
-            let count =
-                source.Read(buffer, 0, int (min (int64 buffer.Length) (stamp.Length - read)))
+                let count =
+                    source.Read(buffer, 0, int (min (int64 buffer.Length) (stamp.Length - read)))
 
-            if count = 0 then
-                refuse Error.SourceChanged
+                if count = 0 then
+                    return! Error Error.SourceChanged
 
-            destination.Write(buffer, 0, count)
-            hash.AppendData(buffer, 0, count)
-            read <- read + int64 count
+                destination.Write(buffer, 0, count)
+                hash.AppendData(buffer, 0, count)
+                read <- read + int64 count
 
-        if source.ReadByte() <> -1 || source.Length <> stamp.Length then
-            refuse Error.SourceChanged
+            if source.ReadByte() <> -1 || source.Length <> stamp.Length then
+                return! Error Error.SourceChanged
 
-        let sha = Convert.ToHexStringLower(hash.GetHashAndReset())
+            let sha = Convert.ToHexStringLower(hash.GetHashAndReset())
 
-        if sha <> stamp.Sha256 then
-            refuse Error.SourceChanged
+            if sha <> stamp.Sha256 then
+                return! Error Error.SourceChanged
 
-        destination.Flush true
-        read, sha
+            destination.Flush true
+            return read, sha
+        }
 
     let transferFile path stamp : Direct.File =
         { Path = path
-          Read =
-            fun destination token ->
-                try
-                    Ok(copy stamp destination token)
-                with Refused error ->
-                    Error error }
+          Read = fun destination token -> copy stamp destination token }
 
     let components (entry: PathEntry) = LogicalPath.components entry.Logical

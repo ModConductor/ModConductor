@@ -24,111 +24,112 @@ module Vortex =
     open VortexMods
     open VortexOrder
     open VortexDownloads
+    open MigrationResult
 
     let profiles backup =
         try
             readProfiles backup
-            |> List.map (fun (id, name, gameId) ->
-                { Id = id
-                  Name = name
-                  GameId = gameId })
-            |> Ok
+            |> Result.map (
+                List.map (fun (id, name, gameId) ->
+                    { Id = id
+                      Name = name
+                      GameId = gameId })
+            )
         with
-        | Refused error -> Error error
         | :? IOException as error -> Error(Error.Unavailable error.Message)
         | :? UnauthorizedAccessException ->
             Error(Error.Unavailable "The Vortex backup file is unavailable.")
 
     let private readSource (request: Request) =
-        let backup = directFile request.BackupFile "Vortex backup file"
-        use parsed = document backup
-        let root = parsed.RootElement
-        backupVersion root
-        let persistent = property "persistent" root
+        result {
+            let! backup = directFile request.BackupFile "Vortex backup file"
+            use! parsed = document backup
+            let root = parsed.RootElement
+            do! backupVersion root
+            let! persistent = property "persistent" root
+            let! entries = profileEntries root
 
-        let profile =
-            profileEntries root
-            |> List.tryFind (fun item -> item.Name = request.ProfileId)
-            |> Option.map _.Value
-            |> Option.defaultWith (fun () ->
-                invalid "Choose a profile from the selected Vortex backup.")
+            let! profile =
+                match entries |> List.tryFind (fun item -> item.Name = request.ProfileId) with
+                | Some entry -> Ok entry.Value
+                | None -> invalid "Choose a profile from the selected Vortex backup."
 
-        if tryBoolean "pendingRemove" profile = Some true then
-            unsupported "The selected Vortex profile is being removed."
+            let! pendingRemove = tryBoolean "pendingRemove" profile
 
-        let profileId = text "id" profile
+            if pendingRemove = Some true then
+                return! unsupported "The selected Vortex profile is being removed."
 
-        if profileId <> request.ProfileId then
-            invalid "The selected Vortex profile ID does not match its backup key."
+            let! profileId = text "id" profile
 
-        let stagingRoot, stagingEntries, stagingManifest =
-            scanRoot request.StagingRoot "Vortex staging folder"
+            if profileId <> request.ProfileId then
+                return! invalid "The selected Vortex profile ID does not match its backup key."
 
-        let downloadRoot, downloadEntries, downloadManifest =
-            scanRoot request.DownloadRoot "Vortex download folder"
+            let! stagingRoot, stagingEntries, stagingManifest =
+                scanRoot request.StagingRoot "Vortex staging folder"
 
-        let parsedMods, modStamps, gameId =
-            parseMods persistent profile stagingRoot stagingEntries
+            let! downloadRoot, downloadEntries, downloadManifest =
+                scanRoot request.DownloadRoot "Vortex download folder"
 
-        let categories = categories persistent gameId
-        let knownCategories = categories |> List.map _.SourceId |> Set.ofList
+            let! parsedMods, modStamps, gameId =
+                parseMods persistent profile stagingRoot stagingEntries
 
-        parsedMods
-        |> List.collect (fun (item, _) -> item.CategorySourceIds)
-        |> List.tryFind (fun id -> not (knownCategories.Contains id))
-        |> Option.iter (fun id -> invalid ("A mod uses missing category " + string id + "."))
+            let! categories = categories persistent gameId
+            let knownCategories = categories |> List.map _.SourceId |> Set.ofList
 
-        let positions = orderedMods persistent profileId parsedMods
+            match
+                parsedMods
+                |> List.collect (fun (item, _) -> item.CategorySourceIds)
+                |> List.tryFind (fun id -> not (knownCategories.Contains id))
+            with
+            | Some id -> return! invalid ("A mod uses missing category " + string id + ".")
+            | None -> ()
 
-        let artifacts, artifactStamps =
-            artifacts persistent gameId downloadRoot downloadEntries parsedMods
+            let! positions = orderedMods persistent profileId parsedMods
 
-        let directMods: Direct.Mod list =
-            parsedMods
-            |> List.map (fun (item, _) ->
-                { Id = item.Id
-                  VersionId = item.VersionId
-                  Kind = ModKind.Regular
-                  Metadata = item.Metadata
-                  CategorySourceIds = item.CategorySourceIds
-                  Files = item.Files })
+            let! artifacts, artifactStamps =
+                artifacts persistent gameId downloadRoot downloadEntries parsedMods
 
-        let profileGuid = Guid.NewGuid()
+            let directMods: Direct.Mod list =
+                parsedMods
+                |> List.map (fun (item, _) ->
+                    { Id = item.Id
+                      VersionId = item.VersionId
+                      Kind = ModKind.Regular
+                      Metadata = item.Metadata
+                      CategorySourceIds = item.CategorySourceIds
+                      Files = item.Files })
 
-        let verifySource (token: CancellationToken) =
-            try
-                token.ThrowIfCancellationRequested()
-                verify backup
-                verifyManifest stagingManifest "Vortex staging folder"
-                token.ThrowIfCancellationRequested()
-                verifyManifest downloadManifest "Vortex download folder"
+            let profileGuid = Guid.NewGuid()
+            let! selectedName = profileName profile
 
-                for stamp in modStamps @ artifactStamps do
+            let verifySource (token: CancellationToken) =
+                result {
                     token.ThrowIfCancellationRequested()
-                    verify stamp
+                    do! verify backup
+                    do! verifyManifest stagingManifest "Vortex staging folder"
+                    token.ThrowIfCancellationRequested()
+                    do! verifyManifest downloadManifest "Vortex download folder"
 
-                Ok()
-            with Refused error ->
-                Error error
+                    for stamp in modStamps @ artifactStamps do
+                        token.ThrowIfCancellationRequested()
+                        do! verify stamp
+                }
 
-        let source: Direct.Input =
-            { Categories = categories
-              Mods = directMods
-              Profiles =
-                [ { Id = profileGuid
-                    Name = profileName profile
-                    Mods = positions } ]
-              SelectedProfile = profileGuid
-              Artifacts = artifacts
-              Verify = verifySource }
+            let source: Direct.Input =
+                { Categories = categories
+                  Mods = directMods
+                  Profiles =
+                    [ { Id = profileGuid
+                        Name = selectedName
+                        Mods = positions } ]
+                  SelectedProfile = profileGuid
+                  Artifacts = artifacts
+                  Verify = verifySource }
 
-        source
+            return source
+        }
 
-    let private directSource request =
-        try
-            Ok(readSource request)
-        with Refused error ->
-            Error error
+    let private directSource request = readSource request
 
     let internal migrateAtCheckpoint
         (store: IStore)

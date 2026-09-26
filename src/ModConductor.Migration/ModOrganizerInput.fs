@@ -63,14 +63,12 @@ module internal ModOrganizerInput =
           Manifests: Manifest list
           AbsentPaths: string list }
 
-    exception Refused of Error
-
-    let refuse error = raise (Refused error)
+    open MigrationResult
 
     let private rootIdentity root =
         match (RootSelection.facts root).File with
-        | Known identity -> identity
-        | Unknown detail -> refuse (Error.UnsafeSource detail)
+        | Known identity -> Ok identity
+        | Unknown detail -> Error(Error.UnsafeSource detail)
 
     let private digest (stream: Stream) =
         use hash = IncrementalHash.CreateHash HashAlgorithmName.SHA256
@@ -90,150 +88,173 @@ module internal ModOrganizerInput =
         length, Convert.ToHexStringLower(hash.GetHashAndReset())
 
     let private openEntry root path expected =
-        let components = LogicalPath.components path
-        let mutable current = HeldDirectory.Open(RootSelection.path root, rootIdentity root)
-        let parents = ResizeArray<HeldDirectory>()
+        result {
+            let! rootId = rootIdentity root
+            let components = LogicalPath.components path
+            let mutable current = HeldDirectory.Open(RootSelection.path root, rootId)
+            let parents = ResizeArray<HeldDirectory>()
 
-        try
-            for name in components |> List.take (components.Length - 1) do
-                let next = current.Directory(name, None)
-                parents.Add current
-                current <- next
+            try
+                for name in components |> List.take (components.Length - 1) do
+                    let next = current.Directory(name, None)
+                    parents.Add current
+                    current <- next
 
-            let stream, identity = current.Read(List.last components, Some expected)
-            stream, identity
-        finally
-            (current :> IDisposable).Dispose()
+                return current.Read(List.last components, Some expected)
+            finally
+                (current :> IDisposable).Dispose()
 
-            for parent in parents do
-                (parent :> IDisposable).Dispose()
+                for parent in parents do
+                    (parent :> IDisposable).Dispose()
+        }
 
     let private observe root path identity =
-        let stream, actual = openEntry root path identity
-        use stream = stream
-        let length, sha = digest stream
+        result {
+            let! stream, actual = openEntry root path identity
+            use stream = stream
+            let length, sha = digest stream
 
-        { Root = root
-          Path = path
-          Identity = actual
-          Length = length
-          Sha256 = sha }
+            return
+                { Root = root
+                  Path = path
+                  Identity = actual
+                  Length = length
+                  Sha256 = sha }
+        }
 
     let private selectedRoot (path: string) =
         match HostPath.create path with
-        | Error _ -> refuse (Error.InvalidSource "The selected source folder is unavailable.")
+        | Error _ -> Error(Error.InvalidSource "The selected source folder is unavailable.")
         | Ok value ->
             RootSelection.select value
-            |> Result.defaultWith (fun _ ->
-                refuse (Error.InvalidSource "The selected source folder is unavailable."))
+            |> Result.mapError (fun _ ->
+                Error.InvalidSource "The selected source folder is unavailable.")
 
     let directFile (path: string) =
-        let parent = Path.GetDirectoryName path
-        let root = selectedRoot parent
+        result {
+            let parent = Path.GetDirectoryName path
+            let! root = selectedRoot parent
+            let! rootId = rootIdentity root
 
-        let logical =
-            LogicalPath.create [ Path.GetFileName path ]
-            |> Result.defaultWith (fun _ ->
-                refuse (Error.InvalidSource "A source file name is invalid."))
+            let! logical =
+                LogicalPath.create [ Path.GetFileName path ]
+                |> Result.mapError (fun _ -> Error.InvalidSource "A source file name is invalid.")
 
-        let entry =
-            use directory = HeldDirectory.Open(RootSelection.path root, rootIdentity root)
+            let! entry =
+                use directory = HeldDirectory.Open(RootSelection.path root, rootId)
 
-            match directory.InspectEntry(Path.GetFileName path) with
-            | Some value when value.Kind = EntryKind.RegularFile -> value
-            | Some _ ->
-                refuse (Error.UnsafeSource "A source file is a link or unsupported file type.")
-            | None -> refuse (Error.InvalidSource "A required source file is missing.")
+                match directory.InspectEntry(Path.GetFileName path) with
+                | Some value when value.Kind = EntryKind.RegularFile -> Ok value
+                | Some _ ->
+                    Error(Error.UnsafeSource "A source file is a link or unsupported file type.")
+                | None -> Error(Error.InvalidSource "A required source file is missing.")
 
-        observe root logical entry.Identity
+            return! observe root logical entry.Identity
+        }
 
     let private bytes stamp =
-        if stamp.Length > int64 maxTextBytes then
-            refuse (Error.InvalidSource "A Mod Organizer settings file is too large.")
+        result {
+            if stamp.Length > int64 maxTextBytes then
+                return! Error(Error.InvalidSource "A Mod Organizer settings file is too large.")
 
-        let stream, _ = openEntry stamp.Root stamp.Path stamp.Identity
-        use stream = stream
-        let content = Array.zeroCreate<byte> (int stamp.Length)
-        stream.ReadExactly content
-        content
+            let! stream, _ = openEntry stamp.Root stamp.Path stamp.Identity
+            use stream = stream
+            let content = Array.zeroCreate<byte> (int stamp.Length)
+            stream.ReadExactly content
+            return content
+        }
 
     let text stamp =
-        try
-            let value = bytes stamp
+        result {
+            let! value = bytes stamp
 
-            let offset =
-                if value.Length >= 3 && value[0..2] = [| 0xEFuy; 0xBBuy; 0xBFuy |] then
-                    3
-                else
-                    0
+            try
+                let offset =
+                    if value.Length >= 3 && value[0..2] = [| 0xEFuy; 0xBBuy; 0xBFuy |] then
+                        3
+                    else
+                        0
 
-            UTF8Encoding(false, true).GetString(value, offset, value.Length - offset)
-        with :? DecoderFallbackException ->
-            refuse (Error.InvalidSource "A Mod Organizer text file is not valid UTF-8.")
+                return UTF8Encoding(false, true).GetString(value, offset, value.Length - offset)
+            with :? DecoderFallbackException ->
+                return! Error(Error.InvalidSource "A Mod Organizer text file is not valid UTF-8.")
+        }
 
     let private inspectRoot path =
-        let root = selectedRoot path
+        result {
+            let! root = selectedRoot path
+            let! rootId = rootIdentity root
 
-        let result =
-            PathPreflight.inspect
-                { Candidates = maxEntries
-                  Depth = maxDepth
-                  Diagnostics = 64 }
-                TargetPolicy.windows
-                root
+            let scan =
+                PathPreflight.inspect
+                    { Candidates = maxEntries
+                      Depth = maxDepth
+                      Diagnostics = 64 }
+                    TargetPolicy.windows
+                    root
 
-        let manifest =
-            { Path = Path.GetFullPath path
-              RootIdentity = rootIdentity root
-              Entries =
-                result.Entries
-                |> List.map (fun entry ->
-                    LogicalPath.display entry.Logical,
-                    entry.Kind,
-                    entry.TargetKind,
-                    entry.Facts.File)
-                |> List.sortBy (fun (path, _, _, _) -> path)
-              Diagnostics = result.Diagnostics |> List.sortBy (fun item -> item.Path) }
+            let manifest =
+                { Path = Path.GetFullPath path
+                  RootIdentity = rootId
+                  Entries =
+                    scan.Entries
+                    |> List.map (fun entry ->
+                        LogicalPath.display entry.Logical,
+                        entry.Kind,
+                        entry.TargetKind,
+                        entry.Facts.File)
+                    |> List.sortBy (fun (path, _, _, _) -> path)
+                  Diagnostics = scan.Diagnostics |> List.sortBy (fun item -> item.Path) }
 
-        root, result, manifest
+            return root, scan, manifest
+        }
 
     let scanRoot path =
-        let root, result, manifest = inspectRoot path
+        result {
+            let! root, scan, manifest = inspectRoot path
 
-        result.Diagnostics
-        |> List.tryFind (fun item ->
-            item.Problem = TargetCollision || item.Problem = FileDirectoryConflict)
-        |> Option.iter (fun item -> refuse (Error.CaseCollision item.Path))
+            match
+                scan.Diagnostics
+                |> List.tryFind (fun item ->
+                    item.Problem = TargetCollision || item.Problem = FileDirectoryConflict)
+            with
+            | Some item -> return! Error(Error.CaseCollision item.Path)
+            | None -> ()
 
-        result.Diagnostics
-        |> List.tryHead
-        |> Option.iter (fun item ->
-            refuse (Error.UnsafeSource("The source entry is unsafe: " + item.Path)))
+            match scan.Diagnostics |> List.tryHead with
+            | Some item ->
+                return! Error(Error.UnsafeSource("The source entry is unsafe: " + item.Path))
+            | None -> ()
 
-        result.Entries
-        |> List.tryFind (fun item -> item.Kind = EntryKind.Link || item.Kind = EntryKind.Other)
-        |> Option.iter (fun item ->
-            refuse (
-                Error.UnsafeSource(
-                    "The source entry is a link or unsupported file: "
-                    + LogicalPath.display item.Logical
-                )
-            ))
+            match
+                scan.Entries
+                |> List.tryFind (fun item ->
+                    item.Kind = EntryKind.Link || item.Kind = EntryKind.Other)
+            with
+            | Some item ->
+                return!
+                    Error(
+                        Error.UnsafeSource(
+                            "The source entry is a link or unsupported file: "
+                            + LogicalPath.display item.Logical
+                        )
+                    )
+            | None -> ()
 
-        root, result.Entries, manifest
+            return root, scan.Entries, manifest
+        }
 
     let verifyManifest (expected: Manifest) =
         let current =
             try
-                let _, _, value = inspectRoot expected.Path
-                Some value
+                inspectRoot expected.Path |> Result.map (fun (_, _, value) -> value)
             with
             | :? IOException
-            | :? UnauthorizedAccessException
-            | Refused _ -> None
+            | :? UnauthorizedAccessException -> Error Error.SourceChanged
 
-        if current <> Some expected then
-            refuse Error.SourceChanged
+        match current with
+        | Ok value when value = expected -> Ok()
+        | _ -> Error Error.SourceChanged
 
     let pathExists (path: string) =
         try
@@ -246,7 +267,7 @@ module internal ModOrganizerInput =
     let stamp root (entry: PathEntry) =
         match entry.Facts.File with
         | Known identity -> observe root entry.Logical identity
-        | Unknown detail -> refuse (Error.UnsafeSource detail)
+        | Unknown detail -> Error(Error.UnsafeSource detail)
 
     let components (entry: PathEntry) = LogicalPath.components entry.Logical
 
@@ -268,61 +289,54 @@ module internal ModOrganizerInput =
             | _ -> false)
 
     let private copy (stamp: Stamp) (destination: FileStream) (token: CancellationToken) =
-        let source, identity = openEntry stamp.Root stamp.Path stamp.Identity
-        use source = source
+        result {
+            let! source, identity = openEntry stamp.Root stamp.Path stamp.Identity
+            use source = source
 
-        if identity <> stamp.Identity || source.Length <> stamp.Length then
-            refuse Error.SourceChanged
+            if identity <> stamp.Identity || source.Length <> stamp.Length then
+                return! Error Error.SourceChanged
 
-        let buffer = Array.zeroCreate<byte> 65536
-        use hash = IncrementalHash.CreateHash HashAlgorithmName.SHA256
-        let mutable read = 0L
+            let buffer = Array.zeroCreate<byte> 65536
+            use hash = IncrementalHash.CreateHash HashAlgorithmName.SHA256
+            let mutable read = 0L
 
-        while read < stamp.Length do
-            token.ThrowIfCancellationRequested()
+            while read < stamp.Length do
+                token.ThrowIfCancellationRequested()
 
-            let count =
-                source.Read(buffer, 0, int (min (int64 buffer.Length) (stamp.Length - read)))
+                let count =
+                    source.Read(buffer, 0, int (min (int64 buffer.Length) (stamp.Length - read)))
 
-            if count = 0 then
-                refuse Error.SourceChanged
+                if count = 0 then
+                    return! Error Error.SourceChanged
 
-            destination.Write(buffer, 0, count)
-            hash.AppendData(buffer, 0, count)
-            read <- read + int64 count
+                destination.Write(buffer, 0, count)
+                hash.AppendData(buffer, 0, count)
+                read <- read + int64 count
 
-        if source.ReadByte() <> -1 || source.Length <> stamp.Length then
-            refuse Error.SourceChanged
+            if source.ReadByte() <> -1 || source.Length <> stamp.Length then
+                return! Error Error.SourceChanged
 
-        let sha = Convert.ToHexStringLower(hash.GetHashAndReset())
+            let sha = Convert.ToHexStringLower(hash.GetHashAndReset())
 
-        if sha <> stamp.Sha256 then
-            refuse Error.SourceChanged
+            if sha <> stamp.Sha256 then
+                return! Error Error.SourceChanged
 
-        destination.Flush true
-        read, sha
+            destination.Flush true
+            return read, sha
+        }
 
     let verify stamp =
         let observed =
             try
-                Some(observe stamp.Root stamp.Path stamp.Identity)
+                observe stamp.Root stamp.Path stamp.Identity
             with
             | :? IOException
-            | :? UnauthorizedAccessException
-            | Refused _ -> None
+            | :? UnauthorizedAccessException -> Error Error.SourceChanged
 
-        if
-            observed
-            |> Option.forall (fun value ->
-                value.Length <> stamp.Length || value.Sha256 <> stamp.Sha256)
-        then
-            refuse Error.SourceChanged
+        match observed with
+        | Ok value when value.Length = stamp.Length && value.Sha256 = stamp.Sha256 -> Ok()
+        | _ -> Error Error.SourceChanged
 
     let transferFile (file: SourceFile) : Direct.File =
         { Path = file.Path
-          Read =
-            fun destination token ->
-                try
-                    Ok(copy file.Stamp destination token)
-                with Refused error ->
-                    Error error }
+          Read = fun destination token -> copy file.Stamp destination token }

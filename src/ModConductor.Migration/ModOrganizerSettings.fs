@@ -8,6 +8,7 @@ open System.Text
 
 module internal ModOrganizerSettings =
     open ModOrganizerInput
+    open MigrationResult
 
     let private unescape (value: string) =
         let result = StringBuilder(value.Length)
@@ -89,32 +90,38 @@ module internal ModOrganizerSettings =
         values
 
     let qsettingsArray section (values: Dictionary<string * string, string>) =
-        let size =
-            match values.TryGetValue((section, "size")) with
-            | false, _ -> 0
-            | true, value ->
-                match Int32.TryParse value with
-                | true, count when count >= 0 && count <= maxEntries -> count
-                | _ ->
-                    refuse (
-                        Error.InvalidSource("A Mod Organizer metadata array has an invalid size.")
-                    )
+        result {
+            let! size =
+                match values.TryGetValue((section, "size")) with
+                | false, _ -> Ok 0
+                | true, value ->
+                    match Int32.TryParse value with
+                    | true, count when count >= 0 && count <= maxEntries -> Ok count
+                    | _ ->
+                        Error(
+                            Error.InvalidSource(
+                                "A Mod Organizer metadata array has an invalid size."
+                            )
+                        )
 
-        [ for index in 1..size do
-              let prefix = string index + "\\"
+            return
+                [ for index in 1..size do
+                      let prefix = string index + "\\"
 
-              yield
-                  values
-                  |> Seq.choose (fun item ->
-                      let itemSection, key = item.Key
+                      yield
+                          values
+                          |> Seq.choose (fun item ->
+                              let itemSection, key = item.Key
 
-                      if
-                          itemSection = section && key.StartsWith(prefix, StringComparison.Ordinal)
-                      then
-                          Some(key.Substring(prefix.Length), item.Value)
-                      else
-                          None)
-                  |> Map.ofSeq ]
+                              if
+                                  itemSection = section
+                                  && key.StartsWith(prefix, StringComparison.Ordinal)
+                              then
+                                  Some(key.Substring(prefix.Length), item.Value)
+                              else
+                                  None)
+                          |> Map.ofSeq ]
+        }
 
     let private trySetting section name (values: Dictionary<string * string, string>) =
         match values.TryGetValue((section, name)) with
@@ -158,79 +165,90 @@ module internal ModOrganizerSettings =
         |> List.distinct
 
     let readCategories (sourceFolder: string) (basePath: string) =
-        let candidates = categoryPaths sourceFolder basePath
+        result {
+            let candidates = categoryPaths sourceFolder basePath
 
-        match candidates |> List.tryFind File.Exists with
-        | None -> [], [], candidates
-        | Some path ->
-            let categoryStamp = directFile path
-            let mutable categories = []
-            let ids = HashSet<int>()
+            match candidates |> List.tryFind File.Exists with
+            | None -> return [], [], candidates
+            | Some path ->
+                let! categoryStamp = directFile path
+                let! categoryText = text categoryStamp
+                let mutable categories = []
+                let ids = HashSet<int>()
 
-            for raw in (text categoryStamp).Replace("\r\n", "\n").Split('\n') do
-                let line = raw.Trim()
-
-                if line <> "" && not (line.StartsWith('#')) then
-                    let cells = line.Split('|')
-
-                    if cells.Length <> 3 && cells.Length <> 4 then
-                        refuse (Error.InvalidSource "categories.dat contains an invalid row.")
-
-                    let mutable id = 0
-                    let parentCell = cells[if cells.Length = 3 then 2 else 3]
-                    let mutable parent = 0
-
-                    if not (Int32.TryParse(cells[0], &id)) || id <= 0 || not (ids.Add id) then
-                        refuse (
-                            Error.InvalidSource "categories.dat contains an invalid category ID."
-                        )
-
-                    let parentId =
-                        if parentCell = "" || parentCell = "0" then
-                            None
-                        elif Int32.TryParse(parentCell, &parent) && parent > 0 then
-                            Some parent
-                        else
-                            refuse (
-                                Error.InvalidSource
-                                    "categories.dat contains an invalid parent category."
-                            )
-
-                    categories <-
-                        { SourceId = id
-                          Label = cells[1].Trim()
-                          ParentSourceId = parentId }
-                        :: categories
-
-            let mapping = Path.Combine(Path.GetDirectoryName path, "nexuscatmap.dat")
-            let stamps = ResizeArray<Stamp>()
-            stamps.Add categoryStamp
-
-            let absent =
-                candidates
-                |> List.filter (fun candidate -> not (pathExists candidate))
-                |> fun values -> if pathExists mapping then values else mapping :: values
-
-            if File.Exists mapping then
-                let mappingStamp = directFile mapping
-                stamps.Add mappingStamp
-
-                for raw in (text mappingStamp).Replace("\r\n", "\n").Split('\n') do
+                for raw in categoryText.Replace("\r\n", "\n").Split('\n') do
                     let line = raw.Trim()
 
                     if line <> "" && not (line.StartsWith('#')) then
                         let cells = line.Split('|')
-                        let mutable category = 0
-                        let mutable provider = 0
 
-                        if
-                            cells.Length <> 3
-                            || not (Int32.TryParse(cells[0], &category))
-                            || not (Int32.TryParse(cells[2], &provider))
-                        then
-                            refuse (Error.InvalidSource "nexuscatmap.dat contains an invalid row.")
+                        if cells.Length <> 3 && cells.Length <> 4 then
+                            return!
+                                Error(Error.InvalidSource "categories.dat contains an invalid row.")
 
-            List.rev categories, List.ofSeq stamps, absent
+                        let mutable id = 0
+                        let parentCell = cells[if cells.Length = 3 then 2 else 3]
+                        let mutable parent = 0
+
+                        if not (Int32.TryParse(cells[0], &id)) || id <= 0 || not (ids.Add id) then
+                            return!
+                                Error(
+                                    Error.InvalidSource
+                                        "categories.dat contains an invalid category ID."
+                                )
+
+                        let! parentId =
+                            if parentCell = "" || parentCell = "0" then
+                                Ok None
+                            elif Int32.TryParse(parentCell, &parent) && parent > 0 then
+                                Ok(Some parent)
+                            else
+                                Error(
+                                    Error.InvalidSource
+                                        "categories.dat contains an invalid parent category."
+                                )
+
+                        categories <-
+                            { SourceId = id
+                              Label = cells[1].Trim()
+                              ParentSourceId = parentId }
+                            :: categories
+
+                let mapping = Path.Combine(Path.GetDirectoryName path, "nexuscatmap.dat")
+                let stamps = ResizeArray<Stamp>()
+                stamps.Add categoryStamp
+
+                let absent =
+                    candidates
+                    |> List.filter (fun candidate -> not (pathExists candidate))
+                    |> fun values -> if pathExists mapping then values else mapping :: values
+
+                if File.Exists mapping then
+                    let! mappingStamp = directFile mapping
+                    stamps.Add mappingStamp
+                    let! mappingText = text mappingStamp
+
+                    for raw in mappingText.Replace("\r\n", "\n").Split('\n') do
+                        let line = raw.Trim()
+
+                        if line <> "" && not (line.StartsWith('#')) then
+                            let cells = line.Split('|')
+                            let mutable category = 0
+                            let mutable provider = 0
+
+                            if
+                                cells.Length <> 3
+                                || not (Int32.TryParse(cells[0], &category))
+                                || not (Int32.TryParse(cells[2], &provider))
+                            then
+                                return!
+                                    Error(
+                                        Error.InvalidSource
+                                            "nexuscatmap.dat contains an invalid row."
+                                    )
+
+                return List.rev categories, List.ofSeq stamps, absent
+        }
 
     let categoryIds (value: string) =
         value.Split(',', StringSplitOptions.RemoveEmptyEntries ||| StringSplitOptions.TrimEntries)
