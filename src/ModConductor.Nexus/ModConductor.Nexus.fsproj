@@ -8,6 +8,10 @@
     <Compile Include="MetadataJson.fs" />
     <Compile Include="Interactions.fs" />
     <Compile Include="Transport.fs" />
+    <Compile Include="DownloadLeases.fs" />
+    <Compile Include="MetadataReader.fs" />
+    <Compile Include="NxmIngress.fs" />
+    <Compile Include="InteractionCoordinator.fs" />
     <Compile Include="Session.fs" />
     <Compile Include="ModDetails.fs" />
     <ProjectReference Include="../ModConductor.Credentials/ModConductor.Credentials.fsproj" />

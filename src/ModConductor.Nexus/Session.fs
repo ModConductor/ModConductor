@@ -2,7 +2,6 @@ namespace ModConductor.Nexus
 
 open System
 open System.Security.Cryptography
-open System.Collections.Generic
 open System.Text
 open System.Text.Json
 open System.Threading
@@ -30,6 +29,8 @@ type NexusSession
     let transport =
         new NexusTransport(api, defaultArg requestInterval (TimeSpan.FromSeconds 1.))
 
+    let metadata = MetadataReader(transport)
+
     let mutable lifetime = new CancellationTokenSource()
     let mutable generation = 0L
     let mutable account: Account option = None
@@ -42,19 +43,18 @@ type NexusSession
     let mutable signIn: Task = Task.CompletedTask
     let mutable savedConnection: Task = Task.CompletedTask
     let mutable statusRevision = 0L
-    let mutable statusChanged = TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)
-    let nxm = NxmAuthorizations()
+
+    let mutable statusChanged =
+        TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)
+
     let interactions = InteractionMemory()
 
-    let nxmExpiry =
-        new Timer(
-            TimerCallback(fun _ -> lock gate (fun () -> nxm.Expire())),
-            null,
-            TimeSpan.FromSeconds 30.,
-            TimeSpan.FromSeconds 30.
+    let nxm =
+        new NxmIngress(
+            gate,
+            (fun () -> account |> Option.map _.Subject),
+            (fun () -> generation, lifetime.IsCancellationRequested)
         )
-
-    let leases = Dictionary<string * int64 * int64 * string, DownloadLease>()
 
     let configured () =
         registration
@@ -104,6 +104,15 @@ type NexusSession
 
         if not (current epoch) then
             raise (OperationCanceledException())
+
+    let downloads =
+        DownloadLeases(
+            gate,
+            transport,
+            require,
+            (fun key -> nxm.Grant key),
+            (fun () -> account |> Option.map _.Subject)
+        )
 
     let publish epoch (value: NexusJson.Tokens) expected token =
         task {
@@ -234,6 +243,9 @@ type NexusSession
                 refreshGate.Release() |> ignore
         }
 
+    let interactionCoordinator =
+        InteractionCoordinator(gate, interactions, (fun () -> account), require, access, transport)
+
     let run action =
         task {
             do! lock gate (fun () -> savedConnection)
@@ -286,71 +298,6 @@ type NexusSession
             | Ok(Ok value) -> return Ok value
         }
 
-    let resolveLease epoch token bearer (key: string * int64 * int64 * string) (grant: NxmGrant option) =
-        task {
-            let game, modId, fileId, _ = key
-            let query =
-                grant
-                |> Option.map (fun g ->
-                    "?key="
-                    + Uri.EscapeDataString g.Key
-                    + "&expires="
-                    + g.Expires
-                        .ToUnixTimeSeconds()
-                        .ToString(System.Globalization.CultureInfo.InvariantCulture))
-                |> Option.defaultValue ""
-
-            let cached =
-                lock gate (fun () ->
-                    leases
-                    |> Seq.filter (fun entry -> entry.Value.Expires <= DateTimeOffset.UtcNow)
-                    |> Seq.map (fun entry -> entry.Key)
-                    |> Seq.toArray
-                    |> Array.iter (fun key -> leases.Remove key |> ignore)
-
-                    match leases.TryGetValue key with
-                    | true, value -> Some value
-                    | _ -> None)
-
-            match cached with
-            | Some value -> return value
-            | None ->
-                use! reply =
-                    transport.Api(
-                        ("games/"
-                         + game
-                         + "/mods/"
-                         + (modId).ToString(System.Globalization.CultureInfo.InvariantCulture)
-                         + "/files/"
-                         + (fileId).ToString(System.Globalization.CultureInfo.InvariantCulture)
-                         + "/download_link.json"
-                         + query),
-                        bearer,
-                        true,
-                        token
-                    )
-
-                let first =
-                    reply.RootElement.EnumerateArray()
-                    |> Seq.tryHead
-                    |> Option.defaultWith NexusJson.fail
-
-                let url = Uri(NexusJson.text "URI" first, UriKind.Absolute)
-
-                if url.UserInfo <> "" || url.Fragment <> "" then
-                    NexusJson.fail ()
-
-                let lease =
-                    { Url = url
-                      Expires = DateTimeOffset.UtcNow.AddSeconds 60. }
-
-                lock gate (fun () ->
-                    require epoch token
-                    leases[key] <- lease)
-
-                return lease
-        }
-
     member _.Status = status ()
 
     member _.StatusWithRevision = lock gate (fun () -> statusRevision, statusUnsafe ())
@@ -358,8 +305,11 @@ type NexusSession
     member _.WaitForStatusChange(revision, token: CancellationToken) =
         let pending =
             lock gate (fun () ->
-                if statusRevision <> revision then Task.CompletedTask
-                else statusChanged.Task)
+                if statusRevision <> revision then
+                    Task.CompletedTask
+                else
+                    statusChanged.Task)
+
         pending.WaitAsync(token)
 
     member _.SavedConnection = lock gate (fun () -> savedConnection)
@@ -367,9 +317,10 @@ type NexusSession
     member _.SignIn() =
         task {
             match registration with
-            | None -> lock gate (fun () ->
-                problem <- Some NexusProblem.NotConfigured
-                changed ())
+            | None ->
+                lock gate (fun () ->
+                    problem <- Some NexusProblem.NotConfigured
+                    changed ())
             | Some config ->
                 let attempt =
                     lock gate (fun () ->
@@ -659,7 +610,7 @@ type NexusSession
                     lifetime.Dispose()
                     lifetime <- new CancellationTokenSource()
                     account <- None
-                    leases.Clear()
+                    downloads.Clear()
                     nxm.Clear()
                     interactions.Clear()
                     boundSubject <- None
@@ -696,29 +647,7 @@ type NexusSession
                     raise (NexusException NexusProblem.NotFound)
 
                 let! bearer = access epoch token false
-
-                use! game = transport.Api("games/" + identity.Game + ".json", bearer, false, token)
-
-                let path =
-                    "games/"
-                    + identity.Game
-                    + "/mods/"
-                    + identity.Mod.ToString(Globalization.CultureInfo.InvariantCulture)
-
-                use! modReply = transport.Api(path + ".json", bearer, false, token)
-
-                use! files =
-                    if MetadataJson.boolean "available" modReply.RootElement then
-                        transport.Api(path + "/files.json", bearer, false, token)
-                    else
-                        Task.FromResult(JsonDocument.Parse("{\"files\":[],\"file_updates\":[]}"))
-
-                return
-                    MetadataJson.metadata
-                        identity
-                        game.RootElement
-                        modReply.RootElement
-                        files.RootElement
+                return! metadata.ReadMetadata(identity, bearer, token)
             })
 
     member this.ReadMod(game: string, modId: int64) =
@@ -739,272 +668,17 @@ type NexusSession
                               Files = value.Files |> List.map (fun file -> file.File) })
         }
 
-    member _.ForgetInteractions(identity: NexusIdentity) =
-        lock gate (fun () -> interactions.Forget identity)
+    member _.ForgetInteractions(identity: NexusIdentity) = interactionCoordinator.Forget identity
 
-    member _.InteractionState(identity: NexusIdentity) =
-        lock gate (fun () ->
-            { interactions.Get(account |> Option.map (fun value -> value.Subject), identity) with
-                AccountName = account |> Option.map _.Name })
+    member _.InteractionState(identity: NexusIdentity) = interactionCoordinator.State identity
 
-    member this.RefreshInteractions(identity: NexusIdentity) =
-        task {
-            let mutable started = None
+    member _.RefreshInteractions(identity: NexusIdentity) =
+        interactionCoordinator.Refresh(identity, run)
 
-            let! result =
-                run (fun epoch token ->
-                    task {
-                        let! bearer = access epoch token false
-
-                        let state =
-                            lock gate (fun () ->
-                                require epoch token
-
-                                let subject =
-                                    account
-                                    |> Option.map (fun value -> value.Subject)
-                                    |> Option.defaultWith (fun () ->
-                                        raise (NexusException NexusProblem.SignInRequired))
-
-                                interactions.Begin(subject, identity, None)
-                                |> Result.defaultWith (fun error -> raise (NexusException error)))
-
-                        started <- Some state
-
-                        let! tracked =
-                            NexusBoundary.protect (fun () ->
-                                task {
-                                    use! reply =
-                                        transport.Api(
-                                            "user/tracked_mods.json",
-                                            bearer,
-                                            false,
-                                            token
-                                        )
-
-                                    return MetadataJson.tracking identity reply.RootElement
-                                })
-
-                        match tracked with
-                        | Error NexusProblem.InvalidApiKey ->
-                            raise (NexusException NexusProblem.InvalidApiKey)
-                        | _ -> ()
-
-                        let! endorsed =
-                            NexusBoundary.protect (fun () ->
-                                task {
-                                    use! reply =
-                                        transport.Api(
-                                            "user/endorsements.json",
-                                            bearer,
-                                            false,
-                                            token
-                                        )
-
-                                    return MetadataJson.endorsements identity reply.RootElement
-                                })
-
-                        match endorsed with
-                        | Error NexusProblem.InvalidApiKey ->
-                            raise (NexusException NexusProblem.InvalidApiKey)
-                        | _ -> ()
-
-                        return tracked, endorsed
-                    })
-
-            lock gate (fun () ->
-                started
-                |> Option.iter (fun value ->
-                    match result with
-                    | Ok(tracking, endorsement) ->
-                        let problem =
-                            match tracking, endorsement with
-                            | Error error, _
-                            | _, Error error -> Some error
-                            | _ -> None
-
-                        interactions.Finish(
-                            identity,
-                            value,
-                            Result.toOption tracking,
-                            Result.toOption endorsement,
-                            problem
-                        )
-                    | Error error -> interactions.Finish(identity, value, None, None, Some error)))
-
-            return this.InteractionState identity
-        }
-
-    member this.ChangeInteraction
+    member _.ChangeInteraction
         (identity: NexusIdentity, expected: int64, action: NexusInteraction, version: string)
         =
-        task {
-            let mutable started = None
-            let mutable submitted = false
-
-            let! result =
-                run (fun epoch token ->
-                    task {
-                        let! bearer = access epoch token false
-
-                        let state, already =
-                            lock gate (fun () ->
-                                require epoch token
-
-                                let subject =
-                                    account
-                                    |> Option.map (fun value -> value.Subject)
-                                    |> Option.defaultWith (fun () ->
-                                        raise (NexusException NexusProblem.SignInRequired))
-
-                                let value = interactions.Get(Some subject, identity)
-
-                                if value.Busy then
-                                    raise (NexusException NexusProblem.InteractionBusy)
-
-                                if value.Revision <> expected then
-                                    raise (NexusException NexusProblem.InteractionUnknown)
-
-                                let already =
-                                    match action with
-                                    | NexusInteraction.Track -> value.Tracking |> Option.map id
-                                    | NexusInteraction.Untrack -> value.Tracking |> Option.map not
-                                    | NexusInteraction.Endorse ->
-                                        value.Endorsement
-                                        |> Option.map ((=) NexusEndorsement.Endorsed)
-                                    | NexusInteraction.Abstain ->
-                                        value.Endorsement
-                                        |> Option.map ((=) NexusEndorsement.Abstained)
-
-                                if already.IsNone then
-                                    raise (NexusException NexusProblem.InteractionUnknown)
-
-                                if already.Value then
-                                    value, true
-                                else
-                                    interactions.Begin(subject, identity, Some expected)
-                                    |> Result.defaultWith (fun error ->
-                                        raise (NexusException error)),
-                                    false)
-
-                        if already then
-                            return state.Tracking, state.Endorsement
-                        else
-                            started <- Some state
-
-                            let tracking =
-                                action = NexusInteraction.Track
-                                || action = NexusInteraction.Untrack
-
-                            let path, fields =
-                                if tracking then
-                                    "user/tracked_mods.json",
-                                    [ "domain_name", Choice1Of2 identity.Game
-                                      "mod_id", Choice2Of2 identity.Mod ]
-                                else
-                                    "games/"
-                                    + identity.Game
-                                    + "/mods/"
-                                    + identity.Mod.ToString(
-                                        Globalization.CultureInfo.InvariantCulture
-                                    )
-                                    + (if action = NexusInteraction.Endorse then
-                                           "/endorse.json"
-                                       else
-                                           "/abstain.json"),
-                                    [ "Version", Choice1Of2 version ]
-
-                            submitted <- true
-
-                            let! written = transport.Mutate(path, bearer, action, fields, token)
-
-                            match written with
-                            | Error error -> return raise (NexusException error)
-                            | Ok response ->
-                                use response = response
-
-                                if tracking then
-                                    use! reply =
-                                        transport.Api(
-                                            "user/tracked_mods.json",
-                                            bearer,
-                                            false,
-                                            token
-                                        )
-
-                                    let value = MetadataJson.tracking identity reply.RootElement
-
-                                    if value <> (action = NexusInteraction.Track) then
-                                        raise (NexusException NexusProblem.InteractionUnknown)
-
-                                    return Some value, state.Endorsement
-                                else
-                                    let value =
-                                        MetadataJson.endorsement (
-                                            NexusJson.text "status" response.RootElement
-                                        )
-
-                                    if
-                                        value
-                                        <> (if action = NexusInteraction.Endorse then
-                                                NexusEndorsement.Endorsed
-                                            else
-                                                NexusEndorsement.Abstained)
-                                    then
-                                        raise (NexusException NexusProblem.InteractionUnknown)
-
-                                    return state.Tracking, Some value
-                    })
-
-            lock gate (fun () ->
-                started
-                |> Option.iter (fun value ->
-                    match result with
-                    | Ok(tracking, endorsement) ->
-                        interactions.Finish(identity, value, tracking, endorsement, None)
-                    | Error error ->
-                        let issue =
-                            if
-                                submitted
-                                && (error = NexusProblem.Cancelled
-                                    || error = NexusProblem.TimedOut
-                                    || error = NexusProblem.Offline
-                                    || error = NexusProblem.InvalidResponse
-                                    || error = NexusProblem.Failed)
-                            then
-                                NexusProblem.InteractionUnknown
-                            else
-                                error
-
-                        let tracking =
-                            if
-                                action = NexusInteraction.Track
-                                || action = NexusInteraction.Untrack
-                            then
-                                None
-                            else
-                                value.Tracking
-
-                        let endorsement =
-                            if
-                                action = NexusInteraction.Endorse
-                                || action = NexusInteraction.Abstain
-                            then
-                                None
-                            else
-                                value.Endorsement
-
-                        interactions.Finish(identity, value, tracking, endorsement, Some issue)))
-
-            let current = this.InteractionState identity
-
-            return
-                match started, result with
-                | None, Error error -> { current with Problem = Some error }
-                | _, Error error when current.Subject.IsNone ->
-                    { current with Problem = Some error }
-                | _ -> current
-        }
+        interactionCoordinator.Change(identity, expected, action, version, run)
 
     member _.ReadFile(game: string, modId: int64, fileId: int64) =
         run (fun epoch token ->
@@ -1013,61 +687,19 @@ type NexusSession
                     raise (NexusException NexusProblem.NotFound)
 
                 let! bearer = access epoch token false
-
-                use! reply =
-                    transport.Api(
-                        ("games/"
-                         + game
-                         + "/mods/"
-                         + (modId).ToString(System.Globalization.CultureInfo.InvariantCulture)
-                         + "/files/"
-                         + (fileId).ToString(System.Globalization.CultureInfo.InvariantCulture)
-                         + ".json"),
-                        bearer,
-                        false,
-                        token
-                    )
-
-                let file = NexusJson.file reply.RootElement
-
-                if file.Id <> fileId then
-                    NexusJson.fail ()
-
-                return file
+                return! metadata.ReadFile(game, modId, fileId, bearer, token)
             })
 
-    member _.AcceptNxm(id, input) =
-        lock gate (fun () -> nxm.Accept(id, input))
+    member _.AcceptNxm(id, input) = nxm.Accept(id, input)
 
-    member _.ReadNxm id =
-        lock gate (fun () -> nxm.Read id |> Result.map (fun link -> link.File))
+    member _.ReadNxm id = nxm.Read id
 
-    member _.ValidateNxm(id, subject) =
-        lock gate (fun () -> nxm.Validate(id, subject) |> Result.map (fun link -> link.File))
+    member _.ValidateNxm(id, subject) = nxm.Validate(id, subject)
 
     member _.AdmitNxm(id, subject) =
-        lock gate (fun () ->
-            let epoch = generation
+        nxm.Admit(id, subject, downloads.Invalidate)
 
-            if account |> Option.forall (fun value -> value.Subject <> subject) then
-                Error Nxm.mismatch
-            else
-                nxm.Admit(id, subject)
-                |> Result.map (fun (file, cancel) ->
-                    if file.Keyed then
-                        leases.Remove((file.Game, file.ModId, file.FileId, subject)) |> ignore
-
-                    new NxmAdmission(
-                        file,
-                        fun () ->
-                            lock gate (fun () ->
-                                if
-                                    epoch = generation && not lifetime.IsCancellationRequested
-                                then
-                                    cancel ())
-                    )))
-
-    member _.DismissNxm id = lock gate (fun () -> nxm.Dismiss id)
+    member _.DismissNxm id = nxm.Dismiss id
 
     member _.Resolve
         (game: string, modId: int64, fileId: int64, subject: string, ?requiresLink: bool)
@@ -1079,29 +711,24 @@ type NexusSession
                 else
                     let! bearer = access epoch token false
 
-                    if
-                        lock gate (fun () ->
-                            account |> Option.forall (fun value -> value.Subject <> subject))
-                    then
-                        return Error NexusProblem.DownloadAccount
-                    else
-                        let key = game, modId, fileId, subject
-                        let grant = lock gate (fun () -> nxm.Grant key)
-
-                        if defaultArg requiresLink false && grant.IsNone then
-                            return Error NexusProblem.DownloadLinkNeeded
-                        else
-                            let! lease = resolveLease epoch token bearer key grant
-                            return Ok lease
+                    return!
+                        downloads.Resolve(
+                            epoch,
+                            token,
+                            bearer,
+                            game,
+                            modId,
+                            fileId,
+                            subject,
+                            defaultArg requiresLink false
+                        )
             })
 
     member _.RejectLease(game, modId, fileId, subject, url) =
         lock gate (fun () ->
             let key = game, modId, fileId, subject
 
-            match leases.TryGetValue key with
-            | true, lease when lease.Url = url -> leases.Remove key |> ignore
-            | _ -> ())
+            downloads.Reject(key, url))
 
     member _.Stop() =
         task {
@@ -1110,7 +737,7 @@ type NexusSession
                     lifetime.Cancel()
                     tokens <- None
                     authorization <- None
-                    leases.Clear()
+                    downloads.Clear()
                     nxm.Clear()
                     interactions.Clear()
                     signIn)
@@ -1124,7 +751,7 @@ type NexusSession
         member this.Dispose() =
             this.Stop().GetAwaiter().GetResult()
             (transport :> IDisposable).Dispose()
-            nxmExpiry.Dispose()
+            (nxm :> IDisposable).Dispose()
             lifetime.Dispose()
             refreshGate.Dispose()
             commit.Dispose()
