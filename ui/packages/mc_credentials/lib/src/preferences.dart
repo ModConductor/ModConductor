@@ -4,101 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:mc_client/mc_client.dart';
 import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 
-class CredentialPreferencesLabels {
-  const CredentialPreferencesLabels({
-    required this.nexusMods,
-    required this.disconnectTitle,
-    required this.disconnect,
-    required this.disconnectPause,
-    required this.disconnectRemovesSaved,
-    required this.sessionOnlyTitle,
-    required this.sessionOnly,
-    required this.sessionOnlyLost,
-    required this.sessionOnlyKeepsSaved,
-    required this.clearSessionTitle,
-    required this.removeSavedTitle,
-    required this.clearSignIn,
-    required this.removeSignIn,
-    required this.clearsSessionToo,
-    required this.storageDetails,
-    required this.close,
-    required this.problem,
-    required this.waitingSignIn,
-    required this.premium,
-    required this.accountCurrent,
-    required this.checkingAccount,
-    required this.accountCheckFailed,
-    required this.notConnected,
-    required this.notSignedIn,
-    required this.notSaved,
-    required this.cancelSignIn,
-    required this.checkAccount,
-    required this.signInAgain,
-    required this.connect,
-    required this.signIn,
-    required this.personalApiKey,
-    required this.showPersonalApiKey,
-    required this.hidePersonalApiKey,
-    required this.submitPersonalApiKey,
-    required this.storageCheckFailed,
-    required this.checkEngine,
-    required this.savedNotRemoved,
-    required this.unlockKeyring,
-    required this.saved,
-    required this.noneSaved,
-    required this.cannotCheckSaved,
-    required this.newSignIns,
-    required this.saveOnComputer,
-    required this.checkStorage,
-    required this.retryRemoval,
-  });
+export 'preferences_labels.dart' show CredentialPreferencesLabels;
 
-  final String nexusMods;
-  final String disconnectTitle;
-  final String disconnect;
-  final String disconnectPause;
-  final String disconnectRemovesSaved;
-  final String sessionOnlyTitle;
-  final String sessionOnly;
-  final String sessionOnlyLost;
-  final String sessionOnlyKeepsSaved;
-  final String clearSessionTitle;
-  final String removeSavedTitle;
-  final String clearSignIn;
-  final String removeSignIn;
-  final String clearsSessionToo;
-  final String storageDetails;
-  final String close;
-  final String Function(CredentialProblem) problem;
-  final String waitingSignIn;
-  final String premium;
-  final String accountCurrent;
-  final String checkingAccount;
-  final String accountCheckFailed;
-  final String notConnected;
-  final String notSignedIn;
-  final String notSaved;
-  final String cancelSignIn;
-  final String checkAccount;
-  final String signInAgain;
-  final String connect;
-  final String signIn;
-  final String personalApiKey;
-  final String showPersonalApiKey;
-  final String hidePersonalApiKey;
-  final String submitPersonalApiKey;
-  final String storageCheckFailed;
-  final String checkEngine;
-  final String savedNotRemoved;
-  final String unlockKeyring;
-  final String saved;
-  final String noneSaved;
-  final String cannotCheckSaved;
-  final String newSignIns;
-  final String saveOnComputer;
-  final String checkStorage;
-  final String retryRemoval;
-}
+import 'preferences_labels.dart';
+import 'account_watch.dart';
+import 'account_content.dart';
+import 'storage_content.dart';
 
 class CredentialPreferences extends StatefulWidget {
   const CredentialPreferences({
@@ -117,9 +28,10 @@ class CredentialPreferences extends StatefulWidget {
 class _CredentialPreferencesState extends State<CredentialPreferences> {
   CredentialStatus? _status;
   NexusAccount? _account;
-  StreamSubscription<NexusAccount>? _accountWatch;
-  Timer? _accountReconnect;
-  int _accountWatchAttempt = 0;
+  late final _accountWatch = CredentialAccountWatch(
+    onAccount: _accountObserved,
+    onError: _accountWatchFailed,
+  );
   bool _accountEventPending = false;
   bool _busy = false, _connectionProblem = false;
   bool _checkingAccount = false,
@@ -132,7 +44,7 @@ class _CredentialPreferencesState extends State<CredentialPreferences> {
   void initState() {
     super.initState();
     _refresh();
-    _observeAccount();
+    _accountWatch.observe(widget.nexus);
   }
 
   @override
@@ -146,11 +58,9 @@ class _CredentialPreferencesState extends State<CredentialPreferences> {
       _checkingAccount = false;
       _accountChecked = false;
       _accountCheckFailed = false;
-      if (_accountWatch != null) unawaited(_accountWatch!.cancel());
-      _accountReconnect?.cancel();
       _accountEventPending = false;
       _refresh();
-      _observeAccount();
+      _accountWatch.observe(widget.nexus);
     }
   }
 
@@ -188,62 +98,27 @@ class _CredentialPreferencesState extends State<CredentialPreferences> {
     if (client != null) _run(client.status);
   }
 
-  void _observeAccount() {
-    final nexus = widget.nexus;
-    if (nexus == null) return;
-    final generation = _generation;
-    final attempt = ++_accountWatchAttempt;
-    _accountReconnect?.cancel();
-    _accountReconnect = null;
-    unawaited(_accountWatch?.cancel() ?? Future.value());
-    void reconnect() {
-      if (!mounted ||
-          generation != _generation ||
-          attempt != _accountWatchAttempt)
-        return;
-      _accountReconnect?.cancel();
-      _accountReconnect = Timer(const Duration(seconds: 1), () {
-        if (mounted &&
-            generation == _generation &&
-            attempt == _accountWatchAttempt)
-          _observeAccount();
-      });
+  void _accountObserved(NexusAccount account) {
+    if (!mounted) return;
+    setState(() {
+      _account = account;
+      _connectionProblem = false;
+    });
+    if (_busy) {
+      _accountEventPending = true;
+    } else {
+      _refresh();
     }
+  }
 
-    _accountWatch = nexus.watchStatus().listen(
-      (account) {
-        if (!mounted ||
-            generation != _generation ||
-            attempt != _accountWatchAttempt)
-          return;
-        setState(() {
-          _account = account;
-          _connectionProblem = false;
-        });
-        if (_busy) {
-          _accountEventPending = true;
-        } else {
-          _refresh();
-        }
-      },
-      onError: (Object _) {
-        if (mounted &&
-            generation == _generation &&
-            attempt == _accountWatchAttempt) {
-          setState(() => _connectionProblem = true);
-          reconnect();
-        }
-      },
-      onDone: reconnect,
-      cancelOnError: true,
-    );
+  void _accountWatchFailed() {
+    if (mounted) setState(() => _connectionProblem = true);
   }
 
   @override
   void dispose() {
     ++_generation;
-    _accountReconnect?.cancel();
-    if (_accountWatch != null) unawaited(_accountWatch!.cancel());
+    _accountWatch.dispose();
     _personalApiKey.dispose();
     super.dispose();
   }
@@ -382,241 +257,43 @@ class _CredentialPreferencesState extends State<CredentialPreferences> {
   static const _gap = SizedBox(height: McSpacing.medium);
   @override
   Widget build(BuildContext context) {
-    final labels = widget.labels;
-    final status = _status;
-    final reconnect =
-        status?.saved == SavedCredentials.present &&
-        status?.mode != CredentialMode.sessionOnly &&
-        _account?.problem?.code != 'sign_in_required';
     final enabled = !_busy && widget.client != null;
-    final accountProblem = _account?.problem;
     return McSection(
-      title: labels.nexusMods,
+      title: widget.labels.nexusMods,
       children: [
-        if (_account?.waiting == true)
-          McActionFeedback(
-            kind: McActionFeedbackKind.pending,
-            message: labels.waitingSignIn,
-          )
-        else
-          McIdentityCard(
-            key: const ValueKey('nexus-identity'),
-            name:
-                _account?.name ??
-                (status?.saved == SavedCredentials.present
-                    ? labels.notConnected
-                    : labels.notSignedIn),
-            provider: labels.nexusMods,
-            semanticLabel:
-                '${_account?.name ?? (status?.saved == SavedCredentials.present ? labels.notConnected : labels.notSignedIn)}, ${labels.nexusMods}${_account?.premium == true ? ', ${labels.premium}' : ''}',
-            image: _account?.profileImage == null
-                ? null
-                : NetworkImage(_account!.profileImage!.toString()),
-            fallbackIcon: _account?.name == null
-                ? Icons.person_outline
-                : Icons.person,
-            badges: [
-              if (_account?.premium == true)
-                Chip(
-                  avatar: const Icon(
-                    Icons.workspace_premium_outlined,
-                    size: 17,
-                  ),
-                  label: Text(labels.premium),
-                ),
-            ],
-          ),
-        if (!_accountChecked && accountProblem != null) ...[
-          _gap,
-          McStatus(
-            title: accountProblem.code == 'storage'
-                ? labels.notSaved
-                : accountProblem.message,
-            detail: accountProblem.code == 'storage'
-                ? accountProblem.message
-                : null,
-            tone: McStatusTone.error,
-          ),
-        ],
-        if (widget.nexus != null &&
-            (_account?.configured == true ||
-                _account?.name != null ||
-                reconnect)) ...[
-          _gap,
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: [
-              if (_account?.waiting == true)
-                McAction(
-                  label: labels.cancelSignIn,
-                  onPressed: enabled
-                      ? () => _nexus(widget.nexus!.cancel)
-                      : null,
-                )
-              else if (_account?.name != null) ...[
-                McAction(
-                  key: const ValueKey('nexus-check-account'),
-                  label: labels.checkAccount,
-                  icon: Icons.refresh,
-                  onPressed: enabled ? _checkAccount : null,
-                ),
-                McAction(
-                  label: labels.disconnect,
-                  icon: Icons.logout,
-                  onPressed: enabled ? _disconnect : null,
-                ),
-              ] else
-                McAction(
-                  label: _account?.problem?.code == 'sign_in_required'
-                      ? labels.signInAgain
-                      : reconnect
-                      ? labels.connect
-                      : labels.signIn,
-                  icon: Icons.login,
-                  emphasis: McActionEmphasis.primary,
-                  onPressed: enabled
-                      ? () => _nexus(
-                          reconnect
-                              ? widget.nexus!.connect
-                              : widget.nexus!.signIn,
-                        )
-                      : null,
-                ),
-            ],
-          ),
-        ],
-        if (_checkingAccount || _accountChecked) ...[
-          _gap,
-          McActionFeedback(
-            key: const ValueKey('nexus-account-feedback'),
-            kind: _checkingAccount
-                ? McActionFeedbackKind.pending
-                : _accountCheckFailed
-                ? McActionFeedbackKind.failure
-                : McActionFeedbackKind.success,
-            message: _checkingAccount
-                ? labels.checkingAccount
-                : _accountCheckFailed
-                ? labels.accountCheckFailed
-                : labels.accountCurrent,
-            detail: !_accountCheckFailed
-                ? null
-                : _account?.problem?.message ?? labels.checkEngine,
-          ),
-        ],
-        if (_account?.name == null && widget.nexus != null) ...[
-          _gap,
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 480),
-            child: TextField(
-              key: const ValueKey('nexus-personal-api-key'),
-              controller: _personalApiKey,
-              obscureText: !_showPersonalApiKey,
-              enableSuggestions: false,
-              autocorrect: false,
-              textInputAction: TextInputAction.done,
-              onSubmitted: enabled ? (_) => _submitPersonalApiKey() : null,
-              decoration: InputDecoration(
-                labelText: labels.personalApiKey,
-                suffixIcon: McIconAction(
-                  label: _showPersonalApiKey
-                      ? labels.hidePersonalApiKey
-                      : labels.showPersonalApiKey,
-                  icon: Icon(
-                    _showPersonalApiKey
-                        ? Icons.visibility_off
-                        : Icons.visibility,
-                  ),
-                  onPressed: enabled
-                      ? () => setState(
-                          () => _showPersonalApiKey = !_showPersonalApiKey,
-                        )
-                      : null,
-                ),
-              ),
-            ),
-          ),
-          _gap,
-          McAction(
-            key: const ValueKey('submit-nexus-personal-api-key'),
-            label: labels.submitPersonalApiKey,
-            icon: Icons.key,
-            onPressed: enabled ? _submitPersonalApiKey : null,
-          ),
-        ],
+        CredentialAccountContent(
+          labels: widget.labels,
+          status: _status,
+          account: _account,
+          hasNexus: widget.nexus != null,
+          enabled: enabled,
+          checkingAccount: _checkingAccount,
+          accountChecked: _accountChecked,
+          accountCheckFailed: _accountCheckFailed,
+          showPersonalApiKey: _showPersonalApiKey,
+          personalApiKey: _personalApiKey,
+          onCancelSignIn: () => _nexus(widget.nexus!.cancel),
+          onCheckAccount: _checkAccount,
+          onDisconnect: _disconnect,
+          onConnect: () => _nexus(widget.nexus!.connect),
+          onSignIn: () => _nexus(widget.nexus!.signIn),
+          onSubmitPersonalApiKey: _submitPersonalApiKey,
+          onTogglePersonalApiKey: () =>
+              setState(() => _showPersonalApiKey = !_showPersonalApiKey),
+        ),
         _gap,
-        if (widget.client == null || _connectionProblem) ...[
-          McStatus(
-            title: labels.storageCheckFailed,
-            detail: labels.checkEngine,
-            tone: McStatusTone.error,
-          ),
-          _gap,
-        ] else if (status?.removalProblem case final problem?) ...[
-          McStatus(
-            title: labels.savedNotRemoved,
-            detail: problem == CredentialProblem.locked
-                ? labels.unlockKeyring
-                : labels.problem(problem),
-            tone: McStatusTone.error,
-          ),
-          _gap,
-        ] else if (status?.problem case final problem?) ...[
-          McStatus(title: labels.problem(problem)),
-          _gap,
-        ],
-        Text(switch (status?.saved) {
-          SavedCredentials.present => labels.saved,
-          SavedCredentials.absent => labels.noneSaved,
-          SavedCredentials.unknown || null => labels.cannotCheckSaved,
-        }),
-        _gap,
-        if (status != null)
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 480),
-            child: McChoice<CredentialMode>(
-              label: labels.newSignIns,
-              value: status.mode,
-              choices: CredentialMode.values,
-              enabled: enabled,
-              describe: (mode) => switch (mode) {
-                CredentialMode.secure => labels.saveOnComputer,
-                CredentialMode.sessionOnly => labels.sessionOnly,
-              },
-              onChanged: _mode,
-            ),
-          ),
-        _gap,
-        Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          children: [
-            McAction(
-              label: labels.checkStorage,
-              icon: Icons.refresh,
-              onPressed: enabled ? _refresh : null,
-            ),
-            if (_account?.name == null &&
-                status != null &&
-                (status.saved == SavedCredentials.present ||
-                    status.hasSession ||
-                    status.removalProblem != null))
-              McAction(
-                label: status.removalProblem == null
-                    ? (status.saved == SavedCredentials.absent
-                          ? labels.clearSignIn
-                          : labels.removeSignIn)
-                    : labels.retryRemoval,
-                icon: Icons.delete_outline,
-                onPressed: enabled ? _remove : null,
-              ),
-            McIconAction(
-              label: labels.storageDetails,
-              icon: const Icon(Icons.info_outline),
-              onPressed: status == null || _busy ? null : _details,
-            ),
-          ],
+        CredentialStorageContent(
+          labels: widget.labels,
+          status: _status,
+          accountName: _account?.name,
+          clientAvailable: widget.client != null,
+          connectionProblem: _connectionProblem,
+          enabled: enabled,
+          busy: _busy,
+          onMode: _mode,
+          onRefresh: _refresh,
+          onRemove: _remove,
+          onDetails: _details,
         ),
       ],
     );

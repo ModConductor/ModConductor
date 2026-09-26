@@ -188,6 +188,43 @@ void main() {
     },
   );
 
+  testWidgets('old account reconnect cannot replace a new client', (
+    tester,
+  ) async {
+    final oldNexus = _Nexus()
+      ..account = const NexusAccount(false, false, 'Old account', false, null);
+    final newNexus = _Nexus()
+      ..account = const NexusAccount(false, false, 'New account', false, null);
+
+    Widget app(_Nexus nexus) => MaterialApp(
+      theme: mcTheme(Brightness.dark),
+      home: Scaffold(
+        body: CredentialPreferences(
+          client: _Credentials(nexus),
+          nexus: nexus,
+          labels: _labels,
+        ),
+      ),
+    );
+
+    await tester.pumpWidget(app(oldNexus));
+    await tester.pumpAndSettle();
+    oldNexus.events.addError(StateError('connection lost'));
+    await tester.pump();
+
+    await tester.pumpWidget(app(newNexus));
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 1100));
+    await tester.pumpAndSettle();
+
+    expect(oldNexus.watches, 1);
+    expect(newNexus.watches, 1);
+    expect(
+      tester.widget<McIdentityCard>(find.byType(McIdentityCard)).name,
+      'New account',
+    );
+  });
+
   testWidgets(
     'personal API key visibility and candidate live only in one Preferences instance',
     (tester) async {
