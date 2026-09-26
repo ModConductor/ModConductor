@@ -21,6 +21,7 @@
     <Compile Include="NexusServer.fs" />
     <Compile Include="NexusFixtures.fs" />
     <Compile Include="EnbFixtures.fs" />
+    <Compile Include="SkyrimFixtureWorkspace.fs" />
     <Compile Include="FnisFixtures.fs" />
     <Compile Include="SkseCoordinatorFixtures.fs" />
     <Compile Include="SkyrimSetupFixtures.fs" />

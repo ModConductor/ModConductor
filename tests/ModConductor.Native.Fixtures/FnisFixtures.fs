@@ -242,53 +242,10 @@ module FnisFixtures =
             CheckpointBytes = 4096L }
 
     let private createWorkspace (store: OperationStore) area =
-        let workspace, profile = Guid.NewGuid(), Guid.NewGuid()
-        let root = Directory.CreateDirectory(Path.Combine(area, "workspace")).FullName
-        let game, proton = ProtonFixtures.create (Path.Combine(area, "installation"))
+        let workspace, profile, game, _, saved =
+            SkyrimFixtureWorkspace.create store area "FNIS fixture" "workspace" "installation" true
 
-        if OperatingSystem.IsLinux() then
-            let launcher = Path.Combine(proton.RuntimeDirectory, "proton")
-            File.WriteAllText(launcher, "#!/bin/sh\nexit 0\n")
-
-            File.SetUnixFileMode(
-                launcher,
-                UnixFileMode.UserRead ||| UnixFileMode.UserWrite ||| UnixFileMode.UserExecute
-            )
-
-            File.WriteAllText(
-                Path.Combine(proton.RuntimeDirectory, "toolmanifest.vdf"),
-                "manifest { version 2 commandline \"/proton %verb%\" }"
-            )
-
-        let workspaces = store.Workspaces :> IWorkspaceState
-
-        let created =
-            workspaces.Create(workspace, "FNIS fixture", StorageWorker.select root)
-            |> wait
-            |> result
-
-        workspaces.Edit(
-            workspace,
-            created.Workspace.Revision,
-            ProfileEdit.Create { Id = profile; Name = "FNIS fixture" }
-        )
-        |> wait
-        |> result
-        |> ignore
-
-        (store.GameContexts :> IGameContexts)
-            .Save(
-                workspace,
-                profile,
-                0L,
-                { GameId = GameId.SkyrimSpecialEditionSteam
-                  Path = game
-                  Proton = if OperatingSystem.IsLinux() then Some proton else None }
-            )
-        |> wait
-        |> result
-        |> ignore
-
+        saved |> result |> ignore
         workspace, profile, game
 
     let private configure (server: NexusServer) id bytes =
@@ -1025,6 +982,171 @@ module FnisFixtures =
                      Path.Combine(scenario, "state", "fnis-runs", timeoutId.ToString("N"))
                  )
              ))
+
+    let private restartAndOwnershipEvidence
+        writer scenario (session: NexusSession) (store: OperationStore) (execution: IFnisExecution)
+        workspace profile (outputEntry: unit -> ModConductor.ModLibrary.ModEntry option) otherProfile =
+        let beforeRestart = outputEntry () |> Option.get
+
+        let inspected =
+            execution.Inspect(workspace, profile, CancellationToken.None) |> wait |> result
+
+        let generator =
+            store.FnisSetups.ReadStored(workspace, profile, Some inspected.GenerationId)
+            |> wait
+            |> Option.get
+
+        let abandonedId = Guid.NewGuid()
+
+        let abandonedStage, _, _ =
+            store.FnisExecution.Begin(
+                { Id = abandonedId
+                  WorkspaceId = workspace
+                  ProfileId = profile },
+                generator,
+                inspected.Fingerprint
+            )
+            |> wait
+            |> result
+
+        Directory.CreateDirectory(abandonedStage.Directory) |> ignore
+        File.WriteAllText(Path.Combine(abandonedStage.Directory, "partial.log"), "partial")
+
+        store.SkyrimSetups.Save
+            { WorkspaceId = workspace
+              ProfileId = profile
+              Selection = { SetupSelection.none with Fnis = SetupAction.Install }
+              Cancelled = false
+              Completed = false
+              Stage = "fnis-run"
+              ActionId = Some abandonedId
+              CancelRequested = true
+              CancelDetail = "Cancellation was recorded before the engine stopped."
+              RequestedAt = DateTimeOffset.UtcNow }
+        |> wait
+
+        (store :> IDisposable).Dispose()
+
+        use reopened =
+            new OperationStore(
+                Path.Combine(scenario, "state"),
+                nexusLinks = NexusDownloadLinks(session),
+                downloadPolicy = policy
+            )
+
+        let reopenedContext =
+            (reopened.GameContexts :> IGameContexts).Read(workspace, profile) |> wait |> result
+
+        (reopened.GameContexts :> IGameContexts).Refresh(workspace, profile, reopenedContext.Revision)
+        |> wait
+        |> result
+        |> ignore
+
+        use restartedRunner = new FnisRunner(reopened)
+        let restarted = restartedRunner :> IFnisExecution
+
+        use restartedCombined =
+            new SkyrimSetupCoordinator(reopened, combinedFnisDependencies restarted)
+
+        let combinedAfterRestart =
+            restartedCombined.Read(workspace, profile, { SetupSelection.none with Fnis = SetupAction.Install }, CancellationToken.None) |> wait
+
+        let combinedCancellationCompleted =
+            restartedCombined.Continue(workspace, profile, CancellationToken.None) |> wait
+
+        let abandoned =
+            restarted.Inspect(workspace, profile, CancellationToken.None) |> wait |> result
+
+        let afterRestart =
+            InventoryObservations.read reopened profile
+            |> _.Entries
+            |> List.map _.Entry.Mod
+            |> List.find (fun entry -> entry.Metadata.Name = "FNIS generated output")
+
+        check
+            writer
+            "restartMarksRunAbandonedRemovesStageAndPreservesOutput"
+            (abandoned.LatestRunId = Some abandonedId
+             && abandoned.Phase = ModConductor.Fnis.FnisOutputPhase.Abandoned
+             && afterRestart.Id = beforeRestart.Id
+             && afterRestart.CurrentVersion = beforeRestart.CurrentVersion
+             && not (
+                 Directory.Exists(
+                     Path.Combine(scenario, "state", "fnis-runs", abandonedId.ToString("N"))
+                 )
+             ))
+
+        check
+            writer
+            "pendingCombinedFnisCancellationCompletesThroughProductionOwnerAfterRestart"
+            (combinedAfterRestart.Phase = SkyrimSetupPhase.RecoveryRequired
+             && combinedAfterRestart.Selection.Fnis = SetupAction.Install
+             && combinedCancellationCompleted.Phase = SkyrimSetupPhase.Cancelled
+             && combinedCancellationCompleted.Detail.Contains(
+                 "interrupted",
+                 StringComparison.OrdinalIgnoreCase
+             ))
+
+        let ownedPayloads =
+            use connection =
+                new Microsoft.Data.Sqlite.SqliteConnection(
+                    "Data Source=" + Path.Combine(scenario, "state", "state.db") + ";Pooling=False"
+                )
+
+            connection.Open()
+            use query =
+                Sqlite.command
+                    connection
+                    null
+                    "SELECT l.directory,p.id FROM mod_libraries l JOIN mod_payloads p ON p.workspace_id=l.workspace_id JOIN mod_versions v ON v.id=p.publication_id WHERE v.mod_id=$mod"
+                    [ "$mod", box (string afterRestart.Id) ]
+
+            use reader = query.ExecuteReader()
+            [ while reader.Read() do
+                  yield Path.Combine(scenario, "workspace", reader.GetString 0, reader.GetString 1 + ".payload") ]
+
+        let reopenedWorkspaces = reopened.Workspaces :> IWorkspaceState
+        let beforeDelete = reopenedWorkspaces.Read(workspace, None) |> wait |> result
+        let selectedOther =
+            reopenedWorkspaces.Edit(
+                workspace,
+                beforeDelete.Workspace.Revision,
+                ProfileEdit.Select otherProfile
+            )
+            |> wait
+            |> result
+
+        let removedOwner =
+            reopenedWorkspaces.Edit(
+                workspace,
+                selectedOther.Workspace.Revision,
+                ProfileEdit.Delete profile
+            )
+            |> wait
+            |> result
+
+        let ownedRows =
+            use connection =
+                new Microsoft.Data.Sqlite.SqliteConnection(
+                    "Data Source=" + Path.Combine(scenario, "state", "state.db") + ";Pooling=False"
+                )
+
+            connection.Open()
+            Sqlite.number
+                connection
+                null
+                "SELECT (SELECT count(*) FROM mods WHERE id=$mod)+(SELECT count(*) FROM mod_versions WHERE mod_id=$mod)+(SELECT count(*) FROM fnis_outputs WHERE profile_id=$profile)"
+                [ "$mod", box (string afterRestart.Id)
+                  "$profile", box (string profile) ]
+
+        check
+            writer
+            "deletingOwnerProfileDeletesPrivateFnisOutputAndKeepsOtherProfile"
+            (removedOwner.Deleted = Some profile
+             && removedOwner.Workspace.SelectedProfile.Value.Id = otherProfile
+             && ownedRows = 0L
+             && (ownedPayloads |> List.forall (File.Exists >> not)))
+
 
     let private executionEvidence writer area =
         let scenario = Directory.CreateDirectory(Path.Combine(area, "execution")).FullName
@@ -1888,166 +2010,8 @@ module FnisFixtures =
              && shutdownStream.States[1].OutputPhase =
                 ModConductor.Protocol.V1.FnisOutputPhase.Cancelled)
 
-        let beforeRestart = outputEntry () |> Option.get
-
-        let inspected =
-            execution.Inspect(workspace, profile, CancellationToken.None) |> wait |> result
-
-        let generator =
-            store.FnisSetups.ReadStored(workspace, profile, Some inspected.GenerationId)
-            |> wait
-            |> Option.get
-
-        let abandonedId = Guid.NewGuid()
-
-        let abandonedStage, _, _ =
-            store.FnisExecution.Begin(
-                { Id = abandonedId
-                  WorkspaceId = workspace
-                  ProfileId = profile },
-                generator,
-                inspected.Fingerprint
-            )
-            |> wait
-            |> result
-
-        Directory.CreateDirectory(abandonedStage.Directory) |> ignore
-        File.WriteAllText(Path.Combine(abandonedStage.Directory, "partial.log"), "partial")
-
-        store.SkyrimSetups.Save
-            { WorkspaceId = workspace
-              ProfileId = profile
-              Selection = { SetupSelection.none with Fnis = SetupAction.Install }
-              Cancelled = false
-              Completed = false
-              Stage = "fnis-run"
-              ActionId = Some abandonedId
-              CancelRequested = true
-              CancelDetail = "Cancellation was recorded before the engine stopped."
-              RequestedAt = DateTimeOffset.UtcNow }
-        |> wait
-
-        (store :> IDisposable).Dispose()
-
-        use reopened =
-            new OperationStore(
-                Path.Combine(scenario, "state"),
-                nexusLinks = NexusDownloadLinks(session),
-                downloadPolicy = policy
-            )
-
-        let reopenedContext =
-            (reopened.GameContexts :> IGameContexts).Read(workspace, profile) |> wait |> result
-
-        (reopened.GameContexts :> IGameContexts).Refresh(workspace, profile, reopenedContext.Revision)
-        |> wait
-        |> result
-        |> ignore
-
-        use restartedRunner = new FnisRunner(reopened)
-        let restarted = restartedRunner :> IFnisExecution
-
-        use restartedCombined =
-            new SkyrimSetupCoordinator(reopened, combinedFnisDependencies restarted)
-
-        let combinedAfterRestart =
-            restartedCombined.Read(workspace, profile, { SetupSelection.none with Fnis = SetupAction.Install }, CancellationToken.None) |> wait
-
-        let combinedCancellationCompleted =
-            restartedCombined.Continue(workspace, profile, CancellationToken.None) |> wait
-
-        let abandoned =
-            restarted.Inspect(workspace, profile, CancellationToken.None) |> wait |> result
-
-        let afterRestart =
-            InventoryObservations.read reopened profile
-            |> _.Entries
-            |> List.map _.Entry.Mod
-            |> List.find (fun entry -> entry.Metadata.Name = "FNIS generated output")
-
-        check
-            writer
-            "restartMarksRunAbandonedRemovesStageAndPreservesOutput"
-            (abandoned.LatestRunId = Some abandonedId
-             && abandoned.Phase = ModConductor.Fnis.FnisOutputPhase.Abandoned
-             && afterRestart.Id = beforeRestart.Id
-             && afterRestart.CurrentVersion = beforeRestart.CurrentVersion
-             && not (
-                 Directory.Exists(
-                     Path.Combine(scenario, "state", "fnis-runs", abandonedId.ToString("N"))
-                 )
-             ))
-
-        check
-            writer
-            "pendingCombinedFnisCancellationCompletesThroughProductionOwnerAfterRestart"
-            (combinedAfterRestart.Phase = SkyrimSetupPhase.RecoveryRequired
-             && combinedAfterRestart.Selection.Fnis = SetupAction.Install
-             && combinedCancellationCompleted.Phase = SkyrimSetupPhase.Cancelled
-             && combinedCancellationCompleted.Detail.Contains(
-                 "interrupted",
-                 StringComparison.OrdinalIgnoreCase
-             ))
-
-        let ownedPayloads =
-            use connection =
-                new Microsoft.Data.Sqlite.SqliteConnection(
-                    "Data Source=" + Path.Combine(scenario, "state", "state.db") + ";Pooling=False"
-                )
-
-            connection.Open()
-            use query =
-                Sqlite.command
-                    connection
-                    null
-                    "SELECT l.directory,p.id FROM mod_libraries l JOIN mod_payloads p ON p.workspace_id=l.workspace_id JOIN mod_versions v ON v.id=p.publication_id WHERE v.mod_id=$mod"
-                    [ "$mod", box (string afterRestart.Id) ]
-
-            use reader = query.ExecuteReader()
-            [ while reader.Read() do
-                  yield Path.Combine(scenario, "workspace", reader.GetString 0, reader.GetString 1 + ".payload") ]
-
-        let reopenedWorkspaces = reopened.Workspaces :> IWorkspaceState
-        let beforeDelete = reopenedWorkspaces.Read(workspace, None) |> wait |> result
-        let selectedOther =
-            reopenedWorkspaces.Edit(
-                workspace,
-                beforeDelete.Workspace.Revision,
-                ProfileEdit.Select otherProfile
-            )
-            |> wait
-            |> result
-
-        let removedOwner =
-            reopenedWorkspaces.Edit(
-                workspace,
-                selectedOther.Workspace.Revision,
-                ProfileEdit.Delete profile
-            )
-            |> wait
-            |> result
-
-        let ownedRows =
-            use connection =
-                new Microsoft.Data.Sqlite.SqliteConnection(
-                    "Data Source=" + Path.Combine(scenario, "state", "state.db") + ";Pooling=False"
-                )
-
-            connection.Open()
-            Sqlite.number
-                connection
-                null
-                "SELECT (SELECT count(*) FROM mods WHERE id=$mod)+(SELECT count(*) FROM mod_versions WHERE mod_id=$mod)+(SELECT count(*) FROM fnis_outputs WHERE profile_id=$profile)"
-                [ "$mod", box (string afterRestart.Id)
-                  "$profile", box (string profile) ]
-
-        check
-            writer
-            "deletingOwnerProfileDeletesPrivateFnisOutputAndKeepsOtherProfile"
-            (removedOwner.Deleted = Some profile
-             && removedOwner.Workspace.SelectedProfile.Value.Id = otherProfile
-             && ownedRows = 0L
-             && (ownedPayloads |> List.forall (File.Exists >> not)))
+        restartAndOwnershipEvidence
+            writer scenario session store execution workspace profile outputEntry otherProfile
 
     let private nxmEvidence writer area =
         let scenario = Directory.CreateDirectory(Path.Combine(area, "nxm")).FullName

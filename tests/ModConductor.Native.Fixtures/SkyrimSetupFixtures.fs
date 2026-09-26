@@ -52,60 +52,15 @@ module SkyrimSetupFixtures =
         if not value then
             failwith ("Skyrim setup fixture failed: " + name)
 
-    let private prepareProton runtimeDirectory =
-        if OperatingSystem.IsLinux() then
-            let launcher = Path.Combine(runtimeDirectory, "proton")
-            File.WriteAllText(launcher, "#!/bin/sh\nexit 0\n")
-
-            File.SetUnixFileMode(
-                launcher,
-                UnixFileMode.UserRead ||| UnixFileMode.UserWrite ||| UnixFileMode.UserExecute
-            )
-
-            File.WriteAllText(
-                Path.Combine(runtimeDirectory, "toolmanifest.vdf"),
-                "manifest { version 2 commandline \"/proton %verb%\" }"
-            )
-
     let private createWorkspace (store: OperationStore) area name includeProton =
-        let workspace, profile = Guid.NewGuid(), Guid.NewGuid()
-
-        let root =
-            Directory.CreateDirectory(Path.Combine(area, name + "-workspace")).FullName
-
-        let game, proton =
-            ProtonFixtures.create (Path.Combine(area, name + "-installation"))
-
-        prepareProton proton.RuntimeDirectory
-        let workspaces = store.Workspaces :> IWorkspaceState
-
-        let created =
-            workspaces.Create(workspace, name, StorageWorker.select root) |> wait |> result
-
-        workspaces.Edit(
-            workspace,
-            created.Workspace.Revision,
-            ProfileEdit.Create { Id = profile; Name = name }
-        )
-        |> wait
-        |> result
-        |> ignore
-
-        let saved =
-            (store.GameContexts :> IGameContexts)
-                .Save(
-                    workspace,
-                    profile,
-                    0L,
-                    { GameId = GameId.SkyrimSpecialEditionSteam
-                      Path = game
-                      Proton =
-                        if includeProton && OperatingSystem.IsLinux() then
-                            Some proton
-                        else
-                            None }
-                )
-            |> wait
+        let workspace, profile, _, _, saved =
+            SkyrimFixtureWorkspace.create
+                store
+                area
+                name
+                (name + "-workspace")
+                (name + "-installation")
+                includeProton
 
         match saved with
         | Ok context -> workspace, profile, context.Revision
@@ -377,6 +332,421 @@ module SkyrimSetupFixtures =
                               Latest = None }
                     )
               PluginPreflight = fun _ _ _ -> Task.FromResult(Ok()) }
+
+    let private fnisNexusWarningEvidence writer area state (store: OperationStore) noChoice fnisOnly =
+        let waitingWorkspace, waitingProfile, _ = createWorkspace store area "waiting-fnis" true
+        let waitingWorkflow = WorkflowState()
+        waitingWorkflow.WaitForFnisNexus()
+        waitingWorkflow.FnisExitCode(Some 7)
+        let waitingChanges = Event<Guid * Guid>()
+        use waitingOwner =
+            new SkyrimSetupCoordinator(
+                store,
+                waitingWorkflow.Dependencies,
+                childChanges = [ waitingChanges.Publish ]
+            )
+        let _ = waitingOwner.Start(waitingWorkspace, waitingProfile, fnisOnly, CancellationToken.None) |> wait
+
+        let waiting =
+            until
+                "FNIS waits for Nexus selection"
+                (fun () ->
+                    let current = waitingOwner.Read(waitingWorkspace, waitingProfile, noChoice, CancellationToken.None) |> wait
+
+                    if current.CanContinue then
+                        waitingOwner.Continue(waitingWorkspace, waitingProfile, CancellationToken.None) |> wait
+                    else
+                        current)
+                (fun _ -> waitingWorkflow.FnisInstalls = 1)
+
+        let repeatedWait =
+            waitingOwner.Continue(waitingWorkspace, waitingProfile, CancellationToken.None) |> wait
+
+        check
+            writer
+            "waitingFnisDoesNotReopenNexus"
+            (waiting.Active
+             && not waiting.CanContinue
+             && repeatedWait.Active
+             && not repeatedWait.CanContinue
+             && waitingWorkflow.FnisInstalls = 1)
+
+        let waitingGeneration =
+            (store.Deployments.Read waitingProfile |> wait |> result).ActiveGeneration
+            |> Option.defaultWith (fun () -> failwith "FNIS setup did not deploy the profile.")
+
+        use fnisDatabase =
+            new Microsoft.Data.Sqlite.SqliteConnection(
+                "Data Source=" + Path.Combine(state, "state.db") + ";Pooling=False"
+            )
+
+        fnisDatabase.Open()
+
+        Sqlite.execute
+            fnisDatabase
+            null
+            "INSERT INTO fnis_generators(profile_id,workspace_id,generation_id,mod_id,version_id,artifact_id,file_name,file_version,executable,component_version,archive_sha256,provider,source,terms,nexus_mod,nexus_file,acquired_at) VALUES($profile,$workspace,$generation,$mod,$version,$artifact,$name,$fileVersion,$executable,$component,$sha,$provider,$source,$terms,$nexusMod,$nexusFile,$acquired)"
+            [ "$profile", box (string waitingProfile)
+              "$workspace", box (string waitingWorkspace)
+              "$generation", box (string waitingGeneration)
+              "$mod", box (string (Guid.NewGuid()))
+              "$version", box (string (Guid.NewGuid()))
+              "$artifact", box (string (Guid.NewGuid()))
+              "$name", box "fixture FNIS"
+              "$fileVersion", box "7.6"
+              "$executable", box "fixture generator"
+              "$component", box "7.6"
+              "$sha", box (String.replicate 64 "a")
+              "$provider", box "fixture"
+              "$source", box "fixture"
+              "$terms", box "fixture"
+              "$nexusMod", box 1L
+              "$nexusFile", box 1L
+              "$acquired", box (DateTimeOffset.UtcNow.ToString("O")) ]
+
+        waitingWorkflow.CompleteFnisNexusSelection()
+        waitingChanges.Trigger(waitingWorkspace, waitingProfile)
+
+        let afterNexusIntent =
+            until
+                "FNIS continues after Nexus selection"
+                (fun () -> store.SkyrimSetups.Read(waitingWorkspace, waitingProfile) |> wait)
+                (fun current -> (current |> Option.exists _.Completed) && waitingWorkflow.RunCalls = 1)
+        let afterNexus =
+            waitingOwner.Read(waitingWorkspace, waitingProfile, noChoice, CancellationToken.None)
+            |> wait
+
+        check
+            writer
+            "fnisContinuesAfterNexusSelection"
+            ((afterNexusIntent |> Option.exists _.Completed)
+             && waitingWorkflow.FnisInstalls = 1
+             && waitingWorkflow.RunCalls = 1)
+
+        check
+            writer
+            "fnisExitWarningVisibleAfterCompletion"
+            (afterNexus.Phase = SkyrimSetupPhase.Available
+             && not afterNexus.Active
+             && afterNexus.Status.Contains("FNIS exited with code 7")
+             && afterNexus.Detail.Contains("Check the FNIS messages")
+             && (afterNexus.Components
+                 |> List.exists (fun item -> item.Id = "fnis" && item.Ready)))
+
+        let completedIntent =
+            until
+                "FNIS warning setup completes without Continue"
+                (fun () -> store.SkyrimSetups.Read(waitingWorkspace, waitingProfile) |> wait)
+                (Option.exists _.Completed)
+        let refreshedWarning =
+            waitingOwner.Read(waitingWorkspace, waitingProfile, noChoice, CancellationToken.None)
+            |> wait
+
+        use reopenedWarningOwner = new SkyrimSetupCoordinator(store, waitingWorkflow.Dependencies)
+        let reopenedWarning =
+            reopenedWarningOwner.Read(waitingWorkspace, waitingProfile, noChoice, CancellationToken.None)
+            |> wait
+
+        check
+            writer
+            "fnisExitWarningRemainsAfterAutomaticContinueAndRefresh"
+            ((completedIntent |> Option.exists _.Completed)
+             && refreshedWarning.Phase = SkyrimSetupPhase.Available
+             && refreshedWarning.Status.Contains("FNIS exited with code 7")
+             && reopenedWarning.Status = refreshedWarning.Status
+             && reopenedWarning.Detail = refreshedWarning.Detail)
+
+        use restartedWarningStore = new OperationStore(state)
+        let restartedWarningContext =
+            (restartedWarningStore.GameContexts :> IGameContexts)
+                .Read(waitingWorkspace, waitingProfile)
+            |> wait
+            |> result
+
+        (restartedWarningStore.GameContexts :> IGameContexts)
+            .Refresh(waitingWorkspace, waitingProfile, restartedWarningContext.Revision)
+        |> wait
+        |> result
+        |> ignore
+
+        use restartedWarningOwner =
+            new SkyrimSetupCoordinator(restartedWarningStore, waitingWorkflow.Dependencies)
+
+        let restartedWarning =
+            restartedWarningOwner.Read(waitingWorkspace, waitingProfile, noChoice, CancellationToken.None)
+            |> wait
+
+        check
+            writer
+            "fnisExitWarningRemainsAfterStoreRestart"
+            (restartedWarning.Phase = SkyrimSetupPhase.Available
+             && restartedWarning.Status = refreshedWarning.Status
+             && restartedWarning.Detail = refreshedWarning.Detail)
+
+        waitingWorkflow.ReadyWithCurrentFnis(Some(Guid.NewGuid()))
+        waitingWorkflow.FnisExitCode(Some 0)
+
+        let afterSuccessfulRun =
+            restartedWarningOwner.Read(waitingWorkspace, waitingProfile, noChoice, CancellationToken.None)
+            |> wait
+
+        check
+            writer
+            "laterSuccessfulFnisRunClearsSetupWarning"
+            (afterSuccessfulRun.Phase = SkyrimSetupPhase.Available
+             && afterSuccessfulRun.Status = ""
+             && afterSuccessfulRun.Detail = "")
+
+
+    let private heldEnbGenerationEvidence writer area noChoice enbWithArchive =
+        let enbArea = Directory.CreateDirectory(Path.Combine(area, "paused-enb")).FullName
+        use releaseEnbGeneration = new ManualResetEventSlim(true)
+        use enteredEnbGeneration = new ManualResetEventSlim(false)
+
+        use enbStore =
+            new OperationStore(
+                Path.Combine(enbArea, "state"),
+                enbCheckpoint =
+                    (fun name _ ->
+                        if name = "install-intent" && not releaseEnbGeneration.IsSet then
+                            enteredEnbGeneration.Set()
+                            releaseEnbGeneration.Wait(TimeSpan.FromSeconds 30.) |> ignore)
+            )
+
+        let enbWorkspace, enbProfile, _ = createWorkspace enbStore enbArea "selected" true
+        let enbArchive = Path.Combine(enbArea, "enbseries_skyrimse_v0505.zip")
+
+        use archiveOutput = File.Create enbArchive
+        use enbZip = new ZipArchive(archiveOutput, ZipArchiveMode.Create, true)
+
+        for name in [ "WrapperVersion/d3d11.dll"; "WrapperVersion/d3dcompiler_46e.dll" ] do
+            use entry = enbZip.CreateEntry(name).Open()
+            entry.Write(Encoding.UTF8.GetBytes name)
+
+        enbZip.Dispose()
+        archiveOutput.Dispose()
+
+        let enbArtifact =
+            enbStore.Artifacts.Add(
+                { Id = Guid.NewGuid()
+                  WorkspaceId = enbWorkspace
+                  Path = enbArchive
+                  Storage = ArtifactStorage.Reference },
+                CancellationToken.None
+            )
+            |> wait
+            |> result
+
+        let enbWorkflow = WorkflowState()
+        let mutable enbChild =
+            { Phase = EnbPhase.Available
+              Status = "ENBSeries is available"
+              Detail = ""
+              RuntimeVersion = "0.505"
+              PresetVersion = "" }
+
+        let enbDependencies =
+            { enbWorkflow.Dependencies with
+                ReadEnb = fun _ _ -> Task.FromResult enbChild
+                SelectEnb =
+                    fun workspace profile _ _ token ->
+                        task {
+                            enbChild <-
+                                { enbChild with
+                                    Phase = EnbPhase.Installing
+                                    Status = "Installing ENBSeries" }
+
+                            let! _ =
+                                enbStore.InstallEnb(
+                                    workspace,
+                                    profile,
+                                    EnbCatalogue.lean,
+                                    enbArtifact,
+                                    [],
+                                    token,
+                                    runtimeOnly = true
+                                )
+
+                            enbChild <-
+                                { enbChild with
+                                    Phase = EnbPhase.Ready
+                                    Status = "ENBSeries is installed" }
+
+                            return enbChild
+                        } }
+
+        use enbOwner = new SkyrimSetupCoordinator(enbStore, enbDependencies)
+        releaseEnbGeneration.Reset()
+        let _ = enbOwner.Start(enbWorkspace, enbProfile, enbWithArchive, CancellationToken.None) |> wait
+
+        try
+            if not (enteredEnbGeneration.Wait(TimeSpan.FromSeconds 10.)) then
+                failwith "ENB did not reach the held generation step."
+
+            let deployed = enbStore.Deployments.Read enbProfile |> wait |> result
+            let startedEnb = enbOwner.Read(enbWorkspace, enbProfile, noChoice, CancellationToken.None) |> wait
+            let during = enbOwner.Read(enbWorkspace, enbProfile, noChoice, CancellationToken.None) |> wait
+            let continued = enbOwner.Continue(enbWorkspace, enbProfile, CancellationToken.None) |> wait
+            let afterContinue = enbStore.Deployments.Read enbProfile |> wait |> result
+
+            check
+                writer
+                "activeEnbGenerationDoesNotTriggerParentRecovery"
+                (startedEnb.Phase = SkyrimSetupPhase.SettingUpEnb
+                 && deployed.ActiveGeneration.IsSome
+                 && deployed.PendingReceipt.IsSome
+                 && during.Phase = SkyrimSetupPhase.SettingUpEnb
+                 && during.Active
+                 && not during.CanContinue
+                 && continued.Phase = SkyrimSetupPhase.SettingUpEnb
+                 && afterContinue.PendingReceipt = deployed.PendingReceipt)
+        finally
+            releaseEnbGeneration.Set()
+
+        let afterEnb =
+            until
+                "finished ENB generation"
+                (fun () -> enbOwner.Read(enbWorkspace, enbProfile, noChoice, CancellationToken.None) |> wait)
+                (fun value -> value.Phase = SkyrimSetupPhase.Ready || value.Phase = SkyrimSetupPhase.Available)
+
+        let finalEnbIntent =
+            until
+                "ENB child completion finishes parent setup"
+                (fun () -> enbStore.SkyrimSetups.Read(enbWorkspace, enbProfile) |> wait)
+                (Option.exists _.Completed)
+        let finalEnbDeployment = enbStore.Deployments.Read enbProfile |> wait |> result
+
+        check
+            writer
+            "finishedEnbGenerationCompletesParentSetup"
+            ((afterEnb.Phase = SkyrimSetupPhase.Ready || afterEnb.Phase = SkyrimSetupPhase.Available)
+             && finalEnbDeployment.PendingReceipt.IsNone
+             && (finalEnbIntent |> Option.exists _.Completed))
+
+
+    let private heldSkseGenerationEvidence
+        writer area (store: OperationStore) noChoice skseOnly
+        (releaseSkseGeneration: ManualResetEventSlim)
+        (enteredSkseGeneration: ManualResetEventSlim) =
+        let pausedWorkspace, pausedProfile, _ = createWorkspace store area "paused-skse" true
+        let pausedWorkflow = WorkflowState()
+        pausedWorkflow.HoldSkse()
+        let pausedChanges = Event<Guid * Guid>()
+        use pausedOwner =
+            new SkyrimSetupCoordinator(
+                store,
+                pausedWorkflow.Dependencies,
+                childChanges = [ pausedChanges.Publish ]
+            )
+        let _ = pausedOwner.Start(pausedWorkspace, pausedProfile, skseOnly, CancellationToken.None) |> wait
+        until "held SKSE component starts" (fun () -> pausedWorkflow.SkseStarts) ((=) 1)
+        |> ignore
+        let installing = pausedOwner.Read(pausedWorkspace, pausedProfile, noChoice, CancellationToken.None) |> wait
+        let context =
+            (store.GameContexts :> IGameContexts).Read(pausedWorkspace, pausedProfile)
+            |> wait
+            |> result
+
+        let runtime = context.Binding.Value.Evidence.Executable.Value.FileVersion
+        use archive = new MemoryStream()
+
+        use zip = new ZipArchive(archive, ZipArchiveMode.Create, true)
+
+        for name in
+            [ "skse64_paused/skse64_loader.exe"
+              "skse64_paused/skse64_" + runtime.Replace('.', '_') + ".dll"
+              "skse64_paused/Data/Scripts/skse.pex" ] do
+            use entry = zip.CreateEntry(name).Open()
+            entry.Write(Encoding.UTF8.GetBytes name)
+
+        zip.Dispose()
+        let bytes = archive.ToArray()
+        use downloadServer = new DownloadServer(bytes)
+        let artifactId = Guid.NewGuid()
+
+        store.Downloads.Start
+            { Id = artifactId
+              WorkspaceId = pausedWorkspace
+              Name = "skse-paused.zip"
+              Sources = [ DownloadSource.Url(downloadServer.Url + "/good") ]
+              ExpectedLength = Some(int64 bytes.Length)
+              ExpectedSha256 = Some(Convert.ToHexStringLower(SHA256.HashData bytes)) }
+        |> wait
+        |> result
+        |> ignore
+
+        let artifact =
+            until
+                "paused SKSE artifact"
+                (fun () -> store.Artifacts.Read(pausedWorkspace, artifactId) |> wait |> result)
+                (fun value -> value.State = ArtifactState.Ready)
+
+        let release: SkseRelease =
+            { ModId = SkseResolver.NexusModId
+              File =
+                { Id = 911L
+                  Name = "skse-paused.zip"
+                  Version = "2.3.1"
+                  Category = "MAIN"
+                  Description = "Compatible with Skyrim Special Edition " + runtime + " from Steam"
+                  Bytes = Some(int64 bytes.Length) }
+              ComponentVersion = Version(2, 3, 1)
+              RuntimeVersion = Version.Parse runtime }
+
+        releaseSkseGeneration.Reset()
+
+        let installation =
+            store.InstallSkse(
+                pausedWorkspace,
+                pausedProfile,
+                release,
+                artifact,
+                DateTimeOffset.UtcNow,
+                CancellationToken.None
+            )
+
+        try
+            if not (enteredSkseGeneration.Wait(TimeSpan.FromSeconds 10.)) then
+                failwith "SKSE did not reach the held generation step."
+
+            let deployed = store.Deployments.Read pausedProfile |> wait |> result
+            let during = pausedOwner.Read(pausedWorkspace, pausedProfile, noChoice, CancellationToken.None) |> wait
+            let continued =
+                pausedOwner.Continue(pausedWorkspace, pausedProfile, CancellationToken.None) |> wait
+            let afterContinue = store.Deployments.Read pausedProfile |> wait |> result
+
+            check
+                writer
+                "activeSkseGenerationDoesNotTriggerParentRecovery"
+                (installing.Phase = SkyrimSetupPhase.SettingUpSkse
+                 && deployed.ActiveGeneration.IsSome
+                 && deployed.PendingReceipt.IsSome
+                 && during.Phase = SkyrimSetupPhase.SettingUpSkse
+                 && during.Active
+                 && not during.CanContinue
+                 && continued.Phase = SkyrimSetupPhase.SettingUpSkse
+                 && afterContinue.PendingReceipt = deployed.PendingReceipt
+                 && not installation.IsCompleted)
+        finally
+            releaseSkseGeneration.Set()
+
+        let installedGeneration = installation |> wait
+        pausedWorkflow.CompleteSkse()
+        pausedChanges.Trigger(pausedWorkspace, pausedProfile)
+        let finalIntent =
+            until
+                "SKSE child completion finishes parent setup"
+                (fun () -> store.SkyrimSetups.Read(pausedWorkspace, pausedProfile) |> wait)
+                (Option.exists _.Completed)
+        let finalDeployment = store.Deployments.Read pausedProfile |> wait |> result
+
+        check
+            writer
+            "finishedSkseGenerationCompletesParentSetup"
+            (finalDeployment.ActiveGeneration = Some installedGeneration
+             && finalDeployment.PendingReceipt.IsNone
+             && (finalIntent |> Option.exists _.Completed))
+
 
     let observe (writer: Utf8JsonWriter) area =
         writer.WriteStartObject("skyrimSetup")
@@ -682,168 +1052,7 @@ module SkyrimSetupFixtures =
              && fnisOnlyState.FnisInstalls = 1
              && (fnisOnlyIntent |> Option.exists (fun item -> item.Selection = fnisOnly)))
 
-        let waitingWorkspace, waitingProfile, _ = createWorkspace store area "waiting-fnis" true
-        let waitingWorkflow = WorkflowState()
-        waitingWorkflow.WaitForFnisNexus()
-        waitingWorkflow.FnisExitCode(Some 7)
-        let waitingChanges = Event<Guid * Guid>()
-        use waitingOwner =
-            new SkyrimSetupCoordinator(
-                store,
-                waitingWorkflow.Dependencies,
-                childChanges = [ waitingChanges.Publish ]
-            )
-        let _ = waitingOwner.Start(waitingWorkspace, waitingProfile, fnisOnly, CancellationToken.None) |> wait
-
-        let waiting =
-            until
-                "FNIS waits for Nexus selection"
-                (fun () ->
-                    let current = waitingOwner.Read(waitingWorkspace, waitingProfile, noChoice, CancellationToken.None) |> wait
-
-                    if current.CanContinue then
-                        waitingOwner.Continue(waitingWorkspace, waitingProfile, CancellationToken.None) |> wait
-                    else
-                        current)
-                (fun _ -> waitingWorkflow.FnisInstalls = 1)
-
-        let repeatedWait =
-            waitingOwner.Continue(waitingWorkspace, waitingProfile, CancellationToken.None) |> wait
-
-        check
-            writer
-            "waitingFnisDoesNotReopenNexus"
-            (waiting.Active
-             && not waiting.CanContinue
-             && repeatedWait.Active
-             && not repeatedWait.CanContinue
-             && waitingWorkflow.FnisInstalls = 1)
-
-        let waitingGeneration =
-            (store.Deployments.Read waitingProfile |> wait |> result).ActiveGeneration
-            |> Option.defaultWith (fun () -> failwith "FNIS setup did not deploy the profile.")
-
-        use fnisDatabase =
-            new Microsoft.Data.Sqlite.SqliteConnection(
-                "Data Source=" + Path.Combine(state, "state.db") + ";Pooling=False"
-            )
-
-        fnisDatabase.Open()
-
-        Sqlite.execute
-            fnisDatabase
-            null
-            "INSERT INTO fnis_generators(profile_id,workspace_id,generation_id,mod_id,version_id,artifact_id,file_name,file_version,executable,component_version,archive_sha256,provider,source,terms,nexus_mod,nexus_file,acquired_at) VALUES($profile,$workspace,$generation,$mod,$version,$artifact,$name,$fileVersion,$executable,$component,$sha,$provider,$source,$terms,$nexusMod,$nexusFile,$acquired)"
-            [ "$profile", box (string waitingProfile)
-              "$workspace", box (string waitingWorkspace)
-              "$generation", box (string waitingGeneration)
-              "$mod", box (string (Guid.NewGuid()))
-              "$version", box (string (Guid.NewGuid()))
-              "$artifact", box (string (Guid.NewGuid()))
-              "$name", box "fixture FNIS"
-              "$fileVersion", box "7.6"
-              "$executable", box "fixture generator"
-              "$component", box "7.6"
-              "$sha", box (String.replicate 64 "a")
-              "$provider", box "fixture"
-              "$source", box "fixture"
-              "$terms", box "fixture"
-              "$nexusMod", box 1L
-              "$nexusFile", box 1L
-              "$acquired", box (DateTimeOffset.UtcNow.ToString("O")) ]
-
-        waitingWorkflow.CompleteFnisNexusSelection()
-        waitingChanges.Trigger(waitingWorkspace, waitingProfile)
-
-        let afterNexusIntent =
-            until
-                "FNIS continues after Nexus selection"
-                (fun () -> store.SkyrimSetups.Read(waitingWorkspace, waitingProfile) |> wait)
-                (fun current -> (current |> Option.exists _.Completed) && waitingWorkflow.RunCalls = 1)
-        let afterNexus =
-            waitingOwner.Read(waitingWorkspace, waitingProfile, noChoice, CancellationToken.None)
-            |> wait
-
-        check
-            writer
-            "fnisContinuesAfterNexusSelection"
-            ((afterNexusIntent |> Option.exists _.Completed)
-             && waitingWorkflow.FnisInstalls = 1
-             && waitingWorkflow.RunCalls = 1)
-
-        check
-            writer
-            "fnisExitWarningVisibleAfterCompletion"
-            (afterNexus.Phase = SkyrimSetupPhase.Available
-             && not afterNexus.Active
-             && afterNexus.Status.Contains("FNIS exited with code 7")
-             && afterNexus.Detail.Contains("Check the FNIS messages")
-             && (afterNexus.Components
-                 |> List.exists (fun item -> item.Id = "fnis" && item.Ready)))
-
-        let completedIntent =
-            until
-                "FNIS warning setup completes without Continue"
-                (fun () -> store.SkyrimSetups.Read(waitingWorkspace, waitingProfile) |> wait)
-                (Option.exists _.Completed)
-        let refreshedWarning =
-            waitingOwner.Read(waitingWorkspace, waitingProfile, noChoice, CancellationToken.None)
-            |> wait
-
-        use reopenedWarningOwner = new SkyrimSetupCoordinator(store, waitingWorkflow.Dependencies)
-        let reopenedWarning =
-            reopenedWarningOwner.Read(waitingWorkspace, waitingProfile, noChoice, CancellationToken.None)
-            |> wait
-
-        check
-            writer
-            "fnisExitWarningRemainsAfterAutomaticContinueAndRefresh"
-            ((completedIntent |> Option.exists _.Completed)
-             && refreshedWarning.Phase = SkyrimSetupPhase.Available
-             && refreshedWarning.Status.Contains("FNIS exited with code 7")
-             && reopenedWarning.Status = refreshedWarning.Status
-             && reopenedWarning.Detail = refreshedWarning.Detail)
-
-        use restartedWarningStore = new OperationStore(state)
-        let restartedWarningContext =
-            (restartedWarningStore.GameContexts :> IGameContexts)
-                .Read(waitingWorkspace, waitingProfile)
-            |> wait
-            |> result
-
-        (restartedWarningStore.GameContexts :> IGameContexts)
-            .Refresh(waitingWorkspace, waitingProfile, restartedWarningContext.Revision)
-        |> wait
-        |> result
-        |> ignore
-
-        use restartedWarningOwner =
-            new SkyrimSetupCoordinator(restartedWarningStore, waitingWorkflow.Dependencies)
-
-        let restartedWarning =
-            restartedWarningOwner.Read(waitingWorkspace, waitingProfile, noChoice, CancellationToken.None)
-            |> wait
-
-        check
-            writer
-            "fnisExitWarningRemainsAfterStoreRestart"
-            (restartedWarning.Phase = SkyrimSetupPhase.Available
-             && restartedWarning.Status = refreshedWarning.Status
-             && restartedWarning.Detail = refreshedWarning.Detail)
-
-        waitingWorkflow.ReadyWithCurrentFnis(Some(Guid.NewGuid()))
-        waitingWorkflow.FnisExitCode(Some 0)
-
-        let afterSuccessfulRun =
-            restartedWarningOwner.Read(waitingWorkspace, waitingProfile, noChoice, CancellationToken.None)
-            |> wait
-
-        check
-            writer
-            "laterSuccessfulFnisRunClearsSetupWarning"
-            (afterSuccessfulRun.Phase = SkyrimSetupPhase.Available
-             && afterSuccessfulRun.Status = ""
-             && afterSuccessfulRun.Detail = "")
+        fnisNexusWarningEvidence writer area state store noChoice fnisOnly
 
         let _, allState, _ =
             execute
@@ -1021,247 +1230,9 @@ module SkyrimSetupFixtures =
             "explicitNewAttemptRunsOnlyChosenComponent"
             (retryWorkflow.EnbSelections = 1 && retryWorkflow.FnisInstalls = 1)
 
-        let pausedWorkspace, pausedProfile, _ = createWorkspace store area "paused-skse" true
-        let pausedWorkflow = WorkflowState()
-        pausedWorkflow.HoldSkse()
-        let pausedChanges = Event<Guid * Guid>()
-        use pausedOwner =
-            new SkyrimSetupCoordinator(
-                store,
-                pausedWorkflow.Dependencies,
-                childChanges = [ pausedChanges.Publish ]
-            )
-        let _ = pausedOwner.Start(pausedWorkspace, pausedProfile, skseOnly, CancellationToken.None) |> wait
-        until "held SKSE component starts" (fun () -> pausedWorkflow.SkseStarts) ((=) 1)
-        |> ignore
-        let installing = pausedOwner.Read(pausedWorkspace, pausedProfile, noChoice, CancellationToken.None) |> wait
-        let context =
-            (store.GameContexts :> IGameContexts).Read(pausedWorkspace, pausedProfile)
-            |> wait
-            |> result
+        heldSkseGenerationEvidence
+            writer area store noChoice skseOnly releaseSkseGeneration enteredSkseGeneration
 
-        let runtime = context.Binding.Value.Evidence.Executable.Value.FileVersion
-        use archive = new MemoryStream()
-
-        use zip = new ZipArchive(archive, ZipArchiveMode.Create, true)
-
-        for name in
-            [ "skse64_paused/skse64_loader.exe"
-              "skse64_paused/skse64_" + runtime.Replace('.', '_') + ".dll"
-              "skse64_paused/Data/Scripts/skse.pex" ] do
-            use entry = zip.CreateEntry(name).Open()
-            entry.Write(Encoding.UTF8.GetBytes name)
-
-        zip.Dispose()
-        let bytes = archive.ToArray()
-        use downloadServer = new DownloadServer(bytes)
-        let artifactId = Guid.NewGuid()
-
-        store.Downloads.Start
-            { Id = artifactId
-              WorkspaceId = pausedWorkspace
-              Name = "skse-paused.zip"
-              Sources = [ DownloadSource.Url(downloadServer.Url + "/good") ]
-              ExpectedLength = Some(int64 bytes.Length)
-              ExpectedSha256 = Some(Convert.ToHexStringLower(SHA256.HashData bytes)) }
-        |> wait
-        |> result
-        |> ignore
-
-        let artifact =
-            until
-                "paused SKSE artifact"
-                (fun () -> store.Artifacts.Read(pausedWorkspace, artifactId) |> wait |> result)
-                (fun value -> value.State = ArtifactState.Ready)
-
-        let release: SkseRelease =
-            { ModId = SkseResolver.NexusModId
-              File =
-                { Id = 911L
-                  Name = "skse-paused.zip"
-                  Version = "2.3.1"
-                  Category = "MAIN"
-                  Description = "Compatible with Skyrim Special Edition " + runtime + " from Steam"
-                  Bytes = Some(int64 bytes.Length) }
-              ComponentVersion = Version(2, 3, 1)
-              RuntimeVersion = Version.Parse runtime }
-
-        releaseSkseGeneration.Reset()
-
-        let installation =
-            store.InstallSkse(
-                pausedWorkspace,
-                pausedProfile,
-                release,
-                artifact,
-                DateTimeOffset.UtcNow,
-                CancellationToken.None
-            )
-
-        try
-            if not (enteredSkseGeneration.Wait(TimeSpan.FromSeconds 10.)) then
-                failwith "SKSE did not reach the held generation step."
-
-            let deployed = store.Deployments.Read pausedProfile |> wait |> result
-            let during = pausedOwner.Read(pausedWorkspace, pausedProfile, noChoice, CancellationToken.None) |> wait
-            let continued =
-                pausedOwner.Continue(pausedWorkspace, pausedProfile, CancellationToken.None) |> wait
-            let afterContinue = store.Deployments.Read pausedProfile |> wait |> result
-
-            check
-                writer
-                "activeSkseGenerationDoesNotTriggerParentRecovery"
-                (installing.Phase = SkyrimSetupPhase.SettingUpSkse
-                 && deployed.ActiveGeneration.IsSome
-                 && deployed.PendingReceipt.IsSome
-                 && during.Phase = SkyrimSetupPhase.SettingUpSkse
-                 && during.Active
-                 && not during.CanContinue
-                 && continued.Phase = SkyrimSetupPhase.SettingUpSkse
-                 && afterContinue.PendingReceipt = deployed.PendingReceipt
-                 && not installation.IsCompleted)
-        finally
-            releaseSkseGeneration.Set()
-
-        let installedGeneration = installation |> wait
-        pausedWorkflow.CompleteSkse()
-        pausedChanges.Trigger(pausedWorkspace, pausedProfile)
-        let finalIntent =
-            until
-                "SKSE child completion finishes parent setup"
-                (fun () -> store.SkyrimSetups.Read(pausedWorkspace, pausedProfile) |> wait)
-                (Option.exists _.Completed)
-        let finalDeployment = store.Deployments.Read pausedProfile |> wait |> result
-
-        check
-            writer
-            "finishedSkseGenerationCompletesParentSetup"
-            (finalDeployment.ActiveGeneration = Some installedGeneration
-             && finalDeployment.PendingReceipt.IsNone
-             && (finalIntent |> Option.exists _.Completed))
-
-        let enbArea = Directory.CreateDirectory(Path.Combine(area, "paused-enb")).FullName
-        use releaseEnbGeneration = new ManualResetEventSlim(true)
-        use enteredEnbGeneration = new ManualResetEventSlim(false)
-
-        use enbStore =
-            new OperationStore(
-                Path.Combine(enbArea, "state"),
-                enbCheckpoint =
-                    (fun name _ ->
-                        if name = "install-intent" && not releaseEnbGeneration.IsSet then
-                            enteredEnbGeneration.Set()
-                            releaseEnbGeneration.Wait(TimeSpan.FromSeconds 30.) |> ignore)
-            )
-
-        let enbWorkspace, enbProfile, _ = createWorkspace enbStore enbArea "selected" true
-        let enbArchive = Path.Combine(enbArea, "enbseries_skyrimse_v0505.zip")
-
-        use archiveOutput = File.Create enbArchive
-        use enbZip = new ZipArchive(archiveOutput, ZipArchiveMode.Create, true)
-
-        for name in [ "WrapperVersion/d3d11.dll"; "WrapperVersion/d3dcompiler_46e.dll" ] do
-            use entry = enbZip.CreateEntry(name).Open()
-            entry.Write(Encoding.UTF8.GetBytes name)
-
-        enbZip.Dispose()
-        archiveOutput.Dispose()
-
-        let enbArtifact =
-            enbStore.Artifacts.Add(
-                { Id = Guid.NewGuid()
-                  WorkspaceId = enbWorkspace
-                  Path = enbArchive
-                  Storage = ArtifactStorage.Reference },
-                CancellationToken.None
-            )
-            |> wait
-            |> result
-
-        let enbWorkflow = WorkflowState()
-        let mutable enbChild =
-            { Phase = EnbPhase.Available
-              Status = "ENBSeries is available"
-              Detail = ""
-              RuntimeVersion = "0.505"
-              PresetVersion = "" }
-
-        let enbDependencies =
-            { enbWorkflow.Dependencies with
-                ReadEnb = fun _ _ -> Task.FromResult enbChild
-                SelectEnb =
-                    fun workspace profile _ _ token ->
-                        task {
-                            enbChild <-
-                                { enbChild with
-                                    Phase = EnbPhase.Installing
-                                    Status = "Installing ENBSeries" }
-
-                            let! _ =
-                                enbStore.InstallEnb(
-                                    workspace,
-                                    profile,
-                                    EnbCatalogue.lean,
-                                    enbArtifact,
-                                    [],
-                                    token,
-                                    runtimeOnly = true
-                                )
-
-                            enbChild <-
-                                { enbChild with
-                                    Phase = EnbPhase.Ready
-                                    Status = "ENBSeries is installed" }
-
-                            return enbChild
-                        } }
-
-        use enbOwner = new SkyrimSetupCoordinator(enbStore, enbDependencies)
-        releaseEnbGeneration.Reset()
-        let _ = enbOwner.Start(enbWorkspace, enbProfile, enbWithArchive, CancellationToken.None) |> wait
-
-        try
-            if not (enteredEnbGeneration.Wait(TimeSpan.FromSeconds 10.)) then
-                failwith "ENB did not reach the held generation step."
-
-            let deployed = enbStore.Deployments.Read enbProfile |> wait |> result
-            let startedEnb = enbOwner.Read(enbWorkspace, enbProfile, noChoice, CancellationToken.None) |> wait
-            let during = enbOwner.Read(enbWorkspace, enbProfile, noChoice, CancellationToken.None) |> wait
-            let continued = enbOwner.Continue(enbWorkspace, enbProfile, CancellationToken.None) |> wait
-            let afterContinue = enbStore.Deployments.Read enbProfile |> wait |> result
-
-            check
-                writer
-                "activeEnbGenerationDoesNotTriggerParentRecovery"
-                (startedEnb.Phase = SkyrimSetupPhase.SettingUpEnb
-                 && deployed.ActiveGeneration.IsSome
-                 && deployed.PendingReceipt.IsSome
-                 && during.Phase = SkyrimSetupPhase.SettingUpEnb
-                 && during.Active
-                 && not during.CanContinue
-                 && continued.Phase = SkyrimSetupPhase.SettingUpEnb
-                 && afterContinue.PendingReceipt = deployed.PendingReceipt)
-        finally
-            releaseEnbGeneration.Set()
-
-        let afterEnb =
-            until
-                "finished ENB generation"
-                (fun () -> enbOwner.Read(enbWorkspace, enbProfile, noChoice, CancellationToken.None) |> wait)
-                (fun value -> value.Phase = SkyrimSetupPhase.Ready || value.Phase = SkyrimSetupPhase.Available)
-
-        let finalEnbIntent =
-            until
-                "ENB child completion finishes parent setup"
-                (fun () -> enbStore.SkyrimSetups.Read(enbWorkspace, enbProfile) |> wait)
-                (Option.exists _.Completed)
-        let finalEnbDeployment = enbStore.Deployments.Read enbProfile |> wait |> result
-
-        check
-            writer
-            "finishedEnbGenerationCompletesParentSetup"
-            ((afterEnb.Phase = SkyrimSetupPhase.Ready || afterEnb.Phase = SkyrimSetupPhase.Available)
-             && finalEnbDeployment.PendingReceipt.IsNone
-             && (finalEnbIntent |> Option.exists _.Completed))
+        heldEnbGenerationEvidence writer area noChoice enbWithArchive
 
         writer.WriteEndObject()

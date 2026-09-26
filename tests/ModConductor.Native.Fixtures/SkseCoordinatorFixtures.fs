@@ -87,55 +87,10 @@ module SkseCoordinatorFixtures =
             CheckpointBytes = 4096L }
 
     let private createWorkspace (store: OperationStore) area =
-        let workspace, profile = Guid.NewGuid(), Guid.NewGuid()
-        let root = Directory.CreateDirectory(Path.Combine(area, "workspace")).FullName
-        let game, proton = ProtonFixtures.create (Path.Combine(area, "installation"))
+        let workspace, profile, game, proton, saved =
+            SkyrimFixtureWorkspace.create store area "SKSE coordinator" "workspace" "installation" true
 
-        if OperatingSystem.IsLinux() then
-            let launcher = Path.Combine(proton.RuntimeDirectory, "proton")
-            File.WriteAllText(launcher, "#!/bin/sh\nexit 0\n")
-
-            File.SetUnixFileMode(
-                launcher,
-                UnixFileMode.UserRead ||| UnixFileMode.UserWrite ||| UnixFileMode.UserExecute
-            )
-
-            File.WriteAllText(
-                Path.Combine(proton.RuntimeDirectory, "toolmanifest.vdf"),
-                "manifest { version 2 commandline \"/proton %verb%\" }"
-            )
-
-        let workspaces = store.Workspaces :> IWorkspaceState
-
-        let created =
-            workspaces.Create(workspace, "SKSE coordinator", StorageWorker.select root)
-            |> wait
-            |> result
-
-        workspaces.Edit(
-            workspace,
-            created.Workspace.Revision,
-            ProfileEdit.Create
-                { Id = profile
-                  Name = "SKSE coordinator" }
-        )
-        |> wait
-        |> result
-        |> ignore
-
-        (store.GameContexts :> IGameContexts)
-            .Save(
-                workspace,
-                profile,
-                0L,
-                { GameId = GameId.SkyrimSpecialEditionSteam
-                  Path = game
-                  Proton = if OperatingSystem.IsLinux() then Some proton else None }
-            )
-        |> wait
-        |> result
-        |> ignore
-
+        saved |> result |> ignore
         let context = (store.GameContexts :> IGameContexts).Read(workspace, profile) |> wait |> result
         workspace, profile, game, proton, context
 
@@ -565,6 +520,96 @@ module SkseCoordinatorFixtures =
              && afterRemove = afterReinstall
              && firstLoader.ModId = secondLoader.ModId
              && firstLoader.VersionId = secondLoader.VersionId)
+
+    let private restoredLaunchEvidence
+        writer statePath workspace profile restoredGeneration targetModId activeModId runtime =
+        use restarted = new OperationStore(statePath)
+
+        let restartedContext =
+            (restarted.GameContexts :> IGameContexts).Read(workspace, profile) |> wait |> result
+
+        (restarted.GameContexts :> IGameContexts).Refresh(workspace, profile, restartedContext.Revision)
+        |> wait
+        |> result
+        |> ignore
+
+        let active =
+            restarted.Deployments.Read profile
+            |> wait
+            |> Result.defaultWith (fun error -> failwith ("restarted deployment: " + string error))
+
+        let ordinary =
+            restarted.GameLaunching.Read(workspace, profile)
+            |> wait
+            |> Result.defaultWith (fun error ->
+                failwith ("restarted launch lookup: " + string error))
+
+        let workspaceState =
+            (restarted.Workspaces :> IWorkspaceState).Read(workspace, None)
+            |> wait
+            |> Result.defaultWith (fun error -> failwith ("restarted workspace: " + string error))
+
+        let request =
+            { Id = Guid.NewGuid()
+              WorkspaceId = workspace
+              WorkspaceRevision = workspaceState.Workspace.Revision
+              ProfileId = profile
+              ContextRevision = ordinary.ContextRevision
+              SourceToken = ordinary.SourceToken }
+
+        let started =
+            restarted.GameLaunching.Begin request
+            |> wait
+            |> Result.defaultWith (fun error -> failwith ("restarted launch: " + string error))
+
+        let finished =
+            until
+                "rolled-back SKSE launch"
+                (fun () -> restarted.Executables.Read(workspace, started.Id) |> wait |> result)
+                (fun run -> run.Phase = RunPhase.Finished || run.Phase = RunPhase.Failed)
+
+        let selected =
+            restarted.SkseLoaders.ReadStored(workspace, profile, active.ActiveGeneration)
+            |> wait
+
+        let restoredSelection = InventoryObservations.read restarted profile
+
+        let restoredEnabled =
+            restoredSelection.Entries
+            |> List.choose (fun row ->
+                match row.Entry.Selection with
+                | SelectionState.Managed(_, true) -> Some row.Entry.Mod.Id
+                | _ -> None)
+            |> Set.ofList
+
+        let launchUsesLoader =
+            match finished.Source with
+            | RunSource.Game gameRun ->
+                let selectedPath =
+                    selected
+                    |> Option.map (fun value ->
+                        Path.Combine(active.RunnableRoot, Path.GetFileName value.Loader.Executable))
+
+                if OperatingSystem.IsLinux() then
+                    (gameRun.Launch.Arguments |> List.tryLast) = selectedPath
+                else
+                    selectedPath = Some gameRun.Launch.Executable
+            | _ -> false
+
+        check
+            writer
+            "savedGenerationRestoreRebuildsLoaderAfterRestart"
+            (active.ActiveGeneration = Some restoredGeneration
+             && ordinary.Problem.IsNone
+             && selected
+                |> Option.exists (fun value ->
+                    value.Loader.GenerationId = restoredGeneration
+                    && value.Loader.ComponentVersion = "2.2.0"
+                    && value.Loader.RuntimeVersion = runtime)
+             && restoredEnabled.Contains targetModId
+             && not (restoredEnabled.Contains activeModId)
+             && launchUsesLoader)
+
 
     let private installedEvidence writer area =
         let scenario =
@@ -1013,93 +1058,8 @@ module SkseCoordinatorFixtures =
 
         (coordinator :> IDisposable).Dispose()
         (store :> IDisposable).Dispose()
-
-        use restarted = new OperationStore(statePath)
-
-        let restartedContext =
-            (restarted.GameContexts :> IGameContexts).Read(workspace, profile) |> wait |> result
-
-        (restarted.GameContexts :> IGameContexts).Refresh(workspace, profile, restartedContext.Revision)
-        |> wait
-        |> result
-        |> ignore
-
-        let active =
-            restarted.Deployments.Read profile
-            |> wait
-            |> Result.defaultWith (fun error -> failwith ("restarted deployment: " + string error))
-
-        let ordinary =
-            restarted.GameLaunching.Read(workspace, profile)
-            |> wait
-            |> Result.defaultWith (fun error ->
-                failwith ("restarted launch lookup: " + string error))
-
-        let workspaceState =
-            (restarted.Workspaces :> IWorkspaceState).Read(workspace, None)
-            |> wait
-            |> Result.defaultWith (fun error -> failwith ("restarted workspace: " + string error))
-
-        let request =
-            { Id = Guid.NewGuid()
-              WorkspaceId = workspace
-              WorkspaceRevision = workspaceState.Workspace.Revision
-              ProfileId = profile
-              ContextRevision = ordinary.ContextRevision
-              SourceToken = ordinary.SourceToken }
-
-        let started =
-            restarted.GameLaunching.Begin request
-            |> wait
-            |> Result.defaultWith (fun error -> failwith ("restarted launch: " + string error))
-
-        let finished =
-            until
-                "rolled-back SKSE launch"
-                (fun () -> restarted.Executables.Read(workspace, started.Id) |> wait |> result)
-                (fun run -> run.Phase = RunPhase.Finished || run.Phase = RunPhase.Failed)
-
-        let selected =
-            restarted.SkseLoaders.ReadStored(workspace, profile, active.ActiveGeneration)
-            |> wait
-
-        let restoredSelection = InventoryObservations.read restarted profile
-
-        let restoredEnabled =
-            restoredSelection.Entries
-            |> List.choose (fun row ->
-                match row.Entry.Selection with
-                | SelectionState.Managed(_, true) -> Some row.Entry.Mod.Id
-                | _ -> None)
-            |> Set.ofList
-
-        let launchUsesLoader =
-            match finished.Source with
-            | RunSource.Game gameRun ->
-                let selectedPath =
-                    selected
-                    |> Option.map (fun value ->
-                        Path.Combine(active.RunnableRoot, Path.GetFileName value.Loader.Executable))
-
-                if OperatingSystem.IsLinux() then
-                    (gameRun.Launch.Arguments |> List.tryLast) = selectedPath
-                else
-                    selectedPath = Some gameRun.Launch.Executable
-            | _ -> false
-
-        check
-            writer
-            "savedGenerationRestoreRebuildsLoaderAfterRestart"
-            (active.ActiveGeneration = Some restored.Proposed
-             && ordinary.Problem.IsNone
-             && selected
-                |> Option.exists (fun value ->
-                    value.Loader.GenerationId = restored.Proposed
-                    && value.Loader.ComponentVersion = "2.2.0"
-                    && value.Loader.RuntimeVersion = runtime)
-             && restoredEnabled.Contains targetLoader.ModId
-             && not (restoredEnabled.Contains activeLoader.ModId)
-             && launchUsesLoader)
+        restoredLaunchEvidence
+            writer statePath workspace profile restored.Proposed targetLoader.ModId activeLoader.ModId runtime
 
     let observe (writer: Utf8JsonWriter) primary =
         let area =
