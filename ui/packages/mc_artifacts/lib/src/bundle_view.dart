@@ -7,32 +7,9 @@ import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 
 import 'archive_facts.dart';
 import 'bundle_controller.dart';
+import 'bundle_collection.dart';
+import 'bundle_toolbar.dart';
 import 'installation_view.dart';
-
-String bundleState(BundleItemState state) => switch (state) {
-  BundleItemState.needsReview => 'Needs review',
-  BundleItemState.installed => 'Installed',
-  BundleItemState.failed => 'Failed',
-  BundleItemState.installing => 'Installing',
-};
-String bundlePath(BundleItem item) =>
-    item.archives.map((p) => p.join('/')).join(' / ');
-
-class _Row {
-  const _Row(
-    this.id,
-    this.order,
-    this.name,
-    this.path,
-    this.bytes, {
-    this.item,
-    this.archive,
-  });
-  final String id, name, path;
-  final int order, bytes;
-  final BundleItem? item;
-  final BundleArchive? archive;
-}
 
 class ModBundleView extends StatefulWidget {
   const ModBundleView({
@@ -69,13 +46,13 @@ class _ModBundleViewState extends State<ModBundleView> {
     widget.artifact,
   );
   final pane = GlobalKey<ScaffoldState>();
-  final rows = McCollectionModel<String, _Row>(
+  final rows = McCollectionModel<String, BundleRow>(
     idOf: (v) => v.id,
     labelOf: (v) => v.name,
   );
   final chosen = <int>{};
-  List<_Row> displayed = [];
-  _Row? current;
+  List<BundleRow> displayed = [];
+  BundleRow? current;
   BundleDiscovery? lastDiscovery;
   bool inspected = false;
   bool get picking => controller.discovery != null;
@@ -105,7 +82,7 @@ class _ModBundleViewState extends State<ModBundleView> {
     displayed = source != null
         ? [
             for (var i = 0; i < source.archives.length; i++)
-              _Row(
+              BundleRow(
                 'archive:${source.archives[i].index}',
                 i,
                 source.archives[i].path.last,
@@ -116,7 +93,7 @@ class _ModBundleViewState extends State<ModBundleView> {
           ]
         : [
             for (var i = 0; i < items.length; i++)
-              _Row(
+              BundleRow(
                 items[i].id,
                 i,
                 items[i].name,
@@ -298,153 +275,96 @@ class _ModBundleViewState extends State<ModBundleView> {
     );
   }
 
-  Widget collection(BuildContext c, bool narrow) => McCollection<String, _Row>(
-    model: rows,
-    title: picking ? 'Archives in bundle' : 'Mods in bundle',
-    showTitle: !narrow,
-    showTree: false,
-    compactFilter: narrow,
-    filterLabel: picking ? 'Filter archives' : 'Filter mods',
-    countLabel: picking
-        ? '${chosen.length} selected'
-        : '${controller.bundle?.items.where((m) => m.state == BundleItemState.installed).length ?? 0} of ${displayed.length} installed',
-    filterActions: [
-      McIconMenu<String>(
-        label: picking ? 'Archive selection' : 'Mod actions',
-        itemBuilder: (_) => picking
-            ? const [
-                PopupMenuItem(value: 'all', child: Text('Select all')),
-                PopupMenuItem(value: 'none', child: Text('Clear selection')),
-              ]
-            : [
-                PopupMenuItem(
-                  value: 'configure',
-                  enabled: !controller.busy && current?.item != null,
-                  child: const Text('Configure'),
-                ),
-                PopupMenuItem(
-                  value: 'destination',
-                  enabled:
-                      !controller.busy &&
-                      current?.item?.state == BundleItemState.needsReview,
-                  child: const Text('Change destination'),
-                ),
-                PopupMenuItem(
-                  value: 'up',
-                  enabled:
-                      !controller.busy &&
-                      current?.item?.state == BundleItemState.needsReview,
-                  child: const Text('Move earlier'),
-                ),
-                PopupMenuItem(
-                  value: 'down',
-                  enabled:
-                      !controller.busy &&
-                      current?.item?.state == BundleItemState.needsReview,
-                  child: const Text('Move later'),
-                ),
-                PopupMenuItem(
-                  value: 'nested',
-                  enabled:
-                      !controller.busy &&
-                      current?.item?.state == BundleItemState.needsReview,
-                  child: const Text('Open contained archives'),
-                ),
-              ],
-        onSelected: (value) {
-          if (controller.busy) return;
-          if (picking) {
-            setState(() {
-              chosen.clear();
-              if (value == 'all')
-                chosen.addAll(displayed.map((r) => r.archive!.index));
-            });
-            return;
-          }
-          final item = current?.item;
-          if (item == null) return;
-          switch (value) {
-            case 'destination':
-              unawaited(rename(item));
-            case 'up':
-              unawaited(controller.move(item, true));
-            case 'down':
-              unawaited(controller.move(item, false));
-            case 'nested':
-              configure(item, contained: true);
-            default:
-              item.state == BundleItemState.failed
-                  ? unawaited(retry(item))
-                  : configure(item);
-          }
-        },
-      ),
-    ],
-    onSelect: (row) {
+  void collectionAction(String value) {
+    if (controller.busy) return;
+    if (picking) {
       setState(() {
-        current = row;
-        inspected = true;
+        chosen.clear();
+        if (value == 'all') {
+          chosen.addAll(displayed.map((row) => row.archive!.index));
+        }
       });
-      if (narrow) pane.currentState?.openEndDrawer();
-    },
-    columns: [
-      if (picking)
-        McColumn(
-          '',
-          (row) => Checkbox(
-            value: chosen.contains(row.archive!.index),
-            onChanged: controller.busy
-                ? null
-                : (value) => setState(() {
-                    if (value == true)
-                      chosen.add(row.archive!.index);
-                    else
-                      chosen.remove(row.archive!.index);
-                  }),
+      return;
+    }
+    final item = current?.item;
+    if (item == null) return;
+    switch (value) {
+      case 'destination':
+        unawaited(rename(item));
+      case 'up':
+        unawaited(controller.move(item, true));
+      case 'down':
+        unawaited(controller.move(item, false));
+      case 'nested':
+        configure(item, contained: true);
+      default:
+        if (item.state == BundleItemState.failed) {
+          unawaited(retry(item));
+        } else {
+          configure(item);
+        }
+    }
+  }
+
+  void selectRow(BundleRow row, bool narrow) {
+    setState(() {
+      current = row;
+      inspected = true;
+    });
+    if (narrow) pane.currentState?.openEndDrawer();
+  }
+
+  void selectArchive(BundleRow row, bool selected) {
+    setState(() {
+      if (selected) {
+        chosen.add(row.archive!.index);
+      } else {
+        chosen.remove(row.archive!.index);
+      }
+    });
+  }
+
+  void toolbarAction(String value) {
+    switch (value) {
+      case 'cleanup':
+        unawaited(cleanup());
+      case 'order':
+        unawaited(
+          information(
+            'Installation order',
+            'Mods are installed one at a time in the order shown. Each mod has its own file review. Installed mods stay installed if a later mod fails.',
           ),
-          width: 48,
-          interactive: true,
-        ),
-      if (!narrow)
-        McColumn('Order', (row) => Text('${row.order + 1}'), width: 60),
-      McColumn(
-        picking ? 'Archive' : 'Mod name',
-        (row) => narrow
-            ? Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    picking ? row.name : '${row.order + 1}. ${row.name}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    picking
-                        ? archiveSize(row.bytes)
-                        : bundleState(row.item!.state),
-                    style: Theme.of(c).textTheme.bodySmall,
-                  ),
-                ],
-              )
-            : McCollectionName(row.name),
-      ),
-      if (!narrow && !picking)
-        McColumn(
-          'Archive',
-          (row) => Text(row.path, maxLines: 1, overflow: TextOverflow.ellipsis),
-          width: 340,
-        ),
-      if (!narrow)
-        McColumn(
-          picking ? 'Size' : 'Status',
-          (row) => Text(
-            picking ? archiveSize(row.bytes) : bundleState(row.item!.state),
+        );
+      default:
+        unawaited(
+          information(
+            'Bundle limits',
+            '3 nested archive levels · 32 archives\n20,000 file entries · 64 GB total expansion',
           ),
-          width: 150,
-        ),
-    ],
-  );
+        );
+    }
+  }
+
+  void continueBundle() {
+    if (picking) {
+      unawaited(
+        controller.select([
+          for (final row in displayed)
+            if (chosen.contains(row.archive!.index)) row.archive!.index,
+        ]),
+      );
+      return;
+    }
+    final item = next;
+    if (item == null) {
+      unawaited(cleanup());
+    } else if (item.state == BundleItemState.failed) {
+      unawaited(retry(item));
+    } else {
+      configure(item);
+    }
+  }
+
   @override
   Widget build(BuildContext c) {
     if (controller.prepared != null || controller.status != null) {
@@ -468,8 +388,7 @@ class _ModBundleViewState extends State<ModBundleView> {
     return LayoutBuilder(
       builder: (c, box) {
         final narrow =
-                box.maxWidth < 1100 * MediaQuery.textScalerOf(c).scale(1),
-            item = next;
+            box.maxWidth < 1100 * MediaQuery.textScalerOf(c).scale(1);
         return Scaffold(
           key: pane,
           backgroundColor: Colors.transparent,
@@ -480,104 +399,24 @@ class _ModBundleViewState extends State<ModBundleView> {
           body: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Row(
-                children: [
-                  McIconAction(
-                    label: picking && controller.bundle != null
-                        ? 'Back to bundle'
-                        : 'Back to archives',
-                    icon: const Icon(Icons.arrow_back),
-                    onPressed: controller.busy
-                        ? null
-                        : () {
-                            if (picking && controller.bundle != null)
-                              unawaited(controller.back());
-                            else
-                              widget.onBack();
-                          },
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      controller.nested?.archives.last.join('/') ??
-                          widget.artifact.originalName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(c).textTheme.titleMedium,
-                    ),
-                  ),
-                  McIconMenu<String>(
-                    label: 'Bundle actions',
-                    itemBuilder: (_) => [
-                      const PopupMenuItem(
-                        value: 'order',
-                        child: Text('Installation order'),
-                      ),
-                      const PopupMenuItem(
-                        value: 'limits',
-                        child: Text('Bundle limits'),
-                      ),
-                      PopupMenuItem(
-                        value: 'cleanup',
-                        enabled: controller.bundle != null && !controller.busy,
-                        child: const Text('Delete temporary files'),
-                      ),
-                    ],
-                    onSelected: (v) {
-                      if (v == 'cleanup')
-                        unawaited(cleanup());
-                      else if (v == 'order')
-                        unawaited(
-                          information(
-                            'Installation order',
-                            'Mods are installed one at a time in the order shown. Each mod has its own file review. Installed mods stay installed if a later mod fails.',
-                          ),
-                        );
-                      else
-                        unawaited(
-                          information(
-                            'Bundle limits',
-                            '3 nested archive levels · 32 archives\n20,000 file entries · 64 GB total expansion',
-                          ),
-                        );
-                    },
-                  ),
-                  const SizedBox(width: 8),
-                  McAction(
-                    label: picking
-                        ? 'Continue'
-                        : item == null
-                        ? 'Finish'
-                        : item.state == BundleItemState.failed
-                        ? 'Retry'
-                        : item.state == BundleItemState.installing
-                        ? 'View installation'
-                        : 'Configure next',
-                    emphasis: McActionEmphasis.primary,
-                    onPressed:
-                        controller.busy ||
-                            (picking
-                                ? chosen.isEmpty
-                                : controller.bundle == null)
-                        ? null
-                        : () {
-                            if (picking)
-                              unawaited(
-                                controller.select([
-                                  for (final row in displayed)
-                                    if (chosen.contains(row.archive!.index))
-                                      row.archive!.index,
-                                ]),
-                              );
-                            else if (item == null)
-                              unawaited(cleanup());
-                            else if (item.state == BundleItemState.failed)
-                              unawaited(retry(item));
-                            else
-                              configure(item);
-                          },
-                  ),
-                ],
+              BundleToolbar(
+                title:
+                    controller.nested?.archives.last.join('/') ??
+                    widget.artifact.originalName,
+                picking: picking,
+                hasBundle: controller.bundle != null,
+                busy: controller.busy,
+                hasSelection: chosen.isNotEmpty,
+                next: next,
+                onBack: () {
+                  if (picking && controller.bundle != null) {
+                    unawaited(controller.back());
+                  } else {
+                    widget.onBack();
+                  }
+                },
+                onAction: toolbarAction,
+                onContinue: continueBundle,
               ),
               const SizedBox(height: 8),
               if (controller.busy) const LinearProgressIndicator(),
@@ -602,7 +441,28 @@ class _ModBundleViewState extends State<ModBundleView> {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Expanded(child: collection(c, narrow)),
+                    Expanded(
+                      child: BundleCollection(
+                        model: rows,
+                        displayed: displayed,
+                        current: current,
+                        chosen: chosen,
+                        installed:
+                            controller.bundle?.items
+                                .where(
+                                  (item) =>
+                                      item.state == BundleItemState.installed,
+                                )
+                                .length ??
+                            0,
+                        picking: picking,
+                        narrow: narrow,
+                        busy: controller.busy,
+                        onAction: collectionAction,
+                        onSelect: (row) => selectRow(row, narrow),
+                        onArchiveSelected: selectArchive,
+                      ),
+                    ),
                     if (inspected && !narrow) ...[
                       const SizedBox(width: 16),
                       SizedBox(

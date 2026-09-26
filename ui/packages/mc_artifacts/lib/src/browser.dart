@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:mc_client/mc_client.dart';
-import 'package:mc_ui_collections/mc_ui_collections.dart';
 import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 
 import 'controller.dart';
@@ -12,9 +11,8 @@ import 'installation_view.dart';
 import 'contents_view.dart';
 import 'forms.dart';
 import 'download_form.dart';
-import 'download_view.dart';
-import 'archive_facts.dart';
 import 'artifact_inspector.dart';
+import 'artifact_collection.dart';
 export 'forms.dart' show ArchiveFile, ArchiveChooser;
 
 class ArtifactBrowser extends StatefulWidget {
@@ -323,105 +321,21 @@ class _ArtifactBrowserState extends State<ArtifactBrowser> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Expanded(
-                child: McCollection<String, Artifact>(
-                  model: controller.model,
-                  title: 'Archives',
-                  showTitle: !narrow,
-                  showTree: false,
-                  focusNode: focus,
-                  scrollController: scroll,
-                  filterLabel: controller.next == null
-                      ? 'Filter archives'
-                      : 'Filter loaded archives',
-                  countLabel:
-                      '${controller.model.ids.length} ${controller.model.ids.length == 1 ? 'archive' : 'archives'}${controller.next == null ? '' : ' loaded'}',
-                  empty: 'No archives.',
-                  loading: controller.busy,
-                  problem: controller.problem ?? controller.progressProblem,
-                  filterActions: [
-                    if (narrow) ...[
-                      McIconAction(
-                        label: 'Add archive',
-                        icon: const Icon(Icons.add),
-                        focusNode: addFocus,
-                        onPressed: controller.canEdit ? fileForm : null,
-                      ),
-                      McIconAction(
-                        label: 'Download archive',
-                        icon: const Icon(Icons.download),
-                        onPressed: controller.canEdit ? download : null,
-                      ),
-                    ],
-                    if (narrow && widget.nexus != null)
-                      McAction(
-                        label: 'Nexus Mods',
-                        onPressed: () => setState(() => nexus = true),
-                      ),
-                  ],
-                  actions: [
-                    if (!narrow && widget.nexus != null)
-                      McAction(
-                        label: 'Nexus Mods',
-                        onPressed: () => setState(() => nexus = true),
-                      ),
-                    if (!narrow)
-                      McAction(
-                        label: 'Add archive',
-                        icon: Icons.add,
-                        focusNode: addFocus,
-                        onPressed: controller.canEdit ? fileForm : null,
-                      ),
-                    if (!narrow) ...[
-                      const SizedBox(width: 8),
-                      McAction(
-                        label: 'Download',
-                        icon: Icons.download,
-                        emphasis: McActionEmphasis.primary,
-                        onPressed: controller.canEdit ? download : null,
-                      ),
-                    ],
-                  ],
-                  onRefresh: controller.busy || controller.client == null
-                      ? null
-                      : controller.load,
-                  onLoad: controller.next != null && !controller.busy
-                      ? () => controller.load(more: true)
-                      : null,
-                  onSelect: (_) {
+                child: ArtifactCollection(
+                  controller: controller,
+                  narrow: narrow,
+                  hasNexus: widget.nexus != null,
+                  focus: focus,
+                  addFocus: addFocus,
+                  scroll: scroll,
+                  onAdd: () => unawaited(fileForm()),
+                  onDownload: () => unawaited(download()),
+                  onNexus: () => setState(() => nexus = true),
+                  onSelect: () {
                     controller.observe();
                     setState(() => inspected = true);
                     if (narrow) pane.currentState?.openEndDrawer();
                   },
-                  columns: [
-                    McColumn(
-                      'Name',
-                      (a) => McCollectionName(
-                        a.originalName,
-                        icon: Icons.inventory_2_outlined,
-                      ),
-                    ),
-                    McColumn(
-                      'Status',
-                      (a) => Text(
-                        a.download != null &&
-                                a.download!.phase != DownloadPhase.complete
-                            ? downloadLabel(a.download!)
-                            : archiveState(a.state),
-                      ),
-                      width: 160,
-                    ),
-                    if (!narrow)
-                      McColumn(
-                        'Size',
-                        (a) => Text(
-                          a.download != null &&
-                                  a.download!.phase != DownloadPhase.complete
-                              ? downloadSize(a.download!)
-                              : archiveSize(a.length),
-                        ),
-                        width: 150,
-                      ),
-                  ],
                 ),
               ),
               if (!narrow && inspected && controller.selected != null) ...[

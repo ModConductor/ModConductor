@@ -7,6 +7,7 @@ import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 import 'installation_files_review.dart';
 import 'fomod_controller.dart';
 import 'fomod_options.dart';
+import 'fomod_toolbar.dart';
 
 class FomodView extends StatefulWidget {
   const FomodView({
@@ -197,6 +198,24 @@ class _FomodViewState extends State<FomodView> {
     );
   }
 
+  void toolbarAction(String action) {
+    if (action == 'manual') {
+      unawaited(manual());
+    } else if (action == 'packages') {
+      unawaited(usePackages());
+    } else {
+      widget.onUpdate?.call();
+    }
+  }
+
+  void advance(bool review) {
+    if (review) {
+      widget.onInstall();
+    } else {
+      unawaited(controller.next());
+    }
+  }
+
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (c, box) {
@@ -224,77 +243,28 @@ class _FomodViewState extends State<FomodView> {
         body: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
-              children: [
-                McIconAction(
-                  label: value?.canBack == true
-                      ? 'Previous step'
-                      : widget.backLabel,
-                  icon: const Icon(Icons.arrow_back),
-                  onPressed: value?.canBack == true
-                      ? (available ? () => unawaited(controller.back()) : null)
-                      : widget.onBack,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    '${review ? 'Review ' : ''}${value?.name ?? widget.initial.name}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(c).textTheme.titleMedium,
+            FomodToolbar(
+              name: value?.name ?? widget.initial.name,
+              backLabel: widget.backLabel,
+              value: value,
+              review: review,
+              available: available,
+              editable: editable,
+              canUsePackages:
+                  widget.packages != null &&
+                  widget.initial.availableInstallers.contains(
+                    InstallationMode.bain,
                   ),
-                ),
-                McIconMenu<String>(
-                  label: 'Installer actions',
-                  itemBuilder: (_) => [
-                    PopupMenuItem(
-                      value: 'manual',
-                      enabled: available,
-                      child: const Text('Use manual layout'),
-                    ),
-                    if (widget.packages != null &&
-                        widget.initial.availableInstallers.contains(
-                          InstallationMode.bain,
-                        ))
-                      PopupMenuItem(
-                        value: 'packages',
-                        enabled: available,
-                        child: const Text('Use package folders'),
-                      ),
-                    if (review && widget.onUpdate != null)
-                      PopupMenuItem(
-                        value: 'update',
-                        enabled: editable,
-                        child: const Text('Update installed mod'),
-                      ),
-                  ],
-                  onSelected: (value) {
-                    if (value == 'manual') {
-                      unawaited(manual());
-                    } else if (value == 'packages') {
-                      unawaited(usePackages());
-                    } else {
-                      widget.onUpdate?.call();
-                    }
-                  },
-                ),
-                if (value?.hasStep == true || review) ...[
-                  const SizedBox(width: 8),
-                  McAction(
-                    label: review
-                        ? 'Install'
-                        : value!.stepNumber == value.visibleSteps
-                        ? 'Review files'
-                        : 'Next',
-                    emphasis: McActionEmphasis.primary,
-                    onPressed: editable
-                        ? (review
-                              ? widget.onInstall
-                              : () => unawaited(controller.next()))
-                        : null,
-                  ),
-                ],
-              ],
+              canUpdate: widget.onUpdate != null,
+              onBack: () {
+                if (value?.canBack == true) {
+                  unawaited(controller.back());
+                } else {
+                  widget.onBack();
+                }
+              },
+              onAction: toolbarAction,
+              onAdvance: () => advance(review),
             ),
             const SizedBox(height: 8),
             if (controller.busy) const LinearProgressIndicator(),

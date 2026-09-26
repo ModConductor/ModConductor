@@ -7,6 +7,8 @@ import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 
 import 'archive_facts.dart';
 import 'bain_controller.dart';
+import 'bain_package_collection.dart';
+import 'bain_toolbar.dart';
 import 'installation_files_review.dart';
 
 class BainView extends StatefulWidget {
@@ -218,112 +220,40 @@ class _BainViewState extends State<BainView> {
     );
   }
 
-  Widget packageList(BuildContext c, bool narrow) {
-    final value = controller.value;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (!narrow)
-          Text('Package folders', style: Theme.of(c).textTheme.titleMedium),
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                'Later folders replace earlier files.',
-                style: Theme.of(c).textTheme.bodySmall,
-              ),
-            ),
-            McIconAction(
-              label: 'Folder order',
-              icon: const Icon(Icons.info_outline),
-              onPressed: () => unawaited(order()),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Expanded(
-          child: McCollection<int, BainPackage>(
-            model: packages,
-            title: 'Package folders',
-            showTitle: false,
-            showTree: false,
-            compactFilter: narrow,
-            filterLabel: 'Filter folders',
-            countLabel:
-                '${value?.packages.where((p) => p.selected).length ?? 0} of ${value?.packages.length ?? 0} folders selected',
-            filterActions: [
-              if (widget.initial.wizardScripts.isNotEmpty) ...[
-                Text(
-                  'Wizard script not supported',
-                  style: Theme.of(c).textTheme.bodySmall,
-                ),
-                const SizedBox(width: 8),
-              ],
-              McIconMenu<String>(
-                label: 'Folder selection',
-                itemBuilder: (_) => [
-                  PopupMenuItem(
-                    value: 'all',
-                    enabled: available,
-                    child: const Text('Select all'),
-                  ),
-                  PopupMenuItem(
-                    value: 'none',
-                    enabled: available,
-                    child: const Text('Clear selection'),
-                  ),
-                  if (value?.hasNotes == true)
-                    PopupMenuItem(
-                      value: 'notes',
-                      enabled: available,
-                      child: const Text('Package notes'),
-                    ),
-                ],
-                onSelected: (v) {
-                  if (v == 'notes') {
-                    unawaited(notes());
-                  } else {
-                    unawaited(controller.chooseAll(v == 'all'));
-                  }
-                },
-              ),
-            ],
-            onSelect: (package) {
-              selectedPackage = package;
-              selectedFile = null;
-              unawaited(readFolder(package));
-              inspect(narrow);
-            },
-            columns: [
-              McColumn(
-                '',
-                (p) => Checkbox(
-                  value: p.selected,
-                  onChanged: available
-                      ? (v) => unawaited(controller.choose(p, v!))
-                      : null,
-                ),
-                width: 48,
-                interactive: true,
-              ),
-              if (!narrow)
-                McColumn(
-                  'Order',
-                  (p) => Text(
-                    '${(value?.packages.indexWhere((r) => r.index == p.index) ?? 0) + 1}',
-                  ),
-                  width: 65,
-                ),
-              McColumn('Package folder', (p) => McCollectionName(p.name)),
-              if (!narrow)
-                McColumn('Files', (p) => Text('${p.files}'), width: 80),
-              if (!narrow)
-                McColumn('Size', (p) => Text(archiveSize(p.bytes)), width: 100),
-            ],
-          ),
-        ),
-      ],
-    );
+  void packageMenuAction(String action) {
+    if (action == 'notes') {
+      unawaited(notes());
+      return;
+    }
+    unawaited(controller.chooseAll(action == 'all'));
+  }
+
+  void selectPackage(BainPackage package, bool narrow) {
+    selectedPackage = package;
+    selectedFile = null;
+    unawaited(readFolder(package));
+    inspect(narrow);
+  }
+
+  void toolbarAction(String action) {
+    switch (action) {
+      case 'notes':
+        unawaited(notes());
+      case 'fomod':
+        unawaited(useInstaller(InstallationMode.fomod));
+      case 'manual':
+        unawaited(useInstaller(InstallationMode.manual));
+      case 'update':
+        widget.onUpdate?.call();
+    }
+  }
+
+  void advance(bool review) {
+    if (review) {
+      widget.onInstall();
+    } else {
+      unawaited(controller.review());
+    }
   }
 
   @override
@@ -350,79 +280,27 @@ class _BainViewState extends State<BainView> {
         body: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
-              children: [
-                McIconAction(
-                  label: review ? 'Back to package folders' : widget.backLabel,
-                  icon: const Icon(Icons.arrow_back),
-                  onPressed: review
-                      ? (available ? () => unawaited(controller.back()) : null)
-                      : widget.onBack,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    '${review ? 'Review ' : ''}${widget.initial.name}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(c).textTheme.titleMedium,
-                  ),
-                ),
-                McIconMenu<String>(
-                  label: 'Installer actions',
-                  itemBuilder: (_) => [
-                    if (value?.hasNotes == true)
-                      PopupMenuItem(
-                        value: 'notes',
-                        enabled: available,
-                        child: const Text('Package notes'),
-                      ),
-                    if (widget.initial.availableInstallers.contains(
-                      InstallationMode.fomod,
-                    ))
-                      PopupMenuItem(
-                        value: 'fomod',
-                        enabled: available,
-                        child: const Text('Use XML installer'),
-                      ),
-                    PopupMenuItem(
-                      value: 'manual',
-                      enabled: available,
-                      child: const Text('Use manual layout'),
-                    ),
-                    if (review && widget.onUpdate != null)
-                      PopupMenuItem(
-                        value: 'update',
-                        enabled: canAdvance,
-                        child: const Text('Update installed mod'),
-                      ),
-                  ],
-                  onSelected: (v) {
-                    switch (v) {
-                      case 'notes':
-                        unawaited(notes());
-                      case 'fomod':
-                        unawaited(useInstaller(InstallationMode.fomod));
-                      case 'manual':
-                        unawaited(useInstaller(InstallationMode.manual));
-                      case 'update':
-                        widget.onUpdate?.call();
-                    }
-                  },
-                ),
-                if (supported) ...[
-                  const SizedBox(width: 8),
-                  McAction(
-                    label: review ? 'Install' : 'Review files',
-                    emphasis: McActionEmphasis.primary,
-                    onPressed: canAdvance
-                        ? (review
-                              ? widget.onInstall
-                              : () => unawaited(controller.review()))
-                        : null,
-                  ),
-                ],
-              ],
+            BainToolbar(
+              name: widget.initial.name,
+              backLabel: widget.backLabel,
+              review: review,
+              available: available,
+              canAdvance: canAdvance,
+              supported: supported,
+              hasNotes: value?.hasNotes == true,
+              canUseFomod: widget.initial.availableInstallers.contains(
+                InstallationMode.fomod,
+              ),
+              canUpdate: widget.onUpdate != null,
+              onBack: () {
+                if (review) {
+                  unawaited(controller.back());
+                } else {
+                  widget.onBack();
+                }
+              },
+              onAction: toolbarAction,
+              onAdvance: () => advance(review),
             ),
             const SizedBox(height: 8),
             if (controller.busy) const LinearProgressIndicator(),
@@ -479,7 +357,21 @@ class _BainViewState extends State<BainView> {
                                     inspect(narrow);
                                   },
                                 )
-                              : packageList(c, narrow),
+                              : BainPackageCollection(
+                                  model: packages,
+                                  value: value,
+                                  narrow: narrow,
+                                  available: available,
+                                  hasWizardScripts:
+                                      widget.initial.wizardScripts.isNotEmpty,
+                                  onOrder: () => unawaited(order()),
+                                  onMenuAction: packageMenuAction,
+                                  onSelect: (package) =>
+                                      selectPackage(package, narrow),
+                                  onChoose: (package, selected) => unawaited(
+                                    controller.choose(package, selected),
+                                  ),
+                                ),
                         ),
                         if (inspected && !narrow) ...[
                           const SizedBox(width: 16),
