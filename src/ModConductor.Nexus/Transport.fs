@@ -25,6 +25,17 @@ module internal NexusBoundary =
             | _ -> return Error NexusProblem.Failed
         }
 
+    let protectResult action =
+        task {
+            let! result = protect action
+            return Result.bind id result
+        }
+
+type private ResponseDisposition =
+    | Retry of DateTimeOffset
+    | Reject of NexusProblem
+    | ReadBody
+
 type internal NexusTransport(api: Uri, interval: TimeSpan) =
     let handler =
         new SocketsHttpHandler(
@@ -54,21 +65,26 @@ type internal NexusTransport(api: Uri, interval: TimeSpan) =
 
     let wait (token: CancellationToken) =
         task {
-            let at =
+            let scheduled =
                 lock scheduling (fun () ->
                     let now = DateTimeOffset.UtcNow
 
                     if blockedUntil > now then
-                        raise (NexusException(NexusProblem.RateLimited blockedUntil))
+                        Error(NexusProblem.RateLimited blockedUntil)
+                    else
+                        let at = max now nextRequest
+                        nextRequest <- at + interval
+                        Ok at)
 
-                    let at = max now nextRequest
-                    nextRequest <- at + interval
-                    at)
+            match scheduled with
+            | Error error -> return Error error
+            | Ok at ->
+                let delay = at - DateTimeOffset.UtcNow
 
-            let delay = at - DateTimeOffset.UtcNow
+                if delay > TimeSpan.Zero then
+                    do! Task.Delay(delay, token)
 
-            if delay > TimeSpan.Zero then
-                do! Task.Delay(delay, token)
+                return Ok()
         }
 
     let retryAfter (response: HttpResponseMessage) =
@@ -83,6 +99,89 @@ type internal NexusTransport(api: Uri, interval: TimeSpan) =
         else
             DateTimeOffset.UtcNow.AddSeconds 1.
 
+    let request
+        (uri: Uri)
+        (authorization: NexusAuthorization option)
+        (fields: (string * string) list option)
+        =
+        let value =
+            new HttpRequestMessage((if fields.IsSome then HttpMethod.Post else HttpMethod.Get), uri)
+
+        value.Headers.UserAgent.ParseAdd("ModConductor/0.1.0")
+
+        value.Headers.TryAddWithoutValidation("Application-Name", "ModConductor")
+        |> ignore
+
+        value.Headers.TryAddWithoutValidation("Application-Version", "0.1.0") |> ignore
+        authorization |> Option.iter (authorize value)
+
+        fields
+        |> Option.iter (fun values ->
+            value.Content <-
+                new FormUrlEncodedContent(values |> Seq.map (fun (k, v) -> KeyValuePair(k, v))))
+
+        value
+
+    let sendAttempt (request: HttpRequestMessage) (token: CancellationToken) =
+        task {
+            use timeout = CancellationTokenSource.CreateLinkedTokenSource token
+            timeout.CancelAfter(TimeSpan.FromSeconds 30.)
+
+            try
+                let! response = client.SendAsync(request, timeout.Token)
+                return Ok response
+            with :? OperationCanceledException when not token.IsCancellationRequested ->
+                return Error NexusProblem.TimedOut
+        }
+
+    let disposition
+        (response: HttpResponseMessage)
+        (authorization: NexusAuthorization option)
+        (fields: (string * string) list option)
+        (entitlement: bool)
+        (attempt: int)
+        =
+        let code = int response.StatusCode
+        let retry = code = 429 || code = 408 || code >= 500
+        let after = if retry then Some(retryAfter response) else None
+
+        if code = 429 then
+            lock scheduling (fun () -> blockedUntil <- max blockedUntil after.Value)
+
+        if retry then
+            if
+                fields.IsSome
+                || attempt >= 3
+                || after.Value > DateTimeOffset.UtcNow.AddSeconds 2.
+            then
+                Reject(
+                    if code = 429 then
+                        NexusProblem.RateLimited after.Value
+                    else
+                        NexusProblem.Offline
+                )
+            else
+                Retry after.Value
+        elif code = 401 || (fields.IsSome && code = 400) then
+            Reject(
+                match authorization with
+                | Some(NexusAuthorization.PersonalApiKey _) -> NexusProblem.InvalidApiKey
+                | _ -> NexusProblem.SignInRequired
+            )
+        elif code = 403 then
+            Reject(
+                if entitlement then
+                    NexusProblem.Entitlement
+                else
+                    NexusProblem.Forbidden
+            )
+        elif code = 404 then
+            Reject NexusProblem.NotFound
+        elif code < 200 || code >= 300 then
+            Reject NexusProblem.InvalidResponse
+        else
+            ReadBody
+
     member _.Send
         (
             uri: Uri,
@@ -95,102 +194,39 @@ type internal NexusTransport(api: Uri, interval: TimeSpan) =
             do! slots.WaitAsync token
 
             try
-                let mutable result = None
+                let mutable result: Result<JsonDocument, NexusProblem> option = None
                 let mutable attempt = 0
 
                 while result.IsNone do
                     attempt <- attempt + 1
 
                     if fields.IsNone then
-                        do! wait token
+                        let! admission = wait token
 
-                    use request =
-                        new HttpRequestMessage(
-                            (if fields.IsSome then HttpMethod.Post else HttpMethod.Get),
-                            uri
-                        )
+                        match admission with
+                        | Error error -> result <- Some(Error error)
+                        | Ok() -> ()
 
-                    request.Headers.UserAgent.ParseAdd("ModConductor/0.1.0")
+                    if result.IsNone then
+                        use outgoing = request uri authorization fields
+                        let! received = sendAttempt outgoing token
 
-                    request.Headers.TryAddWithoutValidation("Application-Name", "ModConductor")
-                    |> ignore
+                        match received with
+                        | Error error -> result <- Some(Error error)
+                        | Ok response ->
+                            use response = response
 
-                    request.Headers.TryAddWithoutValidation("Application-Version", "0.1.0")
-                    |> ignore
-
-                    authorization |> Option.iter (authorize request)
-
-                    fields
-                    |> Option.iter (fun values ->
-                        request.Content <-
-                            new FormUrlEncodedContent(
-                                values |> Seq.map (fun (k, v) -> KeyValuePair(k, v))
-                            ))
-
-                    use timeout = CancellationTokenSource.CreateLinkedTokenSource token
-                    timeout.CancelAfter(TimeSpan.FromSeconds 30.)
-
-                    use! response =
-                        task {
-                            try
-                                return! client.SendAsync(request, timeout.Token)
-                            with :? OperationCanceledException when
-                                not token.IsCancellationRequested ->
-                                return raise (NexusException NexusProblem.TimedOut)
-                        }
-
-                    let code = int response.StatusCode
-                    let retry = code = 429 || code = 408 || code >= 500
-                    let after = if retry then Some(retryAfter response) else None
-                    let reject problem = raise (NexusException problem)
-
-                    if code = 429 then
-                        lock scheduling (fun () -> blockedUntil <- max blockedUntil after.Value)
-
-                    if
-                        retry
-                        && (fields.IsSome
-                            || attempt >= 3
-                            || after.Value > DateTimeOffset.UtcNow.AddSeconds 2.)
-                    then
-                        reject (
-                            if code = 429 then
-                                NexusProblem.RateLimited after.Value
-                            else
-                                NexusProblem.Offline
-                        )
-
-                    if not retry then
-                        if code = 401 || (fields.IsSome && code = 400) then
-                            reject (
-                                match authorization with
-                                | Some(NexusAuthorization.PersonalApiKey _) ->
-                                    NexusProblem.InvalidApiKey
-                                | _ -> NexusProblem.SignInRequired
-                            )
-
-                        if code = 403 then
-                            reject (
-                                if entitlement then
-                                    NexusProblem.Entitlement
-                                else
-                                    NexusProblem.Forbidden
-                            )
-
-                        if code = 404 then
-                            reject NexusProblem.NotFound
-
-                        if code < 200 || code >= 300 then
-                            reject NexusProblem.InvalidResponse
-
-                        let! bytes = response.Content.ReadAsByteArrayAsync token
-                        result <- Some(JsonDocument.Parse(ReadOnlyMemory bytes))
-                    else
-                        do!
-                            Task.Delay(
-                                max TimeSpan.Zero (after.Value - DateTimeOffset.UtcNow),
-                                token
-                            )
+                            match disposition response authorization fields entitlement attempt with
+                            | Reject error -> result <- Some(Error error)
+                            | Retry after ->
+                                do!
+                                    Task.Delay(
+                                        max TimeSpan.Zero (after - DateTimeOffset.UtcNow),
+                                        token
+                                    )
+                            | ReadBody ->
+                                let! bytes = response.Content.ReadAsByteArrayAsync token
+                                result <- Some(Ok(JsonDocument.Parse(ReadOnlyMemory bytes)))
 
                 return result.Value
             finally
@@ -223,73 +259,73 @@ type internal NexusTransport(api: Uri, interval: TimeSpan) =
             | NexusAuthorization.PersonalApiKey value ->
                 None, Some value, NexusProblem.InvalidApiKey
 
-        NexusBoundary.protect (fun () ->
+        NexusBoundary.protectResult (fun () ->
             task {
                 do! slots.WaitAsync token
 
                 try
-                    do! wait token
+                    let! admission = wait token
 
-                    use request =
-                        new HttpRequestMessage(
-                            (if action = NexusInteraction.Untrack then
-                                 HttpMethod.Delete
-                             else
-                                 HttpMethod.Post),
-                            Uri(api, path)
-                        )
+                    match admission with
+                    | Error error -> return Error error
+                    | Ok() ->
+                        use request =
+                            new HttpRequestMessage(
+                                (if action = NexusInteraction.Untrack then
+                                     HttpMethod.Delete
+                                 else
+                                     HttpMethod.Post),
+                                Uri(api, path)
+                            )
 
-                    request.Headers.UserAgent.ParseAdd("ModConductor/0.1.0")
+                        request.Headers.UserAgent.ParseAdd("ModConductor/0.1.0")
 
-                    request.Headers.TryAddWithoutValidation("Application-Name", "ModConductor")
-                    |> ignore
+                        request.Headers.TryAddWithoutValidation("Application-Name", "ModConductor")
+                        |> ignore
 
-                    request.Headers.TryAddWithoutValidation("Application-Version", "0.1.0")
-                    |> ignore
+                        request.Headers.TryAddWithoutValidation("Application-Version", "0.1.0")
+                        |> ignore
 
-                    bearer
-                    |> Option.iter (fun value ->
-                        request.Headers.Authorization <-
-                            AuthenticationHeaderValue("Bearer", value))
+                        bearer
+                        |> Option.iter (fun value ->
+                            request.Headers.Authorization <-
+                                AuthenticationHeaderValue("Bearer", value))
 
-                    apiKey
-                    |> Option.iter (fun value ->
-                        request.Headers.TryAddWithoutValidation("APIKEY", value) |> ignore)
+                        apiKey
+                        |> Option.iter (fun value ->
+                            request.Headers.TryAddWithoutValidation("APIKEY", value) |> ignore)
 
-                    request.Content <- new ByteArrayContent(MetadataJson.write fields)
-                    request.Content.Headers.ContentType <- MediaTypeHeaderValue("application/json")
-                    use deadline = CancellationTokenSource.CreateLinkedTokenSource token
-                    deadline.CancelAfter(TimeSpan.FromSeconds 30.)
+                        request.Content <- new ByteArrayContent(MetadataJson.write fields)
 
-                    try
-                        use! response = client.SendAsync(request, deadline.Token)
-                        let code = int response.StatusCode
+                        request.Content.Headers.ContentType <-
+                            MediaTypeHeaderValue("application/json")
 
-                        if code = 429 then
-                            let until = retryAfter response
-                            lock scheduling (fun () -> blockedUntil <- max blockedUntil until)
-                            raise (NexusException(NexusProblem.RateLimited until))
+                        use deadline = CancellationTokenSource.CreateLinkedTokenSource token
+                        deadline.CancelAfter(TimeSpan.FromSeconds 30.)
 
-                        if code = 401 then
-                            raise (NexusException rejected)
+                        try
+                            use! response = client.SendAsync(request, deadline.Token)
+                            let code = int response.StatusCode
 
-                        if code = 403 || code = 400 || code = 422 then
-                            raise (NexusException NexusProblem.Forbidden)
-
-                        if code = 404 then
-                            raise (NexusException NexusProblem.NotFound)
-
-                        if code = 405 || code = 501 then
-                            raise (NexusException NexusProblem.InteractionUnavailable)
-
-                        if code <> 200 && code <> 201 then
-                            raise (NexusException NexusProblem.InteractionUnknown)
-
-                        let! bytes = response.Content.ReadAsByteArrayAsync deadline.Token
-                        return JsonDocument.Parse(ReadOnlyMemory bytes)
-                    with
-                    | :? NexusException as error -> return raise error
-                    | _ -> return raise (NexusException NexusProblem.InteractionUnknown)
+                            if code = 429 then
+                                let until = retryAfter response
+                                lock scheduling (fun () -> blockedUntil <- max blockedUntil until)
+                                return Error(NexusProblem.RateLimited until)
+                            elif code = 401 then
+                                return Error rejected
+                            elif code = 403 || code = 400 || code = 422 then
+                                return Error NexusProblem.Forbidden
+                            elif code = 404 then
+                                return Error NexusProblem.NotFound
+                            elif code = 405 || code = 501 then
+                                return Error NexusProblem.InteractionUnavailable
+                            elif code <> 200 && code <> 201 then
+                                return Error NexusProblem.InteractionUnknown
+                            else
+                                let! bytes = response.Content.ReadAsByteArrayAsync deadline.Token
+                                return Ok(JsonDocument.Parse(ReadOnlyMemory bytes))
+                        with _ ->
+                            return Error NexusProblem.InteractionUnknown
                 finally
                     slots.Release() |> ignore
             })

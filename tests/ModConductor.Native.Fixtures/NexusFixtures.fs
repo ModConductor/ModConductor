@@ -466,6 +466,28 @@ module NexusFixtures =
                  && changed.Problem.IsNone
                  && secureServer.ApiKeyRequests >= 3)
 
+            let beforeStaleInteraction, _ = secureSession.StatusWithRevision
+            let writesBeforeStaleInteraction = secureServer.Writes
+
+            let staleInteraction =
+                secureSession.ChangeInteraction(
+                    identity,
+                    interactions.Revision,
+                    NexusInteraction.Track,
+                    "1.4"
+                )
+                |> wait
+
+            let afterStaleInteraction, staleStatus = secureSession.StatusWithRevision
+
+            check
+                "staleInteractionRejectsWithoutWriteAndPreservesConnectionError"
+                (staleInteraction.Problem = Some NexusProblem.InteractionUnknown
+                 && secureServer.Writes = writesBeforeStaleInteraction
+                 && afterStaleInteraction = beforeStaleInteraction + 1L
+                 && staleStatus.Problem = Some NexusProblem.InteractionUnknown
+                 && (secureSession.InteractionState identity).Tracking = Some true)
+
             let beforeRejectedDownloads, _ = secureSession.StatusWithRevision
             let downloadRequests = secureServer.ApiKeyRequests
 
@@ -503,8 +525,7 @@ module NexusFixtures =
                  && wrongAccountStatus.Problem = Some NexusProblem.DownloadAccount
                  && afterMissingLink = afterWrongAccount + 1L
                  && missingLinkStatus.Problem = Some NexusProblem.DownloadLinkNeeded
-                 && (missingLinkStatus.Account
-                     |> Option.exists (fun value -> value.Subject = "42"))
+                 && (missingLinkStatus.Account |> Option.exists (fun value -> value.Subject = "42"))
                  && secureServer.ApiKeyRequests = downloadRequests)
 
             let savedBeforeRejectedCandidate = secureMemory.Bytes

@@ -2,7 +2,6 @@ namespace ModConductor.Nexus
 
 open System
 open System.Security.Cryptography
-open System.Text
 open System.Text.Json
 open System.Threading
 open System.Threading.Tasks
@@ -55,10 +54,6 @@ type NexusSession
             (fun () -> account |> Option.map _.Subject),
             (fun () -> generation, lifetime.IsCancellationRequested)
         )
-
-    let configured () =
-        registration
-        |> Option.defaultWith (fun () -> raise (NexusException NexusProblem.NotConfigured))
 
     let statusUnsafe () =
         { Configured = registration.IsSome
@@ -114,110 +109,128 @@ type NexusSession
             (fun () -> account |> Option.map _.Subject)
         )
 
+    let acceptKey epoch identity key token =
+        lock gate (fun () ->
+            require epoch token
+            account <- Some identity
+            boundSubject <- Some identity.Subject
+            tokens <- None
+            authorization <- Some(NexusAuthorization.PersonalApiKey key)
+            problem <- None
+            changed ())
+
+    let accountCredentials =
+        AccountCredentials(
+            credentials,
+            transport,
+            commit,
+            require,
+            (fun () -> lock gate (fun () -> boundSubject)),
+            (fun () -> lock gate (fun () -> waiting || disconnecting)),
+            acceptKey
+        )
+
     let publish epoch (value: NexusJson.Tokens) expected token =
         task {
-            let config = configured ()
-            use! response = transport.UserInfo(config.UserInfo, value.Access, token)
-            let identity = NexusJson.account response.RootElement
+            match registration with
+            | None -> return Error NexusProblem.NotConfigured
+            | Some config ->
+                let! response = transport.UserInfo(config.UserInfo, value.Access, token)
 
-            if expected |> Option.exists ((<>) identity.Subject) then
-                raise (NexusException NexusProblem.AccountChanged)
+                match response with
+                | Error error -> return Error error
+                | Ok response ->
+                    use response = response
+                    let identity = NexusJson.account response.RootElement
 
-            let packet =
-                NexusJson.writeSaved
-                    { Issuer = config.Issuer.AbsoluteUri
-                      Client = config.ClientId
-                      Subject = identity.Subject
-                      Refresh = value.Refresh }
+                    if expected |> Option.exists ((<>) identity.Subject) then
+                        return Error NexusProblem.AccountChanged
+                    else
+                        let packet =
+                            NexusJson.writeSaved
+                                { Issuer = config.Issuer.AbsoluteUri
+                                  Client = config.ClientId
+                                  Subject = identity.Subject
+                                  Refresh = value.Refresh }
 
-            try
-                do! commit.WaitAsync token
+                        try
+                            do! commit.WaitAsync token
 
-                try
-                    require epoch token
-                    let! saved = credentials.Save(packet, token)
+                            try
+                                require epoch token
+                                let! saved = credentials.Save(packet, token)
 
-                    match saved with
-                    | Error error -> raise (NexusException(NexusProblem.Storage error))
-                    | Ok() ->
-                        lock gate (fun () ->
-                            require epoch token
-                            account <- Some identity
-                            boundSubject <- Some identity.Subject
-                            tokens <- Some value
-                            authorization <- Some(NexusAuthorization.OAuth value.Access)
-                            waiting <- false
-                            problem <- None
-                            changed ())
-                finally
-                    commit.Release() |> ignore
-            finally
-                CryptographicOperations.ZeroMemory packet
+                                match saved with
+                                | Error error -> return Error(NexusProblem.Storage error)
+                                | Ok() ->
+                                    lock gate (fun () ->
+                                        require epoch token
+                                        account <- Some identity
+                                        boundSubject <- Some identity.Subject
+                                        tokens <- Some value
+
+                                        authorization <-
+                                            Some(NexusAuthorization.OAuth value.Access)
+
+                                        waiting <- false
+                                        problem <- None
+                                        changed ())
+
+                                    return Ok()
+                            finally
+                                commit.Release() |> ignore
+                        finally
+                            CryptographicOperations.ZeroMemory packet
         }
+
+    let oauth =
+        OAuthFlow(handoff, transport, publish, (fun () -> lock gate (fun () -> boundSubject)))
 
     let restore epoch token =
         task {
-            let! read = credentials.Read token
+            let! read = accountCredentials.ReadSaved token
 
-            let bytes =
-                match read with
-                | Ok(Some bytes) -> bytes
-                | Ok None -> raise (NexusException NexusProblem.SignInRequired)
-                | Error error -> raise (NexusException(NexusProblem.Storage error))
+            match read with
+            | Error error -> return Error error
+            | Ok(NexusJson.SavedCredential.OAuth saved) ->
+                match registration with
+                | None -> return Error NexusProblem.NotConfigured
+                | Some config ->
 
-            let saved =
-                try
-                    use document = JsonDocument.Parse(ReadOnlyMemory bytes)
-                    NexusJson.saved document.RootElement
-                finally
-                    CryptographicOperations.ZeroMemory bytes
+                    if
+                        saved.Issuer <> config.Issuer.AbsoluteUri || saved.Client <> config.ClientId
+                    then
+                        return Error NexusProblem.SignInRequired
+                    elif
+                        lock gate (fun () -> boundSubject |> Option.exists ((<>) saved.Subject))
+                    then
+                        return Error NexusProblem.AccountChanged
+                    else
+                        lock gate (fun () ->
+                            require epoch token
+                            boundSubject <- Some saved.Subject)
 
-            match saved with
-            | NexusJson.SavedCredential.OAuth saved ->
-                let config = configured ()
+                        let! reply =
+                            transport.Token(
+                                config.Token,
+                                [ "grant_type", "refresh_token"
+                                  "refresh_token", saved.Refresh
+                                  "client_id", config.ClientId ],
+                                token
+                            )
 
-                if saved.Issuer <> config.Issuer.AbsoluteUri || saved.Client <> config.ClientId then
-                    raise (NexusException NexusProblem.SignInRequired)
+                        match reply with
+                        | Error error -> return Error error
+                        | Ok reply ->
+                            use reply = reply
+                            let value = NexusJson.tokens (Some saved.Refresh) reply.RootElement
+                            let! saved = publish epoch value (Some saved.Subject) token
 
-                let existing = lock gate (fun () -> boundSubject)
-
-                if existing |> Option.exists ((<>) saved.Subject) then
-                    raise (NexusException NexusProblem.AccountChanged)
-
-                lock gate (fun () ->
-                    require epoch token
-                    boundSubject <- Some saved.Subject)
-
-                use! reply =
-                    transport.Token(
-                        config.Token,
-                        [ "grant_type", "refresh_token"
-                          "refresh_token", saved.Refresh
-                          "client_id", config.ClientId ],
-                        token
-                    )
-
-                let value = NexusJson.tokens (Some saved.Refresh) reply.RootElement
-                do! publish epoch value (Some saved.Subject) token
-                return NexusAuthorization.OAuth value.Access
-            | NexusJson.SavedCredential.PersonalApiKey(savedSubject, key) ->
-                use! response = transport.ValidatePersonalApiKey(key, token)
-                let identity = NexusJson.apiKeyAccount response.RootElement
-
-                if identity.Subject <> savedSubject then
-                    raise (NexusException NexusProblem.AccountChanged)
-
-                return
-                    lock gate (fun () ->
-                        require epoch token
-                        let value = NexusAuthorization.PersonalApiKey key
-                        account <- Some identity
-                        boundSubject <- Some identity.Subject
-                        tokens <- None
-                        authorization <- Some value
-                        problem <- None
-                        changed ()
-                        value)
+                            return
+                                saved
+                                |> Result.map (fun () -> NexusAuthorization.OAuth value.Access)
+            | Ok(NexusJson.SavedCredential.PersonalApiKey(savedSubject, key)) ->
+                return! accountCredentials.RestoreKey(savedSubject, key, epoch, token)
         }
 
     let access epoch (token: CancellationToken) force =
@@ -233,11 +246,10 @@ type NexusSession
                     ->
                     let current = NexusAuthorization.OAuth value.Access
                     lock gate (fun () -> authorization <- Some current)
-                    return current
+                    return Ok current
                 | _, Some(NexusAuthorization.PersonalApiKey key) when not force ->
-                    return NexusAuthorization.PersonalApiKey key
-                | None, None when not force ->
-                    return raise (NexusException NexusProblem.SignInRequired)
+                    return Ok(NexusAuthorization.PersonalApiKey key)
+                | None, None when not force -> return Error NexusProblem.SignInRequired
                 | _ -> return! restore epoch token
             finally
                 refreshGate.Release() |> ignore
@@ -251,41 +263,18 @@ type NexusSession
             do! lock gate (fun () -> savedConnection)
             let epoch, token = context ()
 
-            let! result =
-                NexusBoundary.protect (fun () ->
-                    task {
-                        if lock gate (fun () -> disconnecting) then
-                            raise (NexusException NexusProblem.SignInRequired)
-
-                        let! value = action epoch token
-                        require epoch token
-                        return value
-                    })
-
-            match result with
-            | Error error -> fail epoch error
-            | Ok _ -> ()
-
-            return result
-        }
-
-    let runExpected action =
-        task {
-            do! lock gate (fun () -> savedConnection)
-            let epoch, token = context ()
-
             let! protectedResult =
                 NexusBoundary.protect (fun () ->
                     task {
                         if lock gate (fun () -> disconnecting) then
-                            raise (NexusException NexusProblem.SignInRequired)
+                            return Error NexusProblem.SignInRequired
+                        else
+                            let! result = action epoch token
 
-                        let! result = action epoch token
+                            if Result.isOk result then
+                                require epoch token
 
-                        if Result.isOk result then
-                            require epoch token
-
-                        return result
+                            return result
                     })
 
             match protectedResult with
@@ -342,106 +331,12 @@ type NexusSession
 
                             let! result =
                                 NexusBoundary.protect (fun () ->
-                                    task {
-                                        let token = expiry.Token
-
-                                        let random () =
-                                            Convert
-                                                .ToBase64String(RandomNumberGenerator.GetBytes 32)
-                                                .TrimEnd('=')
-                                                .Replace('+', '-')
-                                                .Replace('/', '_')
-
-                                        let verifier = random ()
-                                        let state = random ()
-
-                                        let challenge =
-                                            Convert
-                                                .ToBase64String(
-                                                    SHA256.HashData(
-                                                        Encoding.ASCII.GetBytes verifier
-                                                    )
-                                                )
-                                                .TrimEnd('=')
-                                                .Replace('+', '-')
-                                                .Replace('/', '_')
-
-                                        let! listener = handoff.Listen(config, token)
-
-                                        try
-                                            let redirect = listener.Redirect
-
-                                            if
-                                                redirect.Scheme <> "http"
-                                                || redirect.Host <> "127.0.0.1"
-                                                || redirect.AbsolutePath <> config.RedirectPath
-                                                || (config.RedirectPort <> 0
-                                                    && redirect.Port <> config.RedirectPort)
-                                            then
-                                                raise (NexusException NexusProblem.InvalidCallback)
-
-                                            let query =
-                                                [ "response_type", "code"
-                                                  "client_id", config.ClientId
-                                                  "redirect_uri", redirect.AbsoluteUri
-                                                  "scope", String.concat " " config.Scopes
-                                                  "state", state
-                                                  "code_challenge", challenge
-                                                  "code_challenge_method", "S256" ]
-                                                |> List.map (fun (k, v) ->
-                                                    Uri.EscapeDataString k
-                                                    + "="
-                                                    + Uri.EscapeDataString v)
-                                                |> String.concat "&"
-
-                                            let uri = UriBuilder config.Authorize
-                                            uri.Query <- query
-                                            do! handoff.Open(uri.Uri, token)
-                                            let! callback = listener.Wait token
-
-                                            let callback =
-                                                match callback with
-                                                | Ok value -> value
-                                                | Error error -> raise (NexusException error)
-
-                                            if
-                                                callback.State <> state
-                                                || String.IsNullOrWhiteSpace callback.Code
-                                                || (callback.Issuer
-                                                    |> Option.exists (
-                                                        (<>) config.Issuer.AbsoluteUri
-                                                    ))
-                                            then
-                                                raise (NexusException NexusProblem.InvalidCallback)
-
-                                            use! reply =
-                                                transport.Token(
-                                                    config.Token,
-                                                    [ "grant_type", "authorization_code"
-                                                      "code", callback.Code
-                                                      "client_id", config.ClientId
-                                                      "redirect_uri", redirect.AbsoluteUri
-                                                      "code_verifier", verifier ],
-                                                    token
-                                                )
-
-                                            do!
-                                                publish
-                                                    epoch
-                                                    (NexusJson.tokens None reply.RootElement)
-                                                    (lock gate (fun () -> boundSubject))
-                                                    token
-                                        finally
-                                            listener
-                                                .DisposeAsync()
-                                                .AsTask()
-                                                .GetAwaiter()
-                                                .GetResult()
-                                    })
+                                    oauth.Execute(config, epoch, expiry.Token))
 
                             match result with
-                            | Error error -> fail epoch error
-                            | Ok() -> ()
+                            | Error error
+                            | Ok(Error error) -> fail epoch error
+                            | Ok(Ok()) -> ()
                         }
 
                     lock gate (fun () -> signIn <- pending)
@@ -454,58 +349,7 @@ type NexusSession
             let epoch, token = context ()
 
             let! result =
-                NexusBoundary.protect (fun () ->
-                    task {
-                        if String.IsNullOrWhiteSpace key then
-                            raise (NexusException NexusProblem.InvalidApiKey)
-
-                        if lock gate (fun () -> waiting || disconnecting) then
-                            raise (NexusException NexusProblem.SignInRequired)
-
-                        use! response = transport.ValidatePersonalApiKey(key, token)
-                        let identity = NexusJson.apiKeyAccount response.RootElement
-
-                        if
-                            lock gate (fun () ->
-                                boundSubject |> Option.exists ((<>) identity.Subject))
-                        then
-                            raise (NexusException NexusProblem.AccountChanged)
-
-                        let packet = NexusJson.writeSavedApiKey identity.Subject key
-
-                        try
-                            do! commit.WaitAsync token
-
-                            try
-                                require epoch token
-
-                                if
-                                    lock gate (fun () ->
-                                        boundSubject |> Option.exists ((<>) identity.Subject))
-                                then
-                                    raise (NexusException NexusProblem.AccountChanged)
-
-                                let! saved = credentials.Save(packet, token)
-
-                                match saved with
-                                | Error error -> raise (NexusException(NexusProblem.Storage error))
-                                | Ok() ->
-                                    lock gate (fun () ->
-                                        require epoch token
-                                        account <- Some identity
-                                        boundSubject <- Some identity.Subject
-                                        tokens <- None
-
-                                        authorization <-
-                                            Some(NexusAuthorization.PersonalApiKey key)
-
-                                        problem <- None
-                                        changed ())
-                            finally
-                                commit.Release() |> ignore
-                        finally
-                            CryptographicOperations.ZeroMemory packet
-                    })
+                NexusBoundary.protectResult (fun () -> accountCredentials.Submit(key, epoch, token))
 
             match result with
             | Error error ->
@@ -535,8 +379,9 @@ type NexusSession
                     let! result = NexusBoundary.protect (fun () -> access epoch token true)
 
                     match result with
-                    | Error error -> fail epoch error
-                    | Ok _ -> ()
+                    | Error error
+                    | Ok(Error error) -> fail epoch error
+                    | Ok(Ok _) -> ()
             }
 
         lock gate (fun () -> savedConnection <- pending)
@@ -549,32 +394,46 @@ type NexusSession
                     task {
                         let! authorization = access epoch token false
 
-                        use! response =
-                            match authorization with
-                            | NexusAuthorization.OAuth bearer ->
-                                let config = configured ()
-                                transport.UserInfo(config.UserInfo, bearer, token)
-                            | NexusAuthorization.PersonalApiKey key ->
-                                transport.ValidatePersonalApiKey(key, token)
+                        match authorization with
+                        | Error error -> return Error error
+                        | Ok authorization ->
+                            let! response =
+                                match authorization with
+                                | NexusAuthorization.OAuth bearer ->
+                                    match registration with
+                                    | None -> Task.FromResult(Error NexusProblem.NotConfigured)
+                                    | Some config ->
+                                        transport.UserInfo(config.UserInfo, bearer, token)
+                                | NexusAuthorization.PersonalApiKey key ->
+                                    transport.ValidatePersonalApiKey(key, token)
 
-                        let value =
-                            match authorization with
-                            | NexusAuthorization.OAuth _ -> NexusJson.account response.RootElement
-                            | NexusAuthorization.PersonalApiKey _ ->
-                                NexusJson.apiKeyAccount response.RootElement
+                            match response with
+                            | Error error -> return Error error
+                            | Ok response ->
+                                use response = response
 
-                        lock gate (fun () ->
-                            require epoch token
+                                let value =
+                                    match authorization with
+                                    | NexusAuthorization.OAuth _ ->
+                                        NexusJson.account response.RootElement
+                                    | NexusAuthorization.PersonalApiKey _ ->
+                                        NexusJson.apiKeyAccount response.RootElement
 
-                            if
-                                account
-                                |> Option.exists (fun prior -> prior.Subject <> value.Subject)
-                            then
-                                raise (NexusException NexusProblem.AccountChanged)
+                                return
+                                    lock gate (fun () ->
+                                        require epoch token
 
-                            account <- Some value
-                            problem <- None
-                            changed ())
+                                        if
+                                            account
+                                            |> Option.exists (fun prior ->
+                                                prior.Subject <> value.Subject)
+                                        then
+                                            Error NexusProblem.AccountChanged
+                                        else
+                                            account <- Some value
+                                            problem <- None
+                                            changed ()
+                                            Ok())
                     })
 
             return status ()
@@ -644,10 +503,13 @@ type NexusSession
         run (fun epoch token ->
             task {
                 if identity.Game <> "skyrimspecialedition" || identity.Mod <= 0L then
-                    raise (NexusException NexusProblem.NotFound)
+                    return Error NexusProblem.NotFound
+                else
+                    let! bearer = access epoch token false
 
-                let! bearer = access epoch token false
-                return! metadata.ReadMetadata(identity, bearer, token)
+                    match bearer with
+                    | Error error -> return Error error
+                    | Ok bearer -> return! metadata.ReadMetadata(identity, bearer, token)
             })
 
     member this.ReadMod(game: string, modId: int64) =
@@ -684,10 +546,13 @@ type NexusSession
         run (fun epoch token ->
             task {
                 if game <> "skyrimspecialedition" || modId <= 0L || fileId <= 0L then
-                    raise (NexusException NexusProblem.NotFound)
+                    return Error NexusProblem.NotFound
+                else
+                    let! bearer = access epoch token false
 
-                let! bearer = access epoch token false
-                return! metadata.ReadFile(game, modId, fileId, bearer, token)
+                    match bearer with
+                    | Error error -> return Error error
+                    | Ok bearer -> return! metadata.ReadFile(game, modId, fileId, bearer, token)
             })
 
     member _.AcceptNxm(id, input) = nxm.Accept(id, input)
@@ -704,24 +569,27 @@ type NexusSession
     member _.Resolve
         (game: string, modId: int64, fileId: int64, subject: string, ?requiresLink: bool)
         =
-        runExpected (fun epoch token ->
+        run (fun epoch token ->
             task {
                 if game <> "skyrimspecialedition" || modId <= 0L || fileId <= 0L then
                     return Error NexusProblem.NotFound
                 else
                     let! bearer = access epoch token false
 
-                    return!
-                        downloads.Resolve(
-                            epoch,
-                            token,
-                            bearer,
-                            game,
-                            modId,
-                            fileId,
-                            subject,
-                            defaultArg requiresLink false
-                        )
+                    match bearer with
+                    | Error error -> return Error error
+                    | Ok bearer ->
+                        return!
+                            downloads.Resolve(
+                                epoch,
+                                token,
+                                bearer,
+                                game,
+                                modId,
+                                fileId,
+                                subject,
+                                defaultArg requiresLink false
+                            )
             })
 
     member _.RejectLease(game, modId, fileId, subject, url) =

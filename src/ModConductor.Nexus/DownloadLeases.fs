@@ -64,7 +64,7 @@ type internal DownloadLeases
                     match cached with
                     | Some value -> return Ok value
                     | None ->
-                        use! reply =
+                        let! response =
                             transport.Api(
                                 path (game, modId, fileId) permission,
                                 bearer,
@@ -72,25 +72,30 @@ type internal DownloadLeases
                                 token
                             )
 
-                        let first =
-                            reply.RootElement.EnumerateArray()
-                            |> Seq.tryHead
-                            |> Option.defaultWith NexusJson.fail
+                        match response with
+                        | Error error -> return Error error
+                        | Ok reply ->
+                            use reply = reply
 
-                        let url = Uri(NexusJson.text "URI" first, UriKind.Absolute)
+                            let first =
+                                reply.RootElement.EnumerateArray()
+                                |> Seq.tryHead
+                                |> Option.defaultWith NexusJson.fail
 
-                        if url.UserInfo <> "" || url.Fragment <> "" then
-                            NexusJson.fail ()
+                            let url = Uri(NexusJson.text "URI" first, UriKind.Absolute)
 
-                        let lease =
-                            { Url = url
-                              Expires = DateTimeOffset.UtcNow.AddSeconds 60. }
+                            if url.UserInfo <> "" || url.Fragment <> "" then
+                                NexusJson.fail ()
 
-                        lock gate (fun () ->
-                            requireCurrent epoch token
-                            leases[key] <- lease)
+                            let lease =
+                                { Url = url
+                                  Expires = DateTimeOffset.UtcNow.AddSeconds 60. }
 
-                        return Ok lease
+                            lock gate (fun () ->
+                                requireCurrent epoch token
+                                leases[key] <- lease)
+
+                            return Ok lease
         }
 
     member _.Invalidate(key) = leases.Remove key |> ignore

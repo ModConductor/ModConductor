@@ -11,33 +11,53 @@ type internal MetadataReader(transport: NexusTransport) =
         (identity: NexusIdentity, bearer: NexusAuthorization, token: CancellationToken)
         =
         task {
-            use! game = transport.Api("games/" + identity.Game + ".json", bearer, false, token)
+            let! gameResult =
+                transport.Api("games/" + identity.Game + ".json", bearer, false, token)
 
-            let path =
-                "games/"
-                + identity.Game
-                + "/mods/"
-                + identity.Mod.ToString(CultureInfo.InvariantCulture)
+            match gameResult with
+            | Error error -> return Error error
+            | Ok game ->
+                use game = game
 
-            use! modReply = transport.Api(path + ".json", bearer, false, token)
+                let path =
+                    "games/"
+                    + identity.Game
+                    + "/mods/"
+                    + identity.Mod.ToString(CultureInfo.InvariantCulture)
 
-            use! files =
-                if MetadataJson.boolean "available" modReply.RootElement then
-                    transport.Api(path + "/files.json", bearer, false, token)
-                else
-                    Task.FromResult(JsonDocument.Parse("{\"files\":[],\"file_updates\":[]}"))
+                let! modResult = transport.Api(path + ".json", bearer, false, token)
 
-            return
-                MetadataJson.metadata
-                    identity
-                    game.RootElement
-                    modReply.RootElement
-                    files.RootElement
+                match modResult with
+                | Error error -> return Error error
+                | Ok modReply ->
+                    use modReply = modReply
+
+                    let! fileResult =
+                        if MetadataJson.boolean "available" modReply.RootElement then
+                            transport.Api(path + "/files.json", bearer, false, token)
+                        else
+                            Task.FromResult(
+                                Ok(JsonDocument.Parse("{\"files\":[],\"file_updates\":[]}"))
+                            )
+
+                    match fileResult with
+                    | Error error -> return Error error
+                    | Ok files ->
+                        use files = files
+
+                        return
+                            Ok(
+                                MetadataJson.metadata
+                                    identity
+                                    game.RootElement
+                                    modReply.RootElement
+                                    files.RootElement
+                            )
         }
 
     member _.ReadFile(game: string, modId: int64, fileId: int64, bearer, token) =
         task {
-            use! reply =
+            let! result =
                 transport.Api(
                     ("games/"
                      + game
@@ -51,10 +71,14 @@ type internal MetadataReader(transport: NexusTransport) =
                     token
                 )
 
-            let file = NexusJson.file reply.RootElement
+            match result with
+            | Error error -> return Error error
+            | Ok reply ->
+                use reply = reply
+                let file = NexusJson.file reply.RootElement
 
-            if file.Id <> fileId then
-                NexusJson.fail ()
+                if file.Id <> fileId then
+                    NexusJson.fail ()
 
-            return file
+                return Ok file
         }

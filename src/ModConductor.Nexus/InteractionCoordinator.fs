@@ -10,15 +10,95 @@ type internal InteractionCoordinator
         memory: InteractionMemory,
         currentAccount: unit -> Account option,
         requireCurrent: int64 -> CancellationToken -> unit,
-        access: int64 -> CancellationToken -> bool -> Task<NexusAuthorization>,
+        access: int64 -> CancellationToken -> bool -> Task<Result<NexusAuthorization, NexusProblem>>,
         transport: NexusTransport
     ) =
+    let readTracking identity bearer token =
+        NexusBoundary.protectResult (fun () ->
+            task {
+                let! response = transport.Api("user/tracked_mods.json", bearer, false, token)
+
+                match response with
+                | Error error -> return Error error
+                | Ok response ->
+                    use response = response
+                    return Ok(MetadataJson.tracking identity response.RootElement)
+            })
+
+    let readEndorsement identity bearer token =
+        NexusBoundary.protectResult (fun () ->
+            task {
+                let! response = transport.Api("user/endorsements.json", bearer, false, token)
+
+                match response with
+                | Error error -> return Error error
+                | Ok response ->
+                    use response = response
+                    return Ok(MetadataJson.endorsements identity response.RootElement)
+            })
+
+    let beginRefresh epoch token identity =
+        lock gate (fun () ->
+            requireCurrent epoch token
+
+            match currentAccount () with
+            | None -> Error NexusProblem.SignInRequired
+            | Some account -> memory.Begin(account.Subject, identity, None))
+
+    let beginChange epoch token identity expected action =
+        lock gate (fun () ->
+            requireCurrent epoch token
+
+            match currentAccount () with
+            | None -> Error NexusProblem.SignInRequired
+            | Some account ->
+                let value = memory.Get(Some account.Subject, identity)
+
+                if value.Busy then
+                    Error NexusProblem.InteractionBusy
+                elif value.Revision <> expected then
+                    Error NexusProblem.InteractionUnknown
+                else
+                    let already =
+                        match action with
+                        | NexusInteraction.Track -> value.Tracking |> Option.map id
+                        | NexusInteraction.Untrack -> value.Tracking |> Option.map not
+                        | NexusInteraction.Endorse ->
+                            value.Endorsement |> Option.map ((=) NexusEndorsement.Endorsed)
+                        | NexusInteraction.Abstain ->
+                            value.Endorsement |> Option.map ((=) NexusEndorsement.Abstained)
+
+                    match already with
+                    | None -> Error NexusProblem.InteractionUnknown
+                    | Some true -> Ok(value, true)
+                    | Some false ->
+                        memory.Begin(account.Subject, identity, Some expected)
+                        |> Result.map (fun started -> started, false))
+
+    let mutation (identity: NexusIdentity) action version =
+        match action with
+        | NexusInteraction.Track
+        | NexusInteraction.Untrack ->
+            "user/tracked_mods.json",
+            [ "domain_name", Choice1Of2 identity.Game; "mod_id", Choice2Of2 identity.Mod ]
+        | NexusInteraction.Endorse
+        | NexusInteraction.Abstain ->
+            "games/"
+            + identity.Game
+            + "/mods/"
+            + identity.Mod.ToString(Globalization.CultureInfo.InvariantCulture)
+            + (if action = NexusInteraction.Endorse then
+                   "/endorse.json"
+               else
+                   "/abstain.json"),
+            [ "Version", Choice1Of2 version ]
+
     member _.Forget(identity: NexusIdentity) =
         lock gate (fun () -> memory.Forget identity)
 
     member _.State(identity: NexusIdentity) =
         lock gate (fun () ->
-            { memory.Get(currentAccount () |> Option.map (fun value -> value.Subject), identity) with
+            { memory.Get(currentAccount () |> Option.map _.Subject, identity) with
                 AccountName = currentAccount () |> Option.map _.Name })
 
     member this.Refresh(identity: NexusIdentity, run) =
@@ -30,60 +110,24 @@ type internal InteractionCoordinator
                     task {
                         let! bearer = access epoch token false
 
-                        let state =
-                            lock gate (fun () ->
-                                requireCurrent epoch token
+                        match bearer with
+                        | Error error -> return Error error
+                        | Ok bearer ->
+                            match beginRefresh epoch token identity with
+                            | Error error -> return Error error
+                            | Ok state ->
+                                started <- Some state
+                                let! tracked = readTracking identity bearer token
 
-                                let subject =
-                                    currentAccount ()
-                                    |> Option.map (fun value -> value.Subject)
-                                    |> Option.defaultWith (fun () ->
-                                        raise (NexusException NexusProblem.SignInRequired))
+                                if tracked = Error NexusProblem.InvalidApiKey then
+                                    return Error NexusProblem.InvalidApiKey
+                                else
+                                    let! endorsed = readEndorsement identity bearer token
 
-                                memory.Begin(subject, identity, None)
-                                |> Result.defaultWith (fun error -> raise (NexusException error)))
-
-                        started <- Some state
-
-                        let! tracked =
-                            NexusBoundary.protect (fun () ->
-                                task {
-                                    use! reply =
-                                        transport.Api(
-                                            "user/tracked_mods.json",
-                                            bearer,
-                                            false,
-                                            token
-                                        )
-
-                                    return MetadataJson.tracking identity reply.RootElement
-                                })
-
-                        match tracked with
-                        | Error NexusProblem.InvalidApiKey ->
-                            raise (NexusException NexusProblem.InvalidApiKey)
-                        | _ -> ()
-
-                        let! endorsed =
-                            NexusBoundary.protect (fun () ->
-                                task {
-                                    use! reply =
-                                        transport.Api(
-                                            "user/endorsements.json",
-                                            bearer,
-                                            false,
-                                            token
-                                        )
-
-                                    return MetadataJson.endorsements identity reply.RootElement
-                                })
-
-                        match endorsed with
-                        | Error NexusProblem.InvalidApiKey ->
-                            raise (NexusException NexusProblem.InvalidApiKey)
-                        | _ -> ()
-
-                        return tracked, endorsed
+                                    if endorsed = Error NexusProblem.InvalidApiKey then
+                                        return Error NexusProblem.InvalidApiKey
+                                    else
+                                        return Ok(tracked, endorsed)
                     })
 
             lock gate (fun () ->
@@ -121,113 +165,55 @@ type internal InteractionCoordinator
                     task {
                         let! bearer = access epoch token false
 
-                        let state, already =
-                            lock gate (fun () ->
-                                requireCurrent epoch token
+                        match bearer with
+                        | Error error -> return Error error
+                        | Ok bearer ->
+                            match beginChange epoch token identity expected action with
+                            | Error error -> return Error error
+                            | Ok(state, true) -> return Ok(state.Tracking, state.Endorsement)
+                            | Ok(state, false) ->
+                                started <- Some state
+                                let path, fields = mutation identity action version
+                                submitted <- true
 
-                                let subject =
-                                    currentAccount ()
-                                    |> Option.map (fun value -> value.Subject)
-                                    |> Option.defaultWith (fun () ->
-                                        raise (NexusException NexusProblem.SignInRequired))
+                                let! written =
+                                    transport.Mutate(path, bearer, action, fields, token)
 
-                                let value = memory.Get(Some subject, identity)
+                                match written with
+                                | Error error -> return Error error
+                                | Ok response ->
+                                    use response = response
 
-                                if value.Busy then
-                                    raise (NexusException NexusProblem.InteractionBusy)
-
-                                if value.Revision <> expected then
-                                    raise (NexusException NexusProblem.InteractionUnknown)
-
-                                let already =
                                     match action with
-                                    | NexusInteraction.Track -> value.Tracking |> Option.map id
-                                    | NexusInteraction.Untrack -> value.Tracking |> Option.map not
-                                    | NexusInteraction.Endorse ->
-                                        value.Endorsement
-                                        |> Option.map ((=) NexusEndorsement.Endorsed)
+                                    | NexusInteraction.Track
+                                    | NexusInteraction.Untrack ->
+                                        let! tracking = readTracking identity bearer token
+
+                                        match tracking with
+                                        | Error error -> return Error error
+                                        | Ok tracking when
+                                            tracking <> (action = NexusInteraction.Track)
+                                            ->
+                                            return Error NexusProblem.InteractionUnknown
+                                        | Ok tracking ->
+                                            return Ok(Some tracking, state.Endorsement)
+                                    | NexusInteraction.Endorse
                                     | NexusInteraction.Abstain ->
-                                        value.Endorsement
-                                        |> Option.map ((=) NexusEndorsement.Abstained)
+                                        let value =
+                                            MetadataJson.endorsement (
+                                                NexusJson.text "status" response.RootElement
+                                            )
 
-                                if already.IsNone then
-                                    raise (NexusException NexusProblem.InteractionUnknown)
-
-                                if already.Value then
-                                    value, true
-                                else
-                                    memory.Begin(subject, identity, Some expected)
-                                    |> Result.defaultWith (fun error ->
-                                        raise (NexusException error)),
-                                    false)
-
-                        if already then
-                            return state.Tracking, state.Endorsement
-                        else
-                            started <- Some state
-
-                            let tracking =
-                                action = NexusInteraction.Track
-                                || action = NexusInteraction.Untrack
-
-                            let path, fields =
-                                if tracking then
-                                    "user/tracked_mods.json",
-                                    [ "domain_name", Choice1Of2 identity.Game
-                                      "mod_id", Choice2Of2 identity.Mod ]
-                                else
-                                    "games/"
-                                    + identity.Game
-                                    + "/mods/"
-                                    + identity.Mod.ToString(
-                                        Globalization.CultureInfo.InvariantCulture
-                                    )
-                                    + (if action = NexusInteraction.Endorse then
-                                           "/endorse.json"
-                                       else
-                                           "/abstain.json"),
-                                    [ "Version", Choice1Of2 version ]
-
-                            submitted <- true
-
-                            let! written = transport.Mutate(path, bearer, action, fields, token)
-
-                            match written with
-                            | Error error -> return raise (NexusException error)
-                            | Ok response ->
-                                use response = response
-
-                                if tracking then
-                                    use! reply =
-                                        transport.Api(
-                                            "user/tracked_mods.json",
-                                            bearer,
-                                            false,
-                                            token
-                                        )
-
-                                    let value = MetadataJson.tracking identity reply.RootElement
-
-                                    if value <> (action = NexusInteraction.Track) then
-                                        raise (NexusException NexusProblem.InteractionUnknown)
-
-                                    return Some value, state.Endorsement
-                                else
-                                    let value =
-                                        MetadataJson.endorsement (
-                                            NexusJson.text "status" response.RootElement
-                                        )
-
-                                    if
-                                        value
-                                        <> (if action = NexusInteraction.Endorse then
-                                                NexusEndorsement.Endorsed
-                                            else
-                                                NexusEndorsement.Abstained)
-                                    then
-                                        raise (NexusException NexusProblem.InteractionUnknown)
-
-                                    return state.Tracking, Some value
+                                        if
+                                            value
+                                            <> (if action = NexusInteraction.Endorse then
+                                                    NexusEndorsement.Endorsed
+                                                else
+                                                    NexusEndorsement.Abstained)
+                                        then
+                                            return Error NexusProblem.InteractionUnknown
+                                        else
+                                            return Ok(state.Tracking, Some value)
                     })
 
             lock gate (fun () ->
