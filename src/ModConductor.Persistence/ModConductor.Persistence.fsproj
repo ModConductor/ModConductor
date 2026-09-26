@@ -52,6 +52,11 @@
     <Compile Include="OutputRepository.fs" />
     <Compile Include="FilePlanRows.fs" />
     <Compile Include="FnisOutputCleanup.fs" />
+    <Compile Include="FnisRunRows.fs" />
+    <Compile Include="FnisInputInspection.fs" />
+    <Compile Include="FnisExecutionLifecycle.fs" />
+    <Compile Include="FnisOutputPublisher.fs" />
+    <Compile Include="FnisRunClaim.fs" />
     <Compile Include="FnisExecutionStore.fs" />
     <Compile Include="DeploymentRepository.fs" />
     <Compile Include="DeploymentProjection.fs" />
