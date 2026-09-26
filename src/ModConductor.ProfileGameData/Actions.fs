@@ -200,17 +200,19 @@ module internal ProfileDataActions =
                 || value.Kind <> kind
                 || value.ExpectedRevision <> expected
                 ->
-                return raise (ProfileDataException ProfileDataError.Stale)
+                return Error ProfileDataError.Stale
             | Some value when value.Complete ->
                 let! state = read workspace profile
 
                 return
-                    Some
-                        { Id = id
-                          State = state
-                          Complete = true
-                          NoChange = false
-                          CompletedFiles = completedFiles value
-                          Problem = value.Problem }
-            | _ -> return None
+                    Ok(
+                        Some
+                            { Id = id
+                              State = state
+                              Complete = true
+                              NoChange = false
+                              CompletedFiles = completedFiles value
+                              Problem = value.Problem }
+                    )
+            | _ -> return Ok None
         }

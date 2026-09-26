@@ -142,17 +142,18 @@ module internal ProfileDataProjection =
         }
 
     let check (scope: ProfileDataScope) (expected: ProfileDataRef) =
-        scope.Availability
-        |> Option.iter (fun detail ->
-            raise (ProfileDataException(ProfileDataError.Unavailable detail)))
+        match scope.Availability with
+        | Some detail -> Error(ProfileDataError.Unavailable detail)
+        | None ->
+            let id =
+                scope.Context
+                |> Option.map _.Id
+                |> Option.defaultWith (fun () ->
+                    DataLocations.id scope.WorkspaceId (DataLocations.documents scope.Game))
 
-        let id =
-            scope.Context
-            |> Option.map _.Id
-            |> Option.defaultWith (fun () ->
-                DataLocations.id scope.WorkspaceId (DataLocations.documents scope.Game))
+            let revision = scope.Context |> Option.map _.Revision |> Option.defaultValue 0L
 
-        let revision = scope.Context |> Option.map _.Revision |> Option.defaultValue 0L
-
-        if id <> expected.ContextId || revision <> expected.Revision then
-            raise (ProfileDataException ProfileDataError.Stale)
+            if id <> expected.ContextId || revision <> expected.Revision then
+                Error ProfileDataError.Stale
+            else
+                Ok()

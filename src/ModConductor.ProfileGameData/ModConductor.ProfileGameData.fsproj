@@ -31,8 +31,12 @@
     <Compile Include="State.fs" />
     <Compile Include="SessionActionPreparation.fs" />
     <Compile Include="Actions.fs" />
-    <Compile Include="SessionSupport.fs" />
-    <Compile Include="GameOrderSession.fs" />
+    <Compile Include="SessionResult.fs" />
+    <Compile Include="PreviewCache.fs" />
+    <Compile Include="SessionContext.fs" />
+    <Compile Include="SessionRuntime.fs" />
+    <Compile Include="PluginOrderSession.fs" />
+    <Compile Include="ArchivePolicySession.fs" />
     <Compile Include="ConfigurationSession.fs" />
     <Compile Include="SaveSession.fs" />
     <Compile Include="LifecycleSession.fs" />

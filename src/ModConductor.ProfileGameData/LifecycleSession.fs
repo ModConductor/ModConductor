@@ -10,6 +10,7 @@ type internal ProfileDataLifecycleOperations
     let plugins = context.Plugins
     let protect action = runtime.Protect action
     let run workspace action = runtime.Run(workspace, action)
+    let resultTask = ProfileDataResultTask.resultTask
     let requireIds = ProfileDataSessionContext.requireIds
     let read = ProfileDataSessionContext.read context
     let check = ProfileDataProjection.check
@@ -20,10 +21,10 @@ type internal ProfileDataLifecycleOperations
 
     let restore id (expected: ProfileDataRef) token checkpoint =
         run expected.WorkspaceId (fun () ->
-            task {
-                requireIds [ id; expected.WorkspaceId; expected.ProfileId; expected.ContextId ]
+            resultTask {
+                do! requireIds [ id; expected.WorkspaceId; expected.ProfileId; expected.ContextId ]
 
-                let! previous =
+                let! previousResult =
                     replay
                         expected.WorkspaceId
                         expected.ProfileId
@@ -31,11 +32,13 @@ type internal ProfileDataLifecycleOperations
                         ProfileDataActionKind.Restore
                         expected.Revision
 
+                let! previous = previousResult
+
                 match previous with
-                | Some result -> return Ok result
+                | Some result -> return result
                 | None ->
                     let! scope = repository.Read(expected.WorkspaceId, expected.ProfileId)
-                    check scope expected
+                    do! check scope expected
 
                     match
                         scope.Context |> Option.bind _.PluginRoot,
@@ -45,12 +48,11 @@ type internal ProfileDataLifecycleOperations
                         let _, file, _ = PluginInputs.readFile root PluginInputs.fileName token
 
                         if file <> expectedFile then
-                            raise (
-                                ProfileDataException(
+                            return!
+                                Error(
                                     ProfileDataError.Conflict
                                         "The game plugin list changed. Use game order before restoring it."
                                 )
-                            )
                     | _ -> ()
 
                     let! context = DataInitialization.context repository scope
@@ -73,20 +75,20 @@ type internal ProfileDataLifecycleOperations
                             (fun _ -> Task.FromResult())
                         )
 
-                    return Ok result
+                    return result
             })
 
     member _.Revision(workspace, profile) =
         protect (fun () ->
-            task {
-                requireIds [ workspace; profile ]
+            resultTask {
+                do! requireIds [ workspace; profile ]
                 let! exists = repository.HasData workspace
 
                 if not exists then
-                    return Ok 0L
+                    return 0L
                 else
                     let! scope = repository.Read(workspace, profile)
-                    return Ok(scope.Context |> Option.map _.Revision |> Option.defaultValue 0L)
+                    return scope.Context |> Option.map _.Revision |> Option.defaultValue 0L
             })
 
     member _.ApplyForLaunchAtCheckpoint
@@ -100,13 +102,13 @@ type internal ProfileDataLifecycleOperations
             checkpoint
         ) =
         protect (fun () ->
-            task {
-                requireIds [ id; workspace; profile ]
+            resultTask {
+                do! requireIds [ id; workspace; profile ]
                 let! scope = repository.Read(workspace, profile)
                 let revision = scope.Context |> Option.map _.Revision |> Option.defaultValue 0L
 
                 if revision <> expected then
-                    return Error ProfileDataError.Stale
+                    return! Error ProfileDataError.Stale
                 else
                     let! desiredPlugins = PluginOrders.forLaunch plugins scope token
 
@@ -119,7 +121,7 @@ type internal ProfileDataLifecycleOperations
                                 || value.PluginOrder.IsSome))
 
                     if not needed then
-                        return Ok None
+                        return None
                     else
                         let! context = DataInitialization.context repository scope
 
@@ -150,24 +152,23 @@ type internal ProfileDataLifecycleOperations
                             )
 
                         return
-                            Ok(
-                                Some
-                                    { ReceiptId = result.Id
-                                      Revision = expected
-                                      CompletedFiles = result.CompletedFiles
-                                      Complete = result.Complete
-                                      Problem = result.Problem }
-                            )
+                            Some
+                                { ReceiptId = result.Id
+                                  Revision = expected
+                                  CompletedFiles = result.CompletedFiles
+                                  Complete = result.Complete
+                                  Problem = result.Problem }
             })
 
     member _.Edit(request: ProfileDataEdit, progress, token) =
         run request.Expected.WorkspaceId (fun () ->
-            task {
-                requireIds
-                    [ request.Id
-                      request.Expected.WorkspaceId
-                      request.Expected.ProfileId
-                      request.Expected.ContextId ]
+            resultTask {
+                do!
+                    requireIds
+                        [ request.Id
+                          request.Expected.WorkspaceId
+                          request.Expected.ProfileId
+                          request.Expected.ContextId ]
 
                 let kind =
                     ProfileDataActionKind.Edit(
@@ -176,7 +177,7 @@ type internal ProfileDataLifecycleOperations
                         request.DisabledFiles
                     )
 
-                let! previous =
+                let! previousResult =
                     replay
                         request.Expected.WorkspaceId
                         request.Expected.ProfileId
@@ -184,13 +185,15 @@ type internal ProfileDataLifecycleOperations
                         kind
                         request.Expected.Revision
 
+                let! previous = previousResult
+
                 match previous with
-                | Some result -> return Ok result
+                | Some result -> return result
                 | None ->
                     let! scope =
                         repository.Read(request.Expected.WorkspaceId, request.Expected.ProfileId)
 
-                    check scope request.Expected
+                    do! check scope request.Expected
                     let! context = DataInitialization.context repository scope
 
                     let! action =
@@ -208,7 +211,7 @@ type internal ProfileDataLifecycleOperations
                             (fun _ -> Task.FromResult())
                         )
 
-                    return Ok result
+                    return result
             })
 
     member _.RestoreAtCheckpoint(id, expected, token, checkpoint) =
@@ -218,46 +221,44 @@ type internal ProfileDataLifecycleOperations
 
     member _.Resume(workspace, id, token) =
         run workspace (fun () ->
-            task {
-                requireIds [ workspace; id ]
+            resultTask {
+                do! requireIds [ workspace; id ]
                 let! previous = repository.Action(workspace, id)
 
-                let previous =
-                    previous
-                    |> Option.defaultWith (fun () ->
-                        raise (ProfileDataException ProfileDataError.NotFound))
+                let! previous =
+                    match previous with
+                    | Some value -> Ok value
+                    | None -> Error ProfileDataError.NotFound
 
                 match previous.Kind with
                 | ProfileDataActionKind.Clone _
                 | ProfileDataActionKind.Delete _ ->
-                    raise (
-                        ProfileDataException(
+                    return!
+                        Error(
                             ProfileDataError.Invalid
                                 "Continue this action from the profile controls."
                         )
-                    )
                 | _ -> ()
 
                 if previous.Complete then
                     let! state = read workspace previous.ProfileId
 
                     return
-                        Ok
-                            { Id = id
-                              State = state
-                              Complete = true
-                              NoChange = false
-                              CompletedFiles = completedFiles previous
-                              Problem = previous.Problem }
+                        { Id = id
+                          State = state
+                          Complete = true
+                          NoChange = false
+                          CompletedFiles = completedFiles previous
+                          Problem = previous.Problem }
                 else
                     let! scope = repository.Read(workspace, previous.ProfileId)
 
                     ConfigurationFiles.checkResume previous token
 
-                    let context =
-                        scope.Context
-                        |> Option.defaultWith (fun () ->
-                            raise (ProfileDataException ProfileDataError.NotFound))
+                    let! context =
+                        match scope.Context with
+                        | Some value -> Ok value
+                        | None -> Error ProfileDataError.NotFound
 
                     let! desiredPlugins =
                         if
@@ -281,5 +282,5 @@ type internal ProfileDataLifecycleOperations
                             (fun _ -> Task.FromResult())
                         )
 
-                    return Ok result
+                    return result
             })

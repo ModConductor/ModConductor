@@ -31,7 +31,7 @@ type ProfileGameDataSession
         : ProfileDataSessionContext
 
     let protect action = runtime.Protect action
-    let requireIds = ProfileDataSessionContext.requireIds
+    let resultTask = ProfileDataResultTask.resultTask
     let read = ProfileDataSessionContext.read context
 
     let pluginOrders =
@@ -118,10 +118,10 @@ type ProfileGameDataSession
 
         member _.Read(workspace, profile) =
             protect (fun () ->
-                task {
-                    requireIds [ workspace; profile ]
+                resultTask {
+                    do! ProfileDataSessionContext.requireIds [ workspace; profile ]
                     let! state = read workspace profile
-                    return Ok state
+                    return state
                 })
 
         member _.SaveGroups(workspace, profile, source, after) =

@@ -12,6 +12,7 @@ type internal ProfileSaveOperations
     let previews = context.Previews
     let protect action = runtime.Protect action
     let run workspace action = runtime.Run(workspace, action)
+    let resultTask = ProfileDataResultTask.resultTask
     let requireIds = ProfileDataSessionContext.requireIds
     let check = ProfileDataProjection.check
     let initial = ProfileDataActions.initial
@@ -20,47 +21,43 @@ type internal ProfileSaveOperations
 
     member _.SaveFiles(workspace, profile, path, after) =
         protect (fun () ->
-            task {
-                requireIds [ workspace; profile ]
+            resultTask {
+                do! requireIds [ workspace; profile ]
                 let! scope = repository.Read(workspace, profile)
                 let root = scope.Profile |> Option.bind _.Saves
-                return Ok(SaveBrowsing.page root path after)
+                return SaveBrowsing.page root path after
             })
 
     member _.SaveGroups(workspace, profile, source, after) =
         protect (fun () ->
-            task {
-                requireIds [ workspace; profile ]
+            resultTask {
+                do! requireIds [ workspace; profile ]
                 let! scope = repository.Read(workspace, profile)
-                return Ok(SaveGroups.page scope source after)
+                return SaveGroups.page scope source after
             })
 
     member _.InspectSave(workspace, profile, source, name, headers, token) =
         protect (fun () ->
-            task {
-                requireIds ([ workspace; profile ] @ (headers |> Option.toList))
+            resultTask {
+                do! requireIds ([ workspace; profile ] @ (headers |> Option.toList))
 
                 if String.IsNullOrWhiteSpace name then
-                    raise (
-                        ProfileDataException(
-                            ProfileDataError.Invalid "Choose a current save first."
-                        )
-                    )
+                    return! Error(ProfileDataError.Invalid "Choose a current save first.")
 
                 let! scope = repository.Read(workspace, profile)
 
                 let! value = SaveGroups.inspect repository plugins scope source name headers token
 
-                return Ok value
+                return value
             })
 
     member _.PreviewSaveAction(expected: ProfileDataRef, action: ProfileSaveAction, names, token) =
         protect (fun () ->
-            task {
-                requireIds [ expected.WorkspaceId; expected.ProfileId; expected.ContextId ]
+            resultTask {
+                do! requireIds [ expected.WorkspaceId; expected.ProfileId; expected.ContextId ]
 
                 let! scope = repository.Read(expected.WorkspaceId, expected.ProfileId)
-                check scope expected
+                do! check scope expected
                 stopped scope.Game
                 let id = Guid.NewGuid()
 
@@ -77,18 +74,23 @@ type internal ProfileSaveOperations
                       Bytes = files |> List.sumBy _.Bytes }
 
                 previews.RememberSave(preview, receipt)
-                return Ok preview
+                return preview
             })
 
     member _.ApplySaveAction(id, previewId, expected: ProfileDataRef, progress, token) =
         run expected.WorkspaceId (fun () ->
-            task {
-                requireIds
-                    [ id; previewId; expected.WorkspaceId; expected.ProfileId; expected.ContextId ]
+            resultTask {
+                do!
+                    requireIds
+                        [ id
+                          previewId
+                          expected.WorkspaceId
+                          expected.ProfileId
+                          expected.ContextId ]
 
                 let! prior = repository.Action(expected.WorkspaceId, id)
 
-                let receipt =
+                let! receipt =
                     match prior with
                     | Some previous ->
                         match previous.Kind with
@@ -97,23 +99,25 @@ type internal ProfileSaveOperations
                             && previous.ExpectedRevision = expected.Revision
                             && receipt.PreviewId = previewId
                             ->
-                            receipt
-                        | _ -> raise (ProfileDataException ProfileDataError.Stale)
+                            Ok receipt
+                        | _ -> Error ProfileDataError.Stale
                     | None ->
                         match previews.ClaimSave(previewId, expected) with
-                        | Some(_, receipt) -> receipt
-                        | _ -> raise (ProfileDataException ProfileDataError.Stale)
+                        | Some(_, receipt) -> Ok receipt
+                        | _ -> Error ProfileDataError.Stale
 
                 let kind = ProfileDataActionKind.SaveFiles receipt
 
-                let! replayed =
+                let! replayResult =
                     replay expected.WorkspaceId expected.ProfileId id kind expected.Revision
 
+                let! replayed = replayResult
+
                 match replayed with
-                | Some result -> return Ok result
+                | Some result -> return result
                 | None ->
                     let! scope = repository.Read(expected.WorkspaceId, expected.ProfileId)
-                    check scope expected
+                    do! check scope expected
                     stopped scope.Game
                     SaveGroups.checkReceipt scope receipt token
                     let! context = DataInitialization.context repository scope
@@ -133,5 +137,5 @@ type internal ProfileSaveOperations
                             (fun _ -> Task.FromResult())
                         )
 
-                    return Ok result
+                    return result
             })
