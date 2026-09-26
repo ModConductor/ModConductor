@@ -20,65 +20,58 @@ module internal SaveTrees =
 
         let rec walk (current: DataRoot) (parts: string list) =
             if parts.Length > 128 then
-                raise (
-                    ProfileDataException(
-                        ProfileDataError.Unavailable "The save folder exceeds 128 directory levels."
+                Error(ProfileDataError.Unavailable "The save folder exceeds 128 directory levels.")
+            else
+                use held = HeldDirectory.Open(current.Path, current.Identity)
+                use names = held.Names.GetEnumerator()
+                let mutable problem = None
+
+                while problem.IsNone && names.MoveNext() do
+                    match observeEntry held current parts names.Current with
+                    | Ok() -> ()
+                    | Error error -> problem <- Some error
+
+                match problem with
+                | Some error -> Error error
+                | None -> Ok()
+
+        and observeEntry (held: HeldDirectory) (current: DataRoot) parts name =
+            token.ThrowIfCancellationRequested()
+            entries <- entries + 1
+
+            if entries > 1000000 then
+                Error(ProfileDataError.Unavailable "The save folder exceeds one million entries.")
+            else
+                match LogicalPath.create [ name ] with
+                | Error _ -> Error(ProfileDataError.Conflict "A save filename is invalid.")
+                | Ok logical when not (TargetPolicy.problems TargetPolicy.windows logical).IsEmpty ->
+                    Error(
+                        ProfileDataError.Unavailable "A save filename is not supported by the game."
                     )
-                )
+                | Ok _ -> observeKind held current (parts @ [ name ]) name
 
-            use held = HeldDirectory.Open(current.Path, current.Identity)
+        and observeKind (held: HeldDirectory) (current: DataRoot) path name =
+            match held.InspectEntry name with
+            | Some entry when entry.Kind = EntryKind.Directory ->
+                use child = held.Directory(name, Some entry.Identity)
 
-            for name in held.Names do
-                token.ThrowIfCancellationRequested()
-                entries <- entries + 1
+                let location =
+                    { Path =
+                        HostPath.create (Path.Combine(HostPath.value current.Path, name))
+                        |> Result.defaultWith invalidOp
+                      Identity = child.Identity }
+                    : DataRoot
 
-                if entries > 1000000 then
-                    raise (
-                        ProfileDataException(
-                            ProfileDataError.Unavailable
-                                "The save folder exceeds one million entries."
-                        )
-                    )
+                directories.Add(path, location)
+                walk location path
+            | Some entry when entry.Kind = EntryKind.RegularFile ->
+                let file =
+                    DataFiles.observe held name token
+                    |> Option.defaultWith (fun () -> DataFiles.fail (name + " changed."))
 
-                let logical =
-                    LogicalPath.create [ name ]
-                    |> Result.defaultWith (fun _ -> DataFiles.fail "A save filename is invalid.")
-
-                if not (TargetPolicy.problems TargetPolicy.windows logical).IsEmpty then
-                    raise (
-                        ProfileDataException(
-                            ProfileDataError.Unavailable
-                                "A save filename is not supported by the game."
-                        )
-                    )
-
-                let path = parts @ [ name ]
-
-                match held.InspectEntry name with
-                | Some entry when entry.Kind = EntryKind.Directory ->
-                    use child = held.Directory(name, Some entry.Identity)
-
-                    let location =
-                        { Path =
-                            HostPath.create (Path.Combine(HostPath.value current.Path, name))
-                            |> Result.defaultWith invalidOp
-                          Identity = child.Identity }
-                        : DataRoot
-
-                    directories.Add(path, location)
-                    walk location path
-                | Some entry when entry.Kind = EntryKind.RegularFile ->
-                    let file =
-                        DataFiles.observe held name token
-                        |> Option.defaultWith (fun () -> DataFiles.fail (name + " changed."))
-
-                    if file.Length > 64L * 1024L * 1024L * 1024L - bytes then
-                        raise (
-                            ProfileDataException(
-                                ProfileDataError.Unavailable "The save copy exceeds 64 GiB."
-                            )
-                        )
-
+                if file.Length > 64L * 1024L * 1024L * 1024L - bytes then
+                    Error(ProfileDataError.Unavailable "The save copy exceeds 64 GiB.")
+                else
                     bytes <- bytes + file.Length
 
                     files.Add(
@@ -89,20 +82,19 @@ module internal SaveTrees =
                     )
 
                     progress { Files = files.Count; Bytes = bytes }
-                | _ ->
-                    raise (
-                        ProfileDataException(
-                            ProfileDataError.Unavailable
-                                "The save folder contains a link or unsupported entry."
-                        )
-                    )
+                    Ok()
+            | _ ->
+                Error(
+                    ProfileDataError.Unavailable
+                        "The save folder contains a link or unsupported entry."
+                )
 
         walk root []
-
-        { Root = root
-          Directories = List.ofSeq directories
-          Files = List.ofSeq files
-          Bytes = bytes }
+        |> Result.map (fun () ->
+            { Root = root
+              Directories = List.ofSeq directories
+              Files = List.ofSeq files
+              Bytes = bytes })
 
     let copy (tree: SaveTree) (destination: DataRoot) (token: CancellationToken) progress =
         use sourceRoot = HeldDirectory.Open(tree.Root.Path, tree.Root.Identity)

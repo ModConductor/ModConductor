@@ -25,7 +25,7 @@ type internal ProfileSaveOperations
                 do! requireIds [ workspace; profile ]
                 let! scope = repository.Read(workspace, profile)
                 let root = scope.Profile |> Option.bind _.Saves
-                return SaveBrowsing.page root path after
+                return! SaveBrowsing.page root path after
             })
 
     member _.SaveGroups(workspace, profile, source, after) =

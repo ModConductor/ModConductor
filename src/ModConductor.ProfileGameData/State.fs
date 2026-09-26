@@ -8,45 +8,61 @@ open ModConductor.Platform
 module internal ProfileDataProjection =
     let count root =
         match root with
-        | None -> 0
+        | None -> Ok 0
         | Some root ->
             let mutable count = 0
 
             let rec walk (root: DataRoot) depth =
                 if depth > 128 || count > 1000000 then
-                    raise (
-                        ProfileDataException(
-                            ProfileDataError.Unavailable
-                                "The private folder exceeds the supported limits."
-                        )
+                    Error(
+                        ProfileDataError.Unavailable
+                            "The private folder exceeds the supported limits."
                     )
+                else
+                    use held = HeldDirectory.Open(root.Path, root.Identity)
+                    use names = held.Names.GetEnumerator()
+                    let mutable problem = None
 
-                use held = HeldDirectory.Open(root.Path, root.Identity)
+                    while problem.IsNone && names.MoveNext() do
+                        let name = names.Current
 
-                for name in held.Names do
-                    match held.InspectEntry name with
-                    | Some entry when entry.Kind = EntryKind.RegularFile -> count <- count + 1
-                    | Some entry when entry.Kind = EntryKind.Directory ->
-                        use child = held.Directory(name, Some entry.Identity)
+                        match held.InspectEntry name with
+                        | Some entry when entry.Kind = EntryKind.RegularFile ->
+                            count <- count + 1
 
-                        let path =
-                            HostPath.create (Path.Combine(HostPath.value root.Path, name))
-                            |> Result.defaultWith invalidOp
+                            if count > 1000000 then
+                                problem <-
+                                    Some(
+                                        ProfileDataError.Unavailable
+                                            "The private folder exceeds the supported limits."
+                                    )
+                        | Some entry when entry.Kind = EntryKind.Directory ->
+                            use child = held.Directory(name, Some entry.Identity)
 
-                        walk
-                            { Path = path
-                              Identity = child.Identity }
-                            (depth + 1)
-                    | _ ->
-                        raise (
-                            ProfileDataException(
-                                ProfileDataError.Unavailable
-                                    "The private folder contains an unsupported entry."
-                            )
-                        )
+                            let path =
+                                HostPath.create (Path.Combine(HostPath.value root.Path, name))
+                                |> Result.defaultWith invalidOp
 
-            walk root 0
-            count
+                            match
+                                walk
+                                    { Path = path
+                                      Identity = child.Identity }
+                                    (depth + 1)
+                            with
+                            | Ok() -> ()
+                            | Error error -> problem <- Some error
+                        | _ ->
+                            problem <-
+                                Some(
+                                    ProfileDataError.Unavailable
+                                        "The private folder contains an unsupported entry."
+                                )
+
+                    match problem with
+                    | Some error -> Error error
+                    | None -> Ok()
+
+            walk root 0 |> Result.map (fun () -> count)
 
     let view (scope: ProfileDataScope) =
         let profile = scope.Profile
@@ -54,13 +70,13 @@ module internal ProfileDataProjection =
 
         let countKnown root =
             try
-                count root
-            with
-            | :? IOException as error ->
+                match count root with
+                | Ok value -> value
+                | Error error ->
+                    problem <- Some(DataErrors.problemMessage error)
+                    0
+            with :? IOException as error ->
                 problem <- Some error.Message
-                0
-            | ProfileDataException(ProfileDataError.Unavailable detail) ->
-                problem <- Some detail
                 0
 
         let settingsCount = countKnown (profile |> Option.bind _.Settings)

@@ -111,23 +111,26 @@ module internal ProfileDeleteMutation =
         =
         task {
             match action.Deletion with
-            | Some _ -> return action
+            | Some _ -> return Ok action
             | None ->
                 let deletion =
                     match profile.Root with
-                    | None -> ProfileDeletion.prepare [] []
+                    | None -> Ok(ProfileDeletion.prepare [] [])
                     | Some root ->
-                        let tree = SaveTrees.observe root token notify
+                        SaveTrees.observe root token notify
+                        |> Result.map (fun tree ->
+                            ProfileDeletion.prepare
+                                [ tree ]
+                                [ { Parent = context.Storage.Value
+                                    Name = Path.GetFileName(HostPath.value root.Path)
+                                    Identity = root.Identity } ])
 
-                        ProfileDeletion.prepare
-                            [ tree ]
-                            [ { Parent = context.Storage.Value
-                                Name = Path.GetFileName(HostPath.value root.Path)
-                                Identity = root.Identity } ]
-
-                let prepared = { action with Deletion = Some deletion }
-                do! repository.SaveAction prepared
-                return prepared
+                match deletion with
+                | Error error -> return Error error
+                | Ok deletion ->
+                    let prepared = { action with Deletion = Some deletion }
+                    do! repository.SaveAction prepared
+                    return Ok prepared
         }
 
     let private removePrivateProfile
@@ -158,35 +161,42 @@ module internal ProfileDeleteMutation =
                 let! prepared =
                     prepareDeletion repository context profile action request.Token notify
 
-                let! completed =
-                    ProfileDeletion.run prepared repository.SaveAction request.Token notify
+                match prepared with
+                | Error error ->
+                    do! repository.Release action.Id
+                    return Error error
+                | Ok prepared ->
+                    let! completed =
+                        ProfileDeletion.run prepared repository.SaveAction request.Token notify
 
-                do!
-                    database.Enqueue(fun () ->
-                        use transaction = connection.BeginTransaction(deferred = false)
+                    do!
+                        database.Enqueue(fun () ->
+                            use transaction = connection.BeginTransaction(deferred = false)
 
-                        Sqlite.execute
-                            connection
-                            transaction
-                            "DELETE FROM profile_data_profiles WHERE context_id=$context AND profile_id=$profile"
-                            [ "$context", box (string context.Id)
-                              "$profile", box (string target) ]
+                            Sqlite.execute
+                                connection
+                                transaction
+                                "DELETE FROM profile_data_profiles WHERE context_id=$context AND profile_id=$profile"
+                                [ "$context", box (string context.Id)
+                                  "$profile", box (string target) ]
 
-                        ProfileDataRows.saveContext
-                            connection
-                            transaction
-                            { context with
-                                Pending = None
-                                Revision = context.Revision + 1L }
+                            ProfileDataRows.saveContext
+                                connection
+                                transaction
+                                { context with
+                                    Pending = None
+                                    Revision = context.Revision + 1L }
 
-                        ProfileDataRows.saveAction
-                            connection
-                            transaction
-                            database.OwnerId
-                            false
-                            { completed with Complete = true }
+                            ProfileDataRows.saveAction
+                                connection
+                                transaction
+                                database.OwnerId
+                                false
+                                { completed with Complete = true }
 
-                        transaction.Commit())
+                            transaction.Commit())
+
+                    return Ok()
             with error ->
                 do! repository.Release action.Id
                 raise error
@@ -259,18 +269,33 @@ module internal ProfileDeleteMutation =
                 let! ownedContexts, saved =
                     retireGameView services request.Workspace target request.Token
 
-                for record in records do
-                    do! removePrivateProfile services request target record
+                let rec removeRecords =
+                    function
+                    | [] -> System.Threading.Tasks.Task.FromResult(Ok())
+                    | record :: remaining ->
+                        task {
+                            let! removed = removePrivateProfile services request target record
 
-                for generation in saved do
-                    GenerationFiles.removeOwned generation
+                            match removed with
+                            | Error error -> return Error error
+                            | Ok() -> return! removeRecords remaining
+                        }
 
-                let! fnisOutput =
-                    FnisOutputCleanup.removeProfileFiles
-                        services.Database
-                        services.Access
-                        request.Workspace
-                        target
+                let! removed = removeRecords records
 
-                return! commitDeletion services request ownedContexts fnisOutput
+                match removed with
+                | Error error ->
+                    return Error(WorkspaceError.ProfileData(DataErrors.problemMessage error))
+                | Ok() ->
+                    for generation in saved do
+                        GenerationFiles.removeOwned generation
+
+                    let! fnisOutput =
+                        FnisOutputCleanup.removeProfileFiles
+                            services.Database
+                            services.Access
+                            request.Workspace
+                            target
+
+                    return! commitDeletion services request ownedContexts fnisOutput
         }
