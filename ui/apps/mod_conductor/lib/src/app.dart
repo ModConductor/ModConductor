@@ -31,6 +31,11 @@ import 'package:mc_workspaces/mc_workspaces.dart';
 
 part 'shell.dart';
 part 'preferences.dart';
+part 'preferences_labels.dart';
+part 'preferences_display.dart';
+part 'preferences_controls.dart';
+part 'preferences_actions.dart';
+part 'preferences_details.dart';
 part 'status.dart';
 part 'desktop_host.dart';
 part 'help_articles.dart';
