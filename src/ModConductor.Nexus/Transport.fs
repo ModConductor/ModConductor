@@ -324,8 +324,12 @@ type internal NexusTransport(api: Uri, interval: TimeSpan) =
                             else
                                 let! bytes = response.Content.ReadAsByteArrayAsync deadline.Token
                                 return Ok(JsonDocument.Parse(ReadOnlyMemory bytes))
-                        with _ ->
-                            return Error NexusProblem.InteractionUnknown
+                        with
+                        | :? OperationCanceledException when token.IsCancellationRequested ->
+                            return Error NexusProblem.Cancelled
+                        | :? OperationCanceledException when deadline.IsCancellationRequested ->
+                            return Error NexusProblem.TimedOut
+                        | _ -> return Error NexusProblem.InteractionUnknown
                 finally
                     slots.Release() |> ignore
             })
