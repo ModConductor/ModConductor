@@ -7,6 +7,11 @@
     <Compile Include="Checks.fs" />
     <Compile Include="Remediation.fs" />
     <Compile Include="SupportExport.fs" />
+    <Compile Include="Context.fs" />
+    <Compile Include="SessionCache.fs" />
+    <Compile Include="FindingSources.fs" />
+    <Compile Include="DiagnosticCheck.fs" />
+    <Compile Include="RemediationSession.fs" />
     <Compile Include="Session.fs" />
     <ProjectReference Include="../ModConductor.Workspaces/ModConductor.Workspaces.fsproj" />
     <ProjectReference Include="../ModConductor.GameLaunching/ModConductor.GameLaunching.fsproj" />
