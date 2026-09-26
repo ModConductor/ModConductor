@@ -4,6 +4,11 @@
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="Contracts.fs" />
     <Compile Include="Direct.fs" />
+    <Compile Include="ModOrganizerInput.fs" />
+    <Compile Include="ModOrganizerSettings.fs" />
+    <Compile Include="ModOrganizerMods.fs" />
+    <Compile Include="ModOrganizerProfiles.fs" />
+    <Compile Include="ModOrganizerDownloads.fs" />
     <Compile Include="ModOrganizer.fs" />
     <Compile Include="Vortex.fs" />
     <ProjectReference Include="../ModConductor.Platform/ModConductor.Platform.fsproj" />
