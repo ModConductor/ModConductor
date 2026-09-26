@@ -85,24 +85,21 @@ module StorageFixtures =
         connection.Open()
         Sqlite.number connection null sql []
 
-    let observe (writer: Utf8JsonWriter) primary =
-        let directory = Directory.CreateDirectory(Path.Combine(primary, "storage")).FullName
+    let private area directory name =
+        let parent = Directory.CreateDirectory(Path.Combine(directory, name)).FullName
+        let state = Directory.CreateDirectory(Path.Combine(parent, "state")).FullName
+        let root = Directory.CreateDirectory(Path.Combine(parent, "root")).FullName
+        state, root, Guid.NewGuid()
 
-        let area name =
-            let parent = Directory.CreateDirectory(Path.Combine(directory, name)).FullName
-            let state = Directory.CreateDirectory(Path.Combine(parent, "state")).FullName
-            let root = Directory.CreateDirectory(Path.Combine(parent, "root")).FullName
-            state, root, Guid.NewGuid()
+    let private worker mode state root (id: Guid) =
+        new NativeChild(
+            Environment.ProcessPath,
+            [ "--storage-worker"; mode; state; root; id.ToString() ]
+        )
 
-        let worker mode state root (id: Guid) =
-            new NativeChild(
-                Environment.ProcessPath,
-                [ "--storage-worker"; mode; state; root; id.ToString() ]
-            )
-
-        writer.WriteStartObject("storage")
+    let private observeSchema (writer: Utf8JsonWriter) directory =
         writer.WriteStartObject("schema")
-        let state, _, _ = area "schema"
+        let state, _, _ = area directory "schema"
 
         do
             use store = new OperationStore(state)
@@ -137,7 +134,7 @@ module StorageFixtures =
             number state "SELECT count(*) FROM pragma_foreign_key_check"
         )
 
-        let interrupted, _, _ = area "schema-interrupted"
+        let interrupted, _, _ = area directory "schema-interrupted"
         let mutable rolledBack = false
 
         do
@@ -162,7 +159,7 @@ module StorageFixtures =
                 "SELECT count(*) FROM sqlite_master WHERE name NOT LIKE 'sqlite_%'" = 0L
         )
 
-        let unsupported, _, _ = area "schema-unsupported"
+        let unsupported, _, _ = area directory "schema-unsupported"
 
         do
             use connection =
@@ -214,10 +211,10 @@ module StorageFixtures =
             writer.WriteBoolean("restartCurrent", true)
 
         writer.WriteEndObject()
-        PersistenceEncodingFixtures.observe writer
 
+    let private observeLifecycle (writer: Utf8JsonWriter) directory =
         writer.WriteStartObject("lifecycle")
-        let state, root, id = area "lifecycle"
+        let state, root, id = area directory "lifecycle"
         let mutable completed = Unchecked.defaultof<RootCreationReceipt>
 
         do
@@ -263,8 +260,9 @@ module StorageFixtures =
 
         writer.WriteEndObject()
 
+    let private observeRecovery (writer: Utf8JsonWriter) directory =
         for scenario in [ "intent"; "effect"; "observed"; "changed"; "replaced" ] do
-            let state, root, id = area scenario
+            let state, root, id = area directory scenario
 
             use child =
                 worker
@@ -314,6 +312,7 @@ module StorageFixtures =
 
             writer.WriteEndObject()
 
+    let private observeWatchCounts (writer: Utf8JsonWriter) directory =
         do
             let watchState = Directory.CreateDirectory(Path.Combine(directory, "operation-watch-counts")).FullName
             use store = new OperationStore(watchState)
@@ -358,8 +357,9 @@ module StorageFixtures =
             if initial <> idle || changedChanges <> initialChanges + 1 then
                 failwith "Operation watch repeated a read while idle or missed its change."
 
+    let private observeLiveOwners (writer: Utf8JsonWriter) directory =
         for scenario in [ "live"; "slow" ] do
-            let state, root, id = area scenario
+            let state, root, id = area directory scenario
             use child = worker scenario state root id
             let signal = child.Line()
             use store = new OperationStore(state)
@@ -391,7 +391,8 @@ module StorageFixtures =
             receipt writer (roots.Get id |> wait |> Option.get)
             writer.WriteEndObject()
 
-        let state, root, id = area "foreign"
+    let private observeForeignMarker (writer: Utf8JsonWriter) directory =
+        let state, root, id = area directory "foreign"
         let marker = Path.Combine(root, RootIdentityFile.name)
         File.WriteAllText(marker, "foreign")
 
@@ -404,7 +405,8 @@ module StorageFixtures =
             writer.WriteString("contents", File.ReadAllText marker)
             writer.WriteEndObject()
 
-        let state, root, id = area "moved-root"
+    let private observeMovedRoot (writer: Utf8JsonWriter) directory =
+        let state, root, id = area directory "moved-root"
 
         do
             use store = new OperationStore(state)
@@ -429,7 +431,8 @@ module StorageFixtures =
 
             writer.WriteEndObject()
 
-        let state, _, _ = area "operation-events"
+    let private observeOperationEvents (writer: Utf8JsonWriter) directory =
+        let state, _, _ = area directory "operation-events"
 
         do
             use store = new OperationStore(state)
@@ -450,6 +453,18 @@ module StorageFixtures =
             writer.WriteBoolean("commitWakes", Result.isOk begun && feed.Changes.Length = 1)
             writer.WriteEndObject()
 
+    let observe (writer: Utf8JsonWriter) primary =
+        let directory = Directory.CreateDirectory(Path.Combine(primary, "storage")).FullName
+        writer.WriteStartObject("storage")
+        observeSchema writer directory
+        PersistenceEncodingFixtures.observe writer
+        observeLifecycle writer directory
+        observeRecovery writer directory
+        observeWatchCounts writer directory
+        observeLiveOwners writer directory
+        observeForeignMarker writer directory
+        observeMovedRoot writer directory
+        observeOperationEvents writer directory
         writer.WriteEndObject()
 
     let run primary =
