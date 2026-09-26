@@ -48,6 +48,14 @@
     <Compile Include="EnbGrpcService.fs" />
     <Compile Include="FnisRunner.fs" />
     <Compile Include="FnisService.fs" />
+    <Compile Include="SkyrimSetupModel.fs" />
+    <Compile Include="SkyrimSetupRecovery.fs" />
+    <Compile Include="SkyrimSetupViews.fs" />
+    <Compile Include="SkyrimSetupPreview.fs" />
+    <Compile Include="SkyrimSetupComponents.fs" />
+    <Compile Include="SkyrimSetupInspection.fs" />
+    <Compile Include="SkyrimSetupCancellation.fs" />
+    <Compile Include="SkyrimSetupActions.fs" />
     <Compile Include="SkyrimSetupService.fs" />
     <Compile Include="SkyrimSetupGrpcService.fs" />
     <Compile Include="GameLaunchService.fs" />
