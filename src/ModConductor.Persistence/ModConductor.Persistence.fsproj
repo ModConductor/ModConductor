@@ -113,6 +113,10 @@
     <Compile Include="MigrationStore.fs" />
     <Compile Include="EnbConfigurationWorkflow.fs" />
     <Compile Include="EnbComponentInstaller.fs" />
+    <Compile Include="EnbPreparation.fs" />
+    <Compile Include="EnbInstallDeployment.fs" />
+    <Compile Include="EnbInstallation.fs" />
+    <Compile Include="EnbRemoval.fs" />
     <Compile Include="EnbWorkflow.fs" />
     <Compile Include="SkseComponentInstaller.fs" />
     <Compile Include="SkseWorkflow.fs" />
