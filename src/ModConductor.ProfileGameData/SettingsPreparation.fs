@@ -6,10 +6,6 @@ open ModConductor.Platform
 open ModConductor.GameContexts
 
 module internal SettingsPreparation =
-    let private readStored (file: StoredDataFile) token =
-        use root = HeldDirectory.Open(file.Root.Path, file.Root.Identity)
-        DataFiles.readIni root file.Name (Some file.File) token
-
     let private settingsRoot (profile: PrivateProfileData) =
         profile.Settings
         |> Option.defaultWith (fun () ->
@@ -18,32 +14,6 @@ module internal SettingsPreparation =
                     ProfileDataError.Unavailable "The profile settings folder is not initialized."
                 )
             ))
-
-    let globalSettings (context: ProfileDataContext) token =
-        use documents =
-            HeldDirectory.Open(context.Documents.Path, context.Documents.Identity)
-
-        let originals = context.Applied |> Option.map _.Originals |> Option.defaultValue []
-
-        DataLocations.iniNames documents
-        |> List.map (fun (declared, actual) ->
-            let bytes =
-                match
-                    originals
-                    |> List.tryFind (fun value ->
-                        value.Name.Equals(actual, StringComparison.OrdinalIgnoreCase))
-                with
-                | Some original when context.Applied.Value.Options.Settings ->
-                    original.Original |> Option.bind (fun file -> readStored file token)
-                | _ ->
-                    let observed = DataFiles.observe documents actual token
-                    let current = DataFiles.readIni documents actual observed token
-
-                    match context.Applied |> Option.bind _.SaveOverride, current with
-                    | Some patch, Some bytes when declared = "Skyrim.ini" -> Ini.remove patch bytes
-                    | _ -> current
-
-            declared, bytes)
 
     let prepare
         (context: ProfileDataContext)
@@ -121,7 +91,7 @@ module internal SettingsPreparation =
             let originalBytes =
                 previousOriginal
                 |> Option.bind _.Original
-                |> Option.bind (fun value -> readStored value token)
+                |> Option.bind (fun value -> SettingsSource.readStored value token)
 
             let globalBytes =
                 if old |> Option.exists (fun value -> value.Options.Settings) then

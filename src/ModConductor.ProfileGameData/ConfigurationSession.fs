@@ -61,7 +61,7 @@ type internal ProfileConfigurationOperations
                         request.Content
                     |> Result.mapError ProfileDataError.Invalid
 
-                ConfigurationFiles.check scope preview token
+                do! ConfigurationFiles.check scope preview token
 
                 if bytes = preview.Bytes then
                     return! Error(ProfileDataError.Invalid "The file has no changes to save.")
@@ -89,7 +89,7 @@ type internal ProfileConfigurationOperations
 
                 let! scope = repository.Read(expected.WorkspaceId, expected.ProfileId)
                 do! check scope expected
-                return ConfigurationFiles.list scope token
+                return! ConfigurationFiles.list scope token
             })
 
     member _.ReadConfiguration(expected: ProfileDataRef, name, token) =
@@ -102,7 +102,7 @@ type internal ProfileConfigurationOperations
 
                 let! scope = repository.Read(expected.WorkspaceId, expected.ProfileId)
                 do! check scope expected
-                let preview = ConfigurationFiles.read scope expected name token
+                let! preview = ConfigurationFiles.read scope expected name token
                 previews.RememberConfiguration preview
                 return preview.Public
             })
@@ -139,7 +139,7 @@ type internal ProfileConfigurationOperations
                     do! check scope request.Expected
 
                     prior
-                    |> Option.iter (fun action -> ConfigurationFiles.checkResume action token)
+                    |> Option.iter (fun action -> ConfigurationRecovery.checkResume action token)
 
                     let! context =
                         match scope.Context with
@@ -206,7 +206,7 @@ type internal ProfileConfigurationOperations
                 let! claimed = repository.Claim(context, action)
 
                 try
-                    ConfigurationFiles.restoreOriginal claimed token
+                    ConfigurationRecovery.restoreOriginal claimed token
                     do! repository.Complete(context, None, claimed)
                 with error ->
                     do! repository.Release claimed.Id

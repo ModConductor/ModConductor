@@ -136,7 +136,7 @@ module internal PluginInputs =
             | _ ->
                 match context with
                 | Some context ->
-                    SettingsPreparation.globalSettings context token
+                    SettingsSource.globalSettings context token
                     |> List.tryFind (fun (name, _) -> name = "Skyrim.ini")
                     |> Option.bind snd
                     |> Option.defaultValue [||]

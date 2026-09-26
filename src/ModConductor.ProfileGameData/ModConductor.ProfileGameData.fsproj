@@ -14,6 +14,7 @@
     <Compile Include="Trees.fs" />
     <Compile Include="Effects.fs" />
     <Compile Include="Deletion.fs" />
+    <Compile Include="SettingsSource.fs" />
     <Compile Include="SettingsPreparation.fs" />
     <Compile Include="Repository.fs" />
     <Compile Include="PluginInputs.fs" />
@@ -29,6 +30,8 @@
     <Compile Include="ArchivePolicies.fs" />
     <Compile Include="ActionPreparation.fs" />
     <Compile Include="ConfigurationFiles.fs" />
+    <Compile Include="ConfigurationPreparation.fs" />
+    <Compile Include="ConfigurationRecovery.fs" />
     <Compile Include="SavePreparation.fs" />
     <Compile Include="ArchivePreparation.fs" />
     <Compile Include="Cloning.fs" />

@@ -254,7 +254,7 @@ type internal ProfileDataLifecycleOperations
                 else
                     let! scope = repository.Read(workspace, previous.ProfileId)
 
-                    ConfigurationFiles.checkResume previous token
+                    ConfigurationRecovery.checkResume previous token
 
                     let! context =
                         match scope.Context with

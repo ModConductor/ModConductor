@@ -705,7 +705,7 @@ module TextEditFixtures =
         with :? OperationCanceledException ->
             ()
 
-        ConfigurationFiles.restoreOriginal action token
+        ConfigurationRecovery.restoreOriginal action token
 
         writer.WriteBoolean(
             "interruptedProfileEditRestoresExactOriginal",
@@ -763,7 +763,7 @@ module TextEditFixtures =
 
         let deletionRefused =
             try
-                ConfigurationFiles.restoreOriginal deletedAction token
+                ConfigurationRecovery.restoreOriginal deletedAction token
                 false
             with ProfileDataException(ProfileDataError.Conflict _) ->
                 true

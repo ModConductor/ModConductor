@@ -13,6 +13,20 @@ module internal ProfileDataResultFlow =
         member _.Run(next) = next ()
         member _.Combine(value, next) = Result.bind (fun () -> next ()) value
 
+        member _.TryFinally(body, cleanup) =
+            try
+                body ()
+            finally
+                cleanup ()
+
+        member this.Using(resource: #IDisposable, body) =
+            this.TryFinally(
+                (fun () -> body resource),
+                fun () ->
+                    if not (isNull (box resource)) then
+                        resource.Dispose()
+            )
+
     let result = Builder()
 
     let traverse map items =

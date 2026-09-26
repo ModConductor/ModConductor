@@ -94,7 +94,7 @@ module internal ProfileDataActionPreparation =
         | ProfileDataActionKind.EditConfiguration receipt ->
             task {
                 let! prepared =
-                    ConfigurationFiles.prepare
+                    ConfigurationPreparation.prepare
                         repository
                         context
                         action
