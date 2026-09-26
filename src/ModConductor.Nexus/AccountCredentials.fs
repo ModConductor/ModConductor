@@ -27,7 +27,7 @@ type internal AccountCredentials
             | Ok(Some bytes) ->
                 try
                     use document = JsonDocument.Parse(ReadOnlyMemory bytes)
-                    return Ok(NexusJson.saved document.RootElement)
+                    return Ok(CredentialJson.saved document.RootElement)
                 finally
                     CryptographicOperations.ZeroMemory bytes
         }
@@ -67,7 +67,7 @@ type internal AccountCredentials
                     if boundSubject () |> Option.exists ((<>) identity.Subject) then
                         return Error NexusProblem.AccountChanged
                     else
-                        let packet = NexusJson.writeSavedApiKey identity.Subject key
+                        let packet = CredentialJson.writeSavedApiKey identity.Subject key
 
                         try
                             do! commit.WaitAsync token

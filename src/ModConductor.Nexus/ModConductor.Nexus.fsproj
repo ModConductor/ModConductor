@@ -2,10 +2,15 @@
   <PropertyGroup><IsAotCompatible>true</IsAotCompatible></PropertyGroup>
   <ItemGroup>
     <Compile Include="Contracts.fs" />
+    <Compile Include="Registration.fs" />
     <Compile Include="Metadata.fs" />
+    <Compile Include="Updates.fs" />
     <Compile Include="Nxm.fs" />
+    <Compile Include="NxmAuthorizations.fs" />
     <Compile Include="Json.fs" />
+    <Compile Include="CredentialJson.fs" />
     <Compile Include="MetadataJson.fs" />
+    <Compile Include="InteractionJson.fs" />
     <Compile Include="Interactions.fs" />
     <Compile Include="Transport.fs" />
     <Compile Include="DownloadLeases.fs" />

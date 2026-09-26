@@ -1,7 +1,6 @@
 namespace ModConductor.Nexus
 
 open System
-open System.IO
 open System.Text.Json
 
 module internal NexusJson =
@@ -44,6 +43,12 @@ module internal NexusJson =
                 | true, n -> Some n
                 | _ -> None)
 
+    let array limit (value: JsonElement) =
+        if value.ValueKind <> JsonValueKind.Array || value.GetArrayLength() > limit then
+            fail ()
+
+        value.EnumerateArray() |> Seq.toList
+
     let private profileImage name value =
         optionalText name value
         |> Option.bind (fun text ->
@@ -57,23 +62,14 @@ module internal NexusJson =
                 && uri.IsDefaultPort
                 && (uri.Host.Equals("nexusmods.com", StringComparison.OrdinalIgnoreCase)
                     || uri.Host.EndsWith(".nexusmods.com", StringComparison.OrdinalIgnoreCase))
-                -> Some uri
+                ->
+                Some uri
             | _ -> None)
 
     type Tokens =
         { Access: string
           Refresh: string
           Expires: DateTimeOffset }
-
-    type Saved =
-        { Issuer: string
-          Client: string
-          Subject: string
-          Refresh: string }
-
-    type SavedCredential =
-        | OAuth of Saved
-        | PersonalApiKey of subject: string * key: string
 
     let tokens fallback value =
         if
@@ -149,49 +145,6 @@ module internal NexusJson =
           Name = name
           Premium = Some premium
           ProfileImage = profileImage "profile_url" value }
-
-    let saved value =
-        match number "version" value with
-        | 1L ->
-            OAuth
-                { Issuer = text "issuer" value
-                  Client = text "client" value
-                  Subject = text "subject" value
-                  Refresh = text "refresh" value }
-        | 2L when text "kind" value = "personal_api_key" ->
-            let subject = text "subject" value
-            let key = text "key" value
-
-            if String.IsNullOrWhiteSpace subject || String.IsNullOrWhiteSpace key then
-                fail ()
-
-            PersonalApiKey(subject, key)
-        | _ -> fail ()
-
-    let writeSaved (value: Saved) =
-        use stream = new MemoryStream()
-        use writer = new Utf8JsonWriter(stream)
-        writer.WriteStartObject()
-        writer.WriteNumber("version", 1)
-        writer.WriteString("issuer", value.Issuer)
-        writer.WriteString("client", value.Client)
-        writer.WriteString("subject", value.Subject)
-        writer.WriteString("refresh", value.Refresh)
-        writer.WriteEndObject()
-        writer.Flush()
-        stream.ToArray()
-
-    let writeSavedApiKey (subject: string) (key: string) =
-        use stream = new MemoryStream()
-        use writer = new Utf8JsonWriter(stream)
-        writer.WriteStartObject()
-        writer.WriteNumber("version", 2)
-        writer.WriteString("kind", "personal_api_key")
-        writer.WriteString("subject", subject)
-        writer.WriteString("key", key)
-        writer.WriteEndObject()
-        writer.Flush()
-        stream.ToArray()
 
     let file value =
         { Id = number "file_id" value

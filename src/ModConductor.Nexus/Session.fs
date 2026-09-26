@@ -147,7 +147,7 @@ type NexusSession
                         return Error NexusProblem.AccountChanged
                     else
                         let packet =
-                            NexusJson.writeSaved
+                            CredentialJson.writeSaved
                                 { Issuer = config.Issuer.AbsoluteUri
                                   Client = config.ClientId
                                   Subject = identity.Subject
@@ -192,7 +192,7 @@ type NexusSession
 
             match read with
             | Error error -> return Error error
-            | Ok(NexusJson.SavedCredential.OAuth saved) ->
+            | Ok(CredentialJson.SavedCredential.OAuth saved) ->
                 match registration with
                 | None -> return Error NexusProblem.NotConfigured
                 | Some config ->
@@ -229,7 +229,7 @@ type NexusSession
                             return
                                 saved
                                 |> Result.map (fun () -> NexusAuthorization.OAuth value.Access)
-            | Ok(NexusJson.SavedCredential.PersonalApiKey(savedSubject, key)) ->
+            | Ok(CredentialJson.SavedCredential.PersonalApiKey(savedSubject, key)) ->
                 return! accountCredentials.RestoreKey(savedSubject, key, epoch, token)
         }
 

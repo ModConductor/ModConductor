@@ -295,7 +295,7 @@ type internal NexusTransport(api: Uri, interval: TimeSpan) =
                         |> Option.iter (fun value ->
                             request.Headers.TryAddWithoutValidation("APIKEY", value) |> ignore)
 
-                        request.Content <- new ByteArrayContent(MetadataJson.write fields)
+                        request.Content <- new ByteArrayContent(InteractionJson.write fields)
 
                         request.Content.Headers.ContentType <-
                             MediaTypeHeaderValue("application/json")

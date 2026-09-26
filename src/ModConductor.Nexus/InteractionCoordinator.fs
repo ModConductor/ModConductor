@@ -22,7 +22,7 @@ type internal InteractionCoordinator
                 | Error error -> return Error error
                 | Ok response ->
                     use response = response
-                    return Ok(MetadataJson.tracking identity response.RootElement)
+                    return Ok(InteractionJson.tracking identity response.RootElement)
             })
 
     let readEndorsement identity bearer token =
@@ -34,7 +34,7 @@ type internal InteractionCoordinator
                 | Error error -> return Error error
                 | Ok response ->
                     use response = response
-                    return Ok(MetadataJson.endorsements identity response.RootElement)
+                    return Ok(InteractionJson.endorsements identity response.RootElement)
             })
 
     let beginRefresh epoch token identity =
@@ -200,7 +200,7 @@ type internal InteractionCoordinator
                                     | NexusInteraction.Endorse
                                     | NexusInteraction.Abstain ->
                                         let value =
-                                            MetadataJson.endorsement (
+                                            InteractionJson.endorsement (
                                                 NexusJson.text "status" response.RootElement
                                             )
 
