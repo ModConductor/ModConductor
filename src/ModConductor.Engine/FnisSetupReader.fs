@@ -17,14 +17,7 @@ type internal FnisSetupReader
         persist: Guid -> Guid -> FnisView -> Task<FnisView>,
         unavailable: Guid -> Guid -> FnisProblem -> Task<FnisView>,
         failed:
-            Guid
-                -> Guid
-                -> string
-                -> int64 option
-                -> Guid option
-                -> string
-                -> string
-                -> Task<FnisView>,
+            Guid * Guid * string * int64 option * Guid option * string * string -> Task<FnisView>,
         prepareArtifact:
             (Guid * Guid) -> StoredFnisSelection -> Artifact -> string -> Task<FnisView>,
         isActive: (Guid * Guid) -> bool
@@ -140,14 +133,15 @@ type internal FnisSetupReader
                 return! prepareArtifact (workspace, profile) selection artifact "Resuming FNIS"
             | _ ->
                 return!
-                    failed
-                        workspace
-                        profile
-                        saved.ComponentVersion
-                        saved.NexusFileId
-                        saved.ArtifactId
-                        "FNIS setup could not resume"
+                    failed (
+                        workspace,
+                        profile,
+                        saved.ComponentVersion,
+                        saved.NexusFileId,
+                        saved.ArtifactId,
+                        "FNIS setup could not resume",
                         "The durable FNIS artifact is unavailable. The active setup was not changed."
+                    )
         }
 
     let savedState workspace profile generation =

@@ -83,7 +83,7 @@ type internal FnisStatusStore(store: OperationStore) =
               FileId = None
               ArtifactId = None }
 
-    member this.Failed workspace profile version file artifact title detail =
+    member this.Failed(workspace, profile, version, file, artifact, title, detail) =
         this.Persist
             workspace
             profile

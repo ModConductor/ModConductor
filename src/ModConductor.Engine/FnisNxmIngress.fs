@@ -16,27 +16,21 @@ module internal FnisNxmIngress =
     let private failPending
         (store: OperationStore)
         (failed:
-            Guid
-                -> Guid
-                -> string
-                -> int64 option
-                -> Guid option
-                -> string
-                -> string
-                -> Task<FnisView>)
+            Guid * Guid * string * int64 option * Guid option * string * string -> Task<FnisView>)
         (rejection: NxmRejection)
         =
         task {
             for selection in rejection.Selections do
                 let! _ =
-                    failed
-                        selection.WorkspaceId
-                        selection.ProfileId.Value
-                        (string selection.Selection.Release.ComponentVersion)
-                        (Some selection.Selection.Release.File.Id)
-                        None
-                        rejection.Title
+                    failed (
+                        selection.WorkspaceId,
+                        selection.ProfileId.Value,
+                        string selection.Selection.Release.ComponentVersion,
+                        Some selection.Selection.Release.File.Id,
+                        None,
+                        rejection.Title,
                         rejection.Detail
+                    )
 
                 do! store.FnisSetups.RemovePending selection.ProfileId.Value
         }
@@ -168,14 +162,7 @@ module internal FnisNxmIngress =
         (store: OperationStore)
         (sources: FnisSources)
         (failed:
-            Guid
-                -> Guid
-                -> string
-                -> int64 option
-                -> Guid option
-                -> string
-                -> string
-                -> Task<FnisView>)
+            Guid * Guid * string * int64 option * Guid option * string * string -> Task<FnisView>)
         (prepareArtifact:
             (Guid * Guid) -> StoredFnisSelection -> Artifact -> string -> Task<FnisView>)
         (id: Guid)

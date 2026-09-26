@@ -78,14 +78,15 @@ type FnisCoordinator
                           ArtifactId = None }
             with error ->
                 return!
-                    status.Failed
-                        workspace
-                        profile
-                        (string release.ComponentVersion)
-                        (Some release.File.Id)
-                        None
-                        "Nexus Mods could not be opened"
+                    status.Failed(
+                        workspace,
+                        profile,
+                        string release.ComponentVersion,
+                        Some release.File.Id,
+                        None,
+                        "Nexus Mods could not be opened",
                         error.Message
+                    )
         }
 
     let startDirect workspace profile (selection: StoredFnisSelection) =
@@ -103,14 +104,15 @@ type FnisCoordinator
             match lease with
             | Error problem ->
                 return!
-                    status.Failed
-                        workspace
-                        profile
-                        (string release.ComponentVersion)
-                        (Some release.File.Id)
-                        None
-                        "FNIS source unavailable"
-                        (NexusProblem.message problem)
+                    status.Failed(
+                        workspace,
+                        profile,
+                        string release.ComponentVersion,
+                        Some release.File.Id,
+                        None,
+                        "FNIS source unavailable",
+                        NexusProblem.message problem
+                    )
             | Ok _ ->
                 let! started =
                     downloads.Start
@@ -124,14 +126,15 @@ type FnisCoordinator
                 match started with
                 | Error problem ->
                     return!
-                        status.Failed
-                            workspace
-                            profile
-                            (string release.ComponentVersion)
-                            (Some release.File.Id)
-                            None
-                            "FNIS download could not start"
-                            (string problem)
+                        status.Failed(
+                            workspace,
+                            profile,
+                            string release.ComponentVersion,
+                            Some release.File.Id,
+                            None,
+                            "FNIS download could not start",
+                            string problem
+                        )
                 | Ok artifact ->
                     return!
                         monitor.PrepareArtifact(
@@ -199,14 +202,15 @@ type FnisCoordinator
             | Ok _ -> return! restoredState workspace profile
             | Error problem ->
                 return!
-                    status.Failed
-                        workspace
-                        profile
-                        FnisCatalogue.SupportedVersion
-                        None
-                        None
-                        "FNIS recovery failed"
-                        (string problem)
+                    status.Failed(
+                        workspace,
+                        profile,
+                        FnisCatalogue.SupportedVersion,
+                        None,
+                        None,
+                        "FNIS recovery failed",
+                        string problem
+                    )
         }
 
     let recover workspace profile token =
@@ -222,14 +226,15 @@ type FnisCoordinator
                 | Ok receipt -> return! recoverReceipt workspace profile receipt token
                 | Error problem ->
                     return!
-                        status.Failed
-                            workspace
-                            profile
-                            FnisCatalogue.SupportedVersion
-                            None
-                            None
-                            "FNIS recovery is unavailable"
-                            (string problem)
+                        status.Failed(
+                            workspace,
+                            profile,
+                            FnisCatalogue.SupportedVersion,
+                            None,
+                            None,
+                            "FNIS recovery is unavailable",
+                            string problem
+                        )
             | _ -> return! reader.Read(workspace, profile)
         }
 
