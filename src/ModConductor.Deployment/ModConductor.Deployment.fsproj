@@ -9,6 +9,7 @@
     <Compile Include="PhysicalTargets.fs" />
     <Compile Include="Reports.fs" />
     <Compile Include="LaunchDeployment.fs" />
+    <Compile Include="BackendState.fs" />
     <Compile Include="Backend.fs" />
     <ProjectReference Include="../ModConductor.DeploymentGenerations/ModConductor.DeploymentGenerations.fsproj" />
     <ProjectReference Include="../ModConductor.ProtonContexts/ModConductor.ProtonContexts.fsproj" />

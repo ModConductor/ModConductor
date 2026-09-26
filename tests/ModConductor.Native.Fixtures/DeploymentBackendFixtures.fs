@@ -197,6 +197,29 @@ module DeploymentBackendFixtures =
             && File.ReadAllText original = "original game bytes"
             && File.ReadAllText replacementOriginal = "replacement game bytes"
 
+        let admission = DeploymentBackendState()
+        let first, second, third = Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid()
+        let initiallyDrained = admission.Drain().IsCompleted
+        let firstLease = admission.TryAcquireWorkspace first |> Option.get
+        let secondLease = admission.TryAcquireWorkspace second |> Option.get
+        let pending = admission.Drain()
+        let rejectsOverlap =
+            admission.TryAcquireWorkspace first |> Option.isNone
+            && admission.TryAcquireWorkspace third |> Option.isNone
+            && not (admission.TryClose(fun () -> true))
+
+        firstLease.Dispose()
+        firstLease.Dispose()
+        let stillActive = not pending.IsCompleted
+        secondLease.Dispose()
+        let backendLeaseDrainsBeforeClose =
+            initiallyDrained
+            && rejectsOverlap
+            && stillActive
+            && pending.IsCompleted
+            && admission.TryClose(fun () -> true)
+            && (admission.TryAcquireWorkspace third |> Option.isNone)
+
         writer.WriteStartObject("deploymentBackend")
         writer.WriteBoolean("cancelledPreparationNoReceipt", cancelledSafe)
         writer.WriteBoolean("stalePreparationNoEffects", staleSafe)
@@ -207,4 +230,5 @@ module DeploymentBackendFixtures =
         writer.WriteBoolean("retiredLinkTreeReclaimed", not (Directory.Exists originalTree))
         writer.WriteBoolean("retainedGenerationReactivated", retainedReactivated)
         writer.WriteBoolean("sourceChangeRetiresPriorView", sourceChangeRetiresPriorView)
+        writer.WriteBoolean("backendLeaseDrainsBeforeClose", backendLeaseDrainsBeforeClose)
         writer.WriteEndObject()

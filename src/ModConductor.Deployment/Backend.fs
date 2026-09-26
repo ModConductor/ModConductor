@@ -2,56 +2,13 @@ namespace ModConductor.Deployment
 
 open System
 open System.IO
-open System.Collections.Generic
 open System.Threading
 open System.Threading.Tasks
 open ModConductor.FilePlanning
 open ModConductor.DeploymentRecovery
 
 type DeploymentBackend internal (repository: IDeploymentRepository) =
-    let gate = obj ()
-    let active = HashSet<Guid>()
-    let prepared = Dictionary<Guid, PreparedState>()
-    let order = Queue<Guid>()
-    let mutable closed = false
-
-    let abandon value = PreparedState.abandon value
-
-    let cache id value =
-        lock gate (fun () ->
-            match prepared.TryGetValue id with
-            | true, previous ->
-                prepared.Remove id |> ignore
-                abandon previous
-            | _ -> ()
-
-            while prepared.Count >= 2 do
-                let candidate = order.Dequeue()
-
-                match prepared.TryGetValue candidate with
-                | true, evicted ->
-                    prepared.Remove candidate |> ignore
-                    abandon evicted
-                | _ -> ()
-
-            prepared[id] <- value
-            order.Enqueue id)
-
-    let take id =
-        lock gate (fun () ->
-            match prepared.TryGetValue id with
-            | true, value ->
-                prepared.Remove id |> ignore
-                Some value
-            | _ -> None)
-
-    let mutable drained =
-        new System.Threading.Tasks.TaskCompletionSource<unit>(
-            System.Threading.Tasks.TaskCreationOptions.RunContinuationsAsynchronously
-        )
-
-    do drained.SetResult()
-
+    let state = DeploymentBackendState()
 
     let protect action =
         task {
@@ -65,35 +22,15 @@ type DeploymentBackend internal (repository: IDeploymentRepository) =
                 return Error(DeploymentError.Unavailable "Deployment storage cannot be accessed.")
         }
 
-    let enter workspace =
-        lock gate (fun () ->
-            if closed || active.Count >= 2 || active.Contains workspace then
-                false
-            else
-                if active.Count = 0 then
-                    drained <-
-                        new System.Threading.Tasks.TaskCompletionSource<unit>(
-                            System.Threading.Tasks.TaskCreationOptions.RunContinuationsAsynchronously
-                        )
-
-                active.Add workspace)
-
-    let leave workspace =
-        lock gate (fun () ->
-            active.Remove workspace |> ignore
-
-            if active.Count = 0 then
-                drained.TrySetResult() |> ignore)
-
     let run workspace action =
         task {
-            if not (enter workspace) then
+            if not (state.Enter workspace) then
                 return Error DeploymentError.Busy
             else
                 try
                     return! protect action
                 finally
-                    leave workspace
+                    state.Leave workspace
         }
 
     let execute (receipt: Receipt) restoring progress token =
@@ -128,53 +65,15 @@ type DeploymentBackend internal (repository: IDeploymentRepository) =
                 |> Result.mapError DeploymentReports.error
         }
 
-    member _.Drain() = lock gate (fun () -> drained.Task)
+    member _.Drain() = state.Drain()
 
-    member internal _.TryClose(next: unit -> bool) =
-        let abandoned =
-            lock gate (fun () ->
-                if active.Count <> 0 || not (next ()) then
-                    None
-                else
-                    closed <- true
-                    let values = prepared.Values |> Seq.toList
-                    prepared.Clear()
-                    order.Clear()
-                    Some values)
+    member internal _.TryClose(next: unit -> bool) = state.TryClose next
 
-        match abandoned with
-        | None -> false
-        | Some values ->
-            let mutable failure = None
-
-            for value in values do
-                try
-                    abandon value
-                with error ->
-                    if failure.IsNone then
-                        failure <- Some error
-
-            match failure with
-            | Some error -> raise error
-            | None -> true
-
-    member internal _.TryAcquireWorkspace(workspace) =
-        if not (enter workspace) then
-            None
-        else
-            let mutable released = false
-
-            Some
-                { new IDisposable with
-                    member _.Dispose() =
-                        lock gate (fun () ->
-                            if not released then
-                                released <- true
-                                leave workspace) }
+    member internal _.TryAcquireWorkspace(workspace) = state.TryAcquireWorkspace workspace
 
     member _.PrepareForLaunch(id, expected: SourceStamp, progress, token) =
         task {
-            if not (enter expected.WorkspaceId) then
+            if not (state.Enter expected.WorkspaceId) then
                 return Error DeploymentError.Busy
             else
                 let mutable retained = false
@@ -182,26 +81,25 @@ type DeploymentBackend internal (repository: IDeploymentRepository) =
                 try
                     let! result =
                         protect (fun () ->
-                            LaunchDeployment.prepare repository execute id expected None progress token)
+                            LaunchDeployment.prepare
+                                repository
+                                execute
+                                id
+                                expected
+                                None
+                                progress
+                                token)
 
                     match result with
                     | Error error -> return Error error
                     | Ok(prepared, receipt) ->
-                        let mutable released = false
-
-                        let lease =
-                            { new IDisposable with
-                                member _.Dispose() =
-                                    lock gate (fun () ->
-                                        if not released then
-                                            released <- true
-                                            leave expected.WorkspaceId) }
+                        let lease = state.Lease expected.WorkspaceId
 
                         retained <- true
                         return Ok(prepared, receipt, lease)
                 finally
                     if not retained then
-                        leave expected.WorkspaceId
+                        state.Leave expected.WorkspaceId
         }
 
     interface IDeploymentBackend with
@@ -209,6 +107,7 @@ type DeploymentBackend internal (repository: IDeploymentRepository) =
             protect (fun () ->
                 task {
                     let! sources, context = repository.Read profile
+
                     let! runnableRoot =
                         repository.RunnableRoot(sources.Stamp.WorkspaceId, sources.Stamp.ProfileId)
 
@@ -264,12 +163,12 @@ type DeploymentBackend internal (repository: IDeploymentRepository) =
                             if not current then
                                 return Error DeploymentError.Stale
                             else
-                                cache id value
+                                state.Cache(id, value)
                                 retained <- true
                                 return Ok value.View
                         finally
                             if not retained then
-                                abandon value
+                                state.Abandon value
                 })
 
         member _.PrepareRetained(id, expected, generation, progress, token) =
@@ -309,19 +208,26 @@ type DeploymentBackend internal (repository: IDeploymentRepository) =
                                     if not current then
                                         return Error DeploymentError.Stale
                                     else
-                                        cache id value
+                                        state.Cache(id, value)
                                         retained <- true
                                         return Ok value.View
                                 finally
                                     if not retained then
-                                        abandon value
+                                        state.Abandon value
                 })
 
         member _.RefreshFnis(id, expected, candidate, progress, token) =
             run expected.WorkspaceId (fun () ->
                 task {
                     let! refreshed =
-                        LaunchDeployment.prepare repository execute id expected (Some candidate) progress token
+                        LaunchDeployment.prepare
+                            repository
+                            execute
+                            id
+                            expected
+                            (Some candidate)
+                            progress
+                            token
 
                     return refreshed |> Result.map (fun (_, receipt) -> receipt)
                 })
@@ -329,7 +235,7 @@ type DeploymentBackend internal (repository: IDeploymentRepository) =
         member _.Activate(id, expected, progress, token) =
             run expected.WorkspaceId (fun () ->
                 task {
-                    let value = take id
+                    let value = state.Take id
 
                     match value with
                     | None -> return Error DeploymentError.NotFound
@@ -357,7 +263,7 @@ type DeploymentBackend internal (repository: IDeploymentRepository) =
                                         return! execute receipt false progress token
                         finally
                             if not durable then
-                                abandon value
+                                state.Abandon value
                 })
 
         member _.Recover(id, revision, restore, progress, token) =
