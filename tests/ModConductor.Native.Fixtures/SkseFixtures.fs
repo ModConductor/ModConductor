@@ -23,9 +23,74 @@ open ModConductor.Platform
 open ModConductor.Skse
 open ModConductor.Workspaces
 
+type private SkseScenario =
+    { Area: string
+      WorkspacePath: string
+      Workspace: Guid
+      Profile: Guid
+      Game: string
+      Proton: ProtonSelection
+      Store: OperationStore
+      State: GameContextState
+      Evidence: InstallationEvidence
+      Runtime: string }
+
+type private ReleaseEvidence =
+    { Premium: SkseSelection
+      Regular: SkseSelection
+      Manifest: ArchiveManifest
+      ExactRuntimeWins: bool
+      NewerIncompatibleRejected: bool
+      LabelWithoutRuntimeRejected: bool
+      PublicSteamVersionMatches: bool
+      OtherStorefrontsRemainIncompatible: bool
+      OrdinaryNexusRoutes: bool
+      ReviewedArchiveLayout: bool }
+
+type private InstalledEvidence =
+    { FirstGeneration: Guid
+      FirstStored: StoredSkseLoader option
+      FirstEnabled: ModQueryPage
+      LoaderPath: string
+      GenerationBoundLoader: bool
+      ProtonUsesLoader: bool
+      TransferArchiveInstallGeneration: bool
+      OrdinaryRedeployRetainsComponentRouteAndLaunch: bool }
+
+type private UpdatedEvidence =
+    { Release: SkseRelease
+      Artifact: Artifact
+      Generation: Guid
+      Stored: StoredSkseLoader option
+      FailedReplacementPreservesSelectionGenerationAndLoader: bool
+      UpdatedLoaderCorrect: bool
+      RetainedFirstCorrect: bool }
+
+type private DurableEvidence =
+    { RestartedGenerationBound: bool
+      ColdRestartRetainsCacheAndLoaderProvenance: bool
+      NxmWaitingAndFailureAreDurable: bool }
+
+type private ReuseEvidence =
+    { SameSkseSourceReusesImportedVersionAfterRemoval: bool
+      SecondProfileUsesAvailableSkseVersion: bool
+      DifferentSkseReleaseStaysDistinct: bool
+      DeletingOldSkseModRemovesOnlyItsLoaderHistory: bool
+      NewSkseReleaseImportsAfterDeletingOlderMod: bool }
+
 module SkseFixtures =
     let private wait = StorageWorker.wait
     let private result = StorageWorker.result
+
+    let private required label (value: Result<'a, DeploymentError>) =
+        match value with
+        | Ok value -> value
+        | Error(DeploymentError.Blocked detail)
+        | Error(DeploymentError.Unavailable detail) -> failwith (label + ": " + detail)
+        | Error DeploymentError.NotFound -> failwith (label + ": not found")
+        | Error DeploymentError.Busy -> failwith (label + ": busy")
+        | Error DeploymentError.Stale -> failwith (label + ": stale")
+        | Error DeploymentError.Cancelled -> failwith (label + ": cancelled")
 
     let private archiveEntry index (value: string) =
         { Index = index
@@ -94,83 +159,9 @@ module SkseFixtures =
 
         artifact
 
-    let observe (writer: Utf8JsonWriter) primary =
-        let required label (value: Result<'a, DeploymentError>) =
-            match value with
-            | Ok value -> value
-            | Error(DeploymentError.Blocked detail)
-            | Error(DeploymentError.Unavailable detail) -> failwith (label + ": " + detail)
-            | Error DeploymentError.NotFound -> failwith (label + ": not found")
-            | Error DeploymentError.Busy -> failwith (label + ": busy")
-            | Error DeploymentError.Stale -> failwith (label + ": stale")
-            | Error DeploymentError.Cancelled -> failwith (label + ": cancelled")
-
-        let area = Directory.CreateDirectory(Path.Combine(primary, "skse")).FullName
-
-        let workspacePath =
-            Directory.CreateDirectory(Path.Combine(area, "workspace")).FullName
-
-        let game, proton = ProtonFixtures.create (Path.Combine(area, "installation"))
-
-        if OperatingSystem.IsLinux() then
-            let launcher = Path.Combine(proton.RuntimeDirectory, "proton")
-            File.WriteAllText(launcher, "#!/bin/sh\nexit 0\n")
-
-            File.SetUnixFileMode(
-                launcher,
-                UnixFileMode.UserRead ||| UnixFileMode.UserWrite ||| UnixFileMode.UserExecute
-            )
-
-            File.WriteAllText(
-                Path.Combine(proton.RuntimeDirectory, "toolmanifest.vdf"),
-                "manifest { version 2 commandline \"/proton %verb%\" }"
-            )
-
-        let workspace, profile = Guid.NewGuid(), Guid.NewGuid()
-
-        let mutable interruptReplacement = false
-
-        use store =
-            new OperationStore(
-                Path.Combine(area, "state"),
-                skseCheckpoint =
-                    (fun name _ ->
-                        if interruptReplacement && name = "install-intent" then
-                            raise (OperationCanceledException()))
-            )
-
-        let workspaces = store.Workspaces :> IWorkspaceState
-
-        let created =
-            workspaces.Create(workspace, "SKSE", StorageWorker.select workspacePath)
-            |> wait
-            |> result
-
-        workspaces.Edit(
-            workspace,
-            created.Workspace.Revision,
-            ProfileEdit.Create { Id = profile; Name = "SKSE" }
-        )
-        |> wait
-        |> result
-        |> ignore
-
-        (store.GameContexts :> IGameContexts)
-            .Save(
-                workspace,
-                profile,
-                0L,
-                { GameId = GameId.SkyrimSpecialEditionSteam
-                  Path = game
-                  Proton = if OperatingSystem.IsLinux() then Some proton else None }
-            )
-        |> wait
-        |> result
-        |> ignore
-
-        let state = (store.GameContexts :> IGameContexts).Read(workspace, profile) |> wait |> result
-        let evidence = state.Binding.Value.Evidence
-        let runtime = evidence.Executable.Value.FileVersion
+    let private resolveReleases (scenario: SkseScenario) : ReleaseEvidence =
+        let state = scenario.State
+        let runtime = scenario.Runtime
 
         let modInfo =
             { Game = "skyrimspecialedition"
@@ -289,6 +280,37 @@ module SkseFixtures =
                 { manifest with
                     Entries = manifest.Entries |> List.filter (fun entry -> entry.Index <> 3) }
             |> Result.isError
+
+        { Premium = premium
+          Regular = regular
+          Manifest = manifest
+          ExactRuntimeWins = premium.Release.File.Id = 11L
+          NewerIncompatibleRejected = premium.Release.File.Id <> 12L
+          LabelWithoutRuntimeRejected = releases.Length = 3
+          PublicSteamVersionMatches = publicSteamMatches
+          OtherStorefrontsRemainIncompatible = incompatibleVersionsRejected
+          OrdinaryNexusRoutes =
+            premium.Acquisition = SkseAcquisition.Direct
+            && regular.Acquisition = SkseAcquisition.NexusPage
+          ReviewedArchiveLayout =
+            plan.Files.Length = 4
+            && plan.ComponentFiles.Length = 4
+            && (currentReleaseLayout
+                |> Option.exists (fun current ->
+                    current.Files.Length = 3 && current.ComponentFiles.Length = 3))
+            && invalidLayout }
+
+    let private installInitialRelease (scenario: SkseScenario) (releases: ReleaseEvidence) : InstalledEvidence =
+        let store = scenario.Store
+        let workspace = scenario.Workspace
+        let profile = scenario.Profile
+        let game = scenario.Game
+        let workspacePath = scenario.WorkspacePath
+        let state = scenario.State
+        let evidence = scenario.Evidence
+        let runtime = scenario.Runtime
+        let premium = releases.Premium
+        let manifest = releases.Manifest
 
         let loaderPath = Path.Combine(game, "skse64_loader.exe")
         File.WriteAllText(loaderPath, "fixture loader")
@@ -425,6 +447,45 @@ module SkseFixtures =
 
         let firstEnabled = InventoryObservations.read store profile
 
+        let runnableRoot =
+            Path.Combine(workspacePath, ".mc-game-views", profile.ToString("N"), "game")
+
+        let runnableLoader = Path.Combine(runnableRoot, "skse64_loader.exe")
+
+        { FirstGeneration = firstGeneration
+          FirstStored = firstStored
+          FirstEnabled = firstEnabled
+          LoaderPath = loaderPath
+          GenerationBoundLoader = selection.IsSome && wrongGeneration.IsNone && stale
+          ProtonUsesLoader =
+            if OperatingSystem.IsLinux() then
+                descriptor.Arguments |> List.tryLast = Some runnableLoader
+                && descriptor.WorkingDirectory = runnableRoot
+                && runtimeName = evidence.Proton.Value.RuntimeName
+            else
+                descriptor.Executable = runnableLoader && descriptor.WorkingDirectory = runnableRoot
+          TransferArchiveInstallGeneration =
+            genericDraft.Installer = InstallationMode.Bain
+            && (firstArtifact.Download |> Option.exists (fun value -> value.ChecksumMatched))
+            && deployedFirst.ActiveGeneration = Some firstGeneration
+            && (firstStored |> Option.exists (fun value -> value.Loader.Executable = loaderPath))
+          OrdinaryRedeployRetainsComponentRouteAndLaunch =
+            genericComponentContinuity && genericLaunch }
+
+    let private replaceInterruptedRelease
+        (scenario: SkseScenario)
+        (releases: ReleaseEvidence)
+        (installed: InstalledEvidence)
+        setInterruptReplacement
+        : UpdatedEvidence =
+        let store = scenario.Store
+        let workspace = scenario.Workspace
+        let profile = scenario.Profile
+        let runtime = scenario.Runtime
+        let premium = releases.Premium
+        let firstGeneration = installed.FirstGeneration
+        let firstEnabled = installed.FirstEnabled
+
         let updateRelease =
             { premium.Release with
                 File = nexusFile 14L "matching update" "2.3.0" ("Current game version " + runtime + " from Steam")
@@ -433,7 +494,7 @@ module SkseFixtures =
         let updateArtifact =
             downloaded store workspace "skse-update.zip" (createArchive runtime "update")
 
-        interruptReplacement <- true
+        setInterruptReplacement true
 
         let interruptedReplacement =
             try
@@ -471,7 +532,7 @@ module SkseFixtures =
 
         let recoveredReplacement = afterInterrupted.PendingReceipt.IsNone
 
-        interruptReplacement <- false
+        setInterruptReplacement false
 
         let updatedGeneration =
             store.InstallSkse(
@@ -490,6 +551,36 @@ module SkseFixtures =
 
         let retainedFirst =
             store.SkseLoaders.ReadStored(workspace, profile, Some firstGeneration) |> wait
+
+        { Release = updateRelease
+          Artifact = updateArtifact
+          Generation = updatedGeneration
+          Stored = updatedStored
+          FailedReplacementPreservesSelectionGenerationAndLoader =
+            interruptedReplacement
+            && recoveredReplacement
+            && afterInterrupted.ActiveGeneration = Some firstGeneration
+            && (afterInterruptedLoader
+                |> Option.exists (fun value -> value.Loader.GenerationId = firstGeneration))
+            && enabled firstEnabled = enabled afterInterruptedSelection
+          UpdatedLoaderCorrect =
+            updatedStored
+            |> Option.exists (fun value -> value.Loader.ComponentVersion = "2.3.0")
+          RetainedFirstCorrect =
+            retainedFirst
+            |> Option.exists (fun value ->
+                value.Loader.ComponentVersion = string premium.Release.ComponentVersion) }
+
+    let private removeInstalledRelease
+        (scenario: SkseScenario)
+        (installed: InstalledEvidence)
+        (updated: UpdatedEvidence)
+        : bool =
+        let store = scenario.Store
+        let workspace = scenario.Workspace
+        let profile = scenario.Profile
+        let loaderPath = installed.LoaderPath
+        let updatedStored = updated.Stored
 
         let selectedAfterUpdate = InventoryObservations.read store profile
         let updatedMod = updatedStored.Value.ModId
@@ -543,6 +634,24 @@ module SkseFixtures =
             |> wait
 
         let foreignLoaderRestored = File.ReadAllText(loaderPath) = "fixture loader"
+
+        removedLoader.IsNone && foreignLoaderRestored
+
+    let private persistedLoaderAndStatus
+        (scenario: SkseScenario)
+        (releases: ReleaseEvidence)
+        (installed: InstalledEvidence)
+        (updated: UpdatedEvidence)
+        : DurableEvidence =
+        let store = scenario.Store
+        let area = scenario.Area
+        let workspace = scenario.Workspace
+        let profile = scenario.Profile
+        let evidence = scenario.Evidence
+        let runtime = scenario.Runtime
+        let regular = releases.Regular
+        let firstGeneration = installed.FirstGeneration
+        let updatedGeneration = updated.Generation
 
         let cachedBeforeRestart =
             store.SkseLoaders.Cached(workspace, "42", evidence.Executable.Value.Sha256)
@@ -617,6 +726,29 @@ module SkseFixtures =
             |> Option.exists (fun value ->
                 value.Phase = "failed"
                 && value.Status = "This link belongs to another Nexus account")
+
+        { RestartedGenerationBound = restartedGenerationBound
+          ColdRestartRetainsCacheAndLoaderProvenance =
+            cachedBeforeRestart.IsSome && restartedGenerationBound && coldCached
+          NxmWaitingAndFailureAreDurable = durableWaiting && durableFailure }
+
+    let private reuseAndDeleteReleases
+        (scenario: SkseScenario)
+        (installed: InstalledEvidence)
+        (updated: UpdatedEvidence)
+        : ReuseEvidence =
+        let store = scenario.Store
+        let workspaces = store.Workspaces :> IWorkspaceState
+        let workspace = scenario.Workspace
+        let profile = scenario.Profile
+        let game = scenario.Game
+        let proton = scenario.Proton
+        let runtime = scenario.Runtime
+        let firstStored = installed.FirstStored
+        let firstGeneration = installed.FirstGeneration
+        let updateRelease = updated.Release
+        let updateArtifact = updated.Artifact
+        let updatedStored = updated.Stored
 
         let otherProfile = Guid.NewGuid()
         let workspaceRevision =
@@ -762,101 +894,175 @@ module SkseFixtures =
             |> Option.exists (fun value ->
                 value.ModId <> firstMod && value.ModId <> imported.ModId)
 
-        writer.WriteStartObject("skse")
-        writer.WriteBoolean("exactRuntimeWins", premium.Release.File.Id = 11L)
-        writer.WriteBoolean("newerIncompatibleRejected", premium.Release.File.Id <> 12L)
-        writer.WriteBoolean("labelWithoutRuntimeRejected", releases.Length = 3)
+        { SameSkseSourceReusesImportedVersionAfterRemoval = sameReleaseReused
+          SecondProfileUsesAvailableSkseVersion = otherFirstInstall
+          DifferentSkseReleaseStaysDistinct = firstMod <> imported.ModId
+          DeletingOldSkseModRemovesOnlyItsLoaderHistory = deletedSkseReferences
+          NewSkseReleaseImportsAfterDeletingOlderMod = importAfterDeletion }
 
-        writer.WriteBoolean("publicSteamVersionMatchesPeVersion", publicSteamMatches)
+    let observe (writer: Utf8JsonWriter) primary =
+        let area = Directory.CreateDirectory(Path.Combine(primary, "skse")).FullName
+
+        let workspacePath =
+            Directory.CreateDirectory(Path.Combine(area, "workspace")).FullName
+
+        let game, proton = ProtonFixtures.create (Path.Combine(area, "installation"))
+
+        if OperatingSystem.IsLinux() then
+            let launcher = Path.Combine(proton.RuntimeDirectory, "proton")
+            File.WriteAllText(launcher, "#!/bin/sh\nexit 0\n")
+
+            File.SetUnixFileMode(
+                launcher,
+                UnixFileMode.UserRead ||| UnixFileMode.UserWrite ||| UnixFileMode.UserExecute
+            )
+
+            File.WriteAllText(
+                Path.Combine(proton.RuntimeDirectory, "toolmanifest.vdf"),
+                "manifest { version 2 commandline \"/proton %verb%\" }"
+            )
+
+        let workspace, profile = Guid.NewGuid(), Guid.NewGuid()
+
+        let mutable interruptReplacement = false
+
+        use store =
+            new OperationStore(
+                Path.Combine(area, "state"),
+                skseCheckpoint =
+                    (fun name _ ->
+                        if interruptReplacement && name = "install-intent" then
+                            raise (OperationCanceledException()))
+            )
+
+        let workspaces = store.Workspaces :> IWorkspaceState
+
+        let created =
+            workspaces.Create(workspace, "SKSE", StorageWorker.select workspacePath)
+            |> wait
+            |> result
+
+        workspaces.Edit(
+            workspace,
+            created.Workspace.Revision,
+            ProfileEdit.Create { Id = profile; Name = "SKSE" }
+        )
+        |> wait
+        |> result
+        |> ignore
+
+        (store.GameContexts :> IGameContexts)
+            .Save(
+                workspace,
+                profile,
+                0L,
+                { GameId = GameId.SkyrimSpecialEditionSteam
+                  Path = game
+                  Proton = if OperatingSystem.IsLinux() then Some proton else None }
+            )
+        |> wait
+        |> result
+        |> ignore
+
+        let state = (store.GameContexts :> IGameContexts).Read(workspace, profile) |> wait |> result
+        let evidence = state.Binding.Value.Evidence
+        let runtime = evidence.Executable.Value.FileVersion
+
+        let scenario =
+            { Area = area
+              WorkspacePath = workspacePath
+              Workspace = workspace
+              Profile = profile
+              Game = game
+              Proton = proton
+              Store = store
+              State = state
+              Evidence = evidence
+              Runtime = runtime }
+
+        let releases = resolveReleases scenario
+
+        let installed = installInitialRelease scenario releases
+
+        let updated =
+            replaceInterruptedRelease scenario releases installed (fun value -> interruptReplacement <- value)
+
+        let removed = removeInstalledRelease scenario installed updated
+
+        let durable = persistedLoaderAndStatus scenario releases installed updated
+
+        let reused = reuseAndDeleteReleases scenario installed updated
+
+        writer.WriteStartObject("skse")
+        writer.WriteBoolean("exactRuntimeWins", releases.ExactRuntimeWins)
+        writer.WriteBoolean("newerIncompatibleRejected", releases.NewerIncompatibleRejected)
+        writer.WriteBoolean("labelWithoutRuntimeRejected", releases.LabelWithoutRuntimeRejected)
+        writer.WriteBoolean("publicSteamVersionMatchesPeVersion", releases.PublicSteamVersionMatches)
 
         writer.WriteBoolean(
             "otherStorefrontsMissingDeclarationsAndRevisionsRemainIncompatible",
-            incompatibleVersionsRejected
+            releases.OtherStorefrontsRemainIncompatible
         )
+
+        writer.WriteBoolean("ordinaryNexusRoutes", releases.OrdinaryNexusRoutes)
+        writer.WriteBoolean("reviewedArchiveLayout", releases.ReviewedArchiveLayout)
+        writer.WriteBoolean("generationBoundLoader", installed.GenerationBoundLoader)
+        writer.WriteBoolean("protonUsesLoader", installed.ProtonUsesLoader)
+        writer.WriteBoolean("transferArchiveInstallGeneration", installed.TransferArchiveInstallGeneration)
 
         writer.WriteBoolean(
-            "ordinaryNexusRoutes",
-            premium.Acquisition = SkseAcquisition.Direct
-            && regular.Acquisition = SkseAcquisition.NexusPage
+            "ordinaryRedeployRetainsComponentRouteAndLaunch",
+            installed.OrdinaryRedeployRetainsComponentRouteAndLaunch
         )
-
-        writer.WriteBoolean(
-            "reviewedArchiveLayout",
-            plan.Files.Length = 4
-            && plan.ComponentFiles.Length = 4
-            && (currentReleaseLayout
-                |> Option.exists (fun current ->
-                    current.Files.Length = 3 && current.ComponentFiles.Length = 3))
-            && invalidLayout
-        )
-
-        writer.WriteBoolean(
-            "generationBoundLoader",
-            selection.IsSome && wrongGeneration.IsNone && stale
-        )
-
-        let runnableRoot =
-            Path.Combine(workspacePath, ".mc-game-views", profile.ToString("N"), "game")
-
-        let runnableLoader = Path.Combine(runnableRoot, "skse64_loader.exe")
-
-        writer.WriteBoolean(
-            "protonUsesLoader",
-            if OperatingSystem.IsLinux() then
-                descriptor.Arguments |> List.tryLast = Some runnableLoader
-                && descriptor.WorkingDirectory = runnableRoot
-                && runtimeName = evidence.Proton.Value.RuntimeName
-            else
-                descriptor.Executable = runnableLoader && descriptor.WorkingDirectory = runnableRoot
-        )
-
-        writer.WriteBoolean(
-            "transferArchiveInstallGeneration",
-            genericDraft.Installer = InstallationMode.Bain
-            && (firstArtifact.Download |> Option.exists (fun value -> value.ChecksumMatched))
-            && deployedFirst.ActiveGeneration = Some firstGeneration
-            && (firstStored |> Option.exists (fun value -> value.Loader.Executable = loaderPath))
-        )
-
-        writer.WriteBoolean("ordinaryRedeployRetainsComponentRouteAndLaunch", genericComponentContinuity && genericLaunch)
 
         writer.WriteBoolean(
             "failedReplacementPreservesSelectionGenerationAndLoader",
-            interruptedReplacement
-            && recoveredReplacement
-            && afterInterrupted.ActiveGeneration = Some firstGeneration
-            && (afterInterruptedLoader
-                |> Option.exists (fun value -> value.Loader.GenerationId = firstGeneration))
-            && enabled firstEnabled = enabled afterInterruptedSelection
+            updated.FailedReplacementPreservesSelectionGenerationAndLoader
         )
 
         writer.WriteBoolean(
             "updateRetainsImmutableGenerationLoaders",
-            (updatedStored
-             |> Option.exists (fun value -> value.Loader.ComponentVersion = "2.3.0"))
-            && (retainedFirst
-                |> Option.exists (fun value ->
-                    value.Loader.ComponentVersion = string premium.Release.ComponentVersion))
-            && restartedGenerationBound
+            updated.UpdatedLoaderCorrect
+            && updated.RetainedFirstCorrect
+            && durable.RestartedGenerationBound
         )
 
         writer.WriteBoolean(
             "removalRestoresForeignLoaderAndDropsActiveProvenance",
-            removedLoader.IsNone && foreignLoaderRestored
+            removed
         )
 
         writer.WriteBoolean(
             "coldRestartRetainsCacheAndLoaderProvenance",
-            cachedBeforeRestart.IsSome && restartedGenerationBound && coldCached
+            durable.ColdRestartRetainsCacheAndLoaderProvenance
         )
 
-        writer.WriteBoolean("nxmWaitingAndFailureAreDurable", durableWaiting && durableFailure)
+        writer.WriteBoolean("nxmWaitingAndFailureAreDurable", durable.NxmWaitingAndFailureAreDurable)
 
-        writer.WriteBoolean("sameSkseSourceReusesImportedVersionAfterRemoval", sameReleaseReused)
-        writer.WriteBoolean("secondProfileUsesAvailableSkseVersion", otherFirstInstall)
-        writer.WriteBoolean("differentSkseReleaseStaysDistinct", firstMod <> imported.ModId)
-        writer.WriteBoolean("deletingOldSkseModRemovesOnlyItsLoaderHistory", deletedSkseReferences)
-        writer.WriteBoolean("newSkseReleaseImportsAfterDeletingOlderMod", importAfterDeletion)
+        writer.WriteBoolean(
+            "sameSkseSourceReusesImportedVersionAfterRemoval",
+            reused.SameSkseSourceReusesImportedVersionAfterRemoval
+        )
+
+        writer.WriteBoolean(
+            "secondProfileUsesAvailableSkseVersion",
+            reused.SecondProfileUsesAvailableSkseVersion
+        )
+
+        writer.WriteBoolean(
+            "differentSkseReleaseStaysDistinct",
+            reused.DifferentSkseReleaseStaysDistinct
+        )
+
+        writer.WriteBoolean(
+            "deletingOldSkseModRemovesOnlyItsLoaderHistory",
+            reused.DeletingOldSkseModRemovesOnlyItsLoaderHistory
+        )
+
+        writer.WriteBoolean(
+            "newSkseReleaseImportsAfterDeletingOlderMod",
+            reused.NewSkseReleaseImportsAfterDeletingOlderMod
+        )
 
         GenerationCleanup.normalize area
         writer.WriteEndObject()
