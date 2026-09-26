@@ -3,7 +3,7 @@ import 'package:mc_client/mc_client.dart';
 import 'package:mc_ui_collections/mc_ui_collections.dart';
 import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 
-import 'archive_facts.dart';
+import 'nexus_file_widgets.dart';
 
 class NexusFilesView extends StatefulWidget {
   const NexusFilesView({
@@ -136,31 +136,14 @@ class _NexusFilesViewState extends State<NexusFilesView> {
     icon: Icons.open_in_new,
     onPressed: busy ? null : _page,
   );
-  Widget _details(VoidCallback close) {
-    final file = model.selected;
-    return McInspector(
-      title: file?.name ?? 'File details',
-      onClose: close,
-      children: [
-        if (file != null) ...[
-          Text(mod?.name ?? ''),
-          const SizedBox(height: 16),
-          Text('${file.version} · ${archiveSize(file.bytes)}'),
-          const SizedBox(height: 16),
-          Text(file.category),
-          const SizedBox(height: 16),
-          Text(file.description),
-          const SizedBox(height: 16),
-          McStatus(title: 'Nexus Mods', detail: account?.name),
-        ],
-      ],
-      footer: Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: [_downloadAction(), _pageAction()],
-      ),
-    );
-  }
+  Widget _details(VoidCallback close) => NexusFileInspector(
+    file: model.selected,
+    modName: mod?.name,
+    accountName: account?.name,
+    onClose: close,
+    downloadAction: _downloadAction,
+    pageAction: _pageAction,
+  );
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(
@@ -235,78 +218,13 @@ class _NexusFilesViewState extends State<NexusFilesView> {
               child: Row(
                 children: [
                   Expanded(
-                    child: McCollection<int, NexusFile>(
+                    child: NexusFileCollection(
                       model: model,
-                      title: mod?.name ?? 'Nexus Mods',
-                      showTitle: !narrow,
-                      filterActions: narrow
-                          ? [
-                              Expanded(
-                                child: Text(
-                                  mod?.name ?? 'Nexus Mods',
-                                  style: Theme.of(c).textTheme.titleMedium,
-                                ),
-                              ),
-                              _downloadAction(),
-                              McIconAction(
-                                label: 'Mod details',
-                                icon: const Icon(Icons.info_outline),
-                                onPressed: model.selected == null
-                                    ? null
-                                    : inspect,
-                              ),
-                            ]
-                          : const [],
-                      columns: [
-                        McColumn(
-                          'File',
-                          (f) => narrow
-                              ? Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      f.name,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    Text(
-                                      '${f.category} · ${f.version} · ${archiveSize(f.bytes)}',
-                                      style: Theme.of(c).textTheme.bodySmall,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ],
-                                )
-                              : Text(f.name),
-                          width: narrow ? null : 340,
-                        ),
-                        if (!narrow) ...[
-                          McColumn(
-                            'Version',
-                            (f) => Text(f.version),
-                            width: 100,
-                          ),
-                          McColumn(
-                            'Size',
-                            (f) => Text(archiveSize(f.bytes)),
-                            width: 110,
-                          ),
-                          McColumn(
-                            'Category',
-                            (f) => Text(f.category),
-                            width: 160,
-                          ),
-                        ],
-                      ],
-                      compactFilter: narrow,
-                      filterLabel: 'Filter files',
-                      countLabel:
-                          '${model.ids.length} ${model.ids.length == 1 ? 'file' : 'files'}',
-                      showTree: false,
-                      nodeLabel: (f) => f.name,
-                      nodeIcon: (_) => const Icon(Icons.description_outlined),
-                      loading: busy,
+                      modName: mod?.name,
+                      narrow: narrow,
+                      busy: busy,
+                      downloadAction: _downloadAction,
+                      onDetails: inspect,
                       onSelect: (file) {
                         setState(() {
                           if (file.id != refusedFile) problem = null;
@@ -314,22 +232,6 @@ class _NexusFilesViewState extends State<NexusFilesView> {
                         });
                         if (narrow) pane.currentState?.openEndDrawer();
                       },
-                      footer: narrow
-                          ? null
-                          : Wrap(
-                              spacing: 12,
-                              runSpacing: 8,
-                              children: [
-                                _downloadAction(),
-                                McAction(
-                                  label: 'Mod details',
-                                  icon: Icons.info_outline,
-                                  onPressed: model.selected == null
-                                      ? null
-                                      : inspect,
-                                ),
-                              ],
-                            ),
                     ),
                   ),
                   if (inspected && !narrow) ...[
