@@ -94,6 +94,44 @@ void main() {
     );
   });
 
+  test(
+    'a lost create reply finds the committed profile on a later page',
+    () async {
+      final client = ScriptedClient()
+        ..onOpen = (_) async => page('one', revision: 1);
+      ProfileInfo? committed;
+      var creates = 0;
+      client.onCreateProfile = (_, _, profile) async {
+        creates++;
+        committed = profile;
+        throw Exception('The create reply was lost.');
+      };
+      client.onRead = (_, after) async {
+        final current = page('one', revision: 2);
+        return WorkspacePage(
+          current.workspace,
+          after == null
+              ? [const ProfileInfo('earlier', 'Earlier')]
+              : [committed!],
+          after == null ? 'next' : null,
+        );
+      };
+      final controller = WorkspaceController()..attach(client);
+      addTearDown(controller.dispose);
+      await controller.open('/fixture/one');
+
+      final created = await controller.createProfile('Created');
+
+      expect(created?.id, committed?.id);
+      expect(creates, 1);
+      expect(
+        controller.page!.profiles.any((row) => row.id == created?.id),
+        isTrue,
+      );
+      expect(controller.currentProblem, isNull);
+    },
+  );
+
   test('cancelling a streamed clone keeps the selected profile and rejects late completion', () async {
     final client = CopyClient()..onOpen = (_) async => page('one');
     final controller = WorkspaceController()..attach(client);

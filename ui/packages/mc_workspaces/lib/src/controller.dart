@@ -3,6 +3,9 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:mc_client/mc_client.dart';
 
+part 'controller_profile_creation.dart';
+part 'controller_profile_progress.dart';
+
 class WorkspaceController extends ChangeNotifier {
   WorkspacesClient? _client;
   int _epoch = 0;
@@ -35,63 +38,19 @@ class WorkspaceController extends ChangeNotifier {
   final Map<String, String> _activities = {};
   ({String id, String name, String? path})? _creation;
 
-  StreamSubscription<ProfileChangeEvent>? _profileChange;
-  Completer<ProfileChange>? _profileResult;
-  ProfileCopyProgress? copyProgress;
-  bool get canCancelProfileChange => _profileChange != null;
+  late final _profileChanges = _ProfileChangeProgress(_notify);
+  ProfileCopyProgress? get copyProgress => _profileChanges.copyProgress;
+  bool get canCancelProfileChange => _profileChanges.canCancel;
 
   Future<ProfileChange> _profileEvents(Stream<ProfileChangeEvent> events) {
-    final done = Completer<ProfileChange>();
-    _profileResult = done;
-    copyProgress = null;
     final epoch = _epoch;
-    _profileChange = events.listen(
-      (event) {
-        if (_disposed || epoch != _epoch) return;
-        switch (event) {
-          case ProfileCopyProgress():
-            copyProgress = event;
-            _notify();
-          case ProfileChangeComplete():
-            if (!done.isCompleted) done.complete(event.change);
-        }
-      },
-      onError: (Object error) {
-        if (!done.isCompleted) done.completeError(error);
-      },
-      onDone: () {
-        if (!done.isCompleted) {
-          done.completeError(
-            const WorkspaceException(
-              WorkspaceFault.profileData,
-              'The profile action did not return a result. Read Settings and saves to continue.',
-            ),
-          );
-        }
-      },
+    return _profileChanges.observe(
+      events,
+      active: () => !_disposed && epoch == _epoch,
     );
-    return done.future.whenComplete(() {
-      if (identical(_profileResult, done)) {
-        _profileChange = null;
-        _profileResult = null;
-        copyProgress = null;
-      }
-    });
   }
 
-  Future<void> cancelProfileChange() async {
-    final pending = _profileResult;
-    final subscription = _profileChange;
-    await subscription?.cancel();
-    if (pending != null && !pending.isCompleted) {
-      pending.completeError(
-        const WorkspaceException(
-          WorkspaceFault.profileData,
-          'The profile action was cancelled. Read Settings and saves to see any remaining action.',
-        ),
-      );
-    }
-  }
+  Future<void> cancelProfileChange() => _profileChanges.cancel();
 
   Future<void> resumeProfileChange(String actionId) =>
       _edit('Continue profile change', (client, current) {
@@ -356,38 +315,10 @@ class WorkspaceController extends ChangeNotifier {
 
   Future<ProfileInfo?> createProfile(String name, {String? profileId}) async {
     final profile = ProfileInfo(profileId ?? newOperationId(), name);
-    final change = await _edit('Profile creation: $name', (
-      client,
-      current,
-    ) async {
-      try {
-        return await client.createProfile(
-          current.id,
-          current.revision,
-          profile,
-        );
-      } on WorkspaceException {
-        rethrow;
-      } on Exception {
-        var refreshed = await client.read(current.id);
-        while (true) {
-          final committed = refreshed.profiles
-              .where((candidate) => candidate.id == profile.id)
-              .firstOrNull;
-          if (committed != null) {
-            return ProfileChange(refreshed.workspace, committed, null);
-          }
-          final next = refreshed.nextProfile;
-          if (next == null) break;
-          refreshed = await client.read(current.id, after: next);
-        }
-        return client.createProfile(
-          current.id,
-          refreshed.workspace.revision,
-          profile,
-        );
-      }
-    });
+    final change = await _edit(
+      'Profile creation: $name',
+      (client, current) => _createProfileWithRecovery(client, current, profile),
+    );
     return change?.changed;
   }
 
