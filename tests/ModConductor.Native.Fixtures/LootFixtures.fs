@@ -140,8 +140,14 @@ module LootFixtures =
 
         let context =
             (store.GameContexts :> IGameContexts)
-                .Save(workspace, profile, 0L, { GameId = GameId.SkyrimSpecialEditionSteam
-                                                Path = game; Proton = Some proton })
+                .Save(
+                    workspace,
+                    profile,
+                    0L,
+                    { GameId = GameId.SkyrimSpecialEditionSteam
+                      Path = game
+                      Proton = Some proton }
+                )
             |> wait
             |> result
 
@@ -196,16 +202,19 @@ module LootFixtures =
         let bundle = Directory.CreateDirectory(Path.Combine(area, "bundle")).FullName
         let bundledHelper = Path.Combine(bundle, Path.GetFileName helper)
         let installed = store.LootForFixture(bundledHelper, validator)
+
         check
             "missingHelperIsUnavailable"
             (not (installed.Read().Available) && installed.HelperDiagnostic().IsSome)
 
         File.Copy(helper, bundledHelper)
+
         check
             "helperRepairRestoresAvailability"
             (installed.Read().Available && installed.HelperDiagnostic().IsNone)
 
         File.Copy(Environment.ProcessPath, bundledHelper, true)
+
         check
             "incompatibleHelperIsUnavailable"
             (not (installed.Read().Available) && installed.HelperDiagnostic().IsSome)
@@ -222,7 +231,68 @@ module LootFixtures =
                 headers.Id,
                 PluginOrderChange.Enable([ "Dawnguard.esm" ], false)
             )
-            |> wait |> result
+            |> wait
+            |> result
+
+        let withEnabledName name =
+            { order with
+                View =
+                    { order.View with
+                        Order =
+                            { order.View.Order with
+                                Entries =
+                                    { Name = name
+                                      Enabled = Some true
+                                      LockedIndex = None }
+                                    :: order.View.Order.Entries } } }
+
+        let projected value =
+            store.LootProjectionForFixture(value, CancellationToken.None)
+            |> Async.StartAsTask
+            |> wait
+
+        let stagingEmpty () =
+            let staging = Path.Combine(state, "loot-staging")
+
+            not (Directory.Exists staging)
+            || (Directory.EnumerateFileSystemEntries(staging) |> Seq.isEmpty)
+
+        let invalidProjection = projected (withEnabledName "../escape.esp")
+
+        check
+            "invalidProjectionNameIsRejectedWithoutStaging"
+            (invalidProjection = Error(
+                LootError.Unsupported "A plugin name is not a single file name."
+             )
+             && stagingEmpty ())
+
+        let missingSource = projected (withEnabledName "Absent.esp")
+
+        check
+            "missingCheckedProjectionSourceIsRejected"
+            (missingSource = Error(
+                LootError.Unsupported "Absent.esp does not have a checked projected source."
+             )
+             && stagingEmpty ())
+
+        let source = Path.Combine(data, "NeedsPatch.esp")
+        let held = Path.Combine(area, "held-plugin.esp")
+        File.Move(source, held)
+
+        let missingFile =
+            try
+                projected order
+            finally
+                File.Move(held, source)
+
+        let missingFileRejected =
+            missingFile = Error(
+                LootError.Unsupported "NeedsPatch.esp could not be copied into the LOOT projection."
+            )
+
+        check
+            "missingProjectionFileIsRejectedAndStagingCleaned"
+            (missingFileRejected && stagingEmpty ())
 
         let proposal =
             loot.Preview(order, CancellationToken.None)
@@ -251,8 +321,10 @@ module LootFixtures =
         check
             "disabledOfficialRemainsOutsideLootMoves"
             (proposal.Current |> List.contains "Dawnguard.esm"
-             && proposal.Moves |> List.exists (fun move ->
-                 move.Plugin.Equals("Dawnguard.esm", StringComparison.OrdinalIgnoreCase)) |> not
+             && proposal.Moves
+                |> List.exists (fun move ->
+                    move.Plugin.Equals("Dawnguard.esm", StringComparison.OrdinalIgnoreCase))
+                |> not
              && position "Dawnguard.esm" proposal.Current = position "Dawnguard.esm" proposal.Sorted)
 
         let sorted =
@@ -281,12 +353,7 @@ module LootFixtures =
             (loot.ValidateApply(proposal.Id, saved.Reference, saved.Headers.Id) = Error
                 LootError.Stale)
 
-        check
-            "privateProjectionWasCleaned"
-            (let staging = Path.Combine(state, "loot-staging")
-
-             not (Directory.Exists staging)
-             || (Directory.EnumerateFileSystemEntries(staging) |> Seq.isEmpty))
+        check "privateProjectionWasCleaned" (stagingEmpty ())
 
         writer.WriteEndObject()
         writer.Flush()

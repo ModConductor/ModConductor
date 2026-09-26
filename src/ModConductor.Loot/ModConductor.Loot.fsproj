@@ -7,6 +7,9 @@
     <Compile Include="Metadata.fs" />
     <Compile Include="ResponseValidation.fs" />
     <Compile Include="HelperAvailability.fs" />
+    <Compile Include="Projection.fs" />
+    <Compile Include="Proposal.fs" />
+    <Compile Include="HelperInvocation.fs" />
     <Compile Include="Session.fs" />
     <ProjectReference Include="../ModConductor.ProfileGameData/ModConductor.ProfileGameData.fsproj" />
     <ProjectReference Include="../ModConductor.FilePlanning/ModConductor.FilePlanning.fsproj" />
