@@ -1,0 +1,227 @@
+namespace ModConductor.Persistence
+
+open System
+open System.IO
+open ModConductor.Platform
+open ModConductor.Deployment
+open ModConductor.ProfileGameData
+open ModConductor.Workspaces
+
+module internal ProfileCloneMutation =
+    let private clearClone (context: ProfileDataContext) (action: ProfileDataActionRecord) =
+        let remove (parent: DataRoot) (root: DataRoot) =
+            SaveTrees.clearPrepared root
+            use held = HeldDirectory.Open(parent.Path, parent.Identity)
+            held.RemoveDirectory(Path.GetFileName(HostPath.value root.Path), root.Identity)
+
+        action.CloneTarget
+        |> Option.bind _.Root
+        |> Option.iter (remove context.Storage.Value)
+
+        action.WorkspaceStage |> Option.iter (remove context.Storage.Value)
+
+        match context.OriginalsRoot, action.DocumentsStage with
+        | Some parent, Some root -> remove parent root
+        | _ -> ()
+
+    let private validateActiveContext
+        (services: ProfileMutationServices)
+        workspace
+        source
+        (context: ProfileDataContext)
+        =
+        task {
+            if context.Applied |> Option.exists (fun active -> active.ProfileId = source) then
+                let! scope = services.Repository.Read(workspace, source)
+
+                if (DataLocations.documents scope.Game).Identity <> context.Documents.Identity then
+                    raise (
+                        ProfileDataException(
+                            ProfileDataError.Unavailable
+                                "Restore the profile in its previous installation before cloning it."
+                        )
+                    )
+
+                GameProcesses.validate scope.Game |> ignore
+        }
+
+    let private saveCopy
+        (services: ProfileMutationServices)
+        connection
+        transaction
+        (context: ProfileDataContext, action: ProfileDataActionRecord, copy: PrivateProfileData)
+        =
+        let current =
+            ProfileDataRows.context connection transaction context.Id |> Option.get
+
+        if current.Pending <> Some action.Id || current.Revision <> action.ExpectedRevision then
+            ProfileDataRows.fail ProfileDataError.Stale
+
+        ProfileDataRows.saveProfile connection transaction context.Id copy
+
+        ProfileDataRows.saveContext
+            connection
+            transaction
+            { context with
+                Pending = None
+                Revision = context.Revision + 1L }
+
+        ProfileDataRows.saveAction
+            connection
+            transaction
+            services.Database.OwnerId
+            false
+            { action with
+                Complete = true
+                Problem = None }
+
+    let private commit
+        (services: ProfileMutationServices)
+        (request: ProfileMutationRequest)
+        completed
+        =
+        let connection = services.Database.Connection
+
+        services.Database.Enqueue(fun () ->
+            use transaction = connection.BeginTransaction(deferred = false)
+
+            let result =
+                WorkspaceProfiles.editIn
+                    connection
+                    transaction
+                    request.Workspace
+                    request.Expected
+                    request.Command
+
+            match result with
+            | Error _ -> ()
+            | Ok _ ->
+                for copy in completed do
+                    saveCopy services connection transaction copy
+
+                request.BeforeCommit()
+                transaction.Commit()
+
+            result)
+
+    let private cancelClaim
+        (services: ProfileMutationServices)
+        (context: ProfileDataContext)
+        (action: ProfileDataActionRecord)
+        =
+        task {
+            let database = services.Database
+            let connection = database.Connection
+
+            let! current =
+                database.Enqueue(fun () ->
+                    ProfileDataRows.context connection null context.Id |> Option.get)
+
+            clearClone current action
+
+            do!
+                database.Enqueue(fun () ->
+                    use transaction = connection.BeginTransaction(deferred = false)
+
+                    let current =
+                        ProfileDataRows.context connection transaction context.Id |> Option.get
+
+                    ProfileDataRows.saveContext
+                        connection
+                        transaction
+                        { current with
+                            Pending = None
+                            Revision = current.Revision + 1L }
+
+                    ProfileDataRows.saveAction
+                        connection
+                        transaction
+                        database.OwnerId
+                        false
+                        { action with
+                            Complete = true
+                            Problem = Some "The profile copy was cancelled." }
+
+                    transaction.Commit())
+        }
+
+    let private releaseClaims (services: ProfileMutationServices) claimed =
+        task {
+            for _, id in claimed do
+                do! services.Repository.Release id
+        }
+
+    let private handleFailure
+        (services: ProfileMutationServices)
+        workspace
+        (claimed: (ProfileDataContext * Guid) seq)
+        (error: exn)
+        =
+        task {
+            for context, id in claimed do
+                let! retained = services.Repository.Action(workspace, id)
+
+                match retained with
+                | Some action when (error :? OperationCanceledException) ->
+                    do! cancelClaim services context action
+                | Some _ -> do! services.Repository.Release id
+                | None -> ()
+        }
+
+    let run
+        (services: ProfileMutationServices)
+        (request: ProfileMutationRequest)
+        source
+        (target: Profile)
+        =
+        task {
+            let! records = ProfileMutationSupport.contexts services.Database source
+
+            let completed =
+                ResizeArray<ProfileDataContext * ProfileDataActionRecord * PrivateProfileData>()
+
+            let claimed = ResizeArray<ProfileDataContext * Guid>()
+
+            try
+                for context, profile in records do
+                    request.Token.ThrowIfCancellationRequested()
+                    do! validateActiveContext services request.Workspace source context
+
+                    let! context, action =
+                        ProfileMutationSupport.claim
+                            services.Repository
+                            context
+                            source
+                            (ProfileMutationSupport.actionId context.Id target.Id 0uy)
+                            (ProfileDataActionKind.Clone(target.Id, target.Name, request.Expected))
+
+                    claimed.Add(context, action.Id)
+
+                    let notify (value: ProfileDataProgress) =
+                        request.Progress
+                            { Files = value.Files
+                              Bytes = value.Bytes }
+
+                    let! context, action, copy =
+                        ProfileCloning.prepare
+                            services.Repository
+                            context
+                            profile
+                            action
+                            request.Token
+                            notify
+                            request.CaptureCheckpoint
+
+                    completed.Add(context, action, copy)
+
+                request.Token.ThrowIfCancellationRequested()
+                let! committed = commit services request completed
+
+                if Result.isError committed then
+                    do! releaseClaims services claimed
+
+                return committed
+            with error ->
+                do! handleFailure services request.Workspace claimed error
+                return raise error
+        }

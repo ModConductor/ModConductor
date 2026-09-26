@@ -70,6 +70,9 @@
     <Compile Include="ComponentRoutes.fs" />
     <Compile Include="GameViews.fs" />
     <Compile Include="DeploymentPreparation.fs" />
+    <Compile Include="ProfileMutationSupport.fs" />
+    <Compile Include="ProfileCloneMutation.fs" />
+    <Compile Include="ProfileDeleteMutation.fs" />
     <Compile Include="ProfileDataMutations.fs" />
     <Compile Include="DeploymentBackendRepository.fs" />
     <Compile Include="ExecutableEncoding.fs" />
