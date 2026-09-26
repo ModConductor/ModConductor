@@ -7,6 +7,9 @@
     <Compile Include="Files.fs" />
     <Compile Include="Repository.fs" />
     <Compile Include="Paging.fs" />
+    <Compile Include="SnapshotCache.fs" />
+    <Compile Include="Observation.fs" />
+    <Compile Include="ActionExecution.fs" />
     <Compile Include="Session.fs" />
     <ProjectReference Include="../ModConductor.ModLibrary/ModConductor.ModLibrary.fsproj" />
     <PackageReference Include="FSharp.Core" />
