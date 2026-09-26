@@ -76,6 +76,9 @@
     <Compile Include="DeploymentOutputs.fs" />
     <Compile Include="ComponentRoutes.fs" />
     <Compile Include="GameViews.fs" />
+    <Compile Include="DeploymentWorkspaceStorage.fs" />
+    <Compile Include="DeploymentRetirement.fs" />
+    <Compile Include="DeploymentTargetProjection.fs" />
     <Compile Include="DeploymentPreparation.fs" />
     <Compile Include="ProfileMutationSupport.fs" />
     <Compile Include="ProfileCloneMutation.fs" />
