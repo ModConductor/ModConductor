@@ -1,43 +1,24 @@
 #!/usr/bin/env python3
 """Build a Fedora 44 x64 RPM from the assembled Linux archive."""
 
-import argparse
-import json
 from pathlib import Path
 import shutil
 import subprocess
-import tarfile
 import tempfile
+
+from linux_package_input import extract_payload, package_arguments
 
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--archive", type=Path, required=True)
-    parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--version", required=True)
-    parser.add_argument("--package-revision", type=int, default=1)
-    parser.add_argument("--scratch-directory", type=Path, default=ROOT / ".agent-workspace")
-    args = parser.parse_args()
-    if args.package_revision < 1:
-        parser.error("The package revision must be positive.")
+    parser, args = package_arguments(__doc__, revision=True)
     args.scratch_directory.mkdir(parents=True, exist_ok=True)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="package-rpm-", dir=args.scratch_directory) as temporary:
         work = Path(temporary)
-        extracted = work / "archive"
-        extracted.mkdir()
-        with tarfile.open(args.archive, "r:gz") as archive:
-            archive.extractall(extracted, filter="data")
-        launchers = list(extracted.glob("bin/modconductor")) + list(extracted.glob("*/bin/modconductor"))
-        if len(launchers) != 1:
-            parser.error("The Linux archive does not contain one desktop payload.")
-        payload = launchers[0].parent.parent
-        provenance = json.loads((payload / "share/doc/modconductor/provenance.json").read_text())
-        if provenance["linux_rid"] != "linux-x64":
-            parser.error("The archive is not a Linux x64 payload.")
+        payload = extract_payload(args.archive, work, parser)
         top = work / "rpmbuild"
         (top / "SPECS").mkdir(parents=True)
         (work / "rpm-tmp").mkdir()

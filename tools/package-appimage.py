@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """Build a Linux x64 AppImage from the assembled portable archive."""
 
-import argparse
 import json
 import os
 from pathlib import Path
 import shutil
 import subprocess
-import tarfile
 import tempfile
+
+from linux_package_input import extract_payload, package_arguments
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -16,12 +16,7 @@ IMAGE = "mc061-appimage-tools:local"
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--archive", type=Path, required=True)
-    parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--version", required=True)
-    parser.add_argument("--scratch-directory", type=Path, default=ROOT / ".agent-workspace")
-    args = parser.parse_args()
+    parser, args = package_arguments(__doc__)
     archive_path = args.archive.resolve()
     output = args.output.resolve()
     scratch = args.scratch_directory.resolve()
@@ -32,17 +27,7 @@ def main() -> None:
     subprocess.run(["docker", "build", "-t", IMAGE, "-f", str(context / "Dockerfile"), str(context)], check=True)
     with tempfile.TemporaryDirectory(prefix="package-appimage-", dir=scratch) as temporary:
         work = Path(temporary)
-        extracted = work / "archive"
-        extracted.mkdir()
-        with tarfile.open(archive_path, "r:gz") as archive:
-            archive.extractall(extracted, filter="data")
-        launchers = list(extracted.glob("bin/modconductor")) + list(extracted.glob("*/bin/modconductor"))
-        if len(launchers) != 1:
-            parser.error("The Linux archive does not contain one desktop payload.")
-        payload = launchers[0].parent.parent
-        provenance = json.loads((payload / "share/doc/modconductor/provenance.json").read_text())
-        if provenance["linux_rid"] != "linux-x64":
-            parser.error("The archive is not a Linux x64 payload.")
+        payload = extract_payload(archive_path, work, parser)
         sbom = json.loads((payload / "share/doc/modconductor/sbom.spdx.json").read_text())
         if sbom["packages"][0]["versionInfo"] != args.version:
             parser.error("The archive version does not match the requested version.")
