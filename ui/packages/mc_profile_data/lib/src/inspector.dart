@@ -6,7 +6,8 @@ import 'package:mc_file_plans/mc_file_plans.dart';
 import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 
 import 'controller.dart';
-import 'save_files.dart';
+import 'settings_dialogs.dart';
+import 'settings_view.dart';
 
 class ProfileSettingsInspector extends StatefulWidget {
   const ProfileSettingsInspector({
@@ -193,181 +194,40 @@ class _ProfileSettingsInspectorState extends State<ProfileSettingsInspector> {
   Future<void> edit() async {
     final current = controller.state;
     if (current == null) return;
-    var settings = current.options.settings, saves = current.options.saves;
-    var initial = InitialProfileSaves.empty;
-    final choice =
-        await showDialog<
-          ({ProfileDataOptions options, InitialProfileSaves initial})
-        >(
-          context: context,
-          builder: (context) => StatefulBuilder(
-            builder: (context, update) => McFormDialog(
-              title: '${widget.profile.name} settings',
-              action: 'Save',
-              onSubmit: () => Navigator.pop(context, (
-                options: ProfileDataOptions(settings: settings, saves: saves),
-                initial: initial,
-              )),
-              children: [
-                CheckboxListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('Local game settings'),
-                  value: settings,
-                  onChanged: (value) => update(() => settings = value!),
-                ),
-                if (settings && !current.settingsInitialized)
-                  const Padding(
-                    padding: EdgeInsets.only(left: 16, bottom: 12),
-                    child: Text('Starts from the global game settings.'),
-                  ),
-                CheckboxListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('Local saves'),
-                  value: saves,
-                  onChanged: (value) => update(() => saves = value!),
-                ),
-                if (saves && !current.savesInitialized) ...[
-                  const SizedBox(height: 8),
-                  McChoice<InitialProfileSaves>(
-                    label: 'Initial saves',
-                    value: initial,
-                    choices: InitialProfileSaves.values,
-                    describe: (value) => value == InitialProfileSaves.empty
-                        ? 'Start empty'
-                        : 'Copy existing global saves',
-                    onChanged: (value) => update(() => initial = value),
-                  ),
-                  if (initial == InitialProfileSaves.empty)
-                    const Padding(
-                      padding: EdgeInsets.only(top: 12),
-                      child: Text('Global saves are not moved or deleted.'),
-                    ),
-                ],
-                const SizedBox(height: 16),
-                const McStatus(
-                  title: 'Applied on Play',
-                  detail: 'The settings stay in use for direct Steam launches until restored.',
-                ),
-              ],
-            ),
-          ),
-        );
+    final choice = await chooseProfileOptions(
+      context,
+      current,
+      widget.profile.name,
+    );
     if (choice == null || !mounted) return;
     final disabling =
         (current.options.settings && !choice.options.settings) ||
         (current.options.saves && !choice.options.saves);
     var disabled = DisabledProfileFiles.keep;
     if (disabling) {
-      final selected = await disable(current, choice.options);
+      final selected = await chooseDisabledFiles(
+        context,
+        current,
+        choice.options,
+        widget.profile,
+      );
       if (selected == null || !mounted) return;
       disabled = selected;
     }
     await controller.edit(choice.options, choice.initial, disabled);
   }
 
-  Future<DisabledProfileFiles?> disable(
-    ProfileDataState current,
-    ProfileDataOptions next,
-  ) async {
-    var choice = DisabledProfileFiles.keep;
-    final settings = current.options.settings && !next.settings;
-    final saves = current.options.saves && !next.saves;
-    final subject = settings && saves
-        ? 'local settings and saves'
-        : settings
-        ? 'local game settings'
-        : 'local saves';
-    final count =
-        (settings ? current.settingsFiles : 0) +
-        (saves ? current.saveFiles : 0);
-    return showDialog<DisabledProfileFiles>(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, update) => McDialog(
-          title: 'Turn off $subject?',
-          actions: [
-            McAction(label: 'Cancel', onPressed: () => Navigator.pop(context)),
-            McAction(
-              label: choice == DisabledProfileFiles.delete
-                  ? 'Turn off and delete'
-                  : 'Turn off',
-              emphasis: McActionEmphasis.primary,
-              onPressed: () => Navigator.pop(context, choice),
-            ),
-          ],
-          children: [
-            if (current.inUseProfileId == widget.profile.id)
-              Text(
-                '${widget.profile.name} is in use. The affected global settings or save location will be restored first.',
-              ),
-            const SizedBox(height: 16),
-            McChoice<DisabledProfileFiles>(
-              label: 'Local files',
-              value: choice,
-              choices: DisabledProfileFiles.values,
-              describe: (value) => value == DisabledProfileFiles.keep
-                  ? 'Keep local files'
-                  : 'Delete local files',
-              onChanged: (value) => update(() => choice = value),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              choice == DisabledProfileFiles.keep
-                  ? 'Keep $count ${count == 1 ? 'file' : 'files'} for a later re-enable.'
-                  : 'Delete $count ${count == 1 ? 'file' : 'files'} from ${widget.profile.name}. Global saves are not deleted.',
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Future<void> restore() async {
     final active = controller.state?.inUseProfileId;
     if (active == null) return;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => McDialog(
-        title: 'Restore settings, saves and plugin order?',
-        actions: [
-          McAction(label: 'Cancel', onPressed: () => Navigator.pop(context)),
-          McAction(
-            label: 'Restore',
-            emphasis: McActionEmphasis.primary,
-            onPressed: () => Navigator.pop(context, true),
-          ),
-        ],
-        children: [
-          Text(
-            'Keep ${name(active)}’s profile data and restore the global settings, save location and any applied plugin order.',
-          ),
-          const SizedBox(height: 16),
-          const Text('Local options stay enabled. Play can apply them again.'),
-        ],
-      ),
-    );
+    final confirmed = await confirmProfileRestore(context, name(active));
     if (confirmed == true) await controller.restore();
   }
 
-  Widget item(String label, String value) => Padding(
-    padding: const EdgeInsets.only(bottom: 16),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: Theme.of(context).textTheme.labelLarge),
-        const SizedBox(height: 4),
-        SelectableText(value),
-      ],
-    ),
-  );
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: controller,
     builder: (context, _) {
-      final state = controller.state;
-      final problem = controller.problem ?? state?.problem;
-      final pending = state?.pendingActionId;
-      final active = state?.inUseProfileId;
       if (_configuration case final document?) {
         return McInspector(
           title: 'Edit profile file',
@@ -423,168 +283,20 @@ class _ProfileSettingsInspectorState extends State<ProfileSettingsInspector> {
           ],
         );
       }
-      return McInspector(
-        title: widget.profile.name,
+      return ProfileSettingsView(
+        controller: controller,
+        client: widget.client,
+        workspace: widget.workspace,
+        profile: widget.profile,
+        available: widget.available,
         onClose: widget.onClose,
-        footer: Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            McAction(
-              label: 'Edit settings',
-              icon: Icons.tune,
-              onPressed: controller.canEdit ? edit : null,
-            ),
-          ],
-        ),
-        children: [
-          Text(
-            'Settings and saves',
-            style: Theme.of(context).textTheme.titleSmall,
-          ),
-          const SizedBox(height: 16),
-          if (controller.busy) ...[
-            McStatus(
-              title: '${controller.activity}…',
-              detail: controller.progress == null
-                  ? null
-                  : '${controller.progress!.files} files · ${controller.progress!.bytes} bytes copied',
-            ),
-            const SizedBox(height: 12),
-            const LinearProgressIndicator(),
-            const SizedBox(height: 12),
-            if (controller.activity != 'Reading settings and saves')
-              McAction(
-                label: 'Cancel',
-                onPressed: () => unawaited(controller.cancel()),
-              ),
-          ] else if (problem != null)
-            McStatus(title: problem, tone: McStatusTone.error)
-          else if (state != null)
-            McStatus(
-              title: active == null
-                  ? 'Global settings and saves in use'
-                  : active == widget.profile.id
-                  ? 'In use'
-                  : 'In use: ${name(active)}',
-              detail: active != widget.profile.id
-                  ? 'Play applies the selected profile.'
-                  : null,
-            ),
-          if (controller.result case final result? when !result.complete)
-            Padding(
-              padding: const EdgeInsets.only(top: 12),
-              child: Text(
-                '${result.completedFiles} file changes completed. The action did not finish.',
-              ),
-            ),
-          if (!controller.busy &&
-              (controller.needsRead || problem != null || state == null))
-            Padding(
-              padding: const EdgeInsets.only(top: 12),
-              child: McAction(
-                label: 'Read again',
-                icon: Icons.refresh,
-                onPressed: widget.client == null
-                    ? null
-                    : () => unawaited(controller.read()),
-              ),
-            ),
-          if (!controller.busy && pending != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 12),
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  McAction(
-                    label: state?.pendingConfiguration == null
-                        ? 'Continue'
-                        : 'Continue saving',
-                    onPressed: !widget.available
-                        ? null
-                        : () => unawaited(
-                            state!.pendingProfileChange
-                                ? widget
-                                      .onResumeProfileChange(pending)
-                                      .then((_) => controller.read())
-                                : controller.resume(),
-                          ),
-                  ),
-                  if (state?.pendingConfiguration != null)
-                    McAction(
-                      label: 'Restore original',
-                      onPressed: widget.available
-                          ? () => unawaited(controller.restoreConfiguration())
-                          : null,
-                    ),
-                ],
-              ),
-            ),
-          const SizedBox(height: 24),
-          if (state != null) ...[
-            item(
-              'Local game settings',
-              '${state.options.settings ? 'On' : 'Off'} · ${state.settingsFiles} ${state.settingsFiles == 1 ? 'file' : 'files'}',
-            ),
-            item(
-              'Local saves',
-              '${state.options.saves ? 'On' : 'Off'} · ${state.saveFiles} ${state.saveFiles == 1 ? 'file' : 'files'}',
-            ),
-            if (state.savesInitialized)
-              McAction(
-                label: 'View save files',
-                icon: Icons.folder_outlined,
-                onPressed: widget.client == null
-                    ? null
-                    : () => showDialog<void>(
-                        context: context,
-                        builder: (_) => ProfileSaveFiles(
-                          client: widget.client!,
-                          workspace: widget.workspace.id,
-                          profile: widget.profile,
-                          expected: state.reference,
-                          headersId: widget.pluginHeadersId,
-                          onChanged: controller.invalidate,
-                        ),
-                      ),
-              ),
-            if (state.settingsInitialized) ...[
-              const SizedBox(height: 12),
-              McAction(
-                label: 'Edit profile files',
-                icon: Icons.description_outlined,
-                focusNode: _filesButtonFocus,
-                onPressed: widget.client == null || !controller.canEdit
-                    ? null
-                    : _openFiles,
-              ),
-            ],
-            const SizedBox(height: 16),
-            McAction(
-              label: 'Restore',
-              icon: Icons.restore,
-              onPressed: controller.canEdit && active != null ? restore : null,
-            ),
-            const SizedBox(height: 16),
-            ExpansionTile(
-              tilePadding: EdgeInsets.zero,
-              title: const Text('Details'),
-              children: [
-                if (state.settingsPath.isNotEmpty)
-                  item('Private settings', state.settingsPath),
-                if (state.savesPath.isNotEmpty)
-                  item('Private saves', state.savesPath),
-                const Padding(
-                  padding: EdgeInsets.only(bottom: 12),
-                  child: Text(
-                    'Applied options also affect direct launches from Steam. Closing Mod Conductor does not restore them. Steam Cloud is not isolated.',
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ],
+        onEdit: edit,
+        onOpenFiles: _openFiles,
+        onRestore: restore,
+        onResumeProfileChange: widget.onResumeProfileChange,
+        activeName: name,
+        filesButtonFocus: _filesButtonFocus,
+        pluginHeadersId: widget.pluginHeadersId,
       );
     },
   );
