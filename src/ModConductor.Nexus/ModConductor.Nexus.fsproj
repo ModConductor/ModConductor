@@ -19,6 +19,7 @@
     <Compile Include="InteractionCoordinator.fs" />
     <Compile Include="OAuthFlow.fs" />
     <Compile Include="AccountCredentials.fs" />
+    <Compile Include="SessionAuthentication.fs" />
     <Compile Include="Session.fs" />
     <Compile Include="ModDetails.fs" />
     <ProjectReference Include="../ModConductor.Credentials/ModConductor.Credentials.fsproj" />

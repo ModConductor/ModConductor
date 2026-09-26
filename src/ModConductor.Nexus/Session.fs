@@ -1,8 +1,6 @@
 namespace ModConductor.Nexus
 
 open System
-open System.Security.Cryptography
-open System.Text.Json
 open System.Threading
 open System.Threading.Tasks
 open ModConductor.Credentials
@@ -32,10 +30,13 @@ type NexusSession
 
     let mutable lifetime = new CancellationTokenSource()
     let mutable generation = 0L
-    let mutable account: Account option = None
-    let mutable boundSubject: string option = None
-    let mutable tokens: NexusJson.Tokens option = None
-    let mutable authorization: NexusAuthorization option = None
+
+    let accountState =
+        { Account = None
+          BoundSubject = None
+          Tokens = None
+          Authorization = None }
+
     let mutable waiting = false
     let mutable disconnecting = false
     let mutable problem = None
@@ -51,14 +52,14 @@ type NexusSession
     let nxm =
         new NxmIngress(
             gate,
-            (fun () -> account |> Option.map _.Subject),
+            (fun () -> accountState.Account |> Option.map _.Subject),
             (fun () -> generation, lifetime.IsCancellationRequested)
         )
 
     let statusUnsafe () =
         { Configured = registration.IsSome
           Waiting = waiting
-          Account = account
+          Account = accountState.Account
           Problem = problem }
 
     let status () = lock gate (fun () -> statusUnsafe ())
@@ -82,14 +83,14 @@ type NexusSession
                 waiting <- false
 
                 if error = NexusProblem.SignInRequired || error = NexusProblem.AccountChanged then
-                    tokens <- None
-                    authorization <- None
-                    account <- None
+                    accountState.Tokens <- None
+                    accountState.Authorization <- None
+                    accountState.Account <- None
                     interactions.Clear()
 
                 if error = NexusProblem.InvalidApiKey then
-                    authorization <- None
-                    account <- None
+                    accountState.Authorization <- None
+                    accountState.Account <- None
                     interactions.Clear()
 
                 changed ())
@@ -106,157 +107,39 @@ type NexusSession
             transport,
             require,
             (fun key -> nxm.Grant key),
-            (fun () -> account |> Option.map _.Subject)
+            (fun () -> accountState.Account |> Option.map _.Subject)
         )
 
-    let acceptKey epoch identity key token =
-        lock gate (fun () ->
-            require epoch token
-            account <- Some identity
-            boundSubject <- Some identity.Subject
-            tokens <- None
-            authorization <- Some(NexusAuthorization.PersonalApiKey key)
-            problem <- None
-            changed ())
-
-    let accountCredentials =
-        AccountCredentials(
+    let auth =
+        SessionAuthentication(
             credentials,
+            registration,
+            handoff,
             transport,
+            accountState,
+            gate,
             commit,
+            refreshGate,
             require,
-            (fun () -> lock gate (fun () -> boundSubject)),
             (fun () -> lock gate (fun () -> waiting || disconnecting)),
-            acceptKey
+            (fun change ->
+                match change with
+                | NexusConnectionChange.OAuthPublished -> waiting <- false
+                | NexusConnectionChange.AccountValidated -> ()
+
+                problem <- None
+                changed ())
         )
-
-    let publish epoch (value: NexusJson.Tokens) expected token =
-        task {
-            match registration with
-            | None -> return Error NexusProblem.NotConfigured
-            | Some config ->
-                let! response = transport.UserInfo(config.UserInfo, value.Access, token)
-
-                match response with
-                | Error error -> return Error error
-                | Ok response ->
-                    use response = response
-                    let identity = NexusJson.account response.RootElement
-
-                    if expected |> Option.exists ((<>) identity.Subject) then
-                        return Error NexusProblem.AccountChanged
-                    else
-                        let packet =
-                            CredentialJson.writeSaved
-                                { Issuer = config.Issuer.AbsoluteUri
-                                  Client = config.ClientId
-                                  Subject = identity.Subject
-                                  Refresh = value.Refresh }
-
-                        try
-                            do! commit.WaitAsync token
-
-                            try
-                                require epoch token
-                                let! saved = credentials.Save(packet, token)
-
-                                match saved with
-                                | Error error -> return Error(NexusProblem.Storage error)
-                                | Ok() ->
-                                    lock gate (fun () ->
-                                        require epoch token
-                                        account <- Some identity
-                                        boundSubject <- Some identity.Subject
-                                        tokens <- Some value
-
-                                        authorization <-
-                                            Some(NexusAuthorization.OAuth value.Access)
-
-                                        waiting <- false
-                                        problem <- None
-                                        changed ())
-
-                                    return Ok()
-                            finally
-                                commit.Release() |> ignore
-                        finally
-                            CryptographicOperations.ZeroMemory packet
-        }
-
-    let oauth =
-        OAuthFlow(handoff, transport, publish, (fun () -> lock gate (fun () -> boundSubject)))
-
-    let restore epoch token =
-        task {
-            let! read = accountCredentials.ReadSaved token
-
-            match read with
-            | Error error -> return Error error
-            | Ok(CredentialJson.SavedCredential.OAuth saved) ->
-                match registration with
-                | None -> return Error NexusProblem.NotConfigured
-                | Some config ->
-
-                    if
-                        saved.Issuer <> config.Issuer.AbsoluteUri || saved.Client <> config.ClientId
-                    then
-                        return Error NexusProblem.SignInRequired
-                    elif
-                        lock gate (fun () -> boundSubject |> Option.exists ((<>) saved.Subject))
-                    then
-                        return Error NexusProblem.AccountChanged
-                    else
-                        lock gate (fun () ->
-                            require epoch token
-                            boundSubject <- Some saved.Subject)
-
-                        let! reply =
-                            transport.Token(
-                                config.Token,
-                                [ "grant_type", "refresh_token"
-                                  "refresh_token", saved.Refresh
-                                  "client_id", config.ClientId ],
-                                token
-                            )
-
-                        match reply with
-                        | Error error -> return Error error
-                        | Ok reply ->
-                            use reply = reply
-                            let value = NexusJson.tokens (Some saved.Refresh) reply.RootElement
-                            let! saved = publish epoch value (Some saved.Subject) token
-
-                            return
-                                saved
-                                |> Result.map (fun () -> NexusAuthorization.OAuth value.Access)
-            | Ok(CredentialJson.SavedCredential.PersonalApiKey(savedSubject, key)) ->
-                return! accountCredentials.RestoreKey(savedSubject, key, epoch, token)
-        }
-
-    let access epoch (token: CancellationToken) force =
-        task {
-            do! refreshGate.WaitAsync token
-
-            try
-                require epoch token
-
-                match lock gate (fun () -> tokens, authorization) with
-                | Some value, Some(NexusAuthorization.OAuth _) when
-                    not force && value.Expires > DateTimeOffset.UtcNow.AddSeconds 30.
-                    ->
-                    let current = NexusAuthorization.OAuth value.Access
-                    lock gate (fun () -> authorization <- Some current)
-                    return Ok current
-                | _, Some(NexusAuthorization.PersonalApiKey key) when not force ->
-                    return Ok(NexusAuthorization.PersonalApiKey key)
-                | None, None when not force -> return Error NexusProblem.SignInRequired
-                | _ -> return! restore epoch token
-            finally
-                refreshGate.Release() |> ignore
-        }
 
     let interactionCoordinator =
-        InteractionCoordinator(gate, interactions, (fun () -> account), require, access, transport)
+        InteractionCoordinator(
+            gate,
+            interactions,
+            (fun () -> accountState.Account),
+            require,
+            (fun epoch token force -> auth.Access(epoch, token, force)),
+            transport
+        )
 
     let run action =
         task {
@@ -313,7 +196,7 @@ type NexusSession
             | Some config ->
                 let attempt =
                     lock gate (fun () ->
-                        if waiting || disconnecting || account.IsSome then
+                        if waiting || disconnecting || accountState.Account.IsSome then
                             None
                         else
                             waiting <- true
@@ -331,7 +214,7 @@ type NexusSession
 
                             let! result =
                                 NexusBoundary.protect (fun () ->
-                                    oauth.Execute(config, epoch, expiry.Token))
+                                    auth.Execute(config, epoch, expiry.Token))
 
                             match result with
                             | Error error
@@ -348,8 +231,7 @@ type NexusSession
         task {
             let epoch, token = context ()
 
-            let! result =
-                NexusBoundary.protectResult (fun () -> accountCredentials.Submit(key, epoch, token))
+            let! result = NexusBoundary.protectResult (fun () -> auth.Submit(key, epoch, token))
 
             match result with
             | Error error ->
@@ -365,7 +247,7 @@ type NexusSession
 
     member _.Connect() =
         task {
-            let! _ = run (fun epoch token -> access epoch token true)
+            let! _ = run (fun epoch token -> auth.Access(epoch, token, true))
             return status ()
         }
 
@@ -376,7 +258,7 @@ type NexusSession
                 let! saved = credentials.Status token
 
                 if saved.Saved = SavedPresence.Present then
-                    let! result = NexusBoundary.protect (fun () -> access epoch token true)
+                    let! result = NexusBoundary.protect (fun () -> auth.Access(epoch, token, true))
 
                     match result with
                     | Error error
@@ -389,53 +271,7 @@ type NexusSession
 
     member _.CheckAccount() =
         task {
-            let! _ =
-                run (fun epoch token ->
-                    task {
-                        let! authorization = access epoch token false
-
-                        match authorization with
-                        | Error error -> return Error error
-                        | Ok authorization ->
-                            let! response =
-                                match authorization with
-                                | NexusAuthorization.OAuth bearer ->
-                                    match registration with
-                                    | None -> Task.FromResult(Error NexusProblem.NotConfigured)
-                                    | Some config ->
-                                        transport.UserInfo(config.UserInfo, bearer, token)
-                                | NexusAuthorization.PersonalApiKey key ->
-                                    transport.ValidatePersonalApiKey(key, token)
-
-                            match response with
-                            | Error error -> return Error error
-                            | Ok response ->
-                                use response = response
-
-                                let value =
-                                    match authorization with
-                                    | NexusAuthorization.OAuth _ ->
-                                        NexusJson.account response.RootElement
-                                    | NexusAuthorization.PersonalApiKey _ ->
-                                        NexusJson.apiKeyAccount response.RootElement
-
-                                return
-                                    lock gate (fun () ->
-                                        require epoch token
-
-                                        if
-                                            account
-                                            |> Option.exists (fun prior ->
-                                                prior.Subject <> value.Subject)
-                                        then
-                                            Error NexusProblem.AccountChanged
-                                        else
-                                            account <- Some value
-                                            problem <- None
-                                            changed ()
-                                            Ok())
-                    })
-
+            let! _ = run (fun epoch token -> auth.CheckAccount(epoch, token))
             return status ()
         }
 
@@ -462,19 +298,19 @@ type NexusSession
         task {
             let subject, pending, epoch =
                 lock gate (fun () ->
-                    let subject = boundSubject
+                    let subject = accountState.BoundSubject
                     disconnecting <- true
                     generation <- generation + 1L
                     lifetime.Cancel()
                     lifetime.Dispose()
                     lifetime <- new CancellationTokenSource()
-                    account <- None
+                    accountState.Account <- None
                     downloads.Clear()
                     nxm.Clear()
                     interactions.Clear()
-                    boundSubject <- None
-                    tokens <- None
-                    authorization <- None
+                    accountState.BoundSubject <- None
+                    accountState.Tokens <- None
+                    accountState.Authorization <- None
                     waiting <- false
                     problem <- None
                     changed ()
@@ -505,7 +341,7 @@ type NexusSession
                 if identity.Game <> "skyrimspecialedition" || identity.Mod <= 0L then
                     return Error NexusProblem.NotFound
                 else
-                    let! bearer = access epoch token false
+                    let! bearer = auth.Access(epoch, token, false)
 
                     match bearer with
                     | Error error -> return Error error
@@ -548,7 +384,7 @@ type NexusSession
                 if game <> "skyrimspecialedition" || modId <= 0L || fileId <= 0L then
                     return Error NexusProblem.NotFound
                 else
-                    let! bearer = access epoch token false
+                    let! bearer = auth.Access(epoch, token, false)
 
                     match bearer with
                     | Error error -> return Error error
@@ -574,7 +410,7 @@ type NexusSession
                 if game <> "skyrimspecialedition" || modId <= 0L || fileId <= 0L then
                     return Error NexusProblem.NotFound
                 else
-                    let! bearer = access epoch token false
+                    let! bearer = auth.Access(epoch, token, false)
 
                     match bearer with
                     | Error error -> return Error error
@@ -603,8 +439,8 @@ type NexusSession
             let pending =
                 lock gate (fun () ->
                     lifetime.Cancel()
-                    tokens <- None
-                    authorization <- None
+                    accountState.Tokens <- None
+                    accountState.Authorization <- None
                     downloads.Clear()
                     nxm.Clear()
                     interactions.Clear()
