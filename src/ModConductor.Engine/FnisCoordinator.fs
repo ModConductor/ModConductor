@@ -292,23 +292,8 @@ type FnisCoordinator
     member this.Update(workspace, profile) = this.Install(workspace, profile)
 
     member this.Remove(workspace, profile, token) =
-        task {
-            try
-                let! _ = store.RemoveFnis(workspace, profile, token)
-                do! store.FnisSetups.RemovePending profile
-
-                return!
-                    status.Persist
-                        workspace
-                        profile
-                        { Phase = FnisPhase.Available
-                          Version = FnisCatalogue.SupportedVersion
-                          Status = "FNIS was removed"
-                          Detail =
-                            "Foreign game files and retained component versions were preserved."
-                          FileId = None
-                          ArtifactId = None }
-            with error ->
+        let persistFailure detail =
+            task {
                 let! state = store.Deployments.Read profile
 
                 let recovery =
@@ -331,9 +316,33 @@ type FnisCoordinator
                                 "FNIS removal needs recovery"
                             else
                                 "FNIS removal failed"
-                          Detail = error.Message
+                          Detail = detail
                           FileId = None
                           ArtifactId = None }
+            }
+
+        task {
+            try
+                let! removed = store.RemoveFnis(workspace, profile, token)
+
+                match removed with
+                | Error detail -> return! persistFailure detail
+                | Ok _ ->
+                    do! store.FnisSetups.RemovePending profile
+
+                    return!
+                        status.Persist
+                            workspace
+                            profile
+                            { Phase = FnisPhase.Available
+                              Version = FnisCatalogue.SupportedVersion
+                              Status = "FNIS was removed"
+                              Detail =
+                                "Foreign game files and retained component versions were preserved."
+                              FileId = None
+                              ArtifactId = None }
+            with error ->
+                return! persistFailure error.Message
         }
 
     member _.Recover(workspace, profile, token: CancellationToken) = recover workspace profile token

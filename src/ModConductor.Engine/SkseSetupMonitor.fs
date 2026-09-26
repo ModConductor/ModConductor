@@ -94,7 +94,7 @@ type internal SkseSetupMonitor
                                       Detail = ""
                                       FileId = Some release.File.Id }
 
-                            let! _ =
+                            let! installed =
                                 store.InstallSkse(
                                     fst key,
                                     snd key,
@@ -104,17 +104,30 @@ type internal SkseSetupMonitor
                                     local.Token
                                 )
 
-                            let! _ =
-                                status.Persist
-                                    key
-                                    { Phase = SksePhase.Ready
-                                      GameVersion = gameVersion
-                                      ComponentVersion = string release.ComponentVersion
-                                      Status = "SKSE is current"
-                                      Detail = "Play uses the installed SKSE loader."
-                                      FileId = Some release.File.Id }
+                            match installed with
+                            | Error detail ->
+                                let! _ =
+                                    status.Failed
+                                        key
+                                        gameVersion
+                                        (string release.ComponentVersion)
+                                        (Some release.File.Id)
+                                        "SKSE setup failed"
+                                        detail
 
-                            ()
+                                ()
+                            | Ok _ ->
+                                let! _ =
+                                    status.Persist
+                                        key
+                                        { Phase = SksePhase.Ready
+                                          GameVersion = gameVersion
+                                          ComponentVersion = string release.ComponentVersion
+                                          Status = "SKSE is current"
+                                          Detail = "Play uses the installed SKSE loader."
+                                          FileId = Some release.File.Id }
+
+                                ()
                 with
                 | :? OperationCanceledException when local.IsCancellationRequested -> ()
                 | error ->

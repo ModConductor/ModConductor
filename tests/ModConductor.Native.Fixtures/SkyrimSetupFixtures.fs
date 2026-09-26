@@ -730,7 +730,7 @@ module SkyrimSetupFixtures =
         finally
             releaseSkseGeneration.Set()
 
-        let installedGeneration = installation |> wait
+        let installedGeneration = installation |> wait |> result
         pausedWorkflow.CompleteSkse()
         pausedChanges.Trigger(pausedWorkspace, pausedProfile)
         let finalIntent =

@@ -305,6 +305,7 @@ module EnbFixtures =
                 runtimeOnly = true
             )
             |> wait
+            |> result
 
         let after = data.Read(workspace, profile) |> wait |> result
         let otherAfter = data.Read(workspace, other) |> wait |> result
@@ -329,6 +330,7 @@ module EnbFixtures =
 
         store.RemoveEnb(workspace, profile, CancellationToken.None, runtimeOnly = true)
         |> wait
+        |> result
         |> ignore
 
         let removed = data.Read(workspace, profile) |> wait |> result
@@ -1134,6 +1136,7 @@ module EnbFixtures =
                 CancellationToken.None
             )
             |> wait
+            |> result
 
         let installedState = store.Deployments.Read profile |> wait |> result
         let viewRoot = installedState.RunnableRoot
@@ -1250,6 +1253,7 @@ module EnbFixtures =
                 CancellationToken.None
             )
             |> wait
+            |> result
 
         let conflictPrefs = currentPrefs ()
 
@@ -1341,6 +1345,7 @@ module EnbFixtures =
                 CancellationToken.None
             )
             |> wait
+            |> result
 
         let beforeRuntimeRemoval = store.Deployments.Read profile |> wait |> result
 
@@ -1349,7 +1354,7 @@ module EnbFixtures =
             |> wait
             |> List.filter (fun item -> item.Kind <> "runtime")
 
-        let _ = store.RemoveEnb(workspace, profile, CancellationToken.None, runtimeOnly = true) |> wait
+        let _ = store.RemoveEnb(workspace, profile, CancellationToken.None, runtimeOnly = true) |> wait |> result
         let afterRuntimeRemoval = store.Deployments.Read profile |> wait |> result
 
         let retainedAfter =

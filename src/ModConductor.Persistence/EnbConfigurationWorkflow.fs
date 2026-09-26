@@ -193,78 +193,81 @@ type internal EnbConfigurationWorkflow
             token
         ) =
         task {
-            let fail detail = raise (IO.IOException detail)
             let profiles = profileGameData :> ModConductor.ProfileGameData.IProfileGameData
 
             if previousAction.IsNone then
                 let! state = profiles.Read(workspace, profile)
-                let state = state |> Result.defaultWith (EnbProfile.error >> fail)
 
-                let! document =
-                    profiles.ReadConfiguration(state.Reference, "SkyrimPrefs.ini", token)
+                match state with
+                | Error problem -> return Error(EnbProfile.error problem)
+                | Ok state ->
+                    let! document =
+                        profiles.ReadConfiguration(state.Reference, "SkyrimPrefs.ini", token)
 
-                let document = document |> Result.defaultWith (EnbProfile.error >> fail)
+                    match document with
+                    | Error problem -> return Error(EnbProfile.error problem)
+                    | Ok document ->
 
-                let content, previous =
-                    ModConductor.Enb.EnbSetupPlanning.configureSkyrimPrefs document.Document.Content
+                        let content, previous =
+                            ModConductor.Enb.EnbSetupPlanning.configureSkyrimPrefs
+                                document.Document.Content
 
-                let values = EnbConfigurationEncoding.values previous
+                        let values = EnbConfigurationEncoding.values previous
 
-                do!
-                    enbSetups.StageConfiguration
-                        { ReceiptId = deploymentId
-                          WorkspaceId = workspace
-                          ProfileId = profile
-                          GenerationId = active
-                          Kind = "install"
-                          Phase = "configuration_pending"
-                          Values = values
-                          ActionId = None
-                          Detail = "" }
+                        do!
+                            enbSetups.StageConfiguration
+                                { ReceiptId = deploymentId
+                                  WorkspaceId = workspace
+                                  ProfileId = profile
+                                  GenerationId = active
+                                  Kind = "install"
+                                  Phase = "configuration_pending"
+                                  Values = values
+                                  ActionId = None
+                                  Detail = "" }
 
-                markStaged ()
-                let action = Guid.NewGuid()
+                        markStaged ()
+                        let action = Guid.NewGuid()
 
-                do!
-                    enbSetups.UpdateConfiguration(
-                        deploymentId,
-                        "configuration_pending",
-                        Some action,
-                        "Applying Skyrim graphics settings."
-                    )
+                        do!
+                            enbSetups.UpdateConfiguration(
+                                deploymentId,
+                                "configuration_pending",
+                                Some action,
+                                "Applying Skyrim graphics settings."
+                            )
 
-                let! saved =
-                    profiles.SaveConfiguration(
-                        { Id = action
-                          PreviewId = document.PreviewId
-                          Expected = document.Expected
-                          Name = document.Name
-                          Content = content },
-                        ignore,
-                        token
-                    )
+                        let! saved =
+                            profiles.SaveConfiguration(
+                                { Id = action
+                                  PreviewId = document.PreviewId
+                                  Expected = document.Expected
+                                  Name = document.Name
+                                  Content = content },
+                                ignore,
+                                token
+                            )
 
-                saved
-                |> Result.defaultWith (fun _ ->
-                    fail "Skyrim graphics settings could not be applied.")
-                |> ignore
+                        match saved with
+                        | Error _ -> return Error "Skyrim graphics settings could not be applied."
+                        | Ok _ ->
 
-                do!
-                    enbSetups.UpdateConfiguration(
-                        deploymentId,
-                        "configuration_applied",
-                        Some action,
-                        ""
-                    )
+                            do!
+                                enbSetups.UpdateConfiguration(
+                                    deploymentId,
+                                    "configuration_applied",
+                                    Some action,
+                                    ""
+                                )
 
-                return previous, Some action
+                            return Ok(previous, Some action)
 
             else
-                return Map.empty, previousAction
+                return Ok(Map.empty, previousAction)
         }
 
     member internal this.RestoreFailedEnbInstall
-        (workspace, profile, deploymentId, configurationStaged, error: exn)
+        (workspace, profile, deploymentId, configurationStaged, detail: string)
         =
         task {
             let mutable restorationFailure = None
@@ -275,13 +278,7 @@ type internal EnbConfigurationWorkflow
 
                 match operation with
                 | Some operation when operation.ReceiptId = deploymentId ->
-                    do!
-                        enbSetups.UpdateConfiguration(
-                            deploymentId,
-                            "restore_pending",
-                            None,
-                            error.Message
-                        )
+                    do! enbSetups.UpdateConfiguration(deploymentId, "restore_pending", None, detail)
 
                     let! actionRecovered =
                         this.RecoverEnbConfigurationAction(

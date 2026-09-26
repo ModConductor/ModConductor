@@ -374,6 +374,7 @@ module SkseFixtures =
                 CancellationToken.None
             )
             |> wait
+            |> result
 
         let ordinarySource =
             store.Deployments.Read profile |> wait |> required "ordinary redeploy source"
@@ -482,6 +483,7 @@ module SkseFixtures =
                 CancellationToken.None
             )
             |> wait
+            |> result
 
         let updatedStored =
             store.SkseLoaders.ReadStored(workspace, profile, Some updatedGeneration) |> wait
@@ -652,6 +654,7 @@ module SkseFixtures =
                 CancellationToken.None
             )
             |> wait
+            |> result
 
         let otherInstalled =
             store.SkseLoaders.ReadStored(workspace, otherProfile, Some otherGeneration)
@@ -679,13 +682,14 @@ module SkseFixtures =
                 CancellationToken.None
             )
             |> wait
+            |> result
 
         let reused =
             store.SkseLoaders.ReadStored(workspace, profile, Some reusedGeneration)
             |> wait
             |> Option.get
 
-        store.RemoveSkse(workspace, profile, CancellationToken.None) |> wait |> ignore
+        store.RemoveSkse(workspace, profile, CancellationToken.None) |> wait |> result |> ignore
 
         let restoredGeneration =
             store.InstallSkse(
@@ -697,6 +701,7 @@ module SkseFixtures =
                 CancellationToken.None
             )
             |> wait
+            |> result
 
         let restored =
             store.SkseLoaders.ReadStored(workspace, profile, Some restoredGeneration)
@@ -749,6 +754,7 @@ module SkseFixtures =
                 CancellationToken.None
             )
             |> wait
+            |> result
 
         let importAfterDeletion =
             store.SkseLoaders.ReadStored(workspace, profile, Some afterDeleteGeneration)

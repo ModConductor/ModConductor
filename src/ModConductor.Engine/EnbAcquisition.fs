@@ -43,19 +43,38 @@ type internal EnbAcquisition
                         "Reviewing owned root, Data and configuration targets.")
 
             try
-                let! _ = store.InstallEnb(workspace, profile, row, runtime, available, token)
-                do! store.EnbSetups.RemovePending(profile, None)
+                let! installed =
+                    store.InstallEnb(workspace, profile, row, runtime, available, token)
 
-                return!
-                    persist
-                        workspace
-                        profile
-                        (Some runtime.Id)
-                        runtime.Sha256
-                        (view
-                            EnbPhase.Ready
-                            "Lean ENB is ready"
-                            "Play uses the selected profile generation and its preserved runtime settings.")
+                match installed with
+                | Ok _ ->
+                    do! store.EnbSetups.RemovePending(profile, None)
+
+                    return!
+                        persist
+                            workspace
+                            profile
+                            (Some runtime.Id)
+                            runtime.Sha256
+                            (view
+                                EnbPhase.Ready
+                                "Lean ENB is ready"
+                                "Play uses the selected profile generation and its preserved runtime settings.")
+                | Error detail ->
+                    let conflict =
+                        detail.Contains("owns", StringComparison.OrdinalIgnoreCase)
+                        || detail.Contains("already contains", StringComparison.OrdinalIgnoreCase)
+
+                    return!
+                        persist
+                            workspace
+                            profile
+                            (Some runtime.Id)
+                            runtime.Sha256
+                            (view
+                                (if conflict then EnbPhase.Conflict else EnbPhase.Failed)
+                                "Lean ENB setup failed"
+                                detail)
             with error ->
                 let conflict =
                     error.Message.Contains("owns", StringComparison.OrdinalIgnoreCase)

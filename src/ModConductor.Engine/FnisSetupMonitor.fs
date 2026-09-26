@@ -116,22 +116,25 @@ type internal FnisSetupMonitor
                                       FileId = Some release.File.Id
                                       ArtifactId = Some current.Id }
 
-                            let! _ =
+                            let! installed =
                                 store.InstallFnis(fst key, snd key, release, current, local.Token)
 
-                            let! _ =
-                                persist
-                                    (fst key)
-                                    (snd key)
-                                    { Phase = FnisPhase.Ready
-                                      Version = string release.ComponentVersion
-                                      Status = "FNIS is ready"
-                                      Detail =
-                                        "The Windows generator is registered for this profile. Running it is a separate step."
-                                      FileId = Some release.File.Id
-                                      ArtifactId = Some current.Id }
+                            match installed with
+                            | Error detail -> do! persistFailure key selection current detail
+                            | Ok _ ->
+                                let! _ =
+                                    persist
+                                        (fst key)
+                                        (snd key)
+                                        { Phase = FnisPhase.Ready
+                                          Version = string release.ComponentVersion
+                                          Status = "FNIS is ready"
+                                          Detail =
+                                            "The Windows generator is registered for this profile. Running it is a separate step."
+                                          FileId = Some release.File.Id
+                                          ArtifactId = Some current.Id }
 
-                            ()
+                                ()
                     with
                     | :? OperationCanceledException when local.IsCancellationRequested -> ()
                     | error -> do! persistFailure key selection artifact error.Message

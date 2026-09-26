@@ -71,8 +71,21 @@ type SkseCoordinator
 
     member _.Remove(workspace, profile, token) =
         task {
-            let! _ = store.RemoveSkse(workspace, profile, token)
-            return! reader.Read(workspace, profile)
+            let! removed = store.RemoveSkse(workspace, profile, token)
+
+            match removed with
+            | Ok _ -> return! reader.Read(workspace, profile)
+            | Error detail ->
+                let! current = reader.Read(workspace, profile)
+
+                return!
+                    status.Failed
+                        (workspace, profile)
+                        current.GameVersion
+                        current.ComponentVersion
+                        current.FileId
+                        "SKSE removal failed"
+                        detail
         }
 
     member internal _.Stop() = monitor.Stop()

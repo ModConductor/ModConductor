@@ -22,7 +22,13 @@ type internal FnisWorkflow
                 -> Threading.Tasks.Task<ModConductor.Deployment.PreparedState>),
         fnisCheckpoint: string -> int -> unit
     ) =
-    let fail detail = raise (IO.IOException detail)
+    let cancelledGeneration =
+        function
+        | ModConductor.DeploymentRecovery.RecoveryError.Unavailable detail ->
+            detail = "Deployment preparation was cancelled."
+            || detail = "Generation preparation was cancelled."
+            || detail = "The operation stopped at a recorded boundary."
+        | _ -> false
 
     let savedProfile
         (profile: Guid)
@@ -40,23 +46,26 @@ type internal FnisWorkflow
                             [ "$id", box (string profile) ]
 
                     match query.ExecuteScalar() with
-                    | :? string as value -> value
-                    | _ -> fail "The selected profile is unavailable.")
+                    | :? string as value -> Some value
+                    | _ -> None)
 
-            let retained: ModConductor.DeploymentRecovery.SavedProfile =
-                { Id = profile
-                  Name = name
-                  Revision = sources.Profile.Revision
-                  Mods =
-                    mods
-                    |> List.map (fun selected ->
-                        { ModId = selected.ModId
-                          VersionId = selected.Version |> Option.map _.Id
-                          Priority = selected.Priority
-                          Enabled = selected.Enabled })
-                  Hidden = sources.Hidden }
+            match name with
+            | None -> return Error "The selected profile is unavailable."
+            | Some name ->
+                let retained: ModConductor.DeploymentRecovery.SavedProfile =
+                    { Id = profile
+                      Name = name
+                      Revision = sources.Profile.Revision
+                      Mods =
+                        mods
+                        |> List.map (fun selected ->
+                            { ModId = selected.ModId
+                              VersionId = selected.Version |> Option.map _.Id
+                              Priority = selected.Priority
+                              Enabled = selected.Enabled })
+                      Hidden = sources.Hidden }
 
-            return retained
+                return Ok retained
         }
 
     let checkedComponent workspace profile modId version componentFiles =
@@ -64,40 +73,37 @@ type internal FnisWorkflow
             let! contextResult =
                 (gameContexts :> ModConductor.GameContexts.IGameContexts).Read(workspace, profile)
 
-            let context =
-                contextResult
-                |> Result.defaultWith (fun _ ->
-                    fail "The checked Skyrim installation is unavailable.")
+            match contextResult |> Result.toOption |> Option.bind _.Binding with
+            | None -> return Error "The checked Skyrim installation is unavailable."
+            | Some binding ->
+                let evidence = binding.Evidence
 
-            let evidence =
-                context.Binding
-                |> Option.map _.Evidence
-                |> Option.defaultWith (fun () ->
-                    fail "The checked Skyrim installation is unavailable.")
+                if
+                    evidence.DefinitionId <> ModConductor.GameContexts.Skyrim.definition.Id
+                    || ModConductor.GameContexts.Skyrim.definition.Storefront <> "Steam"
+                then
+                    return Error "FNIS setup supports Skyrim Special Edition from Steam."
+                else
+                    match
+                        ModConductor.GameContexts.ComponentRoots.gameRootId workspace evidence
+                    with
+                    | Error detail -> return Error detail
+                    | Ok gameRoot ->
+                        let reviewed =
+                            ModConductor.DeploymentPlanning.ComponentManifests.review
+                                workspace
+                                gameRoot
+                                ModConductor.GameContexts.Skyrim.definition.TargetPolicy
+                                { ModId = modId
+                                  Version = version
+                                  Priority = 0
+                                  Files = componentFiles }
 
-            if
-                evidence.DefinitionId <> ModConductor.GameContexts.Skyrim.definition.Id
-                || ModConductor.GameContexts.Skyrim.definition.Storefront <> "Steam"
-            then
-                fail "FNIS setup supports Skyrim Special Edition from Steam."
-
-            let gameRoot =
-                ModConductor.GameContexts.ComponentRoots.gameRootId workspace evidence
-                |> Result.defaultWith fail
-
-            let reviewed =
-                ModConductor.DeploymentPlanning.ComponentManifests.review
-                    workspace
-                    gameRoot
-                    ModConductor.GameContexts.Skyrim.definition.TargetPolicy
-                    { ModId = modId
-                      Version = version
-                      Priority = 0
-                      Files = componentFiles }
-                |> Result.defaultWith (fun _ ->
-                    fail "The reviewed FNIS component no longer matches the installed archive.")
-
-            return evidence, reviewed
+                        return
+                            reviewed
+                            |> Result.mapError (fun _ ->
+                                "The reviewed FNIS component no longer matches the installed archive.")
+                            |> Result.map (fun reviewed -> evidence, reviewed)
         }
 
     member internal _.InstallFnis
@@ -109,97 +115,151 @@ type internal FnisWorkflow
             token: Threading.CancellationToken
         ) =
         task {
-            let! artifact, modId, versionId, version, plan =
-                componentInstaller.Install(workspace, release, artifact, token)
+            let! preparation =
+                task {
+                    let! installed = componentInstaller.Install(workspace, release, artifact, token)
 
-            let! evidence, reviewedComponent =
-                checkedComponent workspace profile modId version plan.ComponentFiles
+                    match installed with
+                    | Error detail -> return Error detail
+                    | Ok(artifact, modId, versionId, version, plan) ->
+                        let! componentCheck =
+                            checkedComponent workspace profile modId version plan.ComponentFiles
 
-            let! sources, existing =
-                (deploymentRepository :> ModConductor.Deployment.IDeploymentRepository).Read profile
+                        match componentCheck with
+                        | Error detail -> return Error detail
+                        | Ok(evidence, reviewedComponent) ->
+                            let! sources, existing =
+                                (deploymentRepository
+                                :> ModConductor.Deployment.IDeploymentRepository)
+                                    .Read
+                                    profile
 
-            if sources.Stamp.WorkspaceId <> workspace then
-                fail "The profile deployment is unavailable."
+                            if sources.Stamp.WorkspaceId <> workspace then
+                                return Error "The profile deployment is unavailable."
+                            else
+                                let! previous =
+                                    fnisSetups.ReadStored(
+                                        workspace,
+                                        profile,
+                                        existing |> Option.bind _.Active
+                                    )
 
-            let! previous =
-                fnisSetups.ReadStored(workspace, profile, existing |> Option.bind _.Active)
+                                let previousMod = previous |> Option.map _.ModId
 
-            let previousMod = previous |> Option.map _.ModId
+                                let stagedMods =
+                                    sources.Profile.Mods
+                                    |> List.map (fun selected ->
+                                        if selected.ModId = modId then
+                                            { selected with Enabled = true }
+                                        elif previousMod = Some selected.ModId then
+                                            { selected with Enabled = false }
+                                        else
+                                            selected)
 
-            let stagedMods =
-                sources.Profile.Mods
-                |> List.map (fun selected ->
-                    if selected.ModId = modId then
-                        { selected with Enabled = true }
-                    elif previousMod = Some selected.ModId then
-                        { selected with Enabled = false }
-                    else
-                        selected)
+                                if
+                                    stagedMods
+                                    |> List.exists (fun selected -> selected.ModId = modId)
+                                    |> not
+                                then
+                                    return
+                                        Error
+                                            "The installed FNIS component is unavailable to this profile."
+                                else
+                                    let! retained = savedProfile profile sources stagedMods
 
-            if stagedMods |> List.exists (fun selected -> selected.ModId = modId) |> not then
-                fail "The installed FNIS component is unavailable to this profile."
+                                    return
+                                        retained
+                                        |> Result.map (fun retained ->
+                                            artifact,
+                                            modId,
+                                            versionId,
+                                            plan,
+                                            evidence,
+                                            reviewedComponent,
+                                            sources,
+                                            previousMod,
+                                            retained)
+                }
 
-            let! retained = savedProfile profile sources stagedMods
+            match preparation with
+            | Error detail -> return Error detail
+            | Ok(artifact,
+                 modId,
+                 versionId,
+                 plan,
+                 evidence,
+                 reviewedComponent,
+                 sources,
+                 previousMod,
+                 retained) ->
+                let deploymentId = Guid.NewGuid()
 
-            let deploymentId = Guid.NewGuid()
+                let! prepared =
+                    prepareComponents (
+                        deploymentId,
+                        sources.Stamp,
+                        [ reviewedComponent ],
+                        ignore,
+                        token,
+                        Some retained
+                    )
 
-            let! prepared =
-                prepareComponents (
-                    deploymentId,
-                    sources.Stamp,
-                    [ reviewedComponent ],
-                    ignore,
-                    token,
-                    Some retained
-                )
+                let generator: StoredFnisGenerator =
+                    { GenerationId = prepared.Switch.Generation.Id
+                      ModId = modId
+                      VersionId = versionId
+                      ArtifactId = artifact.Id
+                      FileName = release.File.Name
+                      FileVersion = release.File.Version
+                      Executable = IO.Path.Combine(evidence.RootPath, plan.Generator)
+                      ComponentVersion = string release.ComponentVersion
+                      ArchiveSha256 = artifact.Sha256.Value
+                      Provider = ModConductor.Fnis.FnisCatalogue.Provider
+                      Source = ModConductor.Fnis.FnisCatalogue.Source
+                      Terms = ModConductor.Fnis.FnisCatalogue.Terms
+                      NexusModId = release.ModId
+                      NexusFileId = release.File.Id
+                      AcquiredAt = DateTimeOffset.UtcNow }
 
-            let generator: StoredFnisGenerator =
-                { GenerationId = prepared.Switch.Generation.Id
-                  ModId = modId
-                  VersionId = versionId
-                  ArtifactId = artifact.Id
-                  FileName = release.File.Name
-                  FileVersion = release.File.Version
-                  Executable = IO.Path.Combine(evidence.RootPath, plan.Generator)
-                  ComponentVersion = string release.ComponentVersion
-                  ArchiveSha256 = artifact.Sha256.Value
-                  Provider = ModConductor.Fnis.FnisCatalogue.Provider
-                  Source = ModConductor.Fnis.FnisCatalogue.Source
-                  Terms = ModConductor.Fnis.FnisCatalogue.Terms
-                  NexusModId = release.ModId
-                  NexusFileId = release.File.Id
-                  AcquiredAt = DateTimeOffset.UtcNow }
+                do!
+                    fnisSetups.StageInstall(
+                        deploymentId,
+                        sources.Profile.Revision,
+                        previousMod,
+                        generator,
+                        workspace,
+                        profile
+                    )
 
-            do!
-                fnisSetups.StageInstall(
-                    deploymentId,
-                    sources.Profile.Revision,
-                    previousMod,
-                    generator,
-                    workspace,
-                    profile
-                )
+                let! started = generations.Start(prepared, [], cancellation = token)
 
-            let! started = generations.Start(prepared, [], cancellation = token)
-
-            let receipt =
                 match started with
-                | Ok value -> value
                 | Error _ ->
-                    fnisSetups.RemoveIntent deploymentId
-                    |> fun pending -> pending.GetAwaiter().GetResult()
+                    do! fnisSetups.RemoveIntent deploymentId
+                    return Error "The FNIS deployment could not start."
+                | Ok receipt ->
+                    let! completed =
+                        generations.Run(
+                            receipt.Id,
+                            receipt.Revision,
+                            false,
+                            token,
+                            fnisCheckpoint,
+                            []
+                        )
 
-                    fail "The FNIS deployment could not start."
-
-            let! completed =
-                generations.Run(receipt.Id, receipt.Revision, false, token, fnisCheckpoint, [])
-
-            match completed with
-            | Ok value -> return value.Proposed
-            | Error _ ->
-                return
-                    fail
-                        "The FNIS deployment did not complete. Recover the previous setup before retrying."
+                    match completed with
+                    | Ok value -> return Ok value.Proposed
+                    | Error failure when cancelledGeneration failure ->
+                        return
+                            raise (
+                                IO.IOException
+                                    "The FNIS deployment did not complete. Recover the previous setup before retrying."
+                            )
+                    | Error _ ->
+                        return
+                            Error
+                                "The FNIS deployment did not complete. Recover the previous setup before retrying."
         }
 
     member internal _.RemoveFnis
@@ -210,61 +270,70 @@ type internal FnisWorkflow
                 (deploymentRepository :> ModConductor.Deployment.IDeploymentRepository).Read profile
 
             if sources.Stamp.WorkspaceId <> workspace then
-                fail "The profile deployment is unavailable."
+                return Error "The profile deployment is unavailable."
+            else
+                let active = existing |> Option.bind _.Active
+                let! generator = fnisSetups.ReadStored(workspace, profile, active)
 
-            let active = existing |> Option.bind _.Active
-            let! generator = fnisSetups.ReadStored(workspace, profile, active)
+                match generator with
+                | None -> return Ok active
+                | Some generator ->
+                    let staged =
+                        sources.Profile.Mods
+                        |> List.map (fun selected ->
+                            if selected.ModId = generator.ModId then
+                                { selected with Enabled = false }
+                            else
+                                selected)
 
-            match generator with
-            | None -> return active
-            | Some generator ->
-                let staged =
-                    sources.Profile.Mods
-                    |> List.map (fun selected ->
-                        if selected.ModId = generator.ModId then
-                            { selected with Enabled = false }
-                        else
-                            selected)
+                    let! retained = savedProfile profile sources staged
 
-                let! retained = savedProfile profile sources staged
+                    match retained with
+                    | Error detail -> return Error detail
+                    | Ok retained ->
+                        let deploymentId = Guid.NewGuid()
 
-                let deploymentId = Guid.NewGuid()
+                        let! prepared =
+                            prepareComponents (
+                                deploymentId,
+                                sources.Stamp,
+                                [],
+                                ignore,
+                                token,
+                                Some retained
+                            )
 
-                let! prepared =
-                    prepareComponents (
-                        deploymentId,
-                        sources.Stamp,
-                        [],
-                        ignore,
-                        token,
-                        Some retained
-                    )
+                        do!
+                            fnisSetups.StageRemoval(
+                                deploymentId,
+                                sources.Profile.Revision,
+                                generator.ModId,
+                                prepared.Switch.Generation.Id,
+                                workspace,
+                                profile
+                            )
 
-                do!
-                    fnisSetups.StageRemoval(
-                        deploymentId,
-                        sources.Profile.Revision,
-                        generator.ModId,
-                        prepared.Switch.Generation.Id,
-                        workspace,
-                        profile
-                    )
+                        let! started = generations.Start(prepared, [], cancellation = token)
 
-                let! started = generations.Start(prepared, [], cancellation = token)
+                        match started with
+                        | Error _ ->
+                            do! fnisSetups.RemoveIntent deploymentId
+                            return Error "FNIS removal could not start."
+                        | Ok receipt ->
+                            let! completed =
+                                generations.Run(
+                                    receipt.Id,
+                                    receipt.Revision,
+                                    false,
+                                    token,
+                                    fnisCheckpoint,
+                                    []
+                                )
 
-                let receipt =
-                    match started with
-                    | Ok value -> value
-                    | Error _ ->
-                        fnisSetups.RemoveIntent deploymentId
-                        |> fun pending -> pending.GetAwaiter().GetResult()
-
-                        fail "FNIS removal could not start."
-
-                let! completed =
-                    generations.Run(receipt.Id, receipt.Revision, false, token, fnisCheckpoint, [])
-
-                match completed with
-                | Ok value -> return Some value.Proposed
-                | Error _ -> return fail "FNIS removal needs deployment recovery."
+                            match completed with
+                            | Ok value -> return Ok(Some value.Proposed)
+                            | Error failure when cancelledGeneration failure ->
+                                return
+                                    raise (IO.IOException "FNIS removal needs deployment recovery.")
+                            | Error _ -> return Error "FNIS removal needs deployment recovery."
         }

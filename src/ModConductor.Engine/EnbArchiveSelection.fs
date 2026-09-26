@@ -119,7 +119,7 @@ type internal EnbArchiveSelection
                                                 PresetVersion = "" }
 
                                     try
-                                        let! _ =
+                                        let! installed =
                                             store.InstallEnb(
                                                 workspace,
                                                 profile,
@@ -130,14 +130,31 @@ type internal EnbArchiveSelection
                                                 runtimeOnly = true
                                             )
 
-                                        return!
-                                            persist
-                                                workspace
-                                                profile
-                                                (Some artifact.Id)
-                                                artifact.Sha256
-                                                { view EnbPhase.Ready "ENBSeries is installed" "" with
-                                                    PresetVersion = "" }
+                                        match installed with
+                                        | Ok _ ->
+                                            return!
+                                                persist
+                                                    workspace
+                                                    profile
+                                                    (Some artifact.Id)
+                                                    artifact.Sha256
+                                                    { view
+                                                          EnbPhase.Ready
+                                                          "ENBSeries is installed"
+                                                          "" with
+                                                        PresetVersion = "" }
+                                        | Error detail ->
+                                            return!
+                                                persist
+                                                    workspace
+                                                    profile
+                                                    (Some artifact.Id)
+                                                    artifact.Sha256
+                                                    { view
+                                                          EnbPhase.Failed
+                                                          "ENBSeries setup failed"
+                                                          detail with
+                                                        PresetVersion = "" }
                                     with error ->
                                         return!
                                             persist

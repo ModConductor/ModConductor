@@ -325,7 +325,7 @@ type EnbCoordinator
         else
             task {
                 try
-                    let! _ =
+                    let! removed =
                         store.RemoveEnb(
                             workspace,
                             profile,
@@ -333,8 +333,29 @@ type EnbCoordinator
                             runtimeOnly = defaultArg runtimeOnly false
                         )
 
-                    do! store.EnbSetups.RemovePending(profile, None)
-                    return! persist workspace profile None None (defaultView ())
+                    match removed with
+                    | Ok _ ->
+                        do! store.EnbSetups.RemovePending(profile, None)
+                        return! persist workspace profile None None (defaultView ())
+                    | Error detail ->
+                        return!
+                            persist
+                                workspace
+                                profile
+                                None
+                                None
+                                (view
+                                    (if
+                                         detail.Contains(
+                                             "preserved",
+                                             StringComparison.OrdinalIgnoreCase
+                                         )
+                                     then
+                                         EnbPhase.Conflict
+                                     else
+                                         EnbPhase.Failed)
+                                    "ENB removal needs attention"
+                                    detail)
                 with error ->
                     return!
                         persist
