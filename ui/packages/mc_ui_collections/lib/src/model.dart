@@ -60,57 +60,21 @@ class McCollectionModel<I extends Object, T extends Object>
     Set<I>? visibleIds,
   }) {
     final affected = <I?>{};
-    var changed = false;
-    var projectionChanged = false;
+    var changed = visibleIds != null;
+    var projectionChanged = visibleIds != null;
     if (visibleIds != null) {
       _included = Set.of(visibleIds);
-      projectionChanged = changed = true;
     }
     final deleted = removed.toSet();
     for (final id in {...deleted, ...evicted}) {
-      final old = _rows.remove(id);
-      if (old != null) {
-        _children[parentOf?.call(old)]?.remove(id);
-        _search.remove(id);
-        projectionChanged = true;
-        changed = true;
-      }
-      if (deleted.contains(id)) {
-        if (_selection.remove(id)) changed = true;
-        if (_anchor == id) _anchor = null;
-        _expanded.remove(id);
-        if (_selected == id) {
-          _selected = null;
-          changed = true;
-        }
-        if (_focused == id) {
-          _focused = null;
-          changed = true;
-        }
-      }
+      final delta = _remove(id, deleted.contains(id));
+      changed |= delta.changed;
+      projectionChanged |= delta.projectionChanged;
     }
     for (final row in upserts) {
-      final id = idOf(row), old = _rows[id];
-      if (identical(old, row)) continue;
-      final parent = parentOf?.call(row);
-      final oldParent = old == null ? null : parentOf?.call(old);
-      if (old == null || oldParent != parent) {
-        if (old != null) _children[oldParent]?.remove(id);
-        (_children[parent] ??= []).add(id);
-        projectionChanged = true;
-      }
-      final search = labelOf(row).toLowerCase();
-      if (_query.trim().isNotEmpty && _search[id] != search) {
-        projectionChanged = true;
-      }
-      if (_compare != null &&
-          (old == null || oldParent != parent || _compare!(old, row) != 0)) {
-        affected.add(parent);
-        projectionChanged = true;
-      }
-      _rows[id] = row;
-      _search[id] = search;
-      changed = true;
+      final delta = _upsert(row, affected);
+      changed |= delta.changed;
+      projectionChanged |= delta.projectionChanged;
     }
     if (!changed) return;
     if (_compare != null) {
@@ -120,6 +84,52 @@ class McCollectionModel<I extends Object, T extends Object>
     }
     if (projectionChanged) _project();
     notifyListeners();
+  }
+
+  ({bool changed, bool projectionChanged}) _remove(I id, bool deleted) {
+    final old = _rows.remove(id);
+    if (old != null) {
+      _children[parentOf?.call(old)]?.remove(id);
+      _search.remove(id);
+    }
+    if (!deleted) return (changed: old != null, projectionChanged: old != null);
+    var changed = old != null;
+    if (_selection.remove(id)) changed = true;
+    if (_anchor == id) _anchor = null;
+    _expanded.remove(id);
+    if (_selected == id) {
+      _selected = null;
+      changed = true;
+    }
+    if (_focused == id) {
+      _focused = null;
+      changed = true;
+    }
+    return (changed: changed, projectionChanged: old != null);
+  }
+
+  ({bool changed, bool projectionChanged}) _upsert(T row, Set<I?> affected) {
+    final id = idOf(row), old = _rows[id];
+    if (identical(old, row)) {
+      return (changed: false, projectionChanged: false);
+    }
+    final parent = parentOf?.call(row);
+    final oldParent = old == null ? null : parentOf?.call(old);
+    final moved = old == null || oldParent != parent;
+    if (moved) {
+      if (old != null) _children[oldParent]?.remove(id);
+      (_children[parent] ??= []).add(id);
+    }
+    final search = labelOf(row).toLowerCase();
+    final filterChanged = _query.trim().isNotEmpty && _search[id] != search;
+    final sortChanged = _compare != null && (moved || _compare!(old, row) != 0);
+    if (sortChanged) affected.add(parent);
+    _rows[id] = row;
+    _search[id] = search;
+    return (
+      changed: true,
+      projectionChanged: moved || filterChanged || sortChanged,
+    );
   }
 
   void _sortChildren(List<I> children) {
