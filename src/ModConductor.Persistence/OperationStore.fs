@@ -24,6 +24,21 @@ module private EnbConfigurationEncoding =
             | _ -> None)
         |> Map.ofArray
 
+module private EnbProfile =
+    let error =
+        function
+        | ModConductor.ProfileGameData.ProfileDataError.Invalid detail
+        | ModConductor.ProfileGameData.ProfileDataError.Unavailable detail
+        | ModConductor.ProfileGameData.ProfileDataError.Conflict detail -> detail
+        | ModConductor.ProfileGameData.ProfileDataError.Busy ->
+            "Wait for the current profile settings change."
+        | ModConductor.ProfileGameData.ProfileDataError.Stale ->
+            "The profile settings changed. Try again."
+        | ModConductor.ProfileGameData.ProfileDataError.Cancelled ->
+            "The profile settings change was cancelled."
+        | ModConductor.ProfileGameData.ProfileDataError.NotFound ->
+            "The profile settings are unavailable."
+
 type OperationStore
     (
         directory: string,
@@ -1483,37 +1498,9 @@ type OperationStore
                     |> Result.defaultWith (fun _ -> invalidOp "SKSE removal needs deployment recovery.")
         }
 
-    member internal this.InstallEnb
-        (
-            workspace: Guid,
-            profile: Guid,
-            row: ModConductor.Enb.EnbCompatibilityRow,
-            runtimeArtifact: ModConductor.ArtifactLibrary.Artifact,
-            acquired:
-                (ModConductor.Enb.EnbComponentPin *
-                ModConductor.Nexus.NexusFile *
-                ModConductor.ArtifactLibrary.Artifact) list,
-            token: Threading.CancellationToken,
-            ?runtimeOnly: bool
-        ) =
+    member private _.PrepareEnbTarget(workspace, profile, token) =
         task {
-            let runtimeOnly = defaultArg runtimeOnly false
             let fail detail = raise (IO.IOException detail)
-
-            let profileError =
-                function
-                | ModConductor.ProfileGameData.ProfileDataError.Invalid detail
-                | ModConductor.ProfileGameData.ProfileDataError.Unavailable detail
-                | ModConductor.ProfileGameData.ProfileDataError.Conflict detail -> detail
-                | ModConductor.ProfileGameData.ProfileDataError.Busy ->
-                    "Wait for the current profile settings change."
-                | ModConductor.ProfileGameData.ProfileDataError.Stale ->
-                    "The profile settings changed. Try again."
-                | ModConductor.ProfileGameData.ProfileDataError.Cancelled ->
-                    "The profile settings change was cancelled."
-                | ModConductor.ProfileGameData.ProfileDataError.NotFound ->
-                    "The profile settings are unavailable."
-
             let! contextResult =
                 (gameContexts :> ModConductor.GameContexts.IGameContexts).Read(workspace, profile)
 
@@ -1561,7 +1548,7 @@ type OperationStore
 
             let profiles = profileGameData :> ModConductor.ProfileGameData.IProfileGameData
             let! profileState = profiles.Read(workspace, profile)
-            let profileState = profileState |> Result.defaultWith (profileError >> fail)
+            let profileState = profileState |> Result.defaultWith (EnbProfile.error >> fail)
 
             if not (profileState.Options.Settings && profileState.SettingsInitialized) then
                 let! initialized =
@@ -1575,7 +1562,7 @@ type OperationStore
                         token
                     )
 
-                let initialized = initialized |> Result.defaultWith (profileError >> fail)
+                let initialized = initialized |> Result.defaultWith (EnbProfile.error >> fail)
 
                 if not initialized.Complete then
                     fail (
@@ -1583,151 +1570,256 @@ type OperationStore
                         |> Option.defaultValue "The profile settings could not be initialized."
                     )
 
-            let install
-                (pin: ModConductor.Enb.EnbComponentPin)
-                fileId
-                (artifact: ModConductor.ArtifactLibrary.Artifact)
-                =
-                task {
-                    let! current =
-                        (artifacts :> ModConductor.ArtifactLibrary.IArtifactLibrary)
-                            .Read(workspace, artifact.Id)
+            return gameRoot, evidence, active, priorComponents
+        }
 
-                    let artifact =
-                        current
-                        |> Result.defaultWith (fun _ ->
-                            fail (pin.Name + " archive is unavailable."))
+    member private _.InstallEnbComponent(workspace, gameRoot, pin: ModConductor.Enb.EnbComponentPin, fileId, artifact: ModConductor.ArtifactLibrary.Artifact, token) =
+        let fail detail = raise (IO.IOException detail)
+        task {
+            let! current =
+                (artifacts :> ModConductor.ArtifactLibrary.IArtifactLibrary)
+                    .Read(workspace, artifact.Id)
 
-                    if
-                        artifact.State <> ModConductor.ArtifactLibrary.ArtifactState.Ready
-                        && artifact.State <> ModConductor.ArtifactLibrary.ArtifactState.Installed
-                    then
-                        fail (pin.Name + " archive is not ready.")
+            let artifact =
+                current
+                |> Result.defaultWith (fun _ ->
+                    fail (pin.Name + " archive is unavailable."))
 
-                    let hash =
-                        artifact.Sha256
-                        |> Option.defaultWith (fun () ->
-                            fail (pin.Name + " archive has no verified hash."))
+            if
+                artifact.State <> ModConductor.ArtifactLibrary.ArtifactState.Ready
+                && artifact.State <> ModConductor.ArtifactLibrary.ArtifactState.Installed
+            then
+                fail (pin.Name + " archive is not ready.")
 
-                    let pinned = ModConductor.Enb.EnbCatalogue.withHash hash pin
+            let hash =
+                artifact.Sha256
+                |> Option.defaultWith (fun () ->
+                    fail (pin.Name + " archive has no verified hash."))
 
-                    let reference: ModConductor.ArtifactLibrary.ArtifactRef =
-                        { WorkspaceId = workspace
-                          Id = artifact.Id
-                          Revision = artifact.Revision }
+            let pinned = ModConductor.Enb.EnbCatalogue.withHash hash pin
 
-                    let! draft = installations.Prepare(reference, token)
+            let reference: ModConductor.ArtifactLibrary.ArtifactRef =
+                { WorkspaceId = workspace
+                  Id = artifact.Id
+                  Revision = artifact.Revision }
 
-                    let layout =
-                        match pin.Kind with
-                        | ModConductor.Enb.EnbComponentKind.Runtime ->
-                            ModConductor.Enb.EnbArchiveLayouts.runtime pinned draft.Manifest
-                        | ModConductor.Enb.EnbComponentKind.Preset ->
-                            ModConductor.Enb.EnbArchiveLayouts.leanPreset pinned draft.Manifest
-                        | ModConductor.Enb.EnbComponentKind.Companion ->
-                            ModConductor.Enb.EnbArchiveLayouts.dataCompanion pinned draft.Manifest
-                        |> Result.defaultWith (ModConductor.Enb.EnbProblem.message >> fail)
+            let! draft = installations.Prepare(reference, token)
 
-                    let reviewed =
-                        installations.SelectReviewed(
-                            workspace,
-                            draft.Id,
-                            draft.Revision,
-                            pin.Name,
-                            pin.Version,
-                            layout.Files
+            let layout =
+                match pin.Kind with
+                | ModConductor.Enb.EnbComponentKind.Runtime ->
+                    ModConductor.Enb.EnbArchiveLayouts.runtime pinned draft.Manifest
+                | ModConductor.Enb.EnbComponentKind.Preset ->
+                    ModConductor.Enb.EnbArchiveLayouts.leanPreset pinned draft.Manifest
+                | ModConductor.Enb.EnbComponentKind.Companion ->
+                    ModConductor.Enb.EnbArchiveLayouts.dataCompanion pinned draft.Manifest
+                |> Result.defaultWith (ModConductor.Enb.EnbProblem.message >> fail)
+
+            let reviewed =
+                installations.SelectReviewed(
+                    workspace,
+                    draft.Id,
+                    draft.Revision,
+                    pin.Name,
+                    pin.Version,
+                    layout.Files
+                )
+
+            let installationId = Guid.NewGuid()
+
+            let mutable installed =
+                installations.Start(
+                    workspace,
+                    reviewed.Id,
+                    reviewed.Revision,
+                    installationId
+                )
+
+            while installed.State = ModConductor.ArchiveInstallation.InstallationState.Running do
+                do! installations.WaitForChange(workspace, installationId, installed, token)
+                let! current = installations.Read(workspace, installationId)
+                installed <- current
+
+            do! installations.WaitForWorker(installationId, token)
+
+            if
+                installed.State
+                <> ModConductor.ArchiveInstallation.InstallationState.Complete
+                || installed.ModId.IsNone
+                || installed.VersionId.IsNone
+            then
+                fail (
+                    installed.Problem
+                    |> Option.defaultValue (pin.Name + " installation did not complete.")
+                )
+
+            let! version =
+                database.Enqueue(fun () ->
+                    LibraryRows.version
+                        database.Connection
+                        null
+                        installed.VersionId.Value
+                        0
+                        20001
+                    |> Option.map (fun value -> { value with NextOffset = None }))
+
+            let version =
+                version
+                |> Option.defaultWith (fun () ->
+                    fail (pin.Name + " installed version is unavailable."))
+
+            let reviewedComponent =
+                ModConductor.DeploymentPlanning.ComponentManifests.review
+                    workspace
+                    gameRoot
+                    ModConductor.GameContexts.Skyrim.definition.TargetPolicy
+                    { ModId = installed.ModId.Value
+                      Version = version
+                      Priority = 0
+                      Files = layout.ComponentFiles }
+                |> Result.defaultWith (fun _ ->
+                    fail (pin.Name + " no longer matches its reviewed archive layout."))
+
+            let stored: StoredEnbComponent =
+                { Kind =
+                    match pin.Kind with
+                    | ModConductor.Enb.EnbComponentKind.Runtime -> "runtime"
+                    | ModConductor.Enb.EnbComponentKind.Preset -> "preset"
+                    | ModConductor.Enb.EnbComponentKind.Companion ->
+                        "companion:"
+                        + (pin.NexusModId
+                           |> Option.map string
+                           |> Option.defaultValue pin.Name)
+                  ModId = installed.ModId.Value
+                  VersionId = installed.VersionId.Value
+                  Version = pin.Version
+                  Sha256 = hash
+                  NexusModId = pin.NexusModId
+                  NexusFileId = fileId
+                  Source = pin.Source.AbsoluteUri
+                  Terms = pin.Terms.AbsoluteUri
+                  CheckedAt = DateTimeOffset.UtcNow }
+
+            return reviewedComponent, stored
+        }
+
+
+    member private _.StageEnbConfiguration(workspace, profile, active, deploymentId, previousAction: Guid option, markStaged: unit -> unit, token) =
+        task {
+            let fail detail = raise (IO.IOException detail)
+            let profiles = profileGameData :> ModConductor.ProfileGameData.IProfileGameData
+            if previousAction.IsNone then
+                let! state = profiles.Read(workspace, profile)
+                let state = state |> Result.defaultWith (EnbProfile.error >> fail)
+
+                let! document =
+                    profiles.ReadConfiguration(state.Reference, "SkyrimPrefs.ini", token)
+
+                let document = document |> Result.defaultWith (EnbProfile.error >> fail)
+
+                let content, previous =
+                    ModConductor.Enb.EnbSetupPlanning.configureSkyrimPrefs
+                        document.Document.Content
+
+                let values = EnbConfigurationEncoding.values previous
+
+                do!
+                    enbSetups.StageConfiguration
+                        { ReceiptId = deploymentId
+                          WorkspaceId = workspace
+                          ProfileId = profile
+                          GenerationId = active
+                          Kind = "install"
+                          Phase = "configuration_pending"
+                          Values = values
+                          ActionId = None
+                          Detail = "" }
+
+                markStaged ()
+                let action = Guid.NewGuid()
+
+                do!
+                    enbSetups.UpdateConfiguration(
+                        deploymentId,
+                        "configuration_pending",
+                        Some action,
+                        "Applying Skyrim graphics settings."
+                    )
+
+                let! saved =
+                    profiles.SaveConfiguration(
+                        { Id = action
+                          PreviewId = document.PreviewId
+                          Expected = document.Expected
+                          Name = document.Name
+                          Content = content },
+                        ignore,
+                        token
+                    )
+
+                saved
+                |> Result.defaultWith (fun _ ->
+                    fail "Skyrim graphics settings could not be applied.")
+                |> ignore
+
+                do!
+                    enbSetups.UpdateConfiguration(
+                        deploymentId,
+                        "configuration_applied",
+                        Some action,
+                        ""
+                    )
+
+                return previous, Some action
+
+            else
+                return Map.empty, previousAction
+        }
+
+    member private this.RestoreFailedEnbInstall(workspace, profile, deploymentId, configurationStaged, error: exn) =
+        task {
+            let mutable restorationFailure = None
+            do! enbSetups.RemoveSelection deploymentId
+
+            if configurationStaged then
+                let! operation = enbSetups.ConfigurationOperation(workspace, profile)
+
+                match operation with
+                | Some operation when operation.ReceiptId = deploymentId ->
+                    do!
+                        enbSetups.UpdateConfiguration(
+                            deploymentId,
+                            "restore_pending",
+                            None,
+                            error.Message
                         )
 
-                    let installationId = Guid.NewGuid()
-
-                    let mutable installed =
-                        installations.Start(
-                            workspace,
-                            reviewed.Id,
-                            reviewed.Revision,
-                            installationId
+                    let! actionRecovered =
+                        this.RecoverEnbConfigurationAction(
+                            operation,
+                            Threading.CancellationToken.None
                         )
 
-                    while installed.State = ModConductor.ArchiveInstallation.InstallationState.Running do
-                        do! installations.WaitForChange(workspace, installationId, installed, token)
-                        let! current = installations.Read(workspace, installationId)
-                        installed <- current
+                    let! restored =
+                        match actionRecovered with
+                        | Ok() ->
+                            this.RestoreEnbConfiguration(
+                                operation,
+                                Threading.CancellationToken.None
+                            )
+                        | Error detail -> Threading.Tasks.Task.FromResult(Error detail)
 
-                    do! installations.WaitForWorker(installationId, token)
+                    match restored with
+                    | Error detail -> restorationFailure <- Some detail
+                    | Ok() -> ()
+                | _ -> ()
 
-                    if
-                        installed.State
-                        <> ModConductor.ArchiveInstallation.InstallationState.Complete
-                        || installed.ModId.IsNone
-                        || installed.VersionId.IsNone
-                    then
-                        fail (
-                            installed.Problem
-                            |> Option.defaultValue (pin.Name + " installation did not complete.")
-                        )
+            return restorationFailure
+        }
 
-                    let! version =
-                        database.Enqueue(fun () ->
-                            LibraryRows.version
-                                database.Connection
-                                null
-                                installed.VersionId.Value
-                                0
-                                20001
-                            |> Option.map (fun value -> { value with NextOffset = None }))
-
-                    let version =
-                        version
-                        |> Option.defaultWith (fun () ->
-                            fail (pin.Name + " installed version is unavailable."))
-
-                    let reviewedComponent =
-                        ModConductor.DeploymentPlanning.ComponentManifests.review
-                            workspace
-                            gameRoot
-                            ModConductor.GameContexts.Skyrim.definition.TargetPolicy
-                            { ModId = installed.ModId.Value
-                              Version = version
-                              Priority = 0
-                              Files = layout.ComponentFiles }
-                        |> Result.defaultWith (fun _ ->
-                            fail (pin.Name + " no longer matches its reviewed archive layout."))
-
-                    let stored: StoredEnbComponent =
-                        { Kind =
-                            match pin.Kind with
-                            | ModConductor.Enb.EnbComponentKind.Runtime -> "runtime"
-                            | ModConductor.Enb.EnbComponentKind.Preset -> "preset"
-                            | ModConductor.Enb.EnbComponentKind.Companion ->
-                                "companion:"
-                                + (pin.NexusModId
-                                   |> Option.map string
-                                   |> Option.defaultValue pin.Name)
-                          ModId = installed.ModId.Value
-                          VersionId = installed.VersionId.Value
-                          Version = pin.Version
-                          Sha256 = hash
-                          NexusModId = pin.NexusModId
-                          NexusFileId = fileId
-                          Source = pin.Source.AbsoluteUri
-                          Terms = pin.Terms.AbsoluteUri
-                          CheckedAt = DateTimeOffset.UtcNow }
-
-                    return reviewedComponent, stored
-                }
-
-            let! runtime = install row.Runtime None runtimeArtifact
-            let mutable installed = [ runtime ]
-
-            for pin, file, artifact in acquired do
-                let! value = install pin (Some file.Id) artifact
-                installed <- installed @ [ value ]
-
-            let components = installed |> List.map fst
-            let records =
-                (installed |> List.map snd)
-                @ (if runtimeOnly then priorComponents |> List.filter (fun value -> value.Kind <> "runtime") else [])
-
+    member private _.PrepareEnbSelection(workspace, profile, active, records: StoredEnbComponent list, priorComponents: StoredEnbComponent list) =
+        task {
+            let fail detail = raise (IO.IOException detail)
             let! sources, existing =
                 (deploymentRepository :> ModConductor.Deployment.IDeploymentRepository)
                     .Read(profile)
@@ -1786,6 +1878,47 @@ type OperationStore
                           Enabled = selected.Enabled })
                   Hidden = sources.Hidden }
 
+            return sources, desired, retained
+        }
+
+    member internal this.InstallEnb
+        (
+            workspace: Guid,
+            profile: Guid,
+            row: ModConductor.Enb.EnbCompatibilityRow,
+            runtimeArtifact: ModConductor.ArtifactLibrary.Artifact,
+            acquired:
+                (ModConductor.Enb.EnbComponentPin *
+                ModConductor.Nexus.NexusFile *
+                ModConductor.ArtifactLibrary.Artifact) list,
+            token: Threading.CancellationToken,
+            ?runtimeOnly: bool
+        ) =
+        task {
+            let runtimeOnly = defaultArg runtimeOnly false
+            let fail detail = raise (IO.IOException detail)
+
+            let! gameRoot, evidence, active, priorComponents =
+                this.PrepareEnbTarget(workspace, profile, token)
+
+            let install pin fileId artifact =
+                this.InstallEnbComponent(workspace, gameRoot, pin, fileId, artifact, token)
+
+            let! runtime = install row.Runtime None runtimeArtifact
+            let mutable installed = [ runtime ]
+
+            for pin, file, artifact in acquired do
+                let! value = install pin (Some file.Id) artifact
+                installed <- installed @ [ value ]
+
+            let components = installed |> List.map fst
+            let records =
+                (installed |> List.map snd)
+                @ (if runtimeOnly then priorComponents |> List.filter (fun value -> value.Kind <> "runtime") else [])
+
+            let! sources, desired, retained =
+                this.PrepareEnbSelection(workspace, profile, active, records, priorComponents)
+
             let deploymentId = Guid.NewGuid()
             let! previousConfiguration = enbSetups.ConfigurationPlan(workspace, profile, active)
             let previousAction = previousConfiguration |> Option.bind snd
@@ -1794,70 +1927,14 @@ type OperationStore
             let mutable configurationStaged = false
 
             try
-                if previousAction.IsNone then
-                    let! state = profiles.Read(workspace, profile)
-                    let state = state |> Result.defaultWith (profileError >> fail)
+                let! stagedPriorValues, stagedAction =
+                    this.StageEnbConfiguration(
+                        workspace, profile, active, deploymentId, previousAction,
+                        (fun () -> configurationStaged <- true), token
+                    )
 
-                    let! document =
-                        profiles.ReadConfiguration(state.Reference, "SkyrimPrefs.ini", token)
-
-                    let document = document |> Result.defaultWith (profileError >> fail)
-
-                    let content, previous =
-                        ModConductor.Enb.EnbSetupPlanning.configureSkyrimPrefs
-                            document.Document.Content
-
-                    priorValues <- previous
-                    let values = EnbConfigurationEncoding.values previous
-
-                    do!
-                        enbSetups.StageConfiguration
-                            { ReceiptId = deploymentId
-                              WorkspaceId = workspace
-                              ProfileId = profile
-                              GenerationId = active
-                              Kind = "install"
-                              Phase = "configuration_pending"
-                              Values = values
-                              ActionId = None
-                              Detail = "" }
-
-                    configurationStaged <- true
-                    let action = Guid.NewGuid()
-
-                    do!
-                        enbSetups.UpdateConfiguration(
-                            deploymentId,
-                            "configuration_pending",
-                            Some action,
-                            "Applying Skyrim graphics settings."
-                        )
-
-                    let! saved =
-                        profiles.SaveConfiguration(
-                            { Id = action
-                              PreviewId = document.PreviewId
-                              Expected = document.Expected
-                              Name = document.Name
-                              Content = content },
-                            ignore,
-                            token
-                        )
-
-                    saved
-                    |> Result.defaultWith (fun _ ->
-                        fail "Skyrim graphics settings could not be applied.")
-                    |> ignore
-
-                    do!
-                        enbSetups.UpdateConfiguration(
-                            deploymentId,
-                            "configuration_applied",
-                            Some action,
-                            ""
-                        )
-
-                    configurationAction <- Some action
+                priorValues <- stagedPriorValues
+                configurationAction <- stagedAction
 
                 let! prepared =
                     task {
@@ -1994,41 +2071,10 @@ type OperationStore
 
                     return fail "The ENB deployment did not complete."
             with error ->
-                let mutable restorationFailure = None
-                do! enbSetups.RemoveSelection deploymentId
-
-                if configurationStaged then
-                    let! operation = enbSetups.ConfigurationOperation(workspace, profile)
-
-                    match operation with
-                    | Some operation when operation.ReceiptId = deploymentId ->
-                        do!
-                            enbSetups.UpdateConfiguration(
-                                deploymentId,
-                                "restore_pending",
-                                None,
-                                error.Message
-                            )
-
-                        let! actionRecovered =
-                            this.RecoverEnbConfigurationAction(
-                                operation,
-                                Threading.CancellationToken.None
-                            )
-
-                        let! restored =
-                            match actionRecovered with
-                            | Ok() ->
-                                this.RestoreEnbConfiguration(
-                                    operation,
-                                    Threading.CancellationToken.None
-                                )
-                            | Error detail -> Threading.Tasks.Task.FromResult(Error detail)
-
-                        match restored with
-                        | Error detail -> restorationFailure <- Some detail
-                        | Ok() -> ()
-                    | _ -> ()
+                let! restorationFailure =
+                    this.RestoreFailedEnbInstall(
+                        workspace, profile, deploymentId, configurationStaged, error
+                    )
 
                 return
                     match restorationFailure with

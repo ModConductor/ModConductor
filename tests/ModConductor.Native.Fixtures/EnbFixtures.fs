@@ -1193,11 +1193,17 @@ module EnbFixtures =
 
         interrupt <- false
         let afterInterruption = store.Deployments.Read profile |> wait |> result
+        let afterInterruptionComponents =
+            store.EnbSetups.Components(workspace, profile, afterInterruption.ActiveGeneration)
+            |> wait
 
         let recovered =
             interrupted
             && afterInterruption.ActiveGeneration = Some installedGeneration
             && afterInterruption.PendingReceipt.IsNone
+            && (afterInterruptionComponents |> List.map _.ModId)
+               = (installedComponents |> List.map _.ModId)
+            && File.ReadAllText(prefs).Contains("bSAOEnable=0")
 
         let currentPrefs () =
             let state = store.ProfileGameData.Read(workspace, profile) |> wait |> result
