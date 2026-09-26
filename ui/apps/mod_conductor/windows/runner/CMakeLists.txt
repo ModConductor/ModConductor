@@ -10,6 +10,8 @@ add_executable(${BINARY_NAME} WIN32
   "flutter_window.cpp"
   "main.cpp"
   "desktop_instance.cpp"
+  "desktop_identity.cpp"
+  "desktop_handoff.cpp"
   "../../runner/nxm_delivery.cc"
   "utils.cpp"
   "win32_window.cpp"
