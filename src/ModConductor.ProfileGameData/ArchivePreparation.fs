@@ -15,13 +15,10 @@ module internal ArchivePreparation =
             | None -> ()
 
     let private profileSettings (profile: PrivateProfileData) =
-        profile.Settings
-        |> Option.defaultWith (fun () ->
-            raise (
-                ProfileDataException(
-                    ProfileDataError.Unavailable "The profile settings folder is not initialized."
-                )
-            ))
+        match profile.Settings with
+        | Some root -> Ok root
+        | None ->
+            Error(ProfileDataError.Unavailable "The profile settings folder is not initialized.")
 
     let private read (root: DataRoot) declared token =
         use held = HeldDirectory.Open(root.Path, root.Identity)
@@ -41,23 +38,25 @@ module internal ArchivePreparation =
                 match patch, bytes with
                 | Some patch, Some bytes -> Ini.removeArchives patch bytes
                 | Some _, None ->
-                    raise (
-                        System.IO.IOException
+                    Error(
+                        ProfileDataError.Unavailable
                             "The active Skyrim archive list changed. Read it again before applying."
                     )
-                | None, bytes -> bytes
+                | None, bytes -> Ok bytes
 
-            let desired, next = Ini.applyArchives request.Names canonical
-            Some desired, Some next
+            canonical
+            |> Result.bind (Ini.applyArchives request.Names)
+            |> Result.map (fun (desired, next) -> Some desired, Some next)
         | ProfileDataActionKind.RestoreArchives ->
             match patch, bytes with
-            | Some patch, Some bytes -> Ini.removeArchives patch bytes, None
+            | Some patch, Some bytes ->
+                Ini.removeArchives patch bytes |> Result.map (fun restored -> restored, None)
             | Some _, None ->
-                raise (
-                    System.IO.IOException
+                Error(
+                    ProfileDataError.Unavailable
                         "The active Skyrim archive list changed. Read it again before restoration."
                 )
-            | None, bytes -> bytes, None
+            | None, bytes -> Ok(bytes, None)
         | _ -> invalidOp "Use the archive action owner."
 
     let prepare
@@ -68,7 +67,7 @@ module internal ArchivePreparation =
         (incoming: PrivateProfileData)
         (token: CancellationToken)
         =
-        task {
+        ProfileDataResultTask.resultTask {
             if initialAction.Prepared then
                 return initialContext, initialAction
             else
@@ -81,17 +80,17 @@ module internal ArchivePreparation =
                         | Ok snapshot -> archives.Verify(snapshot, token)
                         | Error error -> System.Threading.Tasks.Task.FromResult(Error error)
 
-                    match current with
-                    | Ok() -> ()
-                    | _ -> raise (ProfileDataException ProfileDataError.Stale)
+                    do!
+                        match current with
+                        | Ok() -> Ok()
+                        | _ -> Error ProfileDataError.Stale
 
                     if not incoming.Options.Settings || not incoming.SettingsInitialized then
-                        raise (
-                            ProfileDataException(
+                        return!
+                            Error(
                                 ProfileDataError.Unavailable
                                     "Enable and initialize profile settings before changing Skyrim archives."
                             )
-                        )
                 | ProfileDataActionKind.RestoreArchives -> ()
                 | _ -> invalidOp "Use the archive action owner."
 
@@ -101,20 +100,19 @@ module internal ArchivePreparation =
                 clean action.WorkspaceStage.Value token
                 clean action.DocumentsStage.Value token
 
-                let profileRoot = profileSettings incoming
+                let! profileRoot = profileSettings incoming
                 let profileName, profileBefore, profileBytes = read profileRoot "Skyrim.ini" token
 
                 match action.Kind with
                 | ProfileDataActionKind.ApplyArchives request when
                     profileName <> request.IniName || profileBefore <> request.Ini
                     ->
-                    raise (ProfileDataException ProfileDataError.Stale)
+                    return! Error ProfileDataError.Stale
                 | _ -> ()
 
                 let previousProfile = incoming.ArchiveList |> Option.map _.Profile
 
-                let desiredProfile, nextProfile =
-                    rewrite action.Kind previousProfile profileBytes
+                let! desiredProfile, nextProfile = rewrite action.Kind previousProfile profileBytes
 
                 use workspace =
                     HeldDirectory.Open(
@@ -168,8 +166,7 @@ module internal ArchivePreparation =
                         |> Option.bind (fun receipt ->
                             receipt.Documents |> Option.orElse (Some receipt.Profile))
 
-                    let desiredGlobal, patch =
-                        rewrite action.Kind previousDocuments globalBytes
+                    let! desiredGlobal, patch = rewrite action.Kind previousDocuments globalBytes
 
                     nextDocuments <- patch
 

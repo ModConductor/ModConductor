@@ -43,22 +43,20 @@ module internal ProfileDataActionPreparation =
                                       Saves = active.Options.Saves && options.Saves } }
                     | _ -> None
 
-                return incoming, Some changed
+                return Ok(incoming, Some changed)
             | ProfileDataActionKind.Apply
             | ProfileDataActionKind.ApplyArchives _
             | ProfileDataActionKind.RestoreArchives
             | ProfileDataActionKind.SaveFiles _ ->
                 let! privateData = DataInitialization.profile repository context action.ProfileId
 
-                return Some privateData, None
-            | ProfileDataActionKind.Restore -> return None, None
+                return Ok(Some privateData, None)
+            | ProfileDataActionKind.Restore -> return Ok(None, None)
             | ProfileDataActionKind.EditConfiguration _ ->
-                let privateData =
-                    scope.Profile
-                    |> Option.defaultWith (fun () ->
-                        raise (ProfileDataException ProfileDataError.NotFound))
-
-                return Some privateData, None
+                return
+                    match scope.Profile with
+                    | Some privateData -> Ok(Some privateData, None)
+                    | None -> Error ProfileDataError.NotFound
             | ProfileDataActionKind.Clone _
             | ProfileDataActionKind.Delete _ -> return invalidOp "Use the profile mutation owner."
         }
@@ -102,9 +100,21 @@ module internal ProfileDataActionPreparation =
                         receipt
                         token
 
-                return context, prepared
+                return prepared |> Result.map (fun action -> context, action)
             }
-        | _ -> DataActionPreparation.prepare repository context action incoming desiredPlugins token
+        | _ ->
+            task {
+                let! prepared =
+                    DataActionPreparation.prepare
+                        repository
+                        context
+                        action
+                        incoming
+                        desiredPlugins
+                        token
+
+                return Ok prepared
+            }
 
     let finishDeletion
         (repository: IProfileDataRepository)

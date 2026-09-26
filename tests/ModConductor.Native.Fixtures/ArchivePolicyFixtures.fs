@@ -74,9 +74,9 @@ module ArchivePolicyFixtures =
         let codecsRoundTrip =
             encoded
             |> List.forall (fun bytes ->
-                let changed, receipt = Ini.applyArchives [ "One.bsa" ] (Some bytes)
+                let changed, receipt = Ini.applyArchives [ "One.bsa" ] (Some bytes) |> result
                 let visible = Ini.archiveEntries changed |> List.map _.Name
-                visible = [ "One.bsa" ] && Ini.removeArchives receipt changed = Some bytes)
+                visible = [ "One.bsa" ] && (Ini.removeArchives receipt changed = Ok(Some bytes)))
 
         writer.WriteBoolean(
             "supportedEncodingsAndStaleList2RoundTrip",
@@ -109,9 +109,9 @@ module ArchivePolicyFixtures =
             SkyrimArchives.required
             @ [ "QuietRivers.bsa" ]
 
-        let applied, receipt = Ini.applyArchives names (Some original)
+        let applied, receipt = Ini.applyArchives names (Some original) |> result
         let entries = Ini.archiveEntries applied
-        let restored = Ini.removeArchives receipt applied
+        let restored = Ini.removeArchives receipt applied |> result
 
         writer.WriteBoolean(
             "iniEncodingCommentsAndRestoreAreByteExact",
@@ -138,16 +138,30 @@ module ArchivePolicyFixtures =
             |> Encoding.Unicode.GetBytes
             |> fun bytes -> Array.append (Encoding.Unicode.GetPreamble()) bytes
 
-        let mutable refused = false
-
-        try
-            Ini.removeArchives receipt changed |> ignore
-        with :? IOException ->
-            refused <- true
+        let refused =
+            match Ini.removeArchives receipt changed with
+            | Error(ProfileDataError.Unavailable detail) ->
+                detail = "The active Skyrim archive list changed. Read it again before restoration."
+            | _ -> false
 
         writer.WriteBoolean(
             "changedIniRefusesRestore",
             check "changedIniRefusesRestore" refused
+        )
+
+        let overlong =
+            [ "First"; "Second"; "Third" ]
+            |> List.map (fun prefix -> prefix + String('A', 200) + ".bsa")
+            |> fun names -> Ini.applyArchives names (Some original)
+
+        writer.WriteBoolean(
+            "archiveNamesThatExceedTwoKeysAreRejected",
+            check
+                "archiveNamesThatExceedTwoKeysAreRejected"
+                (match overlong with
+                 | Error(ProfileDataError.Invalid detail) ->
+                     detail = "The Skyrim archive list does not fit its two keys."
+                 | _ -> false)
         )
 
     let private observeResolution (writer: Utf8JsonWriter) =

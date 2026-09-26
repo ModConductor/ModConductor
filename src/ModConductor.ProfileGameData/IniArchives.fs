@@ -1,7 +1,6 @@
 namespace ModConductor.ProfileGameData
 
 open System
-open System.IO
 open ModConductor.ProfileGameData.IniDocument
 
 module internal IniArchives =
@@ -29,29 +28,33 @@ module internal IniArchives =
 
                           position <- position + 1 ]
 
-    let private archiveValues names =
+    let archiveValues names =
         let joined = String.concat ", " names
 
         if joined.Length <= 255 then
-            joined, None
+            Ok(joined, None)
         else
             let search = min 256 (joined.Length - 1)
             let split = joined.LastIndexOf(',', search)
 
             if split < 0 then
-                raise (IOException "The Skyrim archive list cannot be split between its two keys.")
+                Error(
+                    ProfileDataError.Invalid
+                        "The Skyrim archive list cannot be split between its two keys."
+                )
+            else
+                let first = joined.Substring(0, split)
+                let second = joined.Substring(split + 1).TrimStart()
 
-            let first = joined.Substring(0, split)
-            let second = joined.Substring(split + 1).TrimStart()
+                if first.Length > 256 || second.Length > 255 then
+                    Error(
+                        ProfileDataError.Invalid
+                            "The Skyrim archive list does not fit its two keys."
+                    )
+                else
+                    Ok(first, Some second)
 
-            if first.Length > 256 || second.Length > 255 then
-                raise (IOException "The Skyrim archive list does not fit its two keys.")
-
-            first, Some second
-
-    let applyArchives names (original: byte array option) =
-        let bytes = original |> Option.defaultValue [||]
-
+    let validateNames names =
         if
             List.isEmpty names
             || names
@@ -60,9 +63,12 @@ module internal IniArchives =
                    || name <> name.Trim()
                    || name.IndexOfAny([| ','; '\r'; '\n'; '\000'; '/'; '\\' |]) >= 0)
         then
-            invalidArg (nameof names) "Choose valid Skyrim archive filenames."
+            Error(ProfileDataError.Invalid "Choose valid Skyrim archive filenames.")
+        else
+            archiveValues names |> Result.map ignore
 
-        let first, second = archiveValues names
+    let private applyValues first second (original: byte array option) =
+        let bytes = original |> Option.defaultValue [||]
         let kind, text = decode bytes
         let content = lines text
 
@@ -128,64 +134,88 @@ module internal IniArchives =
           Separator = separator
           AbsentFile = original.IsNone }
 
-    let removeArchives (patch: ArchiveListOverride) bytes =
-        let kind, text = decode bytes
-        let content = lines text
-        let header, _ = locateSettings "Archive" archiveKeys content
+    let applyArchives names original =
+        validateNames names
+        |> Result.bind (fun () -> archiveValues names)
+        |> Result.map (fun (first, second) -> applyValues first second original)
 
-        for patchLine in patch.Lines |> List.rev do
-            let _, found = locateSettings "Archive" archiveKeys content
+    let private restoreLine (content: ResizeArray<string>) patchLine =
+        let _, found = locateSettings "Archive" archiveKeys content
 
-            match found |> List.tryFind (fun (name, _, _) -> name = patchLine.Key) with
-            | Some(_, index, value) when value = patchLine.Value ->
-                match patchLine.PreviousLine with
-                | Some previous -> content[index] <- previous
-                | None -> content.RemoveAt index
-            | _ ->
-                raise (
-                    IOException
-                        "The active Skyrim archive list changed. Read it again before restoration."
-                )
+        match found |> List.tryFind (fun (name, _, _) -> name = patchLine.Key) with
+        | Some(_, index, value) when value = patchLine.Value ->
+            match patchLine.PreviousLine with
+            | Some previous -> content[index] <- previous
+            | None -> content.RemoveAt index
 
-        match header with
-        | Some index when patch.AddedSection ->
-            let hasValues =
-                content
-                |> Seq.skip (index + 1)
-                |> Seq.takeWhile (section >> Option.isNone)
-                |> Seq.exists (String.IsNullOrWhiteSpace >> not)
+            Ok()
+        | _ ->
+            Error(
+                ProfileDataError.Unavailable
+                    "The active Skyrim archive list changed. Read it again before restoration."
+            )
 
-            if not hasValues then
-                content.RemoveAt index
-        | _ -> ()
-
-        match patch.Separator with
-        | IniSeparatorOverride.None -> ()
+    let private restoreSeparator (content: ResizeArray<string>) separator =
+        match separator with
+        | IniSeparatorOverride.None -> Ok()
         | IniSeparatorOverride.SectionHeader previous ->
             let currentHeader, _ = locateSettings "Archive" archiveKeys content
 
             match currentHeader with
             | Some index when content[index] = previous + ending content[index] ->
                 content[index] <- previous
+                Ok()
             | Some index when content[index].TrimEnd('\r', '\n') = previous ->
                 content[index] <- previous
+                Ok()
             | _ ->
-                raise (
-                    IOException
+                Error(
+                    ProfileDataError.Unavailable
                         "The active Skyrim archive section changed. Read it again before restoration."
                 )
         | IniSeparatorOverride.FileTail previous ->
             if content.Count > 0 && content[content.Count - 1].TrimEnd('\r', '\n') = previous then
                 content[content.Count - 1] <- previous
+                Ok()
             elif content.Count <> 0 then
-                raise (
-                    IOException
+                Error(
+                    ProfileDataError.Unavailable
                         "The active Skyrim settings changed. Read them again before restoration."
                 )
+            else
+                Ok()
 
-        let result = encode kind (String.Concat content)
+    let removeArchives (patch: ArchiveListOverride) bytes =
+        let kind, text = decode bytes
+        let content = lines text
+        let header, _ = locateSettings "Archive" archiveKeys content
 
-        if patch.AbsentFile && result.Length = 0 then
-            None
-        else
-            Some result
+        let restored =
+            patch.Lines
+            |> List.rev
+            |> List.fold
+                (fun state line -> state |> Result.bind (fun () -> restoreLine content line))
+                (Ok())
+
+        restored
+        |> Result.bind (fun () ->
+            match header with
+            | Some index when patch.AddedSection ->
+                let hasValues =
+                    content
+                    |> Seq.skip (index + 1)
+                    |> Seq.takeWhile (section >> Option.isNone)
+                    |> Seq.exists (String.IsNullOrWhiteSpace >> not)
+
+                if not hasValues then
+                    content.RemoveAt index
+            | _ -> ()
+
+            restoreSeparator content patch.Separator)
+        |> Result.map (fun () ->
+            let result = encode kind (String.Concat content)
+
+            if patch.AbsentFile && result.Length = 0 then
+                None
+            else
+                Some result)

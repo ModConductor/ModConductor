@@ -5,10 +5,6 @@ open System.Threading
 open ModConductor.Platform
 
 module internal SavePreparation =
-    let private checkReceipt scope receipt token =
-        SaveGroups.checkReceipt scope receipt token
-        |> Result.defaultWith (fun error -> raise (ProfileDataException error))
-
     let private clear (root: DataRoot) =
         use directory = HeldDirectory.Open(root.Path, root.Identity)
 
@@ -28,7 +24,7 @@ module internal SavePreparation =
         (token: CancellationToken)
         progress
         =
-        task {
+        ProfileDataResultTask.resultTask {
             if action.Prepared then
                 return context, action
             else
@@ -37,7 +33,7 @@ module internal SavePreparation =
                     | ProfileDataActionKind.SaveFiles value -> value
                     | _ -> invalidOp "Use save preparation only for save actions."
 
-                checkReceipt scope receipt token
+                do! SaveGroups.checkReceipt scope receipt token
 
                 let changed =
                     { profile with
@@ -50,7 +46,8 @@ module internal SavePreparation =
                     let mutable copied = 0L
                     let effects = ResizeArray<ProfileDataFilesEffect>()
 
-                    for index, file in receipt.Files |> List.indexed do
+                    receipt.Files
+                    |> List.iteri (fun index file ->
                         token.ThrowIfCancellationRequested()
                         let source = file.Source.Value
                         use sourceRoot = HeldDirectory.Open(source.Root.Path, source.Root.Identity)
@@ -89,9 +86,9 @@ module internal SavePreparation =
                                         { Root = staged.WorkspaceStage.Value
                                           Name = stagedName
                                           File = replacement }
-                                  BackupName = "save-original-" + string index } }
+                                  BackupName = "save-original-" + string index } })
 
-                    checkReceipt scope receipt token
+                    do! SaveGroups.checkReceipt scope receipt token
 
                     let prepared =
                         { staged with

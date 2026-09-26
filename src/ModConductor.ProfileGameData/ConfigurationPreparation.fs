@@ -4,10 +4,6 @@ open System
 open ModConductor.Platform
 
 module internal ConfigurationPreparation =
-    let private actualName held name =
-        ConfigurationFiles.actualName held name
-        |> Result.defaultWith (fun error -> raise (ProfileDataException error))
-
     let prepare
         (repository: IProfileDataRepository)
         (context: ProfileDataContext)
@@ -16,7 +12,7 @@ module internal ConfigurationPreparation =
         (receipt: ConfigurationEditReceipt)
         token
         =
-        task {
+        ProfileDataResultTask.resultTask {
             if action.Prepared then
                 return action
             else
@@ -42,7 +38,7 @@ module internal ConfigurationPreparation =
 
                 let settings = profile.Settings.Value
                 use target = HeldDirectory.Open(settings.Path, settings.Identity)
-                let actual = actualName target receipt.Name
+                let! actual = ConfigurationFiles.actualName target receipt.Name
 
                 if actual <> receipt.Name && receipt.Before.IsNone then
                     DataFiles.fail (receipt.Name + " changed.")

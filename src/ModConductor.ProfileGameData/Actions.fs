@@ -60,107 +60,132 @@ module internal ProfileDataActions =
             let mutable action = { initial with Problem = None }
             let mutable changed = initial.ChangedProfile
 
-            try
-                let! incoming, initialized =
-                    ProfileDataActionPreparation.prepareIncoming
-                        repository
-                        scope
-                        context
-                        action
-                        token
-                        progress
-
-                match initialized with
-                | Some profile -> changed <- Some profile
-                | None -> ()
-
-                let affectsGame = ProfileDataActionPreparation.affectsGame context action
-
-                let appliesFiles =
-                    affectsGame
-                    || match action.Kind with
-                       | ProfileDataActionKind.EditConfiguration _ -> true
-                       | _ -> false
-
-                if appliesFiles && action.Deletion.IsNone then
-                    if affectsGame then
-                        stopped scope.Game
-
-                    let! updatedContext, prepared =
-                        ProfileDataActionPreparation.prepareEffects
+            let runAction () =
+                ProfileDataResultTask.resultTask {
+                    let! incomingResult =
+                        ProfileDataActionPreparation.prepareIncoming
                             repository
-                            archives
-                            desiredPlugins
                             scope
                             context
                             action
-                            incoming
                             token
                             progress
 
-                    context <- updatedContext
-                    action <- prepared
+                    let! incoming, initialized = incomingResult
 
-                    match action.ChangedProfile with
+                    match initialized with
                     | Some profile -> changed <- Some profile
                     | None -> ()
 
+                    let affectsGame = ProfileDataActionPreparation.affectsGame context action
+
+                    let appliesFiles =
+                        affectsGame
+                        || match action.Kind with
+                           | ProfileDataActionKind.EditConfiguration _ -> true
+                           | _ -> false
+
+                    if appliesFiles && action.Deletion.IsNone then
+                        if affectsGame then
+                            stopped scope.Game
+
+                        let! preparation =
+                            ProfileDataActionPreparation.prepareEffects
+                                repository
+                                archives
+                                desiredPlugins
+                                scope
+                                context
+                                action
+                                incoming
+                                token
+                                progress
+
+                        let! updatedContext, prepared = preparation
+                        context <- updatedContext
+                        action <- prepared
+
+                        match action.ChangedProfile with
+                        | Some profile -> changed <- Some profile
+                        | None -> ()
+
+                        do! report action
+
+                        let save current =
+                            task {
+                                do! repository.SaveAction current
+                                action <- current
+                                do! report current
+                            }
+
+                        let! applied = DataEffects.run context action save token checkpoint
+
+                        action <-
+                            { applied with
+                                Proposed =
+                                    applied.Proposed
+                                    |> Option.map (fun current ->
+                                        { current with
+                                            SaveLink = applied.LinkCreated }) }
+                    else
+                        action <- { action with Prepared = true }
+
+                    let! completedAction, completedProfile =
+                        ProfileDataActionPreparation.finishDeletion
+                            repository
+                            action
+                            changed
+                            token
+                            progress
+
+                    action <- completedAction
+                    changed <- completedProfile
+
+                    do! repository.Complete(context, changed, action)
+                    action <- { action with Complete = true }
                     do! report action
+                    let! state = read scope.WorkspaceId scope.ProfileId
 
-                    let save current =
-                        task {
-                            do! repository.SaveAction current
-                            action <- current
-                            do! report current
-                        }
+                    return
+                        { Id = action.Id
+                          State = state
+                          Complete = true
+                          NoChange = false
+                          CompletedFiles =
+                            action.CompletedFiles
+                            + (action.Deletion
+                               |> Option.map _.CompletedFiles
+                               |> Option.defaultValue 0)
+                          Problem = None }
+                }
 
-                    let! applied = DataEffects.run context action save token checkpoint
+            let! outcome =
+                task {
+                    try
+                        let! result = runAction ()
+                        return result |> Result.mapError (DataErrors.problemMessage >> Choice1Of2)
+                    with error ->
+                        return Error(Choice2Of2 error)
+                }
 
-                    action <-
-                        { applied with
-                            Proposed =
-                                applied.Proposed
-                                |> Option.map (fun current ->
-                                    { current with
-                                        SaveLink = applied.LinkCreated }) }
-                else
-                    action <- { action with Prepared = true }
-
-                let! completedAction, completedProfile =
-                    ProfileDataActionPreparation.finishDeletion
-                        repository
-                        action
-                        changed
-                        token
-                        progress
-
-                action <- completedAction
-                changed <- completedProfile
-
-                do! repository.Complete(context, changed, action)
-                action <- { action with Complete = true }
-                do! report action
-                let! state = read scope.WorkspaceId scope.ProfileId
-
-                return
-                    { Id = action.Id
-                      State = state
-                      Complete = true
-                      NoChange = false
-                      CompletedFiles =
-                        action.CompletedFiles
-                        + (action.Deletion |> Option.map _.CompletedFiles |> Option.defaultValue 0)
-                      Problem = None }
-            with error ->
+            match outcome with
+            | Ok result -> return result
+            | Error failure ->
                 let! retained = repository.Action(scope.WorkspaceId, action.Id)
                 action <- retained |> Option.defaultValue action
 
                 if action.Complete then
-                    raise error
+                    match failure with
+                    | Choice2Of2 error -> raise error
+                    | Choice1Of2 _ ->
+                        invalidOp "A completed profile action cannot fail preparation."
 
-                action <-
-                    { action with
-                        Problem = Some(DataErrors.message error) }
+                let detail =
+                    match failure with
+                    | Choice1Of2 detail -> detail
+                    | Choice2Of2 error -> DataErrors.message error
+
+                action <- { action with Problem = Some detail }
 
                 do! repository.SaveAction action
                 do! report action
@@ -175,7 +200,7 @@ module internal ProfileDataActions =
                       CompletedFiles =
                         action.CompletedFiles
                         + (action.Deletion |> Option.map _.CompletedFiles |> Option.defaultValue 0)
-                      Problem = Some(DataErrors.message error) }
+                      Problem = Some detail }
         }
 
     let completedFiles (action: ProfileDataActionRecord) =

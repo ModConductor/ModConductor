@@ -123,6 +123,7 @@ module internal ArchivePolicies =
 
                 let! verified = archives.Verify(snapshot, token)
                 let! () = verified |> Result.mapError verifyError
+                do! IniArchives.validateNames snapshot.ExplicitNames
 
                 return
                     scope,
