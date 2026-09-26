@@ -3,6 +3,9 @@
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="Contracts.fs" />
+    <Compile Include="IniDocument.fs" />
+    <Compile Include="IniArchives.fs" />
+    <Compile Include="IniSavePaths.fs" />
     <Compile Include="Ini.fs" />
     <Compile Include="Files.fs" />
     <Compile Include="Records.fs" />
