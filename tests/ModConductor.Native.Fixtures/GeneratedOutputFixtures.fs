@@ -11,6 +11,7 @@ open ModConductor.Workspaces
 open ModConductor.GameContexts
 open ModConductor.Persistence
 open ModConductor.Deployment
+open ModConductor.Platform
 
 module GeneratedOutputFixtures =
     let private wait = StorageWorker.wait
@@ -40,6 +41,10 @@ module GeneratedOutputFixtures =
                 proton
 
         let workspace, profile, other = Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid()
+        let workspaceRoot = HostPath.create workspacePath |> Result.defaultWith invalidOp
+
+        let profileGameFile =
+            Path.Combine(GameViews.rootPath workspaceRoot profile, "Data", "result.txt")
 
         let check (name: string) (value: bool) =
             writer.WriteBoolean(name, value)
@@ -461,8 +466,7 @@ module GeneratedOutputFixtures =
 
             check
                 "exactWritableSlotIsInitialized"
-                (File.Exists slot.PhysicalPath
-                 && File.Exists(Path.Combine(game, "Data", "result.txt")))
+                (File.Exists slot.PhysicalPath && File.Exists profileGameFile)
 
             File.WriteAllText(slot.PhysicalPath, "working result")
             let working = observe ()
@@ -540,7 +544,7 @@ module GeneratedOutputFixtures =
             check
                 "savedRestoreKeepsExactVersionAndCurrentStoppedDeclarations"
                 (not (File.Exists slot.PhysicalPath)
-                 && File.ReadAllText(Path.Combine(game, "Data", "result.txt")) = "new output")
+                 && File.ReadAllText(profileGameFile) = "new output")
 
             let final = store.Deployments.Read profile |> wait |> result
 
@@ -655,8 +659,7 @@ module GeneratedOutputFixtures =
 
             check
                 "restartRestoreKeepsPinsAndAbsentStoppedSlot"
-                (File.ReadAllText(Path.Combine(game, "Data", "result.txt")) = "new output"
-                 && not (File.Exists slotPath))
+                (File.ReadAllText(profileGameFile) = "new output" && not (File.Exists slotPath))
 
             let otherSelection = InventoryObservations.read reopened other
 
