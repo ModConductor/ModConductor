@@ -3,8 +3,11 @@
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="Contracts.fs" />
+    <Compile Include="GenerationRetirement.fs" />
     <Compile Include="GenerationFiles.fs" />
     <Compile Include="Preparation.fs" />
+    <Compile Include="GenerationMaterialization.fs" />
+    <Compile Include="GenerationDescription.fs" />
     <Compile Include="Builder.fs" />
     <ProjectReference Include="../ModConductor.DeploymentRecovery/ModConductor.DeploymentRecovery.fsproj" />
     <ProjectReference Include="../ModConductor.FilePlanning/ModConductor.FilePlanning.fsproj" />

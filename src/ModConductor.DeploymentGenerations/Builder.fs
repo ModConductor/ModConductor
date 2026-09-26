@@ -10,11 +10,6 @@ open ModConductor.DeploymentRecovery
 module internal GenerationBuilder =
     open GenerationFiles
 
-    let private source (sources: GenerationSources) pin =
-        sources.Files.TryFind pin
-        |> Option.defaultWith (fun () ->
-            RecoveryFiles.fail "A pinned source has no checked backing.")
-
     let build
         available
         (request: BuildRequest)
@@ -43,186 +38,14 @@ module internal GenerationBuilder =
 
         created.RemoveLink(".link-probe", probe)
 
-        let mutable secondaryRoot: Location option = None
-
-        let copySecondary pin =
-            match GenerationPreparation.reused request pin with
-            | Some backing ->
-                verify pin backing
-                backing
-            | None ->
-                let root =
-                    match secondaryRoot with
-                    | Some value -> value
-                    | None ->
-                        use storage =
-                            HeldDirectory.Open(
-                                request.SecondaryStorage.Path,
-                                request.SecondaryStorage.Identity
-                            )
-
-                        use child = storage.CreateDirectory name
-
-                        let value =
-                            { Path =
-                                HostPath.create (
-                                    Path.Combine(HostPath.value request.SecondaryStorage.Path, name)
-                                )
-                                |> Result.defaultWith invalidOp
-                              Identity = child.Identity }
-
-                        secondaryRoot <- Some value
-                        value
-
-                let path = logical [ Guid.NewGuid().ToString("N") ]
-                let identity = copy token pin (source sources pin) root path true
-
-                { Directory = root
-                  Path = path
-                  Identity = identity
-                  OwnerGeneration = Some request.Id }
-
-        let resolvedFiles =
-            managed
-            |> List.map (fun file ->
-                token.ThrowIfCancellationRequested()
-                let pin = file.Winner.Source
-
-                let backing =
-                    match file.Winner.Precedence.Tier with
-                    | LayerTier.Mod ->
-                        let value = source sources pin in
-                        verify pin value
-                        value
-                    | LayerTier.Secondary -> copySecondary pin
-                    | LayerTier.Base when request.LinkedBase ->
-                        let value = source sources pin in
-                        verify pin value
-                        value
-                    | LayerTier.Base -> invalidOp "Base files remain at the target."
-
-                let path =
-                    logical (
-                        file.Target.Root.ToString("N") :: LogicalPath.components file.Target.Path
-                    )
-
-                let entry =
-                    withCreatedParent directory path (fun parent name ->
-                        parent.CreateLink(
-                            name,
-                            RecoveryFiles.path backing.Directory backing.Path,
-                            false
-                        ))
-
-                let length = length pin
-                let hash = sha256 pin
-
-                { Target = file.Target
-                  Path = path
-                  Identity = entry.Identity
-                  Length = length
-                  Sha256 = hash
-                  Backing = Some backing })
-
-        let ownedFiles =
-            request.OwnedFiles
-            |> List.map (fun (target, bytes) ->
-                token.ThrowIfCancellationRequested()
-
-                let path =
-                    logical (target.Root.ToString("N") :: LogicalPath.components target.Path)
-
-                let identity =
-                    withCreatedParent directory path (fun parent name ->
-                        let stream, identity = parent.Create name
-                        use stream = stream
-                        stream.Write(bytes, 0, bytes.Length)
-                        stream.Flush true
-                        identity)
-
-                { Target = target
-                  Path = path
-                  Identity = identity
-                  Length = int64 bytes.Length
-                  Sha256 = None
-                  Backing = None })
-
-        let files = resolvedFiles @ ownedFiles
+        let files, secondaryRoot =
+            GenerationMaterialization.files request sources token directory managed
 
         let workingBindings =
-            bindings
-            |> List.map (fun (binding, target, isDirectory, _) ->
-                if isDirectory then
-                    withCreatedParent binding.Root binding.Path (fun parent name ->
-                        match parent.InspectEntry name with
-                        | None -> use child = parent.CreateDirectory name in ()
-                        | Some entry when entry.Kind = EntryKind.Directory -> ()
-                        | _ ->
-                            RecoveryFiles.fail
-                                "A declared output directory is not a real directory.")
+            GenerationMaterialization.working sources token bindings seedCopies
 
-                for _, root, path, pin in
-                    seedCopies
-                    |> List.filter (fun (declaration, _, _, _) ->
-                        declaration = binding.Declaration) do
-                    seed token pin (source sources pin) root path |> ignore
-
-                let identity =
-                    RecoveryFiles.withParent binding.Root binding.Path (fun parent name ->
-                        match parent.InspectEntry name with
-                        | Some entry when
-                            entry.Kind = (if isDirectory then
-                                              EntryKind.Directory
-                                          else
-                                              EntryKind.RegularFile)
-                            ->
-                            Some entry.Identity
-                        | None when not isDirectory && binding.Initialized -> None
-                        | None when not isDirectory ->
-                            let stream, identity = parent.Create name in
-                            stream.Dispose()
-                            Some identity
-                        | _ -> RecoveryFiles.fail "A declared working entry changed.")
-
-                { Target = target
-                  Directory = isDirectory
-                  Root = binding.Root
-                  Path = binding.Path
-                  Identity = identity })
-
-        let observed =
-            (if request.LinkedBase then Map.empty else sources.Files)
-            |> Map.toList
-            |> List.choose (fun (pin, backing) ->
-                match pin with
-                | SourcePin.Snapshot(id, _, file) when
-                    sources.Input.Planning.ReadOnly
-                    |> List.exists (fun snapshot ->
-                        snapshot.Id = id && snapshot.Kind = ReadOnlyLayerKind.Base)
-                    ->
-                    let contributions =
-                        Visibility.files visibility
-                        |> Map.toList
-                        |> List.collect (fun (target, _) ->
-                            Visibility.sources target visibility
-                            |> List.filter (fun value -> value.Source = pin)
-                            |> List.map (fun _ -> target))
-
-                    contributions
-                    |> List.tryHead
-                    |> Option.map (fun target ->
-                        { Target = target
-                          Identity = backing.Identity
-                          Length = SnapshotFile.length file
-                          Modified = SnapshotFile.metadata file |> Option.map _.Modified })
-                | _ -> None)
-
-        let references =
-            Visibility.files visibility
-            |> Map.toList
-            |> List.collect (fun (target, _) -> Visibility.sources target visibility)
-            |> List.map _.Source
-            |> List.distinct
+        let observed = GenerationDescription.observed request sources visibility
+        let references = GenerationDescription.references visibility
 
         let generation =
             { Id = request.Id
@@ -237,8 +60,8 @@ module internal GenerationBuilder =
               Working = workingBindings
               Observed = observed }
 
-        protect directory
-        secondaryRoot |> Option.iter protect
+        GenerationRetirement.protect directory
+        secondaryRoot |> Option.iter GenerationRetirement.protect
         RecoveryFiles.verifyGeneration generation
 
         { Generation = generation
