@@ -9,13 +9,10 @@ import 'file_inspector_controller.dart';
 import 'preview_image.dart';
 import 'text_editor.dart';
 
-String fileSize(int bytes) => bytes >= 1024 * 1024 * 1024
-    ? '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GiB'
-    : bytes >= 1024 * 1024
-    ? '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MiB'
-    : bytes >= 1024
-    ? '${(bytes / 1024).toStringAsFixed(1)} KiB'
-    : '$bytes B';
+part 'inspector_details.dart';
+part 'inspector_preview.dart';
+part 'inspector_sources.dart';
+part 'inspector_text_editor.dart';
 
 class FileSourcesInspector extends StatelessWidget {
   const FileSourcesInspector({
@@ -65,21 +62,6 @@ class FileSourcesInspector extends StatelessWidget {
         onClose: onClose,
       );
     }
-    String status(InspectedFileCopy copy) => [
-      switch (copy.standing) {
-        FileSourceStanding.winner => stale ? 'Previous winner' : 'Winner',
-        FileSourceStanding.alternative =>
-          blocked ? 'Unresolved' : 'Alternative',
-        FileSourceStanding.selected => 'Selected source',
-        FileSourceStanding.previous => 'Previous saved version',
-        FileSourceStanding.unavailable => 'Unavailable',
-      },
-      if (copy.hidden) 'Hidden',
-      if (copy.copy != null && !copy.enabled && !copy.historical)
-        profileName == null
-            ? 'Disabled in this profile'
-            : 'Disabled in $profileName',
-    ].join(' · ');
     return McInspector(
       title: 'File sources',
       onClose: onClose,
@@ -152,363 +134,23 @@ class FileSourcesInspector extends StatelessWidget {
             tone: blocked ? McStatusTone.error : McStatusTone.neutral,
           ),
         const SizedBox(height: 16),
-        RadioGroup<Object>(
-          groupValue: selected == null
-              ? null
-              : FileInspectorController.key(selected),
-          onChanged: (value) {
-            final row = copies
-                .where((row) => FileInspectorController.key(row) == value)
-                .firstOrNull;
-            if (row != null) view.select(row);
-          },
-          child: Column(
-            children: [
-              for (final copy in copies) ...[
-                RadioListTile<Object>(
-                  value: FileInspectorController.key(copy),
-                  contentPadding: EdgeInsets.zero,
-                  dense: true,
-                  title: Text(
-                    copy.name,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  subtitle: Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          [
-                            copy.source.kindLabel,
-                            if (copy.versionLabel.isNotEmpty &&
-                                copy.source
-                                    is! QualifiedArchiveEntryPreviewSource)
-                              copy.versionLabel,
-                            if (copy.priority != null)
-                              'Priority ${copy.priority! + 1}',
-                            fileSize(copy.length),
-                          ].join(' · '),
-                        ),
-                        if (status(copy).isNotEmpty) ...[
-                          const SizedBox(height: 4),
-                          Text(status(copy)),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
-                const Divider(height: 1),
-              ],
-            ],
-          ),
+        _FileCopyList(
+          copies: copies,
+          selected: selected,
+          view: view,
+          blocked: blocked,
+          stale: stale,
+          profileName: profileName,
         ),
         if (view.canLoad)
           TextButton(
             onPressed: view.loading ? null : () => unawaited(view.load()),
             child: const Text('Load more sources'),
           ),
-        if (selected != null) ...[
-          const SizedBox(height: 16),
-          SegmentedButton<FilePreviewRepresentation>(
-            segments: const [
-              ButtonSegment(
-                value: FilePreviewRepresentation.text,
-                label: Text('Text'),
-              ),
-              ButtonSegment(
-                value: FilePreviewRepresentation.image,
-                label: Text('Image'),
-              ),
-              ButtonSegment(
-                value: FilePreviewRepresentation.hex,
-                label: Text('Hex'),
-              ),
-            ],
-            selected: {view.previewRepresentation},
-            onSelectionChanged: (values) =>
-                view.setPreviewRepresentation(values.single),
-          ),
-          const SizedBox(height: 12),
-          if (view.previewLoading) ...[
-            const LinearProgressIndicator(),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton(
-                onPressed: view.cancelPreview,
-                child: const Text('Cancel preview'),
-              ),
-            ),
-          ] else if (view.previewProblem != null) ...[
-            McStatus(title: view.previewProblem!, tone: McStatusTone.error),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton(
-                onPressed: () => unawaited(view.loadPreview()),
-                child: const Text('Retry preview'),
-              ),
-            ),
-          ] else if (view.preview != null)
-            _PreviewBody(preview: view.preview!),
-          if (view.canEditText) ...[
-            const SizedBox(height: 12),
-            McAction(
-              label: 'Edit text',
-              icon: Icons.edit_outlined,
-              focusNode: view.editTextFocus,
-              onPressed: available && !view.openingText
-                  ? () => unawaited(view.openTextEditor())
-                  : null,
-            ),
-          ],
-          if (view.openingText) ...[
-            const SizedBox(height: 12),
-            const LinearProgressIndicator(),
-          ],
-          if (view.textProblem != null) ...[
-            const SizedBox(height: 12),
-            McStatus(title: view.textProblem!, tone: McStatusTone.error),
-          ],
-        ],
+        if (selected != null) ..._filePreviewChildren(view, available),
         if (selected != null)
-          ExpansionTile(
-            key: ValueKey(FileInspectorController.key(selected)),
-            tilePadding: EdgeInsets.zero,
-            title: Text(
-              selected.copy == null
-                  ? 'File details'
-                  : 'Saved version and history',
-            ),
-            onExpansionChanged: (expanded) {
-              if (expanded && selected.copy != null && !view.historyLoaded) {
-                unawaited(view.loadHistory());
-              }
-            },
-            children: [
-              if (selected.copy != null)
-                SelectableText(
-                  'Saved version ${selected.copy!.versionId}',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              if (selected.copy == null && state?.observedAt != null)
-                Text(
-                  MaterialLocalizations.of(context)
-                      .formatMediumDate(state!.observedAt!.toLocal()),
-                ),
-              const SizedBox(height: 8),
-              SelectableText(
-                selected.sourcePath.join('/'),
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-              const SizedBox(height: 8),
-              Text(selected.source.kindLabel),
-              if (selected.sha256 case final sha256?) ...[
-                const SizedBox(height: 8),
-                SelectableText(
-                  selected.source is QualifiedArchiveEntryPreviewSource
-                      ? 'Archive SHA-256 $sha256'
-                      : 'SHA-256 $sha256',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ],
-              if (selected.copy != null) ...[
-                const SizedBox(height: 12),
-                if (view.loadingHistory) const LinearProgressIndicator(),
-                if (view.historyProblem != null)
-                  McStatus(
-                    title: view.historyProblem!,
-                    tone: McStatusTone.error,
-                  ),
-                if (view.historyLoaded && view.history.isEmpty)
-                  const Text('No file visibility changes.'),
-                for (final change in view.history)
-                  ListTile(
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(change.hidden ? 'Hidden' : 'Unhidden'),
-                    subtitle: Text(
-                      '${MaterialLocalizations.of(context).formatMediumDate(change.recordedAt.toLocal())} · ${MaterialLocalizations.of(context).formatTimeOfDay(TimeOfDay.fromDateTime(change.recordedAt.toLocal()))}',
-                    ),
-                  ),
-                if (view.canLoadHistory)
-                  TextButton(
-                    onPressed: view.loadingHistory
-                        ? null
-                        : () => unawaited(view.loadHistory()),
-                    child: Text(
-                      view.historyProblem == null
-                          ? 'Load more history'
-                          : 'Retry',
-                    ),
-                  ),
-              ],
-            ],
-          ),
+          _FileDetails(selected: selected, view: view, state: state),
       ],
     );
-  }
-}
-
-class _ManagedTextEditorInspector extends StatefulWidget {
-  const _ManagedTextEditorInspector({
-    required this.controller,
-    required this.owner,
-    required this.document,
-    required this.onClose,
-  });
-  final FileInspectorController controller;
-  final FilePlansController? owner;
-  final ManagedTextDocument document;
-  final VoidCallback onClose;
-
-  @override
-  State<_ManagedTextEditorInspector> createState() =>
-      _ManagedTextEditorInspectorState();
-}
-
-class _ManagedTextEditorInspectorState
-    extends State<_ManagedTextEditorInspector> {
-  final _editor = GlobalKey<TextEditorToolboxState>();
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        widget.controller.bindTextNavigationGuard(
-          (navigate) => _editor.currentState!.guardNavigation(navigate),
-        );
-      }
-    });
-  }
-
-  @override
-  void didUpdateWidget(_ManagedTextEditorInspector oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.controller != widget.controller) {
-      oldWidget.controller.bindTextNavigationGuard(null);
-      widget.controller.bindTextNavigationGuard(
-        (navigate) => _editor.currentState!.guardNavigation(navigate),
-      );
-    }
-  }
-
-  void closeEditor() {
-    widget.controller.closeTextEditor();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (widget.controller.editTextFocus.canRequestFocus) {
-        widget.controller.editTextFocus.requestFocus();
-      }
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) => McInspector(
-    title: 'Edit text',
-    onClose: () => unawaited(_editor.currentState?.requestExit()),
-    children: [
-      TextEditorToolbox(
-        key: _editor,
-        document: widget.document.document,
-        name: widget.document.source.target.last,
-        source: widget.document.source.target.join('/'),
-        saving: widget.controller.savingText,
-        problem: widget.controller.textProblem,
-        onClose: closeEditor,
-        onExit: widget.onClose,
-        onDiscard: widget.controller.abandonPendingText,
-        onReadAgain: widget.owner == null
-            ? null
-            : () async {
-                widget.controller.closeTextEditor();
-                await widget.owner!.read();
-              },
-        onSave: (content) async {
-          final saved = await widget.controller.saveText(content);
-          if (saved) widget.owner?.invalidate();
-          return saved;
-        },
-      ),
-    ],
-  );
-
-  @override
-  void dispose() {
-    widget.controller.bindTextNavigationGuard(null);
-    super.dispose();
-  }
-}
-
-class _PreviewBody extends StatelessWidget {
-  const _PreviewBody({required this.preview});
-  final FilePreviewResult preview;
-
-  @override
-  Widget build(BuildContext context) {
-    if (preview.status != FilePreviewStatus.ready) {
-      return McStatus(
-        title: preview.detail ?? 'This source cannot be previewed.',
-        tone: preview.status == FilePreviewStatus.changed
-            ? McStatusTone.error
-            : McStatusTone.neutral,
-      );
-    }
-    return switch (preview.content) {
-      FilePreviewText value => DecoratedBox(
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxHeight: 420),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(12),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: SelectableText(
-                value.content,
-                style: const TextStyle(fontFamily: 'monospace'),
-              ),
-            ),
-          ),
-        ),
-      ),
-      FilePreviewImage value => FilePreviewImageView(preview: value),
-      FilePreviewHex value => Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (value.truncated)
-            Text(
-              'Showing the first ${fileSize(value.content.length)} of ${fileSize(value.totalLength)}.',
-            ),
-          if (value.truncated) const SizedBox(height: 8),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxHeight: 420),
-            child: SingleChildScrollView(
-              child: SelectableText(
-                _hex(value.content),
-                style: const TextStyle(fontFamily: 'monospace'),
-              ),
-            ),
-          ),
-        ],
-      ),
-      null => const McStatus(title: 'This source has no preview.'),
-    };
-  }
-
-  static String _hex(List<int> bytes) {
-    final output = StringBuffer();
-    for (var offset = 0; offset < bytes.length; offset += 16) {
-      output.write(offset.toRadixString(16).padLeft(8, '0'));
-      output.write('  ');
-      final end = (offset + 16).clamp(0, bytes.length);
-      for (var index = offset; index < end; ++index) {
-        output.write(bytes[index].toRadixString(16).padLeft(2, '0'));
-        output.write(index == offset + 7 ? '  ' : ' ');
-      }
-      output.writeln();
-    }
-    return output.toString();
   }
 }
