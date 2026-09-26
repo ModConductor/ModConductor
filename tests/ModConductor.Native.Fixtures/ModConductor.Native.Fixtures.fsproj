@@ -38,6 +38,7 @@
     <Compile Include="NativeToolFixtures.fs" />
     <Compile Include="LootFixtures.fs" />
     <Compile Include="ArchivePolicyFixtures.fs" />
+    <Compile Include="FixtureHostDefault.fs" />
     <Compile Include="Program.fs"/>
     <ProjectReference Include="../../src/ModConductor.Engine/ModConductor.Engine.fsproj" />
     <ProjectReference Include="../../src/ModConductor.Credentials/ModConductor.Credentials.fsproj" />
