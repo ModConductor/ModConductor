@@ -63,13 +63,15 @@ module NexusFixtures =
         session.SignIn() |> wait |> ignore
         until (fun () -> not session.Status.Waiting)
 
-    let observe (writer: Utf8JsonWriter) primary =
-        let check (name: string) condition =
-            writer.WriteBoolean(name, condition)
-            writer.Flush()
+    let private recordCheck (writer: Utf8JsonWriter) (name: string) condition =
+        writer.WriteBoolean(name, condition)
+        writer.Flush()
 
-            if not condition then
-                failwith ("Nexus fixture failed: " + name)
+        if not condition then
+            failwith ("Nexus fixture failed: " + name)
+
+    let private oauthEvidence writer =
+        let check = recordCheck writer
 
         writer.WriteStartObject("nexus")
         use server = new NexusServer()
@@ -311,6 +313,9 @@ module NexusFixtures =
                  && afterDisconnect = Error NexusProblem.SignInRequired)
 
         writer.WriteEndObject()
+
+    let private personalApiKeyEvidence writer =
+        let check = recordCheck writer
 
         writer.WriteStartObject("nexusPersonalApiKey")
         use keyServer = new NexusServer()
@@ -657,6 +662,9 @@ module NexusFixtures =
 
         writer.WriteEndObject()
 
+    let private downloadEvidence writer primary =
+        let check = recordCheck writer
+
         writer.WriteStartObject("nexusDownloads")
         use server = new NexusServer()
         let memory = NexusMemoryStore()
@@ -871,6 +879,11 @@ module NexusFixtures =
              && not (durable.Contains("signed-key")))
 
         writer.WriteEndObject()
+
+    let observe (writer: Utf8JsonWriter) primary =
+        oauthEvidence writer
+        personalApiKeyEvidence writer
+        downloadEvidence writer primary
 
     let engine state info =
         use server = new NexusServer()

@@ -748,6 +748,137 @@ module SkyrimSetupFixtures =
              && (finalIntent |> Option.exists _.Completed))
 
 
+    let private skseFailureRetryEvidence writer (store: OperationStore) area noChoice skseOnly =
+        let failedWorkspace, failedProfile, _ = createWorkspace store area "failed-skse" true
+        let failing = WorkflowState()
+        failing.FailSkse()
+        let failedOwner = new SkyrimSetupCoordinator(store, failing.Dependencies)
+        let _ = failedOwner.Start(failedWorkspace, failedProfile, skseOnly, CancellationToken.None) |> wait |> result
+
+        let failed =
+            until
+                "SKSE setup failure"
+                (fun () ->
+                    let current =
+                        failedOwner.Read(failedWorkspace, failedProfile, noChoice, CancellationToken.None)
+                        |> wait
+
+                    if current.CanContinue && current.Phase <> SkyrimSetupPhase.Failed then
+                        failedOwner.Continue(failedWorkspace, failedProfile, CancellationToken.None)
+                        |> wait |> result
+                    else
+                        current)
+                (fun current -> current.Phase = SkyrimSetupPhase.Failed)
+
+        let repeated =
+            failedOwner.Continue(failedWorkspace, failedProfile, CancellationToken.None)
+            |> wait |> result
+
+        check
+            writer
+            "automaticContinueKeepsSkseFailureWithoutRetry"
+            (failing.SkseStarts = 1
+             && repeated.Phase = SkyrimSetupPhase.Failed
+             && repeated.Status = failed.Status
+             && repeated.Detail = failed.Detail)
+
+        failing.AllowSkse()
+
+        let explicitRetry =
+            failedOwner.Start(failedWorkspace, failedProfile, skseOnly, CancellationToken.None)
+            |> wait |> result
+
+        check
+            writer
+            "explicitApplyRetriesFailedSkse"
+            (failing.SkseStarts = 2
+             && explicitRetry.Phase <> SkyrimSetupPhase.Failed)
+
+        failedOwner
+
+    let private enbFailureRetryEvidence writer (store: OperationStore) area noChoice enbWithArchive =
+        let failedEnbWorkspace, failedEnbProfile, _ =
+            createWorkspace store area "failed-enb" true
+
+        let failingEnb = WorkflowState()
+        failingEnb.FailEnb()
+        let failedEnbOwner = new SkyrimSetupCoordinator(store, failingEnb.Dependencies)
+
+        let _ =
+            failedEnbOwner.Start(
+                failedEnbWorkspace,
+                failedEnbProfile,
+                enbWithArchive,
+                CancellationToken.None
+            )
+            |> wait |> result
+
+        let failedEnb =
+            until
+                "ENB setup failure"
+                (fun () ->
+                    let current =
+                        failedEnbOwner.Read(
+                            failedEnbWorkspace,
+                            failedEnbProfile,
+                            noChoice,
+                            CancellationToken.None
+                        )
+                        |> wait
+
+                    if current.CanContinue && current.Phase <> SkyrimSetupPhase.Failed then
+                        failedEnbOwner.Continue(failedEnbWorkspace, failedEnbProfile, CancellationToken.None)
+                        |> wait |> result
+                    else
+                        current)
+                (fun current -> current.Phase = SkyrimSetupPhase.Failed)
+
+        let repeatedEnb =
+            failedEnbOwner.Continue(failedEnbWorkspace, failedEnbProfile, CancellationToken.None)
+            |> wait |> result
+
+        check
+            writer
+            "automaticContinueKeepsEnbFailureWithoutRetry"
+            (failingEnb.EnbSelections = 1
+             && repeatedEnb.Phase = SkyrimSetupPhase.Failed
+             && repeatedEnb.Status = failedEnb.Status
+             && repeatedEnb.Detail = failedEnb.Detail)
+
+        failingEnb.AllowEnb()
+
+        let _ =
+            failedEnbOwner.Start(
+                failedEnbWorkspace,
+                failedEnbProfile,
+                enbWithArchive,
+                CancellationToken.None
+            )
+            |> wait |> result
+
+        let readyEnb =
+            until
+                "explicit ENB setup retry"
+                (fun () ->
+                    failedEnbOwner.Read(
+                        failedEnbWorkspace,
+                        failedEnbProfile,
+                        noChoice,
+                        CancellationToken.None
+                    )
+                    |> wait)
+                (fun current ->
+                    failingEnb.EnbSelections = 2
+                    && current.Phase <> SkyrimSetupPhase.Failed)
+
+        check
+            writer
+            "explicitApplyRetriesFailedEnb"
+            (failingEnb.EnbSelections = 2
+             && readyEnb.Phase <> SkyrimSetupPhase.Failed)
+
+        failedEnbOwner
+
     let observe (writer: Utf8JsonWriter) area =
         writer.WriteStartObject("skyrimSetup")
 
@@ -882,130 +1013,8 @@ module SkyrimSetupFixtures =
              && availableAgain.Phase = SkyrimSetupPhase.Available
              && availableAgain.Selection = noChoice)
 
-        let failedWorkspace, failedProfile, _ = createWorkspace store area "failed-skse" true
-        let failing = WorkflowState()
-        failing.FailSkse()
-        use failedOwner = new SkyrimSetupCoordinator(store, failing.Dependencies)
-        let _ = failedOwner.Start(failedWorkspace, failedProfile, skseOnly, CancellationToken.None) |> wait |> result
-
-        let failed =
-            until
-                "SKSE setup failure"
-                (fun () ->
-                    let current =
-                        failedOwner.Read(failedWorkspace, failedProfile, noChoice, CancellationToken.None)
-                        |> wait
-
-                    if current.CanContinue && current.Phase <> SkyrimSetupPhase.Failed then
-                        failedOwner.Continue(failedWorkspace, failedProfile, CancellationToken.None)
-                        |> wait |> result
-                    else
-                        current)
-                (fun current -> current.Phase = SkyrimSetupPhase.Failed)
-
-        let repeated =
-            failedOwner.Continue(failedWorkspace, failedProfile, CancellationToken.None)
-            |> wait |> result
-
-        check
-            writer
-            "automaticContinueKeepsSkseFailureWithoutRetry"
-            (failing.SkseStarts = 1
-             && repeated.Phase = SkyrimSetupPhase.Failed
-             && repeated.Status = failed.Status
-             && repeated.Detail = failed.Detail)
-
-        failing.AllowSkse()
-
-        let explicitRetry =
-            failedOwner.Start(failedWorkspace, failedProfile, skseOnly, CancellationToken.None)
-            |> wait |> result
-
-        check
-            writer
-            "explicitApplyRetriesFailedSkse"
-            (failing.SkseStarts = 2
-             && explicitRetry.Phase <> SkyrimSetupPhase.Failed)
-
-        let failedEnbWorkspace, failedEnbProfile, _ =
-            createWorkspace store area "failed-enb" true
-
-        let failingEnb = WorkflowState()
-        failingEnb.FailEnb()
-        use failedEnbOwner = new SkyrimSetupCoordinator(store, failingEnb.Dependencies)
-
-        let _ =
-            failedEnbOwner.Start(
-                failedEnbWorkspace,
-                failedEnbProfile,
-                enbWithArchive,
-                CancellationToken.None
-            )
-            |> wait |> result
-
-        let failedEnb =
-            until
-                "ENB setup failure"
-                (fun () ->
-                    let current =
-                        failedEnbOwner.Read(
-                            failedEnbWorkspace,
-                            failedEnbProfile,
-                            noChoice,
-                            CancellationToken.None
-                        )
-                        |> wait
-
-                    if current.CanContinue && current.Phase <> SkyrimSetupPhase.Failed then
-                        failedEnbOwner.Continue(failedEnbWorkspace, failedEnbProfile, CancellationToken.None)
-                        |> wait |> result
-                    else
-                        current)
-                (fun current -> current.Phase = SkyrimSetupPhase.Failed)
-
-        let repeatedEnb =
-            failedEnbOwner.Continue(failedEnbWorkspace, failedEnbProfile, CancellationToken.None)
-            |> wait |> result
-
-        check
-            writer
-            "automaticContinueKeepsEnbFailureWithoutRetry"
-            (failingEnb.EnbSelections = 1
-             && repeatedEnb.Phase = SkyrimSetupPhase.Failed
-             && repeatedEnb.Status = failedEnb.Status
-             && repeatedEnb.Detail = failedEnb.Detail)
-
-        failingEnb.AllowEnb()
-
-        let _ =
-            failedEnbOwner.Start(
-                failedEnbWorkspace,
-                failedEnbProfile,
-                enbWithArchive,
-                CancellationToken.None
-            )
-            |> wait |> result
-
-        let readyEnb =
-            until
-                "explicit ENB setup retry"
-                (fun () ->
-                    failedEnbOwner.Read(
-                        failedEnbWorkspace,
-                        failedEnbProfile,
-                        noChoice,
-                        CancellationToken.None
-                    )
-                    |> wait)
-                (fun current ->
-                    failingEnb.EnbSelections = 2
-                    && current.Phase <> SkyrimSetupPhase.Failed)
-
-        check
-            writer
-            "explicitApplyRetriesFailedEnb"
-            (failingEnb.EnbSelections = 2
-             && readyEnb.Phase <> SkyrimSetupPhase.Failed)
+        use failedOwner = skseFailureRetryEvidence writer store area noChoice skseOnly
+        use failedEnbOwner = enbFailureRetryEvidence writer store area noChoice enbWithArchive
 
         let execute name selection expected =
             let freshWorkspace, freshProfile, _ = createWorkspace store area name true

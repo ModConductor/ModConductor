@@ -626,6 +626,23 @@ module SkseCoordinatorFixtures =
              && launchUsesLoader)
 
 
+    let private saveGameVersion (store: OperationStore) workspace profile game proton version =
+        GameContextFixtures.create game version
+        let context = (store.GameContexts :> IGameContexts).Read(workspace, profile) |> wait |> result
+
+        (store.GameContexts :> IGameContexts)
+            .Save(
+                workspace,
+                profile,
+                context.Revision,
+                { GameId = GameId.SkyrimSpecialEditionSteam
+                  Path = game
+                  Proton = if OperatingSystem.IsLinux() then Some proton else None }
+            )
+        |> wait
+        |> result
+        |> ignore
+
     let private installedEvidence writer area =
         let scenario =
             Directory.CreateDirectory(Path.Combine(area, "installed-orchestration")).FullName
@@ -874,42 +891,12 @@ module SkseCoordinatorFixtures =
         then
             failwith "The retained SKSE generation was not activated."
 
-        GameContextFixtures.create game 105
-        let changed = (store.GameContexts :> IGameContexts).Read(workspace, profile) |> wait |> result
-
-        (store.GameContexts :> IGameContexts)
-            .Save(
-                workspace,
-                profile,
-                changed.Revision,
-                { GameId = GameId.SkyrimSpecialEditionSteam
-                  Path = game
-                  Proton = if OperatingSystem.IsLinux() then Some proton else None }
-            )
-        |> wait
-        |> result
-        |> ignore
+        saveGameVersion store workspace profile game proton 105
 
         let incompatible = coordinator.Read(workspace, profile) |> wait
         let incompatibleGate = coordinator.CheckBeforePlay(workspace, profile) |> wait
 
-        GameContextFixtures.create game 104
-
-        let changedAgain =
-            (store.GameContexts :> IGameContexts).Read(workspace, profile) |> wait |> result
-
-        (store.GameContexts :> IGameContexts)
-            .Save(
-                workspace,
-                profile,
-                changedAgain.Revision,
-                { GameId = GameId.SkyrimSpecialEditionSteam
-                  Path = game
-                  Proton = if OperatingSystem.IsLinux() then Some proton else None }
-            )
-        |> wait
-        |> result
-        |> ignore
+        saveGameVersion store workspace profile game proton 104
 
         server.Mode <- "offline"
         let beforeUnavailable = requests ()
@@ -938,21 +925,7 @@ module SkseCoordinatorFixtures =
             let during = coordinator.Read(workspace, profile) |> wait
 
             if changeGame then
-                GameContextFixtures.create game 105
-                let state = (store.GameContexts :> IGameContexts).Read(workspace, profile) |> wait |> result
-
-                (store.GameContexts :> IGameContexts)
-                    .Save(
-                        workspace,
-                        profile,
-                        state.Revision,
-                        { GameId = GameId.SkyrimSpecialEditionSteam
-                          Path = game
-                          Proton = if OperatingSystem.IsLinux() then Some proton else None }
-                    )
-                |> wait
-                |> result
-                |> ignore
+                saveGameVersion store workspace profile game proton 105
 
             let failed = waitForStatus store workspace profile "failed"
             let afterFailure = coordinator.Read(workspace, profile) |> wait
@@ -961,21 +934,7 @@ module SkseCoordinatorFixtures =
             server.Mode <- "good"
 
             if changeGame then
-                GameContextFixtures.create game 104
-                let state = (store.GameContexts :> IGameContexts).Read(workspace, profile) |> wait |> result
-
-                (store.GameContexts :> IGameContexts)
-                    .Save(
-                        workspace,
-                        profile,
-                        state.Revision,
-                        { GameId = GameId.SkyrimSpecialEditionSteam
-                          Path = game
-                          Proton = if OperatingSystem.IsLinux() then Some proton else None }
-                    )
-                |> wait
-                |> result
-                |> ignore
+                saveGameVersion store workspace profile game proton 104
 
             started.Phase = SksePhase.Downloading
             && (during.Phase = SksePhase.Downloading

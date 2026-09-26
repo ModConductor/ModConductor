@@ -1148,6 +1148,167 @@ module FnisFixtures =
              && (ownedPayloads |> List.forall (File.Exists >> not)))
 
 
+    let private createExecutionLauncher (scenario: string) (mode: string) =
+        let launcher =
+            Path.Combine(
+                scenario,
+                "installation",
+                "Steam",
+                "compatibilitytools.d",
+                "Custom Ω Proton",
+                "proton"
+            )
+
+        File.WriteAllText(
+            launcher,
+            "#!/usr/bin/python3\nimport os,sys,time,subprocess\nmode_path="
+            + "r'"
+            + mode.Replace("'", "\\'")
+            + "'\nmode=open(mode_path).read().strip()\ntarget=next(a.split('=',1)[1] for a in sys.argv if a.startswith('RedirectFiles='))\ngenerator=next((a for a in sys.argv if a.lower().endswith('generatefnisforusers.exe')), '')\nlogs=os.path.join(os.path.dirname(generator),'temporary_logs')\nif mode=='shutdownchild':\n child=subprocess.Popen(['sleep','30'])\n open(mode_path+'.childpid','w').write(str(child.pid))\n time.sleep(30)\nif mode in ('cancel','timeout'): time.sleep(30)\nif mode=='fail':\n print('synthetic failure', file=sys.stderr)\n sys.exit(7)\nif mode=='outputlimit':\n print('x'*300000)\n sys.exit(0)\nif mode in ('successlog','successlognew'):\n parent=os.path.dirname(generator)\n os.makedirs(logs,exist_ok=True)\n existing=os.path.join(logs,'GenerateFNIS_LogFile.txt')\n if os.path.exists(existing): os.chmod(existing,0o600)\n open(existing,'wb').write(b'\\xffmalformed FNIS log')\n newlog=os.path.join(logs,'NewFNIS.log')\n open(newlog,'wb').write(b'new temporary log')\n os.chmod(existing,0o000)\n os.chmod(newlog,0o000)\n os.chmod(logs,0o000)\n os.chmod(parent,0o500)\nos.makedirs(os.path.join(target,'meshes','actors','character','behaviors'),exist_ok=True)\nopen(os.path.join(target,'meshes','actors','character','behaviors','generated.hkx'),'wb').write(('generated-'+mode).encode())\nprint(' '.join(sys.argv[1:]))\nif mode=='warn': sys.exit(7)\n"
+        )
+
+        File.SetUnixFileMode(
+            launcher,
+            UnixFileMode.UserRead ||| UnixFileMode.UserWrite ||| UnixFileMode.UserExecute
+        )
+
+        launcher
+
+    let private skseOnlySetupPreservesFnisWarning writer (store: OperationStore) execution workspace profile rebuiltGeneration previousGeneration =
+        let mutable skseState =
+            { Phase = SksePhase.Available
+              GameVersion = "1.6.1170.0"
+              ComponentVersion = "2.2.6"
+              Status = "SKSE is available"
+              Detail = ""
+              FileId = None }
+
+        let mutable skseStarts = 0
+
+        let setupDependencies =
+            { combinedFnisDependencies execution with
+                ReadSkse = fun _ _ -> Task.FromResult skseState
+                StartSkse =
+                    fun _ _ ->
+                        skseStarts <- skseStarts + 1
+                        skseState <-
+                            { skseState with
+                                Phase = SksePhase.Ready
+                                Status = "SKSE is ready" }
+
+                        Task.FromResult skseState
+                ReadLaunch =
+                    fun workspace profile ->
+                        Task.FromResult(
+                            Ok
+                                { WorkspaceId = workspace
+                                  ProfileId = profile
+                                  ContextRevision = 1L
+                                  SourceToken = "fixture-source"
+                                  Name = "SKSE"
+                                  Runtime = "Proton fixture"
+                                  Problem = None
+                                  Latest = None }
+                        )
+                PluginPreflight = fun _ _ _ -> Task.FromResult(Ok()) }
+
+        let setup = new SkyrimSetupCoordinator(store, setupDependencies)
+        let skseOnly = { SetupSelection.none with Skse = SetupAction.Install }
+        let startedSetup = setup.Start(workspace, profile, skseOnly, CancellationToken.None) |> wait |> result
+
+        let afterSkse =
+            until
+                "SKSE-only setup after nonzero FNIS output"
+                (fun () ->
+                    let current = setup.Read(workspace, profile, SetupSelection.none, CancellationToken.None) |> wait
+
+                    if current.CanContinue then
+                        setup.Continue(workspace, profile, CancellationToken.None) |> wait |> result
+                    else
+                        current)
+                (fun current -> current.Ready && skseStarts = 1)
+
+        let completedSetup = setup.Continue(workspace, profile, CancellationToken.None) |> wait |> result
+        let reopenedSetup = setup.Read(workspace, profile, SetupSelection.none, CancellationToken.None) |> wait
+
+        check
+            writer
+            "nonzeroFnisWarningSurvivesLaterSkseOnlySetup"
+            (rebuiltGeneration <> previousGeneration
+             && (store.FnisSetups.ReadStored(workspace, profile, rebuiltGeneration) |> wait).IsSome
+             && startedSetup.Selection.Fnis = SetupAction.Unchanged
+             && afterSkse.Status.Contains("FNIS exited with code 7")
+             && completedSetup.Status.Contains("FNIS exited with code 7")
+             && reopenedSetup.Status.Contains("FNIS exited with code 7")
+             && skseStarts = 1)
+
+        setup
+
+    let private shutdownProcessEvidence writer scenario mode (runner: FnisRunner) (execution: IFnisExecution) (runService: FnisService) workspace profile =
+        let childPidFile = mode + ".childpid"
+        File.WriteAllText(mode, "shutdownchild")
+        let shutdownId = Guid.NewGuid()
+
+        execution.Run(
+            { Id = shutdownId
+              WorkspaceId = workspace
+              ProfileId = profile },
+            CancellationToken.None
+        )
+        |> wait
+        |> result
+        |> ignore
+
+        until
+            "sleeping FNIS child"
+            (fun () ->
+                File.Exists childPidFile
+                && not (String.IsNullOrWhiteSpace(File.ReadAllText childPidFile)))
+            id
+        |> ignore
+
+        let childPid = File.ReadAllText(childPidFile).Trim() |> Int32.Parse
+        let shutdownStream = StateStream()
+        let shutdownReference =
+            ModConductor.Protocol.V1.FnisRunRequest(
+                Id = shutdownId.ToString("N"),
+                WorkspaceId = workspace.ToString("N"),
+                ProfileId = profile.ToString("N")
+            )
+        let shutdownObservation =
+            runService.ObserveFnisRun(shutdownReference, shutdownStream, StreamContext())
+
+        until
+            "FNIS shutdown stream started"
+            (fun () -> shutdownStream.States.Length)
+            (fun count -> count > 0)
+        |> ignore
+
+        runner.Stop() |> wait
+        shutdownObservation.GetAwaiter().GetResult()
+
+        let stopped =
+            execution.Inspect(workspace, profile, CancellationToken.None) |> wait |> result
+
+        check
+            writer
+            "engineShutdownCancelsAndDrainsSleepingFnisProcessGroup"
+            (stopped.LatestRunId = Some shutdownId
+             && stopped.Phase = ModConductor.Fnis.FnisOutputPhase.Cancelled
+             && not (Directory.Exists("/proc/" + string childPid))
+             && not (
+                 Directory.Exists(
+                     Path.Combine(scenario, "state", "fnis-runs", shutdownId.ToString("N"))
+                 )
+             ))
+
+        check
+            writer
+            "engineShutdownCompletesFnisRunStream"
+            (shutdownStream.States.Length = 2
+             && shutdownStream.States[1].OutputPhase =
+                ModConductor.Protocol.V1.FnisOutputPhase.Cancelled)
+
     let private executionEvidence writer area =
         let scenario = Directory.CreateDirectory(Path.Combine(area, "execution")).FullName
         use server = new NexusServer()
@@ -1185,28 +1346,7 @@ module FnisFixtures =
         let mode = Path.Combine(scenario, "fnis-mode")
         File.WriteAllText(mode, "success")
 
-        let launcher =
-            Path.Combine(
-                scenario,
-                "installation",
-                "Steam",
-                "compatibilitytools.d",
-                "Custom Ω Proton",
-                "proton"
-            )
-
-        File.WriteAllText(
-            launcher,
-            "#!/usr/bin/python3\nimport os,sys,time,subprocess\nmode_path="
-            + "r'"
-            + mode.Replace("'", "\\'")
-            + "'\nmode=open(mode_path).read().strip()\ntarget=next(a.split('=',1)[1] for a in sys.argv if a.startswith('RedirectFiles='))\ngenerator=next((a for a in sys.argv if a.lower().endswith('generatefnisforusers.exe')), '')\nlogs=os.path.join(os.path.dirname(generator),'temporary_logs')\nif mode=='shutdownchild':\n child=subprocess.Popen(['sleep','30'])\n open(mode_path+'.childpid','w').write(str(child.pid))\n time.sleep(30)\nif mode in ('cancel','timeout'): time.sleep(30)\nif mode=='fail':\n print('synthetic failure', file=sys.stderr)\n sys.exit(7)\nif mode=='outputlimit':\n print('x'*300000)\n sys.exit(0)\nif mode in ('successlog','successlognew'):\n parent=os.path.dirname(generator)\n os.makedirs(logs,exist_ok=True)\n existing=os.path.join(logs,'GenerateFNIS_LogFile.txt')\n if os.path.exists(existing): os.chmod(existing,0o600)\n open(existing,'wb').write(b'\\xffmalformed FNIS log')\n newlog=os.path.join(logs,'NewFNIS.log')\n open(newlog,'wb').write(b'new temporary log')\n os.chmod(existing,0o000)\n os.chmod(newlog,0o000)\n os.chmod(logs,0o000)\n os.chmod(parent,0o500)\nos.makedirs(os.path.join(target,'meshes','actors','character','behaviors'),exist_ok=True)\nopen(os.path.join(target,'meshes','actors','character','behaviors','generated.hkx'),'wb').write(('generated-'+mode).encode())\nprint(' '.join(sys.argv[1:]))\nif mode=='warn': sys.exit(7)\n"
-        )
-
-        File.SetUnixFileMode(
-            launcher,
-            UnixFileMode.UserRead ||| UnixFileMode.UserWrite ||| UnixFileMode.UserExecute
-        )
+        let launcher = createExecutionLauncher scenario mode
 
         let installedGenerator =
             let deployment = store.Deployments.Read profile |> wait |> result
@@ -1810,72 +1950,9 @@ module FnisFixtures =
         let rebuiltGeneration =
             (store.Deployments.Read profile |> wait |> result).ActiveGeneration
 
-        let mutable skseState =
-            { Phase = SksePhase.Available
-              GameVersion = "1.6.1170.0"
-              ComponentVersion = "2.2.6"
-              Status = "SKSE is available"
-              Detail = ""
-              FileId = None }
-
-        let mutable skseStarts = 0
-
-        let setupDependencies =
-            { combinedFnisDependencies execution with
-                ReadSkse = fun _ _ -> Task.FromResult skseState
-                StartSkse =
-                    fun _ _ ->
-                        skseStarts <- skseStarts + 1
-                        skseState <-
-                            { skseState with
-                                Phase = SksePhase.Ready
-                                Status = "SKSE is ready" }
-
-                        Task.FromResult skseState
-                ReadLaunch =
-                    fun workspace profile ->
-                        Task.FromResult(
-                            Ok
-                                { WorkspaceId = workspace
-                                  ProfileId = profile
-                                  ContextRevision = 1L
-                                  SourceToken = "fixture-source"
-                                  Name = "SKSE"
-                                  Runtime = "Proton fixture"
-                                  Problem = None
-                                  Latest = None }
-                        )
-                PluginPreflight = fun _ _ _ -> Task.FromResult(Ok()) }
-
-        use setup = new SkyrimSetupCoordinator(store, setupDependencies)
-        let skseOnly = { SetupSelection.none with Skse = SetupAction.Install }
-        let startedSetup = setup.Start(workspace, profile, skseOnly, CancellationToken.None) |> wait |> result
-
-        let afterSkse =
-            until
-                "SKSE-only setup after nonzero FNIS output"
-                (fun () ->
-                    let current = setup.Read(workspace, profile, SetupSelection.none, CancellationToken.None) |> wait
-
-                    if current.CanContinue then
-                        setup.Continue(workspace, profile, CancellationToken.None) |> wait |> result
-                    else
-                        current)
-                (fun current -> current.Ready && skseStarts = 1)
-
-        let completedSetup = setup.Continue(workspace, profile, CancellationToken.None) |> wait |> result
-        let reopenedSetup = setup.Read(workspace, profile, SetupSelection.none, CancellationToken.None) |> wait
-
-        check
-            writer
-            "nonzeroFnisWarningSurvivesLaterSkseOnlySetup"
-            (rebuiltGeneration <> beforeRebuild.ActiveGeneration
-             && (store.FnisSetups.ReadStored(workspace, profile, rebuiltGeneration) |> wait).IsSome
-             && startedSetup.Selection.Fnis = SetupAction.Unchanged
-             && afterSkse.Status.Contains("FNIS exited with code 7")
-             && completedSetup.Status.Contains("FNIS exited with code 7")
-             && reopenedSetup.Status.Contains("FNIS exited with code 7")
-             && skseStarts = 1)
+        use setup =
+            skseOnlySetupPreservesFnisWarning
+                writer store execution workspace profile rebuiltGeneration beforeRebuild.ActiveGeneration
 
         failureEvidence writer scenario mode launcher execution workspace profile
         cancellationEvidence writer scenario mode store execution runService workspace profile afterCompleted
@@ -1946,69 +2023,7 @@ module FnisFixtures =
 
         select false inputMod
 
-        let childPidFile = mode + ".childpid"
-        File.WriteAllText(mode, "shutdownchild")
-        let shutdownId = Guid.NewGuid()
-
-        execution.Run(
-            { Id = shutdownId
-              WorkspaceId = workspace
-              ProfileId = profile },
-            CancellationToken.None
-        )
-        |> wait
-        |> result
-        |> ignore
-
-        until
-            "sleeping FNIS child"
-            (fun () ->
-                File.Exists childPidFile
-                && not (String.IsNullOrWhiteSpace(File.ReadAllText childPidFile)))
-            id
-        |> ignore
-
-        let childPid = File.ReadAllText(childPidFile).Trim() |> Int32.Parse
-        let shutdownStream = StateStream()
-        let shutdownReference =
-            ModConductor.Protocol.V1.FnisRunRequest(
-                Id = shutdownId.ToString("N"),
-                WorkspaceId = workspace.ToString("N"),
-                ProfileId = profile.ToString("N")
-            )
-        let shutdownObservation =
-            runService.ObserveFnisRun(shutdownReference, shutdownStream, StreamContext())
-
-        until
-            "FNIS shutdown stream started"
-            (fun () -> shutdownStream.States.Length)
-            (fun count -> count > 0)
-        |> ignore
-
-        runner.Stop() |> wait
-        shutdownObservation.GetAwaiter().GetResult()
-
-        let stopped =
-            execution.Inspect(workspace, profile, CancellationToken.None) |> wait |> result
-
-        check
-            writer
-            "engineShutdownCancelsAndDrainsSleepingFnisProcessGroup"
-            (stopped.LatestRunId = Some shutdownId
-             && stopped.Phase = ModConductor.Fnis.FnisOutputPhase.Cancelled
-             && not (Directory.Exists("/proc/" + string childPid))
-             && not (
-                 Directory.Exists(
-                     Path.Combine(scenario, "state", "fnis-runs", shutdownId.ToString("N"))
-                 )
-             ))
-
-        check
-            writer
-            "engineShutdownCompletesFnisRunStream"
-            (shutdownStream.States.Length = 2
-             && shutdownStream.States[1].OutputPhase =
-                ModConductor.Protocol.V1.FnisOutputPhase.Cancelled)
+        shutdownProcessEvidence writer scenario mode runner execution runService workspace profile
 
         restartAndOwnershipEvidence
             writer scenario session store execution workspace profile outputEntry otherProfile
