@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:mc_client/mc_client.dart';
 
 part 'controller_profile_creation.dart';
+part 'controller_profile_edits.dart';
 part 'controller_profile_progress.dart';
 
 class WorkspaceController extends ChangeNotifier {
@@ -42,7 +43,9 @@ class WorkspaceController extends ChangeNotifier {
   ProfileCopyProgress? get copyProgress => _profileChanges.copyProgress;
   bool get canCancelProfileChange => _profileChanges.canCancel;
 
-  Future<ProfileChange> _profileEvents(Stream<ProfileChangeEvent> events) {
+  Future<_ProfileChangeOutcome> _profileEvents(
+    Stream<ProfileChangeEvent> events,
+  ) {
     final epoch = _epoch;
     return _profileChanges.observe(
       events,
@@ -53,11 +56,10 @@ class WorkspaceController extends ChangeNotifier {
   Future<void> cancelProfileChange() => _profileChanges.cancel();
 
   Future<void> resumeProfileChange(String actionId) =>
-      _edit('Continue profile change', (client, current) {
+      _editObserved('Continue profile change', (client, current) {
         if (client is! ProfileChangesClient) {
-          throw const WorkspaceException(
-            WorkspaceFault.profileData,
-            'Profile recovery is unavailable.',
+          return Future.value(
+            const _ProfileChangeProblem('Profile recovery is unavailable.'),
           );
         }
         return _profileEvents(
@@ -286,33 +288,6 @@ class WorkspaceController extends ChangeNotifier {
     );
   }
 
-  Future<ProfileChange?> _edit(
-    String label,
-    Future<ProfileChange> Function(WorkspacesClient, WorkspaceInfo) action,
-  ) async {
-    final current = workspace;
-    if (current == null || !canEdit) return null;
-    return _run(current.id, label, (client) => action(client, current), (
-      value,
-    ) {
-      _remember(value.workspace);
-      if (page?.workspace.id != current.id ||
-          page!.workspace.revision > value.workspace.revision) {
-        return;
-      }
-      final changed = value.changed;
-      final profiles = page!.profiles
-          .where(
-            (profile) =>
-                profile.id != value.deleted && profile.id != changed?.id,
-          )
-          .toList();
-      if (changed != null) profiles.add(changed);
-      profiles.sort((a, b) => a.id.compareTo(b.id));
-      page = WorkspacePage(value.workspace, profiles, page!.nextProfile);
-    });
-  }
-
   Future<ProfileInfo?> createProfile(String name, {String? profileId}) async {
     final profile = ProfileInfo(profileId ?? newOperationId(), name);
     final change = await _edit(
@@ -323,7 +298,7 @@ class WorkspaceController extends ChangeNotifier {
   }
 
   Future<void> clone(ProfileInfo source, String name) =>
-      _edit('Profile clone: ${source.name}', (client, current) {
+      _editObserved('Profile clone: ${source.name}', (client, current) {
         final target = ProfileInfo(newOperationId(), name);
         return client is ProfileChangesClient
             ? _profileEvents(
@@ -334,11 +309,13 @@ class WorkspaceController extends ChangeNotifier {
                   target,
                 ),
               )
-            : client.cloneProfile(
-                current.id,
-                current.revision,
-                source.id,
-                target,
+            : _completedProfileChange(
+                client.cloneProfile(
+                  current.id,
+                  current.revision,
+                  source.id,
+                  target,
+                ),
               );
       });
   Future<void> rename(ProfileInfo profile, String name) => _edit(
@@ -354,7 +331,7 @@ class WorkspaceController extends ChangeNotifier {
     (client, current) =>
         client.selectProfile(current.id, current.revision, profile.id),
   );
-  Future<void> delete(ProfileInfo profile) => _edit(
+  Future<void> delete(ProfileInfo profile) => _editObserved(
     'Profile deletion: ${profile.name}',
     (client, current) => client is ProfileChangesClient
         ? _profileEvents(
@@ -364,7 +341,9 @@ class WorkspaceController extends ChangeNotifier {
               profile.id,
             ),
           )
-        : client.deleteProfile(current.id, current.revision, profile.id),
+        : _completedProfileChange(
+            client.deleteProfile(current.id, current.revision, profile.id),
+          ),
   );
 
   @override

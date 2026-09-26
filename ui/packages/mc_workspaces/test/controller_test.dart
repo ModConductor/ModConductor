@@ -152,9 +152,43 @@ void main() {
     expect(controller.workspace!.selectedProfile!.id, 'profile');
     expect(controller.page!.profiles.map((value) => value.id), ['profile']);
     expect(controller.activity, isNull);
-    expect(controller.currentProblem, isNotNull);
+    expect(
+      controller.currentProblem,
+      'The profile action was cancelled. Read Settings and saves to see any remaining action.',
+    );
     controller.dispose();
     await client.copy.close();
+  });
+
+  test('an unsupported resume reports a problem without throwing', () async {
+    final client = ScriptedClient()..onOpen = (_) async => page('one');
+    final controller = WorkspaceController()..attach(client);
+    addTearDown(controller.dispose);
+    await controller.open('/fixture/one');
+
+    await controller.resumeProfileChange('action');
+
+    expect(controller.currentProblem, 'Profile recovery is unavailable.');
+    expect(controller.activity, isNull);
+    expect(controller.page!.profiles.single.name, 'Everyday');
+  });
+
+  test('a clone stream without a final result reports a problem', () async {
+    final client = CopyClient()..onOpen = (_) async => page('one');
+    final controller = WorkspaceController()..attach(client);
+    addTearDown(controller.dispose);
+    await controller.open('/fixture/one');
+
+    final pending = controller.clone(controller.page!.profiles.single, 'Copy');
+    await client.copy.close();
+    await pending;
+
+    expect(
+      controller.currentProblem,
+      'The profile action did not return a result. Read Settings and saves to continue.',
+    );
+    expect(controller.activity, isNull);
+    expect(controller.page!.profiles.single.name, 'Everyday');
   });
 
   test(
