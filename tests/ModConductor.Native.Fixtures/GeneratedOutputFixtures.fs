@@ -148,6 +148,31 @@ module GeneratedOutputFixtures =
                 { LocationId = location
                   Path = path name }
 
+            let observeUnsupportedWritableFile () =
+                let location =
+                    outputs.Add(
+                        Guid.NewGuid(),
+                        scope (),
+                        "Unexpected folder",
+                        OutputPurpose.WritableFile(path "unexpected-output.txt")
+                    )
+                    |> wait
+                    |> result
+
+                Directory.CreateDirectory(location.PhysicalPath) |> ignore
+
+                let refused = outputs.Observe(scope (), ignore, token) |> wait
+                Directory.Delete(location.PhysicalPath)
+                let recovered = observe ()
+                outputs.StopUsing(location.Id, location.Revision) |> wait |> result |> ignore
+
+                check
+                    "nonRegularWritableFileReturnsErrorAndReleasesObservation"
+                    (refused = Error(OutputError.Unavailable "A writable file is not a regular file.")
+                     && recovered.Files = 0)
+
+            observeUnsupportedWritableFile ()
+
             let observeToolFolder () =
                 let tool =
                     outputs.Add(Guid.NewGuid(), scope (), "Tool files", OutputPurpose.ToolFolder)

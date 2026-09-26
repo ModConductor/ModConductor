@@ -75,17 +75,20 @@ module internal OutputFiles =
                   ObservedAt = now
                   DeploymentId = deployment }
 
-            encoded <- encoded + int64 (OutputPolicy.fileSize file)
+            let nextEncoded = encoded + int64 (OutputPolicy.fileSize file)
 
-            if encoded > OutputLimits.snapshot then
-                raise (OutputException OutputError.LimitExceeded)
+            if nextEncoded > OutputLimits.snapshot then
+                Error OutputError.LimitExceeded
+            else
+                encoded <- nextEncoded
 
-            observations.Add
-                { File = file
-                  Backing = backing
-                  Modified = modified }
+                observations.Add
+                    { File = file
+                      Backing = backing
+                      Modified = modified }
 
-            notify ()
+                notify ()
+                Ok()
 
         let read backing (directory: HeldDirectory) name logical identity =
             let stream, actual = directory.Read(name, Some identity)
@@ -93,30 +96,66 @@ module internal OutputFiles =
             let length = stream.Length
 
             if length > OutputLimits.content - bytes then
-                raise (OutputException OutputError.LimitExceeded)
+                Error OutputError.LimitExceeded
+            else
+                let modified = File.GetLastWriteTimeUtc stream.SafeFileHandle
+                let completed = bytes
 
-            let modified = File.GetLastWriteTimeUtc stream.SafeFileHandle
-            let completed = bytes
+                let hash =
+                    SourceFiles.digestChecked
+                        (fun () ->
+                            token.ThrowIfCancellationRequested()
+                            bytes <- completed + stream.Position
+                            notify ())
+                        stream
 
-            let hash =
-                SourceFiles.digestChecked
-                    (fun () ->
-                        token.ThrowIfCancellationRequested()
-                        bytes <- completed + stream.Position
-                        notify ())
-                    stream
+                bytes <- completed + length
 
-            bytes <- completed + length
+                if
+                    stream.Length <> length
+                    || File.GetLastWriteTimeUtc stream.SafeFileHandle <> modified
+                then
+                    Error OutputError.Stale
+                else
+                    append backing logical (Some actual) length modified hash
 
-            if
-                stream.Length <> length
-                || File.GetLastWriteTimeUtc stream.SafeFileHandle <> modified
-            then
-                raise (OutputException OutputError.Stale)
+        let rec walk backing (directory: HeldDirectory) components depth =
+            if depth > OutputLimits.depth then
+                Error OutputError.LimitExceeded
+            else
+                use names = directory.Names.GetEnumerator()
+                let mutable outcome = Ok()
 
-            append backing logical (Some actual) length modified hash
+                while Result.isOk outcome && names.MoveNext() do
+                    outcome <- visit backing directory components depth names.Current
 
-        for backing in backings do
+                outcome
+
+        and visit backing (directory: HeldDirectory) components depth name =
+            token.ThrowIfCancellationRequested()
+            candidates <- candidates + 1
+
+            if candidates > OutputLimits.entries then
+                Error OutputError.LimitExceeded
+            else
+                let parts = components @ [ name ]
+
+                match LogicalPath.create parts with
+                | Error _ -> Error(OutputError.Invalid "An output path is invalid.")
+                | Ok logical ->
+                    match directory.InspectEntry name with
+                    | Some entry when entry.Kind = EntryKind.Directory ->
+                        use child = directory.Directory(name, Some entry.Identity)
+                        walk backing child parts (depth + 1)
+                    | Some entry when entry.Kind = EntryKind.RegularFile ->
+                        read backing directory name logical entry.Identity
+                    | _ ->
+                        Error(
+                            OutputError.Unavailable
+                                "An output folder contains a link or unsupported file."
+                        )
+
+        let observeBacking backing =
             token.ThrowIfCancellationRequested()
             use root = HeldDirectory.Open(backing.Root, backing.RootIdentity)
 
@@ -128,58 +167,31 @@ module internal OutputFiles =
                     | Some entry when entry.Kind = EntryKind.RegularFile ->
                         read backing parent name logical entry.Identity
                     | Some _ ->
-                        raise (
-                            OutputException(
-                                OutputError.Unavailable "A writable file is not a regular file."
-                            )
-                        ))
-            | OutputPurpose.ToolFolder ->
-                let rec walk (directory: HeldDirectory) components depth =
-                    if depth > OutputLimits.depth then
-                        raise (OutputException OutputError.LimitExceeded)
+                        Error(OutputError.Unavailable "A writable file is not a regular file."))
+            | OutputPurpose.ToolFolder -> walk backing root [] 0
 
-                    for name in directory.Names do
-                        token.ThrowIfCancellationRequested()
-                        candidates <- candidates + 1
+        let rec collect =
+            function
+            | [] -> Ok()
+            | backing :: rest ->
+                match observeBacking backing with
+                | Error error -> Error error
+                | Ok() -> collect rest
 
-                        if candidates > OutputLimits.entries then
-                            raise (OutputException OutputError.LimitExceeded)
+        match collect backings with
+        | Error error -> Error error
+        | Ok() ->
+            progress
+                { Files = observations.Count
+                  Bytes = bytes }
 
-                        let parts = components @ [ name ]
-
-                        let logical =
-                            LogicalPath.create parts
-                            |> Result.defaultWith (fun _ ->
-                                raise (
-                                    OutputException(
-                                        OutputError.Invalid "An output path is invalid."
-                                    )
-                                ))
-
-                        match directory.InspectEntry name with
-                        | Some entry when entry.Kind = EntryKind.Directory ->
-                            use child = directory.Directory(name, Some entry.Identity)
-                            walk child parts (depth + 1)
-                        | Some entry when entry.Kind = EntryKind.RegularFile ->
-                            read backing directory name logical entry.Identity
-                        | _ ->
-                            raise (
-                                OutputException(
-                                    OutputError.Unavailable
-                                        "An output folder contains a link or unsupported file."
-                                )
-                            )
-
-                walk root [] 0
-
-        progress
-            { Files = observations.Count
-              Bytes = bytes }
-
-        observations
-        |> Seq.sortBy (fun value -> value.File.LocationId, LogicalPath.components value.File.Path)
-        |> Seq.toList,
-        encoded
+            Ok(
+                observations
+                |> Seq.sortBy (fun value ->
+                    value.File.LocationId, LogicalPath.components value.File.Path)
+                |> Seq.toList,
+                encoded
+            )
 
     let current (observation: OutputObservation) (token: CancellationToken) =
         use root =
