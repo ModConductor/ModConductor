@@ -1,6 +1,7 @@
 namespace ModConductor.Engine
 
 open System
+open System.Collections.Concurrent
 open System.Threading
 open System.Threading.Tasks
 open ModConductor.Fnis
@@ -22,9 +23,21 @@ type internal SkyrimSetupCoordinator
 
     let signals = new SkyrimSetupSignals(defaultArg childChanges [])
     let workers = SkyrimSetupWorkers(lifetime, failed, signals.Notify)
+    let failures = ConcurrentDictionary<Guid * Guid, string>()
+
+    let failureDetail (key: Guid * Guid) =
+        match failures.TryGetValue key with
+        | true, detail -> Some detail
+        | _ -> None
+
+    let recordFailure key detail = failures[key] <- detail
+
+    let clearFailure key =
+        let mutable removed = ""
+        failures.TryRemove(key, &removed) |> ignore
 
     let inspection =
-        SkyrimSetupInspection(store, dependencies, fun key -> workers.Contains key)
+        SkyrimSetupInspection(store, dependencies, workers.Contains, failureDetail)
 
     let recovery = SkyrimSetupRecovery(store, dependencies)
 
@@ -45,8 +58,16 @@ type internal SkyrimSetupCoordinator
             return Ok value
         }
 
+    let refusal workspace profile selection detail token =
+        task {
+            recordFailure (workspace, profile) detail
+            signals.Notify(workspace, profile)
+            let! latest = store.SkyrimSetups.Read(workspace, profile)
+            return! success (inspect workspace profile selection latest token)
+        }
+
     let progression =
-        SkyrimSetupProgression(lifetime, failed, signals, store, inspect, advance)
+        SkyrimSetupProgression(lifetime, failed, signals, recordFailure, store, inspect, advance)
 
     new
         (
@@ -108,13 +129,17 @@ type internal SkyrimSetupCoordinator
             | Some intent when
                 not intent.Cancelled && not intent.Completed && selection = intent.Selection
                 ->
+                clearFailure (workspace, profile)
                 let! current = advance workspace profile intent true token
 
                 match current with
-                | Error detail -> return Error detail
+                | Error detail -> return! refusal workspace profile intent.Selection detail token
                 | Ok current ->
                     signals.Notify(workspace, profile)
-                    progression.Start workspace profile
+
+                    if current.Phase <> SkyrimSetupPhase.Failed then
+                        progression.Start workspace profile
+
                     return Ok current
             | _ ->
                 let! current =
@@ -154,6 +179,8 @@ type internal SkyrimSetupCoordinator
                                         "Select a profile from this workspace."
                                 )
                         | Ok deployment ->
+                            clearFailure (workspace, profile)
+
                             let initialStage =
                                 if deployment.ActiveGeneration.IsNone then
                                     "deployment"
@@ -176,10 +203,14 @@ type internal SkyrimSetupCoordinator
                             let! current = advance workspace profile next true token
 
                             match current with
-                            | Error detail -> return Error detail
+                            | Error detail ->
+                                return! refusal workspace profile selection detail token
                             | Ok current ->
                                 signals.Notify(workspace, profile)
-                                progression.Start workspace profile
+
+                                if current.Phase <> SkyrimSetupPhase.Failed then
+                                    progression.Start workspace profile
+
                                 return Ok current
         }
 
@@ -204,17 +235,23 @@ type internal SkyrimSetupCoordinator
                             token
                     )
 
-            match current with
-            | Error detail -> return Error detail
-            | Ok current ->
+            match current, intent with
+            | Error detail, Some value ->
+                return! refusal workspace profile value.Selection detail token
+            | Error detail, None -> return Error detail
+            | Ok current, _ ->
                 signals.Notify(workspace, profile)
-                progression.Start workspace profile
+
+                if current.Phase <> SkyrimSetupPhase.Failed then
+                    progression.Start workspace profile
+
                 return Ok current
         }
 
     member _.Cancel(workspace, profile, token) =
         task {
             let! intent = store.SkyrimSetups.Read(workspace, profile)
+            clearFailure (workspace, profile)
 
             match intent with
             | None ->

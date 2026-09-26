@@ -17,6 +17,7 @@ type internal SkyrimSetupProgression
         lifetime: CancellationTokenSource,
         failed: TaskCompletionSource,
         signals: SkyrimSetupSignals,
+        recordFailure: Guid * Guid -> string -> unit,
         store: OperationStore,
         inspect:
             Guid
@@ -57,7 +58,7 @@ type internal SkyrimSetupProgression
 
                     match outcome with
                     | Error detail ->
-                        failed.TrySetException(InvalidOperationException detail) |> ignore
+                        recordFailure (workspace, profile) detail
                         signals.Notify(workspace, profile)
                         return Stop
                     | Ok after when after <> before ->

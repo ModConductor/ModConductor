@@ -97,6 +97,8 @@ module SkyrimSetupFixtures =
         let mutable fnisExitCode = None
         let mutable skseReads = 0
         let mutable skseStarts = 0
+        let mutable skseRemovals = 0
+        let mutable skseRemovalError: string option = None
         let mutable failSkse = false
         let mutable holdSkse = false
         let mutable enbSelections = 0
@@ -190,6 +192,8 @@ module SkyrimSetupFixtures =
 
         member _.SkseReads = skseReads
         member _.SkseStarts = skseStarts
+        member _.SkseRemovals = skseRemovals
+        member _.RefuseSkseRemoval(detail) = skseRemovalError <- Some detail
         member _.FailSkse() = failSkse <- true
         member _.AllowSkse() = failSkse <- false
         member _.HoldSkse() = holdSkse <- true
@@ -249,7 +253,13 @@ module SkyrimSetupFixtures =
 
                     Task.FromResult skse
               CancelSkse = fun _ _ -> Task.FromResult skse
-              RemoveSkse = fun _ _ _ -> Task.FromResult(Ok skse)
+              RemoveSkse =
+                fun _ _ _ ->
+                    skseRemovals <- skseRemovals + 1
+
+                    match skseRemovalError with
+                    | Some detail -> Task.FromResult(Error detail)
+                    | None -> Task.FromResult(Ok skse)
               ReadEnb = fun _ _ -> Task.FromResult enb
               SelectEnb =
                 fun _ _ _ _ token ->
@@ -879,6 +889,99 @@ module SkyrimSetupFixtures =
 
         failedEnbOwner
 
+    let private skseRemovalRefusalEvidence writer (store: OperationStore) area noChoice skseOnly =
+        let workspace, profile, _ = createWorkspace store area "refused-skse-removal" true
+        let workflow = WorkflowState()
+
+        use setupOwner = new SkyrimSetupCoordinator(store, workflow.Dependencies)
+        setupOwner.Start(workspace, profile, skseOnly, CancellationToken.None)
+        |> wait
+        |> result
+        |> ignore
+
+        until
+            "SKSE setup completes before removal"
+            (fun () -> store.SkyrimSetups.Read(workspace, profile) |> wait)
+            (Option.exists _.Completed)
+        |> ignore
+
+        setupOwner.Stop() |> wait
+
+        let generation =
+            (store.Deployments.Read profile |> wait |> result).ActiveGeneration
+            |> Option.defaultWith (fun () -> failwith "SKSE setup did not deploy the profile.")
+
+        let executable = Path.Combine(area, "refused-skse-loader.exe")
+        File.WriteAllText(executable, "installed SKSE fixture")
+
+        store.SkseLoaders.Save(
+            workspace,
+            profile,
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            generation,
+            executable,
+            "2.2.6",
+            "1.6.1170",
+            String.replicate 64 "a",
+            String.replicate 64 "b",
+            1L,
+            2L
+        )
+        |> wait
+
+        let detail = "Close Skyrim before removing SKSE."
+        workflow.RefuseSkseRemoval detail
+        let removeSkse = { noChoice with Skse = SetupAction.Remove }
+        store.SkyrimSetups.Save
+            { WorkspaceId = workspace
+              ProfileId = profile
+              Selection = removeSkse
+              Cancelled = false
+              Completed = false
+              Stage = "skse-start"
+              ActionId = None
+              CancelRequested = false
+              CancelDetail = ""
+              RequestedAt = DateTimeOffset.UtcNow }
+        |> wait
+
+        use owner = new SkyrimSetupCoordinator(store, workflow.Dependencies)
+
+        owner.Read(workspace, profile, noChoice, CancellationToken.None) |> wait |> ignore
+
+        let refused =
+            until
+                "background SKSE removal refusal"
+                (fun () -> owner.Read(workspace, profile, noChoice, CancellationToken.None) |> wait)
+                (fun current -> current.Phase = SkyrimSetupPhase.Failed)
+
+        let refreshed = owner.Read(workspace, profile, noChoice, CancellationToken.None) |> wait
+        let continued = owner.Continue(workspace, profile, CancellationToken.None) |> wait |> result
+
+        check
+            writer
+            "skseRemovalRefusalShowsFailedStatusWithoutStoppingEngine"
+            (refused.Phase = SkyrimSetupPhase.Failed
+             && refused.Status = "SKSE removal failed"
+             && refused.Detail = detail
+             && (refused.Components
+                 |> List.exists (fun item -> item.Id = "skse" && item.Blocked && item.Detail = detail))
+             && refreshed.Detail = detail
+             && continued.Phase = SkyrimSetupPhase.Failed
+             && workflow.SkseRemovals = 1
+             && not owner.Failed.IsCompleted)
+
+        let retried = owner.Start(workspace, profile, removeSkse, CancellationToken.None) |> wait |> result
+
+        check
+            writer
+            "explicitApplyRetriesRefusedSkseRemovalOnce"
+            (retried.Phase = SkyrimSetupPhase.Failed
+             && retried.Detail = detail
+             && workflow.SkseRemovals = 2
+             && not owner.Failed.IsCompleted)
+
     let observe (writer: Utf8JsonWriter) area =
         writer.WriteStartObject("skyrimSetup")
 
@@ -1015,6 +1118,7 @@ module SkyrimSetupFixtures =
 
         use failedOwner = skseFailureRetryEvidence writer store area noChoice skseOnly
         use failedEnbOwner = enbFailureRetryEvidence writer store area noChoice enbWithArchive
+        skseRemovalRefusalEvidence writer store area noChoice skseOnly
 
         let execute name selection expected =
             let freshWorkspace, freshProfile, _ = createWorkspace store area name true

@@ -28,6 +28,11 @@ type SkyrimSetupTests() =
         flag "explicitApplyRetriesFailedEnb" |> should equal true
 
     [<Test>]
+    member _.``refused SKSE removal should fail setup without stopping the engine``() =
+        flag "skseRemovalRefusalShowsFailedStatusWithoutStoppingEngine" |> should equal true
+        flag "explicitApplyRetriesRefusedSkseRemovalOnce" |> should equal true
+
+    [<Test>]
     member _.``Apply keeps the selected components across restart and starts them``() =
         flag "appliedChoiceRetained" |> should equal true
         flag "engineCompletesWithoutView" |> should equal true

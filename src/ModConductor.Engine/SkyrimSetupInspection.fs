@@ -286,8 +286,12 @@ type private SkyrimSetupPending
         inspect workspace profile selection intent deployed running token
 
 type internal SkyrimSetupInspection
-    (store: OperationStore, dependencies: SkyrimSetupDependencies, workerActive: Guid * Guid -> bool)
-    =
+    (
+        store: OperationStore,
+        dependencies: SkyrimSetupDependencies,
+        workerActive: Guid * Guid -> bool,
+        failureDetail: Guid * Guid -> string option
+    ) =
     let preview = SkyrimSetupPreview(store, dependencies)
     let pending = SkyrimSetupPending(store, dependencies, workerActive)
 
@@ -369,6 +373,37 @@ type internal SkyrimSetupInspection
 
 
     member _.Inspect workspace profile selection intent token =
-        inspect workspace profile selection intent token
+        task {
+            let! current = inspect workspace profile selection intent token
+
+            match
+                intent
+                |> Option.exists (fun value -> not value.Cancelled && not value.Completed),
+                failureDetail (workspace, profile)
+            with
+            | true, Some detail when current.Phase <> SkyrimSetupPhase.Unavailable ->
+                let components =
+                    current.Components
+                    |> List.map (fun item ->
+                        if item.Id = "skse" then
+                            { item with
+                                Status = "Removal failed"
+                                Detail = detail
+                                Active = false
+                                Blocked = true }
+                        else
+                            item)
+
+                return
+                    { current with
+                        Phase = SkyrimSetupPhase.Failed
+                        Status = "SKSE removal failed"
+                        Detail = detail
+                        Components = components
+                        CanContinue = false
+                        Active = false
+                        Ready = false }
+            | _ -> return current
+        }
 
     member _.Unavailable selection status detail = unavailable selection status detail
