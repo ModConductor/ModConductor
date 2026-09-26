@@ -144,4 +144,3 @@ module internal RecoveryLocations =
             then
                 RecoveryFiles.fail
                     "Working storage must be separate from immutable payload storage."
-
