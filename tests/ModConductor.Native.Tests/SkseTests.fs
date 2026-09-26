@@ -23,8 +23,10 @@ type SkseTests() =
         flag "newerIncompatibleRejected" |> should equal true
         flag "labelWithoutRuntimeRejected" |> should equal true
         flag "publicSteamVersionMatchesPeVersion" |> should equal true
+
         flag "otherStorefrontsMissingDeclarationsAndRevisionsRemainIncompatible"
         |> should equal true
+
         flag "ordinaryNexusRoutes" |> should equal true
 
     [<Test>]
@@ -74,12 +76,12 @@ type SkseTests() =
 
     [<Test>]
     member _.``cold coordinator should install validated cache while source is offline``() =
-        coordinatorFlag "coldCoordinatorWaitsForChoiceThenUsesCacheOffline"
+        coordinatorFlag "coldCoordinatorUsesRetainedArchiveWithoutNexus"
         |> should equal true
 
     [<Test>]
     member _.``launch gates should follow real game and source evidence``() =
-        coordinatorFlag "coordinatorLaunchGatesCurrentUpdateIncompatibleAndUnavailable"
+        coordinatorFlag "localSkseReadsAndPlayIgnoreNexusButRejectChangedGame"
         |> should equal true
 
     [<Test>]

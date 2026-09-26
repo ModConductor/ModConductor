@@ -96,6 +96,8 @@
     <Compile Include="EnbConfigurationWorkflow.fs" />
     <Compile Include="EnbComponentInstaller.fs" />
     <Compile Include="EnbWorkflow.fs" />
+    <Compile Include="SkseComponentInstaller.fs" />
+    <Compile Include="SkseWorkflow.fs" />
     <Compile Include="OperationStore.fs" />
     <ProjectReference Include="../ModConductor.Nexus/ModConductor.Nexus.fsproj" />
     <ProjectReference Include="../ModConductor.Skse/ModConductor.Skse.fsproj" />

@@ -216,6 +216,22 @@ type OperationStore
             defaultArg enbCheckpoint (fun _ _ -> ())
         )
 
+    let skseComponentInstaller =
+        SkseComponentInstaller(database, artifacts, installations, skseLoaders)
+
+    let skseWorkflow =
+        SkseWorkflow(
+            database,
+            skseComponentInstaller,
+            gameContexts,
+            deploymentRepository,
+            skseLoaders,
+            generations,
+            deployment,
+            prepareComponents,
+            defaultArg skseCheckpoint (fun _ _ -> ())
+        )
+
     let connection = database.Connection
     let changesGate = obj ()
 
@@ -690,7 +706,7 @@ type OperationStore
         ) =
         prepareComponents (id, expected, reviewed, progress, token, retainedProfile)
 
-    member internal this.InstallSkse
+    member internal _.InstallSkse
         (
             workspace: Guid,
             profile: Guid,
@@ -699,295 +715,7 @@ type OperationStore
             sourceCheckedAt: DateTimeOffset,
             token: Threading.CancellationToken
         ) =
-        task {
-            let fail detail = raise (IO.IOException detail)
-
-            let! currentArtifact =
-                (artifacts :> ModConductor.ArtifactLibrary.IArtifactLibrary)
-                    .Read(workspace, artifact.Id)
-
-            let artifact =
-                currentArtifact
-                |> Result.defaultWith (fun _ -> fail "The verified SKSE archive is unavailable.")
-
-            if
-                artifact.WorkspaceId <> workspace
-                || (artifact.State <> ModConductor.ArtifactLibrary.ArtifactState.Ready
-                    && artifact.State <> ModConductor.ArtifactLibrary.ArtifactState.Installed)
-                || artifact.Sha256.IsNone
-            then
-                fail "The verified SKSE archive is not ready."
-
-            let reference: ModConductor.ArtifactLibrary.ArtifactRef =
-                { WorkspaceId = workspace
-                  Id = artifact.Id
-                  Revision = artifact.Revision }
-
-            let! reusable =
-                skseLoaders.ReusableVersion(
-                    workspace,
-                    profile,
-                    artifact.Id,
-                    artifact.Sha256.Value,
-                    release
-                )
-
-            let! modId, versionId, importedPlan =
-                task {
-                    match reusable with
-                    | Some(modId, versionId) -> return modId, versionId, None
-                    | None ->
-                        let! draft = installations.Prepare(reference, token)
-
-                        let plan =
-                            ModConductor.Skse.SkseArchiveLayout.review release draft.Manifest
-                            |> Result.defaultWith (ModConductor.Skse.SkseProblem.message >> fail)
-
-                        let draft =
-                            if
-                                draft.Installer = ModConductor.ArchiveInstallation.InstallationMode.Manual
-                            then
-                                draft
-                            else
-                                installations.UseInstaller(
-                                    workspace,
-                                    draft.Id,
-                                    draft.Revision,
-                                    ModConductor.ArchiveInstallation.InstallationMode.Manual
-                                )
-
-                        let reviewed =
-                            installations.SelectReviewed(
-                                workspace,
-                                draft.Id,
-                                draft.Revision,
-                                "Skyrim Script Extender",
-                                string release.ComponentVersion,
-                                plan.Files
-                            )
-
-                        let installationId = Guid.NewGuid()
-
-                        let started =
-                            installations.Start(
-                                workspace,
-                                reviewed.Id,
-                                reviewed.Revision,
-                                installationId
-                            )
-
-                        let mutable installed = started
-
-                        while installed.State = ModConductor.ArchiveInstallation.InstallationState.Running do
-                            do!
-                                installations.WaitForChange(
-                                    workspace,
-                                    installationId,
-                                    installed,
-                                    token
-                                )
-
-                            let! current = installations.Read(workspace, installationId)
-                            installed <- current
-
-                        do! installations.WaitForWorker(installationId, token)
-
-                        if
-                            installed.State
-                            <> ModConductor.ArchiveInstallation.InstallationState.Complete
-                            || installed.ModId.IsNone
-                            || installed.VersionId.IsNone
-                        then
-                            fail (
-                                installed.Problem
-                                |> Option.defaultValue
-                                    "SKSE installation did not complete. No component was published."
-                            )
-
-                        return installed.ModId.Value, installed.VersionId.Value, Some plan
-                }
-
-            let! version =
-                database.Enqueue(fun () ->
-                    LibraryRows.version database.Connection null versionId 0 20001
-                    |> Option.map (fun value -> { value with NextOffset = None }))
-
-            let version =
-                version
-                |> Option.defaultWith (fun () -> fail "The installed SKSE version is unavailable.")
-
-            let componentFiles, loader =
-                match importedPlan with
-                | Some plan -> plan.ComponentFiles, plan.Loader
-                | None ->
-                    version.Entries
-                    |> List.map _.Path
-                    |> ModConductor.Skse.SkseArchiveLayout.imported
-
-            let! contextResult =
-                (gameContexts :> ModConductor.GameContexts.IGameContexts).Read(workspace, profile)
-
-            let context =
-                contextResult
-                |> Result.defaultWith (fun _ ->
-                    fail "The checked Skyrim installation is unavailable.")
-
-            let evidence = context.Binding.Value.Evidence
-
-            let currentRuntime =
-                match Version.TryParse evidence.Executable.Value.FileVersion with
-                | true, value -> Some value
-                | _ -> None
-
-            if currentRuntime <> Some release.RuntimeVersion then
-                fail "Skyrim changed after the compatibility check. Check SKSE again."
-
-            let gameRoot =
-                ModConductor.GameContexts.ComponentRoots.gameRootId workspace evidence
-                |> Result.defaultWith fail
-
-            let reviewedComponent =
-                ModConductor.DeploymentPlanning.ComponentManifests.review
-                    workspace
-                    gameRoot
-                    ModConductor.GameContexts.Skyrim.definition.TargetPolicy
-                    { ModId = modId
-                      Version = version
-                      Priority = 0
-                      Files = componentFiles }
-                |> Result.defaultWith (fun _ ->
-                    fail "The reviewed SKSE component no longer matches the installed archive.")
-
-            let! sources, existing =
-                (deploymentRepository :> ModConductor.Deployment.IDeploymentRepository).Read profile
-
-            if sources.Stamp.WorkspaceId <> workspace then
-                fail "The profile deployment is unavailable."
-
-            let! previousLoader =
-                skseLoaders.ReadStored(workspace, profile, existing |> Option.bind _.Active)
-
-            let previousMod = previousLoader |> Option.map _.ModId
-
-            let stagedMods =
-                sources.Profile.Mods
-                |> List.map (fun selected ->
-                    if selected.ModId = modId then
-                        { selected with Enabled = true }
-                    elif previousMod = Some selected.ModId then
-                        { selected with Enabled = false }
-                    else
-                        selected)
-
-            if stagedMods |> List.exists (fun selected -> selected.ModId = modId) |> not then
-                fail "The installed SKSE component is unavailable to this profile."
-
-            let! profileName =
-                database.Enqueue(fun () ->
-                    use query =
-                        Sqlite.command
-                            database.Connection
-                            null
-                            "SELECT name FROM profiles WHERE id=$id"
-                            [ "$id", box (string profile) ]
-
-                    match query.ExecuteScalar() with
-                    | :? string as value -> value
-                    | _ -> fail "The selected profile is unavailable.")
-
-            let stagedProfile: ModConductor.DeploymentRecovery.SavedProfile =
-                { Id = profile
-                  Name = profileName
-                  Revision = sources.Profile.Revision
-                  Mods =
-                    stagedMods
-                    |> List.map (fun selected ->
-                        { ModId = selected.ModId
-                          VersionId = selected.Version |> Option.map _.Id
-                          Priority = selected.Priority
-                          Enabled = selected.Enabled })
-                  Hidden = sources.Hidden }
-
-            let deploymentId = Guid.NewGuid()
-
-            let! prepared =
-                (this.PrepareComponents(
-                    deploymentId,
-                    sources.Stamp,
-                    [ reviewedComponent ],
-                    ignore,
-                    token,
-                    retainedProfile = stagedProfile
-                ))
-
-            do!
-                skseLoaders.StageReplacement(
-                    deploymentId,
-                    sources.Profile.Revision,
-                    previousMod,
-                    { Loader =
-                        { GenerationId = prepared.Switch.Generation.Id
-                          Executable = IO.Path.Combine(evidence.RootPath, loader)
-                          ComponentVersion = string release.ComponentVersion
-                          RuntimeVersion = string release.RuntimeVersion
-                          GameSha256 = evidence.Executable.Value.Sha256 }
-                      ModId = modId
-                      VersionId = versionId
-                      ArchiveSha256 = artifact.Sha256.Value
-                      NexusModId = release.ModId
-                      NexusFileId = release.File.Id
-                      SourceCheckedAt = sourceCheckedAt },
-                    workspace,
-                    profile
-                )
-
-            let! receipt = generations.Start(prepared, [], cancellation = token)
-
-            let receipt =
-                match receipt with
-                | Ok value -> value
-                | Error _ ->
-                    skseLoaders.RemoveReplacement deploymentId
-                    |> fun pending -> pending.GetAwaiter().GetResult()
-
-                    fail "The SKSE deployment could not start."
-
-            let! completed =
-                generations.Run(
-                    receipt.Id,
-                    receipt.Revision,
-                    false,
-                    token,
-                    defaultArg skseCheckpoint (fun _ _ -> ()),
-                    []
-                )
-
-            let completed =
-                match completed with
-                | Ok value -> value
-                | Error _ ->
-                    let pending = deployment.Read(receipt.Id).GetAwaiter().GetResult()
-
-                    match pending with
-                    | Some pending ->
-                        generations.Run(
-                            pending.Id,
-                            pending.Revision,
-                            true,
-                            Threading.CancellationToken.None,
-                            (fun _ _ -> ()),
-                            []
-                        )
-                        |> fun restore -> restore.GetAwaiter().GetResult()
-                        |> Result.defaultWith (fun _ ->
-                            fail "The failed SKSE replacement needs deployment recovery.")
-                        |> ignore
-                    | None -> ()
-
-                    fail "The SKSE deployment did not complete. The previous setup was restored."
-
-            return completed.Proposed
-        }
+        skseWorkflow.InstallSkse(workspace, profile, release, artifact, sourceCheckedAt, token)
 
     member internal this.InstallFnis
         (
@@ -1327,83 +1055,10 @@ type OperationStore
                 | Error _ -> return fail "FNIS removal needs deployment recovery."
         }
 
-    member internal this.RemoveSkse
+    member internal _.RemoveSkse
         (workspace: Guid, profile: Guid, token: Threading.CancellationToken)
         =
-        task {
-            let! sources, existing =
-                (deploymentRepository :> ModConductor.Deployment.IDeploymentRepository).Read profile
-
-            if sources.Stamp.WorkspaceId <> workspace then
-                invalidOp "The profile deployment is unavailable."
-
-            let active = existing |> Option.bind _.Active
-            let! loader = skseLoaders.ReadStored(workspace, profile, active)
-
-            match loader with
-            | None -> return active
-            | Some loader ->
-                let staged =
-                    sources.Profile.Mods
-                    |> List.map (fun selected ->
-                        if selected.ModId = loader.ModId then
-                            { selected with Enabled = false }
-                        else
-                            selected)
-
-                let! profileName =
-                    database.Enqueue(fun () ->
-                        use query =
-                            Sqlite.command
-                                database.Connection
-                                null
-                                "SELECT name FROM profiles WHERE id=$id"
-                                [ "$id", box (string profile) ]
-
-                        match query.ExecuteScalar() with
-                        | :? string as value -> value
-                        | _ -> invalidOp "The selected profile is unavailable.")
-
-                let retained: ModConductor.DeploymentRecovery.SavedProfile =
-                    { Id = profile
-                      Name = profileName
-                      Revision = sources.Profile.Revision
-                      Mods =
-                        staged
-                        |> List.map (fun selected ->
-                            { ModId = selected.ModId
-                              VersionId = selected.Version |> Option.map _.Id
-                              Priority = selected.Priority
-                              Enabled = selected.Enabled })
-                      Hidden = sources.Hidden }
-
-                let deploymentId = Guid.NewGuid()
-
-                let! prepared =
-                    this.PrepareComponents(
-                        deploymentId,
-                        sources.Stamp,
-                        [],
-                        ignore,
-                        token,
-                        retainedProfile = retained
-                    )
-
-                let! started = generations.Start(prepared, [], cancellation = token)
-
-                let receipt =
-                    started
-                    |> Result.defaultWith (fun _ -> invalidOp "SKSE removal could not start.")
-
-                let! completed =
-                    generations.Run(receipt.Id, receipt.Revision, false, token, (fun _ _ -> ()), [])
-
-                return
-                    completed
-                    |> Result.map (fun value -> Some value.Proposed)
-                    |> Result.defaultWith (fun _ ->
-                        invalidOp "SKSE removal needs deployment recovery.")
-        }
+        skseWorkflow.RemoveSkse(workspace, profile, token)
 
     member internal _.InstallEnb
         (workspace, profile, row, runtimeArtifact, acquired, token, ?runtimeOnly)
