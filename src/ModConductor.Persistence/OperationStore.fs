@@ -1,8 +1,6 @@
 namespace ModConductor.Persistence
 
 open System
-open System.Threading
-open System.Threading.Tasks
 open ModConductor.Operations
 
 type OperationStore
@@ -247,86 +245,7 @@ type OperationStore
             defaultArg fnisCheckpoint (fun _ _ -> ())
         )
 
-    let connection = database.Connection
-    let changesGate = obj ()
-
-    let mutable changes =
-        TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)
-
-    let notifyChanges () =
-        lock changesGate (fun () ->
-            let prior = changes
-            changes <- TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)
-            prior.TrySetResult() |> ignore)
-
-    let state transaction =
-        OperationJournal.state connection transaction
-
-    let find transaction id =
-        OperationJournal.find connection transaction id
-
-    let save transaction snapshot =
-        OperationJournal.save connection transaction snapshot
-
-    let enqueue action = database.Enqueue action
-    let enqueueInternal action = database.EnqueueInternal action
-
-    let feed initial requested =
-        use transaction = connection.BeginTransaction(deferred = true)
-        let revision, cursor = state transaction
-
-        let gap =
-            requested
-            |> Option.exists (fun after -> after < max 0L (cursor - 128L) || after > cursor)
-
-        let result =
-            if initial || gap then
-                { Cursor = cursor
-                  Revision = revision
-                  ResyncRequired = gap
-                  Snapshot =
-                    Some(
-                        OperationRows.list
-                            connection
-                            transaction
-                            ("SELECT "
-                             + OperationRows.columns
-                             + " FROM operations ORDER BY last_cursor DESC LIMIT 16")
-                            []
-                    )
-                  Changes = [] }
-            else
-                let after = requested |> Option.defaultValue cursor
-
-                use statement =
-                    Sqlite.command
-                        connection
-                        transaction
-                        ("SELECT "
-                         + OperationRows.columns
-                         + ",cursor FROM operation_events WHERE cursor>$after ORDER BY cursor LIMIT 16")
-                        [ "$after", box after ]
-
-                use reader = statement.ExecuteReader()
-
-                let changes =
-                    [ while reader.Read() do
-                          yield
-                              { Cursor = reader.GetInt64 9
-                                Operation = OperationRows.read reader } ]
-
-                { Cursor =
-                    changes
-                    |> List.tryLast
-                    |> Option.map (fun change -> change.Cursor)
-                    |> Option.defaultValue after
-                  Revision = revision
-                  ResyncRequired = false
-                  Snapshot = None
-                  Changes = changes }
-
-        transaction.Commit()
-        result
+    let operations = OperationSession(database) :> IOperationStore
 
     member _.WorkspaceRoots = workspaceRoots
 
@@ -497,155 +416,23 @@ type OperationStore
 
     member _.Executables = executables :> ModConductor.Executables.IExecutables
 
-    member _.SqliteVersion = connection.ServerVersion
+    member _.SqliteVersion = database.Connection.ServerVersion
 
     interface IOperationStore with
-        member _.Begin(request) =
-            enqueue (fun () ->
-                use transaction = connection.BeginTransaction(deferred = false)
-
-                let result =
-                    match find transaction request.Id with
-                    | Some snapshot when snapshot.Request = request -> Ok(snapshot, false)
-                    | Some _ -> Error IdentityConflict
-                    | None ->
-                        let revision, _ = state transaction
-
-                        if revision <> request.ExpectedRevision then
-                            Error StaleRevision
-                        elif
-                            Sqlite.number
-                                connection
-                                transaction
-                                "SELECT count(*) FROM operations WHERE phase=1"
-                                []
-                            >= 16L
-                        then
-                            Error Capacity
-                        else
-                            let snapshot =
-                                { Request = request
-                                  Phase = Running
-                                  Progress = 0
-                                  Result = None
-                                  ResultRevision = 0L }
-
-                            Sqlite.execute
-                                connection
-                                transaction
-                                "INSERT INTO operations(id,owner,expected_revision,count,phase,progress,result_revision,last_cursor) VALUES($id,$owner,$expected,$count,1,0,0,0)"
-                                [ "$id", box request.Id
-                                  "$owner", box database.OwnerId
-                                  "$expected", box request.ExpectedRevision
-                                  "$count", box request.Count ]
-
-                            save transaction snapshot
-                            Ok(snapshot, true)
-
-                transaction.Commit()
-
-                match result with
-                | Ok(_, true) -> notifyChanges ()
-                | _ -> ()
-
-                result)
+        member _.Begin(request) = operations.Begin(request)
 
         member _.Advance(id, progress, runtime) =
-            enqueueInternal (fun () ->
-                use transaction = connection.BeginTransaction(deferred = false)
-                let current = find transaction id |> Option.get
+            operations.Advance(id, progress, runtime)
 
-                let snapshot =
-                    if current.Phase <> Running then
-                        current
-                    elif progress = current.Request.Count then
-                        let revision, _ = state transaction
-
-                        if revision <> current.Request.ExpectedRevision then
-                            { current with
-                                Phase = Stale
-                                Progress = progress }
-                        else
-                            Sqlite.execute
-                                connection
-                                transaction
-                                "UPDATE operation_state SET revision=revision+1 WHERE id=1"
-                                []
-
-                            { current with
-                                Phase = Completed
-                                Progress = progress
-                                Result = Some runtime
-                                ResultRevision = revision + 1L }
-                    else
-                        { current with Progress = progress }
-
-                if snapshot <> current then
-                    save transaction snapshot
-
-                transaction.Commit()
-
-                if snapshot <> current then
-                    notifyChanges ()
-
-                snapshot)
-
-        member _.Cancel(id) =
-            enqueue (fun () ->
-                use transaction = connection.BeginTransaction(deferred = false)
-
-                let result =
-                    match find transaction id with
-                    | None -> Error NotFound
-                    | Some snapshot when snapshot.Phase = Running ->
-                        let cancelled = { snapshot with Phase = Cancelled }
-                        save transaction cancelled
-                        Ok cancelled
-                    | Some snapshot -> Ok snapshot
-
-                transaction.Commit()
-
-                match result with
-                | Ok snapshot when snapshot.Phase = Cancelled -> notifyChanges ()
-                | _ -> ()
-
-                result)
-
-        member _.Get(id) =
-            enqueue (fun () ->
-                find null id |> Option.map Ok |> Option.defaultValue (Error NotFound))
-
-        member _.InitialFeed(cursor) = enqueue (fun () -> feed true cursor)
-
-        member _.Changes(cursor) =
-            enqueue (fun () -> feed false (Some cursor))
+        member _.Cancel(id) = operations.Cancel(id)
+        member _.Get(id) = operations.Get(id)
+        member _.InitialFeed(cursor) = operations.InitialFeed(cursor)
+        member _.Changes(cursor) = operations.Changes(cursor)
 
         member _.WaitForChanges(cursor, token) =
-            task {
-                let! pending =
-                    enqueue (fun () ->
-                        let _, current = state null
+            operations.WaitForChanges(cursor, token)
 
-                        if current > cursor then
-                            Task.CompletedTask
-                        else
-                            lock changesGate (fun () -> changes.Task))
-
-                do! pending.WaitAsync(token)
-            }
-            :> Task
-
-        member _.Interrupt(id) =
-            enqueueInternal (fun () ->
-                use transaction = connection.BeginTransaction(deferred = false)
-
-                match find transaction id with
-                | Some snapshot when snapshot.Phase = Running ->
-                    save transaction { snapshot with Phase = Interrupted }
-                    transaction.Commit()
-                    notifyChanges ()
-                | Some _
-                | None -> transaction.Commit())
+        member _.Interrupt(id) = operations.Interrupt(id)
 
     member internal _.ApplyOutputAtCheckpoint
         (id, snapshot, selected, action, token, afterPublication)
