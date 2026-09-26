@@ -57,6 +57,12 @@
     <Compile Include="FnisRunRecovery.fs" />
     <Compile Include="FnisRunExecution.fs" />
     <Compile Include="FnisRunner.fs" />
+    <Compile Include="FnisStatus.fs" />
+    <Compile Include="FnisSources.fs" />
+    <Compile Include="FnisNxmIngress.fs" />
+    <Compile Include="FnisSetupMonitor.fs" />
+    <Compile Include="FnisSetupReader.fs" />
+    <Compile Include="FnisCoordinator.fs" />
     <Compile Include="FnisService.fs" />
     <Compile Include="SkyrimSetupModel.fs" />
     <Compile Include="SkyrimSetupRecovery.fs" />
