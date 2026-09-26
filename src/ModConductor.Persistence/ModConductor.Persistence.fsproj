@@ -93,6 +93,9 @@
     <Compile Include="BundleDeletion.fs" />
     <Compile Include="DeletionStore.fs" />
     <Compile Include="MigrationStore.fs" />
+    <Compile Include="EnbConfigurationWorkflow.fs" />
+    <Compile Include="EnbComponentInstaller.fs" />
+    <Compile Include="EnbWorkflow.fs" />
     <Compile Include="OperationStore.fs" />
     <ProjectReference Include="../ModConductor.Nexus/ModConductor.Nexus.fsproj" />
     <ProjectReference Include="../ModConductor.Skse/ModConductor.Skse.fsproj" />
