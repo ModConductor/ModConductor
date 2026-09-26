@@ -1,8 +1,6 @@
 namespace ModConductor.Engine
 
 open System
-open System.Collections.Concurrent
-open System.Collections.Generic
 open System.Threading
 open System.Threading.Tasks
 open ModConductor.Fnis
@@ -19,96 +17,22 @@ type internal SkyrimSetupCoordinator
     ) =
     let lifetime = new CancellationTokenSource()
 
-    let workers =
-        ConcurrentDictionary<Guid * Guid, CancellationTokenSource * TaskCompletionSource>()
-
-    let progression =
-        ConcurrentDictionary<Guid * Guid, CancellationTokenSource * TaskCompletionSource>()
-
     let failed =
         TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)
 
-    let notificationGate = obj ()
-    let notifications = Dictionary<Guid * Guid, int64 * TaskCompletionSource>()
-
-    let notification key =
-        lock notificationGate (fun () ->
-            match notifications.TryGetValue key with
-            | true, value -> value
-            | _ ->
-                let value =
-                    0L, TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)
-
-                notifications.Add(key, value)
-                value)
-
-    let notify key =
-        lock notificationGate (fun () ->
-            let revision, waiting = notification key
-
-            notifications[key] <-
-                revision + 1L,
-                TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)
-
-            waiting.TrySetResult() |> ignore)
-
-    let subscriptions =
-        defaultArg childChanges []
-        |> List.map (fun source -> source.Subscribe(fun key -> notify key))
-
-    let startWorker workspace profile (action: CancellationToken -> Task) =
-        let key = workspace, profile
-        let cancellation = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token)
-
-        let finished =
-            TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)
-
-        if workers.TryAdd(key, (cancellation, finished)) then
-            Task.Run(fun () ->
-                task {
-                    try
-                        try
-                            let! _ = action cancellation.Token
-                            ()
-                        with
-                        | :? OperationCanceledException when cancellation.IsCancellationRequested ->
-                            ()
-                        | error -> failed.TrySetException error |> ignore
-                    finally
-                        match workers.TryRemove key with
-                        | true, (owned, _) -> owned.Dispose()
-                        | _ -> ()
-
-                        finished.TrySetResult() |> ignore
-                        notify key
-                }
-                :> Task)
-            |> ignore
-
-            true
-        else
-            cancellation.Dispose()
-            false
+    let signals = new SkyrimSetupSignals(defaultArg childChanges [])
+    let workers = SkyrimSetupWorkers(lifetime, failed, signals.Notify)
 
     let inspection =
-        SkyrimSetupInspection(store, dependencies, fun key -> workers.ContainsKey key)
+        SkyrimSetupInspection(store, dependencies, fun key -> workers.Contains key)
 
     let recovery = SkyrimSetupRecovery(store, dependencies)
 
     let actions =
-        SkyrimSetupActions(store, dependencies, inspection, recovery, startWorker)
+        SkyrimSetupActions(store, dependencies, inspection, recovery, workers.Start)
 
     let cancellation =
-        SkyrimSetupCancellation(
-            store,
-            dependencies,
-            inspection,
-            recovery,
-            fun key ->
-                match workers.TryGetValue key with
-                | true, (worker, _) -> worker.Cancel()
-                | _ -> ()
-        )
+        SkyrimSetupCancellation(store, dependencies, inspection, recovery, workers.Cancel)
 
     let inspect = inspection.Inspect
     let advance = actions.Advance
@@ -121,99 +45,8 @@ type internal SkyrimSetupCoordinator
             return Ok value
         }
 
-    let waitForChange key revision (token: CancellationToken) =
-        let pending =
-            lock notificationGate (fun () ->
-                let current, waiting = notification key
-
-                if current <> revision then
-                    Task.CompletedTask
-                else
-                    waiting.Task)
-
-        pending.WaitAsync(token)
-
-    let startProgression workspace profile =
-        let key = workspace, profile
-        let cancellation = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token)
-
-        let finished =
-            TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)
-
-        if not failed.Task.IsCompleted && progression.TryAdd(key, (cancellation, finished)) then
-            Task.Run(fun () ->
-                task {
-                    try
-                        try
-                            let mutable active = true
-
-                            while active && not cancellation.IsCancellationRequested do
-                                let revision = fst (notification key)
-                                let! intent = store.SkyrimSetups.Read(workspace, profile)
-
-                                match intent with
-                                | Some value when
-                                    not value.Cancelled
-                                    && not value.Completed
-                                    && not value.CancelRequested
-                                    ->
-                                    let! before =
-                                        inspect
-                                            workspace
-                                            profile
-                                            value.Selection
-                                            intent
-                                            cancellation.Token
-
-                                    if
-                                        before.CanContinue
-                                        && before.Phase <> SkyrimSetupPhase.Failed
-                                        && before.Phase <> SkyrimSetupPhase.WaitingForEnbArchive
-                                    then
-                                        let! outcome =
-                                            advance
-                                                workspace
-                                                profile
-                                                value
-                                                false
-                                                cancellation.Token
-
-                                        match outcome with
-                                        | Error detail ->
-                                            failed.TrySetException(
-                                                InvalidOperationException detail
-                                            )
-                                            |> ignore
-
-                                            notify key
-                                            active <- false
-                                        | Ok after ->
-                                            if after <> before then
-                                                notify key
-                                            else
-                                                do! waitForChange key revision cancellation.Token
-                                    elif before.Active then
-                                        do! waitForChange key revision cancellation.Token
-                                    else
-                                        active <- false
-                                | _ -> active <- false
-                        with
-                        | :? OperationCanceledException when cancellation.IsCancellationRequested ->
-                            ()
-                        | error ->
-                            failed.TrySetException error |> ignore
-                            notify key
-                    finally
-                        match progression.TryRemove key with
-                        | true, (owned, _) -> owned.Dispose()
-                        | _ -> ()
-
-                        finished.TrySetResult() |> ignore
-                }
-                :> Task)
-            |> ignore
-        else
-            cancellation.Dispose()
+    let progression =
+        SkyrimSetupProgression(lifetime, failed, signals, store, inspect, advance)
 
     new
         (
@@ -231,12 +64,12 @@ type internal SkyrimSetupCoordinator
             childChanges = [ skse.Changed; enb.Changed; fnis.Changed ]
         )
 
-    member _.CurrentRevision(workspace, profile) = fst (notification (workspace, profile))
+    member _.CurrentRevision(workspace, profile) = signals.Revision(workspace, profile)
 
     member _.Failed = failed.Task
 
     member _.WaitForChange(workspace, profile, revision, token) =
-        waitForChange (workspace, profile) revision token
+        signals.WaitForChange (workspace, profile) revision token
 
     member _.Read(workspace, profile, (selection: ModConductor.Persistence.SetupSelection), token) =
         task {
@@ -258,7 +91,7 @@ type internal SkyrimSetupCoordinator
                 && current.Phase <> SkyrimSetupPhase.Failed
                 && current.Phase <> SkyrimSetupPhase.WaitingForEnbArchive
             then
-                startProgression workspace profile
+                progression.Start workspace profile
 
             return current
         }
@@ -280,8 +113,8 @@ type internal SkyrimSetupCoordinator
                 match current with
                 | Error detail -> return Error detail
                 | Ok current ->
-                    notify (workspace, profile)
-                    startProgression workspace profile
+                    signals.Notify(workspace, profile)
+                    progression.Start workspace profile
                     return Ok current
             | _ ->
                 let! current =
@@ -292,7 +125,7 @@ type internal SkyrimSetupCoordinator
 
                 if current.Active || current.Phase = SkyrimSetupPhase.RecoveryRequired then
                     if current.Active then
-                        startProgression workspace profile
+                        progression.Start workspace profile
 
                     return Ok current
                 else
@@ -345,8 +178,8 @@ type internal SkyrimSetupCoordinator
                             match current with
                             | Error detail -> return Error detail
                             | Ok current ->
-                                notify (workspace, profile)
-                                startProgression workspace profile
+                                signals.Notify(workspace, profile)
+                                progression.Start workspace profile
                                 return Ok current
         }
 
@@ -356,7 +189,7 @@ type internal SkyrimSetupCoordinator
 
             let! current =
                 match intent with
-                | Some value when progression.ContainsKey((workspace, profile)) ->
+                | Some value when progression.Contains(workspace, profile) ->
                     success (inspect workspace profile value.Selection intent token)
                 | Some value when value.CancelRequested ->
                     success (completeCancellation workspace profile value token)
@@ -374,8 +207,8 @@ type internal SkyrimSetupCoordinator
             match current with
             | Error detail -> return Error detail
             | Ok current ->
-                notify (workspace, profile)
-                startProgression workspace profile
+                signals.Notify(workspace, profile)
+                progression.Start workspace profile
                 return Ok current
         }
 
@@ -410,11 +243,7 @@ type internal SkyrimSetupCoordinator
 
                 do! store.SkyrimSetups.Save requested
 
-                match progression.TryGetValue((workspace, profile)) with
-                | true, (cancellation, finished) ->
-                    cancellation.Cancel()
-                    do! finished.Task
-                | _ -> ()
+                do! progression.CancelAndWait(workspace, profile)
 
                 let! latest = store.SkyrimSetups.Read(workspace, profile)
 
@@ -427,7 +256,7 @@ type internal SkyrimSetupCoordinator
 
                 do! store.SkyrimSetups.Save requested
                 let! current = completeCancellation workspace profile requested token
-                notify (workspace, profile)
+                signals.Notify(workspace, profile)
                 return current
         }
 
@@ -435,20 +264,12 @@ type internal SkyrimSetupCoordinator
         task {
             lifetime.Cancel()
 
-            let running =
-                [| for _, finished in workers.Values do
-                       finished.Task
-                   for _, finished in progression.Values do
-                       finished.Task |]
-
-            do! Task.WhenAll running
+            do! Task.WhenAll(Array.append workers.Running progression.Running)
         }
 
     interface IDisposable with
         member this.Dispose() =
             this.Stop().GetAwaiter().GetResult()
 
-            for subscription in subscriptions do
-                subscription.Dispose()
-
+            (signals :> IDisposable).Dispose()
             lifetime.Dispose()
