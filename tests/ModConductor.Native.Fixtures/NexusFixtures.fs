@@ -466,15 +466,19 @@ module NexusFixtures =
                  && changed.Problem.IsNone
                  && secureServer.ApiKeyRequests >= 3)
 
-            let beforeRejectedDownloads = secureSession.StatusWithRevision
+            let beforeRejectedDownloads, _ = secureSession.StatusWithRevision
             let downloadRequests = secureServer.ApiKeyRequests
 
             let invalidDownload =
                 secureSession.Resolve("skyrimspecialedition", 64012L, 0L, "42") |> wait
 
+            let afterInvalidDownload, invalidDownloadStatus = secureSession.StatusWithRevision
+
             let wrongAccount =
                 secureSession.Resolve("skyrimspecialedition", 64012L, 501L, "someone-else")
                 |> wait
+
+            let afterWrongAccount, wrongAccountStatus = secureSession.StatusWithRevision
 
             let missingLink =
                 secureSession.Resolve(
@@ -486,12 +490,21 @@ module NexusFixtures =
                 )
                 |> wait
 
+            let afterMissingLink, missingLinkStatus = secureSession.StatusWithRevision
+
             check
-                "downloadRejectionsDoNotChangeConnectionOrContactNexus"
+                "downloadRejectionsUpdateConnectionProblemWithoutContactingNexus"
                 (invalidDownload = Error NexusProblem.NotFound
                  && wrongAccount = Error NexusProblem.DownloadAccount
                  && missingLink = Error NexusProblem.DownloadLinkNeeded
-                 && secureSession.StatusWithRevision = beforeRejectedDownloads
+                 && afterInvalidDownload = beforeRejectedDownloads + 1L
+                 && invalidDownloadStatus.Problem = Some NexusProblem.NotFound
+                 && afterWrongAccount = afterInvalidDownload + 1L
+                 && wrongAccountStatus.Problem = Some NexusProblem.DownloadAccount
+                 && afterMissingLink = afterWrongAccount + 1L
+                 && missingLinkStatus.Problem = Some NexusProblem.DownloadLinkNeeded
+                 && (missingLinkStatus.Account
+                     |> Option.exists (fun value -> value.Subject = "42"))
                  && secureServer.ApiKeyRequests = downloadRequests)
 
             let savedBeforeRejectedCandidate = secureMemory.Bytes

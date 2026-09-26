@@ -280,7 +280,10 @@ type NexusSession
             | Error error ->
                 fail epoch error
                 return Error error
-            | Ok result -> return result
+            | Ok(Error error) ->
+                fail epoch error
+                return Error error
+            | Ok(Ok value) -> return Ok value
         }
 
     let resolveLease epoch token bearer (key: string * int64 * int64 * string) (grant: NxmGrant option) =
