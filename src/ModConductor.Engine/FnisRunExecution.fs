@@ -10,18 +10,6 @@ open ModConductor.Persistence
 open ModConductor.Platform
 
 module internal FnisRunExecution =
-    let private recordFailure
-        (store: OperationStore)
-        id
-        phase
-        exitCode
-        stdout
-        stderr
-        runLog
-        detail
-        =
-        store.FnisExecution.Fail(id, phase, exitCode, stdout, stderr, runLog, detail)
-
     let execute
         (store: OperationStore)
         timeout
@@ -32,7 +20,6 @@ module internal FnisRunExecution =
         (token: CancellationToken)
         =
         task {
-            let failRun = recordFailure store
             let mutable stdout = Array.empty<byte>
             let mutable stderr = Array.empty<byte>
             let mutable runLog = Array.empty<byte>
@@ -59,14 +46,15 @@ module internal FnisRunExecution =
                         | _ -> "The selected FNIS launch context changed."
 
                     do!
-                        failRun
-                            stage.Request.Id
-                            FnisOutputPhase.Failed
-                            None
-                            stdout
-                            stderr
-                            runLog
+                        store.FnisExecution.Fail(
+                            stage.Request.Id,
+                            FnisOutputPhase.Failed,
+                            None,
+                            stdout,
+                            stderr,
+                            runLog,
                             detail
+                        )
 
                     ()
                 | Ok projected ->
@@ -102,62 +90,67 @@ module internal FnisRunExecution =
                     match result with
                     | Error NativeToolError.Cancelled ->
                         do!
-                            failRun
-                                stage.Request.Id
-                                FnisOutputPhase.Cancelled
-                                None
-                                stdout
-                                stderr
-                                runLog
+                            store.FnisExecution.Fail(
+                                stage.Request.Id,
+                                FnisOutputPhase.Cancelled,
+                                None,
+                                stdout,
+                                stderr,
+                                runLog,
                                 "FNIS was cancelled. The previous generated output remains active."
+                            )
 
                         ()
                     | Error NativeToolError.TimedOut ->
                         do!
-                            failRun
-                                stage.Request.Id
-                                FnisOutputPhase.Failed
-                                None
-                                stdout
-                                stderr
-                                runLog
+                            store.FnisExecution.Fail(
+                                stage.Request.Id,
+                                FnisOutputPhase.Failed,
+                                None,
+                                stdout,
+                                stderr,
+                                runLog,
                                 "FNIS timed out. The previous generated output remains active."
+                            )
 
                         ()
                     | Error NativeToolError.OutputLimit ->
                         do!
-                            failRun
-                                stage.Request.Id
-                                FnisOutputPhase.Failed
-                                None
-                                stdout
-                                stderr
-                                runLog
+                            store.FnisExecution.Fail(
+                                stage.Request.Id,
+                                FnisOutputPhase.Failed,
+                                None,
+                                stdout,
+                                stderr,
+                                runLog,
                                 "FNIS standard output exceeded 256 KiB."
+                            )
 
                         ()
                     | Error NativeToolError.ErrorLimit ->
                         do!
-                            failRun
-                                stage.Request.Id
-                                FnisOutputPhase.Failed
-                                None
-                                stdout
-                                stderr
-                                runLog
+                            store.FnisExecution.Fail(
+                                stage.Request.Id,
+                                FnisOutputPhase.Failed,
+                                None,
+                                stdout,
+                                stderr,
+                                runLog,
                                 "FNIS standard error exceeded 256 KiB."
+                            )
 
                         ()
                     | Error(NativeToolError.LaunchFailed detail) ->
                         do!
-                            failRun
-                                stage.Request.Id
-                                FnisOutputPhase.Failed
-                                None
-                                stdout
-                                stderr
-                                runLog
+                            store.FnisExecution.Fail(
+                                stage.Request.Id,
+                                FnisOutputPhase.Failed,
+                                None,
+                                stdout,
+                                stderr,
+                                runLog,
                                 detail
+                            )
 
                         ()
                     | Ok result ->
@@ -222,19 +215,20 @@ module internal FnisRunExecution =
 
                                 if restored then
                                     do!
-                                        failRun
-                                            stage.Request.Id
+                                        store.FnisExecution.Fail(
+                                            stage.Request.Id,
                                             (if
                                                  error = ModConductor.Deployment.DeploymentError.Cancelled
                                              then
                                                  FnisOutputPhase.Cancelled
                                              else
-                                                 FnisOutputPhase.Failed)
-                                            (Some result.ExitCode)
-                                            stdout
-                                            stderr
-                                            runLog
+                                                 FnisOutputPhase.Failed),
+                                            (Some result.ExitCode),
+                                            stdout,
+                                            stderr,
+                                            runLog,
                                             detail
+                                        )
 
                                     let! _ = store.FnisExecution.PruneCandidate stage.Request.Id
                                     ()
@@ -253,17 +247,18 @@ module internal FnisRunExecution =
                                     "FNIS output could not be selected. The previous generated output remains active."
 
                             do!
-                                failRun
-                                    stage.Request.Id
+                                store.FnisExecution.Fail(
+                                    stage.Request.Id,
                                     (if error = FnisExecutionError.Cancelled then
                                          FnisOutputPhase.Cancelled
                                      else
-                                         FnisOutputPhase.Failed)
-                                    (Some result.ExitCode)
-                                    stdout
-                                    stderr
-                                    runLog
+                                         FnisOutputPhase.Failed),
+                                    (Some result.ExitCode),
+                                    stdout,
+                                    stderr,
+                                    runLog,
                                     detail
+                                )
 
                             ()
 
@@ -274,14 +269,15 @@ module internal FnisRunExecution =
                     do! store.FnisExecution.Defer stage.Request.Id
                 else
                     do!
-                        failRun
-                            stage.Request.Id
-                            FnisOutputPhase.Cancelled
-                            None
-                            stdout
-                            stderr
-                            runLog
+                        store.FnisExecution.Fail(
+                            stage.Request.Id,
+                            FnisOutputPhase.Cancelled,
+                            None,
+                            stdout,
+                            stderr,
+                            runLog,
                             "FNIS was cancelled. The previous generated output remains active."
+                        )
 
                     ()
             | error ->
@@ -289,14 +285,15 @@ module internal FnisRunExecution =
                     do! store.FnisExecution.Defer stage.Request.Id
                 else
                     do!
-                        failRun
-                            stage.Request.Id
-                            FnisOutputPhase.Failed
-                            None
-                            stdout
-                            stderr
-                            runLog
+                        store.FnisExecution.Fail(
+                            stage.Request.Id,
+                            FnisOutputPhase.Failed,
+                            None,
+                            stdout,
+                            stderr,
+                            runLog,
                             (error.Message + " The previous generated output remains active.")
+                        )
 
                     ()
         }
