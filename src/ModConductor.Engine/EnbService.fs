@@ -1,26 +1,14 @@
 namespace ModConductor.Engine
 
 open System
-open System.Collections.Concurrent
-open System.Collections.Generic
 open System.Threading
 open System.Threading.Tasks
-open ModConductor.ArtifactLibrary
-open ModConductor.ArchiveInspection
-open ModConductor.Deployment
 open ModConductor.Enb
 open ModConductor.GameContexts
 open ModConductor.HttpDownloads
 open ModConductor.Nexus
 open ModConductor.Persistence
 open ModConductor.Protocol.V1
-
-type EnbView =
-    { Phase: EnbPhase
-      Status: string
-      Detail: string
-      RuntimeVersion: string
-      PresetVersion: string }
 
 type EnbCoordinator
     (
@@ -31,77 +19,20 @@ type EnbCoordinator
         row: EnbCompatibilityRow,
         ?eligibilityOverride: Guid * Guid -> Task<Result<unit, EnbProblem>>
     ) as this =
-    let lifetime = new CancellationTokenSource()
-    let operations =
-        ConcurrentDictionary<Guid * Guid, CancellationTokenSource * TaskCompletionSource>()
     let changed = Event<Guid * Guid>()
-    let wakeGate = obj ()
-    let wakes = Dictionary<Guid * Guid, int64 * TaskCompletionSource>()
 
-    let wakeState key =
-        lock wakeGate (fun () ->
-            match wakes.TryGetValue key with
-            | true, value -> value
-            | _ ->
-                let value = 0L, TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)
-                wakes.Add(key, value)
-                value)
+    let view = EnbPresentation.view row
+    let defaultView () = EnbPresentation.defaultView row
+    let adoptionView () = EnbPresentation.adoptionView row
+    let fromStored = EnbPresentation.fromStored
 
-    let signal key =
-        lock wakeGate (fun () ->
-            let revision, waiting = wakeState key
-            wakes[key] <-
-                revision + 1L,
-                TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)
-            waiting.TrySetResult() |> ignore)
-
-    let awaitSignal key revision (token: CancellationToken) =
-        let pending =
-            lock wakeGate (fun () ->
-                let current, waiting = wakeState key
-                if current <> revision then Task.CompletedTask else waiting.Task)
-        pending.WaitAsync(token)
-
-    let phaseName =
-        function
-        | EnbPhase.Blocked -> "blocked"
-        | EnbPhase.Available -> "available"
-        | EnbPhase.WaitingForArchive -> "waiting"
-        | EnbPhase.Validating -> "validating"
-        | EnbPhase.Acquiring -> "acquiring"
-        | EnbPhase.Installing -> "installing"
-        | EnbPhase.Ready -> "ready"
-        | EnbPhase.Failed -> "failed"
-        | EnbPhase.Conflict -> "conflict"
-        | _ -> "unavailable"
-
-    let phase =
-        function
-        | "blocked" -> EnbPhase.Blocked
-        | "available" -> EnbPhase.Available
-        | "waiting" -> EnbPhase.WaitingForArchive
-        | "validating" -> EnbPhase.Validating
-        | "acquiring" -> EnbPhase.Acquiring
-        | "installing" -> EnbPhase.Installing
-        | "ready" -> EnbPhase.Ready
-        | "failed" -> EnbPhase.Failed
-        | "conflict" -> EnbPhase.Conflict
-        | _ -> EnbPhase.Unavailable
-
-    let view state status detail =
-        { Phase = state
-          Status = status
-          Detail = detail
-          RuntimeVersion = row.Runtime.Version
-          PresetVersion = row.Preset.Version }
-
-    let persist workspace profile artifact hash value =
+    let persist workspace profile artifact hash (value: EnbView) =
         task {
             do!
                 store.EnbSetups.SaveStatus
                     { WorkspaceId = workspace
                       ProfileId = profile
-                      Phase = phaseName value.Phase
+                      Phase = EnbPresentation.phaseName value.Phase
                       Status = value.Status
                       Detail = value.Detail
                       RuntimeVersion = value.RuntimeVersion
@@ -114,32 +45,12 @@ type EnbCoordinator
             return value
         }
 
-    let defaultView () =
-        view
-            EnbPhase.Available
-            "Lean ENB is available"
-            "Open the ENBSeries author page, download version 0.505, then choose the archive."
-
-    let adoptionView () =
-        view
-            EnbPhase.Blocked
-            "Lean ENB setup is not approved"
-            (EnbProblem.message EnbProblem.AdoptionBlocked)
-
-    let fromStored (stored: StoredEnbStatus) =
-        { Phase = phase stored.Phase
-          Status = stored.Status
-          Detail = stored.Detail
-          RuntimeVersion = stored.RuntimeVersion
-          PresetVersion = stored.PresetVersion }
-
     let eligibility workspace profile =
         match eligibilityOverride with
         | Some qualify -> qualify (workspace, profile)
         | None ->
             task {
-                let! context =
-                    (store.GameContexts :> IGameContexts).Read(workspace, profile)
+                let! context = (store.GameContexts :> IGameContexts).Read(workspace, profile)
                 let! deployed = store.Deployments.Read profile
 
                 match context, deployed with
@@ -158,597 +69,37 @@ type EnbCoordinator
                 | _ -> return Error EnbProblem.GameUnavailable
             }
 
-    let reference account modId (file: NexusFile) keyed =
-        { Account = account
-          Game = "skyrimspecialedition"
-          ModId = modId
-          FileId = file.Id
-          Keyed = keyed
-          Version = Some file.Version }
+    let acquisition =
+        EnbAcquisition(nexus, downloads, store, handoff, row, persist, view)
 
-    let resolveSources () =
-        task {
-            match nexus.Status.Account with
-            | None -> return Error EnbProblem.SignInRequired
-            | Some account ->
-                let mutable resolved = Ok []
+    let reference = acquisition.Reference
+    let pendingFor = acquisition.PendingFor
+    let beginAcquisition = acquisition.Begin
 
-                for pin in row.Preset :: row.Companions do
-                    match resolved, pin.NexusModId with
-                    | Error _, _ -> ()
-                    | Ok _, None ->
-                        resolved <-
-                            Error(
-                                EnbProblem.SourceUnavailable(
-                                    pin.Name + " has no approved provider identity."
-                                )
-                            )
-                    | Ok values, Some modId ->
-                        let! source = nexus.ReadMod("skyrimspecialedition", modId)
+    let selection =
+        EnbArchiveSelection(store, row, eligibility, persist, view, adoptionView, beginAcquisition)
 
-                        resolved <-
-                            source
-                            |> Result.mapError (
-                                NexusProblem.message >> EnbProblem.SourceUnavailable
-                            )
-                            |> Result.bind (EnbCatalogue.resolveNexusFile pin)
-                            |> Result.map (fun file -> values @ [ pin, modId, file ])
+    let selectArchive = selection.Select
 
-                return resolved |> Result.map (fun values -> account, values)
-        }
+    let recovery =
+        EnbRecovery(store, persist, view, fun workspace profile -> this.Read(workspace, profile))
 
-    let pendingFor profile =
-        task {
-            let! pending = store.EnbSetups.Pending()
-            return pending |> List.filter (fun value -> value.ProfileId = profile)
-        }
+    let operationLoop =
+        new EnbOperationLoop(downloads, store, acquisition, defaultView, changed.Trigger)
 
-    let classifyPending workspace (pending: StoredEnbPendingSource list) =
-        task {
-            let mutable available = []
-            let mutable missing = []
-            let mutable active = false
-            let mutable stopped: (string * string) option = None
+    let runAdvance = operationLoop.RunAdvance
 
-            for source in pending do
-                let sourceReference = reference source.AccountId source.NexusModId source.File false
-                let! artifact = downloads.FindNexus(workspace, sourceReference)
-
-                match artifact with
-                | Some artifact when
-                    artifact.State = ArtifactState.Ready
-                    || artifact.State = ArtifactState.Installed
-                    ->
-                    let pin =
-                        (row.Preset :: row.Companions)
-                        |> List.find (fun pin -> pin.NexusModId = Some source.NexusModId)
-
-                    available <- available @ [ pin, source.File, artifact ]
-                | Some artifact when
-                    artifact.Download
-                    |> Option.exists (fun download ->
-                        download.State = DownloadState.Failed
-                        || download.State = DownloadState.Paused)
-                    ->
-                    stopped <-
-                        Some(
-                            source.File.Name + " download stopped",
-                            artifact.Problem |> Option.defaultValue "Retry the Nexus download."
-                        )
-                | Some _ -> active <- true
-                | None -> missing <- missing @ [ source ]
-
-            return available, missing, active, stopped
-        }
-
-    let installReady workspace profile (runtime: Artifact) available token =
-        task {
-            let! _ =
-                persist
-                    workspace
-                    profile
-                    (Some runtime.Id)
-                    runtime.Sha256
-                    (view
-                        EnbPhase.Installing
-                        "Installing Lean ENB"
-                        "Reviewing owned root, Data and configuration targets.")
-
-            try
-                let! _ = store.InstallEnb(workspace, profile, row, runtime, available, token)
-                do! store.EnbSetups.RemovePending(profile, None)
-
-                return!
-                    persist
-                        workspace
-                        profile
-                        (Some runtime.Id)
-                        runtime.Sha256
-                        (view
-                            EnbPhase.Ready
-                            "Lean ENB is ready"
-                            "Play uses the selected profile generation and its preserved runtime settings.")
-            with error ->
-                let conflict =
-                    error.Message.Contains("owns", StringComparison.OrdinalIgnoreCase)
-                    || error.Message.Contains("already contains", StringComparison.OrdinalIgnoreCase)
-
-                return!
-                    persist
-                        workspace
-                        profile
-                        (Some runtime.Id)
-                        runtime.Sha256
-                        (view
-                            (if conflict then EnbPhase.Conflict else EnbPhase.Failed)
-                            "Lean ENB setup failed"
-                            error.Message)
-        }
-
-    let acquirePremium workspace profile (runtime: Artifact) (next: StoredEnbPendingSource) (account: Account) token =
-        task {
-            let! lease =
-                nexus.Resolve(
-                    "skyrimspecialedition",
-                    next.NexusModId,
-                    next.File.Id,
-                    account.Subject
-                )
-
-            match lease with
-            | Error problem ->
-                return!
-                    persist
-                        workspace
-                        profile
-                        (Some runtime.Id)
-                        runtime.Sha256
-                        (view
-                            EnbPhase.Unavailable
-                            "Nexus source unavailable"
-                            (NexusProblem.message problem))
-            | Ok _ ->
-                let! started =
-                    downloads.Start
-                        { Id = Guid.NewGuid()
-                          WorkspaceId = workspace
-                          Name = next.File.Name
-                          Sources =
-                            [ DownloadSource.Nexus(
-                                  reference
-                                      account.Subject
-                                      next.NexusModId
-                                      next.File
-                                      false
-                              ) ]
-                          ExpectedLength = next.File.Bytes
-                          ExpectedSha256 = None }
-
-                match started with
-                | Error problem ->
-                    return!
-                        persist
-                            workspace
-                            profile
-                            (Some runtime.Id)
-                            runtime.Sha256
-                            (view
-                                EnbPhase.Failed
-                                "The Nexus download could not start"
-                                (string problem))
-                | Ok _ ->
-                    return!
-                        persist
-                            workspace
-                            profile
-                            (Some runtime.Id)
-                            runtime.Sha256
-                            (view
-                                EnbPhase.Acquiring
-                                "Downloading Lean ENB components"
-                                "The active setup remains unchanged until every archive is verified.")
-        }
-
-    let openNexusPage workspace profile (runtime: Artifact) (saved: StoredEnbStatus option) (next: StoredEnbPendingSource) token =
-        task {
-            match saved with
-            | Some state when
-                state.Status = "Waiting for Nexus Mods"
-                && state.Detail.Contains(
-                    next.File.Name,
-                    StringComparison.Ordinal
-                )
-                ->
-                return fromStored state
-            | _ ->
-                try
-                    do!
-                        handoff.Open(
-                            Uri(
-                                "https://www.nexusmods.com/skyrimspecialedition/mods/"
-                                + string next.NexusModId
-                                + "?tab=files&file_id="
-                                + string next.File.Id
-                            ),
-                            token
-                        )
-
-                    return!
-                        persist
-                            workspace
-                            profile
-                            (Some runtime.Id)
-                            runtime.Sha256
-                            (view
-                                EnbPhase.Acquiring
-                                "Waiting for Nexus Mods"
-                                ("Select Mod Manager Download for "
-                                 + next.File.Name
-                                 + "."))
-                with error ->
-                    return!
-                        persist
-                            workspace
-                            profile
-                            (Some runtime.Id)
-                            runtime.Sha256
-                            (view
-                                EnbPhase.Failed
-                                "Nexus Mods could not be opened"
-                                error.Message)
-        }
-
-    let acquireNext workspace profile (runtime: Artifact) (saved: StoredEnbStatus option) (next: StoredEnbPendingSource) token =
-        task {
-            match nexus.Status.Account with
-            | None ->
-                return!
-                    persist
-                        workspace
-                        profile
-                        (Some runtime.Id)
-                        runtime.Sha256
-                        (view
-                            EnbPhase.Unavailable
-                            "Nexus Mods is unavailable"
-                            (EnbProblem.message EnbProblem.SignInRequired))
-            | Some account when account.Subject <> next.AccountId ->
-                return!
-                    persist
-                        workspace
-                        profile
-                        (Some runtime.Id)
-                        runtime.Sha256
-                        (view
-                            EnbPhase.Unavailable
-                            "Nexus account changed"
-                            "Use the Nexus account that started this ENB setup.")
-            | Some account when account.Premium = Some true ->
-                return! acquirePremium workspace profile runtime next account token
-            | Some _ ->
-                return! openNexusPage workspace profile runtime saved next token
-        }
-
-    let rec advance workspace profile (token: CancellationToken) =
-        task {
-            let! saved = store.EnbSetups.ReadStatus(workspace, profile)
-
-            match saved |> Option.bind _.ArtifactId with
-            | None -> return defaultView ()
-            | Some runtimeId ->
-                let! runtimeResult = store.Artifacts.Read(workspace, runtimeId)
-
-                match runtimeResult with
-                | Error _ ->
-                    return!
-                        persist
-                            workspace
-                            profile
-                            None
-                            None
-                            (view
-                                EnbPhase.Failed
-                                "The ENBSeries archive is unavailable"
-                                "Choose the downloaded ENBSeries archive again.")
-                | Ok runtime ->
-                    let! pending = pendingFor profile
-
-                    if pending.IsEmpty then
-                        return!
-                            persist
-                                workspace
-                                profile
-                                (Some runtime.Id)
-                                runtime.Sha256
-                                (view
-                                    EnbPhase.Failed
-                                    "Lean ENB sources are unavailable"
-                                    "Refresh the setup to resolve its approved Nexus files again.")
-                    else
-                        let! available, missing, active, stopped = classifyPending workspace pending
-
-                        match stopped with
-                        | Some(status, detail) ->
-                            return!
-                                persist
-                                    workspace
-                                    profile
-                                    (Some runtime.Id)
-                                    runtime.Sha256
-                                    (view EnbPhase.Failed status detail)
-                        | None when available.Length = pending.Length ->
-                            return! installReady workspace profile runtime available token
-                        | None when active ->
-                            return!
-                                persist
-                                    workspace
-                                    profile
-                                    (Some runtime.Id)
-                                    runtime.Sha256
-                                    (view
-                                        EnbPhase.Acquiring
-                                        "Downloading Lean ENB components"
-                                        "The active setup remains unchanged until every archive is verified.")
-                        | None ->
-                            return! acquireNext workspace profile runtime saved missing.Head token
-        }
-
-    let beginAcquisition workspace profile (runtime: Artifact) token =
-        task {
-            let! resolved = resolveSources ()
-
-            match resolved with
-            | Error problem ->
-                return!
-                    persist
-                        workspace
-                        profile
-                        (Some runtime.Id)
-                        runtime.Sha256
-                        (view
-                            EnbPhase.Unavailable
-                            "Lean ENB source unavailable"
-                            (EnbProblem.message problem))
-            | Ok(account, sources) ->
-                do! store.EnbSetups.RemovePending(profile, None)
-
-                for pin, modId, file in sources do
-                    let pending: StoredEnbPendingSource =
-                        { WorkspaceId = workspace
-                          ProfileId = profile
-                          RuntimeArtifactId = runtime.Id
-                          RuntimeSha256 = runtime.Sha256.Value
-                          Kind =
-                            if pin.Kind = EnbComponentKind.Preset then
-                                "preset"
-                            else
-                                "companion:" + string modId
-                          NexusModId = modId
-                          File = file
-                          AccountId = account.Subject
-                          CheckedAt = DateTimeOffset.UtcNow }
-
-                    do! store.EnbSetups.SavePending pending
-
-                return! advance workspace profile token
-        }
-
-    let selectArchive (runtimeOnly: bool) (workspace, profile, operation, path: string, token) =
-        if not row.TermsApproved then
-            Task.FromResult(adoptionView ())
-        else
-            task {
-                let! eligible = eligibility workspace profile
-
-                if Result.isError eligible then
-                    return!
-                        persist
-                            workspace
-                            profile
-                            None
-                            None
-                            (view
-                                EnbPhase.Unavailable
-                                "ENB setup is unavailable"
-                                (EnbProblem.message EnbProblem.GameUnavailable))
-                else
-                    let fileName = IO.Path.GetFileName(path)
-
-                    if
-                        not (
-                            fileName.Contains("0505", StringComparison.OrdinalIgnoreCase)
-                            || fileName.Contains("0.505", StringComparison.OrdinalIgnoreCase)
-                        )
-                    then
-                        return!
-                            persist
-                                workspace
-                                profile
-                                None
-                                None
-                                (view
-                                    EnbPhase.Failed
-                                    "The ENBSeries archive was refused"
-                                    "Choose the official ENBSeries 0.505 Skyrim SE archive. No files were changed.")
-                    else
-                        let! added =
-                            store.Artifacts.Add(
-                                { Id = operation
-                                  WorkspaceId = workspace
-                                  Path = path
-                                  Storage = ArtifactStorage.Reference },
-                                token
-                            )
-
-                        match added with
-                        | Error _ ->
-                            return!
-                                persist
-                                    workspace
-                                    profile
-                                    None
-                                    None
-                                    (view
-                                        EnbPhase.Failed
-                                        "The ENBSeries archive could not be read"
-                                        "Choose the downloaded archive again from its current folder.")
-                        | Ok artifact ->
-                            let reference =
-                                { WorkspaceId = workspace
-                                  Id = artifact.Id
-                                  Revision = artifact.Revision }
-
-                            try
-                                let! inspected = store.ArchiveInspection.Inspect(reference, token)
-
-                                let result =
-                                    inspected
-                                    |> Result.mapError (fun _ ->
-                                        EnbProblem.InvalidArchive
-                                            "The selected archive is unavailable. No files were changed.")
-                                    |> Result.bind (EnbArchiveLayouts.runtime row.Runtime)
-
-                                match result with
-                                | Error problem ->
-                                    let! _ = store.Artifacts.Remove reference
-
-                                    return!
-                                        persist
-                                            workspace
-                                            profile
-                                            None
-                                            None
-                                            (view
-                                                EnbPhase.Failed
-                                                "The ENBSeries archive was refused"
-                                                (EnbProblem.message problem))
-                                | Ok _ when runtimeOnly ->
-                                    let! _ =
-                                        persist
-                                            workspace
-                                            profile
-                                            (Some artifact.Id)
-                                            artifact.Sha256
-                                            { view EnbPhase.Installing "Installing ENBSeries" "" with PresetVersion = "" }
-
-                                    try
-                                        let! _ = store.InstallEnb(workspace, profile, row, artifact, [], token, runtimeOnly = true)
-
-                                        return!
-                                            persist
-                                                workspace
-                                                profile
-                                                (Some artifact.Id)
-                                                artifact.Sha256
-                                                { view EnbPhase.Ready "ENBSeries is installed" "" with PresetVersion = "" }
-                                    with error ->
-                                        return!
-                                            persist
-                                                workspace
-                                                profile
-                                                (Some artifact.Id)
-                                                artifact.Sha256
-                                                { view EnbPhase.Failed "ENBSeries setup failed" error.Message with PresetVersion = "" }
-                                | Ok _ ->
-                                    let! _ =
-                                        persist
-                                            workspace
-                                            profile
-                                            (Some artifact.Id)
-                                            artifact.Sha256
-                                            (view
-                                                EnbPhase.Acquiring
-                                                "ENBSeries 0.505 was validated"
-                                                "Resolving Lean ENB and its declared companion through Nexus Mods.")
-
-                                    return! beginAcquisition workspace profile artifact token
-                            with error ->
-                                let! _ = store.Artifacts.Remove reference
-
-                                let detail =
-                                    ArchiveFailure.message error
-                                    |> Option.defaultValue
-                                        "The archive could not be validated. No files were changed."
-
-                                return!
-                                    persist
-                                        workspace
-                                        profile
-                                        None
-                                        None
-                                        (view
-                                            EnbPhase.Failed
-                                            "The ENBSeries archive was refused"
-                                            detail)
-            }
-
-
-    let runAdvance workspace profile =
-        task {
-            let key = workspace, profile
-            let cancellation = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token)
-            let finished = TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)
-            let! saved = store.EnbSetups.ReadStatus(workspace, profile)
-
-            if operations.TryAdd(key, (cancellation, finished)) then
-                Task.Run(fun () ->
-                    task {
-                        try
-                            try
-                                let mutable acquiring = true
-
-                                while acquiring do
-                                    let revision = fst (wakeState key)
-                                    let! current = advance workspace profile cancellation.Token
-
-                                    if current.Phase = EnbPhase.Acquiring then
-                                        let! pending = pendingFor profile
-                                        let! artifacts =
-                                            pending
-                                            |> List.map (fun source ->
-                                                downloads.FindNexus(
-                                                    workspace,
-                                                    reference source.AccountId source.NexusModId source.File false
-                                                ))
-                                            |> Task.WhenAll
-
-                                        let waiting =
-                                            artifacts
-                                            |> Array.choose (Option.bind (fun artifact ->
-                                                if
-                                                    artifact.State = ArtifactState.Ready
-                                                    || artifact.State = ArtifactState.Installed
-                                                then
-                                                    None
-                                                else
-                                                    Some(artifact.Id, artifact.Revision)))
-                                            |> Array.toList
-
-                                        if pending.IsEmpty then
-                                            acquiring <- false
-                                        elif current.Status = "Waiting for Nexus Mods" then
-                                            do! awaitSignal key revision cancellation.Token
-                                        elif not waiting.IsEmpty then
-                                            do! downloads.WaitForChange(workspace, waiting, cancellation.Token)
-                                    else
-                                        acquiring <- false
-                            with :? OperationCanceledException when
-                                cancellation.IsCancellationRequested ->
-                                ()
-                        finally
-                            match operations.TryRemove key with
-                            | true, (owned, _) -> owned.Dispose()
-                            | _ -> ()
-                            finished.TrySetResult() |> ignore
-                            changed.Trigger key
-                    }
-                    :> Task)
-                |> ignore
-            else
-                cancellation.Dispose()
-
-            return saved |> Option.map fromStored |> Option.defaultWith defaultView
-        }
+    let nxmIngress =
+        EnbNxmIngress(
+            nexus,
+            downloads,
+            store,
+            acquisition,
+            persist,
+            view,
+            operationLoop.Signal,
+            operationLoop.CancelActive
+        )
 
     member _.Changed = changed.Publish
 
@@ -762,8 +113,8 @@ type EnbCoordinator
                 let! saved = store.EnbSetups.ReadStatus(workspace, profile)
 
                 match operation, saved with
-                | Some _, Some value when operations.ContainsKey key -> return fromStored value
-                | Some _, None when operations.ContainsKey key ->
+                | Some _, Some value when operationLoop.Contains key -> return fromStored value
+                | Some _, None when operationLoop.Contains key ->
                     return
                         view
                             EnbPhase.Installing
@@ -825,7 +176,7 @@ type EnbCoordinator
                                 (EnbProblem.message problem))
                 | Ok() ->
                     try
-                        do! handoff.Open(row.Runtime.Source, lifetime.Token)
+                        do! handoff.Open(row.Runtime.Source, operationLoop.Token)
 
                         return!
                             persist
@@ -857,13 +208,7 @@ type EnbCoordinator
             task {
                 let key = workspace, profile
 
-                match operations.TryGetValue key with
-                | true, (cancellation, finished) ->
-                    try cancellation.Cancel() with :? ObjectDisposedException -> ()
-                    try
-                        do! finished.Task.WaitAsync(TimeSpan.FromSeconds 10.)
-                    with :? TimeoutException -> ()
-                | _ -> ()
+                do! operationLoop.CancelAndWait key
 
                 let! configuration = store.EnbSetups.ConfigurationOperation(workspace, profile)
                 let! deployed = store.Deployments.Read profile
@@ -910,62 +255,25 @@ type EnbCoordinator
         if not row.TermsApproved then
             Task.FromResult(adoptionView ())
         else
-            task {
-                let key = workspace, profile
-
-                use cancellation =
-                    CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token, token)
-                let finished = TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)
-
-                if operations.TryAdd(key, (cancellation, finished)) then
-                    let! selected =
-                        task {
-                            try
-                                return!
-                                    selectArchive false (workspace, profile, operation, path, cancellation.Token)
-                            finally
-                                match operations.TryRemove key with
-                                | true, (owned, _) -> owned.Dispose()
-                                | _ -> ()
-                                finished.TrySetResult() |> ignore
-                        }
-                    if selected.Phase = EnbPhase.Acquiring then
-                        let! _ = runAdvance workspace profile
-                        ()
-                    return selected
-                else
-                    return! this.Read(workspace, profile)
-            }
+            operationLoop.Select
+                workspace
+                profile
+                token
+                (fun cancellation ->
+                    selectArchive false (workspace, profile, operation, path, cancellation))
+                (fun () -> this.Read(workspace, profile))
 
     member _.SelectRuntimeArchive(workspace, profile, operation, path: string, token) =
         if not row.TermsApproved then
             Task.FromResult(adoptionView ())
         else
-            task {
-                let key = workspace, profile
-                use cancellation =
-                    CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token, token)
-                let finished = TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)
-
-                if operations.TryAdd(key, (cancellation, finished)) then
-                    let! selected =
-                        task {
-                            try
-                                return!
-                                    selectArchive true (workspace, profile, operation, path, cancellation.Token)
-                            finally
-                                match operations.TryRemove key with
-                                | true, (owned, _) -> owned.Dispose()
-                                | _ -> ()
-                                finished.TrySetResult() |> ignore
-                        }
-                    if selected.Phase = EnbPhase.Acquiring then
-                        let! _ = runAdvance workspace profile
-                        ()
-                    return selected
-                else
-                    return! this.Read(workspace, profile)
-            }
+            operationLoop.Select
+                workspace
+                profile
+                token
+                (fun cancellation ->
+                    selectArchive true (workspace, profile, operation, path, cancellation))
+                (fun () -> this.Read(workspace, profile))
 
     member _.Update(workspace, profile) =
         if not row.TermsApproved then
@@ -991,10 +299,12 @@ type EnbCoordinator
 
                     match artifact with
                     | Ok value ->
-                        let! started = beginAcquisition workspace profile value lifetime.Token
+                        let! started = beginAcquisition workspace profile value operationLoop.Token
+
                         if started.Phase = EnbPhase.Acquiring then
                             let! _ = runAdvance workspace profile
                             ()
+
                         return started
                     | Error _ ->
                         return!
@@ -1015,7 +325,14 @@ type EnbCoordinator
         else
             task {
                 try
-                    let! _ = store.RemoveEnb(workspace, profile, token, runtimeOnly = defaultArg runtimeOnly false)
+                    let! _ =
+                        store.RemoveEnb(
+                            workspace,
+                            profile,
+                            token,
+                            runtimeOnly = defaultArg runtimeOnly false
+                        )
+
                     do! store.EnbSetups.RemovePending(profile, None)
                     return! persist workspace profile None None (defaultView ())
                 with error ->
@@ -1043,275 +360,14 @@ type EnbCoordinator
         if not row.TermsApproved then
             Task.FromResult(adoptionView ())
         else
-            task {
-                let! operation = store.EnbSetups.ConfigurationOperation(workspace, profile)
-                let! state = store.Deployments.Read profile
-
-                let restoreConfiguration operation success =
-                    task {
-                        do!
-                            store.EnbSetups.UpdateConfiguration(
-                                operation.ReceiptId,
-                                "restore_pending",
-                                None,
-                                operation.Detail
-                            )
-
-                        let! actionRecovered = store.RecoverEnbConfigurationAction(operation, token)
-
-                        let! restored =
-                            match actionRecovered with
-                            | Ok() -> store.RestoreEnbConfiguration(operation, token)
-                            | Error detail -> Task.FromResult(Error detail)
-
-                        let outcome =
-                            match restored with
-                            | Ok() -> success
-                            | Error detail ->
-                                view EnbPhase.Conflict "Skyrim settings need attention" detail
-
-                        let! saved = store.EnbSetups.ReadStatus(workspace, profile)
-
-                        return!
-                            persist
-                                workspace
-                                profile
-                                (if operation.Kind = "remove" then
-                                     None
-                                 else
-                                     saved |> Option.bind _.ArtifactId)
-                                (if operation.Kind = "remove" then
-                                     None
-                                 else
-                                     saved |> Option.bind _.ArchiveSha256)
-                                outcome
-                    }
-
-                match state, operation with
-                | Ok state, operation when
-                    state.WorkspaceId = workspace && state.PendingReceipt.IsSome
-                    ->
-                    let! receipt = store.Deployments.Receipt(state.PendingReceipt.Value)
-
-                    match receipt with
-                    | Ok receipt ->
-                        let! recovered =
-                            store.Deployments.Recover(
-                                receipt.Id,
-                                receipt.Revision,
-                                true,
-                                ignore,
-                                token
-                            )
-
-                        match recovered, operation with
-                        | Error problem, _ ->
-                            return
-                                view
-                                    EnbPhase.Failed
-                                    "ENB recovery did not complete"
-                                    (string problem)
-                        | Ok _, Some operation when operation.Kind = "install" ->
-                            return!
-                                restoreConfiguration
-                                    operation
-                                    (view
-                                        EnbPhase.Failed
-                                        "The previous setup was restored"
-                                        "Refresh ENB setup when you are ready to try again.")
-                        | Ok _, Some operation ->
-                            do! store.EnbSetups.RemoveConfiguration operation.ReceiptId
-                            let! saved = store.EnbSetups.ReadStatus(workspace, profile)
-
-                            return!
-                                persist
-                                    workspace
-                                    profile
-                                    (saved |> Option.bind _.ArtifactId)
-                                    (saved |> Option.bind _.ArchiveSha256)
-                                    (view
-                                        EnbPhase.Ready
-                                        "The previous ENB setup was restored"
-                                        "Removal did not complete; the active setup and Skyrim settings are unchanged.")
-                        | Ok _, None ->
-                            return
-                                view
-                                    EnbPhase.Failed
-                                    "The previous setup was restored"
-                                    "Refresh ENB setup when you are ready to try again."
-                    | Error problem ->
-                        return view EnbPhase.Failed "ENB recovery is unavailable" (string problem)
-                | _, Some operation ->
-                    let! receipt = store.EnbConfigurationDeploymentState operation.ReceiptId
-
-                    match operation.Kind, receipt with
-                    | "install", Some "complete" ->
-                        do! store.EnbSetups.RemoveConfiguration operation.ReceiptId
-                        let! saved = store.EnbSetups.ReadStatus(workspace, profile)
-
-                        return!
-                            persist
-                                workspace
-                                profile
-                                (saved |> Option.bind _.ArtifactId)
-                                (saved |> Option.bind _.ArchiveSha256)
-                                (view
-                                    EnbPhase.Ready
-                                    "Lean ENB is ready"
-                                    "Play uses the selected profile generation and its preserved runtime settings.")
-                    | "remove", Some "complete" ->
-                        return!
-                            restoreConfiguration
-                                operation
-                                (view
-                                    EnbPhase.Available
-                                    "Lean ENB was removed"
-                                    "The previous Skyrim settings were restored.")
-                    | "remove", _ ->
-                        do! store.EnbSetups.RemoveConfiguration operation.ReceiptId
-                        let! saved = store.EnbSetups.ReadStatus(workspace, profile)
-
-                        return!
-                            persist
-                                workspace
-                                profile
-                                (saved |> Option.bind _.ArtifactId)
-                                (saved |> Option.bind _.ArchiveSha256)
-                                (view
-                                    EnbPhase.Ready
-                                    "The previous ENB setup was restored"
-                                    "Removal did not complete; the active setup and Skyrim settings are unchanged.")
-                    | _ ->
-                        return!
-                            restoreConfiguration
-                                operation
-                                (view
-                                    EnbPhase.Failed
-                                    "The previous setup was restored"
-                                    "Refresh ENB setup when you are ready to try again.")
-                | _ -> return! this.Read(workspace, profile)
-            }
+            recovery.Recover(workspace, profile, token)
 
     member _.AcceptNxm(id: Guid) =
-        if not row.TermsApproved then
-            ()
-        else
-            Task.Run(fun () ->
-                task {
-                    let! pending = store.EnbSetups.Pending()
+        if row.TermsApproved then
+            nxmIngress.Accept(id)
 
-                    let failSources title detail (sources: StoredEnbPendingSource list) =
-                        task {
-                            for source in sources do
-                                let! _ =
-                                    persist
-                                        source.WorkspaceId
-                                        source.ProfileId
-                                        (Some source.RuntimeArtifactId)
-                                        (Some source.RuntimeSha256)
-                                        (view EnbPhase.Failed title detail)
-
-                                match operations.TryGetValue((source.WorkspaceId, source.ProfileId)) with
-                                | true, (cancellation, _) ->
-                                    try cancellation.Cancel() with :? ObjectDisposedException -> ()
-                                | _ -> ()
-
-                                ()
-                        }
-
-                    match nexus.ReadNxm id, nexus.Status.Account with
-                    | Ok file, Some account ->
-                        let expected =
-                            pending
-                            |> List.filter (fun value ->
-                                value.NexusModId = file.ModId && value.File.Id = file.FileId)
-
-                        let matches =
-                            expected
-                            |> List.filter (fun value -> value.AccountId = account.Subject)
-
-                        match matches, expected with
-                        | source :: _, _ ->
-                            match nexus.AdmitNxm(id, account.Subject) with
-                            | Ok admitted ->
-                                use admitted = admitted
-                                let! metadata = nexus.ReadFile(file.Game, file.ModId, file.FileId)
-
-                                match metadata with
-                                | Ok metadata ->
-                                    let! started =
-                                        downloads.Start
-                                            { Id = Guid.NewGuid()
-                                              WorkspaceId = source.WorkspaceId
-                                              Name = metadata.Name
-                                              Sources =
-                                                [ DownloadSource.Nexus(
-                                                      reference
-                                                          account.Subject
-                                                          source.NexusModId
-                                                          metadata
-                                                          file.Keyed
-                                                  ) ]
-                                              ExpectedLength = metadata.Bytes
-                                              ExpectedSha256 = None }
-
-                                    if Result.isOk started then
-                                        admitted.Complete()
-                                        signal (source.WorkspaceId, source.ProfileId)
-                                    else
-                                        do!
-                                            failSources
-                                                "The Nexus download could not start"
-                                                "Retry Mod Manager Download for this Lean ENB component."
-                                                [ source ]
-                                | Error problem ->
-                                    do!
-                                        failSources
-                                            "Nexus file details are unavailable"
-                                            (NexusProblem.message problem)
-                                            [ source ]
-                            | Error problem ->
-                                do!
-                                    failSources
-                                        "The Nexus download was refused"
-                                        problem.Detail
-                                        [ source ]
-                        | [], _ :: _ ->
-                            do!
-                                failSources
-                                    "Nexus account changed"
-                                    "Use the Nexus account that started this ENB setup."
-                                    expected
-                        | [], [] -> ()
-                    | Ok file, None ->
-                        let expected =
-                            pending
-                            |> List.filter (fun value ->
-                                value.NexusModId = file.ModId && value.File.Id = file.FileId)
-
-                        do!
-                            failSources
-                                "Sign in to Nexus Mods"
-                                "Use the Nexus account that started this ENB setup."
-                                expected
-                    | Error _, _ -> ()
-                }
-                :> Task)
-            |> ignore
-
-    member internal _.Stop() =
-        task {
-            lifetime.Cancel()
-
-            let running =
-                [| for _, finished in operations.Values do
-                       finished.Task |]
-
-            do! Task.WhenAll running
-        }
+    member internal _.Stop() = operationLoop.Stop()
 
     interface IDisposable with
-        member this.Dispose() =
-            this.Stop().GetAwaiter().GetResult()
-
-            lifetime.Dispose()
+        member _.Dispose() =
+            (operationLoop :> IDisposable).Dispose()

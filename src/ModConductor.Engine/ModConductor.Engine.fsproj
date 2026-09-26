@@ -44,6 +44,13 @@
     <Compile Include="ExecutableWire.fs" />
     <Compile Include="ExecutableService.fs" />
     <Compile Include="SkseService.fs" />
+    <Compile Include="EnbPresentation.fs" />
+    <Compile Include="EnbSources.fs" />
+    <Compile Include="EnbAcquisition.fs" />
+    <Compile Include="EnbArchiveSelection.fs" />
+    <Compile Include="EnbRecovery.fs" />
+    <Compile Include="EnbNxmIngress.fs" />
+    <Compile Include="EnbOperationLoop.fs" />
     <Compile Include="EnbService.fs" />
     <Compile Include="EnbGrpcService.fs" />
     <Compile Include="FnisRunner.fs" />
