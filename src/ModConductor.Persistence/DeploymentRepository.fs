@@ -224,7 +224,7 @@ type internal DeploymentRepository(database: StateDatabase) =
                     receipt.Id
                     (receipt.Phase = ReceiptPhase.Complete)
 
-                FnisRows.completePublication
+                FnisPublicationRows.completePublication
                     connection
                     transaction
                     receipt.Id

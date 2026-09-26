@@ -1,7 +1,6 @@
 namespace ModConductor.Persistence
 
 open System
-open System.IO
 open System.Threading
 open ModConductor.Fnis
 open ModConductor.ModLibrary
@@ -33,11 +32,7 @@ type internal FnisExecutionStore
             match installed with
             | None -> return Error FnisExecutionError.NotFound
             | Some generator ->
-                try
-                    let! value = FnisInputInspection.inspection database workspace profile generator
-                    return Ok value
-                with :? InvalidDataException as error ->
-                    return Error(FnisExecutionError.Unavailable error.Message)
+                return! FnisOutputInspection.inspection database workspace profile generator
         }
 
     member _.Begin(request: FnisRunRequest, generator: StoredFnisGenerator, fingerprint) =

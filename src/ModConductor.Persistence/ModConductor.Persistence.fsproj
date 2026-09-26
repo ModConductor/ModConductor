@@ -20,6 +20,9 @@
     <Compile Include="WorkspaceProfiles.fs" />
     <Compile Include="StateDatabase.fs" />
     <Compile Include="EnbStore.fs" />
+    <Compile Include="FnisRows.fs" />
+    <Compile Include="FnisPublicationRows.fs" />
+    <Compile Include="FnisGeneratorRows.fs" />
     <Compile Include="FnisStore.fs" />
     <Compile Include="SkyrimSetupStore.fs" />
     <Compile Include="NexusOriginRows.fs" />
@@ -56,6 +59,7 @@
     <Compile Include="FnisOutputCleanup.fs" />
     <Compile Include="FnisRunRows.fs" />
     <Compile Include="FnisInputInspection.fs" />
+    <Compile Include="FnisOutputInspection.fs" />
     <Compile Include="FnisExecutionLifecycle.fs" />
     <Compile Include="FnisOutputPublisher.fs" />
     <Compile Include="FnisRunClaim.fs" />
