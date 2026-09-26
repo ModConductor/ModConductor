@@ -121,7 +121,7 @@ type LibraryTests() =
 
         let source, payload = window "source-change", window "payload-change"
         source.GetProperty("committed").GetBoolean() |> should equal false
-        source.GetProperty("workerResult").GetString() |> should equal "refused"
+        source.GetProperty("workerResult").GetString() |> should equal "source-changed"
         payload.GetProperty("committed").GetBoolean() |> should equal false
         payload.GetProperty("changedPayloadPreserved").GetBoolean() |> should equal true
 

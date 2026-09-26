@@ -5,6 +5,14 @@ open ModConductor.GeneratedOutputs
 open ModConductor.ModLibrary
 
 module internal OutputActionRows =
+    let private validTargets policy previous files =
+        LibraryComposition.targets policy previous files
+        |> Result.defaultWith (fun _ ->
+            OutputRows.fail (
+                OutputError.Invalid
+                    "The selected output paths conflict under the game filename rules."
+            ))
+
     let find connection transaction id =
         use query =
             Sqlite.command
@@ -109,7 +117,7 @@ module internal OutputActionRows =
             if previous.Length > 100000 then
                 OutputRows.fail OutputError.LimitExceeded
 
-            LibraryComposition.targets input.Policy previous input.Files |> ignore
+            validTargets input.Policy previous input.Files |> ignore
             id, expected, input)
 
     let preview connection transaction (record: OutputActionRecord) =
@@ -142,10 +150,7 @@ module internal OutputActionRows =
 
                 false,
                 None,
-                LibraryComposition.targets
-                    ModConductor.GameContexts.Skyrim.definition.TargetPolicy
-                    []
-                    files
+                validTargets ModConductor.GameContexts.Skyrim.definition.TargetPolicy [] files
                 |> snd
             | Some(OutputDestination.ExistingMod _) ->
                 let id, _, input = composition connection transaction record |> Option.get
@@ -160,7 +165,7 @@ module internal OutputActionRows =
 
                 row.Entry.SourcePath.IsSome,
                 input.SourceVersion,
-                LibraryComposition.targets input.Policy previous input.Files |> snd
+                validTargets input.Policy previous input.Files |> snd
 
         { Selected = record.Files.Length
           Replaced =

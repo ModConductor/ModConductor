@@ -11,15 +11,8 @@ type internal OutputRepository
         task {
             try
                 return! database.Enqueue action
-            with
-            | :? ModConductor.Operations.CapacityException ->
+            with :? ModConductor.Operations.CapacityException ->
                 return OutputRows.fail OutputError.Busy
-            | :? SourceOverlapException ->
-                return
-                    OutputRows.fail (
-                        OutputError.Invalid
-                            "The selected output paths conflict under the game filename rules."
-                    )
         }
 
     interface IOutputRepository with

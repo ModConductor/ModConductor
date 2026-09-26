@@ -37,105 +37,141 @@ type internal LibraryPublication(database: StateDatabase, access: LibraryAccess)
             let prior =
                 previous |> List.map (fun entry -> entry.Path, entry.Payload) |> Map.ofList
 
-            do!
+            let! captured =
                 Task.Run(fun () ->
-                    use source =
+                    match
                         LibraryFiles.openSource
                             root
                             row
                             (library.Identity |> Option.toList |> Set.ofList)
+                    with
+                    | Error error -> Error error
+                    | Ok source ->
+                        use source = source
+                        use destination = LibraryFiles.openLibrary root library
+                        let check = checkCancelled version
 
-                    use destination = LibraryFiles.openLibrary root library
-                    let check = checkCancelled version
+                        match
+                            SourceFiles.scan
+                                source
+                                (Set.singleton destination.Identity)
+                                100000
+                                check
+                        with
+                        | Error error -> Error error.Error
+                        | Ok(files, _) ->
+                            let captureFile file =
+                                check ()
 
-                    let files, _ =
-                        SourceFiles.scan source (Set.singleton destination.Identity) 100000 check
+                                let reused =
+                                    prior
+                                    |> Map.tryFind file.Path
+                                    |> Option.filter (fun payload ->
+                                        payload.Length = file.Length
+                                        && payload.Sha256 = file.Sha256)
 
-                    for file in files do
-                        check ()
-
-                        let reused =
-                            prior
-                            |> Map.tryFind file.Path
-                            |> Option.filter (fun payload ->
-                                payload.Length = file.Length && payload.Sha256 = file.Sha256)
-
-                        let payload =
-                            match reused with
-                            | Some payload ->
-                                let stored =
-                                    (db (fun () ->
-                                        LibraryRows.payload connection null payload.Id
-                                        |> Option.get))
-                                        .GetAwaiter()
-                                        .GetResult()
-
-                                LibraryFiles.verify destination stored
-                                payload
-                            | None ->
                                 let payload =
-                                    { Id = Guid.NewGuid()
-                                      Length = file.Length
-                                      Sha256 = file.Sha256 }
+                                    match reused with
+                                    | Some payload ->
+                                        let stored =
+                                            (db (fun () ->
+                                                LibraryRows.payload connection null payload.Id
+                                                |> Option.get))
+                                                .GetAwaiter()
+                                                .GetResult()
 
-                                (db (fun () ->
-                                    Sqlite.execute
-                                        connection
-                                        null
-                                        "INSERT INTO mod_payloads(id,workspace_id,publication_id) VALUES($id,$workspace,$version)"
-                                        [ "$id", box (string payload.Id)
-                                          "$workspace", box (string root.Id)
-                                          "$version", box (string version) ]))
-                                    .GetAwaiter()
-                                    .GetResult()
+                                        LibraryFiles.verify destination stored
+                                        Ok payload
+                                    | None ->
+                                        let payload =
+                                            { Id = Guid.NewGuid()
+                                              Length = file.Length
+                                              Sha256 = file.Sha256 }
 
-                                let stream, identity =
-                                    destination.Create(LibraryFiles.payloadName payload.Id)
+                                        (db (fun () ->
+                                            Sqlite.execute
+                                                connection
+                                                null
+                                                "INSERT INTO mod_payloads(id,workspace_id,publication_id) VALUES($id,$workspace,$version)"
+                                                [ "$id", box (string payload.Id)
+                                                  "$workspace", box (string root.Id)
+                                                  "$version", box (string version) ]))
+                                            .GetAwaiter()
+                                            .GetResult()
 
-                                use stream = stream
-                                SourceFiles.copy source file stream check
-                                afterEffect ()
+                                        let stream, identity =
+                                            destination.Create(LibraryFiles.payloadName payload.Id)
 
-                                (db (fun () ->
-                                    Sqlite.execute
-                                        connection
-                                        null
-                                        "UPDATE mod_payloads SET identity=$identity,length=$length,digest=$digest WHERE id=$id"
-                                        [ "$id", box (string payload.Id)
-                                          "$identity", box (LibraryEncoding.identity identity)
-                                          "$length", box payload.Length
-                                          "$digest", box payload.Sha256 ]))
-                                    .GetAwaiter()
-                                    .GetResult()
+                                        use stream = stream
+
+                                        SourceFiles.copy source file stream check
+                                        |> Result.map (fun () ->
+                                            afterEffect ()
+
+                                            (db (fun () ->
+                                                Sqlite.execute
+                                                    connection
+                                                    null
+                                                    "UPDATE mod_payloads SET identity=$identity,length=$length,digest=$digest WHERE id=$id"
+                                                    [ "$id", box (string payload.Id)
+                                                      "$identity",
+                                                      box (LibraryEncoding.identity identity)
+                                                      "$length", box payload.Length
+                                                      "$digest", box payload.Sha256 ]))
+                                                .GetAwaiter()
+                                                .GetResult()
+
+                                            payload)
 
                                 payload
+                                |> Result.map (fun payload ->
+                                    (db (fun () ->
+                                        Sqlite.execute
+                                            connection
+                                            null
+                                            "INSERT INTO mod_manifest VALUES($version,$path,$payload)"
+                                            [ "$version", box (string version)
+                                              "$path", box (LibraryEncoding.path file.Path)
+                                              "$payload", box (string payload.Id) ]))
+                                        .GetAwaiter()
+                                        .GetResult())
 
-                        (db (fun () ->
-                            Sqlite.execute
-                                connection
-                                null
-                                "INSERT INTO mod_manifest VALUES($version,$path,$payload)"
-                                [ "$version", box (string version)
-                                  "$path", box (LibraryEncoding.path file.Path)
-                                  "$payload", box (string payload.Id) ]))
-                            .GetAwaiter()
-                            .GetResult()
-                    // Detect ordinary source edits or directory changes across the full capture.
-                    let after, _ =
-                        SourceFiles.scan source (Set.singleton destination.Identity) 100000 check
+                            use entries = files.GetEnumerator()
+                            let mutable failure = None
 
-                    if files <> after then
-                        raise (SourceChangedException()))
+                            while failure.IsNone && entries.MoveNext() do
+                                match captureFile entries.Current with
+                                | Ok() -> ()
+                                | Error error -> failure <- Some error
 
-            do!
-                db (fun () ->
-                    Sqlite.execute
-                        connection
-                        null
-                        "UPDATE mod_versions SET phase=2 WHERE id=$id AND owner=$owner AND phase=1"
-                        [ "$id", box (string version); "$owner", box database.OwnerId ])
+                            match failure with
+                            | Some error -> Error error
+                            | None ->
+                                SourceFiles.scan
+                                    source
+                                    (Set.singleton destination.Identity)
+                                    100000
+                                    check
+                                |> Result.mapError _.Error
+                                |> Result.bind (fun (after, _) ->
+                                    if files = after then
+                                        Ok()
+                                    else
+                                        Error LibraryError.SourceChanged))
 
-            afterObservation ()
+            match captured with
+            | Error error -> return Error error
+            | Ok() ->
+                do!
+                    db (fun () ->
+                        Sqlite.execute
+                            connection
+                            null
+                            "UPDATE mod_versions SET phase=2 WHERE id=$id AND owner=$owner AND phase=1"
+                            [ "$id", box (string version); "$owner", box database.OwnerId ])
+
+                afterObservation ()
+                return Ok()
         }
 
     let clearCapture root library version =
@@ -327,41 +363,50 @@ type internal LibraryPublication(database: StateDatabase, access: LibraryAccess)
                                 match libraryResult with
                                 | Error error -> return Error error
                                 | Ok library ->
-                                    match work with
-                                    | Capture
-                                    | RestartCapture ->
-                                        if work = RestartCapture then
-                                            do! clearCapture root library version
+                                    let! captured =
+                                        task {
+                                            match work with
+                                            | Capture
+                                            | RestartCapture ->
+                                                if work = RestartCapture then
+                                                    do! clearCapture root library version
 
-                                        match composition with
-                                        | None ->
-                                            do!
-                                                capture
-                                                    root
-                                                    library
-                                                    row
-                                                    version
-                                                    afterEffect
-                                                    afterObservation
-                                        | Some input ->
-                                            do!
-                                                LibraryComposition.capture
-                                                    database
-                                                    root
-                                                    library
-                                                    version
-                                                    input
-                                                    (fun () ->
-                                                        cancellation.ThrowIfCancellationRequested()
-                                                        checkCancelled version ())
-                                                    afterEffect
-                                                    afterObservation
-                                                    beforeInlineEffect
-                                    | CommitObserved -> ()
-                                    | Replay ->
-                                        invalidOp "A completed publication has no file work."
+                                                match composition with
+                                                | None ->
+                                                    return!
+                                                        capture
+                                                            root
+                                                            library
+                                                            row
+                                                            version
+                                                            afterEffect
+                                                            afterObservation
+                                                | Some input ->
+                                                    return!
+                                                        LibraryComposition.capture
+                                                            database
+                                                            root
+                                                            library
+                                                            version
+                                                            input
+                                                            (fun () ->
+                                                                cancellation
+                                                                    .ThrowIfCancellationRequested()
 
-                                    do! verify root library version
+                                                                checkCancelled version ())
+                                                            afterEffect
+                                                            afterObservation
+                                                            beforeInlineEffect
+                                            | CommitObserved -> return Ok()
+                                            | Replay ->
+                                                return
+                                                    invalidOp
+                                                        "A completed publication has no file work."
+                                        }
+
+                                    match captured with
+                                    | Error error -> return Error error
+                                    | Ok() -> do! verify root library version
 
                                     let! completed =
                                         db (fun () ->
@@ -403,10 +448,6 @@ type internal LibraryPublication(database: StateDatabase, access: LibraryAccess)
                         | :? OperationCanceledException ->
                             cancelled <- true
                             return Error LibraryError.Cancelled
-                        | :? SourceOverlapException -> return Error LibraryError.InvalidSource
-                        | :? SourceChangedException -> return Error LibraryError.SourceChanged
-                        | ReplacedPayloadChangedException -> return Error LibraryError.SourceChanged
-                        | :? SourceLimitException -> return Error LibraryError.LimitExceeded
                         | :? IOException
                         | :? UnauthorizedAccessException ->
                             return Error LibraryError.FileUnavailable
@@ -473,15 +514,7 @@ type internal LibraryPublication(database: StateDatabase, access: LibraryAccess)
             None
         )
 
-    member _.ComposeFinalized
-        (
-            modId,
-            expected,
-            version,
-            input,
-            cancellation,
-            finalize
-        ) =
+    member _.ComposeFinalized(modId, expected, version, input, cancellation, finalize) =
         this.Run(
             modId,
             expected,

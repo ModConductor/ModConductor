@@ -60,15 +60,17 @@ type internal FnisOutputPublisher
             let rootPath = RootSelection.path root
             use held = HeldDirectory.Open(rootPath, identity)
 
-            let files, _ =
+            let scanned =
                 SourceFiles.scan held Set.empty 100000 (fun () ->
                     token.ThrowIfCancellationRequested())
 
-            if files.IsEmpty then
+            match scanned with
+            | Error error -> return Error(FnisExecutionError.SourceInspectionFailed error.Message)
+            | Ok(files, _) when files.IsEmpty ->
                 return Error(FnisExecutionError.Invalid "FNIS produced no generated files.")
-            elif files |> List.sumBy _.Length > 2L * 1024L * 1024L * 1024L then
+            | Ok(files, _) when files |> List.sumBy _.Length > 2L * 1024L * 1024L * 1024L ->
                 return Error(FnisExecutionError.Invalid "The generated FNIS output exceeds 2 GiB.")
-            else
+            | Ok(files, _) ->
                 let! prepared =
                     database.Enqueue(fun () ->
                         use transaction = database.Connection.BeginTransaction(deferred = false)

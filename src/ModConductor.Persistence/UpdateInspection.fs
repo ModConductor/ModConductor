@@ -89,35 +89,48 @@ module internal UpdateInspection =
                     | None -> []
                     | Some path ->
                         try
-                            use source =
+                            match
                                 LibraryFiles.openSource root row (Set.singleton held.Identity)
+                            with
+                            | Error _ ->
+                                [ "Source folder is unavailable and will not be changed: "
+                                  + LogicalPath.display path ]
+                            | Ok source ->
+                                use source = source
 
-                            let observed, _ =
-                                SourceFiles.scan
-                                    source
-                                    (Set.singleton held.Identity)
-                                    ArchiveLimits.Default.Entries
-                                    ignore
+                                match
+                                    SourceFiles.scan
+                                        source
+                                        (Set.singleton held.Identity)
+                                        ArchiveLimits.Default.Entries
+                                        ignore
+                                with
+                                | Error _ ->
+                                    [ "Source folder is unavailable and will not be changed: "
+                                      + LogicalPath.display path ]
+                                | Ok(observed, _) ->
+                                    let previous =
+                                        version.Entries
+                                        |> List.map (fun entry -> entry.Path, entry.Payload)
+                                        |> Map.ofList
 
-                            let previous =
-                                version.Entries
-                                |> List.map (fun entry -> entry.Path, entry.Payload)
-                                |> Map.ofList
-
-                            [ for file in observed do
-                                  match previous |> Map.tryFind file.Path with
-                                  | None ->
+                                    [ for file in observed do
+                                          match previous |> Map.tryFind file.Path with
+                                          | None ->
+                                              yield
+                                                  "New source file kept: "
+                                                  + LogicalPath.display file.Path
+                                          | Some payload when
+                                              payload.Length <> file.Length
+                                              || payload.Sha256 <> file.Sha256
+                                              ->
+                                              yield
+                                                  "Changed source file kept: "
+                                                  + LogicalPath.display file.Path
+                                          | _ -> ()
                                       yield
-                                          "New source file kept: " + LogicalPath.display file.Path
-                                  | Some payload when
-                                      payload.Length <> file.Length
-                                      || payload.Sha256 <> file.Sha256
-                                      ->
-                                      yield
-                                          "Changed source file kept: "
-                                          + LogicalPath.display file.Path
-                                  | _ -> ()
-                              yield "Source folder stays unchanged: " + LogicalPath.display path ]
+                                          "Source folder stays unchanged: "
+                                          + LogicalPath.display path ]
                         with :? IOException ->
                             [ "Source folder is unavailable and will not be changed: "
                               + LogicalPath.display path ])

@@ -44,7 +44,6 @@ type internal LibraryAccess(database: StateDatabase, roots: OwnedWorkspaceRootSt
                     try
                         return! action ()
                     with
-                    | :? SourceOverlapException -> return Error LibraryError.InvalidSource
                     | :? ModConductor.Operations.CapacityException ->
                         return Error LibraryError.FileUnavailable
                     | :? IOException
@@ -165,7 +164,7 @@ module internal LibraryFiles =
         | Some path, Some identity ->
             use directory = HeldDirectory.Open(root.Path, root.Identity)
             SourceFiles.child directory path (Some identity) forbidden
-        | _ -> raise (IOException("The mod has no registered source folder."))
+        | _ -> Error LibraryError.FileUnavailable
 
     let payloadName (id: Guid) = id.ToString("N") + ".payload"
 

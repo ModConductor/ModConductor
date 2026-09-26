@@ -90,6 +90,7 @@ type FnisExecutionError =
     | Cancelled
     | Invalid of string
     | Unavailable of string
+    | SourceInspectionFailed of string
 
 type IFnisInspection =
     abstract Inspect:

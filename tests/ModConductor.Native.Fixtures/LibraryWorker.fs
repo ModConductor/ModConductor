@@ -51,5 +51,6 @@ module LibraryWorker =
                 match outcome with
                 | Ok _ -> "complete"
                 | Error LibraryError.Cancelled -> "cancelled"
+                | Error LibraryError.SourceChanged -> "source-changed"
                 | Error _ -> "refused"
             )

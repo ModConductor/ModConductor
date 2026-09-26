@@ -24,14 +24,17 @@ module internal InventoryRegistration =
                 ->
                 use directory = HeldDirectory.Open(root.Path, root.Identity)
 
-                use source =
+                match
                     SourceFiles.child
                         directory
                         path
                         None
                         (libraryIdentity |> Option.toList |> Set.ofList)
-
-                Ok(kind, Some path, Some source.Identity, None)
+                with
+                | Error error -> Error error
+                | Ok source ->
+                    use source = source
+                    Ok(kind, Some path, Some source.Identity, None)
             | Ok(Registration.Directory _)
             | Ok(Registration.NativeDirectory _) -> Error LibraryError.UnsupportedAction
             | Ok Registration.Separator -> Ok(ModKind.Separator, None, None, None)

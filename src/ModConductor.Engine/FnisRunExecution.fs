@@ -241,10 +241,17 @@ module internal FnisRunExecution =
                                     "FNIS inputs changed before the generated output could be selected. The previous generated output remains active."
                                 | FnisExecutionError.Cancelled ->
                                     "FNIS output publication was cancelled. The previous generated output remains active."
+                                | FnisExecutionError.SourceInspectionFailed detail ->
+                                    detail + " The previous generated output remains active."
                                 | FnisExecutionError.Invalid detail
                                 | FnisExecutionError.Unavailable detail -> detail
                                 | _ ->
                                     "FNIS output could not be selected. The previous generated output remains active."
+
+                            let exitCode =
+                                match error with
+                                | FnisExecutionError.SourceInspectionFailed _ -> None
+                                | _ -> Some result.ExitCode
 
                             do!
                                 store.FnisExecution.Fail(
@@ -253,7 +260,7 @@ module internal FnisRunExecution =
                                          FnisOutputPhase.Cancelled
                                      else
                                          FnisOutputPhase.Failed),
-                                    (Some result.ExitCode),
+                                    exitCode,
                                     stdout,
                                     stderr,
                                     runLog,

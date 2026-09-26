@@ -189,7 +189,8 @@ module internal PublicationRows =
                 && not (
                     row.Entry.Kind = ModKind.GeneratedOutput
                     && generatedFnisOutput connection transaction modId version
-                ) ->
+                )
+                ->
                 Error LibraryError.UnsupportedAction
             | None, Some _ when
                 Sqlite.number
@@ -210,46 +211,58 @@ module internal PublicationRows =
                       "$revision", box expected
                       "$owner", box owner ]
 
-                composition
-                |> Option.iter (fun input ->
-                    match input.SourceVersion, input.Files, input.Bytes with
-                    | Some source, [], [ file ] ->
-                        let previous =
-                            LibraryRows.version connection transaction source 0 100001
-                            |> Option.bind (fun value ->
-                                value.Entries
-                                |> List.tryFind (fun entry -> entry.Path = file.Target))
-                            |> Option.defaultWith (fun () -> raise (SourceChangedException()))
+                let origin =
+                    match composition with
+                    | None -> Ok()
+                    | Some input ->
+                        match input.SourceVersion, input.Files, input.Bytes with
+                        | Some source, [], [ file ] ->
+                            let previous =
+                                LibraryRows.version connection transaction source 0 100001
+                                |> Option.bind (fun value ->
+                                    value.Entries
+                                    |> List.tryFind (fun entry -> entry.Path = file.Target))
 
-                        Sqlite.execute
-                            connection
-                            transaction
-                            "INSERT INTO mod_edit_origins VALUES($version,$action,$source,$path,$payload,$content,$digest)"
-                            [ "$version", box (string version)
-                              "$action", box (string input.ActionId)
-                              "$source", box (string source)
-                              "$path", box (LibraryEncoding.path file.Target)
-                              "$payload", box (string previous.Payload.Id)
-                              "$content", box file.Content
-                              "$digest", box file.Sha256 ]
-                    | _, _, [] ->
-                        Sqlite.execute
-                            connection
-                            transaction
-                            "INSERT INTO mod_version_origins VALUES($version,$action,$source,$label)"
-                            [ "$version", box (string version)
-                              "$action", box (string input.ActionId)
-                              "$source",
-                              input.SourceVersion
-                              |> Option.map (string >> box)
-                              |> Option.defaultValue (box DBNull.Value)
-                              "$label", box input.VersionLabel ]
-                    | _ -> raise (SourceOverlapException()))
+                            match previous with
+                            | None -> Error LibraryError.SourceChanged
+                            | Some previous ->
+                                Sqlite.execute
+                                    connection
+                                    transaction
+                                    "INSERT INTO mod_edit_origins VALUES($version,$action,$source,$path,$payload,$content,$digest)"
+                                    [ "$version", box (string version)
+                                      "$action", box (string input.ActionId)
+                                      "$source", box (string source)
+                                      "$path", box (LibraryEncoding.path file.Target)
+                                      "$payload", box (string previous.Payload.Id)
+                                      "$content", box file.Content
+                                      "$digest", box file.Sha256 ]
 
-                LibraryRows.setStatus connection transaction modId InventoryStatus.Publishing
-                Ok(row, Capture)
+                                Ok()
+                        | _, _, [] ->
+                            Sqlite.execute
+                                connection
+                                transaction
+                                "INSERT INTO mod_version_origins VALUES($version,$action,$source,$label)"
+                                [ "$version", box (string version)
+                                  "$action", box (string input.ActionId)
+                                  "$source",
+                                  input.SourceVersion
+                                  |> Option.map (string >> box)
+                                  |> Option.defaultValue (box DBNull.Value)
+                                  "$label", box input.VersionLabel ]
 
-        transaction.Commit()
+                            Ok()
+                        | _ -> Error LibraryError.InvalidSource
+
+                origin
+                |> Result.map (fun () ->
+                    LibraryRows.setStatus connection transaction modId InventoryStatus.Publishing
+                    row, Capture)
+
+        if Result.isOk result then
+            transaction.Commit()
+
         result
 
     let fail (connection: Microsoft.Data.Sqlite.SqliteConnection) owner version cancelled =

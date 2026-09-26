@@ -27,52 +27,73 @@ type internal LibraryCompositionInput =
       Files: CompositionFile list
       Bytes: CompositionBytes list }
 
-exception internal ReplacedPayloadChangedException
-
 module internal LibraryComposition =
     let targets policy (previous: ManifestEntry list) (files: CompositionFile list) =
         let prior = Dictionary<string, ManifestEntry>(TargetPolicy.comparer policy)
+        let mutable failure = None
 
         for entry in previous do
-            if not (prior.TryAdd(TargetPolicy.key policy entry.Path, entry)) then
-                raise (SourceOverlapException())
+            if failure.IsNone && not (prior.TryAdd(TargetPolicy.key policy entry.Path, entry)) then
+                failure <- Some LibraryError.InvalidSource
 
         let selected = HashSet<string>(TargetPolicy.comparer policy)
 
-        let replacements =
-            files
-            |> List.map (fun file ->
-                if not (TargetPolicy.problems policy file.Target).IsEmpty then
-                    raise (SourceOverlapException())
+        let replacements = ResizeArray<_>()
 
+        for file in files do
+            if failure.IsNone then
                 let key = TargetPolicy.key policy file.Target
 
-                if not (selected.Add key) then
-                    raise (SourceOverlapException())
+                if
+                    not (TargetPolicy.problems policy file.Target).IsEmpty || not (selected.Add key)
+                then
+                    failure <- Some LibraryError.InvalidSource
+                else
+                    let old =
+                        match prior.TryGetValue key with
+                        | true, entry -> Some entry
+                        | _ -> None
 
-                let old =
-                    match prior.TryGetValue key with
-                    | true, entry -> Some entry
-                    | _ -> None
+                    replacements.Add(
+                        (old |> Option.map _.Path |> Option.defaultValue file.Target),
+                        file,
+                        old
+                    )
 
-                old |> Option.map _.Path |> Option.defaultValue file.Target, file, old)
-
-        previous
-        |> List.filter (fun file -> not (selected.Contains(TargetPolicy.key policy file.Path))),
-        replacements
+        match failure with
+        | Some error -> Error error
+        | None ->
+            Ok(
+                previous
+                |> List.filter (fun file ->
+                    not (selected.Contains(TargetPolicy.key policy file.Path))),
+                List.ofSeq replacements
+            )
 
     let private checkedFile (root: HeldDirectory) (file: SourceFile) check =
         let stream, _ = SourceFiles.read root file.Path (Some file.Identity)
         use stream = stream
 
-        if
-            stream.Length <> file.Length
-            || SourceFiles.digestChecked check stream <> file.Sha256
-        then
-            raise (SourceChangedException())
+        if stream.Length <> file.Length then
+            Error LibraryError.SourceChanged
+        else
+            SourceFiles.digestCheckedResult check stream
+            |> Result.bind (fun digest ->
+                if digest <> file.Sha256 then
+                    Error LibraryError.SourceChanged
+                else
+                    Ok
+                        { file with
+                            Modified = File.GetLastWriteTimeUtc stream.SafeFileHandle })
 
-        { file with
-            Modified = File.GetLastWriteTimeUtc stream.SafeFileHandle }
+    let private each (entries: 'T list) action =
+        use items = entries.GetEnumerator()
+        let mutable outcome = Ok()
+
+        while Result.isOk outcome && items.MoveNext() do
+            outcome <- action items.Current
+
+        outcome
 
     let capture
         (database: StateDatabase)
@@ -97,241 +118,253 @@ module internal LibraryComposition =
                     |> Option.defaultValue [])
 
             if previous.Length > 100000 then
-                raise (SourceLimitException())
+                return Error LibraryError.LimitExceeded
+            else
+                match targets input.Policy previous input.Files with
+                | Error error -> return Error error
+                | Ok(retainedFiles, selected) ->
+                    let inlineKeys = HashSet<string>(TargetPolicy.comparer input.Policy)
+                    let fileKeys = HashSet<string>(TargetPolicy.comparer input.Policy)
 
-            let retainedFiles, selected = targets input.Policy previous input.Files
-            let inlineKeys = HashSet<string>(TargetPolicy.comparer input.Policy)
-            let fileKeys = HashSet<string>(TargetPolicy.comparer input.Policy)
+                    for file in input.Files do
+                        fileKeys.Add(TargetPolicy.key input.Policy file.Target) |> ignore
 
-            for file in input.Files do
-                fileKeys.Add(TargetPolicy.key input.Policy file.Target) |> ignore
+                    let inlineFiles = ResizeArray<_>()
+                    let mutable invalid = false
 
-            let inlineFiles =
-                input.Bytes
-                |> List.map (fun item ->
-                    if
-                        not (TargetPolicy.problems input.Policy item.Target).IsEmpty
-                        || fileKeys.Contains(TargetPolicy.key input.Policy item.Target)
-                        || not (inlineKeys.Add(TargetPolicy.key input.Policy item.Target))
-                    then
-                        raise (SourceOverlapException())
+                    for item in input.Bytes do
+                        if not invalid then
+                            let key = TargetPolicy.key input.Policy item.Target
 
-                    let prior =
-                        previous
-                        |> List.tryFind (fun entry ->
-                            (TargetPolicy.comparer input.Policy)
-                                .Equals(
-                                    TargetPolicy.key input.Policy entry.Path,
-                                    TargetPolicy.key input.Policy item.Target
-                                ))
+                            if
+                                not (TargetPolicy.problems input.Policy item.Target).IsEmpty
+                                || fileKeys.Contains key
+                                || not (inlineKeys.Add key)
+                            then
+                                invalid <- true
+                            else
+                                let prior =
+                                    previous
+                                    |> List.tryFind (fun entry ->
+                                        (TargetPolicy.comparer input.Policy)
+                                            .Equals(TargetPolicy.key input.Policy entry.Path, key))
 
-                    prior |> Option.map _.Path |> Option.defaultValue item.Target, item, prior)
+                                inlineFiles.Add(
+                                    (prior |> Option.map _.Path |> Option.defaultValue item.Target),
+                                    item,
+                                    prior
+                                )
 
-            let retained =
-                retainedFiles
-                |> List.filter (fun entry ->
-                    not (inlineKeys.Contains(TargetPolicy.key input.Policy entry.Path)))
+                    if invalid then
+                        return Error LibraryError.InvalidSource
+                    else
+                        let retained =
+                            retainedFiles
+                            |> List.filter (fun entry ->
+                                not (inlineKeys.Contains(TargetPolicy.key input.Policy entry.Path)))
 
-            if retained.Length + selected.Length + inlineFiles.Length > 100000 then
-                raise (SourceLimitException())
+                        if retained.Length + selected.Length + inlineFiles.Count > 100000 then
+                            return Error LibraryError.LimitExceeded
+                        else
+                            let! captured =
+                                Task.Run(fun () ->
+                                    use destination = LibraryFiles.openLibrary workspace library
 
-            do!
-                Task.Run(fun () ->
-                    use destination = LibraryFiles.openLibrary workspace library
+                                    let execute action = (db action).GetAwaiter().GetResult()
 
-                    for entry in retained do
-                        check ()
+                                    let manifest path payload =
+                                        execute (fun () ->
+                                            Sqlite.execute
+                                                connection
+                                                null
+                                                "INSERT INTO mod_manifest VALUES($version,$path,$payload)"
+                                                [ "$version", box (string version)
+                                                  "$path", box (LibraryEncoding.path path)
+                                                  "$payload", box (string payload.Id) ])
 
-                        let stored =
-                            (db (fun () ->
-                                LibraryRows.payload connection null entry.Payload.Id
-                                |> Option.defaultWith (fun () -> raise (SourceChangedException()))))
-                                .GetAwaiter()
-                                .GetResult()
+                                    let insert payload =
+                                        execute (fun () ->
+                                            Sqlite.execute
+                                                connection
+                                                null
+                                                "INSERT INTO mod_payloads(id,workspace_id,publication_id) VALUES($id,$workspace,$version)"
+                                                [ "$id", box (string payload.Id)
+                                                  "$workspace", box (string workspace.Id)
+                                                  "$version", box (string version) ])
 
-                        LibraryFiles.verify destination stored |> ignore
+                                    let update payload identity =
+                                        execute (fun () ->
+                                            Sqlite.execute
+                                                connection
+                                                null
+                                                "UPDATE mod_payloads SET identity=$identity,length=$length,digest=$digest WHERE id=$id"
+                                                [ "$identity",
+                                                  box (LibraryEncoding.identity identity)
+                                                  "$length", box payload.Length
+                                                  "$digest", box payload.Sha256
+                                                  "$id", box (string payload.Id) ])
 
-                        (db (fun () ->
-                            Sqlite.execute
-                                connection
-                                null
-                                "INSERT INTO mod_manifest VALUES($version,$path,$payload)"
-                                [ "$version", box (string version)
-                                  "$path", box (LibraryEncoding.path entry.Path)
-                                  "$payload", box (string entry.Payload.Id) ]))
-                            .GetAwaiter()
-                            .GetResult()
+                                    let retainedEntry entry =
+                                        check ()
 
-                    for target, item, prior in selected do
-                        check ()
-                        use source = HeldDirectory.Open(item.Root, item.RootIdentity)
-                        let file = checkedFile source item.File check
+                                        match
+                                            execute (fun () ->
+                                                LibraryRows.payload
+                                                    connection
+                                                    null
+                                                    entry.Payload.Id)
+                                        with
+                                        | None -> Error LibraryError.SourceChanged
+                                        | Some stored ->
+                                            LibraryFiles.verify destination stored
+                                            manifest entry.Path entry.Payload
+                                            Ok()
 
-                        let reused =
-                            prior
-                            |> Option.filter (fun entry ->
-                                entry.Payload.Length = file.Length
-                                && entry.Payload.Sha256 = file.Sha256)
+                                    let selectedEntry (target, item, prior) =
+                                        check ()
 
-                        let payload =
-                            match reused with
-                            | Some entry ->
-                                let stored =
-                                    (db (fun () ->
-                                        LibraryRows.payload connection null entry.Payload.Id
-                                        |> Option.get))
-                                        .GetAwaiter()
-                                        .GetResult()
+                                        use source =
+                                            HeldDirectory.Open(item.Root, item.RootIdentity)
 
-                                LibraryFiles.verify destination stored
-                                entry.Payload
-                            | None ->
-                                let payload =
-                                    { Id = Guid.NewGuid()
-                                      Length = file.Length
-                                      Sha256 = file.Sha256 }
+                                        checkedFile source item.File check
+                                        |> Result.bind (fun file ->
+                                            let reused =
+                                                prior
+                                                |> Option.filter (fun entry ->
+                                                    entry.Payload.Length = file.Length
+                                                    && entry.Payload.Sha256 = file.Sha256)
 
-                                (db (fun () ->
-                                    Sqlite.execute
-                                        connection
-                                        null
-                                        "INSERT INTO mod_payloads(id,workspace_id,publication_id) VALUES($id,$workspace,$version)"
-                                        [ "$id", box (string payload.Id)
-                                          "$workspace", box (string workspace.Id)
-                                          "$version", box (string version) ]))
-                                    .GetAwaiter()
-                                    .GetResult()
+                                            let payload =
+                                                match reused with
+                                                | Some entry ->
+                                                    let stored =
+                                                        execute (fun () ->
+                                                            LibraryRows.payload
+                                                                connection
+                                                                null
+                                                                entry.Payload.Id
+                                                            |> Option.get)
 
-                                let stream, identity =
-                                    destination.Create(LibraryFiles.payloadName payload.Id)
+                                                    LibraryFiles.verify destination stored
+                                                    Ok entry.Payload
+                                                | None ->
+                                                    let payload =
+                                                        { Id = Guid.NewGuid()
+                                                          Length = file.Length
+                                                          Sha256 = file.Sha256 }
 
-                                use stream = stream
-                                SourceFiles.copy source file stream check
-                                afterEffect ()
+                                                    insert payload
 
-                                (db (fun () ->
-                                    Sqlite.execute
-                                        connection
-                                        null
-                                        "UPDATE mod_payloads SET identity=$identity,length=$length,digest=$digest WHERE id=$id"
-                                        [ "$identity", box (LibraryEncoding.identity identity)
-                                          "$length", box payload.Length
-                                          "$digest", box payload.Sha256
-                                          "$id", box (string payload.Id) ]))
-                                    .GetAwaiter()
-                                    .GetResult()
+                                                    let stream, identity =
+                                                        destination.Create(
+                                                            LibraryFiles.payloadName payload.Id
+                                                        )
 
-                                payload
+                                                    use stream = stream
 
-                        (db (fun () ->
-                            Sqlite.execute
-                                connection
-                                null
-                                "INSERT INTO mod_manifest VALUES($version,$path,$payload)"
-                                [ "$version", box (string version)
-                                  "$path", box (LibraryEncoding.path target)
-                                  "$payload", box (string payload.Id) ]))
-                            .GetAwaiter()
-                            .GetResult()
+                                                    SourceFiles.copy source file stream check
+                                                    |> Result.map (fun () ->
+                                                        afterEffect ()
+                                                        update payload identity
+                                                        payload)
 
-                    for target, item, prior in inlineFiles do
-                        check ()
-                        let digest = Convert.ToHexStringLower(SHA256.HashData item.Content)
+                                            payload
+                                            |> Result.map (fun payload -> manifest target payload))
 
-                        if digest <> item.Sha256 then
-                            raise (SourceChangedException())
+                                    let inlineEntry (target, item, prior) =
+                                        check ()
 
-                        beforeInlineEffect ()
-                        check ()
+                                        let digest =
+                                            Convert.ToHexStringLower(SHA256.HashData item.Content)
 
-                        prior
-                        |> Option.iter (fun entry ->
-                            let stored =
-                                (db (fun () ->
-                                    LibraryRows.payload connection null entry.Payload.Id
-                                    |> Option.defaultWith (fun () ->
-                                        raise (SourceChangedException()))))
-                                    .GetAwaiter()
-                                    .GetResult()
+                                        if digest <> item.Sha256 then
+                                            Error LibraryError.SourceChanged
+                                        else
+                                            beforeInlineEffect ()
+                                            check ()
 
-                            if stored.Payload <> entry.Payload then
-                                raise ReplacedPayloadChangedException
+                                            let priorValid =
+                                                match prior with
+                                                | None -> Ok()
+                                                | Some entry ->
+                                                    match
+                                                        execute (fun () ->
+                                                            LibraryRows.payload
+                                                                connection
+                                                                null
+                                                                entry.Payload.Id)
+                                                    with
+                                                    | None -> Error LibraryError.SourceChanged
+                                                    | Some stored when
+                                                        stored.Payload <> entry.Payload
+                                                        ->
+                                                        Error LibraryError.SourceChanged
+                                                    | Some stored ->
+                                                        try
+                                                            LibraryFiles.verify destination stored
+                                                            Ok()
+                                                        with :? IOException ->
+                                                            Error LibraryError.SourceChanged
 
-                            try
-                                LibraryFiles.verify destination stored
-                            with :? IOException ->
-                                raise ReplacedPayloadChangedException)
+                                            priorValid
+                                            |> Result.map (fun () ->
+                                                let reused =
+                                                    prior
+                                                    |> Option.filter (fun entry ->
+                                                        entry.Payload.Length = int64
+                                                            item.Content.Length
+                                                        && entry.Payload.Sha256 = item.Sha256)
 
-                        let reused =
-                            prior
-                            |> Option.filter (fun entry ->
-                                entry.Payload.Length = int64 item.Content.Length
-                                && entry.Payload.Sha256 = item.Sha256)
+                                                let payload =
+                                                    match reused with
+                                                    | Some entry -> entry.Payload
+                                                    | None ->
+                                                        let payload =
+                                                            { Id = Guid.NewGuid()
+                                                              Length = int64 item.Content.Length
+                                                              Sha256 = item.Sha256 }
 
-                        let payload =
-                            match reused with
-                            | Some entry -> entry.Payload
-                            | None ->
-                                let payload =
-                                    { Id = Guid.NewGuid()
-                                      Length = int64 item.Content.Length
-                                      Sha256 = item.Sha256 }
+                                                        insert payload
 
-                                (db (fun () ->
-                                    Sqlite.execute
-                                        connection
-                                        null
-                                        "INSERT INTO mod_payloads(id,workspace_id,publication_id) VALUES($id,$workspace,$version)"
-                                        [ "$id", box (string payload.Id)
-                                          "$workspace", box (string workspace.Id)
-                                          "$version", box (string version) ]))
-                                    .GetAwaiter()
-                                    .GetResult()
+                                                        let stream, identity =
+                                                            destination.Create(
+                                                                LibraryFiles.payloadName
+                                                                    payload.Id
+                                                            )
 
-                                let stream, identity =
-                                    destination.Create(LibraryFiles.payloadName payload.Id)
+                                                        use stream = stream
+                                                        stream.Write item.Content
+                                                        stream.Flush true
+                                                        afterEffect ()
+                                                        update payload identity
+                                                        payload
 
-                                use stream = stream
-                                stream.Write item.Content
-                                stream.Flush true
-                                afterEffect ()
+                                                manifest target payload)
 
-                                (db (fun () ->
-                                    Sqlite.execute
-                                        connection
-                                        null
-                                        "UPDATE mod_payloads SET identity=$identity,length=$length,digest=$digest WHERE id=$id"
-                                        [ "$identity", box (LibraryEncoding.identity identity)
-                                          "$length", box payload.Length
-                                          "$digest", box payload.Sha256
-                                          "$id", box (string payload.Id) ]))
-                                    .GetAwaiter()
-                                    .GetResult()
+                                    let verifySource item =
+                                        use source =
+                                            HeldDirectory.Open(item.Root, item.RootIdentity)
 
-                                payload
+                                        checkedFile source item.File check |> Result.map ignore
 
-                        (db (fun () ->
-                            Sqlite.execute
-                                connection
-                                null
-                                "INSERT INTO mod_manifest VALUES($version,$path,$payload)"
-                                [ "$version", box (string version)
-                                  "$path", box (LibraryEncoding.path target)
-                                  "$payload", box (string payload.Id) ]))
-                            .GetAwaiter()
-                            .GetResult()
+                                    each retained retainedEntry
+                                    |> Result.bind (fun () -> each selected selectedEntry)
+                                    |> Result.bind (fun () ->
+                                        each (List.ofSeq inlineFiles) inlineEntry)
+                                    |> Result.bind (fun () -> each input.Files verifySource))
 
-                    for item in input.Files do
-                        use source = HeldDirectory.Open(item.Root, item.RootIdentity)
-                        checkedFile source item.File check |> ignore)
+                            match captured with
+                            | Error error -> return Error error
+                            | Ok() ->
+                                do!
+                                    db (fun () ->
+                                        Sqlite.execute
+                                            connection
+                                            null
+                                            "UPDATE mod_versions SET phase=2 WHERE id=$id AND owner=$owner AND phase=1"
+                                            [ "$id", box (string version)
+                                              "$owner", box database.OwnerId ])
 
-            do!
-                db (fun () ->
-                    Sqlite.execute
-                        connection
-                        null
-                        "UPDATE mod_versions SET phase=2 WHERE id=$id AND owner=$owner AND phase=1"
-                        [ "$id", box (string version); "$owner", box database.OwnerId ])
-
-            afterObservation ()
+                                afterObservation ()
+                                return Ok()
         }

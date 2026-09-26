@@ -5,21 +5,15 @@ open System.IO
 open System.Security.Cryptography
 open ModConductor.Platform
 
-type internal SourceChangedException() =
-    inherit IOException("The source files changed.")
-
-type internal SourceOverlapException() =
-    inherit IOException("The source overlaps the library.")
-
-type internal SourceLimitException() =
-    inherit IOException("The source exceeds the inspection limit.")
-
 type internal SourceFile =
     { Path: LogicalPath
       Identity: FileIdentity
       Length: int64
       Modified: DateTime
       Sha256: string }
+
+type internal SourceScanFailure =
+    { Error: LibraryError; Message: string }
 
 module internal SourceFiles =
     let relative (root: HostPath) (candidate: HostPath) =
@@ -36,26 +30,29 @@ module internal SourceFiles =
 
     let child (root: HeldDirectory) path expected forbidden =
         if (LogicalPath.components path).Length > 128 then
-            raise (IOException("The source folder is too deep."))
+            Error LibraryError.FileUnavailable
+        else
+            let checkedChild (parent: HeldDirectory) name expected =
+                let directory = parent.Directory(name, expected)
 
-        let checkedChild (parent: HeldDirectory) name expected =
-            let directory = parent.Directory(name, expected)
+                if Set.contains directory.Identity forbidden then
+                    (directory :> IDisposable).Dispose()
+                    Error LibraryError.InvalidSource
+                else
+                    Ok directory
 
-            if Set.contains directory.Identity forbidden then
-                (directory :> IDisposable).Dispose()
-                raise (SourceOverlapException())
+            let rec descend (parent: HeldDirectory) components =
+                match components with
+                | [] -> invalidArg "path" "Select a child folder."
+                | [ name ] -> checkedChild parent name expected
+                | name :: remaining ->
+                    match checkedChild parent name None with
+                    | Error error -> Error error
+                    | Ok directory ->
+                        use directory = directory
+                        descend directory remaining
 
-            directory
-
-        let rec descend (parent: HeldDirectory) components =
-            match components with
-            | [] -> invalidArg "path" "Select a child folder."
-            | [ name ] -> checkedChild parent name expected
-            | name :: remaining ->
-                use directory = checkedChild parent name None
-                descend directory remaining
-
-        descend root (LogicalPath.components path)
+            descend root (LogicalPath.components path)
 
     let read (root: HeldDirectory) path expected =
         let rec descend (parent: HeldDirectory) components =
@@ -68,27 +65,33 @@ module internal SourceFiles =
 
         descend root (LogicalPath.components path)
 
-    let digestChecked check (file: FileStream) =
+    let digestCheckedResult check (file: FileStream) =
         file.Position <- 0L
         let length = file.Length
         use hash = IncrementalHash.CreateHash HashAlgorithmName.SHA256
         let buffer = Array.zeroCreate<byte> 65536
         let mutable remaining = length
 
-        while remaining > 0L do
+        let mutable changed = false
+
+        while remaining > 0L && not changed do
             check ()
             let count = file.Read(buffer, 0, int (min remaining (int64 buffer.Length)))
 
             if count = 0 then
-                raise (IOException("The file changed while reading."))
+                changed <- true
+            else
+                hash.AppendData(buffer, 0, count)
+                remaining <- remaining - int64 count
 
-            hash.AppendData(buffer, 0, count)
-            remaining <- remaining - int64 count
+        if changed || file.ReadByte() <> -1 then
+            Error LibraryError.FileUnavailable
+        else
+            Ok(Convert.ToHexStringLower(hash.GetHashAndReset()))
 
-        if file.ReadByte() <> -1 then
-            raise (IOException("The file changed while reading."))
-
-        Convert.ToHexStringLower(hash.GetHashAndReset())
+    let digestChecked check file =
+        digestCheckedResult check file
+        |> Result.defaultWith (fun _ -> raise (IOException("The file changed while reading.")))
 
     let digest file = digestChecked ignore file
 
@@ -97,96 +100,126 @@ module internal SourceFiles =
         let mutable candidates = 0
 
         let rec walk (directory: HeldDirectory) components depth =
-            if depth > 128 || Set.contains directory.Identity forbidden then
-                raise (
-                    IOException("The source contains an unsupported folder or the library itself.")
-                )
+            if depth > 128 then
+                Error
+                    { Error = LibraryError.FileUnavailable
+                      Message = "The source contains an unsupported folder or the library itself." }
+            elif Set.contains directory.Identity forbidden then
+                Error
+                    { Error = LibraryError.FileUnavailable
+                      Message = "The source contains an unsupported folder or the library itself." }
+            else
+                use names = directory.Names.GetEnumerator()
+                let mutable failure = None
 
-            for name in directory.Names do
-                check ()
-                candidates <- candidates + 1
+                while failure.IsNone && names.MoveNext() do
+                    check ()
+                    candidates <- candidates + 1
 
-                if candidates > limit then
-                    raise (SourceLimitException())
+                    if candidates > limit then
+                        failure <-
+                            Some
+                                { Error = LibraryError.LimitExceeded
+                                  Message = "The source exceeds the inspection limit." }
+                    else
+                        let name = names.Current
+                        let path = components @ [ name ]
 
-                let path = components @ [ name ]
+                        let child =
+                            try
+                                Some(directory.Directory(name, None))
+                            with :? IOException ->
+                                None
 
-                let child =
-                    try
-                        Some(directory.Directory(name, None))
-                    with :? IOException ->
-                        None
+                        match child with
+                        | Some folder ->
+                            use folder = folder
 
-                match child with
-                | Some folder ->
-                    use folder = folder
-                    walk folder path (depth + 1)
-                | None ->
-                    let stream, identity = directory.Read(name, None)
-                    use stream = stream
-                    let length = stream.Length
-                    let modified = File.GetLastWriteTimeUtc stream.SafeFileHandle
-                    let sha = digestChecked check stream
+                            match walk folder path (depth + 1) with
+                            | Ok() -> ()
+                            | Error error -> failure <- Some error
+                        | None ->
+                            let stream, identity = directory.Read(name, None)
+                            use stream = stream
+                            let length = stream.Length
+                            let modified = File.GetLastWriteTimeUtc stream.SafeFileHandle
 
-                    if
-                        stream.Length <> length
-                        || File.GetLastWriteTimeUtc stream.SafeFileHandle <> modified
-                    then
-                        raise (SourceChangedException())
+                            match digestCheckedResult check stream with
+                            | Error error ->
+                                failure <-
+                                    Some
+                                        { Error = error
+                                          Message = "The file changed while reading." }
+                            | Ok _ when
+                                stream.Length <> length
+                                || File.GetLastWriteTimeUtc stream.SafeFileHandle <> modified
+                                ->
+                                failure <-
+                                    Some
+                                        { Error = LibraryError.SourceChanged
+                                          Message = "The source files changed." }
+                            | Ok sha ->
+                                files.Add
+                                    { Path =
+                                        LogicalPath.create path
+                                        |> Result.defaultWith (fun _ ->
+                                            invalidOp "Invalid source name.")
+                                      Identity = identity
+                                      Length = length
+                                      Modified = modified
+                                      Sha256 = sha }
 
-                    files.Add
-                        { Path =
-                            LogicalPath.create path
-                            |> Result.defaultWith (fun _ -> invalidOp "Invalid source name.")
-                          Identity = identity
-                          Length = length
-                          Modified = modified
-                          Sha256 = sha }
+                match failure with
+                | Some error -> Error error
+                | None -> Ok()
 
         walk root [] 0
-
-        (files |> Seq.sortBy (fun file -> LogicalPath.components file.Path) |> Seq.toList),
-        candidates
+        |> Result.map (fun () ->
+            (files |> Seq.sortBy (fun file -> LogicalPath.components file.Path) |> Seq.toList),
+            candidates)
 
     let copy (source: HeldDirectory) (file: SourceFile) (destination: FileStream) check =
         let input, _ = read source file.Path (Some file.Identity)
         use input = input
 
-        if
-            input.Length <> file.Length
-            || File.GetLastWriteTimeUtc input.SafeFileHandle <> file.Modified
-        then
-            raise (SourceChangedException())
-
         let buffer = Array.zeroCreate<byte> 65536
         let mutable remaining = file.Length
 
-        while remaining > 0L do
+        let mutable changed =
+            input.Length <> file.Length
+            || File.GetLastWriteTimeUtc input.SafeFileHandle <> file.Modified
+
+        while remaining > 0L && not changed do
             check ()
             let count = input.Read(buffer, 0, int (min remaining (int64 buffer.Length)))
 
             if count = 0 then
-                raise (SourceChangedException())
+                changed <- true
+            else
+                destination.Write(buffer, 0, count)
+                remaining <- remaining - int64 count
 
-            destination.Write(buffer, 0, count)
-            remaining <- remaining - int64 count
-
-        if input.ReadByte() <> -1 then
-            raise (SourceChangedException())
-
-        destination.Flush true
-
-        if
-            input.Length <> file.Length
-            || File.GetLastWriteTimeUtc input.SafeFileHandle <> file.Modified
-            || destination.Length <> file.Length
-            || digestChecked check destination <> file.Sha256
-        then
-            raise (SourceChangedException())
-
-        if OperatingSystem.IsLinux() then
-            File.SetUnixFileMode(destination.SafeFileHandle, UnixFileMode.UserRead)
-        elif OperatingSystem.IsWindows() then
-            File.SetAttributes(destination.SafeFileHandle, FileAttributes.ReadOnly)
+        if changed || input.ReadByte() <> -1 then
+            Error LibraryError.SourceChanged
         else
-            raise (PlatformNotSupportedException())
+            destination.Flush true
+
+            if
+                input.Length <> file.Length
+                || File.GetLastWriteTimeUtc input.SafeFileHandle <> file.Modified
+                || destination.Length <> file.Length
+            then
+                Error LibraryError.SourceChanged
+            else
+                match digestCheckedResult check destination with
+                | Error error -> Error error
+                | Ok digest when digest <> file.Sha256 -> Error LibraryError.SourceChanged
+                | Ok _ ->
+                    if OperatingSystem.IsLinux() then
+                        File.SetUnixFileMode(destination.SafeFileHandle, UnixFileMode.UserRead)
+                    elif OperatingSystem.IsWindows() then
+                        File.SetAttributes(destination.SafeFileHandle, FileAttributes.ReadOnly)
+                    else
+                        raise (PlatformNotSupportedException())
+
+                    Ok()
