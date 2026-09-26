@@ -14,6 +14,11 @@
     <Compile Include="FileInspection.fs" />
     <Compile Include="SnapshotCache.fs" />
     <Compile Include="SnapshotAcquisition.fs" />
+    <Compile Include="FilePlanSessionState.fs" />
+    <Compile Include="FilePlanQueryHandler.fs" />
+    <Compile Include="FilePlanVisibilityHandler.fs" />
+    <Compile Include="FilePlanPreviewHandler.fs" />
+    <Compile Include="FilePlanTextHandler.fs" />
     <Compile Include="FilePlanSession.fs" />
     <ProjectReference Include="../ModConductor.DeploymentPlanning/ModConductor.DeploymentPlanning.fsproj" />
     <ProjectReference Include="../ModConductor.GameContexts/ModConductor.GameContexts.fsproj" />
