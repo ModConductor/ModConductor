@@ -5,6 +5,18 @@ import 'package:mc_artifacts/mc_artifacts.dart';
 import 'package:mc_client/mc_client.dart';
 import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 
+part 'setup_view.dart';
+part 'setup_actions.dart';
+part 'setup_component.dart';
+
+SkyrimSetupAction _actionFor(SkyrimSetupSelection selection, String id) =>
+    switch (id) {
+      'skse' => selection.skse,
+      'enb' => selection.enb,
+      'fnis' => selection.fnis,
+      _ => SkyrimSetupAction.unchanged,
+    };
+
 class SkyrimSetupSection extends StatefulWidget {
   const SkyrimSetupSection({
     super.key,
@@ -219,209 +231,49 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
   Future<void> cancelSetup() =>
       change(() => widget.client.cancel(widget.workspaceId, widget.profileId));
 
-  SkyrimSetupAction actionFor(String id) => switch (id) {
-    'skse' => selection.skse,
-    'enb' => selection.enb,
-    'fnis' => selection.fnis,
-    _ => SkyrimSetupAction.unchanged,
-  };
+  SkyrimSetupAction actionFor(String id) => _actionFor(selection, id);
+
+  void clearChoices() {
+    setState(() {
+      selection = const SkyrimSetupSelection();
+      userEdited = true;
+    });
+    unawaited(load());
+  }
+
+  void clearEnbArchive() {
+    setState(() {
+      selection = selection.withEnbArchive(null);
+      userEdited = true;
+    });
+    unawaited(load());
+  }
+
+  Future<void> retryOrContinue(SkyrimSetupStatus value) => change(
+    () => value.phase == SkyrimSetupStatusPhase.recoveryRequired
+        ? widget.client.continueSetup(widget.workspaceId, widget.profileId)
+        : widget.client.start(
+            widget.workspaceId,
+            widget.profileId,
+            selection: selection,
+          ),
+  );
 
   @override
-  Widget build(BuildContext context) {
-    final value = status;
-    final locked =
-        value?.active == true ||
-        (value?.canCancel == true &&
-            value?.phase != SkyrimSetupStatusPhase.failed);
-    final components =
-        value?.components
-            .where((item) => const ['skse', 'enb', 'fnis'].contains(item.id))
-            .toList() ??
-        [];
-    final failed =
-        value != null &&
-        (value.phase == SkyrimSetupStatusPhase.failed ||
-            value.phase == SkyrimSetupStatusPhase.recoveryRequired);
-    final canApply =
-        !busy &&
-        !locked &&
-        (value?.canStart == true ||
-            value?.phase == SkyrimSetupStatusPhase.failed) &&
-        selection.canApply;
-    final actions = Wrap(
-      spacing: McSpacing.medium,
-      runSpacing: McSpacing.medium,
-      children: [
-        McAction(
-          key: const ValueKey('apply-skyrim-setup'),
-          label: 'Apply',
-          emphasis: McActionEmphasis.primary,
-          onPressed: canApply ? apply : null,
-        ),
-        if (selection.hasChange && !locked)
-          McAction(
-            label: 'Clear choices',
-            onPressed: busy
-                ? null
-                : () {
-                    setState(() {
-                      selection = const SkyrimSetupSelection();
-                      userEdited = true;
-                    });
-                    unawaited(load());
-                  },
-          ),
-        McAction(
-          key: const ValueKey('refresh-skyrim-setup'),
-          label: 'Refresh',
-          icon: Icons.refresh,
-          onPressed: busy ? null : load,
-        ),
-        if (value?.canCancel == true)
-          McAction(label: 'Cancel setup', onPressed: busy ? null : cancelSetup),
-        if (failed && value.canContinue)
-          McAction(
-            label: value.phase == SkyrimSetupStatusPhase.recoveryRequired
-                ? 'Continue recovery'
-                : 'Try again',
-            onPressed: busy
-                ? null
-                : () => change(
-                    () => value.phase == SkyrimSetupStatusPhase.recoveryRequired
-                        ? widget.client.continueSetup(
-                            widget.workspaceId,
-                            widget.profileId,
-                          )
-                        : widget.client.start(
-                            widget.workspaceId,
-                            widget.profileId,
-                            selection: selection,
-                          ),
-                  ),
-          ),
-      ],
-    );
-    final content = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (problem != null) ...[
-          McStatus(title: problem!, tone: McStatusTone.error),
-          const SizedBox(height: McSpacing.medium),
-        ],
-        if (value != null &&
-            value.status.isNotEmpty &&
-            !(value.phase == SkyrimSetupStatusPhase.cancelled &&
-                selection.hasChange) &&
-            value.status != 'Choose an ENBSeries archive') ...[
-          McStatus(
-            title: value.status,
-            detail: value.detail.isEmpty ? null : value.detail,
-            tone: failed ? McStatusTone.error : McStatusTone.neutral,
-          ),
-          const SizedBox(height: McSpacing.medium),
-        ],
-        actions,
-        if (components.isNotEmpty) ...[
-          const SizedBox(height: McSpacing.medium),
-          LayoutBuilder(
-            builder: (_, bounds) => bounds.maxWidth < 680
-                ? const SizedBox.shrink()
-                : const Padding(
-                    padding: EdgeInsets.symmetric(vertical: McSpacing.small),
-                    child: Row(
-                      children: [
-                        Expanded(flex: 33, child: Text('Component')),
-                        Expanded(flex: 24, child: Text('Current')),
-                        Expanded(flex: 43, child: Text('Install')),
-                      ],
-                    ),
-                  ),
-          ),
-          for (final item in components) _component(item, locked),
-        ],
-      ],
-    );
-    return LayoutBuilder(
-      builder: (context, constraints) => McSection(
-        title: 'Skyrim setup',
-        children: [
-          if (constraints.hasBoundedHeight)
-            Flexible(child: SingleChildScrollView(child: content))
-          else
-            content,
-        ],
-      ),
-    );
-  }
-
-  Widget _component(SkyrimSetupComponent item, bool locked) {
-    final action = actionFor(item.id);
-    final updateVersion = _updateEvidenceFresh ? item.updateVersion : null;
-    final selected = switch (action) {
-      SkyrimSetupAction.install => true,
-      SkyrimSetupAction.remove => false,
-      _ => item.installed,
-    };
-    const skseIcon =
-        'https://shared.fastly.steamstatic.com/community_assets/images/apps/365720/48eaa1815ac4beddc4d7c9fec6c2517f6f0b718e.jpg';
-    const enbIcon = 'http://enbdev.com/header_logo.gif';
-    const fnisIcon = 'https://images.nexusmods.com/mod-headers/1704/3038.jpg';
-    final kind = switch (item.id) {
-      'skse' => 'Script extender',
-      'enb' => 'Graphics injector',
-      _ => 'Animation tool',
-    };
-    return McComponentChoiceRow(
-      key: ValueKey('setup-${item.id}'),
-      name: item.name,
-      kind: kind,
-      current: item.installed ? 'Installed' : 'Not installed',
-      installed: item.installed,
-      selected: selected,
-      updating: action == SkyrimSetupAction.update && updateVersion != null,
-      updateVersion: updateVersion,
-      iconUrl: switch (item.id) {
-        'skse' => skseIcon,
-        'enb' => enbIcon,
-        'fnis' => fnisIcon,
-        _ => null,
-      },
-      iconHeaders: item.id == 'enb'
-          ? const {'Referer': 'http://enbdev.com/'}
-          : null,
-      iconFit: item.id == 'fnis' ? BoxFit.cover : BoxFit.contain,
-      enabled: !busy && !locked,
-      onToggle: () => selectAction(
-        item.id,
-        selected
-            ? (item.installed
-                  ? SkyrimSetupAction.remove
-                  : SkyrimSetupAction.unchanged)
-            : (item.installed
-                  ? SkyrimSetupAction.unchanged
-                  : SkyrimSetupAction.install),
-      ),
-      onOpenPage: () => unawaited(widget.client.openProjectPage(item.id)),
-      onUpdate: item.installed && updateVersion != null
-          ? () => selectAction(
-              item.id,
-              action == SkyrimSetupAction.update
-                  ? SkyrimSetupAction.unchanged
-                  : SkyrimSetupAction.update,
-            )
-          : null,
-      onChooseArchive: item.id == 'enb' ? chooseEnbArchive : null,
-      onClearArchive: item.id == 'enb'
-          ? () {
-              setState(() {
-                selection = selection.withEnbArchive(null);
-                userEdited = true;
-              });
-              unawaited(load());
-            }
-          : null,
-      archiveName: selection.enbArchivePath?.split(RegExp(r'[/\\]')).last,
-      archiveRequired: item.id == 'enb' && selection.needsEnbArchive,
-    );
-  }
+  Widget build(BuildContext context) => _SkyrimSetupView(
+    status: status,
+    selection: selection,
+    busy: busy,
+    problem: problem,
+    updateEvidenceFresh: _updateEvidenceFresh,
+    onApply: apply,
+    onClearChoices: clearChoices,
+    onRefresh: load,
+    onCancel: cancelSetup,
+    onRetryOrContinue: retryOrContinue,
+    onSelectAction: selectAction,
+    onChooseEnbArchive: chooseEnbArchive,
+    onClearEnbArchive: clearEnbArchive,
+    onOpenProjectPage: (id) => unawaited(widget.client.openProjectPage(id)),
+  );
 }
