@@ -6,6 +6,8 @@ open ModConductor.Bethesda
 open ModConductor.FilePlanning
 
 module internal PluginOrders =
+    let private resultTask = ProfileDataResultTask.resultTask
+
     let headers (plugins: PluginSession) workspace profile id =
         task {
             let! result = plugins.Read id
@@ -16,8 +18,8 @@ module internal PluginOrders =
                 && value.Stamp.ProfileId = profile
                 && not value.Stale
                 ->
-                return value
-            | _ -> return raise (ProfileDataException ProfileDataError.Stale)
+                return Ok value
+            | _ -> return Error ProfileDataError.Stale
         }
 
     let view (scope: ProfileDataScope) (headers: PluginSnapshot) (input: PluginInputs) =
@@ -59,8 +61,9 @@ module internal PluginOrders =
           Problem = None }
 
     let read (repository: IProfileDataRepository) plugins workspace profile id =
-        task {
-            let! header = headers plugins workspace profile id
+        resultTask {
+            let! headerResult = headers plugins workspace profile id
+            let! header = headerResult
             let! scope = repository.Read(workspace, profile)
             let input = PluginInputs.read scope header.Entries CancellationToken.None
             let value = view scope header input
@@ -76,24 +79,24 @@ module internal PluginOrders =
         }
 
     let save (repository: IProfileDataRepository) plugins (expected: ProfileDataRef) id change =
-        task {
-            let! header = headers plugins expected.WorkspaceId expected.ProfileId id
+        resultTask {
+            let! headerResult = headers plugins expected.WorkspaceId expected.ProfileId id
+            let! header = headerResult
             let! scope = repository.Read(expected.WorkspaceId, expected.ProfileId)
             let input = PluginInputs.read scope header.Entries CancellationToken.None
             let current = view scope header input
 
             if current.Reference <> expected then
-                raise (ProfileDataException ProfileDataError.Stale)
+                return! Error ProfileDataError.Stale
 
             if current.Pending then
-                raise (ProfileDataException ProfileDataError.Busy)
+                return! Error ProfileDataError.Busy
 
-            let order =
+            let! order =
                 match change with
                 | Some change ->
                     OrderRules.change input.Facts header.Entries current.View.Order change
-                    |> Result.defaultWith (fun detail ->
-                        raise (ProfileDataException(ProfileDataError.Invalid detail)))
+                    |> Result.mapError ProfileDataError.Invalid
                 | None ->
                     let imported = OrderRules.reconcile input.Facts header.Entries input.Bytes None
 
@@ -109,18 +112,21 @@ module internal PluginOrders =
 
                         { entry with LockedIndex = locked }
 
-                    { imported with
-                        Entries = imported.Entries |> List.map keepLock }
+                    Ok
+                        { imported with
+                            Entries = imported.Entries |> List.map keepLock }
 
             match change with
             | Some(PluginOrderChange.Move _)
             | Some(PluginOrderChange.Replace _) ->
                 let next = OrderRules.inspect input.Facts header.Entries order
 
-                next.Issues
-                |> List.tryFind (fun issue -> not (List.contains issue current.View.Issues))
-                |> Option.iter (fun issue ->
-                    raise (ProfileDataException(ProfileDataError.Invalid issue.Detail)))
+                match
+                    next.Issues
+                    |> List.tryFind (fun issue -> not (List.contains issue current.View.Issues))
+                with
+                | Some issue -> return! Error(ProfileDataError.Invalid issue.Detail)
+                | None -> ()
             | _ -> ()
 
             let! context = DataInitialization.context repository scope
@@ -173,20 +179,15 @@ module internal PluginOrders =
         }
 
     let forLaunch (plugins: PluginSession) (scope: ProfileDataScope) token =
-        task {
+        resultTask {
             let saved = scope.Profile |> Option.bind _.PluginOrder
             let! result = plugins.Observe(scope.ProfileId, token)
 
-            let header =
+            let! header =
                 match result with
-                | Ok value when not value.Stale -> value
-                | Error FilePlanError.Busy -> raise (ProfileDataException ProfileDataError.Busy)
-                | _ ->
-                    raise (
-                        ProfileDataException(
-                            ProfileDataError.Unavailable "Refresh the plugins before playing."
-                        )
-                    )
+                | Ok value when not value.Stale -> Ok value
+                | Error FilePlanError.Busy -> Error ProfileDataError.Busy
+                | _ -> Error(ProfileDataError.Unavailable "Refresh the plugins before playing.")
 
             let input = PluginInputs.read scope header.Entries token
 
@@ -196,22 +197,21 @@ module internal PluginOrders =
                     |> Option.bind _.PluginObserved
                     |> Option.exists (fun observed -> observed <> input.File))
             then
-                raise (
-                    ProfileDataException(
+                return!
+                    Error(
                         ProfileDataError.Conflict
                             "The game plugin list changed. Use game order before playing."
                     )
-                )
 
             let order = OrderRules.reconcile input.Facts header.Entries input.Bytes saved
             let view = OrderRules.inspect input.Facts header.Entries order
 
             match view.Issues with
-            | issue :: _ -> raise (ProfileDataException(ProfileDataError.Invalid issue.Detail))
+            | issue :: _ -> return! Error(ProfileDataError.Invalid issue.Detail)
             | [] -> ()
 
             if not header.Problems.IsEmpty then
-                raise (ProfileDataException(ProfileDataError.Invalid header.Problems.Head))
+                return! Error(ProfileDataError.Invalid header.Problems.Head)
 
             return saved |> Option.map (fun _ -> OrderDocument.write input.Facts.Implicit order)
         }

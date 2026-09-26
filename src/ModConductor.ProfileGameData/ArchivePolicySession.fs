@@ -25,7 +25,7 @@ type internal ProfileArchivePolicyOperations
                 resultTask {
                     do! requireIds [ workspace; profile; headers ]
 
-                    let! value =
+                    return!
                         ArchivePolicies.scan
                             repository
                             plugins
@@ -34,8 +34,6 @@ type internal ProfileArchivePolicyOperations
                             profile
                             headers
                             token
-
-                    return value
                 })
 
         member _.Read(workspace, profile, snapshot, token) =
@@ -43,10 +41,8 @@ type internal ProfileArchivePolicyOperations
                 resultTask {
                     do! requireIds [ workspace; profile; snapshot ]
 
-                    let! value =
+                    return!
                         ArchivePolicies.read repository archives workspace profile snapshot token
-
-                    return value
                 })
 
         member _.Apply(id, expected, snapshot, progress, token) =
@@ -81,7 +77,7 @@ type internal ProfileArchivePolicyOperations
                         | Some _ -> Task.FromResult(Error ProfileDataError.Stale)
                         | None ->
                             task {
-                                let! scope, request =
+                                let! prepared =
                                     ArchivePolicies.prepareApply
                                         repository
                                         archives
@@ -90,10 +86,10 @@ type internal ProfileArchivePolicyOperations
                                         token
 
                                 return
-                                    Ok(
+                                    prepared
+                                    |> Result.map (fun (scope, request) ->
                                         scope,
-                                        request |> Option.map ProfileDataActionKind.ApplyArchives
-                                    )
+                                        request |> Option.map ProfileDataActionKind.ApplyArchives)
                             }
 
                     let! scope, kind = prepared

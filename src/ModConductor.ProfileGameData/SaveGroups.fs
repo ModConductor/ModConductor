@@ -292,10 +292,12 @@ module internal SaveGroups =
             | None -> return [], Some "Refresh plugins to check this save."
             | Some id ->
                 try
-                    let! order =
+                    let! orderResult =
                         PluginOrders.read repository plugins scope.WorkspaceId scope.ProfileId id
 
-                    return SaveDiagnostics.check order metadata
+                    match orderResult with
+                    | Ok order -> return SaveDiagnostics.check order metadata
+                    | Error _ -> return [], Some "Refresh plugins to check this save."
                 with ProfileDataException _ ->
                     return [], Some "Refresh plugins to check this save."
         }

@@ -163,9 +163,9 @@ type internal ProfileConfigurationOperations
 
                     match result.Complete, archiveBefore, kind with
                     | true, Some before, ProfileDataActionKind.EditConfiguration receipt ->
-                        let priorNames = ArchivePolicies.explicitNames before
+                        let priorNames = ArchivePolicyProjection.explicitNames before
 
-                        if priorNames <> ArchivePolicies.explicitNames receipt.Bytes then
+                        if priorNames <> ArchivePolicyProjection.explicitNames receipt.Bytes then
                             archives.NoteSettingsEdit(scope.ProfileId, priorNames)
                     | _ -> ()
 

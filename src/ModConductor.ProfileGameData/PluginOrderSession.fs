@@ -19,43 +19,27 @@ type internal ProfilePluginOrderOperations
                 resultTask {
                     do! requireIds [ workspace; profile ]
                     let! scope = repository.Read(workspace, profile)
-                    let! _ = PluginOrders.forLaunch plugins scope token
+                    let! preflight = PluginOrders.forLaunch plugins scope token
+                    let! _ = preflight
                     return ()
                 })
 
         member _.Read(workspace, profile, headers) =
-            protect (fun () ->
-                task {
-                    let! value = PluginOrders.read repository plugins workspace profile headers
-                    return Ok value
-                })
+            protect (fun () -> PluginOrders.read repository plugins workspace profile headers)
 
         member _.Change(expected, headers, change) =
             run expected.WorkspaceId (fun () ->
-                task {
-                    let! value =
-                        PluginOrders.save repository plugins expected headers (Some change)
-
-                    return Ok value
-                })
+                PluginOrders.save repository plugins expected headers (Some change))
 
         member _.UseGameOrder(expected, headers) =
             run expected.WorkspaceId (fun () ->
-                task {
-                    let! value = PluginOrders.save repository plugins expected headers None
-                    return Ok value
-                })
+                PluginOrders.save repository plugins expected headers None)
 
         member _.ApplyExactOrder(expected, headers, names) =
             run expected.WorkspaceId (fun () ->
-                task {
-                    let! value =
-                        PluginOrders.save
-                            repository
-                            plugins
-                            expected
-                            headers
-                            (Some(ModConductor.Bethesda.PluginOrderChange.Replace names))
-
-                    return Ok value
-                })
+                PluginOrders.save
+                    repository
+                    plugins
+                    expected
+                    headers
+                    (Some(ModConductor.Bethesda.PluginOrderChange.Replace names)))

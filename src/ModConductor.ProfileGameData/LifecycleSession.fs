@@ -110,7 +110,8 @@ type internal ProfileDataLifecycleOperations
                 if revision <> expected then
                     return! Error ProfileDataError.Stale
                 else
-                    let! desiredPlugins = PluginOrders.forLaunch plugins scope token
+                    let! desiredPluginsResult = PluginOrders.forLaunch plugins scope token
+                    let! desiredPlugins = desiredPluginsResult
 
                     let needed =
                         (scope.Context |> Option.bind _.Applied).IsSome
@@ -260,13 +261,15 @@ type internal ProfileDataLifecycleOperations
                         | Some value -> Ok value
                         | None -> Error ProfileDataError.NotFound
 
-                    let! desiredPlugins =
+                    let! desiredPluginsResult =
                         if
                             previous.Kind = ProfileDataActionKind.Apply && not previous.Prepared
                         then
                             PluginOrders.forLaunch plugins scope token
                         else
-                            Task.FromResult None
+                            Task.FromResult(Ok None)
+
+                    let! desiredPlugins = desiredPluginsResult
 
                     let! action = repository.Claim(context, previous)
 
