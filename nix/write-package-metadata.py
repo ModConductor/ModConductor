@@ -6,6 +6,10 @@ from datetime import datetime, timezone
 import hashlib
 import json
 from pathlib import Path
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
+from package_metadata import spdx_document
 
 
 def sha256(path: Path) -> str:
@@ -26,32 +30,11 @@ def main() -> None:
     inventory = [{"path": path.relative_to(output).as_posix(), "sha256": sha256(path)} for path in files]
     manifest = documents / "payload-sha256.json"
     manifest.write_text(json.dumps(inventory, indent=2) + "\n")
-    sbom = {
-        "spdxVersion": "SPDX-2.3", "dataLicense": "CC0-1.0", "SPDXID": "SPDXRef-DOCUMENT",
-        "name": f"ModConductor-Nix-x86_64-linux-{args.version}",
-        "documentNamespace": f"https://modconductor.invalid/spdx/nix/{args.version}/{sha256(manifest)}",
-        "creationInfo": {
-            "created": datetime.fromtimestamp(args.source_date_epoch, timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "creators": ["Tool: nix/write-package-metadata.py"],
-        },
-        "packages": [{
-            "name": "Mod Conductor", "SPDXID": "SPDXRef-ModConductor", "versionInfo": args.version,
-            "downloadLocation": "NOASSERTION", "filesAnalyzed": True,
-            "licenseConcluded": "NOASSERTION", "licenseDeclared": "NOASSERTION", "copyrightText": "NOASSERTION",
-        }],
-        "files": [{
-            "fileName": "./" + item["path"], "SPDXID": f"SPDXRef-File-{index}",
-            "checksums": [{"algorithm": "SHA256", "checksumValue": item["sha256"]}],
-            "licenseConcluded": "NOASSERTION", "copyrightText": "NOASSERTION",
-        } for index, item in enumerate(inventory)],
-        "relationships": [{
-            "spdxElementId": "SPDXRef-DOCUMENT", "relatedSpdxElement": "SPDXRef-ModConductor",
-            "relationshipType": "DESCRIBES",
-        }] + [{
-            "spdxElementId": "SPDXRef-ModConductor", "relatedSpdxElement": f"SPDXRef-File-{index}",
-            "relationshipType": "CONTAINS",
-        } for index in range(len(inventory))],
-    }
+    sbom = spdx_document(
+        inventory, args.version, "Nix-x86_64-linux", "nix", sha256(manifest),
+        datetime.fromtimestamp(args.source_date_epoch, timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "nix/write-package-metadata.py",
+    )
     (documents / "sbom.spdx.json").write_text(json.dumps(sbom, indent=2) + "\n")
     (documents / "provenance.json").write_text(json.dumps({
         "source_revision": args.revision, "nix_system": "x86_64-linux",

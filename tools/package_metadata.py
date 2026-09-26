@@ -1,4 +1,4 @@
-"""Shared SPDX inventory shape for the two local desktop payloads."""
+"""Shared SPDX inventory shape for desktop payloads."""
 
 
 def spdx_document(inventory, version, platform_name, platform_slug, manifest_hash, created, creator):
