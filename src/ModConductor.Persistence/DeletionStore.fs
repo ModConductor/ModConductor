@@ -335,7 +335,7 @@ module private DirectDeletion =
         allPayloads
         privatePayloads
         privateArtifacts
-        affectedGenerations
+        (affectedGenerations: (ModConductor.DeploymentRecovery.Context * Generation) list)
         =
         let members, saved = Set.ofList targets, Set.ofList versions
 
