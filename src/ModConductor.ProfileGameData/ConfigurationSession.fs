@@ -37,7 +37,10 @@ type internal ProfileConfigurationOperations
             if not matchingPrior then
                 return! Error ProfileDataError.Stale
 
-            let! scope = repository.Read(request.Expected.WorkspaceId, request.Expected.ProfileId)
+            let! scopeResult =
+                repository.Read(request.Expected.WorkspaceId, request.Expected.ProfileId)
+
+            let! scope = scopeResult
 
             match prior with
             | Some previous -> return scope, previous.Kind, None
@@ -87,7 +90,8 @@ type internal ProfileConfigurationOperations
             resultTask {
                 do! requireIds [ expected.WorkspaceId; expected.ProfileId; expected.ContextId ]
 
-                let! scope = repository.Read(expected.WorkspaceId, expected.ProfileId)
+                let! scopeResult = repository.Read(expected.WorkspaceId, expected.ProfileId)
+                let! scope = scopeResult
                 do! check scope expected
                 return! ConfigurationFiles.list scope token
             })
@@ -100,7 +104,8 @@ type internal ProfileConfigurationOperations
                 if String.IsNullOrWhiteSpace name then
                     return! Error(ProfileDataError.Invalid "Choose a profile settings file first.")
 
-                let! scope = repository.Read(expected.WorkspaceId, expected.ProfileId)
+                let! scopeResult = repository.Read(expected.WorkspaceId, expected.ProfileId)
+                let! scope = scopeResult
                 do! check scope expected
                 let! preview = ConfigurationFiles.read scope expected name token
                 previews.RememberConfiguration preview
@@ -118,7 +123,8 @@ type internal ProfileConfigurationOperations
                           request.Expected.ProfileId
                           request.Expected.ContextId ]
 
-                let! prior = repository.Action(request.Expected.WorkspaceId, request.Id)
+                let! priorResult = repository.Action(request.Expected.WorkspaceId, request.Id)
+                let! prior = priorResult
 
                 let! prepared = prepareEdit request token prior
                 let! scope, kind, archiveBefore = prepared
@@ -146,10 +152,12 @@ type internal ProfileConfigurationOperations
                         | Some value -> Ok value
                         | None -> Error ProfileDataError.NotFound
 
-                    let! action =
+                    let! actionResult =
                         repository.Claim(context, initial request.Id context scope.ProfileId kind)
 
-                    let! result =
+                    let! action = actionResult
+
+                    let! resultResult =
                         execute (
                             configurationCheckpoint,
                             None,
@@ -160,6 +168,8 @@ type internal ProfileConfigurationOperations
                             progress,
                             (fun _ -> Task.FromResult())
                         )
+
+                    let! result = resultResult
 
                     match result.Complete, archiveBefore with
                     | true, Some before -> archives.NoteSettingsEdit(scope.ProfileId, before)
@@ -172,7 +182,8 @@ type internal ProfileConfigurationOperations
         run workspace (fun () ->
             resultTask {
                 do! requireIds [ workspace; id ]
-                let! previous = repository.Action(workspace, id)
+                let! previousResult = repository.Action(workspace, id)
+                let! previous = previousResult
 
                 let! action =
                     match previous with
@@ -192,23 +203,32 @@ type internal ProfileConfigurationOperations
                     return!
                         Error(ProfileDataError.Invalid "This action is not a profile file edit.")
 
-                let! scope = repository.Read(workspace, action.ProfileId)
+                let! scopeResult = repository.Read(workspace, action.ProfileId)
+                let! scope = scopeResult
 
                 let! context =
                     match scope.Context with
                     | Some value -> Ok value
                     | None -> Error ProfileDataError.NotFound
 
-                let! claimed = repository.Claim(context, action)
+                let! claimedResult = repository.Claim(context, action)
+                let! claimed = claimedResult
 
                 try
                     ConfigurationRecovery.restoreOriginal claimed token
-                    do! repository.Complete(context, None, claimed)
+                    let! completed = repository.Complete(context, None, claimed)
+
+                    match completed with
+                    | Ok() -> ()
+                    | Error error ->
+                        do! repository.Release claimed.Id
+                        return! Error error
                 with error ->
                     do! repository.Release claimed.Id
                     raise error
 
-                let! state = read workspace action.ProfileId
+                let! stateResult = read workspace action.ProfileId
+                let! state = stateResult
 
                 return
                     { Id = id

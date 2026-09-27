@@ -125,8 +125,14 @@ module ProfileDataFixtures =
                 [ first; second ]
                 |> List.map (fun profile ->
                     (store.GameContexts :> IGameContexts)
-                        .Save(workspace, profile, 0L, { GameId = GameId.SkyrimSpecialEditionSteam
-                                                        Path = game; Proton = Some proton })
+                        .Save(
+                            workspace,
+                            profile,
+                            0L,
+                            { GameId = GameId.SkyrimSpecialEditionSteam
+                              Path = game
+                              Proton = Some proton }
+                        )
                     |> wait
                     |> result)
                 |> List.head
@@ -163,7 +169,27 @@ module ProfileDataFixtures =
                 |> wait
                 |> result
 
+            let beforeEnable = read first
             let enabled = edit first true true InitialSaves.Empty DisabledFiles.Keep
+
+            let staleEdit =
+                api.Edit(
+                    { Id = Guid.NewGuid()
+                      Expected = beforeEnable.Reference
+                      Options = { Settings = true; Saves = true }
+                      InitialSaves = InitialSaves.Empty
+                      DisabledFiles = DisabledFiles.Keep },
+                    ignore,
+                    token
+                )
+                |> wait
+
+            check
+                "staleEditReturnsErrorWithoutChangingProfile"
+                ((match staleEdit with
+                  | Error ProfileDataError.Stale -> true
+                  | _ -> false)
+                 && (read first).Reference.Revision = enabled.State.Reference.Revision)
 
             check
                 "enablingOnlyCreatesPrivateData"
@@ -567,7 +593,11 @@ module ProfileDataFixtures =
             let contexts = store.GameContexts :> IGameContexts
             let reloaded = contexts.Read(workspace, first) |> wait |> result
 
-            contexts.Refresh(workspace, first, reloaded.Revision) |> wait |> result |> ignore
+            contexts.Refresh(workspace, first, reloaded.Revision)
+            |> wait
+            |> result
+            |> ignore
+
             let resumed =
                 store.ProfileGameData.Resume(workspace, interruptedId, token) |> wait |> result
 

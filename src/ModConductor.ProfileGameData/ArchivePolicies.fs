@@ -48,11 +48,16 @@ module internal ArchivePolicies =
         resultTask {
             let! headerResult = PluginOrders.headers plugins workspace profile headers
             let! header = headerResult
-            let! scope = repository.Read(workspace, profile)
+            let! scopeResult = repository.Read(workspace, profile)
+            let! scope = scopeResult
             let! input = ArchivePolicyProjection.input scope header token
             let! scanned = archives.Scan(profile, input.Policy.Value, token)
             let! snapshot = scanned |> Result.mapError scanError
-            let! policy = ArchivePolicyProjection.view repository archives input snapshot token
+
+            let! policyResult =
+                ArchivePolicyProjection.view repository archives input snapshot token
+
+            let! policy = policyResult
             return policy
         }
 
@@ -71,7 +76,8 @@ module internal ArchivePolicies =
             | Ok snapshot when
                 snapshot.Stamp.WorkspaceId = workspace && snapshot.Stamp.ProfileId = profile
                 ->
-                let! scope = repository.Read(workspace, profile)
+                let! scopeResult = repository.Read(workspace, profile)
+                let! scope = scopeResult
                 let! actual, observed, bytes, stamp = ArchivePolicyProjection.ini scope token
 
                 let input =
@@ -82,7 +88,10 @@ module internal ArchivePolicies =
                       IniStamp = stamp
                       Policy = None }
 
-                let! policy = ArchivePolicyProjection.view repository archives input snapshot token
+                let! policyResult =
+                    ArchivePolicyProjection.view repository archives input snapshot token
+
+                let! policy = policyResult
                 return policy
             | Ok _ -> return! Error ProfileDataError.Stale
             | Error error -> return! Error(readError error)
@@ -108,13 +117,16 @@ module internal ArchivePolicies =
                     Ok value
                 | _ -> Error ProfileDataError.Stale
 
-            let! scope = repository.Read(expected.WorkspaceId, expected.ProfileId)
+            let! scopeResult = repository.Read(expected.WorkspaceId, expected.ProfileId)
+            let! scope = scopeResult
             let! actual, observed, bytes, stamp = ArchivePolicyProjection.ini scope token
 
             if ArchivePolicyProjection.reference scope <> expected || stamp <> snapshot.Ini then
                 return! Error ProfileDataError.Stale
 
-            if (ArchivePolicyProjection.delta archives scope snapshot token).IsEmpty then
+            let! changes = ArchivePolicyProjection.delta archives scope snapshot token
+
+            if changes.IsEmpty then
                 return scope, None
             else
                 match snapshot.BlockingProblems with

@@ -29,8 +29,8 @@ module internal ProfileCloning =
                     active.ProfileId = source.ProfileId && active.Options.Settings)
             then
                 if not action.Prepared then
-                    let! nextContext, staged =
-                        DataActionPreparation.stages repository context action
+                    let! stagesResult = DataActionPreparation.stages repository context action
+                    let! nextContext, staged = stagesResult
 
                     context <- nextContext
                     action <- staged
@@ -53,17 +53,23 @@ module internal ProfileCloning =
                             Link = SaveLinkEffect.Unchanged
                             Proposed = context.Applied }
 
-                    do! repository.SaveAction action
+                    let! saved = repository.SaveAction action
+                    do! saved
 
-                let save value =
-                    task {
-                        do! repository.SaveAction value
+                let save
+                    (value: ProfileDataActionRecord)
+                    : System.Threading.Tasks.Task<Result<unit, ProfileDataError>> =
+                    ProfileDataResultTask.resultTask {
+                        let! saved = repository.SaveAction value
+                        do! saved
                         action <- value
                     }
 
                 // Finish recorded source replacements before cancellation can delete their stage.
-                let! copied =
+                let! copiedResult =
                     DataEffects.run context action save CancellationToken.None captureCheckpoint
+
+                let! copied = copiedResult
 
                 action <- copied
 
@@ -86,12 +92,13 @@ module internal ProfileCloning =
                         |> Option.map (fun receipt -> { receipt with Documents = None }) }
 
             let saveTarget () =
-                task {
+                ProfileDataResultTask.resultTask {
                     action <-
                         { action with
                             CloneTarget = Some target }
 
-                    do! repository.SaveAction action
+                    let! saved = repository.SaveAction action
+                    do! saved
                 }
 
             match target.Root with
@@ -102,7 +109,8 @@ module internal ProfileCloning =
                         Root =
                             Some(DataLocations.child context.Storage.Value (targetId.ToString("N"))) }
 
-                do! saveTarget ()
+                let! saved = saveTarget ()
+                do! saved
 
             match target.Settings with
             | Some root -> DataLocations.existing target.Root.Value root |> ignore
@@ -111,7 +119,8 @@ module internal ProfileCloning =
                     { target with
                         Settings = Some(DataLocations.child target.Root.Value "settings") }
 
-                do! saveTarget ()
+                let! saved = saveTarget ()
+                do! saved
 
             match target.Saves with
             | Some root -> DataLocations.existing target.Root.Value root |> ignore
@@ -120,7 +129,8 @@ module internal ProfileCloning =
                     { target with
                         Saves = Some(DataLocations.child target.Root.Value "saves") }
 
-                do! saveTarget ()
+                let! saved = saveTarget ()
+                do! saved
 
             if source.SettingsInitialized && not target.SettingsInitialized then
                 SaveTrees.clearPrepared target.Settings.Value
@@ -131,14 +141,16 @@ module internal ProfileCloning =
                     { target with
                         SettingsInitialized = true }
 
-                do! saveTarget ()
+                let! saved = saveTarget ()
+                do! saved
 
             if source.SavesInitialized && not target.SavesInitialized then
                 SaveTrees.clearPrepared target.Saves.Value
                 let! tree = SaveTrees.observe source.Saves.Value token progress
                 SaveTrees.copy tree target.Saves.Value token progress
                 target <- { target with SavesInitialized = true }
-                do! saveTarget ()
+                let! saved = saveTarget ()
+                do! saved
 
             return context, action, target
         }

@@ -95,4 +95,17 @@ module internal ProfileDataResultTask =
                         resource.Dispose()
             )
 
+        member this.For(items: seq<'a>, body: 'a -> Task<Result<unit, ProfileDataError>>) =
+            this.Using(
+                items.GetEnumerator(),
+                fun iterator ->
+                    let rec next () =
+                        if iterator.MoveNext() then
+                            this.Combine(body iterator.Current, next)
+                        else
+                            this.Zero()
+
+                    next ()
+            )
+
     let resultTask = Builder()

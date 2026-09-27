@@ -56,7 +56,8 @@ type internal ProfileArchivePolicyOperations
                               expected.ContextId
                               snapshot ]
 
-                    let! prior = repository.Action(expected.WorkspaceId, id)
+                    let! priorResult = repository.Action(expected.WorkspaceId, id)
+                    let! prior = priorResult
 
                     let! prepared =
                         match prior with
@@ -68,15 +69,17 @@ type internal ProfileArchivePolicyOperations
                                 && request.SnapshotId = snapshot
                             | _ -> false
                             ->
-                            task {
-                                let! scope =
+                            resultTask {
+                                let! scopeResult =
                                     repository.Read(expected.WorkspaceId, expected.ProfileId)
 
-                                return Ok(scope, Some previous.Kind)
+                                let! scope = scopeResult
+
+                                return scope, Some previous.Kind
                             }
                         | Some _ -> Task.FromResult(Error ProfileDataError.Stale)
                         | None ->
-                            task {
+                            resultTask {
                                 let! prepared =
                                     ArchivePolicies.prepareApply
                                         repository
@@ -85,18 +88,19 @@ type internal ProfileArchivePolicyOperations
                                         snapshot
                                         token
 
+                                let! scope, request = prepared
+
                                 return
-                                    prepared
-                                    |> Result.map (fun (scope, request) ->
-                                        scope,
-                                        request |> Option.map ProfileDataActionKind.ApplyArchives)
+                                    scope,
+                                    request |> Option.map ProfileDataActionKind.ApplyArchives
                             }
 
                     let! scope, kind = prepared
 
                     match kind with
                     | None ->
-                        let! state = read expected.WorkspaceId expected.ProfileId
+                        let! stateResult = read expected.WorkspaceId expected.ProfileId
+                        let! state = stateResult
 
                         return
                             { Id = id
@@ -120,12 +124,15 @@ type internal ProfileArchivePolicyOperations
                         | Some result -> return result
                         | None ->
                             do! check scope expected
-                            let! context = DataInitialization.context repository scope
+                            let! contextResult = DataInitialization.context repository scope
+                            let! context = contextResult
 
-                            let! action =
+                            let! actionResult =
                                 repository.Claim(context, initial id context scope.ProfileId kind)
 
-                            let! result =
+                            let! action = actionResult
+
+                            let! resultResult =
                                 execute (
                                     ignore,
                                     None,
@@ -136,6 +143,8 @@ type internal ProfileArchivePolicyOperations
                                     progress,
                                     (fun _ -> Task.FromResult())
                                 )
+
+                            let! result = resultResult
 
                             if result.Complete then
                                 archives.Accept snapshot
@@ -160,7 +169,10 @@ type internal ProfileArchivePolicyOperations
                     match replayed with
                     | Some result -> return result
                     | None ->
-                        let! scope = repository.Read(expected.WorkspaceId, expected.ProfileId)
+                        let! scopeResult =
+                            repository.Read(expected.WorkspaceId, expected.ProfileId)
+
+                        let! scope = scopeResult
                         do! check scope expected
 
                         if scope.Profile |> Option.bind _.ArchiveList |> Option.isNone then
@@ -170,12 +182,15 @@ type internal ProfileArchivePolicyOperations
                                         "There are no archive changes to restore."
                                 )
 
-                        let! context = DataInitialization.context repository scope
+                        let! contextResult = DataInitialization.context repository scope
+                        let! context = contextResult
 
-                        let! action =
+                        let! actionResult =
                             repository.Claim(context, initial id context scope.ProfileId kind)
 
-                        let! result =
+                        let! action = actionResult
+
+                        let! resultResult =
                             execute (
                                 ignore,
                                 None,
@@ -186,6 +201,8 @@ type internal ProfileArchivePolicyOperations
                                 progress,
                                 (fun _ -> Task.FromResult())
                             )
+
+                        let! result = resultResult
 
                         if result.Complete then
                             archives.ForgetObserved expected.ProfileId

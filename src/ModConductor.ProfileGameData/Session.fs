@@ -120,7 +120,8 @@ type ProfileGameDataSession
             protect (fun () ->
                 resultTask {
                     do! ProfileDataSessionContext.requireIds [ workspace; profile ]
-                    let! state = read workspace profile
+                    let! stateResult = read workspace profile
+                    let! state = stateResult
                     return state
                 })
 

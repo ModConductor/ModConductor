@@ -5,8 +5,6 @@ open Microsoft.Data.Sqlite
 open ModConductor.ProfileGameData
 
 module internal ProfileDataRows =
-    let fail error = raise (ProfileDataException error)
-
     let private bytes (reader: SqliteDataReader) offset =
         if reader.GetInt64(offset + 1) > 16L * 1024L * 1024L then
             ProfileDataValueEncoding.invalid ()
@@ -104,7 +102,9 @@ module internal ProfileDataRows =
 
         use reader = query.ExecuteReader()
 
-        while reader.Read() do
+        let mutable conflict = false
+
+        while not conflict && reader.Read() do
             let other = ProfileDataEncoding.readContext (bytes reader 0)
 
             let samePlugins =
@@ -112,14 +112,17 @@ module internal ProfileDataRows =
                 | Some expected, Some other -> expected.Identity = other.Identity
                 | _ -> false
 
-            if
+            conflict <-
                 (other.Documents.Identity = expected.Documents.Identity || samePlugins)
                 && (other.Applied.IsSome || other.Pending.IsSome)
-            then
-                fail (
-                    ProfileDataError.Conflict
-                        "Another workspace is using these settings, saves or plugin order. Restore it first."
-                )
+
+        if conflict then
+            Error(
+                ProfileDataError.Conflict
+                    "Another workspace is using these settings, saves or plugin order. Restore it first."
+            )
+        else
+            Ok()
 
     let checkProfile connection transaction workspace profile =
         if
@@ -130,7 +133,9 @@ module internal ProfileDataRows =
                 [ "$workspace", box (string workspace); "$profile", box (string profile) ]
             <> 1L
         then
-            fail ProfileDataError.NotFound
+            Error ProfileDataError.NotFound
+        else
+            Ok()
 
     let profileEditAllowed connection transaction workspace expected command =
         use query =

@@ -37,7 +37,8 @@ type internal ProfileDataLifecycleOperations
                 match previous with
                 | Some result -> return result
                 | None ->
-                    let! scope = repository.Read(expected.WorkspaceId, expected.ProfileId)
+                    let! scopeResult = repository.Read(expected.WorkspaceId, expected.ProfileId)
+                    let! scope = scopeResult
                     do! check scope expected
 
                     match
@@ -55,15 +56,18 @@ type internal ProfileDataLifecycleOperations
                                 )
                     | _ -> ()
 
-                    let! context = DataInitialization.context repository scope
+                    let! contextResult = DataInitialization.context repository scope
+                    let! context = contextResult
 
-                    let! action =
+                    let! actionResult =
                         repository.Claim(
                             context,
                             initial id context scope.ProfileId ProfileDataActionKind.Restore
                         )
 
-                    let! result =
+                    let! action = actionResult
+
+                    let! resultResult =
                         execute (
                             checkpoint,
                             None,
@@ -75,6 +79,7 @@ type internal ProfileDataLifecycleOperations
                             (fun _ -> Task.FromResult())
                         )
 
+                    let! result = resultResult
                     return result
             })
 
@@ -87,7 +92,8 @@ type internal ProfileDataLifecycleOperations
                 if not exists then
                     return 0L
                 else
-                    let! scope = repository.Read(workspace, profile)
+                    let! scopeResult = repository.Read(workspace, profile)
+                    let! scope = scopeResult
                     return scope.Context |> Option.map _.Revision |> Option.defaultValue 0L
             })
 
@@ -104,7 +110,8 @@ type internal ProfileDataLifecycleOperations
         protect (fun () ->
             resultTask {
                 do! requireIds [ id; workspace; profile ]
-                let! scope = repository.Read(workspace, profile)
+                let! scopeResult = repository.Read(workspace, profile)
+                let! scope = scopeResult
                 let revision = scope.Context |> Option.map _.Revision |> Option.defaultValue 0L
 
                 if revision <> expected then
@@ -124,13 +131,16 @@ type internal ProfileDataLifecycleOperations
                     if not needed then
                         return None
                     else
-                        let! context = DataInitialization.context repository scope
+                        let! contextResult = DataInitialization.context repository scope
+                        let! context = contextResult
 
-                        let! action =
+                        let! actionResult =
                             repository.Claim(
                                 context,
                                 initial id context profile ProfileDataActionKind.Apply
                             )
+
+                        let! action = actionResult
 
                         let reportAction (value: ProfileDataActionRecord) =
                             report
@@ -140,7 +150,7 @@ type internal ProfileDataLifecycleOperations
                                   Complete = value.Complete
                                   Problem = value.Problem }
 
-                        let! result =
+                        let! resultResult =
                             execute (
                                 checkpoint,
                                 desiredPlugins,
@@ -151,6 +161,8 @@ type internal ProfileDataLifecycleOperations
                                 ignore,
                                 reportAction
                             )
+
+                        let! result = resultResult
 
                         return
                             Some
@@ -191,16 +203,21 @@ type internal ProfileDataLifecycleOperations
                 match previous with
                 | Some result -> return result
                 | None ->
-                    let! scope =
+                    let! scopeResult =
                         repository.Read(request.Expected.WorkspaceId, request.Expected.ProfileId)
 
-                    do! check scope request.Expected
-                    let! context = DataInitialization.context repository scope
+                    let! scope = scopeResult
 
-                    let! action =
+                    do! check scope request.Expected
+                    let! contextResult = DataInitialization.context repository scope
+                    let! context = contextResult
+
+                    let! actionResult =
                         repository.Claim(context, initial request.Id context scope.ProfileId kind)
 
-                    let! result =
+                    let! action = actionResult
+
+                    let! resultResult =
                         execute (
                             ignore,
                             None,
@@ -212,6 +229,7 @@ type internal ProfileDataLifecycleOperations
                             (fun _ -> Task.FromResult())
                         )
 
+                    let! result = resultResult
                     return result
             })
 
@@ -224,7 +242,8 @@ type internal ProfileDataLifecycleOperations
         run workspace (fun () ->
             resultTask {
                 do! requireIds [ workspace; id ]
-                let! previous = repository.Action(workspace, id)
+                let! previousResult = repository.Action(workspace, id)
+                let! previous = previousResult
 
                 let! previous =
                     match previous with
@@ -242,7 +261,8 @@ type internal ProfileDataLifecycleOperations
                 | _ -> ()
 
                 if previous.Complete then
-                    let! state = read workspace previous.ProfileId
+                    let! stateResult = read workspace previous.ProfileId
+                    let! state = stateResult
 
                     return
                         { Id = id
@@ -252,7 +272,8 @@ type internal ProfileDataLifecycleOperations
                           CompletedFiles = completedFiles previous
                           Problem = previous.Problem }
                 else
-                    let! scope = repository.Read(workspace, previous.ProfileId)
+                    let! scopeResult = repository.Read(workspace, previous.ProfileId)
+                    let! scope = scopeResult
 
                     ConfigurationRecovery.checkResume previous token
 
@@ -271,9 +292,10 @@ type internal ProfileDataLifecycleOperations
 
                     let! desiredPlugins = desiredPluginsResult
 
-                    let! action = repository.Claim(context, previous)
+                    let! actionResult = repository.Claim(context, previous)
+                    let! action = actionResult
 
-                    let! result =
+                    let! resultResult =
                         execute (
                             ignore,
                             desiredPlugins,
@@ -285,5 +307,6 @@ type internal ProfileDataLifecycleOperations
                             (fun _ -> Task.FromResult())
                         )
 
+                    let! result = resultResult
                     return result
             })

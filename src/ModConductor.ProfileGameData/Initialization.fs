@@ -7,29 +7,28 @@ open ModConductor.GameContexts
 
 module internal DataInitialization =
     let context (repository: IProfileDataRepository) (scope: ProfileDataScope) =
-        task {
-            let! initial =
-                task {
-                    match scope.Context with
-                    | Some value -> return value
-                    | None ->
-                        let documents = DataLocations.documents scope.Game
+        ProfileDataResultTask.resultTask {
+            let! initialResult =
+                match scope.Context with
+                | Some value -> System.Threading.Tasks.Task.FromResult(Ok value)
+                | None ->
+                    let documents = DataLocations.documents scope.Game
 
-                        return!
-                            repository.CreateContext
-                                { Id = DataLocations.id scope.WorkspaceId documents
-                                  WorkspaceId = scope.WorkspaceId
-                                  Revision = 0L
-                                  Workspace = scope.Workspace
-                                  Documents = documents
-                                  Storage = None
-                                  OriginalsRoot = None
-                                  Applied = None
-                                  Pending = None
-                                  PluginObserved = None
-                                  PluginRoot = None
-                                  PluginOriginals = None }
-                }
+                    repository.CreateContext
+                        { Id = DataLocations.id scope.WorkspaceId documents
+                          WorkspaceId = scope.WorkspaceId
+                          Revision = 0L
+                          Workspace = scope.Workspace
+                          Documents = documents
+                          Storage = None
+                          OriginalsRoot = None
+                          Applied = None
+                          Pending = None
+                          PluginObserved = None
+                          PluginRoot = None
+                          PluginOriginals = None }
+
+            let! initial = initialResult
 
             match initial.Storage with
             | Some storage ->
@@ -42,12 +41,13 @@ module internal DataInitialization =
                         (".mod-conductor-profile-data-" + initial.Id.ToString("N"))
 
                 let updated = { initial with Storage = Some created }
-                do! repository.SaveContext updated
+                let! saved = repository.SaveContext updated
+                do! saved
                 return updated
         }
 
     let profile (repository: IProfileDataRepository) (context: ProfileDataContext) id =
-        task {
+        ProfileDataResultTask.resultTask {
             let! previous = repository.Profile(context.Id, id)
 
             let mutable value =
@@ -65,7 +65,8 @@ module internal DataInitialization =
                       ArchiveList = None }
 
             if previous.IsNone then
-                do! repository.SaveProfile(context.Id, value)
+                let! saved = repository.SaveProfile(context.Id, value)
+                do! saved
 
             match value.Root with
             | Some root -> DataLocations.existing context.Storage.Value root |> ignore
@@ -74,7 +75,8 @@ module internal DataInitialization =
                     { value with
                         Root = Some(DataLocations.child context.Storage.Value (id.ToString("N"))) }
 
-                do! repository.SaveProfile(context.Id, value)
+                let! saved = repository.SaveProfile(context.Id, value)
+                do! saved
 
             match value.Settings with
             | Some root -> DataLocations.existing value.Root.Value root |> ignore
@@ -83,7 +85,8 @@ module internal DataInitialization =
                     { value with
                         Settings = Some(DataLocations.child value.Root.Value "settings") }
 
-                do! repository.SaveProfile(context.Id, value)
+                let! saved = repository.SaveProfile(context.Id, value)
+                do! saved
 
             match value.Saves with
             | Some root -> DataLocations.existing value.Root.Value root |> ignore
@@ -92,7 +95,8 @@ module internal DataInitialization =
                     { value with
                         Saves = Some(DataLocations.child value.Root.Value "saves") }
 
-                do! repository.SaveProfile(context.Id, value)
+                let! saved = repository.SaveProfile(context.Id, value)
+                do! saved
 
             return value
         }
@@ -132,7 +136,8 @@ module internal DataInitialization =
                     { value with
                         SettingsInitialized = true }
 
-                do! repository.SaveProfile(context.Id, value)
+                let! saved = repository.SaveProfile(context.Id, value)
+                do! saved
 
             if options.Saves && not value.SavesInitialized then
                 let destination = value.Saves.Value
@@ -160,7 +165,8 @@ module internal DataInitialization =
                         return! Error(ProfileDataError.Unavailable reason)
 
                 value <- { value with SavesInitialized = true }
-                do! repository.SaveProfile(context.Id, value)
+                let! saved = repository.SaveProfile(context.Id, value)
+                do! saved
 
             return value
         }

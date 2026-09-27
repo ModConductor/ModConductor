@@ -18,7 +18,8 @@ type internal ProfilePluginOrderOperations
             protect (fun () ->
                 resultTask {
                     do! requireIds [ workspace; profile ]
-                    let! scope = repository.Read(workspace, profile)
+                    let! scopeResult = repository.Read(workspace, profile)
+                    let! scope = scopeResult
                     let! preflight = PluginOrders.forLaunch plugins scope token
                     let! _ = preflight
                     return ()

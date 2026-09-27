@@ -22,11 +22,11 @@ module internal DataEffects =
     let run
         (context: ProfileDataContext)
         (initial: ProfileDataActionRecord)
-        (save: ProfileDataActionRecord -> Task<unit>)
+        (save: ProfileDataActionRecord -> Task<Result<unit, ProfileDataError>>)
         (token: CancellationToken)
         (checkpoint: string -> unit)
-        =
-        task {
+        : Task<Result<ProfileDataActionRecord, ProfileDataError>> =
+        ProfileDataResultTask.resultTask {
             use documents =
                 HeldDirectory.Open(context.Documents.Path, context.Documents.Identity)
 
@@ -46,7 +46,8 @@ module internal DataEffects =
                         { action with
                             CompletedFiles = index + 1 }
 
-                    do! save action
+                    let! saved = save action
+                    do! saved
                     checkpoint "file-recorded"
 
             let name = linkName context
@@ -66,7 +67,8 @@ module internal DataEffects =
 
                 checkpoint "link-removed"
                 action <- { action with LinkRemoved = true }
-                do! save action
+                let! saved = save action
+                do! saved
             | _ -> ()
 
             match next with
@@ -91,7 +93,8 @@ module internal DataEffects =
                         { action with
                             LinkCreated = Some created.Identity }
 
-                    do! save action
+                    let! saved = save action
+                    do! saved
             | None -> ()
 
             return action

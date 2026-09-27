@@ -119,14 +119,16 @@ module internal ProfileDataProjection =
         : ProfileDataState
 
     let read (repository: IProfileDataRepository) workspace profile =
-        task {
-            let! scope = repository.Read(workspace, profile)
+        ProfileDataResultTask.resultTask {
+            let! scopeResult = repository.Read(workspace, profile)
+            let! scope = scopeResult
             let state = view scope
 
             match state.Pending with
             | None -> return state
             | Some id ->
-                let! action = repository.Action(workspace, id)
+                let! actionResult = repository.Action(workspace, id)
+                let! action = actionResult
 
                 let profileChange =
                     action

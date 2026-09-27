@@ -23,7 +23,8 @@ type internal ProfileSaveOperations
         protect (fun () ->
             resultTask {
                 do! requireIds [ workspace; profile ]
-                let! scope = repository.Read(workspace, profile)
+                let! scopeResult = repository.Read(workspace, profile)
+                let! scope = scopeResult
                 let root = scope.Profile |> Option.bind _.Saves
                 return! SaveBrowsing.page root path after
             })
@@ -32,7 +33,8 @@ type internal ProfileSaveOperations
         protect (fun () ->
             resultTask {
                 do! requireIds [ workspace; profile ]
-                let! scope = repository.Read(workspace, profile)
+                let! scopeResult = repository.Read(workspace, profile)
+                let! scope = scopeResult
                 return! SaveGroupPaging.page scope source after
             })
 
@@ -44,7 +46,8 @@ type internal ProfileSaveOperations
                 if String.IsNullOrWhiteSpace name then
                     return! Error(ProfileDataError.Invalid "Choose a current save first.")
 
-                let! scope = repository.Read(workspace, profile)
+                let! scopeResult = repository.Read(workspace, profile)
+                let! scope = scopeResult
 
                 return!
                     SaveGroupInspection.inspect repository plugins scope source name headers token
@@ -55,7 +58,8 @@ type internal ProfileSaveOperations
             resultTask {
                 do! requireIds [ expected.WorkspaceId; expected.ProfileId; expected.ContextId ]
 
-                let! scope = repository.Read(expected.WorkspaceId, expected.ProfileId)
+                let! scopeResult = repository.Read(expected.WorkspaceId, expected.ProfileId)
+                let! scope = scopeResult
                 do! check scope expected
                 stopped scope.Game
                 let id = Guid.NewGuid()
@@ -87,7 +91,8 @@ type internal ProfileSaveOperations
                           expected.ProfileId
                           expected.ContextId ]
 
-                let! prior = repository.Action(expected.WorkspaceId, id)
+                let! priorResult = repository.Action(expected.WorkspaceId, id)
+                let! prior = priorResult
 
                 let! receipt =
                     match prior with
@@ -115,16 +120,20 @@ type internal ProfileSaveOperations
                 match replayed with
                 | Some result -> return result
                 | None ->
-                    let! scope = repository.Read(expected.WorkspaceId, expected.ProfileId)
+                    let! scopeResult = repository.Read(expected.WorkspaceId, expected.ProfileId)
+                    let! scope = scopeResult
                     do! check scope expected
                     stopped scope.Game
                     do! SaveGroups.checkReceipt scope receipt token
-                    let! context = DataInitialization.context repository scope
+                    let! contextResult = DataInitialization.context repository scope
+                    let! context = contextResult
 
-                    let! action =
+                    let! actionResult =
                         repository.Claim(context, initial id context scope.ProfileId kind)
 
-                    let! result =
+                    let! action = actionResult
+
+                    let! resultResult =
                         execute (
                             ignore,
                             None,
@@ -136,5 +145,6 @@ type internal ProfileSaveOperations
                             (fun _ -> Task.FromResult())
                         )
 
+                    let! result = resultResult
                     return result
             })

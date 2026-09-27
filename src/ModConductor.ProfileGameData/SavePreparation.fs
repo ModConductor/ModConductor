@@ -41,7 +41,8 @@ module internal SavePreparation =
 
                 match receipt.Action with
                 | ProfileSaveAction.CopyToProfile ->
-                    let! context, staged = DataActionPreparation.stages repository context action
+                    let! stagesResult = DataActionPreparation.stages repository context action
+                    let! context, staged = stagesResult
                     clear staged.WorkspaceStage.Value
                     let mutable copied = 0L
                     let effects = ResizeArray<ProfileDataFilesEffect>()
@@ -96,7 +97,8 @@ module internal SavePreparation =
                             ChangedProfile = Some changed
                             Files = List.ofSeq effects }
 
-                    do! repository.SaveAction prepared
+                    let! saved = repository.SaveAction prepared
+                    do! saved
                     return context, prepared
                 | ProfileSaveAction.DeleteFromProfile ->
                     let deletion =
@@ -116,6 +118,7 @@ module internal SavePreparation =
                             ChangedProfile = Some changed
                             Deletion = Some deletion }
 
-                    do! repository.SaveAction prepared
+                    let! saved = repository.SaveAction prepared
+                    do! saved
                     return context, prepared
         }

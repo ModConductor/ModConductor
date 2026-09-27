@@ -10,7 +10,7 @@ module internal DataActionPreparation =
         (initialContext: ProfileDataContext)
         (initialAction: ProfileDataActionRecord)
         =
-        task {
+        ProfileDataResultTask.resultTask {
             let mutable context = initialContext
             let mutable action = initialAction
 
@@ -26,7 +26,8 @@ module internal DataActionPreparation =
                     { context with
                         OriginalsRoot = Some root }
 
-                do! repository.SaveContext context
+                let! saved = repository.SaveContext context
+                do! saved
 
             match action.WorkspaceStage with
             | Some root -> DataLocations.existing context.Storage.Value root |> ignore
@@ -40,7 +41,8 @@ module internal DataActionPreparation =
                                     ("action-" + action.Id.ToString("N"))
                             ) }
 
-                do! repository.SaveAction action
+                let! saved = repository.SaveAction action
+                do! saved
 
             match action.DocumentsStage with
             | Some root -> DataLocations.existing context.OriginalsRoot.Value root |> ignore
@@ -54,7 +56,8 @@ module internal DataActionPreparation =
                                     (action.Id.ToString("N"))
                             ) }
 
-                do! repository.SaveAction action
+                let! saved = repository.SaveAction action
+                do! saved
 
             return context, action
         }
@@ -67,11 +70,12 @@ module internal DataActionPreparation =
         desiredPlugins
         (token: CancellationToken)
         =
-        task {
+        ProfileDataResultTask.resultTask {
             if action.Prepared then
-                return Ok(context, action)
+                return context, action
             else
-                let! context, action = stages repository context action
+                let! stagesResult = stages repository context action
+                let! context, action = stagesResult
 
                 for root in [ action.WorkspaceStage.Value; action.DocumentsStage.Value ] do
                     use staging = HeldDirectory.Open(root.Path, root.Identity)
@@ -95,26 +99,28 @@ module internal DataActionPreparation =
                         action.DocumentsStage.Value
                         token
 
-                match settings with
-                | Error error -> return Error error
-                | Ok(effects, link, proposed) ->
-                    let! context, action, pluginEffects, proposed =
-                        PluginPreparation.prepare
-                            repository
-                            context
-                            action
-                            incoming
-                            desiredPlugins
-                            proposed
-                            token
+                let! effects, link, proposed = settings
 
-                    let prepared =
-                        { action with
-                            Prepared = true
-                            Files = effects @ pluginEffects
-                            Link = link
-                            Proposed = proposed }
+                let! pluginResult =
+                    PluginPreparation.prepare
+                        repository
+                        context
+                        action
+                        incoming
+                        desiredPlugins
+                        proposed
+                        token
 
-                    do! repository.SaveAction prepared
-                    return Ok(context, prepared)
+                let! context, action, pluginEffects, proposed = pluginResult
+
+                let prepared =
+                    { action with
+                        Prepared = true
+                        Files = effects @ pluginEffects
+                        Link = link
+                        Proposed = proposed }
+
+                let! saved = repository.SaveAction prepared
+                do! saved
+                return context, prepared
         }

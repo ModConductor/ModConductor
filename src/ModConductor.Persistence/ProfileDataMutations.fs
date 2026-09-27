@@ -135,8 +135,12 @@ type internal ProfileDataMutations
             let! existing = repository.Action(workspace, id)
 
             match existing with
-            | None -> return Error WorkspaceError.NotFound
-            | Some action when
+            | Error ProfileDataError.NotFound -> return Error WorkspaceError.NotFound
+            | Error ProfileDataError.Busy -> return Error WorkspaceError.Busy
+            | Error error ->
+                return Error(WorkspaceError.ProfileData(DataErrors.problemMessage error))
+            | Ok None -> return Error WorkspaceError.NotFound
+            | Ok(Some action) when
                 (match action.Kind with
                  | ProfileDataActionKind.Clone _
                  | ProfileDataActionKind.Delete _ -> false
@@ -146,7 +150,7 @@ type internal ProfileDataMutations
                     Error(
                         WorkspaceError.ProfileData "Continue this action from Settings and saves."
                     )
-            | Some action ->
+            | Ok(Some action) ->
                 let command, expected =
                     match action.Kind with
                     | ProfileDataActionKind.Clone(target, name, revision) ->

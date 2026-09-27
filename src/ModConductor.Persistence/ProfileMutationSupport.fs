@@ -79,10 +79,12 @@ module internal ProfileMutationSupport =
 
     let claim (repository: IProfileDataRepository) context source id kind =
         task {
-            let! action = repository.Claim(context, initial id context source kind)
+            let! claimed = repository.Claim(context, initial id context source kind)
 
             return
-                { context with
-                    Pending = Some action.Id },
-                action
+                claimed
+                |> Result.map (fun action ->
+                    { context with
+                        Pending = Some action.Id },
+                    action)
         }

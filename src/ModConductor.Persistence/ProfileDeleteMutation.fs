@@ -129,8 +129,8 @@ module internal ProfileDeleteMutation =
                 | Error error -> return Error error
                 | Ok deletion ->
                     let prepared = { action with Deletion = Some deletion }
-                    do! repository.SaveAction prepared
-                    return Ok prepared
+                    let! saved = repository.SaveAction prepared
+                    return saved |> Result.map (fun () -> prepared)
         }
 
     let private removePrivateProfile
@@ -144,7 +144,7 @@ module internal ProfileDeleteMutation =
             let repository = services.Repository
             let connection = database.Connection
 
-            let! context, action =
+            let! claim =
                 ProfileMutationSupport.claim
                     repository
                     context
@@ -152,54 +152,62 @@ module internal ProfileDeleteMutation =
                     (ProfileMutationSupport.actionId context.Id target 1uy)
                     (ProfileDataActionKind.Delete request.Expected)
 
-            try
-                let notify (value: ProfileDataProgress) =
-                    request.Progress
-                        { Files = value.Files
-                          Bytes = value.Bytes }
+            match claim with
+            | Error error -> return Error error
+            | Ok(context, action) ->
+                try
+                    let notify (value: ProfileDataProgress) =
+                        request.Progress
+                            { Files = value.Files
+                              Bytes = value.Bytes }
 
-                let! prepared =
-                    prepareDeletion repository context profile action request.Token notify
+                    let! prepared =
+                        prepareDeletion repository context profile action request.Token notify
 
-                match prepared with
-                | Error error ->
+                    match prepared with
+                    | Error error ->
+                        do! repository.Release action.Id
+                        return Error error
+                    | Ok prepared ->
+                        let! completedResult =
+                            ProfileDeletion.run prepared repository.SaveAction request.Token notify
+
+                        match completedResult with
+                        | Error error ->
+                            do! repository.Release action.Id
+                            return Error error
+                        | Ok completed ->
+                            do!
+                                database.Enqueue(fun () ->
+                                    use transaction = connection.BeginTransaction(deferred = false)
+
+                                    Sqlite.execute
+                                        connection
+                                        transaction
+                                        "DELETE FROM profile_data_profiles WHERE context_id=$context AND profile_id=$profile"
+                                        [ "$context", box (string context.Id)
+                                          "$profile", box (string target) ]
+
+                                    ProfileDataRows.saveContext
+                                        connection
+                                        transaction
+                                        { context with
+                                            Pending = None
+                                            Revision = context.Revision + 1L }
+
+                                    ProfileDataRows.saveAction
+                                        connection
+                                        transaction
+                                        database.OwnerId
+                                        false
+                                        { completed with Complete = true }
+
+                                    transaction.Commit())
+
+                            return Ok()
+                with error ->
                     do! repository.Release action.Id
-                    return Error error
-                | Ok prepared ->
-                    let! completed =
-                        ProfileDeletion.run prepared repository.SaveAction request.Token notify
-
-                    do!
-                        database.Enqueue(fun () ->
-                            use transaction = connection.BeginTransaction(deferred = false)
-
-                            Sqlite.execute
-                                connection
-                                transaction
-                                "DELETE FROM profile_data_profiles WHERE context_id=$context AND profile_id=$profile"
-                                [ "$context", box (string context.Id)
-                                  "$profile", box (string target) ]
-
-                            ProfileDataRows.saveContext
-                                connection
-                                transaction
-                                { context with
-                                    Pending = None
-                                    Revision = context.Revision + 1L }
-
-                            ProfileDataRows.saveAction
-                                connection
-                                transaction
-                                database.OwnerId
-                                false
-                                { completed with Complete = true }
-
-                            transaction.Commit())
-
-                    return Ok()
-            with error ->
-                do! repository.Release action.Id
-                raise error
+                    return raise error
         }
 
     let private commitDeletion

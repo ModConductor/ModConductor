@@ -12,12 +12,15 @@ module internal ProfileDataActionPreparation =
         token
         progress
         =
-        task {
+        ProfileDataResultTask.resultTask {
             match action.Kind with
             | ProfileDataActionKind.Edit(options, saves, _) ->
-                let! privateData = DataInitialization.profile repository context action.ProfileId
+                let! privateDataResult =
+                    DataInitialization.profile repository context action.ProfileId
 
-                let! initialization =
+                let! privateData = privateDataResult
+
+                let! initializationResult =
                     DataInitialization.seed
                         repository
                         context
@@ -28,39 +31,39 @@ module internal ProfileDataActionPreparation =
                         token
                         progress
 
-                return
-                    initialization
-                    |> Result.map (fun initialized ->
-                        let changed =
+                let! initialized = initializationResult
+
+                let changed =
+                    { initialized with
+                        Options = options
+                        Revision = initialized.Revision + 1L }
+
+                let incoming =
+                    match context.Applied with
+                    | Some active when active.ProfileId = action.ProfileId ->
+                        Some
                             { initialized with
-                                Options = options
-                                Revision = initialized.Revision + 1L }
+                                Options =
+                                    { Settings = active.Options.Settings && options.Settings
+                                      Saves = active.Options.Saves && options.Saves } }
+                    | _ -> None
 
-                        let incoming =
-                            match context.Applied with
-                            | Some active when active.ProfileId = action.ProfileId ->
-                                Some
-                                    { initialized with
-                                        Options =
-                                            { Settings =
-                                                active.Options.Settings && options.Settings
-                                              Saves = active.Options.Saves && options.Saves } }
-                            | _ -> None
-
-                        incoming, Some changed)
+                return incoming, Some changed
             | ProfileDataActionKind.Apply
             | ProfileDataActionKind.ApplyArchives _
             | ProfileDataActionKind.RestoreArchives
             | ProfileDataActionKind.SaveFiles _ ->
-                let! privateData = DataInitialization.profile repository context action.ProfileId
+                let! privateDataResult =
+                    DataInitialization.profile repository context action.ProfileId
 
-                return Ok(Some privateData, None)
-            | ProfileDataActionKind.Restore -> return Ok(None, None)
+                let! privateData = privateDataResult
+
+                return Some privateData, None
+            | ProfileDataActionKind.Restore -> return None, None
             | ProfileDataActionKind.EditConfiguration _ ->
-                return
-                    match scope.Profile with
-                    | Some privateData -> Ok(Some privateData, None)
-                    | None -> Error ProfileDataError.NotFound
+                match scope.Profile with
+                | Some privateData -> return Some privateData, None
+                | None -> return! Error ProfileDataError.NotFound
             | ProfileDataActionKind.Clone _
             | ProfileDataActionKind.Delete _ -> return invalidOp "Use the profile mutation owner."
         }
@@ -136,9 +139,11 @@ module internal ProfileDataActionPreparation =
                         { action with
                             Deletion = Some(ProfileDeletion.prepare trees []) }
 
-                    do! repository.SaveAction action
+                    let! saved = repository.SaveAction action
+                    do! saved
 
-                let! deleted = ProfileDeletion.run action repository.SaveAction token progress
+                let! deletedResult = ProfileDeletion.run action repository.SaveAction token progress
+                let! deleted = deletedResult
 
                 let profile =
                     { profile with
@@ -150,7 +155,8 @@ module internal ProfileDataActionPreparation =
             | ProfileDataActionKind.SaveFiles receipt, Some _ when
                 receipt.Action = ProfileSaveAction.DeleteFromProfile
                 ->
-                let! deleted = ProfileDeletion.run action repository.SaveAction token progress
+                let! deletedResult = ProfileDeletion.run action repository.SaveAction token progress
+                let! deleted = deletedResult
                 return deleted, changed
             | _ -> return action, changed
         }

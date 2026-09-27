@@ -32,17 +32,24 @@ module internal ProfileCloneMutation =
         =
         task {
             if context.Applied |> Option.exists (fun active -> active.ProfileId = source) then
-                let! scope = services.Repository.Read(workspace, source)
+                let! scopeResult = services.Repository.Read(workspace, source)
 
-                if (DataLocations.documents scope.Game).Identity <> context.Documents.Identity then
-                    raise (
-                        ProfileDataException(
-                            ProfileDataError.Unavailable
-                                "Restore the profile in its previous installation before cloning it."
-                        )
-                    )
+                match scopeResult with
+                | Error error -> return Error error
+                | Ok scope ->
+                    if
+                        (DataLocations.documents scope.Game).Identity <> context.Documents.Identity
+                    then
+                        return
+                            Error(
+                                ProfileDataError.Unavailable
+                                    "Restore the profile in its previous installation before cloning it."
+                            )
 
-                GameProcesses.validate scope.Game |> ignore
+                    GameProcesses.validate scope.Game |> ignore
+                    return Ok()
+            else
+                return Ok()
         }
 
     let private saveCopy
@@ -51,29 +58,32 @@ module internal ProfileCloneMutation =
         transaction
         (context: ProfileDataContext, action: ProfileDataActionRecord, copy: PrivateProfileData)
         =
-        let current =
-            ProfileDataRows.context connection transaction context.Id |> Option.get
+        match ProfileDataRows.context connection transaction context.Id with
+        | None -> Error ProfileDataError.NotFound
+        | Some current when
+            current.Pending <> Some action.Id || current.Revision <> action.ExpectedRevision
+            ->
+            Error ProfileDataError.Stale
+        | Some _ ->
+            ProfileDataRows.saveProfile connection transaction context.Id copy
 
-        if current.Pending <> Some action.Id || current.Revision <> action.ExpectedRevision then
-            ProfileDataRows.fail ProfileDataError.Stale
+            ProfileDataRows.saveContext
+                connection
+                transaction
+                { context with
+                    Pending = None
+                    Revision = context.Revision + 1L }
 
-        ProfileDataRows.saveProfile connection transaction context.Id copy
+            ProfileDataRows.saveAction
+                connection
+                transaction
+                services.Database.OwnerId
+                false
+                { action with
+                    Complete = true
+                    Problem = None }
 
-        ProfileDataRows.saveContext
-            connection
-            transaction
-            { context with
-                Pending = None
-                Revision = context.Revision + 1L }
-
-        ProfileDataRows.saveAction
-            connection
-            transaction
-            services.Database.OwnerId
-            false
-            { action with
-                Complete = true
-                Problem = None }
+            Ok()
 
     let private commit
         (services: ProfileMutationServices)
@@ -93,16 +103,25 @@ module internal ProfileCloneMutation =
                     request.Expected
                     request.Command
 
-            match result with
-            | Error _ -> ()
-            | Ok _ ->
-                for copy in completed do
-                    saveCopy services connection transaction copy
+            let saved =
+                match result with
+                | Error _ -> Ok()
+                | Ok _ ->
+                    completed
+                    |> Seq.fold
+                        (fun state copy ->
+                            state
+                            |> Result.bind (fun () ->
+                                saveCopy services connection transaction copy))
+                        (Ok())
 
+            match result, saved with
+            | Ok _, Ok() ->
                 request.BeforeCommit()
                 transaction.Commit()
-
-            result)
+                result |> Result.mapError Choice1Of2
+            | Error error, _ -> Error(Choice1Of2 error)
+            | _, Error error -> Error(Choice2Of2 error))
 
     let private cancelClaim
         (services: ProfileMutationServices)
@@ -162,10 +181,9 @@ module internal ProfileCloneMutation =
                 let! retained = services.Repository.Action(workspace, id)
 
                 match retained with
-                | Some action when (error :? OperationCanceledException) ->
+                | Ok(Some action) when (error :? OperationCanceledException) ->
                     do! cancelClaim services context action
-                | Some _ -> do! services.Repository.Release id
-                | None -> ()
+                | _ -> do! services.Repository.Release id
         }
 
     let private workspaceError =
@@ -193,32 +211,42 @@ module internal ProfileCloneMutation =
             let prepareOne (context, profile) =
                 task {
                     request.Token.ThrowIfCancellationRequested()
-                    do! validateActiveContext services request.Workspace source context
+                    let! valid = validateActiveContext services request.Workspace source context
 
-                    let! context, action =
-                        ProfileMutationSupport.claim
-                            services.Repository
-                            context
-                            source
-                            (ProfileMutationSupport.actionId context.Id target.Id 0uy)
-                            (ProfileDataActionKind.Clone(target.Id, target.Name, request.Expected))
+                    match valid with
+                    | Error error -> return Error error
+                    | Ok() ->
+                        let! claim =
+                            ProfileMutationSupport.claim
+                                services.Repository
+                                context
+                                source
+                                (ProfileMutationSupport.actionId context.Id target.Id 0uy)
+                                (ProfileDataActionKind.Clone(
+                                    target.Id,
+                                    target.Name,
+                                    request.Expected
+                                ))
 
-                    claimed.Add(context, action.Id)
+                        match claim with
+                        | Error error -> return Error error
+                        | Ok(context, action) ->
+                            claimed.Add(context, action.Id)
 
-                    let notify (value: ProfileDataProgress) =
-                        request.Progress
-                            { Files = value.Files
-                              Bytes = value.Bytes }
+                            let notify (value: ProfileDataProgress) =
+                                request.Progress
+                                    { Files = value.Files
+                                      Bytes = value.Bytes }
 
-                    return!
-                        ProfileCloning.prepare
-                            services.Repository
-                            context
-                            profile
-                            action
-                            request.Token
-                            notify
-                            request.CaptureCheckpoint
+                            return!
+                                ProfileCloning.prepare
+                                    services.Repository
+                                    context
+                                    profile
+                                    action
+                                    request.Token
+                                    notify
+                                    request.CaptureCheckpoint
                 }
 
             let rec prepareAll =
@@ -250,7 +278,11 @@ module internal ProfileCloneMutation =
                 if Result.isError committed then
                     do! releaseClaims services claimed
 
-                return committed
+                return
+                    committed
+                    |> Result.mapError (function
+                        | Choice1Of2 error -> error
+                        | Choice2Of2 error -> workspaceError error)
             with error ->
                 do! handleFailure services request.Workspace claimed error
                 return raise error

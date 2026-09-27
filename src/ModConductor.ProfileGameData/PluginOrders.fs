@@ -64,14 +64,16 @@ module internal PluginOrders =
         resultTask {
             let! headerResult = headers plugins workspace profile id
             let! header = headerResult
-            let! scope = repository.Read(workspace, profile)
+            let! scopeResult = repository.Read(workspace, profile)
+            let! scope = scopeResult
             let! input = PluginInputs.read scope header.Entries CancellationToken.None
             let value = view scope header input
 
             match scope.Context |> Option.bind _.Pending with
             | None -> return value
             | Some id ->
-                let! action = repository.Action(workspace, id)
+                let! actionResult = repository.Action(workspace, id)
+                let! action = actionResult
 
                 return
                     { value with
@@ -82,7 +84,8 @@ module internal PluginOrders =
         resultTask {
             let! headerResult = headers plugins expected.WorkspaceId expected.ProfileId id
             let! header = headerResult
-            let! scope = repository.Read(expected.WorkspaceId, expected.ProfileId)
+            let! scopeResult = repository.Read(expected.WorkspaceId, expected.ProfileId)
+            let! scope = scopeResult
             let! input = PluginInputs.read scope header.Entries CancellationToken.None
             let current = view scope header input
 
@@ -129,7 +132,8 @@ module internal PluginOrders =
                 | None -> ()
             | _ -> ()
 
-            let! context = DataInitialization.context repository scope
+            let! contextResult = DataInitialization.context repository scope
+            let! context = contextResult
             let root = PluginInputs.ensureRoot input
 
             let profile =
@@ -166,7 +170,7 @@ module internal PluginOrders =
                             context.PluginObserved
                     Applied = context.Applied |> Option.map adopt }
 
-            do!
+            let! saved =
                 repository.SaveOrder(
                     context,
                     { profile with
@@ -174,6 +178,8 @@ module internal PluginOrders =
                         PluginOrder = Some order },
                     header.Stamp
                 )
+
+            do! saved
 
             return! read repository plugins expected.WorkspaceId expected.ProfileId id
         }

@@ -94,8 +94,10 @@ module internal ArchivePreparation =
                 | ProfileDataActionKind.RestoreArchives -> ()
                 | _ -> invalidOp "Use the archive action owner."
 
-                let! context, action =
+                let! stagesResult =
                     DataActionPreparation.stages repository initialContext initialAction
+
+                let! context, action = stagesResult
 
                 clean action.WorkspaceStage.Value token
                 clean action.DocumentsStage.Value token
@@ -200,6 +202,7 @@ module internal ArchivePreparation =
                         ChangedProfile = Some changed
                         Files = List.ofSeq effects }
 
-                do! repository.SaveAction prepared
+                let! saved = repository.SaveAction prepared
+                do! saved
                 return context, prepared
         }

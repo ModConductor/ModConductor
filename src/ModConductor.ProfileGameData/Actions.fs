@@ -9,7 +9,7 @@ type internal ProfileDataActionDependencies =
     { Repository: IProfileDataRepository
       Archives: ModConductor.Bethesda.ArchivePolicySession
       Stopped: GameContextState -> unit
-      Read: Guid -> Guid -> Task<ProfileDataState> }
+      Read: Guid -> Guid -> Task<Result<ProfileDataState, ProfileDataError>> }
 
 module internal ProfileDataActions =
     let initial id (context: ProfileDataContext) profile kind =
@@ -47,7 +47,7 @@ module internal ProfileDataActions =
             progress,
             (report: ProfileDataActionRecord -> Task<unit>)
         ) =
-        task {
+        ProfileDataResultTask.resultTask {
             let repository = dependencies.Repository
             let archives = dependencies.Archives
             let stopped = dependencies.Stopped
@@ -111,14 +111,18 @@ module internal ProfileDataActions =
 
                         do! report action
 
-                        let save current =
-                            task {
-                                do! repository.SaveAction current
+                        let save
+                            (current: ProfileDataActionRecord)
+                            : Task<Result<unit, ProfileDataError>> =
+                            ProfileDataResultTask.resultTask {
+                                let! saved = repository.SaveAction current
+                                do! saved
                                 action <- current
                                 do! report current
                             }
 
-                        let! applied = DataEffects.run context action save token checkpoint
+                        let! appliedResult = DataEffects.run context action save token checkpoint
+                        let! applied = appliedResult
 
                         action <-
                             { applied with
@@ -143,10 +147,12 @@ module internal ProfileDataActions =
                     action <- completedAction
                     changed <- completedProfile
 
-                    do! repository.Complete(context, changed, action)
+                    let! completed = repository.Complete(context, changed, action)
+                    do! completed
                     action <- { action with Complete = true }
                     do! report action
-                    let! state = read scope.WorkspaceId scope.ProfileId
+                    let! stateResult = read scope.WorkspaceId scope.ProfileId
+                    let! state = stateResult
 
                     return
                         { Id = action.Id
@@ -165,7 +171,7 @@ module internal ProfileDataActions =
                 task {
                     try
                         let! result = runAction ()
-                        return result |> Result.mapError (DataErrors.problemMessage >> Choice1Of2)
+                        return result |> Result.mapError Choice1Of2
                     with error ->
                         return Error(Choice2Of2 error)
                 }
@@ -173,26 +179,38 @@ module internal ProfileDataActions =
             match outcome with
             | Ok result -> return result
             | Error failure ->
-                let! retained = repository.Action(scope.WorkspaceId, action.Id)
-                action <- retained |> Option.defaultValue action
+                let! retainedResult = repository.Action(scope.WorkspaceId, action.Id)
+
+                match retainedResult with
+                | Error error ->
+                    do! repository.Release action.Id
+                    return! Error error
+                | Ok retained -> action <- retained |> Option.defaultValue action
 
                 if action.Complete then
                     match failure with
                     | Choice2Of2 error -> raise error
-                    | Choice1Of2 _ ->
-                        invalidOp "A completed profile action cannot fail preparation."
+                    | Choice1Of2 error -> return! Error error
 
                 let detail =
                     match failure with
-                    | Choice1Of2 detail -> detail
+                    | Choice1Of2 error -> DataErrors.problemMessage error
                     | Choice2Of2 error -> DataErrors.message error
 
                 action <- { action with Problem = Some detail }
 
-                do! repository.SaveAction action
-                do! report action
-                do! repository.Release action.Id
-                let! state = read scope.WorkspaceId scope.ProfileId
+                let! saved = repository.SaveAction action
+
+                match saved with
+                | Ok() ->
+                    do! report action
+                    do! repository.Release action.Id
+                | Error error ->
+                    do! repository.Release action.Id
+                    return! Error error
+
+                let! stateResult = read scope.WorkspaceId scope.ProfileId
+                let! state = stateResult
 
                 return
                     { Id = action.Id
@@ -211,15 +229,16 @@ module internal ProfileDataActions =
 
     let replay
         (repository: IProfileDataRepository)
-        (read: Guid -> Guid -> Task<ProfileDataState>)
+        (read: Guid -> Guid -> Task<Result<ProfileDataState, ProfileDataError>>)
         workspace
         profile
         id
         (kind: ProfileDataActionKind)
         expected
         =
-        task {
-            let! prior = repository.Action(workspace, id)
+        ProfileDataResultTask.resultTask {
+            let! priorResult = repository.Action(workspace, id)
+            let! prior = priorResult
 
             match prior with
             | Some value when
@@ -227,19 +246,18 @@ module internal ProfileDataActions =
                 || value.Kind <> kind
                 || value.ExpectedRevision <> expected
                 ->
-                return Error ProfileDataError.Stale
+                return! Error ProfileDataError.Stale
             | Some value when value.Complete ->
-                let! state = read workspace profile
+                let! stateResult = read workspace profile
+                let! state = stateResult
 
                 return
-                    Ok(
-                        Some
-                            { Id = id
-                              State = state
-                              Complete = true
-                              NoChange = false
-                              CompletedFiles = completedFiles value
-                              Problem = value.Problem }
-                    )
-            | _ -> return Ok None
+                    Some
+                        { Id = id
+                          State = state
+                          Complete = true
+                          NoChange = false
+                          CompletedFiles = completedFiles value
+                          Problem = value.Problem }
+            | _ -> return None
         }

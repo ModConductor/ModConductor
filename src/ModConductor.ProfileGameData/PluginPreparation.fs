@@ -13,7 +13,7 @@ module internal PluginPreparation =
         (proposed: AppliedProfileData option)
         token
         =
-        task {
+        ProfileDataResultTask.resultTask {
             let previous = initialContext.Applied |> Option.bind _.Plugins
 
             match initialAction.Kind with
@@ -32,7 +32,8 @@ module internal PluginPreparation =
                 let actual, file, bytes = PluginInputs.readFile root PluginInputs.fileName token
 
                 match context.PluginObserved with
-                | Some _ when incoming |> Option.exists (fun profile -> profile.PluginOrder.IsSome) -> ()
+                | Some _ when incoming |> Option.exists (fun profile -> profile.PluginOrder.IsSome) ->
+                    ()
                 | Some observed when file <> observed ->
                     DataFiles.fail
                         "The game plugin list changed. Use game order or restore the list before playing."
@@ -51,7 +52,8 @@ module internal PluginPreparation =
                                          + context.Id.ToString("N"))
                                 ) }
 
-                    do! repository.SaveContext context
+                    let! saved = repository.SaveContext context
+                    do! saved
 
                 match action.PluginStage with
                 | Some value -> DataLocations.existing context.PluginOriginals.Value value |> ignore
@@ -65,7 +67,8 @@ module internal PluginPreparation =
                                         (action.Id.ToString("N"))
                                 ) }
 
-                    do! repository.SaveAction action
+                    let! saved = repository.SaveAction action
+                    do! saved
 
                 let stagingRoot = action.PluginStage.Value
                 use staging = HeldDirectory.Open(stagingRoot.Path, stagingRoot.Identity)

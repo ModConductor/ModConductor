@@ -17,7 +17,7 @@ module internal ConfigurationPreparation =
                 return action
             else
                 let! staged =
-                    task {
+                    ProfileDataResultTask.resultTask {
                         match action.WorkspaceStage with
                         | Some root ->
                             DataLocations.existing context.Storage.Value root |> ignore
@@ -32,10 +32,12 @@ module internal ConfigurationPreparation =
                                                 ("action-" + action.Id.ToString("N"))
                                         ) }
 
-                            do! repository.SaveAction staged
+                            let! saved = repository.SaveAction staged
+                            do! saved
                             return staged
                     }
 
+                let! staged = staged
                 let settings = profile.Settings.Value
                 use target = HeldDirectory.Open(settings.Path, settings.Identity)
                 let! actual = ConfigurationFiles.actualName target receipt.Name
@@ -78,6 +80,7 @@ module internal ConfigurationPreparation =
                                     Replacement = Some replacement
                                     BackupName = "previous-" + receipt.Name } } ] }
 
-                do! repository.SaveAction prepared
+                let! saved = repository.SaveAction prepared
+                do! saved
                 return prepared
         }

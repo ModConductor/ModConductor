@@ -96,20 +96,20 @@ module internal FomodFacts =
 
                                     let! scope = repository.Read(workspace, profile)
 
-                                    let inputs =
-                                        ModConductor.ProfileGameData.PluginInputs.read
-                                            scope
-                                            headers.Entries
-                                            Threading.CancellationToken.None
-
                                     return
-                                        inputs
+                                        scope
                                         |> Result.toOption
-                                        |> Option.map (fun value ->
-                                            ModConductor.ProfileGameData.PluginOrders.view
+                                        |> Option.bind (fun scope ->
+                                            ModConductor.ProfileGameData.PluginInputs.read
                                                 scope
-                                                headers
-                                                value)
+                                                headers.Entries
+                                                Threading.CancellationToken.None
+                                            |> Result.toOption
+                                            |> Option.map (fun value ->
+                                                ModConductor.ProfileGameData.PluginOrders.view
+                                                    scope
+                                                    headers
+                                                    value))
                                 with
                                 | ModConductor.ProfileGameData.ProfileDataException _ -> return None
                                 | :? IOException -> return None

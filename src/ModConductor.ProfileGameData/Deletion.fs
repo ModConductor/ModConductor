@@ -26,11 +26,11 @@ module internal ProfileDeletion =
 
     let run
         (initial: ProfileDataActionRecord)
-        (save: ProfileDataActionRecord -> Task<unit>)
+        (save: ProfileDataActionRecord -> Task<Result<unit, ProfileDataError>>)
         (token: CancellationToken)
         progress
-        =
-        task {
+        : Task<Result<ProfileDataActionRecord, ProfileDataError>> =
+        ProfileDataResultTask.resultTask {
             let mutable action = initial
             let mutable deletion = action.Deletion.Value
 
@@ -49,7 +49,8 @@ module internal ProfileDeletion =
                         CompletedFiles = deletion.CompletedFiles + 1 }
 
                 action <- { action with Deletion = Some deletion }
-                do! save action
+                let! saved = save action
+                do! saved
 
                 progress
                     { Files = deletion.CompletedFiles
@@ -72,7 +73,8 @@ module internal ProfileDeletion =
                         CompletedDirectories = deletion.CompletedDirectories + 1 }
 
                 action <- { action with Deletion = Some deletion }
-                do! save action
+                let! saved = save action
+                do! saved
 
             return action
         }
