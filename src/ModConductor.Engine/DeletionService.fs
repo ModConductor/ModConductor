@@ -12,7 +12,10 @@ type DeletionService(store: DeletionStore) =
                 let workspace = ModLibraryWire.id request.WorkspaceId
                 let modId = ModLibraryWire.id request.ModId
 
-                do! store.Delete(workspace, modId, ModLibraryWire.number request.Revision)
+                let! deleted =
+                    store.Delete(workspace, modId, ModLibraryWire.number request.Revision)
+
+                deleted |> InstallationWire.outcome |> ignore
 
                 return ModDeleted()
             })

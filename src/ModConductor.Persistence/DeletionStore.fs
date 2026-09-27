@@ -4,7 +4,6 @@ open System
 open System.IO
 open System.Threading.Tasks
 open Microsoft.Data.Sqlite
-open ModConductor.ArchiveInstallation
 open ModConductor.DeploymentPlanning
 open ModConductor.DeploymentRecovery
 open ModConductor.GeneratedOutputs
@@ -12,52 +11,53 @@ open ModConductor.ModLibrary
 open ModConductor.Platform
 
 module private DirectDeletion =
-    let refuse message = raise (InstallationException message)
-
     let private row connection transaction workspace modId expected =
-        let value =
-            LibraryRows.find connection transaction modId
-            |> Option.defaultWith (fun () -> refuse "The mod is no longer installed.")
-
-        if value.Entry.WorkspaceId <> workspace || value.Entry.Revision <> expected then
-            refuse "The mod changed. Delete it again."
-
-        if value.Entry.Kind <> ModKind.Regular then
-            refuse "Choose a regular installed mod."
-
-        value
+        match LibraryRows.find connection transaction modId with
+        | None -> Error "The mod is no longer installed."
+        | Some value when value.Entry.WorkspaceId <> workspace || value.Entry.Revision <> expected ->
+            Error "The mod changed. Delete it again."
+        | Some value when value.Entry.Kind <> ModKind.Regular ->
+            Error "Choose a regular installed mod."
+        | Some value -> Ok value
 
     let private ensureIdle connection transaction workspace targets =
         let members = Set.ofList targets
 
-        for target in targets do
-            if
+        let active =
+            targets
+            |> List.exists (fun target ->
                 MaintenanceClaims.busy connection transaction target
                 || Sqlite.number
                     connection
                     transaction
                     "SELECT count(*) FROM mod_versions WHERE mod_id=$mod AND busy=1"
                     [ "$mod", box (string target) ]
-                   <> 0L
-            then
-                refuse "Finish the mod's current operation before deleting it."
+                   <> 0L)
 
-        for actionId in
-            DeletionRows.ids
-                connection
-                transaction
-                "SELECT id FROM output_actions WHERE workspace_id=$workspace AND complete=0"
-                [ "$workspace", box (string workspace) ] do
-            let action = OutputActionRows.find connection transaction actionId |> Option.get
+        if active then
+            Error "Finish the mod's current operation before deleting it."
+        else
+            let pending =
+                DeletionRows.ids
+                    connection
+                    transaction
+                    "SELECT id FROM output_actions WHERE workspace_id=$workspace AND complete=0"
+                    [ "$workspace", box (string workspace) ]
+                |> List.exists (fun actionId ->
+                    let action =
+                        OutputActionRows.find connection transaction actionId |> Option.get
 
-            match OutputActionRows.destination action with
-            | Some(OutputDestination.ExistingMod(id, _, _))
-            | Some(OutputDestination.NewMod(id, _, _)) when members.Contains id ->
-                refuse "Finish the mod's pending output operation before deleting it."
-            | _ -> ()
+                    match OutputActionRows.destination action with
+                    | Some(OutputDestination.ExistingMod(id, _, _))
+                    | Some(OutputDestination.NewMod(id, _, _)) -> members.Contains id
+                    | _ -> false)
 
-        if BundleDeletion.busy connection transaction workspace targets then
-            refuse "Finish the bundle operation before deleting this mod."
+            if pending then
+                Error "Finish the mod's pending output operation before deleting it."
+            elif BundleDeletion.busy connection transaction workspace targets then
+                Error "Finish the bundle operation before deleting this mod."
+            else
+                Ok()
 
     let private payloads connection transaction versions =
         let saved = Set.ofList versions
@@ -107,8 +107,7 @@ module private DirectDeletion =
     let private artifacts connection transaction workspace targets =
         let members = Set.ofList targets
 
-        artifactIds connection transaction targets
-        |> List.choose (fun id ->
+        let inspect id =
             use query =
                 Sqlite.command
                     connection
@@ -119,7 +118,7 @@ module private DirectDeletion =
             use reader = query.ExecuteReader()
 
             if not (reader.Read()) then
-                None
+                Ok None
             else
                 let storage, busy = reader.GetInt32 0, reader.GetBoolean 1
                 reader.Close()
@@ -140,13 +139,22 @@ module private DirectDeletion =
                     || BundleDeletion.parentShared connection transaction id members
 
                 if shared then
-                    None
+                    Ok None
+                elif busy then
+                    Error "An archive is in use. Finish its operation before deleting this mod."
                 else
-                    if busy then
-                        refuse
-                            "An archive is in use. Finish its operation before deleting this mod."
+                    Ok(Some(id, storage))
 
-                    Some(id, storage))
+        let rec collect values =
+            function
+            | [] -> Ok(List.rev values)
+            | id :: remaining ->
+                match inspect id with
+                | Error error -> Error error
+                | Ok None -> collect values remaining
+                | Ok(Some value) -> collect (value :: values) remaining
+
+        artifactIds connection transaction targets |> collect []
 
     let private generations connection transaction workspace targets =
         let members = Set.ofList targets
@@ -155,13 +163,21 @@ module private DirectDeletion =
             DeletionRows.generations connection transaction workspace
             |> List.filter (fun (_, generation) -> DeletionRows.includes members generation)
 
-        for context, generation in values do
-            if context.Pending.IsSome then
-                refuse "Finish the pending deployment before deleting this mod."
-            elif context.Active = Some generation.Id && DeletionRows.uses members generation then
-                refuse "Deactivate game files before deleting this mod."
+        let refusal =
+            values
+            |> List.tryPick (fun (context, generation) ->
+                if context.Pending.IsSome then
+                    Some "Finish the pending deployment before deleting this mod."
+                elif
+                    context.Active = Some generation.Id && DeletionRows.uses members generation
+                then
+                    Some "Deactivate game files before deleting this mod."
+                else
+                    None)
 
-        values
+        match refusal with
+        | Some error -> Error error
+        | None -> Ok values
 
     let private libraryNames connection transaction workspace targets versions =
         let _, privatePayloads = payloads connection transaction versions
@@ -170,63 +186,75 @@ module private DirectDeletion =
             BundleDeletion.files connection transaction workspace targets
             |> List.choose (fun (source, shared) -> if shared then None else Some source.Id)
 
-        let privateArtifacts = artifacts connection transaction workspace targets
+        artifacts connection transaction workspace targets
+        |> Result.map (fun privateArtifacts ->
+            let names =
+                [ yield! privatePayloads |> List.map LibraryFiles.payloadName
+                  yield!
+                      installationPayloads connection transaction targets
+                      |> List.map LibraryFiles.payloadName
+                  yield! privateBundles |> List.map BundleFiles.name
 
-        let names =
-            [ yield! privatePayloads |> List.map LibraryFiles.payloadName
-              yield!
-                  installationPayloads connection transaction targets
-                  |> List.map LibraryFiles.payloadName
-              yield! privateBundles |> List.map BundleFiles.name
+                  for id, storage in privateArtifacts do
+                      if storage = 1 then
+                          yield ArtifactFiles.final id
+                          yield ArtifactFiles.stage id ]
+                |> List.distinct
 
-              for id, storage in privateArtifacts do
-                  if storage = 1 then
-                      yield ArtifactFiles.final id
-                      yield ArtifactFiles.stage id ]
-            |> List.distinct
+            privatePayloads, privateArtifacts |> List.map fst, names)
 
-        privatePayloads, privateArtifacts |> List.map fst, names
+    let private ownedPaths connection transaction workspace modId expected =
+        row connection transaction workspace modId expected
+        |> Result.bind (fun _ ->
+            let targets = DeletionRows.targets connection transaction modId
+
+            ensureIdle connection transaction workspace targets
+            |> Result.bind (fun () ->
+                let versions = DeletionRows.versions connection transaction targets
+
+                libraryNames connection transaction workspace targets versions
+                |> Result.bind (fun (privatePayloads, _, names) ->
+                    let library = LibraryRows.library connection transaction workspace
+
+                    match library with
+                    | _ when names.IsEmpty -> Ok(privatePayloads, names, library, targets)
+                    | Some stored when stored.Phase = 2 && stored.Identity.IsSome ->
+                        Ok(privatePayloads, names, library, targets)
+                    | _ -> Error "The owned mod library is unavailable.")))
+        |> Result.bind (fun (privatePayloads, names, library, targets) ->
+            match library with
+            | Some stored when stored.Identity.IsSome ->
+                generations connection transaction workspace targets
+                |> Result.map (fun values ->
+                    let privateNames =
+                        privatePayloads |> List.map LibraryFiles.payloadName |> Set.ofList
+
+                    let links =
+                        [ for _, generation in values do
+                              for file in generation.Files do
+                                  if
+                                      file.Backing
+                                      |> Option.exists (fun backing ->
+                                          backing.Directory.Identity = stored.Identity.Value
+                                          && (match LogicalPath.components backing.Path with
+                                              | [ name ] -> privateNames.Contains name
+                                              | _ -> false))
+                                  then
+                                      yield generation.Directory, file.Path ]
+
+                    library, names, links)
+            | _ -> Ok(library, names, []))
 
     let readOwnedPaths (database: StateDatabase) workspace modId expected =
         database.Enqueue(fun () ->
             let connection = database.Connection
             use transaction = connection.BeginTransaction(deferred = true)
-            row connection transaction workspace modId expected |> ignore
-            let targets = DeletionRows.targets connection transaction modId
-            ensureIdle connection transaction workspace targets
-            let versions = DeletionRows.versions connection transaction targets
+            let result = ownedPaths connection transaction workspace modId expected
 
-            let privatePayloads, _, names =
-                libraryNames connection transaction workspace targets versions
+            if Result.isOk result then
+                transaction.Commit()
 
-            let library = LibraryRows.library connection transaction workspace
-
-            if not names.IsEmpty then
-                match library with
-                | Some stored when stored.Phase = 2 && stored.Identity.IsSome -> ()
-                | _ -> refuse "The owned mod library is unavailable."
-
-            let privateNames =
-                privatePayloads |> List.map LibraryFiles.payloadName |> Set.ofList
-
-            let links =
-                match library with
-                | Some stored when stored.Identity.IsSome ->
-                    [ for _, generation in generations connection transaction workspace targets do
-                          for file in generation.Files do
-                              if
-                                  file.Backing
-                                  |> Option.exists (fun backing ->
-                                      backing.Directory.Identity = stored.Identity.Value
-                                      && (match LogicalPath.components backing.Path with
-                                          | [ name ] -> privateNames.Contains name
-                                          | _ -> false))
-                              then
-                                  yield generation.Directory, file.Path ]
-                | _ -> []
-
-            transaction.Commit()
-            library, names, links)
+            result)
 
     let private unlink (directory: Location) path =
         if Directory.Exists(HostPath.value directory.Path) then
@@ -298,19 +326,18 @@ module private DirectDeletion =
                 [ "$mod", box (string target) ])
         |> List.distinct
 
-    let finish (connection: SqliteConnection) workspace modId expected =
-        use transaction = connection.BeginTransaction(deferred = false)
-        row connection transaction workspace modId expected |> ignore
-        let targets = DeletionRows.targets connection transaction modId
-        ensureIdle connection transaction workspace targets
-        let versions = DeletionRows.versions connection transaction targets
+    let private finishApproved
+        (connection: SqliteConnection)
+        transaction
+        workspace
+        targets
+        versions
+        allPayloads
+        privatePayloads
+        privateArtifacts
+        affectedGenerations
+        =
         let members, saved = Set.ofList targets, Set.ofList versions
-        let allPayloads, privatePayloads = payloads connection transaction versions
-
-        let privateArtifacts =
-            artifacts connection transaction workspace targets |> List.map fst
-
-        let affectedGenerations = generations connection transaction workspace targets
 
         for payload in allPayloads do
             match
@@ -503,48 +530,111 @@ module private DirectDeletion =
 
         transaction.Commit()
 
+    let finish (connection: SqliteConnection) workspace modId expected =
+        use transaction = connection.BeginTransaction(deferred = false)
+
+        let admission =
+            row connection transaction workspace modId expected
+            |> Result.bind (fun _ ->
+                let targets = DeletionRows.targets connection transaction modId
+
+                ensureIdle connection transaction workspace targets
+                |> Result.bind (fun () ->
+                    let versions = DeletionRows.versions connection transaction targets
+                    let allPayloads, privatePayloads = payloads connection transaction versions
+
+                    artifacts connection transaction workspace targets
+                    |> Result.bind (fun privateArtifacts ->
+                        generations connection transaction workspace targets
+                        |> Result.map (fun affectedGenerations ->
+                            targets,
+                            versions,
+                            allPayloads,
+                            privatePayloads,
+                            privateArtifacts |> List.map fst,
+                            affectedGenerations))))
+
+        admission
+        |> Result.map
+            (fun
+                (targets,
+                 versions,
+                 allPayloads,
+                 privatePayloads,
+                 privateArtifacts,
+                 affectedGenerations) ->
+                finishApproved
+                    connection
+                    transaction
+                    workspace
+                    targets
+                    versions
+                    allPayloads
+                    privatePayloads
+                    privateArtifacts
+                    affectedGenerations)
+
 
 type DeletionStore internal (database: StateDatabase, access: LibraryAccess) =
-    let refuse message = raise (InstallationException message)
-
     let run action =
         task {
-            let! result = access.Run action
-            return result |> Result.defaultWith (fun _ -> refuse "The mod library is unavailable.")
+            let! guarded =
+                access.Run(fun () ->
+                    task {
+                        let! outcome = action ()
+                        return Ok outcome
+                    })
+
+            return
+                guarded
+                |> Result.mapError (fun _ -> "The mod library is unavailable.")
+                |> Result.bind id
         }
 
     member internal _.DeleteAtCheckpoint(workspace, modId, revision, checkpoint) =
         run (fun () ->
             task {
-                let! library, names, links =
-                    DirectDeletion.readOwnedPaths database workspace modId revision
+                let! owned = DirectDeletion.readOwnedPaths database workspace modId revision
 
-                let! (root: WorkspaceRoot option) =
-                    if names.IsEmpty then
-                        Task.FromResult None
-                    else
-                        task {
-                            let! value = access.Root workspace
+                match owned with
+                | Error error -> return Error error
+                | Ok(library, names, links) ->
+                    let! rootResult =
+                        if names.IsEmpty then
+                            Task.FromResult(Ok None)
+                        else
+                            task {
+                                let! value = access.Root workspace
 
-                            return
-                                value
-                                |> Result.map Some
-                                |> Result.defaultWith (fun _ ->
-                                    refuse "The workspace is unavailable.")
-                        }
+                                return
+                                    value
+                                    |> Result.map Some
+                                    |> Result.mapError (fun _ -> "The workspace is unavailable.")
+                            }
 
-                do!
-                    Task.Run(fun () ->
-                        DirectDeletion.removeOwnedPaths root library names links checkpoint)
+                    match rootResult with
+                    | Error error -> return Error error
+                    | Ok root ->
+                        do!
+                            Task.Run(fun () ->
+                                DirectDeletion.removeOwnedPaths
+                                    root
+                                    library
+                                    names
+                                    links
+                                    checkpoint)
 
-                checkpoint "before-deletion-completion"
+                        checkpoint "before-deletion-completion"
 
-                do!
-                    database.EnqueueInternal(fun () ->
-                        DirectDeletion.finish database.Connection workspace modId revision)
+                        let! finished =
+                            database.EnqueueInternal(fun () ->
+                                DirectDeletion.finish database.Connection workspace modId revision)
 
-                checkpoint "after-deletion-completion"
-                return Ok()
+                        match finished with
+                        | Error error -> return Error error
+                        | Ok() ->
+                            checkpoint "after-deletion-completion"
+                            return Ok()
             })
 
     member this.Delete(workspace, modId, revision) =
