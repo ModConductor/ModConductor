@@ -8,7 +8,11 @@ open System.Threading
 open System.Threading.Tasks
 open Microsoft.Data.Sqlite
 open ModConductor.Platform
+open ModConductor.DeploymentPlanning
+open ModConductor.DeploymentGenerations
 open ModConductor.DeploymentRecovery
+open ModConductor.Deployment
+open ModConductor.FilePlanning
 open ModConductor.Persistence
 open DeploymentFixtureData
 
@@ -149,6 +153,80 @@ module DeploymentFixtures =
                  | _ -> false)
 
             let current = context store
+
+            flag
+                writer
+                "cancelledProfileReadRemainsCancelled"
+                (DeploymentReports.error RecoveryError.Cancelled = DeploymentError.Cancelled)
+
+            let nestedTarget = target "shared.txt/nested/file.txt"
+
+            let nestedGeneration =
+                { area.Second with
+                    Files =
+                        area.Second.Files
+                        |> List.map (fun file ->
+                            if file.Target = target "shared.txt" then
+                                { file with Target = nestedTarget }
+                            else
+                                file) }
+
+            let stamp: SourceStamp =
+                { WorkspaceId = rootId
+                  ProfileId = id 3
+                  SelectionRevision = 0L
+                  ContextRevision = 0L
+                  ExclusionRevision = 0L
+                  OutputRevision = 0L
+                  Versions = []
+                  Deployment = None }
+
+            let observation: GameObservation =
+                { ContextFingerprint = "owned-fixture-context"
+                  Root = area.Bindings.Head.Directory.Path
+                  Identity = area.Bindings.Head.Directory.Identity
+                  Entries = []
+                  Projection = GameProjection.empty
+                  Snapshot =
+                    { Id = id 4
+                      Generation = "projection"
+                      Kind = ReadOnlyLayerKind.Base
+                      Priority = 0
+                      Complete = true
+                      Files = []
+                      Mappings = []
+                      Archives = [] }
+                  ObservedAt = DateTimeOffset.UtcNow
+                  EncodedBytes = 0L }
+
+            let projected: PreparedGeneration =
+                { Generation = nestedGeneration
+                  Sources = stamp
+                  Measurements =
+                    { GenerationLinks = nestedGeneration.Files.Length
+                      CopiedBytes = 0L
+                      WritableSeedBytes = 0L
+                      BaseCopiedBytes = 0L
+                      AvailableBytes = 0L
+                      RequiredBytes = 0L } }
+
+            flag
+                writer
+                "oldFileToNestedTargetRefusedDuringPrepare"
+                (match
+                    DeploymentTargetProjection.project
+                        (id 1013)
+                        stamp
+                        (Some current)
+                        current.Fingerprint
+                        current.Id
+                        current.Roots
+                        observation
+                        projected
+                        CancellationToken.None
+                 with
+                 | Error RecoveryError.InvalidPlan -> true
+                 | _ -> false)
 
             let invalidRequest =
                 { request area (id 1006) current.Revision area.Second with

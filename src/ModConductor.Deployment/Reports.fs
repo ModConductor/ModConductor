@@ -31,6 +31,7 @@ module internal DeploymentReports =
         | RecoveryError.NotFound -> DeploymentError.NotFound
         | RecoveryError.Busy -> DeploymentError.Busy
         | RecoveryError.Stale -> DeploymentError.Stale
+        | RecoveryError.Cancelled -> DeploymentError.Cancelled
         | RecoveryError.InvalidPlan -> DeploymentError.Blocked "The file plan is not valid."
         | RecoveryError.Limit ->
             DeploymentError.Unavailable "The deployment exceeds its supported bounds."

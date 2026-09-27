@@ -167,17 +167,6 @@ module internal DeploymentTargetProjection =
             existingLinks
             |> List.exists (fun owned -> ownedLinkCovers policies[target.Root] owned target)
 
-        let collisions =
-            (generation.Files |> List.map _.Target)
-            @ (generation.Working |> List.map _.Target)
-            |> List.map (RecoveryFiles.nativeTarget generation)
-            |> List.distinct
-            |> List.choose (fun target ->
-                if insideExisting target then
-                    None
-                else
-                    RecoveryFiles.observe observedContext target |> Option.map (fun _ -> target))
-
         let switch =
             { Id = id
               ContextId = contextId
@@ -186,16 +175,30 @@ module internal DeploymentTargetProjection =
               Roots = roots
               Generation = generation
               DirectoryBoundaries = boundaries
-              PreserveOriginals = collisions
+              PreserveOriginals = []
               ExpectedSources = Some stamp }
 
         ModConductor.DeploymentRecovery.Preparation.projection switch
-        |> Result.map (fun proposed ->
-            let paths =
-                (proposed |> List.map fst)
-                @ (existing
-                   |> Option.map (fun context -> context.Links |> List.map _.Target)
-                   |> Option.defaultValue [])
-                |> Set.ofList
+        |> Result.bind (fun proposed ->
+            let paths = (proposed |> List.map fst) @ existingLinks
 
-            switch, paths.Count)
+            if ModConductor.DeploymentRecovery.Preparation.overlappingTargets paths then
+                Error RecoveryError.InvalidPlan
+            else
+                let collisions =
+                    (generation.Files |> List.map _.Target)
+                    @ (generation.Working |> List.map _.Target)
+                    |> List.map (RecoveryFiles.nativeTarget generation)
+                    |> List.distinct
+                    |> List.choose (fun target ->
+                        if insideExisting target then
+                            None
+                        else
+                            RecoveryFiles.observe observedContext target
+                            |> Option.map (fun _ -> target))
+
+                Ok(
+                    { switch with
+                        PreserveOriginals = collisions },
+                    (paths |> Set.ofList).Count
+                ))

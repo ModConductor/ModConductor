@@ -200,18 +200,21 @@ type internal DeploymentBackendRepository
 
         member _.Start(prepared, token) =
             task {
-                let! scope =
+                let! read =
                     (ProfileDataRepository(database, access)
                     :> ModConductor.ProfileGameData.IProfileDataRepository)
                         .Read(prepared.View.WorkspaceId, prepared.View.Sources.ProfileId)
 
-                if
-                    (scope.Profile |> Option.map _.Revision |> Option.defaultValue 0L)
-                    <> prepared.PluginSelectionRevision
-                then
-                    return Error RecoveryError.Stale
-                else
-                    return! generations.Start(prepared, [], cancellation = token)
+                match read with
+                | Error error -> return Error(DeploymentPreparation.profileError error)
+                | Ok scope ->
+                    if
+                        (scope.Profile |> Option.map _.Revision |> Option.defaultValue 0L)
+                        <> prepared.PluginSelectionRevision
+                    then
+                        return Error RecoveryError.Stale
+                    else
+                        return! generations.Start(prepared, [], cancellation = token)
             }
 
         member _.Run(id, revision, restore, token, checkpoint) =

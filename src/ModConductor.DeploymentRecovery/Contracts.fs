@@ -179,6 +179,7 @@ type internal RecoveryError =
     | NotFound
     | Busy
     | Stale
+    | Cancelled
     | InvalidPlan
     | Limit
     | Mismatch of string

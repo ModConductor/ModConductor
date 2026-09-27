@@ -15,6 +15,13 @@ module internal Preparation =
     let private overlap left right =
         contains left right || contains right left
 
+    let overlappingTargets targets =
+        targets
+        |> List.distinct
+        |> List.sort
+        |> List.pairwise
+        |> List.exists (fun (left, right) -> overlap left right)
+
     let nested parent child = RecoveryLocations.nested parent child
 
     let overlappingRoots left right =
@@ -193,14 +200,8 @@ module internal Preparation =
             let targets =
                 (proposed |> List.map fst)
                 @ (context.Links |> List.map (fun link -> link.Target))
-                |> List.distinct
-                |> List.sort
 
-            if
-                targets
-                |> List.pairwise
-                |> List.exists (fun (left, right) -> overlap left right)
-            then
+            if overlappingTargets targets then
                 Error RecoveryError.InvalidPlan
             else
                 let linksByTarget: Map<TargetFile, ActiveLink> =

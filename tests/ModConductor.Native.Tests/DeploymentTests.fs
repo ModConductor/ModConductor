@@ -69,6 +69,16 @@ type DeploymentTests() =
         flag "overlappingBoundaryHasNoReceipt" |> should equal true
 
     [<Test>]
+    member _.``a nested target beneath an active file link should be refused during preparation``
+        ()
+        =
+        flag "oldFileToNestedTargetRefusedDuringPrepare" |> should equal true
+
+    [<Test>]
+    member _.``a cancelled profile read should remain a cancelled deployment``() =
+        flag "cancelledProfileReadRemainsCancelled" |> should equal true
+
+    [<Test>]
     member _.``missing boundaries should return invalid plan without a receipt``() =
         flag "missingBoundaryHasNoReceipt" |> should equal true
 
