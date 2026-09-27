@@ -114,7 +114,8 @@ type internal SkseComponentInstaller
 
                                             match observed with
                                             | Error why -> return Error why
-                                            | Ok installed ->
+                                            | Ok(installed:
+                                                ModConductor.ArchiveInstallation.Installation) ->
                                                 do!
                                                     installations.WaitForWorker(
                                                         installationId,

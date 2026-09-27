@@ -519,7 +519,7 @@ type InstallationStore
     member internal this.UntilStopped
         (workspace, id, started: Installation, token: CancellationToken)
         =
-        let rec observe current =
+        let rec observe (current: Installation) =
             task {
                 if current.State <> InstallationState.Running then
                     return Ok current

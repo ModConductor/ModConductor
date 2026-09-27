@@ -73,7 +73,7 @@ type internal FnisComponentInstaller
 
                             match observed with
                             | Error why -> return Error why
-                            | Ok installed ->
+                            | Ok(installed: ModConductor.ArchiveInstallation.Installation) ->
                                 do! installations.WaitForWorker(installationId, token)
 
                                 if
