@@ -73,6 +73,7 @@ module internal MetadataJson =
         { Identity = identity
           Name = text "name" value
           Summary = text "summary" value
+          Picture = NexusJson.imageUrl "picture_url" value
           Version = text "version" value
           Author = text "author" value
           Uploader = text "uploaded_by" value

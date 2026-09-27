@@ -49,7 +49,7 @@ module internal NexusJson =
 
         value.EnumerateArray() |> Seq.toList
 
-    let private profileImage name value =
+    let imageUrl name value =
         optionalText name value
         |> Option.bind (fun text ->
             match Uri.TryCreate(text, UriKind.Absolute) with
@@ -124,7 +124,7 @@ module internal NexusJson =
         { Subject = subject
           Name = name
           Premium = premium
-          ProfileImage = profileImage "picture" value }
+          ProfileImage = imageUrl "picture" value }
 
     let apiKeyAccount value =
         let subject = number "user_id" value |> string
@@ -144,7 +144,7 @@ module internal NexusJson =
         { Subject = subject
           Name = name
           Premium = Some premium
-          ProfileImage = profileImage "profile_url" value }
+          ProfileImage = imageUrl "profile_url" value }
 
     let file value =
         { Id = number "file_id" value

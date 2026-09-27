@@ -168,6 +168,9 @@ module SkseFixtures =
               Id = SkseResolver.NexusModId
               Name = "SKSE"
               Summary = "Fixture"
+              Author = ""
+              Category = ""
+              Picture = None
               Files =
                 [ nexusFile 10L "older" "2.0.0" ("For game version " + runtime + " from Steam")
                   nexusFile 11L "matching" "2.2.0" ("Current game version " + runtime + " from Steam")

@@ -29,6 +29,9 @@ abstract class _AppStateBase extends State<ModConductorApp> {
   final _outputs = OutputController();
   final _artifacts = ArtifactController();
   final _nexusDetails = ModNexusController();
+  bool _discoverMods = false;
+  NexusFileRequest? _nexusFileRequest;
+  int _nexusFileRevision = 0;
   final _deployments = DeploymentController();
   final _executables = ExecutablesController();
   final _play = GamePlayController();

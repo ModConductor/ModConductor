@@ -178,6 +178,20 @@ const NexusModInfo$json = {
       '6': '.modconductor.v1.NexusFileInfo',
       '10': 'files'
     },
+    {'1': 'author', '3': 5, '4': 1, '5': 9, '10': 'author'},
+    {'1': 'category', '3': 6, '4': 1, '5': 9, '10': 'category'},
+    {
+      '1': 'picture_url',
+      '3': 7,
+      '4': 1,
+      '5': 9,
+      '9': 0,
+      '10': 'pictureUrl',
+      '17': true
+    },
+  ],
+  '8': [
+    {'1': '_picture_url'},
   ],
 };
 
@@ -185,7 +199,9 @@ const NexusModInfo$json = {
 final $typed_data.Uint8List nexusModInfoDescriptor = $convert.base64Decode(
     'CgxOZXh1c01vZEluZm8SDgoCaWQYASABKANSAmlkEhIKBG5hbWUYAiABKAlSBG5hbWUSGAoHc3'
     'VtbWFyeRgDIAEoCVIHc3VtbWFyeRI0CgVmaWxlcxgEIAMoCzIeLm1vZGNvbmR1Y3Rvci52MS5O'
-    'ZXh1c0ZpbGVJbmZvUgVmaWxlcw==');
+    'ZXh1c0ZpbGVJbmZvUgVmaWxlcxIWCgZhdXRob3IYBSABKAlSBmF1dGhvchIaCghjYXRlZ29yeR'
+    'gGIAEoCVIIY2F0ZWdvcnkSJAoLcGljdHVyZV91cmwYByABKAlIAFIKcGljdHVyZVVybIgBAUIO'
+    'CgxfcGljdHVyZV91cmw=');
 
 @$core.Deprecated('Use nexusModReplyDescriptor instead')
 const NexusModReply$json = {
@@ -273,3 +289,103 @@ final $typed_data.Uint8List nexusDownloadReplyDescriptor = $convert.base64Decode
     'ChJOZXh1c0Rvd25sb2FkUmVwbHkSPgoIYXJ0aWZhY3QYASABKAsyIC5tb2Rjb25kdWN0b3Iudj'
     'EuQXJjaGl2ZUFydGlmYWN0SABSCGFydGlmYWN0EjkKB2ZhaWx1cmUYAiABKAsyHS5tb2Rjb25k'
     'dWN0b3IudjEuTmV4dXNGYWlsdXJlSABSB2ZhaWx1cmVCCAoGcmVzdWx0');
+
+@$core.Deprecated('Use nexusDiscoveryRequestDescriptor instead')
+const NexusDiscoveryRequest$json = {
+  '1': 'NexusDiscoveryRequest',
+  '2': [
+    {'1': 'workspace_id', '3': 1, '4': 1, '5': 9, '10': 'workspaceId'},
+    {'1': 'profile_id', '3': 2, '4': 1, '5': 9, '10': 'profileId'},
+    {'1': 'feed', '3': 3, '4': 1, '5': 9, '10': 'feed'},
+  ],
+};
+
+/// Descriptor for `NexusDiscoveryRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List nexusDiscoveryRequestDescriptor = $convert.base64Decode(
+    'ChVOZXh1c0Rpc2NvdmVyeVJlcXVlc3QSIQoMd29ya3NwYWNlX2lkGAEgASgJUgt3b3Jrc3BhY2'
+    'VJZBIdCgpwcm9maWxlX2lkGAIgASgJUglwcm9maWxlSWQSEgoEZmVlZBgDIAEoCVIEZmVlZA==');
+
+@$core.Deprecated('Use nexusDiscoveryCardDescriptor instead')
+const NexusDiscoveryCard$json = {
+  '1': 'NexusDiscoveryCard',
+  '2': [
+    {'1': 'id', '3': 1, '4': 1, '5': 3, '10': 'id'},
+    {'1': 'name', '3': 2, '4': 1, '5': 9, '10': 'name'},
+    {'1': 'summary', '3': 3, '4': 1, '5': 9, '10': 'summary'},
+    {'1': 'author', '3': 4, '4': 1, '5': 9, '10': 'author'},
+    {'1': 'category', '3': 5, '4': 1, '5': 9, '10': 'category'},
+    {
+      '1': 'picture_url',
+      '3': 6,
+      '4': 1,
+      '5': 9,
+      '9': 0,
+      '10': 'pictureUrl',
+      '17': true
+    },
+  ],
+  '8': [
+    {'1': '_picture_url'},
+  ],
+};
+
+/// Descriptor for `NexusDiscoveryCard`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List nexusDiscoveryCardDescriptor = $convert.base64Decode(
+    'ChJOZXh1c0Rpc2NvdmVyeUNhcmQSDgoCaWQYASABKANSAmlkEhIKBG5hbWUYAiABKAlSBG5hbW'
+    'USGAoHc3VtbWFyeRgDIAEoCVIHc3VtbWFyeRIWCgZhdXRob3IYBCABKAlSBmF1dGhvchIaCghj'
+    'YXRlZ29yeRgFIAEoCVIIY2F0ZWdvcnkSJAoLcGljdHVyZV91cmwYBiABKAlIAFIKcGljdHVyZV'
+    'VybIgBAUIOCgxfcGljdHVyZV91cmw=');
+
+@$core.Deprecated('Use nexusDiscoveryReplyDescriptor instead')
+const NexusDiscoveryReply$json = {
+  '1': 'NexusDiscoveryReply',
+  '2': [
+    {
+      '1': 'cards',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.NexusDiscoveryCards',
+      '9': 0,
+      '10': 'cards'
+    },
+    {
+      '1': 'failure',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.NexusFailure',
+      '9': 0,
+      '10': 'failure'
+    },
+  ],
+  '8': [
+    {'1': 'result'},
+  ],
+};
+
+/// Descriptor for `NexusDiscoveryReply`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List nexusDiscoveryReplyDescriptor = $convert.base64Decode(
+    'ChNOZXh1c0Rpc2NvdmVyeVJlcGx5EjwKBWNhcmRzGAEgASgLMiQubW9kY29uZHVjdG9yLnYxLk'
+    '5leHVzRGlzY292ZXJ5Q2FyZHNIAFIFY2FyZHMSOQoHZmFpbHVyZRgCIAEoCzIdLm1vZGNvbmR1'
+    'Y3Rvci52MS5OZXh1c0ZhaWx1cmVIAFIHZmFpbHVyZUIICgZyZXN1bHQ=');
+
+@$core.Deprecated('Use nexusDiscoveryCardsDescriptor instead')
+const NexusDiscoveryCards$json = {
+  '1': 'NexusDiscoveryCards',
+  '2': [
+    {
+      '1': 'mods',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.modconductor.v1.NexusDiscoveryCard',
+      '10': 'mods'
+    },
+  ],
+};
+
+/// Descriptor for `NexusDiscoveryCards`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List nexusDiscoveryCardsDescriptor = $convert.base64Decode(
+    'ChNOZXh1c0Rpc2NvdmVyeUNhcmRzEjcKBG1vZHMYASADKAsyIy5tb2Rjb25kdWN0b3IudjEuTm'
+    'V4dXNEaXNjb3ZlcnlDYXJkUgRtb2Rz');

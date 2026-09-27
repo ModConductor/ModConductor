@@ -211,7 +211,9 @@ type NexusServer() =
                 do!
                     write
                         200
-                        (if tracked then
+                        (if mode = "tracking-mixed" then
+                             """[{"domain_name":"skyrimspecialedition","mod_id":64012},{"domain_name":"fallout4","mod_id":64012}]"""
+                         elif tracked then
                              """[{"domain_name":"skyrimspecialedition","mod_id":64012}]"""
                          else
                              "[]")
@@ -532,6 +534,16 @@ type NexusServer() =
                 do! sendTracking request write
             elif path.EndsWith "/user/endorsements.json" then
                 do! sendEndorsements write
+            elif path.EndsWith "/mods/latest_added.json" then
+                do!
+                    write
+                        200
+                        """[{"domain_name":"skyrimspecialedition","mod_id":64012,"name":"Quiet Rivers","summary":"River textures","author":"Rowan","picture_url":"https://staticdelivery.nexusmods.com/river.jpg"},{"domain_name":"fallout4","mod_id":900,"name":"Other game"}]"""
+            elif path.EndsWith "/mods/latest_updated.json" then
+                do!
+                    write
+                        200
+                        """[{"domain_name":"skyrimspecialedition","mod_id":64012,"name":"Quiet Rivers","summary":"River textures","author":"Rowan"}]"""
             elif path.EndsWith "/endorse.json" || path.EndsWith "/abstain.json" then
                 do! sendEndorsement request path write
             elif path.EndsWith "/games/skyrimspecialedition.json" then
@@ -590,7 +602,7 @@ type NexusServer() =
                     do!
                         write
                             200
-                            ("""{"mod_id":64012,"game_id":1704,"name":"Quiet Rivers — Water and Foam","summary":"River textures","version":"1.5","author":"Rowan","uploaded_by":"Rowan","category_id":29,"updated_timestamp":1789238400,"allow_rating":true,"available":"""
+                            ("""{"mod_id":64012,"game_id":1704,"name":"Quiet Rivers — Water and Foam","summary":"River textures","picture_url":"https://staticdelivery.nexusmods.com/river.jpg","version":"1.5","author":"Rowan","uploaded_by":"Rowan","category_id":29,"updated_timestamp":1789238400,"allow_rating":true,"available":"""
                              + (if mode = "unavailable" then "false" else "true")
                              + "}")
             else
@@ -694,6 +706,16 @@ type NexusServer() =
                     do! sendUserInfo request write
                 elif path.StartsWith "/api/" then
                     do! sendApi request path response write
+                elif path = "/v3/games/skyrimspecialedition/trending-mods" then
+                    if mode = "trending-unavailable" then
+                        do! write 404 "{}"
+                    elif mode = "trending-empty" then
+                        do! write 200 """{"data":{"mods":[]}}"""
+                    else
+                        do!
+                            write
+                                200
+                                """{"data":{"mods":[{"name":"Quiet Rivers","author":"Rowan","summary":"River textures","picture_url":"https://staticdelivery.nexusmods.com/river.jpg","mod_page_url":"https://www.nexusmods.com/games/skyrimspecialedition/mods/64012"},{"name":"Other game","mod_page_url":"https://www.nexusmods.com/games/fallout4/mods/99"}]}}"""
                 elif path = "/payload" then
                     do! sendPayload request response write
                 elif path = "/fixture/mode" then
@@ -784,6 +806,9 @@ type NexusServer() =
 
     member _.Metadata
         with set value = metadata <- value
+
+    member _.Tracked
+        with set value = tracked <- value
 
     member _.Payload
         with set value = payload <- value

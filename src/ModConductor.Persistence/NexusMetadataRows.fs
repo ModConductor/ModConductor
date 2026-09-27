@@ -96,6 +96,7 @@ module internal NexusMetadataRows =
                         { Identity = identity
                           Name = r.GetString 3
                           Summary = r.GetString 4
+                          Picture = None
                           Version = r.GetString 5
                           Author = r.GetString 6
                           Uploader = r.GetString 7

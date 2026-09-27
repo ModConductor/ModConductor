@@ -5,3 +5,4 @@ export 'src/inventory_export_dialog.dart';
 
 export 'src/nexus_controller.dart';
 export 'src/nexus_view.dart';
+export 'src/discovery_browser.dart';

@@ -105,6 +105,20 @@ class NexusClient extends $grpc.Client {
     return $createUnaryCall(_$openNexusModPage, request, options: options);
   }
 
+  $grpc.ResponseFuture<$0.NexusDiscoveryReply> readNexusDiscovery(
+    $0.NexusDiscoveryRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$readNexusDiscovery, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.NexusStatusRequest> openNexusSearch(
+    $0.NexusDiscoveryRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$openNexusSearch, request, options: options);
+  }
+
   // method descriptors
 
   static final _$readNexusStatus =
@@ -156,6 +170,16 @@ class NexusClient extends $grpc.Client {
       $grpc.ClientMethod<$0.NexusModRequest, $0.NexusStatusRequest>(
           '/modconductor.v1.Nexus/OpenNexusModPage',
           ($0.NexusModRequest value) => value.writeToBuffer(),
+          $0.NexusStatusRequest.fromBuffer);
+  static final _$readNexusDiscovery =
+      $grpc.ClientMethod<$0.NexusDiscoveryRequest, $0.NexusDiscoveryReply>(
+          '/modconductor.v1.Nexus/ReadNexusDiscovery',
+          ($0.NexusDiscoveryRequest value) => value.writeToBuffer(),
+          $0.NexusDiscoveryReply.fromBuffer);
+  static final _$openNexusSearch =
+      $grpc.ClientMethod<$0.NexusDiscoveryRequest, $0.NexusStatusRequest>(
+          '/modconductor.v1.Nexus/OpenNexusSearch',
+          ($0.NexusDiscoveryRequest value) => value.writeToBuffer(),
           $0.NexusStatusRequest.fromBuffer);
 }
 
@@ -250,6 +274,24 @@ abstract class NexusServiceBase extends $grpc.Service {
         false,
         ($core.List<$core.int> value) => $0.NexusModRequest.fromBuffer(value),
         ($0.NexusStatusRequest value) => value.writeToBuffer()));
+    $addMethod(
+        $grpc.ServiceMethod<$0.NexusDiscoveryRequest, $0.NexusDiscoveryReply>(
+            'ReadNexusDiscovery',
+            readNexusDiscovery_Pre,
+            false,
+            false,
+            ($core.List<$core.int> value) =>
+                $0.NexusDiscoveryRequest.fromBuffer(value),
+            ($0.NexusDiscoveryReply value) => value.writeToBuffer()));
+    $addMethod(
+        $grpc.ServiceMethod<$0.NexusDiscoveryRequest, $0.NexusStatusRequest>(
+            'OpenNexusSearch',
+            openNexusSearch_Pre,
+            false,
+            false,
+            ($core.List<$core.int> value) =>
+                $0.NexusDiscoveryRequest.fromBuffer(value),
+            ($0.NexusStatusRequest value) => value.writeToBuffer()));
   }
 
   $async.Future<$0.NexusAccountStatus> readNexusStatus_Pre(
@@ -339,4 +381,22 @@ abstract class NexusServiceBase extends $grpc.Service {
 
   $async.Future<$0.NexusStatusRequest> openNexusModPage(
       $grpc.ServiceCall call, $0.NexusModRequest request);
+
+  $async.Future<$0.NexusDiscoveryReply> readNexusDiscovery_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.NexusDiscoveryRequest> $request) async {
+    return readNexusDiscovery($call, await $request);
+  }
+
+  $async.Future<$0.NexusDiscoveryReply> readNexusDiscovery(
+      $grpc.ServiceCall call, $0.NexusDiscoveryRequest request);
+
+  $async.Future<$0.NexusStatusRequest> openNexusSearch_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.NexusDiscoveryRequest> $request) async {
+    return openNexusSearch($call, await $request);
+  }
+
+  $async.Future<$0.NexusStatusRequest> openNexusSearch(
+      $grpc.ServiceCall call, $0.NexusDiscoveryRequest request);
 }

@@ -885,6 +885,94 @@ module NexusFixtures =
         personalApiKeyEvidence writer
         downloadEvidence writer primary
 
+    let discovery (writer: Utf8JsonWriter) =
+        writer.WriteStartObject("nexusDiscovery")
+        use server = new NexusServer()
+        use credentials = new CredentialSession(NexusMemoryStore())
+
+        use session =
+            new NexusSession(
+                credentials,
+                Some server.Registration,
+                server.Handoff,
+                (fun _ -> Task.CompletedTask),
+                requestInterval = TimeSpan.Zero
+            )
+
+        let check = recordCheck writer
+        let game = "skyrimspecialedition"
+        let trending = session.ReadDiscovery(game, "trending") |> wait |> result
+
+        check
+            "trendingUsesDocumentedPublicV3AndRejectsOtherGame"
+            (trending.Length = 1
+             && trending.Head.Id = 64012L
+             && trending.Head.Picture.IsSome
+             && server.Count "/v3/games/skyrimspecialedition/trending-mods" = 1)
+
+        server.Mode <- "trending-empty"
+        let empty = session.ReadDiscovery(game, "trending") |> wait |> result
+        check "emptyFeedIsValid" empty.IsEmpty
+
+        server.Mode <- "trending-unavailable"
+        let unavailable = session.ReadDiscovery(game, "trending") |> wait
+
+        check
+            "unavailableFeedIsIsolated"
+            (unavailable = Error NexusProblem.NotFound && session.Status.Problem.IsNone)
+
+        server.Mode <- "good"
+        session.SubmitPersonalApiKey("synthetic-personal-key") |> wait |> ignore
+        let added = session.ReadDiscovery(game, "latest_added") |> wait |> result
+        let updated = session.ReadDiscovery(game, "latest_updated") |> wait |> result
+        let exact = session.ReadMod(game, 64012L) |> wait |> result
+
+        check
+            "documentedLegacyFeedsStayGameScoped"
+            (added.Length = 1
+             && added.Head.Id = 64012L
+             && updated.Length = 1
+             && server.Count "/api/games/skyrimspecialedition/mods/latest_added.json" = 1)
+
+        check
+            "exactModRetainsDocumentedImageAndAuthor"
+            (exact.Picture.IsSome && exact.Author = "Rowan")
+
+        server.Mode <- "tracking-mixed"
+        let tracked = session.ReadDiscovery(game, "tracked") |> wait |> result
+        check "trackedFeedRejectsOtherGame" (tracked.Length = 1 && tracked.Head.Id = 64012L)
+
+        server.Mode <- "invalid-tracking-key"
+        let revoked = session.ReadDiscovery(game, "tracked") |> wait
+
+        check
+            "revokedAccountPreservesExistingFeedFailure"
+            (revoked = Error NexusProblem.InvalidApiKey && session.Status.Account.IsNone)
+
+        use rateServer = new NexusServer()
+        use rateCredentials = new CredentialSession(NexusMemoryStore())
+
+        use rateSession =
+            new NexusSession(
+                rateCredentials,
+                Some rateServer.Registration,
+                rateServer.Handoff,
+                (fun _ -> Task.CompletedTask),
+                requestInterval = TimeSpan.Zero
+            )
+
+        rateSession.SubmitPersonalApiKey("synthetic-personal-key") |> wait |> ignore
+        rateServer.Mode <- "rate"
+        let limited = rateSession.ReadDiscovery(game, "latest_added") |> wait
+
+        check
+            "rateLimitedFeedKeepsRetryTime"
+            (match limited with
+             | Error(NexusProblem.RateLimited _) -> true
+             | _ -> false)
+
+        writer.WriteEndObject()
+
     let engine state info =
         use server = new NexusServer()
         File.WriteAllText(info, server.Root)

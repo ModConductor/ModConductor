@@ -15,6 +15,17 @@ import 'artifact_inspector.dart';
 import 'artifact_collection.dart';
 export 'forms.dart' show ArchiveFile, ArchiveChooser;
 
+class NexusFileRequest {
+  const NexusFileRequest(
+    this.workspace,
+    this.profile,
+    this.modId,
+    this.revision,
+  );
+  final String workspace, profile;
+  final int modId, revision;
+}
+
 class ArtifactBrowser extends StatefulWidget {
   const ArtifactBrowser({
     super.key,
@@ -33,6 +44,8 @@ class ArtifactBrowser extends StatefulWidget {
     this.onInstallationDetached,
     this.onInstallationAttached,
     this.onOpenMods,
+    this.nexusFileRequest,
+    this.onNexusRequestClosed,
   });
   final ArtifactController controller;
   final ArchiveChooser chooseFile;
@@ -49,6 +62,8 @@ class ArtifactBrowser extends StatefulWidget {
   final void Function(InstallationStatus)? onInstallationDetached;
   final void Function(InstallationStatus)? onInstallationAttached;
   final VoidCallback? onOpenMods;
+  final NexusFileRequest? nexusFileRequest;
+  final VoidCallback? onNexusRequestClosed;
   @override
   State<ArtifactBrowser> createState() => _ArtifactBrowserState();
 }
@@ -66,6 +81,28 @@ class _ArtifactBrowserState extends State<ArtifactBrowser> {
   Artifact? contents, installing, bundle;
   Future<void>? installationRefresh;
   ArtifactController get controller => widget.controller;
+  bool get hasDiscoveryRequest =>
+      widget.nexusFileRequest?.workspace == controller.workspaceId &&
+      widget.nexusFileRequest?.profile == widget.profileId;
+
+  @override
+  void initState() {
+    super.initState();
+    nexus = hasDiscoveryRequest;
+  }
+
+  @override
+  void didUpdateWidget(ArtifactBrowser oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!hasDiscoveryRequest) {
+      nexus = false;
+    } else if (widget.nexusFileRequest != null &&
+        widget.nexusFileRequest?.revision !=
+            oldWidget.nexusFileRequest?.revision) {
+      nexus = true;
+    }
+  }
+
   @override
   void dispose() {
     focus.dispose();
@@ -206,17 +243,28 @@ class _ArtifactBrowserState extends State<ArtifactBrowser> {
             controller.workspaceId != null &&
             widget.profileId != null) {
           return NexusFilesView(
-            key: ValueKey((controller.workspaceId, widget.nexus)),
+            key: ValueKey((
+              controller.workspaceId,
+              widget.nexus,
+              widget.nexusFileRequest?.revision,
+            )),
             client: widget.nexus!,
             workspace: controller.workspaceId!,
             profile: widget.profileId!,
-            onBack: () => setState(() => nexus = false),
+            initialModId: hasDiscoveryRequest
+                ? widget.nexusFileRequest?.modId
+                : null,
+            onBack: () {
+              widget.onNexusRequestClosed?.call();
+              setState(() => nexus = false);
+            },
             onDownloaded: (artifact) async {
               if (!mounted || artifact.workspaceId != controller.workspaceId)
                 return;
               final foreground = nexus;
               controller.acceptDownload(artifact, select: foreground);
               if (foreground) {
+                widget.onNexusRequestClosed?.call();
                 setState(() {
                   nexus = false;
                   inspected = true;

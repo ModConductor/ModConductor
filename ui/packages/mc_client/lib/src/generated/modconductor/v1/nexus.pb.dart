@@ -512,12 +512,18 @@ class NexusModInfo extends $pb.GeneratedMessage {
     $core.String? name,
     $core.String? summary,
     $core.Iterable<NexusFileInfo>? files,
+    $core.String? author,
+    $core.String? category,
+    $core.String? pictureUrl,
   }) {
     final result = create();
     if (id != null) result.id = id;
     if (name != null) result.name = name;
     if (summary != null) result.summary = summary;
     if (files != null) result.files.addAll(files);
+    if (author != null) result.author = author;
+    if (category != null) result.category = category;
+    if (pictureUrl != null) result.pictureUrl = pictureUrl;
     return result;
   }
 
@@ -540,6 +546,9 @@ class NexusModInfo extends $pb.GeneratedMessage {
     ..aOS(3, _omitFieldNames ? '' : 'summary')
     ..pPM<NexusFileInfo>(4, _omitFieldNames ? '' : 'files',
         subBuilder: NexusFileInfo.create)
+    ..aOS(5, _omitFieldNames ? '' : 'author')
+    ..aOS(6, _omitFieldNames ? '' : 'category')
+    ..aOS(7, _omitFieldNames ? '' : 'pictureUrl')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -590,6 +599,33 @@ class NexusModInfo extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(4)
   $pb.PbList<NexusFileInfo> get files => $_getList(3);
+
+  @$pb.TagNumber(5)
+  $core.String get author => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set author($core.String value) => $_setString(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasAuthor() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearAuthor() => $_clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.String get category => $_getSZ(5);
+  @$pb.TagNumber(6)
+  set category($core.String value) => $_setString(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasCategory() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearCategory() => $_clearField(6);
+
+  @$pb.TagNumber(7)
+  $core.String get pictureUrl => $_getSZ(6);
+  @$pb.TagNumber(7)
+  set pictureUrl($core.String value) => $_setString(6, value);
+  @$pb.TagNumber(7)
+  $core.bool hasPictureUrl() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearPictureUrl() => $_clearField(7);
 }
 
 enum NexusModReply_Result { mod, failure, notSet }
@@ -873,6 +909,341 @@ class NexusDownloadReply extends $pb.GeneratedMessage {
   void clearFailure() => $_clearField(2);
   @$pb.TagNumber(2)
   NexusFailure ensureFailure() => $_ensure(1);
+}
+
+class NexusDiscoveryRequest extends $pb.GeneratedMessage {
+  factory NexusDiscoveryRequest({
+    $core.String? workspaceId,
+    $core.String? profileId,
+    $core.String? feed,
+  }) {
+    final result = create();
+    if (workspaceId != null) result.workspaceId = workspaceId;
+    if (profileId != null) result.profileId = profileId;
+    if (feed != null) result.feed = feed;
+    return result;
+  }
+
+  NexusDiscoveryRequest._();
+
+  factory NexusDiscoveryRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory NexusDiscoveryRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'NexusDiscoveryRequest',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'workspaceId')
+    ..aOS(2, _omitFieldNames ? '' : 'profileId')
+    ..aOS(3, _omitFieldNames ? '' : 'feed')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  NexusDiscoveryRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  NexusDiscoveryRequest copyWith(
+          void Function(NexusDiscoveryRequest) updates) =>
+      super.copyWith((message) => updates(message as NexusDiscoveryRequest))
+          as NexusDiscoveryRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static NexusDiscoveryRequest create() => NexusDiscoveryRequest._();
+  @$core.override
+  NexusDiscoveryRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static NexusDiscoveryRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<NexusDiscoveryRequest>(create);
+  static NexusDiscoveryRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get workspaceId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set workspaceId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasWorkspaceId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearWorkspaceId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get profileId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set profileId($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasProfileId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearProfileId() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get feed => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set feed($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasFeed() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearFeed() => $_clearField(3);
+}
+
+class NexusDiscoveryCard extends $pb.GeneratedMessage {
+  factory NexusDiscoveryCard({
+    $fixnum.Int64? id,
+    $core.String? name,
+    $core.String? summary,
+    $core.String? author,
+    $core.String? category,
+    $core.String? pictureUrl,
+  }) {
+    final result = create();
+    if (id != null) result.id = id;
+    if (name != null) result.name = name;
+    if (summary != null) result.summary = summary;
+    if (author != null) result.author = author;
+    if (category != null) result.category = category;
+    if (pictureUrl != null) result.pictureUrl = pictureUrl;
+    return result;
+  }
+
+  NexusDiscoveryCard._();
+
+  factory NexusDiscoveryCard.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory NexusDiscoveryCard.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'NexusDiscoveryCard',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..aInt64(1, _omitFieldNames ? '' : 'id')
+    ..aOS(2, _omitFieldNames ? '' : 'name')
+    ..aOS(3, _omitFieldNames ? '' : 'summary')
+    ..aOS(4, _omitFieldNames ? '' : 'author')
+    ..aOS(5, _omitFieldNames ? '' : 'category')
+    ..aOS(6, _omitFieldNames ? '' : 'pictureUrl')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  NexusDiscoveryCard clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  NexusDiscoveryCard copyWith(void Function(NexusDiscoveryCard) updates) =>
+      super.copyWith((message) => updates(message as NexusDiscoveryCard))
+          as NexusDiscoveryCard;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static NexusDiscoveryCard create() => NexusDiscoveryCard._();
+  @$core.override
+  NexusDiscoveryCard createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static NexusDiscoveryCard getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<NexusDiscoveryCard>(create);
+  static NexusDiscoveryCard? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $fixnum.Int64 get id => $_getI64(0);
+  @$pb.TagNumber(1)
+  set id($fixnum.Int64 value) => $_setInt64(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get name => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set name($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasName() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearName() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get summary => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set summary($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasSummary() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearSummary() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get author => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set author($core.String value) => $_setString(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasAuthor() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearAuthor() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.String get category => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set category($core.String value) => $_setString(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasCategory() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearCategory() => $_clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.String get pictureUrl => $_getSZ(5);
+  @$pb.TagNumber(6)
+  set pictureUrl($core.String value) => $_setString(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasPictureUrl() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearPictureUrl() => $_clearField(6);
+}
+
+enum NexusDiscoveryReply_Result { cards, failure, notSet }
+
+class NexusDiscoveryReply extends $pb.GeneratedMessage {
+  factory NexusDiscoveryReply({
+    NexusDiscoveryCards? cards,
+    NexusFailure? failure,
+  }) {
+    final result = create();
+    if (cards != null) result.cards = cards;
+    if (failure != null) result.failure = failure;
+    return result;
+  }
+
+  NexusDiscoveryReply._();
+
+  factory NexusDiscoveryReply.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory NexusDiscoveryReply.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static const $core.Map<$core.int, NexusDiscoveryReply_Result>
+      _NexusDiscoveryReply_ResultByTag = {
+    1: NexusDiscoveryReply_Result.cards,
+    2: NexusDiscoveryReply_Result.failure,
+    0: NexusDiscoveryReply_Result.notSet
+  };
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'NexusDiscoveryReply',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..oo(0, [1, 2])
+    ..aOM<NexusDiscoveryCards>(1, _omitFieldNames ? '' : 'cards',
+        subBuilder: NexusDiscoveryCards.create)
+    ..aOM<NexusFailure>(2, _omitFieldNames ? '' : 'failure',
+        subBuilder: NexusFailure.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  NexusDiscoveryReply clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  NexusDiscoveryReply copyWith(void Function(NexusDiscoveryReply) updates) =>
+      super.copyWith((message) => updates(message as NexusDiscoveryReply))
+          as NexusDiscoveryReply;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static NexusDiscoveryReply create() => NexusDiscoveryReply._();
+  @$core.override
+  NexusDiscoveryReply createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static NexusDiscoveryReply getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<NexusDiscoveryReply>(create);
+  static NexusDiscoveryReply? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  @$pb.TagNumber(2)
+  NexusDiscoveryReply_Result whichResult() =>
+      _NexusDiscoveryReply_ResultByTag[$_whichOneof(0)]!;
+  @$pb.TagNumber(1)
+  @$pb.TagNumber(2)
+  void clearResult() => $_clearField($_whichOneof(0));
+
+  @$pb.TagNumber(1)
+  NexusDiscoveryCards get cards => $_getN(0);
+  @$pb.TagNumber(1)
+  set cards(NexusDiscoveryCards value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasCards() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearCards() => $_clearField(1);
+  @$pb.TagNumber(1)
+  NexusDiscoveryCards ensureCards() => $_ensure(0);
+
+  @$pb.TagNumber(2)
+  NexusFailure get failure => $_getN(1);
+  @$pb.TagNumber(2)
+  set failure(NexusFailure value) => $_setField(2, value);
+  @$pb.TagNumber(2)
+  $core.bool hasFailure() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearFailure() => $_clearField(2);
+  @$pb.TagNumber(2)
+  NexusFailure ensureFailure() => $_ensure(1);
+}
+
+class NexusDiscoveryCards extends $pb.GeneratedMessage {
+  factory NexusDiscoveryCards({
+    $core.Iterable<NexusDiscoveryCard>? mods,
+  }) {
+    final result = create();
+    if (mods != null) result.mods.addAll(mods);
+    return result;
+  }
+
+  NexusDiscoveryCards._();
+
+  factory NexusDiscoveryCards.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory NexusDiscoveryCards.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'NexusDiscoveryCards',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..pPM<NexusDiscoveryCard>(1, _omitFieldNames ? '' : 'mods',
+        subBuilder: NexusDiscoveryCard.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  NexusDiscoveryCards clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  NexusDiscoveryCards copyWith(void Function(NexusDiscoveryCards) updates) =>
+      super.copyWith((message) => updates(message as NexusDiscoveryCards))
+          as NexusDiscoveryCards;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static NexusDiscoveryCards create() => NexusDiscoveryCards._();
+  @$core.override
+  NexusDiscoveryCards createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static NexusDiscoveryCards getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<NexusDiscoveryCards>(create);
+  static NexusDiscoveryCards? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $pb.PbList<NexusDiscoveryCard> get mods => $_getList(0);
 }
 
 const $core.bool _omitFieldNames =

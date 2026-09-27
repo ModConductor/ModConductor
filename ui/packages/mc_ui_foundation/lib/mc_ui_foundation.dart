@@ -11,3 +11,4 @@ export 'src/layout.dart';
 export 'src/localization.dart';
 export 'src/structured.dart';
 export 'src/component_choices.dart';
+export 'src/portrait_card.dart';

@@ -27,6 +27,7 @@ type NexusSession
         new NexusTransport(api, defaultArg requestInterval (TimeSpan.FromSeconds 1.))
 
     let metadata = MetadataReader(transport)
+    let discovery = DiscoveryReader(transport)
 
     let mutable lifetime = new CancellationTokenSource()
     let mutable generation = 0L
@@ -363,7 +364,48 @@ type NexusSession
                               Id = modId
                               Name = value.Name
                               Summary = value.Summary
+                              Author = value.Author
+                              Category = value.Category |> Option.map snd |> Option.defaultValue ""
+                              Picture = value.Picture
                               Files = value.Files |> List.map (fun file -> file.File) })
+        }
+
+    member _.ReadDiscovery(game: string, feed: string) =
+        task {
+            let epoch, token = context ()
+
+            if game <> "skyrimspecialedition" then
+                return Error NexusProblem.NotFound
+            elif feed = "trending" then
+                let! result =
+                    NexusBoundary.protectResult (fun () -> discovery.Trending(game, token))
+
+                if Result.isOk result && (not (current epoch) || token.IsCancellationRequested) then
+                    return Error NexusProblem.Cancelled
+                else
+                    return result
+            elif feed = "latest_added" || feed = "latest_updated" || feed = "tracked" then
+                let! result =
+                    run (fun epoch token ->
+                        task {
+                            let! bearer = auth.Access(epoch, token, false)
+
+                            match bearer with
+                            | Error error -> return Error error
+                            | Ok bearer ->
+                                let! feedResult = discovery.Legacy(game, feed, bearer, token)
+
+                                return
+                                    match feedResult with
+                                    | Error NexusProblem.NotFound ->
+                                        Ok(Error NexusProblem.NotFound)
+                                    | Error error -> Error error
+                                    | Ok cards -> Ok(Ok cards)
+                        })
+
+                return result |> Result.bind id
+            else
+                return Error NexusProblem.NotFound
         }
 
     member _.ForgetInteractions(identity: NexusIdentity) = interactionCoordinator.Forget identity

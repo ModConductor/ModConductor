@@ -242,6 +242,15 @@ type internal NexusTransport(api: Uri, interval: TimeSpan) =
     member this.Api(path: string, authorization, entitlement, token) =
         this.Send(Uri(api, path), Some authorization, None, entitlement, token)
 
+    member this.PublicV3(path: string, token) =
+        let root =
+            if api.Host.Equals("api.nexusmods.com", StringComparison.OrdinalIgnoreCase) then
+                Uri "https://api.nexusmods.com/v3/"
+            else
+                Uri(api, "../v3/")
+
+        this.Send(Uri(root, path), None, None, false, token)
+
     member this.ValidatePersonalApiKey(key, token) =
         this.Api("users/validate.json", NexusAuthorization.PersonalApiKey key, false, token)
 

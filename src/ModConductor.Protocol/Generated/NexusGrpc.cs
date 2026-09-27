@@ -59,6 +59,10 @@ namespace ModConductor.Protocol.V1 {
     static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.NexusDownloadRequest> __Marshaller_modconductor_v1_NexusDownloadRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.NexusDownloadRequest.Parser));
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.NexusDownloadReply> __Marshaller_modconductor_v1_NexusDownloadReply = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.NexusDownloadReply.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.NexusDiscoveryRequest> __Marshaller_modconductor_v1_NexusDiscoveryRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.NexusDiscoveryRequest.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.NexusDiscoveryReply> __Marshaller_modconductor_v1_NexusDiscoveryReply = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.NexusDiscoveryReply.Parser));
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Method<global::ModConductor.Protocol.V1.NexusStatusRequest, global::ModConductor.Protocol.V1.NexusAccountStatus> __Method_ReadNexusStatus = new grpc::Method<global::ModConductor.Protocol.V1.NexusStatusRequest, global::ModConductor.Protocol.V1.NexusAccountStatus>(
@@ -140,6 +144,22 @@ namespace ModConductor.Protocol.V1 {
         __Marshaller_modconductor_v1_NexusModRequest,
         __Marshaller_modconductor_v1_NexusStatusRequest);
 
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::ModConductor.Protocol.V1.NexusDiscoveryRequest, global::ModConductor.Protocol.V1.NexusDiscoveryReply> __Method_ReadNexusDiscovery = new grpc::Method<global::ModConductor.Protocol.V1.NexusDiscoveryRequest, global::ModConductor.Protocol.V1.NexusDiscoveryReply>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "ReadNexusDiscovery",
+        __Marshaller_modconductor_v1_NexusDiscoveryRequest,
+        __Marshaller_modconductor_v1_NexusDiscoveryReply);
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::ModConductor.Protocol.V1.NexusDiscoveryRequest, global::ModConductor.Protocol.V1.NexusStatusRequest> __Method_OpenNexusSearch = new grpc::Method<global::ModConductor.Protocol.V1.NexusDiscoveryRequest, global::ModConductor.Protocol.V1.NexusStatusRequest>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "OpenNexusSearch",
+        __Marshaller_modconductor_v1_NexusDiscoveryRequest,
+        __Marshaller_modconductor_v1_NexusStatusRequest);
+
     /// <summary>Service descriptor</summary>
     public static global::Google.Protobuf.Reflection.ServiceDescriptor Descriptor
     {
@@ -206,6 +226,18 @@ namespace ModConductor.Protocol.V1 {
 
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V1.NexusStatusRequest> OpenNexusModPage(global::ModConductor.Protocol.V1.NexusModRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V1.NexusDiscoveryReply> ReadNexusDiscovery(global::ModConductor.Protocol.V1.NexusDiscoveryRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V1.NexusStatusRequest> OpenNexusSearch(global::ModConductor.Protocol.V1.NexusDiscoveryRequest request, grpc::ServerCallContext context)
       {
         throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
       }
@@ -429,6 +461,46 @@ namespace ModConductor.Protocol.V1 {
       {
         return CallInvoker.AsyncUnaryCall(__Method_OpenNexusModPage, null, options, request);
       }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V1.NexusDiscoveryReply ReadNexusDiscovery(global::ModConductor.Protocol.V1.NexusDiscoveryRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return ReadNexusDiscovery(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V1.NexusDiscoveryReply ReadNexusDiscovery(global::ModConductor.Protocol.V1.NexusDiscoveryRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_ReadNexusDiscovery, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.NexusDiscoveryReply> ReadNexusDiscoveryAsync(global::ModConductor.Protocol.V1.NexusDiscoveryRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return ReadNexusDiscoveryAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.NexusDiscoveryReply> ReadNexusDiscoveryAsync(global::ModConductor.Protocol.V1.NexusDiscoveryRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_ReadNexusDiscovery, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V1.NexusStatusRequest OpenNexusSearch(global::ModConductor.Protocol.V1.NexusDiscoveryRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return OpenNexusSearch(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V1.NexusStatusRequest OpenNexusSearch(global::ModConductor.Protocol.V1.NexusDiscoveryRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_OpenNexusSearch, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.NexusStatusRequest> OpenNexusSearchAsync(global::ModConductor.Protocol.V1.NexusDiscoveryRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return OpenNexusSearchAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.NexusStatusRequest> OpenNexusSearchAsync(global::ModConductor.Protocol.V1.NexusDiscoveryRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_OpenNexusSearch, null, options, request);
+      }
       /// <summary>Creates a new instance of client from given <c>ClientBaseConfiguration</c>.</summary>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       protected override NexusClient NewInstance(ClientBaseConfiguration configuration)
@@ -452,7 +524,9 @@ namespace ModConductor.Protocol.V1 {
           .AddMethod(__Method_SubmitNexusPersonalApiKey, serviceImpl.SubmitNexusPersonalApiKey)
           .AddMethod(__Method_ReadNexusMod, serviceImpl.ReadNexusMod)
           .AddMethod(__Method_DownloadNexusFile, serviceImpl.DownloadNexusFile)
-          .AddMethod(__Method_OpenNexusModPage, serviceImpl.OpenNexusModPage).Build();
+          .AddMethod(__Method_OpenNexusModPage, serviceImpl.OpenNexusModPage)
+          .AddMethod(__Method_ReadNexusDiscovery, serviceImpl.ReadNexusDiscovery)
+          .AddMethod(__Method_OpenNexusSearch, serviceImpl.OpenNexusSearch).Build();
     }
 
     /// <summary>Register service method with a service binder with or without implementation. Useful when customizing the service binding logic.
@@ -472,6 +546,8 @@ namespace ModConductor.Protocol.V1 {
       serviceBinder.AddMethod(__Method_ReadNexusMod, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.NexusModRequest, global::ModConductor.Protocol.V1.NexusModReply>(serviceImpl.ReadNexusMod));
       serviceBinder.AddMethod(__Method_DownloadNexusFile, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.NexusDownloadRequest, global::ModConductor.Protocol.V1.NexusDownloadReply>(serviceImpl.DownloadNexusFile));
       serviceBinder.AddMethod(__Method_OpenNexusModPage, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.NexusModRequest, global::ModConductor.Protocol.V1.NexusStatusRequest>(serviceImpl.OpenNexusModPage));
+      serviceBinder.AddMethod(__Method_ReadNexusDiscovery, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.NexusDiscoveryRequest, global::ModConductor.Protocol.V1.NexusDiscoveryReply>(serviceImpl.ReadNexusDiscovery));
+      serviceBinder.AddMethod(__Method_OpenNexusSearch, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.NexusDiscoveryRequest, global::ModConductor.Protocol.V1.NexusStatusRequest>(serviceImpl.OpenNexusSearch));
     }
 
   }

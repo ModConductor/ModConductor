@@ -74,7 +74,8 @@ type NexusService
                 let revision, value = session.StatusWithRevision
                 do! stream.WriteAsync(NexusWire.status value, context.CancellationToken)
                 do! session.WaitForStatusChange(revision, context.CancellationToken)
-        } :> Task
+        }
+        :> Task
 
     override _.BeginNexusSignIn(_, _) =
         task {
@@ -109,9 +110,7 @@ type NexusService
     override _.ReadNexusMod(request, _) =
         task {
             let! mapped =
-                game
-                    (ModLibraryWire.id request.WorkspaceId)
-                    (ModLibraryWire.id request.ProfileId)
+                game (ModLibraryWire.id request.WorkspaceId) (ModLibraryWire.id request.ProfileId)
 
             let! result =
                 match mapped with
@@ -122,6 +121,42 @@ type NexusService
                 match result with
                 | Ok value -> NexusModReply(Mod = NexusWire.modInfo value)
                 | Error error -> NexusModReply(Failure = NexusWire.failure error)
+        }
+
+    override _.ReadNexusDiscovery(request, _) =
+        task {
+            let! mapped =
+                game (ModLibraryWire.id request.WorkspaceId) (ModLibraryWire.id request.ProfileId)
+
+            let! result =
+                match mapped with
+                | Ok value -> session.ReadDiscovery(value, request.Feed)
+                | Error error -> Task.FromResult(Error error)
+
+            return
+                match result with
+                | Ok cards ->
+                    let value = NexusDiscoveryCards()
+                    value.Mods.AddRange(cards |> Seq.map NexusWire.discoveryCard)
+                    NexusDiscoveryReply(Cards = value)
+                | Error error -> NexusDiscoveryReply(Failure = NexusWire.failure error)
+        }
+
+    override _.OpenNexusSearch(request, context) =
+        task {
+            let! mapped =
+                game (ModLibraryWire.id request.WorkspaceId) (ModLibraryWire.id request.ProfileId)
+
+            match mapped with
+            | Ok value ->
+                do!
+                    handoff.Open(
+                        Uri("https://www.nexusmods.com/games/" + value + "/mods"),
+                        context.CancellationToken
+                    )
+            | Error _ -> ModLibraryWire.reject "Choose an available Nexus game."
+
+            return NexusStatusRequest()
         }
 
     override _.DownloadNexusFile(request, _) =
@@ -171,9 +206,7 @@ type NexusService
     override _.OpenNexusModPage(request, context) =
         task {
             let! mapped =
-                game
-                    (ModLibraryWire.id request.WorkspaceId)
-                    (ModLibraryWire.id request.ProfileId)
+                game (ModLibraryWire.id request.WorkspaceId) (ModLibraryWire.id request.ProfileId)
 
             match mapped with
             | Ok value when request.ModId > 0L ->

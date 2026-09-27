@@ -68,6 +68,7 @@ let private run (args: string array) =
     | [| "--nexus-metadata"; path |] ->
         writeJson true (fun writer -> NexusMetadataFixtures.observe writer path)
     | [| "--nexus"; path |] -> writeJson true (fun writer -> NexusFixtures.observe writer path)
+    | [| "--nexus-discovery" |] -> writeJson true NexusFixtures.discovery
     | [| "--credential-worker"; path |] ->
         CredentialFixtures.worker path
         0

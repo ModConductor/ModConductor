@@ -43,10 +43,34 @@ class NexusFile {
 }
 
 class NexusMod {
-  const NexusMod(this.id, this.name, this.summary, this.files);
+  const NexusMod(
+    this.id,
+    this.name,
+    this.summary,
+    this.files, {
+    this.author = '',
+    this.category = '',
+    this.picture,
+  });
   final int id;
   final String name, summary;
   final List<NexusFile> files;
+  final String author, category;
+  final Uri? picture;
+}
+
+class NexusDiscoveryMod {
+  const NexusDiscoveryMod(
+    this.id,
+    this.name,
+    this.summary,
+    this.author,
+    this.category,
+    this.picture,
+  );
+  final int id;
+  final String name, summary, author, category;
+  final Uri? picture;
 }
 
 abstract interface class NexusClient {
@@ -66,6 +90,12 @@ abstract interface class NexusClient {
     int fileId,
   );
   Future<void> openPage(String workspace, String profile, int modId);
+  Future<List<NexusDiscoveryMod>> discovery(
+    String workspace,
+    String profile,
+    String feed,
+  );
+  Future<void> openSearch(String workspace, String profile);
 }
 
 class GrpcNexusClient implements NexusClient {
@@ -159,17 +189,25 @@ class GrpcNexusClient implements NexusClient {
           );
         }
         final v = reply.mod;
-        return NexusMod(v.id.toInt(), v.name, v.summary, [
-          for (final f in v.files)
-            NexusFile(
-              f.id.toInt(),
-              f.name,
-              f.version,
-              f.category,
-              f.description,
-              f.hasBytes() ? f.bytes.toInt() : null,
-            ),
-        ]);
+        return NexusMod(
+          v.id.toInt(),
+          v.name,
+          v.summary,
+          [
+            for (final f in v.files)
+              NexusFile(
+                f.id.toInt(),
+                f.name,
+                f.version,
+                f.category,
+                f.description,
+                f.hasBytes() ? f.bytes.toInt() : null,
+              ),
+          ],
+          author: v.author,
+          category: v.category,
+          picture: v.hasPictureUrl() ? Uri.tryParse(v.pictureUrl) : null,
+        );
       });
   @override
   Future<Artifact> download(
@@ -208,4 +246,42 @@ class GrpcNexusClient implements NexusClient {
           ),
         );
       });
+
+  @override
+  Future<List<NexusDiscoveryMod>> discovery(
+    String workspace,
+    String profile,
+    String feed,
+  ) => _call(() async {
+    final reply = await _client.readNexusDiscovery(
+      wire.NexusDiscoveryRequest(
+        workspaceId: workspace,
+        profileId: profile,
+        feed: feed,
+      ),
+    );
+    if (reply.hasFailure()) throw _problem(reply.failure);
+    if (!reply.hasCards()) {
+      throw const NexusProblem('response', 'The Nexus feed is incomplete.');
+    }
+    return List.unmodifiable(
+      reply.cards.mods.map(
+        (mod) => NexusDiscoveryMod(
+          mod.id.toInt(),
+          mod.name,
+          mod.summary,
+          mod.author,
+          mod.category,
+          mod.hasPictureUrl() ? Uri.tryParse(mod.pictureUrl) : null,
+        ),
+      ),
+    );
+  });
+
+  @override
+  Future<void> openSearch(String workspace, String profile) => _call(() async {
+    await _client.openNexusSearch(
+      wire.NexusDiscoveryRequest(workspaceId: workspace, profileId: profile),
+    );
+  });
 }

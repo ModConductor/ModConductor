@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:mc_client/mc_client.dart';
 import 'package:mc_ui_collections/mc_ui_collections.dart';
@@ -13,12 +15,14 @@ class NexusFilesView extends StatefulWidget {
     required this.profile,
     required this.onBack,
     required this.onDownloaded,
+    this.initialModId,
   });
   final NexusClient client;
   final String workspace;
   final String profile;
   final VoidCallback onBack;
   final Future<void> Function(Artifact) onDownloaded;
+  final int? initialModId;
   @override
   State<NexusFilesView> createState() => _NexusFilesViewState();
 }
@@ -42,6 +46,10 @@ class _NexusFilesViewState extends State<NexusFilesView> {
   void initState() {
     super.initState();
     _status();
+    if (widget.initialModId != null) {
+      number.text = widget.initialModId.toString();
+      unawaited(_lookup());
+    }
   }
 
   Future<void> _status() async {

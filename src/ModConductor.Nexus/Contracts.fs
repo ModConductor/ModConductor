@@ -90,7 +90,18 @@ type NexusMod =
       Id: int64
       Name: string
       Summary: string
+      Author: string
+      Category: string
+      Picture: Uri option
       Files: NexusFile list }
+
+type NexusDiscoveryCard =
+    { Id: int64
+      Name: string
+      Summary: string
+      Author: string
+      Category: string
+      Picture: Uri option }
 
 type DownloadLease = { Url: Uri; Expires: DateTimeOffset }
 

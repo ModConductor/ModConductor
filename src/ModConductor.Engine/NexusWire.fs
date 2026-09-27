@@ -46,6 +46,7 @@ module internal NexusWire =
         |> Option.iter (fun account ->
             value.AccountName <- account.Name
             account.Premium |> Option.iter (fun premium -> value.Premium <- premium)
+
             account.ProfileImage
             |> Option.iter (fun image -> value.ProfileImageUrl <- image.AbsoluteUri))
 
@@ -67,7 +68,31 @@ module internal NexusWire =
 
     let modInfo (source: NexusMod) =
         let value =
-            NexusModInfo(Id = source.Id, Name = source.Name, Summary = source.Summary)
+            NexusModInfo(
+                Id = source.Id,
+                Name = source.Name,
+                Summary = source.Summary,
+                Author = source.Author,
+                Category = source.Category
+            )
+
+        source.Picture
+        |> Option.iter (fun picture -> value.PictureUrl <- picture.AbsoluteUri)
 
         value.Files.AddRange(source.Files |> Seq.map file)
+        value
+
+    let discoveryCard (source: ModConductor.Nexus.NexusDiscoveryCard) =
+        let value =
+            ModConductor.Protocol.V1.NexusDiscoveryCard(
+                Id = source.Id,
+                Name = source.Name,
+                Summary = source.Summary,
+                Author = source.Author,
+                Category = source.Category
+            )
+
+        source.Picture
+        |> Option.iter (fun picture -> value.PictureUrl <- picture.AbsoluteUri)
+
         value

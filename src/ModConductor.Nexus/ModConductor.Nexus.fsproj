@@ -13,6 +13,7 @@
     <Compile Include="InteractionJson.fs" />
     <Compile Include="Interactions.fs" />
     <Compile Include="Transport.fs" />
+    <Compile Include="DiscoveryReader.fs" />
     <Compile Include="DownloadLeases.fs" />
     <Compile Include="MetadataReader.fs" />
     <Compile Include="NxmIngress.fs" />

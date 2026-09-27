@@ -17,6 +17,7 @@ type NexusMetadata =
     { Identity: NexusIdentity
       Name: string
       Summary: string
+      Picture: Uri option
       Version: string
       Author: string
       Uploader: string
