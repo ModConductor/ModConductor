@@ -58,6 +58,7 @@ type InstallationService(store: InstallationStore) =
 
                 return
                     store.Start(workspace, draft, revision, ModLibraryWire.id request.Id)
+                    |> InstallationWire.outcome
                     |> InstallationWire.status
             })
 
@@ -90,13 +91,7 @@ type InstallationService(store: InstallationStore) =
                     running <- status.State = InstallationState.Running
 
                     if running then
-                        do!
-                            store.WaitForChange(
-                                workspace,
-                                id,
-                                status,
-                                context.CancellationToken
-                            )
+                        do! store.WaitForChange(workspace, id, status, context.CancellationToken)
             })
 
     override _.CancelInstallation(request, _) =

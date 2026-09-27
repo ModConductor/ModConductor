@@ -55,16 +55,18 @@ module InstallationFixtures =
     let create area =
         Directory.CreateDirectory area |> ignore
         zip (Path.Combine(area, "Rivière textures.zip"))
+
         zipEntries
             (Path.Combine(area, "Nested data.zip"))
             [ "Wrapper/Data/Meshes/actors/character/behaviors/0_master.hkx", "behavior"
               "Wrapper/Data/source/scripts/FNIS_example.psc", "source"
               "Wrapper/Data/FNIS.esp", "plugin"
               "Wrapper/FNIS_Readme.txt", "not installed" ]
+
         zipEntries
             (Path.Combine(area, "Two data roots.zip"))
-            [ "First/Data/Meshes/a.nif", "first"
-              "Second/Data/Meshes/b.nif", "second" ]
+            [ "First/Data/Meshes/a.nif", "first"; "Second/Data/Meshes/b.nif", "second" ]
+
         ArchiveInspectionFixtures.create area
         let malformed = Path.Combine(area, "wrong-size.zip")
         File.Copy(Path.Combine(area, "textures.zip"), malformed)
@@ -101,6 +103,7 @@ module InstallationFixtures =
                 if name = checkpoint then
                     StorageWorker.pause ()
         )
+        |> result
         |> ignore
 
         untilStopped store workspace id |> ignore
@@ -192,10 +195,10 @@ module InstallationFixtures =
                 (nestedDraft.Root = [ "Wrapper"; "Data" ]
                  && (nestedDraft.Files
                      |> List.map (fun file -> LogicalPath.display file.Destination)
-                     |> Set.ofList)
-                    = set [ "Meshes/actors/character/behaviors/0_master.hkx"
-                            "source/scripts/FNIS_example.psc"
-                            "FNIS.esp" ])
+                     |> Set.ofList) = set
+                     [ "Meshes/actors/character/behaviors/0_master.hkx"
+                       "source/scripts/FNIS_example.psc"
+                       "FNIS.esp" ])
 
             let ambiguous = adopt (Path.Combine(area, "Two data roots.zip"))
             let ambiguousDraft = store.Installations.Prepare(reference ambiguous, token) |> wait
@@ -246,6 +249,7 @@ module InstallationFixtures =
             let job = Guid.NewGuid()
 
             store.Installations.Start(workspace, changed.Id, changed.Revision, job)
+            |> result
             |> ignore
 
             let installed = untilStopped store workspace job
@@ -279,9 +283,11 @@ module InstallationFixtures =
                     library.ReadPayload(version.Id, renamed.Payload.Id, 0L, 65536) |> wait |> result
                 ) = "water")
 
-            check
-                "RepeatStartHasSameMod"
-                ((store.Installations.Start(workspace, changed.Id, changed.Revision, job)).ModId = installed.ModId)
+            let repeated =
+                store.Installations.Start(workspace, changed.Id, changed.Revision, job)
+                |> result
+
+            check "RepeatStartHasSameMod" (repeated.ModId = installed.ModId)
 
             check "TypedArchiveOrigin" (version.Origin = VersionOrigin.Archive archive.Id)
             let inventory = InventoryObservations.read store profile
@@ -344,7 +350,11 @@ module InstallationFixtures =
                         draft
 
                 let id = Guid.NewGuid()
-                store.Installations.Start(workspace, draft.Id, draft.Revision, id) |> ignore
+
+                store.Installations.Start(workspace, draft.Id, draft.Revision, id)
+                |> result
+                |> ignore
+
                 let outcome = untilStopped store workspace id
 
                 if outcome.State <> InstallationState.Complete then
@@ -377,6 +387,7 @@ module InstallationFixtures =
                         arrived.Set()
                         release.Wait()
             )
+            |> result
             |> ignore
 
             if not (arrived.Wait 10000) then
@@ -384,13 +395,10 @@ module InstallationFixtures =
 
             let held = store.Installations.Read(workspace, cancelId) |> wait
             use changedTimeout = new CancellationTokenSource(TimeSpan.FromSeconds 5.)
+
             let changed =
-                store.Installations.WaitForChange(
-                    workspace,
-                    cancelId,
-                    held,
-                    changedTimeout.Token
-                )
+                store.Installations.WaitForChange(workspace, cancelId, held, changedTimeout.Token)
+
             Thread.Sleep 150
             check "IdleInstallationWatchWaitsForChange" (not changed.IsCompleted)
 
@@ -410,6 +418,7 @@ module InstallationFixtures =
             let corruptId = Guid.NewGuid()
 
             store.Installations.Start(workspace, draft.Id, draft.Revision, corruptId)
+            |> result
             |> ignore
 
             let failed = untilStopped store workspace corruptId

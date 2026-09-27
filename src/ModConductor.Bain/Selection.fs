@@ -22,28 +22,25 @@ module Selection =
             )
 
     let choose index selected (state: PackageSelection) =
-        let package =
-            state.Definition.Packages
-            |> List.tryFind (fun p -> p.Index = index)
-            |> Option.defaultWith (fun () ->
-                raise (InstallationException "Choose a folder from this package."))
+        match state.Definition.Packages |> List.tryFind (fun p -> p.Index = index) with
+        | None -> Error "Choose a folder from this package."
+        | Some package ->
+            let mutable next =
+                { state with
+                    Selected =
+                        (if selected then
+                             state.Selected.Add index
+                         else
+                             state.Selected.Remove index)
+                    Reviewing = false }
 
-        let mutable next =
-            { state with
-                Selected =
-                    (if selected then
-                         state.Selected.Add index
-                     else
-                         state.Selected.Remove index)
-                Reviewing = false }
+            for key in
+                package.Files
+                |> List.map (fun f -> Destinations.key f.Destination)
+                |> List.distinct do
+                next <- { next with Files = winner next key }
 
-        for key in
-            package.Files
-            |> List.map (fun f -> Destinations.key f.Destination)
-            |> List.distinct do
-            next <- { next with Files = winner next key }
-
-        next
+            Ok next
 
     let private rebuild selected (state: PackageSelection) =
         let mutable next =
@@ -82,24 +79,21 @@ module Selection =
         rebuild chosen initial
 
     let includeFile path included (state: PackageSelection) =
-        let path =
-            LogicalPath.create path
-            |> Result.defaultWith (fun _ ->
-                raise (InstallationException "Choose a file from the package review."))
+        match LogicalPath.create path with
+        | Error _ -> Error "Choose a file from the package review."
+        | Ok path ->
+            let key = Destinations.key path
 
-        let key = Destinations.key path
-
-        if not state.Reviewing || not (state.Files.ContainsKey key) then
-            raise (
-                InstallationException "Review the package files before changing their selection."
-            )
-
-        { state with
-            Excluded =
-                (if included then
-                     state.Excluded.Remove key
-                 else
-                     state.Excluded.Add key) }
+            if not state.Reviewing || not (state.Files.ContainsKey key) then
+                Error "Review the package files before changing their selection."
+            else
+                Ok
+                    { state with
+                        Excluded =
+                            (if included then
+                                 state.Excluded.Remove key
+                             else
+                                 state.Excluded.Add key) }
 
     let files (state: PackageSelection) =
         state.Files

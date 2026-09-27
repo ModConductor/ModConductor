@@ -61,11 +61,11 @@ type internal SkseComponentInstaller
                             | Error problem ->
                                 return Error(ModConductor.Skse.SkseProblem.message problem)
                             | Ok plan ->
-                                let draft =
+                                let selected =
                                     if
                                         draft.Installer = ModConductor.ArchiveInstallation.InstallationMode.Manual
                                     then
-                                        draft
+                                        Ok draft
                                     else
                                         installations.UseInstaller(
                                             workspace,
@@ -74,59 +74,68 @@ type internal SkseComponentInstaller
                                             ModConductor.ArchiveInstallation.InstallationMode.Manual
                                         )
 
-                                let reviewed =
-                                    installations.SelectReviewed(
-                                        workspace,
-                                        draft.Id,
-                                        draft.Revision,
-                                        "Skyrim Script Extender",
-                                        string release.ComponentVersion,
-                                        plan.Files
-                                    )
-
-                                let installationId = Guid.NewGuid()
-
-                                let mutable installed =
-                                    installations.Start(
-                                        workspace,
-                                        reviewed.Id,
-                                        reviewed.Revision,
-                                        installationId
-                                    )
-
-                                while installed.State = ModConductor.ArchiveInstallation.InstallationState.Running do
-                                    do!
-                                        installations.WaitForChange(
+                                match selected with
+                                | Error message -> return Error message
+                                | Ok draft ->
+                                    let reviewed =
+                                        installations.SelectReviewed(
                                             workspace,
-                                            installationId,
-                                            installed,
-                                            token
+                                            draft.Id,
+                                            draft.Revision,
+                                            "Skyrim Script Extender",
+                                            string release.ComponentVersion,
+                                            plan.Files
                                         )
 
-                                    let! current = installations.Read(workspace, installationId)
-                                    installed <- current
+                                    let installationId = Guid.NewGuid()
 
-                                do! installations.WaitForWorker(installationId, token)
+                                    match
+                                        installations.Start(
+                                            workspace,
+                                            reviewed.Id,
+                                            reviewed.Revision,
+                                            installationId
+                                        )
+                                    with
+                                    | Error message -> return Error message
+                                    | Ok started ->
+                                        let mutable installed = started
 
-                                if
-                                    installed.State
-                                    <> ModConductor.ArchiveInstallation.InstallationState.Complete
-                                    || installed.ModId.IsNone
-                                    || installed.VersionId.IsNone
-                                then
-                                    return
-                                        Error(
-                                            installed.Problem
-                                            |> Option.defaultValue
-                                                "SKSE installation did not complete. No component was published."
-                                        )
-                                else
-                                    return
-                                        Ok(
-                                            installed.ModId.Value,
-                                            installed.VersionId.Value,
-                                            Some plan
-                                        )
+                                        while installed.State = ModConductor.ArchiveInstallation.InstallationState.Running do
+                                            do!
+                                                installations.WaitForChange(
+                                                    workspace,
+                                                    installationId,
+                                                    installed,
+                                                    token
+                                                )
+
+                                            let! current =
+                                                installations.Read(workspace, installationId)
+
+                                            installed <- current
+
+                                        do! installations.WaitForWorker(installationId, token)
+
+                                        if
+                                            installed.State
+                                            <> ModConductor.ArchiveInstallation.InstallationState.Complete
+                                            || installed.ModId.IsNone
+                                            || installed.VersionId.IsNone
+                                        then
+                                            return
+                                                Error(
+                                                    installed.Problem
+                                                    |> Option.defaultValue
+                                                        "SKSE installation did not complete. No component was published."
+                                                )
+                                        else
+                                            return
+                                                Ok(
+                                                    installed.ModId.Value,
+                                                    installed.VersionId.Value,
+                                                    Some plan
+                                                )
                     }
 
                 match imported with

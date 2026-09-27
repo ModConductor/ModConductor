@@ -119,52 +119,57 @@ module Choices =
                     else
                         Some("Check the selection for " + group.Group.Name + "."))
 
+    let private choice id (page: Page) =
+        page.Groups
+        |> List.tryPick (fun group ->
+            group.Options
+            |> List.tryFind (fun value -> value.Option.Id = id)
+            |> Option.map (fun option -> group, option))
+
+    let private choiceProblem selected (group: GroupState) (option: OptionState) =
+        match option.Type with
+        | Fact.Unknown why -> Some why
+        | Fact.Known OptionType.NotUsable -> Some "This installer option is not usable."
+        | Fact.Known OptionType.Required when not selected ->
+            Some "This installer option is required."
+        | _ when group.Group.Kind = GroupType.All -> Some "All options in this group are required."
+        | _ -> None
+
+    let private selectedOptions id selected (page: Page) (group: GroupState) =
+        let singles =
+            group.Group.Kind = GroupType.ExactlyOne
+            || group.Group.Kind = GroupType.AtMostOne
+
+        let previous =
+            if selected && singles then
+                page.Selected
+                - (group.Options
+                   |> List.filter (fun o -> o.Type <> Fact.Known OptionType.Required)
+                   |> List.map _.Option.Id
+                   |> Set.ofList)
+            else
+                page.Selected
+
+        if selected then previous.Add id else previous.Remove id
+
     let choose id selected (wizard: Wizard) =
         match wizard.Current with
-        | None -> raise (FomodException "Open a choice step before changing an option.")
+        | None -> Error "Open a choice step before changing an option."
         | Some page ->
-            let group =
-                page.Groups
-                |> List.tryFind (fun group ->
-                    group.Options |> List.exists (fun value -> value.Option.Id = id))
-                |> Option.defaultWith (fun () ->
-                    raise (
-                        FomodException "This installer choice is no longer on the current step."
-                    ))
-
-            let option = group.Options |> List.find (fun value -> value.Option.Id = id)
-
-            match option.Type with
-            | Fact.Unknown why -> raise (FomodException why)
-            | Fact.Known OptionType.NotUsable ->
-                raise (FomodException "This installer option is not usable.")
-            | Fact.Known OptionType.Required when not selected ->
-                raise (FomodException "This installer option is required.")
-            | _ -> ()
-
-            if group.Group.Kind = GroupType.All then
-                raise (FomodException "All options in this group are required.")
-
-            let singles =
-                group.Group.Kind = GroupType.ExactlyOne
-                || group.Group.Kind = GroupType.AtMostOne
-
-            let previous =
-                if selected && singles then
-                    page.Selected
-                    - (group.Options
-                       |> List.filter (fun o -> o.Type <> Fact.Known OptionType.Required)
-                       |> List.map _.Option.Id
-                       |> Set.ofList)
-                else
-                    page.Selected
-
-            let next = if selected then previous.Add id else previous.Remove id
-
-            { wizard with
-                Current = Some { page with Selected = next }
-                Future = []
-                Problem = None }
+            match choice id page with
+            | None -> Error "This installer choice is no longer on the current step."
+            | Some(group, option) ->
+                match choiceProblem selected group option with
+                | Some why -> Error why
+                | None ->
+                    Ok
+                        { wizard with
+                            Current =
+                                Some
+                                    { page with
+                                        Selected = selectedOptions id selected page group }
+                            Future = []
+                            Problem = None }
 
     let next definition facts wizard =
         match wizard.Current with

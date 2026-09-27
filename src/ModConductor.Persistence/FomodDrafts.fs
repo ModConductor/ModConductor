@@ -22,22 +22,28 @@ type FomodDrafts
         access: LibraryAccess,
         inspection: Inspection,
         gate: obj,
-        getDraft: Guid * Guid * int64 -> InstallationDraft,
+        getDraftResult: Guid * Guid * int64 -> Result<InstallationDraft, string>,
         saveDraft: InstallationDraft -> unit
     ) =
     let inputs = Dictionary<Guid, InstallerInput>()
     let sessions = Dictionary<Guid, FomodSession>()
     let refuse text = raise (FomodException text)
 
-    let find workspace id revision =
-        let current = getDraft (workspace, id, revision)
+    let getDraft reference =
+        getDraftResult reference |> Result.defaultWith refuse
 
-        match sessions.TryGetValue workspace with
-        | true, session when
-            session.View.Draft.Id = current.Id && session.View.Draft.Revision = revision
-            ->
-            session
-        | _ -> refuse "The installer choices changed. Open the installer again."
+    let findResult workspace id revision =
+        getDraftResult (workspace, id, revision)
+        |> Result.bind (fun current ->
+            match sessions.TryGetValue workspace with
+            | true, session when
+                session.View.Draft.Id = current.Id && session.View.Draft.Revision = revision
+                ->
+                Ok session
+            | _ -> Error "The installer choices changed. Open the installer again.")
+
+    let find workspace id revision =
+        findResult workspace id revision |> Result.defaultWith refuse
 
     let snapshot (session: FomodSession) (draft: InstallationDraft) (wizard: Wizard) =
         let mutable problem = wizard.Problem
@@ -200,7 +206,15 @@ type FomodDrafts
         lock gate (fun () -> (find workspace id revision).View)
 
     member _.Choose(workspace, id, revision, optionId, selected) =
-        change workspace id revision (fun _ wizard -> Choices.choose optionId selected wizard)
+        lock gate (fun () ->
+            match findResult workspace id revision with
+            | Error why -> Error why
+            | Ok session ->
+                match session.View.Wizard with
+                | None -> Error "Use the manual layout for this installer."
+                | Some wizard ->
+                    Choices.choose optionId selected wizard
+                    |> Result.map (snapshot session session.View.Draft))
 
     member _.Back(workspace, id, revision) =
         change workspace id revision (fun _ wizard -> Choices.back wizard)

@@ -109,6 +109,7 @@ module NexusMetadataFixtures =
                 draft.Revision,
                 Guid.NewGuid()
             )
+            |> result
 
         let status = stopped store artifact.WorkspaceId started.Id
 
@@ -396,7 +397,9 @@ module NexusMetadataFixtures =
                 )
                 |> wait
 
-            let started = store.Installations.StartUpdate(workspace, preview.Id, Guid.NewGuid())
+            let started =
+                store.Installations.StartUpdate(workspace, preview.Id, Guid.NewGuid()) |> result
+
             let updated = stopped store workspace started.Id
             let next = details.Read(workspace, installedMod) |> wait |> result
 

@@ -73,10 +73,12 @@ module BundleFixtures =
     let worker state (workspace: string) (bundleId: string) =
         use store = new OperationStore(state)
         let workspace, bundleId = Guid.Parse workspace, Guid.Parse bundleId
-        let bundle = store.Bundles.Read(workspace, bundleId) |> wait
+        let bundle = store.Bundles.Read(workspace, bundleId) |> wait |> result
 
         let prepared =
-            store.Bundles.Prepare(bundle.Reference, bundle.Mods.Head.Id, token) |> wait
+            store.Bundles.Prepare(bundle.Reference, bundle.Mods.Head.Id, token)
+            |> wait
+            |> result
 
         store.Installations.StartAtCheckpoint(
             workspace,
@@ -87,6 +89,7 @@ module BundleFixtures =
                 if point = "after-publication" then
                     StorageWorker.pause ()
         )
+        |> result
         |> ignore
 
         Thread.Sleep Timeout.Infinite
@@ -131,6 +134,7 @@ module BundleFixtures =
                        |> List.find (fun a -> LogicalPath.display a.Path = "First.zip"))
                           .Index ]
                 )
+                |> result
 
             bundle.Reference.Id, bundle.Mods.Head.ModId
 
@@ -145,11 +149,11 @@ module BundleFixtures =
 
         child.Terminate()
         use store = new OperationStore(state)
-        let bundle = store.Bundles.Read(workspace, bundleId) |> wait
+        let bundle = store.Bundles.Read(workspace, bundleId) |> wait |> result
         let item = bundle.Mods.Head
-        let before = store.Bundles.Status(workspace, bundleId, item.Id) |> wait
-        let retried = store.Bundles.Retry(bundle.Reference, item.Id) |> wait
-        let after = store.Bundles.Status(workspace, bundleId, item.Id) |> wait
+        let before = store.Bundles.Status(workspace, bundleId, item.Id) |> wait |> result
+        let retried = store.Bundles.Retry(bundle.Reference, item.Id) |> wait |> result
+        let after = store.Bundles.Status(workspace, bundleId, item.Id) |> wait |> result
 
         let inventory =
             (store.ModLibrary :> IModLibrary).Scan(workspace, 100) |> wait |> result
@@ -174,7 +178,7 @@ module BundleFixtures =
         store.Deletions.Delete(workspace, target.Id, target.Revision) |> wait
 
         let passed =
-            (store.Bundles.Find(workspace, bundle.Artifact.Id) |> wait).IsNone
+            (store.Bundles.Find(workspace, bundle.Artifact.Id) |> wait |> result).IsNone
             && Directory.GetFiles(root, "bundle-*.archive", SearchOption.AllDirectories).Length = 0
             && (store.Artifacts.Read(workspace, bundle.Artifact.Id) |> wait) = Error
                 ArtifactError.NotFound
@@ -248,9 +252,29 @@ module BundleFixtures =
                     discovered.Draft.Revision,
                     order
                 )
+                |> result
 
             let first = bundle.Mods.Head
-            let prepared = store.Bundles.Prepare(bundle.Reference, first.Id, token) |> wait
+
+            let stale =
+                store.Bundles.Rename(
+                    { bundle.Reference with
+                        Revision = bundle.Reference.Revision + 1L },
+                    first.Id,
+                    "Different name"
+                )
+
+            let unchanged = store.Bundles.Read(workspace, bundle.Reference.Id) |> wait |> result
+
+            check
+                "StaleBundleRenameIsRefusedWithoutChangingBundle"
+                (Result.isError stale
+                 && unchanged.Reference.Revision = bundle.Reference.Revision
+                 && unchanged.Mods.Head.Name = first.Name)
+
+            let prepared =
+                store.Bundles.Prepare(bundle.Reference, first.Id, token) |> wait |> result
+
             let firstDigest = prepared.Draft.Manifest.Sha256
 
             check
@@ -267,6 +291,7 @@ module BundleFixtures =
                     prepared.Draft.Revision,
                     Guid.NewGuid()
                 )
+                |> result
 
             let complete = finished store workspace job.Id
 
@@ -274,10 +299,13 @@ module BundleFixtures =
                 "FirstChildCommitsThroughExistingOwner"
                 (complete.State = InstallationState.Complete && complete.ModId = Some first.ModId)
 
-            bundle <- store.Bundles.Read(workspace, bundle.Reference.Id) |> wait
+            bundle <- store.Bundles.Read(workspace, bundle.Reference.Id) |> wait |> result
             let extras = bundle.Mods[1]
-            let inside = store.Bundles.Prepare(bundle.Reference, extras.Id, token) |> wait
-            bundle <- store.Bundles.Read(workspace, bundle.Reference.Id) |> wait
+
+            let inside =
+                store.Bundles.Prepare(bundle.Reference, extras.Id, token) |> wait |> result
+
+            bundle <- store.Bundles.Read(workspace, bundle.Reference.Id) |> wait |> result
 
             let nestedOrder =
                 [ "Second.zip"; "XML.zip" ]
@@ -293,9 +321,12 @@ module BundleFixtures =
                     inside.Draft.Revision,
                     nestedOrder
                 )
+                |> result
 
             let second = bundle.Mods[1]
-            let prepared = store.Bundles.Prepare(bundle.Reference, second.Id, token) |> wait
+
+            let prepared =
+                store.Bundles.Prepare(bundle.Reference, second.Id, token) |> wait |> result
 
             check
                 "DuplicateBytesAtDifferentPathsHaveDistinctModIdentities"
@@ -313,9 +344,10 @@ module BundleFixtures =
                         if point = "before-publication" then
                             raise (OperationCanceledException())
                 )
+                |> result
 
             let stopped = finished store workspace job.Id
-            bundle <- store.Bundles.Read(workspace, bundle.Reference.Id) |> wait
+            bundle <- store.Bundles.Read(workspace, bundle.Reference.Id) |> wait |> result
 
             check
                 "FailedChildLeavesEarlierCommitAndNoOverallSuccess"
@@ -331,7 +363,7 @@ module BundleFixtures =
 
         let phaseTwo () =
             use store = new OperationStore(state)
-            let mutable bundle = store.Bundles.Read(workspace, bundleId) |> wait
+            let mutable bundle = store.Bundles.Read(workspace, bundleId) |> wait |> result
 
             check
                 "RestartKeepsCompletedAndStoppedChildrenWithoutStartingWork"
@@ -339,8 +371,10 @@ module BundleFixtures =
                  && bundle.Mods[1].State = ModState.Failed
                  && not (bundle.Mods |> List.exists (fun m -> m.State = ModState.Installing)))
 
-            bundle <- store.Bundles.Retry(bundle.Reference, second.Id) |> wait
-            let prepared = store.Bundles.Prepare(bundle.Reference, second.Id, token) |> wait
+            bundle <- store.Bundles.Retry(bundle.Reference, second.Id) |> wait |> result
+
+            let prepared =
+                store.Bundles.Prepare(bundle.Reference, second.Id, token) |> wait |> result
 
             let job =
                 store.Installations.Start(
@@ -349,6 +383,7 @@ module BundleFixtures =
                     prepared.Draft.Revision,
                     Guid.NewGuid()
                 )
+                |> result
 
             let complete = finished store workspace job.Id
 
@@ -359,6 +394,7 @@ module BundleFixtures =
                     prepared.Draft.Revision,
                     Guid.NewGuid()
                 )
+                |> result
 
             check
                 "RetryReusesDestinationAndRepeatedPublicationReturnsTheCommittedChild"
@@ -403,7 +439,7 @@ module BundleFixtures =
 
         store.Deletions.Delete(workspace, target.Id, target.Revision) |> wait
 
-        let bundle = store.Bundles.Read(workspace, bundleId) |> wait
+        let bundle = store.Bundles.Read(workspace, bundleId) |> wait |> result
 
         check
             "DeletedChildCannotResumeAndSharedBytesRemain"
@@ -413,7 +449,9 @@ module BundleFixtures =
              && (store.Artifacts.Read(workspace, artifact) |> wait |> result).State = ArtifactState.Installed)
 
         let xmlItem = bundle.Mods |> List.find (fun m -> m.Name = "XML")
-        let xml = store.Bundles.Prepare(bundle.Reference, xmlItem.Id, token) |> wait
+
+        let xml =
+            store.Bundles.Prepare(bundle.Reference, xmlItem.Id, token) |> wait |> result
 
         let choices =
             store.Installations.Fomod.Open(workspace, xml.Draft.Id, xml.Draft.Revision, profile)
@@ -425,15 +463,15 @@ module BundleFixtures =
              && choices.Draft.Name = xmlItem.Name
              && choices.Draft.Nested.IsSome)
 
-        let bundle = store.Bundles.Read(workspace, bundleId) |> wait
-        store.Bundles.Delete(bundle.Reference) |> wait
+        let bundle = store.Bundles.Read(workspace, bundleId) |> wait |> result
+        store.Bundles.Delete(bundle.Reference) |> wait |> result |> ignore
         let firstSaved = library.Version(firstVersion, 0) |> wait |> result
 
         check
             "ExplicitBundleCleanupKeepsInstalledModAndProvenance"
             (firstSaved.Entries.Length = 1
              && Directory.GetFiles(root, "bundle-*.archive", SearchOption.AllDirectories).Length = 0
-             && (store.Bundles.Find(workspace, artifact) |> wait).IsNone)
+             && (store.Bundles.Find(workspace, artifact) |> wait |> result).IsNone)
 
         check
             "OriginalOuterArchiveWasNotChanged"
@@ -462,6 +500,7 @@ module BundleFixtures =
                 view.Draft.Revision,
                 view.Archives |> List.map _.Index
             )
+            |> result
 
         let bain =
             zip
@@ -472,10 +511,13 @@ module BundleFixtures =
         let bundle = openBundle "Package bundle.zip" (zip [ "Water.zip", bain ])
 
         let prepared =
-            store.Bundles.Prepare(bundle.Reference, bundle.Mods.Head.Id, token) |> wait
+            store.Bundles.Prepare(bundle.Reference, bundle.Mods.Head.Id, token)
+            |> wait
+            |> result
 
         let choices =
             store.Installations.Bain.Open(workspace, prepared.Draft.Id, prepared.Draft.Revision)
+            |> result
 
         let notes =
             store.Installations.Bain.Notes(
@@ -485,9 +527,11 @@ module BundleFixtures =
                 token
             )
             |> wait
+            |> result
 
         let review =
             store.Installations.Bain.Review(workspace, choices.Draft.Id, choices.Draft.Revision)
+            |> result
 
         check
             "NestedBainUsesExistingSelectionAndLazyNotes"
@@ -495,8 +539,12 @@ module BundleFixtures =
              && review.Draft.Plan.IsSome
              && review.Draft.Nested.IsSome)
 
-        store.Bundles.Delete((store.Bundles.Read(workspace, bundle.Reference.Id) |> wait).Reference)
+        store.Bundles.Delete(
+            (store.Bundles.Read(workspace, bundle.Reference.Id) |> wait |> result).Reference
+        )
         |> wait
+        |> result
+        |> ignore
 
         let leaf = zip [ "Data/textures/file", bytes "leaf" ]
         let deep = [ 1..3 ] |> List.fold (fun inner _ -> zip [ "Next.zip", inner ]) leaf
@@ -505,9 +553,11 @@ module BundleFixtures =
 
         for depth in 1..3 do
             let prepared =
-                store.Bundles.Prepare(bundle.Reference, bundle.Mods.Head.Id, token) |> wait
+                store.Bundles.Prepare(bundle.Reference, bundle.Mods.Head.Id, token)
+                |> wait
+                |> result
 
-            bundle <- store.Bundles.Read(workspace, bundle.Reference.Id) |> wait
+            bundle <- store.Bundles.Read(workspace, bundle.Reference.Id) |> wait |> result
 
             try
                 bundle <-
@@ -518,6 +568,7 @@ module BundleFixtures =
                         prepared.Draft.Revision,
                         prepared.Archives |> List.map _.Index
                     )
+                    |> result
             with :? BundleException when depth = 3 ->
                 refused <- true
 
@@ -528,8 +579,12 @@ module BundleFixtures =
              && bundle.Mods.Head.Path.Length = 3
              && bundle.Mods.Head.Attempt.IsNone)
 
-        store.Bundles.Delete((store.Bundles.Read(workspace, bundle.Reference.Id) |> wait).Reference)
+        store.Bundles.Delete(
+            (store.Bundles.Read(workspace, bundle.Reference.Id) |> wait |> result).Reference
+        )
         |> wait
+        |> result
+        |> ignore
 
         let many =
             zip [ for i in 1..10001 -> "Data/textures/" + string i + ".bin", Array.empty<byte> ]
@@ -538,9 +593,10 @@ module BundleFixtures =
 
         store.Bundles.Prepare(bundle.Reference, bundle.Mods[0].Id, token)
         |> wait
+        |> result
         |> ignore
 
-        let bundle = store.Bundles.Read(workspace, bundle.Reference.Id) |> wait
+        let bundle = store.Bundles.Read(workspace, bundle.Reference.Id) |> wait |> result
         let mutable refused = false
 
         try
@@ -550,7 +606,7 @@ module BundleFixtures =
         with :? BundleException ->
             refused <- true
 
-        let current = store.Bundles.Read(workspace, bundle.Reference.Id) |> wait
+        let current = store.Bundles.Read(workspace, bundle.Reference.Id) |> wait |> result
 
         check
             "AggregateEntryBudgetStopsLaterPreparationBeforePublication"
@@ -558,6 +614,6 @@ module BundleFixtures =
              && current.Mods[1].State = ModState.Failed
              && current.Mods |> List.forall (fun m -> m.Attempt.IsNone))
 
-        store.Bundles.Delete(current.Reference) |> wait
+        store.Bundles.Delete(current.Reference) |> wait |> result |> ignore
         store.Installations.Stop() |> wait
         writer.WriteEndObject()

@@ -99,5 +99,6 @@ type UpdateService(store: InstallationStore) =
                         ModLibraryWire.id request.PreviewId,
                         ModLibraryWire.id request.Id
                     )
+                    |> InstallationWire.outcome
                     |> InstallationWire.status
             })

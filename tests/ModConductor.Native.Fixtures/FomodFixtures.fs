@@ -143,8 +143,24 @@ module FomodFixtures =
                     option.Option.Id,
                     value
                 )
+                |> result
 
         next ()
+
+        let refused =
+            store.Installations.Fomod.Choose(
+                workspace,
+                view.Draft.Id,
+                view.Draft.Revision,
+                Int32.MaxValue,
+                true
+            )
+
+        check
+            "UnknownInstallerChoiceIsRefusedWithoutChangingDraft"
+            (Result.isError refused
+             && (store.Installations.Fomod.Read(workspace, view.Draft.Id, view.Draft.Revision))
+                 .Draft.Revision = view.Draft.Revision)
 
         check
             "UnconfirmedCardinalityCreatesNoInstallation"
@@ -248,6 +264,7 @@ module FomodFixtures =
 
         let started =
             store.Installations.Start(workspace, view.Draft.Id, view.Draft.Revision, Guid.NewGuid())
+            |> result
 
         let deadline = DateTime.UtcNow.AddSeconds 15
         let mutable status = started
@@ -314,6 +331,7 @@ module FomodFixtures =
                         draft.Revision,
                         InstallationMode.Fomod
                     )
+                    |> result
 
             let view =
                 store.Installations.Fomod.Open(workspace, draft.Id, draft.Revision, profile)
@@ -326,6 +344,7 @@ module FomodFixtures =
                     view.Draft.Revision,
                     InstallationMode.Manual
                 )
+                |> result
 
             store.Installations.CloseDraft(workspace, manual.Id)
             view.Problem.IsSome && manual.Installer = InstallationMode.Manual

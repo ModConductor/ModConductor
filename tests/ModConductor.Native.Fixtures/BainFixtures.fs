@@ -70,7 +70,7 @@ module BainFixtures =
                 store.Installations.Prepare(reference artifact, token) |> wait
 
             let openChoices (draft: InstallationDraft) =
-                store.Installations.Bain.Open(workspace, draft.Id, draft.Revision)
+                store.Installations.Bain.Open(workspace, draft.Id, draft.Revision) |> result
 
             let choose name selected (view: PackageChoices) =
                 let p =
@@ -83,12 +83,15 @@ module BainFixtures =
                     p.Index,
                     selected
                 )
+                |> result
 
             let review (view: PackageChoices) =
                 store.Installations.Bain.Review(workspace, view.Draft.Id, view.Draft.Revision)
+                |> result
 
             let back (view: PackageChoices) =
                 store.Installations.Bain.Back(workspace, view.Draft.Id, view.Draft.Revision)
+                |> result
 
             let includeFile path included (view: PackageChoices) =
                 store.Installations.Bain.Include(
@@ -98,6 +101,7 @@ module BainFixtures =
                     path,
                     included
                 )
+                |> result
 
             let winner path (view: PackageChoices) =
                 view.Selection.Value.Files[Destinations.key (
@@ -111,6 +115,21 @@ module BainFixtures =
             let mutable view = openChoices draft
             let names = view.Selection.Value.Definition.Packages |> List.map _.Name
 
+            let refused =
+                store.Installations.Bain.Choose(
+                    workspace,
+                    view.Draft.Id,
+                    view.Draft.Revision,
+                    Int32.MaxValue,
+                    true
+                )
+
+            check
+                "UnknownPackageChoiceIsRefusedWithoutChangingDraft"
+                (Result.isError refused
+                 && (store.Installations.Draft(workspace, view.Draft.Id, view.Draft.Revision))
+                     .Revision = view.Draft.Revision)
+
             check
                 "WrapperAndLexicalNamesHaveEditableCoreDefault"
                 (draft.Installer = InstallationMode.Bain
@@ -120,6 +139,7 @@ module BainFixtures =
             let notes =
                 store.Installations.Bain.Notes(workspace, view.Draft.Id, view.Draft.Revision, token)
                 |> wait
+                |> result
 
             check
                 "NotesAreReadExplicitlyAndBothWizardEntriesAreMetadata"
@@ -176,13 +196,8 @@ module BainFixtures =
                  && (winner [ "textures"; "water.dds" ] view).Choice = "10 Textures")
 
             let stale =
-                try
-                    store.Installations.Start(workspace, old.Id, old.Revision, Guid.NewGuid())
-                    |> ignore
-
-                    false
-                with :? InstallationException ->
-                    true
+                store.Installations.Start(workspace, old.Id, old.Revision, Guid.NewGuid())
+                |> Result.isError
 
             check
                 "StaleReviewedRevisionCannotPublishOldChoices"
@@ -226,6 +241,7 @@ module BainFixtures =
                     xml.Draft.Revision,
                     InstallationMode.Bain
                 )
+                |> result
 
             let selected = packageDraft |> openChoices |> choose "30 Foam" true |> review
 
@@ -236,6 +252,7 @@ module BainFixtures =
                     selected.Draft.Revision,
                     InstallationMode.Fomod
                 )
+                |> result
 
             let xmlAgain =
                 store.Installations.Fomod.Open(workspace, xmlDraft.Id, xmlDraft.Revision, profile)
@@ -257,6 +274,7 @@ module BainFixtures =
                     ambiguous.Draft.Revision,
                     InstallationMode.Manual
                 )
+                |> result
 
             check
                 "AmbiguousPayloadFolderHasManualExitWithoutGuessedPlan"
@@ -300,6 +318,7 @@ module BainFixtures =
                     view.Draft.Revision,
                     Guid.NewGuid()
                 )
+                |> result
 
             let mutable status = job
             let deadline = DateTime.UtcNow.AddSeconds 15
@@ -344,7 +363,9 @@ module BainFixtures =
         use restored = new OperationStore(state)
         let artifact = restored.Artifacts.Read(workspace, artifactId) |> wait |> result
         let draft = restored.Installations.Prepare(reference artifact, token) |> wait
-        let view = restored.Installations.Bain.Open(workspace, draft.Id, draft.Revision)
+
+        let view =
+            restored.Installations.Bain.Open(workspace, draft.Id, draft.Revision) |> result
 
         check
             "OwnerRestartKeepsPublishedVersionButNotUnconfirmedChoices"

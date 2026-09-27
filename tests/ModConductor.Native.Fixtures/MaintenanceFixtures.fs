@@ -144,6 +144,7 @@ module MaintenanceFixtures =
 
         let otherStarted =
             store.Installations.Start(workspace, otherDraft.Id, otherDraft.Revision, Guid.NewGuid())
+            |> result
 
         let other = stopped store workspace otherStarted.Id
         let otherVersion = library.Version(other.VersionId.Value, 0) |> wait |> result
@@ -212,7 +213,9 @@ module MaintenanceFixtures =
             )
             |> wait
 
-        let started = store.Installations.StartUpdate(workspace, preview.Id, Guid.NewGuid())
+        let started =
+            store.Installations.StartUpdate(workspace, preview.Id, Guid.NewGuid()) |> result
+
         let updated = stopped store workspace started.Id
         let second = library.Version(updated.VersionId.Value, 0) |> wait |> result
 
@@ -257,6 +260,7 @@ module MaintenanceFixtures =
 
         let replacementStarted =
             store.Installations.StartUpdate(workspace, replacement.Id, Guid.NewGuid())
+            |> result
 
         let replacementInstalled = stopped store workspace replacementStarted.Id
 

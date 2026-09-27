@@ -26,6 +26,11 @@ module internal InstallationWire =
                 | None -> return raise error
         }
 
+    let outcome value =
+        match value with
+        | Ok result -> result
+        | Error message -> raise (RpcException(Status(StatusCode.FailedPrecondition, message)))
+
     let reference (reference: InstallationDraftReference) =
         if isNull reference then
             ModLibraryWire.reject "Open an installation preview."

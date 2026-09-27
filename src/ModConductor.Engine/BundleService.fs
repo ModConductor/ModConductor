@@ -13,7 +13,11 @@ type BundleService(store: BundleStore) =
                     store.Find(ModLibraryWire.id request.WorkspaceId, ModLibraryWire.id request.Id)
 
                 let response = BundleFound()
-                found |> Option.iter (fun b -> response.Bundle <- BundleWire.bundle b)
+
+                found
+                |> InstallationWire.outcome
+                |> Option.iter (fun b -> response.Bundle <- BundleWire.bundle b)
+
                 return response
             })
 
@@ -33,6 +37,7 @@ type BundleService(store: BundleStore) =
 
                 return
                     store.Create(w, id, r, request.Entries |> Seq.map int |> List.ofSeq)
+                    |> InstallationWire.outcome
                     |> BundleWire.bundle
             })
 
@@ -41,7 +46,7 @@ type BundleService(store: BundleStore) =
             task {
                 let r = BundleWire.reference request
                 let! result = store.Read(r.WorkspaceId, r.Id)
-                return BundleWire.bundle result
+                return result |> InstallationWire.outcome |> BundleWire.bundle
             })
 
     override _.ConfigureBundleMod(request, context) =
@@ -52,13 +57,12 @@ type BundleService(store: BundleStore) =
                 let! result =
                     store.Prepare(r, ModLibraryWire.id request.Mod, context.CancellationToken)
 
+                let prepared = InstallationWire.outcome result
                 let! current = store.Read(r.WorkspaceId, r.Id)
+                let bundle = current |> InstallationWire.outcome |> BundleWire.bundle
 
                 return
-                    BundleConfiguration(
-                        Bundle = BundleWire.bundle current,
-                        Prepared = BundleWire.discovery result
-                    )
+                    BundleConfiguration(Bundle = bundle, Prepared = BundleWire.discovery prepared)
             })
 
     override _.ChooseNestedArchives(request, _) =
@@ -81,6 +85,7 @@ type BundleService(store: BundleStore) =
                         revision,
                         request.Entries |> Seq.map int |> List.ofSeq
                     )
+                    |> InstallationWire.outcome
                     |> BundleWire.bundle
             })
 
@@ -96,6 +101,7 @@ type BundleService(store: BundleStore) =
                         ModLibraryWire.id request.Target.Mod,
                         request.Name
                     )
+                    |> InstallationWire.outcome
                     |> BundleWire.bundle
             })
 
@@ -111,6 +117,7 @@ type BundleService(store: BundleStore) =
                         ModLibraryWire.id request.Target.Mod,
                         request.Earlier
                     )
+                    |> InstallationWire.outcome
                     |> BundleWire.bundle
             })
 
@@ -119,7 +126,7 @@ type BundleService(store: BundleStore) =
             task {
                 let r = BundleWire.reference request.Reference
                 let! result = store.Status(r.WorkspaceId, r.Id, ModLibraryWire.id request.Mod)
-                return InstallationWire.status result
+                return result |> InstallationWire.outcome |> InstallationWire.status
             })
 
     override _.RetryBundleMod(request, _) =
@@ -131,12 +138,13 @@ type BundleService(store: BundleStore) =
                         ModLibraryWire.id request.Mod
                     )
 
-                return BundleWire.bundle result
+                return result |> InstallationWire.outcome |> BundleWire.bundle
             })
 
     override _.DeleteBundleTemporaryFiles(request, _) =
         InstallationWire.guard (fun () ->
             task {
-                do! store.Delete(BundleWire.reference request)
+                let! result = store.Delete(BundleWire.reference request)
+                InstallationWire.outcome result |> ignore
                 return BundleClosed()
             })

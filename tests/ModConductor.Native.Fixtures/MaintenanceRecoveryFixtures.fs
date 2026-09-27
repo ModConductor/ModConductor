@@ -61,6 +61,7 @@ module MaintenanceRecoveryFixtures =
                 |> wait
 
             store.Installations.StartUpdateAtCheckpoint(workspace, preview.Id, id, hook)
+            |> result
             |> ignore
         else
             store.Deletions.DeleteAtCheckpoint(workspace, modId, current.Revision, hook)
@@ -125,6 +126,7 @@ module MaintenanceRecoveryFixtures =
 
             let started =
                 store.Installations.Start(workspace, draft.Id, draft.Revision, Guid.NewGuid())
+                |> result
 
             let deadline = DateTime.UtcNow.AddSeconds 20
             let mutable current = store.Installations.Read(workspace, started.Id) |> wait

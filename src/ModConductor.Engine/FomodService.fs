@@ -38,6 +38,7 @@ type FomodService(store: InstallationStore) =
                         int request.OptionId,
                         request.Selected
                     )
+                    |> InstallationWire.outcome
                     |> FomodWire.choices
             })
 

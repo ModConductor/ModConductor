@@ -42,17 +42,22 @@ type InstallationStore
             match changes.TryGetValue id with
             | true, signal -> signal.Task
             | _ ->
-                let signal = TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)
+                let signal =
+                    TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)
+
                 changes.Add(id, signal)
                 signal.Task)
 
-    let draftReference (workspace, id, revision) =
+    let draftResult (workspace, id, revision) =
         if closing then
-            refuse "The app is closing."
+            Error "The app is closing."
+        else
+            match drafts.TryGetValue workspace with
+            | true, draft when draft.Id = id && draft.Revision = revision -> Ok draft
+            | _ -> Error "The installation preview changed. Open it again."
 
-        match drafts.TryGetValue workspace with
-        | true, draft when draft.Id = id && draft.Revision = revision -> draft
-        | _ -> refuse "The installation preview changed. Open it again."
+    let draftReference reference =
+        draftResult reference |> Result.defaultWith refuse
 
     let choices =
         FomodDrafts(
@@ -60,7 +65,7 @@ type InstallationStore
             access,
             inspection,
             gate,
-            draftReference,
+            draftResult,
             fun draft ->
                 drafts[draft.Artifact.WorkspaceId] <- draft
                 updates.Remove draft.Artifact.WorkspaceId |> ignore
@@ -70,7 +75,7 @@ type InstallationStore
         BainDrafts(
             inspection,
             gate,
-            draftReference,
+            draftResult,
             fun draft ->
                 drafts[draft.Artifact.WorkspaceId] <- draft
                 updates.Remove draft.Artifact.WorkspaceId |> ignore
@@ -100,7 +105,9 @@ type InstallationStore
 
     let extract id (plan: InstallationPlan) token checkpoint =
         let observed name =
-            if name = "file-observed" || name = "after-publication" then changed id
+            if name = "file-observed" || name = "after-publication" then
+                changed id
+
             checkpoint name
 
         inspection.WithInput(
@@ -112,15 +119,34 @@ type InstallationStore
                 payloads.Write(id, plan, contents, token, observed)
                 token.ThrowIfCancellationRequested()
                 checkpoint "before-publication"
-                db (fun () -> InstallationRows.publish connection database.OwnerId id plan)
-                observed "after-publication"
+
+                let published =
+                    db (fun () -> InstallationRows.publish connection database.OwnerId id plan)
+
+                if Result.isOk published then
+                    observed "after-publication"
+
+                published
         )
 
     let execute id plan token checkpoint =
         task {
+            let stop message =
+                task {
+                    do!
+                        database.EnqueueInternal(fun () ->
+                            InstallationRows.stopped connection database.OwnerId id message)
+
+                    changed id
+                }
+
             try
                 let! result = extract id plan token checkpoint
-                artifactResult result
+
+                match result with
+                | Ok(Ok()) -> ()
+                | Ok(Error message) -> do! stop message
+                | Error error -> artifactResult (Error error) |> ignore
             with error ->
                 let message =
                     match error with
@@ -139,10 +165,7 @@ type InstallationStore
                                 "Installation failed. No mod was added."
                         )
 
-                do!
-                    database.EnqueueInternal(fun () ->
-                        InstallationRows.stopped connection database.OwnerId id message)
-                changed id
+                do! stop message
         }
 
     member private _.PrepareInput
@@ -274,26 +297,25 @@ type InstallationStore
 
     member _.UseInstaller(workspace, id, revision, mode) =
         lock gate (fun () ->
-            let current = draftReference (workspace, id, revision)
+            draftResult (workspace, id, revision)
+            |> Result.bind (fun current ->
+                if not (List.contains mode current.AvailableInstallers) then
+                    Error "This installer is not available for this archive."
+                else
+                    match current.Installer with
+                    | InstallationMode.Fomod -> Ok(choices.Manual(workspace, id, revision))
+                    | InstallationMode.Bain -> packages.Manual(workspace, id, revision)
+                    | InstallationMode.Manual -> Ok current)
+            |> Result.map (fun manual ->
+                let next =
+                    { manual with
+                        Revision = manual.Revision + 1L
+                        Installer = mode
+                        Plan = if mode = InstallationMode.Manual then manual.Plan else None }
 
-            if not (List.contains mode current.AvailableInstallers) then
-                refuse "This installer is not available for this archive."
-
-            let manual =
-                match current.Installer with
-                | InstallationMode.Fomod -> choices.Manual(workspace, id, revision)
-                | InstallationMode.Bain -> packages.Manual(workspace, id, revision)
-                | InstallationMode.Manual -> current
-
-            let next =
-                { manual with
-                    Revision = manual.Revision + 1L
-                    Installer = mode
-                    Plan = if mode = InstallationMode.Manual then manual.Plan else None }
-
-            drafts[workspace] <- next
-            updates.Remove workspace |> ignore
-            next)
+                drafts[workspace] <- next
+                updates.Remove workspace |> ignore
+                next))
 
 
     member _.Change(workspace, id, revision, change) =
@@ -332,16 +354,15 @@ type InstallationStore
     member private _.StartPlan(id, plan, checkpoint) =
         lock gate (fun () ->
             if closing then
-                refuse "The app is closing."
+                Error "The app is closing."
+            else
+                for key in workers.Keys |> Seq.toArray do
+                    let cancellation, work = workers[key]
 
-            for key in workers.Keys |> Seq.toArray do
-                let cancellation, work = workers[key]
+                    if work.IsCompleted then
+                        cancellation.Dispose()
+                        workers.Remove key |> ignore
 
-                if work.IsCompleted then
-                    cancellation.Dispose()
-                    workers.Remove key |> ignore
-
-            let snapshot, fresh =
                 db (fun () ->
                     InstallationRows.reserve
                         connection
@@ -350,32 +371,29 @@ type InstallationStore
                         plan
                         (fun transaction ->
                             choices.Check connection transaction plan.Artifact.WorkspaceId))
+                |> Result.map (fun (snapshot, fresh) ->
+                    if fresh then
+                        changed snapshot.Id
 
-            if fresh then changed snapshot.Id
+                    if fresh then
+                        let cancellation = new CancellationTokenSource()
 
-            if fresh then
-                let cancellation = new CancellationTokenSource()
+                        let work =
+                            Task.Run(fun () ->
+                                execute id plan cancellation.Token checkpoint :> Task)
 
-                let work =
-                    Task.Run(fun () -> execute id plan cancellation.Token checkpoint :> Task)
+                        workers[id] <- cancellation, work
 
-                workers[id] <- cancellation, work
-
-            snapshot)
+                    snapshot))
 
     member internal this.StartAtCheckpoint(workspace, draftId, revision, id, checkpoint) =
         lock gate (fun () ->
-            let draft =
-                match drafts.TryGetValue workspace with
-                | true, draft when draft.Id = draftId && draft.Revision = revision -> draft
-                | _ -> refuse "The installation preview changed. Open it again."
-
-            let plan =
-                draft.Plan
-                |> Option.defaultWith (fun () ->
-                    refuse "Choose files and review their destinations before installation.")
-
-            this.StartPlan(id, plan, checkpoint))
+            draftResult (workspace, draftId, revision)
+            |> Result.bind (fun draft ->
+                match draft.Plan with
+                | Some plan -> Ok plan
+                | None -> Error "Choose files and review their destinations before installation.")
+            |> Result.bind (fun plan -> this.StartPlan(id, plan, checkpoint)))
 
     member _.PrepareUpdate(workspace, draftId, revision, modId, expected, mode, keep, version) =
         task {
@@ -443,7 +461,7 @@ type InstallationStore
             match updates.TryGetValue workspace with
             | true, preview when preview.Id = previewId ->
                 this.StartPlan(id, preview.Plan, checkpoint)
-            | _ -> refuse "The update preview changed. Review it again.")
+            | _ -> Error "The update preview changed. Review it again.")
 
     member this.StartUpdate(workspace, previewId, id) =
         this.StartUpdateAtCheckpoint(workspace, previewId, id, ignore)
@@ -458,8 +476,11 @@ type InstallationStore
         task {
             let pending = waitSignal id
             let! current = database.Enqueue(fun () -> snapshot workspace id)
-            if current = observed then do! pending.WaitAsync(token)
-        } :> Task
+
+            if current = observed then
+                do! pending.WaitAsync(token)
+        }
+        :> Task
 
     member _.WaitForWorker(id, token: CancellationToken) =
         let pending =
@@ -467,6 +488,7 @@ type InstallationStore
                 match workers.TryGetValue id with
                 | true, (_, work) -> work
                 | _ -> Task.CompletedTask)
+
         pending.WaitAsync(token)
 
     member _.Recent(workspace) =
