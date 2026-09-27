@@ -67,6 +67,8 @@ module MaintenanceRecoveryFixtures =
         else
             store.Deletions.DeleteAtCheckpoint(workspace, modId, current.Revision, hook)
             |> wait
+            |> result
+            |> ignore
 
         Thread.Sleep Timeout.Infinite
 
@@ -257,6 +259,8 @@ module MaintenanceRecoveryFixtures =
                             raise (IOException "Injected deletion failure.")
                 )
                 |> wait
+                |> result
+                |> ignore
             with _ ->
                 failed <- true
 

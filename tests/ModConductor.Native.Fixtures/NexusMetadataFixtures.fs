@@ -446,7 +446,10 @@ module NexusMetadataFixtures =
             until (fun () -> server.Count "/api/games/skyrimspecialedition/mods/64012.json" > count)
             let target = readMod store workspace installedMod
 
-            store.Deletions.Delete(workspace, installedMod, target.Revision) |> wait
+            store.Deletions.Delete(workspace, installedMod, target.Revision)
+            |> wait
+            |> result
+            |> ignore
 
             server.ReleaseMetadata()
 

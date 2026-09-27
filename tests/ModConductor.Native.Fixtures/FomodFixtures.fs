@@ -400,7 +400,10 @@ module FomodFixtures =
             (library.Scan(workspace, 100) |> wait |> result).Entries
             |> List.find (fun entry -> entry.Id = status.ModId.Value)
 
-        store.Deletions.Delete(workspace, modEntry.Id, modEntry.Revision) |> wait
+        store.Deletions.Delete(workspace, modEntry.Id, modEntry.Revision)
+        |> wait
+        |> result
+        |> ignore
 
         check
             "OwnedDeletionRemovesFomodPayloadsWithoutDanglingMappings"

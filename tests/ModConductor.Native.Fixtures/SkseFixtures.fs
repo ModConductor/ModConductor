@@ -863,7 +863,10 @@ module SkseFixtures =
             (library.Scan(workspace, 100) |> wait |> result).Entries
             |> List.find (fun entry -> entry.Id = firstMod)
 
-        store.Deletions.Delete(workspace, firstMod, firstEntry.Revision) |> wait
+        store.Deletions.Delete(workspace, firstMod, firstEntry.Revision)
+        |> wait
+        |> result
+        |> ignore
 
         let deletedSkseReferences =
             (store.SkseLoaders.ReadStored(workspace, profile, Some firstGeneration) |> wait).IsNone

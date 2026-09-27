@@ -175,7 +175,10 @@ module BundleFixtures =
 
         let target = inventory.Entries |> List.find (fun m -> m.Id = modId)
 
-        store.Deletions.Delete(workspace, target.Id, target.Revision) |> wait
+        store.Deletions.Delete(workspace, target.Id, target.Revision)
+        |> wait
+        |> result
+        |> ignore
 
         let passed =
             (store.Bundles.Find(workspace, bundle.Artifact.Id) |> wait |> result).IsNone
@@ -437,7 +440,10 @@ module BundleFixtures =
 
         File.AppendAllText(privateCopy, "changed owned bytes")
 
-        store.Deletions.Delete(workspace, target.Id, target.Revision) |> wait
+        store.Deletions.Delete(workspace, target.Id, target.Revision)
+        |> wait
+        |> result
+        |> ignore
 
         let bundle = store.Bundles.Read(workspace, bundleId) |> wait |> result
 
