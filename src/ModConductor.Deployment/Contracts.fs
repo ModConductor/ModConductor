@@ -189,8 +189,13 @@ type internal IDeploymentRepository =
             Task<Result<PreparedState, RecoveryError>>
 
     abstract Current: SourceStamp -> Task<bool>
-    abstract Context: workspace: Guid * profile: Guid -> Task<GameContextState>
-    abstract ContextForDeployment: workspace: Guid * context: Guid -> Task<GameContextState>
+
+    abstract Context:
+        workspace: Guid * profile: Guid -> Task<Result<GameContextState, RecoveryError>>
+
+    abstract ContextForDeployment:
+        workspace: Guid * context: Guid -> Task<Result<GameContextState, RecoveryError>>
+
     abstract Start: PreparedState * CancellationToken -> Task<Result<Receipt, RecoveryError>>
 
     abstract Run:

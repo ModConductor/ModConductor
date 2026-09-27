@@ -58,37 +58,39 @@ module internal LaunchDeployment =
                             try
                                 let! current = repository.Current expected
 
-                                let! checkedContext =
+                                let! contextResult =
                                     repository.Context(expected.WorkspaceId, expected.ProfileId)
 
-                                token.ThrowIfCancellationRequested()
+                                let checked =
+                                    contextResult
+                                    |> Result.mapError DeploymentReports.error
+                                    |> Result.bind (fun context ->
+                                        token.ThrowIfCancellationRequested()
 
-                                if not current || checkedContext <> prepared.Context then
-                                    return Error DeploymentError.Stale
-                                else
-                                    match GameProcesses.validate checkedContext with
-                                    | Error detail ->
-                                        return Error(DeploymentError.Unavailable detail)
-                                    | Ok _ ->
-                                        let! started = repository.Start(prepared, token)
+                                        if not current || context <> prepared.Context then
+                                            Error DeploymentError.Stale
+                                        else
+                                            GameProcesses.validate context
+                                            |> Result.mapError DeploymentError.Unavailable)
 
-                                        match started with
-                                        | Error error -> return Error(DeploymentReports.error error)
-                                        | Ok receipt ->
-                                            durable <- true
-                                            let! finished = execute receipt false progress token
+                                match checked with
+                                | Error error -> return Error error
+                                | Ok _ ->
+                                    let! started = repository.Start(prepared, token)
 
-                                            return
-                                                finished
-                                                |> Result.bind (fun receipt ->
-                                                    if
-                                                        receipt.Phase = DeploymentPhase.Complete
-                                                    then
-                                                        Ok(prepared.View, receipt)
-                                                    else
-                                                        Error(
-                                                            DeploymentError.Blocked receipt.Detail
-                                                        ))
+                                    match started with
+                                    | Error error -> return Error(DeploymentReports.error error)
+                                    | Ok receipt ->
+                                        durable <- true
+                                        let! finished = execute receipt false progress token
+
+                                        return
+                                            finished
+                                            |> Result.bind (fun receipt ->
+                                                if receipt.Phase = DeploymentPhase.Complete then
+                                                    Ok(prepared.View, receipt)
+                                                else
+                                                    Error(DeploymentError.Blocked receipt.Detail))
                             finally
                                 if not durable then
                                     PreparedState.abandon prepared

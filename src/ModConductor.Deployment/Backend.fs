@@ -285,24 +285,29 @@ type DeploymentBackend internal (repository: IDeploymentRepository) =
                             if value.View.Sources <> expected then
                                 return Error DeploymentError.Stale
                             else
-                                let! context =
+                                let! contextResult =
                                     repository.Context(expected.WorkspaceId, expected.ProfileId)
 
-                                if context <> value.Context then
-                                    return Error DeploymentError.Stale
-                                else
-                                    match checkedContext context with
-                                    | Error error -> return Error error
-                                    | Ok _ ->
-                                        token.ThrowIfCancellationRequested()
-                                        let! started = repository.Start(value, token)
+                                let checked =
+                                    contextResult
+                                    |> Result.mapError DeploymentReports.error
+                                    |> Result.bind (fun context ->
+                                        if context <> value.Context then
+                                            Error DeploymentError.Stale
+                                        else
+                                            checkedContext context)
 
-                                        match started with
-                                        | Error error ->
-                                            return Error(DeploymentReports.error error)
-                                        | Ok receipt ->
-                                            durable <- true
-                                            return! execute receipt false progress token
+                                match checked with
+                                | Error error -> return Error error
+                                | Ok _ ->
+                                    token.ThrowIfCancellationRequested()
+                                    let! started = repository.Start(value, token)
+
+                                    match started with
+                                    | Error error -> return Error(DeploymentReports.error error)
+                                    | Ok receipt ->
+                                        durable <- true
+                                        return! execute receipt false progress token
                         finally
                             if not durable then
                                 state.Abandon value
@@ -322,22 +327,25 @@ type DeploymentBackend internal (repository: IDeploymentRepository) =
                                     if saved.Revision <> revision then
                                         return Error DeploymentError.Stale
                                     else
-                                        let! context =
+                                        let! contextResult =
                                             repository.ContextForDeployment(
                                                 saved.Context.Roots.Head.Root.Id,
                                                 saved.Context.Id
                                             )
 
-                                        match checkedContext context with
+                                        let checked =
+                                            contextResult
+                                            |> Result.mapError DeploymentReports.error
+                                            |> Result.bind checkedContext
+
+                                        match checked with
                                         | Error error -> return Error error
-                                        | Ok evidence ->
-                                            if
-                                                DeploymentContextId.fingerprint evidence
-                                                <> saved.Context.Fingerprint
-                                            then
-                                                return Error DeploymentError.Stale
-                                            else
-                                                return! execute saved restore progress token
+                                        | Ok evidence when
+                                            DeploymentContextId.fingerprint evidence
+                                            <> saved.Context.Fingerprint
+                                            ->
+                                            return Error DeploymentError.Stale
+                                        | Ok _ -> return! execute saved restore progress token
                                 })
                 })
 

@@ -159,7 +159,7 @@ type internal DeploymentBackendRepository
         member _.Context(workspace, profile) =
             database.Enqueue(fun () ->
                 GameContextRows.read database.Connection null database.OwnerId workspace profile
-                |> Result.defaultWith (fun _ -> raise (RecoveryException RecoveryError.NotFound)))
+                |> Result.mapError (fun _ -> RecoveryError.NotFound))
 
         member _.ContextForDeployment(workspace, context) =
             database.Enqueue(fun () ->
@@ -195,8 +195,8 @@ type internal DeploymentBackendRepository
                                 profile
                                 (DeploymentContextId.fingerprint binding.Evidence) = context)))
                 |> function
-                    | [ state ] -> state
-                    | _ -> raise (RecoveryException RecoveryError.NotFound))
+                    | [ state ] -> Ok state
+                    | _ -> Error RecoveryError.NotFound)
 
         member _.Start(prepared, token) =
             task {
