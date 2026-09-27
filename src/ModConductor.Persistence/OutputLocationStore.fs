@@ -65,7 +65,7 @@ module internal OutputLocationCommands =
         else
             Ok physical
 
-    let private addedBytes name (physical: HostPath) purpose =
+    let private addedBytes (name: string) (physical: HostPath) purpose =
         512
         + System.Text.Encoding.UTF8.GetByteCount name
         + System.Text.Encoding.UTF8.GetByteCount(HostPath.value physical)
