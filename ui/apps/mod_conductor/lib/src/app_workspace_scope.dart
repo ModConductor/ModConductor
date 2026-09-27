@@ -1,6 +1,63 @@
 part of 'app.dart';
 
 mixin _WorkspaceScope on _AppStateBase, _SettingsScope {
+  bool _deletionScopeMatches(String workspaceId, String profileId) =>
+      _workspaces.workspace?.id == workspaceId &&
+      _workspaces.workspace?.selectedProfile?.id == profileId &&
+      _deployments.profileId == profileId;
+
+  Future<String?> _deactivateGameFilesForDeletion(String workspaceId) async {
+    final workspace = _workspaces.workspace;
+    final profile = workspace?.selectedProfile;
+    if (workspace?.id != workspaceId || profile == null) {
+      return 'The selected workspace changed. Open the mod again.';
+    }
+    if (!_deployments.connected || _deployments.profileId != profile.id) {
+      return 'The deployment is unavailable.';
+    }
+    if (_deployments.busy || _deployments.reading) {
+      return 'Finish the current deployment operation and try again.';
+    }
+    if (_deployments.needsRead || _deployments.state == null) {
+      await _deployments.read();
+    }
+    if (!_deletionScopeMatches(workspaceId, profile.id)) {
+      return 'The selected profile changed. Open the mod again.';
+    }
+    if (!_deployments.canPrepare) {
+      return _deployments.problem ?? 'The deployment cannot be changed.';
+    }
+    if (_deployments.state?.workspaceId != workspaceId) {
+      return 'The deployment belongs to another workspace.';
+    }
+    final active = _deployments.state?.active;
+    if (active == null || (active.known && active.profile == null)) return null;
+    if (!active.known || active.profile?.id != profile.id) {
+      return 'Another profile has active game files. Select that profile and delete the mod again.';
+    }
+    await _deployments.prepare(retained: true);
+    if (!_deletionScopeMatches(workspaceId, profile.id)) {
+      return 'The selected profile changed. Open the mod again.';
+    }
+    if (!_deployments.canDeploy || _deployments.prepared?.profile != null) {
+      return _deployments.problem ?? 'Game files could not be deactivated.';
+    }
+    await _deployments.activate();
+    if (!_deletionScopeMatches(workspaceId, profile.id)) {
+      return 'The selected profile changed. Open the mod again.';
+    }
+    final after = _deployments.state?.active;
+    if (_deployments.problem != null ||
+        _deployments.needsRead ||
+        after == null ||
+        !after.known ||
+        after.profile != null) {
+      return _deployments.problem ??
+          'Check the deployment before deleting the mod.';
+    }
+    return null;
+  }
+
   bool get _gameReady {
     final state = _game.state;
     final binding = state?.binding;

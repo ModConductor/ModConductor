@@ -40,6 +40,8 @@ class ModLibraryBrowser extends StatefulWidget {
     this.maintenance,
     this.onOpenNexus,
     this.onMaintenanceOpen,
+    this.deactivateGameFiles,
+    this.onDeleted,
     this.savedFileActions = const [],
     this.inventoryExports,
     this.chooseExportLocation,
@@ -55,6 +57,8 @@ class ModLibraryBrowser extends StatefulWidget {
   final void Function(ModEntry)? onOpenNexus;
   final MaintenanceClient? maintenance;
   final VoidCallback? onMaintenanceOpen;
+  final Future<String?> Function(String workspaceId)? deactivateGameFiles;
+  final Future<void> Function()? onDeleted;
   final List<Widget> savedFileActions;
   final InventoryExportClient? inventoryExports;
   final InventoryExportLocationChooser? chooseExportLocation;
@@ -77,9 +81,10 @@ class _ModLibraryBrowserState extends State<ModLibraryBrowser> {
   InventoryExportDialogResult? _exportResult;
   bool _folderProblem = false;
   ModLibraryController get controller => widget.controller;
-  late final deletion = DeletionController(
-    () => controller.inventory.refreshCatalogue(),
-  );
+  late final deletion = DeletionController(() async {
+    await controller.inventory.refreshCatalogue();
+    await widget.onDeleted?.call();
+  });
   @override
   void initState() {
     super.initState();

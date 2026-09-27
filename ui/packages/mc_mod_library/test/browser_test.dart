@@ -37,7 +37,74 @@ class PendingDeletionClient extends Fake implements MaintenanceClient {
   }
 }
 
+class DeployedDeletionClient extends Fake implements MaintenanceClient {
+  int deletes = 0;
+
+  @override
+  Future<void> deleteMod(ModEntry value) async {
+    deletes++;
+    if (deletes == 1) {
+      throw const ArtifactProblem(
+        'Deactivate game files before deleting this mod.',
+      );
+    }
+  }
+}
+
 void main() {
+  testWidgets('confirmed deactivation retries deletion once', (tester) async {
+    final entry = mod('mod', revision: 4);
+    final library = FolderClient()
+      ..onQuery = (_, _) async => inventoryPage([entry], null);
+    final maintenance = DeployedDeletionClient();
+    final controller = ModLibraryController();
+    addTearDown(controller.dispose);
+    controller.attach(
+      library,
+      SelectionClient(),
+      organizationClient: organization(library),
+      workspaceId: 'workspace',
+      profileId: 'profile',
+      editable: true,
+    );
+    var deactivations = 0;
+    var archiveRefreshes = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: mcTheme(Brightness.light),
+        home: Scaffold(
+          body: ModLibraryBrowser(
+            controller: controller,
+            workspacePath: '/workspace',
+            maintenance: maintenance,
+            onDeleted: () async => archiveRefreshes++,
+            deactivateGameFiles: (workspace) async {
+              expect(workspace, 'workspace');
+              deactivations++;
+              return null;
+            },
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey((modId: 'mod'))));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byWidgetPredicate(
+        (widget) => widget is McIconAction && widget.label == 'Delete mod',
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(McAction, 'Delete'));
+    await tester.pumpAndSettle();
+
+    expect(deactivations, 1);
+    expect(maintenance.deletes, 2);
+    expect(archiveRefreshes, 1);
+    expect(find.text('Mod mod deleted'), findsOneWidget);
+  });
+
   testWidgets(
     'native folder choice submits through the feature client and updates the inventory',
     (tester) async {
