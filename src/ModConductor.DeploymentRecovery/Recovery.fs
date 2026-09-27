@@ -38,8 +38,7 @@ type internal Recovery(repository: IRecoveryRepository) =
         || receipt.Phase = ReceiptPhase.Restoring
         || (receipt.Changes
             |> List.exists (fun change ->
-                change.Phase = EntryPhase.RestoreIntent
-                || change.Phase = EntryPhase.Restored))
+                change.Phase = EntryPhase.RestoreIntent || change.Phase = EntryPhase.Restored))
 
     let verifyCompleted cancellation (receipt: Receipt) restoring =
         receipt.Changes
@@ -109,7 +108,9 @@ type internal Recovery(repository: IRecoveryRepository) =
                     try
                         let! context = repository.Context request.ContextId
                         let token = defaultArg cancellation CancellationToken.None
-                        let! prepared = Task.Run(fun () -> Preparation.prepare token context request)
+
+                        let! prepared =
+                            Task.Run(fun () -> Preparation.prepare token context request)
 
                         match prepared with
                         | Error error -> return Error error
@@ -124,7 +125,7 @@ type internal Recovery(repository: IRecoveryRepository) =
                                     request.ExpectedSources
                                 )
 
-                            return Ok saved
+                            return saved
                     with error ->
                         match convert error with
                         | Some failure -> return Error failure
@@ -150,7 +151,11 @@ type internal Recovery(repository: IRecoveryRepository) =
                 let save receipt =
                     task {
                         let! saved = repository.Save receipt
-                        current <- Some saved
+
+                        match saved with
+                        | Ok value -> current <- Some value
+                        | Error _ -> ()
+
                         return saved
                     }
 
@@ -160,88 +165,106 @@ type internal Recovery(repository: IRecoveryRepository) =
 
                 try
                     try
-                        let! claimed = repository.Claim(id, revision)
-                        current <- Some claimed
+                        return!
+                            RecoveryResultTask.resultTask {
+                                let! claimedResult = repository.Claim(id, revision)
+                                let! claimed = claimedResult
+                                current <- Some claimed
 
-                        if
-                            claimed.Phase = ReceiptPhase.Complete
-                            || claimed.Phase = ReceiptPhase.Restored
-                        then
-                            return Ok claimed
-                        else
-                            let! proposed =
-                                repository.Generation(claimed.Context.Id, claimed.Proposed)
+                                if
+                                    claimed.Phase = ReceiptPhase.Complete
+                                    || claimed.Phase = ReceiptPhase.Restored
+                                then
+                                    return claimed
+                                else
+                                    let! proposed =
+                                        repository.Generation(claimed.Context.Id, claimed.Proposed)
 
-                            let proposed = required proposed
+                                    let proposed = required proposed
 
-                            if
-                                proposed.PlanFingerprint <> claimed.PlanFingerprint
-                                || List.sort proposed.Roots
-                                   <> (claimed.Context.Roots
-                                       |> List.map (fun root -> root.Root)
-                                       |> List.sort)
-                            then
-                                RecoveryFiles.fail
-                                    "The recorded generation differs from the activation context."
+                                    if
+                                        proposed.PlanFingerprint <> claimed.PlanFingerprint
+                                        || List.sort proposed.Roots
+                                           <> (claimed.Context.Roots
+                                               |> List.map (fun root -> root.Root)
+                                               |> List.sort)
+                                    then
+                                        RecoveryFiles.fail
+                                            "The recorded generation differs from the activation context."
 
-                            RecoveryFiles.verifyGenerationWith cancellation proposed
+                                    RecoveryFiles.verifyGenerationWith cancellation proposed
 
-                            RecoveryFiles.verifyObservedWith
-                                cancellation
-                                { claimed.Context with
-                                    Originals = claimed.Originals }
-                                proposed
+                                    RecoveryFiles.verifyObservedWith
+                                        cancellation
+                                        { claimed.Context with
+                                            Originals = claimed.Originals }
+                                        proposed
 
-                            match claimed.Previous with
-                            | Some previous ->
-                                let! old = repository.Generation(claimed.Context.Id, previous)
-                                RecoveryFiles.verifyGenerationWith cancellation (required old)
-                            | None -> ()
+                                    match claimed.Previous with
+                                    | Some previous ->
+                                        let! old =
+                                            repository.Generation(claimed.Context.Id, previous)
 
-                            let restoring = restoring claimed restore
+                                        RecoveryFiles.verifyGenerationWith
+                                            cancellation
+                                            (required old)
+                                    | None -> ()
 
-                            let! starting =
-                                save
-                                    { claimed with
-                                        Phase =
-                                            (if restoring then
-                                                 ReceiptPhase.Restoring
-                                             else
-                                                 ReceiptPhase.Applying)
-                                        Detail = "" }
+                                    let restoring = restoring claimed restore
 
-                            boundary "intent" -1
+                                    let! startingResult =
+                                        save
+                                            { claimed with
+                                                Phase =
+                                                    (if restoring then
+                                                         ReceiptPhase.Restoring
+                                                     else
+                                                         ReceiptPhase.Applying)
+                                                Detail = "" }
 
-                            let! parentReady =
-                                RecoveryParents.create save boundary starting restoring
+                                    let! starting = startingResult
+                                    boundary "intent" -1
 
-                            let! receipt =
-                                RecoverySteps.run save boundary cancellation parentReady restoring
+                                    let! parentResult =
+                                        RecoveryParents.create save boundary starting restoring
 
-                            let! receipt = RecoveryParents.remove save boundary receipt restoring
+                                    let! parentReady = parentResult
 
-                            let links = verifyCompleted cancellation receipt restoring
+                                    let! stepResult =
+                                        RecoverySteps.run
+                                            save
+                                            boundary
+                                            cancellation
+                                            parentReady
+                                            restoring
 
-                            boundary "verified" -1
+                                    let! stepped = stepResult
 
-                            let context = completedContext receipt restoring links
+                                    let! removeResult =
+                                        RecoveryParents.remove save boundary stepped restoring
 
-                            boundary "publication" -1
+                                    let! receipt = removeResult
+                                    let links = verifyCompleted cancellation receipt restoring
+                                    boundary "verified" -1
+                                    let context = completedContext receipt restoring links
+                                    boundary "publication" -1
 
-                            let! finished =
-                                repository.Finish(
-                                    { receipt with
-                                        Phase =
-                                            (if restoring then
-                                                 ReceiptPhase.Restored
-                                             else
-                                                 ReceiptPhase.Complete) },
-                                    context
-                                )
+                                    let! finishResult =
+                                        repository.Finish(
+                                            { receipt with
+                                                Phase =
+                                                    (if restoring then
+                                                         ReceiptPhase.Restored
+                                                     else
+                                                         ReceiptPhase.Complete) },
+                                            context
+                                        )
 
-                            current <- Some finished
-                            afterEffect "committed" -1
-                            return Ok finished
+                                    let! finished = finishResult
+                                    current <- Some finished
+                                    afterEffect "committed" -1
+                                    return finished
+                            }
                     with error ->
                         let failure =
                             if error :? OperationCanceledException then
@@ -267,13 +290,15 @@ type internal Recovery(repository: IRecoveryRepository) =
                                     | RecoveryError.Corrupt text -> text
                                     | _ -> "The receipt cannot proceed."
 
-                                let! _ =
+                                let! blocked =
                                     save
                                         { receipt with
                                             Phase = ReceiptPhase.Blocked
                                             Detail = detail }
 
-                                ()
+                                match blocked with
+                                | Error error -> return Error error
+                                | Ok _ -> ()
                             | _ -> ()
 
                             return Error reason

@@ -87,7 +87,20 @@ module DeploymentFixtures =
         | Ok() ->
             writer.WriteBoolean("symlinks", true)
             use store = new OperationStore(area.State)
+
+            let missing =
+                get (
+                    store.Deployment.Run(id 9999, 0L, false, CancellationToken.None, fun _ _ -> ())
+                )
+
             let first = start store area (id 1001) 0L area.First |> apply store
+
+            flag
+                writer
+                "missingReceiptDoesNotBlockActivation"
+                (match missing with
+                 | Error RecoveryError.NotFound -> first.Phase = ReceiptPhase.Complete
+                 | _ -> false)
 
             flag
                 writer

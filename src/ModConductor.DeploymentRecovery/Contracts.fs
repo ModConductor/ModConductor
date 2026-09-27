@@ -195,10 +195,10 @@ type internal IRecoveryRepository =
 
     abstract Begin:
         Context option * Receipt * Generation * ModConductor.FilePlanning.SourceStamp option ->
-            Task<Receipt>
+            Task<Result<Receipt, RecoveryError>>
 
-    abstract Claim: Guid * int64 -> Task<Receipt>
-    abstract Save: Receipt -> Task<Receipt>
-    abstract Finish: Receipt * Context -> Task<Receipt>
+    abstract Claim: Guid * int64 -> Task<Result<Receipt, RecoveryError>>
+    abstract Save: Receipt -> Task<Result<Receipt, RecoveryError>>
+    abstract Finish: Receipt * Context -> Task<Result<Receipt, RecoveryError>>
     abstract Release: Guid -> Task<unit>
     abstract Pending: int64 -> Task<(int64 * Receipt) list>

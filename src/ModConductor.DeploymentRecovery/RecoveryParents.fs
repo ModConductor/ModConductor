@@ -60,7 +60,12 @@ module internal RecoveryParents =
         { receipt with
             Parents = receipt.Parents |> List.mapi (fun i row -> if i = index then change else row) }
 
-    let create (save: Receipt -> Task<Receipt>) boundary (starting: Receipt) restoring =
+    let create
+        (save: Receipt -> Task<Result<Receipt, RecoveryError>>)
+        boundary
+        (starting: Receipt)
+        restoring
+        =
         task {
             let mutable receipt = starting
 
@@ -103,7 +108,11 @@ module internal RecoveryParents =
                                         EntryPhase.InstallIntent }
 
                         let! intent = save (update index change receipt)
-                        receipt <- intent
+
+                        match intent with
+                        | Error error -> return Error error
+                        | Ok saved -> receipt <- saved
+
                         boundary "parent-create-intent" index
 
                         let identity =
@@ -127,12 +136,20 @@ module internal RecoveryParents =
                                     Phase = EntryPhase.Installed }
 
                         let! updated = save (update index change receipt)
-                        receipt <- updated
 
-            return receipt
+                        match updated with
+                        | Error error -> return Error error
+                        | Ok saved -> receipt <- saved
+
+            return Ok receipt
         }
 
-    let remove (save: Receipt -> Task<Receipt>) boundary (starting: Receipt) restoring =
+    let remove
+        (save: Receipt -> Task<Result<Receipt, RecoveryError>>)
+        boundary
+        (starting: Receipt)
+        restoring
+        =
         task {
             let mutable receipt = starting
 
@@ -165,7 +182,11 @@ module internal RecoveryParents =
                                         EntryPhase.RemoveIntent }
 
                         let! intent = save (update index change receipt)
-                        receipt <- intent
+
+                        match intent with
+                        | Error error -> return Error error
+                        | Ok saved -> receipt <- saved
+
                         boundary "parent-remove-intent" index
 
                         RecoveryFiles.withParent
@@ -193,10 +214,13 @@ module internal RecoveryParents =
                                         EntryPhase.Cleared }
 
                         let! updated = save (update index change receipt)
-                        receipt <- updated
+
+                        match updated with
+                        | Error error -> return Error error
+                        | Ok saved -> receipt <- saved
                     | Some _ -> RecoveryFiles.fail "A changed deployment parent was left untouched."
 
-            return receipt
+            return Ok receipt
         }
 
     let completed (receipt: Receipt) restoring =

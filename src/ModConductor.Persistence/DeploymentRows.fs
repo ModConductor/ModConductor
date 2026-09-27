@@ -114,21 +114,22 @@ module internal DeploymentRows =
 
         use reader = command.ExecuteReader()
 
-        while reader.Read() do
+        let mutable conflict = false
+
+        while not conflict && reader.Read() do
             let existing = DeploymentEncoding.contextFrom (bytes reader 0)
 
-            if
+            conflict <-
                 (existing.Pending.IsSome
                  || not existing.Links.IsEmpty
                  || not existing.Directories.IsEmpty
                  || not existing.Originals.IsEmpty)
                 && Preparation.overlappingRoots existing.Roots value.Roots
-            then
-                raise (
-                    RecoveryException(
-                        RecoveryError.Mismatch "Another deployment context owns this target."
-                    )
-                )
+
+        if conflict then
+            Error(RecoveryError.Mismatch "Another deployment context owns this target.")
+        else
+            Ok()
 
     let writeContext connection transaction (value: Context) =
         let body = DeploymentEncoding.contextBytes value
