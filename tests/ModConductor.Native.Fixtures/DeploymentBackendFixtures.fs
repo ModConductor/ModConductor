@@ -190,6 +190,25 @@ module DeploymentBackendFixtures =
         contexts.Save(workspace, profile, current.Revision, selection replacement replacementProton)
         |> wait |> result |> ignore
 
+        let oldReceipt = store.Deployment.Read rollback.Id |> wait
+
+        let reboundRecovery =
+            backend.Recover(
+                rollback.Id,
+                rollback.Revision,
+                true,
+                ignore,
+                CancellationToken.None
+            )
+            |> wait
+
+        let reboundRefusedWithoutEffects =
+            oldReceipt.IsSome
+            && reboundRecovery = Error DeploymentError.NotFound
+            && (store.Deployment.Read rollback.Id |> wait) = oldReceipt
+            && File.ReadAllText viewOriginal = "managed winner"
+            && File.ReadAllText original = "original game bytes"
+
         let changed = deploy ()
         let sourceChangeRetiresPriorView =
             changed.Phase = DeploymentPhase.Complete
@@ -230,5 +249,6 @@ module DeploymentBackendFixtures =
         writer.WriteBoolean("retiredLinkTreeReclaimed", not (Directory.Exists originalTree))
         writer.WriteBoolean("retainedGenerationReactivated", retainedReactivated)
         writer.WriteBoolean("sourceChangeRetiresPriorView", sourceChangeRetiresPriorView)
+        writer.WriteBoolean("reboundRecoveryRefusedWithoutEffects", reboundRefusedWithoutEffects && changed.Phase = DeploymentPhase.Complete)
         writer.WriteBoolean("backendLeaseDrainsBeforeClose", backendLeaseDrainsBeforeClose)
         writer.WriteEndObject()
