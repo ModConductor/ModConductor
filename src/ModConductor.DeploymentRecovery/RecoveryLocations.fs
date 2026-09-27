@@ -93,12 +93,14 @@ module internal RecoveryLocations =
             |> List.distinct
             |> List.map (fun target -> target, nativePath target)
 
-        for index, (target, path) in List.indexed physicalTargets do
-            for other, otherPath in physicalTargets |> List.skip (index + 1) do
-                if
-                    target.Root <> other.Root && (nested path otherPath || nested otherPath path)
-                then
-                    RecoveryFiles.fail "Deployment target roots contain overlapping paths."
+        let targetsByRoot = physicalTargets |> List.groupBy (fun (target, _) -> target.Root)
+
+        for index, (_, targets) in List.indexed targetsByRoot do
+            for _, otherTargets in targetsByRoot |> List.skip (index + 1) do
+                for _, path in targets do
+                    for _, otherPath in otherTargets do
+                        if nested path otherPath || nested otherPath path then
+                            RecoveryFiles.fail "Deployment target roots contain overlapping paths."
 
         for root in roots do
             let originals = HostPath.value root.Originals.Path |> Path.GetFullPath

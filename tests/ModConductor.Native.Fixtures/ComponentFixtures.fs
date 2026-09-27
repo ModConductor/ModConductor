@@ -245,6 +245,7 @@ module internal ComponentFixtures =
                 CancellationToken.None
             )
             |> wait
+            |> recovery
 
         let abandonedPreparation = prepare profileOne first
         PreparedState.abandon abandonedPreparation

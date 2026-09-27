@@ -22,6 +22,22 @@ type internal EnbInstallDeployment
             token
         ) =
         task {
+            let describe =
+                function
+                | ModConductor.DeploymentRecovery.RecoveryError.InvalidPlan ->
+                    "The ENB component generation was not a valid deployment plan."
+                | ModConductor.DeploymentRecovery.RecoveryError.Stale ->
+                    "The profile changed while the ENB generation was prepared."
+                | ModConductor.DeploymentRecovery.RecoveryError.Busy ->
+                    "Another deployment is using this profile."
+                | ModConductor.DeploymentRecovery.RecoveryError.NotFound ->
+                    "The profile deployment is unavailable."
+                | ModConductor.DeploymentRecovery.RecoveryError.Limit ->
+                    "The ENB generation exceeds a deployment limit."
+                | ModConductor.DeploymentRecovery.RecoveryError.Mismatch detail
+                | ModConductor.DeploymentRecovery.RecoveryError.Unavailable detail
+                | ModConductor.DeploymentRecovery.RecoveryError.Corrupt detail -> detail
+
             try
                 let! prepared =
                     prepareComponents (
@@ -33,25 +49,9 @@ type internal EnbInstallDeployment
                         Some retained
                     )
 
-                return Ok prepared
+                return prepared |> Result.mapError describe
             with ModConductor.DeploymentRecovery.RecoveryException error ->
-                return
-                    Error(
-                        match error with
-                        | ModConductor.DeploymentRecovery.RecoveryError.InvalidPlan ->
-                            "The ENB component generation was not a valid deployment plan."
-                        | ModConductor.DeploymentRecovery.RecoveryError.Stale ->
-                            "The profile changed while the ENB generation was prepared."
-                        | ModConductor.DeploymentRecovery.RecoveryError.Busy ->
-                            "Another deployment is using this profile."
-                        | ModConductor.DeploymentRecovery.RecoveryError.NotFound ->
-                            "The profile deployment is unavailable."
-                        | ModConductor.DeploymentRecovery.RecoveryError.Limit ->
-                            "The ENB generation exceeds a deployment limit."
-                        | ModConductor.DeploymentRecovery.RecoveryError.Mismatch detail
-                        | ModConductor.DeploymentRecovery.RecoveryError.Unavailable detail
-                        | ModConductor.DeploymentRecovery.RecoveryError.Corrupt detail -> detail
-                    )
+                return Error(describe error)
         }
 
     member private _.StageLaunch

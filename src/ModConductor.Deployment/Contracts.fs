@@ -153,28 +153,31 @@ module internal PreparedState =
             value.Switch.Roots.Length = 2
             && value.Switch.Roots
                |> List.exists (fun root ->
-                   (ModConductor.Platform.HostPath.value root.Directory.Path).Contains(
-                       ".mc-game-views",
-                       StringComparison.Ordinal
-                   ))
+                   (ModConductor.Platform.HostPath.value root.Directory.Path)
+                       .Contains(".mc-game-views", StringComparison.Ordinal))
         then
             ModConductor.DeploymentGenerations.GenerationFiles.removeOwned value.Switch.Generation
 
         value.OriginalStorage |> Option.iter Preparation.abandonOriginalStorage
 
 type internal IDeploymentRepository =
-    abstract Read: Guid -> Task<PlanSources * Context option>
-    abstract RunnableRoot: Guid * Guid -> Task<string>
+    abstract Read: Guid -> Task<Result<PlanSources * Context option, RecoveryError>>
+    abstract RunnableRoot: Guid * Guid -> Task<Result<string, RecoveryError>>
     abstract Saved: Guid * Guid option * int64 option -> Task<SavedDeploymentPage>
     abstract SavedOne: Guid * Guid -> Task<SavedDeployment option>
 
     abstract Prepare:
         Guid * PlanSources * Context option * (DeploymentProgress -> unit) * CancellationToken ->
-            Task<PreparedState>
+            Task<Result<PreparedState, RecoveryError>>
 
     abstract PrepareTransient:
-        Guid * PlanSources * Context option * Guid * (DeploymentProgress -> unit) * CancellationToken ->
-            Task<PreparedState>
+        Guid *
+        PlanSources *
+        Context option *
+        Guid *
+        (DeploymentProgress -> unit) *
+        CancellationToken ->
+            Task<Result<PreparedState, RecoveryError>>
 
     abstract Retained:
         Guid *
@@ -183,7 +186,7 @@ type internal IDeploymentRepository =
         Guid option *
         (DeploymentProgress -> unit) *
         CancellationToken ->
-            Task<PreparedState>
+            Task<Result<PreparedState, RecoveryError>>
 
     abstract Current: SourceStamp -> Task<bool>
     abstract Context: workspace: Guid * profile: Guid -> Task<GameContextState>

@@ -189,11 +189,13 @@ module internal DeploymentTargetProjection =
               PreserveOriginals = collisions
               ExpectedSources = Some stamp }
 
-        let paths =
-            (ModConductor.DeploymentRecovery.Preparation.projection switch |> List.map fst)
-            @ (existing
-               |> Option.map (fun context -> context.Links |> List.map _.Target)
-               |> Option.defaultValue [])
-            |> Set.ofList
+        ModConductor.DeploymentRecovery.Preparation.projection switch
+        |> Result.map (fun proposed ->
+            let paths =
+                (proposed |> List.map fst)
+                @ (existing
+                   |> Option.map (fun context -> context.Links |> List.map _.Target)
+                   |> Option.defaultValue [])
+                |> Set.ofList
 
-        switch, paths.Count
+            switch, paths.Count)

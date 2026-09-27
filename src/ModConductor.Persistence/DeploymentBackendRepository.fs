@@ -23,33 +23,32 @@ type internal DeploymentBackendRepository
                 return
                     root
                     |> Result.map (fun value -> GameViews.rootPath value.Path profile)
-                    |> Result.defaultWith (fun _ ->
-                        raise (RecoveryException RecoveryError.NotFound))
+                    |> Result.mapError (fun _ -> RecoveryError.NotFound)
             }
 
         member _.Read profile =
             database.Enqueue(fun () ->
                 use transaction = database.Connection.BeginTransaction(deferred = true)
 
-                let sources =
+                match
                     FilePlanRows.read database.Connection transaction database.OwnerId profile
-                    |> Result.defaultWith (fun _ ->
-                        raise (RecoveryException RecoveryError.NotFound))
+                with
+                | Error _ -> Error RecoveryError.NotFound
+                | Ok sources ->
+                    let context =
+                        sources.Context.Binding
+                        |> Option.bind (fun binding ->
+                            let id =
+                                DeploymentContextId.create
+                                    sources.Stamp.WorkspaceId
+                                    sources.Stamp.ProfileId
+                                    (ModConductor.Deployment.DeploymentContextId.fingerprint
+                                        binding.Evidence)
 
-                let context =
-                    sources.Context.Binding
-                    |> Option.bind (fun binding ->
-                        let id =
-                            DeploymentContextId.create
-                                sources.Stamp.WorkspaceId
-                                sources.Stamp.ProfileId
-                                (ModConductor.Deployment.DeploymentContextId.fingerprint
-                                    binding.Evidence)
+                            DeploymentRows.context database.Connection transaction id)
 
-                        DeploymentRows.context database.Connection transaction id)
-
-                transaction.Commit()
-                sources, context)
+                    transaction.Commit()
+                    Ok(sources, context))
 
         member _.Prepare(id, sources, existing, progress, token) =
             DeploymentPreparation.prepare
@@ -109,42 +108,35 @@ type internal DeploymentBackendRepository
                                 context.Id
                                 generationId)
 
-                    unavailable
-                    |> Option.iter (fun reason ->
-                        raise (RecoveryException(RecoveryError.Unavailable reason)))
+                    match unavailable with
+                    | Some reason -> return Error(RecoveryError.Unavailable reason)
+                    | None ->
+                        let! recorded = recovery.Generation(context.Id, generationId)
 
-                    let! recorded = recovery.Generation(context.Id, generationId)
-
-                    let recorded =
-                        recorded
-                        |> Option.defaultWith (fun () ->
-                            raise (RecoveryException RecoveryError.NotFound))
-
-                    let provenance =
-                        recorded.Provenance
-                        |> Option.defaultWith (fun () ->
-                            raise (
-                                RecoveryException(
+                        match recorded |> Option.bind _.Provenance with
+                        | None when recorded.IsNone -> return Error RecoveryError.NotFound
+                        | None ->
+                            return
+                                Error(
                                     RecoveryError.Unavailable
                                         "This saved deployment has no recorded profile order and file visibility. Its files remain retained, but it cannot be prepared for restoration."
                                 )
-                            ))
-
-                    return!
-                        DeploymentPreparation.prepare
-                            database
-                            access
-                            plans
-                            generations
-                            recovery
-                            id
-                            sources
-                            (Some context)
-                            provenance.Profile.IsNone
-                            provenance.Profile
-                            (Some generationId)
-                            progress
-                            token
+                        | Some provenance ->
+                            return!
+                                DeploymentPreparation.prepare
+                                    database
+                                    access
+                                    plans
+                                    generations
+                                    recovery
+                                    id
+                                    sources
+                                    (Some context)
+                                    provenance.Profile.IsNone
+                                    provenance.Profile
+                                    (Some generationId)
+                                    progress
+                                    token
             }
 
         member _.Saved(context, active, before) =
@@ -209,7 +201,8 @@ type internal DeploymentBackendRepository
         member _.Start(prepared, token) =
             task {
                 let! scope =
-                    (ProfileDataRepository(database, access) :> ModConductor.ProfileGameData.IProfileDataRepository)
+                    (ProfileDataRepository(database, access)
+                    :> ModConductor.ProfileGameData.IProfileDataRepository)
                         .Read(prepared.View.WorkspaceId, prepared.View.Sources.ProfileId)
 
                 if

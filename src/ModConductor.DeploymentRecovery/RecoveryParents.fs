@@ -29,9 +29,6 @@ module internal RecoveryParents =
 
         let all = Set.union required (existing.Keys |> Set.ofSeq)
 
-        if all.Count > 4096 then
-            raise (RecoveryException RecoveryError.Limit)
-
         all
         |> Seq.choose (fun target ->
             match existing.TryFind target, RecoveryFiles.observe context target with

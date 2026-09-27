@@ -59,3 +59,31 @@ type DeploymentTests() =
         flag "liveOwnerExcluded" |> should equal true
         flag "overlappingContextHasNoRowsOrEffects" |> should equal true
         flag "closeExcludedDuringEffects" |> should equal true
+
+    [<Test>]
+    member _.``duplicate boundaries should return invalid plan without a receipt``() =
+        flag "duplicateBoundaryHasNoReceipt" |> should equal true
+
+    [<Test>]
+    member _.``overlapping boundaries should return invalid plan without a receipt``() =
+        flag "overlappingBoundaryHasNoReceipt" |> should equal true
+
+    [<Test>]
+    member _.``missing boundaries should return invalid plan without a receipt``() =
+        flag "missingBoundaryHasNoReceipt" |> should equal true
+
+    [<Test>]
+    member _.``large target sets should prepare without an arbitrary limit``() =
+        flag "largeTargetSetPrepared" |> should equal true
+
+    [<Test>]
+    member _.``invalid boundaries in large requests should leave no receipt``() =
+        flag "invalidBoundaryInLargeRequestHasNoReceipt" |> should equal true
+
+    [<Test>]
+    member _.``large target parent sets should prepare without an arbitrary limit``() =
+        flag "largeParentSetPrepared" |> should equal true
+
+    [<Test>]
+    member _.``changed generation inputs should return invalid plan before capture``() =
+        flag "changedGenerationInputReturnsRefusal" |> should equal true

@@ -72,30 +72,22 @@ module internal GenerationCapacity =
             requirements |> List.map (fun (root, needed) -> root, needed, available root)
 
         if capacity |> List.exists (fun (_, needed, free) -> free < needed) then
-            raise (
-                RecoveryException(
-                    RecoveryError.Unavailable
-                        "There is not enough storage for the required copies and links."
-                )
+            Error(
+                RecoveryError.Unavailable
+                    "There is not enough storage for the required copies and links."
             )
-
-        capacity
+        else
+            Ok capacity
 
 module internal GenerationPreparation =
     open GenerationFiles
 
     let private declaredPath =
         function
-        | WritableProjection.File(id, target, seed) -> id, target, false, Option.toList seed
+        | WritableProjection.File(id, target, seed) -> Some(id, target, false, Option.toList seed)
         | WritableProjection.Subtree(id, root, PlanPath.At path, seeds) ->
-            id, { Root = root; Path = path }, true, seeds
-        | WritableProjection.Subtree(_, _, PlanPath.Root, _) ->
-            raise (
-                RecoveryException(
-                    RecoveryError.Unavailable
-                        "A whole-root working link has no separate target parent."
-                )
-            )
+            Some(id, { Root = root; Path = path }, true, seeds)
+        | WritableProjection.Subtree(_, _, PlanPath.Root, _) -> None
 
     let reused (request: BuildRequest) pin =
         request.Previous
@@ -111,84 +103,11 @@ module internal GenerationPreparation =
                 else
                     None))
 
-    let prepare
-        (available: Location -> int64)
+    let private verifyLocations
         (request: BuildRequest)
         (sources: GenerationSources)
-        (token: CancellationToken)
+        (bindings: (WorkingLocation * TargetFile * bool * ResolvedFile list) list)
         =
-        checkProcesses request.Processes
-        token.ThrowIfCancellationRequested()
-        let visibility = Visibility.prepare sources.Input
-
-        let view =
-            Visibility.view visibility
-            |> Result.defaultWith (fun _ -> raise (RecoveryException RecoveryError.InvalidPlan))
-
-        if view.ReadOnlyFiles.Length > 1000000 then
-            raise (RecoveryException RecoveryError.Limit)
-
-        let managed =
-            view.ReadOnlyFiles
-            |> List.filter (fun file ->
-                not (request.Excluded.Contains file.Target)
-                && (request.LinkedBase || file.Winner.Precedence.Tier <> LayerTier.Base))
-
-        let working = view.Writable |> List.map declaredPath
-
-        let bindings =
-            working
-            |> List.map (fun (id, target, directory, seeds) ->
-                let selected = request.Working |> List.filter (fun value -> value.Declaration = id)
-
-                match selected with
-                | [ value ] -> value, target, directory, seeds
-                | _ -> raise (RecoveryException RecoveryError.InvalidPlan))
-
-        if request.Working.Length <> bindings.Length then
-            raise (RecoveryException RecoveryError.InvalidPlan)
-
-        let secondaryCopies =
-            managed
-            |> List.filter (fun file ->
-                file.Winner.Precedence.Tier = LayerTier.Secondary
-                && reused request file.Winner.Source |> Option.isNone)
-
-        let seedCopies =
-            bindings
-            |> List.collect (fun (binding, target, directory, seeds) ->
-                (if binding.Initialized then [] else seeds)
-                |> List.choose (fun seed ->
-                    let relative =
-                        if directory then
-                            LogicalPath.components binding.Path
-                            @ (LogicalPath.components seed.Target.Path
-                               |> List.skip (LogicalPath.components target.Path).Length)
-                        else
-                            LogicalPath.components binding.Path
-
-                    let path = logical relative
-
-                    match inspect binding.Root path with
-                    | Some entry when entry.Kind = EntryKind.RegularFile -> None
-                    | Some _ ->
-                        RecoveryFiles.fail "A working seed destination is not a regular file."
-                    | None -> Some(binding.Declaration, binding.Root, path, seed.Winner.Source)))
-
-        let copiedBytes =
-            secondaryCopies
-            |> Seq.map (fun file -> length file.Winner.Source)
-            |> GenerationCapacity.sum
-
-        let seedBytes =
-            seedCopies
-            |> Seq.map (fun (_, _, _, pin) -> length pin)
-            |> GenerationCapacity.sum
-
-        let capacity =
-            GenerationCapacity.required request managed secondaryCopies bindings seedCopies
-            |> GenerationCapacity.check available
-
         let overlaps (left: Location) (right: Location) =
             left.Identity = right.Identity
             || Preparation.nested (HostPath.value left.Path) (HostPath.value right.Path)
@@ -247,11 +166,114 @@ module internal GenerationPreparation =
                 then
                     RecoveryFiles.fail "Working storage overlaps immutable source storage."
 
-        { Visibility = visibility
-          View = view
-          Managed = managed
-          Bindings = bindings
-          SeedCopies = seedCopies
-          CopiedBytes = copiedBytes
-          SeedBytes = seedBytes
-          Capacity = capacity }
+
+    let private prepareWorking
+        (available: Location -> int64)
+        (request: BuildRequest)
+        (sources: GenerationSources)
+        (visibility: FileVisibility)
+        (view: PlanView)
+        (managed: ResolvedFile list)
+        (working: (Guid * TargetFile * bool * ResolvedFile list) list)
+        =
+        let bindings =
+            working
+            |> List.map (fun (id, target, directory, seeds) ->
+                let selected = request.Working |> List.filter (fun value -> value.Declaration = id)
+
+                match selected with
+                | [ value ] -> value, target, directory, seeds
+                | _ -> raise (RecoveryException RecoveryError.InvalidPlan))
+
+        if request.Working.Length <> bindings.Length then
+            raise (RecoveryException RecoveryError.InvalidPlan)
+
+        let secondaryCopies =
+            managed
+            |> List.filter (fun file ->
+                file.Winner.Precedence.Tier = LayerTier.Secondary
+                && reused request file.Winner.Source |> Option.isNone)
+
+        let seedCopies =
+            bindings
+            |> List.collect (fun (binding, target, directory, seeds) ->
+                (if binding.Initialized then [] else seeds)
+                |> List.choose (fun seed ->
+                    let relative =
+                        if directory then
+                            LogicalPath.components binding.Path
+                            @ (LogicalPath.components seed.Target.Path
+                               |> List.skip (LogicalPath.components target.Path).Length)
+                        else
+                            LogicalPath.components binding.Path
+
+                    let path = logical relative
+
+                    match inspect binding.Root path with
+                    | Some entry when entry.Kind = EntryKind.RegularFile -> None
+                    | Some _ ->
+                        RecoveryFiles.fail "A working seed destination is not a regular file."
+                    | None -> Some(binding.Declaration, binding.Root, path, seed.Winner.Source)))
+
+        let copiedBytes =
+            secondaryCopies
+            |> Seq.map (fun file -> length file.Winner.Source)
+            |> GenerationCapacity.sum
+
+        let seedBytes =
+            seedCopies
+            |> Seq.map (fun (_, _, _, pin) -> length pin)
+            |> GenerationCapacity.sum
+
+        let requirements =
+            GenerationCapacity.required request managed secondaryCopies bindings seedCopies
+
+        GenerationCapacity.check available requirements
+        |> Result.map (fun capacity ->
+            verifyLocations request sources bindings
+
+            { Visibility = visibility
+              View = view
+              Managed = managed
+              Bindings = bindings
+              SeedCopies = seedCopies
+              CopiedBytes = copiedBytes
+              SeedBytes = seedBytes
+              Capacity = capacity })
+
+    let prepare
+        (available: Location -> int64)
+        (request: BuildRequest)
+        (sources: GenerationSources)
+        (token: CancellationToken)
+        =
+        checkProcesses request.Processes
+        token.ThrowIfCancellationRequested()
+        let visibility = Visibility.prepare sources.Input
+
+        match Visibility.view visibility with
+        | Error _ -> Error RecoveryError.InvalidPlan
+        | Ok view when view.ReadOnlyFiles.Length > 1000000 -> Error RecoveryError.Limit
+        | Ok view ->
+            let managed =
+                view.ReadOnlyFiles
+                |> List.filter (fun file ->
+                    not (request.Excluded.Contains file.Target)
+                    && (request.LinkedBase || file.Winner.Precedence.Tier <> LayerTier.Base))
+
+            let working = view.Writable |> List.map declaredPath
+
+            if working |> List.exists Option.isNone then
+                Error(
+                    RecoveryError.Unavailable
+                        "A whole-root working link has no separate target parent."
+                )
+            else
+                prepareWorking
+                    available
+                    request
+                    sources
+                    visibility
+                    view
+                    managed
+                    (working |> List.choose id)

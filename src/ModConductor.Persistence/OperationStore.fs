@@ -162,30 +162,29 @@ type OperationStore
             retainedProfile
         ) =
         task {
-            let! sources, existing =
+            let! read =
                 (deploymentRepository :> ModConductor.Deployment.IDeploymentRepository)
                     .Read(expected.ProfileId)
 
-            if sources.Stamp <> expected then
-                raise (
-                    ModConductor.DeploymentRecovery.RecoveryException
-                        ModConductor.DeploymentRecovery.RecoveryError.Stale
-                )
-
-            return!
-                DeploymentPreparation.components
-                    database
-                    modLibrary.Access
-                    filePlans
-                    generations
-                    deployment
-                    id
-                    sources
-                    existing
-                    reviewed
-                    retainedProfile
-                    progress
-                    token
+            match read with
+            | Error error -> return Error error
+            | Ok(sources, existing) when sources.Stamp <> expected ->
+                return Error ModConductor.DeploymentRecovery.RecoveryError.Stale
+            | Ok(sources, existing) ->
+                return!
+                    DeploymentPreparation.components
+                        database
+                        modLibrary.Access
+                        filePlans
+                        generations
+                        deployment
+                        id
+                        sources
+                        existing
+                        reviewed
+                        retainedProfile
+                        progress
+                        token
         }
 
     let enbConfiguration =

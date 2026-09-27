@@ -177,7 +177,9 @@ module internal DeploymentFixtureData =
                     File.WriteAllText(dest, value)
 
             let proposed = input (int64 number) directory files
+
             Generations.capture (id (200 + number)) (location directory) (ready proposed) proposed
+            |> ok
 
         let first = prepare 1 firstFiles
         let second = prepare 2 secondFiles

@@ -20,7 +20,12 @@ type internal SkseWorkflow
             (ModConductor.Deployment.DeploymentProgress -> unit) *
             Threading.CancellationToken *
             ModConductor.DeploymentRecovery.SavedProfile option
-                -> Threading.Tasks.Task<ModConductor.Deployment.PreparedState>),
+                -> Threading.Tasks.Task<
+                    Result<
+                        ModConductor.Deployment.PreparedState,
+                        ModConductor.DeploymentRecovery.RecoveryError
+                     >
+                 >),
         skseCheckpoint: string -> int -> unit
     ) =
     let checkedComponent
@@ -72,60 +77,65 @@ type internal SkseWorkflow
 
     let replacementProfile (workspace: Guid) (profile: Guid) (modId: Guid) =
         task {
-            let! sources, existing =
+            let! read =
                 (deploymentRepository :> ModConductor.Deployment.IDeploymentRepository).Read profile
 
-            if sources.Stamp.WorkspaceId <> workspace then
-                return Error "The profile deployment is unavailable."
-            else
-                let! previousLoader =
-                    skseLoaders.ReadStored(workspace, profile, existing |> Option.bind _.Active)
-
-                let previousMod = previousLoader |> Option.map _.ModId
-
-                let stagedMods =
-                    sources.Profile.Mods
-                    |> List.map (fun selected ->
-                        if selected.ModId = modId then
-                            { selected with Enabled = true }
-                        elif previousMod = Some selected.ModId then
-                            { selected with Enabled = false }
-                        else
-                            selected)
-
-                if stagedMods |> List.exists (fun selected -> selected.ModId = modId) |> not then
-                    return Error "The installed SKSE component is unavailable to this profile."
+            match read with
+            | Error error -> return Error(DeploymentPreparation.refusalMessage error)
+            | Ok(sources, existing) ->
+                if sources.Stamp.WorkspaceId <> workspace then
+                    return Error "The profile deployment is unavailable."
                 else
-                    let! profileName =
-                        database.Enqueue(fun () ->
-                            use query =
-                                Sqlite.command
-                                    database.Connection
-                                    null
-                                    "SELECT name FROM profiles WHERE id=$id"
-                                    [ "$id", box (string profile) ]
+                    let! previousLoader =
+                        skseLoaders.ReadStored(workspace, profile, existing |> Option.bind _.Active)
 
-                            match query.ExecuteScalar() with
-                            | :? string as value -> Some value
-                            | _ -> None)
+                    let previousMod = previousLoader |> Option.map _.ModId
 
-                    match profileName with
-                    | None -> return Error "The selected profile is unavailable."
-                    | Some profileName ->
-                        let stagedProfile: ModConductor.DeploymentRecovery.SavedProfile =
-                            { Id = profile
-                              Name = profileName
-                              Revision = sources.Profile.Revision
-                              Mods =
-                                stagedMods
-                                |> List.map (fun selected ->
-                                    { ModId = selected.ModId
-                                      VersionId = selected.Version |> Option.map _.Id
-                                      Priority = selected.Priority
-                                      Enabled = selected.Enabled })
-                              Hidden = sources.Hidden }
+                    let stagedMods =
+                        sources.Profile.Mods
+                        |> List.map (fun selected ->
+                            if selected.ModId = modId then
+                                { selected with Enabled = true }
+                            elif previousMod = Some selected.ModId then
+                                { selected with Enabled = false }
+                            else
+                                selected)
 
-                        return Ok(sources, previousMod, stagedProfile)
+                    if
+                        stagedMods |> List.exists (fun selected -> selected.ModId = modId) |> not
+                    then
+                        return Error "The installed SKSE component is unavailable to this profile."
+                    else
+                        let! profileName =
+                            database.Enqueue(fun () ->
+                                use query =
+                                    Sqlite.command
+                                        database.Connection
+                                        null
+                                        "SELECT name FROM profiles WHERE id=$id"
+                                        [ "$id", box (string profile) ]
+
+                                match query.ExecuteScalar() with
+                                | :? string as value -> Some value
+                                | _ -> None)
+
+                        match profileName with
+                        | None -> return Error "The selected profile is unavailable."
+                        | Some profileName ->
+                            let stagedProfile: ModConductor.DeploymentRecovery.SavedProfile =
+                                { Id = profile
+                                  Name = profileName
+                                  Revision = sources.Profile.Revision
+                                  Mods =
+                                    stagedMods
+                                    |> List.map (fun selected ->
+                                        { ModId = selected.ModId
+                                          VersionId = selected.Version |> Option.map _.Id
+                                          Priority = selected.Priority
+                                          Enabled = selected.Enabled })
+                                  Hidden = sources.Hidden }
+
+                            return Ok(sources, previousMod, stagedProfile)
         }
 
     member internal _.InstallSkse
@@ -181,7 +191,7 @@ type internal SkseWorkflow
                  stagedProfile) ->
                 let deploymentId = Guid.NewGuid()
 
-                let! prepared =
+                let! preparation =
                     prepareComponents (
                         deploymentId,
                         sources.Stamp,
@@ -191,172 +201,191 @@ type internal SkseWorkflow
                         Some stagedProfile
                     )
 
-                do!
-                    skseLoaders.StageReplacement(
-                        deploymentId,
-                        sources.Profile.Revision,
-                        previousMod,
-                        { Loader =
-                            { GenerationId = prepared.Switch.Generation.Id
-                              Executable = IO.Path.Combine(evidence.RootPath, loader)
-                              ComponentVersion = string release.ComponentVersion
-                              RuntimeVersion = string release.RuntimeVersion
-                              GameSha256 = evidence.Executable.Value.Sha256 }
-                          ModId = modId
-                          VersionId = versionId
-                          ArchiveSha256 = artifact.Sha256.Value
-                          NexusModId = release.ModId
-                          NexusFileId = release.File.Id
-                          SourceCheckedAt = sourceCheckedAt },
-                        workspace,
-                        profile
-                    )
+                match preparation with
+                | Error error -> return Error(DeploymentPreparation.refusalMessage error)
+                | Ok prepared ->
+                    do!
+                        skseLoaders.StageReplacement(
+                            deploymentId,
+                            sources.Profile.Revision,
+                            previousMod,
+                            { Loader =
+                                { GenerationId = prepared.Switch.Generation.Id
+                                  Executable = IO.Path.Combine(evidence.RootPath, loader)
+                                  ComponentVersion = string release.ComponentVersion
+                                  RuntimeVersion = string release.RuntimeVersion
+                                  GameSha256 = evidence.Executable.Value.Sha256 }
+                              ModId = modId
+                              VersionId = versionId
+                              ArchiveSha256 = artifact.Sha256.Value
+                              NexusModId = release.ModId
+                              NexusFileId = release.File.Id
+                              SourceCheckedAt = sourceCheckedAt },
+                            workspace,
+                            profile
+                        )
 
-                let! started = generations.Start(prepared, [], cancellation = token)
+                    let! started = generations.Start(prepared, [], cancellation = token)
 
-                match started with
-                | Error _ ->
-                    do! skseLoaders.RemoveReplacement deploymentId
-                    return Error "The SKSE deployment could not start."
-                | Ok receipt ->
-                    let mutable checkpointCancelled = false
-
-                    let checkpoint name index =
-                        try
-                            skseCheckpoint name index
-                        with :? OperationCanceledException as error ->
-                            checkpointCancelled <- true
-                            raise error
-
-                    let! completed =
-                        generations.Run(receipt.Id, receipt.Revision, false, token, checkpoint, [])
-
-                    match completed with
-                    | Ok value -> return Ok value.Proposed
+                    match started with
                     | Error _ ->
-                        let! pending = deployment.Read(receipt.Id)
+                        do! skseLoaders.RemoveReplacement deploymentId
+                        return Error "The SKSE deployment could not start."
+                    | Ok receipt ->
+                        let mutable checkpointCancelled = false
 
-                        match pending with
-                        | Some pending ->
-                            let! restored =
-                                generations.Run(
-                                    pending.Id,
-                                    pending.Revision,
-                                    true,
-                                    Threading.CancellationToken.None,
-                                    (fun _ _ -> ()),
-                                    []
-                                )
+                        let checkpoint name index =
+                            try
+                                skseCheckpoint name index
+                            with :? OperationCanceledException as error ->
+                                checkpointCancelled <- true
+                                raise error
 
-                            if Result.isError restored then
-                                return
-                                    Error "The failed SKSE replacement needs deployment recovery."
-                            elif checkpointCancelled || token.IsCancellationRequested then
-                                return
-                                    raise (
-                                        IO.IOException
-                                            "The SKSE deployment did not complete. The previous setup was restored."
+                        let! completed =
+                            generations.Run(
+                                receipt.Id,
+                                receipt.Revision,
+                                false,
+                                token,
+                                checkpoint,
+                                []
+                            )
+
+                        match completed with
+                        | Ok value -> return Ok value.Proposed
+                        | Error _ ->
+                            let! pending = deployment.Read(receipt.Id)
+
+                            match pending with
+                            | Some pending ->
+                                let! restored =
+                                    generations.Run(
+                                        pending.Id,
+                                        pending.Revision,
+                                        true,
+                                        Threading.CancellationToken.None,
+                                        (fun _ _ -> ()),
+                                        []
                                     )
-                            else
-                                return
-                                    Error
-                                        "The SKSE deployment did not complete. The previous setup was restored."
-                        | None ->
-                            if checkpointCancelled || token.IsCancellationRequested then
-                                return
-                                    raise (
-                                        IO.IOException
+
+                                if Result.isError restored then
+                                    return
+                                        Error
+                                            "The failed SKSE replacement needs deployment recovery."
+                                elif checkpointCancelled || token.IsCancellationRequested then
+                                    return
+                                        raise (
+                                            IO.IOException
+                                                "The SKSE deployment did not complete. The previous setup was restored."
+                                        )
+                                else
+                                    return
+                                        Error
                                             "The SKSE deployment did not complete. The previous setup was restored."
-                                    )
-                            else
-                                return
-                                    Error
-                                        "The SKSE deployment did not complete. The previous setup was restored."
+                            | None ->
+                                if checkpointCancelled || token.IsCancellationRequested then
+                                    return
+                                        raise (
+                                            IO.IOException
+                                                "The SKSE deployment did not complete. The previous setup was restored."
+                                        )
+                                else
+                                    return
+                                        Error
+                                            "The SKSE deployment did not complete. The previous setup was restored."
         }
 
     member internal _.RemoveSkse
         (workspace: Guid, profile: Guid, token: Threading.CancellationToken)
         =
         task {
-            let! sources, existing =
+            let! read =
                 (deploymentRepository :> ModConductor.Deployment.IDeploymentRepository).Read profile
 
-            if sources.Stamp.WorkspaceId <> workspace then
-                return Error "The profile deployment is unavailable."
-            else
-                let active = existing |> Option.bind _.Active
-                let! loader = skseLoaders.ReadStored(workspace, profile, active)
+            match read with
+            | Error error -> return Error(DeploymentPreparation.refusalMessage error)
+            | Ok(sources, existing) ->
+                if sources.Stamp.WorkspaceId <> workspace then
+                    return Error "The profile deployment is unavailable."
+                else
+                    let active = existing |> Option.bind _.Active
+                    let! loader = skseLoaders.ReadStored(workspace, profile, active)
 
-                match loader with
-                | None -> return Ok active
-                | Some loader ->
-                    let staged =
-                        sources.Profile.Mods
-                        |> List.map (fun selected ->
-                            if selected.ModId = loader.ModId then
-                                { selected with Enabled = false }
-                            else
-                                selected)
+                    match loader with
+                    | None -> return Ok active
+                    | Some loader ->
+                        let staged =
+                            sources.Profile.Mods
+                            |> List.map (fun selected ->
+                                if selected.ModId = loader.ModId then
+                                    { selected with Enabled = false }
+                                else
+                                    selected)
 
-                    let! profileName =
-                        database.Enqueue(fun () ->
-                            use query =
-                                Sqlite.command
-                                    database.Connection
-                                    null
-                                    "SELECT name FROM profiles WHERE id=$id"
-                                    [ "$id", box (string profile) ]
+                        let! profileName =
+                            database.Enqueue(fun () ->
+                                use query =
+                                    Sqlite.command
+                                        database.Connection
+                                        null
+                                        "SELECT name FROM profiles WHERE id=$id"
+                                        [ "$id", box (string profile) ]
 
-                            match query.ExecuteScalar() with
-                            | :? string as value -> Some value
-                            | _ -> None)
+                                match query.ExecuteScalar() with
+                                | :? string as value -> Some value
+                                | _ -> None)
 
-                    match profileName with
-                    | None -> return Error "The selected profile is unavailable."
-                    | Some profileName ->
-                        let retained: ModConductor.DeploymentRecovery.SavedProfile =
-                            { Id = profile
-                              Name = profileName
-                              Revision = sources.Profile.Revision
-                              Mods =
-                                staged
-                                |> List.map (fun selected ->
-                                    { ModId = selected.ModId
-                                      VersionId = selected.Version |> Option.map _.Id
-                                      Priority = selected.Priority
-                                      Enabled = selected.Enabled })
-                              Hidden = sources.Hidden }
+                        match profileName with
+                        | None -> return Error "The selected profile is unavailable."
+                        | Some profileName ->
+                            let retained: ModConductor.DeploymentRecovery.SavedProfile =
+                                { Id = profile
+                                  Name = profileName
+                                  Revision = sources.Profile.Revision
+                                  Mods =
+                                    staged
+                                    |> List.map (fun selected ->
+                                        { ModId = selected.ModId
+                                          VersionId = selected.Version |> Option.map _.Id
+                                          Priority = selected.Priority
+                                          Enabled = selected.Enabled })
+                                  Hidden = sources.Hidden }
 
-                        let deploymentId = Guid.NewGuid()
+                            let deploymentId = Guid.NewGuid()
 
-                        let! prepared =
-                            prepareComponents (
-                                deploymentId,
-                                sources.Stamp,
-                                [],
-                                ignore,
-                                token,
-                                Some retained
-                            )
-
-                        let! started = generations.Start(prepared, [], cancellation = token)
-
-                        match started with
-                        | Error _ -> return Error "SKSE removal could not start."
-                        | Ok receipt ->
-                            let! completed =
-                                generations.Run(
-                                    receipt.Id,
-                                    receipt.Revision,
-                                    false,
+                            let! preparation =
+                                prepareComponents (
+                                    deploymentId,
+                                    sources.Stamp,
+                                    [],
+                                    ignore,
                                     token,
-                                    (fun _ _ -> ()),
-                                    []
+                                    Some retained
                                 )
 
-                            match completed with
-                            | Ok value -> return Ok(Some value.Proposed)
-                            | Error _ when token.IsCancellationRequested ->
-                                return invalidOp "SKSE removal needs deployment recovery."
-                            | Error _ -> return Error "SKSE removal needs deployment recovery."
+                            match preparation with
+                            | Error error ->
+                                return Error(DeploymentPreparation.refusalMessage error)
+                            | Ok prepared ->
+                                let! started = generations.Start(prepared, [], cancellation = token)
+
+                                match started with
+                                | Error _ -> return Error "SKSE removal could not start."
+                                | Ok receipt ->
+                                    let! completed =
+                                        generations.Run(
+                                            receipt.Id,
+                                            receipt.Revision,
+                                            false,
+                                            token,
+                                            (fun _ _ -> ()),
+                                            []
+                                        )
+
+                                    match completed with
+                                    | Ok value -> return Ok(Some value.Proposed)
+                                    | Error _ when token.IsCancellationRequested ->
+                                        return invalidOp "SKSE removal needs deployment recovery."
+                                    | Error _ ->
+                                        return Error "SKSE removal needs deployment recovery."
         }

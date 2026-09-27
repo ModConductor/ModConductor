@@ -107,26 +107,31 @@ type internal DeploymentGenerationStore
                                             cancellation)
 
                                 return
-                                    Ok
-                                        { built with
-                                            Generation =
-                                                { built.Generation with
-                                                    Provenance =
-                                                        if defaultArg recordProfile false then
-                                                            Some
-                                                                { PreparedAt =
-                                                                    DateTimeOffset.UtcNow
-                                                                  Profile =
-                                                                    if
-                                                                        defaultArg
-                                                                            gameFolderOnly
-                                                                            false
-                                                                    then
-                                                                        None
-                                                                    else
-                                                                        Some saved }
-                                                        else
-                                                            None } }
+                                    Ok(
+                                        built
+                                        |> Result.map (fun built ->
+                                            { built with
+                                                Generation =
+                                                    { built.Generation with
+                                                        Provenance =
+                                                            if
+                                                                defaultArg recordProfile false
+                                                            then
+                                                                Some
+                                                                    { PreparedAt =
+                                                                        DateTimeOffset.UtcNow
+                                                                      Profile =
+                                                                        if
+                                                                            defaultArg
+                                                                                gameFolderOnly
+                                                                                false
+                                                                        then
+                                                                            None
+                                                                        else
+                                                                            Some saved }
+                                                            else
+                                                                None } })
+                                    )
                             })
 
                     return
@@ -136,6 +141,7 @@ type internal DeploymentGenerationStore
                             | _ ->
                                 RecoveryError.Unavailable
                                     "Generation source storage is unavailable.")
+                        |> Result.bind id
                 }))
 
     member this.Build(request, profile, snapshots, writable, cancellation: CancellationToken) =

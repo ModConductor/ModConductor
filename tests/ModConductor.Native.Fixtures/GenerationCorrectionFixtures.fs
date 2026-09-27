@@ -103,9 +103,9 @@ module internal GenerationCorrectionFixtures =
 
         writer.WriteBoolean(
             "secondaryEntriesCharged",
-            refused (fun () ->
-                required (one :: many) (one :: many) []
-                |> GenerationCapacity.check secondaryLimited)
+            required (one :: many) (one :: many) []
+            |> GenerationCapacity.check secondaryLimited
+            |> Result.isError
         )
 
         let noNewSecondaryCapacity (location: Location) =
@@ -116,10 +116,9 @@ module internal GenerationCorrectionFixtures =
 
         writer.WriteBoolean(
             "reusedSecondaryNeedsNoCopyCapacity",
-            not (
-                refused (fun () ->
-                    required [ one ] [] [] |> GenerationCapacity.check noNewSecondaryCapacity)
-            )
+            required [ one ] [] []
+            |> GenerationCapacity.check noNewSecondaryCapacity
+            |> Result.isOk
         )
 
         let secondOnly = file second 30 0L
@@ -139,11 +138,9 @@ module internal GenerationCorrectionFixtures =
 
         writer.WriteBoolean(
             "targetCostsRemainOnTheirDevice",
-            not (
-                refused (fun () ->
-                    required (secondOnly :: many) [] []
-                    |> GenerationCapacity.check separatelyAvailable)
-            )
+            required (secondOnly :: many) [] []
+            |> GenerationCapacity.check separatelyAvailable
+            |> Result.isOk
         )
 
         let empty = required [] [] []
@@ -168,16 +165,16 @@ module internal GenerationCorrectionFixtures =
 
         writer.WriteBoolean(
             "workingActivationCharged",
-            refused (fun () ->
-                required
-                    []
-                    []
-                    [ (working,
-                       { Root = first
-                         Path = path "settings.ini" },
-                       false,
-                       []) ]
-                |> GenerationCapacity.check workingLimited)
+            required
+                []
+                []
+                [ (working,
+                   { Root = first
+                     Path = path "settings.ini" },
+                   false,
+                   []) ]
+            |> GenerationCapacity.check workingLimited
+            |> Result.isError
         )
 
         writer.WriteBoolean(

@@ -19,7 +19,12 @@ type internal FnisWorkflow
             (ModConductor.Deployment.DeploymentProgress -> unit) *
             Threading.CancellationToken *
             ModConductor.DeploymentRecovery.SavedProfile option
-                -> Threading.Tasks.Task<ModConductor.Deployment.PreparedState>),
+                -> Threading.Tasks.Task<
+                    Result<
+                        ModConductor.Deployment.PreparedState,
+                        ModConductor.DeploymentRecovery.RecoveryError
+                     >
+                 >),
         fnisCheckpoint: string -> int -> unit
     ) =
     let savedProfile
@@ -120,57 +125,61 @@ type internal FnisWorkflow
                         match componentCheck with
                         | Error detail -> return Error detail
                         | Ok(evidence, reviewedComponent) ->
-                            let! sources, existing =
+                            let! read =
                                 (deploymentRepository
                                 :> ModConductor.Deployment.IDeploymentRepository)
                                     .Read
                                     profile
 
-                            if sources.Stamp.WorkspaceId <> workspace then
-                                return Error "The profile deployment is unavailable."
-                            else
-                                let! previous =
-                                    fnisSetups.ReadStored(
-                                        workspace,
-                                        profile,
-                                        existing |> Option.bind _.Active
-                                    )
-
-                                let previousMod = previous |> Option.map _.ModId
-
-                                let stagedMods =
-                                    sources.Profile.Mods
-                                    |> List.map (fun selected ->
-                                        if selected.ModId = modId then
-                                            { selected with Enabled = true }
-                                        elif previousMod = Some selected.ModId then
-                                            { selected with Enabled = false }
-                                        else
-                                            selected)
-
-                                if
-                                    stagedMods
-                                    |> List.exists (fun selected -> selected.ModId = modId)
-                                    |> not
-                                then
-                                    return
-                                        Error
-                                            "The installed FNIS component is unavailable to this profile."
+                            match read with
+                            | Error error ->
+                                return Error(DeploymentPreparation.refusalMessage error)
+                            | Ok(sources, existing) ->
+                                if sources.Stamp.WorkspaceId <> workspace then
+                                    return Error "The profile deployment is unavailable."
                                 else
-                                    let! retained = savedProfile profile sources stagedMods
+                                    let! previous =
+                                        fnisSetups.ReadStored(
+                                            workspace,
+                                            profile,
+                                            existing |> Option.bind _.Active
+                                        )
 
-                                    return
-                                        retained
-                                        |> Result.map (fun retained ->
-                                            artifact,
-                                            modId,
-                                            versionId,
-                                            plan,
-                                            evidence,
-                                            reviewedComponent,
-                                            sources,
-                                            previousMod,
-                                            retained)
+                                    let previousMod = previous |> Option.map _.ModId
+
+                                    let stagedMods =
+                                        sources.Profile.Mods
+                                        |> List.map (fun selected ->
+                                            if selected.ModId = modId then
+                                                { selected with Enabled = true }
+                                            elif previousMod = Some selected.ModId then
+                                                { selected with Enabled = false }
+                                            else
+                                                selected)
+
+                                    if
+                                        stagedMods
+                                        |> List.exists (fun selected -> selected.ModId = modId)
+                                        |> not
+                                    then
+                                        return
+                                            Error
+                                                "The installed FNIS component is unavailable to this profile."
+                                    else
+                                        let! retained = savedProfile profile sources stagedMods
+
+                                        return
+                                            retained
+                                            |> Result.map (fun retained ->
+                                                artifact,
+                                                modId,
+                                                versionId,
+                                                plan,
+                                                evidence,
+                                                reviewedComponent,
+                                                sources,
+                                                previousMod,
+                                                retained)
                 }
 
             match preparation with
@@ -186,7 +195,7 @@ type internal FnisWorkflow
                  retained) ->
                 let deploymentId = Guid.NewGuid()
 
-                let! prepared =
+                let! preparation =
                     prepareComponents (
                         deploymentId,
                         sources.Stamp,
@@ -196,147 +205,170 @@ type internal FnisWorkflow
                         Some retained
                     )
 
-                let generator: StoredFnisGenerator =
-                    { GenerationId = prepared.Switch.Generation.Id
-                      ModId = modId
-                      VersionId = versionId
-                      ArtifactId = artifact.Id
-                      FileName = release.File.Name
-                      FileVersion = release.File.Version
-                      Executable = IO.Path.Combine(evidence.RootPath, plan.Generator)
-                      ComponentVersion = string release.ComponentVersion
-                      ArchiveSha256 = artifact.Sha256.Value
-                      Provider = ModConductor.Fnis.FnisCatalogue.Provider
-                      Source = ModConductor.Fnis.FnisCatalogue.Source
-                      Terms = ModConductor.Fnis.FnisCatalogue.Terms
-                      NexusModId = release.ModId
-                      NexusFileId = release.File.Id
-                      AcquiredAt = DateTimeOffset.UtcNow }
+                match preparation with
+                | Error error -> return Error(DeploymentPreparation.refusalMessage error)
+                | Ok prepared ->
+                    let generator: StoredFnisGenerator =
+                        { GenerationId = prepared.Switch.Generation.Id
+                          ModId = modId
+                          VersionId = versionId
+                          ArtifactId = artifact.Id
+                          FileName = release.File.Name
+                          FileVersion = release.File.Version
+                          Executable = IO.Path.Combine(evidence.RootPath, plan.Generator)
+                          ComponentVersion = string release.ComponentVersion
+                          ArchiveSha256 = artifact.Sha256.Value
+                          Provider = ModConductor.Fnis.FnisCatalogue.Provider
+                          Source = ModConductor.Fnis.FnisCatalogue.Source
+                          Terms = ModConductor.Fnis.FnisCatalogue.Terms
+                          NexusModId = release.ModId
+                          NexusFileId = release.File.Id
+                          AcquiredAt = DateTimeOffset.UtcNow }
 
-                do!
-                    fnisSetups.StageInstall(
-                        deploymentId,
-                        sources.Profile.Revision,
-                        previousMod,
-                        generator,
-                        workspace,
-                        profile
-                    )
+                    do!
+                        fnisSetups.StageInstall(
+                            deploymentId,
+                            sources.Profile.Revision,
+                            previousMod,
+                            generator,
+                            workspace,
+                            profile
+                        )
 
-                let! started = generations.Start(prepared, [], cancellation = token)
+                    let! started = generations.Start(prepared, [], cancellation = token)
 
-                match started with
-                | Error _ ->
-                    do! fnisSetups.RemoveIntent deploymentId
-                    return Error "The FNIS deployment could not start."
-                | Ok receipt ->
-                    let mutable checkpointCancelled = false
-
-                    let checkpoint name index =
-                        try
-                            fnisCheckpoint name index
-                        with :? OperationCanceledException as error ->
-                            checkpointCancelled <- true
-                            raise error
-
-                    let! completed =
-                        generations.Run(receipt.Id, receipt.Revision, false, token, checkpoint, [])
-
-                    match completed with
-                    | Ok value -> return Ok value.Proposed
-                    | Error _ when checkpointCancelled || token.IsCancellationRequested ->
-                        return
-                            raise (
-                                IO.IOException
-                                    "The FNIS deployment did not complete. Recover the previous setup before retrying."
-                            )
+                    match started with
                     | Error _ ->
-                        return
-                            Error
-                                "The FNIS deployment did not complete. Recover the previous setup before retrying."
+                        do! fnisSetups.RemoveIntent deploymentId
+                        return Error "The FNIS deployment could not start."
+                    | Ok receipt ->
+                        let mutable checkpointCancelled = false
+
+                        let checkpoint name index =
+                            try
+                                fnisCheckpoint name index
+                            with :? OperationCanceledException as error ->
+                                checkpointCancelled <- true
+                                raise error
+
+                        let! completed =
+                            generations.Run(
+                                receipt.Id,
+                                receipt.Revision,
+                                false,
+                                token,
+                                checkpoint,
+                                []
+                            )
+
+                        match completed with
+                        | Ok value -> return Ok value.Proposed
+                        | Error _ when checkpointCancelled || token.IsCancellationRequested ->
+                            return
+                                raise (
+                                    IO.IOException
+                                        "The FNIS deployment did not complete. Recover the previous setup before retrying."
+                                )
+                        | Error _ ->
+                            return
+                                Error
+                                    "The FNIS deployment did not complete. Recover the previous setup before retrying."
         }
 
     member internal _.RemoveFnis
         (workspace: Guid, profile: Guid, token: Threading.CancellationToken)
         =
         task {
-            let! sources, existing =
+            let! read =
                 (deploymentRepository :> ModConductor.Deployment.IDeploymentRepository).Read profile
 
-            if sources.Stamp.WorkspaceId <> workspace then
-                return Error "The profile deployment is unavailable."
-            else
-                let active = existing |> Option.bind _.Active
-                let! generator = fnisSetups.ReadStored(workspace, profile, active)
+            match read with
+            | Error error -> return Error(DeploymentPreparation.refusalMessage error)
+            | Ok(sources, existing) ->
+                if sources.Stamp.WorkspaceId <> workspace then
+                    return Error "The profile deployment is unavailable."
+                else
+                    let active = existing |> Option.bind _.Active
+                    let! generator = fnisSetups.ReadStored(workspace, profile, active)
 
-                match generator with
-                | None -> return Ok active
-                | Some generator ->
-                    let staged =
-                        sources.Profile.Mods
-                        |> List.map (fun selected ->
-                            if selected.ModId = generator.ModId then
-                                { selected with Enabled = false }
-                            else
-                                selected)
+                    match generator with
+                    | None -> return Ok active
+                    | Some generator ->
+                        let staged =
+                            sources.Profile.Mods
+                            |> List.map (fun selected ->
+                                if selected.ModId = generator.ModId then
+                                    { selected with Enabled = false }
+                                else
+                                    selected)
 
-                    let! retained = savedProfile profile sources staged
+                        let! retained = savedProfile profile sources staged
 
-                    match retained with
-                    | Error detail -> return Error detail
-                    | Ok retained ->
-                        let deploymentId = Guid.NewGuid()
+                        match retained with
+                        | Error detail -> return Error detail
+                        | Ok retained ->
+                            let deploymentId = Guid.NewGuid()
 
-                        let! prepared =
-                            prepareComponents (
-                                deploymentId,
-                                sources.Stamp,
-                                [],
-                                ignore,
-                                token,
-                                Some retained
-                            )
-
-                        do!
-                            fnisSetups.StageRemoval(
-                                deploymentId,
-                                sources.Profile.Revision,
-                                generator.ModId,
-                                prepared.Switch.Generation.Id,
-                                workspace,
-                                profile
-                            )
-
-                        let! started = generations.Start(prepared, [], cancellation = token)
-
-                        match started with
-                        | Error _ ->
-                            do! fnisSetups.RemoveIntent deploymentId
-                            return Error "FNIS removal could not start."
-                        | Ok receipt ->
-                            let mutable checkpointCancelled = false
-
-                            let checkpoint name index =
-                                try
-                                    fnisCheckpoint name index
-                                with :? OperationCanceledException as error ->
-                                    checkpointCancelled <- true
-                                    raise error
-
-                            let! completed =
-                                generations.Run(
-                                    receipt.Id,
-                                    receipt.Revision,
-                                    false,
+                            let! preparation =
+                                prepareComponents (
+                                    deploymentId,
+                                    sources.Stamp,
+                                    [],
+                                    ignore,
                                     token,
-                                    checkpoint,
-                                    []
+                                    Some retained
                                 )
 
-                            match completed with
-                            | Ok value -> return Ok(Some value.Proposed)
-                            | Error _ when checkpointCancelled || token.IsCancellationRequested ->
-                                return
-                                    raise (IO.IOException "FNIS removal needs deployment recovery.")
-                            | Error _ -> return Error "FNIS removal needs deployment recovery."
+                            match preparation with
+                            | Error error ->
+                                return Error(DeploymentPreparation.refusalMessage error)
+                            | Ok prepared ->
+                                do!
+                                    fnisSetups.StageRemoval(
+                                        deploymentId,
+                                        sources.Profile.Revision,
+                                        generator.ModId,
+                                        prepared.Switch.Generation.Id,
+                                        workspace,
+                                        profile
+                                    )
+
+                                let! started = generations.Start(prepared, [], cancellation = token)
+
+                                match started with
+                                | Error _ ->
+                                    do! fnisSetups.RemoveIntent deploymentId
+                                    return Error "FNIS removal could not start."
+                                | Ok receipt ->
+                                    let mutable checkpointCancelled = false
+
+                                    let checkpoint name index =
+                                        try
+                                            fnisCheckpoint name index
+                                        with :? OperationCanceledException as error ->
+                                            checkpointCancelled <- true
+                                            raise error
+
+                                    let! completed =
+                                        generations.Run(
+                                            receipt.Id,
+                                            receipt.Revision,
+                                            false,
+                                            token,
+                                            checkpoint,
+                                            []
+                                        )
+
+                                    match completed with
+                                    | Ok value -> return Ok(Some value.Proposed)
+                                    | Error _ when
+                                        checkpointCancelled || token.IsCancellationRequested
+                                        ->
+                                        return
+                                            raise (
+                                                IO.IOException
+                                                    "FNIS removal needs deployment recovery."
+                                            )
+                                    | Error _ ->
+                                        return Error "FNIS removal needs deployment recovery."
         }

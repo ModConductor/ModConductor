@@ -608,6 +608,7 @@ module SkseFixtures =
                 CancellationToken.None
             )
             |> wait
+            |> Result.defaultWith (fun error -> failwithf "SKSE removal preparation: %A" error)
 
         let removalReceipt =
             store.Generations.Start(removal, [])

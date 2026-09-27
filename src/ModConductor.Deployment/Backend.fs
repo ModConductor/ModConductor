@@ -106,99 +106,77 @@ type DeploymentBackend internal (repository: IDeploymentRepository) =
         member _.Read profile =
             protect (fun () ->
                 task {
-                    let! sources, context = repository.Read profile
+                    let! read = repository.Read profile
 
-                    let! runnableRoot =
-                        repository.RunnableRoot(sources.Stamp.WorkspaceId, sources.Stamp.ProfileId)
+                    match read with
+                    | Error error -> return Error(DeploymentReports.error error)
+                    | Ok(sources, context) ->
+                        let! root =
+                            repository.RunnableRoot(
+                                sources.Stamp.WorkspaceId,
+                                sources.Stamp.ProfileId
+                            )
 
-                    let! active =
-                        match context |> Option.bind _.Active with
-                        | Some id -> repository.SavedOne(context.Value.Id, id)
-                        | None -> System.Threading.Tasks.Task.FromResult None
+                        match root with
+                        | Error error -> return Error(DeploymentReports.error error)
+                        | Ok runnableRoot ->
+                            let! active =
+                                match context |> Option.bind _.Active with
+                                | Some id -> repository.SavedOne(context.Value.Id, id)
+                                | None -> System.Threading.Tasks.Task.FromResult None
 
-                    return
-                        Ok
-                            { WorkspaceId = sources.Stamp.WorkspaceId
-                              RunnableRoot = runnableRoot
-                              Revision = context |> Option.map _.Revision |> Option.defaultValue 0L
-                              ActiveGeneration = context |> Option.bind _.Active
-                              Active = active
-                              PendingReceipt = context |> Option.bind _.Pending
-                              Sources = sources.Stamp }
+                            return
+                                Ok
+                                    { WorkspaceId = sources.Stamp.WorkspaceId
+                                      RunnableRoot = runnableRoot
+                                      Revision =
+                                        context |> Option.map _.Revision |> Option.defaultValue 0L
+                                      ActiveGeneration = context |> Option.bind _.Active
+                                      Active = active
+                                      PendingReceipt = context |> Option.bind _.Pending
+                                      Sources = sources.Stamp }
                 })
 
         member _.Saved(profile, before) =
             protect (fun () ->
                 task {
-                    let! _, context = repository.Read profile
+                    let! read = repository.Read profile
 
-                    match context with
-                    | None -> return Ok { Entries = []; NextBefore = None }
-                    | Some context ->
-                        let! page = repository.Saved(context.Id, context.Active, before)
-                        return Ok page
+                    match read with
+                    | Error error -> return Error(DeploymentReports.error error)
+                    | Ok(_, context) ->
+                        match context with
+                        | None -> return Ok { Entries = []; NextBefore = None }
+                        | Some context ->
+                            let! page = repository.Saved(context.Id, context.Active, before)
+                            return Ok page
                 })
 
         member _.Prepare(id, expected, progress, token) =
             run expected.WorkspaceId (fun () ->
                 task {
-                    let! sources, context = repository.Read expected.ProfileId
+                    let! read = repository.Read expected.ProfileId
 
-                    if sources.Stamp <> expected then
-                        return Error DeploymentError.Stale
-                    elif context |> Option.exists (fun value -> value.Pending.IsSome) then
-                        return Error DeploymentError.Busy
-                    elif id = Guid.Empty then
-                        return Error(DeploymentError.Unavailable "Select an operation identity.")
-                    else
-                        token.ThrowIfCancellationRequested()
-                        GameProcesses.validate sources.Context |> ignore
-                        let! value = repository.Prepare(id, sources, context, progress, token)
-                        let mutable retained = false
-
-                        try
-                            let! current = repository.Current expected
-                            token.ThrowIfCancellationRequested()
-
-                            if not current then
-                                return Error DeploymentError.Stale
-                            else
-                                state.Cache(id, value)
-                                retained <- true
-                                return Ok value.View
-                        finally
-                            if not retained then
-                                state.Abandon value
-                })
-
-        member _.PrepareRetained(id, expected, generation, progress, token) =
-            run expected.WorkspaceId (fun () ->
-                task {
-                    let! sources, existing = repository.Read expected.ProfileId
-
-                    if sources.Stamp <> expected then
-                        return Error DeploymentError.Stale
-                    else
-                        match existing with
-                        | None -> return Error DeploymentError.NotFound
-                        | Some context when context.Pending.IsSome ->
+                    match read with
+                    | Error error -> return Error(DeploymentReports.error error)
+                    | Ok(sources, context) ->
+                        if sources.Stamp <> expected then
+                            return Error DeploymentError.Stale
+                        elif context |> Option.exists (fun value -> value.Pending.IsSome) then
                             return Error DeploymentError.Busy
-                        | Some context ->
-                            let evidence = GameProcesses.validate sources.Context
+                        elif id = Guid.Empty then
+                            return
+                                Error(DeploymentError.Unavailable "Select an operation identity.")
+                        else
+                            token.ThrowIfCancellationRequested()
+                            GameProcesses.validate sources.Context |> ignore
 
-                            if context.Fingerprint <> DeploymentContextId.fingerprint evidence then
-                                return Error DeploymentError.Stale
-                            else
-                                let! value =
-                                    repository.Retained(
-                                        id,
-                                        sources,
-                                        context,
-                                        generation,
-                                        progress,
-                                        token
-                                    )
+                            let! prepared =
+                                repository.Prepare(id, sources, context, progress, token)
 
+                            match prepared with
+                            | Error error -> return Error(DeploymentReports.error error)
+                            | Ok value ->
                                 let mutable retained = false
 
                                 try
@@ -214,6 +192,59 @@ type DeploymentBackend internal (repository: IDeploymentRepository) =
                                 finally
                                     if not retained then
                                         state.Abandon value
+                })
+
+        member _.PrepareRetained(id, expected, generation, progress, token) =
+            run expected.WorkspaceId (fun () ->
+                task {
+                    let! read = repository.Read expected.ProfileId
+
+                    match read with
+                    | Error error -> return Error(DeploymentReports.error error)
+                    | Ok(sources, existing) ->
+                        if sources.Stamp <> expected then
+                            return Error DeploymentError.Stale
+                        else
+                            match existing with
+                            | None -> return Error DeploymentError.NotFound
+                            | Some context when context.Pending.IsSome ->
+                                return Error DeploymentError.Busy
+                            | Some context ->
+                                let evidence = GameProcesses.validate sources.Context
+
+                                if
+                                    context.Fingerprint <> DeploymentContextId.fingerprint evidence
+                                then
+                                    return Error DeploymentError.Stale
+                                else
+                                    let! prepared =
+                                        repository.Retained(
+                                            id,
+                                            sources,
+                                            context,
+                                            generation,
+                                            progress,
+                                            token
+                                        )
+
+                                    match prepared with
+                                    | Error error -> return Error(DeploymentReports.error error)
+                                    | Ok value ->
+                                        let mutable retained = false
+
+                                        try
+                                            let! current = repository.Current expected
+                                            token.ThrowIfCancellationRequested()
+
+                                            if not current then
+                                                return Error DeploymentError.Stale
+                                            else
+                                                state.Cache(id, value)
+                                                retained <- true
+                                                return Ok value.View
+                                        finally
+                                            if not retained then
+                                                state.Abandon value
                 })
 
         member _.RefreshFnis(id, expected, candidate, progress, token) =

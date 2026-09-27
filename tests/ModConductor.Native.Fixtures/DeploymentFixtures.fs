@@ -149,6 +149,7 @@ module DeploymentFixtures =
                  | _ -> false)
 
             let current = context store
+
             let invalidRequest =
                 { request area (id 1006) current.Revision area.Second with
                     ContextFingerprint = "" }
@@ -159,6 +160,94 @@ module DeploymentFixtures =
                 (match get (store.Deployment.Start invalidRequest) with
                  | Error RecoveryError.InvalidPlan ->
                      get (store.Deployment.Read invalidRequest.Id) |> Option.isNone
+                 | _ -> false)
+
+            let refusedBoundary receipt boundaries =
+                let request =
+                    { request area receipt current.Revision area.Second with
+                        DirectoryBoundaries = boundaries }
+
+                match get (store.Deployment.Start request) with
+                | Error RecoveryError.InvalidPlan ->
+                    get (store.Deployment.Read receipt) |> Option.isNone
+                | _ -> false
+
+            flag
+                writer
+                "duplicateBoundaryHasNoReceipt"
+                (refusedBoundary (id 1007) [ target "folder"; target "folder" ])
+
+            flag
+                writer
+                "overlappingBoundaryHasNoReceipt"
+                (refusedBoundary (id 1008) [ target "folder"; target "folder/file.txt" ])
+
+            flag
+                writer
+                "missingBoundaryHasNoReceipt"
+                (refusedBoundary (id 1009) [ target "missing" ])
+
+            let workingPath = Path.Combine(root, "projected-target-working")
+            Directory.CreateDirectory workingPath |> ignore
+            File.WriteAllText(Path.Combine(workingPath, "source.dat"), "working")
+            let workingRoot = location workingPath
+
+            let manyTargets =
+                { area.Second with
+                    Working =
+                        [ for index in 1..4096 ->
+                              { Target = target ("bulk/" + string index)
+                                Directory = false
+                                Root = workingRoot
+                                Path = path "source.dat"
+                                Identity = None } ] }
+
+            let manyRequest = request area (id 1010) current.Revision manyTargets
+
+            flag
+                writer
+                "largeTargetSetPrepared"
+                (match Preparation.prepare CancellationToken.None (Some current) manyRequest with
+                 | Ok prepared -> prepared.Changes.Length > 4096
+                 | Error _ -> false)
+
+            let invalidLargeRequest =
+                { manyRequest with
+                    Id = id 1012
+                    DirectoryBoundaries = [ target "folder"; target "folder" ] }
+
+            flag
+                writer
+                "invalidBoundaryInLargeRequestHasNoReceipt"
+                (match get (store.Deployment.Start invalidLargeRequest) with
+                 | Error RecoveryError.InvalidPlan ->
+                     get (store.Deployment.Read invalidLargeRequest.Id) |> Option.isNone
+                 | _ -> false)
+
+            let parentTargets =
+                [ for index in 1..2049 -> target ("p" + string index + "/q/file") ]
+
+            flag
+                writer
+                "largeParentSetPrepared"
+                ((RecoveryParents.prepare current parentTargets).Length >= 4098)
+
+            let unchangedInput = input 1L (HostPath.value area.Second.Directory.Path) []
+            let retainedPlan = ready unchangedInput
+
+            let changedInput =
+                { unchangedInput with
+                    Profile =
+                        { unchangedInput.Profile with
+                            Revision = 2L } }
+
+            flag
+                writer
+                "changedGenerationInputReturnsRefusal"
+                (match
+                    Generations.capture (id 1011) area.Second.Directory retainedPlan changedInput
+                 with
+                 | Error RecoveryError.InvalidPlan -> true
                  | _ -> false)
 
             let pending = start store area (id 1005) current.Revision area.Second
