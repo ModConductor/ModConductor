@@ -3,6 +3,10 @@ namespace ModConductor.Persistence
 open System
 
 module internal BundleDeletion =
+    let private existing result =
+        result
+        |> Result.defaultWith (fun _ -> invalidOp "Referenced bundle row is missing.")
+
     let works connection transaction targets =
         targets
         |> List.collect (fun target ->
@@ -19,7 +23,9 @@ module internal BundleDeletion =
         works connection transaction (Set.toList targets)
         |> List.collect (fun id ->
             let all = BundleRows.sources connection transaction id
-            let mods = (BundleRows.snapshot connection transaction workspace id).Mods
+
+            let mods =
+                (BundleRows.snapshot connection transaction workspace id |> existing).Mods
 
             let chains items =
                 items
@@ -47,7 +53,8 @@ module internal BundleDeletion =
 
     let busy connection transaction workspace targets =
         works connection transaction targets
-        |> List.exists (fun id -> (BundleRows.work connection transaction workspace id).Busy <> 0)
+        |> List.exists (fun id ->
+            (BundleRows.work connection transaction workspace id |> existing).Busy <> 0)
 
     let complete connection transaction workspace targets =
         let workIds = works connection transaction targets

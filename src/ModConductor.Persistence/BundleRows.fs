@@ -33,7 +33,10 @@ type internal BundleWork =
       Problem: string option }
 
 module internal BundleRows =
-    let refuse message = raise (BundleException message)
+    let private required message =
+        function
+        | Some value -> Ok value
+        | None -> Error message
 
     let optional (r: SqliteDataReader) column read =
         if r.IsDBNull column then None else Some(read column)
@@ -48,28 +51,28 @@ module internal BundleRows =
 
         use r = q.ExecuteReader()
 
-        if not (r.Read()) then
-            refuse "This bundle is no longer open."
-
-        { Id = id
-          Workspace = workspace
-          ArtifactId = Guid.Parse(r.GetString 0)
-          Name = r.GetString 1
-          Digest = r.GetString 2
-          Revision = r.GetInt64 3
-          Busy = r.GetInt32 4
-          Problem = optional r 5 r.GetString }
+        if r.Read() then
+            Ok
+                { Id = id
+                  Workspace = workspace
+                  ArtifactId = Guid.Parse(r.GetString 0)
+                  Name = r.GetString 1
+                  Digest = r.GetString 2
+                  Revision = r.GetInt64 3
+                  Busy = r.GetInt32 4
+                  Problem = optional r 5 r.GetString }
+        else
+            Error "This bundle is no longer open."
 
     let check connection transaction (reference: BundleRef) =
-        let value = work connection transaction reference.WorkspaceId reference.Id
-
-        if value.Revision <> reference.Revision then
-            refuse "The bundle changed. Open its current checklist."
-
-        if value.Busy <> 0 then
-            refuse "The bundle has an operation in progress."
-
-        value
+        work connection transaction reference.WorkspaceId reference.Id
+        |> Result.bind (fun value ->
+            if value.Revision <> reference.Revision then
+                Error "The bundle changed. Open its current checklist."
+            elif value.Busy <> 0 then
+                Error "The bundle has an operation in progress."
+            else
+                Ok value)
 
     let touch connection transaction id =
         Sqlite.execute
@@ -106,7 +109,7 @@ module internal BundleRows =
     let source connection transaction bundle id =
         sources connection transaction bundle
         |> List.tryFind (fun s -> s.Id = id)
-        |> Option.defaultWith (fun () -> refuse "This archive is no longer in the bundle.")
+        |> required "This archive is no longer in the bundle."
 
     let chain (sources: BundleSource list) (source: BundleSource) =
         let rec walk (s: BundleSource) =
@@ -127,8 +130,7 @@ module internal BundleRows =
                 (values |> List.sumBy _.Entries)
                 (values |> List.sumBy (fun s -> s.ExpectedLength + s.Bytes))
 
-    let snapshot connection transaction workspace id =
-        let work = work connection transaction workspace id
+    let private snapshotForWork connection transaction workspace id work =
         let sources = sources connection transaction id
 
         use q =
@@ -193,89 +195,96 @@ module internal BundleRows =
           TemporaryBytes = sources |> List.sumBy (fun s -> defaultArg s.Length 0L)
           Problem = work.Problem }
 
+    let snapshot connection transaction workspace id =
+        work connection transaction workspace id
+        |> Result.map (snapshotForWork connection transaction workspace id)
+
     let item connection transaction workspace bundle id =
-        (snapshot connection transaction workspace bundle).Mods
-        |> List.tryFind (fun m -> m.Id = id)
-        |> Option.defaultWith (fun () -> refuse "This mod is no longer in the bundle.")
+        snapshot connection transaction workspace bundle
+        |> Result.bind (fun bundle ->
+            bundle.Mods
+            |> List.tryFind (fun m -> m.Id = id)
+            |> required "This mod is no longer in the bundle.")
 
     let target connection transaction workspace (destination: BundleDestination option) incoming =
         match destination with
-        | None -> incoming
+        | None -> Ok incoming
         | Some destination ->
-            let owner = work connection transaction workspace destination.BundleId
+            work connection transaction workspace destination.BundleId
+            |> Result.bind (fun owner ->
+                if owner.Busy <> 0 then
+                    Error "The bundle is busy. Wait for its current operation."
+                else
+                    item connection transaction workspace destination.BundleId destination.ItemId)
+            |> Result.bind (fun item ->
+                if item.ModId <> destination.ModId then
+                    Error "The mod destination changed. Review it again."
+                else
+                    match item.Attempt, item.State with
+                    | Some id, (ModState.Installed | ModState.Installing | ModState.Failed) ->
+                        Ok id
+                    | _ ->
+                        snapshot connection transaction workspace destination.BundleId
+                        |> Result.bind (fun bundle ->
+                            let first =
+                                bundle.Mods
+                                |> List.tryFind (fun m -> m.State <> ModState.Installed)
 
-            if owner.Busy <> 0 then
-                refuse "The bundle is busy. Wait for its current operation."
-
-            let item =
-                item connection transaction workspace destination.BundleId destination.ItemId
-
-            if item.ModId <> destination.ModId then
-                refuse "The mod destination changed. Review it again."
-
-            match item.Attempt, item.State with
-            | Some id, (ModState.Installed | ModState.Installing | ModState.Failed) -> id
-            | _ ->
-                let first =
-                    (snapshot connection transaction workspace destination.BundleId).Mods
-                    |> List.tryFind (fun m -> m.State <> ModState.Installed)
-
-                if first |> Option.exists (fun m -> m.Id <> item.Id) then
-                    refuse "Finish the earlier mod first."
-
-                incoming
+                            if first |> Option.exists (fun m -> m.Id <> item.Id) then
+                                Error "Finish the earlier mod first."
+                            else
+                                Ok incoming))
 
     let reserved connection transaction id (plan: InstallationPlan) =
         match plan.Bundle with
-        | None -> ()
+        | None -> Ok()
         | Some destination ->
-            let bundle =
-                snapshot connection transaction plan.Artifact.WorkspaceId destination.BundleId
+            snapshot connection transaction plan.Artifact.WorkspaceId destination.BundleId
+            |> Result.bind (fun bundle ->
+                if
+                    bundle.Mods
+                    |> List.exists (fun item ->
+                        item.Id <> destination.ItemId
+                        && String.Equals(item.Name, plan.Name, StringComparison.OrdinalIgnoreCase))
+                then
+                    Error "Use different mod names within this bundle."
+                else
+                    Sqlite.execute
+                        connection
+                        transaction
+                        "UPDATE bundle_mods SET attempt=$attempt,name=$name WHERE id=$id AND mod_id=$mod"
+                        [ "$name", box plan.Name
+                          "$attempt", box (string id)
+                          "$id", box (string destination.ItemId)
+                          "$mod", box (string destination.ModId) ]
 
-            if
-                bundle.Mods
-                |> List.exists (fun item ->
-                    item.Id <> destination.ItemId
-                    && String.Equals(item.Name, plan.Name, StringComparison.OrdinalIgnoreCase))
-            then
-                refuse "Use different mod names within this bundle."
-
-            Sqlite.execute
-                connection
-                transaction
-                "UPDATE bundle_mods SET attempt=$attempt,name=$name WHERE id=$id AND mod_id=$mod"
-                [ "$name", box plan.Name
-                  "$attempt", box (string id)
-                  "$id", box (string destination.ItemId)
-                  "$mod", box (string destination.ModId) ]
-
-            touch connection transaction destination.BundleId
+                    touch connection transaction destination.BundleId
+                    Ok())
 
     let published connection transaction version (plan: InstallationPlan) =
         match plan.Bundle, plan.Nested with
         | Some destination, Some nested ->
-            let work =
-                work connection transaction plan.Artifact.WorkspaceId destination.BundleId
+            work connection transaction plan.Artifact.WorkspaceId destination.BundleId
+            |> Result.map (fun work ->
+                let values = sources connection transaction destination.BundleId
+                let path = chain values (values |> List.find (fun s -> s.Id = nested.SourceId))
 
-            let values = sources connection transaction destination.BundleId
-            let path = chain values (values |> List.find (fun s -> s.Id = nested.SourceId))
+                let paths =
+                    String.Join('\001', path |> List.map (fun s -> LibraryEncoding.path s.Path))
 
-            let paths =
-                String.Join('\001', path |> List.map (fun s -> LibraryEncoding.path s.Path))
+                let digests = String.Join('\001', path |> List.map (fun s -> s.Digest.Value))
 
-            let digests = String.Join('\001', path |> List.map (fun s -> s.Digest.Value))
+                Sqlite.execute
+                    connection
+                    transaction
+                    "INSERT INTO bundle_version_origins VALUES($version,$parent,$paths,$digests); UPDATE bundle_mods SET name=$name WHERE id=$item"
+                    [ "$version", box (string version)
+                      "$parent", box work.Digest
+                      "$paths", box paths
+                      "$digests", box digests
+                      "$name", box plan.Name
+                      "$item", box (string destination.ItemId) ]
 
-            Sqlite.execute
-                connection
-                transaction
-                "INSERT INTO bundle_version_origins VALUES($version,$parent,$paths,$digests); UPDATE bundle_mods SET name=$name WHERE id=$item"
-                [ "$version", box (string version)
-                  "$parent", box work.Digest
-                  "$paths", box paths
-                  "$digests", box digests
-                  "$name", box plan.Name
-                  "$item", box (string destination.ItemId) ]
-
-            touch connection transaction destination.BundleId
-        | None, None -> ()
+                touch connection transaction destination.BundleId)
+        | None, None -> Ok()
         | _ -> invalidOp "Bundle installation source is incomplete."

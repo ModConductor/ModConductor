@@ -16,8 +16,6 @@ type internal InstallationFile =
       Reused: Guid option }
 
 module internal InstallationRows =
-    let private refuse message = raise (InstallationException message)
-
     let files connection transaction id =
         use query =
             Sqlite.command
@@ -151,152 +149,163 @@ module internal InstallationRows =
                             |> List.filter (fun f -> f.Identity.IsSome)
                             |> List.sumBy (fun f -> defaultArg f.Length 0L) }
 
+    let private targetReady connection transaction (plan: InstallationPlan) =
+        match plan.Target with
+        | None -> Ok()
+        | Some target ->
+            match LibraryRows.find connection transaction target.ModId with
+            | Some row when
+                row.Entry.WorkspaceId = plan.Artifact.WorkspaceId
+                && row.Entry.Revision = target.Revision
+                && row.Entry.CurrentVersion = Some target.PreviousVersion
+                ->
+                if
+                    MaintenanceClaims.busy connection transaction target.ModId
+                    || Sqlite.number
+                        connection
+                        transaction
+                        "SELECT count(*) FROM mod_versions WHERE mod_id=$mod AND busy=1"
+                        [ "$mod", box (string target.ModId) ]
+                       <> 0L
+                then
+                    Error "The mod has another operation in progress."
+                else
+                    Ok()
+            | _ -> Error "The installed mod changed. Review the update again."
+
     let reserve (connection: SqliteConnection) owner id (plan: InstallationPlan) check =
         use transaction = connection.BeginTransaction(deferred = false)
 
-        let id =
-            BundleRows.target connection transaction plan.Artifact.WorkspaceId plan.Bundle id
+        let reserveForId id =
+            let existing = find connection transaction plan.Artifact.WorkspaceId id
 
-        let existing = find connection transaction plan.Artifact.WorkspaceId id
-
-        let fresh =
-            match existing with
-            | Some current when current.State = InstallationState.Complete && plan.Bundle.IsSome ->
-                false
-            | Some _ ->
-                use query =
-                    Sqlite.command
-                        connection
-                        transaction
-                        "SELECT fingerprint FROM archive_installations WHERE id=$id"
-                        [ "$id", box (string id) ]
-
-                if string (query.ExecuteScalar()) <> plan.Fingerprint then
-                    refuse "This installation request already has a different plan."
-
-                false
-            | None ->
-                check transaction
-
-                match plan.Target with
-                | Some target ->
-                    match LibraryRows.find connection transaction target.ModId with
-                    | Some row when
-                        row.Entry.WorkspaceId = plan.Artifact.WorkspaceId
-                        && row.Entry.Revision = target.Revision
-                        && row.Entry.CurrentVersion = Some target.PreviousVersion
-                        ->
-                        ()
-                    | _ -> refuse "The installed mod changed. Review the update again."
-
-                    if
-                        MaintenanceClaims.busy connection transaction target.ModId
-                        || Sqlite.number
+            let fresh =
+                match existing with
+                | Some current when current.State = InstallationState.Complete && plan.Bundle.IsSome ->
+                    Ok false
+                | Some _ ->
+                    use query =
+                        Sqlite.command
                             connection
                             transaction
-                            "SELECT count(*) FROM mod_versions WHERE mod_id=$mod AND busy=1"
-                            [ "$mod", box (string target.ModId) ]
-                           <> 0L
-                    then
-                        refuse "The mod has another operation in progress."
-                | None -> ()
+                            "SELECT fingerprint FROM archive_installations WHERE id=$id"
+                            [ "$id", box (string id) ]
 
-                if
-                    Sqlite.number
-                        connection
-                        transaction
-                        "SELECT count(*) FROM archive_installations WHERE workspace_id=$workspace AND state IN (0,1)"
-                        [ "$workspace", box (string plan.Artifact.WorkspaceId) ]
-                    <> 0L
-                then
-                    refuse "Finish the current installation or delete its temporary files first."
+                    if string (query.ExecuteScalar()) <> plan.Fingerprint then
+                        Error "This installation request already has a different plan."
+                    else
+                        Ok false
+                | None ->
+                    check transaction
 
-                Sqlite.execute
-                    connection
-                    transaction
-                    "INSERT INTO archive_installations(id,workspace_id,artifact_id,owner,state,busy,fingerprint,archive_name,name,version_label,source_digest,source_revision,root,mod_id,version_id,total_bytes,total_files,target_revision,previous_version) VALUES($id,$workspace,$artifact,$owner,0,1,$fingerprint,$archive,$name,$label,$digest,$revision,$root,$mod,$version,$bytes,$files,$targetRevision,$previousVersion)"
-                    [ "$id", box (string id)
-                      "$workspace", box (string plan.Artifact.WorkspaceId)
-                      "$artifact", box (string plan.Artifact.Id)
-                      "$owner", box owner
-                      "$fingerprint", box plan.Fingerprint
-                      "$archive", box plan.ArchiveName
-                      "$name", box plan.Name
-                      "$label", box plan.Version
-                      "$digest", box plan.Sha256
-                      "$revision", box plan.Artifact.Revision
-                      "$root", box (String.concat "/" plan.Root)
-                      "$mod",
-                      box (
-                          string (
-                              plan.Target
-                              |> Option.map _.ModId
-                              |> Option.orElseWith (fun () -> plan.Bundle |> Option.map _.ModId)
-                              |> Option.defaultWith Guid.NewGuid
-                          )
-                      )
-                      "$version", box (string (Guid.NewGuid()))
-                      "$bytes",
-                      box (
-                          plan.Bytes
-                          + (plan.Target
-                             |> Option.map (fun target ->
-                                 target.Existing |> List.sumBy (fun file -> file.Payload.Length))
-                             |> Option.defaultValue 0L)
-                      )
-                      "$files",
-                      box (
-                          plan.Files.Length
-                          + (plan.Target
-                             |> Option.map (fun target -> target.Existing.Length)
-                             |> Option.defaultValue 0)
-                      )
-                      "$targetRevision",
-                      plan.Target
-                      |> Option.map (fun target -> box target.Revision)
-                      |> Option.defaultValue (box DBNull.Value)
-                      "$previousVersion",
-                      plan.Target
-                      |> Option.map (fun target -> box (string target.PreviousVersion))
-                      |> Option.defaultValue (box DBNull.Value) ]
+                    targetReady connection transaction plan
+                    |> Result.bind (fun () ->
+                        if
+                            Sqlite.number
+                                connection
+                                transaction
+                                "SELECT count(*) FROM archive_installations WHERE workspace_id=$workspace AND state IN (0,1)"
+                                [ "$workspace", box (string plan.Artifact.WorkspaceId) ]
+                            <> 0L
+                        then
+                            Error
+                                "Finish the current installation or delete its temporary files first."
+                        else
+                            Sqlite.execute
+                                connection
+                                transaction
+                                "INSERT INTO archive_installations(id,workspace_id,artifact_id,owner,state,busy,fingerprint,archive_name,name,version_label,source_digest,source_revision,root,mod_id,version_id,total_bytes,total_files,target_revision,previous_version) VALUES($id,$workspace,$artifact,$owner,0,1,$fingerprint,$archive,$name,$label,$digest,$revision,$root,$mod,$version,$bytes,$files,$targetRevision,$previousVersion)"
+                                [ "$id", box (string id)
+                                  "$workspace", box (string plan.Artifact.WorkspaceId)
+                                  "$artifact", box (string plan.Artifact.Id)
+                                  "$owner", box owner
+                                  "$fingerprint", box plan.Fingerprint
+                                  "$archive", box plan.ArchiveName
+                                  "$name", box plan.Name
+                                  "$label", box plan.Version
+                                  "$digest", box plan.Sha256
+                                  "$revision", box plan.Artifact.Revision
+                                  "$root", box (String.concat "/" plan.Root)
+                                  "$mod",
+                                  box (
+                                      string (
+                                          plan.Target
+                                          |> Option.map _.ModId
+                                          |> Option.orElseWith (fun () ->
+                                              plan.Bundle |> Option.map _.ModId)
+                                          |> Option.defaultWith Guid.NewGuid
+                                      )
+                                  )
+                                  "$version", box (string (Guid.NewGuid()))
+                                  "$bytes",
+                                  box (
+                                      plan.Bytes
+                                      + (plan.Target
+                                         |> Option.map (fun target ->
+                                             target.Existing
+                                             |> List.sumBy (fun file -> file.Payload.Length))
+                                         |> Option.defaultValue 0L)
+                                  )
+                                  "$files",
+                                  box (
+                                      plan.Files.Length
+                                      + (plan.Target
+                                         |> Option.map (fun target -> target.Existing.Length)
+                                         |> Option.defaultValue 0)
+                                  )
+                                  "$targetRevision",
+                                  plan.Target
+                                  |> Option.map (fun target -> box target.Revision)
+                                  |> Option.defaultValue (box DBNull.Value)
+                                  "$previousVersion",
+                                  plan.Target
+                                  |> Option.map (fun target -> box (string target.PreviousVersion))
+                                  |> Option.defaultValue (box DBNull.Value) ]
 
-                BundleRows.reserved connection transaction id plan
+                            BundleRows.reserved connection transaction id plan
+                            |> Result.map (fun () ->
+                                for file in plan.Files |> List.distinctBy _.Index do
+                                    Sqlite.execute
+                                        connection
+                                        transaction
+                                        "INSERT INTO installation_files(installation_id,entry_index,destination,payload_id) VALUES($id,$index,$path,$payload)"
+                                        [ "$id", box (string id)
+                                          "$index", box file.Index
+                                          "$path", box (LibraryEncoding.path file.Destination)
+                                          "$payload", box (string (Guid.NewGuid())) ]
 
-                for file in plan.Files |> List.distinctBy _.Index do
-                    Sqlite.execute
-                        connection
-                        transaction
-                        "INSERT INTO installation_files(installation_id,entry_index,destination,payload_id) VALUES($id,$index,$path,$payload)"
-                        [ "$id", box (string id)
-                          "$index", box file.Index
-                          "$path", box (LibraryEncoding.path file.Destination)
-                          "$payload", box (string (Guid.NewGuid())) ]
+                                for file in plan.Files do
+                                    Sqlite.execute
+                                        connection
+                                        transaction
+                                        "INSERT INTO installation_destinations VALUES($id,$index,$path)"
+                                        [ "$id", box (string id)
+                                          "$index", box file.Index
+                                          "$path", box (LibraryEncoding.path file.Destination) ]
 
-                for file in plan.Files do
-                    Sqlite.execute
-                        connection
-                        transaction
-                        "INSERT INTO installation_destinations VALUES($id,$index,$path)"
-                        [ "$id", box (string id)
-                          "$index", box file.Index
-                          "$path", box (LibraryEncoding.path file.Destination) ]
+                                for file in
+                                    plan.Target |> Option.map _.Existing |> Option.defaultValue [] do
+                                    Sqlite.execute
+                                        connection
+                                        transaction
+                                        "INSERT INTO installation_reuse VALUES($id,$path,$payload)"
+                                        [ "$id", box (string id)
+                                          "$path", box (LibraryEncoding.path file.Path)
+                                          "$payload", box (string file.Payload.Id) ]
 
-                for file in plan.Target |> Option.map _.Existing |> Option.defaultValue [] do
-                    Sqlite.execute
-                        connection
-                        transaction
-                        "INSERT INTO installation_reuse VALUES($id,$path,$payload)"
-                        [ "$id", box (string id)
-                          "$path", box (LibraryEncoding.path file.Path)
-                          "$payload", box (string file.Payload.Id) ]
+                                true))
 
-                true
+            fresh
+            |> Result.map (fun fresh ->
+                let snapshot =
+                    find connection transaction plan.Artifact.WorkspaceId id |> Option.get
 
-        let snapshot =
-            find connection transaction plan.Artifact.WorkspaceId id |> Option.get
+                transaction.Commit()
+                snapshot, fresh)
 
-        transaction.Commit()
-        snapshot, fresh
+
+        BundleRows.target connection transaction plan.Artifact.WorkspaceId plan.Bundle id
+        |> Result.bind reserveForId
 
     let stopped connection owner id problem =
         Sqlite.execute
@@ -317,131 +326,135 @@ module internal InstallationRows =
 
         use reader = query.ExecuteReader()
 
-        if not (reader.Read()) then
-            refuse "This installation is no longer available."
+        if reader.Read() then
+            let modId, version = Guid.Parse(reader.GetString 0), Guid.Parse(reader.GetString 1)
 
-        let modId, version = Guid.Parse(reader.GetString 0), Guid.Parse(reader.GetString 1)
+            if reader.GetBoolean 2 || reader.GetInt32 3 <> 0 then
+                raise (OperationCanceledException())
 
-        if reader.GetBoolean 2 || reader.GetInt32 3 <> 0 then
-            raise (OperationCanceledException())
+            reader.Close()
+            let observed = files connection transaction id
 
-        reader.Close()
-        let observed = files connection transaction id
+            if
+                observed.Length <> (plan.Files |> List.distinctBy _.Index |> List.length)
+                || observed
+                   |> List.exists (fun f ->
+                       f.Digest.IsNone || (f.Identity.IsNone && f.Reused.IsNone) || f.Length.IsNone)
+            then
+                invalidOp "Installation payload observations are incomplete."
 
-        if
-            observed.Length <> (plan.Files |> List.distinctBy _.Index |> List.length)
-            || observed
-               |> List.exists (fun f ->
-                   f.Digest.IsNone || (f.Identity.IsNone && f.Reused.IsNone) || f.Length.IsNone)
-        then
-            invalidOp "Installation payload observations are incomplete."
+            let expected =
+                match plan.Target with
+                | None ->
+                    Sqlite.execute
+                        connection
+                        transaction
+                        "INSERT INTO mods(id,workspace_id,kind,name,notes,comment,version_text,source_text,revision,source_path,source_identity,current_version,status) VALUES($mod,$workspace,1,$name,'','',$label,'',0,NULL,NULL,NULL,5)"
+                        [ "$mod", box (string modId)
+                          "$workspace", box (string plan.Artifact.WorkspaceId)
+                          "$name", box plan.Name
+                          "$label", box plan.Version ]
 
-        let expected =
-            match plan.Target with
-            | None ->
+                    Ok 0L
+                | Some target ->
+                    match LibraryRows.find connection transaction modId with
+                    | Some row when
+                        row.Entry.Revision = target.Revision
+                        && row.Entry.CurrentVersion = Some target.PreviousVersion
+                        ->
+                        Ok target.Revision
+                    | _ -> Error "The installed mod changed. The update was not published."
+
+            expected
+            |> Result.bind (fun expected ->
                 Sqlite.execute
                     connection
                     transaction
-                    "INSERT INTO mods(id,workspace_id,kind,name,notes,comment,version_text,source_text,revision,source_path,source_identity,current_version,status) VALUES($mod,$workspace,1,$name,'','',$label,'',0,NULL,NULL,NULL,5)"
-                    [ "$mod", box (string modId)
-                      "$workspace", box (string plan.Artifact.WorkspaceId)
-                      "$name", box plan.Name
-                      "$label", box plan.Version ]
+                    "INSERT INTO mod_versions(id,mod_id,expected_revision,owner,phase,busy) VALUES($version,$mod,$expected,$owner,2,1)"
+                    [ "$version", box (string version)
+                      "$mod", box (string modId)
+                      "$owner", box owner
+                      "$expected", box expected ]
 
-                0L
-            | Some target ->
-                match LibraryRows.find connection transaction modId with
-                | Some row when
-                    row.Entry.Revision = target.Revision
-                    && row.Entry.CurrentVersion = Some target.PreviousVersion
-                    ->
-                    target.Revision
-                | _ -> refuse "The installed mod changed. The update was not published."
+                for file in observed do
+                    let payloadId = defaultArg file.Reused file.PayloadId
 
-        Sqlite.execute
-            connection
-            transaction
-            "INSERT INTO mod_versions(id,mod_id,expected_revision,owner,phase,busy) VALUES($version,$mod,$expected,$owner,2,1)"
-            [ "$version", box (string version)
-              "$mod", box (string modId)
-              "$owner", box owner
-              "$expected", box expected ]
+                    if file.Reused.IsNone then
+                        Sqlite.execute
+                            connection
+                            transaction
+                            "INSERT INTO mod_payloads(id,workspace_id,publication_id,identity,length,digest) VALUES($id,$workspace,$version,$identity,$length,$digest)"
+                            [ "$id", box (string payloadId)
+                              "$workspace", box (string plan.Artifact.WorkspaceId)
+                              "$version", box (string version)
+                              "$identity", box (LibraryEncoding.identity file.Identity.Value)
+                              "$length", box file.Length.Value
+                              "$digest", box file.Digest.Value ]
 
-        for file in observed do
-            let payloadId = defaultArg file.Reused file.PayloadId
+                    Sqlite.execute
+                        connection
+                        transaction
+                        "INSERT INTO mod_manifest SELECT $version,path,$payload FROM installation_destinations WHERE installation_id=$id AND entry_index=$index"
+                        [ "$version", box (string version)
+                          "$payload", box (string payloadId)
+                          "$id", box (string id)
+                          "$index", box file.Index ]
 
-            if file.Reused.IsNone then
                 Sqlite.execute
                     connection
                     transaction
-                    "INSERT INTO mod_payloads(id,workspace_id,publication_id,identity,length,digest) VALUES($id,$workspace,$version,$identity,$length,$digest)"
-                    [ "$id", box (string payloadId)
-                      "$workspace", box (string plan.Artifact.WorkspaceId)
-                      "$version", box (string version)
-                      "$identity", box (LibraryEncoding.identity file.Identity.Value)
-                      "$length", box file.Length.Value
-                      "$digest", box file.Digest.Value ]
+                    "INSERT INTO mod_manifest SELECT $version,path,payload_id FROM installation_reuse WHERE installation_id=$id"
+                    [ "$version", box (string version); "$id", box (string id) ]
 
-            Sqlite.execute
-                connection
-                transaction
-                "INSERT INTO mod_manifest SELECT $version,path,$payload FROM installation_destinations WHERE installation_id=$id AND entry_index=$index"
-                [ "$version", box (string version)
-                  "$payload", box (string payloadId)
-                  "$id", box (string id)
-                  "$index", box file.Index ]
+                Sqlite.execute
+                    connection
+                    transaction
+                    "INSERT INTO archive_version_origins VALUES($version,$artifact)"
+                    [ "$version", box (string version)
+                      "$artifact", box (string plan.Artifact.Id) ]
 
-        Sqlite.execute
-            connection
-            transaction
-            "INSERT INTO mod_manifest SELECT $version,path,payload_id FROM installation_reuse WHERE installation_id=$id"
-            [ "$version", box (string version); "$id", box (string id) ]
+                BundleRows.published connection transaction version plan
+                |> Result.map (fun () ->
+                    NexusOriginRows.published connection transaction modId version
 
-        Sqlite.execute
-            connection
-            transaction
-            "INSERT INTO archive_version_origins VALUES($version,$artifact)"
-            [ "$version", box (string version); "$artifact", box (string plan.Artifact.Id) ]
+                    PublicationRows.completeIn connection transaction owner version
+                    |> Result.defaultWith (fun _ ->
+                        invalidOp "The installation publication could not complete.")
+                    |> ignore
 
-        BundleRows.published connection transaction version plan
-        NexusOriginRows.published connection transaction modId version
+                    match plan.Target with
+                    | None ->
+                        SelectionRows.registered
+                            connection
+                            transaction
+                            plan.Artifact.WorkspaceId
+                            modId
+                            ModKind.Regular
+                    | Some _ ->
+                        Sqlite.execute
+                            connection
+                            transaction
+                            "UPDATE mods SET version_text=$label WHERE id=$mod; UPDATE profiles SET selection_revision=selection_revision+1 WHERE workspace_id=$workspace"
+                            [ "$label", box plan.Version
+                              "$mod", box (string modId)
+                              "$workspace", box (string plan.Artifact.WorkspaceId) ]
 
-        PublicationRows.completeIn connection transaction owner version
-        |> Result.defaultWith (fun _ ->
-            invalidOp "The installation publication could not complete.")
-        |> ignore
+                    Sqlite.execute
+                        connection
+                        transaction
+                        "INSERT INTO artifact_links(artifact_id,mod_id,version_id,mod_name,version_label,installed) VALUES($artifact,$mod,$version,$name,$label,1)"
+                        [ "$artifact", box (string plan.Artifact.Id)
+                          "$mod", box (string modId)
+                          "$version", box (string version)
+                          "$name", box plan.Name
+                          "$label", box plan.Version ]
 
-        match plan.Target with
-        | None ->
-            SelectionRows.registered
-                connection
-                transaction
-                plan.Artifact.WorkspaceId
-                modId
-                ModKind.Regular
-        | Some _ ->
-            Sqlite.execute
-                connection
-                transaction
-                "UPDATE mods SET version_text=$label WHERE id=$mod; UPDATE profiles SET selection_revision=selection_revision+1 WHERE workspace_id=$workspace"
-                [ "$label", box plan.Version
-                  "$mod", box (string modId)
-                  "$workspace", box (string plan.Artifact.WorkspaceId) ]
+                    Sqlite.execute
+                        connection
+                        transaction
+                        "UPDATE artifacts SET revision=revision+1 WHERE id=$artifact; UPDATE archive_installations SET state=2,busy=0 WHERE id=$id; DELETE FROM installation_files WHERE installation_id=$id; DELETE FROM installation_reuse WHERE installation_id=$id"
+                        [ "$artifact", box (string plan.Artifact.Id); "$id", box (string id) ]
 
-        Sqlite.execute
-            connection
-            transaction
-            "INSERT INTO artifact_links(artifact_id,mod_id,version_id,mod_name,version_label,installed) VALUES($artifact,$mod,$version,$name,$label,1)"
-            [ "$artifact", box (string plan.Artifact.Id)
-              "$mod", box (string modId)
-              "$version", box (string version)
-              "$name", box plan.Name
-              "$label", box plan.Version ]
-
-        Sqlite.execute
-            connection
-            transaction
-            "UPDATE artifacts SET revision=revision+1 WHERE id=$artifact; UPDATE archive_installations SET state=2,busy=0 WHERE id=$id; DELETE FROM installation_files WHERE installation_id=$id; DELETE FROM installation_reuse WHERE installation_id=$id"
-            [ "$artifact", box (string plan.Artifact.Id); "$id", box (string id) ]
-
-        transaction.Commit()
+                    transaction.Commit()))
+        else
+            Error "This installation is no longer available."
