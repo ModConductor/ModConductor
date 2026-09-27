@@ -43,7 +43,7 @@ module internal ProfileDataActions =
         for _, _, root in stages do
             SaveTrees.clearPrepared root
 
-    let private removeStages stages =
+    let private removeStages (stages: (DataRoot * string * DataRoot) list) =
         for parent, name, root in stages do
             use held = HeldDirectory.Open(parent.Path, parent.Identity)
             held.RemoveDirectory(name, root.Identity)
