@@ -38,7 +38,9 @@ type internal FnisComponentInstaller
                 match ModConductor.Fnis.FnisArchiveLayout.review draft with
                 | Error problem -> return Error(ModConductor.Fnis.FnisProblem.message problem)
                 | Ok plan ->
-                    let reviewed =
+                    let installationId = Guid.NewGuid()
+
+                    let started =
                         installations.SelectReviewed(
                             workspace,
                             draft.Id,
@@ -47,17 +49,15 @@ type internal FnisComponentInstaller
                             string release.ComponentVersion,
                             plan.Files
                         )
+                        |> Result.bind (fun reviewed ->
+                            installations.Start(
+                                workspace,
+                                reviewed.Id,
+                                reviewed.Revision,
+                                installationId
+                            ))
 
-                    let installationId = Guid.NewGuid()
-
-                    match
-                        installations.Start(
-                            workspace,
-                            reviewed.Id,
-                            reviewed.Revision,
-                            installationId
-                        )
-                    with
+                    match started with
                     | Error message -> return Error message
                     | Ok started ->
                         let mutable installed = started

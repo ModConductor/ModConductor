@@ -128,12 +128,14 @@ type BundleStore
             |> Result.map List.rev
 
     let checkedDraft (reference: BundleRef) itemId draftId revision =
-        let draft = installations.Draft(reference.WorkspaceId, draftId, revision)
-
-        match draft.Bundle with
-        | Some destination when destination.BundleId = reference.Id && destination.ItemId = itemId ->
-            Ok draft
-        | _ -> Error "Open this mod's current archive review."
+        installations.Draft(reference.WorkspaceId, draftId, revision)
+        |> Result.bind (fun draft ->
+            match draft.Bundle with
+            | Some destination when
+                destination.BundleId = reference.Id && destination.ItemId = itemId
+                ->
+                Ok draft
+            | _ -> Error "Open this mod's current archive review.")
 
     member _.Status(workspace, bundle, itemId) =
         task {
@@ -173,46 +175,48 @@ type BundleStore
         }
 
     member _.Create(workspace, draftId, revision, indices) =
-        let draft = installations.Draft(workspace, draftId, revision)
+        installations.Draft(workspace, draftId, revision)
+        |> Result.bind (fun draft ->
+            if draft.Nested.IsSome then
+                Error "Choose nested archives from their current bundle."
+            else
+                selected draft indices
+                |> Result.bind (fun chosen ->
+                    transact (fun transaction ->
+                        if
+                            Sqlite.number
+                                connection
+                                transaction
+                                "SELECT count(*) FROM bundle_work WHERE workspace_id=$workspace"
+                                [ "$workspace", box (string workspace) ]
+                            <> 0L
+                        then
+                            Error "Finish the open bundle or delete its temporary files first."
+                        else
+                            let id = Guid.NewGuid()
 
-        if draft.Nested.IsSome then
-            Error "Choose nested archives from their current bundle."
-        else
-            selected draft indices
-            |> Result.bind (fun chosen ->
-                transact (fun transaction ->
-                    if
-                        Sqlite.number
-                            connection
-                            transaction
-                            "SELECT count(*) FROM bundle_work WHERE workspace_id=$workspace"
-                            [ "$workspace", box (string workspace) ]
-                        <> 0L
-                    then
-                        Error "Finish the open bundle or delete its temporary files first."
-                    else
-                        let id = Guid.NewGuid()
+                            Sqlite.execute
+                                connection
+                                transaction
+                                "INSERT INTO bundle_work(id,workspace_id,artifact_id,archive_name,parent_digest,owner) VALUES($id,$workspace,$artifact,$name,$digest,$owner)"
+                                [ "$id", box (string id)
+                                  "$workspace", box (string workspace)
+                                  "$artifact", box (string draft.Artifact.Id)
+                                  "$name", box draft.ArchiveName
+                                  "$digest", box draft.Manifest.Sha256
+                                  "$owner", box database.OwnerId ]
 
-                        Sqlite.execute
-                            connection
-                            transaction
-                            "INSERT INTO bundle_work(id,workspace_id,artifact_id,archive_name,parent_digest,owner) VALUES($id,$workspace,$artifact,$name,$digest,$owner)"
-                            [ "$id", box (string id)
-                              "$workspace", box (string workspace)
-                              "$artifact", box (string draft.Artifact.Id)
-                              "$name", box draft.ArchiveName
-                              "$digest", box draft.Manifest.Sha256
-                              "$owner", box database.OwnerId ]
+                            add connection transaction id None 0 [] chosen
+                            |> Result.bind (fun () ->
+                                BundleRows.sources connection transaction id
+                                |> BundleRows.budget
 
-                        add connection transaction id None 0 [] chosen
-                        |> Result.bind (fun () ->
-                            BundleRows.sources connection transaction id |> BundleRows.budget
-                            BundleRows.snapshot connection transaction workspace id)))
-            |> fun outcome ->
-                if Result.isOk outcome then
-                    installations.CloseDraft(workspace, draftId)
+                                BundleRows.snapshot connection transaction workspace id)))
+                |> fun outcome ->
+                    if Result.isOk outcome then
+                        installations.CloseDraft(workspace, draftId)
 
-                outcome
+                    outcome)
 
     member _.Prepare(reference: BundleRef, itemId, token: CancellationToken) =
         task {

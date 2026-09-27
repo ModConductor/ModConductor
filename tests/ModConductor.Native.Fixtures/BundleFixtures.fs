@@ -456,6 +456,7 @@ module BundleFixtures =
         let choices =
             store.Installations.Fomod.Open(workspace, xml.Draft.Id, xml.Draft.Revision, profile)
             |> wait
+            |> result
 
         check
             "NestedXmlUsesExistingChoicesAndKeepsTheChosenDestination"

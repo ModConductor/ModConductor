@@ -364,6 +364,7 @@ module PluginOrderFixtures =
         let installer =
             store.Installations.Fomod.Open(workspace, draft.Id, draft.Revision, first)
             |> wait
+            |> result
 
         check "fomodUsesSavedPluginActivation" (installer.Problem.IsNone && installer.Wizard.IsSome)
         headers <- scan first

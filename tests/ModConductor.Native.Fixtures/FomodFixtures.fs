@@ -122,12 +122,17 @@ module FomodFixtures =
         let mutable view =
             store.Installations.Fomod.Open(workspace, draft.Id, draft.Revision, profile)
             |> wait
+            |> result
 
         let next () =
-            view <- store.Installations.Fomod.Next(workspace, view.Draft.Id, view.Draft.Revision)
+            view <-
+                store.Installations.Fomod.Next(workspace, view.Draft.Id, view.Draft.Revision)
+                |> result
 
         let back () =
-            view <- store.Installations.Fomod.Back(workspace, view.Draft.Id, view.Draft.Revision)
+            view <-
+                store.Installations.Fomod.Back(workspace, view.Draft.Id, view.Draft.Revision)
+                |> result
 
         let choose name value =
             let option =
@@ -147,6 +152,32 @@ module FomodFixtures =
 
         next ()
 
+        let staleRevision = draft.Revision
+
+        let staleRequests =
+            [ store.Installations.Fomod.Open(workspace, draft.Id, staleRevision, profile)
+              |> wait
+              |> Result.isError
+              store.Installations.Fomod.Read(workspace, draft.Id, staleRevision)
+              |> Result.isError
+              store.Installations.Fomod.Back(workspace, draft.Id, staleRevision)
+              |> Result.isError
+              store.Installations.Fomod.Next(workspace, draft.Id, staleRevision)
+              |> Result.isError
+              store.Installations.Fomod.Manual(workspace, draft.Id, staleRevision)
+              |> Result.isError
+              store.Installations.Fomod.Image(workspace, draft.Id, staleRevision, [], token)
+              |> wait
+              |> Result.isError ]
+
+        let current =
+            store.Installations.Fomod.Read(workspace, view.Draft.Id, view.Draft.Revision)
+            |> result
+
+        check
+            "StaleInstallerActionsAreRefusedWithoutChangingChoices"
+            (List.forall id staleRequests && current.Draft.Revision = view.Draft.Revision)
+
         let refused =
             store.Installations.Fomod.Choose(
                 workspace,
@@ -159,7 +190,8 @@ module FomodFixtures =
         check
             "UnknownInstallerChoiceIsRefusedWithoutChangingDraft"
             (Result.isError refused
-             && (store.Installations.Fomod.Read(workspace, view.Draft.Id, view.Draft.Revision))
+             && (store.Installations.Fomod.Read(workspace, view.Draft.Id, view.Draft.Revision)
+                 |> result)
                  .Draft.Revision = view.Draft.Revision)
 
         check
@@ -232,6 +264,7 @@ module FomodFixtures =
         view <-
             store.Installations.Fomod.Open(workspace, view.Draft.Id, view.Draft.Revision, profile)
             |> wait
+            |> result
 
         choose "2K textures" true
         next ()
@@ -336,6 +369,7 @@ module FomodFixtures =
             let view =
                 store.Installations.Fomod.Open(workspace, draft.Id, draft.Revision, profile)
                 |> wait
+                |> result
 
             let manual =
                 store.Installations.UseInstaller(

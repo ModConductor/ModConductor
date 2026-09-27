@@ -56,9 +56,6 @@ type InstallationStore
             | true, draft when draft.Id = id && draft.Revision = revision -> Ok draft
             | _ -> Error "The installation preview changed. Open it again."
 
-    let draftReference reference =
-        draftResult reference |> Result.defaultWith refuse
-
     let choices =
         FomodDrafts(
             database,
@@ -278,19 +275,19 @@ type InstallationStore
         )
 
     member internal _.Draft(workspace, id, revision) =
-        lock gate (fun () -> draftReference (workspace, id, revision))
+        lock gate (fun () -> draftResult (workspace, id, revision))
 
     member internal _.SelectReviewed(workspace, id, revision, name, version, files) =
         lock gate (fun () ->
-            let current = draftReference (workspace, id, revision)
-
-            if current.Installer <> InstallationMode.Manual then
-                refuse "The archive selected an installer. Review the archive again."
-
-            let next = Layout.selectFiles current name version files
-            drafts[workspace] <- next
-            updates.Remove workspace |> ignore
-            next)
+            draftResult (workspace, id, revision)
+            |> Result.bind (fun current ->
+                if current.Installer <> InstallationMode.Manual then
+                    Error "The archive selected an installer. Review the archive again."
+                else
+                    let next = Layout.selectFiles current name version files
+                    drafts[workspace] <- next
+                    updates.Remove workspace |> ignore
+                    Ok next))
 
     member _.Fomod = choices
     member _.Bain = packages
@@ -303,7 +300,7 @@ type InstallationStore
                     Error "This installer is not available for this archive."
                 else
                     match current.Installer with
-                    | InstallationMode.Fomod -> Ok(choices.Manual(workspace, id, revision))
+                    | InstallationMode.Fomod -> choices.Manual(workspace, id, revision)
                     | InstallationMode.Bain -> packages.Manual(workspace, id, revision)
                     | InstallationMode.Manual -> Ok current)
             |> Result.map (fun manual ->
@@ -320,16 +317,15 @@ type InstallationStore
 
     member _.Change(workspace, id, revision, change) =
         lock gate (fun () ->
-            if (draftReference (workspace, id, revision)).Installer <> InstallationMode.Manual then
-                refuse "Return to the manual layout before changing these files."
-
-            match drafts.TryGetValue workspace with
-            | true, draft when draft.Id = id && draft.Revision = revision ->
-                let next = Layout.change draft change
-                updates.Remove workspace |> ignore
-                drafts[workspace] <- next
-                next
-            | _ -> refuse "The installation preview changed. Open it again.")
+            draftResult (workspace, id, revision)
+            |> Result.bind (fun draft ->
+                if draft.Installer <> InstallationMode.Manual then
+                    Error "Return to the manual layout before changing these files."
+                else
+                    let next = Layout.change draft change
+                    updates.Remove workspace |> ignore
+                    drafts[workspace] <- next
+                    Ok next))
 
     member _.CloseBundleDraft(workspace, bundle) =
         lock gate (fun () ->

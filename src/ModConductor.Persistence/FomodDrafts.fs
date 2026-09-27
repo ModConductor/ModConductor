@@ -27,10 +27,6 @@ type FomodDrafts
     ) =
     let inputs = Dictionary<Guid, InstallerInput>()
     let sessions = Dictionary<Guid, FomodSession>()
-    let refuse text = raise (FomodException text)
-
-    let getDraft reference =
-        getDraftResult reference |> Result.defaultWith refuse
 
     let findResult workspace id revision =
         getDraftResult (workspace, id, revision)
@@ -41,9 +37,6 @@ type FomodDrafts
                 ->
                 Ok session
             | _ -> Error "The installer choices changed. Open the installer again.")
-
-    let find workspace id revision =
-        findResult workspace id revision |> Result.defaultWith refuse
 
     let snapshot (session: FomodSession) (draft: InstallationDraft) (wizard: Wizard) =
         let mutable problem = wizard.Problem
@@ -106,14 +99,11 @@ type FomodDrafts
 
     let change workspace id revision update =
         lock gate (fun () ->
-            let session = find workspace id revision
-
-            let wizard =
-                session.View.Wizard
-                |> Option.defaultWith (fun () ->
-                    refuse "Use the manual layout for this installer.")
-
-            snapshot session session.View.Draft (update session wizard))
+            findResult workspace id revision
+            |> Result.bind (fun session ->
+                match session.View.Wizard with
+                | None -> Error "Use the manual layout for this installer."
+                | Some wizard -> Ok(snapshot session session.View.Draft (update session wizard))))
 
     member internal _.Prepared(draft: InstallationDraft, input) =
         inputs[draft.Artifact.WorkspaceId] <- input
@@ -130,80 +120,82 @@ type FomodDrafts
 
     member _.Open(workspace, id, revision, profile) =
         task {
-            let draft, original, input =
+            let found =
                 lock gate (fun () ->
-                    let draft = getDraft (workspace, id, revision)
+                    getDraftResult (workspace, id, revision)
+                    |> Result.bind (fun draft ->
+                        if draft.Installer <> InstallationMode.Fomod then
+                            Error "Open the XML installer first."
+                        else
+                            match inputs.TryGetValue workspace with
+                            | true, input ->
+                                let original =
+                                    match sessions.TryGetValue workspace with
+                                    | true, session -> session.Original
+                                    | _ -> draft
 
-                    if draft.Installer <> InstallationMode.Fomod then
-                        refuse "Open the XML installer first."
+                                Ok(draft, original, input)
+                            | _ -> Error "This archive has no installer choices."))
 
-                    match inputs.TryGetValue workspace with
-                    | true, input ->
-                        let original =
-                            match sessions.TryGetValue workspace with
-                            | true, session -> session.Original
-                            | _ -> draft
-
-                        draft, original, input
-                    | _ -> refuse "This archive has no installer choices.")
-
-            match input with
-            | InstallerInput.Absent -> return refuse "This archive has no installer choices."
-            | InstallerInput.Unavailable problem ->
+            match found with
+            | Error why -> return Error why
+            | Ok(_, _, InstallerInput.Absent) ->
+                return Error "This archive has no installer choices."
+            | Ok(draft, original, InstallerInput.Unavailable problem) ->
                 return
                     lock gate (fun () ->
-                        getDraft (workspace, id, revision) |> ignore
+                        getDraftResult (workspace, id, revision)
+                        |> Result.map (fun _ ->
+                            let draft =
+                                { draft with
+                                    Revision = draft.Revision + 1L
+                                    Plan = None }
 
-                        let draft =
-                            { draft with
-                                Revision = draft.Revision + 1L
-                                Plan = None }
+                            let view =
+                                { Draft = draft
+                                  ProfileId = profile
+                                  Definition = None
+                                  Wizard = None
+                                  Planned = None
+                                  VisibleSteps = 0
+                                  Problem = Some problem }
 
-                        let view =
-                            { Draft = draft
-                              ProfileId = profile
-                              Definition = None
-                              Wizard = None
-                              Planned = None
-                              VisibleSteps = 0
-                              Problem = Some problem }
+                            saveDraft draft
 
-                        saveDraft draft
+                            sessions[workspace] <-
+                                { View = view
+                                  Facts = None
+                                  Original = original
+                                  Images = Dictionary() }
 
-                        sessions[workspace] <-
-                            { View = view
-                              Facts = None
-                              Original = original
-                              Images = Dictionary() }
-
-                        view)
-            | InstallerInput.Xml definition ->
+                            view))
+            | Ok(draft, original, InstallerInput.Xml definition) ->
                 let! facts = FomodFacts.capture database access workspace profile definition
 
                 return
                     lock gate (fun () ->
-                        getDraft (workspace, id, revision) |> ignore
+                        getDraftResult (workspace, id, revision)
+                        |> Result.map (fun _ ->
+                            let view =
+                                { Draft = draft
+                                  ProfileId = profile
+                                  Definition = Some definition
+                                  Wizard = None
+                                  Planned = None
+                                  VisibleSteps = 0
+                                  Problem = None }
 
-                        let view =
-                            { Draft = draft
-                              ProfileId = profile
-                              Definition = Some definition
-                              Wizard = None
-                              Planned = None
-                              VisibleSteps = 0
-                              Problem = None }
+                            let session =
+                                { View = view
+                                  Facts = Some facts
+                                  Original = original
+                                  Images = Dictionary() }
 
-                        let session =
-                            { View = view
-                              Facts = Some facts
-                              Original = original
-                              Images = Dictionary() }
-
-                        snapshot session draft (Choices.beginChoices definition facts.Facts))
+                            snapshot session draft (Choices.beginChoices definition facts.Facts)))
         }
 
     member _.Read(workspace, id, revision) =
-        lock gate (fun () -> (find workspace id revision).View)
+        lock gate (fun () -> findResult workspace id revision |> Result.map _.View)
 
     member _.Choose(workspace, id, revision, optionId, selected) =
         lock gate (fun () ->
@@ -235,92 +227,89 @@ type FomodDrafts
 
     member _.Manual(workspace, id, revision) =
         lock gate (fun () ->
-            let current = getDraft (workspace, id, revision)
+            getDraftResult (workspace, id, revision)
+            |> Result.map (fun current ->
+                let original =
+                    match sessions.TryGetValue workspace with
+                    | true, session -> session.Original
+                    | _ -> current
 
-            let original =
-                match sessions.TryGetValue workspace with
-                | true, session -> session.Original
-                | _ -> current
+                let chosen =
+                    Layout.selectFiles original original.Name original.Version original.Files
 
-            let chosen =
-                Layout.selectFiles original original.Name original.Version original.Files
+                let draft =
+                    { chosen with
+                        Revision = revision + 1L
+                        Root = original.Root
+                        Installer = InstallationMode.Manual }
 
-            let draft =
-                { chosen with
-                    Revision = revision + 1L
-                    Root = original.Root
-                    Installer = InstallationMode.Manual }
-
-            saveDraft draft
-            sessions.Remove workspace |> ignore
-            draft)
+                saveDraft draft
+                sessions.Remove workspace |> ignore
+                draft))
 
     member _.Image(workspace, id, revision, path: string list, token: CancellationToken) =
         task {
-            let session, entry =
+            let found =
                 lock gate (fun () ->
-                    let session = find workspace id revision
+                    findResult workspace id revision
+                    |> Result.bind (fun session ->
+                        match session.View.Definition with
+                        | None -> Error "No installer image is available."
+                        | Some definition ->
+                            let allowed =
+                                definition.Image
+                                |> Option.toList
+                                |> List.append (
+                                    definition.Steps
+                                    |> List.collect _.Groups
+                                    |> List.collect _.Options
+                                    |> List.choose _.Image
+                                )
 
-                    let definition =
-                        session.View.Definition
-                        |> Option.defaultWith (fun () -> refuse "No installer image is available.")
+                            if not (List.contains path allowed) then
+                                Error "Choose an image from this installer."
+                            else
+                                match ArchiveInput.image definition path with
+                                | None -> Error "This installer image is not available."
+                                | Some entry -> Ok(session, entry)))
 
-                    let allowed =
-                        definition.Image
-                        |> Option.toList
-                        |> List.append (
-                            definition.Steps
-                            |> List.collect _.Groups
-                            |> List.collect _.Options
-                            |> List.choose _.Image
+            match found with
+            | Error why -> return Error why
+            | Ok(session, entry) ->
+                let cached =
+                    lock gate (fun () ->
+                        match session.Images.TryGetValue entry.Index with
+                        | true, bytes -> Some bytes
+                        | _ -> None)
+
+                match cached with
+                | Some bytes -> return Ok bytes
+                | None ->
+                    let! loaded =
+                        inspection.WithInput(
+                            session.View.Draft.Artifact,
+                            session.View.Draft.Nested,
+                            token,
+                            fun contents ->
+                                use output = new MemoryStream()
+                                contents.ReadEntry(entry.Index, fun input -> input.CopyTo output)
+                                output.ToArray()
                         )
 
-                    if not (List.contains path allowed) then
-                        refuse "Choose an image from this installer."
+                    return
+                        match loaded with
+                        | Error _ ->
+                            Error "The installer image cannot be read. Check the archive location."
+                        | Ok bytes ->
+                            lock gate (fun () ->
+                                findResult workspace id revision
+                                |> Result.map (fun _ ->
+                                    if
+                                        (session.Images.Values |> Seq.sumBy _.Length)
+                                        + bytes.Length > 16 * 1024 * 1024
+                                    then
+                                        session.Images.Clear()
 
-                    let entry =
-                        ArchiveInput.image definition path
-                        |> Option.defaultWith (fun () ->
-                            refuse "This installer image is not available.")
-
-                    session, entry)
-
-            let cached =
-                lock gate (fun () ->
-                    match session.Images.TryGetValue entry.Index with
-                    | true, bytes -> Some bytes
-                    | _ -> None)
-
-            match cached with
-            | Some bytes -> return bytes
-            | None ->
-                let! loaded =
-                    inspection.WithInput(
-                        session.View.Draft.Artifact,
-                        session.View.Draft.Nested,
-                        token,
-                        fun contents ->
-                            use output = new MemoryStream()
-                            contents.ReadEntry(entry.Index, fun input -> input.CopyTo output)
-                            output.ToArray()
-                    )
-
-                let bytes =
-                    loaded
-                    |> Result.defaultWith (fun _ ->
-                        refuse "The installer image cannot be read. Check the archive location.")
-
-                return
-                    lock gate (fun () ->
-                        find workspace id revision |> ignore
-
-                        if
-                            (session.Images.Values |> Seq.sumBy _.Length) + bytes.Length > 16
-                                                                                           * 1024
-                                                                                           * 1024
-                        then
-                            session.Images.Clear()
-
-                        session.Images[entry.Index] <- bytes
-                        bytes)
+                                    session.Images[entry.Index] <- bytes
+                                    bytes))
         }

@@ -124,11 +124,13 @@ module BainFixtures =
                     true
                 )
 
+            let unchanged =
+                store.Installations.Draft(workspace, view.Draft.Id, view.Draft.Revision)
+                |> result
+
             check
                 "UnknownPackageChoiceIsRefusedWithoutChangingDraft"
-                (Result.isError refused
-                 && (store.Installations.Draft(workspace, view.Draft.Id, view.Draft.Revision))
-                     .Revision = view.Draft.Revision)
+                (Result.isError refused && unchanged.Revision = view.Draft.Revision)
 
             check
                 "WrapperAndLexicalNamesHaveEditableCoreDefault"
@@ -233,6 +235,7 @@ module BainFixtures =
                     profile
                 )
                 |> wait
+                |> result
 
             let packageDraft =
                 store.Installations.UseInstaller(
@@ -257,6 +260,7 @@ module BainFixtures =
             let xmlAgain =
                 store.Installations.Fomod.Open(workspace, xmlDraft.Id, xmlDraft.Revision, profile)
                 |> wait
+                |> result
 
             check
                 "FomodRemainsPreferredAndExplicitModeSwitchClearsOtherChoices"

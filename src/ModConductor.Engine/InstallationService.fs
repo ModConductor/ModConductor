@@ -40,7 +40,10 @@ type InstallationService(store: InstallationStore) =
                         LayoutChange.Metadata(request.Metadata.Name, request.Metadata.Version)
                     | _ -> ModLibraryWire.reject "Choose a layout change."
 
-                return store.Change(workspace, id, revision, change) |> InstallationWire.draft
+                return
+                    store.Change(workspace, id, revision, change)
+                    |> InstallationWire.outcome
+                    |> InstallationWire.draft
             })
 
     override _.CloseInstallationDraft(request, _) =

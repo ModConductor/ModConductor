@@ -15,14 +15,18 @@ type FomodService(store: InstallationStore) =
                 let! value =
                     store.Fomod.Open(workspace, id, revision, ModLibraryWire.id request.ProfileId)
 
-                return FomodWire.choices value
+                return value |> InstallationWire.outcome |> FomodWire.choices
             })
 
     override _.ReadChoices(request, _) =
         InstallationWire.guard (fun () ->
             task {
                 let workspace, id, revision = InstallationWire.reference request
-                return store.Fomod.Read(workspace, id, revision) |> FomodWire.choices
+
+                return
+                    store.Fomod.Read(workspace, id, revision)
+                    |> InstallationWire.outcome
+                    |> FomodWire.choices
             })
 
     override _.ChangeChoice(request, _) =
@@ -46,21 +50,33 @@ type FomodService(store: InstallationStore) =
         InstallationWire.guard (fun () ->
             task {
                 let workspace, id, revision = InstallationWire.reference request
-                return store.Fomod.Next(workspace, id, revision) |> FomodWire.choices
+
+                return
+                    store.Fomod.Next(workspace, id, revision)
+                    |> InstallationWire.outcome
+                    |> FomodWire.choices
             })
 
     override _.PreviousStep(request, _) =
         InstallationWire.guard (fun () ->
             task {
                 let workspace, id, revision = InstallationWire.reference request
-                return store.Fomod.Back(workspace, id, revision) |> FomodWire.choices
+
+                return
+                    store.Fomod.Back(workspace, id, revision)
+                    |> InstallationWire.outcome
+                    |> FomodWire.choices
             })
 
     override _.UseManualLayout(request, _) =
         InstallationWire.guard (fun () ->
             task {
                 let workspace, id, revision = InstallationWire.reference request
-                return store.Fomod.Manual(workspace, id, revision) |> InstallationWire.draft
+
+                return
+                    store.Fomod.Manual(workspace, id, revision)
+                    |> InstallationWire.outcome
+                    |> InstallationWire.draft
             })
 
     override _.ReadChoiceImage(request, context) =
@@ -77,5 +93,5 @@ type FomodService(store: InstallationStore) =
                         context.CancellationToken
                     )
 
-                return FomodImage(Content = ByteString.CopyFrom bytes)
+                return FomodImage(Content = ByteString.CopyFrom(InstallationWire.outcome bytes))
             })

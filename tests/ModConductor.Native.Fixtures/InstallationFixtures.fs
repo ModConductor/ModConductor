@@ -226,6 +226,7 @@ module InstallationFixtures =
                         [ "textures"; "renamed.dds" ]
                     )
                 )
+                |> result
 
             let rejected =
                 try
@@ -331,6 +332,7 @@ module InstallationFixtures =
                             draft.Revision,
                             LayoutChange.Root []
                         )
+                        |> result
                     else
                         draft
 
@@ -346,6 +348,7 @@ module InstallationFixtures =
                             draft.Revision,
                             LayoutChange.Include(LogicalPath.components first.Path, false)
                         )
+                        |> result
                     else
                         draft
 
