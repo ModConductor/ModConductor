@@ -244,8 +244,17 @@ module FomodFixtures =
             |> result
 
         let stale =
-            store.Installations.Start(workspace, view.Draft.Id, view.Draft.Revision, Guid.NewGuid())
-            |> Result.isError
+            match
+                store.Installations.Start(
+                    workspace,
+                    view.Draft.Id,
+                    view.Draft.Revision,
+                    Guid.NewGuid()
+                )
+            with
+            | Error message ->
+                message = "The selected game or mods changed. Reload the installer before continuing."
+            | Ok _ -> false
 
         check
             "ChangedWorkspaceRejectsConfirmationBeforeEffects"
