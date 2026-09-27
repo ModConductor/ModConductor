@@ -200,7 +200,7 @@ type LinuxLinkSetup
         let available =
             match saved () with
             | Some(content, _, _) -> SetupFiles.read owned = Some content
-            | None -> false
+            | None -> File.Exists owned
 
         let current = defaultApp ()
 
@@ -241,42 +241,44 @@ type LinuxLinkSetup
 
                 let current = SetupFiles.read target |> Option.defaultValue ""
 
-                let previous =
-                    match saved () with
-                    | Some(old, path, before) ->
-                        if
-                            path <> target || (SetupFiles.read owned |> Option.exists ((<>) old))
-                        then
-                            SetupFiles.refuse
-                                "The Nexus link setup changed outside MC. It was not overwritten."
+                match saved () with
+                | None when File.Exists owned ->
+                    if defaultApp () <> Some desktopId then
+                        SetupFiles.write target (rewrite current (Some(desktopId + ";")))
 
-                        if entry current = Some(desktopId + ";") then
-                            before
-                        else
-                            entry current
-                    | None ->
-                        if File.Exists owned then
-                            SetupFiles.refuse
-                                "A different Nexus link setup already uses this app entry. It was not overwritten."
+                    status ()
+                | saved ->
+                    let previous =
+                        match saved with
+                        | Some(old, path, before) ->
+                            if
+                                path <> target || (SetupFiles.read owned |> Option.exists ((<>) old))
+                            then
+                                SetupFiles.refuse
+                                    "The Nexus link setup changed outside MC. It was not overwritten."
 
-                        entry current
+                            if entry current = Some(desktopId + ";") then
+                                before
+                            else
+                                entry current
+                        | None -> entry current
 
-                SetupFiles.write
-                    receipt
-                    (SetupFiles.encode content
-                     + "\n"
-                     + SetupFiles.encode target
-                     + "\n"
-                     + (previous |> Option.map SetupFiles.encode |> Option.defaultValue "-")
-                     + "\n")
+                    SetupFiles.write
+                        receipt
+                        (SetupFiles.encode content
+                         + "\n"
+                         + SetupFiles.encode target
+                         + "\n"
+                         + (previous |> Option.map SetupFiles.encode |> Option.defaultValue "-")
+                         + "\n")
 
-                SetupFiles.write owned content
+                    SetupFiles.write owned content
 
-                if SetupFiles.read target |> Option.defaultValue "" <> current then
-                    SetupFiles.refuse "The default app changed. Check it before trying again."
+                    if SetupFiles.read target |> Option.defaultValue "" <> current then
+                        SetupFiles.refuse "The default app changed. Check it before trying again."
 
-                SetupFiles.write target (rewrite current (Some(desktopId + ";")))
-                status ())
+                    SetupFiles.write target (rewrite current (Some(desktopId + ";")))
+                    status ())
 
         member _.Remove() =
             protect (fun () ->

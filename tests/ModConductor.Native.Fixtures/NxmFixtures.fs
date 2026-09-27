@@ -506,6 +506,27 @@ module NxmFixtures =
             (File.ReadAllText mime = later
              && File.Exists(Path.Combine(apps, "later.desktop")))
 
+        let existingEntry =
+            "[Desktop Entry]\nType=Application\nName=Mod Conductor\nExec=nix run /repo#modconductor -- --uri %u\nMimeType=x-scheme-handler/nxm;\n"
+
+        let owned = Path.Combine(apps, "dev.modconductor.nxm.desktop")
+        File.WriteAllText(owned, existingEntry)
+        File.WriteAllText(mime, before.Replace("previous.desktop", "dev.modconductor.nxm.desktop"))
+
+        let existing = linux.Read()
+        let reused = linux.Add Environment.ProcessPath
+        let unchanged = linux.Remove()
+
+        check
+            "linuxExistingAppEntryWithoutReceiptRemainsUsable"
+            (existing.Available = Some true
+             && existing.Default = ModConductor.Desktop.LinkDefault.ModConductor
+             && not existing.CanRemove
+             && reused.Problem.IsNone
+             && unchanged.Default = ModConductor.Desktop.LinkDefault.ModConductor
+             && File.ReadAllText owned = existingEntry
+             && not (File.Exists(Path.Combine(primary, "setup-state", "nxm-linux-setup"))))
+
         let entries = System.Collections.Generic.Dictionary<string * string, string>()
         entries[("Software\\Classes\\Previous.Nxm", "")] <- "previous app"
 
