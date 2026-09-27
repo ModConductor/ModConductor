@@ -142,7 +142,7 @@ type internal DownloadRepository(database: StateDatabase, access: LibraryAccess)
                       "$length", ArtifactRows.nullable request.ExpectedLength
                       "$sha", ArtifactRows.nullable request.ExpectedSha256 ])
 
-    let selectDownload tx (request: DownloadRequest) matching selected =
+    let selectDownload tx (request: DownloadRequest) (matching: Guid option) selected =
         match DownloadRows.work connection tx selected with
         | Some _ when matching.IsSome ->
             match request.Sources with
