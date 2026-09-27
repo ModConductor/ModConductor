@@ -182,7 +182,6 @@ mixin _ShellContent
                         ? null
                         : _nexusDetails.open,
                     maintenance: widget.maintenance,
-                    deactivateGameFiles: _deactivateGameFilesForDeletion,
                     onDeleted: _artifacts.load,
                     workspacePath: workspace.path,
                     chooseDirectory: widget.chooseDirectory,
@@ -198,7 +197,6 @@ mixin _ShellContent
                         ? null
                         : _nexusDetails.open,
                     maintenance: widget.maintenance,
-                    deactivateGameFiles: _deactivateGameFilesForDeletion,
                     onDeleted: _artifacts.load,
                     plans: _files,
                     onOpenProblems: _workspaces.showHelp,
@@ -223,7 +221,6 @@ mixin _ShellContent
                         ? null
                         : _nexusDetails.open,
                     maintenance: widget.maintenance,
-                    deactivateGameFiles: _deactivateGameFilesForDeletion,
                     onDeleted: _artifacts.load,
                     plans: _files,
                     onOpenProblems: _workspaces.showHelp,

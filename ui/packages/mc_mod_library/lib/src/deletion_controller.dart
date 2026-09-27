@@ -9,7 +9,6 @@ class DeletionController extends ChangeNotifier {
   ModEntry? target;
   bool busy = false, viewing = false, complete = false, _disposed = false;
   String? problem;
-  bool needsDeactivation = false;
   int _epoch = 0;
 
   void notify() {
@@ -26,7 +25,6 @@ class DeletionController extends ChangeNotifier {
     workspaceId = workspace;
     target = null;
     problem = null;
-    needsDeactivation = false;
     busy = false;
     viewing = false;
     complete = false;
@@ -41,26 +39,14 @@ class DeletionController extends ChangeNotifier {
     await run();
   }
 
-  Future<void> run({
-    Future<String?> Function(String workspaceId)? before,
-  }) async {
-    final owner = client, value = target, workspace = workspaceId;
+  Future<void> run() async {
+    final owner = client, value = target;
     final epoch = _epoch;
-    if (owner == null || value == null || workspace == null || busy) return;
+    if (owner == null || value == null || busy) return;
     busy = true;
     problem = null;
-    needsDeactivation = false;
     notify();
     try {
-      final refusal = await before?.call(workspace);
-      if (refusal != null) {
-        if (!_disposed && epoch == _epoch) {
-          problem = refusal;
-          needsDeactivation = before != null;
-        }
-        return;
-      }
-      if (_disposed || epoch != _epoch) return;
       await owner.deleteMod(value);
       if (_disposed || epoch != _epoch) return;
       complete = true;
@@ -68,8 +54,6 @@ class DeletionController extends ChangeNotifier {
     } on Exception catch (error) {
       if (!_disposed && epoch == _epoch) {
         problem = message(error);
-        needsDeactivation =
-            problem == 'Deactivate game files before deleting this mod.';
       }
     } finally {
       if (!_disposed && epoch == _epoch) {
@@ -84,7 +68,6 @@ class DeletionController extends ChangeNotifier {
     ++_epoch;
     target = null;
     problem = null;
-    needsDeactivation = false;
     viewing = false;
     complete = false;
     notify();

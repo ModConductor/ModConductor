@@ -40,7 +40,6 @@ class ModLibraryBrowser extends StatefulWidget {
     this.maintenance,
     this.onOpenNexus,
     this.onMaintenanceOpen,
-    this.deactivateGameFiles,
     this.onDeleted,
     this.savedFileActions = const [],
     this.inventoryExports,
@@ -57,7 +56,6 @@ class ModLibraryBrowser extends StatefulWidget {
   final void Function(ModEntry)? onOpenNexus;
   final MaintenanceClient? maintenance;
   final VoidCallback? onMaintenanceOpen;
-  final Future<String?> Function(String workspaceId)? deactivateGameFiles;
   final Future<void> Function()? onDeleted;
   final List<Widget> savedFileActions;
   final InventoryExportClient? inventoryExports;

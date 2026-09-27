@@ -1,28 +1,6 @@
 part of 'browser.dart';
 
 extension _ModDeletionView on _ModLibraryBrowserState {
-  Future<void> _deactivateAndDelete() async {
-    final deactivate = widget.deactivateGameFiles;
-    final target = deletion.target;
-    if (deactivate == null || target == null) return;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => McFormDialog(
-        title: 'Deactivate game files and delete ${target.metadata.name}?',
-        action: 'Deactivate and delete',
-        onSubmit: () => Navigator.pop(context, true),
-        children: const [
-          Text(
-            'Mod Conductor will deactivate the game-folder links and restore the original files. Other mods stay installed. The game stays undeployed. Mod Conductor will then delete this mod.',
-          ),
-        ],
-      ),
-    );
-    if (mounted && confirmed == true) {
-      await deletion.run(before: deactivate);
-    }
-  }
-
   Future<void> _delete(ModEntry target) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -34,23 +12,16 @@ extension _ModDeletionView on _ModLibraryBrowserState {
           const Text(
             'This deletes the mod and its Mod Conductor files. Original archives, source folders, and saves stay unchanged.',
           ),
-          if (widget.deactivateGameFiles != null) ...[
-            const SizedBox(height: 12),
-            const Text(
-              'If this mod uses active game files, Mod Conductor will deactivate the game-folder links first. The game will stay undeployed.',
-            ),
-          ],
+          const SizedBox(height: 12),
+          const Text(
+            'Profiles that use this mod will be undeployed. Other mods stay installed.',
+          ),
         ],
       ),
     );
     if (!mounted || confirmed != true) return;
     widget.onMaintenanceOpen?.call();
     await deletion.open(target);
-    if (mounted &&
-        deletion.needsDeactivation &&
-        widget.deactivateGameFiles != null) {
-      await deletion.run(before: widget.deactivateGameFiles);
-    }
   }
 
   Widget _deletionView() {
@@ -97,23 +68,13 @@ extension _ModDeletionView on _ModLibraryBrowserState {
                     spacing: 12,
                     runSpacing: 8,
                     children: [
-                      if (deletion.needsDeactivation &&
-                          widget.deactivateGameFiles != null)
-                        McAction(
-                          key: const ValueKey('deactivate-delete-mod'),
-                          label: 'Deactivate and delete…',
-                          icon: Icons.link_off,
-                          emphasis: McActionEmphasis.primary,
-                          onPressed: _deactivateAndDelete,
-                        ),
-                      if (!deletion.needsDeactivation ||
-                          widget.deactivateGameFiles == null)
-                        McAction(
-                          label: 'Try again',
-                          icon: Icons.refresh,
-                          emphasis: McActionEmphasis.primary,
-                          onPressed: () => unawaited(deletion.run()),
-                        ),
+                      McAction(
+                        key: const ValueKey('retry-delete-mod'),
+                        label: 'Try again',
+                        icon: Icons.refresh,
+                        emphasis: McActionEmphasis.primary,
+                        onPressed: () => unawaited(deletion.run()),
+                      ),
                       McAction(
                         label: 'Back to mod',
                         icon: Icons.arrow_back,

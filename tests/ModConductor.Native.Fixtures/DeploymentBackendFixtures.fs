@@ -11,6 +11,7 @@ open ModConductor.Workspaces
 open ModConductor.GameContexts
 open ModConductor.FilePlanning
 open ModConductor.Deployment
+open ModConductor.Engine
 open ModConductor.Persistence
 
 module DeploymentBackendFixtures =
@@ -239,6 +240,41 @@ module DeploymentBackendFixtures =
             && admission.TryClose(fun () -> true)
             && (admission.TryAcquireWorkspace third |> Option.isNone)
 
+        let installed =
+            (library.Scan(workspace, 100) |> wait |> result).Entries
+            |> List.find (fun entry -> entry.Id = modId)
+
+        let affected =
+            store.Deletions.ActiveProfiles(workspace, modId, installed.Revision)
+            |> wait
+            |> result
+
+        let deletion = DeletionService(store.Deletions, backend)
+
+        deletion.DeleteMod(
+            ModConductor.Protocol.V1.DeleteModRequest(
+                WorkspaceId = workspace.ToString("N"),
+                ModId = modId.ToString("N"),
+                Revision = uint64 installed.Revision
+            ),
+            WatchCountFixtures.StreamContext(CancellationToken.None)
+        )
+        |> wait
+        |> ignore
+
+        let afterDeletion = backend.Read profile |> wait |> result
+
+        let affectedProfileUndeployed =
+            affected |> List.exists (fun (id, _) -> id = profile)
+            && (afterDeletion.Active
+                |> Option.exists (fun value -> value.Known && value.Profile.IsNone))
+            && File.ReadAllText(
+                Path.Combine(afterDeletion.RunnableRoot, "Data", "Mixed", "Original.TXT")
+            ) = "replacement game bytes"
+            && File.ReadAllText replacementOriginal = "replacement game bytes"
+            && ((library.Scan(workspace, 100) |> wait |> result).Entries
+                |> List.forall (fun entry -> entry.Id <> modId))
+
         writer.WriteStartObject("deploymentBackend")
         writer.WriteBoolean("cancelledPreparationNoReceipt", cancelledSafe)
         writer.WriteBoolean("stalePreparationNoEffects", staleSafe)
@@ -251,4 +287,5 @@ module DeploymentBackendFixtures =
         writer.WriteBoolean("sourceChangeRetiresPriorView", sourceChangeRetiresPriorView)
         writer.WriteBoolean("reboundRecoveryRefusedWithoutEffects", reboundRefusedWithoutEffects && changed.Phase = DeploymentPhase.Complete)
         writer.WriteBoolean("backendLeaseDrainsBeforeClose", backendLeaseDrainsBeforeClose)
+        writer.WriteBoolean("deletingActiveModUndeploysAffectedProfile", affectedProfileUndeployed)
         writer.WriteEndObject()

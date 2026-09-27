@@ -25,7 +25,6 @@ class FilePlanningWorkbench extends StatefulWidget {
     this.archives,
     this.sortOrder,
     this.maintenance,
-    this.deactivateGameFiles,
     this.onDeleted,
     this.onOpenNexus,
     this.onOpenProblems,
@@ -47,7 +46,6 @@ class FilePlanningWorkbench extends StatefulWidget {
   final SortOrderController? sortOrder;
   final void Function(ModEntry)? onOpenNexus;
   final MaintenanceClient? maintenance;
-  final Future<String?> Function(String workspaceId)? deactivateGameFiles;
   final Future<void> Function()? onDeleted;
   final VoidCallback? onOpenProblems;
   final bool archiveUnavailable;
@@ -221,7 +219,6 @@ class _FilePlanningWorkbenchState extends State<FilePlanningWorkbench> {
                   controller: widget.mods,
                   onOpenNexus: widget.onOpenNexus,
                   maintenance: widget.maintenance,
-                  deactivateGameFiles: widget.deactivateGameFiles,
                   onDeleted: widget.onDeleted,
                   onMaintenanceOpen: _close,
                   workspacePath: widget.workspacePath,

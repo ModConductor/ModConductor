@@ -22,7 +22,6 @@ class DeploymentOutputsWorkbench extends StatelessWidget {
     this.sortOrder,
     this.profileName,
     this.maintenance,
-    this.deactivateGameFiles,
     this.onDeleted,
     this.onOpenProblems,
     this.onOpenNexus,
@@ -43,7 +42,6 @@ class DeploymentOutputsWorkbench extends StatelessWidget {
   final String? profileId, profileName;
   final void Function(ModEntry)? onOpenNexus;
   final MaintenanceClient? maintenance;
-  final Future<String?> Function(String workspaceId)? deactivateGameFiles;
   final Future<void> Function()? onDeleted;
   final VoidCallback? onOpenProblems;
   final ModOrganizationClient? organization;
@@ -58,7 +56,6 @@ class DeploymentOutputsWorkbench extends StatelessWidget {
       mods: mods,
       onOpenNexus: onOpenNexus,
       maintenance: maintenance,
-      deactivateGameFiles: deactivateGameFiles,
       onDeleted: onDeleted,
       onOpenProblems: onOpenProblems,
       plans: plans,

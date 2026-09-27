@@ -11,7 +11,7 @@ open ModConductor.ModLibrary
 open ModConductor.Platform
 
 module private DirectDeletion =
-    let private row connection transaction workspace modId expected =
+    let row connection transaction workspace modId expected =
         match LibraryRows.find connection transaction modId with
         | None -> Error "The mod is no longer installed."
         | Some value when value.Entry.WorkspaceId <> workspace || value.Entry.Revision <> expected ->
@@ -590,6 +590,23 @@ type DeletionStore internal (database: StateDatabase, access: LibraryAccess) =
                 |> Result.mapError (fun _ -> "The mod library is unavailable.")
                 |> Result.bind id
         }
+
+    member _.ActiveProfiles(workspace, modId, revision) =
+        database.Enqueue(fun () ->
+            let connection = database.Connection
+
+            DirectDeletion.row connection null workspace modId revision
+            |> Result.map (fun _ ->
+                let targets = DeletionRows.targets connection null modId |> Set.ofList
+
+                DeletionRows.generations connection null workspace
+                |> List.choose (fun (context, generation) ->
+                    if context.Active = Some generation.Id && DeletionRows.uses targets generation then
+                        generation.Provenance
+                        |> Option.bind _.Profile
+                        |> Option.map (fun profile -> profile.Id, generation.Id)
+                    else
+                        None)))
 
     member internal _.DeleteAtCheckpoint(workspace, modId, revision, checkpoint) =
         run (fun () ->
