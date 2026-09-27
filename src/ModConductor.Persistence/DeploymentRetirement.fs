@@ -25,10 +25,9 @@ module internal DeploymentRetirement =
             let! legacy = recovery.Context contextId
 
             match legacy with
-            | None -> ()
-            | Some context when context.Pending.IsSome ->
-                raise (RecoveryException RecoveryError.Busy)
-            | Some context when context.Links.IsEmpty -> ()
+            | None -> return Ok()
+            | Some context when context.Pending.IsSome -> return Error RecoveryError.Busy
+            | Some context when context.Links.IsEmpty -> return Ok()
             | Some context ->
                 // Switch the old owned in-place generation to an empty one through the
                 // existing recovery journal, restoring only its recorded originals.
@@ -65,14 +64,13 @@ module internal DeploymentRetirement =
 
                 let! started = recovery.Start(request, cancellation = token)
 
-                let receipt =
-                    started |> Result.defaultWith (fun error -> raise (RecoveryException error))
+                match started with
+                | Error error -> return Error error
+                | Ok receipt ->
+                    let! completed =
+                        recovery.Run(id, receipt.Revision, false, token, (fun _ _ -> ()))
 
-                let! completed = recovery.Run(id, receipt.Revision, false, token, (fun _ _ -> ()))
-
-                completed
-                |> Result.defaultWith (fun error -> raise (RecoveryException error))
-                |> ignore
+                    return completed |> Result.map ignore
         }
 
     let clearPreviousViews
@@ -117,8 +115,26 @@ module internal DeploymentRetirement =
                                 )))
                         |> Option.map _.Fingerprint))
 
-            for fingerprint in previous do
-                do! clearOwnedLinks recovery workspace workspaceId profileId fingerprint token
+            let rec clear =
+                function
+                | [] -> task { return Ok() }
+                | fingerprint :: remaining ->
+                    task {
+                        let! cleared =
+                            clearOwnedLinks
+                                recovery
+                                workspace
+                                workspaceId
+                                profileId
+                                fingerprint
+                                token
+
+                        match cleared with
+                        | Error error -> return Error error
+                        | Ok() -> return! clear remaining
+                    }
+
+            return! clear previous
         }
 
     let retireProfile
@@ -131,6 +147,9 @@ module internal DeploymentRetirement =
         token
         =
         task {
+            let retirementError error =
+                "The profile game folder could not be retired: " + string error
+
             match
                 GameProcesses.checkWithRoot
                     evidence
@@ -196,7 +215,7 @@ module internal DeploymentRetirement =
                             match checkRoots context with
                             | Some detail -> return Error detail
                             | None ->
-                                do!
+                                let! cleared =
                                     clearOwnedLinks
                                         recovery
                                         workspace
@@ -205,7 +224,9 @@ module internal DeploymentRetirement =
                                         context.Fingerprint
                                         token
 
-                                return! retireOwned remaining
+                                match cleared with
+                                | Error error -> return Error(retirementError error)
+                                | Ok() -> return! retireOwned remaining
                         }
 
                 let! retired = retireOwned owned

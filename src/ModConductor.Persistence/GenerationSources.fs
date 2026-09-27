@@ -37,7 +37,11 @@ module internal GenerationSources =
                                 profile
                                 run
                         | None ->
-                            FilePlanRows.read database.Connection transaction database.OwnerId profile
+                            FilePlanRows.read
+                                database.Connection
+                                transaction
+                                database.OwnerId
+                                profile
 
                     let result =
                         sources
@@ -111,82 +115,86 @@ module internal GenerationSources =
                     transaction.Commit()
                     result)
 
-            let sources, planning, library, files, saved =
-                read
-                |> Result.defaultWith (fun _ -> raise (RecoveryException RecoveryError.Stale))
+            match read with
+            | Error _ -> return Error RecoveryError.Stale
+            | Ok(sources, planning, library, files, saved) ->
+                let! root = access.Root sources.Stamp.WorkspaceId
 
-            let! root = access.Root sources.Stamp.WorkspaceId
+                let root =
+                    root
+                    |> Result.defaultWith (fun _ ->
+                        RecoveryFiles.fail "The workspace ownership cannot be checked.")
 
-            let root =
-                root
-                |> Result.defaultWith (fun _ ->
-                    RecoveryFiles.fail "The workspace ownership cannot be checked.")
+                let managed =
+                    match library, files with
+                    | None, [] -> []
+                    | Some library, _ ->
+                        use held = LibraryFiles.openLibrary root library
 
-            let managed =
-                match library, files with
-                | None, [] -> []
-                | Some library, _ ->
-                    use held = LibraryFiles.openLibrary root library
+                        let directory: Location =
+                            { Path =
+                                HostPath.create (
+                                    Path.Combine(HostPath.value root.Path, library.Name)
+                                )
+                                |> Result.defaultWith invalidOp
+                              Identity = held.Identity }
 
-                    let directory: Location =
-                        { Path =
-                            HostPath.create (Path.Combine(HostPath.value root.Path, library.Name))
-                            |> Result.defaultWith invalidOp
-                          Identity = held.Identity }
+                        files
+                        |> List.map (fun (pin, payload) ->
+                            pin,
+                            { Directory = directory
+                              Path =
+                                GenerationFiles.logical
+                                    [ LibraryFiles.payloadName payload.Payload.Id ]
+                              Identity = payload.Identity
+                              OwnerGeneration = None })
+                    | None, _ -> RecoveryFiles.fail "The recorded library is unavailable."
 
-                    files
-                    |> List.map (fun (pin, payload) ->
-                        pin,
-                        { Directory = directory
-                          Path =
-                            GenerationFiles.logical [ LibraryFiles.payloadName payload.Payload.Id ]
-                          Identity = payload.Identity
-                          OwnerGeneration = None })
-                | None, _ -> RecoveryFiles.fail "The recorded library is unavailable."
+                let observed =
+                    snapshots
+                    |> List.collect (fun (snapshot: SnapshotSource) ->
+                        snapshot.Snapshot.Files
+                        |> List.map (fun file ->
+                            let identity =
+                                match
+                                    SnapshotFile.metadata file, snapshot.Files.TryFind file.Path
+                                with
+                                | Some metadata, Some observed when metadata.Identity = observed ->
+                                    metadata.Identity
+                                | None, Some observed -> observed
+                                | _ ->
+                                    RecoveryFiles.fail
+                                        "A snapshot file has no matching observed identity."
 
-            let observed =
-                snapshots
-                |> List.collect (fun (snapshot: SnapshotSource) ->
-                    snapshot.Snapshot.Files
-                    |> List.map (fun file ->
-                        let identity =
-                            match
-                                SnapshotFile.metadata file, snapshot.Files.TryFind file.Path
-                            with
-                            | Some metadata, Some observed when metadata.Identity = observed ->
-                                metadata.Identity
-                            | None, Some observed -> observed
-                            | _ ->
-                                RecoveryFiles.fail
-                                    "A snapshot file has no matching observed identity."
+                            let backing =
+                                match snapshot.Originals.TryFind file.Path with
+                                | Some original ->
+                                    { Directory =
+                                        { Path = original.Root
+                                          Identity = original.RootIdentity }
+                                      Path = original.Path
+                                      Identity = original.Identity
+                                      OwnerGeneration = None }
+                                | None ->
+                                    { Directory = snapshot.Directory
+                                      Path = file.Path
+                                      Identity = identity
+                                      OwnerGeneration = None }
 
-                        let backing =
-                            match snapshot.Originals.TryFind file.Path with
-                            | Some original ->
-                                { Directory =
-                                    { Path = original.Root
-                                      Identity = original.RootIdentity }
-                                  Path = original.Path
-                                  Identity = original.Identity
-                                  OwnerGeneration = None }
-                            | None ->
-                                { Directory = snapshot.Directory
-                                  Path = file.Path
-                                  Identity = identity
-                                  OwnerGeneration = None }
+                            SourcePin.Snapshot(
+                                snapshot.Snapshot.Id,
+                                snapshot.Snapshot.Generation,
+                                file
+                            ),
+                            backing))
 
-                        SourcePin.Snapshot(
-                            snapshot.Snapshot.Id,
-                            snapshot.Snapshot.Generation,
-                            file
-                        ),
-                        backing))
-
-            return
-                { Input =
-                    { Planning = planning
-                      Hidden = sources.Hidden }
-                  Stamp = sources.Stamp
-                  Files = Map.ofList (managed @ observed) },
-                saved
+                return
+                    Ok(
+                        { Input =
+                            { Planning = planning
+                              Hidden = sources.Hidden }
+                          Stamp = sources.Stamp
+                          Files = Map.ofList (managed @ observed) },
+                        saved
+                    )
         }

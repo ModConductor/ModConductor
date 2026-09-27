@@ -11,35 +11,46 @@ open ModConductor.Platform
 /// Reconstructs installed component routes from the existing generation selections.
 module internal ComponentRoutes =
     let private logical parts =
-        LogicalPath.create parts
-        |> Result.defaultWith (fun _ -> raise (RecoveryException RecoveryError.InvalidPlan))
+        LogicalPath.create parts |> Result.mapError (fun _ -> RecoveryError.InvalidPlan)
 
     let private same left right =
         String.Equals(left, right, StringComparison.OrdinalIgnoreCase)
 
     let private componentFiles role useFile (version: ModConductor.ModLibrary.ModVersion) =
-        version.Entries
-        |> List.map (fun entry ->
+        let route entry =
             let parts = LogicalPath.components entry.Path
 
-            let root, destination =
+            let destination =
                 match role, parts with
                 | "skse", first :: rest when same first "Root" && not rest.IsEmpty ->
-                    ComponentRoot.GameRoot, rest
+                    Ok(ComponentRoot.GameRoot, rest)
                 | "skse", first :: rest when same first "Data" && not rest.IsEmpty ->
-                    ComponentRoot.Data, rest
+                    Ok(ComponentRoot.Data, rest)
                 | "fnis", first :: rest when same first "Data" && not rest.IsEmpty ->
-                    ComponentRoot.Data, rest
+                    Ok(ComponentRoot.Data, rest)
                 | value, _ when value.StartsWith("companion:", StringComparison.Ordinal) ->
-                    ComponentRoot.Data, parts
+                    Ok(ComponentRoot.Data, parts)
                 | "runtime", _
-                | "preset", _ -> ComponentRoot.GameRoot, parts
-                | _ -> raise (RecoveryException RecoveryError.InvalidPlan)
+                | "preset", _ -> Ok(ComponentRoot.GameRoot, parts)
+                | _ -> Error RecoveryError.InvalidPlan
 
-            { Source = entry.Path
-              Root = root
-              Destination = logical destination
-              Use = useFile destination })
+            destination
+            |> Result.bind (fun (root, parts) ->
+                logical parts
+                |> Result.map (fun path ->
+                    { Source = entry.Path
+                      Root = root
+                      Destination = path
+                      Use = useFile path }))
+
+        version.Entries
+        |> List.fold
+            (fun routes entry ->
+                routes
+                |> Result.bind (fun routes ->
+                    route entry |> Result.map (fun file -> file :: routes)))
+            (Ok [])
+        |> Result.map List.rev
 
     let read
         (database: StateDatabase)
@@ -51,9 +62,13 @@ module internal ComponentRoutes =
         =
         task {
             let workspace, profile = sources.Stamp.WorkspaceId, sources.Stamp.ProfileId
+
             let componentGeneration =
                 retainedGeneration |> Option.orElse (existing |> Option.bind _.Active)
-            let! skse = SkseLoaderStore(database).ReadStored(workspace, profile, componentGeneration)
+
+            let! skse =
+                SkseLoaderStore(database).ReadStored(workspace, profile, componentGeneration)
+
             let! fnis = FnisStore(database).ReadStored(workspace, profile, componentGeneration)
             let! enb = EnbStore(database).Components(workspace, profile, componentGeneration)
 
@@ -69,84 +84,114 @@ module internal ComponentRoutes =
                         row.ModId, (row.Enabled, (row.Version |> Option.map _.Id)))
                     |> Map.ofList)
 
-            let evidence =
-                sources.Context.Binding
-                |> Option.map _.Evidence
-                |> Option.defaultWith (fun () -> raise (RecoveryException RecoveryError.Stale))
+            let review evidence gameRoot =
+                let make id versionId role useFile =
+                    match selected.TryFind id with
+                    | None
+                    | Some(false, _) -> Ok None
+                    | Some(true, chosen) when chosen <> Some versionId ->
+                        Error(
+                            RecoveryError.Unavailable
+                                "An installed component changed version. Check its setup."
+                        )
+                    | Some(true, _) ->
+                        match sources.Profile.Mods |> List.tryFind (fun row -> row.ModId = id) with
+                        | None -> Error RecoveryError.Stale
+                        | Some modLayer ->
+                            match modLayer.Version with
+                            | None -> Error RecoveryError.Stale
+                            | Some version ->
+                                componentFiles role useFile version
+                                |> Result.bind (fun files ->
+                                    ComponentManifests.review
+                                        workspace
+                                        gameRoot
+                                        Skyrim.definition.TargetPolicy
+                                        { ModId = id
+                                          Version = version
+                                          Priority = modLayer.Priority
+                                          Files = files }
+                                    |> Result.map Some
+                                    |> Result.mapError (fun _ -> RecoveryError.InvalidPlan))
 
-            let gameRoot =
-                evidence
-                |> ComponentRoots.gameRootId workspace
-                |> Result.toOption
-                |> Option.defaultWith (fun () -> raise (RecoveryException RecoveryError.Stale))
+                let immutable _ = ComponentFileUse.Immutable
 
-            let make id versionId role useFile =
-                match selected.TryFind id with
-                | None
-                | Some(false, _) -> None
-                | Some(true, chosen) when chosen <> Some versionId ->
-                    raise (RecoveryException(RecoveryError.Unavailable "An installed component changed version. Check its setup."))
-                | Some(true, _) ->
-                    let modLayer =
-                        sources.Profile.Mods
-                        |> List.tryFind (fun row -> row.ModId = id)
-                        |> Option.defaultWith (fun () -> raise (RecoveryException RecoveryError.Stale))
+                let add review rows =
+                    rows
+                    |> Result.bind (fun previous ->
+                        review ()
+                        |> Result.map (function
+                            | Some item -> item :: previous
+                            | None -> previous))
 
-                    let version =
-                        modLayer.Version
-                        |> Option.defaultWith (fun () -> raise (RecoveryException RecoveryError.Stale))
+                let afterSkse =
+                    add
+                        (fun () ->
+                            match skse with
+                            | Some row -> make row.ModId row.VersionId "skse" immutable
+                            | None -> Ok None)
+                        (Ok [])
 
-                    let files = componentFiles role useFile version
+                let afterFnis =
+                    add
+                        (fun () ->
+                            match fnis with
+                            | None -> Ok None
+                            | Some row ->
+                                let selected = Path.GetFullPath row.Executable
 
-                    ComponentManifests.review
-                        workspace
-                        gameRoot
-                        Skyrim.definition.TargetPolicy
-                        { ModId = id
-                          Version = version
-                          Priority = modLayer.Priority
-                          Files = files }
-                    |> Result.map Some
-                    |> Result.defaultWith (fun _ -> raise (RecoveryException RecoveryError.InvalidPlan))
+                                let useFile destination =
+                                    let candidate =
+                                        Path.GetFullPath(
+                                            Path.Combine(
+                                                evidence.RootPath,
+                                                "Data",
+                                                LogicalPath.display destination
+                                            )
+                                        )
 
-            let immutable _ = ComponentFileUse.Immutable
+                                    if same candidate selected then
+                                        ComponentFileUse.WritableContainingDirectory
+                                    else
+                                        ComponentFileUse.Immutable
 
-            let previous =
-                [ yield!
-                      skse
-                      |> Option.bind (fun row -> make row.ModId row.VersionId "skse" immutable)
-                      |> Option.toList
-                  yield!
-                      fnis
-                      |> Option.bind (fun row ->
-                          let selected = Path.GetFullPath row.Executable
+                                make row.ModId row.VersionId "fnis" useFile)
+                        afterSkse
 
-                          let useFile destination =
-                              let candidate =
-                                  Path.GetFullPath(
-                                      Path.Combine(
-                                          evidence.RootPath,
-                                          "Data",
-                                          LogicalPath.display (logical destination)
-                                      )
-                                  )
+                let previous =
+                    enb
+                    |> List.fold
+                        (fun rows row ->
+                            add
+                                (fun () ->
+                                    let useFile destination =
+                                        if
+                                            row.Kind = "preset"
+                                            && same
+                                                (LogicalPath.components destination |> List.last)
+                                                "enblocal.ini"
+                                        then
+                                            ComponentFileUse.WritableConfiguration
+                                        else
+                                            ComponentFileUse.Immutable
 
-                              if same candidate selected then
-                                  ComponentFileUse.WritableContainingDirectory
-                              else
-                                  ComponentFileUse.Immutable
+                                    make row.ModId row.VersionId row.Kind useFile)
+                                rows)
+                        afterFnis
 
-                          make row.ModId row.VersionId "fnis" useFile)
-                      |> Option.toList
-                  for row in enb do
-                      let useFile destination =
-                          if row.Kind = "preset" && same (List.last destination) "enblocal.ini" then
-                              ComponentFileUse.WritableConfiguration
-                          else
-                              ComponentFileUse.Immutable
+                let replacements = explicit |> List.map (fun row -> row.Mod.ModId) |> Set.ofList
 
-                      yield! make row.ModId row.VersionId row.Kind useFile |> Option.toList ]
+                previous
+                |> Result.map (fun rows ->
+                    (rows
+                     |> List.rev
+                     |> List.filter (fun row -> not (replacements.Contains row.Mod.ModId)))
+                    @ explicit)
 
-            let replacements = explicit |> List.map (fun row -> row.Mod.ModId) |> Set.ofList
-            return (previous |> List.filter (fun row -> not (replacements.Contains row.Mod.ModId))) @ explicit
+            match sources.Context.Binding with
+            | None -> return Error RecoveryError.Stale
+            | Some binding ->
+                match ComponentRoots.gameRootId workspace binding.Evidence with
+                | Error _ -> return Error RecoveryError.Stale
+                | Ok gameRoot -> return review binding.Evidence gameRoot
         }

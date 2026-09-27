@@ -73,7 +73,7 @@ type internal DeploymentGenerationStore
                     let! admitted =
                         access.Run(fun () ->
                             task {
-                                let! sources, saved =
+                                let! sourceResult =
                                     GenerationSources.read
                                         database
                                         access
@@ -85,53 +85,58 @@ type internal DeploymentGenerationStore
                                         retainedProfile
                                         fnisCandidate
 
-                                let sources =
-                                    if defaultArg gameFolderOnly false then
-                                        { sources with
-                                            Input =
-                                                { sources.Input with
-                                                    Planning =
-                                                        { sources.Input.Planning with
-                                                            Profile =
-                                                                { sources.Input.Planning.Profile with
-                                                                    Mods = [] } } } }
-                                    else
-                                        sources
-
-                                let! built =
-                                    Task.Run(fun () ->
-                                        GenerationBuilder.build
-                                            available
-                                            request
+                                match sourceResult with
+                                | Error error -> return Ok(Error error)
+                                | Ok(sources, saved) ->
+                                    let sources =
+                                        if defaultArg gameFolderOnly false then
+                                            { sources with
+                                                Input =
+                                                    { sources.Input with
+                                                        Planning =
+                                                            { sources.Input.Planning with
+                                                                Profile =
+                                                                    { sources.Input.Planning.Profile with
+                                                                        Mods = [] } } } }
+                                        else
                                             sources
-                                            cancellation)
 
-                                return
-                                    Ok(
-                                        built
-                                        |> Result.map (fun built ->
-                                            { built with
-                                                Generation =
-                                                    { built.Generation with
-                                                        Provenance =
-                                                            if
-                                                                defaultArg recordProfile false
-                                                            then
-                                                                Some
-                                                                    { PreparedAt =
-                                                                        DateTimeOffset.UtcNow
-                                                                      Profile =
-                                                                        if
-                                                                            defaultArg
-                                                                                gameFolderOnly
-                                                                                false
-                                                                        then
-                                                                            None
-                                                                        else
-                                                                            Some saved }
-                                                            else
-                                                                None } })
-                                    )
+                                    let! built =
+                                        Task.Run(fun () ->
+                                            GenerationBuilder.build
+                                                available
+                                                request
+                                                sources
+                                                cancellation)
+
+                                    return
+                                        Ok(
+                                            built
+                                            |> Result.map (fun built ->
+                                                { built with
+                                                    Generation =
+                                                        { built.Generation with
+                                                            Provenance =
+                                                                if
+                                                                    defaultArg
+                                                                        recordProfile
+                                                                        false
+                                                                then
+                                                                    Some
+                                                                        { PreparedAt =
+                                                                            DateTimeOffset.UtcNow
+                                                                          Profile =
+                                                                            if
+                                                                                defaultArg
+                                                                                    gameFolderOnly
+                                                                                    false
+                                                                            then
+                                                                                None
+                                                                            else
+                                                                                Some saved }
+                                                                else
+                                                                    None } })
+                                        )
                             })
 
                     return
