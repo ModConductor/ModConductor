@@ -6,27 +6,32 @@ open ModConductor.ProfileGameData.IniDocument
 module internal IniArchives =
     let private archiveKeys = [ "SResourceArchiveList"; "SResourceArchiveList2" ]
 
-    let archiveEntries bytes =
+    let tryArchiveEntries bytes =
         let _, text = decode bytes
-        let _, found = locateSettings "Archive" archiveKeys (lines text)
 
-        [ for key in archiveKeys do
-              match found |> List.tryFind (fun (name, _, _) -> name = key) with
-              | None -> ()
-              | Some(_, _, value) ->
-                  let mutable position = 0
+        tryLocateSettings "Archive" archiveKeys (lines text)
+        |> Result.map (fun (_, found) ->
+            [ for key in archiveKeys do
+                  match found |> List.tryFind (fun (name, _, _) -> name = key) with
+                  | None -> ()
+                  | Some(_, _, value) ->
+                      let mutable position = 0
 
-                  for name in value.Split(',') do
-                      let name = name.Trim()
+                      for name in value.Split(',') do
+                          let name = name.Trim()
 
-                      if name <> "" then
-                          yield
-                              ({ Name = name
-                                 Key = key
-                                 Position = position }
-                              : ModConductor.Bethesda.ExplicitArchive)
+                          if name <> "" then
+                              yield
+                                  ({ Name = name
+                                     Key = key
+                                     Position = position }
+                                  : ModConductor.Bethesda.ExplicitArchive)
 
-                          position <- position + 1 ]
+                              position <- position + 1 ])
+
+    let archiveEntries bytes =
+        tryArchiveEntries bytes
+        |> Result.defaultWith (fun detail -> raise (IO.IOException detail))
 
     let archiveValues names =
         let joined = String.concat ", " names

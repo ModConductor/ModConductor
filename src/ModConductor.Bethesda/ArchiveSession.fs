@@ -9,6 +9,10 @@ open ModConductor.DeploymentPlanning
 open ModConductor.FilePlanning
 open ModConductor.Platform
 
+type internal ArchiveBaseline =
+    | ParsedNames of string list
+    | BeforeSettingsEdit of byte array
+
 type ArchivePolicySession(repository: IFileCandidateRepository, inspection: Inspection) =
     let gate = obj ()
     let stop = new CancellationTokenSource()
@@ -19,7 +23,7 @@ type ArchivePolicySession(repository: IFileCandidateRepository, inspection: Insp
         TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)
 
     let mutable saved: ArchivePolicySnapshot option = None
-    let mutable observed: (Guid * string list) option = None
+    let mutable observed: (Guid * ArchiveBaseline) option = None
     do idle.SetResult()
 
     let label (sources: PlanSources) source =
@@ -144,7 +148,7 @@ type ArchivePolicySession(repository: IFileCandidateRepository, inspection: Insp
                                     observed <- None
 
                                 if observed.IsNone then
-                                    observed <- Some(value.Stamp.ProfileId, value.ExplicitNames)
+                                    observed <- Some(value.Stamp.ProfileId, ParsedNames value.ExplicitNames)
 
                                 saved <- Some value)
                         | _ -> ()
@@ -170,25 +174,32 @@ type ArchivePolicySession(repository: IFileCandidateRepository, inspection: Insp
 
     member this.Observe(profile, input, token) = this.ObserveCore(profile, input, token, false)
 
-    member _.ObservedNames(profile) =
+    member internal _.ObservedBaseline(profile) =
         lock gate (fun () ->
             observed
             |> Option.filter (fun (value, _) -> value = profile)
             |> Option.map snd)
 
-    member _.NoteSettingsEdit(profile, before: string list) =
+    member internal _.NoteSettingsEdit(profile, before: byte array) =
         lock gate (fun () ->
             if observed |> Option.exists (fun (value, _) -> value <> profile) then
                 observed <- None
 
             if observed.IsNone then
-                observed <- Some(profile, before))
+                observed <- Some(profile, BeforeSettingsEdit before))
+
+    member internal _.UseCurrentNames(profile, names) =
+        lock gate (fun () ->
+            match observed with
+            | Some(value, BeforeSettingsEdit _) when value = profile ->
+                observed <- Some(profile, ParsedNames names)
+            | _ -> ())
 
     member _.Accept(id) =
         lock gate (fun () ->
             saved
             |> Option.filter (fun value -> value.Id = id)
-            |> Option.iter (fun value -> observed <- Some(value.Stamp.ProfileId, value.ExplicitNames)))
+            |> Option.iter (fun value -> observed <- Some(value.Stamp.ProfileId, ParsedNames value.ExplicitNames)))
 
     member _.ForgetObserved(profile) =
         lock gate (fun () ->

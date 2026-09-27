@@ -24,13 +24,13 @@ module internal ArchivePolicyProjection =
     let private namesEqual left right =
         List.length left = List.length right && List.forall2 same left right
 
-    let explicitNames bytes =
+    let private explicitNames (entries: ExplicitArchive list) =
         let names = HashSet<string>(StringComparer.OrdinalIgnoreCase)
 
         [ for name in SkyrimArchives.required do
               if names.Add name then
                   yield name
-          for entry in Ini.archiveEntries bytes do
+          for entry in entries do
               if names.Add entry.Name then
                   yield entry.Name ]
 
@@ -83,8 +83,15 @@ module internal ArchivePolicyProjection =
         token
         =
         let before =
-            archives.ObservedNames scope.ProfileId
-            |> Option.defaultValue snapshot.ExplicitNames
+            match archives.ObservedBaseline scope.ProfileId with
+            | Some(ArchiveBaseline.ParsedNames names) -> names
+            | Some(ArchiveBaseline.BeforeSettingsEdit bytes) ->
+                match Ini.tryArchiveEntries bytes with
+                | Ok entries -> explicitNames entries
+                | Error _ ->
+                    archives.UseCurrentNames(scope.ProfileId, snapshot.ExplicitNames)
+                    snapshot.ExplicitNames
+            | None -> snapshot.ExplicitNames
 
         let edited = changes before snapshot.ExplicitNames
 

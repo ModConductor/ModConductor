@@ -628,7 +628,66 @@ module ArchivePolicyFixtures =
                 )
 
 
-            observeInactiveProfile ()
+                inactive
+
+            let inactive = observeInactiveProfile ()
+
+            let observeRawSettingsEdit () =
+                let current = profileApi.Read(workspace, profile) |> wait |> result
+
+                let opened =
+                    profileApi.ReadConfiguration(current.Reference, "Skyrim.ini", token)
+                    |> wait
+                    |> result
+
+                let duplicate =
+                    "[Archive]\nSResourceArchiveList=QuietRivers.bsa\nSResourceArchiveList=Other.bsa\n"
+
+                let saved = editArchives current.Reference duplicate
+                let privateIni = Path.Combine(saved.State.SettingsPath, "Skyrim.ini")
+                let headers = store.Plugins.Scan(profile, token) |> wait |> result
+                let scan = archiveApi.Scan(workspace, profile, headers.Id, token) |> wait
+
+                writer.WriteBoolean(
+                    "rawSkyrimIniSaveDoesNotParseArchiveKeys",
+                    check
+                        "rawSkyrimIniSaveDoesNotParseArchiveKeys"
+                        (saved.Complete
+                         && saved.Problem.IsNone
+                         && File.ReadAllText(privateIni).Contains("SResourceArchiveList=Other.bsa")
+                         && (match scan with
+                             | Error(ProfileDataError.Unavailable _) -> true
+                             | _ -> false))
+                )
+
+                let inactiveHeaders = store.Plugins.Scan(inactive, token) |> wait |> result
+
+                archiveApi.Scan(workspace, inactive, inactiveHeaders.Id, token)
+                |> wait
+                |> result
+                |> ignore
+
+                let restored = editArchives saved.State.Reference opened.Document.Content
+                let headers = store.Plugins.Scan(profile, token) |> wait |> result
+                let recovered = archiveApi.Scan(workspace, profile, headers.Id, token) |> wait |> result
+                let changed = editArchives restored.State.Reference withoutQuiet
+                let headers = store.Plugins.Scan(profile, token) |> wait |> result
+                let changedPolicy = archiveApi.Scan(workspace, profile, headers.Id, token) |> wait |> result
+
+                writer.WriteBoolean(
+                    "correctedArchiveKeysRecoverDeltaTracking",
+                    check
+                        "correctedArchiveKeysRecoverDeltaTracking"
+                        (restored.Complete
+                         && recovered.Changes.IsEmpty
+                         && changed.Complete
+                         && changedPolicy.Changes.Length = 1)
+                )
+
+                let reverted = editArchives changed.State.Reference opened.Document.Content
+                check "raw settings fixture restored profile" reverted.Complete |> ignore
+
+            observeRawSettingsEdit ()
 
             let observeOverlongApply () =
                 let require stage =

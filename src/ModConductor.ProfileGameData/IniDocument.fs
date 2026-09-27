@@ -114,38 +114,33 @@ module internal IniDocument =
                 name.Equals(candidate, StringComparison.OrdinalIgnoreCase))
             |> Option.map (fun canonical -> canonical, value.Substring(split + 1).Trim())
 
-    let locateSettings sectionName wanted (content: ResizeArray<string>) =
-        let mutable inside = false
-        let mutable header = None
-        let found = ResizeArray<string * int * string>()
+    let tryLocateSettings sectionName wanted (content: ResizeArray<string>) =
+        let rec scan index inside (header: int option) (found: (string * int * string) list) =
+            if index = content.Count then
+                Ok(header, List.rev found)
+            else
+                match section content[index] with
+                | Some name ->
+                    let selected = name.Equals(sectionName, StringComparison.OrdinalIgnoreCase)
 
-        for index in 0 .. content.Count - 1 do
-            match section content[index] with
-            | Some name ->
-                inside <- name.Equals(sectionName, StringComparison.OrdinalIgnoreCase)
+                    if selected && header.IsSome then
+                        Error("The settings file has more than one " + sectionName + " section.")
+                    else
+                        scan (index + 1) selected (if selected then Some index else header) found
+                | None when inside ->
+                    match setting wanted content[index] with
+                    | Some(key, _) when found |> List.exists (fun (other, _, _) -> other = key) ->
+                        Error("The settings file has more than one " + key + " value.")
+                    | Some(key, value) ->
+                        scan (index + 1) inside header ((key, index, value) :: found)
+                    | None -> scan (index + 1) inside header found
+                | None -> scan (index + 1) inside header found
 
-                if inside then
-                    if header.IsSome then
-                        raise (
-                            IOException(
-                                "The settings file has more than one " + sectionName + " section."
-                            )
-                        )
+        scan 0 false None []
 
-                    header <- Some index
-            | None when inside ->
-                match setting wanted content[index] with
-                | Some(key, value) ->
-                    if found |> Seq.exists (fun (other, _, _) -> other = key) then
-                        raise (
-                            IOException("The settings file has more than one " + key + " value.")
-                        )
-
-                    found.Add(key, index, value)
-                | None -> ()
-            | None -> ()
-
-        header, List.ofSeq found
+    let locateSettings sectionName wanted content =
+        tryLocateSettings sectionName wanted content
+        |> Result.defaultWith (fun detail -> raise (IOException detail))
 
     let ending (line: string) =
         if line.EndsWith("\r\n") then "\r\n"
