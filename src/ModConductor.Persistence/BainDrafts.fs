@@ -39,24 +39,27 @@ type BainDrafts
         let selected = selection |> Option.map Selection.files |> Option.defaultValue []
         let reviewing = selection |> Option.exists _.Reviewing
 
-        let draft =
+        let updated =
             if reviewing && not selected.IsEmpty then
                 Layout.selectFiles draft draft.Name draft.Version selected
             else
-                { draft with
-                    Revision = draft.Revision + 1L
-                    Files = selected
-                    Plan = None }
+                Ok
+                    { draft with
+                        Revision = draft.Revision + 1L
+                        Files = selected
+                        Plan = None }
 
-        let view =
-            { session.View with
-                Draft = draft
-                Selection = selection
-                Problem = session.View.Input.Problem }
+        updated
+        |> Result.map (fun draft ->
+            let view =
+                { session.View with
+                    Draft = draft
+                    Selection = selection
+                    Problem = session.View.Input.Problem }
 
-        saveDraft draft
-        sessions[draft.Artifact.WorkspaceId] <- { session with View = view }
-        view
+            saveDraft draft
+            sessions[draft.Artifact.WorkspaceId] <- { session with View = view }
+            view)
 
     let change workspace id revision action =
         lock gate (fun () ->
@@ -65,7 +68,9 @@ type BainDrafts
             | Ok(session, draft) ->
                 match session.View.Selection with
                 | None -> Error "Use the manual layout for this package."
-                | Some selection -> action selection |> Result.map (Some >> update session draft))
+                | Some selection ->
+                    action selection
+                    |> Result.bind (fun chosen -> update session draft (Some chosen)))
 
     member internal _.Prepared(draft: InstallationDraft, input: PackageInput) =
         sessions[draft.Artifact.WorkspaceId] <-
@@ -81,7 +86,7 @@ type BainDrafts
     member _.Open(workspace, id, revision) =
         lock gate (fun () ->
             find workspace id revision
-            |> Result.map (fun (session, draft) -> update session draft session.View.Selection))
+            |> Result.bind (fun (session, draft) -> update session draft session.View.Selection))
 
     member _.Choose(workspace, id, revision, index, selected) =
         change workspace id revision (Selection.choose index selected)

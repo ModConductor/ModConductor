@@ -133,7 +133,8 @@ module Updates =
                       Existing = retained }
                     selected
 
-            let preview =
+            plan
+            |> Result.map (fun plan ->
                 { Id = Guid.NewGuid()
                   DraftId = draft.Id
                   DraftRevision = draft.Revision
@@ -143,7 +144,4 @@ module Updates =
                   Keep = keep
                   Files = changes
                   Plan = plan
-                  SourceNotices = notices }
-
-
-            Ok preview
+                  SourceNotices = notices })

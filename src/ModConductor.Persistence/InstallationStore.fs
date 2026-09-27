@@ -204,16 +204,25 @@ type InstallationStore
 
                                      match nested, destination with
                                      | Some source, Some destination ->
-                                         Layout.forBundle draft source destination modName.Value
+                                         draft
+                                         |> Result.bind (fun draft ->
+                                             Layout.forBundle
+                                                 draft
+                                                 source
+                                                 destination
+                                                 modName.Value)
                                      | None, None -> draft
-                                     | _ -> invalidOp "Bundle draft source is incomplete."),
-                                    ModConductor.Fomod.ArchiveInput.read contents,
-                                    ModConductor.Bain.Detection.inspect contents.Manifest
+                                     | _ -> invalidOp "Bundle draft source is incomplete.")
+                                    |> Result.map (fun draft ->
+                                        draft,
+                                        ModConductor.Fomod.ArchiveInput.read contents,
+                                        ModConductor.Bain.Detection.inspect contents.Manifest)
                             )
 
                         match prepared with
                         | Error error -> return Error(artifactProblem error)
-                        | Ok(original, input, packageInput) ->
+                        | Ok(Error why) -> return Error why
+                        | Ok(Ok(original, input, packageInput)) ->
                             let fomod =
                                 match input with
                                 | ModConductor.Fomod.InstallerInput.Absent -> false
@@ -287,10 +296,11 @@ type InstallationStore
                 if current.Installer <> InstallationMode.Manual then
                     Error "The archive selected an installer. Review the archive again."
                 else
-                    let next = Layout.selectFiles current name version files
-                    drafts[workspace] <- next
-                    updates.Remove workspace |> ignore
-                    Ok next))
+                    Layout.selectFiles current name version files
+                    |> Result.map (fun next ->
+                        drafts[workspace] <- next
+                        updates.Remove workspace |> ignore
+                        next)))
 
     member _.Fomod = choices
     member _.Bain = packages
@@ -325,10 +335,11 @@ type InstallationStore
                 if draft.Installer <> InstallationMode.Manual then
                     Error "Return to the manual layout before changing these files."
                 else
-                    let next = Layout.change draft change
-                    updates.Remove workspace |> ignore
-                    drafts[workspace] <- next
-                    Ok next))
+                    Layout.change draft change
+                    |> Result.map (fun next ->
+                        updates.Remove workspace |> ignore
+                        drafts[workspace] <- next
+                        next)))
 
     member _.CloseBundleDraft(workspace, bundle) =
         lock gate (fun () ->

@@ -17,22 +17,29 @@ module Layout =
 
     let private path parts =
         LogicalPath.create parts
-        |> Result.defaultWith (fun _ -> refuse "Choose a relative destination within the mod.")
+        |> Result.mapError (fun _ -> "Choose a relative destination within the mod.")
 
     let private files (manifest: ArchiveManifest) =
         manifest.Entries |> List.filter (fun e -> not e.Directory)
 
     let private rootFiles manifest root =
         files manifest
-        |> List.choose (fun e ->
-            let parts = LogicalPath.components e.Path
+        |> List.fold
+            (fun outcome e ->
+                outcome
+                |> Result.bind (fun selected ->
+                    let parts = LogicalPath.components e.Path
 
-            if starts root parts && parts.Length > root.Length then
-                Some
-                    { Index = e.Index
-                      Destination = path (List.skip root.Length parts) }
-            else
-                None)
+                    if starts root parts && parts.Length > root.Length then
+                        path (List.skip root.Length parts)
+                        |> Result.map (fun destination ->
+                            { Index = e.Index
+                              Destination = destination }
+                            :: selected)
+                    else
+                        Ok selected))
+            (Ok [])
+        |> Result.map List.rev
 
     let private quickRoot manifest =
         let markers = DataLayout.directories
@@ -45,7 +52,11 @@ module Layout =
                 let markerRoot index =
                     let leading = List.take index parts
 
-                    match leading |> List.tryFindIndex (fun part -> part.Equals("Data", StringComparison.OrdinalIgnoreCase)) with
+                    match
+                        leading
+                        |> List.tryFindIndex (fun part ->
+                            part.Equals("Data", StringComparison.OrdinalIgnoreCase))
+                    with
                     | Some data -> List.take (data + 1) leading
                     | None -> leading
 
@@ -122,7 +133,7 @@ module Layout =
 
     let private finish (draft: InstallationDraft) =
         if draft.Files.IsEmpty then
-            { draft with Plan = None }
+            Ok { draft with Plan = None }
         else
             let metadata =
                 InventoryPolicy.metadata
@@ -132,82 +143,97 @@ module Layout =
                       Comment = ""
                       Source = ""
                       Categories = [] }
-                |> Result.defaultWith (fun _ ->
-                    refuse "Enter a mod name and a version of at most 256 characters.")
+                |> Result.mapError (fun _ ->
+                    "Enter a mod name and a version of at most 256 characters.")
 
-            let entries = draft.Manifest.Entries |> List.map (fun e -> e.Index, e) |> Map.ofList
+            metadata
+            |> Result.bind (fun metadata ->
+                let entries =
+                    draft.Manifest.Entries |> List.map (fun e -> e.Index, e) |> Map.ofList
 
-            let selected = System.Collections.Generic.HashSet<int>()
-            let mutable bytes = 0L
+                let selected = System.Collections.Generic.HashSet<int>()
 
-            for file in draft.Files do
-                let entry =
-                    entries
-                    |> Map.tryFind file.Index
-                    |> Option.defaultWith (fun () ->
-                        refuse "An included file is not in this archive.")
-
-                if entry.Directory then
-                    refuse "Choose a file rather than a folder entry."
-
-                if selected.Add file.Index then
-                    bytes <- bytes + entry.Size
-
-            Destinations.validate (draft.Files |> List.map _.Destination)
-
-            let fingerprint =
-                fingerprint
-                    draft.Artifact
-                    draft.Manifest.Sha256
-                    metadata.Name
-                    metadata.Version
+                let bytes =
                     draft.Files
-                    None
-                    draft.Nested
-                    draft.Bundle
+                    |> List.fold
+                        (fun outcome file ->
+                            outcome
+                            |> Result.bind (fun bytes ->
+                                match entries |> Map.tryFind file.Index with
+                                | None -> Error "An included file is not in this archive."
+                                | Some entry when entry.Directory ->
+                                    Error "Choose a file rather than a folder entry."
+                                | Some entry ->
+                                    Ok(
+                                        if selected.Add file.Index then
+                                            bytes + entry.Size
+                                        else
+                                            bytes
+                                    )))
+                        (Ok 0L)
 
-            { draft with
-                Name = metadata.Name
-                Plan =
-                    Some
-                        { Artifact = draft.Artifact
-                          ArchiveName = draft.ArchiveName
-                          Nested = draft.Nested
-                          Bundle = draft.Bundle
-                          Sha256 = draft.Manifest.Sha256
-                          Name = metadata.Name
-                          Version = metadata.Version
-                          Root = draft.Root
-                          Files = draft.Files
-                          Bytes = bytes
-                          Fingerprint = fingerprint
-                          Target = None } }
+                bytes
+                |> Result.bind (fun bytes ->
+                    Destinations.validate (draft.Files |> List.map _.Destination)
+                    |> Result.map (fun () ->
+                        let fingerprint =
+                            fingerprint
+                                draft.Artifact
+                                draft.Manifest.Sha256
+                                metadata.Name
+                                metadata.Version
+                                draft.Files
+                                None
+                                draft.Nested
+                                draft.Bundle
+
+                        { draft with
+                            Name = metadata.Name
+                            Plan =
+                                Some
+                                    { Artifact = draft.Artifact
+                                      ArchiveName = draft.ArchiveName
+                                      Nested = draft.Nested
+                                      Bundle = draft.Bundle
+                                      Sha256 = draft.Manifest.Sha256
+                                      Name = metadata.Name
+                                      Version = metadata.Version
+                                      Root = draft.Root
+                                      Files = draft.Files
+                                      Bytes = bytes
+                                      Fingerprint = fingerprint
+                                      Target = None } })))
 
     let prepare reference name manifest =
         let root = quickRoot manifest
 
-        { Id = Guid.NewGuid()
-          Revision = 0L
-          Artifact = reference
-          ArchiveName = name
-          Nested = None
-          Bundle = None
-          Manifest = manifest
-          Root = defaultArg root []
-          Files = root |> Option.map (rootFiles manifest) |> Option.defaultValue []
-          Name =
-            (let suggested = Path.GetFileNameWithoutExtension name in
+        let selected =
+            root |> Option.map (rootFiles manifest) |> Option.defaultValue (Ok [])
 
-             if String.IsNullOrWhiteSpace suggested then
-                 "New mod"
-             else
-                 suggested)
-          Version = ""
-          Plan = None
-          Installer = InstallationMode.Manual
-          AvailableInstallers = [ InstallationMode.Manual ]
-          WizardScripts = [] }
-        |> finish
+        selected
+        |> Result.bind (fun selected ->
+            { Id = Guid.NewGuid()
+              Revision = 0L
+              Artifact = reference
+              ArchiveName = name
+              Nested = None
+              Bundle = None
+              Manifest = manifest
+              Root = defaultArg root []
+              Files = selected
+              Name =
+                (let suggested = Path.GetFileNameWithoutExtension name in
+
+                 if String.IsNullOrWhiteSpace suggested then
+                     "New mod"
+                 else
+                     suggested)
+              Version = ""
+              Plan = None
+              Installer = InstallationMode.Manual
+              AvailableInstallers = [ InstallationMode.Manual ]
+              WizardScripts = [] }
+            |> finish)
 
     let forBundle (draft: InstallationDraft) nested destination name =
         { draft with
@@ -220,50 +246,66 @@ module Layout =
         let updated =
             match change with
             | LayoutChange.Metadata(name, version) ->
-                { draft with
-                    Name = name
-                    Version = version }
+                Ok
+                    { draft with
+                        Name = name
+                        Version = version }
             | LayoutChange.Root root ->
-                let chosen = rootFiles draft.Manifest root
-
-                if chosen.IsEmpty then
-                    refuse "Choose a folder that contains files."
-
-                { draft with
-                    Root = root
-                    Files = chosen }
+                rootFiles draft.Manifest root
+                |> Result.bind (fun chosen ->
+                    if chosen.IsEmpty then
+                        Error "Choose a folder that contains files."
+                    else
+                        Ok
+                            { draft with
+                                Root = root
+                                Files = chosen })
             | LayoutChange.Include(source, included) ->
                 let matching =
                     files draft.Manifest
                     |> List.filter (fun e -> starts source (LogicalPath.components e.Path))
 
                 if matching.IsEmpty then
-                    refuse "Choose a file or folder in this archive."
+                    Error "Choose a file or folder in this archive."
+                else
+                    let ids = matching |> List.map _.Index |> Set.ofList
+                    let retained = draft.Files |> List.filter (fun f -> not (ids.Contains f.Index))
 
-                let ids = matching |> List.map _.Index |> Set.ofList
-                let retained = draft.Files |> List.filter (fun f -> not (ids.Contains f.Index))
+                    let added =
+                        if not included then
+                            Ok []
+                        else
+                            matching
+                            |> List.fold
+                                (fun outcome entry ->
+                                    outcome
+                                    |> Result.bind (fun selected ->
+                                        match
+                                            draft.Files
+                                            |> List.tryFind (fun f -> f.Index = entry.Index)
+                                        with
+                                        | Some file -> Ok(file :: selected)
+                                        | None ->
+                                            let parts = LogicalPath.components entry.Path
 
-                let added =
-                    if not included then
-                        []
-                    else
-                        matching
-                        |> List.map (fun e ->
-                            draft.Files
-                            |> List.tryFind (fun f -> f.Index = e.Index)
-                            |> Option.defaultWith (fun () ->
-                                let parts = LogicalPath.components e.Path
+                                            let target =
+                                                if starts draft.Root parts then
+                                                    List.skip draft.Root.Length parts
+                                                else
+                                                    parts
 
-                                let target =
-                                    if starts draft.Root parts then
-                                        List.skip draft.Root.Length parts
-                                    else
-                                        parts
+                                            path target
+                                            |> Result.map (fun destination ->
+                                                { Index = entry.Index
+                                                  Destination = destination }
+                                                :: selected)))
+                                (Ok [])
+                            |> Result.map List.rev
 
-                                { Index = e.Index
-                                  Destination = path target }))
-
-                { draft with Files = retained @ added }
+                    added
+                    |> Result.map (fun selected ->
+                        { draft with
+                            Files = retained @ selected })
             | LayoutChange.Destination(source, destination) ->
                 let affected =
                     files draft.Manifest
@@ -272,27 +314,31 @@ module Layout =
                     |> Map.ofList
 
                 if affected.IsEmpty then
-                    refuse "Choose a file or folder in this archive."
-
-                let remapped =
+                    Error "Choose a file or folder in this archive."
+                else
                     draft.Files
-                    |> List.map (fun file ->
-                        match affected |> Map.tryFind file.Index with
-                        | None -> file
-                        | Some entry ->
-                            { file with
-                                Destination =
+                    |> List.fold
+                        (fun outcome file ->
+                            outcome
+                            |> Result.bind (fun selected ->
+                                match affected |> Map.tryFind file.Index with
+                                | None -> Ok(file :: selected)
+                                | Some entry ->
                                     path (
                                         destination
                                         @ (LogicalPath.components entry.Path
                                            |> List.skip source.Length)
-                                    ) })
+                                    )
+                                    |> Result.map (fun destination ->
+                                        { file with Destination = destination } :: selected)))
+                        (Ok [])
+                    |> Result.map (fun reversed -> { draft with Files = List.rev reversed })
 
-                { draft with Files = remapped }
-
-        { updated with
-            Revision = draft.Revision + 1L }
-        |> finish
+        updated
+        |> Result.bind (fun updated ->
+            { updated with
+                Revision = draft.Revision + 1L }
+            |> finish)
 
     let selectFiles (draft: InstallationDraft) name version files =
         { draft with
@@ -307,34 +353,14 @@ module Layout =
             Version = version }
         |> finish
 
-    let forUpdate
+    let private updatePlan
         (draft: InstallationDraft)
         name
         version
         (target: InstallationTarget)
         (selected: SelectedFile list)
+        (source: InstallationPlan)
         =
-        let source =
-            draft.Plan
-            |> Option.defaultWith (fun () -> refuse "Review the archive layout first.")
-
-        InventoryPolicy.metadata
-            { Name = name
-              Version = version
-              Notes = ""
-              Comment = ""
-              Source = ""
-              Categories = [] }
-        |> Result.defaultWith (fun _ -> refuse "Enter a version of at most 256 characters.")
-        |> ignore
-
-        if selected |> List.exists (fun file -> not (List.contains file draft.Files)) then
-            refuse "The archive selection changed. Review the layout again."
-
-        Destinations.validate (
-            (selected |> List.map _.Destination) @ (target.Existing |> List.map _.Path)
-        )
-
         let sizes =
             draft.Manifest.Entries
             |> List.map (fun entry -> entry.Index, entry.Size)
@@ -360,6 +386,33 @@ module Layout =
                     source.Nested
                     source.Bundle }
 
+    let forUpdate
+        (draft: InstallationDraft)
+        name
+        version
+        (target: InstallationTarget)
+        (selected: SelectedFile list)
+        =
+        match draft.Plan with
+        | None -> Error "Review the archive layout first."
+        | Some source ->
+            InventoryPolicy.metadata
+                { Name = name
+                  Version = version
+                  Notes = ""
+                  Comment = ""
+                  Source = ""
+                  Categories = [] }
+            |> Result.mapError (fun _ -> "Enter a version of at most 256 characters.")
+            |> Result.bind (fun _ ->
+                if selected |> List.exists (fun file -> not (List.contains file draft.Files)) then
+                    Error "The archive selection changed. Review the layout again."
+                else
+                    Destinations.validate (
+                        (selected |> List.map _.Destination) @ (target.Existing |> List.map _.Path)
+                    )
+                    |> Result.map (fun () -> updatePlan draft name version target selected source))
+
     let confirm (plan: InstallationPlan) (manifest: ArchiveManifest) =
         if manifest.Sha256 <> plan.Sha256 then
             refuse "The archive changed. Read its contents and review the installation again."
@@ -382,7 +435,9 @@ module Layout =
             |> Option.map (fun target -> target.Existing |> List.map _.Path)
             |> Option.defaultValue []
 
-        Destinations.validate ((plan.Files |> List.map _.Destination) @ existing)
+        match Destinations.validate ((plan.Files |> List.map _.Destination) @ existing) with
+        | Error message -> refuse message
+        | Ok() -> ()
 
         if
             bytes <> plan.Bytes

@@ -235,23 +235,31 @@ module InstallationFixtures =
                 |> result
 
             let rejected =
-                try
-                    store.Installations.Change(
-                        workspace,
-                        changed.Id,
-                        changed.Revision,
-                        LayoutChange.Destination(
-                            [ "Rivière"; "Data"; "textures"; "landscape"; "river.dds" ],
-                            [ "textures"; "renamed.dds" ]
-                        )
+                store.Installations.Change(
+                    workspace,
+                    changed.Id,
+                    changed.Revision,
+                    LayoutChange.Destination(
+                        [ "Rivière"; "Data"; "textures"; "landscape"; "river.dds" ],
+                        [ "textures"; "renamed.dds" ]
                     )
-                    |> ignore
+                )
 
-                    false
-                with :? InstallationException ->
-                    true
+            let unchanged =
+                store.Installations.Draft(workspace, changed.Id, changed.Revision) |> result
 
-            check "ConflictingRemapLeavesConfirmedDraftUnchanged" rejected
+            let exactRefusal =
+                match rejected with
+                | Error message ->
+                    message = "Two files have the same destination. Change a destination or exclude a file."
+                | Ok _ -> false
+
+            check
+                "ConflictingRemapLeavesConfirmedDraftUnchanged"
+                (exactRefusal
+                 && unchanged.Revision = changed.Revision
+                 && unchanged.Plan = changed.Plan)
+
             let plan = changed.Plan.Value
             let job = Guid.NewGuid()
 

@@ -38,37 +38,7 @@ type FomodDrafts
                 Ok session
             | _ -> Error "The installer choices changed. Open the installer again.")
 
-    let snapshot (session: FomodSession) (draft: InstallationDraft) (wizard: Wizard) =
-        let mutable problem = wizard.Problem
-
-        let planned =
-            if wizard.Current.IsNone && problem.IsNone then
-                try
-                    Some(
-                        Planning.build
-                            session.View.Definition.Value
-                            session.Facts.Value.Facts
-                            wizard
-                    )
-                with :? FomodException as error ->
-                    problem <- Some error.Message
-                    None
-            else
-                None
-
-        let draft =
-            match planned with
-            | Some planned ->
-                Layout.selectFiles
-                    draft
-                    planned.Name
-                    planned.Version
-                    (planned.Files |> List.map _.File)
-            | None ->
-                { draft with
-                    Revision = draft.Revision + 1L
-                    Plan = None }
-
+    let saveSnapshot (session: FomodSession) wizard problem planned draft =
         let flags =
             wizard.Current
             |> Option.map Choices.flags
@@ -97,6 +67,37 @@ type FomodDrafts
         sessions[draft.Artifact.WorkspaceId] <- next
         view
 
+    let snapshot (session: FomodSession) (draft: InstallationDraft) (wizard: Wizard) =
+        let mutable problem = wizard.Problem
+
+        let planned =
+            if wizard.Current.IsNone && problem.IsNone then
+                match
+                    Planning.build session.View.Definition.Value session.Facts.Value.Facts wizard
+                with
+                | Ok planned -> Some planned
+                | Error why ->
+                    problem <- Some why
+                    None
+            else
+                None
+
+        let updated =
+            match planned with
+            | Some planned ->
+                Layout.selectFiles
+                    draft
+                    planned.Name
+                    planned.Version
+                    (planned.Files |> List.map _.File)
+            | None ->
+                Ok
+                    { draft with
+                        Revision = draft.Revision + 1L
+                        Plan = None }
+
+        updated |> Result.map (saveSnapshot session wizard problem planned)
+
     let change workspace id revision update =
         lock gate (fun () ->
             findResult workspace id revision
@@ -104,7 +105,7 @@ type FomodDrafts
                 match session.View.Wizard with
                 | None -> Error "Use the manual layout for this installer."
                 | Some wizard ->
-                    update session wizard |> Result.map (snapshot session session.View.Draft)))
+                    update session wizard |> Result.bind (snapshot session session.View.Draft)))
 
     member internal _.Prepared(draft: InstallationDraft, input) =
         inputs[draft.Artifact.WorkspaceId] <- input
@@ -182,7 +183,7 @@ type FomodDrafts
                     return
                         lock gate (fun () ->
                             getDraftResult (workspace, id, revision)
-                            |> Result.map (fun _ ->
+                            |> Result.bind (fun _ ->
                                 let view =
                                     { Draft = draft
                                       ProfileId = profile
@@ -216,7 +217,7 @@ type FomodDrafts
                 | None -> Error "Use the manual layout for this installer."
                 | Some wizard ->
                     Choices.choose optionId selected wizard
-                    |> Result.map (snapshot session session.View.Draft))
+                    |> Result.bind (snapshot session session.View.Draft))
 
     member _.Back(workspace, id, revision) =
         change workspace id revision (fun _ wizard -> Ok(Choices.back wizard))
@@ -239,24 +240,23 @@ type FomodDrafts
     member _.Manual(workspace, id, revision) =
         lock gate (fun () ->
             getDraftResult (workspace, id, revision)
-            |> Result.map (fun current ->
+            |> Result.bind (fun current ->
                 let original =
                     match sessions.TryGetValue workspace with
                     | true, session -> session.Original
                     | _ -> current
 
-                let chosen =
-                    Layout.selectFiles original original.Name original.Version original.Files
+                Layout.selectFiles original original.Name original.Version original.Files
+                |> Result.map (fun chosen ->
+                    let draft =
+                        { chosen with
+                            Revision = revision + 1L
+                            Root = original.Root
+                            Installer = InstallationMode.Manual }
 
-                let draft =
-                    { chosen with
-                        Revision = revision + 1L
-                        Root = original.Root
-                        Installer = InstallationMode.Manual }
-
-                saveDraft draft
-                sessions.Remove workspace |> ignore
-                draft))
+                    saveDraft draft
+                    sessions.Remove workspace |> ignore
+                    draft)))
 
     member _.Image(workspace, id, revision, path: string list, token: CancellationToken) =
         task {
