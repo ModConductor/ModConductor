@@ -6,6 +6,7 @@ open System.Text
 open System.Text.Json
 open System.Threading
 open ModConductor.Bethesda
+open ModConductor.Diagnostics
 open ModConductor.GameContexts
 open ModConductor.Loot
 open ModConductor.Persistence
@@ -203,21 +204,62 @@ module LootFixtures =
         let bundledHelper = Path.Combine(bundle, Path.GetFileName helper)
         let installed = store.LootForFixture(bundledHelper, validator)
 
+        let diagnostics =
+            DiagnosticSession(
+                store.Workspaces,
+                store.FilePlans,
+                store.Deployments,
+                store.GameLaunching,
+                store.ProfileGameData,
+                store.GameContexts,
+                store.PluginOrders,
+                helperDiagnostic = installed.HelperDiagnostic
+            )
+            :> IDiagnostics
+
+        let helperFindings () =
+            diagnostics.Check(
+                { WorkspaceId = workspace
+                  ProfileId = profile
+                  FileSnapshotId = None
+                  PluginSnapshotId = None
+                  DeploymentReceipt = None },
+                CancellationToken.None
+            )
+            |> wait
+            |> result
+            |> _.Findings
+            |> List.filter (fun finding -> finding.Code = "loot-helper-unavailable")
+
         check
             "missingHelperIsUnavailable"
             (not (installed.Read().Available) && installed.HelperDiagnostic().IsSome)
+
+        check
+            "missingHelperHasOneHelpFindingWithPackageDetails"
+            (match helperFindings () with
+             | [ finding ] ->
+                 finding.Evidence
+                 |> List.exists (fun evidence ->
+                     evidence.Label = "Package details" && evidence.Value.Contains bundledHelper)
+             | _ -> false)
 
         File.Copy(helper, bundledHelper)
 
         check
             "helperRepairRestoresAvailability"
-            (installed.Read().Available && installed.HelperDiagnostic().IsNone)
+            (installed.Read().Available
+             && installed.HelperDiagnostic().IsNone
+             && (helperFindings () |> List.isEmpty))
 
-        File.Copy(Environment.ProcessPath, bundledHelper, true)
+        File.Delete bundledHelper
+        File.Copy(Environment.ProcessPath, bundledHelper)
 
         check
             "incompatibleHelperIsUnavailable"
-            (not (installed.Read().Available) && installed.HelperDiagnostic().IsSome)
+            (not (installed.Read().Available)
+             && installed.HelperDiagnostic().IsSome
+             && (helperFindings () |> List.length) = 1)
 
         let loot = store.LootForFixture(helper, validator)
         let headers = store.Plugins.Scan(profile, CancellationToken.None) |> wait |> result

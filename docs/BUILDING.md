@@ -11,7 +11,7 @@ Run `python3 tools/bootstrap-flutter.py` to install the pinned Flutter SDK. Reus
 an existing installation. Put `.tools/flutter/bin` on the current shell's PATH.
 Use its bundled Dart SDK. Python 3.12 or later is required.
 
-Linux needs Clang, pkg-config, CMake, Ninja, GTK 3 development libraries, zlib,
+Linux needs Clang, pkg-config, CMake, Ninja, GTK 3 development libraries, Fontconfig, zlib,
 the OpenSSL runtime, and the pinned Rust 1.89 toolchain. Windows needs standalone Microsoft C++ Build Tools,
 the Windows SDK, and Flutter's CMake tools. The Visual Studio IDE is not required.
 Flutter plugin builds require symbolic-link creation privileges on Windows.
@@ -305,6 +305,13 @@ substitute a `file://` URL for that same archive. Build with `makepkg` as a
 non-root user, then install the resulting package in an isolated Arch system.
 This repository has not selected a product licence. Do not submit the recipe
 to the public AUR or publish the package before MC-067 is complete.
+
+## Nix local package
+
+On x86-64 Linux, `nix build .#modconductor` builds the Flutter application,
+engine, and pinned LOOT helper as one local package. `nix run .#modconductor`
+runs that package. Neither command needs a separate helper build. Do not
+publish the result before the MC-067 licence decision.
 
 ## UI checks
 

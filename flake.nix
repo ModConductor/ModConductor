@@ -21,6 +21,7 @@
           ninja
           pkg-config
           gtk3
+          fontconfig
           libepoxy
           libsecret
           libx11
@@ -36,6 +37,9 @@
         DOTNET_CLI_TELEMETRY_OPTOUT = "1";
         FLUTTER_SUPPRESS_ANALYTICS = "1";
         DART_SUPPRESS_ANALYTICS = "1";
+        shellHook = ''
+          export LD_LIBRARY_PATH="${pkgs.fontconfig.lib}/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+        '';
       };
 
       packages.${system} = import ./nix/package.nix {
