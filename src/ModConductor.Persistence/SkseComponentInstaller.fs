@@ -43,7 +43,6 @@ type internal SkseComponentInstaller
                     skseLoaders.ReusableVersion(
                         workspace,
                         profile,
-                        artifact.Id,
                         artifact.Sha256.Value,
                         release
                     )
@@ -51,7 +50,21 @@ type internal SkseComponentInstaller
                 let! imported =
                     task {
                         match reusable with
-                        | Some(modId, versionId) -> return Ok(modId, versionId, None)
+                        | Some(modId, versionId) ->
+                            if
+                                artifact.Links
+                                |> List.exists (fun link ->
+                                    link.ModId = modId && link.VersionId = versionId)
+                            then
+                                return Ok(modId, versionId, None)
+                            else
+                                let! linked =
+                                    (artifacts :> ModConductor.ArtifactLibrary.IArtifactLibrary)
+                                        .Link(reference, modId, versionId, false)
+
+                                match linked with
+                                | Error _ -> return Error "The SKSE archive could not be linked to its installed version."
+                                | Ok _ -> return Ok(modId, versionId, None)
                         | None ->
                             let! prepared = installations.Prepare(reference, token)
 

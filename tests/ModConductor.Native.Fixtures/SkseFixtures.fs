@@ -779,12 +779,15 @@ module SkseFixtures =
         |> result
         |> ignore
 
+        let sameArchive =
+            downloaded store workspace "skse-update-again.zip" (File.ReadAllBytes updateArtifact.Path)
+
         let otherGeneration =
             store.InstallSkse(
                 workspace,
                 otherProfile,
                 updateRelease,
-                updateArtifact,
+                sameArchive,
                 DateTimeOffset.UtcNow,
                 CancellationToken.None
             )
@@ -799,6 +802,10 @@ module SkseFixtures =
         let otherFirstInstall =
             otherInstalled.ModId = updatedStored.Value.ModId
             && otherInstalled.VersionId = updatedStored.Value.VersionId
+            && ((store.Artifacts.Read(workspace, sameArchive.Id) |> wait |> result).Links
+                |> List.exists (fun link ->
+                    link.ModId = otherInstalled.ModId
+                    && link.VersionId = otherInstalled.VersionId))
 
         let otherBefore = InventoryObservations.read store otherProfile
 

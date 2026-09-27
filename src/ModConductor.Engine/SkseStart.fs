@@ -65,6 +65,7 @@ type internal SkseStart
                             + string release.ModId
                             + "?tab=files&file_id="
                             + string release.File.Id
+                            + "&nmm=1"
                         ),
                         monitor.Token
                     )
