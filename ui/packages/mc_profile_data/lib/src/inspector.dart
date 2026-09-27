@@ -22,6 +22,9 @@ class ProfileSettingsInspector extends StatefulWidget {
     required this.onResumeProfileChange,
     required this.onNavigationGuardChanged,
     this.pluginHeadersId,
+    this.imageClient,
+    this.onImageChanged,
+    this.gameImage,
   });
   final ProfileDataController controller;
   final ProfileDataClient? client;
@@ -34,6 +37,9 @@ class ProfileSettingsInspector extends StatefulWidget {
   final ValueChanged<Future<bool> Function(FutureOr<void> Function())?>
   onNavigationGuardChanged;
   final String? pluginHeadersId;
+  final ProfileImagesClient? imageClient;
+  final VoidCallback? onImageChanged;
+  final Uri? gameImage;
   @override
   State<ProfileSettingsInspector> createState() =>
       _ProfileSettingsInspectorState();
@@ -297,6 +303,9 @@ class _ProfileSettingsInspectorState extends State<ProfileSettingsInspector> {
         activeName: name,
         filesButtonFocus: _filesButtonFocus,
         pluginHeadersId: widget.pluginHeadersId,
+        imageClient: widget.imageClient,
+        onImageChanged: widget.onImageChanged,
+        gameImage: widget.gameImage,
       );
     },
   );

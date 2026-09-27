@@ -124,6 +124,8 @@ let private run (args: string array) =
         writeJson true (fun writer -> ArtifactFixtures.observe writer path)
     | [| "--profile-data"; path |] when Path.IsPathFullyQualified path ->
         writeJson true (fun writer -> ProfileDataFixtures.observe writer path)
+    | [| "--profile-images"; path |] when Path.IsPathFullyQualified path ->
+        writeJson true (fun writer -> ProfileImageFixtures.observe writer path)
     | [| "--save-management"; path |] when Path.IsPathFullyQualified path ->
         writeJson true (fun writer -> SaveFixtures.observe writer path)
     | [| "--save-samples"; path |] when Path.IsPathFullyQualified path ->

@@ -604,3 +604,91 @@ final $typed_data.Uint8List profileEditEventDescriptor = $convert.base64Decode(
     'ChBQcm9maWxlRWRpdEV2ZW50EkIKCHByb2dyZXNzGAEgASgLMiQubW9kY29uZHVjdG9yLnYxLl'
     'Byb2ZpbGVDb3B5UHJvZ3Jlc3NIAFIIcHJvZ3Jlc3MSOwoIZmluaXNoZWQYAiABKAsyHS5tb2Rj'
     'b25kdWN0b3IudjEuUHJvZmlsZVJlcGx5SABSCGZpbmlzaGVkQgcKBWV2ZW50');
+
+@$core.Deprecated('Use readProfileImageRequestDescriptor instead')
+const ReadProfileImageRequest$json = {
+  '1': 'ReadProfileImageRequest',
+  '2': [
+    {'1': 'workspace_id', '3': 1, '4': 1, '5': 9, '10': 'workspaceId'},
+    {'1': 'profile_id', '3': 2, '4': 1, '5': 9, '10': 'profileId'},
+  ],
+};
+
+/// Descriptor for `ReadProfileImageRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List readProfileImageRequestDescriptor =
+    $convert.base64Decode(
+        'ChdSZWFkUHJvZmlsZUltYWdlUmVxdWVzdBIhCgx3b3Jrc3BhY2VfaWQYASABKAlSC3dvcmtzcG'
+        'FjZUlkEh0KCnByb2ZpbGVfaWQYAiABKAlSCXByb2ZpbGVJZA==');
+
+@$core.Deprecated('Use profileImageReplyDescriptor instead')
+const ProfileImageReply$json = {
+  '1': 'ProfileImageReply',
+  '2': [
+    {'1': 'path', '3': 1, '4': 1, '5': 9, '9': 0, '10': 'path'},
+    {'1': 'no_image', '3': 2, '4': 1, '5': 8, '9': 0, '10': 'noImage'},
+    {
+      '1': 'fault',
+      '3': 3,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.WorkspaceFault',
+      '9': 0,
+      '10': 'fault'
+    },
+  ],
+  '8': [
+    {'1': 'outcome'},
+  ],
+};
+
+/// Descriptor for `ProfileImageReply`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List profileImageReplyDescriptor = $convert.base64Decode(
+    'ChFQcm9maWxlSW1hZ2VSZXBseRIUCgRwYXRoGAEgASgJSABSBHBhdGgSGwoIbm9faW1hZ2UYAi'
+    'ABKAhIAFIHbm9JbWFnZRI3CgVmYXVsdBgDIAEoCzIfLm1vZGNvbmR1Y3Rvci52MS5Xb3Jrc3Bh'
+    'Y2VGYXVsdEgAUgVmYXVsdEIJCgdvdXRjb21l');
+
+@$core.Deprecated('Use setProfileImageRequestDescriptor instead')
+const SetProfileImageRequest$json = {
+  '1': 'SetProfileImageRequest',
+  '2': [
+    {'1': 'workspace_id', '3': 1, '4': 1, '5': 9, '10': 'workspaceId'},
+    {'1': 'profile_id', '3': 2, '4': 1, '5': 9, '10': 'profileId'},
+    {'1': 'source_path', '3': 3, '4': 1, '5': 9, '9': 0, '10': 'sourcePath'},
+    {'1': 'clear', '3': 4, '4': 1, '5': 8, '9': 0, '10': 'clear'},
+  ],
+  '8': [
+    {'1': 'change'},
+  ],
+};
+
+/// Descriptor for `SetProfileImageRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List setProfileImageRequestDescriptor = $convert.base64Decode(
+    'ChZTZXRQcm9maWxlSW1hZ2VSZXF1ZXN0EiEKDHdvcmtzcGFjZV9pZBgBIAEoCVILd29ya3NwYW'
+    'NlSWQSHQoKcHJvZmlsZV9pZBgCIAEoCVIJcHJvZmlsZUlkEiEKC3NvdXJjZV9wYXRoGAMgASgJ'
+    'SABSCnNvdXJjZVBhdGgSFgoFY2xlYXIYBCABKAhIAFIFY2xlYXJCCAoGY2hhbmdl');
+
+@$core.Deprecated('Use profileImageUpdateReplyDescriptor instead')
+const ProfileImageUpdateReply$json = {
+  '1': 'ProfileImageUpdateReply',
+  '2': [
+    {'1': 'saved', '3': 1, '4': 1, '5': 8, '9': 0, '10': 'saved'},
+    {
+      '1': 'fault',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.WorkspaceFault',
+      '9': 0,
+      '10': 'fault'
+    },
+  ],
+  '8': [
+    {'1': 'outcome'},
+  ],
+};
+
+/// Descriptor for `ProfileImageUpdateReply`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List profileImageUpdateReplyDescriptor = $convert.base64Decode(
+    'ChdQcm9maWxlSW1hZ2VVcGRhdGVSZXBseRIWCgVzYXZlZBgBIAEoCEgAUgVzYXZlZBI3CgVmYX'
+    'VsdBgCIAEoCzIfLm1vZGNvbmR1Y3Rvci52MS5Xb3Jrc3BhY2VGYXVsdEgAUgVmYXVsdEIJCgdv'
+    'dXRjb21l');

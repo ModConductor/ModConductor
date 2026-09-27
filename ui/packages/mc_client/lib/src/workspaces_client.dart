@@ -211,7 +211,17 @@ abstract interface class ProfileChangesClient {
   );
 }
 
-class GrpcWorkspacesClient implements WorkspacesClient, ProfileChangesClient {
+abstract interface class ProfileImagesClient {
+  Future<String?> readProfileImage(String workspace, String profile);
+  Future<void> setProfileImage(
+    String workspace,
+    String profile,
+    String? sourcePath,
+  );
+}
+
+class GrpcWorkspacesClient
+    implements WorkspacesClient, ProfileChangesClient, ProfileImagesClient {
   GrpcWorkspacesClient(ClientChannel channel, CallOptions options)
     : _wire = wire.WorkspaceOperationsClient(channel, options: options),
       _profileWire = wire.WorkspaceOperationsClient(
@@ -219,6 +229,47 @@ class GrpcWorkspacesClient implements WorkspacesClient, ProfileChangesClient {
         options: CallOptions(metadata: options.metadata),
       );
   final wire.WorkspaceOperationsClient _wire, _profileWire;
+
+  @override
+  Future<String?> readProfileImage(String workspace, String profile) async {
+    final result = await _wire.readProfileImage(
+      wire.ReadProfileImageRequest(workspaceId: workspace, profileId: profile),
+    );
+    return switch (result.whichOutcome()) {
+      wire.ProfileImageReply_Outcome.path => result.path,
+      wire.ProfileImageReply_Outcome.noImage => null,
+      wire.ProfileImageReply_Outcome.fault => _reject(result.fault),
+      wire.ProfileImageReply_Outcome.notSet => throw const FormatException(
+        'Missing profile image result.',
+      ),
+    };
+  }
+
+  @override
+  Future<void> setProfileImage(
+    String workspace,
+    String profile,
+    String? sourcePath,
+  ) async {
+    final request = wire.SetProfileImageRequest(
+      workspaceId: workspace,
+      profileId: profile,
+    );
+    if (sourcePath == null) {
+      request.clear_4 = true;
+    } else {
+      request.sourcePath = sourcePath;
+    }
+    final result = await _profileWire.setProfileImage(request);
+    switch (result.whichOutcome()) {
+      case wire.ProfileImageUpdateReply_Outcome.saved:
+        return;
+      case wire.ProfileImageUpdateReply_Outcome.fault:
+        _reject(result.fault);
+      case wire.ProfileImageUpdateReply_Outcome.notSet:
+        throw const FormatException('Missing profile image result.');
+    }
+  }
 
   @override
   Future<WorkspacePage> create(String id, String name, [String? path]) async =>

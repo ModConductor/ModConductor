@@ -13,6 +13,12 @@ class WorkspaceController extends ChangeNotifier {
   int _navigation = 0;
   bool _disposed = false;
   WorkspacePage? page;
+  int imageEpoch = 0;
+  void imageChanged() {
+    ++imageEpoch;
+    _notify();
+  }
+
   bool showingWorkspace = false;
   int archiveNavigation = 0;
   int gameNavigation = 0;

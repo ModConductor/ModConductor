@@ -15,6 +15,7 @@ type OperationStore
         ?fnisCheckpoint: string -> int -> unit
     ) =
     let database = new StateDatabase(directory)
+    let profileImages = ProfileImageStore(database, directory)
     let workspaceRoots = OwnedWorkspaceRootStore(database)
     let modLibrary = ModLibraryStore(database, workspaceRoots)
 
@@ -114,7 +115,8 @@ type OperationStore
             database,
             modLibrary.Access,
             deployment,
-            deploymentBackend.TryAcquireWorkspace
+            deploymentBackend.TryAcquireWorkspace,
+            profileImages
         )
 
     let workspaces =
@@ -252,6 +254,7 @@ type OperationStore
     member _.WorkspaceRoots = workspaceRoots
 
     member _.Workspaces = workspaces
+    member _.ProfileImages = profileImages :> ModConductor.Workspaces.IProfileImages
 
     member _.Migrations = migrations :> ModConductor.Migration.IStore
 

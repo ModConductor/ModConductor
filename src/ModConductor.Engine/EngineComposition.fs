@@ -107,6 +107,9 @@ let internal registerWorkspaceServices
     services.AddSingleton<ModConductor.Workspaces.IWorkspaceState>(store.Workspaces)
     |> ignore
 
+    services.AddSingleton<ModConductor.Workspaces.IProfileImages>(store.ProfileImages)
+    |> ignore
+
     services.AddSingleton<ModConductor.ModLibrary.IModLibrary>(store.ModLibrary)
     |> ignore
 

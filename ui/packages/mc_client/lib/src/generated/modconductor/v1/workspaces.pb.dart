@@ -1567,6 +1567,373 @@ class ProfileEditEvent extends $pb.GeneratedMessage {
   ProfileReply ensureFinished() => $_ensure(1);
 }
 
+class ReadProfileImageRequest extends $pb.GeneratedMessage {
+  factory ReadProfileImageRequest({
+    $core.String? workspaceId,
+    $core.String? profileId,
+  }) {
+    final result = create();
+    if (workspaceId != null) result.workspaceId = workspaceId;
+    if (profileId != null) result.profileId = profileId;
+    return result;
+  }
+
+  ReadProfileImageRequest._();
+
+  factory ReadProfileImageRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ReadProfileImageRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ReadProfileImageRequest',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'workspaceId')
+    ..aOS(2, _omitFieldNames ? '' : 'profileId')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ReadProfileImageRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ReadProfileImageRequest copyWith(
+          void Function(ReadProfileImageRequest) updates) =>
+      super.copyWith((message) => updates(message as ReadProfileImageRequest))
+          as ReadProfileImageRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ReadProfileImageRequest create() => ReadProfileImageRequest._();
+  @$core.override
+  ReadProfileImageRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ReadProfileImageRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ReadProfileImageRequest>(create);
+  static ReadProfileImageRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get workspaceId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set workspaceId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasWorkspaceId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearWorkspaceId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get profileId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set profileId($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasProfileId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearProfileId() => $_clearField(2);
+}
+
+enum ProfileImageReply_Outcome { path, noImage, fault, notSet }
+
+class ProfileImageReply extends $pb.GeneratedMessage {
+  factory ProfileImageReply({
+    $core.String? path,
+    $core.bool? noImage,
+    WorkspaceFault? fault,
+  }) {
+    final result = create();
+    if (path != null) result.path = path;
+    if (noImage != null) result.noImage = noImage;
+    if (fault != null) result.fault = fault;
+    return result;
+  }
+
+  ProfileImageReply._();
+
+  factory ProfileImageReply.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ProfileImageReply.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static const $core.Map<$core.int, ProfileImageReply_Outcome>
+      _ProfileImageReply_OutcomeByTag = {
+    1: ProfileImageReply_Outcome.path,
+    2: ProfileImageReply_Outcome.noImage,
+    3: ProfileImageReply_Outcome.fault,
+    0: ProfileImageReply_Outcome.notSet
+  };
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ProfileImageReply',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..oo(0, [1, 2, 3])
+    ..aOS(1, _omitFieldNames ? '' : 'path')
+    ..aOB(2, _omitFieldNames ? '' : 'noImage')
+    ..aOM<WorkspaceFault>(3, _omitFieldNames ? '' : 'fault',
+        subBuilder: WorkspaceFault.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ProfileImageReply clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ProfileImageReply copyWith(void Function(ProfileImageReply) updates) =>
+      super.copyWith((message) => updates(message as ProfileImageReply))
+          as ProfileImageReply;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ProfileImageReply create() => ProfileImageReply._();
+  @$core.override
+  ProfileImageReply createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ProfileImageReply getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ProfileImageReply>(create);
+  static ProfileImageReply? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  @$pb.TagNumber(2)
+  @$pb.TagNumber(3)
+  ProfileImageReply_Outcome whichOutcome() =>
+      _ProfileImageReply_OutcomeByTag[$_whichOneof(0)]!;
+  @$pb.TagNumber(1)
+  @$pb.TagNumber(2)
+  @$pb.TagNumber(3)
+  void clearOutcome() => $_clearField($_whichOneof(0));
+
+  @$pb.TagNumber(1)
+  $core.String get path => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set path($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasPath() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearPath() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.bool get noImage => $_getBF(1);
+  @$pb.TagNumber(2)
+  set noImage($core.bool value) => $_setBool(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasNoImage() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearNoImage() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  WorkspaceFault get fault => $_getN(2);
+  @$pb.TagNumber(3)
+  set fault(WorkspaceFault value) => $_setField(3, value);
+  @$pb.TagNumber(3)
+  $core.bool hasFault() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearFault() => $_clearField(3);
+  @$pb.TagNumber(3)
+  WorkspaceFault ensureFault() => $_ensure(2);
+}
+
+enum SetProfileImageRequest_Change { sourcePath, clear_4, notSet }
+
+class SetProfileImageRequest extends $pb.GeneratedMessage {
+  factory SetProfileImageRequest({
+    $core.String? workspaceId,
+    $core.String? profileId,
+    $core.String? sourcePath,
+    $core.bool? clear_4,
+  }) {
+    final result = create();
+    if (workspaceId != null) result.workspaceId = workspaceId;
+    if (profileId != null) result.profileId = profileId;
+    if (sourcePath != null) result.sourcePath = sourcePath;
+    if (clear_4 != null) result.clear_4 = clear_4;
+    return result;
+  }
+
+  SetProfileImageRequest._();
+
+  factory SetProfileImageRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory SetProfileImageRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static const $core.Map<$core.int, SetProfileImageRequest_Change>
+      _SetProfileImageRequest_ChangeByTag = {
+    3: SetProfileImageRequest_Change.sourcePath,
+    4: SetProfileImageRequest_Change.clear_4,
+    0: SetProfileImageRequest_Change.notSet
+  };
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'SetProfileImageRequest',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..oo(0, [3, 4])
+    ..aOS(1, _omitFieldNames ? '' : 'workspaceId')
+    ..aOS(2, _omitFieldNames ? '' : 'profileId')
+    ..aOS(3, _omitFieldNames ? '' : 'sourcePath')
+    ..aOB(4, _omitFieldNames ? '' : 'clear')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SetProfileImageRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SetProfileImageRequest copyWith(
+          void Function(SetProfileImageRequest) updates) =>
+      super.copyWith((message) => updates(message as SetProfileImageRequest))
+          as SetProfileImageRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SetProfileImageRequest create() => SetProfileImageRequest._();
+  @$core.override
+  SetProfileImageRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static SetProfileImageRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<SetProfileImageRequest>(create);
+  static SetProfileImageRequest? _defaultInstance;
+
+  @$pb.TagNumber(3)
+  @$pb.TagNumber(4)
+  SetProfileImageRequest_Change whichChange() =>
+      _SetProfileImageRequest_ChangeByTag[$_whichOneof(0)]!;
+  @$pb.TagNumber(3)
+  @$pb.TagNumber(4)
+  void clearChange() => $_clearField($_whichOneof(0));
+
+  @$pb.TagNumber(1)
+  $core.String get workspaceId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set workspaceId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasWorkspaceId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearWorkspaceId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get profileId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set profileId($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasProfileId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearProfileId() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get sourcePath => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set sourcePath($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasSourcePath() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearSourcePath() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.bool get clear_4 => $_getBF(3);
+  @$pb.TagNumber(4)
+  set clear_4($core.bool value) => $_setBool(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasClear_4() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearClear_4() => $_clearField(4);
+}
+
+enum ProfileImageUpdateReply_Outcome { saved, fault, notSet }
+
+class ProfileImageUpdateReply extends $pb.GeneratedMessage {
+  factory ProfileImageUpdateReply({
+    $core.bool? saved,
+    WorkspaceFault? fault,
+  }) {
+    final result = create();
+    if (saved != null) result.saved = saved;
+    if (fault != null) result.fault = fault;
+    return result;
+  }
+
+  ProfileImageUpdateReply._();
+
+  factory ProfileImageUpdateReply.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ProfileImageUpdateReply.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static const $core.Map<$core.int, ProfileImageUpdateReply_Outcome>
+      _ProfileImageUpdateReply_OutcomeByTag = {
+    1: ProfileImageUpdateReply_Outcome.saved,
+    2: ProfileImageUpdateReply_Outcome.fault,
+    0: ProfileImageUpdateReply_Outcome.notSet
+  };
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ProfileImageUpdateReply',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..oo(0, [1, 2])
+    ..aOB(1, _omitFieldNames ? '' : 'saved')
+    ..aOM<WorkspaceFault>(2, _omitFieldNames ? '' : 'fault',
+        subBuilder: WorkspaceFault.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ProfileImageUpdateReply clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ProfileImageUpdateReply copyWith(
+          void Function(ProfileImageUpdateReply) updates) =>
+      super.copyWith((message) => updates(message as ProfileImageUpdateReply))
+          as ProfileImageUpdateReply;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ProfileImageUpdateReply create() => ProfileImageUpdateReply._();
+  @$core.override
+  ProfileImageUpdateReply createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ProfileImageUpdateReply getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ProfileImageUpdateReply>(create);
+  static ProfileImageUpdateReply? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  @$pb.TagNumber(2)
+  ProfileImageUpdateReply_Outcome whichOutcome() =>
+      _ProfileImageUpdateReply_OutcomeByTag[$_whichOneof(0)]!;
+  @$pb.TagNumber(1)
+  @$pb.TagNumber(2)
+  void clearOutcome() => $_clearField($_whichOneof(0));
+
+  @$pb.TagNumber(1)
+  $core.bool get saved => $_getBF(0);
+  @$pb.TagNumber(1)
+  set saved($core.bool value) => $_setBool(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasSaved() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearSaved() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  WorkspaceFault get fault => $_getN(1);
+  @$pb.TagNumber(2)
+  set fault(WorkspaceFault value) => $_setField(2, value);
+  @$pb.TagNumber(2)
+  $core.bool hasFault() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearFault() => $_clearField(2);
+  @$pb.TagNumber(2)
+  WorkspaceFault ensureFault() => $_ensure(1);
+}
+
 const $core.bool _omitFieldNames =
     $core.bool.fromEnvironment('protobuf.omit_field_names');
 const $core.bool _omitMessageNames =

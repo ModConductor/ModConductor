@@ -92,6 +92,20 @@ class WorkspaceOperationsClient extends $grpc.Client {
     return $createUnaryCall(_$recentWorkspaces, request, options: options);
   }
 
+  $grpc.ResponseFuture<$0.ProfileImageReply> readProfileImage(
+    $0.ReadProfileImageRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$readProfileImage, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.ProfileImageUpdateReply> setProfileImage(
+    $0.SetProfileImageRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$setProfileImage, request, options: options);
+  }
+
   // method descriptors
 
   static final _$createWorkspace =
@@ -134,6 +148,16 @@ class WorkspaceOperationsClient extends $grpc.Client {
           '/modconductor.v1.WorkspaceOperations/RecentWorkspaces',
           ($0.RecentWorkspacesRequest value) => value.writeToBuffer(),
           $0.RecentWorkspacesReply.fromBuffer);
+  static final _$readProfileImage =
+      $grpc.ClientMethod<$0.ReadProfileImageRequest, $0.ProfileImageReply>(
+          '/modconductor.v1.WorkspaceOperations/ReadProfileImage',
+          ($0.ReadProfileImageRequest value) => value.writeToBuffer(),
+          $0.ProfileImageReply.fromBuffer);
+  static final _$setProfileImage =
+      $grpc.ClientMethod<$0.SetProfileImageRequest, $0.ProfileImageUpdateReply>(
+          '/modconductor.v1.WorkspaceOperations/SetProfileImage',
+          ($0.SetProfileImageRequest value) => value.writeToBuffer(),
+          $0.ProfileImageUpdateReply.fromBuffer);
 }
 
 @$pb.GrpcServiceName('modconductor.v1.WorkspaceOperations')
@@ -208,6 +232,24 @@ abstract class WorkspaceOperationsServiceBase extends $grpc.Service {
         ($core.List<$core.int> value) =>
             $0.RecentWorkspacesRequest.fromBuffer(value),
         ($0.RecentWorkspacesReply value) => value.writeToBuffer()));
+    $addMethod(
+        $grpc.ServiceMethod<$0.ReadProfileImageRequest, $0.ProfileImageReply>(
+            'ReadProfileImage',
+            readProfileImage_Pre,
+            false,
+            false,
+            ($core.List<$core.int> value) =>
+                $0.ReadProfileImageRequest.fromBuffer(value),
+            ($0.ProfileImageReply value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.SetProfileImageRequest,
+            $0.ProfileImageUpdateReply>(
+        'SetProfileImage',
+        setProfileImage_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.SetProfileImageRequest.fromBuffer(value),
+        ($0.ProfileImageUpdateReply value) => value.writeToBuffer()));
   }
 
   $async.Future<$0.WorkspaceReply> createWorkspace_Pre($grpc.ServiceCall $call,
@@ -276,4 +318,22 @@ abstract class WorkspaceOperationsServiceBase extends $grpc.Service {
 
   $async.Future<$0.RecentWorkspacesReply> recentWorkspaces(
       $grpc.ServiceCall call, $0.RecentWorkspacesRequest request);
+
+  $async.Future<$0.ProfileImageReply> readProfileImage_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.ReadProfileImageRequest> $request) async {
+    return readProfileImage($call, await $request);
+  }
+
+  $async.Future<$0.ProfileImageReply> readProfileImage(
+      $grpc.ServiceCall call, $0.ReadProfileImageRequest request);
+
+  $async.Future<$0.ProfileImageUpdateReply> setProfileImage_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.SetProfileImageRequest> $request) async {
+    return setProfileImage($call, await $request);
+  }
+
+  $async.Future<$0.ProfileImageUpdateReply> setProfileImage(
+      $grpc.ServiceCall call, $0.SetProfileImageRequest request);
 }

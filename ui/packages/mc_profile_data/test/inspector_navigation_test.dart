@@ -98,6 +98,9 @@ void main() {
 
       await tester.pumpWidget(host(controller, first, firstProfile));
       await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(find.text('Edit profile files'), 200);
+      await tester.drag(find.byType(ListView).first, const Offset(0, -220));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Edit profile files'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Skyrim.ini'));

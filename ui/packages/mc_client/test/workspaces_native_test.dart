@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:grpc/grpc.dart';
@@ -129,6 +130,81 @@ void main() {
         expect(reopened.profiles.single.name, copy.name);
         expect((await restarted.operations().state()).revision, 1);
       });
+
+      test(
+        'profile image RPC preserves an independent clone after restart',
+        () async {
+          final child = await start();
+          final workspace = newOperationId();
+          final first = ProfileInfo(newOperationId(), 'First');
+          final copy = ProfileInfo(newOperationId(), 'Copy');
+          final client = child.workspaces();
+          final images = client as ProfileImagesClient;
+          await client.create(workspace, 'Images', root.path);
+          final created = await client.createProfile(workspace, 0, first);
+          final original = Uint8List.fromList(
+            List<int>.generate(3 * 1024 * 1024, (index) => index % 256),
+          );
+          final selectedFile = File('${fixture.path}/selected.png');
+          await selectedFile.writeAsBytes(original);
+          await images.setProfileImage(workspace, first.id, selectedFile.path);
+          final cloned = await client.cloneProfile(
+            workspace,
+            created.workspace.revision,
+            first.id,
+            copy,
+          );
+          await images.setProfileImage(
+            workspace,
+            first.id,
+            (await File('${fixture.path}/replacement.png').writeAsBytes([4, 5]))
+                .path,
+          );
+          final copyPath = await images.readProfileImage(workspace, copy.id);
+          expect(copyPath, isNot(selectedFile.path));
+          expect(await File(copyPath!).readAsBytes(), original);
+          final movedSource = await selectedFile.rename(
+            '${fixture.path}/moved-source.png',
+          );
+          await child.close();
+
+          final restarted = await start();
+          final resumed = restarted.workspaces();
+          final resumedImages = resumed as ProfileImagesClient;
+          final restoredPath = await resumedImages.readProfileImage(
+            workspace,
+            copy.id,
+          );
+          expect(restoredPath, copyPath);
+          expect(await File(restoredPath!).readAsBytes(), original);
+          expect(await movedSource.readAsBytes(), original);
+          await resumedImages.setProfileImage(workspace, first.id, null);
+          expect(
+            await resumedImages.readProfileImage(workspace, first.id),
+            isNull,
+          );
+          final selected = await resumed.selectProfile(
+            workspace,
+            cloned.workspace.revision,
+            first.id,
+          );
+          await resumed.deleteProfile(
+            workspace,
+            selected.workspace.revision,
+            copy.id,
+          );
+          await expectLater(
+            resumedImages.readProfileImage(workspace, copy.id),
+            throwsA(
+              isA<WorkspaceException>().having(
+                (error) => error.fault,
+                'fault',
+                WorkspaceFault.notFound,
+              ),
+            ),
+          );
+        },
+      );
 
       test('workspace RPC authentication rejects missing and wrong capabilities before a file effect', () async {
         final child = await start();

@@ -6,6 +6,7 @@ import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 
 import 'controller.dart';
 import 'save_files.dart';
+import 'profile_image_settings.dart';
 
 class ProfileSettingsView extends StatelessWidget {
   const ProfileSettingsView({
@@ -23,6 +24,9 @@ class ProfileSettingsView extends StatelessWidget {
     required this.activeName,
     required this.filesButtonFocus,
     this.pluginHeadersId,
+    this.imageClient,
+    this.onImageChanged,
+    this.gameImage,
   });
 
   final ProfileDataController controller;
@@ -38,6 +42,9 @@ class ProfileSettingsView extends StatelessWidget {
   final String Function(String) activeName;
   final FocusNode filesButtonFocus;
   final String? pluginHeadersId;
+  final ProfileImagesClient? imageClient;
+  final VoidCallback? onImageChanged;
+  final Uri? gameImage;
 
   Widget item(BuildContext context, String label, String value) => Padding(
     padding: const EdgeInsets.only(bottom: 16),
@@ -71,6 +78,13 @@ class ProfileSettingsView extends StatelessWidget {
         ],
       ),
       children: [
+        ProfileImageSettings(
+          workspace: workspace.id,
+          profile: profile.id,
+          client: imageClient,
+          onChanged: onImageChanged ?? () {},
+          gameImage: gameImage,
+        ),
         Text(
           'Settings and saves',
           style: Theme.of(context).textTheme.titleSmall,

@@ -3,6 +3,7 @@ namespace ModConductor.Persistence
 open System
 open System.IO
 open System.Threading
+open System.Threading.Tasks
 open ModConductor.ProfileGameData
 open ModConductor.Workspaces
 
@@ -12,7 +13,8 @@ type internal ProfileDataMutations
         database: StateDatabase,
         access: LibraryAccess,
         recovery: ModConductor.DeploymentRecovery.Recovery,
-        enter: Guid -> IDisposable option
+        enter: Guid -> IDisposable option,
+        images: ProfileImageStore
     ) =
     let connection = database.Connection
     let repository = ProfileDataRepository(database, access) :> IProfileDataRepository
@@ -73,31 +75,48 @@ type internal ProfileDataMutations
                     match validated with
                     | Error error -> return Error error
                     | Ok(_, command) ->
-                        let request =
-                            { Workspace = workspace
-                              Expected = expected
-                              Command = command
-                              Progress = progress
-                              Token = token
-                              BeforeCommit = beforeCommit
-                              CaptureCheckpoint = captureCheckpoint }
+                        let! imageCopy =
+                            match command with
+                            | ProfileEdit.Clone(source, target) ->
+                                images.Clone(workspace, source, target.Id)
+                            | _ -> Task.FromResult(Ok())
 
-                        match command with
-                        | ProfileEdit.Create _
-                        | ProfileEdit.Rename _
-                        | ProfileEdit.Select _ ->
-                            return!
-                                database.Enqueue(fun () ->
-                                    WorkspaceProfiles.edit
-                                        connection
-                                        workspace
-                                        expected
-                                        command
-                                        beforeCommit)
-                        | ProfileEdit.Clone(source, target) ->
-                            return! ProfileCloneMutation.run services request source target
-                        | ProfileEdit.Delete target ->
-                            return! ProfileDeleteMutation.run services request target
+                        match imageCopy with
+                        | Error error -> return Error error
+                        | Ok() ->
+                            let request =
+                                { Workspace = workspace
+                                  Expected = expected
+                                  Command = command
+                                  Progress = progress
+                                  Token = token
+                                  BeforeCommit = beforeCommit
+                                  CaptureCheckpoint = captureCheckpoint }
+
+                            let! result =
+                                match command with
+                                | ProfileEdit.Create _
+                                | ProfileEdit.Rename _
+                                | ProfileEdit.Select _ ->
+                                    database.Enqueue(fun () ->
+                                        WorkspaceProfiles.edit
+                                            connection
+                                            workspace
+                                            expected
+                                            command
+                                            beforeCommit)
+                                | ProfileEdit.Clone(source, target) ->
+                                    ProfileCloneMutation.run services request source target
+                                | ProfileEdit.Delete target ->
+                                    ProfileDeleteMutation.run services request target
+
+                            match command, result with
+                            | ProfileEdit.Clone(_, target), Error _ ->
+                                images.Remove(workspace, target.Id)
+                            | ProfileEdit.Delete target, Ok _ -> images.Remove(workspace, target)
+                            | _ -> ()
+
+                            return result
                 with
                 | ProfileDataException ProfileDataError.Busy -> return Error WorkspaceError.Busy
                 | ProfileDataException error ->
@@ -160,6 +179,10 @@ type internal ProfileDataMutations
                     | _ -> invalidOp "This is not a profile mutation."
 
                 if action.Complete then
+                    match command with
+                    | ProfileEdit.Delete target -> images.Remove(workspace, target)
+                    | _ -> ()
+
                     return! completed workspace command action
                 else
                     return! mutate workspace expected command progress token ignore ignore

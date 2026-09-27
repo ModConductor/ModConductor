@@ -46,8 +46,29 @@ class ProfilesClient extends Fake implements WorkspacesClient {
 }
 
 void main() {
+  testWidgets('narrow profile cards keep actions reachable', (tester) async {
+    tester.view.physicalSize = const Size(380, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final client = ProfilesClient();
+    final controller = WorkspaceController()..attach(client);
+    addTearDown(controller.dispose);
+    await controller.open('/workspace');
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: mcTheme(Brightness.light),
+        home: Scaffold(body: WorkspaceBrowser(controller: controller)),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('use-profile-a')));
+    await tester.pumpAndSettle();
+    expect(controller.workspace!.selectedProfile!.id, 'a');
+  });
+
   testWidgets(
-    'row navigation does not change the current profile and a menu dialog returns to its selected row',
+    'card keyboard navigation and menu keep profile selection separate from activation',
     (tester) async {
       final client = ProfilesClient();
       final controller = WorkspaceController()..attach(client);
@@ -64,31 +85,63 @@ void main() {
       await tester.pump();
       await controller.moreProfiles();
       await tester.pumpAndSettle();
+      Focus.of(tester.element(find.byKey(const ValueKey('profile-card-a'))))
+          .requestFocus();
+      await tester.pump();
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
       await tester.pump();
-      final collection = tester.widget<McCollection<ProfileRowId, ProfileInfo>>(
-        find.byType(McCollection<ProfileRowId, ProfileInfo>),
+      final collection = tester.widget<McCardGrid<ProfileRowId, ProfileInfo>>(
+        find.byType(McCardGrid<ProfileRowId, ProfileInfo>),
       );
       expect(collection.model.selectedId, (profileId: 'b'));
       expect(client.selections, 0);
       expect(controller.workspace!.selectedProfile!.id, 'outside');
-      await tester.tap(find.byKey(const ValueKey('use-profile')));
+      expect(
+        tester
+            .widget<McPortraitCard>(
+              find.byKey(const ValueKey('profile-card-b')),
+            )
+            .badge,
+        'Selected',
+      );
+      await tester.tap(find.byKey(const ValueKey('use-profile-b')));
       await tester.pumpAndSettle();
       expect(client.selections, 1);
       expect(controller.workspace!.selectedProfile!.id, 'b');
+      expect(
+        tester
+            .widget<McPortraitCard>(
+              find.byKey(const ValueKey('profile-card-b')),
+            )
+            .badge,
+        'Active',
+      );
+      expect(
+        tester
+            .widget<McAction>(find.byKey(const ValueKey('use-profile-b')))
+            .onPressed,
+        isNull,
+      );
       await tester.tap(find.byKey(const ValueKey('profile-menu-b')));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Rename'));
       await tester.pumpAndSettle();
       await tester.sendKeyEvent(LogicalKeyboardKey.escape);
       await tester.pumpAndSettle();
-      expect(collection.focusNode!.hasFocus, isTrue);
       expect(collection.model.focusedId, (profileId: 'b'));
       await controller.refresh();
       await tester.pumpAndSettle();
       expect(collection.model.focusedId, (profileId: 'b'));
       expect(collection.model.selectedId, (profileId: 'b'));
       expect(controller.workspace!.selectedProfile!.id, 'b');
+      final filter = find.descendant(
+        of: find.byType(McCardGrid<ProfileRowId, ProfileInfo>),
+        matching: find.byType(TextField),
+      );
+      await tester.enterText(filter, 'B profile');
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('profile-card-a')), findsNothing);
+      expect(find.byKey(const ValueKey('profile-card-b')), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );
@@ -130,7 +183,12 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey((profileId: 'a'))));
     await tester.pump();
-    await tester.tap(find.text('Settings and saves'));
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(const ValueKey('profile-card-a')),
+        matching: find.text('Settings and saves'),
+      ),
+    );
     await tester.pumpAndSettle();
     expect(find.text('Inspecting A profile'), findsOneWidget);
     await controller.moreProfiles();
@@ -138,8 +196,8 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey((profileId: 'b'))));
     await tester.pumpAndSettle();
-    final collection = tester.widget<McCollection<ProfileRowId, ProfileInfo>>(
-      find.byType(McCollection<ProfileRowId, ProfileInfo>),
+    final collection = tester.widget<McCardGrid<ProfileRowId, ProfileInfo>>(
+      find.byType(McCardGrid<ProfileRowId, ProfileInfo>),
     );
     expect(guardCalls, 1);
     expect(collection.model.selectedId, (profileId: 'a'));
@@ -151,7 +209,6 @@ void main() {
     expect(guardCalls, 2);
     expect(collection.model.selectedId, (profileId: 'b'));
     expect(find.text('Inspecting B profile'), findsOneWidget);
-    expect(collection.focusNode!.hasFocus, isTrue);
   });
 
   testWidgets('compact profile drawer dismissal uses the editor guard', (
@@ -191,7 +248,12 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey((profileId: 'a'))));
     await tester.pump();
-    await tester.tap(find.text('Settings and saves'));
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(const ValueKey('profile-card-a')),
+        matching: find.text('Settings and saves'),
+      ),
+    );
     await tester.pumpAndSettle();
     final drawerScaffold = tester.state<ScaffoldState>(
       find.byWidgetPredicate(
@@ -212,5 +274,9 @@ void main() {
     expect(guardCalls, 2);
     expect(drawerScaffold.isEndDrawerOpen, isFalse);
     expect(find.text('Editing A profile'), findsNothing);
+    expect(
+      FocusManager.instance.primaryFocus?.context?.widget.key,
+      const ValueKey((profileId: 'a')),
+    );
   });
 }

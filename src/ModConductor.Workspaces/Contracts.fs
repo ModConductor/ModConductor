@@ -77,3 +77,7 @@ type IWorkspaceState =
 
     abstract Check: Guid * int64 -> Task<Result<WorkspacePage, WorkspaceError>>
     abstract Recent: Guid option -> Task<WorkspaceList>
+
+type IProfileImages =
+    abstract Read: Guid * Guid -> Task<Result<string option, WorkspaceError>>
+    abstract Set: Guid * Guid * string option -> Task<Result<unit, WorkspaceError>>

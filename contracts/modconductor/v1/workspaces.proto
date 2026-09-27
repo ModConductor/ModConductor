@@ -11,6 +11,8 @@ service WorkspaceOperations {
   rpc ResumeProfileEdit(ResumeProfileEditRequest) returns (stream ProfileEditEvent);
   rpc CheckWorkspace(CheckWorkspaceRequest) returns (WorkspaceReply);
   rpc RecentWorkspaces(RecentWorkspacesRequest) returns (RecentWorkspacesReply);
+  rpc ReadProfileImage(ReadProfileImageRequest) returns (ProfileImageReply);
+  rpc SetProfileImage(SetProfileImageRequest) returns (ProfileImageUpdateReply);
 }
 message ProfileInfo { string profile_id = 1; string name = 2; }
 enum WorkspaceRootIssueReason {
@@ -81,3 +83,12 @@ message RecentWorkspacesReply {
 message ProfileCopyProgress { uint32 files = 1; uint64 bytes = 2; }
 message ResumeProfileEditRequest { string workspace_id = 1; string action_id = 2; }
 message ProfileEditEvent { oneof event { ProfileCopyProgress progress = 1; ProfileReply finished = 2; } }
+
+message ReadProfileImageRequest { string workspace_id = 1; string profile_id = 2; }
+message ProfileImageReply { oneof outcome { string path = 1; bool no_image = 2; WorkspaceFault fault = 3; } }
+message SetProfileImageRequest {
+  string workspace_id = 1;
+  string profile_id = 2;
+  oneof change { string source_path = 3; bool clear = 4; }
+}
+message ProfileImageUpdateReply { oneof outcome { bool saved = 1; WorkspaceFault fault = 2; } }

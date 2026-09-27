@@ -24,7 +24,6 @@ extension _WorkspaceProfileActions on _WorkspaceBrowserState {
     final prior = _inspectedProfileId;
     void select() {
       _profiles.select((profileId: profile.id));
-      _profilesFocus.requestFocus();
       after?.call();
     }
 
@@ -45,7 +44,9 @@ extension _WorkspaceProfileActions on _WorkspaceBrowserState {
         _inspectedProfileId = null;
       });
     }
-    _profilesFocus.requestFocus();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _profilesGrid.currentState?.focusSelected();
+    });
   }
 
   void _closeProfileInspector() {

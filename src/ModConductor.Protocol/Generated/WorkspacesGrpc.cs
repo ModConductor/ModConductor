@@ -67,6 +67,14 @@ namespace ModConductor.Protocol.V1 {
     static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.RecentWorkspacesRequest> __Marshaller_modconductor_v1_RecentWorkspacesRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.RecentWorkspacesRequest.Parser));
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.RecentWorkspacesReply> __Marshaller_modconductor_v1_RecentWorkspacesReply = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.RecentWorkspacesReply.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.ReadProfileImageRequest> __Marshaller_modconductor_v1_ReadProfileImageRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.ReadProfileImageRequest.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.ProfileImageReply> __Marshaller_modconductor_v1_ProfileImageReply = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.ProfileImageReply.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.SetProfileImageRequest> __Marshaller_modconductor_v1_SetProfileImageRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.SetProfileImageRequest.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.ProfileImageUpdateReply> __Marshaller_modconductor_v1_ProfileImageUpdateReply = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.ProfileImageUpdateReply.Parser));
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Method<global::ModConductor.Protocol.V1.CreateWorkspaceRequest, global::ModConductor.Protocol.V1.WorkspaceReply> __Method_CreateWorkspace = new grpc::Method<global::ModConductor.Protocol.V1.CreateWorkspaceRequest, global::ModConductor.Protocol.V1.WorkspaceReply>(
@@ -132,6 +140,22 @@ namespace ModConductor.Protocol.V1 {
         __Marshaller_modconductor_v1_RecentWorkspacesRequest,
         __Marshaller_modconductor_v1_RecentWorkspacesReply);
 
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::ModConductor.Protocol.V1.ReadProfileImageRequest, global::ModConductor.Protocol.V1.ProfileImageReply> __Method_ReadProfileImage = new grpc::Method<global::ModConductor.Protocol.V1.ReadProfileImageRequest, global::ModConductor.Protocol.V1.ProfileImageReply>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "ReadProfileImage",
+        __Marshaller_modconductor_v1_ReadProfileImageRequest,
+        __Marshaller_modconductor_v1_ProfileImageReply);
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::ModConductor.Protocol.V1.SetProfileImageRequest, global::ModConductor.Protocol.V1.ProfileImageUpdateReply> __Method_SetProfileImage = new grpc::Method<global::ModConductor.Protocol.V1.SetProfileImageRequest, global::ModConductor.Protocol.V1.ProfileImageUpdateReply>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "SetProfileImage",
+        __Marshaller_modconductor_v1_SetProfileImageRequest,
+        __Marshaller_modconductor_v1_ProfileImageUpdateReply);
+
     /// <summary>Service descriptor</summary>
     public static global::Google.Protobuf.Reflection.ServiceDescriptor Descriptor
     {
@@ -186,6 +210,18 @@ namespace ModConductor.Protocol.V1 {
 
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V1.RecentWorkspacesReply> RecentWorkspaces(global::ModConductor.Protocol.V1.RecentWorkspacesRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V1.ProfileImageReply> ReadProfileImage(global::ModConductor.Protocol.V1.ReadProfileImageRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V1.ProfileImageUpdateReply> SetProfileImage(global::ModConductor.Protocol.V1.SetProfileImageRequest request, grpc::ServerCallContext context)
       {
         throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
       }
@@ -359,6 +395,46 @@ namespace ModConductor.Protocol.V1 {
       {
         return CallInvoker.AsyncUnaryCall(__Method_RecentWorkspaces, null, options, request);
       }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V1.ProfileImageReply ReadProfileImage(global::ModConductor.Protocol.V1.ReadProfileImageRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return ReadProfileImage(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V1.ProfileImageReply ReadProfileImage(global::ModConductor.Protocol.V1.ReadProfileImageRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_ReadProfileImage, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.ProfileImageReply> ReadProfileImageAsync(global::ModConductor.Protocol.V1.ReadProfileImageRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return ReadProfileImageAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.ProfileImageReply> ReadProfileImageAsync(global::ModConductor.Protocol.V1.ReadProfileImageRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_ReadProfileImage, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V1.ProfileImageUpdateReply SetProfileImage(global::ModConductor.Protocol.V1.SetProfileImageRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return SetProfileImage(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V1.ProfileImageUpdateReply SetProfileImage(global::ModConductor.Protocol.V1.SetProfileImageRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_SetProfileImage, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.ProfileImageUpdateReply> SetProfileImageAsync(global::ModConductor.Protocol.V1.SetProfileImageRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return SetProfileImageAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.ProfileImageUpdateReply> SetProfileImageAsync(global::ModConductor.Protocol.V1.SetProfileImageRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_SetProfileImage, null, options, request);
+      }
       /// <summary>Creates a new instance of client from given <c>ClientBaseConfiguration</c>.</summary>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       protected override WorkspaceOperationsClient NewInstance(ClientBaseConfiguration configuration)
@@ -380,7 +456,9 @@ namespace ModConductor.Protocol.V1 {
           .AddMethod(__Method_EditProfileWithProgress, serviceImpl.EditProfileWithProgress)
           .AddMethod(__Method_ResumeProfileEdit, serviceImpl.ResumeProfileEdit)
           .AddMethod(__Method_CheckWorkspace, serviceImpl.CheckWorkspace)
-          .AddMethod(__Method_RecentWorkspaces, serviceImpl.RecentWorkspaces).Build();
+          .AddMethod(__Method_RecentWorkspaces, serviceImpl.RecentWorkspaces)
+          .AddMethod(__Method_ReadProfileImage, serviceImpl.ReadProfileImage)
+          .AddMethod(__Method_SetProfileImage, serviceImpl.SetProfileImage).Build();
     }
 
     /// <summary>Register service method with a service binder with or without implementation. Useful when customizing the service binding logic.
@@ -398,6 +476,8 @@ namespace ModConductor.Protocol.V1 {
       serviceBinder.AddMethod(__Method_ResumeProfileEdit, serviceImpl == null ? null : new grpc::ServerStreamingServerMethod<global::ModConductor.Protocol.V1.ResumeProfileEditRequest, global::ModConductor.Protocol.V1.ProfileEditEvent>(serviceImpl.ResumeProfileEdit));
       serviceBinder.AddMethod(__Method_CheckWorkspace, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.CheckWorkspaceRequest, global::ModConductor.Protocol.V1.WorkspaceReply>(serviceImpl.CheckWorkspace));
       serviceBinder.AddMethod(__Method_RecentWorkspaces, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.RecentWorkspacesRequest, global::ModConductor.Protocol.V1.RecentWorkspacesReply>(serviceImpl.RecentWorkspaces));
+      serviceBinder.AddMethod(__Method_ReadProfileImage, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.ReadProfileImageRequest, global::ModConductor.Protocol.V1.ProfileImageReply>(serviceImpl.ReadProfileImage));
+      serviceBinder.AddMethod(__Method_SetProfileImage, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.SetProfileImageRequest, global::ModConductor.Protocol.V1.ProfileImageUpdateReply>(serviceImpl.SetProfileImage));
     }
 
   }

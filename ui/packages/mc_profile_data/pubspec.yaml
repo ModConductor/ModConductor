@@ -17,6 +17,7 @@ dependencies:
     path: ../mc_ui_collections
   mc_file_plans:
     path: ../mc_file_plans
+  file_selector: 1.1.0
 dev_dependencies:
   flutter_test:
     sdk: flutter

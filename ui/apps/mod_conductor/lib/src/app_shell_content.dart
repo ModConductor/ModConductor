@@ -1,9 +1,18 @@
 part of 'app.dart';
 
+final _skyrimProfileImage = Uri.parse(
+  'https://cdn.cloudflare.steamstatic.com/steam/apps/489830/header.jpg',
+);
+
 mixin _ShellContent
     on _AppStateBase, _SettingsScope, _WorkspaceScope, _ProfileCreation {
   Widget _buildWorkspaceBrowser(BuildContext context) => WorkspaceBrowser(
     controller: _workspaces,
+    imageClient: widget.workspaces is ProfileImagesClient
+        ? widget.workspaces as ProfileImagesClient
+        : null,
+    gameName: _supportsSkyrim ? 'Skyrim Special Edition' : null,
+    gameImage: _supportsSkyrim ? _skyrimProfileImage : null,
     openFolder: widget.openWorkspaceFolder,
     profileCreator: _createProfile,
     profileSetupBuilder: _profileSetupGate,
@@ -24,6 +33,11 @@ mixin _ShellContent
                 onNavigationGuardChanged: bindGuard,
                 onResumeProfileChange: _workspaces.resumeProfileChange,
                 pluginHeadersId: _plugins.order?.headers.id,
+                imageClient: widget.workspaces is ProfileImagesClient
+                    ? widget.workspaces as ProfileImagesClient
+                    : null,
+                onImageChanged: _workspaces.imageChanged,
+                gameImage: _supportsSkyrim ? _skyrimProfileImage : null,
               ),
     executableBuilder: !_supportsSkyrim || widget.executables == null
         ? null

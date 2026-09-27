@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:mc_client/mc_client.dart';
@@ -74,6 +75,9 @@ class WorkspaceBrowser extends StatefulWidget {
     this.profileInspectorBuilder,
     this.profileCreator,
     this.profileSetupBuilder,
+    this.imageClient,
+    this.gameName,
+    this.gameImage,
     this.workbenchReady = true,
     this.compactCloseAction = false,
     this.openFolder,
@@ -94,6 +98,9 @@ class WorkspaceBrowser extends StatefulWidget {
   final ProfileInspectorBuilder? profileInspectorBuilder;
   final ProfileCreator? profileCreator;
   final ProfileSetupBuilder? profileSetupBuilder;
+  final ProfileImagesClient? imageClient;
+  final String? gameName;
+  final Uri? gameImage;
   final bool workbenchReady;
 
   @override
@@ -113,16 +120,16 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
   bool _entryHelp = false;
   String? _shownId;
   _WorkspaceMode _mode = _WorkspaceMode.profiles;
-  final _profilesFocus = FocusNode(debugLabel: 'Profiles');
+  final _profilesGrid = GlobalKey<McCardGridState<ProfileRowId, ProfileInfo>>();
   final _profiles = McCollectionModel<ProfileRowId, ProfileInfo>(
     idOf: (row) => (profileId: row.id),
     labelOf: (row) => row.name,
   );
   WorkspacePage? _shownPage;
+  final Map<String, Future<String?>> _images = {};
+  int _imageEpoch = -1;
   final _profilePane = GlobalKey<ScaffoldState>();
-  bool _inspected = false,
-      _compactProfile = false,
-      _compactProfileActions = false;
+  bool _inspected = false, _compactProfile = false;
   ProfileNavigationGuard? _profileNavigationGuard;
   String? _inspectedProfileId;
   bool _openingFolder = false, _folderProblem = false;
@@ -150,10 +157,22 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
   void _navigationChanged() {
     final id = controller.workspace?.id;
     if (id != _shownId) {
+      _images.clear();
       _profiles.clear();
       _mode = _WorkspaceMode.profiles;
       _entryHelp = false;
       _inspected = false;
+    }
+    if (_imageEpoch != controller.imageEpoch) {
+      _imageEpoch = controller.imageEpoch;
+      for (final image in _images.values) {
+        unawaited(
+          image.then(
+            (path) => path == null ? false : FileImage(File(path)).evict(),
+          ),
+        );
+      }
+      _images.clear();
     }
     if (_archiveNavigation != controller.archiveNavigation) {
       _archiveNavigation = controller.archiveNavigation;
@@ -196,7 +215,6 @@ class _WorkspaceBrowserState extends State<WorkspaceBrowser> {
   void dispose() {
     controller.removeListener(_navigationChanged);
     _profiles.dispose();
-    _profilesFocus.dispose();
     _createWorkspaceFocus.dispose();
     _openWorkspaceFocus.dispose();
     _createProfileFocus.dispose();

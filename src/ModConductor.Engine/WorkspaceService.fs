@@ -168,7 +168,8 @@ type WorkspaceLocations(defaultRoot: string) =
                     "The default workspace folder could not be created."
             )
 
-type WorkspaceService(state: IWorkspaceState, locations: WorkspaceLocations) =
+type WorkspaceService(state: IWorkspaceState, locations: WorkspaceLocations, images: IProfileImages)
+    =
     inherit WorkspaceOperations.WorkspaceOperationsBase()
     let selection = new System.Threading.SemaphoreSlim(2, 2)
 
@@ -219,6 +220,45 @@ type WorkspaceService(state: IWorkspaceState, locations: WorkspaceLocations) =
 
                 let! result = state.Read(WorkspaceWire.id request.WorkspaceId, after)
                 return WorkspaceWire.pageReply result
+            })
+
+    override _.ReadProfileImage(request, _) =
+        WorkspaceWire.execute (fun () ->
+            task {
+                let! result =
+                    images.Read(
+                        WorkspaceWire.id request.WorkspaceId,
+                        WorkspaceWire.id request.ProfileId
+                    )
+
+                return
+                    match result with
+                    | Ok(Some path) -> ProfileImageReply(Path = path)
+                    | Ok None -> ProfileImageReply(NoImage = true)
+                    | Error error -> ProfileImageReply(Fault = WorkspaceWire.fault error)
+            })
+
+    override _.SetProfileImage(request, _) =
+        WorkspaceWire.execute (fun () ->
+            task {
+                let source =
+                    match request.ChangeCase with
+                    | SetProfileImageRequest.ChangeOneofCase.SourcePath ->
+                        Some request.SourcePath
+                    | SetProfileImageRequest.ChangeOneofCase.Clear -> None
+                    | _ -> WorkspaceWire.reject "Choose an image or remove the image."
+
+                let! result =
+                    images.Set(
+                        WorkspaceWire.id request.WorkspaceId,
+                        WorkspaceWire.id request.ProfileId,
+                        source
+                    )
+
+                return
+                    match result with
+                    | Ok() -> ProfileImageUpdateReply(Saved = true)
+                    | Error error -> ProfileImageUpdateReply(Fault = WorkspaceWire.fault error)
             })
 
     override _.EditProfileWithProgress(request, output, context) =

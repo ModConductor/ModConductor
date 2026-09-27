@@ -6,9 +6,6 @@ extension _WorkspaceProfileView on _WorkspaceBrowserState {
     builder: (context, _) => LayoutBuilder(
       builder: (context, constraints) {
         final selected = _profiles.selected;
-        _compactProfileActions =
-            constraints.maxHeight <
-            420 * MediaQuery.textScalerOf(context).scale(1);
         _compactProfile =
             constraints.maxWidth <
             1100 * MediaQuery.textScalerOf(context).scale(1);
@@ -60,161 +57,165 @@ extension _WorkspaceProfileView on _WorkspaceBrowserState {
     ),
   );
 
-  Widget _profileCollection(BuildContext context) => ListenableBuilder(
-    listenable: _profiles,
-    builder: (context, _) {
-      final selected = _profiles.selected;
-      final current = controller.workspace?.selectedProfile;
-      final incomplete = controller.page!.nextProfile != null;
-      return Column(
-        children: [
-          Expanded(
-            child: McCollection<ProfileRowId, ProfileInfo>(
-              model: _profiles,
-              title: 'Profiles',
-              showTitle: !_compactProfileActions,
-              filterActions: [
-                if (_compactProfileActions)
-                  McIconAction(
-                    key: const ValueKey('create-profile'),
-                    focusNode: _createProfileFocus,
-                    label: 'Create profile',
-                    icon: const Icon(Icons.add),
-                    onPressed: controller.canEdit
-                        ? () => _profileDialog(context)
-                        : null,
-                  ),
-              ],
-              focusNode: _profilesFocus,
-              filterLabel: incomplete
-                  ? 'Filter loaded profiles'
-                  : 'Filter profiles',
-              countLabel:
-                  '${_profiles.length} ${_profiles.length == 1 ? 'profile' : 'profiles'}${incomplete ? ' loaded' : ''}',
-              empty: 'No profiles.',
-              onSelect: _selectProfile,
-              onLoad: incomplete && controller.canEdit
-                  ? () => unawaited(controller.moreProfiles())
-                  : null,
-              onRefresh: controller.connected && controller.activity == null
-                  ? () => unawaited(controller.refresh())
-                  : null,
-              semanticLabel: (row) =>
-                  '${row.name}${row.id == current?.id ? ', current profile' : ''}',
-              actions: [
-                if (!_compactProfileActions)
-                  McAction(
-                    key: const ValueKey('create-profile'),
-                    focusNode: _createProfileFocus,
-                    label: 'Create profile',
-                    icon: Icons.add,
-                    emphasis: McActionEmphasis.primary,
-                    onPressed: controller.canEdit
-                        ? () => _profileDialog(context)
-                        : null,
-                  ),
-              ],
-              columns: [
-                McColumn(
-                  'Name',
-                  (row) =>
-                      McCollectionName(row.name, icon: Icons.person_outline),
-                  compare: (a, b) => a.name.compareTo(b.name),
-                ),
-                McColumn(
-                  'Status',
-                  (row) => Text(row.id == current?.id ? 'Current' : ''),
-                  width: 120,
-                ),
-                McColumn(
-                  '',
-                  (row) => McIconMenu<_ProfileAction>(
-                    key: ValueKey('profile-menu-${row.id}'),
-                    label: 'Options for ${row.name}',
-                    enabled: controller.canEdit,
-                    onSelected: (action) {
-                      _selectProfile(row, () {
-                        switch (action) {
-                          case _ProfileAction.clone:
-                            unawaited(_profileDialog(context, profile: row));
-                          case _ProfileAction.rename:
-                            unawaited(
-                              _profileDialog(
-                                context,
-                                profile: row,
-                                rename: true,
-                              ),
-                            );
-                          case _ProfileAction.delete:
-                            unawaited(_delete(context, row));
-                        }
-                      });
-                    },
-                    itemBuilder: (_) => const [
-                      PopupMenuItem(
-                        value: _ProfileAction.clone,
-                        child: Text('Clone'),
-                      ),
-                      PopupMenuItem(
-                        value: _ProfileAction.rename,
-                        child: Text('Rename'),
-                      ),
-                      PopupMenuItem(
-                        value: _ProfileAction.delete,
-                        child: Text('Delete'),
-                      ),
-                    ],
-                  ),
-                  width: 42,
-                  interactive: true,
-                ),
-              ],
+  Widget _profileCollection(BuildContext context) {
+    final current = controller.workspace?.selectedProfile;
+    final incomplete = controller.page!.nextProfile != null;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text('Profiles', style: Theme.of(context).textTheme.titleLarge),
+        const SizedBox(height: 12),
+        Expanded(
+          child: McCardGrid<ProfileRowId, ProfileInfo>(
+            key: _profilesGrid,
+            model: _profiles,
+            filterLabel: incomplete
+                ? 'Filter loaded profiles'
+                : 'Filter profiles',
+            empty: 'No profiles.',
+            cardExtent: 336,
+            compactCardExtent: 390,
+            twoColumnWidth: 900,
+            countLabel:
+                '${_profiles.length} ${_profiles.length == 1 ? 'profile' : 'profiles'}${incomplete ? ' loaded' : ''}',
+            onSelect: _selectProfile,
+            onLoad: incomplete && controller.canEdit
+                ? () => unawaited(controller.moreProfiles())
+                : null,
+            onRefresh: controller.connected && controller.activity == null
+                ? () => unawaited(controller.refresh())
+                : null,
+            filterActions: [
+              McAction(
+                key: const ValueKey('create-profile'),
+                focusNode: _createProfileFocus,
+                label: 'Create profile',
+                icon: Icons.add,
+                emphasis: McActionEmphasis.primary,
+                onPressed: controller.canEdit
+                    ? () => _profileDialog(context)
+                    : null,
+              ),
+            ],
+            card: (profile) =>
+                _profileCard(context, profile, current?.id, false),
+            cardWithFocus: (profile, focused) =>
+                _profileCard(context, profile, current?.id, focused),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _profileCard(
+    BuildContext context,
+    ProfileInfo profile,
+    String? activeId,
+    bool focused,
+  ) {
+    final selected = _profiles.selectedId == (profileId: profile.id);
+    final active = profile.id == activeId;
+    final imageClient = widget.imageClient;
+    final future = imageClient == null
+        ? null
+        : _images.putIfAbsent(
+            profile.id,
+            () => imageClient
+                .readProfileImage(controller.workspace!.id, profile.id)
+                .catchError((_) => null),
+          );
+    return FutureBuilder<String?>(
+      future: future,
+      builder: (context, snapshot) => Padding(
+        padding: const EdgeInsets.all(3),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(
+              color: focused
+                  ? Theme.of(context).colorScheme.primary
+                  : Colors.transparent,
+              width: 2,
             ),
           ),
-          const SizedBox(height: 12),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: Theme.of(context).colorScheme.outlineVariant,
-              ),
-            ),
-            child: Wrap(
-              alignment: WrapAlignment.spaceBetween,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: 16,
-              runSpacing: 12,
-              children: [
-                Text(
-                  selected?.name ?? 'No profile selected',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                if (widget.profileInspectorBuilder != null)
-                  McAction(
-                    label: 'Settings and saves',
-                    icon: Icons.tune,
-                    onPressed: selected == null ? null : _inspectProfile,
-                  ),
-                McAction(
-                  key: const ValueKey('use-profile'),
+          child: McPortraitCard(
+            key: ValueKey('profile-card-${profile.id}'),
+            name: profile.name,
+            category: widget.gameName,
+            image: widget.gameImage,
+            imagePath: snapshot.data,
+            questionFallback: true,
+            badge: active
+                ? 'Active'
+                : selected
+                ? 'Selected'
+                : null,
+            badgeEmphasis: active,
+            selected: selected,
+            actionsRow: true,
+            actions: [
+              Expanded(
+                flex: 2,
+                child: McAction(
+                  key: ValueKey('use-profile-${profile.id}'),
                   label: 'Use profile',
-                  icon: Icons.check,
                   emphasis: McActionEmphasis.primary,
-                  onPressed:
-                      controller.canEdit &&
-                          selected != null &&
-                          selected.id != current?.id
-                      ? () => unawaited(controller.select(selected))
+                  onPressed: controller.canEdit && !active
+                      ? () => unawaited(controller.select(profile))
                       : null,
                 ),
-              ],
-            ),
+              ),
+              Expanded(
+                flex: 3,
+                child: McAction(
+                  label: 'Settings and saves',
+                  icon: Icons.settings_outlined,
+                  onPressed: widget.profileInspectorBuilder == null
+                      ? null
+                      : () => _selectProfile(profile, _inspectProfile),
+                ),
+              ),
+              McIconMenu<_ProfileAction>(
+                key: ValueKey('profile-menu-${profile.id}'),
+                label: 'Options for ${profile.name}',
+                enabled: controller.canEdit,
+                onSelected: (action) {
+                  _selectProfile(profile, () {
+                    switch (action) {
+                      case _ProfileAction.clone:
+                        unawaited(_profileDialog(context, profile: profile));
+                      case _ProfileAction.rename:
+                        unawaited(
+                          _profileDialog(
+                            context,
+                            profile: profile,
+                            rename: true,
+                          ),
+                        );
+                      case _ProfileAction.delete:
+                        unawaited(_delete(context, profile));
+                    }
+                  });
+                },
+                itemBuilder: (_) => const [
+                  PopupMenuItem(
+                    value: _ProfileAction.clone,
+                    child: Text('Clone'),
+                  ),
+                  PopupMenuItem(
+                    value: _ProfileAction.rename,
+                    child: Text('Rename'),
+                  ),
+                  PopupMenuItem(
+                    value: _ProfileAction.delete,
+                    child: Text('Delete'),
+                  ),
+                ],
+              ),
+            ],
           ),
-        ],
-      );
-    },
-  );
+        ),
+      ),
+    );
+  }
 }
