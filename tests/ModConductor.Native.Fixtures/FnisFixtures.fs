@@ -319,6 +319,7 @@ module FnisFixtures =
                   Revision = 0L }
                 "FNIS Behavior SE 7_6.zip"
                 (manifest bytes)
+            |> result
 
         let valid = FnisArchiveLayout.review (archive "valid" true 0 |> draft)
         let incomplete = FnisArchiveLayout.review (archive "invalid" false 0 |> draft)
