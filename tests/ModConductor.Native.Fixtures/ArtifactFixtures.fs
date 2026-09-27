@@ -5,6 +5,7 @@ open System.IO
 open System.Text.Json
 open System.Threading
 open ModConductor.ArtifactLibrary
+open ModConductor.HttpDownloads
 open ModConductor.ModLibrary
 open ModConductor.Persistence
 open ModConductor.Platform
@@ -126,6 +127,15 @@ module ArtifactFixtures =
             check
                 "adoptionPreservesOriginalBytes"
                 (File.ReadAllBytes(path) = original && a.Path = path && b.Path <> path)
+
+            let refused =
+                store.Downloads.Control(workspace, referenced, DownloadAction.Pause) |> wait
+
+            let unchanged = store.Artifacts.Read(workspace, referenced) |> wait |> result
+
+            check
+                "downloadControlCannotMutateRegularArtifact"
+                (refused = Error ArtifactError.Conflict && unchanged.Revision = a.Revision)
 
             let replay =
                 store.Artifacts.Add(

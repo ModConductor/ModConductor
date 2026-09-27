@@ -13,7 +13,6 @@ type internal DownloadRepository(database: StateDatabase, access: LibraryAccess)
     let connection = database.Connection
     let operations = ArtifactAccess(database, access)
     let db action = database.EnqueueInternal action
-    let refuse error = raise (ArtifactException error)
     let changesGate = obj ()
     let changes = Dictionary<Guid, TaskCompletionSource>()
 
@@ -30,24 +29,26 @@ type internal DownloadRepository(database: StateDatabase, access: LibraryAccess)
             match changes.TryGetValue id with
             | true, signal -> signal.Task
             | _ ->
-                let signal = TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)
+                let signal =
+                    TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)
+
                 changes.Add(id, signal)
                 signal.Task)
 
     let find tx workspace id =
-        ArtifactRows.find connection tx workspace id
-        |> Option.defaultWith (fun () -> refuse ArtifactError.NotFound)
+        match ArtifactRows.find connection tx workspace id with
+        | Some row -> Ok row
+        | None -> Error ArtifactError.NotFound
 
     let read workspace id =
-        db (fun () -> (find null workspace id).Artifact)
+        db (fun () -> find null workspace id |> Result.map (fun row -> row.Artifact))
 
     let protect action =
         task {
             try
                 return! action ()
-            with
-            | :? ArtifactException as error -> return Error error.Error
-            | :? ModConductor.Operations.CapacityException -> return Error ArtifactError.Busy
+            with :? ModConductor.Operations.CapacityException ->
+                return Error ArtifactError.Busy
         }
 
     let admit tx =
@@ -59,7 +60,9 @@ type internal DownloadRepository(database: StateDatabase, access: LibraryAccess)
                 []
             >= 32L
         then
-            refuse ArtifactError.Busy
+            Error ArtifactError.Busy
+        else
+            Ok()
 
     let findNexus tx workspace reference =
         use query =
@@ -79,210 +82,232 @@ type internal DownloadRepository(database: StateDatabase, access: LibraryAccess)
         | :? string as value -> Some(Guid.Parse value)
         | _ -> None
 
+    let validRequest (request: DownloadRequest) =
+        request.Id <> Guid.Empty
+        && request.WorkspaceId <> Guid.Empty
+        && not (String.IsNullOrWhiteSpace request.Name)
+        && request.Name.Length <= 256
+        && not request.Sources.IsEmpty
+        && request.Sources.Length <= 8
+        && not (request.Sources |> List.exists (DownloadSource.valid >> not))
+        && (request.Sources.Length = 1
+            || request.Sources
+               |> List.forall (function
+                   | DownloadSource.Nexus _ -> false
+                   | DownloadSource.Url _ -> true))
+        && (request.ExpectedLength |> Option.forall (fun n -> n >= 0L))
+        && (request.ExpectedSha256
+            |> Option.forall (fun hash -> hash.Length = 64 && (hash |> Seq.forall Uri.IsHexDigit)))
+
+    let insertDownload tx (request: DownloadRequest) selected =
+        let collision =
+            Sqlite.number
+                connection
+                tx
+                "SELECT count(*) FROM artifacts WHERE id=$id"
+                [ "$id", box (string request.Id) ]
+
+        if collision <> 0L then
+            Error ArtifactError.Conflict
+        elif
+            Sqlite.number
+                connection
+                tx
+                "SELECT count(*) FROM workspaces WHERE id=$workspace"
+                [ "$workspace", box (string request.WorkspaceId) ]
+            <> 1L
+        then
+            Error ArtifactError.NotFound
+        else
+            admit tx
+            |> Result.map (fun () ->
+                Sqlite.execute
+                    connection
+                    tx
+                    "INSERT INTO artifacts(id,workspace_id,revision,original_name,original_path,path,storage,phase,owner,busy,length) VALUES($id,$workspace,0,$name,$source,'',1,0,$owner,0,$length)"
+                    [ "$id", box (string selected)
+                      "$workspace", box (string request.WorkspaceId)
+                      "$name", box request.Name
+                      "$source", box (DownloadSource.display request.Sources.Head)
+                      "$owner", box database.OwnerId
+                      "$length", ArtifactRows.nullable request.ExpectedLength ]
+
+                Sqlite.execute
+                    connection
+                    tx
+                    "INSERT INTO artifact_downloads(artifact_id,sources,expected_length,expected_sha,state,bytes,total,source_index,attempt,restart_required,checksum_matched) VALUES($id,$sources,$length,$sha,0,0,$length,0,0,0,0)"
+                    [ "$id", box (string request.Id)
+                      "$sources",
+                      box (request.Sources |> List.map DownloadSource.encode |> String.concat "\n")
+                      "$length", ArtifactRows.nullable request.ExpectedLength
+                      "$sha", ArtifactRows.nullable request.ExpectedSha256 ])
+
+    let selectDownload tx (request: DownloadRequest) matching selected =
+        match DownloadRows.work connection tx selected with
+        | Some _ when matching.IsSome ->
+            match request.Sources with
+            | [ DownloadSource.Nexus reference ] when reference.Keyed ->
+                Sqlite.execute
+                    connection
+                    tx
+                    "UPDATE artifact_downloads SET sources=$source WHERE artifact_id=$id"
+                    [ "$source", box (DownloadSource.encode request.Sources.Head)
+                      "$id", box (string selected) ]
+            | _ -> ()
+
+            Ok()
+        | Some existing when existing.Request = request -> Ok()
+        | Some _ -> Error ArtifactError.Conflict
+        | None -> insertDownload tx request selected
+
+    let startRow (request: DownloadRequest) =
+        db (fun () ->
+            use tx = connection.BeginTransaction(deferred = false)
+
+            let matching =
+                match request.Sources with
+                | [ DownloadSource.Nexus reference ] -> findNexus tx request.WorkspaceId reference
+                | _ -> None
+
+            let selected = defaultArg matching request.Id
+
+            selectDownload tx request matching selected
+            |> Result.map (fun () ->
+                match request.Sources with
+                | [ DownloadSource.Nexus reference ] ->
+                    Sqlite.execute
+                        connection
+                        tx
+                        "UPDATE artifact_downloads SET nexus_version=COALESCE(nexus_version,$version) WHERE artifact_id=$id"
+                        [ "$version", ArtifactRows.nullable reference.Version
+                          "$id", box (string selected) ]
+                | _ -> ()
+
+                tx.Commit()
+                selected))
+
     let start (request: DownloadRequest) =
-        protect (fun () ->
-            task {
-                if
-                    request.Id = Guid.Empty
-                    || request.WorkspaceId = Guid.Empty
-                    || String.IsNullOrWhiteSpace request.Name
-                    || request.Name.Length > 256
-                    || request.Sources.IsEmpty
-                    || request.Sources.Length > 8
-                    || (request.Sources |> List.exists (DownloadSource.valid >> not))
-                    || (request.Sources.Length > 1
-                        && request.Sources
-                           |> List.exists (function
-                               | DownloadSource.Nexus _ -> true
-                               | DownloadSource.Url _ -> false))
-                    || (request.ExpectedLength |> Option.exists (fun n -> n < 0L))
-                    || (request.ExpectedSha256
-                        |> Option.exists (fun hash ->
-                            hash.Length <> 64
-                            || (hash |> Seq.exists (fun c -> not (Uri.IsHexDigit c)))))
-                then
-                    refuse ArtifactError.Conflict
+        if not (validRequest request) then
+            Task.FromResult(Error ArtifactError.Conflict)
+        else
+            protect (fun () ->
+                task {
+                    let! selected = startRow request
 
-                let! actualId =
-                    db (fun () ->
-                        use tx = connection.BeginTransaction(deferred = false)
+                    match selected with
+                    | Error error -> return Error error
+                    | Ok actualId ->
+                        let! artifact = read request.WorkspaceId actualId
 
-                        let matching =
-                            match request.Sources with
-                            | [ DownloadSource.Nexus reference ] ->
-                                findNexus tx request.WorkspaceId reference
-                            | _ -> None
+                        if Result.isOk artifact then
+                            changed actualId
 
-                        let selected = defaultArg matching request.Id
+                        return artifact
+                })
 
-                        let parameters =
-                            [ "$id", box (string selected)
-                              "$workspace", box (string request.WorkspaceId) ]
+    let resumeRow tx id row info action =
+        if row.Busy then
+            Error ArtifactError.Busy
+        elif info.RetryAt |> Option.exists (fun at -> at > DateTimeOffset.UtcNow) then
+            Error ArtifactError.Busy
+        elif action = DownloadAction.Resume && info.RestartRequired then
+            Error ArtifactError.Conflict
+        else
+            admit tx
+            |> Result.bind (fun () ->
+                match DownloadRows.work connection tx id with
+                | None -> Error ArtifactError.Conflict
+                | Some work ->
+                    let restarting = action = DownloadAction.Restart
 
-                        match DownloadRows.work connection tx selected with
-                        | Some _ when matching.IsSome ->
-                            match request.Sources with
-                            | [ DownloadSource.Nexus reference ] when reference.Keyed ->
-                                Sqlite.execute
-                                    connection
-                                    tx
-                                    "UPDATE artifact_downloads SET sources=$source WHERE artifact_id=$id"
-                                    [ "$source", box (DownloadSource.encode request.Sources.Head)
-                                      "$id", box (string selected) ]
-                            | _ -> ()
-                        | Some existing when existing.Request = request -> ()
-                        | Some _ -> refuse ArtifactError.Conflict
-                        | None ->
-                            if
-                                Sqlite.number
-                                    connection
-                                    tx
-                                    "SELECT count(*) FROM artifacts WHERE id=$id"
-                                    [ "$id", box (string request.Id) ]
-                                <> 0L
-                            then
-                                refuse ArtifactError.Conflict
+                    let statement =
+                        if restarting then
+                            "UPDATE artifact_downloads SET state=0,bytes=0,total=expected_length,etag=NULL,effective_url=NULL,source_index=$source,attempt=0,retry_at=NULL,restart_required=0,checksum_matched=0 WHERE artifact_id=$id"
+                        else
+                            "UPDATE artifact_downloads SET state=0,attempt=0,retry_at=NULL WHERE artifact_id=$id"
 
-                            if
-                                Sqlite.number
-                                    connection
-                                    tx
-                                    "SELECT count(*) FROM workspaces WHERE id=$workspace"
-                                    [ "$workspace", box (string request.WorkspaceId) ]
-                                <> 1L
-                            then
-                                refuse ArtifactError.NotFound
+                    let parameters = [ "$id", box (string id) ]
 
-                            admit tx
+                    let args =
+                        if restarting then
+                            parameters
+                            @ [ "$source",
+                                box ((work.SourceIndex + 1) % work.Request.Sources.Length) ]
+                        else
+                            parameters
 
-                            Sqlite.execute
-                                connection
-                                tx
-                                "INSERT INTO artifacts(id,workspace_id,revision,original_name,original_path,path,storage,phase,owner,busy,length) VALUES($id,$workspace,0,$name,$source,'',1,0,$owner,0,$length)"
-                                (parameters
-                                 @ [ "$name", box request.Name
-                                     "$source", box (DownloadSource.display request.Sources.Head)
-                                     "$owner", box database.OwnerId
-                                     "$length", ArtifactRows.nullable request.ExpectedLength ])
+                    Sqlite.execute connection tx statement args
 
-                            Sqlite.execute
-                                connection
-                                tx
-                                "INSERT INTO artifact_downloads(artifact_id,sources,expected_length,expected_sha,state,bytes,total,source_index,attempt,restart_required,checksum_matched) VALUES($id,$sources,$length,$sha,0,0,$length,0,0,0,0)"
-                                [ "$id", box (string request.Id)
-                                  "$sources",
-                                  box (
-                                      request.Sources
-                                      |> List.map DownloadSource.encode
-                                      |> String.concat "\n"
-                                  )
-                                  "$length", ArtifactRows.nullable request.ExpectedLength
-                                  "$sha", ArtifactRows.nullable request.ExpectedSha256 ]
+                    Sqlite.execute
+                        connection
+                        tx
+                        "UPDATE artifacts SET owner=$owner,problem=NULL,sha256=NULL WHERE id=$id"
+                        (parameters @ [ "$owner", box database.OwnerId ])
 
-                        match request.Sources with
-                        | [ DownloadSource.Nexus reference ] ->
-                            Sqlite.execute
-                                connection
-                                tx
-                                "UPDATE artifact_downloads SET nexus_version=COALESCE(nexus_version,$version) WHERE artifact_id=$id"
-                                [ "$version", ArtifactRows.nullable reference.Version
-                                  "$id", box (string selected) ]
-                        | _ -> ()
+                    Ok())
 
+    let changeControl tx id row info action =
+        match action with
+        | DownloadAction.Pause ->
+            Sqlite.execute
+                connection
+                tx
+                "UPDATE artifact_downloads SET state=3 WHERE artifact_id=$id"
+                [ "$id", box (string id) ]
+
+            Ok()
+        | DownloadAction.Resume when DownloadRows.running (Some info) -> Ok()
+        | DownloadAction.Resume
+        | DownloadAction.Restart -> resumeRow tx id row info action
+
+    let controlRow workspace id action =
+        db (fun () ->
+            use tx = connection.BeginTransaction(deferred = false)
+
+            find tx workspace id
+            |> Result.bind (fun row ->
+                match row.Artifact.Download with
+                | None -> Error ArtifactError.Conflict
+                | Some info ->
+                    if DownloadRows.running (Some info) && row.Owner <> database.OwnerId then
+                        Error ArtifactError.Busy
+                    elif row.Phase <> 0 then
                         tx.Commit()
-                        selected)
-
-                let! artifact = read request.WorkspaceId actualId
-                changed actualId
-                return Ok artifact
-            })
-
-    let control workspace id action =
-        protect (fun () ->
-            task {
-                do!
-                    db (fun () ->
-                        use tx = connection.BeginTransaction(deferred = false)
-                        let row = find tx workspace id
-
-                        let info =
-                            row.Artifact.Download
-                            |> Option.defaultWith (fun () -> refuse ArtifactError.Conflict)
-
-                        let parameters = [ "$id", box (string id) ]
-
-                        if DownloadRows.running (Some info) && row.Owner <> database.OwnerId then
-                            refuse ArtifactError.Busy
-
-                        if row.Phase = 0 then
-                            match action with
-                            | DownloadAction.Pause ->
-                                Sqlite.execute
-                                    connection
-                                    tx
-                                    "UPDATE artifact_downloads SET state=3 WHERE artifact_id=$id"
-                                    parameters
-                            | DownloadAction.Resume when DownloadRows.running (Some info) -> ()
-                            | DownloadAction.Resume
-                            | DownloadAction.Restart ->
-                                if row.Busy then
-                                    refuse ArtifactError.Busy
-
-                                if
-                                    info.RetryAt
-                                    |> Option.exists (fun at -> at > DateTimeOffset.UtcNow)
-                                then
-                                    refuse ArtifactError.Busy
-
-                                if action = DownloadAction.Resume && info.RestartRequired then
-                                    refuse ArtifactError.Conflict
-
-                                admit tx
-
-                                let statement =
-                                    if action = DownloadAction.Restart then
-                                        "UPDATE artifact_downloads SET state=0,bytes=0,total=expected_length,etag=NULL,effective_url=NULL,source_index=$source,attempt=0,retry_at=NULL,restart_required=0,checksum_matched=0 WHERE artifact_id=$id"
-                                    else
-                                        "UPDATE artifact_downloads SET state=0,attempt=0,retry_at=NULL WHERE artifact_id=$id"
-
-                                let work = (DownloadRows.work connection tx id).Value
-
-                                let args =
-                                    if action = DownloadAction.Restart then
-                                        parameters
-                                        @ [ "$source",
-                                            box (
-                                                (work.SourceIndex + 1) % work.Request.Sources.Length
-                                            ) ]
-                                    else
-                                        parameters
-
-                                Sqlite.execute connection tx statement args
-
-                                Sqlite.execute
-                                    connection
-                                    tx
-                                    "UPDATE artifacts SET owner=$owner,problem=NULL,sha256=NULL WHERE id=$id"
-                                    (parameters @ [ "$owner", box database.OwnerId ])
-
+                        Ok()
+                    else
+                        changeControl tx id row info action
+                        |> Result.map (fun () ->
                             Sqlite.execute
                                 connection
                                 tx
                                 "UPDATE artifacts SET revision=revision+1 WHERE id=$id"
-                                parameters
+                                [ "$id", box (string id) ]
 
-                        tx.Commit())
+                            tx.Commit())))
 
-                let! artifact = read workspace id
-                changed id
-                return Ok artifact
+    let control workspace id action =
+        protect (fun () ->
+            task {
+                let! changedRow = controlRow workspace id action
+
+                match changedRow with
+                | Error error -> return Error error
+                | Ok() ->
+                    let! artifact = read workspace id
+
+                    if Result.isOk artifact then
+                        changed id
+
+                    return artifact
             })
 
     interface IDownloadRepository with
         member _.FindNexus(workspace, reference) =
             db (fun () ->
                 findNexus null workspace reference
-                |> Option.map (fun id -> (find null workspace id).Artifact))
+                |> Option.bind (fun id ->
+                    ArtifactRows.find connection null workspace id
+                    |> Option.map (fun row -> row.Artifact)))
 
         member _.AccountDownloads subject =
             db (fun () ->
@@ -316,12 +341,7 @@ type internal DownloadRepository(database: StateDatabase, access: LibraryAccess)
                             None))
                 |> Seq.toList)
 
-        member _.Read(workspace, id) =
-            protect (fun () ->
-                task {
-                    let! artifact = read workspace id
-                    return Ok artifact
-                })
+        member _.Read(workspace, id) = protect (fun () -> read workspace id)
 
         member _.WaitForChange(workspace, revisions, token) =
             task {
@@ -334,17 +354,16 @@ type internal DownloadRepository(database: StateDatabase, access: LibraryAccess)
                                 revisions
                                 |> List.exists (fun (id, revision) ->
                                     ArtifactRows.find connection null workspace id
-                                    |> Option.exists (fun row -> row.Artifact.Revision <> revision))
+                                    |> Option.exists (fun row ->
+                                        row.Artifact.Revision <> revision))
                             then
                                 Task.CompletedTask
                             else
-                                revisions
-                                |> List.map (fst >> waitSignal)
-                                |> Task.WhenAny
-                                :> Task)
+                                revisions |> List.map (fst >> waitSignal) |> Task.WhenAny :> Task)
 
                     do! pending.WaitAsync(token)
-            } :> Task
+            }
+            :> Task
 
         member _.Start request = start request
         member _.Control(workspace, id, action) = control workspace id action
@@ -400,12 +419,18 @@ type internal DownloadRepository(database: StateDatabase, access: LibraryAccess)
                 | :? int64 as value -> Some(DateTimeOffset.FromUnixTimeMilliseconds value)
                 | _ -> None)
 
-        member _.Open work = DownloadTarget.Open(operations, work, changed)
+        member _.Open work =
+            DownloadTarget.Open(operations, work, changed)
 
         member _.Finish(work, outcome) : Task =
             db (fun () ->
                 use tx = connection.BeginTransaction(deferred = false)
-                let row = find tx work.Request.WorkspaceId work.Request.Id
+
+                let row =
+                    ArtifactRows.find connection tx work.Request.WorkspaceId work.Request.Id
+                    |> Option.defaultWith (fun () ->
+                        invalidOp "The active download artifact is missing.")
+
                 let info = row.Artifact.Download.Value
 
                 let outcome =

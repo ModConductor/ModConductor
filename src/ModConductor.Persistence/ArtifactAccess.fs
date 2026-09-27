@@ -1,27 +1,21 @@
 namespace ModConductor.Persistence
 
 open System
-open System.Collections.Generic
-open System.IO
 open System.Threading
 open System.Threading.Tasks
 open ModConductor.ArtifactLibrary
 open ModConductor.ModLibrary
 open ModConductor.Platform
 
-type internal ArtifactException(error: ArtifactError) =
-    inherit Exception()
-    member _.Error = error
-
 type internal ArtifactAccess(database: StateDatabase, access: LibraryAccess) =
     let connection = database.Connection
     let wait (task: Task<'a>) = task.GetAwaiter().GetResult()
     let db action = database.EnqueueInternal action |> wait
-    let refuse error = raise (ArtifactException error)
 
     let find transaction workspace id =
-        ArtifactRows.find connection transaction workspace id
-        |> Option.defaultWith (fun () -> refuse ArtifactError.NotFound)
+        match ArtifactRows.find connection transaction workspace id with
+        | Some row -> Ok row
+        | None -> Error ArtifactError.NotFound
 
     let save row =
         db (fun () -> ArtifactRows.save connection row)
@@ -48,10 +42,9 @@ type internal ArtifactAccess(database: StateDatabase, access: LibraryAccess) =
                         let! result =
                             Task.Run(fun () ->
                                 try
-                                    Ok(action ())
-                                with
-                                | :? ArtifactException as error -> Error error.Error
-                                | :? OperationCanceledException -> Error ArtifactError.Cancelled)
+                                    action ()
+                                with :? OperationCanceledException ->
+                                    Error ArtifactError.Cancelled)
 
                         return Ok result
                     })
@@ -66,50 +59,51 @@ type internal ArtifactAccess(database: StateDatabase, access: LibraryAccess) =
     let root workspace =
         access.Root workspace
         |> wait
-        |> Result.defaultWith (fun _ -> refuse ArtifactError.Unavailable)
+        |> Result.mapError (fun _ -> ArtifactError.Unavailable)
 
     let library workspace =
-        let root = root workspace
-
-        let library =
-            db (fun () -> LibraryRows.library connection null workspace)
-            |> Option.defaultWith (fun () -> refuse ArtifactError.Unavailable)
-
-        LibraryFiles.openLibrary root library
+        root workspace
+        |> Result.bind (fun root ->
+            match db (fun () -> LibraryRows.library connection null workspace) with
+            | Some row -> Ok(LibraryFiles.openLibrary root row)
+            | None -> Error ArtifactError.Unavailable)
 
     let withClaim (reference: ArtifactRef) action =
-        let row =
+        let acquired =
             db (fun () ->
                 use transaction = connection.BeginTransaction(deferred = false)
-                let row = find transaction reference.WorkspaceId reference.Id
 
-                if row.Busy then
-                    refuse ArtifactError.Busy
+                match find transaction reference.WorkspaceId reference.Id with
+                | Error error -> Error error
+                | Ok row when row.Busy -> Error ArtifactError.Busy
+                | Ok row when row.Artifact.Revision <> reference.Revision ->
+                    Error ArtifactError.Stale
+                | Ok row ->
+                    Sqlite.execute
+                        connection
+                        transaction
+                        "UPDATE artifacts SET busy=1,owner=$owner WHERE id=$id"
+                        [ "$owner", box database.OwnerId; "$id", box (string reference.Id) ]
 
-                if row.Artifact.Revision <> reference.Revision then
-                    refuse ArtifactError.Stale
+                    transaction.Commit()
 
-                Sqlite.execute
-                    connection
-                    transaction
-                    "UPDATE artifacts SET busy=1,owner=$owner WHERE id=$id"
-                    [ "$owner", box database.OwnerId; "$id", box (string reference.Id) ]
+                    Ok
+                        { row with
+                            Busy = true
+                            Owner = database.OwnerId })
 
-                transaction.Commit()
-
-                { row with
-                    Busy = true
-                    Owner = database.OwnerId })
-
-        try
-            action row
-        finally
-            db (fun () ->
-                Sqlite.execute
-                    connection
-                    null
-                    "UPDATE artifacts SET busy=0 WHERE id=$id AND owner=$owner"
-                    [ "$id", box (string reference.Id); "$owner", box database.OwnerId ])
+        match acquired with
+        | Error error -> Error error
+        | Ok row ->
+            try
+                action row
+            finally
+                db (fun () ->
+                    Sqlite.execute
+                        connection
+                        null
+                        "UPDATE artifacts SET busy=0 WHERE id=$id AND owner=$owner"
+                        [ "$id", box (string reference.Id); "$owner", box database.OwnerId ])
 
     member _.Database = database
     member _.LibraryAccess = access

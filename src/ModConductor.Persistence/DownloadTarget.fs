@@ -7,7 +7,13 @@ open ModConductor.HttpDownloads
 open ModConductor.Platform
 
 type internal DownloadTarget
-    (operations: ArtifactAccess, work: DownloadWork, directory: HeldDirectory, output: FileStream, changed: Guid -> unit) =
+    (
+        operations: ArtifactAccess,
+        work: DownloadWork,
+        directory: HeldDirectory,
+        output: FileStream,
+        changed: Guid -> unit
+    ) =
     let database = operations.Database
     let connection = database.Connection
     let id = work.Request.Id
@@ -33,6 +39,7 @@ type internal DownloadTarget
                     execute
                         "UPDATE artifacts SET length=$total,revision=revision+1 WHERE id=$id"
                         [ "$total", ArtifactRows.nullable observation.Total ]
+
                 changed id
             }
 
@@ -49,7 +56,10 @@ type internal DownloadTarget
 
         member _.Publish(length, digest) =
             task {
-                let row = operations.Read(work.Request.WorkspaceId, id)
+                let row =
+                    match operations.Read(work.Request.WorkspaceId, id) with
+                    | Ok row -> row
+                    | Error _ -> invalidOp "The active download artifact is missing."
 
                 do!
                     database.EnqueueInternal(fun () ->
@@ -68,6 +78,7 @@ type internal DownloadTarget
                             (parameter @ [ "$matched", box work.Request.ExpectedSha256.IsSome ])
 
                         transaction.Commit())
+
                 changed id
 
                 ArtifactFiles.promote directory id row.StoredIdentity
@@ -89,6 +100,7 @@ type internal DownloadTarget
                             (parameter @ [ "$matched", box work.Request.ExpectedSha256.IsSome ])
 
                         transaction.Commit())
+
                 changed id
             }
 
@@ -98,7 +110,11 @@ type internal DownloadTarget
 
     static member Open(operations: ArtifactAccess, work: DownloadWork, changed: Guid -> unit) =
         task {
-            let root = operations.Root work.Request.WorkspaceId
+            let root =
+                match operations.Root work.Request.WorkspaceId with
+                | Ok root -> root
+                | Error _ -> invalidOp "The active download workspace is unavailable."
+
             let! prepared = operations.LibraryAccess.PrepareLibrary(root, ignore)
 
             let library =
@@ -109,7 +125,10 @@ type internal DownloadTarget
             let directory = LibraryFiles.openLibrary root library
 
             try
-                let row = operations.Read(work.Request.WorkspaceId, work.Request.Id)
+                let row =
+                    match operations.Read(work.Request.WorkspaceId, work.Request.Id) with
+                    | Ok row -> row
+                    | Error _ -> invalidOp "The active download artifact is missing."
 
                 if directory.InspectEntry(ArtifactFiles.final work.Request.Id) |> Option.isSome then
                     raise (IOException "The final archive path is occupied.")
@@ -144,7 +163,8 @@ type internal DownloadTarget
                                         ) } }
 
                     return
-                        new DownloadTarget(operations, work, directory, output, changed) :> IDownloadTarget
+                        new DownloadTarget(operations, work, directory, output, changed)
+                        :> IDownloadTarget
                 with error ->
                     output.Dispose()
                     return raise error
