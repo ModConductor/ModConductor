@@ -13,7 +13,7 @@ type internal FnisRunClaim(directory: string, database: StateDatabase) =
     let stage (id: Guid) =
         Path.Combine(runs, id.ToString("N"), "output")
 
-    let input = FnisInputInspection.input database
+    let input = FnisInputInspection.read database
     let outputId = FnisRunRows.outputId
     let readRun = FnisRunRows.readRun
 
@@ -105,15 +105,15 @@ type internal FnisRunClaim(directory: string, database: StateDatabase) =
         | Some _ -> Error FnisExecutionError.IdentityConflict
         | None when busy connection transaction request.ProfileId -> Error FnisExecutionError.Busy
         | None ->
-            let current, _, _ =
-                input connection transaction request.WorkspaceId request.ProfileId
-
-            if current <> fingerprint then
-                Error FnisExecutionError.Stale
-            else
-                let run = newRun request generator fingerprint
-                insert connection transaction run
-                Ok(run, true)
+            input connection transaction request.WorkspaceId request.ProfileId
+            |> Result.mapError FnisExecutionError.Unavailable
+            |> Result.bind (fun (current, _, _) ->
+                if current <> fingerprint then
+                    Error FnisExecutionError.Stale
+                else
+                    let run = newRun request generator fingerprint
+                    insert connection transaction run
+                    Ok(run, true))
 
     member _.CleanupStage(id: Guid) =
         let directory = Path.Combine(runs, id.ToString("N"))

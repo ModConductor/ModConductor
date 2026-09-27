@@ -1309,6 +1309,64 @@ module FnisFixtures =
              && shutdownStream.States[1].OutputPhase =
                 ModConductor.Protocol.V1.FnisOutputPhase.Cancelled)
 
+    let private unavailableInputEvidence
+        writer
+        scenario
+        (store: OperationStore)
+        workspace
+        profile
+        generator
+        =
+        let wrongWorkspace = Guid.NewGuid()
+
+        let request =
+            { Id = Guid.NewGuid()
+              WorkspaceId = wrongWorkspace
+              ProfileId = profile }
+
+        let refused = store.FnisExecution.Begin(request, generator, "unused") |> wait
+
+        check
+            writer
+            "changedFnisClaimReturnsUnavailableWithoutStage"
+            (refused = Error(
+                FnisExecutionError.Unavailable "The selected profile belongs to another workspace."
+             )
+             && not (
+                 Directory.Exists(
+                     Path.Combine(scenario, "state", "fnis-runs", request.Id.ToString("N"))
+                 )
+             ))
+
+        let directory = Path.Combine(scenario, "unavailable-fnis-input")
+        Directory.CreateDirectory directory |> ignore
+        File.WriteAllText(Path.Combine(directory, "generated.hkx"), "generated")
+
+        let published =
+            store.FnisExecution.Publish(
+                { Request = request
+                  GenerationId = generator.GenerationId
+                  Generator = generator.Executable
+                  Fingerprint = "unused"
+                  Directory = directory },
+                0,
+                Array.empty,
+                Array.empty,
+                Array.empty,
+                CancellationToken.None
+            )
+            |> wait
+
+        check
+            writer
+            "changedFnisPublicationReturnsInputDetailWithoutOutput"
+            (published = Error(
+                FnisExecutionError.SourceInspectionFailed
+                    "The selected profile belongs to another workspace."
+             )
+             && ((InventoryObservations.read store profile).Entries
+                 |> List.forall (fun row -> row.Entry.Mod.Metadata.Name <> "FNIS generated output")))
+
     let private executionEvidence writer area =
         let scenario = Directory.CreateDirectory(Path.Combine(area, "execution")).FullName
         use server = new NexusServer()
@@ -1354,6 +1412,8 @@ module FnisFixtures =
             store.FnisSetups.ReadStored(workspace, profile, deployment.ActiveGeneration)
             |> wait
             |> Option.get
+
+        unavailableInputEvidence writer scenario store workspace profile installedGenerator
 
         let runnable = store.Deployments.Read profile |> wait |> result
         let projectedGenerator =

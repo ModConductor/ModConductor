@@ -1,7 +1,6 @@
 namespace ModConductor.Persistence
 
 open System
-open System.IO
 open ModConductor.DeploymentPlanning
 open ModConductor.FilePlanning
 open ModConductor.Fnis
@@ -112,7 +111,3 @@ module internal FnisInputInspection =
                 FnisFreshness.compute Skyrim.definition.TargetPolicy files,
                 activeOutput |> Option.map snd,
                 sources.Stamp.SelectionRevision)
-
-    let input (database: StateDatabase) connection transaction workspace profile =
-        read database connection transaction workspace profile
-        |> Result.defaultWith (fun detail -> raise (InvalidDataException detail))
