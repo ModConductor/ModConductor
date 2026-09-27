@@ -11,6 +11,7 @@ service Nexus {
   rpc ConnectNexus(NexusStatusRequest) returns (NexusAccountStatus);
   rpc CheckNexusAccount(NexusStatusRequest) returns (NexusAccountStatus);
   rpc SubmitNexusPersonalApiKey(NexusPersonalApiKeyRequest) returns (NexusAccountStatus);
+  rpc OpenNexusApiKeySettings(NexusStatusRequest) returns (NexusStatusRequest);
   rpc ReadNexusMod(NexusModRequest) returns (NexusModReply);
   rpc DownloadNexusFile(NexusDownloadRequest) returns (NexusDownloadReply);
   rpc OpenNexusModPage(NexusModRequest) returns (NexusStatusRequest);

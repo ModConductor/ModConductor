@@ -17,6 +17,7 @@ class CredentialAccountContent extends StatelessWidget {
     required this.accountCheckFailed,
     required this.showPersonalApiKey,
     required this.personalApiKey,
+    required this.apiKeySettingsProblem,
     required this.onCancelSignIn,
     required this.onCheckAccount,
     required this.onDisconnect,
@@ -24,6 +25,7 @@ class CredentialAccountContent extends StatelessWidget {
     required this.onSignIn,
     required this.onSubmitPersonalApiKey,
     required this.onTogglePersonalApiKey,
+    required this.onOpenApiKeySettings,
   });
 
   final CredentialPreferencesLabels labels;
@@ -32,9 +34,11 @@ class CredentialAccountContent extends StatelessWidget {
   final bool hasNexus, enabled, checkingAccount, accountChecked;
   final bool accountCheckFailed, showPersonalApiKey;
   final TextEditingController personalApiKey;
+  final String? apiKeySettingsProblem;
   final VoidCallback onCancelSignIn, onCheckAccount, onDisconnect;
   final VoidCallback onConnect, onSignIn, onSubmitPersonalApiKey;
   final VoidCallback onTogglePersonalApiKey;
+  final VoidCallback onOpenApiKeySettings;
 
   bool get reconnect =>
       status?.saved == SavedCredentials.present &&
@@ -127,26 +131,38 @@ class CredentialAccountContent extends StatelessWidget {
 
   Widget keyEntry() => ConstrainedBox(
     constraints: const BoxConstraints(maxWidth: 480),
-    child: TextField(
-      key: const ValueKey('nexus-personal-api-key'),
-      controller: personalApiKey,
-      obscureText: !showPersonalApiKey,
-      enableSuggestions: false,
-      autocorrect: false,
-      textInputAction: TextInputAction.done,
-      onSubmitted: enabled ? (_) => onSubmitPersonalApiKey() : null,
-      decoration: InputDecoration(
-        labelText: labels.personalApiKey,
-        suffixIcon: McIconAction(
-          label: showPersonalApiKey
-              ? labels.hidePersonalApiKey
-              : labels.showPersonalApiKey,
-          icon: Icon(
-            showPersonalApiKey ? Icons.visibility_off : Icons.visibility,
+    child: Row(
+      children: [
+        Expanded(
+          child: TextField(
+            key: const ValueKey('nexus-personal-api-key'),
+            controller: personalApiKey,
+            obscureText: !showPersonalApiKey,
+            enableSuggestions: false,
+            autocorrect: false,
+            textInputAction: TextInputAction.done,
+            onSubmitted: enabled ? (_) => onSubmitPersonalApiKey() : null,
+            decoration: InputDecoration(
+              labelText: labels.personalApiKey,
+              suffixIcon: McIconAction(
+                label: showPersonalApiKey
+                    ? labels.hidePersonalApiKey
+                    : labels.showPersonalApiKey,
+                icon: Icon(
+                  showPersonalApiKey ? Icons.visibility_off : Icons.visibility,
+                ),
+                onPressed: enabled ? onTogglePersonalApiKey : null,
+              ),
+            ),
           ),
-          onPressed: enabled ? onTogglePersonalApiKey : null,
         ),
-      ),
+        const SizedBox(width: McSpacing.small),
+        McIconAction(
+          label: labels.openApiKeySettings,
+          icon: const Icon(Icons.open_in_new),
+          onPressed: enabled ? onOpenApiKeySettings : null,
+        ),
+      ],
     ),
   );
 
@@ -183,6 +199,14 @@ class CredentialAccountContent extends StatelessWidget {
         if (account?.name == null && hasNexus) ...[
           const SizedBox(height: McSpacing.medium),
           keyEntry(),
+          if (apiKeySettingsProblem != null) ...[
+            const SizedBox(height: McSpacing.medium),
+            McStatus(
+              title: labels.openApiKeySettingsFailed,
+              detail: apiKeySettingsProblem,
+              tone: McStatusTone.error,
+            ),
+          ],
           const SizedBox(height: McSpacing.medium),
           McAction(
             key: const ValueKey('submit-nexus-personal-api-key'),

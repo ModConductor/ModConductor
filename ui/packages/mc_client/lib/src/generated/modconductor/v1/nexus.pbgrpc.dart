@@ -84,6 +84,14 @@ class NexusClient extends $grpc.Client {
         options: options);
   }
 
+  $grpc.ResponseFuture<$0.NexusStatusRequest> openNexusApiKeySettings(
+    $0.NexusStatusRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$openNexusApiKeySettings, request,
+        options: options);
+  }
+
   $grpc.ResponseFuture<$0.NexusModReply> readNexusMod(
     $0.NexusModRequest request, {
     $grpc.CallOptions? options,
@@ -156,6 +164,11 @@ class NexusClient extends $grpc.Client {
           '/modconductor.v1.Nexus/SubmitNexusPersonalApiKey',
           ($0.NexusPersonalApiKeyRequest value) => value.writeToBuffer(),
           $0.NexusAccountStatus.fromBuffer);
+  static final _$openNexusApiKeySettings =
+      $grpc.ClientMethod<$0.NexusStatusRequest, $0.NexusStatusRequest>(
+          '/modconductor.v1.Nexus/OpenNexusApiKeySettings',
+          ($0.NexusStatusRequest value) => value.writeToBuffer(),
+          $0.NexusStatusRequest.fromBuffer);
   static final _$readNexusMod =
       $grpc.ClientMethod<$0.NexusModRequest, $0.NexusModReply>(
           '/modconductor.v1.Nexus/ReadNexusMod',
@@ -251,6 +264,15 @@ abstract class NexusServiceBase extends $grpc.Service {
         ($core.List<$core.int> value) =>
             $0.NexusPersonalApiKeyRequest.fromBuffer(value),
         ($0.NexusAccountStatus value) => value.writeToBuffer()));
+    $addMethod(
+        $grpc.ServiceMethod<$0.NexusStatusRequest, $0.NexusStatusRequest>(
+            'OpenNexusApiKeySettings',
+            openNexusApiKeySettings_Pre,
+            false,
+            false,
+            ($core.List<$core.int> value) =>
+                $0.NexusStatusRequest.fromBuffer(value),
+            ($0.NexusStatusRequest value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$0.NexusModRequest, $0.NexusModReply>(
         'ReadNexusMod',
         readNexusMod_Pre,
@@ -355,6 +377,15 @@ abstract class NexusServiceBase extends $grpc.Service {
 
   $async.Future<$0.NexusAccountStatus> submitNexusPersonalApiKey(
       $grpc.ServiceCall call, $0.NexusPersonalApiKeyRequest request);
+
+  $async.Future<$0.NexusStatusRequest> openNexusApiKeySettings_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.NexusStatusRequest> $request) async {
+    return openNexusApiKeySettings($call, await $request);
+  }
+
+  $async.Future<$0.NexusStatusRequest> openNexusApiKeySettings(
+      $grpc.ServiceCall call, $0.NexusStatusRequest request);
 
   $async.Future<$0.NexusModReply> readNexusMod_Pre($grpc.ServiceCall $call,
       $async.Future<$0.NexusModRequest> $request) async {

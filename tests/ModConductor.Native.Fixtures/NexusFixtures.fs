@@ -971,6 +971,44 @@ module NexusFixtures =
              | Error(NexusProblem.RateLimited _) -> true
              | _ -> false)
 
+        let opened = ResizeArray<Uri>()
+        let mutable failBrowser = false
+
+        let handoff =
+            { new IOAuthHandoff with
+                member _.Listen(_, _) =
+                    failwith "Sign-in is not part of the link fixture."
+
+                member _.Open(uri, _) =
+                    opened.Add uri
+
+                    if failBrowser then
+                        Task.FromException(InvalidOperationException("Browser unavailable"))
+                    else
+                        Task.CompletedTask }
+
+        let nexus =
+            new NexusService(session, Unchecked.defaultof<_>, Unchecked.defaultof<_>, handoff)
+
+        let context = WatchCountFixtures.StreamContext(CancellationToken.None)
+        nexus.OpenNexusApiKeySettings(NexusStatusRequest(), context) |> wait |> ignore
+
+        check
+            "apiKeySettingsUsesExactBrowserDestination"
+            (opened.Count = 1
+             && opened[0].AbsoluteUri = "https://www.nexusmods.com/settings/api-keys")
+
+        failBrowser <- true
+
+        let browserFailure =
+            try
+                nexus.OpenNexusApiKeySettings(NexusStatusRequest(), context) |> wait |> ignore
+                false
+            with :? InvalidOperationException ->
+                true
+
+        check "apiKeySettingsPreservesBrowserFailure" browserFailure
+
         writer.WriteEndObject()
 
     let engine state info =

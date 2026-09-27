@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mc_client/mc_client.dart';
 import 'package:mc_credentials/mc_credentials.dart';
@@ -33,6 +34,8 @@ class _Nexus extends Fake implements NexusClient {
   Completer<NexusAccount>? pendingCheck;
   Object? checkError;
   int checks = 0;
+  int apiKeySettingsOpens = 0;
+  NexusProblem? apiKeySettingsError;
 
   @override
   Future<NexusAccount> status() async => account;
@@ -54,6 +57,12 @@ class _Nexus extends Fake implements NexusClient {
     checks++;
     if (checkError case final error?) return Future.error(error);
     return pendingCheck?.future ?? Future.value(account);
+  }
+
+  @override
+  Future<void> openApiKeySettings() async {
+    apiKeySettingsOpens++;
+    if (apiKeySettingsError case final error?) throw error;
   }
 }
 
@@ -107,6 +116,8 @@ CredentialPreferencesLabels get _labels => CredentialPreferencesLabels(
   connect: 'Connect',
   signIn: 'Sign in',
   personalApiKey: 'Enter personal API key',
+  openApiKeySettings: 'Open Nexus API key settings',
+  openApiKeySettingsFailed: 'Nexus API key settings could not open',
   showPersonalApiKey: 'Show personal API key',
   hidePersonalApiKey: 'Hide personal API key',
   submitPersonalApiKey: 'Connect with API key',
@@ -124,6 +135,50 @@ CredentialPreferencesLabels get _labels => CredentialPreferencesLabels(
 );
 
 void main() {
+  testWidgets(
+    'API key settings opens by keyboard and reports browser failure',
+    (tester) async {
+      final nexus = _Nexus();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: CredentialPreferences(
+              client: _Credentials(nexus),
+              nexus: nexus,
+              labels: _labels,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(nexus.apiKeySettingsOpens, 0);
+
+      final link = find.byWidgetPredicate(
+        (widget) =>
+            widget is McIconAction &&
+            widget.label == _labels.openApiKeySettings,
+      );
+      expect(link, findsOneWidget);
+      expect(find.bySemanticsLabel(_labels.openApiKeySettings), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('nexus-personal-api-key')));
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pump();
+      expect(nexus.apiKeySettingsOpens, 1);
+
+      nexus.apiKeySettingsError = const NexusProblem(
+        'connection',
+        'The browser could not open.',
+      );
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pump();
+      expect(nexus.apiKeySettingsOpens, 2);
+      expect(find.text(_labels.openApiKeySettingsFailed), findsOneWidget);
+      expect(find.text('The browser could not open.'), findsOneWidget);
+    },
+  );
+
   testWidgets(
     'account watch reconnects to current status after stream failure',
     (tester) async {

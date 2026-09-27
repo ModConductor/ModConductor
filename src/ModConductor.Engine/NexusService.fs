@@ -107,6 +107,17 @@ type NexusService
             return NexusWire.status value
         }
 
+    override _.OpenNexusApiKeySettings(_, context) =
+        task {
+            do!
+                handoff.Open(
+                    Uri("https://www.nexusmods.com/settings/api-keys"),
+                    context.CancellationToken
+                )
+
+            return NexusStatusRequest()
+        }
+
     override _.ReadNexusMod(request, _) =
         task {
             let! mapped =

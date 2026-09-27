@@ -33,6 +33,8 @@ class CredentialPreferencesLabels {
     required this.connect,
     required this.signIn,
     required this.personalApiKey,
+    required this.openApiKeySettings,
+    required this.openApiKeySettingsFailed,
     required this.showPersonalApiKey,
     required this.hidePersonalApiKey,
     required this.submitPersonalApiKey,
@@ -80,6 +82,8 @@ class CredentialPreferencesLabels {
   final String connect;
   final String signIn;
   final String personalApiKey;
+  final String openApiKeySettings;
+  final String openApiKeySettingsFailed;
   final String showPersonalApiKey;
   final String hidePersonalApiKey;
   final String submitPersonalApiKey;

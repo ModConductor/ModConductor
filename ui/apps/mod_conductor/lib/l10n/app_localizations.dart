@@ -670,6 +670,18 @@ abstract class AppLocalizations {
   /// **'Enter personal API key'**
   String get credentialPersonalApiKey;
 
+  /// No description provided for @credentialOpenApiKeySettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Nexus API key settings'**
+  String get credentialOpenApiKeySettings;
+
+  /// No description provided for @credentialOpenApiKeySettingsFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Nexus API key settings could not open'**
+  String get credentialOpenApiKeySettingsFailed;
+
   /// No description provided for @credentialShowPersonalApiKey.
   ///
   /// In en, this message translates to:

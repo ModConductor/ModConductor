@@ -331,6 +331,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get credentialPersonalApiKey => 'Enter personal API key';
 
   @override
+  String get credentialOpenApiKeySettings => 'Open Nexus API key settings';
+
+  @override
+  String get credentialOpenApiKeySettingsFailed =>
+      'Nexus API key settings could not open';
+
+  @override
   String get credentialShowPersonalApiKey => 'Show personal API key';
 
   @override

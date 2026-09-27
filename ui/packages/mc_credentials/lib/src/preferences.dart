@@ -38,6 +38,7 @@ class _CredentialPreferencesState extends State<CredentialPreferences> {
       _accountChecked = false,
       _accountCheckFailed = false;
   bool _showPersonalApiKey = false;
+  String? _apiKeySettingsProblem;
   final _personalApiKey = TextEditingController();
   int _generation = 0;
   @override
@@ -58,6 +59,7 @@ class _CredentialPreferencesState extends State<CredentialPreferences> {
       _checkingAccount = false;
       _accountChecked = false;
       _accountCheckFailed = false;
+      _apiKeySettingsProblem = null;
       _accountEventPending = false;
       _refresh();
       _accountWatch.observe(widget.nexus);
@@ -181,6 +183,19 @@ class _CredentialPreferencesState extends State<CredentialPreferences> {
     await _nexus(() => nexus.submitPersonalApiKey(_personalApiKey.text));
   }
 
+  Future<void> _openApiKeySettings() async {
+    final nexus = widget.nexus;
+    if (nexus == null) return;
+    try {
+      await nexus.openApiKeySettings();
+      if (mounted && nexus == widget.nexus)
+        setState(() => _apiKeySettingsProblem = null);
+    } on NexusProblem catch (error) {
+      if (mounted && nexus == widget.nexus)
+        setState(() => _apiKeySettingsProblem = error.message);
+    }
+  }
+
   Future<bool> _confirm({
     required String title,
     required String action,
@@ -272,6 +287,7 @@ class _CredentialPreferencesState extends State<CredentialPreferences> {
           accountCheckFailed: _accountCheckFailed,
           showPersonalApiKey: _showPersonalApiKey,
           personalApiKey: _personalApiKey,
+          apiKeySettingsProblem: _apiKeySettingsProblem,
           onCancelSignIn: () => _nexus(widget.nexus!.cancel),
           onCheckAccount: _checkAccount,
           onDisconnect: _disconnect,
@@ -280,6 +296,7 @@ class _CredentialPreferencesState extends State<CredentialPreferences> {
           onSubmitPersonalApiKey: _submitPersonalApiKey,
           onTogglePersonalApiKey: () =>
               setState(() => _showPersonalApiKey = !_showPersonalApiKey),
+          onOpenApiKeySettings: () => unawaited(_openApiKeySettings()),
         ),
         _gap,
         CredentialStorageContent(

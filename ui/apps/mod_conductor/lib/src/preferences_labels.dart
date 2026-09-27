@@ -41,6 +41,8 @@ CredentialPreferencesLabels _credentialLabels(AppLocalizations labels) =>
       connect: labels.credentialConnect,
       signIn: labels.credentialSignIn,
       personalApiKey: labels.credentialPersonalApiKey,
+      openApiKeySettings: labels.credentialOpenApiKeySettings,
+      openApiKeySettingsFailed: labels.credentialOpenApiKeySettingsFailed,
       showPersonalApiKey: labels.credentialShowPersonalApiKey,
       hidePersonalApiKey: labels.credentialHidePersonalApiKey,
       submitPersonalApiKey: labels.credentialSubmitPersonalApiKey,

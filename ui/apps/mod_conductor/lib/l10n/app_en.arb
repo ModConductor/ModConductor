@@ -139,6 +139,8 @@
   "credentialConnect": "Connect",
   "credentialSignIn": "Sign in",
   "credentialPersonalApiKey": "Enter personal API key",
+  "credentialOpenApiKeySettings": "Open Nexus API key settings",
+  "credentialOpenApiKeySettingsFailed": "Nexus API key settings could not open",
   "credentialShowPersonalApiKey": "Show personal API key",
   "credentialHidePersonalApiKey": "Hide personal API key",
   "credentialSubmitPersonalApiKey": "Connect with API key",
