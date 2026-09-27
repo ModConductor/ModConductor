@@ -288,7 +288,7 @@ type DeploymentBackend internal (repository: IDeploymentRepository) =
                                 let! contextResult =
                                     repository.Context(expected.WorkspaceId, expected.ProfileId)
 
-                                let checked =
+                                let contextCheck =
                                     contextResult
                                     |> Result.mapError DeploymentReports.error
                                     |> Result.bind (fun context ->
@@ -297,7 +297,7 @@ type DeploymentBackend internal (repository: IDeploymentRepository) =
                                         else
                                             checkedContext context)
 
-                                match checked with
+                                match contextCheck with
                                 | Error error -> return Error error
                                 | Ok _ ->
                                     token.ThrowIfCancellationRequested()
@@ -333,12 +333,12 @@ type DeploymentBackend internal (repository: IDeploymentRepository) =
                                                 saved.Context.Id
                                             )
 
-                                        let checked =
+                                        let contextCheck =
                                             contextResult
                                             |> Result.mapError DeploymentReports.error
                                             |> Result.bind checkedContext
 
-                                        match checked with
+                                        match contextCheck with
                                         | Error error -> return Error error
                                         | Ok evidence when
                                             DeploymentContextId.fingerprint evidence

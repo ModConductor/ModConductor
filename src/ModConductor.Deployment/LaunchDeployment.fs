@@ -61,7 +61,7 @@ module internal LaunchDeployment =
                                 let! contextResult =
                                     repository.Context(expected.WorkspaceId, expected.ProfileId)
 
-                                let checked =
+                                let contextCheck =
                                     contextResult
                                     |> Result.mapError DeploymentReports.error
                                     |> Result.bind (fun context ->
@@ -73,7 +73,7 @@ module internal LaunchDeployment =
                                             GameProcesses.validate context
                                             |> Result.mapError DeploymentError.Unavailable)
 
-                                match checked with
+                                match contextCheck with
                                 | Error error -> return Error error
                                 | Ok _ ->
                                     let! started = repository.Start(prepared, token)
