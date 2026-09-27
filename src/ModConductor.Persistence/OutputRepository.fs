@@ -12,7 +12,7 @@ type internal OutputRepository
             try
                 return! database.Enqueue action
             with :? ModConductor.Operations.CapacityException ->
-                return OutputRows.fail OutputError.Busy
+                return Error OutputError.Busy
         }
 
     interface IOutputRepository with
@@ -20,21 +20,24 @@ type internal OutputRepository
             task {
                 let! root = OutputLocationCommands.root access workspace
 
-                return!
-                    db (fun () ->
-                        use transaction = database.Connection.BeginTransaction(deferred = true)
+                match root with
+                | Error error -> return Error error
+                | Ok root ->
+                    return!
+                        db (fun () ->
+                            use transaction = database.Connection.BeginTransaction(deferred = true)
 
-                        let result =
-                            OutputRows.scope
-                                database.Connection
-                                transaction
-                                database.OwnerId
-                                root
-                                profile
-                                context
+                            let result =
+                                OutputRows.scope
+                                    database.Connection
+                                    transaction
+                                    database.OwnerId
+                                    root
+                                    profile
+                                    context
 
-                        transaction.Commit()
-                        result)
+                            transaction.Commit()
+                            result)
             }
 
         member _.Add(id, scope, name, purpose) =
@@ -50,14 +53,14 @@ type internal OutputRepository
                         [ "$id", box (string id) ]
 
                 match query.ExecuteScalar() with
-                | :? string as value -> Guid.Parse value
-                | _ -> OutputRows.fail OutputError.NotFound)
+                | :? string as value -> Ok(Guid.Parse value)
+                | _ -> Error OutputError.NotFound)
 
         member _.StopUsing(id, revision) =
             OutputLocationCommands.stop database access id revision
 
         member _.Current scope =
-            db (fun () -> OutputRows.current database.Connection null scope)
+            db (fun () -> Ok(OutputRows.current database.Connection null scope))
 
         member _.Previous scope =
             db (fun () ->
@@ -79,9 +82,9 @@ type internal OutputRepository
                               (reader.GetString 2, reader.GetBoolean 3) ]
 
                 if rows.Length > OutputLimits.entries then
-                    OutputRows.fail OutputError.LimitExceeded
-
-                Map.ofList rows)
+                    Error OutputError.LimitExceeded
+                else
+                    Ok(Map.ofList rows))
 
         member _.Observed(scope, files) =
             database.EnqueueInternal(fun () ->
@@ -111,21 +114,27 @@ type internal OutputRepository
                     |> Option.exists (fun generation ->
                         match generation.Provenance with
                         | Some provenance -> provenance.Profile.IsSome
-                        | None -> true)))
+                        | None -> true))
+                |> Ok)
 
         member _.CheckAction record =
             task {
                 let! evidence = OutputLocationCommands.checkContext database record.Scope
 
-                if
-                    record.Action = OutputAction.Discard
-                    && (record.Files
-                        |> List.exists (fun file ->
-                            match file.Backing.Location.Purpose with
-                            | OutputPurpose.WritableFile _ -> true
-                            | OutputPurpose.ToolFolder -> false))
-                then
-                    ModConductor.Deployment.GameProcesses.check evidence
+                match evidence with
+                | Error error -> return Error error
+                | Ok evidence ->
+                    if
+                        record.Action = OutputAction.Discard
+                        && (record.Files
+                            |> List.exists (fun file ->
+                                match file.Backing.Location.Purpose with
+                                | OutputPurpose.WritableFile _ -> true
+                                | OutputPurpose.ToolFolder -> false))
+                    then
+                        ModConductor.Deployment.GameProcesses.check evidence
+
+                    return Ok()
             }
 
         member _.Preview record =
@@ -133,95 +142,94 @@ type internal OutputRepository
                 use transaction = database.Connection.BeginTransaction(deferred = true)
 
                 if not (OutputRows.current database.Connection transaction record.Scope) then
-                    OutputRows.fail OutputError.Stale
-
-                let value = OutputActionRows.preview database.Connection transaction record
-                transaction.Commit()
-                value)
+                    Error OutputError.Stale
+                else
+                    let value = OutputActionRows.preview database.Connection transaction record
+                    transaction.Commit()
+                    value)
 
         member _.Claim record =
             db (fun () -> OutputActionRows.claim database record)
 
         member _.FindAction id =
-            db (fun () -> OutputActionRows.find database.Connection null id)
+            db (fun () -> Ok(OutputActionRows.find database.Connection null id))
 
         member _.Resume id =
             db (fun () -> OutputActionRows.resume database id)
 
         member _.Publish(record, token) =
             task {
-                let version =
-                    record.Result.VersionId
-                    |> Option.defaultWith (fun () ->
-                        OutputRows.fail (OutputError.Invalid "This action has no publication."))
+                match record.Result.VersionId with
+                | None -> return Error(OutputError.Invalid "This action has no publication.")
+                | Some version ->
+                    let! selected =
+                        db (fun () ->
+                            match PublicationRows.find database.Connection null version with
+                            | Some receipt when receipt.Phase = PublicationPhase.Complete ->
+                                if
+                                    LibraryRows.origin database.Connection null version
+                                    <> VersionOrigin.Outputs record.Id
+                                then
+                                    Error(
+                                        OutputError.Invalid
+                                            "The saved version belongs to another action."
+                                    )
+                                else
+                                    Ok None
+                            | _ -> OutputActionRows.composition database.Connection null record)
 
-                let! input =
-                    db (fun () ->
-                        match PublicationRows.find database.Connection null version with
-                        | Some receipt when receipt.Phase = PublicationPhase.Complete ->
-                            if
-                                LibraryRows.origin database.Connection null version
-                                <> VersionOrigin.Outputs record.Id
-                            then
-                                OutputRows.fail (
+                    match selected with
+                    | Error error -> return Error error
+                    | Ok None -> return Ok version
+                    | Ok(Some(modId, expected, input)) ->
+                        use cancelled =
+                            token.Register(fun () ->
+                                database
+                                    .EnqueueInternal(fun () ->
+                                        PublicationRows.cancel database.Connection version
+                                        |> ignore)
+                                    .GetAwaiter()
+                                    .GetResult())
+
+                        token.ThrowIfCancellationRequested()
+
+                        let! result =
+                            access.Run(fun () ->
+                                publication.Compose(
+                                    modId,
+                                    expected,
+                                    version,
+                                    input,
+                                    token,
+                                    ignore,
+                                    ignore,
+                                    ignore
+                                ))
+
+                        match result with
+                        | Ok _ -> return Ok version
+                        | Error LibraryError.StaleRevision
+                        | Error LibraryError.SourceChanged -> return Error OutputError.Stale
+                        | Error LibraryError.Busy -> return Error OutputError.Busy
+                        | Error LibraryError.Cancelled -> return Error OutputError.Cancelled
+                        | Error LibraryError.NotFound -> return Error OutputError.NotFound
+                        | Error LibraryError.LimitExceeded -> return Error OutputError.LimitExceeded
+                        | Error LibraryError.InvalidMetadata
+                        | Error LibraryError.InvalidSource
+                        | Error LibraryError.IdentityConflict
+                        | Error LibraryError.UnsupportedAction ->
+                            return
+                                Error(
                                     OutputError.Invalid
-                                        "The saved version belongs to another action."
+                                        "The output publication is not valid for this mod."
                                 )
-
-                            None
-                        | _ -> OutputActionRows.composition database.Connection null record)
-
-                match input with
-                | None -> return version
-                | Some(modId, expected, input) ->
-                    use cancelled =
-                        token.Register(fun () ->
-                            database
-                                .EnqueueInternal(fun () ->
-                                    PublicationRows.cancel database.Connection version |> ignore)
-                                .GetAwaiter()
-                                .GetResult())
-
-                    token.ThrowIfCancellationRequested()
-
-                    let! result =
-                        access.Run(fun () ->
-                            publication.Compose(
-                                modId,
-                                expected,
-                                version,
-                                input,
-                                token,
-                                ignore,
-                                ignore,
-                                ignore
-                            ))
-
-                    match result with
-                    | Ok _ -> return version
-                    | Error LibraryError.StaleRevision
-                    | Error LibraryError.SourceChanged -> return OutputRows.fail OutputError.Stale
-                    | Error LibraryError.Busy -> return OutputRows.fail OutputError.Busy
-                    | Error LibraryError.Cancelled -> return raise (OperationCanceledException())
-                    | Error LibraryError.NotFound -> return OutputRows.fail OutputError.NotFound
-                    | Error LibraryError.LimitExceeded ->
-                        return OutputRows.fail OutputError.LimitExceeded
-                    | Error LibraryError.InvalidMetadata
-                    | Error LibraryError.InvalidSource
-                    | Error LibraryError.IdentityConflict
-                    | Error LibraryError.UnsupportedAction ->
-                        return
-                            OutputRows.fail (
-                                OutputError.Invalid
-                                    "The output publication is not valid for this mod."
-                            )
-                    | Error LibraryError.UnprovedOwnership
-                    | Error LibraryError.FileUnavailable ->
-                        return
-                            OutputRows.fail (
-                                OutputError.Unavailable
-                                    "The output version could not be saved. Its files remain available for review."
-                            )
+                        | Error LibraryError.UnprovedOwnership
+                        | Error LibraryError.FileUnavailable ->
+                            return
+                                Error(
+                                    OutputError.Unavailable
+                                        "The output version could not be saved. Its files remain available for review."
+                                )
             }
 
         member _.SaveEntry(id, file, disposition) =

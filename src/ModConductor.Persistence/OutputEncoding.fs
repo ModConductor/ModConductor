@@ -227,9 +227,9 @@ module internal OutputEncoding =
         w.Flush()
 
         if stream.Length > int64 (16 * 1024 * 1024) then
-            OutputRows.fail OutputError.LimitExceeded
-
-        stream.ToArray()
+            Error OutputError.LimitExceeded
+        else
+            Ok(stream.ToArray())
 
     let decode (bytes: byte array) =
         if bytes.Length > 16 * 1024 * 1024 then

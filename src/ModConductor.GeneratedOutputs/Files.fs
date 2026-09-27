@@ -17,8 +17,6 @@ type internal OutputObservation =
       Backing: OutputBacking
       Modified: DateTime }
 
-exception internal OutputException of OutputError
-
 module internal OutputFiles =
     let withParent (root: HeldDirectory) path action =
         let rec walk (directory: HeldDirectory) =

@@ -181,6 +181,16 @@ module GeneratedOutputFixtures =
 
                 let output = Path.Combine(tool.PhysicalPath, "result.txt")
 
+                let beforeMissing = scope ()
+                let missing = outputs.StopUsing(Guid.NewGuid(), 0L) |> wait
+                let afterMissing = scope ()
+
+                check
+                    "unknownOutputLocationReturnsNotFoundWithoutChangingScope"
+                    (missing = Error OutputError.NotFound
+                     && afterMissing.Revision = beforeMissing.Revision
+                     && afterMissing.Locations = beforeMissing.Locations)
+
                 check
                     "toolFolderStartsEmptyOutsideGame"
                     (Directory.GetFileSystemEntries(tool.PhysicalPath).Length = 0

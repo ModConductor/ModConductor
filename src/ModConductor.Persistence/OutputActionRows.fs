@@ -7,11 +7,8 @@ open ModConductor.ModLibrary
 module internal OutputActionRows =
     let private validTargets policy previous files =
         LibraryComposition.targets policy previous files
-        |> Result.defaultWith (fun _ ->
-            OutputRows.fail (
-                OutputError.Invalid
-                    "The selected output paths conflict under the game filename rules."
-            ))
+        |> Result.mapError (fun _ ->
+            OutputError.Invalid "The selected output paths conflict under the game filename rules.")
 
     let find connection transaction id =
         use query =
@@ -27,7 +24,9 @@ module internal OutputActionRows =
             None
         else
             if reader.GetInt64 1 > 16L * 1024L * 1024L then
-                OutputRows.fail OutputError.LimitExceeded
+                raise (
+                    System.IO.InvalidDataException "The saved output action exceeds its size limit."
+                )
 
             let value = OutputEncoding.decode (reader.GetFieldValue<byte array> 0)
 
@@ -48,17 +47,19 @@ module internal OutputActionRows =
                             Published = published } }
 
     let save connection transaction (record: OutputActionRecord) =
-        Sqlite.execute
-            connection
-            transaction
-            "UPDATE output_actions SET complete=$complete,version_id=$version,body=$body WHERE id=$id"
-            [ "$complete", box record.Result.Complete
-              "$version",
-              record.Result.VersionId
-              |> Option.map (string >> box)
-              |> Option.defaultValue (box DBNull.Value)
-              "$body", box (OutputEncoding.encode record)
-              "$id", box (string record.Id) ]
+        OutputEncoding.encode record
+        |> Result.map (fun body ->
+            Sqlite.execute
+                connection
+                transaction
+                "UPDATE output_actions SET complete=$complete,version_id=$version,body=$body WHERE id=$id"
+                [ "$complete", box record.Result.Complete
+                  "$version",
+                  record.Result.VersionId
+                  |> Option.map (string >> box)
+                  |> Option.defaultValue (box DBNull.Value)
+                  "$body", box body
+                  "$id", box (string record.Id) ])
 
     let destination (record: OutputActionRecord) =
         match record.Action with
@@ -68,93 +69,39 @@ module internal OutputActionRows =
         | OutputAction.Discard -> None
 
     let composition connection transaction (record: OutputActionRecord) =
-        destination record
-        |> Option.map (fun destination ->
+        let compose destination =
             let id, expected, label =
                 match destination with
                 | OutputDestination.ExistingMod(id, expected, label) -> id, expected, label
                 | OutputDestination.NewMod(id, _, label) -> id, 0L, label
 
-            let row =
-                LibraryRows.find connection transaction id
-                |> Option.defaultWith (fun () -> OutputRows.fail OutputError.NotFound)
-
-            if
+            match LibraryRows.find connection transaction id with
+            | None -> Error OutputError.NotFound
+            | Some row when
                 row.Entry.WorkspaceId <> record.Scope.WorkspaceId
                 || row.Entry.Kind <> ModKind.Regular
-            then
-                OutputRows.fail (OutputError.Invalid "Select a regular mod from this workspace.")
-
-            if row.Entry.Revision <> expected then
-                OutputRows.fail OutputError.Stale
-
-            let input =
-                { ActionId = record.Id
-                  SourceVersion = row.Entry.CurrentVersion
-                  VersionLabel = label
-                  Policy = ModConductor.GameContexts.Skyrim.definition.TargetPolicy
-                  Files =
-                    record.Files
-                    |> List.map (fun value ->
-                        { Target = value.File.Path
-                          Root = value.Backing.Root
-                          RootIdentity = value.Backing.RootIdentity
-                          File =
-                            { Path = OutputFiles.path value.Backing value.File.Path
-                              Identity = value.File.Identity.Value
-                              Length = value.File.Length
-                              Modified = value.Modified
-                              Sha256 = value.File.Sha256 } })
-                  Bytes = [] }
-
-            let previous =
-                input.SourceVersion
-                |> Option.bind (fun version ->
-                    LibraryRows.version connection transaction version 0 100001)
-                |> Option.map _.Entries
-                |> Option.defaultValue []
-
-            if previous.Length > 100000 then
-                OutputRows.fail OutputError.LimitExceeded
-
-            validTargets input.Policy previous input.Files |> ignore
-            id, expected, input)
-
-    let preview connection transaction (record: OutputActionRecord) =
-        let source, previous, selected =
-            match destination record with
-            | None -> OutputRows.fail (OutputError.Invalid "Choose a publication action.")
-            | Some(OutputDestination.NewMod(id, name, label)) ->
-                if
-                    id = Guid.Empty || LibraryRows.find connection transaction id |> Option.isSome
-                then
-                    OutputRows.fail (OutputError.Invalid "Use a new mod identity.")
-
-                OutputPolicy.name name |> Result.defaultWith OutputRows.fail |> ignore
-
-                if not (OutputPolicy.text 256 label) then
-                    OutputRows.fail (OutputError.Invalid "The version label is too long.")
-
-                let files =
-                    record.Files
-                    |> List.map (fun value ->
-                        { Target = value.File.Path
-                          Root = value.Backing.Root
-                          RootIdentity = value.Backing.RootIdentity
-                          File =
-                            { Path = OutputFiles.path value.Backing value.File.Path
-                              Identity = value.File.Identity.Value
-                              Length = value.File.Length
-                              Modified = value.Modified
-                              Sha256 = value.File.Sha256 } })
-
-                false,
-                None,
-                validTargets ModConductor.GameContexts.Skyrim.definition.TargetPolicy [] files
-                |> snd
-            | Some(OutputDestination.ExistingMod _) ->
-                let id, _, input = composition connection transaction record |> Option.get
-                let row = LibraryRows.find connection transaction id |> Option.get
+                ->
+                Error(OutputError.Invalid "Select a regular mod from this workspace.")
+            | Some row when row.Entry.Revision <> expected -> Error OutputError.Stale
+            | Some row ->
+                let input =
+                    { ActionId = record.Id
+                      SourceVersion = row.Entry.CurrentVersion
+                      VersionLabel = label
+                      Policy = ModConductor.GameContexts.Skyrim.definition.TargetPolicy
+                      Files =
+                        record.Files
+                        |> List.map (fun value ->
+                            { Target = value.File.Path
+                              Root = value.Backing.Root
+                              RootIdentity = value.Backing.RootIdentity
+                              File =
+                                { Path = OutputFiles.path value.Backing value.File.Path
+                                  Identity = value.File.Identity.Value
+                                  Length = value.File.Length
+                                  Modified = value.Modified
+                                  Sha256 = value.File.Sha256 } })
+                      Bytes = [] }
 
                 let previous =
                     input.SourceVersion
@@ -163,73 +110,151 @@ module internal OutputActionRows =
                     |> Option.map _.Entries
                     |> Option.defaultValue []
 
-                row.Entry.SourcePath.IsSome,
-                input.SourceVersion,
-                validTargets input.Policy previous input.Files |> snd
+                if previous.Length > 100000 then
+                    Error OutputError.LimitExceeded
+                else
+                    validTargets input.Policy previous input.Files
+                    |> Result.map (fun _ -> id, expected, input)
 
-        { Selected = record.Files.Length
-          Replaced =
-            selected
-            |> List.choose (fun (target, _, previous) -> previous |> Option.map (fun _ -> target))
-          PreviousVersion = previous
-          RegisteredSource = source }
+        match destination record with
+        | None -> Ok None
+        | Some value -> compose value |> Result.map Some
 
-    let claim (database: StateDatabase) (record: OutputActionRecord) =
-        use transaction = database.Connection.BeginTransaction(deferred = false)
+    let private previewNew connection transaction (record: OutputActionRecord) id name label =
+        if id = Guid.Empty || LibraryRows.find connection transaction id |> Option.isSome then
+            Error(OutputError.Invalid "Use a new mod identity.")
+        else
+            OutputPolicy.name name
+            |> Result.bind (fun _ ->
+                if not (OutputPolicy.text 256 label) then
+                    Error(OutputError.Invalid "The version label is too long.")
+                else
+                    let files =
+                        record.Files
+                        |> List.map (fun value ->
+                            { Target = value.File.Path
+                              Root = value.Backing.Root
+                              RootIdentity = value.Backing.RootIdentity
+                              File =
+                                { Path = OutputFiles.path value.Backing value.File.Path
+                                  Identity = value.File.Identity.Value
+                                  Length = value.File.Length
+                                  Modified = value.Modified
+                                  Sha256 = value.File.Sha256 } })
 
-        if record.Id = Guid.Empty then
-            OutputRows.fail (OutputError.Invalid "Use a new output action identity.")
+                    validTargets ModConductor.GameContexts.Skyrim.definition.TargetPolicy [] files
+                    |> Result.map (fun (_, selected) -> false, None, selected))
 
-        if find database.Connection transaction record.Id |> Option.isSome then
-            OutputRows.fail (OutputError.Invalid "The output action already exists.")
+    let private previewExisting connection transaction (record: OutputActionRecord) =
+        composition connection transaction record
+        |> Result.map (fun value ->
+            let id, _, input = value |> Option.get
+            let row = LibraryRows.find connection transaction id |> Option.get
 
-        if not (OutputRows.current database.Connection transaction record.Scope) then
-            OutputRows.fail OutputError.Stale
+            let previous =
+                input.SourceVersion
+                |> Option.bind (fun version ->
+                    LibraryRows.version connection transaction version 0 100001)
+                |> Option.map _.Entries
+                |> Option.defaultValue []
 
-        OutputRows.idle database.Connection transaction record.Scope.WorkspaceId
+            row.Entry.SourcePath.IsSome,
+            input.SourceVersion,
+            validTargets input.Policy previous input.Files)
+        |> Result.bind (fun (source, previous, selected) ->
+            selected |> Result.map (fun (_, files) -> source, previous, files))
 
-        if
-            (OutputRows.pending
-                database.Connection
-                transaction
-                record.Scope.WorkspaceId
-                record.Scope.ContextId)
-                .Length
-            >= 16
-        then
-            OutputRows.fail OutputError.LimitExceeded
+    let preview connection transaction (record: OutputActionRecord) =
+        let details =
+            match destination record with
+            | None -> Error(OutputError.Invalid "Choose a publication action.")
+            | Some(OutputDestination.NewMod(id, name, label)) ->
+                previewNew connection transaction record id name label
+            | Some(OutputDestination.ExistingMod _) -> previewExisting connection transaction record
 
-        destination record
-        |> Option.iter (fun value ->
+        details
+        |> Result.map (fun (source, previous, selected) ->
+            { Selected = record.Files.Length
+              Replaced =
+                selected
+                |> List.choose (fun (target, _, previous) ->
+                    previous |> Option.map (fun _ -> target))
+              PreviousVersion = previous
+              RegisteredSource = source })
+
+    let private checkDestination connection transaction =
+        function
+        | None -> Ok()
+        | Some value ->
             let label =
                 match value with
                 | OutputDestination.ExistingMod(_, _, label)
                 | OutputDestination.NewMod(_, _, label) -> label
 
             if not (OutputPolicy.text 256 label) then
-                OutputRows.fail (OutputError.Invalid "The version label is too long.")
+                Error(OutputError.Invalid "The version label is too long.")
+            else
+                match value with
+                | OutputDestination.ExistingMod _ -> Ok()
+                | OutputDestination.NewMod(id, name, _) ->
+                    OutputPolicy.name name
+                    |> Result.bind (fun _ ->
+                        if
+                            id = Guid.Empty
+                            || LibraryRows.find connection transaction id |> Option.isSome
+                        then
+                            Error(OutputError.Invalid "Use a new mod identity.")
+                        else
+                            Ok())
 
-            match value with
-            | OutputDestination.NewMod(id, name, label) ->
-                let name = OutputPolicy.name name |> Result.defaultWith OutputRows.fail
+    let private claimChecks (database: StateDatabase) transaction (record: OutputActionRecord) =
+        if record.Id = Guid.Empty then
+            Error(OutputError.Invalid "Use a new output action identity.")
+        elif find database.Connection transaction record.Id |> Option.isSome then
+            Error(OutputError.Invalid "The output action already exists.")
+        elif not (OutputRows.current database.Connection transaction record.Scope) then
+            Error OutputError.Stale
+        else
+            OutputRows.idle database.Connection transaction record.Scope.WorkspaceId
+            |> Result.bind (fun () ->
+                if
+                    (OutputRows.pending
+                        database.Connection
+                        transaction
+                        record.Scope.WorkspaceId
+                        record.Scope.ContextId)
+                        .Length
+                    >= 16
+                then
+                    Error OutputError.LimitExceeded
+                else
+                    checkDestination database.Connection transaction (destination record))
 
-                let metadata =
-                    { Name = name
-                      Version = label
-                      Source = ""
-                      Notes = ""
-                      Comment = ""
-                      Categories = [] }
+    let private createDestination
+        (database: StateDatabase)
+        transaction
+        (record: OutputActionRecord)
+        =
+        match destination record with
+        | Some(OutputDestination.NewMod(id, name, label)) ->
+            let metadata =
+                { Name = name
+                  Version = label
+                  Source = ""
+                  Notes = ""
+                  Comment = ""
+                  Categories = [] }
 
-                InventoryOutput.createFromOutputs
-                    database.Connection
-                    transaction
-                    record.Scope.WorkspaceId
-                    id
-                    metadata
-                |> ignore
-            | OutputDestination.ExistingMod _ -> ())
+            InventoryOutput.createFromOutputs
+                database.Connection
+                transaction
+                record.Scope.WorkspaceId
+                id
+                metadata
+            |> ignore
+        | _ -> ()
 
+    let private markInitialized (database: StateDatabase) transaction (record: OutputActionRecord) =
         for observation in record.Files do
             if observation.File.Identity.IsSome then
                 Sqlite.execute
@@ -238,15 +263,12 @@ module internal OutputActionRows =
                     "UPDATE output_locations SET initialized=1 WHERE id=$id AND purpose=1"
                     [ "$id", box (string observation.File.LocationId) ]
 
-        composition database.Connection transaction record |> ignore
-        let version = destination record |> Option.map (fun _ -> Guid.NewGuid())
-
-        let record =
-            { record with
-                Result =
-                    { record.Result with
-                        VersionId = version } }
-
+    let private insertClaim
+        (database: StateDatabase)
+        transaction
+        (record: OutputActionRecord)
+        body
+        =
         Sqlite.execute
             database.Connection
             transaction
@@ -256,21 +278,46 @@ module internal OutputActionRows =
               "$context", box (string record.Scope.ContextId)
               "$owner", box database.OwnerId
               "$version",
-              version |> Option.map (string >> box) |> Option.defaultValue (box DBNull.Value)
-              "$body", box (OutputEncoding.encode record) ]
+              record.Result.VersionId
+              |> Option.map (string >> box)
+              |> Option.defaultValue (box DBNull.Value)
+              "$body", box body ]
 
-        transaction.Commit()
-        record
+    let claim (database: StateDatabase) (record: OutputActionRecord) =
+        use transaction = database.Connection.BeginTransaction(deferred = false)
+
+        let result =
+            claimChecks database transaction record
+            |> Result.bind (fun () ->
+                createDestination database transaction record
+                markInitialized database transaction record
+                composition database.Connection transaction record)
+            |> Result.bind (fun _ ->
+                let version = destination record |> Option.map (fun _ -> Guid.NewGuid())
+
+                let claimed =
+                    { record with
+                        Result =
+                            { record.Result with
+                                VersionId = version } }
+
+                OutputEncoding.encode claimed
+                |> Result.map (fun body ->
+                    insertClaim database transaction claimed body
+                    claimed))
+
+        if Result.isOk result then
+            transaction.Commit()
+
+        result
 
     let resume (database: StateDatabase) id =
         use transaction = database.Connection.BeginTransaction(deferred = false)
 
-        let record =
-            find database.Connection transaction id
-            |> Option.defaultWith (fun () -> OutputRows.fail OutputError.NotFound)
-
-        if not record.Result.Complete then
-            if
+        let resumeRecord record =
+            if record.Result.Complete then
+                Ok record
+            elif
                 OutputRows.revision
                     database.Connection
                     transaction
@@ -278,57 +325,73 @@ module internal OutputActionRows =
                     record.Scope.ContextId
                 <> record.Scope.Revision
             then
-                OutputRows.fail OutputError.Stale
+                Error OutputError.Stale
+            else
+                OutputRows.idle database.Connection transaction record.Scope.WorkspaceId
+                |> Result.map (fun () ->
+                    Sqlite.execute
+                        database.Connection
+                        transaction
+                        "UPDATE output_actions SET busy=1,owner=$owner WHERE id=$id"
+                        [ "$owner", box database.OwnerId; "$id", box (string id) ]
 
-            OutputRows.idle database.Connection transaction record.Scope.WorkspaceId
+                    record)
 
-            Sqlite.execute
-                database.Connection
-                transaction
-                "UPDATE output_actions SET busy=1,owner=$owner WHERE id=$id"
-                [ "$owner", box database.OwnerId; "$id", box (string id) ]
+        let result =
+            find database.Connection transaction id
+            |> Option.map resumeRecord
+            |> Option.defaultValue (Error OutputError.NotFound)
 
-        transaction.Commit()
-        record
+        if Result.isOk result then
+            transaction.Commit()
+
+        result
 
     let saveEntry (database: StateDatabase) id file disposition =
         use transaction = database.Connection.BeginTransaction(deferred = false)
 
-        let record =
-            find database.Connection transaction id
-            |> Option.defaultWith (fun () -> OutputRows.fail OutputError.NotFound)
+        let update record =
+            let entries =
+                record.Result.Entries
+                |> List.map (fun entry ->
+                    if entry.File = file then
+                        { entry with Disposition = disposition }
+                    else
+                        entry)
 
-        let entries =
-            record.Result.Entries
-            |> List.map (fun entry ->
-                if entry.File = file then
-                    { entry with Disposition = disposition }
-                else
-                    entry)
+            let result =
+                { record.Result with
+                    Entries = entries
+                    Complete =
+                        entries
+                        |> List.forall (fun entry -> entry.Disposition <> OutputDisposition.Pending) }
+
+            let updated = { record with Result = result }
+
+            save database.Connection transaction updated
+            |> Result.map (fun () ->
+                if disposition = OutputDisposition.Kept then
+                    let observed =
+                        record.Files
+                        |> List.find (fun entry ->
+                            entry.File.LocationId = file.LocationId && entry.File.Path = file.Path)
+
+                    Sqlite.execute
+                        database.Connection
+                        transaction
+                        "INSERT INTO output_observations(location_id,path,sha256,kept) VALUES($location,$path,$hash,1) ON CONFLICT(location_id,path) DO UPDATE SET sha256=$hash,kept=1"
+                        [ "$location", box (string file.LocationId)
+                          "$path", box (LibraryEncoding.path file.Path)
+                          "$hash", box observed.File.Sha256 ]
+
+                result)
 
         let result =
-            { record.Result with
-                Entries = entries
-                Complete =
-                    entries
-                    |> List.forall (fun entry -> entry.Disposition <> OutputDisposition.Pending) }
+            find database.Connection transaction id
+            |> Option.map update
+            |> Option.defaultValue (Error OutputError.NotFound)
 
-        let record = { record with Result = result }
-        save database.Connection transaction record
+        if Result.isOk result then
+            transaction.Commit()
 
-        if disposition = OutputDisposition.Kept then
-            let observed =
-                record.Files
-                |> List.find (fun entry ->
-                    entry.File.LocationId = file.LocationId && entry.File.Path = file.Path)
-
-            Sqlite.execute
-                database.Connection
-                transaction
-                "INSERT INTO output_observations(location_id,path,sha256,kept) VALUES($location,$path,$hash,1) ON CONFLICT(location_id,path) DO UPDATE SET sha256=$hash,kept=1"
-                [ "$location", box (string file.LocationId)
-                  "$path", box (LibraryEncoding.path file.Path)
-                  "$hash", box observed.File.Sha256 ]
-
-        transaction.Commit()
         result

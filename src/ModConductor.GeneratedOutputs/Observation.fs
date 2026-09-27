@@ -43,26 +43,35 @@ type internal OutputObservationSession(repository: IOutputRepository, cache: Out
 
     member _.Observe(scope, progress, token) =
         task {
-            let! current, backings =
+            let! selected =
                 repository.Read(scope.WorkspaceId, scope.ProfileId, Some scope.ContextId)
 
-            if
+            match selected with
+            | Error error -> return Error error
+            | Ok(current, backings) when
                 current.Revision <> scope.Revision
                 || current.ContextRevision <> scope.ContextRevision
-            then
+                ->
                 return Error OutputError.Stale
-            elif backings.Length <> current.Locations.Length then
+            | Ok(current, backings) when backings.Length <> current.Locations.Length ->
                 return Error(OutputError.Unavailable "An output folder has no confirmed identity.")
-            else
+            | Ok(current, backings) ->
                 let! previous = repository.Previous scope
-                let! deployment = repository.ActiveDeployment scope
 
-                let! observed =
-                    Task.Run(fun () ->
-                        OutputFiles.observe backings previous deployment progress token)
-
-                match observed with
+                match previous with
                 | Error error -> return Error error
-                | Ok(files, bytes) -> return! save scope current files bytes
+                | Ok previous ->
+                    let! deployment = repository.ActiveDeployment scope
+
+                    match deployment with
+                    | Error error -> return Error error
+                    | Ok deployment ->
+                        let! observed =
+                            Task.Run(fun () ->
+                                OutputFiles.observe backings previous deployment progress token)
+
+                        match observed with
+                        | Error error -> return Error error
+                        | Ok(files, bytes) -> return! save scope current files bytes
 
         }

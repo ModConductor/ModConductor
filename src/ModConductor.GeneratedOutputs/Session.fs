@@ -28,7 +28,6 @@ type GeneratedOutputSession internal (repository: IOutputRepository) =
             try
                 return! action ()
             with
-            | OutputException error -> return Error error
             | :? OperationCanceledException -> return Error OutputError.Cancelled
             | :? IOException as error -> return Error(OutputError.Unavailable error.Message)
             | :? UnauthorizedAccessException ->
@@ -82,8 +81,8 @@ type GeneratedOutputSession internal (repository: IOutputRepository) =
         member _.Read(workspace, profile, context) =
             run workspace (fun () ->
                 task {
-                    let! scope, _ = repository.Read(workspace, profile, context)
-                    return Ok scope
+                    let! result = repository.Read(workspace, profile, context)
+                    return result |> Result.map fst
                 })
 
         member _.Add(id, expected, name, purpose) =
@@ -91,9 +90,7 @@ type GeneratedOutputSession internal (repository: IOutputRepository) =
                 task {
                     match OutputPolicy.name name with
                     | Error error -> return Error error
-                    | Ok name ->
-                        let! created = repository.Add(id, expected, name, purpose)
-                        return Ok created
+                    | Ok name -> return! repository.Add(id, expected, name, purpose)
                 })
 
         member _.StopUsing(id, revision) =
@@ -101,12 +98,10 @@ type GeneratedOutputSession internal (repository: IOutputRepository) =
                 task {
                     let! workspace = repository.Workspace id
 
-                    return!
-                        run workspace (fun () ->
-                            task {
-                                let! location = repository.StopUsing(id, revision)
-                                return Ok location
-                            })
+                    match workspace with
+                    | Error error -> return Error error
+                    | Ok workspace ->
+                        return! run workspace (fun () -> repository.StopUsing(id, revision))
                 })
 
         member _.Observe(scope, progress, token) =
@@ -120,10 +115,10 @@ type GeneratedOutputSession internal (repository: IOutputRepository) =
                     | Ok value ->
                         let! current = repository.Current value.Snapshot.Scope
 
-                        if not current then
-                            return Error OutputError.Stale
-                        else
-                            return cache.Page(value, view, cursor, filter)
+                        match current with
+                        | Error error -> return Error error
+                        | Ok false -> return Error OutputError.Stale
+                        | Ok true -> return cache.Page(value, view, cursor, filter)
                 })
 
         member _.Preview(snapshot, selected, action) =
@@ -147,7 +142,7 @@ type GeneratedOutputSession internal (repository: IOutputRepository) =
                                       Complete = false } }
                             )
 
-                        return Ok result
+                        return result
                 })
 
         member this.Apply(id, snapshot, selected, action, token) =

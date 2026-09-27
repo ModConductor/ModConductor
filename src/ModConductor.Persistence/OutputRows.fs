@@ -14,12 +14,6 @@ type internal StoredOutputLocation =
       Enabled: bool }
 
 module internal OutputRows =
-    let fail error = raise (OutputException error)
-
-    let game connection transaction owner workspace profile =
-        GameContextRows.read connection transaction owner workspace profile
-        |> Result.defaultWith (fun _ -> fail OutputError.NotFound)
-
     let contextId workspace profile (state: ModConductor.GameContexts.GameContextState) =
         state.Binding
         |> Option.map (fun binding ->
@@ -28,7 +22,14 @@ module internal OutputRows =
                 profile
                 (DeploymentContextId.fingerprint binding.Evidence))
         |> Option.defaultWith (fun () ->
-            fail (OutputError.Unavailable "Select a game installation first."))
+            raise (InvalidDataException "The game context has no bound installation."))
+
+    let boundContext connection transaction owner workspace profile =
+        match GameContextRows.read connection transaction owner workspace profile with
+        | Error _ -> Error OutputError.NotFound
+        | Ok state when state.Binding.IsNone ->
+            Error(OutputError.Unavailable "Select a game installation first.")
+        | Ok state -> Ok(state, contextId workspace profile state)
 
     let revision connection transaction workspace context =
         Sqlite.number
@@ -61,7 +62,7 @@ module internal OutputRows =
                   yield Guid.Parse(reader.GetString 0) ]
 
         if result.Length > 16 then
-            fail OutputError.LimitExceeded
+            raise (InvalidDataException "The saved output action count exceeds its limit.")
 
         result
 
@@ -75,28 +76,33 @@ module internal OutputRows =
 
     let idle connection transaction workspace =
         if active connection transaction workspace then
-            fail OutputError.Busy
+            Error OutputError.Busy
+        else
+            use query =
+                Sqlite.command
+                    connection
+                    transaction
+                    "SELECT id FROM deployment_contexts WHERE pending IS NOT NULL"
+                    []
 
-        use query =
-            Sqlite.command
-                connection
-                transaction
-                "SELECT id FROM deployment_contexts WHERE pending IS NOT NULL"
-                []
+            use reader = query.ExecuteReader()
 
-        use reader = query.ExecuteReader()
+            let ids =
+                [ while reader.Read() do
+                      yield Guid.Parse(reader.GetString 0) ]
 
-        let ids =
-            [ while reader.Read() do
-                  yield Guid.Parse(reader.GetString 0) ]
+            reader.Close()
 
-        reader.Close()
-
-        for id in ids do
-            match DeploymentRows.context connection transaction id with
-            | Some context when context.Roots |> List.exists (fun root -> root.Root.Id = workspace) ->
-                fail OutputError.Busy
-            | _ -> ()
+            if
+                ids
+                |> List.exists (fun id ->
+                    DeploymentRows.context connection transaction id
+                    |> Option.exists (fun context ->
+                        context.Roots |> List.exists (fun root -> root.Root.Id = workspace)))
+            then
+                Error OutputError.Busy
+            else
+                Ok()
 
     let columns =
         "id,workspace_id,context_id,name,purpose,target,revision,enabled,initialized,root_name,root_identity"
@@ -158,7 +164,7 @@ module internal OutputRows =
                   yield read root reader ]
 
         if result.Length > OutputLimits.locations then
-            fail OutputError.LimitExceeded
+            raise (InvalidDataException "The saved output location count exceeds its limit.")
 
         result
 
@@ -192,9 +198,15 @@ module internal OutputRows =
                         |> Result.defaultWith (fun _ -> invalidOp "Invalid stored output path.")
                     ) })
 
-    let scope connection transaction owner (root: WorkspaceRoot) profile requested =
-        let state = game connection transaction owner root.Id profile
-        let currentId = contextId root.Id profile state
+    let private scopeForContext
+        connection
+        transaction
+        (root: WorkspaceRoot)
+        profile
+        requested
+        state
+        currentId
+        =
         let selected = requested |> Option.defaultValue currentId
 
         use query =
@@ -218,36 +230,39 @@ module internal OutputRows =
         reader.Close()
 
         if stored.Length > 64 then
-            fail OutputError.LimitExceeded
+            Error OutputError.LimitExceeded
+        else
+            let contexts =
+                if stored |> List.exists (fun value -> value.Id = currentId) then
+                    stored
+                else
+                    { Id = currentId
+                      Installation = state.Binding.Value.Path
+                      Current = true }
+                    :: stored
 
-        let contexts =
-            if stored |> List.exists (fun value -> value.Id = currentId) then
-                stored
-            else
-                { Id = currentId
-                  Installation = state.Binding.Value.Path
-                  Current = true }
-                :: stored
+            match contexts |> List.tryFind (fun value -> value.Id = selected) with
+            | None -> Error OutputError.NotFound
+            | Some selectedContext ->
+                let locations = locations connection transaction root selected
 
-        let selectedContext =
-            contexts
-            |> List.tryFind (fun value -> value.Id = selected)
-            |> Option.defaultWith (fun () -> fail OutputError.NotFound)
+                let result: OutputScope =
+                    { WorkspaceId = root.Id
+                      ProfileId = profile
+                      ContextId = selected
+                      Revision = revision connection transaction root.Id selected
+                      ContextRevision = state.Revision
+                      Installation = selectedContext.Installation
+                      Locations = locations |> List.map _.View
+                      Contexts = contexts
+                      PendingActions = pending connection transaction root.Id selected }
 
-        let locations = locations connection transaction root selected
+                if OutputPolicy.scopeBytes result > OutputLimits.pageBytes then
+                    Error OutputError.LimitExceeded
+                else
+                    Ok(result, locations |> List.choose (backing root))
 
-        let result: OutputScope =
-            { WorkspaceId = root.Id
-              ProfileId = profile
-              ContextId = selected
-              Revision = revision connection transaction root.Id selected
-              ContextRevision = state.Revision
-              Installation = selectedContext.Installation
-              Locations = locations |> List.map _.View
-              Contexts = contexts
-              PendingActions = pending connection transaction root.Id selected }
-
-        if OutputPolicy.scopeBytes result > OutputLimits.pageBytes then
-            fail OutputError.LimitExceeded
-
-        result, locations |> List.choose (backing root)
+    let scope connection transaction owner (root: WorkspaceRoot) profile requested =
+        boundContext connection transaction owner root.Id profile
+        |> Result.bind (fun (state, currentId) ->
+            scopeForContext connection transaction root profile requested state currentId)

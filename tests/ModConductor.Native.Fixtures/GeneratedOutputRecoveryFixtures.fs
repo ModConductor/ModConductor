@@ -67,11 +67,17 @@ module GeneratedOutputRecoveryFixtures =
 
             member _.CheckAction record =
                 task {
-                    do! inner.CheckAction record
-                    let! recorded = inner.FindAction record.Id
-
-                    if checkpoint = BeforeEffect && recorded.IsSome then
-                        raise (IOException "Owned fixture stopped before the file effect.")
+                    let! validated = inner.CheckAction record
+                    match validated with
+                    | Error error -> return Error error
+                    | Ok() ->
+                        let! recorded = inner.FindAction record.Id
+                        match recorded with
+                        | Error error -> return Error error
+                        | Ok recorded ->
+                            if checkpoint = BeforeEffect && recorded.IsSome then
+                                raise (IOException "Owned fixture stopped before the file effect.")
+                            return Ok()
                 }
 
             member _.Preview record = inner.Preview record
