@@ -27,7 +27,7 @@ type BundleService(store: BundleStore) =
                 let! result =
                     store.Discover(BundleWire.artifact request, context.CancellationToken)
 
-                return BundleWire.discovery result
+                return result |> InstallationWire.outcome |> BundleWire.discovery
             })
 
     override _.CreateBundle(request, _) =

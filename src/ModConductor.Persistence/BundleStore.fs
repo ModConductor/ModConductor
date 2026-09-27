@@ -167,11 +167,13 @@ type BundleStore
 
     member _.Discover(reference, token) =
         task {
-            let! draft = installations.Prepare(reference, token)
+            let! prepared = installations.Prepare(reference, token)
 
             return
-                { Draft = draft
-                  Archives = Discovery.candidates draft.Manifest }
+                prepared
+                |> Result.map (fun draft ->
+                    { Draft = draft
+                      Archives = Discovery.candidates draft.Manifest })
         }
 
     member _.Create(workspace, draftId, revision, indices) =

@@ -123,7 +123,7 @@ module BundleFixtures =
                 |> wait
                 |> result
 
-            let view = store.Bundles.Discover(reference artifact, token) |> wait
+            let view = store.Bundles.Discover(reference artifact, token) |> wait |> result
 
             let bundle =
                 store.Bundles.Create(
@@ -237,7 +237,7 @@ module BundleFixtures =
                 |> wait
                 |> result
 
-            let discovered = store.Bundles.Discover(reference artifact, token) |> wait
+            let discovered = store.Bundles.Discover(reference artifact, token) |> wait |> result
 
             let order =
                 [ "First.zip"; "Extras.zip" ]
@@ -493,7 +493,7 @@ module BundleFixtures =
                 |> wait
                 |> result
 
-            let view = store.Bundles.Discover(reference artifact, token) |> wait
+            let view = store.Bundles.Discover(reference artifact, token) |> wait |> result
 
             store.Bundles.Create(
                 workspace,
