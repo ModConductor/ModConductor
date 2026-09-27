@@ -360,6 +360,7 @@ module PluginOrderFixtures =
                 token
             )
             |> wait
+            |> result
 
         let installer =
             store.Installations.Fomod.Open(workspace, draft.Id, draft.Revision, first)
