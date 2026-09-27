@@ -371,13 +371,17 @@ module PluginOrderFixtures =
         headers <- scan first
         view <- read first headers
         change view (PluginOrderChange.Enable([ "B.esp" ], false)) |> ignore
-        let mutable staleFacts = false
-
-        try
-            store.Installations.Fomod.Next(workspace, installer.Draft.Id, installer.Draft.Revision)
-            |> ignore
-        with :? ModConductor.Fomod.FomodException ->
-            staleFacts <- true
+        let staleFacts =
+            match
+                store.Installations.Fomod.Next(
+                    workspace,
+                    installer.Draft.Id,
+                    installer.Draft.Revision
+                )
+            with
+            | Error detail ->
+                detail = "The plugin order changed. Reload the installer before continuing."
+            | Ok _ -> false
 
         check "fomodChoicesRefuseChangedPluginRevision" staleFacts
 
