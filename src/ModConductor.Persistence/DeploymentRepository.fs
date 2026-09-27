@@ -32,7 +32,13 @@ type internal DeploymentRepository(database: StateDatabase) =
                 Error RecoveryError.Stale
             | Some _ -> Ok receipt
 
-    let checkBegin transaction previous (receipt: Receipt) generation expectedSources =
+    let checkBegin
+        transaction
+        previous
+        (receipt: Receipt)
+        generation
+        (expectedSources: ModConductor.FilePlanning.SourceStamp option)
+        =
         if DeploymentRows.context connection transaction receipt.Context.Id <> previous then
             Error RecoveryError.Stale
         elif DeploymentRows.receipt connection transaction receipt.Id |> Option.isSome then
