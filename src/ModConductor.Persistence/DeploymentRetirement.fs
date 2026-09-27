@@ -115,26 +115,20 @@ module internal DeploymentRetirement =
                                 )))
                         |> Option.map _.Fingerprint))
 
-            let rec clear =
-                function
-                | [] -> task { return Ok() }
-                | fingerprint :: remaining ->
-                    task {
-                        let! cleared =
-                            clearOwnedLinks
-                                recovery
-                                workspace
-                                workspaceId
-                                profileId
-                                fingerprint
-                                token
+            let mutable refusal = None
 
-                        match cleared with
-                        | Error error -> return Error error
-                        | Ok() -> return! clear remaining
-                    }
+            for fingerprint in previous do
+                if refusal.IsNone then
+                    let! cleared =
+                        clearOwnedLinks recovery workspace workspaceId profileId fingerprint token
 
-            return! clear previous
+                    match cleared with
+                    | Error error -> refusal <- Some error
+                    | Ok() -> ()
+
+            match refusal with
+            | Some error -> return Error error
+            | None -> return Ok()
         }
 
     let retireProfile
@@ -207,33 +201,29 @@ module internal DeploymentRetirement =
                         | Error detail -> Some detail
                         | Ok() -> None)
 
-                let rec retireOwned =
-                    function
-                    | [] -> task { return Ok() }
-                    | context :: remaining ->
-                        task {
-                            match checkRoots context with
-                            | Some detail -> return Error detail
-                            | None ->
-                                let! cleared =
-                                    clearOwnedLinks
-                                        recovery
-                                        workspace
-                                        workspaceId
-                                        profileId
-                                        context.Fingerprint
-                                        token
+                let mutable refusal = None
 
-                                match cleared with
-                                | Error error -> return Error(retirementError error)
-                                | Ok() -> return! retireOwned remaining
-                        }
+                for context in owned do
+                    if refusal.IsNone then
+                        match checkRoots context with
+                        | Some detail -> refusal <- Some detail
+                        | None ->
+                            let! cleared =
+                                clearOwnedLinks
+                                    recovery
+                                    workspace
+                                    workspaceId
+                                    profileId
+                                    context.Fingerprint
+                                    token
 
-                let! retired = retireOwned owned
+                            match cleared with
+                            | Error error -> refusal <- Some(retirementError error)
+                            | Ok() -> ()
 
-                match retired with
-                | Error detail -> return Error detail
-                | Ok() ->
+                match refusal with
+                | Some detail -> return Error detail
+                | None ->
                     GameViews.removeOwned workspace profileId
                     return Ok()
         }
