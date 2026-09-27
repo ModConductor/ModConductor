@@ -20,12 +20,17 @@ type internal SkyrimSetupService(coordinator: SkyrimSetupCoordinator) =
             | ModConductor.Protocol.V1.SkyrimSetupAction.Update -> SetupAction.Update
             | _ -> SetupAction.Unchanged
 
-        if isNull value then ModConductor.Persistence.SetupSelection.none
+        if isNull value then
+            ModConductor.Persistence.SetupSelection.none
         else
             { Skse = choice value.Skse
               Enb = choice value.Enb
               Fnis = choice value.Fnis
-              EnbArchive = if String.IsNullOrWhiteSpace value.EnbArchivePath then None else Some value.EnbArchivePath }
+              EnbArchive =
+                if String.IsNullOrWhiteSpace value.EnbArchivePath then
+                    None
+                else
+                    Some value.EnbArchivePath }
 
     let selectionWire (value: ModConductor.Persistence.SetupSelection) =
         ModConductor.Protocol.V1.SkyrimSetupSelection(
@@ -78,16 +83,23 @@ type internal SkyrimSetupService(coordinator: SkyrimSetupCoordinator) =
 
         task {
             let! value =
-                coordinator.Read(workspace, profile, selectionFromWire request.Selection, context.CancellationToken)
+                coordinator.Read(
+                    workspace,
+                    profile,
+                    selectionFromWire request.Selection,
+                    context.CancellationToken
+                )
 
             return wire value
         }
 
     override _.WatchSkyrimSetup(request, stream, context) =
         let workspace, profile = ids request.WorkspaceId request.ProfileId
+
         task {
             while not context.CancellationToken.IsCancellationRequested do
                 let revision = coordinator.CurrentRevision(workspace, profile)
+
                 let! value =
                     coordinator.Read(
                         workspace,
@@ -95,23 +107,67 @@ type internal SkyrimSetupService(coordinator: SkyrimSetupCoordinator) =
                         selectionFromWire request.Selection,
                         context.CancellationToken
                     )
+
                 do! stream.WriteAsync(wire value, context.CancellationToken)
-                do! coordinator.WaitForChange(workspace, profile, revision, context.CancellationToken)
-        } :> Task
+
+                do!
+                    coordinator.WaitForChange(
+                        workspace,
+                        profile,
+                        revision,
+                        context.CancellationToken
+                    )
+        }
+        :> Task
 
     override _.StartSkyrimSetup(request, context) =
         let workspace, profile = ids request.WorkspaceId request.ProfileId
 
         task {
+            let choice: ModConductor.Skse.SkseReleaseChoice option =
+                if request.SkseChoice <> null then
+                    Some
+                        { FileId = request.SkseChoice.FileId
+                          ComponentVersion = request.SkseChoice.ComponentVersion
+                          GameVersion = request.SkseChoice.GameVersion
+                          GameSha256 = request.SkseChoice.GameSha256
+                          AllowIncompatible = request.SkseChoice.AllowIncompatible }
+                else
+                    None
+
             let! value =
                 coordinator.Start(
                     workspace,
                     profile,
                     selectionFromWire request.Selection,
+                    choice,
                     context.CancellationToken
                 )
 
             return wireOutcome value
+        }
+
+    override _.ReviewSkseRelease(request, _) =
+        task {
+            let workspace, profile = ids request.WorkspaceId request.ProfileId
+            let! reviewed = coordinator.ReviewSkse(workspace, profile)
+
+            return
+                match reviewed with
+                | Error problem ->
+                    SkseReleaseReview(Problem = ModConductor.Skse.SkseProblem.message problem)
+                | Ok value ->
+                    SkseReleaseReview(
+                        Compatible = value.Compatible,
+                        GameVersion = value.GameVersion,
+                        GameSha256 = value.GameSha256,
+                        FileId = value.Release.File.Id,
+                        ComponentVersion = string value.Release.ComponentVersion,
+                        SupportedRuntime =
+                            (value.Release.DeclaredRuntimeVersion
+                             |> Option.map string
+                             |> Option.defaultValue "")
+                    )
         }
 
     override _.ContinueSkyrimSetup(request, context) =
@@ -139,6 +195,6 @@ type internal SkyrimSetupService(coordinator: SkyrimSetupCoordinator) =
                 | "fnis" -> ModConductor.Fnis.FnisCatalogue.Source
                 | _ -> invalidArg "component_id" "The selected component is unavailable."
 
-            do! ModConductor.Desktop.WebLink.openBrowser(Uri address, context.CancellationToken)
+            do! ModConductor.Desktop.WebLink.openBrowser (Uri address, context.CancellationToken)
             return SkyrimSetupPageReply(Opened = true)
         }

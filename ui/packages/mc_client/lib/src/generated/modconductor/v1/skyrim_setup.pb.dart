@@ -12,6 +12,7 @@
 
 import 'dart:core' as $core;
 
+import 'package:fixnum/fixnum.dart' as $fixnum;
 import 'package:protobuf/protobuf.dart' as $pb;
 
 import 'skyrim_setup.pbenum.dart';
@@ -286,11 +287,13 @@ class StartSkyrimSetupRequest extends $pb.GeneratedMessage {
     $core.String? workspaceId,
     $core.String? profileId,
     SkyrimSetupSelection? selection,
+    SkseReleaseChoice? skseChoice,
   }) {
     final result = create();
     if (workspaceId != null) result.workspaceId = workspaceId;
     if (profileId != null) result.profileId = profileId;
     if (selection != null) result.selection = selection;
+    if (skseChoice != null) result.skseChoice = skseChoice;
     return result;
   }
 
@@ -312,6 +315,8 @@ class StartSkyrimSetupRequest extends $pb.GeneratedMessage {
     ..aOS(2, _omitFieldNames ? '' : 'profileId')
     ..aOM<SkyrimSetupSelection>(3, _omitFieldNames ? '' : 'selection',
         subBuilder: SkyrimSetupSelection.create)
+    ..aOM<SkseReleaseChoice>(4, _omitFieldNames ? '' : 'skseChoice',
+        subBuilder: SkseReleaseChoice.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -362,6 +367,247 @@ class StartSkyrimSetupRequest extends $pb.GeneratedMessage {
   void clearSelection() => $_clearField(3);
   @$pb.TagNumber(3)
   SkyrimSetupSelection ensureSelection() => $_ensure(2);
+
+  @$pb.TagNumber(4)
+  SkseReleaseChoice get skseChoice => $_getN(3);
+  @$pb.TagNumber(4)
+  set skseChoice(SkseReleaseChoice value) => $_setField(4, value);
+  @$pb.TagNumber(4)
+  $core.bool hasSkseChoice() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearSkseChoice() => $_clearField(4);
+  @$pb.TagNumber(4)
+  SkseReleaseChoice ensureSkseChoice() => $_ensure(3);
+}
+
+class SkseReleaseChoice extends $pb.GeneratedMessage {
+  factory SkseReleaseChoice({
+    $fixnum.Int64? fileId,
+    $core.String? componentVersion,
+    $core.String? gameVersion,
+    $core.String? gameSha256,
+    $core.bool? allowIncompatible,
+  }) {
+    final result = create();
+    if (fileId != null) result.fileId = fileId;
+    if (componentVersion != null) result.componentVersion = componentVersion;
+    if (gameVersion != null) result.gameVersion = gameVersion;
+    if (gameSha256 != null) result.gameSha256 = gameSha256;
+    if (allowIncompatible != null) result.allowIncompatible = allowIncompatible;
+    return result;
+  }
+
+  SkseReleaseChoice._();
+
+  factory SkseReleaseChoice.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory SkseReleaseChoice.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'SkseReleaseChoice',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..aInt64(1, _omitFieldNames ? '' : 'fileId')
+    ..aOS(2, _omitFieldNames ? '' : 'componentVersion')
+    ..aOS(3, _omitFieldNames ? '' : 'gameVersion')
+    ..aOS(4, _omitFieldNames ? '' : 'gameSha256')
+    ..aOB(5, _omitFieldNames ? '' : 'allowIncompatible')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SkseReleaseChoice clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SkseReleaseChoice copyWith(void Function(SkseReleaseChoice) updates) =>
+      super.copyWith((message) => updates(message as SkseReleaseChoice))
+          as SkseReleaseChoice;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SkseReleaseChoice create() => SkseReleaseChoice._();
+  @$core.override
+  SkseReleaseChoice createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static SkseReleaseChoice getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<SkseReleaseChoice>(create);
+  static SkseReleaseChoice? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $fixnum.Int64 get fileId => $_getI64(0);
+  @$pb.TagNumber(1)
+  set fileId($fixnum.Int64 value) => $_setInt64(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasFileId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearFileId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get componentVersion => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set componentVersion($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasComponentVersion() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearComponentVersion() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get gameVersion => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set gameVersion($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasGameVersion() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearGameVersion() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get gameSha256 => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set gameSha256($core.String value) => $_setString(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasGameSha256() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearGameSha256() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.bool get allowIncompatible => $_getBF(4);
+  @$pb.TagNumber(5)
+  set allowIncompatible($core.bool value) => $_setBool(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasAllowIncompatible() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearAllowIncompatible() => $_clearField(5);
+}
+
+class SkseReleaseReview extends $pb.GeneratedMessage {
+  factory SkseReleaseReview({
+    $core.bool? compatible,
+    $core.String? gameVersion,
+    $core.String? gameSha256,
+    $fixnum.Int64? fileId,
+    $core.String? componentVersion,
+    $core.String? supportedRuntime,
+    $core.String? problem,
+  }) {
+    final result = create();
+    if (compatible != null) result.compatible = compatible;
+    if (gameVersion != null) result.gameVersion = gameVersion;
+    if (gameSha256 != null) result.gameSha256 = gameSha256;
+    if (fileId != null) result.fileId = fileId;
+    if (componentVersion != null) result.componentVersion = componentVersion;
+    if (supportedRuntime != null) result.supportedRuntime = supportedRuntime;
+    if (problem != null) result.problem = problem;
+    return result;
+  }
+
+  SkseReleaseReview._();
+
+  factory SkseReleaseReview.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory SkseReleaseReview.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'SkseReleaseReview',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..aOB(1, _omitFieldNames ? '' : 'compatible')
+    ..aOS(2, _omitFieldNames ? '' : 'gameVersion')
+    ..aOS(3, _omitFieldNames ? '' : 'gameSha256')
+    ..aInt64(4, _omitFieldNames ? '' : 'fileId')
+    ..aOS(5, _omitFieldNames ? '' : 'componentVersion')
+    ..aOS(6, _omitFieldNames ? '' : 'supportedRuntime')
+    ..aOS(7, _omitFieldNames ? '' : 'problem')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SkseReleaseReview clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SkseReleaseReview copyWith(void Function(SkseReleaseReview) updates) =>
+      super.copyWith((message) => updates(message as SkseReleaseReview))
+          as SkseReleaseReview;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SkseReleaseReview create() => SkseReleaseReview._();
+  @$core.override
+  SkseReleaseReview createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static SkseReleaseReview getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<SkseReleaseReview>(create);
+  static SkseReleaseReview? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.bool get compatible => $_getBF(0);
+  @$pb.TagNumber(1)
+  set compatible($core.bool value) => $_setBool(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasCompatible() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearCompatible() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get gameVersion => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set gameVersion($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasGameVersion() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearGameVersion() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get gameSha256 => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set gameSha256($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasGameSha256() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearGameSha256() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $fixnum.Int64 get fileId => $_getI64(3);
+  @$pb.TagNumber(4)
+  set fileId($fixnum.Int64 value) => $_setInt64(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasFileId() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearFileId() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.String get componentVersion => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set componentVersion($core.String value) => $_setString(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasComponentVersion() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearComponentVersion() => $_clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.String get supportedRuntime => $_getSZ(5);
+  @$pb.TagNumber(6)
+  set supportedRuntime($core.String value) => $_setString(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasSupportedRuntime() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearSupportedRuntime() => $_clearField(6);
+
+  @$pb.TagNumber(7)
+  $core.String get problem => $_getSZ(6);
+  @$pb.TagNumber(7)
+  set problem($core.String value) => $_setString(6, value);
+  @$pb.TagNumber(7)
+  $core.bool hasProblem() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearProblem() => $_clearField(7);
 }
 
 class SkyrimSetupSelection extends $pb.GeneratedMessage {

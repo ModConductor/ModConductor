@@ -44,6 +44,8 @@ type private ReleaseEvidence =
       LabelWithoutRuntimeRejected: bool
       PublicSteamVersionMatches: bool
       OtherStorefrontsRemainIncompatible: bool
+      LatestFallbackNeedsExplicitChoice: bool
+      ReviewedReleasePinned: bool
       OrdinaryNexusRoutes: bool
       ReviewedArchiveLayout: bool }
 
@@ -173,8 +175,16 @@ module SkseFixtures =
               Picture = None
               Files =
                 [ nexusFile 10L "older" "2.0.0" ("For game version " + runtime + " from Steam")
-                  nexusFile 11L "matching" "2.2.0" ("Current game version " + runtime + " from Steam")
-                  nexusFile 12L "newer incompatible" "3.0.0" "Current game version 9.9.9.9 from Steam"
+                  nexusFile
+                      11L
+                      "matching"
+                      "2.2.0"
+                      ("Current game version " + runtime + " from Steam")
+                  nexusFile
+                      12L
+                      "newer incompatible"
+                      "3.0.0"
+                      "Current game version 9.9.9.9 from Steam"
                   nexusFile 13L "label only" "4.0.0" "Anniversary Edition" ] }
 
         let releases = SkseResolver.releases modInfo
@@ -186,7 +196,7 @@ module SkseFixtures =
                           20L
                           "Skyrim Script Extender (SKSE64) Steam"
                           "2.3.1"
-                          "Compatible with Skyrim Special Edition 1.7.104 from Steam"
+                          "Compatible with Skyrim Special Edition 1.7.104 from Steam."
                       nexusFile
                           21L
                           "Skyrim Script Extender (SKSE64) GOG"
@@ -232,6 +242,69 @@ module SkseFixtures =
             match incompatibleSelection with
             | Error SkseProblem.UnknownCompatibility -> true
             | _ -> false
+
+        let fallbackReleases =
+            publicReleases |> List.filter (fun release -> release.File.Id <> 20L)
+
+        let fallbackReview = SkseResolver.review state fallbackReleases
+
+        let undeclaredSteamReview =
+            SkseResolver.review
+                state
+                (SkseResolver.releases
+                    { publicFiles with
+                        Files = [ nexusFile 30L "SKSE Steam" "2.5.0" "Latest SKSE for Steam" ] })
+
+        let latestFallbackNeedsExplicitChoice =
+            fallbackReview
+            |> Result.toOption
+            |> Option.exists (fun review ->
+                not review.Compatible
+                && review.Release.File.Id = 23L
+                && review.Release.DeclaredRuntimeVersion = Some(Version(1, 7, 104, 1)))
+            && (undeclaredSteamReview
+                |> Result.toOption
+                |> Option.exists (fun review ->
+                    not review.Compatible
+                    && review.Release.File.Id = 30L
+                    && review.Release.DeclaredRuntimeVersion.IsNone))
+
+        let reviewedReleasePinned =
+            match fallbackReview with
+            | Error _ -> false
+            | Ok review ->
+                let account =
+                    Some
+                        { Subject = "42"
+                          Name = "Premium"
+                          Premium = Some true
+                          ProfileImage = None }
+
+                let choose files fileId gameSha256 allowIncompatible =
+                    SkseResolver.selectReviewed
+                        state
+                        files
+                        account
+                        fileId
+                        (string review.Release.ComponentVersion)
+                        review.GameVersion
+                        gameSha256
+                        allowIncompatible
+
+                match choose fallbackReleases 23L review.GameSha256 true with
+                | Ok selection ->
+                    selection.Release.File.Id = 23L
+                    && selection.Release.RuntimeVersion = review.RuntimeVersion
+                    && (match choose fallbackReleases 22L review.GameSha256 true with
+                        | Error SkseProblem.SelectionChanged -> true
+                        | _ -> false)
+                    && (match choose fallbackReleases 23L "changed-game" true with
+                        | Error SkseProblem.SelectionChanged -> true
+                        | _ -> false)
+                    && (match choose fallbackReleases 23L review.GameSha256 false with
+                        | Error SkseProblem.SelectionChanged -> true
+                        | _ -> false)
+                | Error _ -> false
 
         let premium =
             SkseResolver.select
@@ -292,6 +365,8 @@ module SkseFixtures =
           LabelWithoutRuntimeRejected = releases.Length = 3
           PublicSteamVersionMatches = publicSteamMatches
           OtherStorefrontsRemainIncompatible = incompatibleVersionsRejected
+          LatestFallbackNeedsExplicitChoice = latestFallbackNeedsExplicitChoice
+          ReviewedReleasePinned = reviewedReleasePinned
           OrdinaryNexusRoutes =
             premium.Acquisition = SkseAcquisition.Direct
             && regular.Acquisition = SkseAcquisition.NexusPage
@@ -303,7 +378,10 @@ module SkseFixtures =
                     current.Files.Length = 3 && current.ComponentFiles.Length = 3))
             && invalidLayout }
 
-    let private installInitialRelease (scenario: SkseScenario) (releases: ReleaseEvidence) : InstalledEvidence =
+    let private installInitialRelease
+        (scenario: SkseScenario)
+        (releases: ReleaseEvidence)
+        : InstalledEvidence =
         let store = scenario.Store
         let workspace = scenario.Workspace
         let profile = scenario.Profile
@@ -440,9 +518,10 @@ module SkseFixtures =
         let genericComponentContinuity =
             ordinaryReceipt.Phase = DeploymentPhase.Complete
             && installedGeneration <> firstGeneration
-            && (firstStored |> Option.exists (fun value ->
-                value.Loader.GenerationId = firstGeneration
-                && File.Exists(Path.Combine(deployedFirst.RunnableRoot, "skse64_loader.exe"))))
+            && (firstStored
+                |> Option.exists (fun value ->
+                    value.Loader.GenerationId = firstGeneration
+                    && File.Exists(Path.Combine(deployedFirst.RunnableRoot, "skse64_loader.exe"))))
 
         let genericLaunch =
             (store.GameLaunching.Read(workspace, profile) |> wait)
@@ -467,7 +546,8 @@ module SkseFixtures =
                 && descriptor.WorkingDirectory = runnableRoot
                 && runtimeName = evidence.Proton.Value.RuntimeName
             else
-                descriptor.Executable = runnableLoader && descriptor.WorkingDirectory = runnableRoot
+                descriptor.Executable = runnableLoader
+                && descriptor.WorkingDirectory = runnableRoot
           TransferArchiveInstallGeneration =
             genericDraft.Installer = InstallationMode.Bain
             && (firstArtifact.Download |> Option.exists (fun value -> value.ChecksumMatched))
@@ -492,7 +572,12 @@ module SkseFixtures =
 
         let updateRelease =
             { premium.Release with
-                File = nexusFile 14L "matching update" "2.3.0" ("Current game version " + runtime + " from Steam")
+                File =
+                    nexusFile
+                        14L
+                        "matching update"
+                        "2.3.0"
+                        ("Current game version " + runtime + " from Steam")
                 ComponentVersion = Version(2, 3, 0) }
 
         let updateArtifact =
@@ -757,13 +842,16 @@ module SkseFixtures =
         let updatedStored = updated.Stored
 
         let otherProfile = Guid.NewGuid()
+
         let workspaceRevision =
             (workspaces.Read(workspace, None) |> wait |> result).Workspace.Revision
 
         workspaces.Edit(
             workspace,
             workspaceRevision,
-            ProfileEdit.Create { Id = otherProfile; Name = "Other profile" }
+            ProfileEdit.Create
+                { Id = otherProfile
+                  Name = "Other profile" }
         )
         |> wait
         |> result
@@ -783,7 +871,11 @@ module SkseFixtures =
         |> ignore
 
         let sameArchive =
-            downloaded store workspace "skse-update-again.zip" (File.ReadAllBytes updateArtifact.Path)
+            downloaded
+                store
+                workspace
+                "skse-update-again.zip"
+                (File.ReadAllBytes updateArtifact.Path)
 
         let otherGeneration =
             store.InstallSkse(
@@ -807,15 +899,16 @@ module SkseFixtures =
             && otherInstalled.VersionId = updatedStored.Value.VersionId
             && ((store.Artifacts.Read(workspace, sameArchive.Id) |> wait |> result).Links
                 |> List.exists (fun link ->
-                    link.ModId = otherInstalled.ModId
-                    && link.VersionId = otherInstalled.VersionId))
+                    link.ModId = otherInstalled.ModId && link.VersionId = otherInstalled.VersionId))
 
         let otherBefore = InventoryObservations.read store otherProfile
 
         let library = store.ModLibrary :> IModLibrary
         let imported = updatedStored.Value
         let importedContents = library.Version(imported.VersionId, 0) |> wait |> result
-        let linksBefore = (store.Artifacts.Read(workspace, updateArtifact.Id) |> wait |> result).Links
+
+        let linksBefore =
+            (store.Artifacts.Read(workspace, updateArtifact.Id) |> wait |> result).Links
 
         let reusedGeneration =
             store.InstallSkse(
@@ -834,7 +927,10 @@ module SkseFixtures =
             |> wait
             |> Option.get
 
-        store.RemoveSkse(workspace, profile, CancellationToken.None) |> wait |> result |> ignore
+        store.RemoveSkse(workspace, profile, CancellationToken.None)
+        |> wait
+        |> result
+        |> ignore
 
         let restoredGeneration =
             store.InstallSkse(
@@ -853,7 +949,9 @@ module SkseFixtures =
             |> wait
             |> Option.get
 
-        let linksAfter = (store.Artifacts.Read(workspace, updateArtifact.Id) |> wait |> result).Links
+        let linksAfter =
+            (store.Artifacts.Read(workspace, updateArtifact.Id) |> wait |> result).Links
+
         let restoredContents = library.Version(restored.VersionId, 0) |> wait |> result
         let otherAfter = InventoryObservations.read store otherProfile
 
@@ -886,11 +984,20 @@ module SkseFixtures =
 
         let nextRelease =
             { updateRelease with
-                File = nexusFile 15L "later update" "2.4.0" ("Current game version " + runtime + " from Steam")
+                File =
+                    nexusFile
+                        15L
+                        "later update"
+                        "2.4.0"
+                        ("Current game version " + runtime + " from Steam")
                 ComponentVersion = Version(2, 4, 0) }
 
         let nextArtifact =
-            downloaded store workspace "skse-after-delete.zip" (createArchive runtime "after-delete")
+            downloaded
+                store
+                workspace
+                "skse-after-delete.zip"
+                (createArchive runtime "after-delete")
 
         let afterDeleteGeneration =
             store.InstallSkse(
@@ -907,8 +1014,7 @@ module SkseFixtures =
         let importAfterDeletion =
             store.SkseLoaders.ReadStored(workspace, profile, Some afterDeleteGeneration)
             |> wait
-            |> Option.exists (fun value ->
-                value.ModId <> firstMod && value.ModId <> imported.ModId)
+            |> Option.exists (fun value -> value.ModId <> firstMod && value.ModId <> imported.ModId)
 
         { SameSkseSourceReusesImportedVersionAfterRemoval = sameReleaseReused
           SecondProfileUsesAvailableSkseVersion = otherFirstInstall
@@ -980,7 +1086,9 @@ module SkseFixtures =
         |> result
         |> ignore
 
-        let state = (store.GameContexts :> IGameContexts).Read(workspace, profile) |> wait |> result
+        let state =
+            (store.GameContexts :> IGameContexts).Read(workspace, profile) |> wait |> result
+
         let evidence = state.Binding.Value.Evidence
         let runtime = evidence.Executable.Value.FileVersion
 
@@ -1001,7 +1109,8 @@ module SkseFixtures =
         let installed = installInitialRelease scenario releases
 
         let updated =
-            replaceInterruptedRelease scenario releases installed (fun value -> interruptReplacement <- value)
+            replaceInterruptedRelease scenario releases installed (fun value ->
+                interruptReplacement <- value)
 
         let removed = removeInstalledRelease scenario installed updated
 
@@ -1013,7 +1122,11 @@ module SkseFixtures =
         writer.WriteBoolean("exactRuntimeWins", releases.ExactRuntimeWins)
         writer.WriteBoolean("newerIncompatibleRejected", releases.NewerIncompatibleRejected)
         writer.WriteBoolean("labelWithoutRuntimeRejected", releases.LabelWithoutRuntimeRejected)
-        writer.WriteBoolean("publicSteamVersionMatchesPeVersion", releases.PublicSteamVersionMatches)
+
+        writer.WriteBoolean(
+            "publicSteamVersionMatchesPeVersion",
+            releases.PublicSteamVersionMatches
+        )
 
         writer.WriteBoolean(
             "otherStorefrontsMissingDeclarationsAndRevisionsRemainIncompatible",
@@ -1021,10 +1134,21 @@ module SkseFixtures =
         )
 
         writer.WriteBoolean("ordinaryNexusRoutes", releases.OrdinaryNexusRoutes)
+
+        writer.WriteBoolean(
+            "latestFallbackNeedsExplicitChoice",
+            releases.LatestFallbackNeedsExplicitChoice
+        )
+
+        writer.WriteBoolean("reviewedReleasePinned", releases.ReviewedReleasePinned)
         writer.WriteBoolean("reviewedArchiveLayout", releases.ReviewedArchiveLayout)
         writer.WriteBoolean("generationBoundLoader", installed.GenerationBoundLoader)
         writer.WriteBoolean("protonUsesLoader", installed.ProtonUsesLoader)
-        writer.WriteBoolean("transferArchiveInstallGeneration", installed.TransferArchiveInstallGeneration)
+
+        writer.WriteBoolean(
+            "transferArchiveInstallGeneration",
+            installed.TransferArchiveInstallGeneration
+        )
 
         writer.WriteBoolean(
             "ordinaryRedeployRetainsComponentRouteAndLaunch",
@@ -1043,17 +1167,17 @@ module SkseFixtures =
             && durable.RestartedGenerationBound
         )
 
-        writer.WriteBoolean(
-            "removalRestoresForeignLoaderAndDropsActiveProvenance",
-            removed
-        )
+        writer.WriteBoolean("removalRestoresForeignLoaderAndDropsActiveProvenance", removed)
 
         writer.WriteBoolean(
             "coldRestartRetainsCacheAndLoaderProvenance",
             durable.ColdRestartRetainsCacheAndLoaderProvenance
         )
 
-        writer.WriteBoolean("nxmWaitingAndFailureAreDurable", durable.NxmWaitingAndFailureAreDurable)
+        writer.WriteBoolean(
+            "nxmWaitingAndFailureAreDurable",
+            durable.NxmWaitingAndFailureAreDurable
+        )
 
         writer.WriteBoolean(
             "sameSkseSourceReusesImportedVersionAfterRemoval",

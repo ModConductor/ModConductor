@@ -7,6 +7,7 @@ class _SkyrimSetupActions extends StatelessWidget {
     required this.busy,
     required this.locked,
     required this.failed,
+    required this.skseChoiceReady,
     required this.onApply,
     required this.onClearChoices,
     required this.onRefresh,
@@ -19,6 +20,7 @@ class _SkyrimSetupActions extends StatelessWidget {
   final bool busy;
   final bool locked;
   final bool failed;
+  final bool skseChoiceReady;
   final VoidCallback onApply;
   final VoidCallback onClearChoices;
   final VoidCallback onRefresh;
@@ -31,6 +33,7 @@ class _SkyrimSetupActions extends StatelessWidget {
     final canApply =
         !busy &&
         !locked &&
+        skseChoiceReady &&
         (value?.canStart == true ||
             value?.phase == SkyrimSetupStatusPhase.failed) &&
         selection.canApply;

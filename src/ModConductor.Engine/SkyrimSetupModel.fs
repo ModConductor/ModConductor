@@ -8,6 +8,7 @@ open ModConductor.GameLaunching
 open ModConductor.Persistence
 open ModConductor.ProfileGameData
 open ModConductor.Protocol.V1
+open ModConductor.Skse
 
 type SkyrimSetupComponentView =
     { Id: string
@@ -33,7 +34,14 @@ type internal SkyrimSetupView =
       Ready: bool }
 
 type internal SkyrimSetupDependencies =
-    { ReadSkse: Guid -> Guid -> System.Threading.Tasks.Task<SkseView>
+    { PrepareSkse:
+        Guid
+            -> Guid
+            -> SkseReleaseChoice option
+            -> System.Threading.Tasks.Task<Result<unit, SkseProblem>>
+      ReviewSkse: Guid -> Guid -> System.Threading.Tasks.Task<Result<SkseReview, SkseProblem>>
+      ClearPreparedSkse: Guid -> Guid -> unit
+      ReadSkse: Guid -> Guid -> System.Threading.Tasks.Task<SkseView>
       StartSkse: Guid -> Guid -> System.Threading.Tasks.Task<SkseView>
       RemoveSkse:
           Guid -> Guid -> CancellationToken -> System.Threading.Tasks.Task<Result<SkseView, string>>
@@ -87,8 +95,11 @@ module internal SkyrimSetupDependencies =
         (launches: IGameLaunching)
         (pluginOrders: IProfilePluginOrders)
         =
-        { ReadSkse = fun workspace profile -> skse.Read(workspace, profile)
-          StartSkse = fun workspace profile -> skse.Start(workspace, profile)
+        { PrepareSkse = fun workspace profile choice -> skse.Prepare(workspace, profile, choice)
+          ReviewSkse = fun workspace profile -> skse.Review(workspace, profile)
+          ClearPreparedSkse = fun workspace profile -> skse.ClearPrepared(workspace, profile)
+          ReadSkse = fun workspace profile -> skse.Read(workspace, profile)
+          StartSkse = fun workspace profile -> skse.StartPrepared(workspace, profile)
           RemoveSkse = fun workspace profile token -> skse.Remove(workspace, profile, token)
           CancelSkse = fun workspace profile -> skse.Cancel(workspace, profile)
           ReadEnb = fun workspace profile -> enb.Read(workspace, profile)

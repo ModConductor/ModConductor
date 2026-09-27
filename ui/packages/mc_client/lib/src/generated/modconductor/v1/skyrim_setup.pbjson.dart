@@ -146,6 +146,14 @@ const StartSkyrimSetupRequest$json = {
       '6': '.modconductor.v1.SkyrimSetupSelection',
       '10': 'selection'
     },
+    {
+      '1': 'skse_choice',
+      '3': 4,
+      '4': 1,
+      '5': 11,
+      '6': '.modconductor.v1.SkseReleaseChoice',
+      '10': 'skseChoice'
+    },
   ],
 };
 
@@ -153,7 +161,74 @@ const StartSkyrimSetupRequest$json = {
 final $typed_data.Uint8List startSkyrimSetupRequestDescriptor = $convert.base64Decode(
     'ChdTdGFydFNreXJpbVNldHVwUmVxdWVzdBIhCgx3b3Jrc3BhY2VfaWQYASABKAlSC3dvcmtzcG'
     'FjZUlkEh0KCnByb2ZpbGVfaWQYAiABKAlSCXByb2ZpbGVJZBJDCglzZWxlY3Rpb24YAyABKAsy'
-    'JS5tb2Rjb25kdWN0b3IudjEuU2t5cmltU2V0dXBTZWxlY3Rpb25SCXNlbGVjdGlvbg==');
+    'JS5tb2Rjb25kdWN0b3IudjEuU2t5cmltU2V0dXBTZWxlY3Rpb25SCXNlbGVjdGlvbhJDCgtza3'
+    'NlX2Nob2ljZRgEIAEoCzIiLm1vZGNvbmR1Y3Rvci52MS5Ta3NlUmVsZWFzZUNob2ljZVIKc2tz'
+    'ZUNob2ljZQ==');
+
+@$core.Deprecated('Use skseReleaseChoiceDescriptor instead')
+const SkseReleaseChoice$json = {
+  '1': 'SkseReleaseChoice',
+  '2': [
+    {'1': 'file_id', '3': 1, '4': 1, '5': 3, '10': 'fileId'},
+    {
+      '1': 'component_version',
+      '3': 2,
+      '4': 1,
+      '5': 9,
+      '10': 'componentVersion'
+    },
+    {'1': 'game_version', '3': 3, '4': 1, '5': 9, '10': 'gameVersion'},
+    {'1': 'game_sha256', '3': 4, '4': 1, '5': 9, '10': 'gameSha256'},
+    {
+      '1': 'allow_incompatible',
+      '3': 5,
+      '4': 1,
+      '5': 8,
+      '10': 'allowIncompatible'
+    },
+  ],
+};
+
+/// Descriptor for `SkseReleaseChoice`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List skseReleaseChoiceDescriptor = $convert.base64Decode(
+    'ChFTa3NlUmVsZWFzZUNob2ljZRIXCgdmaWxlX2lkGAEgASgDUgZmaWxlSWQSKwoRY29tcG9uZW'
+    '50X3ZlcnNpb24YAiABKAlSEGNvbXBvbmVudFZlcnNpb24SIQoMZ2FtZV92ZXJzaW9uGAMgASgJ'
+    'UgtnYW1lVmVyc2lvbhIfCgtnYW1lX3NoYTI1NhgEIAEoCVIKZ2FtZVNoYTI1NhItChJhbGxvd1'
+    '9pbmNvbXBhdGlibGUYBSABKAhSEWFsbG93SW5jb21wYXRpYmxl');
+
+@$core.Deprecated('Use skseReleaseReviewDescriptor instead')
+const SkseReleaseReview$json = {
+  '1': 'SkseReleaseReview',
+  '2': [
+    {'1': 'compatible', '3': 1, '4': 1, '5': 8, '10': 'compatible'},
+    {'1': 'game_version', '3': 2, '4': 1, '5': 9, '10': 'gameVersion'},
+    {'1': 'game_sha256', '3': 3, '4': 1, '5': 9, '10': 'gameSha256'},
+    {'1': 'file_id', '3': 4, '4': 1, '5': 3, '10': 'fileId'},
+    {
+      '1': 'component_version',
+      '3': 5,
+      '4': 1,
+      '5': 9,
+      '10': 'componentVersion'
+    },
+    {
+      '1': 'supported_runtime',
+      '3': 6,
+      '4': 1,
+      '5': 9,
+      '10': 'supportedRuntime'
+    },
+    {'1': 'problem', '3': 7, '4': 1, '5': 9, '10': 'problem'},
+  ],
+};
+
+/// Descriptor for `SkseReleaseReview`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List skseReleaseReviewDescriptor = $convert.base64Decode(
+    'ChFTa3NlUmVsZWFzZVJldmlldxIeCgpjb21wYXRpYmxlGAEgASgIUgpjb21wYXRpYmxlEiEKDG'
+    'dhbWVfdmVyc2lvbhgCIAEoCVILZ2FtZVZlcnNpb24SHwoLZ2FtZV9zaGEyNTYYAyABKAlSCmdh'
+    'bWVTaGEyNTYSFwoHZmlsZV9pZBgEIAEoA1IGZmlsZUlkEisKEWNvbXBvbmVudF92ZXJzaW9uGA'
+    'UgASgJUhBjb21wb25lbnRWZXJzaW9uEisKEXN1cHBvcnRlZF9ydW50aW1lGAYgASgJUhBzdXBw'
+    'b3J0ZWRSdW50aW1lEhgKB3Byb2JsZW0YByABKAlSB3Byb2JsZW0=');
 
 @$core.Deprecated('Use skyrimSetupSelectionDescriptor instead')
 const SkyrimSetupSelection$json = {

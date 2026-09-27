@@ -1,11 +1,13 @@
 namespace ModConductor.Engine
 
 open System
+open System.Collections.Concurrent
 open ModConductor.GameContexts
 open ModConductor.HttpDownloads
 open ModConductor.Nexus
 open ModConductor.Persistence
 open ModConductor.Protocol.V1
+open ModConductor.Skse
 
 type SkseCoordinator
     (
@@ -24,10 +26,53 @@ type SkseCoordinator
         SkseStart(nexus, downloads, games, store, handoff, sources, monitor, status)
 
     let nxm = SkseNxmIngress(nexus, downloads, games, store, sources, monitor, status)
+    let prepared = ConcurrentDictionary<Guid * Guid, StoredSkseSelection>()
 
     member _.Read(workspace, profile) = reader.Read(workspace, profile)
     member _.CheckUpdate(workspace, profile) = reader.CheckUpdate(workspace, profile)
-    member _.Start(workspace, profile) = start.Start(workspace, profile)
+    member _.Review(workspace, profile) = sources.Review(workspace, profile)
+
+    member _.Prepare(workspace, profile, choice: SkseReleaseChoice option) =
+        task {
+            let key = workspace, profile
+            let mutable previous = Unchecked.defaultof<StoredSkseSelection>
+            prepared.TryRemove(key, &previous) |> ignore
+
+            match choice with
+            | None ->
+                let! reviewed = sources.Review(workspace, profile)
+
+                return
+                    reviewed
+                    |> Result.bind (fun value ->
+                        if value.Compatible then
+                            Ok()
+                        else
+                            Error SkseProblem.UnknownCompatibility)
+            | Some choice ->
+                let! selected = sources.ResolveReviewed(workspace, profile, choice)
+
+                return selected |> Result.map (fun (_, selection) -> prepared[key] <- selection)
+        }
+
+    member _.ClearPrepared(workspace, profile) =
+        let mutable previous = Unchecked.defaultof<StoredSkseSelection>
+        prepared.TryRemove((workspace, profile), &previous) |> ignore
+
+    member _.Start(workspace, profile) = start.Start(workspace, profile, None)
+
+    member _.StartPrepared(workspace, profile) =
+        let key = workspace, profile
+        let mutable selection = Unchecked.defaultof<StoredSkseSelection>
+
+        let selected =
+            if prepared.TryRemove(key, &selection) then
+                Some selection
+            else
+                None
+
+        start.Start(workspace, profile, selected)
+
     member _.AcceptNxm(id: Guid) = nxm.Accept(id)
 
     member _.CheckBeforePlay(workspace, profile) =
@@ -37,6 +82,8 @@ type SkseCoordinator
 
     member _.Cancel(workspace, profile) =
         task {
+            let mutable previous = Unchecked.defaultof<StoredSkseSelection>
+            prepared.TryRemove((workspace, profile), &previous) |> ignore
             let key = workspace, profile
             do! monitor.Cancel key
             do! store.SkseLoaders.RemovePending profile

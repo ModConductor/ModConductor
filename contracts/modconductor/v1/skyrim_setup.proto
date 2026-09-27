@@ -9,6 +9,7 @@ service SkyrimSetupOperations {
   rpc ContinueSkyrimSetup(SkyrimSetupRequest) returns (SkyrimSetupState);
   rpc CancelSkyrimSetup(SkyrimSetupRequest) returns (SkyrimSetupState);
   rpc OpenSkyrimSetupPage(SkyrimSetupPageRequest) returns (SkyrimSetupPageReply);
+  rpc ReviewSkseRelease(SkyrimSetupRequest) returns (SkseReleaseReview);
 }
 
 message SkyrimSetupPageRequest { string component_id = 1; }
@@ -24,6 +25,23 @@ message StartSkyrimSetupRequest {
   string workspace_id = 1;
   string profile_id = 2;
   SkyrimSetupSelection selection = 3;
+  SkseReleaseChoice skse_choice = 4;
+}
+message SkseReleaseChoice {
+  int64 file_id = 1;
+  string component_version = 2;
+  string game_version = 3;
+  string game_sha256 = 4;
+  bool allow_incompatible = 5;
+}
+message SkseReleaseReview {
+  bool compatible = 1;
+  string game_version = 2;
+  string game_sha256 = 3;
+  int64 file_id = 4;
+  string component_version = 5;
+  string supported_runtime = 6;
+  string problem = 7;
 }
 enum SkyrimSetupAction {
   SKYRIM_SETUP_ACTION_UNCHANGED = 0;

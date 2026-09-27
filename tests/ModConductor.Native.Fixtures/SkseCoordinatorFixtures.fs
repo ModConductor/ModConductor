@@ -308,6 +308,84 @@ module SkseCoordinatorFixtures =
              && ready.Phase = SksePhase.Ready
              && launch.Problem.IsNone)
 
+        let fallbackArea =
+            Directory.CreateDirectory(Path.Combine(area, "reviewed-fallback")).FullName
+
+        use fallbackServer = new NexusServer()
+        fallbackServer.Premium <- false
+        let fallbackMemory = NexusMemoryStore()
+        use fallbackCredentials = new CredentialSession(fallbackMemory)
+
+        use fallbackSession =
+            new NexusSession(
+                fallbackCredentials,
+                Some fallbackServer.Registration,
+                fallbackServer.Handoff,
+                (fun _ -> Task.CompletedTask),
+                requestInterval = TimeSpan.Zero
+            )
+
+        signIn fallbackSession
+
+        use fallbackStore =
+            new OperationStore(
+                Path.Combine(fallbackArea, "state"),
+                nexusLinks = NexusDownloadLinks(fallbackSession),
+                downloadPolicy = policy
+            )
+
+        let fallbackWorkspace, fallbackProfile, _, _, fallbackContext =
+            createWorkspace fallbackStore fallbackArea
+
+        let detectedRuntime =
+            fallbackContext.Binding.Value.Evidence.Executable.Value.FileVersion
+
+        fallbackServer.SkseFiles <-
+            [ 402L, "skse-reviewed.zip", "2.4.0", "Current game version 9.9.9.9 from Steam" ]
+
+        use fallbackCoordinator =
+            new SkseCoordinator(
+                fallbackSession,
+                fallbackStore.Downloads,
+                fallbackStore.GameContexts,
+                fallbackStore,
+                fallbackServer.Handoff
+            )
+
+        let defaultStart =
+            fallbackCoordinator.Start(fallbackWorkspace, fallbackProfile) |> wait
+
+        let review =
+            fallbackCoordinator.Review(fallbackWorkspace, fallbackProfile) |> wait |> result
+
+        let chosen =
+            { FileId = review.Release.File.Id
+              ComponentVersion = string review.Release.ComponentVersion
+              GameVersion = review.GameVersion
+              GameSha256 = review.GameSha256
+              AllowIncompatible = true }
+
+        fallbackCoordinator.Prepare(fallbackWorkspace, fallbackProfile, Some chosen)
+        |> wait
+        |> result
+        |> ignore
+
+        fallbackServer.SkseFiles <-
+            [ 403L, "skse-newer.zip", "2.5.0", "Current game version 9.9.9.9 from Steam" ]
+
+        let selected =
+            fallbackCoordinator.StartPrepared(fallbackWorkspace, fallbackProfile) |> wait
+
+        check
+            writer
+            "reviewedFallbackSurvivesSourceChangeWithoutResolvingAnotherFile"
+            (detectedRuntime <> "9.9.9.9"
+             && defaultStart.Phase = SksePhase.Unavailable
+             && not review.Compatible
+             && review.Release.File.Id = 402L
+             && selected.Phase = SksePhase.WaitingForNexus
+             && selected.FileId = Some 402L)
+
         check
             writer
             "acceptNxmWrongAccountIsDurable"

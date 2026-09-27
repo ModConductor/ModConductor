@@ -47,6 +47,57 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
   int _epoch = 0;
   int _watchAttempt = 0;
   bool _updateEvidenceFresh = false;
+  SkseReleaseReview? skseReview;
+  String? skseReviewProblem;
+  bool reviewingSkse = false;
+  bool useLatestSkse = false;
+  int _reviewGeneration = 0;
+
+  bool get needsSkseReview =>
+      selection.skse == SkyrimSetupAction.install ||
+      selection.skse == SkyrimSetupAction.update;
+
+  bool get skseChoiceReady =>
+      !needsSkseReview ||
+      (skseReview?.problem == null &&
+          skseReview != null &&
+          (skseReview!.compatible || useLatestSkse));
+
+  void _clearSkseReview() {
+    ++_reviewGeneration;
+    skseReview = null;
+    skseReviewProblem = null;
+    reviewingSkse = false;
+    useLatestSkse = false;
+  }
+
+  Future<void> _reviewSkse() async {
+    final generation = ++_reviewGeneration;
+    setState(() {
+      skseReview = null;
+      skseReviewProblem = null;
+      reviewingSkse = true;
+      useLatestSkse = false;
+    });
+    try {
+      final reviewed = await widget.client.reviewSkseRelease(
+        widget.workspaceId,
+        widget.profileId,
+      );
+      if (!mounted || generation != _reviewGeneration) return;
+      setState(() {
+        skseReview = reviewed.problem == null ? reviewed : null;
+        skseReviewProblem = reviewed.problem;
+        reviewingSkse = false;
+      });
+    } on Exception {
+      if (!mounted || generation != _reviewGeneration) return;
+      setState(() {
+        skseReviewProblem = 'SKSE releases could not be checked.';
+        reviewingSkse = false;
+      });
+    }
+  }
 
   @override
   void initState() {
@@ -66,6 +117,7 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
       _watchReconnect?.cancel();
       unawaited(_watch?.cancel() ?? Future.value());
       _updateEvidenceFresh = false;
+      _clearSkseReview();
       problem = null;
       busy = false;
       if (scopeChanged) {
@@ -74,12 +126,14 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
         userEdited = false;
       }
       _observe();
+      if (needsSkseReview) unawaited(_reviewSkse());
     }
   }
 
   @override
   void dispose() {
     ++_epoch;
+    ++_reviewGeneration;
     _watchReconnect?.cancel();
     unawaited(_watch?.cancel() ?? Future.value());
     super.dispose();
@@ -146,7 +200,14 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
         }
       }
       problem = null;
+      if (!needsSkseReview) _clearSkseReview();
     });
+    if (needsSkseReview &&
+        skseReview == null &&
+        skseReviewProblem == null &&
+        !reviewingSkse) {
+      unawaited(_reviewSkse());
+    }
   }
 
   void _clearUpdateChoices() {
@@ -194,6 +255,11 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
     ),
   );
 
+  Future<void> refresh() {
+    if (needsSkseReview) setState(_clearSkseReview);
+    return load();
+  }
+
   void selectAction(String id, SkyrimSetupAction action) {
     if (busy ||
         status?.active == true ||
@@ -203,6 +269,7 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
     setState(() {
       selection = selection.withAction(id, action);
       userEdited = true;
+      if (id == 'skse') _clearSkseReview();
       if (id == 'enb' &&
           action != SkyrimSetupAction.install &&
           action != SkyrimSetupAction.update) {
@@ -210,6 +277,7 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
       }
     });
     unawaited(load());
+    if (id == 'skse' && needsSkseReview) unawaited(_reviewSkse());
   }
 
   Future<void> chooseEnbArchive() async {
@@ -225,12 +293,15 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
 
   Future<void> apply() async {
     final current = status;
-    if (busy || current == null || !selection.canApply) return;
+    if (busy || current == null || !selection.canApply || !skseChoiceReady) {
+      return;
+    }
     await change(
       () => widget.client.start(
         widget.workspaceId,
         widget.profileId,
         selection: selection,
+        skseChoice: needsSkseReview ? skseReview!.choice : null,
       ),
     );
   }
@@ -243,6 +314,7 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
   void clearChoices() {
     setState(() {
       selection = const SkyrimSetupSelection();
+      _clearSkseReview();
       userEdited = true;
     });
     unawaited(load());
@@ -263,6 +335,9 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
             widget.workspaceId,
             widget.profileId,
             selection: selection,
+            skseChoice: needsSkseReview && skseChoiceReady
+                ? skseReview!.choice
+                : null,
           ),
   );
 
@@ -273,14 +348,20 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
     busy: busy,
     problem: problem,
     updateEvidenceFresh: _updateEvidenceFresh,
+    skseReview: skseReview,
+    skseReviewProblem: skseReviewProblem,
+    reviewingSkse: reviewingSkse,
+    useLatestSkse: useLatestSkse,
+    skseChoiceReady: skseChoiceReady,
     onApply: apply,
     onClearChoices: clearChoices,
-    onRefresh: load,
+    onRefresh: refresh,
     onCancel: cancelSetup,
     onRetryOrContinue: retryOrContinue,
     onSelectAction: selectAction,
     onChooseEnbArchive: chooseEnbArchive,
     onClearEnbArchive: clearEnbArchive,
     onOpenProjectPage: (id) => unawaited(widget.client.openProjectPage(id)),
+    onChooseLatestSkse: () => setState(() => useLatestSkse = !useLatestSkse),
   );
 }

@@ -170,16 +170,46 @@ type internal SkseStart
             | None -> return! startDirect key context selection
         }
 
-    member _.Start(workspace, profile) =
+    member _.Start(workspace, profile, prepared: StoredSkseSelection option) =
         task {
-            let! retained = sources.RetainedArchive(workspace, profile)
+            let! retained =
+                match prepared with
+                | Some _ -> Task.FromResult None
+                | None -> sources.RetainedArchive(workspace, profile)
 
             let! resolved =
-                match retained with
-                | Some(context, selection, _) -> Task.FromResult(Ok(context, selection))
-                | None -> sources.Resolve(workspace, profile)
+                match prepared, retained with
+                | Some selection, _ ->
+                    task {
+                        let! context = games.Read(workspace, profile)
+
+                        return
+                            match context with
+                            | Error _ -> Error SkseProblem.GameUnavailable
+                            | Ok context when
+                                context.Binding.IsSome
+                                && SkseStatus.facts context = (selection.GameVersion,
+                                                               selection.GameSha256)
+                                ->
+                                Ok(context, selection)
+                            | Ok _ -> Error SkseProblem.StaleGame
+                    }
+                | None, Some(context, selection, _) -> Task.FromResult(Ok(context, selection))
+                | None, None -> sources.Resolve(workspace, profile)
 
             match resolved with
+            | Error problem when prepared.IsSome ->
+                let selection = prepared.Value
+                let release = selection.Selection.Release
+
+                return!
+                    status.Failed
+                        (workspace, profile)
+                        selection.GameVersion
+                        (string release.ComponentVersion)
+                        (Some release.File.Id)
+                        "SKSE selection changed"
+                        (SkseProblem.message problem)
             | Error problem -> return! cached workspace profile problem
             | Ok(context, selection) ->
                 return! startSelected (workspace, profile) retained context selection

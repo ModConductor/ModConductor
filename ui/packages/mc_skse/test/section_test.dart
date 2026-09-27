@@ -14,12 +14,16 @@ class SetupClientFixture extends SkyrimSetupClient {
     this.failFirstStart = false,
     this.completeWithFnisWarning = false,
     this.updateVersion,
+    this.review,
   });
   final Set<String> installed;
   final SkyrimSetupSelection? savedSelection;
   final bool failFirstStart;
   final bool completeWithFnisWarning;
   String? updateVersion;
+  final SkseReleaseReview? review;
+  SkseReleaseChoice? appliedSkseChoice;
+  int reviews = 0;
   SkyrimSetupSelection lastSelection = const SkyrimSetupSelection();
   SkyrimSetupSelection? applied;
   int starts = 0;
@@ -147,10 +151,12 @@ class SetupClientFixture extends SkyrimSetupClient {
     String workspace,
     String profile, {
     required SkyrimSetupSelection selection,
+    SkseReleaseChoice? skseChoice,
   }) async {
     starts++;
     cancelled = false;
     applied = selection;
+    appliedSkseChoice = skseChoice;
     if (completeWithFnisWarning) {
       completed = true;
       return fnisWarningState(selection, ready: true, canContinue: true);
@@ -158,6 +164,24 @@ class SetupClientFixture extends SkyrimSetupClient {
     failed = failFirstStart && starts == 1;
     running = !failed;
     return state(selection, running: running, failed: failed);
+  }
+
+  @override
+  Future<SkseReleaseReview> reviewSkseRelease(
+    String workspace,
+    String profile,
+  ) async {
+    reviews++;
+    return review ??
+        const SkseReleaseReview(
+          compatible: true,
+          gameVersion: '1.7.104.0',
+          gameSha256: 'game-hash',
+          fileId: 20,
+          componentVersion: '2.3.1',
+          supportedRuntime: '1.7.104.0',
+          problem: null,
+        );
   }
 
   @override
@@ -548,6 +572,101 @@ void main() {
     expect(client.applied!.skse, SkyrimSetupAction.install);
     expect(client.applied!.enb, SkyrimSetupAction.unchanged);
     expect(client.applied!.fnis, SkyrimSetupAction.unchanged);
+    expect(client.appliedSkseChoice?.fileId, 20);
+    expect(client.appliedSkseChoice?.allowIncompatible, isFalse);
+  });
+
+  testWidgets('latest SKSE requires an explicit warned choice', (tester) async {
+    final client = SetupClientFixture(
+      review: const SkseReleaseReview(
+        compatible: false,
+        gameVersion: '1.7.104.0',
+        gameSha256: 'game-hash',
+        fileId: 23,
+        componentVersion: '2.4.0',
+        supportedRuntime: '1.7.104.1',
+        problem: null,
+      ),
+    );
+    await tester.pumpWidget(app(client));
+    await settle(tester);
+    await tester.tap(find.byType(Switch).first);
+    await settle(tester);
+
+    expect(find.text('Compatibility warning'), findsOneWidget);
+    expect(
+      find.textContaining('Detected Skyrim runtime: 1.7.104.0'),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining('Author-supported runtime: 1.7.104.1'),
+      findsOneWidget,
+    );
+    expect(
+      tester
+          .widget<McAction>(find.byKey(const ValueKey('apply-skyrim-setup')))
+          .onPressed,
+      isNull,
+    );
+    expect(client.starts, 0);
+
+    await tester.ensureVisible(find.text('Install latest SKSE'));
+    await tester.tap(find.text('Install latest SKSE'));
+    await settle(tester);
+    expect(
+      tester
+          .widget<McAction>(find.byKey(const ValueKey('apply-skyrim-setup')))
+          .onPressed,
+      isNotNull,
+    );
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('refresh-skyrim-setup')),
+    );
+    await tester.tap(find.byKey(const ValueKey('refresh-skyrim-setup')));
+    await settle(tester);
+    expect(client.reviews, greaterThan(1));
+    expect(
+      tester
+          .widget<McAction>(find.byKey(const ValueKey('apply-skyrim-setup')))
+          .onPressed,
+      isNull,
+    );
+    await tester.ensureVisible(find.text('Install latest SKSE'));
+    await tester.tap(find.text('Install latest SKSE'));
+    await settle(tester);
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('apply-skyrim-setup')),
+    );
+    await tester.tap(find.byKey(const ValueKey('apply-skyrim-setup')));
+    await settle(tester);
+    expect(client.appliedSkseChoice?.fileId, 23);
+    expect(client.appliedSkseChoice?.allowIncompatible, isTrue);
+  });
+
+  testWidgets('source failure does not offer latest SKSE', (tester) async {
+    final client = SetupClientFixture(
+      review: const SkseReleaseReview(
+        compatible: false,
+        gameVersion: '',
+        gameSha256: '',
+        fileId: 0,
+        componentVersion: '',
+        supportedRuntime: null,
+        problem: 'Nexus Mods is unavailable.',
+      ),
+    );
+    await tester.pumpWidget(app(client));
+    await settle(tester);
+    await tester.tap(find.byType(Switch).first);
+    await settle(tester);
+    expect(find.text('Nexus Mods is unavailable.'), findsOneWidget);
+    expect(find.text('Install latest SKSE'), findsNothing);
+    expect(
+      tester
+          .widget<McAction>(find.byKey(const ValueKey('apply-skyrim-setup')))
+          .onPressed,
+      isNull,
+    );
   });
 
   testWidgets('cancelled setup can be applied without scrolling', (

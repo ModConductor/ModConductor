@@ -57,6 +57,8 @@ namespace ModConductor.Protocol.V1 {
     static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.SkyrimSetupPageRequest> __Marshaller_modconductor_v1_SkyrimSetupPageRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.SkyrimSetupPageRequest.Parser));
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.SkyrimSetupPageReply> __Marshaller_modconductor_v1_SkyrimSetupPageReply = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.SkyrimSetupPageReply.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.SkseReleaseReview> __Marshaller_modconductor_v1_SkseReleaseReview = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.SkseReleaseReview.Parser));
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Method<global::ModConductor.Protocol.V1.ReadSkyrimSetupRequest, global::ModConductor.Protocol.V1.SkyrimSetupState> __Method_ReadSkyrimSetup = new grpc::Method<global::ModConductor.Protocol.V1.ReadSkyrimSetupRequest, global::ModConductor.Protocol.V1.SkyrimSetupState>(
@@ -106,6 +108,14 @@ namespace ModConductor.Protocol.V1 {
         __Marshaller_modconductor_v1_SkyrimSetupPageRequest,
         __Marshaller_modconductor_v1_SkyrimSetupPageReply);
 
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::ModConductor.Protocol.V1.SkyrimSetupRequest, global::ModConductor.Protocol.V1.SkseReleaseReview> __Method_ReviewSkseRelease = new grpc::Method<global::ModConductor.Protocol.V1.SkyrimSetupRequest, global::ModConductor.Protocol.V1.SkseReleaseReview>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "ReviewSkseRelease",
+        __Marshaller_modconductor_v1_SkyrimSetupRequest,
+        __Marshaller_modconductor_v1_SkseReleaseReview);
+
     /// <summary>Service descriptor</summary>
     public static global::Google.Protobuf.Reflection.ServiceDescriptor Descriptor
     {
@@ -148,6 +158,12 @@ namespace ModConductor.Protocol.V1 {
 
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V1.SkyrimSetupPageReply> OpenSkyrimSetupPage(global::ModConductor.Protocol.V1.SkyrimSetupPageRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V1.SkseReleaseReview> ReviewSkseRelease(global::ModConductor.Protocol.V1.SkyrimSetupRequest request, grpc::ServerCallContext context)
       {
         throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
       }
@@ -291,6 +307,26 @@ namespace ModConductor.Protocol.V1 {
       {
         return CallInvoker.AsyncUnaryCall(__Method_OpenSkyrimSetupPage, null, options, request);
       }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V1.SkseReleaseReview ReviewSkseRelease(global::ModConductor.Protocol.V1.SkyrimSetupRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return ReviewSkseRelease(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V1.SkseReleaseReview ReviewSkseRelease(global::ModConductor.Protocol.V1.SkyrimSetupRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_ReviewSkseRelease, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.SkseReleaseReview> ReviewSkseReleaseAsync(global::ModConductor.Protocol.V1.SkyrimSetupRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return ReviewSkseReleaseAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.SkseReleaseReview> ReviewSkseReleaseAsync(global::ModConductor.Protocol.V1.SkyrimSetupRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_ReviewSkseRelease, null, options, request);
+      }
       /// <summary>Creates a new instance of client from given <c>ClientBaseConfiguration</c>.</summary>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       protected override SkyrimSetupOperationsClient NewInstance(ClientBaseConfiguration configuration)
@@ -310,7 +346,8 @@ namespace ModConductor.Protocol.V1 {
           .AddMethod(__Method_StartSkyrimSetup, serviceImpl.StartSkyrimSetup)
           .AddMethod(__Method_ContinueSkyrimSetup, serviceImpl.ContinueSkyrimSetup)
           .AddMethod(__Method_CancelSkyrimSetup, serviceImpl.CancelSkyrimSetup)
-          .AddMethod(__Method_OpenSkyrimSetupPage, serviceImpl.OpenSkyrimSetupPage).Build();
+          .AddMethod(__Method_OpenSkyrimSetupPage, serviceImpl.OpenSkyrimSetupPage)
+          .AddMethod(__Method_ReviewSkseRelease, serviceImpl.ReviewSkseRelease).Build();
     }
 
     /// <summary>Register service method with a service binder with or without implementation. Useful when customizing the service binding logic.
@@ -326,6 +363,7 @@ namespace ModConductor.Protocol.V1 {
       serviceBinder.AddMethod(__Method_ContinueSkyrimSetup, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.SkyrimSetupRequest, global::ModConductor.Protocol.V1.SkyrimSetupState>(serviceImpl.ContinueSkyrimSetup));
       serviceBinder.AddMethod(__Method_CancelSkyrimSetup, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.SkyrimSetupRequest, global::ModConductor.Protocol.V1.SkyrimSetupState>(serviceImpl.CancelSkyrimSetup));
       serviceBinder.AddMethod(__Method_OpenSkyrimSetupPage, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.SkyrimSetupPageRequest, global::ModConductor.Protocol.V1.SkyrimSetupPageReply>(serviceImpl.OpenSkyrimSetupPage));
+      serviceBinder.AddMethod(__Method_ReviewSkseRelease, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.SkyrimSetupRequest, global::ModConductor.Protocol.V1.SkseReleaseReview>(serviceImpl.ReviewSkseRelease));
     }
 
   }

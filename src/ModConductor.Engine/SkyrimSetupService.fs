@@ -9,6 +9,7 @@ open ModConductor.GameLaunching
 open ModConductor.Persistence
 open ModConductor.ProfileGameData
 open ModConductor.Protocol.V1
+open ModConductor.Skse
 
 type internal SkyrimSetupCoordinator
     (
@@ -87,6 +88,9 @@ type internal SkyrimSetupCoordinator
 
     member _.CurrentRevision(workspace, profile) = signals.Revision(workspace, profile)
 
+    member _.ReviewSkse(workspace, profile) =
+        dependencies.ReviewSkse workspace profile
+
     member _.Failed = failed.Task
 
     member _.WaitForChange(workspace, profile, revision, token) =
@@ -118,101 +122,121 @@ type internal SkyrimSetupCoordinator
         }
 
     member _.Start
-        (workspace, profile, (selection: ModConductor.Persistence.SetupSelection), token)
-        =
+        (
+            workspace,
+            profile,
+            (selection: ModConductor.Persistence.SetupSelection),
+            choice: SkseReleaseChoice option,
+            token
+        ) =
         task {
-            let! existing = store.SkyrimSetups.Read(workspace, profile)
-
-            match existing with
-            | Some intent when intent.CancelRequested ->
-                return! success (inspect workspace profile intent.Selection (Some intent) token)
-            | Some intent when
-                not intent.Cancelled && not intent.Completed && selection = intent.Selection
-                ->
-                clearFailure (workspace, profile)
-                let! current = advance workspace profile intent true token
-
-                match current with
-                | Error detail -> return! refusal workspace profile intent.Selection detail token
-                | Ok current ->
-                    signals.Notify(workspace, profile)
-
-                    if current.Phase <> SkyrimSetupPhase.Failed then
-                        progression.Start workspace profile
-
-                    return Ok current
-            | _ ->
-                let! current =
-                    match existing with
-                    | Some intent when not intent.Cancelled && not intent.Completed ->
-                        inspect workspace profile intent.Selection (Some intent) token
-                    | _ -> inspect workspace profile selection existing token
-
-                if current.Active || current.Phase = SkyrimSetupPhase.RecoveryRequired then
-                    if current.Active then
-                        progression.Start workspace profile
-
-                    return Ok current
+            let! skseReady =
+                if selection.Skse = SetupAction.Install || selection.Skse = SetupAction.Update then
+                    dependencies.PrepareSkse workspace profile choice
                 else
-                    let! available = inspect workspace profile selection None token
+                    dependencies.ClearPreparedSkse workspace profile
+                    Task.FromResult(Ok())
 
-                    if not available.CanStart then
-                        return Ok available
+            match skseReady with
+            | Error problem ->
+                return Ok(unavailable selection "SKSE cannot start" (SkseProblem.message problem))
+            | Ok() ->
+                let! existing = store.SkyrimSetups.Read(workspace, profile)
+
+                match existing with
+                | Some intent when intent.CancelRequested ->
+                    return! success (inspect workspace profile intent.Selection (Some intent) token)
+                | Some intent when
+                    not intent.Cancelled && not intent.Completed && selection = intent.Selection
+                    ->
+                    clearFailure (workspace, profile)
+                    let! current = advance workspace profile intent true token
+
+                    match current with
+                    | Error detail ->
+                        return! refusal workspace profile intent.Selection detail token
+                    | Ok current ->
+                        signals.Notify(workspace, profile)
+
+                        if current.Phase <> SkyrimSetupPhase.Failed then
+                            progression.Start workspace profile
+
+                        return Ok current
+                | _ ->
+                    let! current =
+                        match existing with
+                        | Some intent when not intent.Cancelled && not intent.Completed ->
+                            inspect workspace profile intent.Selection (Some intent) token
+                        | _ -> inspect workspace profile selection existing token
+
+                    if current.Active || current.Phase = SkyrimSetupPhase.RecoveryRequired then
+                        if current.Active then
+                            progression.Start workspace profile
+
+                        return Ok current
                     else
-                        let! deployed = store.Deployments.Read profile
+                        let! available = inspect workspace profile selection None token
 
-                        match deployed with
-                        | Error error ->
-                            return
-                                Ok(
-                                    unavailable
-                                        selection
-                                        "The deployment is unavailable"
-                                        (SkyrimSetupDeployment.error error)
-                                )
-                        | Ok deployment when deployment.WorkspaceId <> workspace ->
-                            return
-                                Ok(
-                                    unavailable
-                                        selection
-                                        "The selected profile is unavailable"
-                                        "Select a profile from this workspace."
-                                )
-                        | Ok deployment ->
-                            clearFailure (workspace, profile)
+                        if not available.CanStart then
+                            return Ok available
+                        else
+                            let! deployed = store.Deployments.Read profile
 
-                            let initialStage =
-                                if deployment.ActiveGeneration.IsNone then
-                                    "deployment"
-                                else
-                                    "skse-start"
+                            match deployed with
+                            | Error error ->
+                                return
+                                    Ok(
+                                        unavailable
+                                            selection
+                                            "The deployment is unavailable"
+                                            (SkyrimSetupDeployment.error error)
+                                    )
+                            | Ok deployment when deployment.WorkspaceId <> workspace ->
+                                return
+                                    Ok(
+                                        unavailable
+                                            selection
+                                            "The selected profile is unavailable"
+                                            "Select a profile from this workspace."
+                                    )
+                            | Ok deployment ->
+                                clearFailure (workspace, profile)
 
-                            let next =
-                                { WorkspaceId = workspace
-                                  ProfileId = profile
-                                  Selection = selection
-                                  Cancelled = false
-                                  Completed = false
-                                  Stage = initialStage
-                                  ActionId = None
-                                  CancelRequested = false
-                                  CancelDetail = ""
-                                  RequestedAt = DateTimeOffset.UtcNow }
+                                let initialStage =
+                                    if deployment.ActiveGeneration.IsNone then
+                                        "deployment"
+                                    else
+                                        "skse-start"
 
-                            do! store.SkyrimSetups.Save next
-                            let! current = advance workspace profile next true token
+                                let next =
+                                    { WorkspaceId = workspace
+                                      ProfileId = profile
+                                      Selection = selection
+                                      Cancelled = false
+                                      Completed = false
+                                      Stage = initialStage
+                                      ActionId = None
+                                      CancelRequested = false
+                                      CancelDetail = ""
+                                      RequestedAt = DateTimeOffset.UtcNow }
 
-                            match current with
-                            | Error detail ->
-                                return! refusal workspace profile selection detail token
-                            | Ok current ->
-                                signals.Notify(workspace, profile)
+                                do! store.SkyrimSetups.Save next
+                                let! current = advance workspace profile next true token
 
-                                if current.Phase <> SkyrimSetupPhase.Failed then
-                                    progression.Start workspace profile
+                                match current with
+                                | Error detail ->
+                                    return! refusal workspace profile selection detail token
+                                | Ok current ->
+                                    signals.Notify(workspace, profile)
 
-                                return Ok current
+                                    if current.Phase <> SkyrimSetupPhase.Failed then
+                                        progression.Start workspace profile
+
+                                    return Ok current
         }
+
+    member this.Start(workspace, profile, selection, token) =
+        this.Start(workspace, profile, selection, None, token)
 
     member _.Continue(workspace, profile, token) =
         task {
@@ -250,6 +274,7 @@ type internal SkyrimSetupCoordinator
 
     member _.Cancel(workspace, profile, token) =
         task {
+            dependencies.ClearPreparedSkse workspace profile
             let! intent = store.SkyrimSetups.Read(workspace, profile)
             clearFailure (workspace, profile)
 

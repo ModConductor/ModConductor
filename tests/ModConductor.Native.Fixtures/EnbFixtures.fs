@@ -96,7 +96,10 @@ module EnbFixtures =
         )
 
     let private combinedEnbDependencies (enb: EnbCoordinator) : SkyrimSetupDependencies =
-        { ReadSkse = fun _ _ -> unusedCombinedDependency ()
+        { PrepareSkse = fun _ _ _ -> Task.FromResult(Ok())
+          ReviewSkse = fun _ _ -> unusedCombinedDependency ()
+          ClearPreparedSkse = fun _ _ -> ()
+          ReadSkse = fun _ _ -> unusedCombinedDependency ()
           StartSkse = fun _ _ -> unusedCombinedDependency ()
           CancelSkse = fun _ _ -> unusedCombinedDependency ()
           RemoveSkse = fun _ _ _ -> unusedCombinedDependency ()

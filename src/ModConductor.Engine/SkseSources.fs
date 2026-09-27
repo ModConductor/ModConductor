@@ -11,6 +11,38 @@ open ModConductor.Skse
 type internal SkseSources
     (nexus: NexusSession, downloads: DownloadSession, games: IGameContexts, store: OperationStore) =
 
+    let readAuthorReleases () =
+        task {
+            let! source = nexus.ReadMod("skyrimspecialedition", SkseResolver.NexusModId)
+
+            return
+                source
+                |> Result.mapError (NexusProblem.message >> SkseProblem.SourceUnavailable)
+                |> Result.map SkseResolver.releases
+        }
+
+    let resolveContext workspace profile context choose =
+        task {
+            let account = nexus.Status.Account
+            let! releases = readAuthorReleases ()
+
+            return
+                releases
+                |> Result.bind (fun available -> choose context available account)
+                |> Result.map (fun selection ->
+                    let gameVersion, gameSha256 = SkseStatus.facts context
+
+                    context,
+                    { ArtifactId = None
+                      WorkspaceId = workspace
+                      ProfileId = Some profile
+                      AccountId = account.Value.Subject
+                      GameVersion = gameVersion
+                      GameSha256 = gameSha256
+                      Selection = selection
+                      CheckedAt = DateTimeOffset.UtcNow })
+        }
+
     member _.Reference(selection: StoredSkseSelection, keyed) =
         let release = selection.Selection.Release
 
@@ -22,26 +54,38 @@ type internal SkseSources
           Version = Some release.File.Version }
 
     member _.ResolveContext(workspace, profile, context: GameContextState) =
+        resolveContext workspace profile context SkseResolver.select
+
+    member _.Review(workspace, profile) =
         task {
-            let! source = nexus.ReadMod("skyrimspecialedition", SkseResolver.NexusModId)
+            let! context = games.Read(workspace, profile)
 
-            return
-                source
-                |> Result.mapError (NexusProblem.message >> SkseProblem.SourceUnavailable)
-                |> Result.bind (fun source ->
-                    SkseResolver.select context (SkseResolver.releases source) nexus.Status.Account)
-                |> Result.map (fun selection ->
-                    let gameVersion, gameSha256 = SkseStatus.facts context
+            match context, nexus.Status.Account with
+            | Error _, _ -> return Error SkseProblem.GameUnavailable
+            | _, None -> return Error SkseProblem.SignInRequired
+            | Ok context, Some _ ->
+                let! releases = readAuthorReleases ()
+                return releases |> Result.bind (SkseResolver.review context)
+        }
 
-                    context,
-                    { ArtifactId = None
-                      WorkspaceId = workspace
-                      ProfileId = Some profile
-                      AccountId = nexus.Status.Account.Value.Subject
-                      GameVersion = gameVersion
-                      GameSha256 = gameSha256
-                      Selection = selection
-                      CheckedAt = DateTimeOffset.UtcNow })
+    member _.ResolveReviewed(workspace, profile, choice: SkseReleaseChoice) =
+        task {
+            let! context = games.Read(workspace, profile)
+
+            match context with
+            | Error _ -> return Error SkseProblem.GameUnavailable
+            | Ok context ->
+                return!
+                    resolveContext workspace profile context (fun context available account ->
+                        SkseResolver.selectReviewed
+                            context
+                            available
+                            account
+                            choice.FileId
+                            choice.ComponentVersion
+                            choice.GameVersion
+                            choice.GameSha256
+                            choice.AllowIncompatible)
         }
 
     member this.Resolve(workspace, profile) =

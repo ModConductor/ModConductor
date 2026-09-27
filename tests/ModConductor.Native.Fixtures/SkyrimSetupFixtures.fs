@@ -232,7 +232,10 @@ module SkyrimSetupFixtures =
             output <- ModConductor.Fnis.FnisOutputPhase.Cancelled
 
         member _.Dependencies =
-            { ReadSkse =
+            { PrepareSkse = fun _ _ _ -> Task.FromResult(Ok())
+              ReviewSkse = fun _ _ -> Task.FromResult(Error SkseProblem.GameUnavailable)
+              ClearPreparedSkse = fun _ _ -> ()
+              ReadSkse =
                 fun _ _ ->
                     skseReads <- skseReads + 1
                     Task.FromResult skse

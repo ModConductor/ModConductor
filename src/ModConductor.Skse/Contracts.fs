@@ -10,6 +10,7 @@ type SkseProblem =
     | GameUnavailable
     | UnsupportedStorefront
     | UnknownCompatibility
+    | SelectionChanged
     | SourceUnavailable of string
     | SignInRequired
     | EntitlementRequired
@@ -24,6 +25,26 @@ type SkseRelease =
       File: NexusFile
       ComponentVersion: Version
       RuntimeVersion: Version }
+
+type SkseAuthorRelease =
+    { ModId: int64
+      File: NexusFile
+      ComponentVersion: Version
+      DeclaredRuntimeVersion: Version option }
+
+type SkseReview =
+    { GameVersion: string
+      GameSha256: string
+      RuntimeVersion: Version
+      Release: SkseAuthorRelease
+      Compatible: bool }
+
+type SkseReleaseChoice =
+    { FileId: int64
+      ComponentVersion: string
+      GameVersion: string
+      GameSha256: string
+      AllowIncompatible: bool }
 
 [<RequireQualifiedAccess>]
 type SkseAcquisition =
@@ -43,9 +64,12 @@ module SkseProblem =
     let message =
         function
         | SkseProblem.GameUnavailable -> "Select and refresh the Skyrim installation."
-        | SkseProblem.UnsupportedStorefront -> "SKSE setup supports Skyrim Special Edition from Steam."
+        | SkseProblem.UnsupportedStorefront ->
+            "SKSE setup supports Skyrim Special Edition from Steam."
         | SkseProblem.UnknownCompatibility ->
             "No SKSE release declares support for this Skyrim version. No files were changed."
+        | SkseProblem.SelectionChanged ->
+            "The reviewed SKSE release or Skyrim installation changed. Review SKSE again."
         | SkseProblem.SourceUnavailable detail -> detail
         | SkseProblem.SignInRequired -> "Sign in to Nexus Mods."
         | SkseProblem.EntitlementRequired ->

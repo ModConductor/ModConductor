@@ -31,56 +31,66 @@ namespace ModConductor.Protocol.V1 {
             "ASABKAkSEgoKcHJvZmlsZV9pZBgCIAEoCSJ8ChZSZWFkU2t5cmltU2V0dXBS",
             "ZXF1ZXN0EhQKDHdvcmtzcGFjZV9pZBgBIAEoCRISCgpwcm9maWxlX2lkGAIg",
             "ASgJEjgKCXNlbGVjdGlvbhgDIAEoCzIlLm1vZGNvbmR1Y3Rvci52MS5Ta3ly",
-            "aW1TZXR1cFNlbGVjdGlvbiJ9ChdTdGFydFNreXJpbVNldHVwUmVxdWVzdBIU",
-            "Cgx3b3Jrc3BhY2VfaWQYASABKAkSEgoKcHJvZmlsZV9pZBgCIAEoCRI4Cglz",
-            "ZWxlY3Rpb24YAyABKAsyJS5tb2Rjb25kdWN0b3IudjEuU2t5cmltU2V0dXBT",
-            "ZWxlY3Rpb24ixQEKFFNreXJpbVNldHVwU2VsZWN0aW9uEjAKBHNrc2UYASAB",
-            "KA4yIi5tb2Rjb25kdWN0b3IudjEuU2t5cmltU2V0dXBBY3Rpb24SLwoDZW5i",
-            "GAIgASgOMiIubW9kY29uZHVjdG9yLnYxLlNreXJpbVNldHVwQWN0aW9uEjAK",
-            "BGZuaXMYAyABKA4yIi5tb2Rjb25kdWN0b3IudjEuU2t5cmltU2V0dXBBY3Rp",
-            "b24SGAoQZW5iX2FyY2hpdmVfcGF0aBgEIAEoCSKrAQoUU2t5cmltU2V0dXBD",
-            "b21wb25lbnQSDAoEbmFtZRgBIAEoCRIOCgZzdGF0dXMYAiABKAkSDgoGZGV0",
-            "YWlsGAMgASgJEg0KBXJlYWR5GAQgASgIEg4KBmFjdGl2ZRgFIAEoCBIPCgdi",
-            "bG9ja2VkGAYgASgIEgoKAmlkGAcgASgJEhEKCWluc3RhbGxlZBgIIAEoCBIW",
-            "Cg51cGRhdGVfdmVyc2lvbhgJIAEoCSK1AgoQU2t5cmltU2V0dXBTdGF0ZRIw",
-            "CgVwaGFzZRgBIAEoDjIhLm1vZGNvbmR1Y3Rvci52MS5Ta3lyaW1TZXR1cFBo",
-            "YXNlEg4KBnN0YXR1cxgCIAEoCRIOCgZkZXRhaWwYAyABKAkSOQoKY29tcG9u",
-            "ZW50cxgGIAMoCzIlLm1vZGNvbmR1Y3Rvci52MS5Ta3lyaW1TZXR1cENvbXBv",
-            "bmVudBI4CglzZWxlY3Rpb24YByABKAsyJS5tb2Rjb25kdWN0b3IudjEuU2t5",
-            "cmltU2V0dXBTZWxlY3Rpb24SEQoJY2FuX3N0YXJ0GAkgASgIEhQKDGNhbl9j",
-            "b250aW51ZRgKIAEoCBIOCgZhY3RpdmUYDCABKAgSDQoFcmVhZHkYDSABKAgS",
-            "EgoKY2FuX2NhbmNlbBgOIAEoCCqXAQoRU2t5cmltU2V0dXBBY3Rpb24SIQod",
-            "U0tZUklNX1NFVFVQX0FDVElPTl9VTkNIQU5HRUQQABIfChtTS1lSSU1fU0VU",
-            "VVBfQUNUSU9OX0lOU1RBTEwQARIeChpTS1lSSU1fU0VUVVBfQUNUSU9OX1JF",
-            "TU9WRRACEh4KGlNLWVJJTV9TRVRVUF9BQ1RJT05fVVBEQVRFEAMqygQKEFNr",
-            "eXJpbVNldHVwUGhhc2USIgoeU0tZUklNX1NFVFVQX1BIQVNFX1VOU1BFQ0lG",
-            "SUVEEAASIgoeU0tZUklNX1NFVFVQX1BIQVNFX1VOQVZBSUxBQkxFEAESIAoc",
-            "U0tZUklNX1NFVFVQX1BIQVNFX0FWQUlMQUJMRRACEisKJ1NLWVJJTV9TRVRV",
-            "UF9QSEFTRV9QUkVQQVJJTkdfREVQTE9ZTUVOVBADEiYKIlNLWVJJTV9TRVRV",
-            "UF9QSEFTRV9TRVRUSU5HX1VQX1NLU0UQBBInCiNTS1lSSU1fU0VUVVBfUEhB",
-            "U0VfV0FJVElOR19GT1JfU0tTRRAFEi4KKlNLWVJJTV9TRVRVUF9QSEFTRV9X",
-            "QUlUSU5HX0ZPUl9FTkJfQVJDSElWRRAGEiUKIVNLWVJJTV9TRVRVUF9QSEFT",
-            "RV9TRVRUSU5HX1VQX0VOQhAHEiYKIlNLWVJJTV9TRVRVUF9QSEFTRV9TRVRU",
-            "SU5HX1VQX0ZOSVMQCBIhCh1TS1lSSU1fU0VUVVBfUEhBU0VfRk5JU19TVEFM",
-            "RRAJEiMKH1NLWVJJTV9TRVRVUF9QSEFTRV9GTklTX1JVTk5JTkcQChIcChhT",
-            "S1lSSU1fU0VUVVBfUEhBU0VfUkVBRFkQCxIoCiRTS1lSSU1fU0VUVVBfUEhB",
-            "U0VfUkVDT1ZFUllfUkVRVUlSRUQQDBIdChlTS1lSSU1fU0VUVVBfUEhBU0Vf",
-            "RkFJTEVEEA0SIAocU0tZUklNX1NFVFVQX1BIQVNFX0NBTkNFTExFRBAOMtwE",
-            "ChVTa3lyaW1TZXR1cE9wZXJhdGlvbnMSXQoPUmVhZFNreXJpbVNldHVwEicu",
-            "bW9kY29uZHVjdG9yLnYxLlJlYWRTa3lyaW1TZXR1cFJlcXVlc3QaIS5tb2Rj",
-            "b25kdWN0b3IudjEuU2t5cmltU2V0dXBTdGF0ZRJgChBXYXRjaFNreXJpbVNl",
-            "dHVwEicubW9kY29uZHVjdG9yLnYxLlJlYWRTa3lyaW1TZXR1cFJlcXVlc3Qa",
-            "IS5tb2Rjb25kdWN0b3IudjEuU2t5cmltU2V0dXBTdGF0ZTABEl8KEFN0YXJ0",
-            "U2t5cmltU2V0dXASKC5tb2Rjb25kdWN0b3IudjEuU3RhcnRTa3lyaW1TZXR1",
-            "cFJlcXVlc3QaIS5tb2Rjb25kdWN0b3IudjEuU2t5cmltU2V0dXBTdGF0ZRJd",
-            "ChNDb250aW51ZVNreXJpbVNldHVwEiMubW9kY29uZHVjdG9yLnYxLlNreXJp",
-            "bVNldHVwUmVxdWVzdBohLm1vZGNvbmR1Y3Rvci52MS5Ta3lyaW1TZXR1cFN0",
-            "YXRlElsKEUNhbmNlbFNreXJpbVNldHVwEiMubW9kY29uZHVjdG9yLnYxLlNr",
+            "aW1TZXR1cFNlbGVjdGlvbiK2AQoXU3RhcnRTa3lyaW1TZXR1cFJlcXVlc3QS",
+            "FAoMd29ya3NwYWNlX2lkGAEgASgJEhIKCnByb2ZpbGVfaWQYAiABKAkSOAoJ",
+            "c2VsZWN0aW9uGAMgASgLMiUubW9kY29uZHVjdG9yLnYxLlNreXJpbVNldHVw",
+            "U2VsZWN0aW9uEjcKC3Nrc2VfY2hvaWNlGAQgASgLMiIubW9kY29uZHVjdG9y",
+            "LnYxLlNrc2VSZWxlYXNlQ2hvaWNlIoYBChFTa3NlUmVsZWFzZUNob2ljZRIP",
+            "CgdmaWxlX2lkGAEgASgDEhkKEWNvbXBvbmVudF92ZXJzaW9uGAIgASgJEhQK",
+            "DGdhbWVfdmVyc2lvbhgDIAEoCRITCgtnYW1lX3NoYTI1NhgEIAEoCRIaChJh",
+            "bGxvd19pbmNvbXBhdGlibGUYBSABKAgiqgEKEVNrc2VSZWxlYXNlUmV2aWV3",
+            "EhIKCmNvbXBhdGlibGUYASABKAgSFAoMZ2FtZV92ZXJzaW9uGAIgASgJEhMK",
+            "C2dhbWVfc2hhMjU2GAMgASgJEg8KB2ZpbGVfaWQYBCABKAMSGQoRY29tcG9u",
+            "ZW50X3ZlcnNpb24YBSABKAkSGQoRc3VwcG9ydGVkX3J1bnRpbWUYBiABKAkS",
+            "DwoHcHJvYmxlbRgHIAEoCSLFAQoUU2t5cmltU2V0dXBTZWxlY3Rpb24SMAoE",
+            "c2tzZRgBIAEoDjIiLm1vZGNvbmR1Y3Rvci52MS5Ta3lyaW1TZXR1cEFjdGlv",
+            "bhIvCgNlbmIYAiABKA4yIi5tb2Rjb25kdWN0b3IudjEuU2t5cmltU2V0dXBB",
+            "Y3Rpb24SMAoEZm5pcxgDIAEoDjIiLm1vZGNvbmR1Y3Rvci52MS5Ta3lyaW1T",
+            "ZXR1cEFjdGlvbhIYChBlbmJfYXJjaGl2ZV9wYXRoGAQgASgJIqsBChRTa3ly",
+            "aW1TZXR1cENvbXBvbmVudBIMCgRuYW1lGAEgASgJEg4KBnN0YXR1cxgCIAEo",
+            "CRIOCgZkZXRhaWwYAyABKAkSDQoFcmVhZHkYBCABKAgSDgoGYWN0aXZlGAUg",
+            "ASgIEg8KB2Jsb2NrZWQYBiABKAgSCgoCaWQYByABKAkSEQoJaW5zdGFsbGVk",
+            "GAggASgIEhYKDnVwZGF0ZV92ZXJzaW9uGAkgASgJIrUCChBTa3lyaW1TZXR1",
+            "cFN0YXRlEjAKBXBoYXNlGAEgASgOMiEubW9kY29uZHVjdG9yLnYxLlNreXJp",
+            "bVNldHVwUGhhc2USDgoGc3RhdHVzGAIgASgJEg4KBmRldGFpbBgDIAEoCRI5",
+            "Cgpjb21wb25lbnRzGAYgAygLMiUubW9kY29uZHVjdG9yLnYxLlNreXJpbVNl",
+            "dHVwQ29tcG9uZW50EjgKCXNlbGVjdGlvbhgHIAEoCzIlLm1vZGNvbmR1Y3Rv",
+            "ci52MS5Ta3lyaW1TZXR1cFNlbGVjdGlvbhIRCgljYW5fc3RhcnQYCSABKAgS",
+            "FAoMY2FuX2NvbnRpbnVlGAogASgIEg4KBmFjdGl2ZRgMIAEoCBINCgVyZWFk",
+            "eRgNIAEoCBISCgpjYW5fY2FuY2VsGA4gASgIKpcBChFTa3lyaW1TZXR1cEFj",
+            "dGlvbhIhCh1TS1lSSU1fU0VUVVBfQUNUSU9OX1VOQ0hBTkdFRBAAEh8KG1NL",
+            "WVJJTV9TRVRVUF9BQ1RJT05fSU5TVEFMTBABEh4KGlNLWVJJTV9TRVRVUF9B",
+            "Q1RJT05fUkVNT1ZFEAISHgoaU0tZUklNX1NFVFVQX0FDVElPTl9VUERBVEUQ",
+            "AyrKBAoQU2t5cmltU2V0dXBQaGFzZRIiCh5TS1lSSU1fU0VUVVBfUEhBU0Vf",
+            "VU5TUEVDSUZJRUQQABIiCh5TS1lSSU1fU0VUVVBfUEhBU0VfVU5BVkFJTEFC",
+            "TEUQARIgChxTS1lSSU1fU0VUVVBfUEhBU0VfQVZBSUxBQkxFEAISKwonU0tZ",
+            "UklNX1NFVFVQX1BIQVNFX1BSRVBBUklOR19ERVBMT1lNRU5UEAMSJgoiU0tZ",
+            "UklNX1NFVFVQX1BIQVNFX1NFVFRJTkdfVVBfU0tTRRAEEicKI1NLWVJJTV9T",
+            "RVRVUF9QSEFTRV9XQUlUSU5HX0ZPUl9TS1NFEAUSLgoqU0tZUklNX1NFVFVQ",
+            "X1BIQVNFX1dBSVRJTkdfRk9SX0VOQl9BUkNISVZFEAYSJQohU0tZUklNX1NF",
+            "VFVQX1BIQVNFX1NFVFRJTkdfVVBfRU5CEAcSJgoiU0tZUklNX1NFVFVQX1BI",
+            "QVNFX1NFVFRJTkdfVVBfRk5JUxAIEiEKHVNLWVJJTV9TRVRVUF9QSEFTRV9G",
+            "TklTX1NUQUxFEAkSIwofU0tZUklNX1NFVFVQX1BIQVNFX0ZOSVNfUlVOTklO",
+            "RxAKEhwKGFNLWVJJTV9TRVRVUF9QSEFTRV9SRUFEWRALEigKJFNLWVJJTV9T",
+            "RVRVUF9QSEFTRV9SRUNPVkVSWV9SRVFVSVJFRBAMEh0KGVNLWVJJTV9TRVRV",
+            "UF9QSEFTRV9GQUlMRUQQDRIgChxTS1lSSU1fU0VUVVBfUEhBU0VfQ0FOQ0VM",
+            "TEVEEA4yugUKFVNreXJpbVNldHVwT3BlcmF0aW9ucxJdCg9SZWFkU2t5cmlt",
+            "U2V0dXASJy5tb2Rjb25kdWN0b3IudjEuUmVhZFNreXJpbVNldHVwUmVxdWVz",
+            "dBohLm1vZGNvbmR1Y3Rvci52MS5Ta3lyaW1TZXR1cFN0YXRlEmAKEFdhdGNo",
+            "U2t5cmltU2V0dXASJy5tb2Rjb25kdWN0b3IudjEuUmVhZFNreXJpbVNldHVw",
+            "UmVxdWVzdBohLm1vZGNvbmR1Y3Rvci52MS5Ta3lyaW1TZXR1cFN0YXRlMAES",
+            "XwoQU3RhcnRTa3lyaW1TZXR1cBIoLm1vZGNvbmR1Y3Rvci52MS5TdGFydFNr",
             "eXJpbVNldHVwUmVxdWVzdBohLm1vZGNvbmR1Y3Rvci52MS5Ta3lyaW1TZXR1",
-            "cFN0YXRlEmUKE09wZW5Ta3lyaW1TZXR1cFBhZ2USJy5tb2Rjb25kdWN0b3Iu",
-            "djEuU2t5cmltU2V0dXBQYWdlUmVxdWVzdBolLm1vZGNvbmR1Y3Rvci52MS5T",
-            "a3lyaW1TZXR1cFBhZ2VSZXBseUIbqgIYTW9kQ29uZHVjdG9yLlByb3RvY29s",
-            "LlYxYgZwcm90bzM="));
+            "cFN0YXRlEl0KE0NvbnRpbnVlU2t5cmltU2V0dXASIy5tb2Rjb25kdWN0b3Iu",
+            "djEuU2t5cmltU2V0dXBSZXF1ZXN0GiEubW9kY29uZHVjdG9yLnYxLlNreXJp",
+            "bVNldHVwU3RhdGUSWwoRQ2FuY2VsU2t5cmltU2V0dXASIy5tb2Rjb25kdWN0",
+            "b3IudjEuU2t5cmltU2V0dXBSZXF1ZXN0GiEubW9kY29uZHVjdG9yLnYxLlNr",
+            "eXJpbVNldHVwU3RhdGUSZQoTT3BlblNreXJpbVNldHVwUGFnZRInLm1vZGNv",
+            "bmR1Y3Rvci52MS5Ta3lyaW1TZXR1cFBhZ2VSZXF1ZXN0GiUubW9kY29uZHVj",
+            "dG9yLnYxLlNreXJpbVNldHVwUGFnZVJlcGx5ElwKEVJldmlld1Nrc2VSZWxl",
+            "YXNlEiMubW9kY29uZHVjdG9yLnYxLlNreXJpbVNldHVwUmVxdWVzdBoiLm1v",
+            "ZGNvbmR1Y3Rvci52MS5Ta3NlUmVsZWFzZVJldmlld0IbqgIYTW9kQ29uZHVj",
+            "dG9yLlByb3RvY29sLlYxYgZwcm90bzM="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { },
           new pbr::GeneratedClrTypeInfo(new[] {typeof(global::ModConductor.Protocol.V1.SkyrimSetupAction), typeof(global::ModConductor.Protocol.V1.SkyrimSetupPhase), }, null, new pbr::GeneratedClrTypeInfo[] {
@@ -88,7 +98,9 @@ namespace ModConductor.Protocol.V1 {
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.SkyrimSetupPageReply), global::ModConductor.Protocol.V1.SkyrimSetupPageReply.Parser, new[]{ "Opened" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.SkyrimSetupRequest), global::ModConductor.Protocol.V1.SkyrimSetupRequest.Parser, new[]{ "WorkspaceId", "ProfileId" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.ReadSkyrimSetupRequest), global::ModConductor.Protocol.V1.ReadSkyrimSetupRequest.Parser, new[]{ "WorkspaceId", "ProfileId", "Selection" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.StartSkyrimSetupRequest), global::ModConductor.Protocol.V1.StartSkyrimSetupRequest.Parser, new[]{ "WorkspaceId", "ProfileId", "Selection" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.StartSkyrimSetupRequest), global::ModConductor.Protocol.V1.StartSkyrimSetupRequest.Parser, new[]{ "WorkspaceId", "ProfileId", "Selection", "SkseChoice" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.SkseReleaseChoice), global::ModConductor.Protocol.V1.SkseReleaseChoice.Parser, new[]{ "FileId", "ComponentVersion", "GameVersion", "GameSha256", "AllowIncompatible" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.SkseReleaseReview), global::ModConductor.Protocol.V1.SkseReleaseReview.Parser, new[]{ "Compatible", "GameVersion", "GameSha256", "FileId", "ComponentVersion", "SupportedRuntime", "Problem" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.SkyrimSetupSelection), global::ModConductor.Protocol.V1.SkyrimSetupSelection.Parser, new[]{ "Skse", "Enb", "Fnis", "EnbArchivePath" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.SkyrimSetupComponent), global::ModConductor.Protocol.V1.SkyrimSetupComponent.Parser, new[]{ "Name", "Status", "Detail", "Ready", "Active", "Blocked", "Id", "Installed", "UpdateVersion" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::ModConductor.Protocol.V1.SkyrimSetupState), global::ModConductor.Protocol.V1.SkyrimSetupState.Parser, new[]{ "Phase", "Status", "Detail", "Components", "Selection", "CanStart", "CanContinue", "Active", "Ready", "CanCancel" }, null, null, null, null)
@@ -1076,6 +1088,7 @@ namespace ModConductor.Protocol.V1 {
       workspaceId_ = other.workspaceId_;
       profileId_ = other.profileId_;
       selection_ = other.selection_ != null ? other.selection_.Clone() : null;
+      skseChoice_ = other.skseChoice_ != null ? other.skseChoice_.Clone() : null;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -1121,6 +1134,18 @@ namespace ModConductor.Protocol.V1 {
       }
     }
 
+    /// <summary>Field number for the "skse_choice" field.</summary>
+    public const int SkseChoiceFieldNumber = 4;
+    private global::ModConductor.Protocol.V1.SkseReleaseChoice skseChoice_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public global::ModConductor.Protocol.V1.SkseReleaseChoice SkseChoice {
+      get { return skseChoice_; }
+      set {
+        skseChoice_ = value;
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -1139,6 +1164,7 @@ namespace ModConductor.Protocol.V1 {
       if (WorkspaceId != other.WorkspaceId) return false;
       if (ProfileId != other.ProfileId) return false;
       if (!object.Equals(Selection, other.Selection)) return false;
+      if (!object.Equals(SkseChoice, other.SkseChoice)) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -1149,6 +1175,7 @@ namespace ModConductor.Protocol.V1 {
       if (WorkspaceId.Length != 0) hash ^= WorkspaceId.GetHashCode();
       if (ProfileId.Length != 0) hash ^= ProfileId.GetHashCode();
       if (selection_ != null) hash ^= Selection.GetHashCode();
+      if (skseChoice_ != null) hash ^= SkseChoice.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -1179,6 +1206,10 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(26);
         output.WriteMessage(Selection);
       }
+      if (skseChoice_ != null) {
+        output.WriteRawTag(34);
+        output.WriteMessage(SkseChoice);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -1201,6 +1232,10 @@ namespace ModConductor.Protocol.V1 {
         output.WriteRawTag(26);
         output.WriteMessage(Selection);
       }
+      if (skseChoice_ != null) {
+        output.WriteRawTag(34);
+        output.WriteMessage(SkseChoice);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -1219,6 +1254,9 @@ namespace ModConductor.Protocol.V1 {
       }
       if (selection_ != null) {
         size += 1 + pb::CodedOutputStream.ComputeMessageSize(Selection);
+      }
+      if (skseChoice_ != null) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(SkseChoice);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -1243,6 +1281,12 @@ namespace ModConductor.Protocol.V1 {
           Selection = new global::ModConductor.Protocol.V1.SkyrimSetupSelection();
         }
         Selection.MergeFrom(other.Selection);
+      }
+      if (other.skseChoice_ != null) {
+        if (skseChoice_ == null) {
+          SkseChoice = new global::ModConductor.Protocol.V1.SkseReleaseChoice();
+        }
+        SkseChoice.MergeFrom(other.SkseChoice);
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -1276,6 +1320,13 @@ namespace ModConductor.Protocol.V1 {
               Selection = new global::ModConductor.Protocol.V1.SkyrimSetupSelection();
             }
             input.ReadMessage(Selection);
+            break;
+          }
+          case 34: {
+            if (skseChoice_ == null) {
+              SkseChoice = new global::ModConductor.Protocol.V1.SkseReleaseChoice();
+            }
+            input.ReadMessage(SkseChoice);
             break;
           }
         }
@@ -1312,6 +1363,779 @@ namespace ModConductor.Protocol.V1 {
             input.ReadMessage(Selection);
             break;
           }
+          case 34: {
+            if (skseChoice_ == null) {
+              SkseChoice = new global::ModConductor.Protocol.V1.SkseReleaseChoice();
+            }
+            input.ReadMessage(SkseChoice);
+            break;
+          }
+        }
+      }
+    }
+    #endif
+
+  }
+
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
+  public sealed partial class SkseReleaseChoice : pb::IMessage<SkseReleaseChoice>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
+    private static readonly pb::MessageParser<SkseReleaseChoice> _parser = new pb::MessageParser<SkseReleaseChoice>(() => new SkseReleaseChoice());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pb::MessageParser<SkseReleaseChoice> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::ModConductor.Protocol.V1.SkyrimSetupReflection.Descriptor.MessageTypes[5]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public SkseReleaseChoice() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public SkseReleaseChoice(SkseReleaseChoice other) : this() {
+      fileId_ = other.fileId_;
+      componentVersion_ = other.componentVersion_;
+      gameVersion_ = other.gameVersion_;
+      gameSha256_ = other.gameSha256_;
+      allowIncompatible_ = other.allowIncompatible_;
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public SkseReleaseChoice Clone() {
+      return new SkseReleaseChoice(this);
+    }
+
+    /// <summary>Field number for the "file_id" field.</summary>
+    public const int FileIdFieldNumber = 1;
+    private long fileId_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public long FileId {
+      get { return fileId_; }
+      set {
+        fileId_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "component_version" field.</summary>
+    public const int ComponentVersionFieldNumber = 2;
+    private string componentVersion_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string ComponentVersion {
+      get { return componentVersion_; }
+      set {
+        componentVersion_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "game_version" field.</summary>
+    public const int GameVersionFieldNumber = 3;
+    private string gameVersion_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string GameVersion {
+      get { return gameVersion_; }
+      set {
+        gameVersion_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "game_sha256" field.</summary>
+    public const int GameSha256FieldNumber = 4;
+    private string gameSha256_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string GameSha256 {
+      get { return gameSha256_; }
+      set {
+        gameSha256_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "allow_incompatible" field.</summary>
+    public const int AllowIncompatibleFieldNumber = 5;
+    private bool allowIncompatible_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool AllowIncompatible {
+      get { return allowIncompatible_; }
+      set {
+        allowIncompatible_ = value;
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override bool Equals(object other) {
+      return Equals(other as SkseReleaseChoice);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool Equals(SkseReleaseChoice other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (FileId != other.FileId) return false;
+      if (ComponentVersion != other.ComponentVersion) return false;
+      if (GameVersion != other.GameVersion) return false;
+      if (GameSha256 != other.GameSha256) return false;
+      if (AllowIncompatible != other.AllowIncompatible) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (FileId != 0L) hash ^= FileId.GetHashCode();
+      if (ComponentVersion.Length != 0) hash ^= ComponentVersion.GetHashCode();
+      if (GameVersion.Length != 0) hash ^= GameVersion.GetHashCode();
+      if (GameSha256.Length != 0) hash ^= GameSha256.GetHashCode();
+      if (AllowIncompatible != false) hash ^= AllowIncompatible.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
+      if (FileId != 0L) {
+        output.WriteRawTag(8);
+        output.WriteInt64(FileId);
+      }
+      if (ComponentVersion.Length != 0) {
+        output.WriteRawTag(18);
+        output.WriteString(ComponentVersion);
+      }
+      if (GameVersion.Length != 0) {
+        output.WriteRawTag(26);
+        output.WriteString(GameVersion);
+      }
+      if (GameSha256.Length != 0) {
+        output.WriteRawTag(34);
+        output.WriteString(GameSha256);
+      }
+      if (AllowIncompatible != false) {
+        output.WriteRawTag(40);
+        output.WriteBool(AllowIncompatible);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      if (FileId != 0L) {
+        output.WriteRawTag(8);
+        output.WriteInt64(FileId);
+      }
+      if (ComponentVersion.Length != 0) {
+        output.WriteRawTag(18);
+        output.WriteString(ComponentVersion);
+      }
+      if (GameVersion.Length != 0) {
+        output.WriteRawTag(26);
+        output.WriteString(GameVersion);
+      }
+      if (GameSha256.Length != 0) {
+        output.WriteRawTag(34);
+        output.WriteString(GameSha256);
+      }
+      if (AllowIncompatible != false) {
+        output.WriteRawTag(40);
+        output.WriteBool(AllowIncompatible);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int CalculateSize() {
+      int size = 0;
+      if (FileId != 0L) {
+        size += 1 + pb::CodedOutputStream.ComputeInt64Size(FileId);
+      }
+      if (ComponentVersion.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(ComponentVersion);
+      }
+      if (GameVersion.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(GameVersion);
+      }
+      if (GameSha256.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(GameSha256);
+      }
+      if (AllowIncompatible != false) {
+        size += 1 + 1;
+      }
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(SkseReleaseChoice other) {
+      if (other == null) {
+        return;
+      }
+      if (other.FileId != 0L) {
+        FileId = other.FileId;
+      }
+      if (other.ComponentVersion.Length != 0) {
+        ComponentVersion = other.ComponentVersion;
+      }
+      if (other.GameVersion.Length != 0) {
+        GameVersion = other.GameVersion;
+      }
+      if (other.GameSha256.Length != 0) {
+        GameSha256 = other.GameSha256;
+      }
+      if (other.AllowIncompatible != false) {
+        AllowIncompatible = other.AllowIncompatible;
+      }
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 8: {
+            FileId = input.ReadInt64();
+            break;
+          }
+          case 18: {
+            ComponentVersion = input.ReadString();
+            break;
+          }
+          case 26: {
+            GameVersion = input.ReadString();
+            break;
+          }
+          case 34: {
+            GameSha256 = input.ReadString();
+            break;
+          }
+          case 40: {
+            AllowIncompatible = input.ReadBool();
+            break;
+          }
+        }
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 8: {
+            FileId = input.ReadInt64();
+            break;
+          }
+          case 18: {
+            ComponentVersion = input.ReadString();
+            break;
+          }
+          case 26: {
+            GameVersion = input.ReadString();
+            break;
+          }
+          case 34: {
+            GameSha256 = input.ReadString();
+            break;
+          }
+          case 40: {
+            AllowIncompatible = input.ReadBool();
+            break;
+          }
+        }
+      }
+    }
+    #endif
+
+  }
+
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
+  public sealed partial class SkseReleaseReview : pb::IMessage<SkseReleaseReview>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
+    private static readonly pb::MessageParser<SkseReleaseReview> _parser = new pb::MessageParser<SkseReleaseReview>(() => new SkseReleaseReview());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pb::MessageParser<SkseReleaseReview> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::ModConductor.Protocol.V1.SkyrimSetupReflection.Descriptor.MessageTypes[6]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public SkseReleaseReview() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public SkseReleaseReview(SkseReleaseReview other) : this() {
+      compatible_ = other.compatible_;
+      gameVersion_ = other.gameVersion_;
+      gameSha256_ = other.gameSha256_;
+      fileId_ = other.fileId_;
+      componentVersion_ = other.componentVersion_;
+      supportedRuntime_ = other.supportedRuntime_;
+      problem_ = other.problem_;
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public SkseReleaseReview Clone() {
+      return new SkseReleaseReview(this);
+    }
+
+    /// <summary>Field number for the "compatible" field.</summary>
+    public const int CompatibleFieldNumber = 1;
+    private bool compatible_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool Compatible {
+      get { return compatible_; }
+      set {
+        compatible_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "game_version" field.</summary>
+    public const int GameVersionFieldNumber = 2;
+    private string gameVersion_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string GameVersion {
+      get { return gameVersion_; }
+      set {
+        gameVersion_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "game_sha256" field.</summary>
+    public const int GameSha256FieldNumber = 3;
+    private string gameSha256_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string GameSha256 {
+      get { return gameSha256_; }
+      set {
+        gameSha256_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "file_id" field.</summary>
+    public const int FileIdFieldNumber = 4;
+    private long fileId_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public long FileId {
+      get { return fileId_; }
+      set {
+        fileId_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "component_version" field.</summary>
+    public const int ComponentVersionFieldNumber = 5;
+    private string componentVersion_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string ComponentVersion {
+      get { return componentVersion_; }
+      set {
+        componentVersion_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "supported_runtime" field.</summary>
+    public const int SupportedRuntimeFieldNumber = 6;
+    private string supportedRuntime_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string SupportedRuntime {
+      get { return supportedRuntime_; }
+      set {
+        supportedRuntime_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "problem" field.</summary>
+    public const int ProblemFieldNumber = 7;
+    private string problem_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string Problem {
+      get { return problem_; }
+      set {
+        problem_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override bool Equals(object other) {
+      return Equals(other as SkseReleaseReview);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool Equals(SkseReleaseReview other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (Compatible != other.Compatible) return false;
+      if (GameVersion != other.GameVersion) return false;
+      if (GameSha256 != other.GameSha256) return false;
+      if (FileId != other.FileId) return false;
+      if (ComponentVersion != other.ComponentVersion) return false;
+      if (SupportedRuntime != other.SupportedRuntime) return false;
+      if (Problem != other.Problem) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (Compatible != false) hash ^= Compatible.GetHashCode();
+      if (GameVersion.Length != 0) hash ^= GameVersion.GetHashCode();
+      if (GameSha256.Length != 0) hash ^= GameSha256.GetHashCode();
+      if (FileId != 0L) hash ^= FileId.GetHashCode();
+      if (ComponentVersion.Length != 0) hash ^= ComponentVersion.GetHashCode();
+      if (SupportedRuntime.Length != 0) hash ^= SupportedRuntime.GetHashCode();
+      if (Problem.Length != 0) hash ^= Problem.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
+      if (Compatible != false) {
+        output.WriteRawTag(8);
+        output.WriteBool(Compatible);
+      }
+      if (GameVersion.Length != 0) {
+        output.WriteRawTag(18);
+        output.WriteString(GameVersion);
+      }
+      if (GameSha256.Length != 0) {
+        output.WriteRawTag(26);
+        output.WriteString(GameSha256);
+      }
+      if (FileId != 0L) {
+        output.WriteRawTag(32);
+        output.WriteInt64(FileId);
+      }
+      if (ComponentVersion.Length != 0) {
+        output.WriteRawTag(42);
+        output.WriteString(ComponentVersion);
+      }
+      if (SupportedRuntime.Length != 0) {
+        output.WriteRawTag(50);
+        output.WriteString(SupportedRuntime);
+      }
+      if (Problem.Length != 0) {
+        output.WriteRawTag(58);
+        output.WriteString(Problem);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      if (Compatible != false) {
+        output.WriteRawTag(8);
+        output.WriteBool(Compatible);
+      }
+      if (GameVersion.Length != 0) {
+        output.WriteRawTag(18);
+        output.WriteString(GameVersion);
+      }
+      if (GameSha256.Length != 0) {
+        output.WriteRawTag(26);
+        output.WriteString(GameSha256);
+      }
+      if (FileId != 0L) {
+        output.WriteRawTag(32);
+        output.WriteInt64(FileId);
+      }
+      if (ComponentVersion.Length != 0) {
+        output.WriteRawTag(42);
+        output.WriteString(ComponentVersion);
+      }
+      if (SupportedRuntime.Length != 0) {
+        output.WriteRawTag(50);
+        output.WriteString(SupportedRuntime);
+      }
+      if (Problem.Length != 0) {
+        output.WriteRawTag(58);
+        output.WriteString(Problem);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int CalculateSize() {
+      int size = 0;
+      if (Compatible != false) {
+        size += 1 + 1;
+      }
+      if (GameVersion.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(GameVersion);
+      }
+      if (GameSha256.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(GameSha256);
+      }
+      if (FileId != 0L) {
+        size += 1 + pb::CodedOutputStream.ComputeInt64Size(FileId);
+      }
+      if (ComponentVersion.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(ComponentVersion);
+      }
+      if (SupportedRuntime.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(SupportedRuntime);
+      }
+      if (Problem.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(Problem);
+      }
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(SkseReleaseReview other) {
+      if (other == null) {
+        return;
+      }
+      if (other.Compatible != false) {
+        Compatible = other.Compatible;
+      }
+      if (other.GameVersion.Length != 0) {
+        GameVersion = other.GameVersion;
+      }
+      if (other.GameSha256.Length != 0) {
+        GameSha256 = other.GameSha256;
+      }
+      if (other.FileId != 0L) {
+        FileId = other.FileId;
+      }
+      if (other.ComponentVersion.Length != 0) {
+        ComponentVersion = other.ComponentVersion;
+      }
+      if (other.SupportedRuntime.Length != 0) {
+        SupportedRuntime = other.SupportedRuntime;
+      }
+      if (other.Problem.Length != 0) {
+        Problem = other.Problem;
+      }
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 8: {
+            Compatible = input.ReadBool();
+            break;
+          }
+          case 18: {
+            GameVersion = input.ReadString();
+            break;
+          }
+          case 26: {
+            GameSha256 = input.ReadString();
+            break;
+          }
+          case 32: {
+            FileId = input.ReadInt64();
+            break;
+          }
+          case 42: {
+            ComponentVersion = input.ReadString();
+            break;
+          }
+          case 50: {
+            SupportedRuntime = input.ReadString();
+            break;
+          }
+          case 58: {
+            Problem = input.ReadString();
+            break;
+          }
+        }
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 8: {
+            Compatible = input.ReadBool();
+            break;
+          }
+          case 18: {
+            GameVersion = input.ReadString();
+            break;
+          }
+          case 26: {
+            GameSha256 = input.ReadString();
+            break;
+          }
+          case 32: {
+            FileId = input.ReadInt64();
+            break;
+          }
+          case 42: {
+            ComponentVersion = input.ReadString();
+            break;
+          }
+          case 50: {
+            SupportedRuntime = input.ReadString();
+            break;
+          }
+          case 58: {
+            Problem = input.ReadString();
+            break;
+          }
         }
       }
     }
@@ -1334,7 +2158,7 @@ namespace ModConductor.Protocol.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::ModConductor.Protocol.V1.SkyrimSetupReflection.Descriptor.MessageTypes[5]; }
+      get { return global::ModConductor.Protocol.V1.SkyrimSetupReflection.Descriptor.MessageTypes[7]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -1643,7 +2467,7 @@ namespace ModConductor.Protocol.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::ModConductor.Protocol.V1.SkyrimSetupReflection.Descriptor.MessageTypes[6]; }
+      get { return global::ModConductor.Protocol.V1.SkyrimSetupReflection.Descriptor.MessageTypes[8]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -2137,7 +2961,7 @@ namespace ModConductor.Protocol.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::ModConductor.Protocol.V1.SkyrimSetupReflection.Descriptor.MessageTypes[7]; }
+      get { return global::ModConductor.Protocol.V1.SkyrimSetupReflection.Descriptor.MessageTypes[9]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]

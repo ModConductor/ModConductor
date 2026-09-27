@@ -1,4 +1,5 @@
 import 'package:grpc/grpc.dart';
+import 'package:fixnum/fixnum.dart';
 
 import 'generated/modconductor/v1/skyrim_setup.pbgrpc.dart' as wire;
 
@@ -20,6 +21,45 @@ enum SkyrimSetupStatusPhase {
 }
 
 enum SkyrimSetupAction { unchanged, install, remove, update }
+
+class SkseReleaseChoice {
+  const SkseReleaseChoice({
+    required this.fileId,
+    required this.componentVersion,
+    required this.gameVersion,
+    required this.gameSha256,
+    required this.allowIncompatible,
+  });
+
+  final int fileId;
+  final String componentVersion, gameVersion, gameSha256;
+  final bool allowIncompatible;
+}
+
+class SkseReleaseReview {
+  const SkseReleaseReview({
+    required this.compatible,
+    required this.gameVersion,
+    required this.gameSha256,
+    required this.fileId,
+    required this.componentVersion,
+    required this.supportedRuntime,
+    required this.problem,
+  });
+
+  final bool compatible;
+  final String gameVersion, gameSha256, componentVersion;
+  final String? supportedRuntime, problem;
+  final int fileId;
+
+  SkseReleaseChoice get choice => SkseReleaseChoice(
+    fileId: fileId,
+    componentVersion: componentVersion,
+    gameVersion: gameVersion,
+    gameSha256: gameSha256,
+    allowIncompatible: !compatible,
+  );
+}
 
 class SkyrimSetupSelection {
   const SkyrimSetupSelection({
@@ -119,7 +159,10 @@ abstract class SkyrimSetupClient {
     String workspace,
     String profile, {
     required SkyrimSetupSelection selection,
+    SkseReleaseChoice? skseChoice,
   });
+
+  Future<SkseReleaseReview> reviewSkseRelease(String workspace, String profile);
 
   Future<SkyrimSetupStatus> continueSetup(String workspace, String profile);
 
@@ -249,15 +292,46 @@ class _GrpcSkyrimSetupClient extends SkyrimSetupClient {
     String workspace,
     String profile, {
     required SkyrimSetupSelection selection,
+    SkseReleaseChoice? skseChoice,
   }) async => _decode(
     await _client.startSkyrimSetup(
       wire.StartSkyrimSetupRequest(
         workspaceId: workspace,
         profileId: profile,
         selection: _wireSelection(selection),
+        skseChoice: skseChoice == null
+            ? null
+            : wire.SkseReleaseChoice(
+                fileId: Int64(skseChoice.fileId),
+                componentVersion: skseChoice.componentVersion,
+                gameVersion: skseChoice.gameVersion,
+                gameSha256: skseChoice.gameSha256,
+                allowIncompatible: skseChoice.allowIncompatible,
+              ),
       ),
     ),
   );
+
+  @override
+  Future<SkseReleaseReview> reviewSkseRelease(
+    String workspace,
+    String profile,
+  ) async {
+    final value = await _client.reviewSkseRelease(
+      wire.SkyrimSetupRequest(workspaceId: workspace, profileId: profile),
+    );
+    return SkseReleaseReview(
+      compatible: value.compatible,
+      gameVersion: value.gameVersion,
+      gameSha256: value.gameSha256,
+      fileId: value.fileId.toInt(),
+      componentVersion: value.componentVersion,
+      supportedRuntime: value.supportedRuntime.isEmpty
+          ? null
+          : value.supportedRuntime,
+      problem: value.problem.isEmpty ? null : value.problem,
+    );
+  }
 
   @override
   Future<SkyrimSetupStatus> continueSetup(

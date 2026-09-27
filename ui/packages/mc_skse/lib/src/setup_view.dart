@@ -7,6 +7,11 @@ class _SkyrimSetupView extends StatelessWidget {
     required this.busy,
     required this.problem,
     required this.updateEvidenceFresh,
+    required this.skseReview,
+    required this.skseReviewProblem,
+    required this.reviewingSkse,
+    required this.useLatestSkse,
+    required this.skseChoiceReady,
     required this.onApply,
     required this.onClearChoices,
     required this.onRefresh,
@@ -16,6 +21,7 @@ class _SkyrimSetupView extends StatelessWidget {
     required this.onChooseEnbArchive,
     required this.onClearEnbArchive,
     required this.onOpenProjectPage,
+    required this.onChooseLatestSkse,
   });
 
   final SkyrimSetupStatus? status;
@@ -23,6 +29,9 @@ class _SkyrimSetupView extends StatelessWidget {
   final bool busy;
   final String? problem;
   final bool updateEvidenceFresh;
+  final SkseReleaseReview? skseReview;
+  final String? skseReviewProblem;
+  final bool reviewingSkse, useLatestSkse, skseChoiceReady;
   final VoidCallback onApply;
   final VoidCallback onClearChoices;
   final VoidCallback onRefresh;
@@ -32,6 +41,50 @@ class _SkyrimSetupView extends StatelessWidget {
   final VoidCallback onChooseEnbArchive;
   final VoidCallback onClearEnbArchive;
   final ValueChanged<String> onOpenProjectPage;
+  final VoidCallback onChooseLatestSkse;
+
+  Widget skseReleaseReview() {
+    if (reviewingSkse) {
+      return const McStatus(title: 'Checking SKSE releases');
+    }
+    if (skseReviewProblem case final problem?) {
+      return McStatus(
+        title: 'SKSE release check failed',
+        detail: problem,
+        tone: McStatusTone.error,
+      );
+    }
+    final review = skseReview;
+    if (review == null) return const SizedBox.shrink();
+    final supported = review.supportedRuntime == null
+        ? 'The author does not state a supported runtime.'
+        : 'Author-supported runtime: ${review.supportedRuntime}.';
+    if (review.compatible) {
+      return McStatus(
+        title: 'Selected SKSE ${review.componentVersion}',
+        detail: 'Detected Skyrim runtime: ${review.gameVersion}. $supported',
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        McStatus(
+          title: 'Compatibility warning',
+          detail:
+              'Detected Skyrim runtime: ${review.gameVersion}. '
+              'Latest SKSE: ${review.componentVersion}. $supported '
+              'This release may not work with your game.',
+        ),
+        const SizedBox(height: McSpacing.small),
+        McAction(
+          label: useLatestSkse
+              ? 'Do not use latest SKSE'
+              : 'Install latest SKSE',
+          onPressed: busy ? null : onChooseLatestSkse,
+        ),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -74,6 +127,7 @@ class _SkyrimSetupView extends StatelessWidget {
           busy: busy,
           locked: locked,
           failed: failed,
+          skseChoiceReady: skseChoiceReady,
           onApply: onApply,
           onClearChoices: onClearChoices,
           onRefresh: onRefresh,
@@ -108,6 +162,11 @@ class _SkyrimSetupView extends StatelessWidget {
               onClearEnbArchive: onClearEnbArchive,
               onOpenProjectPage: onOpenProjectPage,
             ),
+          if (selection.skse == SkyrimSetupAction.install ||
+              selection.skse == SkyrimSetupAction.update) ...[
+            const SizedBox(height: McSpacing.medium),
+            skseReleaseReview(),
+          ],
         ],
       ],
     );

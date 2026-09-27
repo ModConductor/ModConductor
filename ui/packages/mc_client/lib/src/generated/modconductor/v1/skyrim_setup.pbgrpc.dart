@@ -77,6 +77,13 @@ class SkyrimSetupOperationsClient extends $grpc.Client {
     return $createUnaryCall(_$openSkyrimSetupPage, request, options: options);
   }
 
+  $grpc.ResponseFuture<$0.SkseReleaseReview> reviewSkseRelease(
+    $0.SkyrimSetupRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$reviewSkseRelease, request, options: options);
+  }
+
   // method descriptors
 
   static final _$readSkyrimSetup =
@@ -109,6 +116,11 @@ class SkyrimSetupOperationsClient extends $grpc.Client {
           '/modconductor.v1.SkyrimSetupOperations/OpenSkyrimSetupPage',
           ($0.SkyrimSetupPageRequest value) => value.writeToBuffer(),
           $0.SkyrimSetupPageReply.fromBuffer);
+  static final _$reviewSkseRelease =
+      $grpc.ClientMethod<$0.SkyrimSetupRequest, $0.SkseReleaseReview>(
+          '/modconductor.v1.SkyrimSetupOperations/ReviewSkseRelease',
+          ($0.SkyrimSetupRequest value) => value.writeToBuffer(),
+          $0.SkseReleaseReview.fromBuffer);
 }
 
 @$pb.GrpcServiceName('modconductor.v1.SkyrimSetupOperations')
@@ -168,6 +180,14 @@ abstract class SkyrimSetupOperationsServiceBase extends $grpc.Service {
             ($core.List<$core.int> value) =>
                 $0.SkyrimSetupPageRequest.fromBuffer(value),
             ($0.SkyrimSetupPageReply value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.SkyrimSetupRequest, $0.SkseReleaseReview>(
+        'ReviewSkseRelease',
+        reviewSkseRelease_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.SkyrimSetupRequest.fromBuffer(value),
+        ($0.SkseReleaseReview value) => value.writeToBuffer()));
   }
 
   $async.Future<$0.SkyrimSetupState> readSkyrimSetup_Pre(
@@ -223,4 +243,13 @@ abstract class SkyrimSetupOperationsServiceBase extends $grpc.Service {
 
   $async.Future<$0.SkyrimSetupPageReply> openSkyrimSetupPage(
       $grpc.ServiceCall call, $0.SkyrimSetupPageRequest request);
+
+  $async.Future<$0.SkseReleaseReview> reviewSkseRelease_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.SkyrimSetupRequest> $request) async {
+    return reviewSkseRelease($call, await $request);
+  }
+
+  $async.Future<$0.SkseReleaseReview> reviewSkseRelease(
+      $grpc.ServiceCall call, $0.SkyrimSetupRequest request);
 }
