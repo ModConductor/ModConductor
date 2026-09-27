@@ -277,19 +277,12 @@ module internal ProfileDeleteMutation =
                 let! ownedContexts, saved =
                     retireGameView services request.Workspace target request.Token
 
-                let rec removeRecords =
-                    function
-                    | [] -> System.Threading.Tasks.Task.FromResult(Ok())
-                    | record :: remaining ->
-                        task {
-                            let! removed = removePrivateProfile services request target record
+                let mutable removed: Result<unit, ProfileDataError> = Ok()
 
-                            match removed with
-                            | Error error -> return Error error
-                            | Ok() -> return! removeRecords remaining
-                        }
-
-                let! removed = removeRecords records
+                for record in records do
+                    if Result.isOk removed then
+                        let! next = removePrivateProfile services request target record
+                        removed <- next
 
                 match removed with
                 | Error error ->

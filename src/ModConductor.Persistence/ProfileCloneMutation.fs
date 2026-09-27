@@ -249,20 +249,6 @@ module internal ProfileCloneMutation =
                                     request.CaptureCheckpoint
                 }
 
-            let rec prepareAll =
-                function
-                | [] -> System.Threading.Tasks.Task.FromResult(Ok())
-                | item :: remaining ->
-                    task {
-                        let! prepared = prepareOne item
-
-                        match prepared with
-                        | Error error -> return Error error
-                        | Ok copy ->
-                            completed.Add copy
-                            return! prepareAll remaining
-                    }
-
             let commitPrepared () =
                 task {
                     request.Token.ThrowIfCancellationRequested()
@@ -279,7 +265,15 @@ module internal ProfileCloneMutation =
                 }
 
             try
-                let! prepared = prepareAll records
+                let mutable prepared: Result<unit, ProfileDataError> = Ok()
+
+                for item in records do
+                    if Result.isOk prepared then
+                        let! next = prepareOne item
+
+                        match next with
+                        | Error error -> prepared <- Error error
+                        | Ok copy -> completed.Add copy
 
                 match prepared with
                 | Error error ->
