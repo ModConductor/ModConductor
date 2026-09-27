@@ -9,36 +9,25 @@ open ModConductor.GameContexts
 
 module internal DataLocations =
     let root path =
-        let selected =
-            HostPath.create path
-            |> Result.bind (fun value -> RootSelection.select value |> Result.mapError string)
-            |> Result.defaultWith (fun _ ->
-                raise (
-                    ProfileDataException(
-                        ProfileDataError.Unavailable "The settings folder is unavailable."
-                    )
-                ))
-
-        match (RootSelection.facts selected).File with
-        | Known identity ->
-            { Path = RootSelection.path selected
-              Identity = identity }
-            : DataRoot
-        | Unknown reason -> raise (ProfileDataException(ProfileDataError.Unavailable reason))
+        HostPath.create path
+        |> Result.bind (fun value -> RootSelection.select value |> Result.mapError string)
+        |> Result.mapError (fun _ ->
+            ProfileDataError.Unavailable "The settings folder is unavailable.")
+        |> Result.bind (fun selected ->
+            match (RootSelection.facts selected).File with
+            | Known identity ->
+                Ok
+                    { Path = RootSelection.path selected
+                      Identity = identity }
+            | Unknown reason -> Error(ProfileDataError.Unavailable reason))
 
     let documents (game: GameContextState) =
         match game.Binding with
         | Some binding when not binding.NeedsCheck && binding.Evidence.Valid ->
             match binding.Evidence.Locations.Documents with
             | Location.Located(path, _) -> root path
-            | Location.Unavailable reason ->
-                raise (ProfileDataException(ProfileDataError.Unavailable reason))
-        | _ ->
-            raise (
-                ProfileDataException(
-                    ProfileDataError.Unavailable "Select and refresh the game installation first."
-                )
-            )
+            | Location.Unavailable reason -> Error(ProfileDataError.Unavailable reason)
+        | _ -> Error(ProfileDataError.Unavailable "Select and refresh the game installation first.")
 
     let id (workspace: Guid) (documents: DataRoot) =
         let physical =

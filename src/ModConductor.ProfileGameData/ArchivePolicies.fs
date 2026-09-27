@@ -121,7 +121,9 @@ module internal ArchivePolicies =
             let! scope = scopeResult
             let! actual, observed, bytes, stamp = ArchivePolicyProjection.ini scope token
 
-            if ArchivePolicyProjection.reference scope <> expected || stamp <> snapshot.Ini then
+            let! reference = ArchivePolicyProjection.reference scope
+
+            if reference <> expected || stamp <> snapshot.Ini then
                 return! Error ProfileDataError.Stale
 
             let! changes = ArchivePolicyProjection.delta archives scope snapshot token

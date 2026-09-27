@@ -102,7 +102,7 @@ module PluginOrderFixtures =
         let uncheckedScope =
             { WorkspaceId = workspace
               ProfileId = first
-              Workspace = DataLocations.root root
+              Workspace = DataLocations.root root |> StorageWorker.result
               Game = { context with Binding = None }
               Availability = None
               Context = None

@@ -37,15 +37,15 @@ module internal ProfileCloneMutation =
                 match scopeResult with
                 | Error error -> return Error error
                 | Ok scope ->
-                    if
-                        (DataLocations.documents scope.Game).Identity <> context.Documents.Identity
-                    then
+                    match DataLocations.documents scope.Game with
+                    | Error error -> return Error error
+                    | Ok documents when documents.Identity <> context.Documents.Identity ->
                         return
                             Error(
                                 ProfileDataError.Unavailable
                                     "Restore the profile in its previous installation before cloning it."
                             )
-                    else
+                    | Ok _ ->
                         GameProcesses.validate scope.Game |> ignore
                         return Ok()
             else

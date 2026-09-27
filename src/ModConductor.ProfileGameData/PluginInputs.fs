@@ -76,11 +76,11 @@ module internal PluginInputs =
         ProfileDataResultFlow.result {
             let! selected = location scope.Game
 
-            let root =
+            let! root =
                 if Directory.Exists selected || File.Exists selected then
-                    Some(DataLocations.root selected)
+                    DataLocations.root selected |> Result.map Some
                 else
-                    None
+                    Ok None
 
             scope.Context
             |> Option.bind _.PluginRoot
@@ -117,6 +117,12 @@ module internal PluginInputs =
 
             let context = scope.Context
 
+            let documentSettings () =
+                DataLocations.documents scope.Game
+                |> Result.map (fun documents ->
+                    let _, _, bytes = readFile documents "Skyrim.ini" token
+                    bytes)
+
             let! settings =
                 match scope.Profile with
                 | Some profile when profile.Options.Settings && profile.SettingsInitialized ->
@@ -124,9 +130,7 @@ module internal PluginInputs =
                     | Some active when
                         active.ProfileId = profile.ProfileId && active.Options.Settings
                         ->
-                        let documents = DataLocations.documents scope.Game
-                        let _, _, bytes = readFile documents "Skyrim.ini" token
-                        Ok bytes
+                        documentSettings ()
                     | _ ->
                         let _, _, bytes = readFile profile.Settings.Value "Skyrim.ini" token
                         Ok bytes
@@ -145,11 +149,7 @@ module internal PluginInputs =
                             not (Directory.Exists path || File.Exists path)
                             ->
                             Ok [||]
-                        | _ ->
-                            let _, _, bytes =
-                                readFile (DataLocations.documents scope.Game) "Skyrim.ini" token
-
-                            Ok bytes
+                        | _ -> documentSettings ()
 
             return
                 { Root = root
@@ -169,7 +169,7 @@ module internal PluginInputs =
 
     let ensureRoot (input: PluginInputs) =
         match input.Root with
-        | Some root -> root
+        | Some root -> Ok root
         | None ->
-            let parent = DataLocations.root (Path.GetDirectoryName input.Path)
-            DataLocations.child parent (Path.GetFileName input.Path)
+            DataLocations.root (Path.GetDirectoryName input.Path)
+            |> Result.map (fun parent -> DataLocations.child parent (Path.GetFileName input.Path))

@@ -176,15 +176,20 @@ module internal ArchivePolicyProjection =
         }
 
     let reference (scope: ProfileDataScope) =
-        { WorkspaceId = scope.WorkspaceId
-          ProfileId = scope.ProfileId
-          ContextId =
-            scope.Context
-            |> Option.map _.Id
-            |> Option.defaultWith (fun () ->
-                DataLocations.id scope.WorkspaceId (DataLocations.documents scope.Game))
-          Revision = scope.Context |> Option.map _.Revision |> Option.defaultValue 0L }
-        : ProfileDataRef
+        let contextId =
+            match scope.Context with
+            | Some context -> Ok context.Id
+            | None ->
+                DataLocations.documents scope.Game
+                |> Result.map (DataLocations.id scope.WorkspaceId)
+
+        contextId
+        |> Result.map (fun selected ->
+            { WorkspaceId = scope.WorkspaceId
+              ProfileId = scope.ProfileId
+              ContextId = selected
+              Revision = scope.Context |> Option.map _.Revision |> Option.defaultValue 0L }
+            : ProfileDataRef)
 
     let view
         (repository: IProfileDataRepository)
@@ -212,9 +217,10 @@ module internal ArchivePolicyProjection =
             let saved = input.Scope.Profile |> Option.bind _.ArchiveList |> Option.isSome
 
             let! changes = delta archives input.Scope snapshot token
+            let! reference = reference input.Scope
 
             return
-                { Reference = reference input.Scope
+                { Reference = reference
                   Snapshot = snapshot
                   IniName = input.IniName
                   Saved = saved

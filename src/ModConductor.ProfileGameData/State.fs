@@ -6,6 +6,14 @@ open System.Threading.Tasks
 open ModConductor.Platform
 
 module internal ProfileDataProjection =
+    let private contextId (scope: ProfileDataScope) =
+        match scope.Context with
+        | Some context -> Ok context.Id
+        | None when scope.Availability.IsSome -> Ok Guid.Empty
+        | None ->
+            DataLocations.documents scope.Game
+            |> Result.map (DataLocations.id scope.WorkspaceId)
+
     let count root =
         match root with
         | None -> Ok 0
@@ -82,47 +90,42 @@ module internal ProfileDataProjection =
         let settingsCount = countKnown (profile |> Option.bind _.Settings)
         let saveCount = countKnown (profile |> Option.bind _.Saves)
 
-        { WorkspaceId = scope.WorkspaceId
-          ProfileId = scope.ProfileId
-          ContextId =
-            scope.Context
-            |> Option.map _.Id
-            |> Option.defaultWith (fun () ->
-                if scope.Availability.IsSome then
-                    Guid.Empty
-                else
-                    DataLocations.id scope.WorkspaceId (DataLocations.documents scope.Game))
-          Revision = scope.Context |> Option.map _.Revision |> Option.defaultValue 0L
-          Options =
-            profile
-            |> Option.map _.Options
-            |> Option.defaultValue { Settings = false; Saves = false }
-          InUse = scope.Context |> Option.bind _.Applied |> Option.map _.ProfileId
-          SettingsPath =
-            profile
-            |> Option.bind _.Settings
-            |> Option.map (fun root -> HostPath.value root.Path)
-            |> Option.defaultValue ""
-          SavesPath =
-            profile
-            |> Option.bind _.Saves
-            |> Option.map (fun root -> HostPath.value root.Path)
-            |> Option.defaultValue ""
-          SettingsFiles = settingsCount
-          SaveFiles = saveCount
-          SettingsInitialized = profile |> Option.exists _.SettingsInitialized
-          SavesInitialized = profile |> Option.exists _.SavesInitialized
-          Pending = scope.Context |> Option.bind _.Pending
-          PendingProfileChange = false
-          PendingConfiguration = None
-          Problem = problem }
-        : ProfileDataState
+        contextId scope
+        |> Result.map (fun selected ->
+            { WorkspaceId = scope.WorkspaceId
+              ProfileId = scope.ProfileId
+              ContextId = selected
+              Revision = scope.Context |> Option.map _.Revision |> Option.defaultValue 0L
+              Options =
+                profile
+                |> Option.map _.Options
+                |> Option.defaultValue { Settings = false; Saves = false }
+              InUse = scope.Context |> Option.bind _.Applied |> Option.map _.ProfileId
+              SettingsPath =
+                profile
+                |> Option.bind _.Settings
+                |> Option.map (fun root -> HostPath.value root.Path)
+                |> Option.defaultValue ""
+              SavesPath =
+                profile
+                |> Option.bind _.Saves
+                |> Option.map (fun root -> HostPath.value root.Path)
+                |> Option.defaultValue ""
+              SettingsFiles = settingsCount
+              SaveFiles = saveCount
+              SettingsInitialized = profile |> Option.exists _.SettingsInitialized
+              SavesInitialized = profile |> Option.exists _.SavesInitialized
+              Pending = scope.Context |> Option.bind _.Pending
+              PendingProfileChange = false
+              PendingConfiguration = None
+              Problem = problem }
+            : ProfileDataState)
 
     let read (repository: IProfileDataRepository) workspace profile =
         ProfileDataResultTask.resultTask {
             let! scopeResult = repository.Read(workspace, profile)
             let! scope = scopeResult
-            let state = view scope
+            let! state = view scope
 
             match state.Pending with
             | None -> return state
@@ -163,15 +166,11 @@ module internal ProfileDataProjection =
         match scope.Availability with
         | Some detail -> Error(ProfileDataError.Unavailable detail)
         | None ->
-            let id =
-                scope.Context
-                |> Option.map _.Id
-                |> Option.defaultWith (fun () ->
-                    DataLocations.id scope.WorkspaceId (DataLocations.documents scope.Game))
+            contextId scope
+            |> Result.bind (fun id ->
+                let revision = scope.Context |> Option.map _.Revision |> Option.defaultValue 0L
 
-            let revision = scope.Context |> Option.map _.Revision |> Option.defaultValue 0L
-
-            if id <> expected.ContextId || revision <> expected.Revision then
-                Error ProfileDataError.Stale
-            else
-                Ok()
+                if id <> expected.ContextId || revision <> expected.Revision then
+                    Error ProfileDataError.Stale
+                else
+                    Ok())

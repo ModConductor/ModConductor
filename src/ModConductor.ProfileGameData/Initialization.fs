@@ -12,21 +12,22 @@ module internal DataInitialization =
                 match scope.Context with
                 | Some value -> System.Threading.Tasks.Task.FromResult(Ok value)
                 | None ->
-                    let documents = DataLocations.documents scope.Game
-
-                    repository.CreateContext
-                        { Id = DataLocations.id scope.WorkspaceId documents
-                          WorkspaceId = scope.WorkspaceId
-                          Revision = 0L
-                          Workspace = scope.Workspace
-                          Documents = documents
-                          Storage = None
-                          OriginalsRoot = None
-                          Applied = None
-                          Pending = None
-                          PluginObserved = None
-                          PluginRoot = None
-                          PluginOriginals = None }
+                    match DataLocations.documents scope.Game with
+                    | Error error -> System.Threading.Tasks.Task.FromResult(Error error)
+                    | Ok documents ->
+                        repository.CreateContext
+                            { Id = DataLocations.id scope.WorkspaceId documents
+                              WorkspaceId = scope.WorkspaceId
+                              Revision = 0L
+                              Workspace = scope.Workspace
+                              Documents = documents
+                              Storage = None
+                              OriginalsRoot = None
+                              Applied = None
+                              Pending = None
+                              PluginObserved = None
+                              PluginRoot = None
+                              PluginOriginals = None }
 
             let! initial = initialResult
 
@@ -149,7 +150,7 @@ module internal DataInitialization =
                 | InitialSaves.CopyGlobal ->
                     match game.Binding.Value.Evidence.Locations.Saves with
                     | Location.Located(path, true) ->
-                        let source = DataLocations.root path
+                        let! source = DataLocations.root path
 
                         if source.Identity = destination.Identity then
                             return!

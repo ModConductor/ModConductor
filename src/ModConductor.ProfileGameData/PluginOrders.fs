@@ -42,23 +42,28 @@ module internal PluginOrders =
                         scope.Profile
                         |> Option.exists (fun profile -> profile.Revision = value.ProfileRevision))))
 
-        { Reference =
-            { WorkspaceId = scope.WorkspaceId
-              ProfileId = scope.ProfileId
-              ContextId =
-                scope.Context
-                |> Option.map _.Id
-                |> Option.defaultWith (fun () ->
-                    DataLocations.id scope.WorkspaceId (DataLocations.documents scope.Game))
-              Revision = scope.Context |> Option.map _.Revision |> Option.defaultValue 0L }
-          Headers = headers
-          Facts = input.Facts
-          View = OrderRules.inspect input.Facts headers.Entries order
-          Saved = saved.IsSome
-          Applied = applied
-          ExternalChanged = changed
-          Pending = scope.Context |> Option.bind _.Pending |> Option.isSome
-          Problem = None }
+        let contextId =
+            match scope.Context with
+            | Some context -> Ok context.Id
+            | None ->
+                DataLocations.documents scope.Game
+                |> Result.map (DataLocations.id scope.WorkspaceId)
+
+        contextId
+        |> Result.map (fun selected ->
+            { Reference =
+                { WorkspaceId = scope.WorkspaceId
+                  ProfileId = scope.ProfileId
+                  ContextId = selected
+                  Revision = scope.Context |> Option.map _.Revision |> Option.defaultValue 0L }
+              Headers = headers
+              Facts = input.Facts
+              View = OrderRules.inspect input.Facts headers.Entries order
+              Saved = saved.IsSome
+              Applied = applied
+              ExternalChanged = changed
+              Pending = scope.Context |> Option.bind _.Pending |> Option.isSome
+              Problem = None })
 
     let read (repository: IProfileDataRepository) plugins workspace profile id =
         resultTask {
@@ -67,7 +72,7 @@ module internal PluginOrders =
             let! scopeResult = repository.Read(workspace, profile)
             let! scope = scopeResult
             let! input = PluginInputs.read scope header.Entries CancellationToken.None
-            let value = view scope header input
+            let! value = view scope header input
 
             match scope.Context |> Option.bind _.Pending with
             | None -> return value
@@ -87,7 +92,7 @@ module internal PluginOrders =
             let! scopeResult = repository.Read(expected.WorkspaceId, expected.ProfileId)
             let! scope = scopeResult
             let! input = PluginInputs.read scope header.Entries CancellationToken.None
-            let current = view scope header input
+            let! current = view scope header input
 
             if current.Reference <> expected then
                 return! Error ProfileDataError.Stale
@@ -134,7 +139,7 @@ module internal PluginOrders =
 
             let! contextResult = DataInitialization.context repository scope
             let! context = contextResult
-            let root = PluginInputs.ensureRoot input
+            let! root = PluginInputs.ensureRoot input
 
             let profile =
                 scope.Profile

@@ -42,7 +42,7 @@ module internal SaveGroupSource =
 
     let private locatedRoot (binding: GameBinding) =
         match binding.Evidence.Locations.Saves with
-        | Location.Located(path, true) -> Ok(Some(DataLocations.root path))
+        | Location.Located(path, true) -> DataLocations.root path |> Result.map Some
         | Location.Located(_, false) -> Ok None
         | Location.Unavailable reason -> Error(ProfileDataError.Unavailable reason)
 

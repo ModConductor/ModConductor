@@ -65,11 +65,11 @@ type internal ProfileDataRepository(database: StateDatabase, access: LibraryAcce
                     | Ok game ->
                         let documents, availability =
                             try
-                                Some(DataLocations.documents game), None
-                            with
-                            | ProfileDataException(ProfileDataError.Unavailable detail) ->
-                                None, Some detail
-                            | :? System.IO.IOException as error -> None, Some error.Message
+                                match DataLocations.documents game with
+                                | Ok selected -> Some selected, None
+                                | Error error -> None, Some(DataErrors.problemMessage error)
+                            with :? System.IO.IOException as error ->
+                                None, Some error.Message
 
                         return!
                             database.Enqueue(fun () ->
