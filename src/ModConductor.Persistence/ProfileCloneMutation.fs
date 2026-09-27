@@ -45,9 +45,9 @@ module internal ProfileCloneMutation =
                                 ProfileDataError.Unavailable
                                     "Restore the profile in its previous installation before cloning it."
                             )
-
-                    GameProcesses.validate scope.Game |> ignore
-                    return Ok()
+                    else
+                        GameProcesses.validate scope.Game |> ignore
+                        return Ok()
             else
                 return Ok()
         }
@@ -263,6 +263,21 @@ module internal ProfileCloneMutation =
                             return! prepareAll remaining
                     }
 
+            let commitPrepared () =
+                task {
+                    request.Token.ThrowIfCancellationRequested()
+                    let! committed = commit services request completed
+
+                    if Result.isError committed then
+                        do! releaseClaims services claimed
+
+                    return
+                        committed
+                        |> Result.mapError (function
+                            | Choice1Of2 error -> error
+                            | Choice2Of2 error -> workspaceError error)
+                }
+
             try
                 let! prepared = prepareAll records
 
@@ -270,19 +285,7 @@ module internal ProfileCloneMutation =
                 | Error error ->
                     do! releaseClaims services claimed
                     return Error(workspaceError error)
-                | Ok() -> ()
-
-                request.Token.ThrowIfCancellationRequested()
-                let! committed = commit services request completed
-
-                if Result.isError committed then
-                    do! releaseClaims services claimed
-
-                return
-                    committed
-                    |> Result.mapError (function
-                        | Choice1Of2 error -> error
-                        | Choice2Of2 error -> workspaceError error)
+                | Ok() -> return! commitPrepared ()
             with error ->
                 do! handleFailure services request.Workspace claimed error
                 return raise error

@@ -226,7 +226,7 @@ type internal ProfileDataRepository(database: StateDatabase, access: LibraryAcce
             database.Enqueue(fun () ->
                 use transaction = connection.BeginTransaction(deferred = false)
 
-                let claim current =
+                let claim (current: ProfileDataContext) =
                     ProfileDataRows.checkProfile
                         connection
                         transaction
