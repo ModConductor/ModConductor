@@ -68,15 +68,18 @@ module GeneratedOutputRecoveryFixtures =
             member _.CheckAction record =
                 task {
                     let! validated = inner.CheckAction record
+
                     match validated with
                     | Error error -> return Error error
                     | Ok() ->
                         let! recorded = inner.FindAction record.Id
+
                         match recorded with
                         | Error error -> return Error error
                         | Ok recorded ->
                             if checkpoint = BeforeEffect && recorded.IsSome then
                                 raise (IOException "Owned fixture stopped before the file effect.")
+
                             return Ok()
                 }
 
@@ -167,7 +170,11 @@ module GeneratedOutputRecoveryFixtures =
 
         let initialize (owner: Owner) =
             let state = owner.Contexts.Read(workspace, profile) |> wait |> result
-            owner.Contexts.Refresh(workspace, profile, state.Revision) |> wait |> result |> ignore
+
+            owner.Contexts.Refresh(workspace, profile, state.Revision)
+            |> wait
+            |> result
+            |> ignore
 
         let session (owner: Owner) checkpoint =
             let repository =
@@ -230,7 +237,7 @@ module GeneratedOutputRecoveryFixtures =
         do
             use owner = new Owner(directory)
             initialize owner
-            owner.Repository.StopUsing(slot.Id, slot.Revision) |> wait |> ignore
+            owner.Repository.StopUsing(slot.Id, slot.Revision) |> wait |> result |> ignore
 
             check
                 "stoppedOutputRefusesOldDiscardAfterRestart"
@@ -275,10 +282,11 @@ module GeneratedOutputRecoveryFixtures =
                  && owner.VersionCount modId = 1L
                  && saved.Origin = VersionOrigin.Outputs move.Id)
 
-            let current, _ = owner.Repository.Read(workspace, profile, None) |> wait
+            let current, _ = owner.Repository.Read(workspace, profile, None) |> wait |> result
 
             owner.Repository.Add(Guid.NewGuid(), current, "Another tool", OutputPurpose.ToolFolder)
             |> wait
+            |> result
             |> ignore
 
             check
