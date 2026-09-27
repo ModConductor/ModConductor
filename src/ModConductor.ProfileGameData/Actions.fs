@@ -10,7 +10,7 @@ open ModConductor.Platform
 type internal ProfileDataActionDependencies =
     { Repository: IProfileDataRepository
       Archives: ModConductor.Bethesda.ArchivePolicySession
-      Stopped: GameContextState -> unit
+      Stopped: GameContextState -> Result<unit, ProfileDataError>
       Read: Guid -> Guid -> Task<Result<ProfileDataState, ProfileDataError>> }
 
 module internal ProfileDataActions =
@@ -123,7 +123,7 @@ module internal ProfileDataActions =
 
                     if appliesFiles && action.Deletion.IsNone then
                         if affectsGame then
-                            stopped scope.Game
+                            do! stopped scope.Game
 
                         let! preparation =
                             ProfileDataActionPreparation.prepareEffects

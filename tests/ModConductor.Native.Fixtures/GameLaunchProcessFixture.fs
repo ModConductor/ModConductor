@@ -50,12 +50,7 @@ module GameLaunchProcessFixture =
                     |> List.exists (fun value ->
                         value.ProcessId = child.ProcessId && value.ProcessName = "Main")
 
-                let refused =
-                    try
-                        GameProcesses.check evidence
-                        false
-                    with :? IOException ->
-                        true
+                let refused = GameProcesses.check evidence |> Result.isError
 
                 writer.WriteBoolean("renamedWineProcessAndSDriveRefused", renamed && refused)
 
@@ -68,6 +63,7 @@ module GameLaunchProcessFixture =
                             Some
                                 { proton with
                                     PrefixPath = Path.Combine(area, "other-prefix") } }
+                |> Result.defaultWith invalidOp
 
                 writer.WriteBoolean("unrelatedWinePrefixAllowed", true)
             finally

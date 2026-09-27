@@ -83,7 +83,9 @@ type OperationStore
         ModConductor.ProfileGameData.ProfileGameDataSession(
             ProfileDataRepository(database, modLibrary.Access),
             deploymentBackend.TryAcquireWorkspace,
-            ModConductor.Deployment.GameProcesses.validate >> ignore,
+            (ModConductor.Deployment.GameProcesses.validate
+             >> Result.map ignore
+             >> Result.mapError ModConductor.ProfileGameData.ProfileDataError.Unavailable),
             plugins,
             archivePolicies,
             ?configurationCheckpoint = configurationCheckpoint
@@ -103,7 +105,8 @@ type OperationStore
             FilePlanRepository(database, modLibrary.Access),
             directory,
             executable,
-            ModConductor.Deployment.GameProcesses.validate
+            (ModConductor.Deployment.GameProcesses.validate
+             >> Result.mapError ModConductor.Loot.LootError.Unsupported)
         )
 
     let profileMutations =

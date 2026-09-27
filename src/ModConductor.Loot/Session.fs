@@ -12,7 +12,7 @@ type LootSession
         repository: IFileCandidateRepository,
         stateDirectory: string,
         helperPath: string,
-        validateContext: GameContextState -> InstallationEvidence
+        validateContext: GameContextState -> Result<InstallationEvidence, LootError>
     ) =
     let gate = obj ()
     let cache = MetadataCache stateDirectory

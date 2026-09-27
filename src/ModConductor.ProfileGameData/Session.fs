@@ -10,7 +10,7 @@ type ProfileGameDataSession
     (
         repository: IProfileDataRepository,
         enter: Guid -> IDisposable option,
-        stopped: GameContextState -> unit,
+        stopped: GameContextState -> Result<unit, ProfileDataError>,
         plugins: ModConductor.Bethesda.PluginSession,
         archives: ModConductor.Bethesda.ArchivePolicySession,
         ?configurationCheckpoint: string -> unit

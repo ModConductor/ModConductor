@@ -61,7 +61,7 @@ type internal ProfileSaveOperations
                 let! scopeResult = repository.Read(expected.WorkspaceId, expected.ProfileId)
                 let! scope = scopeResult
                 do! check scope expected
-                stopped scope.Game
+                do! stopped scope.Game
                 let id = Guid.NewGuid()
 
                 let! receipt, source, destination, files =
@@ -123,7 +123,7 @@ type internal ProfileSaveOperations
                     let! scopeResult = repository.Read(expected.WorkspaceId, expected.ProfileId)
                     let! scope = scopeResult
                     do! check scope expected
-                    stopped scope.Game
+                    do! stopped scope.Game
                     do! SaveGroups.checkReceipt scope receipt token
                     let! contextResult = DataInitialization.context repository scope
                     let! context = contextResult

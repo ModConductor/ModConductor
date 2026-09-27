@@ -68,41 +68,47 @@ module internal GameProcesses =
             @ (evidence.LauncherPath |> Option.toList)
             @ (runnableRoot
                |> Option.map (fun root ->
-                   [ Skyrim.definition.Executable; Skyrim.definition.Launcher; "skse64_loader.exe" ]
+                   [ Skyrim.definition.Executable
+                     Skyrim.definition.Launcher
+                     "skse64_loader.exe" ]
                    |> List.map (fun name -> Path.Combine(root, name)))
                |> Option.defaultValue [])
 
-        for running in GameProcessObservation.read names do
+        GameProcessObservation.read names
+        |> List.tryPick (fun running ->
             let paths =
                 (running.Executable |> Option.toList)
                 @ (running.Arguments |> List.choose (resolve evidence running.Prefix))
 
             if paths |> List.exists (fun path -> targets |> List.exists (same path)) then
-                raise (IOException "Stop the selected game and launcher before deployment.")
+                Some "Stop the selected game and launcher before deployment."
+            else
+                let named =
+                    names
+                    |> List.exists (fun name ->
+                        running.ProcessName.Equals(name, StringComparison.OrdinalIgnoreCase)
+                        || running.ProcessName.Equals(
+                            Path.GetFileNameWithoutExtension name,
+                            StringComparison.OrdinalIgnoreCase
+                        )
+                        || running.ProcessName.Equals(
+                            name.Substring(0, min 15 name.Length),
+                            StringComparison.OrdinalIgnoreCase
+                        ))
 
-            let named =
-                names
-                |> List.exists (fun name ->
-                    running.ProcessName.Equals(name, StringComparison.OrdinalIgnoreCase)
-                    || running.ProcessName.Equals(
-                        Path.GetFileNameWithoutExtension name,
-                        StringComparison.OrdinalIgnoreCase
-                    )
-                    || running.ProcessName.Equals(
-                        name.Substring(0, min 15 name.Length),
-                        StringComparison.OrdinalIgnoreCase
-                    ))
+                let selectedPrefix =
+                    match evidence.Proton, running.Prefix with
+                    | Some proton, Some prefix -> same prefix proton.PrefixPath
+                    | _ -> false
 
-            let selectedPrefix =
-                match evidence.Proton, running.Prefix with
-                | Some proton, Some prefix -> same prefix proton.PrefixPath
-                | _ -> false
-
-            if named && (running.Incomplete || selectedPrefix || paths.IsEmpty) then
-                raise (
-                    IOException
+                if named && (running.Incomplete || selectedPrefix || paths.IsEmpty) then
+                    Some
                         "A game process could not be excluded from this installation. Stop it before deployment."
-                )
+                else
+                    None)
+        |> function
+            | Some detail -> Error detail
+            | None -> Ok()
 
     let check evidence = checkWithRoot evidence None
 
@@ -112,12 +118,12 @@ module internal GameProcesses =
             let evidence = binding.Evidence
 
             if evidence.Platform = ContextPlatform.Proton && evidence.Proton.IsNone then
-                raise (IOException "Select a checked Proton context before deployment.")
+                Error "Select a checked Proton context before deployment."
+            else
+                Ok evidence
 
-            evidence
-        | _ -> raise (IOException "Select and refresh the game context before deployment.")
+        | _ -> Error "Select and refresh the game context before deployment."
 
     let validate state =
-        let evidence = validateContext state
-        check evidence
-        evidence
+        validateContext state
+        |> Result.bind (fun evidence -> check evidence |> Result.map (fun () -> evidence))

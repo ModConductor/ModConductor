@@ -33,47 +33,63 @@ module internal LaunchDeployment =
                     return Error DeploymentError.Busy
                 else
                     token.ThrowIfCancellationRequested()
-                    GameProcesses.validate sources.Context |> ignore
 
-                    let! preparation =
-                        match candidate with
-                        | Some run ->
-                            repository.PrepareTransient(id, sources, context, run, progress, token)
-                        | None -> repository.Prepare(id, sources, context, progress, token)
+                    match GameProcesses.validate sources.Context with
+                    | Error detail -> return Error(DeploymentError.Unavailable detail)
+                    | Ok _ ->
+                        let! preparation =
+                            match candidate with
+                            | Some run ->
+                                repository.PrepareTransient(
+                                    id,
+                                    sources,
+                                    context,
+                                    run,
+                                    progress,
+                                    token
+                                )
+                            | None -> repository.Prepare(id, sources, context, progress, token)
 
-                    match preparation with
-                    | Error error -> return Error(DeploymentReports.error error)
-                    | Ok prepared ->
-                        let mutable durable = false
+                        match preparation with
+                        | Error error -> return Error(DeploymentReports.error error)
+                        | Ok prepared ->
+                            let mutable durable = false
 
-                        try
-                            let! current = repository.Current expected
+                            try
+                                let! current = repository.Current expected
 
-                            let! checkedContext =
-                                repository.Context(expected.WorkspaceId, expected.ProfileId)
+                                let! checkedContext =
+                                    repository.Context(expected.WorkspaceId, expected.ProfileId)
 
-                            token.ThrowIfCancellationRequested()
+                                token.ThrowIfCancellationRequested()
 
-                            if not current || checkedContext <> prepared.Context then
-                                return Error DeploymentError.Stale
-                            else
-                                GameProcesses.validate checkedContext |> ignore
-                                let! started = repository.Start(prepared, token)
+                                if not current || checkedContext <> prepared.Context then
+                                    return Error DeploymentError.Stale
+                                else
+                                    match GameProcesses.validate checkedContext with
+                                    | Error detail ->
+                                        return Error(DeploymentError.Unavailable detail)
+                                    | Ok _ ->
+                                        let! started = repository.Start(prepared, token)
 
-                                match started with
-                                | Error error -> return Error(DeploymentReports.error error)
-                                | Ok receipt ->
-                                    durable <- true
-                                    let! finished = execute receipt false progress token
+                                        match started with
+                                        | Error error -> return Error(DeploymentReports.error error)
+                                        | Ok receipt ->
+                                            durable <- true
+                                            let! finished = execute receipt false progress token
 
-                                    return
-                                        finished
-                                        |> Result.bind (fun receipt ->
-                                            if receipt.Phase = DeploymentPhase.Complete then
-                                                Ok(prepared.View, receipt)
-                                            else
-                                                Error(DeploymentError.Blocked receipt.Detail))
-                        finally
-                            if not durable then
-                                PreparedState.abandon prepared
+                                            return
+                                                finished
+                                                |> Result.bind (fun receipt ->
+                                                    if
+                                                        receipt.Phase = DeploymentPhase.Complete
+                                                    then
+                                                        Ok(prepared.View, receipt)
+                                                    else
+                                                        Error(
+                                                            DeploymentError.Blocked receipt.Detail
+                                                        ))
+                            finally
+                                if not durable then
+                                    PreparedState.abandon prepared
         }

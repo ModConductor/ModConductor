@@ -46,8 +46,10 @@ module internal ProfileCloneMutation =
                                     "Restore the profile in its previous installation before cloning it."
                             )
                     | Ok _ ->
-                        GameProcesses.validate scope.Game |> ignore
-                        return Ok()
+                        return
+                            GameProcesses.validate scope.Game
+                            |> Result.map ignore
+                            |> Result.mapError ProfileDataError.Unavailable
             else
                 return Ok()
         }

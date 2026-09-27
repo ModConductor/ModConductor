@@ -8,7 +8,7 @@ type internal ProfileDataSessionContext =
     { Repository: IProfileDataRepository
       Plugins: PluginSession
       Archives: ArchivePolicySession
-      Stopped: GameContextState -> unit
+      Stopped: GameContextState -> Result<unit, ProfileDataError>
       ConfigurationCheckpoint: string -> unit
       Previews: ProfileDataPreviewCache }
 

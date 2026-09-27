@@ -79,26 +79,38 @@ module internal ProfileDeleteMutation =
             if owned |> List.exists (fun (_, value) -> value.Pending.IsSome) then
                 raise (IOException "Complete the pending profile deployment before deletion.")
 
-            match context |> Result.toOption |> Option.bind _.Binding with
-            | Some binding ->
-                try
-                    do!
-                        DeploymentPreparation.retireProfile
-                            database
-                            recovery
-                            workspaceLocation
-                            workspace
-                            profile
-                            binding.Evidence
-                            token
-                with RecoveryException error ->
-                    raise (
-                        IOException("The profile game folder could not be retired: " + string error)
-                    )
-            | None -> GameViews.removeOwned workspaceLocation profile
+            let! retired =
+                task {
+                    match context |> Result.toOption |> Option.bind _.Binding with
+                    | Some binding ->
+                        try
+                            return!
+                                DeploymentPreparation.retireProfile
+                                    database
+                                    recovery
+                                    workspaceLocation
+                                    workspace
+                                    profile
+                                    binding.Evidence
+                                    token
+                        with RecoveryException error ->
+                            return
+                                raise (
+                                    IOException(
+                                        "The profile game folder could not be retired: "
+                                        + string error
+                                    )
+                                )
+                    | None ->
+                        GameViews.removeOwned workspaceLocation profile
+                        return Ok()
+                }
 
-            let! saved = generations database owned
-            return owned |> List.map fst, saved
+            match retired with
+            | Error detail -> return Error(WorkspaceError.ProfileData detail)
+            | Ok() ->
+                let! saved = generations database owned
+                return Ok(owned |> List.map fst, saved)
         }
 
     let private prepareDeletion
@@ -274,29 +286,31 @@ module internal ProfileDeleteMutation =
                             "Restore global settings and saves before deleting this profile."
                     )
             else
-                let! ownedContexts, saved =
-                    retireGameView services request.Workspace target request.Token
+                let! retirement = retireGameView services request.Workspace target request.Token
 
-                let mutable removed: Result<unit, ProfileDataError> = Ok()
+                match retirement with
+                | Error error -> return Error error
+                | Ok(ownedContexts, saved) ->
+                    let mutable removed: Result<unit, ProfileDataError> = Ok()
 
-                for record in records do
-                    if Result.isOk removed then
-                        let! next = removePrivateProfile services request target record
-                        removed <- next
+                    for record in records do
+                        if Result.isOk removed then
+                            let! next = removePrivateProfile services request target record
+                            removed <- next
 
-                match removed with
-                | Error error ->
-                    return Error(WorkspaceError.ProfileData(DataErrors.problemMessage error))
-                | Ok() ->
-                    for generation in saved do
-                        GenerationFiles.removeOwned generation
+                    match removed with
+                    | Error error ->
+                        return Error(WorkspaceError.ProfileData(DataErrors.problemMessage error))
+                    | Ok() ->
+                        for generation in saved do
+                            GenerationFiles.removeOwned generation
 
-                    let! fnisOutput =
-                        FnisOutputCleanup.removeProfileFiles
-                            services.Database
-                            services.Access
-                            request.Workspace
-                            target
+                        let! fnisOutput =
+                            FnisOutputCleanup.removeProfileFiles
+                                services.Database
+                                services.Access
+                                request.Workspace
+                                target
 
-                    return! commitDeletion services request ownedContexts fnisOutput
+                        return! commitDeletion services request ownedContexts fnisOutput
         }

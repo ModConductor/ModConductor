@@ -66,18 +66,14 @@ module DeploymentProcessFixtures =
                 if not (ready.Wait(TimeSpan.FromSeconds 10.)) || ready.Result <> "ready" then
                     invalidOp "The owned executable did not reach its readiness boundary."
 
-                let refused =
-                    try
-                        GameProcesses.check evidence
-                        false
-                    with :? IOException ->
-                        true
+                let refused = GameProcesses.check evidence |> Result.isError
 
                 writer.WriteBoolean("matchingNativeProcessRefused", refused)
 
                 GameProcesses.check
                     { evidence with
                         Executable = Some(executable otherGame) }
+                |> Result.defaultWith invalidOp
 
                 writer.WriteBoolean("unrelatedSameNameAllowed", true)
                 child.StandardInput.WriteLine()
@@ -85,7 +81,7 @@ module DeploymentProcessFixtures =
                 if not (child.WaitForExit 10000) then
                     invalidOp "The owned executable did not stop."
 
-                GameProcesses.check evidence
+                GameProcesses.check evidence |> Result.defaultWith invalidOp
                 writer.WriteBoolean("stoppedNativeProcessAllowed", child.ExitCode = 0)
             finally
                 if not child.HasExited then

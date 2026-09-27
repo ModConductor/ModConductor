@@ -131,57 +131,88 @@ module internal DeploymentRetirement =
         token
         =
         task {
-            GameProcesses.checkWithRoot evidence (Some(GameViews.rootPath workspace.Path profileId))
+            match
+                GameProcesses.checkWithRoot
+                    evidence
+                    (Some(GameViews.rootPath workspace.Path profileId))
+            with
+            | Error detail -> return Error detail
+            | Ok() ->
+                let! owned =
+                    database.Enqueue(fun () ->
+                        use query =
+                            Sqlite.command
+                                database.Connection
+                                null
+                                "SELECT id FROM deployment_contexts"
+                                []
 
-            let! owned =
-                database.Enqueue(fun () ->
-                    use query =
-                        Sqlite.command
-                            database.Connection
-                            null
-                            "SELECT id FROM deployment_contexts"
-                            []
+                        use reader = query.ExecuteReader()
 
-                    use reader = query.ExecuteReader()
+                        let ids =
+                            [ while reader.Read() do
+                                  yield Guid.Parse(reader.GetString 0) ]
 
-                    let ids =
-                        [ while reader.Read() do
-                              yield Guid.Parse(reader.GetString 0) ]
+                        reader.Close()
 
-                    reader.Close()
+                        ids
+                        |> List.choose (fun id ->
+                            DeploymentRows.context database.Connection null id
+                            |> Option.filter (fun context ->
+                                let expected =
+                                    DeploymentContextId.create
+                                        workspaceId
+                                        profileId
+                                        context.Fingerprint
 
-                    ids
-                    |> List.choose (fun id ->
-                        DeploymentRows.context database.Connection null id
-                        |> Option.filter (fun context ->
-                            DeploymentContextId.create workspaceId profileId context.Fingerprint = id)))
+                                expected = id)))
 
-            for context in owned do
-                for root in context.Roots do
-                    let path = HostPath.value root.Directory.Path
+                let checkRoots (context: Context) =
+                    context.Roots
+                    |> List.tryPick (fun root ->
+                        let path = HostPath.value root.Directory.Path
 
-                    let gameRoot =
-                        if
-                            String.Equals(
-                                System.IO.Path.GetFileName path,
-                                "Data",
-                                StringComparison.OrdinalIgnoreCase
-                            )
-                        then
-                            System.IO.Path.GetDirectoryName path
-                        else
-                            path
+                        let gameRoot =
+                            if
+                                String.Equals(
+                                    System.IO.Path.GetFileName path,
+                                    "Data",
+                                    StringComparison.OrdinalIgnoreCase
+                                )
+                            then
+                                System.IO.Path.GetDirectoryName path
+                            else
+                                path
 
-                    GameProcesses.checkWithRoot evidence (Some gameRoot)
+                        match GameProcesses.checkWithRoot evidence (Some gameRoot) with
+                        | Error detail -> Some detail
+                        | Ok() -> None)
 
-                do!
-                    clearOwnedLinks
-                        recovery
-                        workspace
-                        workspaceId
-                        profileId
-                        context.Fingerprint
-                        token
+                let rec retireOwned =
+                    function
+                    | [] -> task { return Ok() }
+                    | context :: remaining ->
+                        task {
+                            match checkRoots context with
+                            | Some detail -> return Error detail
+                            | None ->
+                                do!
+                                    clearOwnedLinks
+                                        recovery
+                                        workspace
+                                        workspaceId
+                                        profileId
+                                        context.Fingerprint
+                                        token
 
-            GameViews.removeOwned workspace profileId
+                                return! retireOwned remaining
+                        }
+
+                let! retired = retireOwned owned
+
+                match retired with
+                | Error detail -> return Error detail
+                | Ok() ->
+                    GameViews.removeOwned workspace profileId
+                    return Ok()
         }

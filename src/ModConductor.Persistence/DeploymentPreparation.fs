@@ -81,8 +81,6 @@ module internal DeploymentPreparation =
             if duplicateComponent || duplicateWritable then
                 raise (RecoveryException RecoveryError.InvalidPlan)
 
-            let evidence = GameProcesses.validateContext sources.Context
-
             let acquireError =
                 function
                 | FilePlanError.Cancelled -> raise (OperationCanceledException())
@@ -98,15 +96,11 @@ module internal DeploymentPreparation =
                 | FilePlanError.Expired
                 | FilePlanError.Stale -> RecoveryError.Stale
 
-            let withWorkspace (workspace: WorkspaceRoot) =
+            let withAvailableWorkspace evidence (workspace: WorkspaceRoot) =
                 task {
                     let workspaceLocation: Location =
                         { Path = workspace.Path
                           Identity = workspace.Identity }
-
-                    GameProcesses.checkWithRoot
-                        evidence
-                        (Some(GameViews.rootPath workspace.Path sources.Stamp.ProfileId))
 
                     do!
                         DeploymentRetirement.clearOwnedLinks
@@ -450,11 +444,21 @@ module internal DeploymentPreparation =
                     | Ok summary -> return! withSummary summary
                 }
 
-            let! root = access.Root sources.Stamp.WorkspaceId
+            match GameProcesses.validateContext sources.Context with
+            | Error detail -> return Error(RecoveryError.Unavailable detail)
+            | Ok evidence ->
+                let! root = access.Root sources.Stamp.WorkspaceId
 
-            match root with
-            | Error _ -> return Error RecoveryError.Stale
-            | Ok workspace -> return! withWorkspace workspace
+                match root with
+                | Error _ -> return Error RecoveryError.Stale
+                | Ok workspace ->
+                    match
+                        GameProcesses.checkWithRoot
+                            evidence
+                            (Some(GameViews.rootPath workspace.Path sources.Stamp.ProfileId))
+                    with
+                    | Error detail -> return Error(RecoveryError.Unavailable detail)
+                    | Ok() -> return! withAvailableWorkspace evidence workspace
         }
 
     let prepare

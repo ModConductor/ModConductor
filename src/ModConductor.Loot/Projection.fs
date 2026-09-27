@@ -206,40 +206,43 @@ module internal Projection =
     let build
         (repository: IFileCandidateRepository)
         stateDirectory
-        (validateContext: GameContextState -> InstallationEvidence)
+        (validateContext: GameContextState -> Result<InstallationEvidence, LootError>)
         (value: ProfilePluginOrder)
         (sources: PlanSources)
         (token: CancellationToken)
         =
         async {
-            let evidence = validateContext sources.Context
+            match validateContext sources.Context with
+            | Error error -> return Error error
+            | Ok evidence ->
+                if evidence.DefinitionId <> GameId.SkyrimSpecialEditionSteam then
+                    return
+                        Error(LootError.Unsupported "LOOT sorting is not available for this game.")
+                else
+                    let root =
+                        Path.Combine(stateDirectory, "loot-staging", Guid.NewGuid().ToString("N"))
 
-            if evidence.DefinitionId <> GameId.SkyrimSpecialEditionSteam then
-                return Error(LootError.Unsupported "LOOT sorting is not available for this game.")
-            else
-                let root =
-                    Path.Combine(stateDirectory, "loot-staging", Guid.NewGuid().ToString("N"))
+                    let game = Directory.CreateDirectory(Path.Combine(root, "game")).FullName
+                    let data = Directory.CreateDirectory(Path.Combine(game, "Data")).FullName
+                    let local = Directory.CreateDirectory(Path.Combine(root, "local")).FullName
 
-                let game = Directory.CreateDirectory(Path.Combine(root, "game")).FullName
-                let data = Directory.CreateDirectory(Path.Combine(game, "Data")).FullName
-                let local = Directory.CreateDirectory(Path.Combine(root, "local")).FullName
+                    try
+                        let! staged = stagePlugins repository value data token
 
-                try
-                    let! staged = stagePlugins repository value data token
+                        let result =
+                            staged
+                            |> Result.bind (fun () -> writeGameFiles value evidence game local)
 
-                    let result =
-                        staged |> Result.bind (fun () -> writeGameFiles value evidence game local)
-
-                    match result with
-                    | Ok() -> return Ok(root, game, local)
-                    | Error error ->
+                        match result with
+                        | Ok() -> return Ok(root, game, local)
+                        | Error error ->
+                            deleteStaging root
+                            return Error error
+                    with
+                    | :? OperationCanceledException as error ->
                         deleteStaging root
-                        return Error error
-                with
-                | :? OperationCanceledException as error ->
-                    deleteStaging root
-                    return raise error
-                | error ->
-                    deleteStaging root
-                    return Error(LootError.Unsupported error.Message)
+                        return raise error
+                    | error ->
+                        deleteStaging root
+                        return Error(LootError.Unsupported error.Message)
         }

@@ -65,6 +65,9 @@ type DeploymentBackend internal (repository: IDeploymentRepository) =
                 |> Result.mapError DeploymentReports.error
         }
 
+    let checkedContext context =
+        GameProcesses.validate context |> Result.mapError DeploymentError.Unavailable
+
     member _.Drain() = state.Drain()
 
     member internal _.TryClose(next: unit -> bool) = state.TryClose next
@@ -169,29 +172,31 @@ type DeploymentBackend internal (repository: IDeploymentRepository) =
                                 Error(DeploymentError.Unavailable "Select an operation identity.")
                         else
                             token.ThrowIfCancellationRequested()
-                            GameProcesses.validate sources.Context |> ignore
 
-                            let! prepared =
-                                repository.Prepare(id, sources, context, progress, token)
+                            match checkedContext sources.Context with
+                            | Error error -> return Error error
+                            | Ok _ ->
+                                let! prepared =
+                                    repository.Prepare(id, sources, context, progress, token)
 
-                            match prepared with
-                            | Error error -> return Error(DeploymentReports.error error)
-                            | Ok value ->
-                                let mutable retained = false
+                                match prepared with
+                                | Error error -> return Error(DeploymentReports.error error)
+                                | Ok value ->
+                                    let mutable retained = false
 
-                                try
-                                    let! current = repository.Current expected
-                                    token.ThrowIfCancellationRequested()
+                                    try
+                                        let! current = repository.Current expected
+                                        token.ThrowIfCancellationRequested()
 
-                                    if not current then
-                                        return Error DeploymentError.Stale
-                                    else
-                                        state.Cache(id, value)
-                                        retained <- true
-                                        return Ok value.View
-                                finally
-                                    if not retained then
-                                        state.Abandon value
+                                        if not current then
+                                            return Error DeploymentError.Stale
+                                        else
+                                            state.Cache(id, value)
+                                            retained <- true
+                                            return Ok value.View
+                                    finally
+                                        if not retained then
+                                            state.Abandon value
                 })
 
         member _.PrepareRetained(id, expected, generation, progress, token) =
@@ -210,41 +215,44 @@ type DeploymentBackend internal (repository: IDeploymentRepository) =
                             | Some context when context.Pending.IsSome ->
                                 return Error DeploymentError.Busy
                             | Some context ->
-                                let evidence = GameProcesses.validate sources.Context
+                                match checkedContext sources.Context with
+                                | Error error -> return Error error
+                                | Ok evidence ->
+                                    if
+                                        context.Fingerprint
+                                        <> DeploymentContextId.fingerprint evidence
+                                    then
+                                        return Error DeploymentError.Stale
+                                    else
+                                        let! prepared =
+                                            repository.Retained(
+                                                id,
+                                                sources,
+                                                context,
+                                                generation,
+                                                progress,
+                                                token
+                                            )
 
-                                if
-                                    context.Fingerprint <> DeploymentContextId.fingerprint evidence
-                                then
-                                    return Error DeploymentError.Stale
-                                else
-                                    let! prepared =
-                                        repository.Retained(
-                                            id,
-                                            sources,
-                                            context,
-                                            generation,
-                                            progress,
-                                            token
-                                        )
+                                        match prepared with
+                                        | Error error ->
+                                            return Error(DeploymentReports.error error)
+                                        | Ok value ->
+                                            let mutable retained = false
 
-                                    match prepared with
-                                    | Error error -> return Error(DeploymentReports.error error)
-                                    | Ok value ->
-                                        let mutable retained = false
+                                            try
+                                                let! current = repository.Current expected
+                                                token.ThrowIfCancellationRequested()
 
-                                        try
-                                            let! current = repository.Current expected
-                                            token.ThrowIfCancellationRequested()
-
-                                            if not current then
-                                                return Error DeploymentError.Stale
-                                            else
-                                                state.Cache(id, value)
-                                                retained <- true
-                                                return Ok value.View
-                                        finally
-                                            if not retained then
-                                                state.Abandon value
+                                                if not current then
+                                                    return Error DeploymentError.Stale
+                                                else
+                                                    state.Cache(id, value)
+                                                    retained <- true
+                                                    return Ok value.View
+                                            finally
+                                                if not retained then
+                                                    state.Abandon value
                 })
 
         member _.RefreshFnis(id, expected, candidate, progress, token) =
@@ -283,15 +291,18 @@ type DeploymentBackend internal (repository: IDeploymentRepository) =
                                 if context <> value.Context then
                                     return Error DeploymentError.Stale
                                 else
-                                    GameProcesses.validate context |> ignore
-                                    token.ThrowIfCancellationRequested()
-                                    let! started = repository.Start(value, token)
+                                    match checkedContext context with
+                                    | Error error -> return Error error
+                                    | Ok _ ->
+                                        token.ThrowIfCancellationRequested()
+                                        let! started = repository.Start(value, token)
 
-                                    match started with
-                                    | Error error -> return Error(DeploymentReports.error error)
-                                    | Ok receipt ->
-                                        durable <- true
-                                        return! execute receipt false progress token
+                                        match started with
+                                        | Error error ->
+                                            return Error(DeploymentReports.error error)
+                                        | Ok receipt ->
+                                            durable <- true
+                                            return! execute receipt false progress token
                         finally
                             if not durable then
                                 state.Abandon value
@@ -317,15 +328,16 @@ type DeploymentBackend internal (repository: IDeploymentRepository) =
                                                 saved.Context.Id
                                             )
 
-                                        let evidence = GameProcesses.validate context
-
-                                        if
-                                            DeploymentContextId.fingerprint evidence
-                                            <> saved.Context.Fingerprint
-                                        then
-                                            return Error DeploymentError.Stale
-                                        else
-                                            return! execute saved restore progress token
+                                        match checkedContext context with
+                                        | Error error -> return Error error
+                                        | Ok evidence ->
+                                            if
+                                                DeploymentContextId.fingerprint evidence
+                                                <> saved.Context.Fingerprint
+                                            then
+                                                return Error DeploymentError.Stale
+                                            else
+                                                return! execute saved restore progress token
                                 })
                 })
 
