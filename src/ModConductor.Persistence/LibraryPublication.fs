@@ -60,7 +60,7 @@ type internal LibraryPublication(database: StateDatabase, access: LibraryAccess)
                         with
                         | Error error -> Error error.Error
                         | Ok(files, _) ->
-                            let captureFile file =
+                            let captureFile (file: SourceFile) =
                                 check ()
 
                                 let reused =
@@ -136,7 +136,7 @@ type internal LibraryPublication(database: StateDatabase, access: LibraryAccess)
                                         .GetAwaiter()
                                         .GetResult())
 
-                            use entries = files.GetEnumerator()
+                            use entries = (files :> seq<SourceFile>).GetEnumerator()
                             let mutable failure = None
 
                             while failure.IsNone && entries.MoveNext() do
@@ -404,39 +404,49 @@ type internal LibraryPublication(database: StateDatabase, access: LibraryAccess)
                                                         "A completed publication has no file work."
                                         }
 
-                                    match captured with
-                                    | Error error -> return Error error
-                                    | Ok() -> do! verify root library version
-
                                     let! completed =
-                                        db (fun () ->
-                                            match finalize with
-                                            | None ->
-                                                PublicationRows.complete
-                                                    connection
-                                                    database.OwnerId
-                                                    version
-                                            | Some finish ->
-                                                use transaction =
-                                                    connection.BeginTransaction(deferred = false)
+                                        task {
+                                            match captured with
+                                            | Error error -> return Error error
+                                            | Ok() ->
+                                                do! verify root library version
 
-                                                let completed =
-                                                    PublicationRows.completeIn
-                                                        connection
-                                                        transaction
-                                                        database.OwnerId
-                                                        version
+                                                return!
+                                                    db (fun () ->
+                                                        match finalize with
+                                                        | None ->
+                                                            PublicationRows.complete
+                                                                connection
+                                                                database.OwnerId
+                                                                version
+                                                        | Some finish ->
+                                                            use transaction =
+                                                                connection.BeginTransaction(
+                                                                    deferred = false
+                                                                )
 
-                                                let result =
-                                                    completed
-                                                    |> Result.bind (fun entry ->
-                                                        finish connection transaction entry
-                                                        |> Result.map (fun () -> entry))
+                                                            let completed =
+                                                                PublicationRows.completeIn
+                                                                    connection
+                                                                    transaction
+                                                                    database.OwnerId
+                                                                    version
 
-                                                if Result.isOk result then
-                                                    transaction.Commit()
+                                                            let result =
+                                                                completed
+                                                                |> Result.bind (fun entry ->
+                                                                    finish
+                                                                        connection
+                                                                        transaction
+                                                                        entry
+                                                                    |> Result.map (fun () ->
+                                                                        entry))
 
-                                                result)
+                                                            if Result.isOk result then
+                                                                transaction.Commit()
+
+                                                            result)
+                                        }
 
                                     match completed with
                                     | Ok _ -> successful <- true

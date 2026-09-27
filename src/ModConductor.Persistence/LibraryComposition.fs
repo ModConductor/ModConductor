@@ -87,7 +87,7 @@ module internal LibraryComposition =
                             Modified = File.GetLastWriteTimeUtc stream.SafeFileHandle })
 
     let private each (entries: 'T list) action =
-        use items = entries.GetEnumerator()
+        use items = (entries :> seq<'T>).GetEnumerator()
         let mutable outcome = Ok()
 
         while Result.isOk outcome && items.MoveNext() do
@@ -172,7 +172,7 @@ module internal LibraryComposition =
 
                                     let execute action = (db action).GetAwaiter().GetResult()
 
-                                    let manifest path payload =
+                                    let manifest path (payload: Payload) =
                                         execute (fun () ->
                                             Sqlite.execute
                                                 connection
@@ -182,7 +182,7 @@ module internal LibraryComposition =
                                                   "$path", box (LibraryEncoding.path path)
                                                   "$payload", box (string payload.Id) ])
 
-                                    let insert payload =
+                                    let insert (payload: Payload) =
                                         execute (fun () ->
                                             Sqlite.execute
                                                 connection
@@ -192,7 +192,7 @@ module internal LibraryComposition =
                                                   "$workspace", box (string workspace.Id)
                                                   "$version", box (string version) ])
 
-                                    let update payload identity =
+                                    let update (payload: Payload) identity =
                                         execute (fun () ->
                                             Sqlite.execute
                                                 connection
