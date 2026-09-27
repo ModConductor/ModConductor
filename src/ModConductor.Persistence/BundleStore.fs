@@ -27,6 +27,19 @@ type BundleStore
     let wait (task: Task<'a>) = task.GetAwaiter().GetResult()
     let db action = database.EnqueueInternal action |> wait
 
+    let discardFailedAttempts workspace (bundle: Bundle) =
+        bundle.Mods
+        |> List.choose (fun item ->
+            match item.State, item.Attempt with
+            | ModState.Failed, Some id -> Some id
+            | _ -> None)
+        |> List.fold
+            (fun outcome id ->
+                outcome
+                |> Result.bind (fun () ->
+                    installations.Discard(workspace, id) |> wait |> Result.map ignore))
+            (Ok())
+
     let required message =
         function
         | Some value -> Ok value
@@ -146,7 +159,7 @@ type BundleStore
                 | None -> return Error "This mod has not started installation."
                 | Some id ->
                     let! status = installations.Read(workspace, id)
-                    return Ok status
+                    return status
         }
 
     member _.Find(workspace, artifact) =
@@ -502,12 +515,15 @@ type BundleStore
                     return db (fun () -> snapshot reference.WorkspaceId reference.Id)
                 | ModState.Installing, _ -> return Error "Wait for this installation to stop."
                 | ModState.Failed, Some id ->
-                    let! _ = installations.Discard(reference.WorkspaceId, id)
+                    let! discarded = installations.Discard(reference.WorkspaceId, id)
 
-                    return
-                        db (fun () ->
-                            BundleRows.touch connection null reference.Id
-                            snapshot reference.WorkspaceId reference.Id)
+                    match discarded with
+                    | Error why -> return Error why
+                    | Ok _ ->
+                        return
+                            db (fun () ->
+                                BundleRows.touch connection null reference.Id
+                                snapshot reference.WorkspaceId reference.Id)
                 | _ ->
                     let! result =
                         sources.ClearIncomplete(reference.WorkspaceId, reference.Id, item.SourceId)
@@ -544,59 +560,52 @@ type BundleStore
                                 Error
                                     "Cancel the current installation and wait for it to stop first."
                             else
-                                for item in bundle.Mods do
-                                    match item.State, item.Attempt with
-                                    | ModState.Failed, Some id ->
-                                        installations.Discard(reference.WorkspaceId, id)
-                                        |> wait
-                                        |> ignore
-                                    | _ -> ()
+                                discardFailedAttempts reference.WorkspaceId bundle
+                                |> Result.map (fun () ->
+                                    let nodes =
+                                        db (fun () ->
+                                            BundleRows.sources connection null reference.Id)
 
-                                let nodes =
-                                    db (fun () -> BundleRows.sources connection null reference.Id)
+                                    for node in nodes do
+                                        ArtifactFiles.remove
+                                            directory
+                                            (BundleFiles.name node.Id)
+                                            node.Identity
 
-                                for node in nodes do
-                                    ArtifactFiles.remove
-                                        directory
-                                        (BundleFiles.name node.Id)
-                                        node.Identity
+                                        db (fun () ->
+                                            Sqlite.execute
+                                                connection
+                                                null
+                                                "UPDATE bundle_sources SET identity=NULL,length=NULL,digest=NULL WHERE id=$id"
+                                                [ "$id", box (string node.Id) ])
 
                                     db (fun () ->
-                                        Sqlite.execute
-                                            connection
-                                            null
-                                            "UPDATE bundle_sources SET identity=NULL,length=NULL,digest=NULL WHERE id=$id"
-                                            [ "$id", box (string node.Id) ])
+                                        use transaction =
+                                            connection.BeginTransaction(deferred = false)
 
-                                db (fun () ->
-                                    use transaction =
-                                        connection.BeginTransaction(deferred = false)
-
-                                    Sqlite.execute
-                                        connection
-                                        transaction
-                                        "DELETE FROM bundle_mods WHERE bundle_id=$id"
-                                        [ "$id", box (string reference.Id) ]
-
-                                    for node in
-                                        nodes
-                                        |> List.sortByDescending (fun n ->
-                                            (BundleRows.chain nodes n).Length) do
                                         Sqlite.execute
                                             connection
                                             transaction
-                                            "DELETE FROM bundle_sources WHERE id=$id"
-                                            [ "$id", box (string node.Id) ]
+                                            "DELETE FROM bundle_mods WHERE bundle_id=$id"
+                                            [ "$id", box (string reference.Id) ]
 
-                                    Sqlite.execute
-                                        connection
-                                        transaction
-                                        "DELETE FROM bundle_work WHERE id=$id"
-                                        [ "$id", box (string reference.Id) ]
+                                        for node in
+                                            nodes
+                                            |> List.sortByDescending (fun n ->
+                                                (BundleRows.chain nodes n).Length) do
+                                            Sqlite.execute
+                                                connection
+                                                transaction
+                                                "DELETE FROM bundle_sources WHERE id=$id"
+                                                [ "$id", box (string node.Id) ]
 
-                                    transaction.Commit())
+                                        Sqlite.execute
+                                            connection
+                                            transaction
+                                            "DELETE FROM bundle_work WHERE id=$id"
+                                            [ "$id", box (string reference.Id) ]
 
-                                Ok())
+                                        transaction.Commit())))
                 )
 
             match result with

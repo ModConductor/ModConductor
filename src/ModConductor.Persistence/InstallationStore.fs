@@ -27,7 +27,6 @@ type InstallationStore
     let mutable closing = false
     let wait (value: Task<'a>) = value.GetAwaiter().GetResult()
     let db action = database.EnqueueInternal action |> wait
-    let refuse message = raise (InstallationException message)
 
     let changed id =
         lock gate (fun () ->
@@ -78,9 +77,15 @@ type InstallationStore
                 updates.Remove draft.Artifact.WorkspaceId |> ignore
         )
 
-    let snapshot workspace id =
+    let snapshotResult workspace id =
+        match InstallationRows.find connection null workspace id with
+        | Some installation -> Ok installation
+        | None -> Error "This installation is no longer available."
+
+    let requiredSnapshot workspace id =
         InstallationRows.find connection null workspace id
-        |> Option.defaultWith (fun () -> refuse "This installation is no longer available.")
+        |> Option.defaultWith (fun () ->
+            invalidOp "An installation referenced by the current operation is missing.")
 
     let artifactProblem =
         function
@@ -499,17 +504,35 @@ type InstallationStore
         this.StartAtCheckpoint(workspace, draftId, revision, id, ignore)
 
     member _.Read(workspace, id) =
-        database.Enqueue(fun () -> snapshot workspace id)
+        database.Enqueue(fun () -> snapshotResult workspace id)
 
     member _.WaitForChange(workspace, id, observed: Installation, token: CancellationToken) =
         task {
             let pending = waitSignal id
-            let! current = database.Enqueue(fun () -> snapshot workspace id)
+            let! current = database.Enqueue(fun () -> requiredSnapshot workspace id)
 
             if current = observed then
                 do! pending.WaitAsync(token)
         }
         :> Task
+
+    member internal this.UntilStopped
+        (workspace, id, started: Installation, token: CancellationToken)
+        =
+        let rec observe current =
+            task {
+                if current.State <> InstallationState.Running then
+                    return Ok current
+                else
+                    do! this.WaitForChange(workspace, id, current, token)
+                    let! next = this.Read(workspace, id)
+
+                    match next with
+                    | Error why -> return Error why
+                    | Ok next -> return! observe next
+            }
+
+        observe started
 
     member _.WaitForWorker(id, token: CancellationToken) =
         let pending =
@@ -536,26 +559,29 @@ type InstallationStore
                       yield Guid.Parse(reader.GetString 0) ]
 
             reader.Close()
-            ids |> List.map (snapshot workspace))
+            ids |> List.map (requiredSnapshot workspace))
 
     member _.Cancel(workspace, id) =
         task {
-            do!
+            let! admitted =
                 database.Enqueue(fun () ->
-                    snapshot workspace id |> ignore
+                    snapshotResult workspace id
+                    |> Result.map (fun _ ->
+                        Sqlite.execute
+                            connection
+                            null
+                            "UPDATE archive_installations SET cancelled=1 WHERE workspace_id=$workspace AND id=$id AND state=0"
+                            [ "$workspace", box (string workspace); "$id", box (string id) ]))
 
-                    Sqlite.execute
-                        connection
-                        null
-                        "UPDATE archive_installations SET cancelled=1 WHERE workspace_id=$workspace AND id=$id AND state=0"
-                        [ "$workspace", box (string workspace); "$id", box (string id) ])
+            match admitted with
+            | Error why -> return Error why
+            | Ok() ->
+                lock gate (fun () ->
+                    match workers.TryGetValue id with
+                    | true, (cancel, _) -> cancel.Cancel()
+                    | _ -> ())
 
-            lock gate (fun () ->
-                match workers.TryGetValue id with
-                | true, (cancel, _) -> cancel.Cancel()
-                | _ -> ())
-
-            return! database.Enqueue(fun () -> snapshot workspace id)
+                return! database.Enqueue(fun () -> snapshotResult workspace id)
         }
 
     member _.Discard(workspace, id) =
@@ -563,49 +589,58 @@ type InstallationStore
             let! result =
                 access.Run(fun () ->
                     task {
-                        do!
+                        let! admitted =
                             database.Enqueue(fun () ->
-                                let current = snapshot workspace id
+                                snapshotResult workspace id
+                                |> Result.bind (fun current ->
+                                    if current.State <> InstallationState.Stopped then
+                                        Error
+                                            "Wait for the installation to stop before deleting temporary files."
+                                    else
+                                        Sqlite.execute
+                                            connection
+                                            null
+                                            "UPDATE archive_installations SET busy=1,owner=$owner WHERE id=$id AND busy=0"
+                                            [ "$id", box (string id)
+                                              "$owner", box database.OwnerId ]
 
-                                if current.State <> InstallationState.Stopped then
-                                    refuse
-                                        "Wait for the installation to stop before deleting temporary files."
+                                        if
+                                            Sqlite.number connection null "SELECT changes()" [] = 1L
+                                        then
+                                            Ok()
+                                        else
+                                            Error "The temporary files are busy."))
 
-                                Sqlite.execute
-                                    connection
-                                    null
-                                    "UPDATE archive_installations SET busy=1,owner=$owner WHERE id=$id AND busy=0"
-                                    [ "$id", box (string id); "$owner", box database.OwnerId ]
+                        match admitted with
+                        | Error why -> return Ok(Error why)
+                        | Ok() ->
+                            try
+                                do! Task.Run(fun () -> payloads.Delete(workspace, id))
 
-                                if Sqlite.number connection null "SELECT changes()" [] <> 1L then
-                                    refuse "The temporary files are busy.")
+                                do!
+                                    database.EnqueueInternal(fun () ->
+                                        Sqlite.execute
+                                            connection
+                                            null
+                                            "UPDATE archive_installations SET state=3,busy=0 WHERE id=$id; DELETE FROM installation_reuse WHERE installation_id=$id"
+                                            [ "$id", box (string id) ])
 
-                        try
-                            do! Task.Run(fun () -> payloads.Delete(workspace, id))
-
-                            do!
-                                database.EnqueueInternal(fun () ->
+                                return Ok(Ok())
+                            finally
+                                db (fun () ->
                                     Sqlite.execute
                                         connection
                                         null
-                                        "UPDATE archive_installations SET state=3,busy=0 WHERE id=$id; DELETE FROM installation_reuse WHERE installation_id=$id"
-                                        [ "$id", box (string id) ])
-
-                            return Ok()
-                        finally
-                            db (fun () ->
-                                Sqlite.execute
-                                    connection
-                                    null
-                                    "UPDATE archive_installations SET busy=0 WHERE id=$id AND owner=$owner"
-                                    [ "$id", box (string id); "$owner", box database.OwnerId ])
+                                        "UPDATE archive_installations SET busy=0 WHERE id=$id AND owner=$owner"
+                                        [ "$id", box (string id); "$owner", box database.OwnerId ])
                     })
 
             match result with
-            | Ok() -> return! database.Enqueue(fun () -> snapshot workspace id)
+            | Ok(Ok()) -> return! database.Enqueue(fun () -> snapshotResult workspace id)
+            | Ok(Error why) -> return Error why
             | Error _ ->
                 return
-                    refuse
+                    Error
                         "The temporary files cannot be deleted. Check the workspace folder and try again."
         }
 

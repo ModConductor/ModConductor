@@ -130,11 +130,13 @@ module MaintenanceRecoveryFixtures =
                 |> result
 
             let deadline = DateTime.UtcNow.AddSeconds 20
-            let mutable current = store.Installations.Read(workspace, started.Id) |> wait
+
+            let mutable current =
+                store.Installations.Read(workspace, started.Id) |> wait |> result
 
             while current.State = InstallationState.Running && DateTime.UtcNow < deadline do
                 Thread.Sleep 10
-                current <- store.Installations.Read(workspace, started.Id) |> wait
+                current <- store.Installations.Read(workspace, started.Id) |> wait |> result
 
             if current.State <> InstallationState.Complete then
                 failwith (string current.Problem)
@@ -170,8 +172,8 @@ module MaintenanceRecoveryFixtures =
 
         do
             use store = new OperationStore(state)
-            let current = store.Installations.Read(workspace, published) |> wait
-            let cancelled = store.Installations.Cancel(workspace, published) |> wait
+            let current = store.Installations.Read(workspace, published) |> wait |> result
+            let cancelled = store.Installations.Cancel(workspace, published) |> wait |> result
             use connection = MaintenanceDeployments.database state
             let row = LibraryRows.find connection null modId |> Option.get
             let archive = store.Artifacts.Read(workspace, archiveId) |> wait |> result
@@ -220,7 +222,7 @@ module MaintenanceRecoveryFixtures =
 
         do
             use store = new OperationStore(state)
-            let current = store.Installations.Read(workspace, update) |> wait
+            let current = store.Installations.Read(workspace, update) |> wait |> result
             use connection = MaintenanceDeployments.database state
             let modRow = LibraryRows.find connection null modId |> Option.get
 
@@ -232,8 +234,8 @@ module MaintenanceRecoveryFixtures =
 
             let archive = store.Artifacts.Read(workspace, archiveId) |> wait |> result
             check "UnpublishedUpdateDoesNotClaimInstalledProvenance" (archive.Links.IsEmpty)
-            store.Installations.Cancel(workspace, update) |> wait |> ignore
-            store.Installations.Discard(workspace, update) |> wait |> ignore
+            store.Installations.Cancel(workspace, update) |> wait |> result |> ignore
+            store.Installations.Discard(workspace, update) |> wait |> result |> ignore
 
         do
             use store = new OperationStore(state)

@@ -62,10 +62,10 @@ module NexusMetadataFixtures =
 
     let private stopped (store: OperationStore) workspace id =
         until (fun () ->
-            (store.Installations.Read(workspace, id) |> wait).State
+            (store.Installations.Read(workspace, id) |> wait |> result).State
             <> InstallationState.Running)
 
-        store.Installations.Read(workspace, id) |> wait
+        store.Installations.Read(workspace, id) |> wait |> result
 
     let private download (store: OperationStore) workspace file version =
         let source =

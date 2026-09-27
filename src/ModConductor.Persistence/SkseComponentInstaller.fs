@@ -104,43 +104,42 @@ type internal SkseComponentInstaller
                                         match started with
                                         | Error message -> return Error message
                                         | Ok started ->
-                                            let mutable installed = started
+                                            let! observed =
+                                                installations.UntilStopped(
+                                                    workspace,
+                                                    installationId,
+                                                    started,
+                                                    token
+                                                )
 
-                                            while installed.State = ModConductor.ArchiveInstallation.InstallationState.Running do
+                                            match observed with
+                                            | Error why -> return Error why
+                                            | Ok installed ->
                                                 do!
-                                                    installations.WaitForChange(
-                                                        workspace,
+                                                    installations.WaitForWorker(
                                                         installationId,
-                                                        installed,
                                                         token
                                                     )
 
-                                                let! current =
-                                                    installations.Read(workspace, installationId)
-
-                                                installed <- current
-
-                                            do! installations.WaitForWorker(installationId, token)
-
-                                            if
-                                                installed.State
-                                                <> ModConductor.ArchiveInstallation.InstallationState.Complete
-                                                || installed.ModId.IsNone
-                                                || installed.VersionId.IsNone
-                                            then
-                                                return
-                                                    Error(
-                                                        installed.Problem
-                                                        |> Option.defaultValue
-                                                            "SKSE installation did not complete. No component was published."
-                                                    )
-                                            else
-                                                return
-                                                    Ok(
-                                                        installed.ModId.Value,
-                                                        installed.VersionId.Value,
-                                                        Some plan
-                                                    )
+                                                if
+                                                    installed.State
+                                                    <> ModConductor.ArchiveInstallation.InstallationState.Complete
+                                                    || installed.ModId.IsNone
+                                                    || installed.VersionId.IsNone
+                                                then
+                                                    return
+                                                        Error(
+                                                            installed.Problem
+                                                            |> Option.defaultValue
+                                                                "SKSE installation did not complete. No component was published."
+                                                        )
+                                                else
+                                                    return
+                                                        Ok(
+                                                            installed.ModId.Value,
+                                                            installed.VersionId.Value,
+                                                            Some plan
+                                                        )
                     }
 
                 match imported with

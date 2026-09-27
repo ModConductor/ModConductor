@@ -58,12 +58,12 @@ module BundleFixtures =
           Revision = artifact.Revision }
 
     let private finished (store: OperationStore) workspace id =
-        let mutable value = store.Installations.Read(workspace, id) |> wait
+        let mutable value = store.Installations.Read(workspace, id) |> wait |> result
         let until = DateTime.UtcNow.AddSeconds 20
 
         while value.State = InstallationState.Running && DateTime.UtcNow < until do
             Thread.Sleep 10
-            value <- store.Installations.Read(workspace, id) |> wait
+            value <- store.Installations.Read(workspace, id) |> wait |> result
 
         if value.State = InstallationState.Running then
             failwith "Bundle fixture installation did not stop."

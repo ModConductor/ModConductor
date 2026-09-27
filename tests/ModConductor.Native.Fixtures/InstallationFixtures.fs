@@ -26,11 +26,11 @@ module InstallationFixtures =
 
     let private untilStopped (store: OperationStore) workspace id =
         let deadline = DateTime.UtcNow.AddSeconds 15
-        let mutable status = store.Installations.Read(workspace, id) |> wait
+        let mutable status = store.Installations.Read(workspace, id) |> wait |> result
 
         while status.State = InstallationState.Running && DateTime.UtcNow < deadline do
             Thread.Sleep 10
-            status <- store.Installations.Read(workspace, id) |> wait
+            status <- store.Installations.Read(workspace, id) |> wait |> result
 
         if status.State = InstallationState.Running then
             failwith "The installation did not stop."
@@ -143,6 +143,21 @@ module InstallationFixtures =
             |> wait
             |> result
             |> ignore
+
+            let missing = Guid.NewGuid()
+            let unavailable = Error "This installation is no longer available."
+
+            check
+                "MissingInstallationReadRefused"
+                (store.Installations.Read(workspace, missing) |> wait = unavailable)
+
+            check
+                "MissingInstallationCancelRefused"
+                (store.Installations.Cancel(workspace, missing) |> wait = unavailable)
+
+            check
+                "MissingInstallationDiscardRefused"
+                (store.Installations.Discard(workspace, missing) |> wait = unavailable)
 
             let source = Directory.CreateDirectory(Path.Combine(root, "existing")).FullName
             File.WriteAllText(Path.Combine(source, "existing.txt"), "existing mod")
@@ -412,7 +427,17 @@ module InstallationFixtures =
             if not (arrived.Wait 10000) then
                 failwith "Installation observation checkpoint was not reached."
 
-            let held = store.Installations.Read(workspace, cancelId) |> wait
+            let held = store.Installations.Read(workspace, cancelId) |> wait |> result
+
+            check
+                "RunningInstallationDiscardRefused"
+                (store.Installations.Discard(workspace, cancelId) |> wait = Error
+                    "Wait for the installation to stop before deleting temporary files.")
+
+            check
+                "RunningInstallationStillPresent"
+                ((store.Installations.Read(workspace, cancelId) |> wait |> result).State = InstallationState.Running)
+
             use changedTimeout = new CancellationTokenSource(TimeSpan.FromSeconds 5.)
 
             let changed =
@@ -421,7 +446,7 @@ module InstallationFixtures =
             Thread.Sleep 150
             check "IdleInstallationWatchWaitsForChange" (not changed.IsCompleted)
 
-            store.Installations.Cancel(workspace, cancelId) |> wait |> ignore
+            store.Installations.Cancel(workspace, cancelId) |> wait |> result |> ignore
             release.Set()
 
             changed.GetAwaiter().GetResult()
@@ -431,7 +456,7 @@ module InstallationFixtures =
                 "CancelledBeforePublication"
                 ((untilStopped store workspace cancelId).State = InstallationState.Stopped)
 
-            store.Installations.Discard(workspace, cancelId) |> wait |> ignore
+            store.Installations.Discard(workspace, cancelId) |> wait |> result |> ignore
             let corrupt = adopt (Path.Combine(area, "wrong-size.zip"))
             let draft = store.Installations.Prepare(reference corrupt, token) |> wait |> result
             let corruptId = Guid.NewGuid()
@@ -452,7 +477,7 @@ module InstallationFixtures =
                 store.Artifacts.Read(workspace, corrupt.Id) |> wait |> result
 
             check "UnfinishedFilesKeepArchiveEntry" (not unfinishedArchive.CanRemove)
-            store.Installations.Discard(workspace, corruptId) |> wait |> ignore
+            store.Installations.Discard(workspace, corruptId) |> wait |> result |> ignore
             let removable = store.Artifacts.Read(workspace, corrupt.Id) |> wait |> result
             check "TemporaryCleanupReleasesArchiveEntry" removable.CanRemove
             store.Artifacts.Remove(reference removable) |> wait |> result
@@ -484,7 +509,7 @@ module InstallationFixtures =
             child.Line() |> ignore
             child.Terminate()
             use restarted = new OperationStore(state)
-            let saved = restarted.Installations.Read(workspace, id) |> wait
+            let saved = restarted.Installations.Read(workspace, id) |> wait |> result
             let complete = checkpoint = "after-publication"
 
             check
@@ -508,7 +533,7 @@ module InstallationFixtures =
                      && inventory.Entries
                         |> List.exists (fun e -> Some e.Entry.Mod.Id = saved.ModId))
             else
-                restarted.Installations.Discard(workspace, id) |> wait |> ignore
+                restarted.Installations.Discard(workspace, id) |> wait |> result |> ignore
 
             let library = restarted.ModLibrary :> IModLibrary
 

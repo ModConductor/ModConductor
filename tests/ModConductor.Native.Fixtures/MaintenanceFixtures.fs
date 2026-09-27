@@ -27,11 +27,11 @@ module MaintenanceFixtures =
 
     let private stopped (store: OperationStore) workspace id =
         let deadline = DateTime.UtcNow.AddSeconds 20
-        let mutable status = store.Installations.Read(workspace, id) |> wait
+        let mutable status = store.Installations.Read(workspace, id) |> wait |> result
 
         while status.State = InstallationState.Running && DateTime.UtcNow < deadline do
             Thread.Sleep 10
-            status <- store.Installations.Read(workspace, id) |> wait
+            status <- store.Installations.Read(workspace, id) |> wait |> result
 
         if status.State <> InstallationState.Complete then
             failwith (string status.Problem)

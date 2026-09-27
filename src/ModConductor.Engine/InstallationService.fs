@@ -83,7 +83,8 @@ type InstallationService(store: InstallationStore) =
                 let mutable running = true
 
                 while running && not context.CancellationToken.IsCancellationRequested do
-                    let! status = store.Read(workspace, id)
+                    let! current = store.Read(workspace, id)
+                    let status = InstallationWire.outcome current
 
                     do!
                         stream.WriteAsync(
@@ -106,7 +107,7 @@ type InstallationService(store: InstallationStore) =
                         ModLibraryWire.id request.Id
                     )
 
-                return InstallationWire.status status
+                return status |> InstallationWire.outcome |> InstallationWire.status
             })
 
     override _.DeleteInstallationFiles(request, _) =
@@ -118,5 +119,5 @@ type InstallationService(store: InstallationStore) =
                         ModLibraryWire.id request.Id
                     )
 
-                return InstallationWire.status status
+                return status |> InstallationWire.outcome |> InstallationWire.status
             })

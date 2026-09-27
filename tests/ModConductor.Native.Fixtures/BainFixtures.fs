@@ -329,7 +329,7 @@ module BainFixtures =
 
             while status.State = InstallationState.Running && DateTime.UtcNow < deadline do
                 Thread.Sleep 10
-                status <- store.Installations.Read(workspace, job.Id) |> wait
+                status <- store.Installations.Read(workspace, job.Id) |> wait |> result
 
             if status.State <> InstallationState.Complete then
                 failwith (string status.Problem)
