@@ -118,7 +118,7 @@ module GeneratedOutputFixtures =
                     let manifestReplacement = manifest + ".replacement"
                     File.Copy(manifest, manifestReplacement)
                     File.Move(manifestReplacement, manifest, true)
-                    let reused = GameProcesses.validateContext context
+                    let reused = GameProcesses.validateContext context |> result
 
                     check
                         "sessionDiscoverySnapshotReused"
@@ -683,12 +683,7 @@ module GeneratedOutputFixtures =
                 let contexts = reopened.GameContexts :> IGameContexts
                 let context = contexts.Read(workspace, profile) |> wait |> result
 
-                let refused =
-                    try
-                        GameProcesses.validateContext context |> ignore
-                        false
-                    with :? IOException ->
-                        true
+                let refused = GameProcesses.validateContext context |> Result.isError
 
                 check "restartRequiresSessionCheck" (context.Binding.Value.NeedsCheck && refused)
 

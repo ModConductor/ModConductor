@@ -39,7 +39,7 @@ module internal OutputLocationCommands =
             | Error error -> return Error error
             | Ok state ->
                 let! evidence = Task.Run(fun () -> GameProcesses.validateContext state)
-                return Ok evidence
+                return evidence |> Result.mapError OutputError.Unavailable
         }
 
     let private purposeValid =

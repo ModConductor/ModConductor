@@ -124,17 +124,20 @@ type internal OutputRepository
                 match evidence with
                 | Error error -> return Error error
                 | Ok evidence ->
-                    if
+                    let checksGame =
                         record.Action = OutputAction.Discard
                         && (record.Files
                             |> List.exists (fun file ->
                                 match file.Backing.Location.Purpose with
                                 | OutputPurpose.WritableFile _ -> true
                                 | OutputPurpose.ToolFolder -> false))
-                    then
-                        ModConductor.Deployment.GameProcesses.check evidence
 
-                    return Ok()
+                    if checksGame then
+                        return
+                            ModConductor.Deployment.GameProcesses.check evidence
+                            |> Result.mapError OutputError.Unavailable
+                    else
+                        return Ok()
             }
 
         member _.Preview record =
