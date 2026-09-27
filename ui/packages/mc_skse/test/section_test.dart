@@ -215,6 +215,7 @@ Widget app(
   ArchiveChooser? choose,
   double height = 720,
   String profileId = 'profile',
+  int? contextRevision,
 }) => MaterialApp(
   home: Scaffold(
     body: SizedBox(
@@ -226,6 +227,7 @@ Widget app(
             () async => const ArchiveFile('/downloads/enbseries.zip', 42),
         workspaceId: 'workspace',
         profileId: profileId,
+        contextRevision: contextRevision,
       ),
     ),
   ),
@@ -237,6 +239,20 @@ Future<void> settle(WidgetTester tester) async {
 }
 
 void main() {
+  testWidgets('changing the game context reloads Skyrim setup', (tester) async {
+    final client = SetupClientFixture(installed: <String>{});
+    await tester.pumpWidget(app(client, contextRevision: 1));
+    await settle(tester);
+    expect(client.reads, 1);
+
+    client.installed.add('skse');
+    await tester.pumpWidget(app(client, contextRevision: 2));
+    await settle(tester);
+
+    expect(client.reads, 2);
+    expect(find.text('Installed'), findsWidgets);
+  });
+
   testWidgets(
     'setup watch reconnects with current state after stream failure',
     (tester) async {

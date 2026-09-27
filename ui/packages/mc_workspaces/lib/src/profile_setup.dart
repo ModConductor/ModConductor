@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:mc_client/mc_client.dart';
+import 'package:mc_game_contexts/mc_game_contexts.dart';
 import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 
 import 'workspace_dialog.dart' show DirectoryChooser;
@@ -15,11 +17,13 @@ class ProfileSetupGame {
     required this.id,
     required this.name,
     required this.storefront,
+    required this.steamAppId,
   });
 
   final String id;
   final String name;
   final String storefront;
+  final int steamAppId;
 }
 
 class ProfileSetupSelection {
@@ -27,11 +31,13 @@ class ProfileSetupSelection {
     required this.name,
     required this.game,
     required this.installation,
+    this.proton,
   });
 
   final String name;
   final ProfileSetupGame game;
   final String installation;
+  final ProtonSelection? proton;
 }
 
 typedef ProfileSetupSubmit = Future<String?> Function(
@@ -52,7 +58,9 @@ class ProfileSetupSurface extends StatefulWidget {
     this.onCancel,
     this.onComplete,
     this.initialInstallation,
+    this.initialProton,
     this.initialProblem,
+    this.protonContexts,
   });
 
   final String initialName;
@@ -66,7 +74,9 @@ class ProfileSetupSurface extends StatefulWidget {
   final VoidCallback? onCancel;
   final VoidCallback? onComplete;
   final String? initialInstallation;
+  final ProtonSelection? initialProton;
   final String? initialProblem;
+  final ProtonContextsClient? protonContexts;
 
   @override
   State<ProfileSetupSurface> createState() => _ProfileSetupSurfaceState();
@@ -80,6 +90,8 @@ class _ProfileSetupSurfaceState extends State<ProfileSetupSurface> {
   SteamSearch? pendingSearch;
   List<SteamInstallationCandidate> candidates = const [];
   String? selectedInstallation;
+  ProtonSelection? proton;
+  List<String> steamRoots = const [];
   String? problem;
   bool searched = false;
   bool searching = false;
@@ -96,6 +108,7 @@ class _ProfileSetupSurfaceState extends State<ProfileSetupSurface> {
     name = TextEditingController(text: widget.initialName);
     game = widget.games.length == 1 ? widget.games.single : null;
     selectedInstallation = widget.initialInstallation;
+    proton = widget.initialProton;
     manualSelection = selectedInstallation != null;
     searched = selectedInstallation != null;
     problem = widget.initialProblem;
@@ -111,6 +124,7 @@ class _ProfileSetupSurfaceState extends State<ProfileSetupSurface> {
         widget.initialInstallation != null &&
         !busy) {
       selectedInstallation = widget.initialInstallation;
+      proton = widget.initialProton;
       manualSelection = true;
       searched = true;
     }
@@ -134,6 +148,8 @@ class _ProfileSetupSurfaceState extends State<ProfileSetupSurface> {
       pendingSearch = null;
       candidates = const [];
       selectedInstallation = null;
+      proton = null;
+      steamRoots = const [];
       manualSelection = false;
       searched = false;
       searching = false;
@@ -150,6 +166,8 @@ class _ProfileSetupSurfaceState extends State<ProfileSetupSurface> {
         searched = true;
         candidates = const [];
         selectedInstallation = null;
+        proton = null;
+        steamRoots = const [];
         manualSelection = false;
         problem = null;
       });
@@ -161,6 +179,8 @@ class _ProfileSetupSurfaceState extends State<ProfileSetupSurface> {
       searched = true;
       candidates = const [];
       selectedInstallation = null;
+      proton = null;
+      steamRoots = const [];
       manualSelection = false;
     });
     final search = client.search(selectedGame.id, const []);
@@ -174,6 +194,7 @@ class _ProfileSetupSurfaceState extends State<ProfileSetupSurface> {
       }
       setState(() {
         candidates = result.candidates;
+        steamRoots = result.roots.map((root) => root.path).toList();
         selectedInstallation = result.candidates.length == 1
             ? result.candidates.single.directory.canonicalPath
             : null;
@@ -203,6 +224,7 @@ class _ProfileSetupSurfaceState extends State<ProfileSetupSurface> {
       final selected = await widget.chooseDirectory(selectedInstallation);
       if (mounted && selected != null) {
         setState(() {
+          if (selectedInstallation != selected) proton = null;
           selectedInstallation = selected;
           manualSelection = true;
           searched = true;
@@ -217,6 +239,38 @@ class _ProfileSetupSurfaceState extends State<ProfileSetupSurface> {
         setState(() => choosingFolder = false);
         folderFocus.requestFocus();
       }
+    }
+  }
+
+  Future<void> selectProton() async {
+    final client = widget.protonContexts;
+    final selectedGame = game;
+    final installation = selectedInstallation;
+    if (!Platform.isLinux ||
+        busy ||
+        client == null ||
+        selectedGame == null ||
+        installation == null) {
+      return;
+    }
+    final selected = await showDialog<ProtonSelection>(
+      context: context,
+      builder: (_) => ProtonDialog(
+        gameId: selectedGame.id,
+        gameName: selectedGame.name,
+        steamAppId: selectedGame.steamAppId,
+        gamePath: installation,
+        client: client,
+        chooseDirectory: widget.chooseDirectory,
+        roots: steamRoots,
+        initial: proton,
+      ),
+    );
+    if (mounted &&
+        selected != null &&
+        game == selectedGame &&
+        selectedInstallation == installation) {
+      setState(() => proton = selected);
     }
   }
 
@@ -239,6 +293,7 @@ class _ProfileSetupSurfaceState extends State<ProfileSetupSurface> {
           name: name.text.trim(),
           game: selectedGame,
           installation: installation,
+          proton: proton,
         ),
       );
       if (!mounted) return;

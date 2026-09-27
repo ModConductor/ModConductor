@@ -24,11 +24,13 @@ class SkyrimSetupSection extends StatefulWidget {
     required this.chooseArchive,
     required this.workspaceId,
     required this.profileId,
+    this.contextRevision,
   });
 
   final SkyrimSetupClient client;
   final ArchiveChooser chooseArchive;
   final String workspaceId, profileId;
+  final int? contextRevision;
 
   @override
   State<SkyrimSetupSection> createState() => _SkyrimSetupSectionState();
@@ -55,17 +57,22 @@ class _SkyrimSetupSectionState extends State<SkyrimSetupSection> {
   @override
   void didUpdateWidget(covariant SkyrimSetupSection old) {
     super.didUpdateWidget(old);
-    if (old.workspaceId != widget.workspaceId ||
+    final scopeChanged =
+        old.workspaceId != widget.workspaceId ||
         old.profileId != widget.profileId ||
-        old.client != widget.client) {
+        old.client != widget.client;
+    if (scopeChanged || old.contextRevision != widget.contextRevision) {
       ++_epoch;
       _watchReconnect?.cancel();
       unawaited(_watch?.cancel() ?? Future.value());
-      status = null;
       _updateEvidenceFresh = false;
-      selection = const SkyrimSetupSelection();
-      userEdited = false;
+      problem = null;
       busy = false;
+      if (scopeChanged) {
+        status = null;
+        selection = const SkyrimSetupSelection();
+        userEdited = false;
+      }
       _observe();
     }
   }

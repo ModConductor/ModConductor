@@ -10,14 +10,17 @@ import 'proton_search_controller.dart';
 class ProtonDialog extends StatefulWidget {
   const ProtonDialog({
     super.key,
-    required this.game,
+    required this.gameId,
+    required this.gameName,
+    required this.steamAppId,
     required this.gamePath,
     required this.client,
     required this.chooseDirectory,
     required this.roots,
     this.initial,
   });
-  final GameDefinitionInfo game;
+  final String gameId, gameName;
+  final int steamAppId;
   final String gamePath;
   final ProtonContextsClient client;
   final GameDirectoryChooser chooseDirectory;
@@ -30,7 +33,7 @@ class ProtonDialog extends StatefulWidget {
 class _ProtonDialogState extends State<ProtonDialog> {
   late final search = ProtonSearchController(
     widget.client,
-    widget.game.id,
+    widget.gameId,
     widget.gamePath,
     widget.roots,
   );
@@ -117,14 +120,14 @@ class _ProtonDialogState extends State<ProtonDialog> {
     final prefixes = report?.prefixes ?? const <ProtonPrefixCandidate>[];
     final tools = report?.tools ?? const <ProtonInstalledTool>[];
     return McFormDialog(
-      title: 'Proton for ${widget.game.name}',
+      title: 'Proton for ${widget.gameName}',
       action: 'Choose',
       onSubmit: busy || data.text.isEmpty || runtime.text.isEmpty
           ? null
           : () => Navigator.pop(
               context,
               ProtonSelection(
-                appId: widget.game.declaredSteamAppId,
+                appId: widget.steamAppId,
                 association: association,
                 compatData: data.text,
                 runtimeDirectory: runtime.text,
@@ -185,7 +188,7 @@ class _ProtonDialogState extends State<ProtonDialog> {
         if (association is ManualProtonAssociation && data.text.isNotEmpty) ...[
           const SizedBox(height: 8),
           Text(
-            'Selected manually · AppID ${widget.game.declaredSteamAppId}',
+            'Selected manually · AppID ${widget.steamAppId}',
             style: Theme.of(context).textTheme.bodySmall,
           ),
         ],
@@ -288,7 +291,7 @@ class _ProtonDialogState extends State<ProtonDialog> {
                   rows: [
                     McFact('Data folder', data.text, path: true),
                     McFact('Prefix folder', '${data.text}/pfx', path: true),
-                    McFact('AppID', '${widget.game.declaredSteamAppId}'),
+                    McFact('AppID', '${widget.steamAppId}'),
                   ],
                 ),
               if (report != null && report.mappings.isNotEmpty) ...[

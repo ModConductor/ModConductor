@@ -6,6 +6,7 @@ import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 
 import 'controller.dart';
 import 'installation_dialog.dart';
+import 'proton_dialog.dart';
 export 'installation_dialog.dart' show GameDirectoryChooser;
 
 class GameContextBrowser extends StatefulWidget {
@@ -54,6 +55,33 @@ class _GameContextBrowserState extends State<GameContextBrowser> {
       ),
     );
     if (mounted) changeFocus.requestFocus();
+  }
+
+  Future<void> changeProton() async {
+    final state = widget.controller.state;
+    final client = widget.protonContexts;
+    if (!widget.controller.canChange ||
+        client == null ||
+        state?.binding == null ||
+        state?.definition == null) {
+      return;
+    }
+    final selected = await showDialog<ProtonSelection>(
+      context: context,
+      builder: (_) => ProtonDialog(
+        gameId: state!.definition!.id,
+        gameName: state.definition!.name,
+        steamAppId: state.definition!.declaredSteamAppId,
+        gamePath: state.binding!.path,
+        client: client,
+        chooseDirectory: widget.chooseDirectory,
+        roots: const [],
+        initial: state.binding!.proton,
+      ),
+    );
+    if (mounted && selected != null) {
+      await widget.controller.setProton(selected);
+    }
   }
 
   String location(GameLocation value) => switch (value) {
@@ -170,6 +198,10 @@ class _GameContextBrowserState extends State<GameContextBrowser> {
                         : binding.failure ??
                               (binding.needsCheck
                                   ? 'Installation needs a check'
+                                  : evidence.platform ==
+                                            GameContextPlatform.proton &&
+                                        evidence.proton == null
+                                  ? 'Proton not selected'
                                   : evidence.proton == null
                                   ? 'Installation files checked'
                                   : 'Installation and Proton files checked'),
@@ -195,6 +227,21 @@ class _GameContextBrowserState extends State<GameContextBrowser> {
                         focusNode: changeFocus,
                         onPressed: c.canChange ? change : null,
                       ),
+                      if (evidence.platform == GameContextPlatform.proton)
+                        McAction(
+                          key: const ValueKey('change-proton'),
+                          label: binding.proton == null
+                              ? 'Select Proton…'
+                              : 'Change Proton…',
+                          icon: Icons.tune,
+                          emphasis: binding.proton == null
+                              ? McActionEmphasis.primary
+                              : McActionEmphasis.secondary,
+                          onPressed:
+                              c.canChange && widget.protonContexts != null
+                              ? changeProton
+                              : null,
+                        ),
                       McAction(
                         key: const ValueKey('refresh-installation'),
                         label: c.needsRead ? 'Reload' : 'Refresh',

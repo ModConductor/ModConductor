@@ -104,7 +104,10 @@ extension _ProfileSetupInstallation on _ProfileSetupSurfaceState {
           groupValue: selectedInstallation,
           onChanged: busy
               ? (_) {}
-              : (value) => _change(() => selectedInstallation = value),
+              : (value) => _change(() {
+                  if (selectedInstallation != value) proton = null;
+                  selectedInstallation = value;
+                }),
           child: Column(
             children: [
               for (final candidate in candidates)

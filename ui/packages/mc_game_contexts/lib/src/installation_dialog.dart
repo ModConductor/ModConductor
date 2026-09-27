@@ -7,6 +7,7 @@ import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 import 'steam_search_controller.dart';
 import 'steam_chooser.dart';
 import 'proton_dialog.dart';
+import 'proton_selection_field.dart';
 
 typedef GameDirectoryChooser = Future<String?> Function(String? initialPath);
 
@@ -98,7 +99,9 @@ class _InstallationDialogState extends State<InstallationDialog> {
     final selected = await showDialog<ProtonSelection>(
       context: context,
       builder: (_) => ProtonDialog(
-        game: current.definition!,
+        gameId: current.definition!.id,
+        gameName: current.definition!.name,
+        steamAppId: current.definition!.declaredSteamAppId,
         gamePath: gamePath,
         client: client,
         chooseDirectory: widget.chooseDirectory,
@@ -253,29 +256,12 @@ class _InstallationDialogState extends State<InstallationDialog> {
       ),
       if (Platform.isLinux) ...[
         const SizedBox(height: 20),
-        Text('Proton', style: Theme.of(context).textTheme.titleSmall),
-        const SizedBox(height: 4),
-        if (proton case final selection?) ...[
-          SelectableText(
-            current.binding?.proton == selection &&
-                    current.binding?.evidence.proton != null
-                ? current.binding!.evidence.proton!.runtimeName
-                : selection.runtimeDirectory,
-          ),
-          Text(
-            selection.compatData,
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-        ] else
-          const Text('Not selected'),
-        const SizedBox(height: 8),
-        McAction(
-          key: const ValueKey('select-proton'),
-          label: proton == null ? 'Select Proton…' : 'Change Proton…',
-          icon: Icons.tune,
-          onPressed: busy || widget.protonContexts == null
-              ? null
-              : chooseProton,
+        ProtonSelectionField(
+          selection: proton,
+          runtimeName: current.binding?.proton == proton
+              ? current.binding?.evidence.proton?.runtimeName
+              : null,
+          onSelect: busy || widget.protonContexts == null ? null : chooseProton,
         ),
       ],
       if (error != null) ...[

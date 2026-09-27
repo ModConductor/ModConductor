@@ -140,6 +140,7 @@ mixin _ShellContent
                       chooseArchive: widget.chooseArchive,
                       workspaceId: workspace.id,
                       profileId: workspace.selectedProfile!.id,
+                      contextRevision: _game.state?.revision,
                     ),
                   ),
           ),

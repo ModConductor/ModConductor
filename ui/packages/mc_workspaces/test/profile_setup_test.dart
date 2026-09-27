@@ -1,7 +1,10 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mc_client/mc_client.dart';
+import 'package:mc_game_contexts/mc_game_contexts.dart';
 import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 import 'package:mc_workspaces/mc_workspaces.dart';
 
@@ -9,6 +12,7 @@ const game = ProfileSetupGame(
   id: 'skyrim-se-steam',
   name: 'Skyrim Special Edition',
   storefront: 'Steam',
+  steamAppId: 489830,
 );
 
 SteamInstallationCandidate candidate(String id, String path) =>
@@ -43,11 +47,32 @@ class Discovery implements SteamDiscoveryClient {
   }
 }
 
+class ProtonDiscovery implements ProtonContextsClient {
+  @override
+  ProtonSearch search(
+    String definitionId,
+    String gamePath,
+    List<String> roots,
+  ) => ProtonSearch(
+    Future.value(
+      const ProtonSearchResult(
+        prefixes: [],
+        tools: [],
+        mappings: [],
+        problems: [],
+        limited: false,
+      ),
+    ),
+    () async {},
+  );
+}
+
 Future<void> mount(
   WidgetTester tester, {
   required Discovery discovery,
   required Future<String?> Function(String?) chooseDirectory,
   required ProfileSetupSubmit onSubmit,
+  ProtonContextsClient? protonContexts,
   VoidCallback? onCancel,
   VoidCallback? onComplete,
   Size size = const Size(1000, 760),
@@ -66,6 +91,7 @@ Future<void> mount(
           discovery: discovery,
           chooseDirectory: chooseDirectory,
           onSubmit: onSubmit,
+          protonContexts: protonContexts,
           actionLabel: 'Create profile',
           canCancel: true,
           onCancel: onCancel,
@@ -87,6 +113,74 @@ Future<void> findInstallations(WidgetTester tester) async {
 }
 
 void main() {
+  testWidgets('Linux profile setup allows Proton to be selected later', (
+    tester,
+  ) async {
+    ProfileSetupSelection? submitted;
+    await mount(
+      tester,
+      discovery: Discovery([candidate('only', '/games/skyrim')]),
+      protonContexts: ProtonDiscovery(),
+      chooseDirectory: (_) async => null,
+      onSubmit: (value) async {
+        submitted = value;
+        return null;
+      },
+    );
+    await findInstallations(tester);
+    expect(find.text('Not selected'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('submit-profile-setup')));
+    await tester.pumpAndSettle();
+
+    expect(submitted?.installation, '/games/skyrim');
+    expect(submitted?.proton, isNull);
+  }, skip: !Platform.isLinux);
+
+  testWidgets('Linux profile setup saves the selected Proton folders', (
+    tester,
+  ) async {
+    ProfileSetupSelection? submitted;
+    await mount(
+      tester,
+      discovery: Discovery([candidate('only', '/games/skyrim')]),
+      protonContexts: ProtonDiscovery(),
+      chooseDirectory: (_) async => null,
+      onSubmit: (value) async {
+        submitted = value;
+        return null;
+      },
+    );
+    await findInstallations(tester);
+    await tester.ensureVisible(find.byKey(const ValueKey('select-proton')));
+    await tester.tap(find.byKey(const ValueKey('select-proton')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('proton-data-folder')),
+      '/games/compatdata/489830',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('proton-runtime-folder')),
+      '/games/Proton',
+    );
+    await tester.pump();
+    expect(
+      tester.widget<McAction>(find.byKey(const ValueKey('submit')).last).onPressed,
+      isNotNull,
+    );
+    await tester.ensureVisible(find.byKey(const ValueKey('submit')).last);
+    await tester.tap(find.byKey(const ValueKey('submit')).last);
+    await tester.pumpAndSettle();
+    expect(find.byType(ProtonDialog), findsNothing);
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('submit-profile-setup')),
+    );
+    await tester.tap(find.byKey(const ValueKey('submit-profile-setup')));
+    await tester.pumpAndSettle();
+
+    expect(submitted?.proton?.compatData, '/games/compatdata/489830');
+    expect(submitted?.proton?.runtimeDirectory, '/games/Proton');
+  }, skip: !Platform.isLinux);
+
   testWidgets(
     'one discovered installation is selected without another decision',
     (tester) async {
@@ -149,6 +243,9 @@ void main() {
       find.byKey(const ValueKey(('profile-installation', '/games/second'))),
     );
     await tester.pump();
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('submit-profile-setup')),
+    );
     await tester.tap(find.byKey(const ValueKey('submit-profile-setup')));
     await tester.pumpAndSettle();
 

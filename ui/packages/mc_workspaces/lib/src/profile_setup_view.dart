@@ -29,22 +29,21 @@ extension _ProfileSetupView on _ProfileSetupSurfaceState {
     ),
   );
 
-  Widget _setupLayout(BuildContext context, bool narrow) =>
-      SingleChildScrollView(
-        padding: EdgeInsets.all(narrow ? McSpacing.medium : McSpacing.large),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 680),
-            child: Material(
-              color: Theme.of(context).colorScheme.surface,
-              elevation: 1,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(13),
-                side: BorderSide(
-                  color: Theme.of(context).colorScheme.outlineVariant,
-                ),
-              ),
-              child: Padding(
+  Widget _setupLayout(BuildContext context, bool narrow) => Center(
+    child: ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 680),
+      child: Material(
+        color: Theme.of(context).colorScheme.surface,
+        elevation: 1,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(13),
+          side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Flexible(
+              child: SingleChildScrollView(
                 padding: EdgeInsets.all(
                   narrow ? McSpacing.large : McSpacing.page,
                 ),
@@ -54,9 +53,18 @@ extension _ProfileSetupView on _ProfileSetupSurfaceState {
                 ),
               ),
             ),
-          ),
+            const Divider(height: 1),
+            Padding(
+              padding: EdgeInsets.all(
+                narrow ? McSpacing.large : McSpacing.page,
+              ),
+              child: searched ? _submitActions(narrow) : _searchActions(narrow),
+            ),
+          ],
         ),
-      );
+      ),
+    ),
+  );
 
   List<Widget> _setupFields(BuildContext context, bool narrow) => [
     _heading(context),
@@ -83,14 +91,18 @@ extension _ProfileSetupView on _ProfileSetupSurfaceState {
         ],
       ),
     ),
-    if (!searched) ...[
-      const SizedBox(height: McSpacing.medium),
-      _searchActions(narrow),
-    ] else ...[
+    if (searched) ...[
       const SizedBox(height: McSpacing.large),
       const Divider(height: 1),
       const SizedBox(height: McSpacing.large),
       installationSection(context),
+      if (Platform.isLinux && selectedInstallation != null) ...[
+        const SizedBox(height: McSpacing.large),
+        ProtonSelectionField(
+          selection: proton,
+          onSelect: busy || widget.protonContexts == null ? null : selectProton,
+        ),
+      ],
     ],
     if (problem case final message?) ...[
       const SizedBox(height: McSpacing.medium),
@@ -104,10 +116,6 @@ extension _ProfileSetupView on _ProfileSetupSurfaceState {
             onPressed: busy ? null : findInstallations,
           ),
         ),
-    ],
-    if (searched) ...[
-      const SizedBox(height: McSpacing.large),
-      _submitActions(narrow),
     ],
   ];
 

@@ -8,7 +8,9 @@ mixin _WorkspaceScope on _AppStateBase, _SettingsScope {
         binding != null &&
         !binding.needsCheck &&
         binding.failure == null &&
-        binding.evidence.problems.isEmpty;
+        binding.evidence.problems.isEmpty &&
+        (binding.evidence.platform != GameContextPlatform.proton ||
+            binding.proton != null);
   }
 
   bool _supports(GameCapabilityId id) {

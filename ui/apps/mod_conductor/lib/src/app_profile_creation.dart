@@ -15,6 +15,7 @@ const _profileSetupGames = [
     id: 'skyrim-se-steam',
     name: 'Skyrim Special Edition',
     storefront: 'Steam',
+    steamAppId: 489830,
   ),
 ];
 
@@ -50,6 +51,7 @@ mixin _ProfileCreation on _AppStateBase {
         selection.game.id,
         state.revision,
         selection.installation,
+        proton: selection.proton,
       );
       _game.accept(saved, client);
       return null;
@@ -108,7 +110,9 @@ mixin _ProfileCreation on _AppStateBase {
       games: _profileSetupGames,
       discovery: widget.steamDiscovery,
       chooseDirectory: widget.chooseGameDirectory,
+      protonContexts: widget.protonContexts,
       initialInstallation: binding?.path,
+      initialProton: binding?.proton,
       initialProblem: _game.problem ?? binding?.failure,
       actionLabel: 'Save profile',
       onSubmit: (selection) => _saveProfileSetup(workspace, profile, selection),
@@ -130,6 +134,7 @@ mixin _ProfileCreation on _AppStateBase {
             games: _profileSetupGames,
             discovery: widget.steamDiscovery,
             chooseDirectory: widget.chooseGameDirectory,
+            protonContexts: widget.protonContexts,
             actionLabel: 'Create profile',
             canCancel: true,
             onCancel: () => Navigator.pop(dialogContext),
@@ -209,6 +214,7 @@ mixin _ProfileCreation on _AppStateBase {
         selection.game.id,
         loaded.revision,
         selection.installation,
+        proton: selection.proton,
       );
     }
     attempt.committedContext = saved;
@@ -248,7 +254,32 @@ mixin _ProfileCreation on _AppStateBase {
     ProfileSetupSelection current,
   ) =>
       previous?.game.id == current.game.id &&
-      previous?.installation == current.installation;
+      previous?.installation == current.installation &&
+      _sameProton(previous?.proton, current.proton);
+
+  bool _sameProton(ProtonSelection? left, ProtonSelection? right) {
+    if (left == null || right == null) return left == null && right == null;
+    final association = switch ((left.association, right.association)) {
+      (ManualProtonAssociation(), ManualProtonAssociation()) => true,
+      (
+        SteamProtonAssociation(
+          steamRoot: final leftRoot,
+          library: final leftLibrary,
+        ),
+        SteamProtonAssociation(
+          steamRoot: final rightRoot,
+          library: final rightLibrary,
+        ),
+      ) =>
+        leftRoot == rightRoot && leftLibrary == rightLibrary,
+      _ => false,
+    };
+    return association &&
+        left.appId == right.appId &&
+        left.compatData == right.compatData &&
+        left.runtimeDirectory == right.runtimeDirectory &&
+        left.toolId == right.toolId;
+  }
 
   bool _profileSetupIsReady(
     GameContextState state,
@@ -257,6 +288,7 @@ mixin _ProfileCreation on _AppStateBase {
     final binding = state.binding;
     return state.definition?.id == selection.game.id &&
         binding != null &&
+        _sameProton(binding.proton, selection.proton) &&
         !binding.needsCheck &&
         binding.failure == null &&
         binding.evidence.problems.isEmpty;

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mc_client/mc_client.dart';
+import 'package:mc_game_contexts/mc_game_contexts.dart';
 import 'package:mc_game_contexts/src/installation_dialog.dart';
 import 'package:mc_game_contexts/src/proton_search_controller.dart';
 import 'package:mc_ui_foundation/mc_ui_foundation.dart';
@@ -83,6 +84,54 @@ class SavingClient extends Client {
 }
 
 void main() {
+  testWidgets(
+    'the Game page saves Proton without opening installation Change',
+    (tester) async {
+      final client = SavingClient();
+      final discovery = Discovery();
+      final controller = GameContextController()
+        ..attach(
+          client,
+          workspaceId: 'workspace',
+          profileId: 'profile',
+          editable: true,
+        );
+      addTearDown(controller.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: mcTheme(Brightness.light),
+          home: Scaffold(
+            body: GameContextBrowser(
+              controller: controller,
+              chooseDirectory: (_) async => null,
+              protonContexts: discovery,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('change-proton')));
+      await tester.pump();
+      await tester.enterText(
+        find.byKey(const ValueKey('proton-data-folder')),
+        '/selected-data',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('proton-runtime-folder')),
+        '/selected-runtime',
+      );
+      discovery.requests.last.complete(empty);
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.byKey(const ValueKey('submit')).last);
+      await tester.tap(find.byKey(const ValueKey('submit')).last);
+      await tester.pumpAndSettle();
+
+      expect(client.selections.single?.compatData, '/selected-data');
+      expect(controller.state?.revision, 2);
+    },
+    skip: !Platform.isLinux,
+  );
+
   test('cancelled context lookup cannot publish over its replacement or after disposal', () async {
     final client = Discovery();
     final controller = ProtonSearchController(

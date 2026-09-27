@@ -93,6 +93,37 @@ class GameContextController extends ChangeNotifier {
 
   Future<bool> load({bool refresh = false}) => _load(refresh: refresh);
 
+  Future<void> setProton(ProtonSelection proton) async {
+    final client = _client;
+    final current = state;
+    if (!canChange || client == null || current?.binding == null) return;
+    final epoch = ++_epoch;
+    loading = true;
+    problem = null;
+    _notify();
+    try {
+      final saved = await client.save(
+        current!.workspaceId,
+        current.profileId,
+        current.definition!.id,
+        current.revision,
+        current.binding!.path,
+        proton: proton,
+      );
+      if (!_disposed && epoch == _epoch) accept(saved, client);
+    } on GameContextException catch (error) {
+      if (_disposed || epoch != _epoch) return;
+      loading = false;
+      problem = error.candidate?.problems.map((item) => item.detail).join('\n');
+      if (problem == null || problem!.isEmpty) problem = error.detail;
+      _notify();
+    } on Exception {
+      if (!_disposed && epoch == _epoch) {
+        unknownSave(client, current!.workspaceId, current.profileId);
+      }
+    }
+  }
+
   Future<bool> _load({bool refresh = false, bool initialize = false}) async {
     final client = _client;
     final workspace = _workspace, profile = _profile;

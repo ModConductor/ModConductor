@@ -11,6 +11,8 @@ dependencies:
     sdk: flutter
   mc_client:
     path: ../mc_client
+  mc_game_contexts:
+    path: ../mc_game_contexts
   mc_ui_foundation:
     path: ../mc_ui_foundation
   mc_ui_collections:
