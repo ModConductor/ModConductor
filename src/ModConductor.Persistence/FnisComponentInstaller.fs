@@ -33,81 +33,85 @@ type internal FnisComponentInstaller
                       Id = artifact.Id
                       Revision = artifact.Revision }
 
-                let! draft = installations.Prepare(reference, token)
+                let! prepared = installations.Prepare(reference, token)
 
-                match ModConductor.Fnis.FnisArchiveLayout.review draft with
-                | Error problem -> return Error(ModConductor.Fnis.FnisProblem.message problem)
-                | Ok plan ->
-                    let installationId = Guid.NewGuid()
+                match prepared with
+                | Error why -> return Error why
+                | Ok draft ->
+                    match ModConductor.Fnis.FnisArchiveLayout.review draft with
+                    | Error problem -> return Error(ModConductor.Fnis.FnisProblem.message problem)
+                    | Ok plan ->
+                        let installationId = Guid.NewGuid()
 
-                    let started =
-                        installations.SelectReviewed(
-                            workspace,
-                            draft.Id,
-                            draft.Revision,
-                            "FNIS Behavior SE",
-                            string release.ComponentVersion,
-                            plan.Files
-                        )
-                        |> Result.bind (fun reviewed ->
-                            installations.Start(
+                        let started =
+                            installations.SelectReviewed(
                                 workspace,
-                                reviewed.Id,
-                                reviewed.Revision,
-                                installationId
-                            ))
-
-                    match started with
-                    | Error message -> return Error message
-                    | Ok started ->
-                        let mutable installed = started
-
-                        while installed.State = ModConductor.ArchiveInstallation.InstallationState.Running do
-                            do!
-                                installations.WaitForChange(
+                                draft.Id,
+                                draft.Revision,
+                                "FNIS Behavior SE",
+                                string release.ComponentVersion,
+                                plan.Files
+                            )
+                            |> Result.bind (fun reviewed ->
+                                installations.Start(
                                     workspace,
-                                    installationId,
-                                    installed,
-                                    token
-                                )
+                                    reviewed.Id,
+                                    reviewed.Revision,
+                                    installationId
+                                ))
 
-                            let! current = installations.Read(workspace, installationId)
-                            installed <- current
+                        match started with
+                        | Error message -> return Error message
+                        | Ok started ->
+                            let mutable installed = started
 
-                        do! installations.WaitForWorker(installationId, token)
-
-                        if
-                            installed.State
-                            <> ModConductor.ArchiveInstallation.InstallationState.Complete
-                            || installed.ModId.IsNone
-                            || installed.VersionId.IsNone
-                        then
-                            return
-                                Error(
-                                    installed.Problem
-                                    |> Option.defaultValue
-                                        "FNIS installation did not complete. No component was published."
-                                )
-                        else
-                            let! version =
-                                database.Enqueue(fun () ->
-                                    LibraryRows.version
-                                        database.Connection
-                                        null
-                                        installed.VersionId.Value
-                                        0
-                                        20001
-                                    |> Option.map (fun value -> { value with NextOffset = None }))
-
-                            match version with
-                            | None -> return Error "The installed FNIS version is unavailable."
-                            | Some version ->
-                                return
-                                    Ok(
-                                        artifact,
-                                        installed.ModId.Value,
-                                        installed.VersionId.Value,
-                                        version,
-                                        plan
+                            while installed.State = ModConductor.ArchiveInstallation.InstallationState.Running do
+                                do!
+                                    installations.WaitForChange(
+                                        workspace,
+                                        installationId,
+                                        installed,
+                                        token
                                     )
+
+                                let! current = installations.Read(workspace, installationId)
+                                installed <- current
+
+                            do! installations.WaitForWorker(installationId, token)
+
+                            if
+                                installed.State
+                                <> ModConductor.ArchiveInstallation.InstallationState.Complete
+                                || installed.ModId.IsNone
+                                || installed.VersionId.IsNone
+                            then
+                                return
+                                    Error(
+                                        installed.Problem
+                                        |> Option.defaultValue
+                                            "FNIS installation did not complete. No component was published."
+                                    )
+                            else
+                                let! version =
+                                    database.Enqueue(fun () ->
+                                        LibraryRows.version
+                                            database.Connection
+                                            null
+                                            installed.VersionId.Value
+                                            0
+                                            20001
+                                        |> Option.map (fun value ->
+                                            { value with NextOffset = None }))
+
+                                match version with
+                                | None -> return Error "The installed FNIS version is unavailable."
+                                | Some version ->
+                                    return
+                                        Ok(
+                                            artifact,
+                                            installed.ModId.Value,
+                                            installed.VersionId.Value,
+                                            version,
+                                            plan
+                                        )
         }

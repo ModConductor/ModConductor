@@ -140,7 +140,9 @@ module MaintenanceFixtures =
             MaintenanceDeployments.save state root workspace profile first area
 
         let otherArchive = adopt "other.zip" [ "Data/keep.txt", "same" ]
-        let otherDraft = store.Installations.Prepare(reference otherArchive, token) |> wait
+
+        let otherDraft =
+            store.Installations.Prepare(reference otherArchive, token) |> wait |> result
 
         let otherStarted =
             store.Installations.Start(workspace, otherDraft.Id, otherDraft.Revision, Guid.NewGuid())
@@ -194,11 +196,26 @@ module MaintenanceFixtures =
                 "newer.zip"
                 [ "Data/a.txt", "new"; "Data/keep.txt", "same"; "Data/added.txt", "added" ]
 
-        let draft = store.Installations.Prepare(reference newer, token) |> wait
+        let draft = store.Installations.Prepare(reference newer, token) |> wait |> result
 
         let current =
             (library.Scan(workspace, 100) |> wait |> result).Entries
             |> List.find (fun entry -> entry.Id = modId)
+
+        let missingTarget =
+            store.Installations.PrepareUpdate(
+                workspace,
+                draft.Id,
+                draft.Revision,
+                Guid.NewGuid(),
+                0L,
+                UpdateMode.Merge,
+                Set.empty,
+                "2"
+            )
+            |> wait
+
+        check "MissingUpdateTargetIsRefused" (Result.isError missingTarget)
 
         let preview =
             store.Installations.PrepareUpdate(
@@ -212,6 +229,7 @@ module MaintenanceFixtures =
                 "2"
             )
             |> wait
+            |> result
 
         let started =
             store.Installations.StartUpdate(workspace, preview.Id, Guid.NewGuid()) |> result
@@ -243,7 +261,10 @@ module MaintenanceFixtures =
                   "Data/keep.txt", "same"
                   "Data/added.txt", "added" ]
 
-        let draft = store.Installations.Prepare(reference replacementArchive, token) |> wait
+        let draft =
+            store.Installations.Prepare(reference replacementArchive, token)
+            |> wait
+            |> result
 
         let replacement =
             store.Installations.PrepareUpdate(
@@ -257,6 +278,7 @@ module MaintenanceFixtures =
                 "3"
             )
             |> wait
+            |> result
 
         let replacementStarted =
             store.Installations.StartUpdate(workspace, replacement.Id, Guid.NewGuid())
@@ -282,12 +304,11 @@ module MaintenanceFixtures =
             |> List.find (fun entry -> entry.Id = modId)
 
         MaintenanceDeployments.active state context (Some generation.Id)
-        let mutable activeRefused = false
 
-        try
-            store.Deletions.Delete(workspace, modId, current.Revision) |> wait
-        with _ ->
-            activeRefused <- true
+        let activeRefused =
+            store.Deletions.Delete(workspace, modId, current.Revision)
+            |> wait
+            |> Result.isError
 
         check
             "ActiveDeploymentPreventsDeletion"
@@ -323,12 +344,19 @@ module MaintenanceFixtures =
 
         if OperatingSystem.IsLinux() then
             File.SetUnixFileMode(changedPath, UnixFileMode.UserWrite)
-            store.Deletions.Delete(workspace, modId, current.Revision) |> wait
+
+            store.Deletions.Delete(workspace, modId, current.Revision)
+            |> wait
+            |> result
+            |> ignore
         else
             use noReadAccess =
                 new FileStream(changedPath, FileMode.Open, FileAccess.Write, FileShare.Delete)
 
-            store.Deletions.Delete(workspace, modId, current.Revision) |> wait
+            store.Deletions.Delete(workspace, modId, current.Revision)
+            |> wait
+            |> result
+            |> ignore
 
         check "DirectDeletionDoesNotOpenOwnedFileContents" (not (File.Exists changedPath))
 

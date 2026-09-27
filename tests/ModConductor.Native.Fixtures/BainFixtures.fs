@@ -67,7 +67,7 @@ module BainFixtures =
                 |> result
 
             let prepare artifact =
-                store.Installations.Prepare(reference artifact, token) |> wait
+                store.Installations.Prepare(reference artifact, token) |> wait |> result
 
             let openChoices (draft: InstallationDraft) =
                 store.Installations.Bain.Open(workspace, draft.Id, draft.Revision) |> result
@@ -366,7 +366,9 @@ module BainFixtures =
         let artifactId, abandoned, versionId = run ()
         use restored = new OperationStore(state)
         let artifact = restored.Artifacts.Read(workspace, artifactId) |> wait |> result
-        let draft = restored.Installations.Prepare(reference artifact, token) |> wait
+
+        let draft =
+            restored.Installations.Prepare(reference artifact, token) |> wait |> result
 
         let view =
             restored.Installations.Bain.Open(workspace, draft.Id, draft.Revision) |> result

@@ -38,122 +38,129 @@ type internal EnbComponentInstaller
                       Id = artifact.Id
                       Revision = artifact.Revision }
 
-                let! draft = installations.Prepare(reference, token)
+                let! prepared = installations.Prepare(reference, token)
 
-                let layout =
-                    match pin.Kind with
-                    | ModConductor.Enb.EnbComponentKind.Runtime ->
-                        ModConductor.Enb.EnbArchiveLayouts.runtime pinned draft.Manifest
-                    | ModConductor.Enb.EnbComponentKind.Preset ->
-                        ModConductor.Enb.EnbArchiveLayouts.leanPreset pinned draft.Manifest
-                    | ModConductor.Enb.EnbComponentKind.Companion ->
-                        ModConductor.Enb.EnbArchiveLayouts.dataCompanion pinned draft.Manifest
+                match prepared with
+                | Error why -> return Error why
+                | Ok draft ->
+                    let layout =
+                        match pin.Kind with
+                        | ModConductor.Enb.EnbComponentKind.Runtime ->
+                            ModConductor.Enb.EnbArchiveLayouts.runtime pinned draft.Manifest
+                        | ModConductor.Enb.EnbComponentKind.Preset ->
+                            ModConductor.Enb.EnbArchiveLayouts.leanPreset pinned draft.Manifest
+                        | ModConductor.Enb.EnbComponentKind.Companion ->
+                            ModConductor.Enb.EnbArchiveLayouts.dataCompanion pinned draft.Manifest
 
-                match layout with
-                | Error problem -> return Error(ModConductor.Enb.EnbProblem.message problem)
-                | Ok layout ->
-                    let installationId = Guid.NewGuid()
+                    match layout with
+                    | Error problem -> return Error(ModConductor.Enb.EnbProblem.message problem)
+                    | Ok layout ->
+                        let installationId = Guid.NewGuid()
 
-                    let started =
-                        installations.SelectReviewed(
-                            workspace,
-                            draft.Id,
-                            draft.Revision,
-                            pin.Name,
-                            pin.Version,
-                            layout.Files
-                        )
-                        |> Result.bind (fun reviewed ->
-                            installations.Start(
+                        let started =
+                            installations.SelectReviewed(
                                 workspace,
-                                reviewed.Id,
-                                reviewed.Revision,
-                                installationId
-                            ))
-
-                    match started with
-                    | Error message -> return Error message
-                    | Ok started ->
-                        let mutable installed = started
-
-                        while installed.State = ModConductor.ArchiveInstallation.InstallationState.Running do
-                            do!
-                                installations.WaitForChange(
+                                draft.Id,
+                                draft.Revision,
+                                pin.Name,
+                                pin.Version,
+                                layout.Files
+                            )
+                            |> Result.bind (fun reviewed ->
+                                installations.Start(
                                     workspace,
-                                    installationId,
-                                    installed,
-                                    token
-                                )
+                                    reviewed.Id,
+                                    reviewed.Revision,
+                                    installationId
+                                ))
 
-                            let! current = installations.Read(workspace, installationId)
-                            installed <- current
+                        match started with
+                        | Error message -> return Error message
+                        | Ok started ->
+                            let mutable installed = started
 
-                        do! installations.WaitForWorker(installationId, token)
-
-                        if
-                            installed.State
-                            <> ModConductor.ArchiveInstallation.InstallationState.Complete
-                            || installed.ModId.IsNone
-                            || installed.VersionId.IsNone
-                        then
-                            return
-                                Error(
-                                    installed.Problem
-                                    |> Option.defaultValue (
-                                        pin.Name + " installation did not complete."
+                            while installed.State = ModConductor.ArchiveInstallation.InstallationState.Running do
+                                do!
+                                    installations.WaitForChange(
+                                        workspace,
+                                        installationId,
+                                        installed,
+                                        token
                                     )
-                                )
-                        else
-                            let! version =
-                                database.Enqueue(fun () ->
-                                    LibraryRows.version
-                                        database.Connection
-                                        null
-                                        installed.VersionId.Value
-                                        0
-                                        20001
-                                    |> Option.map (fun value -> { value with NextOffset = None }))
 
-                            match version with
-                            | None -> return Error(pin.Name + " installed version is unavailable.")
-                            | Some version ->
-                                let reviewedComponent =
-                                    ModConductor.DeploymentPlanning.ComponentManifests.review
-                                        workspace
-                                        gameRoot
-                                        ModConductor.GameContexts.Skyrim.definition.TargetPolicy
-                                        { ModId = installed.ModId.Value
-                                          Version = version
-                                          Priority = 0
-                                          Files = layout.ComponentFiles }
+                                let! current = installations.Read(workspace, installationId)
+                                installed <- current
 
-                                match reviewedComponent with
-                                | Error _ ->
-                                    return
-                                        Error(
-                                            pin.Name
-                                            + " no longer matches its reviewed archive layout."
+                            do! installations.WaitForWorker(installationId, token)
+
+                            if
+                                installed.State
+                                <> ModConductor.ArchiveInstallation.InstallationState.Complete
+                                || installed.ModId.IsNone
+                                || installed.VersionId.IsNone
+                            then
+                                return
+                                    Error(
+                                        installed.Problem
+                                        |> Option.defaultValue (
+                                            pin.Name + " installation did not complete."
                                         )
-                                | Ok reviewedComponent ->
-                                    let stored: StoredEnbComponent =
-                                        { Kind =
-                                            match pin.Kind with
-                                            | ModConductor.Enb.EnbComponentKind.Runtime -> "runtime"
-                                            | ModConductor.Enb.EnbComponentKind.Preset -> "preset"
-                                            | ModConductor.Enb.EnbComponentKind.Companion ->
-                                                "companion:"
-                                                + (pin.NexusModId
-                                                   |> Option.map string
-                                                   |> Option.defaultValue pin.Name)
-                                          ModId = installed.ModId.Value
-                                          VersionId = installed.VersionId.Value
-                                          Version = pin.Version
-                                          Sha256 = hash
-                                          NexusModId = pin.NexusModId
-                                          NexusFileId = fileId
-                                          Source = pin.Source.AbsoluteUri
-                                          Terms = pin.Terms.AbsoluteUri
-                                          CheckedAt = DateTimeOffset.UtcNow }
+                                    )
+                            else
+                                let! version =
+                                    database.Enqueue(fun () ->
+                                        LibraryRows.version
+                                            database.Connection
+                                            null
+                                            installed.VersionId.Value
+                                            0
+                                            20001
+                                        |> Option.map (fun value ->
+                                            { value with NextOffset = None }))
 
-                                    return Ok(reviewedComponent, stored)
+                                match version with
+                                | None ->
+                                    return Error(pin.Name + " installed version is unavailable.")
+                                | Some version ->
+                                    let reviewedComponent =
+                                        ModConductor.DeploymentPlanning.ComponentManifests.review
+                                            workspace
+                                            gameRoot
+                                            ModConductor.GameContexts.Skyrim.definition.TargetPolicy
+                                            { ModId = installed.ModId.Value
+                                              Version = version
+                                              Priority = 0
+                                              Files = layout.ComponentFiles }
+
+                                    match reviewedComponent with
+                                    | Error _ ->
+                                        return
+                                            Error(
+                                                pin.Name
+                                                + " no longer matches its reviewed archive layout."
+                                            )
+                                    | Ok reviewedComponent ->
+                                        let stored: StoredEnbComponent =
+                                            { Kind =
+                                                match pin.Kind with
+                                                | ModConductor.Enb.EnbComponentKind.Runtime ->
+                                                    "runtime"
+                                                | ModConductor.Enb.EnbComponentKind.Preset ->
+                                                    "preset"
+                                                | ModConductor.Enb.EnbComponentKind.Companion ->
+                                                    "companion:"
+                                                    + (pin.NexusModId
+                                                       |> Option.map string
+                                                       |> Option.defaultValue pin.Name)
+                                              ModId = installed.ModId.Value
+                                              VersionId = installed.VersionId.Value
+                                              Version = pin.Version
+                                              Sha256 = hash
+                                              NexusModId = pin.NexusModId
+                                              NexusFileId = fileId
+                                              Source = pin.Source.AbsoluteUri
+                                              Terms = pin.Terms.AbsoluteUri
+                                              CheckedAt = DateTimeOffset.UtcNow }
+
+                                        return Ok(reviewedComponent, stored)
         }

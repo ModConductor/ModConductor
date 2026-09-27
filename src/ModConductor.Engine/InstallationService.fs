@@ -14,7 +14,7 @@ type InstallationService(store: InstallationStore) =
                 let! draft =
                     store.Prepare(ArtifactWire.reference request, context.CancellationToken)
 
-                return InstallationWire.draft draft
+                return draft |> InstallationWire.outcome |> InstallationWire.draft
             })
 
     override _.ChangeInstallationLayout(request, _) =

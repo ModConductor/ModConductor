@@ -87,7 +87,7 @@ type UpdateService(store: InstallationStore) =
                         request.Version
                     )
 
-                return UpdateWire.preview value
+                return value |> InstallationWire.outcome |> UpdateWire.preview
             })
 
     override _.StartModUpdate(request, _) =

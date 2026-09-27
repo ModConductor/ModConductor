@@ -45,7 +45,7 @@ module MaintenanceRecoveryFixtures =
 
         if kind = "update" then
             let archive = store.Artifacts.Read(workspace, artifact) |> wait |> result
-            let draft = store.Installations.Prepare(reference archive, token) |> wait
+            let draft = store.Installations.Prepare(reference archive, token) |> wait |> result
 
             let preview =
                 store.Installations.PrepareUpdate(
@@ -59,6 +59,7 @@ module MaintenanceRecoveryFixtures =
                     "2"
                 )
                 |> wait
+                |> result
 
             store.Installations.StartUpdateAtCheckpoint(workspace, preview.Id, id, hook)
             |> result
@@ -122,7 +123,7 @@ module MaintenanceRecoveryFixtures =
                 |> result
 
             let first = adopt "Rivière textures.zip"
-            let draft = store.Installations.Prepare(reference first, token) |> wait
+            let draft = store.Installations.Prepare(reference first, token) |> wait |> result
 
             let started =
                 store.Installations.Start(workspace, draft.Id, draft.Revision, Guid.NewGuid())
@@ -317,12 +318,10 @@ module MaintenanceRecoveryFixtures =
                 ((store.ModLibrary :> IModLibrary).Scan(workspace, 100) |> wait |> result).Entries
                 |> List.find (fun entry -> entry.Id = admissionMod)
 
-            let mutable refused = false
-
-            try
-                store.Deletions.Delete(workspace, admissionMod, target.Revision) |> wait
-            with _ ->
-                refused <- true
+            let refused =
+                store.Deletions.Delete(workspace, admissionMod, target.Revision)
+                |> wait
+                |> Result.isError
 
             check "SameModActiveOperationRefusesDeletion" refused
             child.Terminate()
@@ -389,7 +388,10 @@ module MaintenanceRecoveryFixtures =
                 |> List.map LibraryFiles.payloadName
                 |> Set.ofList
 
-            store.Deletions.Delete(workspace, modId, target.Revision) |> wait
+            store.Deletions.Delete(workspace, modId, target.Revision)
+            |> wait
+            |> result
+            |> ignore
 
             check
                 "RetryToleratesAlreadyMissingOwnedPaths"

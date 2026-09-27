@@ -92,7 +92,7 @@ module InstallationFixtures =
             Guid.Parse workspace, Guid.Parse artifact, Guid.Parse id
 
         let archive = store.Artifacts.Read(workspace, artifact) |> wait |> result
-        let draft = store.Installations.Prepare(reference archive, token) |> wait
+        let draft = store.Installations.Prepare(reference archive, token) |> wait |> result
 
         store.Installations.StartAtCheckpoint(
             workspace,
@@ -188,7 +188,9 @@ module InstallationFixtures =
                 |> result
 
             let nested = adopt (Path.Combine(area, "Nested data.zip"))
-            let nestedDraft = store.Installations.Prepare(reference nested, token) |> wait
+
+            let nestedDraft =
+                store.Installations.Prepare(reference nested, token) |> wait |> result
 
             check
                 "NestedMarkersUseExplicitDataRoot"
@@ -201,7 +203,9 @@ module InstallationFixtures =
                        "FNIS.esp" ])
 
             let ambiguous = adopt (Path.Combine(area, "Two data roots.zip"))
-            let ambiguousDraft = store.Installations.Prepare(reference ambiguous, token) |> wait
+
+            let ambiguousDraft =
+                store.Installations.Prepare(reference ambiguous, token) |> wait |> result
 
             check
                 "IndependentDataRootsStillNeedSelection"
@@ -210,7 +214,9 @@ module InstallationFixtures =
             let originalArchive = File.ReadAllBytes(Path.Combine(area, "Rivière textures.zip"))
             let archive = adopt (Path.Combine(area, "Rivière textures.zip"))
             archiveId <- archive.Id
-            let prepared = store.Installations.Prepare(reference archive, token) |> wait
+
+            let prepared =
+                store.Installations.Prepare(reference archive, token) |> wait |> result
 
             check
                 "QuickWrapperDataRoot"
@@ -322,7 +328,7 @@ module InstallationFixtures =
                       "fixtures/archives/test_read_format_rar5_multiple_files_solid.rar"
                   ) ] do
                 let artifact = adopt filename
-                let draft = store.Installations.Prepare(reference artifact, token) |> wait
+                let draft = store.Installations.Prepare(reference artifact, token) |> wait |> result
 
                 let draft =
                     if draft.Plan.IsNone then
@@ -374,7 +380,9 @@ module InstallationFixtures =
                 store.Artifacts.Read(workspace, archiveId) |> wait |> result
 
             let draft =
-                store.Installations.Prepare(reference cancellationArchive, token) |> wait
+                store.Installations.Prepare(reference cancellationArchive, token)
+                |> wait
+                |> result
 
             use arrived = new ManualResetEventSlim(false)
             use release = new ManualResetEventSlim(false)
@@ -417,7 +425,7 @@ module InstallationFixtures =
 
             store.Installations.Discard(workspace, cancelId) |> wait |> ignore
             let corrupt = adopt (Path.Combine(area, "wrong-size.zip"))
-            let draft = store.Installations.Prepare(reference corrupt, token) |> wait
+            let draft = store.Installations.Prepare(reference corrupt, token) |> wait |> result
             let corruptId = Guid.NewGuid()
 
             store.Installations.Start(workspace, draft.Id, draft.Revision, corruptId)

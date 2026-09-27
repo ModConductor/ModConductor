@@ -284,7 +284,7 @@ type BundleStore
                                   ItemId = item.Id
                                   ModId = item.ModId }
 
-                            let! draft =
+                            let! prepared =
                                 installations.PrepareNested(
                                     bundle.Artifact,
                                     input,
@@ -294,37 +294,40 @@ type BundleStore
                                     token
                                 )
 
-                            opened <- Some draft.Id
+                            match prepared with
+                            | Error why -> return rejectExpected why
+                            | Ok draft ->
+                                opened <- Some draft.Id
 
-                            let recorded =
-                                transact (fun transaction ->
-                                    BundleRows.item
-                                        connection
-                                        transaction
-                                        reference.WorkspaceId
-                                        reference.Id
-                                        itemId
-                                    |> Result.map (fun _ ->
-                                        Sqlite.execute
+                                let recorded =
+                                    transact (fun transaction ->
+                                        BundleRows.item
                                             connection
                                             transaction
-                                            "UPDATE bundle_sources SET leaf_entries=$entries,leaf_bytes=$bytes,problem=NULL WHERE id=$id"
-                                            [ "$id", box (string item.SourceId)
-                                              "$entries", box draft.Manifest.Entries.Length
-                                              "$bytes", box draft.Manifest.TotalSize ]
+                                            reference.WorkspaceId
+                                            reference.Id
+                                            itemId
+                                        |> Result.map (fun _ ->
+                                            Sqlite.execute
+                                                connection
+                                                transaction
+                                                "UPDATE bundle_sources SET leaf_entries=$entries,leaf_bytes=$bytes,problem=NULL WHERE id=$id"
+                                                [ "$id", box (string item.SourceId)
+                                                  "$entries", box draft.Manifest.Entries.Length
+                                                  "$bytes", box draft.Manifest.TotalSize ]
 
-                                        BundleRows.sources connection transaction reference.Id
-                                        |> BundleRows.budget
+                                            BundleRows.sources connection transaction reference.Id
+                                            |> BundleRows.budget
 
-                                        BundleRows.touch connection transaction reference.Id))
+                                            BundleRows.touch connection transaction reference.Id))
 
-                            match recorded with
-                            | Error error -> return rejectExpected error
-                            | Ok() ->
-                                return
-                                    Ok
-                                        { Draft = draft
-                                          Archives = Discovery.candidates draft.Manifest }
+                                match recorded with
+                                | Error error -> return rejectExpected error
+                                | Ok() ->
+                                    return
+                                        Ok
+                                            { Draft = draft
+                                              Archives = Discovery.candidates draft.Manifest }
                 with error ->
                     opened
                     |> Option.iter (fun id -> installations.CloseDraft(reference.WorkspaceId, id))

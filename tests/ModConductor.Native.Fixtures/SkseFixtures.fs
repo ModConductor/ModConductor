@@ -385,6 +385,7 @@ module SkseFixtures =
                 CancellationToken.None
             )
             |> wait
+            |> result
 
         let installedGeneration =
             store.InstallSkse(

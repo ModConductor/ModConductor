@@ -53,89 +53,94 @@ type internal SkseComponentInstaller
                         match reusable with
                         | Some(modId, versionId) -> return Ok(modId, versionId, None)
                         | None ->
-                            let! draft = installations.Prepare(reference, token)
+                            let! prepared = installations.Prepare(reference, token)
 
-                            match
-                                ModConductor.Skse.SkseArchiveLayout.review release draft.Manifest
-                            with
-                            | Error problem ->
-                                return Error(ModConductor.Skse.SkseProblem.message problem)
-                            | Ok plan ->
-                                let selected =
-                                    if
-                                        draft.Installer = ModConductor.ArchiveInstallation.InstallationMode.Manual
-                                    then
-                                        Ok draft
-                                    else
-                                        installations.UseInstaller(
-                                            workspace,
-                                            draft.Id,
-                                            draft.Revision,
-                                            ModConductor.ArchiveInstallation.InstallationMode.Manual
-                                        )
-
-                                match selected with
-                                | Error message -> return Error message
-                                | Ok draft ->
-                                    let installationId = Guid.NewGuid()
-
-                                    let started =
-                                        installations.SelectReviewed(
-                                            workspace,
-                                            draft.Id,
-                                            draft.Revision,
-                                            "Skyrim Script Extender",
-                                            string release.ComponentVersion,
-                                            plan.Files
-                                        )
-                                        |> Result.bind (fun reviewed ->
-                                            installations.Start(
-                                                workspace,
-                                                reviewed.Id,
-                                                reviewed.Revision,
-                                                installationId
-                                            ))
-
-                                    match started with
-                                    | Error message -> return Error message
-                                    | Ok started ->
-                                        let mutable installed = started
-
-                                        while installed.State = ModConductor.ArchiveInstallation.InstallationState.Running do
-                                            do!
-                                                installations.WaitForChange(
-                                                    workspace,
-                                                    installationId,
-                                                    installed,
-                                                    token
-                                                )
-
-                                            let! current =
-                                                installations.Read(workspace, installationId)
-
-                                            installed <- current
-
-                                        do! installations.WaitForWorker(installationId, token)
-
+                            match prepared with
+                            | Error why -> return Error why
+                            | Ok draft ->
+                                match
+                                    ModConductor.Skse.SkseArchiveLayout.review
+                                        release
+                                        draft.Manifest
+                                with
+                                | Error problem ->
+                                    return Error(ModConductor.Skse.SkseProblem.message problem)
+                                | Ok plan ->
+                                    let selected =
                                         if
-                                            installed.State
-                                            <> ModConductor.ArchiveInstallation.InstallationState.Complete
-                                            || installed.ModId.IsNone
-                                            || installed.VersionId.IsNone
+                                            draft.Installer = ModConductor.ArchiveInstallation.InstallationMode.Manual
                                         then
-                                            return
-                                                Error(
-                                                    installed.Problem
-                                                    |> Option.defaultValue
-                                                        "SKSE installation did not complete. No component was published."
-                                                )
+                                            Ok draft
                                         else
-                                            return
-                                                Ok(
-                                                    installed.ModId.Value,
-                                                    installed.VersionId.Value,
-                                                    Some plan
-                                                )
+                                            installations.UseInstaller(
+                                                workspace,
+                                                draft.Id,
+                                                draft.Revision,
+                                                ModConductor.ArchiveInstallation.InstallationMode.Manual
+                                            )
+
+                                    match selected with
+                                    | Error message -> return Error message
+                                    | Ok draft ->
+                                        let installationId = Guid.NewGuid()
+
+                                        let started =
+                                            installations.SelectReviewed(
+                                                workspace,
+                                                draft.Id,
+                                                draft.Revision,
+                                                "Skyrim Script Extender",
+                                                string release.ComponentVersion,
+                                                plan.Files
+                                            )
+                                            |> Result.bind (fun reviewed ->
+                                                installations.Start(
+                                                    workspace,
+                                                    reviewed.Id,
+                                                    reviewed.Revision,
+                                                    installationId
+                                                ))
+
+                                        match started with
+                                        | Error message -> return Error message
+                                        | Ok started ->
+                                            let mutable installed = started
+
+                                            while installed.State = ModConductor.ArchiveInstallation.InstallationState.Running do
+                                                do!
+                                                    installations.WaitForChange(
+                                                        workspace,
+                                                        installationId,
+                                                        installed,
+                                                        token
+                                                    )
+
+                                                let! current =
+                                                    installations.Read(workspace, installationId)
+
+                                                installed <- current
+
+                                            do! installations.WaitForWorker(installationId, token)
+
+                                            if
+                                                installed.State
+                                                <> ModConductor.ArchiveInstallation.InstallationState.Complete
+                                                || installed.ModId.IsNone
+                                                || installed.VersionId.IsNone
+                                            then
+                                                return
+                                                    Error(
+                                                        installed.Problem
+                                                        |> Option.defaultValue
+                                                            "SKSE installation did not complete. No component was published."
+                                                    )
+                                            else
+                                                return
+                                                    Ok(
+                                                        installed.ModId.Value,
+                                                        installed.VersionId.Value,
+                                                        Some plan
+                                                    )
                     }
 
                 match imported with

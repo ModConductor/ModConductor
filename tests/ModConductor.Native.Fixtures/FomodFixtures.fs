@@ -117,7 +117,7 @@ module FomodFixtures =
               Id = artifact.Id
               Revision = artifact.Revision }
 
-        let draft = store.Installations.Prepare(reference, token) |> wait
+        let draft = store.Installations.Prepare(reference, token) |> wait |> result
 
         let mutable view =
             store.Installations.Fomod.Open(workspace, draft.Id, draft.Revision, profile)
@@ -353,6 +353,7 @@ module FomodFixtures =
                     token
                 )
                 |> wait
+                |> result
 
             let draft =
                 if draft.Installer = InstallationMode.Fomod then

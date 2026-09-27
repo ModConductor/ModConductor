@@ -82,21 +82,17 @@ type InstallationStore
         InstallationRows.find connection null workspace id
         |> Option.defaultWith (fun () -> refuse "This installation is no longer available.")
 
-    let artifactResult value =
-        value
-        |> Result.defaultWith (fun error ->
-            match error with
-            | ArtifactError.Cancelled -> raise (OperationCanceledException())
-            | ArtifactError.Busy ->
-                refuse "The archive is busy. Try again when its current operation stops."
-            | ArtifactError.Stale -> refuse "The archive changed. Read its contents again."
-            | ArtifactError.NotFound
-            | ArtifactError.Conflict
-            | ArtifactError.InvalidLink
-            | ArtifactError.Linked
-            | ArtifactError.Unavailable ->
-                refuse
-                    "The archive is unavailable. Check its location and read its contents again.")
+    let artifactProblem =
+        function
+        | ArtifactError.Cancelled -> raise (OperationCanceledException())
+        | ArtifactError.Busy -> "The archive is busy. Try again when its current operation stops."
+        | ArtifactError.Stale -> "The archive changed. Read its contents again."
+        | ArtifactError.NotFound
+        | ArtifactError.Conflict
+        | ArtifactError.InvalidLink
+        | ArtifactError.Linked
+        | ArtifactError.Unavailable ->
+            "The archive is unavailable. Check its location and read its contents again."
 
     let payloads = InstallationPayloads(database, access)
 
@@ -143,7 +139,7 @@ type InstallationStore
                 match result with
                 | Ok(Ok()) -> ()
                 | Ok(Error message) -> do! stop message
-                | Error error -> artifactResult (Error error) |> ignore
+                | Error error -> do! stop (artifactProblem error)
             with error ->
                 let message =
                     match error with
@@ -175,88 +171,95 @@ type InstallationStore
             token
         ) =
         task {
-            lock gate (fun () ->
-                if closing || preparing.Contains reference.WorkspaceId then
-                    refuse "Archive preparation is busy. Try again shortly."
+            let admitted =
+                lock gate (fun () ->
+                    if closing || preparing.Contains reference.WorkspaceId then
+                        Error "Archive preparation is busy. Try again shortly."
+                    elif drafts.Count >= 16 && not (drafts.ContainsKey reference.WorkspaceId) then
+                        Error "Close an archive installation preview before opening another."
+                    else
+                        preparing.Add reference.WorkspaceId |> ignore
+                        Ok())
 
-                if drafts.Count >= 16 && not (drafts.ContainsKey reference.WorkspaceId) then
-                    refuse "Close an archive installation preview before opening another."
+            match admitted with
+            | Error why -> return Error why
+            | Ok() ->
+                try
+                    let! read = artifacts.Read(reference.WorkspaceId, reference.Id)
 
-                preparing.Add reference.WorkspaceId |> ignore)
+                    match read with
+                    | Error error -> return Error(artifactProblem error)
+                    | Ok artifact ->
+                        let! prepared =
+                            inspection.WithInput(
+                                reference,
+                                nested,
+                                token,
+                                fun contents ->
+                                    (let draft =
+                                        Layout.prepare
+                                            reference
+                                            (defaultArg archiveName artifact.OriginalName)
+                                            contents.Manifest
 
-            try
-                let! artifact = artifacts.Read(reference.WorkspaceId, reference.Id)
-                let artifact = artifactResult artifact
+                                     match nested, destination with
+                                     | Some source, Some destination ->
+                                         Layout.forBundle draft source destination modName.Value
+                                     | None, None -> draft
+                                     | _ -> invalidOp "Bundle draft source is incomplete."),
+                                    ModConductor.Fomod.ArchiveInput.read contents,
+                                    ModConductor.Bain.Detection.inspect contents.Manifest
+                            )
 
-                let! prepared =
-                    inspection.WithInput(
-                        reference,
-                        nested,
-                        token,
-                        fun contents ->
-                            (let draft =
-                                Layout.prepare
-                                    reference
-                                    (defaultArg archiveName artifact.OriginalName)
-                                    contents.Manifest
+                        match prepared with
+                        | Error error -> return Error(artifactProblem error)
+                        | Ok(original, input, packageInput) ->
+                            let fomod =
+                                match input with
+                                | ModConductor.Fomod.InstallerInput.Absent -> false
+                                | _ -> true
 
-                             match nested, destination with
-                             | Some source, Some destination ->
-                                 Layout.forBundle draft source destination modName.Value
-                             | None, None -> draft
-                             | _ -> invalidOp "Bundle draft source is incomplete."),
-                            ModConductor.Fomod.ArchiveInput.read contents,
-                            ModConductor.Bain.Detection.inspect contents.Manifest
-                    )
+                            let bain = packageInput.Definition.IsSome || packageInput.Problem.IsSome
 
-                let original, input, packageInput = artifactResult prepared
+                            let available =
+                                [ InstallationMode.Manual
+                                  if fomod then
+                                      InstallationMode.Fomod
+                                  if bain then
+                                      InstallationMode.Bain ]
 
-                let fomod =
-                    match input with
-                    | ModConductor.Fomod.InstallerInput.Absent -> false
-                    | _ -> true
+                            let mode =
+                                match input with
+                                | ModConductor.Fomod.InstallerInput.Xml _ -> InstallationMode.Fomod
+                                | _ when bain -> InstallationMode.Bain
+                                | _ when fomod -> InstallationMode.Fomod
+                                | _ -> InstallationMode.Manual
 
-                let bain = packageInput.Definition.IsSome || packageInput.Problem.IsSome
+                            let original =
+                                { original with
+                                    AvailableInstallers = available
+                                    WizardScripts = packageInput.Scripts }
 
-                let available =
-                    [ InstallationMode.Manual
-                      if fomod then
-                          InstallationMode.Fomod
-                      if bain then
-                          InstallationMode.Bain ]
+                            let draft =
+                                { original with
+                                    Installer = mode
+                                    Plan =
+                                        if mode = InstallationMode.Manual then
+                                            original.Plan
+                                        else
+                                            None }
 
-                let mode =
-                    match input with
-                    | ModConductor.Fomod.InstallerInput.Xml _ -> InstallationMode.Fomod
-                    | _ when bain -> InstallationMode.Bain
-                    | _ when fomod -> InstallationMode.Fomod
-                    | _ -> InstallationMode.Manual
+                            return
+                                lock gate (fun () ->
+                                    if closing then
+                                        raise (OperationCanceledException())
 
-                let original =
-                    { original with
-                        AvailableInstallers = available
-                        WizardScripts = packageInput.Scripts }
-
-                let draft =
-                    { original with
-                        Installer = mode
-                        Plan =
-                            if mode = InstallationMode.Manual then
-                                original.Plan
-                            else
-                                None }
-
-                return
-                    lock gate (fun () ->
-                        if closing then
-                            raise (OperationCanceledException())
-
-                        drafts[reference.WorkspaceId] <- draft
-                        choices.Prepared(draft, input)
-                        packages.Prepared(original, packageInput)
-                        draft)
-            finally
-                lock gate (fun () -> preparing.Remove reference.WorkspaceId |> ignore)
+                                    drafts[reference.WorkspaceId] <- draft
+                                    choices.Prepared(draft, input)
+                                    packages.Prepared(original, packageInput)
+                                    Ok draft)
+                finally
+                    lock gate (fun () -> preparing.Remove reference.WorkspaceId |> ignore)
         }
 
     member this.Prepare(reference, token) =
@@ -393,63 +396,82 @@ type InstallationStore
 
     member _.PrepareUpdate(workspace, draftId, revision, modId, expected, mode, keep, version) =
         task {
-            let draft =
+            let found =
                 lock gate (fun () ->
                     match drafts.TryGetValue workspace with
-                    | true, draft when draft.Id = draftId && draft.Revision = revision -> draft
-                    | _ -> refuse "The archive layout changed. Review it again.")
+                    | true, draft when draft.Id = draftId && draft.Revision = revision -> Ok draft
+                    | _ -> Error "The archive layout changed. Review it again.")
 
-            if draft.Bundle.IsSome then
-                refuse
-                    "Bundle installations create new mods. Open the archive separately to update a mod."
+            match found with
+            | Error why -> return Error why
+            | Ok draft when draft.Bundle.IsSome ->
+                return
+                    Error
+                        "Bundle installations create new mods. Open the archive separately to update a mod."
+            | Ok draft ->
+                let cached =
+                    lock gate (fun () ->
+                        match updates.TryGetValue workspace with
+                        | true, preview when
+                            preview.DraftId = draft.Id
+                            && preview.DraftRevision = draft.Revision
+                            && preview.Target.Id = modId
+                            && preview.Target.Revision = expected
+                            ->
+                            Some preview
+                        | _ -> None)
 
-            let cached =
-                lock gate (fun () ->
-                    match updates.TryGetValue workspace with
-                    | true, preview when
-                        preview.DraftId = draft.Id
-                        && preview.DraftRevision = draft.Revision
-                        && preview.Target.Id = modId
-                        && preview.Target.Revision = expected
-                        ->
-                        Some preview
-                    | _ -> None)
-
-            let! result =
-                match cached with
-                | Some previous ->
-                    Task.FromResult(
-                        Ok(
-                            Updates.prepare
-                                draft
-                                previous.Target
-                                previous.Previous
-                                mode
-                                keep
-                                version
-                                previous.SourceNotices
-                        )
-                    )
-                | None ->
-                    access.Run(fun () ->
+                let! result =
+                    match cached with
+                    | Some previous ->
+                        Updates.prepare
+                            draft
+                            previous.Target
+                            previous.Previous
+                            mode
+                            keep
+                            version
+                            previous.SourceNotices
+                        |> Task.FromResult
+                    | None ->
                         task {
-                            let! target, saved, notices =
-                                UpdateInspection.read database access modId expected
+                            let! read =
+                                access.Run(fun () ->
+                                    task {
+                                        let! checked =
+                                            UpdateInspection.read database access modId expected
 
-                            return Ok(Updates.prepare draft target saved mode keep version notices)
-                        })
+                                        return
+                                            checked
+                                            |> Result.bind (fun (target, saved, notices) ->
+                                                Updates.prepare
+                                                    draft
+                                                    target
+                                                    saved
+                                                    mode
+                                                    keep
+                                                    version
+                                                    notices)
+                                            |> Ok
+                                    })
 
-            let preview =
-                result
-                |> Result.defaultWith (fun _ -> refuse "The mod library is busy or unavailable.")
+                            return
+                                match read with
+                                | Error _ -> Error "The mod library is busy or unavailable."
+                                | Ok preview -> preview
+                        }
 
-            return
-                lock gate (fun () ->
-                    match drafts.TryGetValue workspace with
-                    | true, current when current.Id = draft.Id && current.Revision = draft.Revision ->
-                        updates[workspace] <- preview
-                        preview
-                    | _ -> refuse "The archive layout changed. Review it again.")
+                return
+                    result
+                    |> Result.bind (fun preview ->
+                        lock gate (fun () ->
+                            match drafts.TryGetValue workspace with
+                            | true, current when
+                                current.Id = draft.Id && current.Revision = draft.Revision
+                                ->
+                                updates[workspace] <- preview
+                                Ok preview
+                            | _ -> Error "The archive layout changed. Review it again."))
         }
 
     member internal this.StartUpdateAtCheckpoint(workspace, previewId, id, checkpoint) =

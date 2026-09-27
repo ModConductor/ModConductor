@@ -100,7 +100,7 @@ module NexusMetadataFixtures =
         value, source
 
     let private install (store: OperationStore) (artifact: Artifact) =
-        let draft = store.Installations.Prepare(reference artifact, token) |> wait
+        let draft = store.Installations.Prepare(reference artifact, token) |> wait |> result
 
         let started =
             store.Installations.Start(
@@ -381,7 +381,7 @@ module NexusMetadataFixtures =
                 "selectedCandidateUsesExistingArtifactAdmission"
                 (same |> Option.exists (fun found -> found.Id = archive.Id))
 
-            let draft = store.Installations.Prepare(reference archive, token) |> wait
+            let draft = store.Installations.Prepare(reference archive, token) |> wait |> result
             let target = readMod store workspace installedMod
 
             let preview =
@@ -396,6 +396,7 @@ module NexusMetadataFixtures =
                     "local update label"
                 )
                 |> wait
+                |> result
 
             let started =
                 store.Installations.StartUpdate(workspace, preview.Id, Guid.NewGuid()) |> result
