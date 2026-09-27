@@ -49,7 +49,11 @@ module internal OutputLocationCommands =
             OutputPolicy.path ModConductor.GameContexts.Skyrim.definition.TargetPolicy path
             |> Result.map ignore
 
-    let private physicalPath (root: WorkspaceRoot) rootName evidence =
+    let private physicalPath
+        (root: WorkspaceRoot)
+        rootName
+        (evidence: ModConductor.GameContexts.InstallationEvidence)
+        =
         let physical =
             HostPath.create (Path.Combine(HostPath.value root.Path, rootName))
             |> Result.defaultWith invalidOp
@@ -61,7 +65,7 @@ module internal OutputLocationCommands =
         else
             Ok physical
 
-    let private addedBytes name physical purpose =
+    let private addedBytes name (physical: HostPath) purpose =
         512
         + System.Text.Encoding.UTF8.GetByteCount name
         + System.Text.Encoding.UTF8.GetByteCount(HostPath.value physical)
@@ -70,13 +74,13 @@ module internal OutputLocationCommands =
            | OutputPurpose.WritableFile path ->
                System.Text.Encoding.UTF8.GetByteCount(LibraryEncoding.path path) * 2)
 
-    let private checkWritable rows purpose =
+    let private checkWritable (rows: StoredOutputLocation list) purpose =
         match purpose with
         | OutputPurpose.ToolFolder -> Ok()
         | OutputPurpose.WritableFile path ->
             let policy = ModConductor.GameContexts.Skyrim.definition.TargetPolicy
 
-            let conflict row =
+            let conflict (row: StoredOutputLocation) =
                 match row.View.Purpose with
                 | OutputPurpose.WritableFile previous when row.Enabled ->
                     (TargetPolicy.comparer policy)
@@ -92,12 +96,12 @@ module internal OutputLocationCommands =
         (database: StateDatabase)
         transaction
         (root: WorkspaceRoot)
-        expected
+        (expected: OutputScope)
         name
         purpose
         id
         rootName
-        evidence
+        (evidence: ModConductor.GameContexts.InstallationEvidence)
         =
         Sqlite.execute
             database.Connection
@@ -137,14 +141,14 @@ module internal OutputLocationCommands =
         (database: StateDatabase)
         transaction
         (root: WorkspaceRoot)
-        expected
+        (expected: OutputScope)
         name
         purpose
         id
         rootName
-        evidence
-        physical
-        rows
+        (evidence: ModConductor.GameContexts.InstallationEvidence)
+        (physical: HostPath)
+        (rows: StoredOutputLocation list)
         =
         if rows.Length >= OutputLimits.locations then
             Error OutputError.LimitExceeded
@@ -169,13 +173,13 @@ module internal OutputLocationCommands =
     let private addInTransaction
         (database: StateDatabase)
         (root: WorkspaceRoot)
-        expected
+        (expected: OutputScope)
         name
         purpose
         id
         rootName
-        evidence
-        physical
+        (evidence: ModConductor.GameContexts.InstallationEvidence)
+        (physical: HostPath)
         =
         use transaction = database.Connection.BeginTransaction(deferred = false)
 
@@ -321,7 +325,7 @@ module internal OutputLocationCommands =
     let private stopInTransaction (database: StateDatabase) (root: WorkspaceRoot) id revision =
         use transaction = database.Connection.BeginTransaction(deferred = false)
 
-        let stopRow row =
+        let stopRow (row: StoredOutputLocation) =
             if row.View.Revision <> revision then
                 Error OutputError.Stale
             elif row.RootIdentity.IsNone then

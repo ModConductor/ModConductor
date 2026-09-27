@@ -204,7 +204,7 @@ module internal OutputRows =
         (root: WorkspaceRoot)
         profile
         requested
-        state
+        (state: ModConductor.GameContexts.GameContextState)
         currentId
         =
         let selected = requested |> Option.defaultValue currentId
