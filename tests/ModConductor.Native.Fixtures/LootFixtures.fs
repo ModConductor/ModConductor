@@ -198,7 +198,7 @@ module LootFixtures =
              && retained.MasterlistSha256 = metadata.MasterlistSha256
              && retained.PreludeSha256 = metadata.PreludeSha256)
 
-        let validator (state: GameContextState) = state.Binding.Value.Evidence
+        let validator (state: GameContextState) = Ok state.Binding.Value.Evidence
         let bundle = Directory.CreateDirectory(Path.Combine(area, "bundle")).FullName
         let bundledHelper = Path.Combine(bundle, Path.GetFileName helper)
         let installed = store.LootForFixture(bundledHelper, validator)
