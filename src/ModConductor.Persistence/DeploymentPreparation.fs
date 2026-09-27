@@ -9,20 +9,20 @@ open ModConductor.DeploymentPlanning
 open ModConductor.DeploymentRecovery
 open ModConductor.DeploymentGenerations
 open ModConductor.Deployment
-open ModConductor.ProfileGameData
 
 module internal DeploymentPreparation =
     let refusalMessage error = (RecoveryException error).Message
 
     let profileError =
         function
-        | ProfileDataError.NotFound -> RecoveryError.NotFound
-        | ProfileDataError.Busy -> RecoveryError.Busy
-        | ProfileDataError.Stale -> RecoveryError.Stale
-        | ProfileDataError.Cancelled -> RecoveryError.Cancelled
-        | ProfileDataError.Invalid detail
-        | ProfileDataError.Unavailable detail
-        | ProfileDataError.Conflict detail -> RecoveryError.Unavailable detail
+        | ModConductor.ProfileGameData.ProfileDataError.NotFound -> RecoveryError.NotFound
+        | ModConductor.ProfileGameData.ProfileDataError.Busy -> RecoveryError.Busy
+        | ModConductor.ProfileGameData.ProfileDataError.Stale -> RecoveryError.Stale
+        | ModConductor.ProfileGameData.ProfileDataError.Cancelled -> RecoveryError.Cancelled
+        | ModConductor.ProfileGameData.ProfileDataError.Invalid detail
+        | ModConductor.ProfileGameData.ProfileDataError.Unavailable detail
+        | ModConductor.ProfileGameData.ProfileDataError.Conflict detail ->
+            RecoveryError.Unavailable detail
 
     let ownedLinkCovers policy owned target =
         DeploymentTargetProjection.ownedLinkCovers policy owned target
@@ -98,7 +98,7 @@ module internal DeploymentPreparation =
                 | FilePlanError.Expired
                 | FilePlanError.Stale -> RecoveryError.Stale
 
-            let withWorkspace workspace =
+            let withWorkspace (workspace: WorkspaceRoot) =
                 task {
                     let workspaceLocation: Location =
                         { Path = workspace.Path
@@ -151,15 +151,8 @@ module internal DeploymentPreparation =
                             (plans :> IFilePlans)
                                 .Acquire(sources.Stamp.ProfileId, false, report, token)
 
-                    let withSummary summary =
+                    let withObservation (observation: GameObservation) =
                         task {
-                            let observed = plans.Observation summary.Id
-
-                            if observed.IsNone then
-                                return Error RecoveryError.Stale
-
-                            let observation = observed.Value
-
                             let sourceData: Location =
                                 { Path = observation.Root
                                   Identity = observation.Identity }
@@ -188,6 +181,233 @@ module internal DeploymentPreparation =
 
                             let rootSource = GameViews.rootSource sourceGame gameRoot token
 
+                            let withAvailableScope
+                                (privateScope: ModConductor.ProfileGameData.ProfileDataScope)
+                                =
+                                task {
+                                    let excluded, ownedFiles =
+                                        GameViews.selection
+                                            sourceGame
+                                            observation.Snapshot.Files
+                                            (privateScope.Profile |> Option.bind _.PluginOrder)
+                                            sources.Stamp.WorkspaceId
+                                            gameRoot
+                                            token
+
+                                    let expectedLocations =
+                                        [ sources.Stamp.WorkspaceId, target; gameRoot, game ]
+
+                                    let mutable originalStorage: PreparedOriginalStorage option =
+                                        None
+
+                                    let mutable retainOriginalStorage = false
+
+                                    use originalStorageGuard =
+                                        { new IDisposable with
+                                            member _.Dispose() =
+                                                if not retainOriginalStorage then
+                                                    originalStorage
+                                                    |> Option.iter
+                                                        Preparation.abandonOriginalStorage }
+
+                                    let staleRoots =
+                                        existing
+                                        |> Option.exists (fun (context: Context) ->
+                                            context.Fingerprint <> ownership
+                                            || context.Roots.Length <> expectedLocations.Length
+                                            || expectedLocations
+                                               |> List.exists (fun (id, location) ->
+                                                   context.Roots
+                                                   |> List.tryFind (fun root -> root.Root.Id = id)
+                                                   |> Option.forall (fun root ->
+                                                       root.Directory <> location)))
+
+                                    let withCurrentRoots () =
+                                        task {
+                                            let roots =
+                                                match existing with
+                                                | Some(context: Context) -> context.Roots
+                                                | None ->
+                                                    expectedLocations
+                                                    |> List.map (fun (root, directory) ->
+                                                        { Root =
+                                                            { Id = root
+                                                              Policy =
+                                                                ModConductor.GameContexts.Skyrim.definition.TargetPolicy }
+                                                          Directory = directory
+                                                          Originals = originals })
+
+                                            token.ThrowIfCancellationRequested()
+
+                                            let storage =
+                                                DeploymentWorkspaceStorage.child
+                                                    workspaceLocation
+                                                    (".mc-generation-" + id.ToString("N"))
+
+                                            let secondary =
+                                                DeploymentWorkspaceStorage.child
+                                                    workspaceLocation
+                                                    (".mc-secondary-" + id.ToString("N"))
+
+                                            let! previous =
+                                                task {
+                                                    match existing |> Option.bind _.Active with
+                                                    | Some previous ->
+                                                        return!
+                                                            recovery.Generation(contextId, previous)
+                                                    | None -> return None
+                                                }
+
+                                            let writable =
+                                                if gameFolderOnly then [] else sources.Writable
+
+                                            let enabledComponents =
+                                                let enabled =
+                                                    retainedProfile
+                                                    |> Option.map (fun saved ->
+                                                        saved.Mods
+                                                        |> List.filter _.Enabled
+                                                        |> List.map _.ModId
+                                                        |> Set.ofList)
+                                                    |> Option.defaultWith (fun () ->
+                                                        sources.Profile.Mods
+                                                        |> List.filter _.Enabled
+                                                        |> List.map _.ModId
+                                                        |> Set.ofList)
+
+                                                components
+                                                |> List.filter (fun reviewed ->
+                                                    enabled.Contains reviewed.Mod.ModId)
+
+                                            let! outputWorking =
+                                                if gameFolderOnly then
+                                                    System.Threading.Tasks.Task.FromResult []
+                                                else
+                                                    DeploymentOutputs.read
+                                                        database
+                                                        workspace
+                                                        sources
+
+                                            let working =
+                                                outputWorking
+                                                @ DeploymentWorkspaceStorage.componentWorking
+                                                    workspaceLocation
+                                                    sources.Stamp.ProfileId
+                                                    enabledComponents
+
+                                            let request: BuildRequest =
+                                                { Id = id
+                                                  Storage = storage
+                                                  SecondaryStorage = secondary
+                                                  Roots = roots
+                                                  LinkedBase = true
+                                                  Excluded = excluded
+                                                  OwnedFiles = ownedFiles
+                                                  Working = working
+                                                  Previous = previous
+                                                  Processes = [] }
+
+                                            let snapshot: SnapshotSource =
+                                                { Snapshot = observation.Snapshot
+                                                  Directory = sourceData
+                                                  Files =
+                                                    observation.Entries
+                                                    |> List.filter (fun entry ->
+                                                        not entry.Directory)
+                                                    |> List.map (fun entry ->
+                                                        entry.Path, entry.Identity)
+                                                    |> Map.ofList
+                                                  Originals = observation.Projection.Originals }
+
+                                            let! built =
+                                                generations.Build(
+                                                    request,
+                                                    sources.Stamp.ProfileId,
+                                                    [ snapshot; rootSource ],
+                                                    writable,
+                                                    token,
+                                                    (fun location ->
+                                                        GenerationStorage.available
+                                                            location.Path
+                                                            location.Identity),
+                                                    gameFolderOnly = gameFolderOnly,
+                                                    ?retainedProfile = retainedProfile,
+                                                    recordProfile = recordProfile,
+                                                    ?fnisCandidate = candidate,
+                                                    components = components
+                                                )
+
+                                            match built with
+                                            | Error error -> return Error error
+                                            | Ok built when
+                                                candidate.IsNone && built.Sources <> sources.Stamp
+                                                ->
+                                                return Error RecoveryError.Stale
+                                            | Ok built ->
+                                                do!
+                                                    DeploymentOutputs.initialized
+                                                        database
+                                                        sources.Stamp
+                                                        outputWorking
+
+                                                let projected =
+                                                    DeploymentTargetProjection.project
+                                                        id
+                                                        sources.Stamp
+                                                        existing
+                                                        ownership
+                                                        contextId
+                                                        roots
+                                                        observation
+                                                        built
+                                                        token
+
+                                                match projected with
+                                                | Error error -> return Error error
+                                                | Ok(switch, changedPaths) ->
+                                                    let generation = switch.Generation
+
+                                                    let view =
+                                                        { Id = id
+                                                          WorkspaceId = sources.Stamp.WorkspaceId
+                                                          Fingerprint =
+                                                            built.Generation.PlanFingerprint
+                                                          Sources = sources.Stamp
+                                                          Profile =
+                                                            generation.Provenance
+                                                            |> Option.bind _.Profile
+                                                            |> Option.map SavedDeployments.profile
+                                                          WritableFiles = generation.Working.Length
+                                                          ChangedPaths = changedPaths
+                                                          PreservedOriginals =
+                                                            switch.PreserveOriginals.Length
+                                                          ManagedLinks =
+                                                            built.Measurements.GenerationLinks
+                                                          CopiedBytes =
+                                                            built.Measurements.CopiedBytes
+                                                          RequiredBytes =
+                                                            built.Measurements.RequiredBytes }
+
+                                                    retainOriginalStorage <- true
+
+                                                    return
+                                                        Ok
+                                                            { View = view
+                                                              Context = sources.Context
+                                                              PluginSelectionRevision =
+                                                                privateScope.Profile
+                                                                |> Option.map _.Revision
+                                                                |> Option.defaultValue 0L
+                                                              Switch = switch
+                                                              OriginalStorage = originalStorage }
+                                        }
+
+                                    if staleRoots then
+                                        return Error RecoveryError.Stale
+                                    else
+                                        return! withCurrentRoots ()
+                                }
+
                             let! scope =
                                 (ProfileDataRepository(database, access)
                                 :> ModConductor.ProfileGameData.IProfileDataRepository)
@@ -198,209 +418,13 @@ module internal DeploymentPreparation =
                             | Ok privateScope ->
                                 match privateScope.Availability with
                                 | Some detail -> return Error(RecoveryError.Unavailable detail)
-                                | None -> ()
-
-                                let excluded, ownedFiles =
-                                    GameViews.selection
-                                        sourceGame
-                                        observation.Snapshot.Files
-                                        (privateScope.Profile |> Option.bind _.PluginOrder)
-                                        sources.Stamp.WorkspaceId
-                                        gameRoot
-                                        token
-
-                                let expectedLocations =
-                                    [ sources.Stamp.WorkspaceId, target; gameRoot, game ]
-
-                                let mutable originalStorage: PreparedOriginalStorage option = None
-                                let mutable retainOriginalStorage = false
-
-                                use originalStorageGuard =
-                                    { new IDisposable with
-                                        member _.Dispose() =
-                                            if not retainOriginalStorage then
-                                                originalStorage
-                                                |> Option.iter Preparation.abandonOriginalStorage }
-
-                                let staleRoots =
-                                    existing
-                                    |> Option.exists (fun (context: Context) ->
-                                        context.Fingerprint <> ownership
-                                        || context.Roots.Length <> expectedLocations.Length
-                                        || expectedLocations
-                                           |> List.exists (fun (id, location) ->
-                                               context.Roots
-                                               |> List.tryFind (fun root -> root.Root.Id = id)
-                                               |> Option.forall (fun root ->
-                                                   root.Directory <> location)))
-
-                                if staleRoots then
-                                    return Error RecoveryError.Stale
-
-                                let roots =
-                                    match existing with
-                                    | Some(context: Context) -> context.Roots
-                                    | None ->
-                                        expectedLocations
-                                        |> List.map (fun (root, directory) ->
-                                            { Root =
-                                                { Id = root
-                                                  Policy =
-                                                    ModConductor.GameContexts.Skyrim.definition.TargetPolicy }
-                                              Directory = directory
-                                              Originals = originals })
-
-                                token.ThrowIfCancellationRequested()
-
-                                let storage =
-                                    DeploymentWorkspaceStorage.child
-                                        workspaceLocation
-                                        (".mc-generation-" + id.ToString("N"))
-
-                                let secondary =
-                                    DeploymentWorkspaceStorage.child
-                                        workspaceLocation
-                                        (".mc-secondary-" + id.ToString("N"))
-
-                                let! previous =
-                                    task {
-                                        match existing |> Option.bind _.Active with
-                                        | Some previous ->
-                                            return! recovery.Generation(contextId, previous)
-                                        | None -> return None
-                                    }
-
-                                let writable = if gameFolderOnly then [] else sources.Writable
-
-                                let enabledComponents =
-                                    let enabled =
-                                        retainedProfile
-                                        |> Option.map (fun saved ->
-                                            saved.Mods
-                                            |> List.filter _.Enabled
-                                            |> List.map _.ModId
-                                            |> Set.ofList)
-                                        |> Option.defaultWith (fun () ->
-                                            sources.Profile.Mods
-                                            |> List.filter _.Enabled
-                                            |> List.map _.ModId
-                                            |> Set.ofList)
-
-                                    components
-                                    |> List.filter (fun reviewed ->
-                                        enabled.Contains reviewed.Mod.ModId)
-
-                                let! outputWorking =
-                                    if gameFolderOnly then
-                                        System.Threading.Tasks.Task.FromResult []
-                                    else
-                                        DeploymentOutputs.read database workspace sources
-
-                                let working =
-                                    outputWorking
-                                    @ DeploymentWorkspaceStorage.componentWorking
-                                        workspaceLocation
-                                        sources.Stamp.ProfileId
-                                        enabledComponents
-
-                                let request: BuildRequest =
-                                    { Id = id
-                                      Storage = storage
-                                      SecondaryStorage = secondary
-                                      Roots = roots
-                                      LinkedBase = true
-                                      Excluded = excluded
-                                      OwnedFiles = ownedFiles
-                                      Working = working
-                                      Previous = previous
-                                      Processes = [] }
-
-                                let snapshot: SnapshotSource =
-                                    { Snapshot = observation.Snapshot
-                                      Directory = sourceData
-                                      Files =
-                                        observation.Entries
-                                        |> List.filter (fun entry -> not entry.Directory)
-                                        |> List.map (fun entry -> entry.Path, entry.Identity)
-                                        |> Map.ofList
-                                      Originals = observation.Projection.Originals }
-
-                                let! built =
-                                    generations.Build(
-                                        request,
-                                        sources.Stamp.ProfileId,
-                                        [ snapshot; rootSource ],
-                                        writable,
-                                        token,
-                                        (fun location ->
-                                            GenerationStorage.available
-                                                location.Path
-                                                location.Identity),
-                                        gameFolderOnly = gameFolderOnly,
-                                        ?retainedProfile = retainedProfile,
-                                        recordProfile = recordProfile,
-                                        ?fnisCandidate = candidate,
-                                        components = components
-                                    )
-
-                                match built with
-                                | Error error -> return Error error
-                                | Ok built ->
-                                    if candidate.IsNone && built.Sources <> sources.Stamp then
-                                        return Error RecoveryError.Stale
-
-                                    do!
-                                        DeploymentOutputs.initialized
-                                            database
-                                            sources.Stamp
-                                            outputWorking
-
-                                    let projected =
-                                        DeploymentTargetProjection.project
-                                            id
-                                            sources.Stamp
-                                            existing
-                                            ownership
-                                            contextId
-                                            roots
-                                            observation
-                                            built
-                                            token
-
-                                    match projected with
-                                    | Error error -> return Error error
-                                    | Ok(switch, changedPaths) ->
-                                        let generation = switch.Generation
-
-                                        let view =
-                                            { Id = id
-                                              WorkspaceId = sources.Stamp.WorkspaceId
-                                              Fingerprint = built.Generation.PlanFingerprint
-                                              Sources = sources.Stamp
-                                              Profile =
-                                                generation.Provenance
-                                                |> Option.bind _.Profile
-                                                |> Option.map SavedDeployments.profile
-                                              WritableFiles = generation.Working.Length
-                                              ChangedPaths = changedPaths
-                                              PreservedOriginals = switch.PreserveOriginals.Length
-                                              ManagedLinks = built.Measurements.GenerationLinks
-                                              CopiedBytes = built.Measurements.CopiedBytes
-                                              RequiredBytes = built.Measurements.RequiredBytes }
-
-                                        retainOriginalStorage <- true
-
-                                        return
-                                            Ok
-                                                { View = view
-                                                  Context = sources.Context
-                                                  PluginSelectionRevision =
-                                                    privateScope.Profile
-                                                    |> Option.map _.Revision
-                                                    |> Option.defaultValue 0L
-                                                  Switch = switch
-                                                  OriginalStorage = originalStorage }
+                                | None -> return! withAvailableScope privateScope
                         }
+
+                    let withSummary (summary: FilePlanSummary) =
+                        match plans.Observation summary.Id with
+                        | None -> Task.FromResult(Error RecoveryError.Stale)
+                        | Some observation -> withObservation observation
 
                     match acquired with
                     | Error error -> return Error(acquireError error)
