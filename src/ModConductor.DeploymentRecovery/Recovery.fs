@@ -278,6 +278,8 @@ type internal Recovery(repository: IRecoveryRepository) =
                         match failure with
                         | None -> return raise error
                         | Some reason ->
+                            let mutable saveFailure = None
+
                             match current with
                             | Some receipt when
                                 receipt.Phase <> ReceiptPhase.Complete
@@ -297,11 +299,11 @@ type internal Recovery(repository: IRecoveryRepository) =
                                             Detail = detail }
 
                                 match blocked with
-                                | Error error -> return Error error
+                                | Error error -> saveFailure <- Some error
                                 | Ok _ -> ()
                             | _ -> ()
 
-                            return Error reason
+                            return Error(Option.defaultValue reason saveFailure)
                 finally
                     if current.IsSome then
                         repository.Release(id).GetAwaiter().GetResult()

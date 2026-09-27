@@ -17,7 +17,7 @@ module internal RecoverySteps =
         starting
         restoring
         =
-        task {
+        RecoveryResultTask.resultTask {
             let mutable receipt = starting
 
             let order =
@@ -34,11 +34,9 @@ module internal RecoverySteps =
                             { change with
                                 Phase = EntryPhase.RestoreIntent }
 
-                        let! next = save (update index change receipt)
-
-                        match next with
-                        | Error error -> return Error error
-                        | Ok saved -> receipt <- saved
+                        let! nextResult = save (update index change receipt)
+                        let! next = nextResult
+                        receipt <- next
 
                         boundary "restore-intent" index
 
@@ -102,20 +100,17 @@ module internal RecoverySteps =
                                     receipt
                             )
 
-                        match next with
-                        | Error error -> return Error error
-                        | Ok saved -> receipt <- saved
+                        let! saved = next
+                        receipt <- saved
                 else
                     if change.Phase = EntryPhase.Pending then
                         change <-
                             { change with
                                 Phase = EntryPhase.RemoveIntent }
 
-                        let! next = save (update index change receipt)
-
-                        match next with
-                        | Error error -> return Error error
-                        | Ok saved -> receipt <- saved
+                        let! nextResult = save (update index change receipt)
+                        let! next = nextResult
+                        receipt <- next
 
                         boundary "remove-intent" index
 
@@ -139,22 +134,18 @@ module internal RecoverySteps =
                             { change with
                                 Phase = EntryPhase.Cleared }
 
-                        let! next = save (update index change receipt)
-
-                        match next with
-                        | Error error -> return Error error
-                        | Ok saved -> receipt <- saved
+                        let! nextResult = save (update index change receipt)
+                        let! next = nextResult
+                        receipt <- next
 
                     if change.Phase = EntryPhase.Cleared then
                         change <-
                             { change with
                                 Phase = EntryPhase.InstallIntent }
 
-                        let! next = save (update index change receipt)
-
-                        match next with
-                        | Error error -> return Error error
-                        | Ok saved -> receipt <- saved
+                        let! nextResult = save (update index change receipt)
+                        let! next = nextResult
+                        receipt <- next
 
                         boundary "install-intent" index
 
@@ -173,11 +164,9 @@ module internal RecoverySteps =
                                 Phase = EntryPhase.Installed
                                 Observed = observed }
 
-                        let! next = save (update index change receipt)
+                        let! nextResult = save (update index change receipt)
+                        let! next = nextResult
+                        receipt <- next
 
-                        match next with
-                        | Error error -> return Error error
-                        | Ok saved -> receipt <- saved
-
-            return Ok receipt
+            return receipt
         }

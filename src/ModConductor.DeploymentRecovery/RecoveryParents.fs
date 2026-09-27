@@ -66,7 +66,7 @@ module internal RecoveryParents =
         (starting: Receipt)
         restoring
         =
-        task {
+        RecoveryResultTask.resultTask {
             let mutable receipt = starting
 
             for index in 0 .. receipt.Parents.Length - 1 do
@@ -107,11 +107,9 @@ module internal RecoveryParents =
                                     else
                                         EntryPhase.InstallIntent }
 
-                        let! intent = save (update index change receipt)
-
-                        match intent with
-                        | Error error -> return Error error
-                        | Ok saved -> receipt <- saved
+                        let! intentResult = save (update index change receipt)
+                        let! intent = intentResult
+                        receipt <- intent
 
                         boundary "parent-create-intent" index
 
@@ -135,13 +133,11 @@ module internal RecoveryParents =
                                     Observed = Some identity
                                     Phase = EntryPhase.Installed }
 
-                        let! updated = save (update index change receipt)
+                        let! updatedResult = save (update index change receipt)
+                        let! updated = updatedResult
+                        receipt <- updated
 
-                        match updated with
-                        | Error error -> return Error error
-                        | Ok saved -> receipt <- saved
-
-            return Ok receipt
+            return receipt
         }
 
     let remove
@@ -150,7 +146,7 @@ module internal RecoveryParents =
         (starting: Receipt)
         restoring
         =
-        task {
+        RecoveryResultTask.resultTask {
             let mutable receipt = starting
 
             for index in [ 0 .. receipt.Parents.Length - 1 ] |> List.rev do
@@ -181,11 +177,9 @@ module internal RecoveryParents =
                                     else
                                         EntryPhase.RemoveIntent }
 
-                        let! intent = save (update index change receipt)
-
-                        match intent with
-                        | Error error -> return Error error
-                        | Ok saved -> receipt <- saved
+                        let! intentResult = save (update index change receipt)
+                        let! intent = intentResult
+                        receipt <- intent
 
                         boundary "parent-remove-intent" index
 
@@ -213,14 +207,12 @@ module internal RecoveryParents =
                                     else
                                         EntryPhase.Cleared }
 
-                        let! updated = save (update index change receipt)
-
-                        match updated with
-                        | Error error -> return Error error
-                        | Ok saved -> receipt <- saved
+                        let! updatedResult = save (update index change receipt)
+                        let! updated = updatedResult
+                        receipt <- updated
                     | Some _ -> RecoveryFiles.fail "A changed deployment parent was left untouched."
 
-            return Ok receipt
+            return receipt
         }
 
     let completed (receipt: Receipt) restoring =

@@ -1,5 +1,6 @@
 namespace ModConductor.DeploymentRecovery
 
+open System
 open System.Threading.Tasks
 
 module internal RecoveryResultTask =
@@ -33,5 +34,34 @@ module internal RecoveryResultTask =
                 | Ok() -> return! next ()
                 | Error error -> return Error error
             }
+
+        member _.TryFinally(body, cleanup) =
+            task {
+                try
+                    return! body ()
+                finally
+                    cleanup ()
+            }
+
+        member this.Using(resource: #IDisposable, body) =
+            this.TryFinally(
+                (fun () -> body resource),
+                fun () ->
+                    if not (isNull (box resource)) then
+                        resource.Dispose()
+            )
+
+        member this.For(items: seq<'a>, body: 'a -> Task<Result<unit, RecoveryError>>) =
+            this.Using(
+                items.GetEnumerator(),
+                fun iterator ->
+                    let rec next () =
+                        if iterator.MoveNext() then
+                            this.Combine(body iterator.Current, next)
+                        else
+                            this.Zero()
+
+                    next ()
+            )
 
     let resultTask = Builder()
