@@ -26,6 +26,7 @@ module internal ComponentFixtures =
         | Error RecoveryError.NotFound -> invalidOp "Component recovery: not found."
         | Error RecoveryError.Busy -> invalidOp "Component recovery: busy."
         | Error RecoveryError.Stale -> invalidOp "Component recovery: stale."
+        | Error RecoveryError.Cancelled -> invalidOp "Component recovery: cancelled."
         | Error RecoveryError.InvalidPlan -> invalidOp "Component recovery: invalid plan."
         | Error RecoveryError.Limit -> invalidOp "Component recovery: limit."
         | Error(RecoveryError.Mismatch text) -> invalidOp ("Component recovery: " + text)
@@ -225,7 +226,9 @@ module internal ComponentFixtures =
             |> ignore
 
         let context =
-            (store.GameContexts :> IGameContexts).Read(workspace, profileOne) |> wait |> result
+            (store.GameContexts :> IGameContexts).Read(workspace, profileOne)
+            |> wait
+            |> result
 
         let gameRoot =
             ComponentRoots.gameRootId workspace context.Binding.Value.Evidence
