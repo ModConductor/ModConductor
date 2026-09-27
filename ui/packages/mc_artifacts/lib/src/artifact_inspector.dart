@@ -116,14 +116,13 @@ class ArtifactInspector extends StatelessWidget {
                         ? () => onCleanup(artifact, true)
                         : null,
                   ),
-                if (artifact.canRemove)
-                  McAction(
-                    label: 'Remove from list',
-                    icon: Icons.delete_outline,
-                    onPressed: controller.canEdit
-                        ? () => onCleanup(artifact, false)
-                        : null,
-                  ),
+                McAction(
+                  label: 'Remove from list',
+                  icon: Icons.delete_outline,
+                  onPressed: controller.canEdit && artifact.canRemove
+                      ? () => onCleanup(artifact, false)
+                      : null,
+                ),
               ],
             ),
       children: artifact == null
@@ -137,6 +136,13 @@ class ArtifactInspector extends StatelessWidget {
                     : archiveState(artifact.state),
                 detail: artifact.problem,
               ),
+              if (archiveRemovalReason(artifact) case final reason?) ...[
+                const SizedBox(height: 12),
+                McActionFeedback(
+                  kind: McActionFeedbackKind.refusal,
+                  message: reason,
+                ),
+              ],
               const SizedBox(height: 24),
               if (artifact.download != null)
                 DownloadDetails(download: artifact.download!),
