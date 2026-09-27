@@ -75,7 +75,7 @@ module ArchivePolicyFixtures =
             encoded
             |> List.forall (fun bytes ->
                 let changed, receipt = Ini.applyArchives [ "One.bsa" ] (Some bytes) |> result
-                let visible = Ini.archiveEntries changed |> List.map _.Name
+                let visible = Ini.tryArchiveEntries changed |> result |> List.map _.Name
                 visible = [ "One.bsa" ] && (Ini.removeArchives receipt changed = Ok(Some bytes)))
 
         writer.WriteBoolean(
@@ -110,7 +110,7 @@ module ArchivePolicyFixtures =
             @ [ "QuietRivers.bsa" ]
 
         let applied, receipt = Ini.applyArchives names (Some original) |> result
-        let entries = Ini.archiveEntries applied
+        let entries = Ini.tryArchiveEntries applied |> result
         let restored = Ini.removeArchives receipt applied |> result
 
         writer.WriteBoolean(
@@ -520,7 +520,8 @@ module ArchivePolicyFixtures =
                     check
                         "applyUsesReceiptAndIgnoresArchivesTxt"
                         (applied.Complete
-                         && Ini.archiveEntries appliedBytes |> List.map _.Name = SkyrimArchives.required
+                         && (Ini.tryArchiveEntries appliedBytes |> result |> List.map _.Name)
+                            = SkyrimArchives.required
                          && not (Encoding.UTF8.GetString(appliedBytes).Contains "Bogus.bsa")
                          && File.ReadAllText archivesTxt = "Bogus.bsa\n")
                 )
@@ -681,7 +682,7 @@ module ArchivePolicyFixtures =
                         (restored.Complete
                          && recovered.Changes.IsEmpty
                          && changed.Complete
-                         && changedPolicy.Changes.Length = 1)
+                         && changedPolicy.Changes = [ "Removed QuietRivers.bsa" ])
                 )
 
                 let reverted = editArchives changed.State.Reference opened.Document.Content

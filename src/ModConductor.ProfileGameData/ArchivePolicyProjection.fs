@@ -18,6 +18,9 @@ type internal ArchivePolicyProfileInput =
       Policy: ArchivePolicyInput option }
 
 module internal ArchivePolicyProjection =
+    let private archiveEntries bytes =
+        Ini.tryArchiveEntries bytes |> Result.mapError ProfileDataError.Unavailable
+
     let private same (left: string) (right: string) =
         String.Equals(left, right, StringComparison.OrdinalIgnoreCase)
 
@@ -72,9 +75,9 @@ module internal ArchivePolicyProjection =
 
             let file = DataFiles.observe held actual token
             let bytes = DataFiles.readIni held actual file token |> Option.defaultValue [||]
-            Some(Ini.archiveEntries bytes |> List.map _.Name)
+            archiveEntries bytes |> Result.map (List.map _.Name >> Some)
         else
-            None
+            Ok None
 
     let delta
         (archives: ArchivePolicySession)
@@ -96,11 +99,12 @@ module internal ArchivePolicyProjection =
         let edited = changes before snapshot.ExplicitNames
 
         if edited.IsEmpty then
-            []
+            Ok []
         else
-            match activeDocuments scope token with
-            | Some actual when not (namesEqual actual snapshot.ExplicitNames) -> edited
-            | _ -> []
+            activeDocuments scope token
+            |> Result.map (function
+                | Some actual when not (namesEqual actual snapshot.ExplicitNames) -> edited
+                | _ -> [])
 
     let private settings (scope: ProfileDataScope) =
         match scope.Game.Binding with
@@ -149,6 +153,7 @@ module internal ArchivePolicyProjection =
         ProfileDataResultFlow.result {
             let! actual, observed, bytes, stamp = ini scope token
             let! pluginInput = PluginInputs.read scope headers.Entries token
+            let! entries = archiveEntries bytes
             let saved = scope.Profile |> Option.bind _.PluginOrder
 
             let order =
@@ -166,7 +171,7 @@ module internal ArchivePolicyProjection =
                     Some
                         { Headers = headers
                           Order = view
-                          Explicit = Ini.archiveEntries bytes
+                          Explicit = entries
                           Ini = stamp } }
         }
 
@@ -188,7 +193,7 @@ module internal ArchivePolicyProjection =
         (snapshot: ArchivePolicySnapshot)
         token
         =
-        task {
+        ProfileDataResultTask.resultTask {
             let currentStamp = input.IniStamp
 
             let snapshot =
@@ -197,14 +202,16 @@ module internal ArchivePolicyProjection =
 
             let pending = input.Scope.Context |> Option.bind _.Pending
 
-            let! action =
+            let! actionResult =
                 match pending with
                 | Some id -> repository.Action(input.Scope.WorkspaceId, id)
-                | None -> System.Threading.Tasks.Task.FromResult None
+                | None -> System.Threading.Tasks.Task.FromResult(Ok None)
+
+            let! action = actionResult
 
             let saved = input.Scope.Profile |> Option.bind _.ArchiveList |> Option.isSome
 
-            let changes = delta archives input.Scope snapshot token
+            let! changes = delta archives input.Scope snapshot token
 
             return
                 { Reference = reference input.Scope

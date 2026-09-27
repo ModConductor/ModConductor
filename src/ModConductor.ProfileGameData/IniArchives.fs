@@ -29,10 +29,6 @@ module internal IniArchives =
 
                               position <- position + 1 ])
 
-    let archiveEntries bytes =
-        tryArchiveEntries bytes
-        |> Result.defaultWith (fun detail -> raise (IO.IOException detail))
-
     let archiveValues names =
         let joined = String.concat ", " names
 
