@@ -438,11 +438,11 @@ type InstallationStore
                             let! read =
                                 access.Run(fun () ->
                                     task {
-                                        let! checked =
+                                        let! inspected =
                                             UpdateInspection.read database access modId expected
 
                                         return
-                                            checked
+                                            inspected
                                             |> Result.bind (fun (target, saved, notices) ->
                                                 Updates.prepare
                                                     draft

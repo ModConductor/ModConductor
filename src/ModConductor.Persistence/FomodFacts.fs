@@ -236,10 +236,10 @@ module internal FomodFacts =
                   WorkspaceRevision = workspaceRevision
                   Facts = facts }
 
-            let! checked =
+            let! inspected =
                 database.EnqueueInternal(fun () -> current database.Connection null snapshot)
 
-            return checked |> Result.map (fun () -> snapshot)
+            return inspected |> Result.map (fun () -> snapshot)
         }
 
     let capture (database: StateDatabase) access workspace profile definition =
