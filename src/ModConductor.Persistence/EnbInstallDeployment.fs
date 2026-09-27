@@ -28,6 +28,8 @@ type internal EnbInstallDeployment
                     "The ENB component generation was not a valid deployment plan."
                 | ModConductor.DeploymentRecovery.RecoveryError.Stale ->
                     "The profile changed while the ENB generation was prepared."
+                | ModConductor.DeploymentRecovery.RecoveryError.Cancelled ->
+                    "The profile settings change was cancelled."
                 | ModConductor.DeploymentRecovery.RecoveryError.Busy ->
                     "Another deployment is using this profile."
                 | ModConductor.DeploymentRecovery.RecoveryError.NotFound ->
