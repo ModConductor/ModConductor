@@ -103,7 +103,8 @@ type FomodDrafts
             |> Result.bind (fun session ->
                 match session.View.Wizard with
                 | None -> Error "Use the manual layout for this installer."
-                | Some wizard -> Ok(snapshot session session.View.Draft (update session wizard))))
+                | Some wizard ->
+                    update session wizard |> Result.map (snapshot session session.View.Draft)))
 
     member internal _.Prepared(draft: InstallationDraft, input) =
         inputs[draft.Artifact.WorkspaceId] <- input
@@ -115,8 +116,11 @@ type FomodDrafts
 
     member internal _.Check connection transaction workspace =
         match sessions.TryGetValue workspace with
-        | true, session -> session.Facts |> Option.iter (FomodFacts.current connection transaction)
-        | _ -> ()
+        | true, session ->
+            session.Facts
+            |> Option.map (FomodFacts.current connection transaction)
+            |> Option.defaultValue (Ok())
+        | _ -> Ok()
 
     member _.Open(workspace, id, revision, profile) =
         task {
@@ -170,28 +174,34 @@ type FomodDrafts
 
                             view))
             | Ok(draft, original, InstallerInput.Xml definition) ->
-                let! facts = FomodFacts.capture database access workspace profile definition
+                let! captured = FomodFacts.capture database access workspace profile definition
 
-                return
-                    lock gate (fun () ->
-                        getDraftResult (workspace, id, revision)
-                        |> Result.map (fun _ ->
-                            let view =
-                                { Draft = draft
-                                  ProfileId = profile
-                                  Definition = Some definition
-                                  Wizard = None
-                                  Planned = None
-                                  VisibleSteps = 0
-                                  Problem = None }
+                match captured with
+                | Error why -> return Error why
+                | Ok facts ->
+                    return
+                        lock gate (fun () ->
+                            getDraftResult (workspace, id, revision)
+                            |> Result.map (fun _ ->
+                                let view =
+                                    { Draft = draft
+                                      ProfileId = profile
+                                      Definition = Some definition
+                                      Wizard = None
+                                      Planned = None
+                                      VisibleSteps = 0
+                                      Problem = None }
 
-                            let session =
-                                { View = view
-                                  Facts = Some facts
-                                  Original = original
-                                  Images = Dictionary() }
+                                let session =
+                                    { View = view
+                                      Facts = Some facts
+                                      Original = original
+                                      Images = Dictionary() }
 
-                            snapshot session draft (Choices.beginChoices definition facts.Facts)))
+                                snapshot
+                                    session
+                                    draft
+                                    (Choices.beginChoices definition facts.Facts)))
         }
 
     member _.Read(workspace, id, revision) =
@@ -209,7 +219,7 @@ type FomodDrafts
                     |> Result.map (snapshot session session.View.Draft))
 
     member _.Back(workspace, id, revision) =
-        change workspace id revision (fun _ wizard -> Choices.back wizard)
+        change workspace id revision (fun _ wizard -> Ok(Choices.back wizard))
 
     member _.Next(workspace, id, revision) =
         change workspace id revision (fun session wizard ->
@@ -222,8 +232,9 @@ type FomodDrafts
                         FomodFacts.current database.Connection null session.Facts.Value)
                     .GetAwaiter()
                     .GetResult()
-
-            next)
+                |> Result.map (fun () -> next)
+            else
+                Ok next)
 
     member _.Manual(workspace, id, revision) =
         lock gate (fun () ->

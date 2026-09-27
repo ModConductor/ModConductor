@@ -244,18 +244,8 @@ module FomodFixtures =
             |> result
 
         let stale =
-            try
-                store.Installations.Start(
-                    workspace,
-                    view.Draft.Id,
-                    view.Draft.Revision,
-                    Guid.NewGuid()
-                )
-                |> ignore
-
-                false
-            with :? FomodException ->
-                true
+            store.Installations.Start(workspace, view.Draft.Id, view.Draft.Revision, Guid.NewGuid())
+            |> Result.isError
 
         check
             "ChangedWorkspaceRejectsConfirmationBeforeEffects"

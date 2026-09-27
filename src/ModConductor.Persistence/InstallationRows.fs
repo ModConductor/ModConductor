@@ -197,103 +197,108 @@ module internal InstallationRows =
                         Ok false
                 | None ->
                     check transaction
-
-                    targetReady connection transaction plan
                     |> Result.bind (fun () ->
-                        if
-                            Sqlite.number
-                                connection
-                                transaction
-                                "SELECT count(*) FROM archive_installations WHERE workspace_id=$workspace AND state IN (0,1)"
-                                [ "$workspace", box (string plan.Artifact.WorkspaceId) ]
-                            <> 0L
-                        then
-                            Error
-                                "Finish the current installation or delete its temporary files first."
-                        else
-                            Sqlite.execute
-                                connection
-                                transaction
-                                "INSERT INTO archive_installations(id,workspace_id,artifact_id,owner,state,busy,fingerprint,archive_name,name,version_label,source_digest,source_revision,root,mod_id,version_id,total_bytes,total_files,target_revision,previous_version) VALUES($id,$workspace,$artifact,$owner,0,1,$fingerprint,$archive,$name,$label,$digest,$revision,$root,$mod,$version,$bytes,$files,$targetRevision,$previousVersion)"
-                                [ "$id", box (string id)
-                                  "$workspace", box (string plan.Artifact.WorkspaceId)
-                                  "$artifact", box (string plan.Artifact.Id)
-                                  "$owner", box owner
-                                  "$fingerprint", box plan.Fingerprint
-                                  "$archive", box plan.ArchiveName
-                                  "$name", box plan.Name
-                                  "$label", box plan.Version
-                                  "$digest", box plan.Sha256
-                                  "$revision", box plan.Artifact.Revision
-                                  "$root", box (String.concat "/" plan.Root)
-                                  "$mod",
-                                  box (
-                                      string (
-                                          plan.Target
-                                          |> Option.map _.ModId
-                                          |> Option.orElseWith (fun () ->
-                                              plan.Bundle |> Option.map _.ModId)
-                                          |> Option.defaultWith Guid.NewGuid
+                        targetReady connection transaction plan
+                        |> Result.bind (fun () ->
+                            if
+                                Sqlite.number
+                                    connection
+                                    transaction
+                                    "SELECT count(*) FROM archive_installations WHERE workspace_id=$workspace AND state IN (0,1)"
+                                    [ "$workspace", box (string plan.Artifact.WorkspaceId) ]
+                                <> 0L
+                            then
+                                Error
+                                    "Finish the current installation or delete its temporary files first."
+                            else
+                                Sqlite.execute
+                                    connection
+                                    transaction
+                                    "INSERT INTO archive_installations(id,workspace_id,artifact_id,owner,state,busy,fingerprint,archive_name,name,version_label,source_digest,source_revision,root,mod_id,version_id,total_bytes,total_files,target_revision,previous_version) VALUES($id,$workspace,$artifact,$owner,0,1,$fingerprint,$archive,$name,$label,$digest,$revision,$root,$mod,$version,$bytes,$files,$targetRevision,$previousVersion)"
+                                    [ "$id", box (string id)
+                                      "$workspace", box (string plan.Artifact.WorkspaceId)
+                                      "$artifact", box (string plan.Artifact.Id)
+                                      "$owner", box owner
+                                      "$fingerprint", box plan.Fingerprint
+                                      "$archive", box plan.ArchiveName
+                                      "$name", box plan.Name
+                                      "$label", box plan.Version
+                                      "$digest", box plan.Sha256
+                                      "$revision", box plan.Artifact.Revision
+                                      "$root", box (String.concat "/" plan.Root)
+                                      "$mod",
+                                      box (
+                                          string (
+                                              plan.Target
+                                              |> Option.map _.ModId
+                                              |> Option.orElseWith (fun () ->
+                                                  plan.Bundle |> Option.map _.ModId)
+                                              |> Option.defaultWith Guid.NewGuid
+                                          )
                                       )
-                                  )
-                                  "$version", box (string (Guid.NewGuid()))
-                                  "$bytes",
-                                  box (
-                                      plan.Bytes
-                                      + (plan.Target
-                                         |> Option.map (fun target ->
-                                             target.Existing
-                                             |> List.sumBy (fun file -> file.Payload.Length))
-                                         |> Option.defaultValue 0L)
-                                  )
-                                  "$files",
-                                  box (
-                                      plan.Files.Length
-                                      + (plan.Target
-                                         |> Option.map (fun target -> target.Existing.Length)
-                                         |> Option.defaultValue 0)
-                                  )
-                                  "$targetRevision",
-                                  plan.Target
-                                  |> Option.map (fun target -> box target.Revision)
-                                  |> Option.defaultValue (box DBNull.Value)
-                                  "$previousVersion",
-                                  plan.Target
-                                  |> Option.map (fun target -> box (string target.PreviousVersion))
-                                  |> Option.defaultValue (box DBNull.Value) ]
+                                      "$version", box (string (Guid.NewGuid()))
+                                      "$bytes",
+                                      box (
+                                          plan.Bytes
+                                          + (plan.Target
+                                             |> Option.map (fun target ->
+                                                 target.Existing
+                                                 |> List.sumBy (fun file -> file.Payload.Length))
+                                             |> Option.defaultValue 0L)
+                                      )
+                                      "$files",
+                                      box (
+                                          plan.Files.Length
+                                          + (plan.Target
+                                             |> Option.map (fun target -> target.Existing.Length)
+                                             |> Option.defaultValue 0)
+                                      )
+                                      "$targetRevision",
+                                      plan.Target
+                                      |> Option.map (fun target -> box target.Revision)
+                                      |> Option.defaultValue (box DBNull.Value)
+                                      "$previousVersion",
+                                      plan.Target
+                                      |> Option.map (fun target ->
+                                          box (string target.PreviousVersion))
+                                      |> Option.defaultValue (box DBNull.Value) ]
 
-                            BundleRows.reserved connection transaction id plan
-                            |> Result.map (fun () ->
-                                for file in plan.Files |> List.distinctBy _.Index do
-                                    Sqlite.execute
-                                        connection
-                                        transaction
-                                        "INSERT INTO installation_files(installation_id,entry_index,destination,payload_id) VALUES($id,$index,$path,$payload)"
-                                        [ "$id", box (string id)
-                                          "$index", box file.Index
-                                          "$path", box (LibraryEncoding.path file.Destination)
-                                          "$payload", box (string (Guid.NewGuid())) ]
+                                BundleRows.reserved connection transaction id plan
+                                |> Result.map (fun () ->
+                                    for file in plan.Files |> List.distinctBy _.Index do
+                                        Sqlite.execute
+                                            connection
+                                            transaction
+                                            "INSERT INTO installation_files(installation_id,entry_index,destination,payload_id) VALUES($id,$index,$path,$payload)"
+                                            [ "$id", box (string id)
+                                              "$index", box file.Index
+                                              "$path",
+                                              box (LibraryEncoding.path file.Destination)
+                                              "$payload", box (string (Guid.NewGuid())) ]
 
-                                for file in plan.Files do
-                                    Sqlite.execute
-                                        connection
-                                        transaction
-                                        "INSERT INTO installation_destinations VALUES($id,$index,$path)"
-                                        [ "$id", box (string id)
-                                          "$index", box file.Index
-                                          "$path", box (LibraryEncoding.path file.Destination) ]
+                                    for file in plan.Files do
+                                        Sqlite.execute
+                                            connection
+                                            transaction
+                                            "INSERT INTO installation_destinations VALUES($id,$index,$path)"
+                                            [ "$id", box (string id)
+                                              "$index", box file.Index
+                                              "$path",
+                                              box (LibraryEncoding.path file.Destination) ]
 
-                                for file in
-                                    plan.Target |> Option.map _.Existing |> Option.defaultValue [] do
-                                    Sqlite.execute
-                                        connection
-                                        transaction
-                                        "INSERT INTO installation_reuse VALUES($id,$path,$payload)"
-                                        [ "$id", box (string id)
-                                          "$path", box (LibraryEncoding.path file.Path)
-                                          "$payload", box (string file.Payload.Id) ]
+                                    for file in
+                                        plan.Target
+                                        |> Option.map _.Existing
+                                        |> Option.defaultValue [] do
+                                        Sqlite.execute
+                                            connection
+                                            transaction
+                                            "INSERT INTO installation_reuse VALUES($id,$path,$payload)"
+                                            [ "$id", box (string id)
+                                              "$path", box (LibraryEncoding.path file.Path)
+                                              "$payload", box (string file.Payload.Id) ]
 
-                                true))
+                                    true)))
 
             fresh
             |> Result.map (fun fresh ->

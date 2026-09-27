@@ -14,8 +14,6 @@ type internal FomodFactSnapshot =
       Facts: Facts }
 
 module internal FomodFacts =
-    let private refuse message = raise (FomodException message)
-
     let private plugin path =
         [ ".esp"; ".esm"; ".esl" ]
         |> List.contains (Path.GetExtension(LogicalPath.display path).ToLowerInvariant())
@@ -36,36 +34,37 @@ module internal FomodFacts =
                 "SELECT revision FROM workspaces WHERE id=$id"
                 [ "$id", box (string snapshot.Stamp.WorkspaceId) ]
 
-        snapshot.ProfileData
-        |> Option.iter (fun (context, revision) ->
-            let current =
-                ProfileDataRows.context connection transaction context
-                |> Option.map _.Revision
-                |> Option.defaultValue 0L
+        let pluginChanged =
+            snapshot.ProfileData
+            |> Option.exists (fun (context, revision) ->
+                let current =
+                    ProfileDataRows.context connection transaction context
+                    |> Option.map _.Revision
+                    |> Option.defaultValue 0L
 
-            if current <> revision then
-                refuse "The plugin order changed. Reload the installer before continuing.")
+                current <> revision)
 
-        if
+        if pluginChanged then
+            Error "The plugin order changed. Reload the installer before continuing."
+        elif
             revision <> snapshot.WorkspaceRevision
             || not selected
             || FilePlanRows.stamp connection transaction snapshot.Stamp.ProfileId
                <> Some snapshot.Stamp
         then
-            refuse "The selected game or mods changed. Reload the installer before continuing."
+            Error "The selected game or mods changed. Reload the installer before continuing."
+        else
+            Ok()
 
-    let capture (database: StateDatabase) access workspace profile definition =
+    let private captureSources
+        (database: StateDatabase)
+        access
+        workspace
+        profile
+        definition
+        (sources: PlanSources)
+        =
         task {
-            let! sources =
-                database.EnqueueInternal(fun () ->
-                    FilePlanRows.read database.Connection null database.OwnerId profile
-                    |> Result.defaultWith (fun _ ->
-                        refuse
-                            "The selected profile files cannot be checked. Reload the installer."))
-
-            if sources.Stamp.WorkspaceId <> workspace then
-                refuse "Choose a profile in this workspace."
-
             let! workspaceRevision =
                 database.EnqueueInternal(fun () ->
                     Sqlite.number
@@ -237,6 +236,23 @@ module internal FomodFacts =
                   WorkspaceRevision = workspaceRevision
                   Facts = facts }
 
-            do! database.EnqueueInternal(fun () -> current database.Connection null snapshot)
-            return snapshot
+            let! checked =
+                database.EnqueueInternal(fun () -> current database.Connection null snapshot)
+
+            return checked |> Result.map (fun () -> snapshot)
+        }
+
+    let capture (database: StateDatabase) access workspace profile definition =
+        task {
+            let! found =
+                database.EnqueueInternal(fun () ->
+                    FilePlanRows.read database.Connection null database.OwnerId profile)
+
+            match found with
+            | Error _ ->
+                return Error "The selected profile files cannot be checked. Reload the installer."
+            | Ok sources when sources.Stamp.WorkspaceId <> workspace ->
+                return Error "Choose a profile in this workspace."
+            | Ok sources ->
+                return! captureSources database access workspace profile definition sources
         }
