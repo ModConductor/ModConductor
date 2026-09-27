@@ -16,8 +16,12 @@ module internal ComponentRoutes =
     let private same left right =
         String.Equals(left, right, StringComparison.OrdinalIgnoreCase)
 
-    let private componentFiles role useFile (version: ModConductor.ModLibrary.ModVersion) =
-        let route entry =
+    let private componentFiles
+        role
+        (useFile: LogicalPath -> ComponentFileUse)
+        (version: ModConductor.ModLibrary.ModVersion)
+        =
+        let route (entry: ModConductor.ModLibrary.ManifestEntry) =
             let parts = LogicalPath.components entry.Path
 
             let destination =

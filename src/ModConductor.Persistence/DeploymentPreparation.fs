@@ -89,7 +89,12 @@ module internal DeploymentPreparation =
                         | FilePlanError.Expired
                         | FilePlanError.Stale -> RecoveryError.Stale
 
-                    let withClearedViews evidence (workspace: WorkspaceRoot) ownership contextId =
+                    let withClearedViews
+                        (evidence: ModConductor.GameContexts.InstallationEvidence)
+                        (workspace: WorkspaceRoot)
+                        ownership
+                        contextId
+                        =
                         task {
                             let workspaceLocation: Location =
                                 { Path = workspace.Path
