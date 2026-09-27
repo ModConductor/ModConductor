@@ -65,7 +65,12 @@ class _SkyrimSetupActions extends StatelessWidget {
             label: value.phase == SkyrimSetupStatusPhase.recoveryRequired
                 ? 'Continue recovery'
                 : 'Try again',
-            onPressed: busy ? null : () => onRetryOrContinue(value),
+            onPressed:
+                busy ||
+                    (value.phase != SkyrimSetupStatusPhase.recoveryRequired &&
+                        !skseChoiceReady)
+                ? null
+                : () => onRetryOrContinue(value),
           ),
       ],
     );

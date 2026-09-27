@@ -40,15 +40,9 @@ type SkseCoordinator
 
             match choice with
             | None ->
-                let! reviewed = sources.Review(workspace, profile)
+                let! selected = sources.Resolve(workspace, profile)
 
-                return
-                    reviewed
-                    |> Result.bind (fun value ->
-                        if value.Compatible then
-                            Ok()
-                        else
-                            Error SkseProblem.UnknownCompatibility)
+                return selected |> Result.map (fun (_, selection) -> prepared[key] <- selection)
             | Some choice ->
                 let! selected = sources.ResolveReviewed(workspace, profile, choice)
 
@@ -71,7 +65,16 @@ type SkseCoordinator
             else
                 None
 
-        start.Start(workspace, profile, selected)
+        match selected with
+        | Some selection -> start.Start(workspace, profile, Some selection)
+        | None ->
+            status.Failed
+                key
+                ""
+                ""
+                None
+                SkseStatus.reviewRequiredStatus
+                "The SKSE choice is no longer available. Review SKSE, then select Apply."
 
     member _.AcceptNxm(id: Guid) = nxm.Accept(id)
 

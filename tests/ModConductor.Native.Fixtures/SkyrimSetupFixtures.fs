@@ -201,6 +201,9 @@ module SkyrimSetupFixtures =
         member _.SkseUpdate(version) =
             skse <- { skse with Phase = SksePhase.UpdateAvailable; ComponentVersion = version }
 
+        member _.WaitForSkseNexus() =
+            skse <- { skse with Phase = SksePhase.WaitingForNexus; Status = "Waiting for Nexus Mods" }
+
         member _.EnbSelections = enbSelections
         member _.FailEnb() = failEnb <- true
         member _.AllowEnb() = failEnb <- false
@@ -1063,6 +1066,32 @@ module SkyrimSetupFixtures =
                 (Option.exists _.Completed)
 
         check writer "engineCompletesWithoutView" (completed |> Option.exists _.Completed)
+
+        let waitingUpdate = WorkflowState()
+        waitingUpdate.WaitForSkseNexus()
+        let deployedUpdate = store.Deployments.Read profile |> wait |> result
+        let waitingIntent =
+            { completed.Value with
+                Selection = { noChoice with Skse = SetupAction.Update }
+                Completed = false
+                Stage = "skse" }
+
+        let waitingView: SkyrimSetupView =
+            SkyrimSetupComponents(store, waitingUpdate.Dependencies).Inspect
+                workspace
+                profile
+                waitingIntent.Selection
+                true
+                (Some waitingIntent)
+                deployedUpdate
+                waitingIntent.Stage
+                CancellationToken.None
+            |> wait
+
+        check
+            writer
+            "waitingSkseUpdateDoesNotConsumeReviewedChoiceTwice"
+            (waitingView.Phase = SkyrimSetupPhase.WaitingForSkse && not waitingView.CanContinue)
 
         let resumeWorkspace, resumeProfile, _ = createWorkspace store area "restart-active" true
         let resumeWorkflow = WorkflowState()

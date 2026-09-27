@@ -353,11 +353,14 @@ type internal SkyrimSetupComponents(store: OperationStore, dependencies: SkyrimS
                         false
                         (running
                          && not skseActive
+                         && skseState.Status <> SkseStatus.reviewRequiredStatus
                          && (selection.Skse = SetupAction.Remove
                              || skseState.Phase = SksePhase.Available
                              || skseState.Phase = SksePhase.UpdateAvailable
                              || skseState.Phase = SksePhase.Failed
-                             || selection.Skse = SetupAction.Update))
+                             || (selection.Skse = SetupAction.Update
+                                 && stage = "skse-start"
+                                 && skseState.Phase = SksePhase.Ready)))
                         skseActive
                         false
             else

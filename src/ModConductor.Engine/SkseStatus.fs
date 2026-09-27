@@ -15,6 +15,9 @@ type SkseView =
       FileId: int64 option }
 
 module internal SkseStatus =
+    [<Literal>]
+    let reviewRequiredStatus = "Review SKSE again"
+
     let phaseName (value: SksePhase) =
         match value with
         | SksePhase.Available -> "available"

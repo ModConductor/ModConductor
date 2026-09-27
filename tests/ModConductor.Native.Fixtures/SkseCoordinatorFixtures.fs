@@ -1113,12 +1113,206 @@ module SkseCoordinatorFixtures =
         restoredLaunchEvidence
             writer statePath workspace profile restored.Proposed targetLoader.ModId activeLoader.ModId runtime
 
+    let private interruptedReviewEvidence writer area fallback =
+        let name = if fallback then "fallback" else "exact"
+        let scenario =
+            Directory.CreateDirectory(Path.Combine(area, "interrupted-" + name)).FullName
+
+        use server = new NexusServer()
+        server.Premium <- false
+        let memory = NexusMemoryStore()
+        use credentials = new CredentialSession(memory)
+
+        use session =
+            new NexusSession(
+                credentials,
+                Some server.Registration,
+                server.Handoff,
+                (fun _ -> Task.CompletedTask),
+                requestInterval = TimeSpan.Zero
+            )
+
+        signIn session
+        let statePath = Path.Combine(scenario, "state")
+        let mutable workspace = Guid.Empty
+        let mutable profile = Guid.Empty
+        let mutable gameSha256 = ""
+
+        do
+            use store =
+                new OperationStore(
+                    statePath,
+                    nexusLinks = NexusDownloadLinks(session),
+                    downloadPolicy = policy
+                )
+
+            let selectedWorkspace, selectedProfile, _, _, context =
+                createWorkspace store scenario
+
+            workspace <- selectedWorkspace
+            profile <- selectedProfile
+            let evidence = context.Binding.Value.Evidence.Executable.Value
+            gameSha256 <- evidence.Sha256
+            let bytes = archive evidence.FileVersion "retained" true 0
+            let artifact = download store workspace "retained-skse.zip" bytes
+
+            let retainedFile =
+                { Id = 401L
+                  Name = "retained-skse.zip"
+                  Version = "2.2.0"
+                  Category = "MAIN"
+                  Description = "Current game version " + evidence.FileVersion + " from Steam"
+                  Bytes = Some(int64 bytes.Length) }
+
+            store.SkseLoaders.SaveArtifactSelection(
+                artifact,
+                { ArtifactId = Some artifact.Id
+                  WorkspaceId = workspace
+                  ProfileId = Some profile
+                  AccountId = "42"
+                  GameVersion = evidence.FileVersion
+                  GameSha256 = evidence.Sha256
+                  Selection =
+                    { Release =
+                        { ModId = SkseResolver.NexusModId
+                          File = retainedFile
+                          ComponentVersion = Version(2, 2, 0)
+                          RuntimeVersion = Version.Parse evidence.FileVersion }
+                      Acquisition = SkseAcquisition.NexusPage }
+                  CheckedAt = DateTimeOffset.UtcNow }
+            )
+            |> wait
+
+            let candidateRuntime = if fallback then "9.9.9.9" else evidence.FileVersion
+            configure server candidateRuntime 402L "2.4.0" bytes
+
+            use original =
+                new SkseCoordinator(session, store.Downloads, store.GameContexts, store, server.Handoff)
+
+            if fallback then
+                let review = original.Review(workspace, profile) |> wait |> result
+
+                original.Prepare(
+                    workspace,
+                    profile,
+                    Some
+                        { FileId = review.Release.File.Id
+                          ComponentVersion = string review.Release.ComponentVersion
+                          GameVersion = review.GameVersion
+                          GameSha256 = review.GameSha256
+                          AllowIncompatible = true }
+                )
+                |> wait
+                |> result
+                |> ignore
+            else
+                original.Prepare(workspace, profile, None) |> wait |> result |> ignore
+
+            store.SkyrimSetups.Save
+                { WorkspaceId = workspace
+                  ProfileId = profile
+                  Selection = { SetupSelection.none with Skse = SetupAction.Install }
+                  Cancelled = false
+                  Completed = false
+                  Stage = "skse-start"
+                  ActionId = None
+                  CancelRequested = false
+                  CancelDetail = ""
+                  RequestedAt = DateTimeOffset.UtcNow }
+            |> wait
+
+        use restarted =
+            new OperationStore(
+                statePath,
+                nexusLinks = NexusDownloadLinks(session),
+                downloadPolicy = policy
+            )
+
+        use resumed =
+            new SkseCoordinator(
+                session,
+                restarted.Downloads,
+                restarted.GameContexts,
+                restarted,
+                server.Handoff
+            )
+
+        let metadataRequests () =
+            server.Count "/api/games/skyrimspecialedition/mods/30379.json"
+            + server.Count "/api/games/skyrimspecialedition/mods/30379/files.json"
+
+        let before = metadataRequests ()
+        let retained = restarted.SkseLoaders.Cached(workspace, "42", gameSha256) |> wait
+        let refusal = resumed.StartPrepared(workspace, profile) |> wait
+        let after = metadataRequests ()
+        let installed = restarted.SkseLoaders.ReadStored(workspace, profile, None) |> wait
+        let intent = restarted.SkyrimSetups.Read(workspace, profile) |> wait
+
+        check
+            writer
+            (if fallback then
+                 "interruptedFallbackRequiresFreshApplyWithoutCachedSubstitution"
+             else
+                 "interruptedExactRequiresFreshApplyWithoutCachedSubstitution")
+            (retained.IsSome
+             && refusal.Phase = SksePhase.Failed
+             && refusal.FileId.IsNone
+             && refusal.Status = "Review SKSE again"
+             && after = before
+             && installed.IsNone
+             && (intent |> Option.exists (fun value -> not value.Completed)))
+
+        let staleGame =
+            (restarted.GameContexts :> IGameContexts).Read(workspace, profile)
+            |> wait
+            |> result
+
+        (restarted.GameContexts :> IGameContexts)
+            .Refresh(workspace, profile, staleGame.Revision)
+        |> wait
+        |> result
+        |> ignore
+
+        let reviewed =
+            resumed.Review(workspace, profile)
+            |> wait
+            |> Result.defaultWith (fun problem -> failwith ("Re-review after restart: " + SkseProblem.message problem))
+
+        resumed.Prepare(
+            workspace,
+            profile,
+            Some
+                { FileId = reviewed.Release.File.Id
+                  ComponentVersion = string reviewed.Release.ComponentVersion
+                  GameVersion = reviewed.GameVersion
+                  GameSha256 = reviewed.GameSha256
+                  AllowIncompatible = fallback }
+        )
+        |> wait
+        |> Result.defaultWith (fun problem -> failwith ("Fresh Apply after restart: " + SkseProblem.message problem))
+        |> ignore
+
+        let reapplied = resumed.StartPrepared(workspace, profile) |> wait
+
+        check
+            writer
+            (if fallback then
+                 "freshFallbackApplyUsesReviewedFileAfterRestart"
+             else
+                 "freshExactApplyUsesReviewedFileAfterRestart")
+            (reviewed.Compatible <> fallback
+             && reviewed.Release.File.Id = 402L
+             && reapplied.Phase = SksePhase.WaitingForNexus
+             && reapplied.FileId = Some 402L)
+
     let observe (writer: Utf8JsonWriter) primary =
         let area =
             Directory.CreateDirectory(Path.Combine(primary, "skse-coordinator")).FullName
 
         writer.WriteStartObject("skseCoordinator")
         nxmEvidence writer area
+        interruptedReviewEvidence writer area false
+        interruptedReviewEvidence writer area true
         offlineCacheEvidence writer area
         installedEvidence writer area
         GenerationCleanup.normalize area

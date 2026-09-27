@@ -15,11 +15,13 @@ class SetupClientFixture extends SkyrimSetupClient {
     this.completeWithFnisWarning = false,
     this.updateVersion,
     this.review,
+    this.reviewRequired = false,
   });
   final Set<String> installed;
   final SkyrimSetupSelection? savedSelection;
   final bool failFirstStart;
   final bool completeWithFnisWarning;
+  final bool reviewRequired;
   String? updateVersion;
   final SkseReleaseReview? review;
   SkseReleaseChoice? appliedSkseChoice;
@@ -56,7 +58,9 @@ class SetupClientFixture extends SkyrimSetupClient {
       status: recoveryRequired
           ? 'Cancellation needs completion'
           : failed
-          ? 'Setup failed'
+          ? reviewRequired
+                ? 'Review SKSE again'
+                : 'Setup failed'
           : running
           ? 'Installing'
           : cancelled
@@ -83,7 +87,7 @@ class SetupClientFixture extends SkyrimSetupClient {
       ],
       selection: selection,
       canStart: selection.canApply,
-      canContinue: failed || recoveryRequired,
+      canContinue: (failed && !reviewRequired) || recoveryRequired,
       active: false,
       ready: false,
       canCancel: running || failed,
@@ -161,7 +165,7 @@ class SetupClientFixture extends SkyrimSetupClient {
       completed = true;
       return fnisWarningState(selection, ready: true, canContinue: true);
     }
-    failed = failFirstStart && starts == 1;
+    failed = (failFirstStart || reviewRequired) && starts == 1;
     running = !failed;
     return state(selection, running: running, failed: failed);
   }
@@ -666,6 +670,27 @@ void main() {
           .widget<McAction>(find.byKey(const ValueKey('apply-skyrim-setup')))
           .onPressed,
       isNull,
+    );
+  });
+
+  testWidgets('interrupted SKSE asks for Apply without a duplicate retry', (
+    tester,
+  ) async {
+    final client = SetupClientFixture(reviewRequired: true);
+    await tester.pumpWidget(app(client));
+    await settle(tester);
+    await tester.tap(find.byType(Switch).first);
+    await settle(tester);
+    await tester.tap(find.byKey(const ValueKey('apply-skyrim-setup')));
+    await settle(tester);
+
+    expect(find.text('Review SKSE again'), findsOneWidget);
+    expect(find.text('Try again'), findsNothing);
+    expect(
+      tester
+          .widget<McAction>(find.byKey(const ValueKey('apply-skyrim-setup')))
+          .onPressed,
+      isNotNull,
     );
   });
 
