@@ -35,7 +35,9 @@ type internal IProfileDataRepository =
     abstract Action:
         workspace: Guid * id: Guid -> Task<Result<ProfileDataActionRecord option, ProfileDataError>>
 
+    abstract Context: id: Guid -> Task<Result<ProfileDataContext, ProfileDataError>>
     abstract SaveAction: ProfileDataActionRecord -> Task<Result<unit, ProfileDataError>>
+    abstract Discard: ProfileDataActionRecord -> Task<Result<unit, ProfileDataError>>
 
     abstract Complete:
         ProfileDataContext * PrivateProfileData option * ProfileDataActionRecord ->

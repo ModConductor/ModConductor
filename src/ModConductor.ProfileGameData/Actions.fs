@@ -1,9 +1,11 @@
 namespace ModConductor.ProfileGameData
 
 open System
+open System.IO
 open System.Threading
 open System.Threading.Tasks
 open ModConductor.GameContexts
+open ModConductor.Platform
 
 type internal ProfileDataActionDependencies =
     { Repository: IProfileDataRepository
@@ -12,6 +14,40 @@ type internal ProfileDataActionDependencies =
       Read: Guid -> Guid -> Task<Result<ProfileDataState, ProfileDataError>> }
 
 module internal ProfileDataActions =
+    let private actionStages (context: ProfileDataContext) (action: ProfileDataActionRecord) =
+        let stages =
+            [ match action.WorkspaceStage with
+              | Some root -> yield context.Storage.Value, "action-" + action.Id.ToString("N"), root
+              | None -> ()
+              match action.DocumentsStage with
+              | Some root -> yield context.OriginalsRoot.Value, action.Id.ToString("N"), root
+              | None -> ()
+              match action.PluginStage with
+              | Some root -> yield context.PluginOriginals.Value, action.Id.ToString("N"), root
+              | None -> () ]
+
+        for parent, name, root in stages do
+            let path = HostPath.value root.Path
+
+            if
+                Path.GetDirectoryName path <> HostPath.value parent.Path
+                || Path.GetFileName path <> name
+            then
+                DataFiles.fail "The prepared action folder changed."
+
+            DataLocations.existing parent root |> ignore
+
+        stages
+
+    let private clearStages stages =
+        for _, _, root in stages do
+            SaveTrees.clearPrepared root
+
+    let private removeStages stages =
+        for parent, name, root in stages do
+            use held = HeldDirectory.Open(parent.Path, parent.Identity)
+            held.RemoveDirectory(name, root.Identity)
+
     let initial id (context: ProfileDataContext) profile kind =
         { Id = id
           ContextId = context.Id
@@ -199,15 +235,48 @@ module internal ProfileDataActions =
 
                 action <- { action with Problem = Some detail }
 
-                let! saved = repository.SaveAction action
+                if action.Kind = ProfileDataActionKind.Apply && not action.Prepared then
+                    let! discarded =
+                        task {
+                            try
+                                let! contextResult = repository.Context action.ContextId
 
-                match saved with
-                | Ok() ->
-                    do! report action
+                                match contextResult with
+                                | Error error -> return Error(Choice1Of2 error)
+                                | Ok current ->
+                                    let stages = actionStages current action
+                                    clearStages stages
+                                    let! result = repository.Discard action
+
+                                    match result with
+                                    | Error error -> return Error(Choice1Of2 error)
+                                    | Ok() ->
+                                        removeStages stages
+                                        return Ok()
+                            with error ->
+                                return Error(Choice2Of2 error)
+                        }
+
+                    match discarded with
+                    | Ok() -> ()
+                    | Error(Choice1Of2 error) ->
+                        do! repository.Release action.Id
+                        return! Error error
+                    | Error(Choice2Of2 error) ->
+                        do! repository.Release action.Id
+                        return raise error
+                else
+                    let! saved = repository.SaveAction action
+
+                    match saved with
+                    | Error error ->
+                        do! repository.Release action.Id
+                        return! Error error
+                    | Ok() -> ()
+
                     do! repository.Release action.Id
-                | Error error ->
-                    do! repository.Release action.Id
-                    return! Error error
+
+                do! report action
 
                 let! stateResult = read scope.WorkspaceId scope.ProfileId
                 let! state = stateResult

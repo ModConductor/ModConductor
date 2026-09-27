@@ -312,6 +312,36 @@ type internal ProfileDataRepository(database: StateDatabase, access: LibraryAcce
                     ProfileDataRows.saveAction connection transaction database.OwnerId true action)
                 |> commit transaction)
 
+        member _.Context id =
+            database.Enqueue(fun () -> ensureContext null id)
+
+        member _.Discard action =
+            database.Enqueue(fun () ->
+                use transaction = connection.BeginTransaction(deferred = false)
+
+                pending transaction action
+                |> Result.bind (fun context ->
+                    match ProfileDataRows.action connection transaction action.Id with
+                    | Some stored when
+                        stored.Kind = ProfileDataActionKind.Apply
+                        && not stored.Prepared
+                        && not stored.Complete
+                        ->
+                        Sqlite.execute
+                            connection
+                            transaction
+                            "DELETE FROM profile_data_actions WHERE id=$id"
+                            [ "$id", box (string action.Id) ]
+
+                        ProfileDataRows.saveContext
+                            connection
+                            transaction
+                            { context with Pending = None }
+
+                        Ok()
+                    | _ -> Error ProfileDataError.Stale)
+                |> commit transaction)
+
         member _.Complete(context, profile, action) =
             database.Enqueue(fun () ->
                 use transaction = connection.BeginTransaction(deferred = false)

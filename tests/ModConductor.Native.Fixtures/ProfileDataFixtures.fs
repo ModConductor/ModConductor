@@ -327,6 +327,7 @@ module ProfileDataFixtures =
                 "duplicateGeneralRefusesApplicationWithoutChangingSettings"
                 (duplicateRun.Phase = RunPhase.Failed
                  && duplicateRun.ProcessId.IsNone
+                 && duplicateRun.Problem.IsSome
                  && File.ReadAllText(firstIni) = duplicateGeneral
                  && (read first).Pending.IsNone)
 
@@ -338,6 +339,7 @@ module ProfileDataFixtures =
                 "duplicateSavePathRefusesApplicationWithoutChangingSettings"
                 (duplicateRun.Phase = RunPhase.Failed
                  && duplicateRun.ProcessId.IsNone
+                 && duplicateRun.Problem.IsSome
                  && File.ReadAllText(firstIni) = duplicatePath
                  && (read first).Pending.IsNone)
 
