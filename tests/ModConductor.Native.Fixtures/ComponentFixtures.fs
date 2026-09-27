@@ -81,16 +81,15 @@ module internal ComponentFixtures =
             Directory.CreateDirectory(Path.Combine(area, "workspace")).FullName
 
         let game, proton = ProtonFixtures.create (Path.Combine(area, "game"))
-        let data = Path.Combine(game, "Data")
 
-        let originalStores () =
-            Directory.EnumerateDirectories(
-                game,
-                ".modconductor-originals-*",
-                SearchOption.TopDirectoryOnly
-            )
-            |> Seq.map Path.GetFullPath
-            |> Set.ofSeq
+        let originalStore (profile: Guid) =
+            Path.Combine(workspacePath, ".mc-game-views", profile.ToString("N"), "originals")
+
+        let originalsClean profile =
+            let path = originalStore profile
+
+            not (Directory.Exists path)
+            || (Directory.EnumerateFileSystemEntries path |> Seq.isEmpty)
 
         let source =
             Directory.CreateDirectory(Path.Combine(workspacePath, "Component")).FullName
@@ -109,8 +108,6 @@ module internal ComponentFixtures =
         File.WriteAllText(foreignLoader, "foreign-loader")
         let executable = Path.Combine(game, "SkyrimSE.exe")
         let executableHash = digest executable
-        let blocked = Path.Combine(game, "blocked.dll")
-        File.CreateSymbolicLink(blocked, executable) |> ignore
 
         let workspace, profileOne, profileTwo, modId, versionOne, versionTwo =
             Guid.NewGuid(),
@@ -234,6 +231,11 @@ module internal ComponentFixtures =
             ComponentRoots.gameRootId workspace context.Binding.Value.Evidence
             |> Result.defaultWith invalidOp
 
+        let targetGame (prepared: PreparedState) =
+            prepared.Switch.Roots
+            |> List.find (fun root -> root.Root.Id = gameRoot)
+            |> fun root -> HostPath.value root.Directory.Path
+
         let first = review workspace gameRoot firstVersion
         let second = review workspace gameRoot secondVersion
 
@@ -252,7 +254,7 @@ module internal ComponentFixtures =
 
         let abandonedPreparation = prepare profileOne first
         PreparedState.abandon abandonedPreparation
-        let abandonedPreparationClean = originalStores().IsEmpty
+        let abandonedPreparationClean = originalsClean profileOne
 
         let cancelledPreparation = prepare profileOne first
         use cancelled = new CancellationTokenSource()
@@ -262,13 +264,17 @@ module internal ComponentFixtures =
             store.Generations.Start(cancelledPreparation, [], cancellation = cancelled.Token)
             |> wait
 
-        let cancelledStartClean = Result.isError cancelledStart && originalStores().IsEmpty
+        let cancelledStartClean = Result.isError cancelledStart && originalsClean profileOne
 
         let blockedPreparation = prepare profileOne first
+
+        let blocked = Path.Combine(targetGame blockedPreparation, "blocked.dll")
+
+        File.CreateSymbolicLink(blocked, executable) |> ignore
         let blockedStart = store.Generations.Start(blockedPreparation, []) |> wait
 
         let foreignLinkRefused =
-            Result.isError blockedStart && File.Exists blocked && originalStores().IsEmpty
+            Result.isError blockedStart && File.Exists blocked && originalsClean profileOne
 
         File.Delete blocked
 
@@ -302,7 +308,7 @@ module internal ComponentFixtures =
         |> recovery
         |> ignore
 
-        File.WriteAllText(Path.Combine(game, "enblocal.ini"), "profile-one")
+        File.WriteAllText(Path.Combine(targetGame preparedOne, "enblocal.ini"), "profile-one")
         let firstGeneration = preparedOne.Switch.Generation
         let preparedTwo = prepare profileTwo second
         let receiptTwo = store.Generations.Start(preparedTwo, []) |> wait |> result
@@ -320,8 +326,8 @@ module internal ComponentFixtures =
         |> ignore
 
         let secondSelected =
-            File.ReadAllText(Path.Combine(game, "skse_loader.dll")) = "loader-v2"
-            && File.ReadAllText(Path.Combine(game, "enblocal.ini")) = "config-v1"
+            File.ReadAllText(Path.Combine(targetGame preparedTwo, "skse_loader.dll")) = "loader-v2"
+            && File.ReadAllText(Path.Combine(targetGame preparedTwo, "enblocal.ini")) = "config-v1"
 
         let preparedBack = prepare profileOne first
         let back = store.Generations.Start(preparedBack, []) |> wait |> result
@@ -339,8 +345,8 @@ module internal ComponentFixtures =
         |> ignore
 
         let firstRestored =
-            File.ReadAllText(Path.Combine(game, "skse_loader.dll")) = "loader-v1"
-            && File.ReadAllText(Path.Combine(game, "enblocal.ini")) = "profile-one"
+            File.ReadAllText(Path.Combine(targetGame preparedBack, "skse_loader.dll")) = "loader-v1"
+            && File.ReadAllText(Path.Combine(targetGame preparedBack, "enblocal.ini")) = "profile-one"
 
         let current = InventoryObservations.read store profileOne
 
@@ -382,7 +388,9 @@ module internal ComponentFixtures =
             |> List.map (fun root -> HostPath.value root.Originals.Path |> Path.GetFullPath)
             |> Set.ofList
 
-        let finalOriginalStoresOwned = originalStores () = persistedOriginalStores
+        let finalOriginalStoresOwned =
+            persistedOriginalStores = Set.singleton (Path.GetFullPath(originalStore profileOne))
+            && originalsClean profileOne
 
         let invalidRoot =
             let version =
@@ -439,17 +447,18 @@ module internal ComponentFixtures =
 
         writer.WriteBoolean(
             "rootOriginalRestored",
-            (File.ReadAllText(foreignLoader) = "foreign-loader")
+            (File.ReadAllText(foreignLoader) = "foreign-loader"
+             && File.ReadAllText(Path.Combine(targetGame removal, "skse_loader.dll")) = "foreign-loader")
         )
 
         writer.WriteBoolean(
             "dataLinkRemoved",
-            not (File.Exists(Path.Combine(data, "Scripts", "component.pex")))
+            not (File.Exists(Path.Combine(targetGame removal, "Data", "Scripts", "component.pex")))
         )
 
         writer.WriteBoolean(
             "configurationLinkRemoved",
-            not (File.Exists(Path.Combine(game, "enblocal.ini")))
+            not (File.Exists(Path.Combine(targetGame removal, "enblocal.ini")))
         )
 
         writer.WriteBoolean("gameUpdatePreserved", digest executable = executableHash)
