@@ -200,6 +200,8 @@ module internal Preparation =
             let targets =
                 (proposed |> List.map fst)
                 @ (context.Links |> List.map (fun link -> link.Target))
+                |> List.distinct
+                |> List.sort
 
             if overlappingTargets targets then
                 Error RecoveryError.InvalidPlan
