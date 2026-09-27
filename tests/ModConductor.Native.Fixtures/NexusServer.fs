@@ -481,6 +481,13 @@ type NexusServer() =
                          + "]}")
             elif path.EndsWith "/files/501.json" then
                 do! write 200 (file 501 "Quiet rivers.7z" "Main files")
+            elif metadata && path.EndsWith "/files/503.json" then
+                do!
+                    write
+                        200
+                        ("{\"file_id\":503,\"file_name\":\"River sounds patch.zip\",\"version\":\"1.2\",\"category_name\":\"Optional files\",\"category_id\":3,\"uploaded_timestamp\":1789238400,\"description\":\"Water textures\",\"size_in_bytes\":"
+                         + payload.Length.ToString(Globalization.CultureInfo.InvariantCulture)
+                         + "}")
             else
                 do! write 404 "{}"
         }

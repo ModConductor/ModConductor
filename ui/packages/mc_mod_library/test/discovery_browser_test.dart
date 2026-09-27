@@ -6,6 +6,7 @@ import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 
 class _Nexus extends Fake implements NexusClient {
   bool unavailable = false;
+  bool tracked = true;
   int searches = 0;
   final pages = <int>[];
   final feeds = <String>[];
@@ -16,9 +17,10 @@ class _Nexus extends Fake implements NexusClient {
     String profile,
     String feed,
   ) async {
-    expect((workspace, profile), ('workspace', 'profile'));
+    expectSync((workspace, profile), ('workspace', 'profile'));
     feeds.add(feed);
     if (unavailable) throw const NexusProblem('not_found', 'Feed unavailable');
+    if (feed == 'tracked' && !tracked) return [];
     return [
       NexusDiscoveryMod(
         64012,
@@ -33,13 +35,13 @@ class _Nexus extends Fake implements NexusClient {
 
   @override
   Future<void> openSearch(String workspace, String profile) async {
-    expect((workspace, profile), ('workspace', 'profile'));
+    expectSync((workspace, profile), ('workspace', 'profile'));
     searches++;
   }
 
   @override
   Future<void> openPage(String workspace, String profile, int modId) async {
-    expect((workspace, profile), ('workspace', 'profile'));
+    expectSync((workspace, profile), ('workspace', 'profile'));
     pages.add(modId);
   }
 
@@ -65,8 +67,8 @@ class _Organization extends Fake implements ModOrganizationClient {
     ModQueryCursor? cursor,
     String? inspectedId,
   }) async {
-    expect(profileId, 'profile');
-    expect(cursor, isNull);
+    expectSync(profileId, 'profile');
+    expectSync(cursor, isNull);
     final mod = ModEntry(
       id: 'local',
       workspaceId: 'workspace',
@@ -99,14 +101,39 @@ class _Organization extends Fake implements ModOrganizationClient {
   }
 }
 
+class _Inventory extends ProfileModsController {
+  void changed() {
+    catalogueRevision = (catalogueRevision ?? 0) + 1;
+    notifyListeners();
+  }
+}
+
 class _Metadata extends Fake implements NexusMetadataClient {
+  bool cachedUpdate = true;
+  bool remoteUpdate = true;
+  bool refreshFails = false;
+  int refreshes = 0;
+
   @override
   Future<ModNexusDetails> read(
     String workspace,
     String profile,
     String mod,
   ) async {
-    expect((workspace, profile, mod), ('workspace', 'profile', 'local'));
+    expectSync((workspace, profile, mod), ('workspace', 'profile', 'local'));
+    return _details(cachedUpdate);
+  }
+
+  @override
+  Future<ModNexusDetails> refresh(ModNexusReference reference) async {
+    expectSync((reference.workspace, reference.mod), ('workspace', 'local'));
+    refreshes++;
+    if (refreshFails) throw const NexusProblem('offline', 'Nexus is offline');
+    cachedUpdate = remoteUpdate;
+    return _details(cachedUpdate);
+  }
+
+  ModNexusDetails _details(bool update) {
     return ModNexusDetails(
       const ModNexusReference('workspace', 'local', 1, 'version', 64012, 1),
       'Quiet Rivers',
@@ -129,7 +156,7 @@ class _Metadata extends Fake implements NexusMetadataClient {
             const NexusFile(502, 'Update.7z', '1.1', 'Main files', '', null),
             1,
             null,
-            true,
+            update,
           ),
         ],
       ),
@@ -147,7 +174,12 @@ Future<void> _show(
   _Nexus nexus,
   _Organization organization,
   List<int> viewed,
-) async {
+  _Metadata metadata,
+  _Inventory inventory,
+  ValueNotifier<int> trackedChanges, {
+  bool active = true,
+  Listenable? localChanges,
+}) async {
   tester.view.physicalSize = const Size(1440, 900);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
@@ -161,7 +193,11 @@ Future<void> _show(
           profile: 'profile',
           nexus: nexus,
           organization: organization,
-          metadata: _Metadata(),
+          metadata: metadata,
+          inventory: inventory,
+          trackedChanges: trackedChanges,
+          localChanges: localChanges ?? trackedChanges,
+          active: active,
           onViewFiles: viewed.add,
         ),
       ),
@@ -176,7 +212,19 @@ void main() {
   ) async {
     final nexus = _Nexus();
     final viewed = <int>[];
-    await _show(tester, nexus, _Organization(), viewed);
+    final inventory = _Inventory();
+    final trackedChanges = ValueNotifier(0);
+    addTearDown(inventory.dispose);
+    addTearDown(trackedChanges.dispose);
+    await _show(
+      tester,
+      nexus,
+      _Organization(),
+      viewed,
+      _Metadata(),
+      inventory,
+      trackedChanges,
+    );
 
     await tester.tap(find.text('Search Nexus in browser'));
     await tester.pump();
@@ -201,7 +249,19 @@ void main() {
     final nexus = _Nexus()..unavailable = true;
     final organization = _Organization()..installed = true;
     final viewed = <int>[];
-    await _show(tester, nexus, organization, viewed);
+    final inventory = _Inventory();
+    final trackedChanges = ValueNotifier(0);
+    addTearDown(inventory.dispose);
+    addTearDown(trackedChanges.dispose);
+    await _show(
+      tester,
+      nexus,
+      organization,
+      viewed,
+      _Metadata(),
+      inventory,
+      trackedChanges,
+    );
     expect(find.text('Feed unavailable'), findsOneWidget);
 
     await tester.tap(find.text('Updates'));
@@ -209,5 +269,157 @@ void main() {
     await tester.tap(find.text('View update'));
     await tester.pump();
     expect(viewed, [64012]);
+  });
+
+  testWidgets(
+    'revisit refreshes remote updates and inventory removal clears cards',
+    (tester) async {
+      final nexus = _Nexus();
+      final organization = _Organization();
+      final metadata = _Metadata()
+        ..cachedUpdate = false
+        ..remoteUpdate = false;
+      final inventory = _Inventory();
+      final trackedChanges = ValueNotifier(0);
+      addTearDown(inventory.dispose);
+      addTearDown(trackedChanges.dispose);
+      final viewed = <int>[];
+      await _show(
+        tester,
+        nexus,
+        organization,
+        viewed,
+        metadata,
+        inventory,
+        trackedChanges,
+      );
+      expect(metadata.refreshes, 0);
+
+      organization.installed = true;
+      inventory.changed();
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Installed').first);
+      await tester.pumpAndSettle();
+      expect(find.text('View files'), findsOneWidget);
+
+      await tester.tap(find.text('Updates'));
+      await tester.pumpAndSettle();
+      expect(metadata.refreshes, 1);
+      expect(find.text('View update'), findsNothing);
+
+      metadata.remoteUpdate = true;
+      await _show(
+        tester,
+        nexus,
+        organization,
+        viewed,
+        metadata,
+        inventory,
+        trackedChanges,
+        active: false,
+      );
+      await _show(
+        tester,
+        nexus,
+        organization,
+        viewed,
+        metadata,
+        inventory,
+        trackedChanges,
+      );
+      expect(metadata.refreshes, 2);
+      expect(find.text('View update'), findsOneWidget);
+
+      organization.installed = false;
+      inventory.changed();
+      await tester.pumpAndSettle();
+      expect(find.text('View update'), findsNothing);
+      expect(find.text('No mods in this collection.'), findsOneWidget);
+    },
+  );
+
+  testWidgets('tracked changes replace the mounted collection', (tester) async {
+    final nexus = _Nexus()..tracked = false;
+    final inventory = _Inventory();
+    final trackedChanges = ValueNotifier(0);
+    addTearDown(inventory.dispose);
+    addTearDown(trackedChanges.dispose);
+    await _show(
+      tester,
+      nexus,
+      _Organization(),
+      [],
+      _Metadata(),
+      inventory,
+      trackedChanges,
+    );
+    await tester.tap(find.text('Tracked'));
+    await tester.pumpAndSettle();
+    expect(find.text('View files'), findsNothing);
+
+    nexus.tracked = true;
+    trackedChanges.value++;
+    await tester.pumpAndSettle();
+    expect(find.text('View files'), findsOneWidget);
+
+    nexus.tracked = false;
+    trackedChanges.value++;
+    await tester.pumpAndSettle();
+    expect(find.text('View files'), findsNothing);
+  });
+
+  testWidgets('failed update refresh keeps installed cards available', (
+    tester,
+  ) async {
+    final inventory = _Inventory();
+    final trackedChanges = ValueNotifier(0);
+    addTearDown(inventory.dispose);
+    addTearDown(trackedChanges.dispose);
+    final metadata = _Metadata()..refreshFails = true;
+    await _show(
+      tester,
+      _Nexus(),
+      _Organization()..installed = true,
+      [],
+      metadata,
+      inventory,
+      trackedChanges,
+    );
+    await tester.tap(find.text('Updates'));
+    await tester.pumpAndSettle();
+    expect(find.text('View update'), findsNothing);
+    expect(find.text('Nexus is offline'), findsOneWidget);
+
+    await tester.tap(find.text('Installed').first);
+    await tester.pumpAndSettle();
+    expect(find.text('View files'), findsOneWidget);
+  });
+
+  testWidgets('explicit Nexus link change invalidates local cards', (
+    tester,
+  ) async {
+    final inventory = _Inventory();
+    final trackedChanges = ValueNotifier(0);
+    final localChanges = ValueNotifier(0);
+    addTearDown(inventory.dispose);
+    addTearDown(trackedChanges.dispose);
+    addTearDown(localChanges.dispose);
+    final organization = _Organization();
+    await _show(
+      tester,
+      _Nexus(),
+      organization,
+      [],
+      _Metadata()..cachedUpdate = false,
+      inventory,
+      trackedChanges,
+      localChanges: localChanges,
+    );
+    organization.installed = true;
+    localChanges.value++;
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Installed').first);
+    await tester.pumpAndSettle();
+    expect(find.text('View files'), findsOneWidget);
   });
 }

@@ -8,6 +8,7 @@ import 'package:integration_test/integration_test.dart';
 import 'package:mc_client/mc_client.dart';
 import 'package:mc_mod_library/mc_mod_library.dart';
 import 'package:mc_artifacts/src/update_form.dart';
+import 'package:mc_artifacts/src/nexus_view.dart';
 import 'package:mc_artifacts/mc_artifacts.dart';
 import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 import 'package:mod_conductor/src/app.dart';
@@ -28,8 +29,13 @@ void main() {
       final root = await Directory(
         '$output/Texture collections/Weekend workspace with a long path',
       ).create(recursive: true);
-      final game = '$output/synthetic-game';
-      expect((await Process.run(fixture, ['--game-files', game])).exitCode, 0);
+      final inputs = '$output/installation';
+      expect(
+        (await Process.run(fixture, ['--proton-files', inputs])).exitCode,
+        0,
+      );
+      final steam = '$inputs/Steam', library = '$inputs/Second library';
+      final game = '$library/steamapps/common/Skyrim Special Edition';
       final info = '$output/provider.txt';
       final owner = EngineOwner(
         fixture,
@@ -109,6 +115,13 @@ void main() {
           'skyrim-se-steam',
           0,
           game,
+          proton: ProtonSelection(
+            appId: 489830,
+            association: SteamProtonAssociation(steam, library),
+            compatData: '$library/steamapps/compatdata/489830',
+            runtimeDirectory: '$steam/compatibilitytools.d/Custom Ω Proton',
+            toolId: 'fixture_tool',
+          ),
         );
         Future<Artifact> available(Artifact initial) async {
           var value = initial;
@@ -190,6 +203,10 @@ void main() {
           await tap(find.byKey(const ValueKey('nav-workspaces')));
         }
         await tap(find.byKey(ValueKey('workspace-$workspace')));
+        if (action('Save profile').evaluate().isNotEmpty) {
+          await tap(action('Save profile'));
+        }
+        await until(() => find.text('Mods').evaluate().isNotEmpty);
         await tap(find.text('Mods').first);
         await capture('mods-before-load');
         final browser = tester.widget<ModLibraryBrowser>(
@@ -322,8 +339,59 @@ void main() {
               find.text('Quiet rivers').evaluate().isNotEmpty,
         );
         await capture('mods-updated');
+        await tap(find.text('Discover'));
+        await until(
+          () =>
+              find.byType(NexusDiscoveryBrowser).evaluate().isNotEmpty &&
+              action('View files').evaluate().isNotEmpty,
+        );
+        await capture('discover');
+        await tap(action('View files'));
+        await capture('discover-files-entry');
+        await until(
+          () =>
+              find.byType(NexusFilesView).evaluate().isNotEmpty &&
+              find.byKey(const ValueKey(503)).evaluate().isNotEmpty,
+        );
+        await tap(find.byKey(const ValueKey(503)));
+        await capture('discover-files');
+        final previousArtifact = tester
+            .widget<ArtifactBrowser>(
+              find.byType(ArtifactBrowser, skipOffstage: false),
+            )
+            .controller
+            .selected
+            ?.id;
+        await tap(action('Download').first);
+        await until(() {
+          final archives = find.byType(ArtifactBrowser);
+          if (archives.evaluate().isEmpty) return false;
+          final selected = tester
+              .widget<ArtifactBrowser>(archives)
+              .controller
+              .selected;
+          return selected != null && selected.id != previousArtifact;
+        });
+        final fromDiscover = await available(
+          tester
+              .widget<ArtifactBrowser>(find.byType(ArtifactBrowser))
+              .controller
+              .selected!,
+        );
+        expect(fromDiscover.originalPath, 'Nexus Mods');
+        final discoveryDraft = await owner.installations!
+            .prepare(fromDiscover)
+            .result;
+        final discoveryStart = await owner.installations!.start(
+          discoveryDraft,
+          newOperationId(),
+        );
+        final discoveryInstall = await owner.installations!
+            .watch(discoveryStart)
+            .last;
+        expect(discoveryInstall.phase, InstallationPhase.complete);
         await File('$output/observations.txt').writeAsString(
-          'Production widgets and native services: explicit refresh, tracking, category selection, manual file link, uncertain-write refusal, stale snapshot, explicit successor acquisition and preselected reviewed update. Local mod identity retained; new provider file version observed. Private synthetic account and archives only.\n',
+          'Production widgets and native services: explicit refresh, tracking, category selection, manual file link, uncertain-write refusal, stale snapshot, explicit successor acquisition and preselected reviewed update. Discover card opened exact files; selected Nexus file downloaded and entered ordinary archive installation. Private synthetic account and archives only.\n',
         );
       } finally {
         await tester.pumpWidget(const SizedBox.shrink());

@@ -83,7 +83,11 @@ extension _WorkspaceWorkbench on _WorkspaceBrowserState {
             if (widget.modLibraryBuilder != null)
               ExcludeFocus(
                 excluding: mode != _WorkspaceMode.mods,
-                child: widget.modLibraryBuilder!(context, workspace),
+                child: widget.modLibraryBuilder!(
+                  context,
+                  workspace,
+                  mode == _WorkspaceMode.mods,
+                ),
               )
             else
               const SizedBox.shrink(),

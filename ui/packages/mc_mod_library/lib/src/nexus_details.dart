@@ -145,9 +145,15 @@ extension _NexusDetailsView on _ModNexusViewState {
                       state?.busy == true ||
                       state?.tracking == null
                   ? null
-                  : () => controller.change(
-                      state!.tracking! ? 'untrack' : 'track',
-                    ),
+                  : () async {
+                      await controller.change(
+                        state!.tracking! ? 'untrack' : 'track',
+                      );
+                      if (controller.problem == null &&
+                          controller.interactions?.tracking != state.tracking) {
+                        widget.onTrackingChanged?.call();
+                      }
+                    },
             ),
             McAction(
               label: state?.endorsement == 'endorsed'
@@ -225,7 +231,7 @@ extension _NexusDetailsView on _ModNexusViewState {
           label: 'Remove link',
           onPressed: () {
             Navigator.pop(c);
-            controller.link(null, null);
+            link(null, null);
           },
         ),
         McAction(

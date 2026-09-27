@@ -15,12 +15,18 @@ class ModNexusView extends StatefulWidget {
     required this.onDownloaded,
     this.organization,
     this.onMapped,
+    this.onLinked,
+    this.onTrackingChanged,
+    this.onRefreshed,
     this.localCategories = const [],
   });
   final ModNexusController controller;
   final Future<void> Function(Artifact, ModNexusDetails, String) onDownloaded;
   final ModOrganizationClient? organization;
   final Future<void> Function()? onMapped;
+  final Future<void> Function()? onLinked;
+  final VoidCallback? onTrackingChanged;
+  final VoidCallback? onRefreshed;
   final List<CategoryReference> localCategories;
   @override
   State<ModNexusView> createState() => _ModNexusViewState();
@@ -70,7 +76,24 @@ class _ModNexusViewState extends State<ModNexusView> {
           NexusLinkForm(details: original, client: nexus, profile: profile),
     );
     if (result != null && mounted) {
-      await controller.link(result.mod, result.file);
+      await link(result.mod, result.file);
+    }
+  }
+
+  Future<void> link(int? mod, int? file) async {
+    final before = controller.details?.reference.linkRevision;
+    await controller.link(mod, file);
+    if (controller.problem == null &&
+        before != controller.details?.reference.linkRevision) {
+      await widget.onLinked?.call();
+    }
+  }
+
+  Future<void> refresh() async {
+    final before = controller.details;
+    await controller.refresh();
+    if (controller.problem == null && !identical(before, controller.details)) {
+      widget.onRefreshed?.call();
     }
   }
 
@@ -135,7 +158,7 @@ class _ModNexusViewState extends State<ModNexusView> {
                 McIconAction(
                   label: 'Refresh',
                   icon: const Icon(Icons.refresh),
-                  onPressed: controller.busy ? null : controller.refresh,
+                  onPressed: controller.busy ? null : refresh,
                 ),
                 if (compact)
                   McIconAction(

@@ -8,6 +8,38 @@ import 'package:mc_workspaces/mc_workspaces.dart';
 import 'controller_test.dart' show ScriptedClient, page;
 
 void main() {
+  testWidgets('mounted Mods surface receives visibility changes', (
+    tester,
+  ) async {
+    final client = ScriptedClient()..onOpen = (_) async => page('one');
+    final controller = WorkspaceController()..attach(client);
+    addTearDown(controller.dispose);
+    await controller.open('/fixture/one');
+    final visible = <bool>[];
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WorkspaceBrowser(
+            controller: controller,
+            modLibraryBuilder: (_, _, active) {
+              visible.add(active);
+              return const SizedBox();
+            },
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(visible.last, false);
+
+    await tester.tap(find.byKey(const ValueKey('workspace-mods-tab')));
+    await tester.pumpAndSettle();
+    expect(visible.last, true);
+    await tester.tap(find.byKey(const ValueKey('workspace-profiles-tab')));
+    await tester.pumpAndSettle();
+    expect(visible.last, false);
+  });
+
   testWidgets('an unbound current profile builds only its setup gate', (
     tester,
   ) async {
@@ -28,7 +60,7 @@ void main() {
               setupBuilds++;
               return const SizedBox(key: ValueKey('profile-setup-gate'));
             },
-            modLibraryBuilder: (_, _) {
+            modLibraryBuilder: (_, _, _) {
               workbenchBuilds++;
               return const SizedBox();
             },

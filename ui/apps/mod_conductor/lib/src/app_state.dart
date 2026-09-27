@@ -32,6 +32,8 @@ abstract class _AppStateBase extends State<ModConductorApp> {
   bool _discoverMods = false;
   NexusFileRequest? _nexusFileRequest;
   int _nexusFileRevision = 0;
+  final _discoveryTrackedChanges = ValueNotifier<int>(0);
+  final _discoveryLocalChanges = ValueNotifier<int>(0);
   final _deployments = DeploymentController();
   final _executables = ExecutablesController();
   final _play = GamePlayController();

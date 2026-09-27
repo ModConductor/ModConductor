@@ -5,6 +5,8 @@ import 'package:mc_client/mc_client.dart';
 import 'package:mc_ui_collections/mc_ui_collections.dart';
 import 'package:mc_ui_foundation/mc_ui_foundation.dart';
 
+import 'profile_mods_controller.dart';
+
 enum _DiscoveryFeed {
   trending('Trending', 'trending'),
   latestAdded('Latest added', 'latest_added'),
@@ -67,6 +69,10 @@ class NexusDiscoveryBrowser extends StatefulWidget {
     required this.nexus,
     required this.organization,
     required this.metadata,
+    required this.inventory,
+    required this.trackedChanges,
+    required this.localChanges,
+    required this.active,
     required this.onViewFiles,
   });
 
@@ -74,6 +80,10 @@ class NexusDiscoveryBrowser extends StatefulWidget {
   final NexusClient nexus;
   final ModOrganizationClient organization;
   final NexusMetadataClient metadata;
+  final ProfileModsController inventory;
+  final Listenable trackedChanges;
+  final Listenable localChanges;
+  final bool active;
   final ValueChanged<int> onViewFiles;
 
   @override
@@ -98,20 +108,76 @@ class _NexusDiscoveryBrowserState extends State<NexusDiscoveryBrowser> {
   final failedHydration = <int>{};
   final local = <int, ModNexusDetails>{};
   final updateIds = <int>{};
+  final feedRequests = <_DiscoveryFeed, int>{};
   bool localLoading = false;
+  bool localDirty = true;
   String? localProblem, actionProblem;
-  int epoch = 0;
+  NexusProblem? localNexusProblem;
+  int epoch = 0, localRequest = 0;
+  int? selectionRevision, catalogueRevision;
 
   @override
   void initState() {
     super.initState();
-    unawaited(_loadFeed(_DiscoveryFeed.trending));
-    unawaited(_loadLocal());
+    selectionRevision = widget.inventory.revision;
+    catalogueRevision = widget.inventory.catalogueRevision;
+    widget.inventory.addListener(_inventoryChanged);
+    widget.trackedChanges.addListener(_trackedChanged);
+    widget.localChanges.addListener(_localChanged);
+    if (widget.active) _activate();
+  }
+
+  void _inventoryChanged() {
+    if (selectionRevision == widget.inventory.revision &&
+        catalogueRevision == widget.inventory.catalogueRevision) {
+      return;
+    }
+    selectionRevision = widget.inventory.revision;
+    catalogueRevision = widget.inventory.catalogueRevision;
+    _localChanged();
+  }
+
+  void _localChanged() {
+    localDirty = true;
+    if (widget.active) {
+      unawaited(_loadLocal(refreshUpdates: selected == _DiscoveryFeed.updates));
+    }
+  }
+
+  void _trackedChanged() {
+    loaded.remove(_DiscoveryFeed.tracked);
+    if (widget.active && selected == _DiscoveryFeed.tracked) {
+      unawaited(_loadFeed(_DiscoveryFeed.tracked, force: true));
+    }
+  }
+
+  void _activate() {
+    unawaited(_loadFeed(selected, force: selected == _DiscoveryFeed.tracked));
+    if (localDirty || selected == _DiscoveryFeed.updates) {
+      unawaited(_loadLocal(refreshUpdates: selected == _DiscoveryFeed.updates));
+    }
   }
 
   @override
   void didUpdateWidget(NexusDiscoveryBrowser oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.inventory, widget.inventory)) {
+      oldWidget.inventory.removeListener(_inventoryChanged);
+      selectionRevision = widget.inventory.revision;
+      catalogueRevision = widget.inventory.catalogueRevision;
+      widget.inventory.addListener(_inventoryChanged);
+      localDirty = true;
+    }
+    if (!identical(oldWidget.trackedChanges, widget.trackedChanges)) {
+      oldWidget.trackedChanges.removeListener(_trackedChanged);
+      widget.trackedChanges.addListener(_trackedChanged);
+      loaded.remove(_DiscoveryFeed.tracked);
+    }
+    if (!identical(oldWidget.localChanges, widget.localChanges)) {
+      oldWidget.localChanges.removeListener(_localChanged);
+      widget.localChanges.addListener(_localChanged);
+      localDirty = true;
+    }
     if (oldWidget.workspace != widget.workspace ||
         oldWidget.profile != widget.profile ||
         !identical(oldWidget.nexus, widget.nexus) ||
@@ -126,35 +192,51 @@ class _NexusDiscoveryBrowserState extends State<NexusDiscoveryBrowser> {
       failedHydration.clear();
       local.clear();
       updateIds.clear();
+      feedRequests.clear();
       localLoading = false;
+      localDirty = true;
       localProblem = null;
+      localNexusProblem = null;
       for (final model in models.values) {
         model.clear();
       }
-      unawaited(_loadFeed(selected));
-      unawaited(_loadLocal());
+      if (widget.active) _activate();
+    } else if (widget.active && !oldWidget.active) {
+      _activate();
+    } else if (widget.active && localDirty) {
+      unawaited(_loadLocal(refreshUpdates: selected == _DiscoveryFeed.updates));
     }
   }
 
   @override
   void dispose() {
     ++epoch;
+    widget.inventory.removeListener(_inventoryChanged);
+    widget.trackedChanges.removeListener(_trackedChanged);
+    widget.localChanges.removeListener(_localChanged);
     for (final model in models.values) {
       model.dispose();
     }
     super.dispose();
   }
 
-  Future<void> _loadFeed(_DiscoveryFeed feed) async {
+  Future<void> _loadFeed(_DiscoveryFeed feed, {bool force = false}) async {
     if (feed.provider.isEmpty ||
-        loading.contains(feed) ||
-        loaded.contains(feed)) {
+        (!force && (loading.contains(feed) || loaded.contains(feed)))) {
       return;
     }
     final scope = epoch;
+    final request = feedRequests.update(
+      feed,
+      (value) => value + 1,
+      ifAbsent: () => 1,
+    );
     setState(() {
       loading.add(feed);
       problems.remove(feed);
+      if (force && feed == _DiscoveryFeed.tracked) {
+        models[feed]!.clear();
+      }
     });
     try {
       final values = await widget.nexus.discovery(
@@ -162,24 +244,37 @@ class _NexusDiscoveryBrowserState extends State<NexusDiscoveryBrowser> {
         widget.profile,
         feed.provider,
       );
-      if (!mounted || scope != epoch) return;
-      models[feed]!.apply(upserts: values.map(_DiscoveryCard.fromFeed));
+      if (!mounted || scope != epoch || feedRequests[feed] != request) return;
+      final model = models[feed]!;
+      model.apply(
+        removed: model.ids.toList(),
+        upserts: values.map(_DiscoveryCard.fromFeed),
+      );
       loaded.add(feed);
     } on NexusProblem catch (error) {
-      if (mounted && scope == epoch) problems[feed] = error;
+      if (mounted && scope == epoch && feedRequests[feed] == request) {
+        problems[feed] = error;
+      }
     } finally {
-      if (mounted && scope == epoch) setState(() => loading.remove(feed));
+      if (mounted && scope == epoch && feedRequests[feed] == request) {
+        setState(() => loading.remove(feed));
+      }
     }
   }
 
-  Future<void> _loadLocal() async {
-    if (localLoading) return;
-    final scope = epoch;
+  Future<void> _loadLocal({bool refreshUpdates = false}) async {
+    final scope = epoch, request = ++localRequest;
+    localDirty = false;
     setState(() {
       localLoading = true;
       localProblem = null;
+      localNexusProblem = null;
     });
     try {
+      final nextLocal = <int, ModNexusDetails>{};
+      final nextUpdates = <int>{};
+      var partial = false;
+      NexusProblem? partialProblem;
       ModQueryCursor? cursor;
       do {
         final page = await widget.organization.query(
@@ -190,44 +285,76 @@ class _NexusDiscoveryBrowserState extends State<NexusDiscoveryBrowser> {
           ),
           cursor: cursor,
         );
-        if (!mounted || scope != epoch) return;
+        if (!mounted || scope != epoch || request != localRequest) return;
         for (final entry in page.entries) {
           try {
-            final details = await widget.metadata.read(
+            var details = await widget.metadata.read(
               widget.workspace,
               widget.profile,
               entry.mod.id,
             );
-            if (!mounted || scope != epoch) return;
-            final id = details.reference.providerMod;
-            if (id != null) {
-              local[id] = details;
-              models[_DiscoveryFeed.installed]!.apply(
-                upserts: [_DiscoveryCard.fromDetails(details)],
-              );
-              if (details.current &&
-                  details.metadata?.files.any((file) => file.update) == true) {
-                updateIds.add(id);
-                models[_DiscoveryFeed.updates]!.apply(
-                  upserts: [_DiscoveryCard.fromDetails(details)],
-                );
+            if (!mounted || scope != epoch || request != localRequest) return;
+            var currentUpdateEvidence = true;
+            if (refreshUpdates && details.reference.providerMod != null) {
+              try {
+                details = await widget.metadata.refresh(details.reference);
+                if (!mounted || scope != epoch || request != localRequest) {
+                  return;
+                }
+              } on NexusProblem catch (error) {
+                partial = true;
+                partialProblem ??= error;
+                currentUpdateEvidence = false;
               }
             }
-          } on NexusProblem {
-            localProblem = 'Some installed Nexus details are not available.';
+            final id = details.reference.providerMod;
+            if (id != null) {
+              nextLocal[id] = details;
+              if (currentUpdateEvidence &&
+                  details.current &&
+                  details.metadata?.files.any((file) => file.update) == true) {
+                nextUpdates.add(id);
+              }
+            }
+          } on NexusProblem catch (error) {
+            partial = true;
+            partialProblem ??= error;
           }
         }
-        setState(() {});
         cursor = page.next;
       } while (cursor != null);
+      if (!mounted || scope != epoch || request != localRequest) return;
+      local
+        ..clear()
+        ..addAll(nextLocal);
+      updateIds
+        ..clear()
+        ..addAll(nextUpdates);
+      final installed = models[_DiscoveryFeed.installed]!;
+      installed.apply(
+        removed: installed.ids.toList(),
+        upserts: nextLocal.values.map(_DiscoveryCard.fromDetails),
+      );
+      final updates = models[_DiscoveryFeed.updates]!;
+      updates.apply(
+        removed: updates.ids.toList(),
+        upserts: nextUpdates.map(
+          (id) => _DiscoveryCard.fromDetails(nextLocal[id]!),
+        ),
+      );
+      localProblem = partial ? 'Some Nexus details are not available.' : null;
+      localNexusProblem = partialProblem;
       loaded.add(_DiscoveryFeed.installed);
       loaded.add(_DiscoveryFeed.updates);
     } on Exception {
-      if (mounted && scope == epoch) {
+      if (mounted && scope == epoch && request == localRequest) {
+        localDirty = true;
         localProblem = 'Could not load installed Nexus mods.';
       }
     } finally {
-      if (mounted && scope == epoch) setState(() => localLoading = false);
+      if (mounted && scope == epoch && request == localRequest) {
+        setState(() => localLoading = false);
+      }
     }
   }
 
@@ -257,7 +384,10 @@ class _NexusDiscoveryBrowserState extends State<NexusDiscoveryBrowser> {
 
   void _select(_DiscoveryFeed value) {
     setState(() => selected = value);
-    unawaited(_loadFeed(value));
+    unawaited(_loadFeed(value, force: value == _DiscoveryFeed.tracked));
+    if (value == _DiscoveryFeed.updates || localDirty) {
+      unawaited(_loadLocal(refreshUpdates: value == _DiscoveryFeed.updates));
+    }
   }
 
   Future<void> _search() async {
@@ -386,8 +516,14 @@ class _NexusDiscoveryBrowserState extends State<NexusDiscoveryBrowser> {
         ),
       if ((selected == _DiscoveryFeed.installed ||
               selected == _DiscoveryFeed.updates) &&
-          localProblem != null)
-        McStatus(title: localProblem!, tone: McStatusTone.error),
+          (localProblem != null || localNexusProblem != null))
+        McStatus(
+          title: localNexusProblem?.message ?? localProblem!,
+          detail: localNexusProblem?.retryAt == null
+              ? null
+              : 'Try again at ${TimeOfDay.fromDateTime(localNexusProblem!.retryAt!.toLocal()).format(context)}.',
+          tone: McStatusTone.error,
+        ),
       Expanded(
         child: IndexedStack(
           index: selected.index,

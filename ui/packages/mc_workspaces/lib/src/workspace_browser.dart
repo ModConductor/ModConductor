@@ -80,7 +80,8 @@ class WorkspaceBrowser extends StatefulWidget {
   });
   final WorkspaceController controller;
   final DirectoryChooser chooseDirectory;
-  final Widget Function(BuildContext, WorkspaceInfo)? modLibraryBuilder;
+  final Widget Function(BuildContext, WorkspaceInfo, bool visible)?
+  modLibraryBuilder;
   final Widget Function(BuildContext, WorkspaceInfo)? gameContextBuilder;
   final Widget Function(BuildContext, WorkspaceInfo)? executableBuilder;
   final Widget Function(BuildContext, WorkspaceInfo, VoidCallback)?

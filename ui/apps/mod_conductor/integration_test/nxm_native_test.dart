@@ -28,8 +28,13 @@ void main() {
       final root = await Directory(
         '$output/Texture collections/Weekend workspace with a long path',
       ).create(recursive: true);
-      final game = '$output/synthetic-game';
-      expect((await Process.run(fixture, ['--game-files', game])).exitCode, 0);
+      final inputs = '$output/installation';
+      expect(
+        (await Process.run(fixture, ['--proton-files', inputs])).exitCode,
+        0,
+      );
+      final steam = '$inputs/Steam', library = '$inputs/Second library';
+      final game = '$library/steamapps/common/Skyrim Special Edition';
       final info = '$output/provider.txt';
       final owner = EngineOwner(
         fixture,
@@ -134,6 +139,13 @@ void main() {
           'skyrim-se-steam',
           0,
           game,
+          proton: ProtonSelection(
+            appId: 489830,
+            association: SteamProtonAssociation(steam, library),
+            compatData: '$library/steamapps/compatdata/489830',
+            runtimeDirectory: '$steam/compatibilitytools.d/Custom Ω Proton',
+            toolId: 'fixture_tool',
+          ),
         );
         await tester.pumpWidget(
           RepaintBoundary(
@@ -166,6 +178,10 @@ void main() {
           await tap(find.byKey(const ValueKey('nav-workspaces')));
         }
         await tap(find.byKey(ValueKey('workspace-$workspace')));
+        if (action('Save profile').evaluate().isNotEmpty) {
+          await tap(action('Save profile'));
+        }
+        await until(() => find.text('Archives').evaluate().isNotEmpty);
         await tap(find.text('Archives').first);
         ArtifactController controller() => tester
             .widget<ArtifactBrowser>(
@@ -264,6 +280,7 @@ void main() {
         await tester.ensureVisible(find.text('Nexus download links'));
         await tester.pumpAndSettle();
         await capture('link-setup-off');
+        final previousDefault = (await owner.linkSetup!.read()).defaultApp;
         await tap(action('Use Mod Conductor'));
         for (
           var n = 0;
@@ -303,10 +320,7 @@ void main() {
           await tester.pump(const Duration(milliseconds: 100));
         }
         expect(await mime.readAsString(), before);
-        expect(
-          (await owner.linkSetup!.read()).defaultApp,
-          NexusLinkDefault.anotherApp,
-        );
+        expect((await owner.linkSetup!.read()).defaultApp, previousDefault);
         await capture('link-setup-restored');
         await File('$output/observations.txt').writeAsString(
           'Actual Linux native queue/private ingress: duplicate after acknowledgement coalesced; raw NXM/key absent from method channel; pending link surfaced automatically after an open form closed without download; navigation retained pending work; keyed request reused ordinary paused artifact without losing bytes; Resume completed through existing owner; private gio URI launch reached the same instance and automatically surfaced a mismatched-account refusal without new artifact; opt-in/opt-out restored prior private association. No install action or host account/default/browser access.\n',

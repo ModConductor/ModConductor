@@ -299,6 +299,8 @@ class _ModConductorAppState extends _AppStateBase
     _outputs.dispose();
     _deployments.dispose();
     _artifacts.dispose();
+    _discoveryTrackedChanges.dispose();
+    _discoveryLocalChanges.dispose();
     _nexusDetails.dispose();
     _executables.dispose();
     _play.dispose();

@@ -149,7 +149,7 @@ mixin _ShellContent
           ),
     modLibraryBuilder: !_supportsSkyrim
         ? null
-        : (context, workspace) {
+        : (context, workspace, modsVisible) {
             final canDiscover =
                 widget.nexus != null &&
                 widget.nexusMetadata != null &&
@@ -185,6 +185,19 @@ mixin _ShellContent
                               ? ModNexusView(
                                   controller: _nexusDetails,
                                   onMapped: _mods.inventory.refreshCatalogue,
+                                  onLinked: () async {
+                                    final before =
+                                        _mods.inventory.catalogueRevision;
+                                    await _mods.inventory.refreshCatalogue();
+                                    if (_mods.inventory.catalogueRevision ==
+                                        before) {
+                                      _discoveryLocalChanges.value++;
+                                    }
+                                  },
+                                  onRefreshed: () =>
+                                      _discoveryLocalChanges.value++,
+                                  onTrackingChanged: () =>
+                                      _discoveryTrackedChanges.value++,
                                   organization: widget.modOrganization,
                                   localCategories:
                                       _mods.selected?.metadata.categories ??
@@ -315,6 +328,10 @@ mixin _ShellContent
                                 nexus: widget.nexus!,
                                 metadata: widget.nexusMetadata!,
                                 organization: widget.modOrganization!,
+                                inventory: _mods.inventory,
+                                trackedChanges: _discoveryTrackedChanges,
+                                localChanges: _discoveryLocalChanges,
+                                active: modsVisible && showingDiscover,
                                 onViewFiles: (id) {
                                   setState(
                                     () => _nexusFileRequest = NexusFileRequest(
