@@ -67,25 +67,39 @@ module internal DeploymentFixtureData =
 
             use database = new StateDatabase(stateDirectory)
 
-            database.Enqueue(fun () ->
-                Sqlite.execute
-                    database.Connection
-                    null
-                    "UPDATE game_contexts SET evidence=$evidence WHERE workspace_id=$workspace AND profile_id=$profile AND revision=$revision"
-                    [ "$evidence", box (GameContextEncoding.encode evidence)
-                      "$workspace", box (string workspace)
-                      "$profile", box (string profile)
-                      "$revision", box before.Revision ])
-            |> get
+            let affected =
+                database.Enqueue(fun () ->
+                    use update =
+                        Sqlite.command
+                            database.Connection
+                            null
+                            "UPDATE game_contexts SET evidence=$evidence WHERE workspace_id=$workspace AND profile_id=$profile AND revision=$revision"
+                            [ "$evidence", box (GameContextEncoding.encode evidence)
+                              "$workspace", box (string workspace)
+                              "$profile", box (string profile)
+                              "$revision", box before.Revision ]
+
+                    update.ExecuteNonQuery())
+                |> get
+
+            if affected <> 1 then
+                invalidOp (
+                    "The fixture game location replacement matched " + string affected + " rows."
+                )
 
             let after = contexts.Read(workspace, profile) |> get |> StorageWorker.result
 
+            if after.Revision <> before.Revision then
+                invalidOp "The fixture game location replacement changed the context revision."
+
             if
-                after.Revision <> before.Revision
-                || after.Binding.Value.Evidence <> evidence
-                || after.Binding.Value.NeedsCheck <> binding.NeedsCheck
+                after.Binding.Value.Evidence.Locations <> evidence.Locations
+                || after.Binding.Value.Evidence.Fingerprint <> evidence.Fingerprint
             then
-                invalidOp "The fixture game location replacement changed the context state."
+                invalidOp "The fixture game location replacement did not retain its locations."
+
+            if after.Binding.Value.NeedsCheck <> binding.NeedsCheck then
+                invalidOp "The fixture game location replacement changed the checked owner."
 
     let ok =
         function

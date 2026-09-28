@@ -43,7 +43,7 @@ module ProfileTransportFixtures =
             let bytes = Encoding.UTF8.GetBytes content
             memberFile.Write bytes
 
-    let private gameProfile (store: OperationStore) workspace game proton name =
+    let private gameProfile (store: OperationStore) state area workspace game proton name =
         let workspaces = store.Workspaces :> IWorkspaceState
         let opened = workspaces.Read(workspace, None) |> wait |> result
         let profile = Guid.NewGuid()
@@ -69,6 +69,8 @@ module ProfileTransportFixtures =
         |> wait
         |> result
         |> ignore
+
+        DeploymentFixtureData.isolateWindowsGameLocations store state area workspace profile
 
         profile
 
@@ -286,7 +288,7 @@ module ProfileTransportFixtures =
         |> result
         |> ignore
 
-        let original = gameProfile store workspace game proton "Original"
+        let original = gameProfile store state area workspace game proton "Original"
         let artifact, modId, version = install store workspace source
         let inventory = InventoryObservations.read store original
 
@@ -353,7 +355,7 @@ module ProfileTransportFixtures =
         |> result
         |> ignore
 
-        let other = gameProfile store workspace game proton "Other"
+        let other = gameProfile store state area workspace game proton "Other"
         let otherInventory = InventoryObservations.read store other
 
         (store.ModSelection :> IModSelection)

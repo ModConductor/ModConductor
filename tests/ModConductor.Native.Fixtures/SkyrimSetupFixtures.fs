@@ -52,10 +52,11 @@ module SkyrimSetupFixtures =
         if not value then
             failwith ("Skyrim setup fixture failed: " + name)
 
-    let private createWorkspace (store: OperationStore) area name includeProton =
+    let private createWorkspaceAt stateDirectory (store: OperationStore) area name includeProton =
         let workspace, profile, _, _, saved =
             SkyrimFixtureWorkspace.create
                 store
+                stateDirectory
                 area
                 name
                 (name + "-workspace")
@@ -65,6 +66,9 @@ module SkyrimSetupFixtures =
         match saved with
         | Ok context -> workspace, profile, context.Revision
         | Error error -> failwith ("Game context setup failed: " + string error)
+
+    let private createWorkspace store area name includeProton =
+        createWorkspaceAt (Path.Combine(area, "skyrim-setup-state")) store area name includeProton
 
     type private WorkflowState() =
         let generation = Guid.NewGuid()
@@ -567,6 +571,13 @@ module SkyrimSetupFixtures =
         |> result
         |> ignore
 
+        DeploymentFixtureData.isolateWindowsGameLocations
+            restartedWarningStore
+            state
+            (Path.GetDirectoryName state)
+            waitingWorkspace
+            waitingProfile
+
         use restartedWarningOwner =
             new SkyrimSetupCoordinator(restartedWarningStore, waitingWorkflow.Dependencies)
 
@@ -621,7 +632,9 @@ module SkyrimSetupFixtures =
                             releaseEnbGeneration.Wait(TimeSpan.FromSeconds 30.) |> ignore)
             )
 
-        let enbWorkspace, enbProfile, _ = createWorkspace enbStore enbArea "selected" true
+        let enbWorkspace, enbProfile, _ =
+            createWorkspaceAt (Path.Combine(enbArea, "state")) enbStore enbArea "selected" true
+
         let enbArchive = Path.Combine(enbArea, "enbseries_skyrimse_v0505.zip")
 
         use archiveOutput = File.Create enbArchive
@@ -1353,6 +1366,13 @@ module SkyrimSetupFixtures =
         |> result
         |> ignore
 
+        DeploymentFixtureData.isolateWindowsGameLocations
+            resumedStore
+            state
+            (Path.GetDirectoryName state)
+            resumeWorkspace
+            resumeProfile
+
         resumedOwner.Read(resumeWorkspace, resumeProfile, noChoice, CancellationToken.None)
         |> wait
         |> ignore
@@ -1380,6 +1400,13 @@ module SkyrimSetupFixtures =
         |> wait
         |> result
         |> ignore
+
+        DeploymentFixtureData.isolateWindowsGameLocations
+            reopened
+            state
+            (Path.GetDirectoryName state)
+            workspace
+            profile
 
         let availableAgain =
             afterRestart.Read(workspace, profile, noChoice, CancellationToken.None) |> wait
@@ -1592,6 +1619,13 @@ module SkyrimSetupFixtures =
         |> wait
         |> result
         |> ignore
+
+        DeploymentFixtureData.isolateWindowsGameLocations
+            recoveryStore
+            state
+            (Path.GetDirectoryName state)
+            recoveryWorkspace
+            recoveryProfile
 
         let recoveryBefore =
             recoveryOwner.Read(recoveryWorkspace, recoveryProfile, noChoice, CancellationToken.None)

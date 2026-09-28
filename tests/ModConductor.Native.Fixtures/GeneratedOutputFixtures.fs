@@ -96,6 +96,13 @@ module GeneratedOutputFixtures =
                 |> wait
                 |> result
 
+            DeploymentFixtureData.isolateWindowsGameLocations
+                store
+                (Path.Combine(area, "state"))
+                area
+                workspace
+                profile
+
             let observeSessionDiscoverySnapshot () =
                 if OperatingSystem.IsLinux() then
                     let steam, library =
@@ -710,6 +717,13 @@ module GeneratedOutputFixtures =
 
                 let initialized =
                     contexts.Refresh(workspace, profile, context.Revision) |> wait |> result
+
+                DeploymentFixtureData.isolateWindowsGameLocations
+                    reopened
+                    (Path.Combine(area, "state"))
+                    area
+                    workspace
+                    profile
 
                 check
                     "restartRefreshReadsCurrentDiscovery"

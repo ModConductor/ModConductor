@@ -151,7 +151,7 @@ jobs:
       - name: Check native Windows collections
         if: runner.os == 'Windows'
         working-directory: ui/apps/mod_conductor
-        run: flutter test integration_test/collections_native_test.dart -d windows --no-pub --dart-define=MC_ENGINE_PATH=${{ github.workspace }}/.tools/publish/win-x64/ModConductor.Engine.exe --dart-define=MC_COLLECTION_OUTPUT=${{ github.workspace }}/.agent-workspace/collections-ui
+        run: flutter test integration_test/collections_native_test.dart -d windows --no-pub --dart-define=MC_ENGINE_PATH=${{ github.workspace }}/.tools/publish/win-x64/ModConductor.Engine.exe --dart-define=MC_NATIVE_FIXTURE=${{ github.workspace }}/.tools/publish/native-fixtures/ModConductor.Native.Fixtures.exe --dart-define=MC_COLLECTION_OUTPUT=${{ github.workspace }}/.agent-workspace/collections-ui
       - name: Build Linux desktop
         if: runner.os == 'Linux'
         working-directory: ui/apps/mod_conductor

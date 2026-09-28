@@ -870,6 +870,13 @@ module SkseFixtures =
         |> result
         |> ignore
 
+        DeploymentFixtureData.isolateWindowsGameLocations
+            store
+            (Path.Combine(scenario.Area, "state"))
+            scenario.Area
+            workspace
+            otherProfile
+
         let sameArchive =
             downloaded
                 store
@@ -1085,6 +1092,13 @@ module SkseFixtures =
         |> wait
         |> result
         |> ignore
+
+        DeploymentFixtureData.isolateWindowsGameLocations
+            store
+            (Path.Combine(area, "state"))
+            area
+            workspace
+            profile
 
         let state =
             (store.GameContexts :> IGameContexts).Read(workspace, profile) |> wait |> result

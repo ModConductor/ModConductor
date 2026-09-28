@@ -9,6 +9,7 @@ open ModConductor.Workspaces
 module SkyrimFixtureWorkspace =
     let create
         (store: OperationStore)
+        stateDirectory
         area
         name
         workspaceDirectory
@@ -52,20 +53,35 @@ module SkyrimFixtureWorkspace =
         |> StorageWorker.result
         |> ignore
 
+        let contexts = store.GameContexts :> IGameContexts
+
         let context =
-            (store.GameContexts :> IGameContexts)
-                .Save(
-                    workspace,
-                    profile,
-                    0L,
-                    { GameId = GameId.SkyrimSpecialEditionSteam
-                      Path = game
-                      Proton =
-                        if includeProton && OperatingSystem.IsLinux() then
-                            Some proton
-                        else
-                            None }
-                )
+            contexts.Save(
+                workspace,
+                profile,
+                0L,
+                { GameId = GameId.SkyrimSpecialEditionSteam
+                  Path = game
+                  Proton =
+                    if includeProton && OperatingSystem.IsLinux() then
+                        Some proton
+                    else
+                        None }
+            )
             |> StorageWorker.wait
+
+        if OperatingSystem.IsWindows() && Result.isOk context then
+            DeploymentFixtureData.isolateWindowsGameLocations
+                store
+                stateDirectory
+                area
+                workspace
+                profile
+
+        let context =
+            if OperatingSystem.IsWindows() && Result.isOk context then
+                contexts.Read(workspace, profile) |> StorageWorker.wait
+            else
+                context
 
         workspace, profile, game, proton, context

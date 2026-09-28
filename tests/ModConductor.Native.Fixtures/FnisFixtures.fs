@@ -270,7 +270,14 @@ module FnisFixtures =
 
     let private createWorkspace (store: OperationStore) area =
         let workspace, profile, game, _, saved =
-            SkyrimFixtureWorkspace.create store area "FNIS fixture" "workspace" "installation" true
+            SkyrimFixtureWorkspace.create
+                store
+                (Path.Combine(area, "state"))
+                area
+                "FNIS fixture"
+                "workspace"
+                "installation"
+                true
 
         saved |> result |> ignore
         workspace, profile, game
@@ -1143,6 +1150,13 @@ module FnisFixtures =
         |> wait
         |> result
         |> ignore
+
+        DeploymentFixtureData.isolateWindowsGameLocations
+            reopened
+            (Path.Combine(scenario, "state"))
+            scenario
+            workspace
+            profile
 
         use restartedRunner = new FnisRunner(reopened)
         let restarted = restartedRunner :> IFnisExecution
@@ -2574,6 +2588,13 @@ module FnisFixtures =
         |> wait
         |> result
         |> ignore
+
+        DeploymentFixtureData.isolateWindowsGameLocations
+            restarted
+            statePath
+            (Path.GetDirectoryName statePath)
+            workspace
+            profile
 
         use coordinator =
             new FnisCoordinator(session, restarted.Downloads, restarted, server.Handoff)

@@ -197,6 +197,13 @@ module EnbFixtures =
         |> result
         |> ignore
 
+        DeploymentFixtureData.isolateWindowsGameLocations
+            store
+            (Path.Combine(area, "state"))
+            area
+            workspace
+            profile
+
         let prefs =
             if seedSettings then
                 let data = store.ProfileGameData
@@ -292,6 +299,13 @@ module EnbFixtures =
         |> wait
         |> result
         |> ignore
+
+        DeploymentFixtureData.isolateWindowsGameLocations
+            store
+            (Path.Combine(scenario, "state"))
+            scenario
+            workspace
+            other
 
         let otherBefore = data.Read(workspace, other) |> wait |> result
         let runtimePath = Path.Combine(scenario, "enbseries_skyrimse_v0505.zip")
@@ -785,6 +799,13 @@ module EnbFixtures =
         |> wait
         |> result
         |> ignore
+
+        DeploymentFixtureData.isolateWindowsGameLocations
+            reopened
+            statePath
+            (Path.GetDirectoryName statePath)
+            workspace
+            profile
 
         use restartedOwner =
             new EnbCoordinator(

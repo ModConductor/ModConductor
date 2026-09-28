@@ -90,6 +90,7 @@ module SkseCoordinatorFixtures =
         let workspace, profile, game, proton, saved =
             SkyrimFixtureWorkspace.create
                 store
+                (Path.Combine(area, "state"))
                 area
                 "SKSE coordinator"
                 "workspace"
@@ -548,6 +549,13 @@ module SkseCoordinatorFixtures =
         |> result
         |> ignore
 
+        DeploymentFixtureData.isolateWindowsGameLocations
+            restarted
+            statePath
+            (Path.GetDirectoryName statePath)
+            workspace
+            profile
+
         use coordinator =
             new SkseCoordinator(
                 session,
@@ -666,6 +674,13 @@ module SkseCoordinatorFixtures =
         |> result
         |> ignore
 
+        DeploymentFixtureData.isolateWindowsGameLocations
+            restarted
+            statePath
+            (Path.GetDirectoryName statePath)
+            workspace
+            profile
+
         let active =
             restarted.Deployments.Read profile
             |> wait
@@ -744,7 +759,16 @@ module SkseCoordinatorFixtures =
              && launchUsesLoader)
 
 
-    let private saveGameVersion (store: OperationStore) workspace profile game proton version =
+    let private saveGameVersion
+        (store: OperationStore)
+        statePath
+        scenario
+        workspace
+        profile
+        game
+        proton
+        version
+        =
         GameContextFixtures.create game version
 
         let context =
@@ -762,6 +786,8 @@ module SkseCoordinatorFixtures =
         |> wait
         |> result
         |> ignore
+
+        DeploymentFixtureData.isolateWindowsGameLocations store statePath scenario workspace profile
 
     let private installedEvidence writer area =
         let scenario =
@@ -1041,12 +1067,12 @@ module SkseCoordinatorFixtures =
         then
             failwith "The retained SKSE generation was not activated."
 
-        saveGameVersion store workspace profile game proton 105
+        saveGameVersion store statePath scenario workspace profile game proton 105
 
         let incompatible = coordinator.Read(workspace, profile) |> wait
         let incompatibleGate = coordinator.CheckBeforePlay(workspace, profile) |> wait
 
-        saveGameVersion store workspace profile game proton 104
+        saveGameVersion store statePath scenario workspace profile game proton 104
 
         server.Mode <- "offline"
         let beforeUnavailable = requests ()
@@ -1075,7 +1101,7 @@ module SkseCoordinatorFixtures =
             let during = coordinator.Read(workspace, profile) |> wait
 
             if changeGame then
-                saveGameVersion store workspace profile game proton 105
+                saveGameVersion store statePath scenario workspace profile game proton 105
 
             let failed = waitForStatus store workspace profile "failed"
             let afterFailure = coordinator.Read(workspace, profile) |> wait
@@ -1084,7 +1110,7 @@ module SkseCoordinatorFixtures =
             server.Mode <- "good"
 
             if changeGame then
-                saveGameVersion store workspace profile game proton 104
+                saveGameVersion store statePath scenario workspace profile game proton 104
 
             started.Phase = SksePhase.Downloading
             && (during.Phase = SksePhase.Downloading
@@ -1365,6 +1391,13 @@ module SkseCoordinatorFixtures =
         |> wait
         |> result
         |> ignore
+
+        DeploymentFixtureData.isolateWindowsGameLocations
+            restarted
+            statePath
+            (Path.GetDirectoryName statePath)
+            workspace
+            profile
 
         let reviewed =
             resumed.Review(workspace, profile)
