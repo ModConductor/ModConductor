@@ -546,6 +546,10 @@ type NexusServer() =
                     |> Seq.map fst
                     |> Seq.find (fun modId -> path.EndsWith("/mods/" + string modId + ".json"))
 
+                match metadataHold with
+                | Some hold -> do! hold.Task.WaitAsync(stop.Token)
+                | None -> ()
+
                 do!
                     write
                         200
