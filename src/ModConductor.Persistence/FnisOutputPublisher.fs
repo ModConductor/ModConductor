@@ -143,7 +143,8 @@ type internal FnisOutputPublisher
                           VersionLabel = DateTimeOffset.UtcNow.ToString("yyyyMMdd-HHmmss")
                           Policy = Skyrim.definition.TargetPolicy
                           Files = inputFiles
-                          Bytes = [] }
+                          Bytes = []
+                          Deleted = [] }
 
                     let! version =
                         database.Enqueue(fun () ->

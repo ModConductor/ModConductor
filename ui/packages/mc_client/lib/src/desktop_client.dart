@@ -2,7 +2,7 @@ import 'package:grpc/grpc.dart';
 
 import 'generated/modconductor/v1/desktop.pbgrpc.dart' as wire;
 
-enum DesktopIntentKind { show, workspace, archive, archives }
+enum DesktopIntentKind { show, workspace, archive, archives, profile }
 
 class DesktopIntent {
   const DesktopIntent(this.kind, this.path, this.workspaceId, this.length);
@@ -44,6 +44,8 @@ class GrpcDesktopClient implements DesktopClient {
           DesktopIntentKind.archive,
         wire.DesktopIntentKind.DESKTOP_INTENT_KIND_ARCHIVES =>
           DesktopIntentKind.archives,
+        wire.DesktopIntentKind.DESKTOP_INTENT_KIND_PROFILE =>
+          DesktopIntentKind.profile,
         _ => throw const DesktopProblem('This request is not supported.'),
       };
       return DesktopIntent(

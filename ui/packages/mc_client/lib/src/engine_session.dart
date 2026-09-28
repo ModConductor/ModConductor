@@ -23,6 +23,7 @@ import 'deployment_client.dart';
 import 'file_plan_client.dart';
 import 'proton_context_client.dart';
 import 'inventory_export_client.dart';
+import 'profile_transport_client.dart';
 import 'migration_client.dart';
 import 'settings_client.dart';
 import 'skse_client.dart';
@@ -108,6 +109,8 @@ class EngineSession {
   ModOrganizationClient get modOrganization => _modOrganization!;
   InventoryExportClient? _inventoryExports;
   InventoryExportClient get inventoryExports => _inventoryExports!;
+  ProfileTransportClient? _profileTransport;
+  ProfileTransportClient get profileTransport => _profileTransport!;
   ProfileModsClient? _profileMods;
   ProfileModsClient get profileMods => _profileMods!;
   ModLibraryClient? _modLibrary;
@@ -176,6 +179,7 @@ class EngineSession {
     _profileMods = ProfileModsClient(channel, options);
     _modOrganization = ModOrganizationClient(channel, options);
     _inventoryExports = GrpcInventoryExportClient(channel, options);
+    _profileTransport = GrpcProfileTransportClient(channel, options);
     _pluginOrders = GrpcPluginOrderClient(
       channel,
       CallOptions(metadata: options.metadata),

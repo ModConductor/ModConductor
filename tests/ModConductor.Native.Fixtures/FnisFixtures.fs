@@ -1717,6 +1717,114 @@ module FnisFixtures =
              && (InventoryObservations.read store otherProfile).Entries
                 |> List.forall (fun row -> row.Entry.Mod.Id <> firstOutput.Id))
 
+        let transported = Path.Combine(scenario, "fnis.mcprof")
+        store.ProfileTransport.Export(workspace, profile, transported, false, CancellationToken.None)
+        |> wait |> result
+
+        use transportedBundle = new ProfileTransportZip.Bundle(transported)
+        let provider = transportedBundle.Profile.Mods.Head.Source
+
+        check
+            writer
+            "transportKeepsExactFnisProviderAttribution"
+            (provider
+             |> Option.exists (fun source ->
+                 source.Game = "skyrimspecialedition"
+                 && source.ModId = FnisCatalogue.NexusModId
+                 && source.FileId = 751L
+                 && source.FileVersion = FnisCatalogue.SupportedVersion))
+
+        let sourceRequirements = store.ProfileTransport.Inspect transported
+        let available =
+            (store.Artifacts.List(workspace, None, false, CancellationToken.None)
+             |> wait |> result).Entries
+
+        let sourceMap =
+            sourceRequirements.Sources
+            |> List.map (fun source ->
+                let artifact =
+                    available
+                    |> List.find (fun item ->
+                        item.Sha256 = Some source.Sha256
+                        && item.Length = Some source.Length)
+
+                source.ModIndex, artifact.Id)
+            |> Map.ofList
+
+        let imported =
+            store.ProfileTransport.Import(
+                transported,
+                workspace,
+                Some profile,
+                "Imported FNIS profile",
+                sourceMap,
+                CancellationToken.None
+            )
+            |> wait |> result
+
+        let importedOutputId = FnisRunRows.outputId imported
+        let importedOutput =
+            (InventoryObservations.read store imported).Entries
+            |> List.map _.Entry.Mod
+            |> List.find (fun item -> item.Id = importedOutputId)
+
+        check
+            writer
+            "importedFnisOutputIsPrivateBeforeFirstRun"
+            (importedOutput.Kind = ModConductor.ModLibrary.ModKind.GeneratedOutput
+             && importedOutput.CurrentVersion.IsSome
+             && (InventoryObservations.read store profile).Entries
+                |> List.forall (fun row -> row.Entry.Mod.Id <> importedOutputId))
+
+        let transportedAgain = Path.Combine(scenario, "imported-fnis.mcprof")
+        store.ProfileTransport.Export(workspace, imported, transportedAgain, false, CancellationToken.None)
+        |> wait |> result
+
+        use importedBundle = new ProfileTransportZip.Bundle(transportedAgain)
+        let originalPortable = transportedBundle.Profile
+        let importedPortable = importedBundle.Profile
+        check
+            writer
+            "importedFnisOutputKeepsTransportRepresentation"
+            ({ originalPortable with Name = "" } = { importedPortable with Name = "" })
+
+        coordinator.Install(workspace, imported) |> wait |> ignore
+        waitForPhase coordinator workspace imported FnisPhase.Ready |> ignore
+
+        let importedRunId = Guid.NewGuid()
+        execution.Run(
+            { Id = importedRunId
+              WorkspaceId = workspace
+              ProfileId = imported },
+            CancellationToken.None
+        )
+        |> wait |> result |> ignore
+
+        let importedCurrent =
+            until
+                "imported FNIS rerun"
+                (fun () ->
+                    execution.Inspect(workspace, imported, CancellationToken.None)
+                    |> wait |> result)
+                (fun value ->
+                    value.LatestRunId = Some importedRunId
+                    && value.Phase = ModConductor.Fnis.FnisOutputPhase.Current)
+
+        let replaced =
+            (InventoryObservations.read store imported).Entries
+            |> List.map _.Entry.Mod
+            |> List.find (fun item -> item.Id = importedOutputId)
+
+        check
+            writer
+            "firstRunReplacesImportedOutputWithoutSecondVisibleMod"
+            (importedCurrent.LatestRunId = Some importedRunId
+             && replaced.CurrentVersion <> importedOutput.CurrentVersion
+             && ((InventoryObservations.read store imported).Entries
+                 |> List.filter (fun row ->
+                     row.Entry.Mod.Kind = ModConductor.ModLibrary.ModKind.GeneratedOutput)
+                 |> List.length) = 1)
+
         let repeated =
             execution.Run(
                 { Id = completedId

@@ -12,6 +12,7 @@ enum DesktopIntentKind {
   DESKTOP_INTENT_KIND_WORKSPACE = 2;
   DESKTOP_INTENT_KIND_ARCHIVE = 3;
   DESKTOP_INTENT_KIND_ARCHIVES = 4;
+  DESKTOP_INTENT_KIND_PROFILE = 5;
 }
 message DesktopIntent {
   DesktopIntentKind kind = 1;

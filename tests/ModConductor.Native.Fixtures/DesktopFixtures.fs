@@ -98,3 +98,17 @@ module DesktopFixtures =
             (file.Intent.Kind = DesktopIntentKind.Archive
              && file.Intent.Length = uint64 (FileInfo(archive).Length)
              && File.ReadAllText(archive) = "synthetic archive input")
+
+        let profile = Path.Combine(directory, "Weekend rivière.mcprof")
+        File.WriteAllText(profile, "synthetic profile input")
+        let opened = resolve [ "--profile"; profile ]
+        let openedUri = resolve [ Uri(profile).AbsoluteUri ]
+
+        verify
+            "profileFileActivationWithoutImport"
+            (opened.Intent.Kind = DesktopIntentKind.Profile
+             && opened.Intent.Path = profile
+             && opened.Intent.Length = uint64 (FileInfo(profile).Length)
+             && openedUri.Intent.Kind = DesktopIntentKind.Profile
+             && openedUri.Intent.Path = profile
+             && File.ReadAllText(profile) = "synthetic profile input")

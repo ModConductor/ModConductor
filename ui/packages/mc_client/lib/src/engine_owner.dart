@@ -23,6 +23,7 @@ import 'deployment_client.dart';
 import 'file_plan_client.dart';
 import 'proton_context_client.dart';
 import 'inventory_export_client.dart';
+import 'profile_transport_client.dart';
 import 'migration_client.dart';
 import 'settings_client.dart';
 import 'skse_client.dart';
@@ -136,6 +137,8 @@ class EngineOwner {
       _state is EngineConnected ? _session?.modOrganization : null;
   InventoryExportClient? get inventoryExports =>
       _state is EngineConnected ? _session?.inventoryExports : null;
+  ProfileTransportClient? get profileTransport =>
+      _state is EngineConnected ? _session?.profileTransport : null;
   ProfileModsClient? get profileMods =>
       _state is EngineConnected ? _session?.profileMods : null;
   ModLibraryClient? get modLibrary =>

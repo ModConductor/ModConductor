@@ -93,7 +93,8 @@ def assemble(bundle: Path, engine: Path, helper: Path, output: Path, revision: s
     for name in ("ModConductor.Engine", "libe_sqlite3.so", "ModConductor.Engine.staticwebassets.endpoints.json"):
         copy_required(engine / name, app / "engine" / name)
     copy_required(helper, app / "engine/modconductor-loot-helper")
-    for name in ("mod_conductor", "engine/ModConductor.Engine", "engine/modconductor-loot-helper"):
+    copy_required(ROOT / "third_party/xdelta3/xdelta3-linux-x64", app / "engine/xdelta3")
+    for name in ("mod_conductor", "engine/ModConductor.Engine", "engine/modconductor-loot-helper", "engine/xdelta3"):
         (app / name).chmod(0o755)
 
     launcher = output / "bin/modconductor"
@@ -102,6 +103,7 @@ def assemble(bundle: Path, engine: Path, helper: Path, output: Path, revision: s
     launcher.chmod(0o755)
     desktop = output / "share/applications/dev.modconductor.mod_conductor.desktop"
     copy_required(ROOT / "packaging/dev.modconductor.mod_conductor.desktop", desktop)
+    copy_required(ROOT / "packaging/modconductor-profile.xml", output / "share/mime/packages/modconductor-profile.xml")
     for size in (48, 256):
         icon = f"icons/hicolor/{size}x{size}/apps/dev.modconductor.mod_conductor.png"
         copy_required(ROOT / "packaging" / icon, output / "share" / icon)
@@ -110,6 +112,8 @@ def assemble(bundle: Path, engine: Path, helper: Path, output: Path, revision: s
     shutil.copytree(ROOT / "docs/third-party", documents / "third-party")
     copy_required(ROOT / "ui/packages/mc_ui_foundation/notices/Roboto-LICENSE.txt", documents / "third-party/Roboto-LICENSE.txt")
     copy_required(ROOT / "docs/third-party/libloot-LICENSE.txt", documents / "third-party/libloot-LICENSE.txt")
+    copy_required(ROOT / "third_party/xdelta3/LICENSE", documents / "third-party/xdelta3-LICENSE.txt")
+    copy_required(ROOT / "third_party/xdelta3/README.md", documents / "third-party/xdelta3-README.md")
     locks = sorted((ROOT / "src").glob("*/packages.lock.json")) + sorted((ROOT / "tests").glob("*/packages.lock.json"))
     for source in (ROOT / "ui/pubspec.lock", ROOT / "native/ModConductor.Loot.Helper/Cargo.lock", ROOT / ".config/flutter-sdk.json", ROOT / "global.json", *locks):
         copy_required(source, documents / "dependency-manifests" / source.relative_to(ROOT))

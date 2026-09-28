@@ -24,6 +24,7 @@ const DesktopIntentKind$json = {
     {'1': 'DESKTOP_INTENT_KIND_WORKSPACE', '2': 2},
     {'1': 'DESKTOP_INTENT_KIND_ARCHIVE', '2': 3},
     {'1': 'DESKTOP_INTENT_KIND_ARCHIVES', '2': 4},
+    {'1': 'DESKTOP_INTENT_KIND_PROFILE', '2': 5},
   ],
 };
 
@@ -32,7 +33,7 @@ final $typed_data.Uint8List desktopIntentKindDescriptor = $convert.base64Decode(
     'ChFEZXNrdG9wSW50ZW50S2luZBIjCh9ERVNLVE9QX0lOVEVOVF9LSU5EX1VOU1BFQ0lGSUVEEA'
     'ASHAoYREVTS1RPUF9JTlRFTlRfS0lORF9TSE9XEAESIQodREVTS1RPUF9JTlRFTlRfS0lORF9X'
     'T1JLU1BBQ0UQAhIfChtERVNLVE9QX0lOVEVOVF9LSU5EX0FSQ0hJVkUQAxIgChxERVNLVE9QX0'
-    'lOVEVOVF9LSU5EX0FSQ0hJVkVTEAQ=');
+    'lOVEVOVF9LSU5EX0FSQ0hJVkVTEAQSHwobREVTS1RPUF9JTlRFTlRfS0lORF9QUk9GSUxFEAU=');
 
 @$core.Deprecated('Use resolveDesktopRequestMessageDescriptor instead')
 const ResolveDesktopRequestMessage$json = {

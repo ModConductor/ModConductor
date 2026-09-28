@@ -161,7 +161,7 @@ module ArchivePolicyFixtures =
                 Key = "SResourceArchiveList2"
                 Position = 1 } ]
 
-        let order =
+        let order: PluginSetting list =
             [ { Name = "QuietRivers.esp"
                 Enabled = Some true
                 LockedIndex = None }

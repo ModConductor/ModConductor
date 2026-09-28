@@ -43,7 +43,11 @@ module internal FnisOutputInspection =
         let selectedVersion =
             match selected.ExecuteScalar() with
             | :? string as id -> Some(Guid.Parse id)
-            | _ -> None
+            | _ ->
+                selected.Dispose()
+                LibraryRows.find connection null output
+                |> Option.filter (fun row -> row.Entry.Kind = ModConductor.ModLibrary.ModKind.GeneratedOutput)
+                |> Option.bind _.Entry.CurrentVersion
 
         activeVersion = selectedVersion
 

@@ -55,6 +55,11 @@ install_files:
   WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\ModConductor" "QuietUninstallString" '"$INSTDIR\Uninstall.exe" /S'
   WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\ModConductor" "NoModify" 1
   WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\ModConductor" "NoRepair" 1
+  WriteRegStr HKCU "Software\Classes\ModConductor.Profile" "" "Mod Conductor profile"
+  WriteRegStr HKCU "Software\Classes\ModConductor.Profile\DefaultIcon" "" '"$INSTDIR\mod_conductor.exe",0'
+  WriteRegStr HKCU "Software\Classes\ModConductor.Profile\shell\open\command" "" '"$INSTDIR\mod_conductor.exe" --profile "%1"'
+  WriteRegStr HKCU "Software\Classes\.mcprof" "" "ModConductor.Profile"
+  System::Call 'shell32::SHChangeNotify(i 0x08000000, i 0, p 0, p 0)'
 SectionEnd
 
 Section "Uninstall"
@@ -65,5 +70,11 @@ Section "Uninstall"
   Delete "$INSTDIR\Uninstall.exe"
   !include "${UNINSTALL_FILES}"
   DeleteRegKey HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\ModConductor"
+  ReadRegStr $0 HKCU "Software\Classes\.mcprof" ""
+  ${If} $0 == "ModConductor.Profile"
+    DeleteRegKey HKCU "Software\Classes\.mcprof"
+  ${EndIf}
+  DeleteRegKey HKCU "Software\Classes\ModConductor.Profile"
+  System::Call 'shell32::SHChangeNotify(i 0x08000000, i 0, p 0, p 0)'
   DeleteRegKey HKCU "Software\ModConductor"
 SectionEnd

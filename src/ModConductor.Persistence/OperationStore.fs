@@ -127,6 +127,19 @@ type OperationStore
             profileMutations.Resume
         )
 
+    let profileTransport =
+        ProfileTransportStore(
+            database,
+            modLibrary.Access,
+            modLibrary,
+            installations,
+            artifacts,
+            archiveInspection,
+            profileImages,
+            profileGameData :> ModConductor.ProfileGameData.IProfileGameData,
+            directory
+        )
+
     let migrations =
         MigrationStore(database, workspaceRoots, defaultArg migrationCheckpoint ignore)
 
@@ -285,6 +298,7 @@ type OperationStore
     member _.Downloads = downloads
 
     member _.Artifacts = artifacts :> ModConductor.ArtifactLibrary.IArtifactLibrary
+    member _.ProfileTransport = profileTransport
     member internal _.EnbSetups = enbSetups
     member internal _.FnisSetups = fnisSetups
     member internal _.SkyrimSetups = skyrimSetups

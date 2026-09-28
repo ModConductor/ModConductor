@@ -22,7 +22,14 @@ module internal FnisInputInspection =
         if reader.Read() then
             Some(Guid.Parse(reader.GetString 0), reader.GetString 1)
         else
-            None
+            reader.Close()
+            let imported = FnisRunRows.outputId profile
+
+            match LibraryRows.find connection transaction imported with
+            | Some row when row.Entry.WorkspaceId = workspace
+                            && row.Entry.Kind = ModKind.GeneratedOutput
+                            && row.Entry.CurrentVersion.IsSome -> Some(imported, "")
+            | _ -> None
 
     let private withoutOutput (sources: PlanSources) activeOutput =
         let excluded = activeOutput |> Option.map fst

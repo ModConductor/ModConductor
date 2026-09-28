@@ -101,7 +101,8 @@ module internal OutputActionRows =
                                   Length = value.File.Length
                                   Modified = value.Modified
                                   Sha256 = value.File.Sha256 } })
-                      Bytes = [] }
+                      Bytes = []
+                      Deleted = [] }
 
                 let previous =
                     input.SourceVersion

@@ -1,9 +1,14 @@
 part of 'app.dart';
 
-mixin _DesktopRequests on _AppStateBase {
+mixin _DesktopRequests on _AppStateBase, _ProfileTransportFlow {
   void _requestsChanged() {
     final requests = widget.desktopRequests;
-    if (requests == null || !requests.isNexus || requests.id == null) return;
+    if (requests == null ||
+        requests.id == null ||
+        (!requests.isNexus &&
+            requests.intent?.kind != DesktopIntentKind.profile)) {
+      return;
+    }
     if (identical(_dialogRequests, requests) &&
         _requestDialogRoute?.isCurrent == true) {
       _presentedRequestId = requests.id;
@@ -48,7 +53,8 @@ mixin _DesktopRequests on _AppStateBase {
       final requests = widget.desktopRequests;
       final context = _requestShellKey.currentContext;
       if (requests == null ||
-          !requests.isNexus ||
+          (!requests.isNexus &&
+              requests.intent?.kind != DesktopIntentKind.profile) ||
           requests.id == null ||
           requests.id == _presentedRequestId ||
           _requestDialogOpen ||
@@ -69,6 +75,14 @@ mixin _DesktopRequests on _AppStateBase {
     if (requests.isNexus) _presentedRequestId = requests.id;
     DesktopRequestChoice? choice;
     try {
+      final requestId = requests.id;
+      if (requests.intent?.kind == DesktopIntentKind.profile &&
+          requestId != null) {
+        _presentedRequestId = requestId;
+        await _importProfilePath(context, requests.intent!.path);
+        await requests.dismiss(requestId);
+        return;
+      }
       requests.selectContext(
         _workspaces.workspace?.id,
         _workspaces.workspace?.selectedProfile?.id,

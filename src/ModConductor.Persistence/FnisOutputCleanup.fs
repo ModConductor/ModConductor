@@ -184,9 +184,10 @@ module internal FnisOutputCleanup =
                         Sqlite.command
                             connection
                             transaction
-                            "SELECT output_mod_id FROM fnis_runs WHERE profile_id=$profile AND workspace_id=$workspace UNION SELECT mod_id FROM fnis_outputs WHERE profile_id=$profile AND workspace_id=$workspace LIMIT 1"
+                            "SELECT output_mod_id FROM fnis_runs WHERE profile_id=$profile AND workspace_id=$workspace UNION SELECT mod_id FROM fnis_outputs WHERE profile_id=$profile AND workspace_id=$workspace UNION SELECT id FROM mods WHERE id=$output AND workspace_id=$workspace AND kind=5 LIMIT 1"
                             [ "$profile", box (string profile)
-                              "$workspace", box (string workspace) ]
+                              "$workspace", box (string workspace)
+                              "$output", box (string (FnisRunRows.outputId profile)) ]
 
                     let modId =
                         match command.ExecuteScalar() with

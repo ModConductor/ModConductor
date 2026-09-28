@@ -83,6 +83,9 @@ let internal configureGrpc (services: IServiceCollection) =
         .AddServiceOptions<ModConductor.Engine.InventoryExportService>(fun options ->
             options.MaxReceiveMessageSize <- Nullable(4 * 1024 * 1024)
             options.MaxSendMessageSize <- Nullable 65536)
+        .AddServiceOptions<ModConductor.Engine.ProfileTransportService>(fun options ->
+            options.MaxReceiveMessageSize <- Nullable(1024 * 1024)
+            options.MaxSendMessageSize <- Nullable(1024 * 1024))
         .AddServiceOptions<ModConductor.Engine.ProfileModService>(fun options ->
             options.MaxReceiveMessageSize <- Nullable 65536
             options.MaxSendMessageSize <- Nullable(2 * 1024 * 1024))
@@ -141,5 +144,6 @@ let internal mapGrpc (app: WebApplication) =
     app.MapGrpcService<ModConductor.Engine.MigrationService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.ModOrganizationService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.InventoryExportService>() |> ignore
+    app.MapGrpcService<ModConductor.Engine.ProfileTransportService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.ModLibraryService>() |> ignore
     app.MapGrpcService<ModConductor.Engine.ProfileModService>() |> ignore

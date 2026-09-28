@@ -25,7 +25,8 @@ type internal LibraryCompositionInput =
       VersionLabel: string
       Policy: TargetPolicy
       Files: CompositionFile list
-      Bytes: CompositionBytes list }
+      Bytes: CompositionBytes list
+      Deleted: LogicalPath list }
 
 module internal LibraryComposition =
     let targets policy (previous: ManifestEntry list) (files: CompositionFile list) =
@@ -123,6 +124,33 @@ module internal LibraryComposition =
                 match targets input.Policy previous input.Files with
                 | Error error -> return Error error
                 | Ok(retainedFiles, selected) ->
+                    let deletedKeys = HashSet<string>(TargetPolicy.comparer input.Policy)
+                    let priorKeys = HashSet<string>(TargetPolicy.comparer input.Policy)
+                    let replacedKeys = HashSet<string>(TargetPolicy.comparer input.Policy)
+
+                    for entry in previous do
+                        priorKeys.Add(TargetPolicy.key input.Policy entry.Path) |> ignore
+
+                    for _, file, _ in selected do
+                        replacedKeys.Add(TargetPolicy.key input.Policy file.Target) |> ignore
+
+                    let mutable invalidDeletion = false
+
+                    for path in input.Deleted do
+                        let key = TargetPolicy.key input.Policy path
+
+                        if
+                            not (TargetPolicy.problems input.Policy path).IsEmpty
+                            || not (priorKeys.Contains key)
+                            || replacedKeys.Contains key
+                            || not (deletedKeys.Add key)
+                        then
+                            invalidDeletion <- true
+
+                    let retainedFiles =
+                        retainedFiles
+                        |> List.filter (fun file ->
+                            not (deletedKeys.Contains(TargetPolicy.key input.Policy file.Path)))
                     let inlineKeys = HashSet<string>(TargetPolicy.comparer input.Policy)
                     let fileKeys = HashSet<string>(TargetPolicy.comparer input.Policy)
 
@@ -130,7 +158,7 @@ module internal LibraryComposition =
                         fileKeys.Add(TargetPolicy.key input.Policy file.Target) |> ignore
 
                     let inlineFiles = ResizeArray<_>()
-                    let mutable invalid = false
+                    let mutable invalid = invalidDeletion
 
                     for item in input.Bytes do
                         if not invalid then

@@ -38,6 +38,8 @@ module internal OrganizationQuery =
                 |> Option.filter (fun row ->
                     row.Entry.Kind <> ModKind.GeneratedOutput
                     || row.Entry.SourcePath.IsSome
+                    || (SelectionRows.find connection transaction profile id |> Option.isSome)
+                    || (id = FnisRunRows.outputId profile && row.Entry.CurrentVersion.IsSome)
                     || Sqlite.number
                         connection
                         transaction

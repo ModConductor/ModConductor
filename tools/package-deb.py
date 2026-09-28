@@ -14,7 +14,7 @@ DEPENDS = (
     "libc6 (>= 2.34), libstdc++6 (>= 12), libgtk-3-0t64, libepoxy0, "
     "libsecret-1-0, libegl1, libgles2, libicu74, libunwind8, "
     "libssl3t64, zlib1g, libglib2.0-bin, fontconfig, fonts-dejavu-core, "
-    "gsettings-desktop-schemas, xdg-utils"
+    "gsettings-desktop-schemas, xdg-utils, shared-mime-info"
 )
 
 
@@ -36,6 +36,9 @@ def main() -> None:
         desktop = package / "usr/share/applications/dev.modconductor.mod_conductor.desktop"
         desktop.parent.mkdir(parents=True)
         shutil.copy2(ROOT / "packaging/dev.modconductor.mod_conductor.desktop", desktop)
+        mime = package / "usr/share/mime/packages/modconductor-profile.xml"
+        mime.parent.mkdir(parents=True)
+        shutil.copy2(ROOT / "packaging/modconductor-profile.xml", mime)
         shutil.copytree(payload / "share/icons/hicolor", package / "usr/share/icons/hicolor")
         documentation = package / "usr/share/doc/modconductor"
         documentation.parent.mkdir(parents=True)

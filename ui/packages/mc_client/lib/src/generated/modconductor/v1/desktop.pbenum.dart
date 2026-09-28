@@ -29,6 +29,9 @@ class DesktopIntentKind extends $pb.ProtobufEnum {
   static const DesktopIntentKind DESKTOP_INTENT_KIND_ARCHIVES =
       DesktopIntentKind._(
           4, _omitEnumNames ? '' : 'DESKTOP_INTENT_KIND_ARCHIVES');
+  static const DesktopIntentKind DESKTOP_INTENT_KIND_PROFILE =
+      DesktopIntentKind._(
+          5, _omitEnumNames ? '' : 'DESKTOP_INTENT_KIND_PROFILE');
 
   static const $core.List<DesktopIntentKind> values = <DesktopIntentKind>[
     DESKTOP_INTENT_KIND_UNSPECIFIED,
@@ -36,10 +39,11 @@ class DesktopIntentKind extends $pb.ProtobufEnum {
     DESKTOP_INTENT_KIND_WORKSPACE,
     DESKTOP_INTENT_KIND_ARCHIVE,
     DESKTOP_INTENT_KIND_ARCHIVES,
+    DESKTOP_INTENT_KIND_PROFILE,
   ];
 
   static final $core.List<DesktopIntentKind?> _byValue =
-      $pb.ProtobufEnum.$_initByValueList(values, 4);
+      $pb.ProtobufEnum.$_initByValueList(values, 5);
   static DesktopIntentKind? valueOf($core.int value) =>
       value < 0 || value >= _byValue.length ? null : _byValue[value];
 

@@ -11,6 +11,10 @@
     <Compile Include="ProfileDataValueEncoding.fs" />
     <Compile Include="ProfileDataEncoding.fs" />
     <Compile Include="ProfileDataRows.fs" />
+    <Compile Include="ProfileTransportModel.fs" />
+    <Compile Include="ProfileTransportJson.fs" />
+    <Compile Include="ProfileDelta.fs" />
+    <Compile Include="ProfileTransportZip.fs" />
     <Compile Include="CategoryRows.fs" />
     <Compile Include="LibraryRows.fs" />
     <Compile Include="OperationRows.fs" />
@@ -45,6 +49,7 @@
     <Compile Include="ModLibraryStore.fs" />
     <Compile Include="ModSelectionStore.fs" />
     <Compile Include="CategoryCommands.fs" />
+    <Compile Include="FnisRunRows.fs" />
     <Compile Include="OrganizationQuerySql.fs" />
     <Compile Include="OrganizationQuery.fs" />
     <Compile Include="ModOrganizationStore.fs" />
@@ -59,7 +64,6 @@
     <Compile Include="OutputRepository.fs" />
     <Compile Include="FilePlanRows.fs" />
     <Compile Include="FnisOutputCleanup.fs" />
-    <Compile Include="FnisRunRows.fs" />
     <Compile Include="FnisInputInspection.fs" />
     <Compile Include="FnisOutputInspection.fs" />
     <Compile Include="FnisExecutionLifecycle.fs" />
@@ -91,6 +95,9 @@
     <Compile Include="ExecutableRepository.fs" />
     <Compile Include="DownloadRows.fs" />
     <Compile Include="ArtifactRows.fs" />
+    <Compile Include="ProfileTransportSnapshot.fs" />
+    <Compile Include="ProfileTransportBases.fs" />
+    <Compile Include="ProfileTransportWriter.fs" />
     <Compile Include="ArtifactFiles.fs" />
     <Compile Include="ArtifactAccess.fs" />
     <Compile Include="ArtifactCapture.fs" />
@@ -107,6 +114,8 @@
     <Compile Include="InstallationRows.fs" />
     <Compile Include="InstallationPayloads.fs" />
     <Compile Include="InstallationStore.fs" />
+    <Compile Include="ProfileTransportImportMod.fs" />
+    <Compile Include="ProfileTransportStore.fs" />
     <Compile Include="BundleStore.fs" />
     <Compile Include="DeletionRows.fs" />
     <Compile Include="BundleDeletion.fs" />

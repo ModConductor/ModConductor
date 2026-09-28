@@ -58,7 +58,7 @@ typedef WorkspaceHelpBuilder = Widget Function(
 
 enum _WorkspaceMode { profiles, mods, game, tools, archives, help }
 
-enum _ProfileAction { clone, rename, delete }
+enum _ProfileAction { export, clone, rename, delete }
 
 class WorkspaceBrowser extends StatefulWidget {
   const WorkspaceBrowser({
@@ -74,6 +74,8 @@ class WorkspaceBrowser extends StatefulWidget {
     this.headerActions,
     this.profileInspectorBuilder,
     this.profileCreator,
+    this.onImportProfile,
+    this.onExportProfile,
     this.profileSetupBuilder,
     this.imageClient,
     this.gameName,
@@ -97,6 +99,13 @@ class WorkspaceBrowser extends StatefulWidget {
   final WorkspaceFolderOpener? openFolder;
   final ProfileInspectorBuilder? profileInspectorBuilder;
   final ProfileCreator? profileCreator;
+  final Future<void> Function(BuildContext context)? onImportProfile;
+  final Future<void> Function(
+    BuildContext context,
+    WorkspaceInfo workspace,
+    ProfileInfo profile,
+  )?
+  onExportProfile;
   final ProfileSetupBuilder? profileSetupBuilder;
   final ProfileImagesClient? imageClient;
   final String? gameName;

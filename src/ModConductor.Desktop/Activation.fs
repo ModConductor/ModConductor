@@ -8,6 +8,7 @@ type Activation =
     | Show
     | WorkspacePath of HostPath
     | ArchivePath of HostPath
+    | ProfilePath of HostPath
     | Workspace of Guid
     | Archives of Guid
 
@@ -30,6 +31,12 @@ module Activation =
             | [||] -> Ok Show
             | [| "--workspace"; value |] -> path WorkspacePath value
             | [| "--archive"; value |] -> path ArchivePath value
+            | [| "--profile"; value |] -> path ProfilePath value
+            | [| value |] when value.StartsWith("file:", StringComparison.OrdinalIgnoreCase) ->
+                match Uri.TryCreate(value, UriKind.Absolute) with
+                | true, uri when uri.IsFile && uri.Query = "" && uri.Fragment = "" ->
+                    path ProfilePath uri.LocalPath
+                | _ -> invalid
             | [| "--uri"; value |] ->
                 match Uri.TryCreate(value, UriKind.Absolute) with
                 | true, uri when
@@ -90,3 +97,18 @@ module Activation =
                         "The archive file is unavailable. Choose the archive again from its current folder."
                 | :? UnauthorizedAccessException ->
                     Error "The archive file cannot be read. Check access to the file."
+
+    let profile path =
+        if
+            not (
+                String.Equals(
+                    Path.GetExtension(HostPath.value path),
+                    ".mcprof",
+                    StringComparison.OrdinalIgnoreCase
+                )
+            )
+        then
+            Error "Choose a .mcprof profile file."
+        else
+            archive path
+            |> Result.mapError (fun _ -> "The profile file is unavailable. Choose it again.")

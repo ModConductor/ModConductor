@@ -5,7 +5,12 @@ final _skyrimProfileImage = Uri.parse(
 );
 
 mixin _ShellContent
-    on _AppStateBase, _SettingsScope, _WorkspaceScope, _ProfileCreation {
+    on
+        _AppStateBase,
+        _SettingsScope,
+        _WorkspaceScope,
+        _ProfileCreation,
+        _ProfileTransportFlow {
   Widget _buildWorkspaceBrowser(BuildContext context) => WorkspaceBrowser(
     controller: _workspaces,
     imageClient: widget.workspaces is ProfileImagesClient
@@ -15,6 +20,8 @@ mixin _ShellContent
     gameImage: _hasSkyrimGame ? _skyrimProfileImage : null,
     openFolder: widget.openWorkspaceFolder,
     profileCreator: _createProfile,
+    onImportProfile: _openProfileImport,
+    onExportProfile: _openProfileExport,
     profileSetupBuilder: _profileSetupGate,
     workbenchReady: _gameReady,
     profileInspectorBuilder: !_supportsSkyrim || widget.profileData == null

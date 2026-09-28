@@ -35,9 +35,10 @@ module internal FilePlanRows =
             Sqlite.command
                 connection
                 transaction
-                "SELECT m.id,m.current_version FROM mods m WHERE m.workspace_id=$workspace AND (m.kind=1 OR (m.kind=5 AND (EXISTS(SELECT 1 FROM fnis_outputs f WHERE f.profile_id=$profile AND f.mod_id=m.id) OR m.id=$candidate))) ORDER BY m.id LIMIT $limit"
+                "SELECT m.id,m.current_version FROM mods m WHERE m.workspace_id=$workspace AND (m.kind=1 OR (m.kind=5 AND (EXISTS(SELECT 1 FROM fnis_outputs f WHERE f.profile_id=$profile AND f.mod_id=m.id) OR EXISTS(SELECT 1 FROM profile_mods s WHERE s.profile_id=$profile AND s.mod_id=m.id) OR m.id=$output OR m.id=$candidate))) ORDER BY m.id LIMIT $limit"
                 [ "$workspace", box (string workspace)
                   "$profile", box (string profile)
+                  "$output", box (string (FnisRunRows.outputId profile))
                   "$candidate", candidate |> Option.map (fst >> string >> box) |> Option.defaultValue (box DBNull.Value)
                   "$limit", box (Limits.entries + 1) ]
 
@@ -145,7 +146,13 @@ module internal FilePlanRows =
 
                         match command.ExecuteScalar() with
                         | :? string as value -> Some(Guid.Parse value)
-                        | _ -> None
+                        | _ ->
+                            let imported = FnisRunRows.outputId profile
+
+                            match LibraryRows.find connection transaction imported with
+                            | Some row when row.Entry.Kind = ModKind.GeneratedOutput
+                                            && row.Entry.CurrentVersion.IsSome -> Some imported
+                            | _ -> None
 
                 let mutable remaining = Limits.entries
                 let mutable bytes = 0L

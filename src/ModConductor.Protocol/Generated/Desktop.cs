@@ -31,15 +31,15 @@ namespace ModConductor.Protocol.V1 {
             "EhQKDHdvcmtzcGFjZV9pZBgDIAEoCRIOCgZsZW5ndGgYBCABKAQiZQoTRGVz",
             "a3RvcFJlcXVlc3RSZXBseRIwCgZpbnRlbnQYASABKAsyHi5tb2Rjb25kdWN0",
             "b3IudjEuRGVza3RvcEludGVudEgAEhEKB3Byb2JsZW0YAiABKAlIAEIJCgdv",
-            "dXRjb21lKrwBChFEZXNrdG9wSW50ZW50S2luZBIjCh9ERVNLVE9QX0lOVEVO",
+            "dXRjb21lKt0BChFEZXNrdG9wSW50ZW50S2luZBIjCh9ERVNLVE9QX0lOVEVO",
             "VF9LSU5EX1VOU1BFQ0lGSUVEEAASHAoYREVTS1RPUF9JTlRFTlRfS0lORF9T",
             "SE9XEAESIQodREVTS1RPUF9JTlRFTlRfS0lORF9XT1JLU1BBQ0UQAhIfChtE",
             "RVNLVE9QX0lOVEVOVF9LSU5EX0FSQ0hJVkUQAxIgChxERVNLVE9QX0lOVEVO",
-            "VF9LSU5EX0FSQ0hJVkVTEAQygQEKEURlc2t0b3BPcGVyYXRpb25zEmwKFVJl",
-            "c29sdmVEZXNrdG9wUmVxdWVzdBItLm1vZGNvbmR1Y3Rvci52MS5SZXNvbHZl",
-            "RGVza3RvcFJlcXVlc3RNZXNzYWdlGiQubW9kY29uZHVjdG9yLnYxLkRlc2t0",
-            "b3BSZXF1ZXN0UmVwbHlCG6oCGE1vZENvbmR1Y3Rvci5Qcm90b2NvbC5WMWIG",
-            "cHJvdG8z"));
+            "VF9LSU5EX0FSQ0hJVkVTEAQSHwobREVTS1RPUF9JTlRFTlRfS0lORF9QUk9G",
+            "SUxFEAUygQEKEURlc2t0b3BPcGVyYXRpb25zEmwKFVJlc29sdmVEZXNrdG9w",
+            "UmVxdWVzdBItLm1vZGNvbmR1Y3Rvci52MS5SZXNvbHZlRGVza3RvcFJlcXVl",
+            "c3RNZXNzYWdlGiQubW9kY29uZHVjdG9yLnYxLkRlc2t0b3BSZXF1ZXN0UmVw",
+            "bHlCG6oCGE1vZENvbmR1Y3Rvci5Qcm90b2NvbC5WMWIGcHJvdG8z"));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { },
           new pbr::GeneratedClrTypeInfo(new[] {typeof(global::ModConductor.Protocol.V1.DesktopIntentKind), }, null, new pbr::GeneratedClrTypeInfo[] {
@@ -58,6 +58,7 @@ namespace ModConductor.Protocol.V1 {
     [pbr::OriginalName("DESKTOP_INTENT_KIND_WORKSPACE")] Workspace = 2,
     [pbr::OriginalName("DESKTOP_INTENT_KIND_ARCHIVE")] Archive = 3,
     [pbr::OriginalName("DESKTOP_INTENT_KIND_ARCHIVES")] Archives = 4,
+    [pbr::OriginalName("DESKTOP_INTENT_KIND_PROFILE")] Profile = 5,
   }
 
   #endregion

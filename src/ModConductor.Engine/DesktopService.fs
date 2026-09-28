@@ -37,6 +37,11 @@ type DesktopService(state: IWorkspaceState) =
                     match Activation.archive path with
                     | Ok(value, length) -> intent DesktopIntentKind.Archive value "" length
                     | Error detail -> problem detail
+            | Ok(ProfilePath path) ->
+                return
+                    match Activation.profile path with
+                    | Ok(value, length) -> intent DesktopIntentKind.Profile value "" length
+                    | Error detail -> problem detail
             | Ok(Workspace id as activation)
             | Ok(Archives id as activation) ->
                 let! result = state.Read(id, None)

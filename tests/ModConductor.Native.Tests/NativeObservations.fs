@@ -58,6 +58,7 @@ type NativeObservationSetup() =
         | "proton-contexts" -> info.ArgumentList.Add "--proton-contexts"
         | "steam-discovery" -> info.ArgumentList.Add "--steam-discovery"
         | "game-contexts" -> info.ArgumentList.Add "--game-contexts"
+        | "profile-transport" -> info.ArgumentList.Add "--profile-transport"
         | "planner" -> info.ArgumentList.Add "--planner"
         | "organization" -> info.ArgumentList.Add "--organization"
         | "selection" -> info.ArgumentList.Add "--selection"

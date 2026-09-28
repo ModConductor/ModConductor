@@ -279,7 +279,8 @@ type FilePlanRepository
                                               Bytes =
                                                 [ { Target = persisted.Path
                                                     Content = Array.copy persisted.Content
-                                                    Sha256 = persisted.Digest } ] }
+                                                    Sha256 = persisted.Digest } ]
+                                              Deleted = [] }
                                     )
                                 | Some _, Ok(Some _) -> Error FilePlanError.Stale
                                 | Some row, Ok None when
@@ -318,7 +319,8 @@ type FilePlanRepository
                                                           Convert.ToHexStringLower(
                                                               System.Security.Cryptography.SHA256.HashData
                                                                   bytes
-                                                          ) } ] }
+                                                          ) } ]
+                                                  Deleted = [] }
                                         )
                                     | _ -> Error FilePlanError.Stale
                                 | _ -> Error FilePlanError.Stale)

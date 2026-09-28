@@ -27,6 +27,7 @@ def main() -> None:
                    "--define", f"mc_payload {payload}",
                    "--define", f"mc_launcher {ROOT / 'packaging/linux-installed-launcher.sh'}",
                    "--define", f"mc_desktop {ROOT / 'packaging/dev.modconductor.mod_conductor.desktop'}",
+                   "--define", f"mc_mime {ROOT / 'packaging/modconductor-profile.xml'}",
                    str(ROOT / "packaging/modconductor-fedora.spec")]
         subprocess.run(command, check=True)
         built = top / f"RPMS/x86_64/modconductor-{args.version}-{args.package_revision}.fc44.x86_64.rpm"

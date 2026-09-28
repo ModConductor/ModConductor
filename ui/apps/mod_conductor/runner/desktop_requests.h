@@ -28,6 +28,8 @@ inline Arguments Screen(const Arguments& args) {
   if (args.size() == 1 &&
       (args[0] == "--invalid-request" || args[0] == "--unsupported-link"))
     return args;
+  if (args.size() == 1 && args[0].rfind("file://", 0) == 0)
+    return args;
   if (args.size() != 2) return invalid;
   if (args[0] == "--uri") {
     const auto& uri = args[1];
@@ -45,7 +47,8 @@ inline Arguments Screen(const Arguments& args) {
     }
     return args;
   }
-  if (args[0] != "--workspace" && args[0] != "--archive") return invalid;
+  if (args[0] != "--workspace" && args[0] != "--archive" &&
+      args[0] != "--profile") return invalid;
   const auto& path = args[1];
 #ifdef _WIN32
   const bool absolute = (path.size() > 2 && path[1] == ':' &&

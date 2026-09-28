@@ -1,0 +1,48 @@
+syntax = "proto3";
+package modconductor.v1;
+option csharp_namespace = "ModConductor.Protocol.V1";
+
+service ProfileTransportOperations {
+  rpc InspectProfileTransport(InspectProfileTransportRequest) returns (ProfileTransportPreview);
+  rpc ExportProfileTransport(ExportProfileTransportRequest) returns (ProfileTransportResult);
+  rpc ImportProfileTransport(ImportProfileTransportRequest) returns (ProfileTransportResult);
+}
+
+message InspectProfileTransportRequest { string path = 1; }
+message ProfileSourceRequirement {
+  uint32 mod_index = 1;
+  string mod_name = 2;
+  string archive_name = 3;
+  string sha256 = 4;
+  uint64 length = 5;
+  optional string provider_game = 6;
+  optional int64 provider_mod = 7;
+  optional int64 provider_file = 8;
+  optional string provider_version = 9;
+}
+message ProfileTransportPreview {
+  string name = 1;
+  string game = 2;
+  uint32 mod_count = 3;
+  uint32 save_file_count = 4;
+  uint64 save_bytes = 5;
+  repeated ProfileSourceRequirement sources = 6;
+}
+message ExportProfileTransportRequest {
+  string workspace_id = 1;
+  string profile_id = 2;
+  string destination = 3;
+  bool include_saves = 4;
+}
+message ManualProfileSource { uint32 mod_index = 1; string path = 2; }
+message ImportProfileTransportRequest {
+  string path = 1;
+  string workspace_id = 2;
+  string game_profile_id = 3;
+  string profile_name = 4;
+  repeated ManualProfileSource manual_sources = 5;
+}
+message ProfileTransportResult {
+  optional string profile_id = 1;
+  optional string problem = 2;
+}

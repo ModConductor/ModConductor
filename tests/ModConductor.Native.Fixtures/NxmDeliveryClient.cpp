@@ -14,6 +14,21 @@ void check(bool value, const char* detail) {
   if (!value) throw std::runtime_error(detail);
 }
 void check_queue_order() {
+  desktop::Requests profiles;
+  const desktop::Arguments profile{"--profile", "/owned/Weekend rivière.mcprof"};
+  check(profiles.Add(profile), "Profile activation was refused.");
+  const auto profileId = profiles.Read().first->id;
+  check(profiles.Add(profile) && profiles.Read().count == 1 && profiles.Read().first->id == profileId,
+        "Repeated profile activation created a second pending import.");
+  const desktop::Arguments fileUri{"file:///owned/Weekend%20rivi%C3%A8re.mcprof"};
+  check(profiles.Add(fileUri) && profiles.Read().count == 2,
+        "A file URI profile activation was refused.");
+  profiles.Dismiss(profileId);
+  check(profiles.Read().first->arguments == fileUri,
+        "Dismissing a profile activation removed the next request.");
+  check(profiles.Add(profile) && profiles.Read().count == 2,
+        "A profile could not be opened again after its first import dialog closed.");
+
   desktop::Requests queued;
   const desktop::Arguments olderA{"--workspace", "/older-a"};
   const desktop::Arguments olderB{"--workspace", "/older-b"};

@@ -50,6 +50,10 @@ type FnisTests() =
 
         flag "successfulRunPublishesAndSelectsOneCurrentOutput" |> should equal true
         flag "generatedFnisOutputIsPrivateToOwningProfile" |> should equal true
+        flag "transportKeepsExactFnisProviderAttribution" |> should equal true
+        flag "importedFnisOutputIsPrivateBeforeFirstRun" |> should equal true
+        flag "importedFnisOutputKeepsTransportRepresentation" |> should equal true
+        flag "firstRunReplacesImportedOutputWithoutSecondVisibleMod" |> should equal true
         flag "runWithNoOutputPreservesPriorOutputAndExitCode" |> should equal true
         flag "generatedFilesRemainAvailableAfterNonzeroExit" |> should equal true
         flag "cancelledRunTerminatesAndPreservesPriorOutput" |> should equal true

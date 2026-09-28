@@ -14,11 +14,11 @@ let
         !(builtins.elem name [ ".git" ".tools" ".agent-workspace" ".dart_tool" "bin" "obj" "build" "target" ".gradle" ".pub-cache" "test" "integration_test" ])) ||
       builtins.elem relative files;
   };
-  engineSource = sourceFor [ "src" "contracts" ] [
+  engineSource = sourceFor [ "src" "contracts" "third_party" ] [
     "Directory.Build.props" "Directory.Build.targets" "Directory.Packages.props"
     "NuGet.config" "global.json"
   ];
-  uiSource = sourceFor [ "ui" "docs" "packaging" ] [ ];
+  uiSource = sourceFor [ "ui" "docs" "packaging" "third_party" ] [ ];
   helperSource = sourceFor [ "native" ] [ ];
   sourceRevision = if self ? rev then self.rev else if self ? dirtyRev then self.dirtyRev else "unknown";
   sourceDate = if self ? lastModified then self.lastModified else 0;
@@ -79,6 +79,7 @@ let
       runHook preInstall
       mkdir -p "$out/lib/modconductor-engine"
       cp -r publish/. "$out/lib/modconductor-engine/"
+      install -m755 third_party/xdelta3/xdelta3-linux-x64 "$out/lib/modconductor-engine/xdelta3"
       runHook postInstall
     '';
     postFixup = ''
@@ -118,7 +119,7 @@ let
     packageRoot = ".";
     pubspecLock = lib.importJSON ./pubspec.lock.json;
     flutterBuildFlags = [ "--no-pub" ];
-    nativeBuildInputs = [ pkgs.patchelf pkgs.python3 ];
+    nativeBuildInputs = [ pkgs.patchelf pkgs.python3 pkgs.shared-mime-info ];
     preBuild = ''
       mkdir -p apps/mod_conductor/linux/flutter/ephemeral/.plugin_symlinks
       ln -s "$(packagePath file_selector_linux)" \
@@ -126,7 +127,7 @@ let
       cd apps/mod_conductor
     '';
     buildInputs = with pkgs; [ gtk3 libepoxy libx11 ];
-    extraWrapProgramArgs = ''--prefix PATH : ${lib.makeBinPath [ pkgs.glib.bin pkgs.xdg-utils ]} --prefix XDG_DATA_DIRS : ${pkgs.gsettings-desktop-schemas}/share --prefix XDG_DATA_DIRS : ${pkgs.adwaita-icon-theme}/share --set-default FONTCONFIG_FILE ${pkgs.fontconfig.out}/etc/fonts/fonts.conf'';
+    extraWrapProgramArgs = ''--prefix PATH : ${lib.makeBinPath [ pkgs.glib.bin pkgs.xdg-utils ]} --prefix XDG_DATA_DIRS : ${pkgs.gsettings-desktop-schemas}/share --prefix XDG_DATA_DIRS : ${pkgs.adwaita-icon-theme}/share --prefix XDG_DATA_DIRS : ${pkgs.shared-mime-info}/share --set-default FONTCONFIG_FILE ${pkgs.fontconfig.out}/etc/fonts/fonts.conf'';
     postInstall = ''
       mkdir -p "$out/app/modconductor/engine" "$out/share/applications" "$out/share/doc/modconductor"
       for size in 48 256; do
@@ -139,7 +140,13 @@ let
         ${engine}/lib/modconductor-engine/ModConductor.Engine.staticwebassets.endpoints.json \
         "$out/app/modconductor/engine/"
       cp ${lootHelper}/bin/modconductor-loot-helper "$out/app/modconductor/engine/"
+      cp ${engine}/lib/modconductor-engine/xdelta3 "$out/app/modconductor/engine/"
       cp -r ${uiSource}/docs/third-party "$out/share/doc/modconductor/"
+      install -m644 ${uiSource}/third_party/xdelta3/LICENSE "$out/share/doc/modconductor/third-party/xdelta3-LICENSE.txt"
+      install -m644 ${uiSource}/third_party/xdelta3/README.md "$out/share/doc/modconductor/third-party/xdelta3-README.md"
+      mkdir -p "$out/share/mime/packages"
+      cp ${uiSource}/packaging/modconductor-profile.xml "$out/share/mime/packages/modconductor-profile.xml"
+      update-mime-database "$out/share/mime"
       chmod u+w "$out/share/doc/modconductor/third-party"
       chmod u+w "$out/share/doc/modconductor/third-party/libloot-LICENSE.txt"
       cp ${liblootLicense} "$out/share/doc/modconductor/third-party/libloot-LICENSE.txt"
@@ -158,9 +165,10 @@ let
       [Desktop Entry]
       Type=Application
       Name=Mod Conductor
-      Exec=$out/bin/modconductor
+      Exec=$out/bin/modconductor %u
       Icon=dev.modconductor.mod_conductor
       Categories=Game;Utility;
+      MimeType=x-scheme-handler/nxm;application/x-modconductor-profile;
       Terminal=false
       EOF
       cd ../..

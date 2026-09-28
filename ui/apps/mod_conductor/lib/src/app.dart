@@ -51,6 +51,7 @@ part 'app_workspace_scope.dart';
 part 'app_capability_consumers.dart';
 part 'app_desktop_requests.dart';
 part 'app_profile_creation.dart';
+part 'app_profile_transport.dart';
 part 'app_state.dart';
 part 'app_shell_content.dart';
 
@@ -131,6 +132,7 @@ class ModConductorApp extends StatefulWidget {
     this.profileMods,
     this.modOrganization,
     this.inventoryExports,
+    this.profileTransport,
     this.gameContexts,
     this.filePlans,
     this.diagnostics,
@@ -176,6 +178,7 @@ class ModConductorApp extends StatefulWidget {
   final ProfileModsClient? profileMods;
   final ModOrganizationClient? modOrganization;
   final InventoryExportClient? inventoryExports;
+  final ProfileTransportClient? profileTransport;
   final GameContextsClient? gameContexts;
   final FilePlansClient? filePlans;
   final DiagnosticsClient? diagnostics;
@@ -224,8 +227,9 @@ class _ModConductorAppState extends _AppStateBase
         _SettingsScope,
         _WorkspaceScope,
         _CapabilityConsumers,
-        _DesktopRequests,
         _ProfileCreation,
+        _ProfileTransportFlow,
+        _DesktopRequests,
         _ShellContent {
   late final _RequestRouteObserver _requestRoutes = _RequestRouteObserver(
     _requestRouteClosed,

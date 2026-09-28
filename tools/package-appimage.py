@@ -42,6 +42,9 @@ def main() -> None:
         desktop = appdir / "usr/share/applications/dev.modconductor.mod_conductor.desktop"
         desktop.parent.mkdir(parents=True)
         shutil.copy2(payload / "share/applications/dev.modconductor.mod_conductor.desktop", desktop)
+        mime = appdir / "usr/share/mime/packages/modconductor-profile.xml"
+        mime.parent.mkdir(parents=True)
+        shutil.copy2(payload / "share/mime/packages/modconductor-profile.xml", mime)
         shutil.copytree(payload / "share/icons/hicolor", appdir / "usr/share/icons/hicolor")
         notices = app / "share/doc/modconductor/third-party"
         shutil.copy2(ROOT / "docs/third-party/appimage-runtime-LICENSE.txt", notices)

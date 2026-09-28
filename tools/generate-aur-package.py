@@ -15,7 +15,7 @@ ARCH_IMAGE = "archlinux@sha256:8745817f349ed24373341ddb92776209eeec3f0364ea48f7f
 DEPENDENCIES = (
     "glibc", "gcc-libs", "gtk3", "libepoxy", "libglvnd", "libsecret",
     "icu", "libunwind", "openssl", "zlib", "glib2", "fontconfig",
-    "ttf-dejavu", "gsettings-desktop-schemas", "xdg-utils",
+    "ttf-dejavu", "gsettings-desktop-schemas", "xdg-utils", "shared-mime-info",
 )
 
 
@@ -71,6 +71,7 @@ def main() -> None:
         "MC_LAUNCHER\n"
         '  chmod 755 "${pkgdir}/usr/bin/modconductor"\n'
         '  install -Dm644 "${payload}/share/applications/dev.modconductor.mod_conductor.desktop" "${pkgdir}/usr/share/applications/dev.modconductor.mod_conductor.desktop"\n'
+        '  install -Dm644 "${payload}/share/mime/packages/modconductor-profile.xml" "${pkgdir}/usr/share/mime/packages/modconductor-profile.xml"\n'
         '  install -Dm644 "${payload}/share/icons/hicolor/48x48/apps/dev.modconductor.mod_conductor.png" "${pkgdir}/usr/share/icons/hicolor/48x48/apps/dev.modconductor.mod_conductor.png"\n'
         '  install -Dm644 "${payload}/share/icons/hicolor/256x256/apps/dev.modconductor.mod_conductor.png" "${pkgdir}/usr/share/icons/hicolor/256x256/apps/dev.modconductor.mod_conductor.png"\n'
         '  ln -s ../../lib/modconductor/share/doc/modconductor "${pkgdir}/usr/share/doc/modconductor"\n'

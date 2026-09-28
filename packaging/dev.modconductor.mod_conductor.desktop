@@ -4,5 +4,5 @@ Name=Mod Conductor
 Exec=modconductor %u
 Icon=dev.modconductor.mod_conductor
 Categories=Game;Utility;
-MimeType=x-scheme-handler/nxm;
+MimeType=x-scheme-handler/nxm;application/x-modconductor-profile;
 Terminal=false

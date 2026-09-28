@@ -87,6 +87,15 @@ extension _WorkspaceProfileView on _WorkspaceBrowserState {
                 ? () => unawaited(controller.refresh())
                 : null,
             filterActions: [
+              if (widget.onImportProfile != null)
+                McAction(
+                  key: const ValueKey('import-profile'),
+                  label: 'Import profile',
+                  icon: Icons.file_download_outlined,
+                  onPressed: controller.canEdit
+                      ? () => unawaited(widget.onImportProfile!(context))
+                      : null,
+                ),
               McAction(
                 key: const ValueKey('create-profile'),
                 focusNode: _createProfileFocus,
@@ -183,6 +192,16 @@ extension _WorkspaceProfileView on _WorkspaceBrowserState {
                 onSelected: (action) {
                   _selectProfile(profile, () {
                     switch (action) {
+                      case _ProfileAction.export:
+                        if (widget.onExportProfile != null) {
+                          unawaited(
+                            widget.onExportProfile!(
+                              context,
+                              controller.workspace!,
+                              profile,
+                            ),
+                          );
+                        }
                       case _ProfileAction.clone:
                         unawaited(_profileDialog(context, profile: profile));
                       case _ProfileAction.rename:
@@ -199,6 +218,10 @@ extension _WorkspaceProfileView on _WorkspaceBrowserState {
                   });
                 },
                 itemBuilder: (_) => const [
+                  PopupMenuItem(
+                    value: _ProfileAction.export,
+                    child: Text('Export profile'),
+                  ),
                   PopupMenuItem(
                     value: _ProfileAction.clone,
                     child: Text('Clone'),
