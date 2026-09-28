@@ -16,6 +16,10 @@ import time
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def supported_linux_provenance(provenance: dict) -> bool:
+    return provenance.get("linux_rid", provenance.get("nix_system")) in ("linux-x64", "x86_64-linux")
+
+
 def child_engine(frontend: subprocess.Popen, engine: Path) -> int | None:
     children = Path(f"/proc/{frontend.pid}/task/{frontend.pid}/children")
     if not children.is_file():
@@ -63,7 +67,7 @@ def main() -> None:
         if launcher != payload / "bin/modconductor" or not engine.is_file() or not metadata.is_file():
             parser.error("Expected an extracted Linux desktop payload.")
         sbom = json.loads((payload / "share/doc/modconductor/sbom.spdx.json").read_text())
-        if json.loads(metadata.read_text())["linux_rid"] != "linux-x64" or sbom["packages"][0]["versionInfo"] != args.version:
+        if not supported_linux_provenance(json.loads(metadata.read_text())) or sbom["packages"][0]["versionInfo"] != args.version:
             parser.error("The Linux payload version does not match the requested version.")
 
     resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
