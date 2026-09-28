@@ -103,7 +103,7 @@ def main() -> None:
     copy_required(ROOT / "third_party/xdelta3/xdelta3-win-x64.exe", payload / "engine/xdelta3.exe")
     copy_required(ROOT / "LICENSE", payload / "LICENSE")
     copy_required(ROOT / "docs/SOURCE.md", payload / "notices/SOURCE.md")
-    shutil.copytree(ROOT / "docs/third-party", payload / "notices")
+    shutil.copytree(ROOT / "docs/third-party", payload / "notices", dirs_exist_ok=True)
     copy_required(ROOT / "ui/packages/mc_ui_foundation/notices/Roboto-LICENSE.txt", payload / "notices/Roboto-LICENSE.txt")
     copy_required(ROOT / "docs/third-party/libloot-LICENSE.txt", payload / "notices/libloot-LICENSE.txt")
     copy_required(ROOT / "docs/third-party/nsis-LICENSE.txt", payload / "notices/nsis-LICENSE.txt")

@@ -26,6 +26,7 @@ jobs:
       package_smoke_script: tools/smoke-desktop-package.py
       package_metadata_finalize_script: tools/finalize-desktop-release.py
       package_publish_script: tools/publish-desktop.py
+      package_publish_prepare_script: tools/prepare-desktop-package.py
       package_publish_matrix: >-
         [{"rid":"linux-x64","runner":"ubuntu-24.04","machine":"x86_64","executable":"artifacts/publish/linux-x64/bin/modconductor","publish_executable":"bin/modconductor","archive_executable":"bin/modconductor","publish_executables":["app/modconductor/mod_conductor","app/modconductor/engine/ModConductor.Engine","app/modconductor/engine/modconductor-loot-helper"]},{"rid":"win-x64","runner":"windows-2025","machine":"amd64","executable":"artifacts/publish/win-x64/payload/mod_conductor.exe","publish_executable":"payload/mod_conductor.exe","archive_executable":"mod_conductor.exe","publish_executables":["payload/engine/ModConductor.Engine.exe","payload/engine/modconductor-loot-helper.exe"],"archive_executables":["engine/ModConductor.Engine.exe","engine/modconductor-loot-helper.exe"]}]
       jreleaser_image: jreleaser/jreleaser-slim:v1.26.0

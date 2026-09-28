@@ -73,9 +73,15 @@ def main() -> None:
     resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
     scratch = args.scratch_directory.resolve()
     scratch.mkdir(exist_ok=True)
-    with tempfile.TemporaryDirectory(prefix="package-smoke-", dir=scratch) as temporary:
+    socket_root = ROOT / ".agent-workspace"
+    socket_root.mkdir(exist_ok=True)
+    # PrivateIngress binds a Unix socket below TMPDIR; a deep checkout path can exceed sun_path.
+    with (
+        tempfile.TemporaryDirectory(prefix="package-smoke-", dir=scratch) as temporary,
+        tempfile.TemporaryDirectory(prefix="s-", dir=socket_root) as socket_tmp,
+    ):
         directory = Path(temporary)
-        for name in ("home", "config", "cache", "data", "runtime", "tmp"):
+        for name in ("home", "config", "cache", "data", "runtime"):
             (directory / name).mkdir()
         (directory / "runtime").chmod(0o700)
         display = next(number for number in range(140, 200) if not Path(f"/tmp/.X11-unix/X{number}").exists() and not Path(f"/tmp/.X{number}-lock").exists())
@@ -88,7 +94,7 @@ def main() -> None:
             "HOME": str(directory / "home"), "XDG_CONFIG_HOME": str(directory / "config"),
             "XDG_CACHE_HOME": str(directory / "cache"), "XDG_DATA_HOME": str(directory / "data"),
             "XDG_RUNTIME_DIR": str(directory / "runtime"),
-            "TMPDIR": str(directory / "tmp"),
+            "TMPDIR": socket_tmp,
         })
         if args.appimage:
             environment["APPIMAGE_EXTRACT_AND_RUN"] = "1"
