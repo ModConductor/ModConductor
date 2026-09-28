@@ -23,8 +23,15 @@ module DeploymentBackendFixtures =
         function
         | Ok value -> value
         | Error(DeploymentError.Unavailable detail) ->
-            invalidOp $"Deployment backend {stage} unavailable: {detail}"
-        | Error error -> invalidOp $"Deployment backend {stage} failed: {error}"
+            invalidOp ("Deployment backend " + stage + " unavailable: " + detail)
+        | Error(DeploymentError.Blocked detail) ->
+            invalidOp ("Deployment backend " + stage + " blocked: " + detail)
+        | Error DeploymentError.NotFound ->
+            invalidOp ("Deployment backend " + stage + " not found.")
+        | Error DeploymentError.Busy -> invalidOp ("Deployment backend " + stage + " busy.")
+        | Error DeploymentError.Stale -> invalidOp ("Deployment backend " + stage + " stale.")
+        | Error DeploymentError.Cancelled ->
+            invalidOp ("Deployment backend " + stage + " cancelled.")
 
     let observe (writer: Utf8JsonWriter) primary =
         let area = Directory.CreateDirectory(Path.Combine(primary, "backend")).FullName
