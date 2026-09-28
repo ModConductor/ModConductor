@@ -71,6 +71,8 @@ def main() -> None:
     flutter_command = flutter / "bin/flutter.bat"
     if not flutter_command.is_file():
         parser.error(f"Flutter SDK is missing: {flutter}")
+    # A newly unpacked SDK prints tool bootstrap progress before machine output.
+    subprocess.run([str(flutter_command), "--version"], cwd=ROOT, check=True)
     flutter_details, _ = json.JSONDecoder().raw_decode(command_output([str(flutter_command), "--version", "--machine"]))
     if flutter_details["frameworkVersion"] != "3.47.4" or flutter_details["dartSdkVersion"].split()[0] != "3.13.3":
         parser.error("Flutter 3.47.4 and Dart 3.13.3 are required.")

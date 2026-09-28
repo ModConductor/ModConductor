@@ -53,6 +53,8 @@ def require_tool_versions() -> None:
         actual = subprocess.check_output(command, text=True).strip()
         if not actual.startswith(prefix):
             raise SystemExit(f"Expected {prefix}, found {actual}")
+    # A newly unpacked SDK prints tool bootstrap progress before machine output.
+    subprocess.run(["flutter", "--version"], check=True)
     flutter_output = subprocess.check_output(["flutter", "--version", "--machine"], text=True)
     flutter, _ = json.JSONDecoder().raw_decode(flutter_output.lstrip())
     if flutter["frameworkVersion"] != "3.47.4" or flutter["dartSdkVersion"].split()[0] != "3.13.3":
