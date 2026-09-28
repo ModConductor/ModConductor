@@ -152,6 +152,35 @@ type ProfileTransportService
                         )
         }
 
+    let reply (value: ModConductor.Persistence.ProfileTransportPreview) =
+        let result =
+            ProfileTransportPreview(
+                Name = value.Name,
+                Game = value.Game,
+                ModCount = uint32 value.Mods,
+                ModFileCount = uint32 value.ModFiles,
+                SaveFileCount = uint32 value.SaveFiles,
+                SaveBytes = uint64 value.SaveBytes
+            )
+
+        for source in value.Sources do
+            let item =
+                ModConductor.Protocol.V1.ProfileSourceRequirement(
+                    ModIndex = uint32 source.ModIndex,
+                    ModName = source.ModName,
+                    ArchiveName = source.ArchiveName,
+                    Sha256 = source.Sha256,
+                    Length = uint64 source.Length
+                )
+
+            source.ProviderGame |> Option.iter (fun value -> item.ProviderGame <- value)
+            source.ProviderMod |> Option.iter (fun value -> item.ProviderMod <- value)
+            source.ProviderFile |> Option.iter (fun value -> item.ProviderFile <- value)
+            source.ProviderVersion |> Option.iter (fun value -> item.ProviderVersion <- value)
+            result.Sources.Add item
+
+        result
+
     override _.InspectProfileTransport(request, _) =
         task {
             let value =
@@ -162,32 +191,24 @@ type ProfileTransportService
                     raise (RpcException(Status(StatusCode.InvalidArgument, error.Message)))
                 | :? IOException ->
                     raise (RpcException(Status(StatusCode.InvalidArgument, "The profile file could not be read.")))
-            let reply =
-                ProfileTransportPreview(
-                    Name = value.Name,
-                    Game = value.Game,
-                    ModCount = uint32 value.Mods,
-                    SaveFileCount = uint32 value.SaveFiles,
-                    SaveBytes = uint64 value.SaveBytes
-                )
+            return reply value
+        }
 
-            for source in value.Sources do
-                let item =
-                    ModConductor.Protocol.V1.ProfileSourceRequirement(
-                        ModIndex = uint32 source.ModIndex,
-                        ModName = source.ModName,
-                        ArchiveName = source.ArchiveName,
-                        Sha256 = source.Sha256,
-                        Length = uint64 source.Length
-                    )
-
-                source.ProviderGame |> Option.iter (fun value -> item.ProviderGame <- value)
-                source.ProviderMod |> Option.iter (fun value -> item.ProviderMod <- value)
-                source.ProviderFile |> Option.iter (fun value -> item.ProviderFile <- value)
-                source.ProviderVersion |> Option.iter (fun value -> item.ProviderVersion <- value)
-                reply.Sources.Add item
-
-            return reply
+    override _.PreviewExportProfileTransport(request, context) =
+        task {
+            try
+                let workspace = ModLibraryWire.id request.WorkspaceId
+                let profile = ModLibraryWire.id request.ProfileId
+                let! value = store.PreviewExport(workspace, profile, context.CancellationToken)
+                return
+                    match value with
+                    | Ok value -> reply value
+                    | Error problem -> raise (RpcException(Status(StatusCode.FailedPrecondition, problem)))
+            with
+            | :? InvalidDataException as error ->
+                return raise (RpcException(Status(StatusCode.FailedPrecondition, error.Message)))
+            | :? IOException ->
+                return raise (RpcException(Status(StatusCode.FailedPrecondition, "The profile files could not be read.")))
         }
 
     override _.ExportProfileTransport(request, context) =

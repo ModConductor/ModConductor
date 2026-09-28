@@ -18,6 +18,9 @@ type ProfileTransportTests() =
         flag "localPayload" |> should equal true
         flag "savesOptIn" |> should equal true
         flag "artworkRestored" |> should equal true
+        flag "populatedWorkspacePreserved" |> should equal true
+        flag "importedEffectiveState" |> should equal true
+        flag "previewUsesEffectiveModAndSaveInventory" |> should equal true
 
     [<Test>]
     member _.``repeated transport should preserve patch representation``() =

@@ -50,6 +50,8 @@ namespace ModConductor.Protocol.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.ProfileTransportPreview> __Marshaller_modconductor_v1_ProfileTransportPreview = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.ProfileTransportPreview.Parser));
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.PreviewExportProfileTransportRequest> __Marshaller_modconductor_v1_PreviewExportProfileTransportRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.PreviewExportProfileTransportRequest.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.ExportProfileTransportRequest> __Marshaller_modconductor_v1_ExportProfileTransportRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.ExportProfileTransportRequest.Parser));
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::ModConductor.Protocol.V1.ProfileTransportResult> __Marshaller_modconductor_v1_ProfileTransportResult = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::ModConductor.Protocol.V1.ProfileTransportResult.Parser));
@@ -62,6 +64,14 @@ namespace ModConductor.Protocol.V1 {
         __ServiceName,
         "InspectProfileTransport",
         __Marshaller_modconductor_v1_InspectProfileTransportRequest,
+        __Marshaller_modconductor_v1_ProfileTransportPreview);
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::ModConductor.Protocol.V1.PreviewExportProfileTransportRequest, global::ModConductor.Protocol.V1.ProfileTransportPreview> __Method_PreviewExportProfileTransport = new grpc::Method<global::ModConductor.Protocol.V1.PreviewExportProfileTransportRequest, global::ModConductor.Protocol.V1.ProfileTransportPreview>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "PreviewExportProfileTransport",
+        __Marshaller_modconductor_v1_PreviewExportProfileTransportRequest,
         __Marshaller_modconductor_v1_ProfileTransportPreview);
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
@@ -92,6 +102,12 @@ namespace ModConductor.Protocol.V1 {
     {
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V1.ProfileTransportPreview> InspectProfileTransport(global::ModConductor.Protocol.V1.InspectProfileTransportRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::ModConductor.Protocol.V1.ProfileTransportPreview> PreviewExportProfileTransport(global::ModConductor.Protocol.V1.PreviewExportProfileTransportRequest request, grpc::ServerCallContext context)
       {
         throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
       }
@@ -158,6 +174,26 @@ namespace ModConductor.Protocol.V1 {
         return CallInvoker.AsyncUnaryCall(__Method_InspectProfileTransport, null, options, request);
       }
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V1.ProfileTransportPreview PreviewExportProfileTransport(global::ModConductor.Protocol.V1.PreviewExportProfileTransportRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return PreviewExportProfileTransport(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::ModConductor.Protocol.V1.ProfileTransportPreview PreviewExportProfileTransport(global::ModConductor.Protocol.V1.PreviewExportProfileTransportRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_PreviewExportProfileTransport, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.ProfileTransportPreview> PreviewExportProfileTransportAsync(global::ModConductor.Protocol.V1.PreviewExportProfileTransportRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return PreviewExportProfileTransportAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::ModConductor.Protocol.V1.ProfileTransportPreview> PreviewExportProfileTransportAsync(global::ModConductor.Protocol.V1.PreviewExportProfileTransportRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_PreviewExportProfileTransport, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       public virtual global::ModConductor.Protocol.V1.ProfileTransportResult ExportProfileTransport(global::ModConductor.Protocol.V1.ExportProfileTransportRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
       {
         return ExportProfileTransport(request, new grpc::CallOptions(headers, deadline, cancellationToken));
@@ -212,6 +248,7 @@ namespace ModConductor.Protocol.V1 {
     {
       return grpc::ServerServiceDefinition.CreateBuilder()
           .AddMethod(__Method_InspectProfileTransport, serviceImpl.InspectProfileTransport)
+          .AddMethod(__Method_PreviewExportProfileTransport, serviceImpl.PreviewExportProfileTransport)
           .AddMethod(__Method_ExportProfileTransport, serviceImpl.ExportProfileTransport)
           .AddMethod(__Method_ImportProfileTransport, serviceImpl.ImportProfileTransport).Build();
     }
@@ -224,6 +261,7 @@ namespace ModConductor.Protocol.V1 {
     public static void BindService(grpc::ServiceBinderBase serviceBinder, ProfileTransportOperationsBase serviceImpl)
     {
       serviceBinder.AddMethod(__Method_InspectProfileTransport, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.InspectProfileTransportRequest, global::ModConductor.Protocol.V1.ProfileTransportPreview>(serviceImpl.InspectProfileTransport));
+      serviceBinder.AddMethod(__Method_PreviewExportProfileTransport, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.PreviewExportProfileTransportRequest, global::ModConductor.Protocol.V1.ProfileTransportPreview>(serviceImpl.PreviewExportProfileTransport));
       serviceBinder.AddMethod(__Method_ExportProfileTransport, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.ExportProfileTransportRequest, global::ModConductor.Protocol.V1.ProfileTransportResult>(serviceImpl.ExportProfileTransport));
       serviceBinder.AddMethod(__Method_ImportProfileTransport, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::ModConductor.Protocol.V1.ImportProfileTransportRequest, global::ModConductor.Protocol.V1.ProfileTransportResult>(serviceImpl.ImportProfileTransport));
     }

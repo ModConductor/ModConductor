@@ -28,6 +28,21 @@ final $typed_data.Uint8List inspectProfileTransportRequestDescriptor =
     $convert.base64Decode(
         'Ch5JbnNwZWN0UHJvZmlsZVRyYW5zcG9ydFJlcXVlc3QSEgoEcGF0aBgBIAEoCVIEcGF0aA==');
 
+@$core.Deprecated('Use previewExportProfileTransportRequestDescriptor instead')
+const PreviewExportProfileTransportRequest$json = {
+  '1': 'PreviewExportProfileTransportRequest',
+  '2': [
+    {'1': 'workspace_id', '3': 1, '4': 1, '5': 9, '10': 'workspaceId'},
+    {'1': 'profile_id', '3': 2, '4': 1, '5': 9, '10': 'profileId'},
+  ],
+};
+
+/// Descriptor for `PreviewExportProfileTransportRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List previewExportProfileTransportRequestDescriptor =
+    $convert.base64Decode(
+        'CiRQcmV2aWV3RXhwb3J0UHJvZmlsZVRyYW5zcG9ydFJlcXVlc3QSIQoMd29ya3NwYWNlX2lkGA'
+        'EgASgJUgt3b3Jrc3BhY2VJZBIdCgpwcm9maWxlX2lkGAIgASgJUglwcm9maWxlSWQ=');
+
 @$core.Deprecated('Use profileSourceRequirementDescriptor instead')
 const ProfileSourceRequirement$json = {
   '1': 'ProfileSourceRequirement',
@@ -110,6 +125,7 @@ const ProfileTransportPreview$json = {
       '6': '.modconductor.v1.ProfileSourceRequirement',
       '10': 'sources'
     },
+    {'1': 'mod_file_count', '3': 7, '4': 1, '5': 13, '10': 'modFileCount'},
   ],
 };
 
@@ -119,7 +135,7 @@ final $typed_data.Uint8List profileTransportPreviewDescriptor = $convert.base64D
     'ABKAlSBGdhbWUSGwoJbW9kX2NvdW50GAMgASgNUghtb2RDb3VudBImCg9zYXZlX2ZpbGVfY291'
     'bnQYBCABKA1SDXNhdmVGaWxlQ291bnQSHQoKc2F2ZV9ieXRlcxgFIAEoBFIJc2F2ZUJ5dGVzEk'
     'MKB3NvdXJjZXMYBiADKAsyKS5tb2Rjb25kdWN0b3IudjEuUHJvZmlsZVNvdXJjZVJlcXVpcmVt'
-    'ZW50Ugdzb3VyY2Vz');
+    'ZW50Ugdzb3VyY2VzEiQKDm1vZF9maWxlX2NvdW50GAcgASgNUgxtb2RGaWxlQ291bnQ=');
 
 @$core.Deprecated('Use exportProfileTransportRequestDescriptor instead')
 const ExportProfileTransportRequest$json = {

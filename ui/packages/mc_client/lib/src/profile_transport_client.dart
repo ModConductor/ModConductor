@@ -22,13 +22,17 @@ class ProfileTransportPreview {
     this.name,
     this.game,
     this.modCount,
+    this.modFileCount,
     this.saveFileCount,
     this.saveBytes,
     this.sources,
   );
   final String name, game;
-  final int modCount, saveFileCount, saveBytes;
+  final int modCount, modFileCount, saveFileCount, saveBytes;
   final List<ProfileSourceRequirement> sources;
+
+  String get gameName =>
+      game == 'skyrim-se-steam' ? 'Skyrim Special Edition' : game;
 }
 
 class ProfileTransportException implements Exception {
@@ -38,6 +42,10 @@ class ProfileTransportException implements Exception {
 
 abstract interface class ProfileTransportClient {
   Future<ProfileTransportPreview> inspect(String path);
+  Future<ProfileTransportPreview> previewExport(
+    String workspace,
+    String profile,
+  );
   Future<void> export(
     String workspace,
     String profile,
@@ -62,16 +70,12 @@ class GrpcProfileTransportClient implements ProfileTransportClient {
 
   final wire.ProfileTransportOperationsClient _client;
 
-  @override
-  Future<ProfileTransportPreview> inspect(String path) async {
-    try {
-      final value = await _client.inspectProfileTransport(
-        wire.InspectProfileTransportRequest(path: path),
-      );
-      return ProfileTransportPreview(
+  ProfileTransportPreview _preview(wire.ProfileTransportPreview value) =>
+      ProfileTransportPreview(
         value.name,
         value.game,
         value.modCount,
+        value.modFileCount,
         value.saveFileCount,
         value.saveBytes.toInt(),
         [
@@ -86,9 +90,37 @@ class GrpcProfileTransportClient implements ProfileTransportClient {
             ),
         ],
       );
+
+  @override
+  Future<ProfileTransportPreview> inspect(String path) async {
+    try {
+      final value = await _client.inspectProfileTransport(
+        wire.InspectProfileTransportRequest(path: path),
+      );
+      return _preview(value);
     } on GrpcError catch (error) {
       throw ProfileTransportException(
         error.message ?? 'The profile file could not be read.',
+      );
+    }
+  }
+
+  @override
+  Future<ProfileTransportPreview> previewExport(
+    String workspace,
+    String profile,
+  ) async {
+    try {
+      final value = await _client.previewExportProfileTransport(
+        wire.PreviewExportProfileTransportRequest(
+          workspaceId: workspace,
+          profileId: profile,
+        ),
+      );
+      return _preview(value);
+    } on GrpcError catch (error) {
+      throw ProfileTransportException(
+        error.message ?? 'The profile could not be read.',
       );
     }
   }

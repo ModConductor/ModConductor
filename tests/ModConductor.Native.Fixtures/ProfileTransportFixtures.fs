@@ -9,6 +9,7 @@ open System.Threading
 open ModConductor.ArchiveInstallation
 open ModConductor.ArtifactLibrary
 open ModConductor.Bethesda
+open ModConductor.FilePlanning
 open ModConductor.GameContexts
 open ModConductor.ModLibrary
 open ModConductor.ModSelection
@@ -40,7 +41,7 @@ module ProfileTransportFixtures =
             let bytes = Encoding.UTF8.GetBytes content
             memberFile.Write bytes
 
-    let private gameProfile (store: OperationStore) workspace game proton =
+    let private gameProfile (store: OperationStore) workspace game proton name =
         let workspaces = store.Workspaces :> IWorkspaceState
         let opened = workspaces.Read(workspace, None) |> wait |> result
         let profile = Guid.NewGuid()
@@ -48,7 +49,7 @@ module ProfileTransportFixtures =
         workspaces.Edit(
             workspace,
             opened.Workspace.Revision,
-            ProfileEdit.Create { Id = profile; Name = "Original" }
+            ProfileEdit.Create { Id = profile; Name = name }
         )
         |> wait |> result |> ignore
 
@@ -140,6 +141,65 @@ module ProfileTransportFixtures =
         |> List.map (fun file -> LogicalPath.display file.Path, file.Payload.Sha256)
         |> Map.ofList
 
+    let private selected (store: OperationStore) profile =
+        (InventoryObservations.read store profile).Entries
+        |> List.choose (fun row ->
+            match row.Entry.Selection with
+            | SelectionState.Managed(priority, enabled) ->
+                Some(row.Entry.Mod.Id, priority, enabled, row.Entry.Mod.CurrentVersion)
+            | _ -> None)
+        |> List.sortBy (fun (_, priority, _, _) -> priority)
+
+    let private plan (store: OperationStore) profile =
+        let plans = store.FilePlans :> IFilePlans
+        let summary = plans.Acquire(profile, true, ignore, token) |> wait |> result
+        let rec collect cursor =
+            let page = plans.Children(summary.Id, None, "", cursor) |> wait |> result
+            let nodes =
+                page.Nodes
+                |> List.map (fun node ->
+                    LogicalPath.components node.Path,
+                    node.Directory,
+                    node.Disposition,
+                    node.SourceName)
+            match page.Next with
+            | Some next -> nodes @ collect (Some next)
+            | None -> nodes
+        collect None
+
+    let private pluginOrder state profile =
+        use connection =
+            new Microsoft.Data.Sqlite.SqliteConnection(
+                "Data Source=" + Path.Combine(state, "state.db") + ";Pooling=False"
+            )
+        connection.Open()
+        use query =
+            Sqlite.command
+                connection
+                null
+                "SELECT p.body FROM profile_data_profiles p WHERE p.profile_id=$profile"
+                [ "$profile", box (string profile) ]
+        use reader = query.ExecuteReader()
+        if not (reader.Read()) then invalidOp "The imported plugin state is unavailable."
+        let row = ProfileDataEncoding.readProfile (reader.GetFieldValue<byte array> 0)
+        row.PluginOrder |> Option.map _.Entries |> Option.defaultValue []
+
+    let private hiddenPaths state modId version =
+        use connection =
+            new Microsoft.Data.Sqlite.SqliteConnection(
+                "Data Source=" + Path.Combine(state, "state.db") + ";Pooling=False"
+            )
+        connection.Open()
+        use query =
+            Sqlite.command
+                connection
+                null
+                "SELECT path FROM hidden_mod_files WHERE mod_id=$mod AND version_id=$version AND hidden=1 ORDER BY path"
+                [ "$mod", box (string modId); "$version", box (string version) ]
+        use reader = query.ExecuteReader()
+        [ while reader.Read() do
+              yield LibraryEncoding.readPath (reader.GetString 0) |> LogicalPath.components ]
+
     let observe (writer: Utf8JsonWriter) area =
         let state = Directory.CreateDirectory(Path.Combine(area, "state")).FullName
         let root = Directory.CreateDirectory(Path.Combine(area, "workspace")).FullName
@@ -151,7 +211,7 @@ module ProfileTransportFixtures =
         let workspaces = store.Workspaces :> IWorkspaceState
         workspaces.Create(workspace, "Transport", StorageWorker.select root)
         |> wait |> result |> ignore
-        let original = gameProfile store workspace game proton
+        let original = gameProfile store workspace game proton "Original"
         let artifact, modId, version = install store workspace source
         let inventory = InventoryObservations.read store original
         (store.ModSelection :> IModSelection).Change(
@@ -200,6 +260,16 @@ module ProfileTransportFixtures =
         let inventory = InventoryObservations.read store original
         (store.ModSelection :> IModSelection).Change(
             original, inventory.SelectionRevision, [ localId ], SelectionEdit.Enable true
+        ) |> wait |> result |> ignore
+
+        let other = gameProfile store workspace game proton "Other"
+        let otherInventory = InventoryObservations.read store other
+        (store.ModSelection :> IModSelection).Change(
+            other, otherInventory.SelectionRevision, [ localId; modId ], SelectionEdit.Enable true
+        ) |> wait |> result |> ignore
+        let otherInventory = InventoryObservations.read store other
+        (store.ModSelection :> IModSelection).Change(
+            other, otherInventory.SelectionRevision, [ localId ], SelectionEdit.MoveUp
         ) |> wait |> result |> ignore
 
         let privateData = store.ProfileGameData
@@ -255,6 +325,12 @@ module ProfileTransportFixtures =
         File.WriteAllBytes(image, imageBytes)
         store.ProfileImages.Set(workspace, original, Some image) |> wait |> result |> ignore
 
+        let existingIds = Set.ofList [ modId; localId ]
+        let sourceBefore = selected store original
+        let otherBefore = selected store other
+        let sourcePlanBefore = plan store original
+        let otherPlanBefore = plan store other
+
         let first, second, third, withSaves =
             Path.Combine(area, "first.mcprof"),
             Path.Combine(area, "second.mcprof"),
@@ -262,6 +338,8 @@ module ProfileTransportFixtures =
             Path.Combine(area, "with-saves.mcprof")
         store.ProfileTransport.Export(workspace, original, first, false, token) |> wait |> result
         store.ProfileTransport.Export(workspace, original, withSaves, true, token) |> wait |> result
+        let exportPreview = store.ProfileTransport.PreviewExport(workspace, original, token) |> wait |> result
+        let importPreview = store.ProfileTransport.Inspect first
         let initial = portable first
         let includedSaves = portable withSaves
         let import file name =
@@ -274,6 +352,39 @@ module ProfileTransportFixtures =
         let importedAgain = import second "Imported again"
         store.ProfileTransport.Export(workspace, importedAgain, third, false, token) |> wait |> result
         let final = portable third
+        let importedSaves = import withSaves "Imported with saves"
+        let importedData = privateData.Read(workspace, imported) |> wait |> result
+        let importedSaveData = privateData.Read(workspace, importedSaves) |> wait |> result
+        let importedSelection = selected store imported
+        let importedIds =
+            importedSelection
+            |> List.map (fun (id, _, _, _) -> id)
+            |> List.filter (fun id -> not (Set.contains id existingIds))
+            |> Set.ofList
+        let sourceAfter = selected store original
+        let otherAfter = selected store other
+        let previous rows = rows |> List.filter (fun (id, _, _, _) -> Set.contains id existingIds)
+        let variantsDisabled rows =
+            let variants = rows |> List.filter (fun (id, _, _, _) -> Set.contains id importedIds)
+            variants.Length = importedIds.Count
+            && (variants |> List.forall (fun (_, _, enabled, _) -> not enabled))
+        let importedPriorities =
+            importedSelection
+            |> List.filter (fun (id, _, enabled, _) -> Set.contains id importedIds && enabled)
+            |> List.map (fun (_, priority, _, _) -> priority)
+        let importedPlugins = pluginOrder state imported
+        let importedVariant =
+            (InventoryObservations.read store imported).Entries
+            |> List.map _.Entry
+            |> List.find (fun row ->
+                row.Mod.Metadata.Name = "Variant mod"
+                && (match row.Selection with
+                    | SelectionState.Managed(_, true) -> true
+                    | _ -> false))
+        let importedHidden =
+            hiddenPaths state importedVariant.Mod.Id importedVariant.Mod.CurrentVersion.Value
+        let sourcePlanAfter = plan store original
+        let otherPlanAfter = plan store other
         let canonicalContent file =
             use zip = ZipFile.OpenRead file
 
@@ -355,11 +466,46 @@ module ProfileTransportFixtures =
                         LockedIndex = None } ])
         )
         writer.WriteBoolean(
+            "previewUsesEffectiveModAndSaveInventory",
+            check "preview inventory"
+                (exportPreview.Mods = 2
+                 && exportPreview.ModFiles = 3
+                 && exportPreview.SaveFiles = 1
+                 && exportPreview.SaveBytes = int64 "private save".Length
+                 && importPreview.Mods = 2
+                 && importPreview.ModFiles = 3
+                 && importPreview.SaveFiles = 0)
+        )
+        writer.WriteBoolean(
             "artworkRestored",
             check "artwork restored"
                 (initial.Artwork.IsSome
                  && (store.ProfileImages.Read(workspace, imported) |> wait |> result |> Option.map File.ReadAllBytes)
                     = Some imageBytes)
+        )
+        writer.WriteBoolean(
+            "populatedWorkspacePreserved",
+            [ "source selection and version", previous sourceBefore = previous sourceAfter
+              "other selection and version", previous otherBefore = previous otherAfter
+              "source variants disabled", variantsDisabled sourceAfter
+              "other variants disabled", variantsDisabled otherAfter
+              "source file plan", sourcePlanAfter = sourcePlanBefore
+              "other file plan", otherPlanAfter = otherPlanBefore ]
+            |> List.forall (fun (name, preserved) -> check name preserved)
+        )
+        writer.WriteBoolean(
+            "importedEffectiveState",
+            check "imported effective state"
+                (importedPriorities = [ 0; 1 ]
+                 && files store original = files store imported
+                 && plan store imported = sourcePlanBefore
+                 && importedHidden = [ [ "edited.ini" ] ]
+                 && importedPlugins = [ { Name = "Disabled.esp"; Enabled = Some false; LockedIndex = None } ]
+                 && File.ReadAllText(Path.Combine(importedData.SettingsPath, "SkyrimCustom.ini")) = "portable setting"
+                 && not (File.Exists(Path.Combine(importedData.SavesPath, "personal.ess")))
+                 && File.ReadAllText(Path.Combine(importedSaveData.SavesPath, "personal.ess")) = "private save"
+                 && importedData.Options = { Settings = true; Saves = true }
+                 && importedSaveData.Options = { Settings = true; Saves = true })
         )
         writer.WriteBoolean(
             "stableRepresentation",

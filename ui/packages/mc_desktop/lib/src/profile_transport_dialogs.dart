@@ -35,6 +35,39 @@ class ProfileImportResult {
   final String profile;
 }
 
+class _ProfileTransportSummary extends StatelessWidget {
+  const _ProfileTransportSummary({required this.name, required this.preview});
+
+  final String name;
+  final ProfileTransportPreview preview;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(name, style: Theme.of(context).textTheme.titleSmall),
+      const SizedBox(height: McSpacing.small),
+      Text(
+        '${preview.gameName} · ${preview.modCount} mods · ${preview.modFileCount} mod files',
+        style: Theme.of(context).textTheme.bodySmall,
+      ),
+    ],
+  );
+}
+
+String _profileSize(int bytes) {
+  if (bytes >= 1000000000) {
+    return '${(bytes / 1000000000).toStringAsFixed(bytes % 1000000000 == 0 ? 0 : 1)} GB';
+  }
+  if (bytes >= 1000000) {
+    return '${(bytes / 1000000).toStringAsFixed(bytes % 1000000 == 0 ? 0 : 1)} MB';
+  }
+  if (bytes >= 1000) {
+    return '${(bytes / 1000).toStringAsFixed(bytes % 1000 == 0 ? 0 : 1)} KB';
+  }
+  return '$bytes B';
+}
+
 class ProfileImportDialog extends StatefulWidget {
   const ProfileImportDialog({
     super.key,
@@ -214,9 +247,9 @@ class _ProfileImportDialogState extends State<ProfileImportDialog> {
               message: 'Reading profile file',
             ),
           if (preview case final value?) ...[
-            Text(
-              '${File(widget.path).uri.pathSegments.last} · ${value.modCount} mods',
-              style: Theme.of(context).textTheme.titleSmall,
+            _ProfileTransportSummary(
+              name: File(widget.path).uri.pathSegments.last,
+              preview: value,
             ),
             const SizedBox(height: McSpacing.large),
             McNameField(controller: name, onSubmit: submit),
@@ -315,13 +348,34 @@ class ProfileExportDialog extends StatefulWidget {
 
 class _ProfileExportDialogState extends State<ProfileExportDialog> {
   final name = TextEditingController();
+  ProfileTransportPreview? preview;
   bool includeSaves = false, busy = false;
   String? problem;
+
+  String get savesSummary {
+    final value = preview;
+    if (value == null) return '';
+    if (value.saveFileCount == 0) return 'No profile saves';
+    return '${value.saveFileCount} files · ${_profileSize(value.saveBytes)}';
+  }
 
   @override
   void initState() {
     super.initState();
     name.text = '${widget.profile.name}.mcprof';
+    unawaited(load());
+  }
+
+  Future<void> load() async {
+    try {
+      final value = await widget.client.previewExport(
+        widget.workspace.id,
+        widget.profile.id,
+      );
+      if (mounted) setState(() => preview = value);
+    } on ProfileTransportException catch (error) {
+      if (mounted) setState(() => problem = error.detail);
+    }
   }
 
   @override
@@ -331,7 +385,7 @@ class _ProfileExportDialogState extends State<ProfileExportDialog> {
   }
 
   Future<void> submit() async {
-    if (busy) return;
+    if (busy || preview == null) return;
     final fileName = name.text.trim();
     if (fileName.isEmpty || !fileName.toLowerCase().endsWith('.mcprof')) {
       setState(() => problem = 'Use a .mcprof file name.');
@@ -362,10 +416,16 @@ class _ProfileExportDialogState extends State<ProfileExportDialog> {
   Widget build(BuildContext context) => McFormDialog(
     title: 'Export profile',
     action: busy ? 'Exporting…' : 'Export profile',
-    onSubmit: busy ? null : submit,
+    onSubmit: busy || preview == null ? null : submit,
     canCancel: !busy,
     children: [
-      Text(widget.profile.name, style: Theme.of(context).textTheme.titleSmall),
+      if (preview case final value?)
+        _ProfileTransportSummary(name: widget.profile.name, preview: value)
+      else if (problem == null)
+        const McActionFeedback(
+          kind: McActionFeedbackKind.pending,
+          message: 'Reading profile',
+        ),
       const SizedBox(height: McSpacing.large),
       TextField(
         controller: name,
@@ -375,9 +435,14 @@ class _ProfileExportDialogState extends State<ProfileExportDialog> {
       ),
       CheckboxListTile(
         contentPadding: EdgeInsets.zero,
+        controlAffinity: ListTileControlAffinity.leading,
         title: const Text('Include save games'),
+        secondary: Text(
+          savesSummary,
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
         value: includeSaves,
-        onChanged: busy
+        onChanged: busy || preview == null || preview!.saveFileCount == 0
             ? null
             : (value) => setState(() => includeSaves = value ?? false),
       ),

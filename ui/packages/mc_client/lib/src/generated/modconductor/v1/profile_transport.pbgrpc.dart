@@ -41,6 +41,15 @@ class ProfileTransportOperationsClient extends $grpc.Client {
         options: options);
   }
 
+  $grpc.ResponseFuture<$0.ProfileTransportPreview>
+      previewExportProfileTransport(
+    $0.PreviewExportProfileTransportRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$previewExportProfileTransport, request,
+        options: options);
+  }
+
   $grpc.ResponseFuture<$0.ProfileTransportResult> exportProfileTransport(
     $0.ExportProfileTransportRequest request, {
     $grpc.CallOptions? options,
@@ -63,6 +72,11 @@ class ProfileTransportOperationsClient extends $grpc.Client {
           $0.InspectProfileTransportRequest, $0.ProfileTransportPreview>(
       '/modconductor.v1.ProfileTransportOperations/InspectProfileTransport',
       ($0.InspectProfileTransportRequest value) => value.writeToBuffer(),
+      $0.ProfileTransportPreview.fromBuffer);
+  static final _$previewExportProfileTransport = $grpc.ClientMethod<
+          $0.PreviewExportProfileTransportRequest, $0.ProfileTransportPreview>(
+      '/modconductor.v1.ProfileTransportOperations/PreviewExportProfileTransport',
+      ($0.PreviewExportProfileTransportRequest value) => value.writeToBuffer(),
       $0.ProfileTransportPreview.fromBuffer);
   static final _$exportProfileTransport = $grpc.ClientMethod<
           $0.ExportProfileTransportRequest, $0.ProfileTransportResult>(
@@ -89,6 +103,15 @@ abstract class ProfileTransportOperationsServiceBase extends $grpc.Service {
         false,
         ($core.List<$core.int> value) =>
             $0.InspectProfileTransportRequest.fromBuffer(value),
+        ($0.ProfileTransportPreview value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.PreviewExportProfileTransportRequest,
+            $0.ProfileTransportPreview>(
+        'PreviewExportProfileTransport',
+        previewExportProfileTransport_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.PreviewExportProfileTransportRequest.fromBuffer(value),
         ($0.ProfileTransportPreview value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$0.ExportProfileTransportRequest,
             $0.ProfileTransportResult>(
@@ -118,6 +141,15 @@ abstract class ProfileTransportOperationsServiceBase extends $grpc.Service {
 
   $async.Future<$0.ProfileTransportPreview> inspectProfileTransport(
       $grpc.ServiceCall call, $0.InspectProfileTransportRequest request);
+
+  $async.Future<$0.ProfileTransportPreview> previewExportProfileTransport_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.PreviewExportProfileTransportRequest> $request) async {
+    return previewExportProfileTransport($call, await $request);
+  }
+
+  $async.Future<$0.ProfileTransportPreview> previewExportProfileTransport(
+      $grpc.ServiceCall call, $0.PreviewExportProfileTransportRequest request);
 
   $async.Future<$0.ProfileTransportResult> exportProfileTransport_Pre(
       $grpc.ServiceCall $call,

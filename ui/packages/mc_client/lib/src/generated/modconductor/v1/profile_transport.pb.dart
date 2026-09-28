@@ -75,6 +75,78 @@ class InspectProfileTransportRequest extends $pb.GeneratedMessage {
   void clearPath() => $_clearField(1);
 }
 
+class PreviewExportProfileTransportRequest extends $pb.GeneratedMessage {
+  factory PreviewExportProfileTransportRequest({
+    $core.String? workspaceId,
+    $core.String? profileId,
+  }) {
+    final result = create();
+    if (workspaceId != null) result.workspaceId = workspaceId;
+    if (profileId != null) result.profileId = profileId;
+    return result;
+  }
+
+  PreviewExportProfileTransportRequest._();
+
+  factory PreviewExportProfileTransportRequest.fromBuffer(
+          $core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory PreviewExportProfileTransportRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'PreviewExportProfileTransportRequest',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'modconductor.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'workspaceId')
+    ..aOS(2, _omitFieldNames ? '' : 'profileId')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  PreviewExportProfileTransportRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  PreviewExportProfileTransportRequest copyWith(
+          void Function(PreviewExportProfileTransportRequest) updates) =>
+      super.copyWith((message) =>
+              updates(message as PreviewExportProfileTransportRequest))
+          as PreviewExportProfileTransportRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static PreviewExportProfileTransportRequest create() =>
+      PreviewExportProfileTransportRequest._();
+  @$core.override
+  PreviewExportProfileTransportRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static PreviewExportProfileTransportRequest getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<
+          PreviewExportProfileTransportRequest>(create);
+  static PreviewExportProfileTransportRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get workspaceId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set workspaceId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasWorkspaceId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearWorkspaceId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get profileId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set profileId($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasProfileId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearProfileId() => $_clearField(2);
+}
+
 class ProfileSourceRequirement extends $pb.GeneratedMessage {
   factory ProfileSourceRequirement({
     $core.int? modIndex,
@@ -236,6 +308,7 @@ class ProfileTransportPreview extends $pb.GeneratedMessage {
     $core.int? saveFileCount,
     $fixnum.Int64? saveBytes,
     $core.Iterable<ProfileSourceRequirement>? sources,
+    $core.int? modFileCount,
   }) {
     final result = create();
     if (name != null) result.name = name;
@@ -244,6 +317,7 @@ class ProfileTransportPreview extends $pb.GeneratedMessage {
     if (saveFileCount != null) result.saveFileCount = saveFileCount;
     if (saveBytes != null) result.saveBytes = saveBytes;
     if (sources != null) result.sources.addAll(sources);
+    if (modFileCount != null) result.modFileCount = modFileCount;
     return result;
   }
 
@@ -271,6 +345,8 @@ class ProfileTransportPreview extends $pb.GeneratedMessage {
         defaultOrMaker: $fixnum.Int64.ZERO)
     ..pPM<ProfileSourceRequirement>(6, _omitFieldNames ? '' : 'sources',
         subBuilder: ProfileSourceRequirement.create)
+    ..aI(7, _omitFieldNames ? '' : 'modFileCount',
+        fieldType: $pb.PbFieldType.OU3)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -340,6 +416,15 @@ class ProfileTransportPreview extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(6)
   $pb.PbList<ProfileSourceRequirement> get sources => $_getList(5);
+
+  @$pb.TagNumber(7)
+  $core.int get modFileCount => $_getIZ(6);
+  @$pb.TagNumber(7)
+  set modFileCount($core.int value) => $_setUnsignedInt32(6, value);
+  @$pb.TagNumber(7)
+  $core.bool hasModFileCount() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearModFileCount() => $_clearField(7);
 }
 
 class ExportProfileTransportRequest extends $pb.GeneratedMessage {

@@ -26,6 +26,7 @@ type ProfileTransportPreview =
     { Name: string
       Game: string
       Mods: int
+      ModFiles: int
       SaveFiles: int
       SaveBytes: int64
       Sources: ProfileSourceRequirement list }
@@ -51,10 +52,48 @@ type ProfileTransportStore
         | PortableContent.Payload(_, _, length)
         | PortableContent.Patch(_, _, _, length) -> length
 
+    let modFiles (value: PortableMod) =
+        let original =
+            value.Base
+            |> Option.map (fun source -> source.Selected |> List.map _.Destination |> Set.ofList)
+            |> Option.defaultValue Set.empty
+        let deleted = value.Deleted |> Set.ofList
+        let changed = value.Files |> List.map _.Path |> Set.ofList
+        let hidden = value.Hidden |> Set.ofList
+        Set.difference (Set.union (Set.difference original deleted) changed) hidden
+        |> Set.count
+
+    let privateUsage (root: DataRoot option) (token: CancellationToken) =
+        let rec count (folder: HeldDirectory) depth =
+            if depth > 128 then
+                raise (InvalidDataException "The private profile folder exceeds the depth limit.")
+            folder.Names
+            |> Seq.fold (fun (files, bytes) name ->
+                token.ThrowIfCancellationRequested()
+                match folder.InspectEntry name with
+                | Some entry when entry.Kind = EntryKind.Directory ->
+                    use child = folder.Directory(name, Some entry.Identity)
+                    let nestedFiles, nestedBytes = count child (depth + 1)
+                    files + nestedFiles, bytes + nestedBytes
+                | Some entry when entry.Kind = EntryKind.RegularFile ->
+                    let stream, _ = folder.Read(name, Some entry.Identity)
+                    use stream = stream
+                    files + 1, bytes + stream.Length
+                | _ -> raise (InvalidDataException "The private profile folder contains an unsupported entry.")) (0, 0L)
+        match root with
+        | Some root ->
+            use folder = HeldDirectory.Open(root.Path, root.Identity)
+            count folder 0
+        | None -> 0, 0L
+
     let preview (profile: PortableProfile) =
         { Name = profile.Name
           Game = profile.Game
-          Mods = profile.Mods.Length
+          Mods = profile.Mods |> List.filter (fun value -> value.Kind = "regular") |> List.length
+          ModFiles =
+            profile.Mods
+            |> List.filter (fun value -> value.Kind = "regular")
+            |> List.sumBy modFiles
           SaveFiles = profile.Saves.Length
           SaveBytes = profile.Saves |> List.sumBy payloadLength
           Sources =
@@ -389,6 +428,44 @@ type ProfileTransportStore
         let profile = bundle.Profile
         validate profile
         preview profile
+
+    member _.PreviewExport(workspace, profile, token: CancellationToken) =
+        task {
+            let! observed =
+                database.Enqueue(fun () ->
+                    use transaction = database.Connection.BeginTransaction(deferred = true)
+                    let result = ProfileTransportSnapshot.read database.Connection transaction workspace profile
+                    transaction.Commit()
+                    result)
+            match observed with
+            | Error problem -> return Error problem
+            | Ok observed ->
+                let mods =
+                    observed.Mods
+                    |> List.filter (fun value ->
+                        value.Entry.Kind = ModKind.Regular
+                        && value.Selection.Enabled = Some true)
+                let saveFiles, saveBytes = privateUsage observed.Saves token
+                return
+                    Ok
+                        { Name = observed.Name
+                          Game = observed.Game
+                          Mods = mods.Length
+                          ModFiles =
+                            mods
+                            |> List.sumBy (fun value ->
+                                value.Version
+                                |> Option.map (fun version ->
+                                    version.Entries
+                                    |> List.filter (fun entry ->
+                                        let path = LogicalPath.components entry.Path
+                                        not (List.contains path value.Hidden))
+                                    |> List.length)
+                                |> Option.defaultValue 0)
+                          SaveFiles = saveFiles
+                          SaveBytes = saveBytes
+                          Sources = [] }
+        }
 
     member _.Export(workspace, profile, destination, includeSaves, token) =
         writer.Write(workspace, profile, destination, includeSaves, token)
