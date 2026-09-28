@@ -164,7 +164,9 @@ void main() {
     );
     await tester.pump();
     expect(
-      tester.widget<McAction>(find.byKey(const ValueKey('submit')).last).onPressed,
+      tester
+          .widget<McAction>(find.byKey(const ValueKey('submit')).last)
+          .onPressed,
       isNotNull,
     );
     await tester.ensureVisible(find.byKey(const ValueKey('submit')).last);

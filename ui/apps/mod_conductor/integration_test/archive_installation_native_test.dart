@@ -86,10 +86,9 @@ void main() {
 
       final previousError = FlutterError.onError;
       FlutterError.onError = (details) {
-        File('$output/primary-ui-errors.log').writeAsStringSync(
-          '${details.toString()}\n',
-          mode: FileMode.append,
-        );
+        File(
+          '$output/primary-ui-errors.log',
+        ).writeAsStringSync('${details.toString()}\n', mode: FileMode.append);
         previousError?.call(details);
       };
       try {

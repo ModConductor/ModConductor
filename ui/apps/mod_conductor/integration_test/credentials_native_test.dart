@@ -160,9 +160,11 @@ void main() {
         expect(failed.saved, SavedCredentials.present);
         expect(failed.removalProblem, CredentialProblem.locked);
         await capture('removal-failed');
-        await tap(find.byWidgetPredicate(
-          (w) => w is McIconAction && w.label == 'Sign-in storage details',
-        ));
+        await tap(
+          find.byWidgetPredicate(
+            (w) => w is McIconAction && w.label == 'Sign-in storage details',
+          ),
+        );
         await capture('diagnostic');
         await tap(action('Close'));
         await owner.close();
