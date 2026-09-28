@@ -113,6 +113,13 @@ module DeploymentBackendFixtures =
         |> result
         |> ignore
 
+        DeploymentFixtureData.isolateWindowsGameLocations
+            store
+            (Path.Combine(area, "state"))
+            area
+            workspace
+            profile
+
         let backend = store.Deployments
         let state = backend.Read profile |> wait |> backendResult "initial read"
         let view = state.RunnableRoot
@@ -254,6 +261,13 @@ module DeploymentBackendFixtures =
         |> wait
         |> result
         |> ignore
+
+        DeploymentFixtureData.isolateWindowsGameLocations
+            store
+            (Path.Combine(area, "state"))
+            area
+            workspace
+            profile
 
         let oldReceipt = store.Deployment.Read rollback.Id |> wait
 

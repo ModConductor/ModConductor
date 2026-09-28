@@ -222,6 +222,13 @@ module internal ComponentFixtures =
             |> result
             |> ignore
 
+            DeploymentFixtureData.isolateWindowsGameLocations
+                store
+                (Path.Combine(area, "state"))
+                area
+                workspace
+                profile
+
         let context =
             (store.GameContexts :> IGameContexts).Read(workspace, profileOne)
             |> wait

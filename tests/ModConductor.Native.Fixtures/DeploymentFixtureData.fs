@@ -10,6 +10,7 @@ open ModConductor.Platform
 open ModConductor.ModLibrary
 open ModConductor.DeploymentPlanning
 open ModConductor.DeploymentRecovery
+open ModConductor.GameContexts
 open ModConductor.Persistence
 
 module internal DeploymentFixtureData =
@@ -38,6 +39,53 @@ module internal DeploymentFixtureData =
 
     let target value : TargetFile = { Root = rootId; Path = path value }
     let get (task: Task<'T>) = task.GetAwaiter().GetResult()
+
+    let isolateWindowsGameLocations (store: OperationStore) stateDirectory area workspace profile =
+        if OperatingSystem.IsWindows() then
+            let contexts = store.GameContexts :> IGameContexts
+
+            let before = contexts.Read(workspace, profile) |> get |> StorageWorker.result
+
+            let binding = before.Binding.Value
+
+            let documents =
+                Directory.CreateDirectory(Path.Combine(area, "user-documents")).FullName
+
+            let saves = Directory.CreateDirectory(Path.Combine(documents, "Saves")).FullName
+            let local = Directory.CreateDirectory(Path.Combine(area, "user-local")).FullName
+
+            let evidence =
+                { binding.Evidence with
+                    Locations =
+                        { Documents = Location.Located(documents, true)
+                          Saves = Location.Located(saves, true)
+                          LocalAppData = Location.Located(local, true) } }
+
+            let evidence =
+                { evidence with
+                    Fingerprint = ContextIdentity.fingerprint evidence }
+
+            use database = new StateDatabase(stateDirectory)
+
+            database.Enqueue(fun () ->
+                Sqlite.execute
+                    database.Connection
+                    null
+                    "UPDATE game_contexts SET evidence=$evidence WHERE workspace_id=$workspace AND profile_id=$profile AND revision=$revision"
+                    [ "$evidence", box (GameContextEncoding.encode evidence)
+                      "$workspace", box (string workspace)
+                      "$profile", box (string profile)
+                      "$revision", box before.Revision ])
+            |> get
+
+            let after = contexts.Read(workspace, profile) |> get |> StorageWorker.result
+
+            if
+                after.Revision <> before.Revision
+                || after.Binding.Value.Evidence <> evidence
+                || after.Binding.Value.NeedsCheck <> binding.NeedsCheck
+            then
+                invalidOp "The fixture game location replacement changed the context state."
 
     let ok =
         function
