@@ -64,6 +64,9 @@ for tool in ('Xvfb', 'xauth', *(['xdotool'] if args.workspaces else [])):
 engine = Path(os.environ.get('MC_ENGINE_PATH', root / '.tools/publish/linux-x64/ModConductor.Engine')).resolve()
 if not engine.is_file():
     raise SystemExit('Publish the Linux NativeAOT engine first.')
+fixture_tool = Path(os.environ.get('MC_NATIVE_FIXTURE', root / '.tools/publish/native-fixtures/ModConductor.Native.Fixtures')).resolve()
+if (args.workspaces or args.collections) and not fixture_tool.is_file():
+    raise SystemExit('Publish the Linux NativeAOT fixture first.')
 (root / '.agent-workspace').mkdir(exist_ok=True)
 with tempfile.TemporaryDirectory(prefix='wire-display-', dir=root / '.agent-workspace') as temporary:
     temporary = Path(temporary)
@@ -94,6 +97,8 @@ with tempfile.TemporaryDirectory(prefix='wire-display-', dir=root / '.agent-work
                 command.append('--dart-define=MC_COLLECTION_OUTPUT=' + str(fixture))
             if args.workspaces:
                 command.append('--dart-define=MC_UI_FIXTURE=' + str(fixture))
+            if args.workspaces or args.collections:
+                command.append('--dart-define=MC_NATIVE_FIXTURE=' + str(fixture_tool))
             check = subprocess.Popen(command, cwd=root / 'ui/apps/mod_conductor', env=env, start_new_session=True)
             try:
                 deadline = time.monotonic() + 240

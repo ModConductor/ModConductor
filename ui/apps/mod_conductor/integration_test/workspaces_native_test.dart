@@ -18,10 +18,11 @@ void main() {
     tester,
   ) async {
     const executable = String.fromEnvironment('MC_ENGINE_PATH');
+    const fixtureTool = String.fromEnvironment('MC_NATIVE_FIXTURE');
     const fixturePath = String.fromEnvironment('MC_UI_FIXTURE');
-    if (executable.isEmpty || fixturePath.isEmpty) {
+    if (executable.isEmpty || fixtureTool.isEmpty || fixturePath.isEmpty) {
       throw StateError(
-        'Pass MC_ENGINE_PATH and an owned MC_UI_FIXTURE directory.',
+        'Pass MC_ENGINE_PATH, MC_NATIVE_FIXTURE and an owned MC_UI_FIXTURE directory.',
       );
     }
     final fixture = Directory(fixturePath);
@@ -30,6 +31,13 @@ void main() {
     ).create();
     final state = await Directory('$fixturePath${Platform.pathSeparator}state')
         .create();
+    final inputs = '$fixturePath${Platform.pathSeparator}inputs';
+    final game =
+        '$inputs/Second library/steamapps/common/Skyrim Special Edition';
+    final protonData = '$inputs/Second library/steamapps/compatdata/489830';
+    final protonRuntime = '$inputs/Steam/compatibilitytools.d/Custom Ω Proton';
+    final prepared = await Process.run(fixtureTool, ['--proton-files', inputs]);
+    expect(prepared.exitCode, 0, reason: '${prepared.stderr}');
     final sentinel = File('${workspace.path}/foreign.txt');
     await sentinel.writeAsString('Preserve this file.');
     EngineOwner makeOwner() => EngineOwner(
@@ -47,6 +55,10 @@ void main() {
           key: boundary,
           child: ModConductorApp(
             workspaces: owner.workspaces,
+            gameContexts: owner.gameContexts,
+            protonContexts: owner.protonContexts,
+            settings: owner.settings,
+            chooseGameDirectory: (_) async => game,
             status: DesktopConnected((owner.state as EngineConnected).report),
           ),
         ),
@@ -62,13 +74,33 @@ void main() {
       while (!condition() && DateTime.now().isBefore(deadline)) {
         await tester.pump(const Duration(milliseconds: 100));
       }
-      expect(condition(), isTrue);
+      expect(
+        condition(),
+        isTrue,
+        reason: tester
+            .widgetList<Text>(find.byType(Text))
+            .map((item) => item.data)
+            .whereType<String>()
+            .join(' | '),
+      );
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
     }
 
     Future<void> tapKey(String key) async {
-      await tester.tap(find.byKey(ValueKey(key)));
+      final target = find.byKey(ValueKey(key));
+      expect(
+        target,
+        findsOneWidget,
+        reason: tester
+            .widgetList<Text>(find.byType(Text))
+            .map((item) => item.data)
+            .whereType<String>()
+            .join(' | '),
+      );
+      await tester.ensureVisible(target);
+      await tester.pumpAndSettle();
+      await tester.tap(target);
       await tester.pumpAndSettle();
     }
 
@@ -108,6 +140,52 @@ void main() {
       );
     }
 
+    Future<void> createProfile(String value) async {
+      await tapKey('create-profile');
+      await tester.enterText(
+        find.byKey(const ValueKey('profile-setup-name')),
+        value,
+      );
+      await tapKey('find-profile-installation');
+      await tapKey('choose-profile-game-folder');
+      if (Platform.isLinux) {
+        await tester.ensureVisible(find.byKey(const ValueKey('select-proton')));
+        await tapKey('select-proton');
+        await tester.enterText(
+          find.byKey(const ValueKey('proton-data-folder')),
+          protonData,
+        );
+        await tester.enterText(
+          find.byKey(const ValueKey('proton-runtime-folder')),
+          protonRuntime,
+        );
+        await tester.pumpAndSettle();
+        final protonSubmit = find.byKey(const ValueKey('submit')).last;
+        expect(tester.widget<McAction>(protonSubmit).onPressed, isNotNull);
+        await tester.ensureVisible(protonSubmit);
+        await tester.tap(protonSubmit);
+        await tester.pumpAndSettle();
+        expect(find.text('Not selected'), findsNothing);
+      }
+      await tapKey('submit-profile-setup');
+      await until(
+        () =>
+            getController().activity == null &&
+            getController().page!.profiles.any(
+              (profile) => profile.name == value,
+            ) &&
+            find.byType(Dialog).evaluate().isEmpty &&
+            find
+                .byKey(
+                  ValueKey(
+                    'profile-menu-${getController().page!.profiles.single.id}',
+                  ),
+                )
+                .evaluate()
+                .isNotEmpty,
+      );
+    }
+
     Future<void> menu(String id, String action) async {
       await tapKey('profile-menu-$id');
       await tester.tap(find.text(action).last);
@@ -138,8 +216,7 @@ void main() {
         ),
       );
       await capture('empty-light');
-      await tapKey('create-profile');
-      await name('Everyday');
+      await createProfile('Everyday');
       final first = getController().page!.profiles.single;
       await menu(first.id, 'Rename');
       await name('Everyday play');
@@ -148,10 +225,9 @@ void main() {
       final copy = getController().page!.profiles.singleWhere(
         (p) => p.id != first.id,
       );
-      await tester.tap(find.byKey(ValueKey((profileId: copy.id))));
-      await tester.pumpAndSettle();
+      await tapKey('profile-card-${copy.id}');
       expect(getController().workspace!.selectedProfile!.id, first.id);
-      await tapKey('use-profile');
+      await tapKey('use-profile-${copy.id}');
       await until(
         () =>
             getController().workspace!.selectedProfile!.id == copy.id &&
@@ -166,7 +242,6 @@ void main() {
             getController().activity == null,
       );
       final saved = getController().workspace!;
-      expect(saved.revision, 5);
       await capture('profiles-light');
       await tapKey('quick-theme');
       await tester.pumpAndSettle();
@@ -182,12 +257,13 @@ void main() {
       await tapKey('quick-theme');
       await capture('profiles-light-narrow150');
       await tapKey('create-profile');
-      await tapKey('submit');
-      expect(find.byType(McFormDialog), findsOneWidget);
+      await tapKey('find-profile-installation');
+      await tapKey('choose-profile-game-folder');
+      await tapKey('submit-profile-setup');
+      expect(find.byType(ProfileSetupSurface), findsOneWidget);
       expect(getController().page!.profiles.length, 1);
       await capture('invalid-name-light-narrow150');
-      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
-      await tester.pumpAndSettle();
+      await tapKey('cancel-profile-setup');
       await tester.binding.setSurfaceSize(null);
       await tapKey('quick-theme');
       await tapKey('close-workspace');

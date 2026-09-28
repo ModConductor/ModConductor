@@ -19,6 +19,13 @@ module DeploymentBackendFixtures =
     let private result = StorageWorker.result
     let private path = DeploymentFixtureData.path
 
+    let private backendResult stage =
+        function
+        | Ok value -> value
+        | Error(DeploymentError.Unavailable detail) ->
+            invalidOp $"Deployment backend {stage} unavailable: {detail}"
+        | Error error -> invalidOp $"Deployment backend {stage} failed: {error}"
+
     let observe (writer: Utf8JsonWriter) primary =
         let area = Directory.CreateDirectory(Path.Combine(primary, "backend")).FullName
 
@@ -100,7 +107,7 @@ module DeploymentBackendFixtures =
         |> ignore
 
         let backend = store.Deployments
-        let state = backend.Read profile |> wait |> result
+        let state = backend.Read profile |> wait |> backendResult "initial read"
         let view = state.RunnableRoot
         let viewOriginal = Path.Combine(view, "Data", "Mixed", "Original.TXT")
         let viewChild = Path.Combine(view, "Data", "Mixed", "New", "child.txt")
@@ -120,7 +127,7 @@ module DeploymentBackendFixtures =
         let stalePlan =
             backend.Prepare(Guid.NewGuid(), state.Sources, ignore, CancellationToken.None)
             |> wait
-            |> result
+            |> backendResult "stale preparation"
 
         let oldSelection = InventoryObservations.read store profile
 
@@ -152,16 +159,16 @@ module DeploymentBackendFixtures =
         |> ignore
 
         let deploy () =
-            let state = backend.Read profile |> wait |> result
+            let state = backend.Read profile |> wait |> backendResult "deployment read"
 
             let prepared =
                 backend.Prepare(Guid.NewGuid(), state.Sources, ignore, CancellationToken.None)
                 |> wait
-                |> result
+                |> backendResult "deployment preparation"
 
             backend.Activate(prepared.Id, prepared.Sources, ignore, CancellationToken.None)
             |> wait
-            |> result
+            |> backendResult "deployment activation"
 
         let active = deploy ()
 
@@ -181,7 +188,8 @@ module DeploymentBackendFixtures =
 
         let sourceInventoryUnaffected = inspected.Copies.Length = 2
 
-        let generation = (backend.Read profile |> wait |> result).ActiveGeneration.Value
+        let generation =
+            (backend.Read profile |> wait |> backendResult "generation read").ActiveGeneration.Value
 
         let evidence =
             (contexts.Read(workspace, profile) |> wait |> result).Binding.Value.Evidence
@@ -194,7 +202,7 @@ module DeploymentBackendFixtures =
             |> HostPath.value
 
         let retained target =
-            let current = backend.Read profile |> wait |> result
+            let current = backend.Read profile |> wait |> backendResult "retained read"
 
             let prepared =
                 backend.PrepareRetained(
@@ -205,11 +213,11 @@ module DeploymentBackendFixtures =
                     CancellationToken.None
                 )
                 |> wait
-                |> result
+                |> backendResult "retained preparation"
 
             backend.Activate(prepared.Id, prepared.Sources, ignore, CancellationToken.None)
             |> wait
-            |> result
+            |> backendResult "retained activation"
 
         let baseline = retained None
 
@@ -308,7 +316,8 @@ module DeploymentBackendFixtures =
         |> wait
         |> ignore
 
-        let afterDeletion = backend.Read profile |> wait |> result
+        let afterDeletion =
+            backend.Read profile |> wait |> backendResult "post-deletion read"
 
         let affectedProfileUndeployed =
             affected |> List.exists (fun (id, _) -> id = profile)

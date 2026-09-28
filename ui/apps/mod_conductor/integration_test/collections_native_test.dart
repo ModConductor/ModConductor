@@ -19,18 +19,25 @@ void main() {
     (tester) async {
       tester.testTextInput.register();
       const executable = String.fromEnvironment('MC_ENGINE_PATH');
+      const fixtureTool = String.fromEnvironment('MC_NATIVE_FIXTURE');
       const output = String.fromEnvironment('MC_COLLECTION_OUTPUT');
-      if (executable.isEmpty || output.isEmpty) {
+      if (executable.isEmpty || fixtureTool.isEmpty || output.isEmpty) {
         throw StateError(
-          'Select the native engine and an owned output directory.',
+          'Select the native engine, fixture, and an owned output directory.',
         );
       }
       final evidence = await Directory(output).create(recursive: true);
-      final fixture = await Directory.systemTemp.createTemp(
-        'mc-collections-native-',
-      );
+      final fixture = await Directory('${evidence.path}/s').create();
       final workspacePath = '${fixture.path}/workspace';
       final sourcePath = '$workspacePath/source';
+      final inputs = '${fixture.path}/inputs';
+      final game =
+          '$inputs/Second library/steamapps/common/Skyrim Special Edition';
+      final prepared = await Process.run(fixtureTool, [
+        '--proton-files',
+        inputs,
+      ]);
+      expect(prepared.exitCode, 0, reason: '${prepared.stderr}');
       await Directory('$sourcePath/textures').create(recursive: true);
       for (var i = 0; i < 70; i++) {
         await File(
@@ -92,6 +99,27 @@ void main() {
           0,
           ProfileInfo(profileId, 'Everyday'),
         );
+        await owner.gameContexts!.save(
+          workspaceId,
+          profileId,
+          'skyrim-se-steam',
+          0,
+          game,
+          proton: Platform.isLinux
+              ? ProtonSelection(
+                  appId: 489830,
+                  association: SteamProtonAssociation(
+                    '$inputs/Steam',
+                    '$inputs/Second library',
+                  ),
+                  compatData:
+                      '$inputs/Second library/steamapps/compatdata/489830',
+                  runtimeDirectory:
+                      '$inputs/Steam/compatibilitytools.d/Custom Ω Proton',
+                  toolId: 'fixture_tool',
+                )
+              : null,
+        );
         for (var i = 0; i < 34; i++) {
           await owner.modLibrary!.register(
             workspaceId,
@@ -108,6 +136,8 @@ void main() {
               modLibrary: owner.modLibrary,
               profileMods: owner.profileMods,
               modOrganization: owner.modOrganization,
+              gameContexts: owner.gameContexts,
+              settings: owner.settings,
               status: DesktopConnected((owner.state as EngineConnected).report),
               chooseDirectory: (_) async => sourcePath,
             ),
