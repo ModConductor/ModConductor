@@ -66,7 +66,11 @@ class _UpdatePreferencesSection extends StatelessWidget {
                   ),
                   const SizedBox(height: McSpacing.medium),
                 ],
-                const Text('Update Mod Conductor with your Nix configuration.'),
+                Text(
+                  controller.nixManaged
+                      ? 'Update Mod Conductor with your Nix configuration.'
+                      : 'Update Mod Conductor from your package source or the official release page.',
+                ),
               ],
             )
           else ...[

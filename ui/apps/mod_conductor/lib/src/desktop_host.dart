@@ -41,6 +41,7 @@ class _DesktopHostState extends State<DesktopHost> with WidgetsBindingObserver {
     _updates = AppUpdatesController(
       DesktopAppUpdateSource(),
       windows: Platform.isWindows,
+      nixManaged: isNixStoreExecutable(Platform.resolvedExecutable),
     );
     _updateHandoff = AppUpdateHandoff(
       checkSafety: () async =>
@@ -66,8 +67,17 @@ class _DesktopHostState extends State<DesktopHost> with WidgetsBindingObserver {
       await _owner.close() ? AppExitResponse.exit : AppExitResponse.cancel;
 
   Future<void> _quitAndUpdate(AppUpdateManager manager) async {
-    if (!_updates.updateAvailable || _updates.manager != manager) return;
-    final problem = await _updateHandoff.start(manager);
+    final release = _updates.release;
+    if (!_updates.updateAvailable ||
+        _updates.manager != manager ||
+        release == null) {
+      return;
+    }
+    if (!await _updates.managerStillOffers(manager)) {
+      await _updates.openReleasePage();
+      return;
+    }
+    final problem = await _updateHandoff.start(manager, release.version);
     if (problem != null && mounted) _updates.handoffFailed(problem);
   }
 

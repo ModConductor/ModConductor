@@ -51,18 +51,48 @@ bool wingetListsInstalledVersion(String output, String version) =>
           cells.last == 'winget';
     });
 
+bool isNixStoreExecutable(String path) => path.startsWith('/nix/store/');
+
+bool scoopOffersVersion(String output, String version) {
+  final name = RegExp(
+    r'^\s*Name\s*:\s*(\S+)\s*$',
+    multiLine: true,
+  ).firstMatch(output);
+  final offered = RegExp(
+    r'^\s*Version\s*:\s*(.+?)\s*$',
+    multiLine: true,
+  ).firstMatch(output);
+  if (name?.group(1)?.toLowerCase() != 'modconductor' || offered == null) {
+    return false;
+  }
+  final value = offered.group(1)!;
+  return value == version || value.endsWith('(Update to $version available)');
+}
+
+bool chocolateyOffersVersion(String output, String version) => output
+    .split(RegExp(r'\r?\n'))
+    .any((line) => line.trim() == 'modconductor|$version');
+
 abstract interface class AppUpdateSource {
   Future<String> installedVersion();
   Future<AppRelease?> latestRelease();
-  Future<AppUpdateManager?> installedManager(String installedVersion);
+  Future<AppUpdateManager?> installedManager(
+    String installedVersion,
+    String targetVersion,
+  );
   Future<void> openReleasePage(Uri page);
 }
 
 class AppUpdatesController extends ChangeNotifier {
-  AppUpdatesController(this.source, {required this.windows});
+  AppUpdatesController(
+    this.source, {
+    required this.windows,
+    this.nixManaged = false,
+  });
 
   final AppUpdateSource source;
   final bool windows;
+  final bool nixManaged;
   String? installedVersion;
   AppRelease? release;
   AppUpdateManager? manager;
@@ -117,7 +147,7 @@ class AppUpdatesController extends ChangeNotifier {
           found != null &&
               found.compatible &&
               compareAppVersions(found.version, installedVersion!) > 0
-          ? await source.installedManager(installedVersion!)
+          ? await source.installedManager(installedVersion!, found.version)
           : null;
       if (_disposed || generation != _generation) return;
       release = found;
@@ -148,6 +178,19 @@ class AppUpdatesController extends ChangeNotifier {
       problem = 'Could not open the release page. Try again.';
     }
     _notify();
+  }
+
+  Future<bool> managerStillOffers(AppUpdateManager selected) async {
+    if (!updateAvailable || manager != selected) return false;
+    try {
+      return await source.installedManager(
+            installedVersion!,
+            release!.version,
+          ) ==
+          selected;
+    } on Exception {
+      return false;
+    }
   }
 
   void handoffFailed(String detail) {
@@ -233,7 +276,10 @@ class DesktopAppUpdateSource implements AppUpdateSource {
   }
 
   @override
-  Future<AppUpdateManager?> installedManager(String installedVersion) async {
+  Future<AppUpdateManager?> installedManager(
+    String installedVersion,
+    String targetVersion,
+  ) async {
     if (!Platform.isWindows) return null;
     final executable = File(Platform.resolvedExecutable).absolute.path
         .toLowerCase();
@@ -248,7 +294,16 @@ class DesktopAppUpdateSource implements AppUpdateSource {
         ) &&
         await scoopPackage.exists() &&
         await scoopShim.exists()) {
-      matches.add(AppUpdateManager.scoop);
+      final info = await Process.run('powershell.exe', [
+        '-NoProfile',
+        '-NonInteractive',
+        '-Command',
+        "& '${scoopShim.path.replaceAll("'", "''")}' info modconductor",
+      ]).catchError((Object _) => ProcessResult(0, 1, '', ''));
+      if (info.exitCode == 0 &&
+          scoopOffersVersion(info.stdout as String, targetVersion)) {
+        matches.add(AppUpdateManager.scoop);
+      }
     }
     final chocoRoot =
         Platform.environment['ChocolateyInstall'] ??
@@ -262,7 +317,17 @@ class DesktopAppUpdateSource implements AppUpdateSource {
         ) &&
         await chocoPackage.exists() &&
         await chocoExecutable.exists()) {
-      matches.add(AppUpdateManager.chocolatey);
+      final info = await Process.run(chocoExecutable.path, [
+        'info',
+        'modconductor',
+        '--exact',
+        '--version=$targetVersion',
+        '--limit-output',
+      ]).catchError((Object _) => ProcessResult(0, 1, '', ''));
+      if (info.exitCode == 0 &&
+          chocolateyOffersVersion(info.stdout as String, targetVersion)) {
+        matches.add(AppUpdateManager.chocolatey);
+      }
     }
     final installed = await Process.run('reg.exe', [
       'query',
@@ -290,7 +355,18 @@ class DesktopAppUpdateSource implements AppUpdateSource {
             result.stdout as String,
             installedVersion.split('+').first,
           )) {
-        matches.add(AppUpdateManager.winget);
+        final offered = await Process.run('winget.exe', [
+          'show',
+          '--id',
+          'alsi-lawr.ModConductor',
+          '--exact',
+          '--source',
+          'winget',
+          '--version',
+          targetVersion,
+          '--disable-interactivity',
+        ]).catchError((Object _) => ProcessResult(0, 1, '', ''));
+        if (offered.exitCode == 0) matches.add(AppUpdateManager.winget);
       }
     }
     return matches.length == 1 ? matches.single : null;
@@ -311,6 +387,7 @@ abstract interface class AppUpdateWaiter {
 
 typedef UpdateWaiterLauncher = Future<AppUpdateWaiter> Function(
   AppUpdateManager,
+  String,
 );
 typedef UpdateQuitRequest = Future<bool> Function();
 typedef UpdateSafetyCheck = Future<String?> Function();
@@ -328,7 +405,7 @@ class AppUpdateHandoff {
   bool _active = false;
   bool _uncancelled = false;
 
-  Future<String?> start(AppUpdateManager manager) async {
+  Future<String?> start(AppUpdateManager manager, String version) async {
     if (_active) return 'An update handoff is already open.';
     if (_uncancelled) {
       return 'Close the existing update console before you quit.';
@@ -340,7 +417,7 @@ class AppUpdateHandoff {
       try {
         final problem = await checkSafety();
         if (problem != null) return problem;
-        waiter = await launchWaiter(manager);
+        waiter = await launchWaiter(manager, version);
         if (await requestQuit()) return null;
         failure = 'Mod Conductor did not quit. No update was started.';
       } on Exception {
@@ -371,10 +448,14 @@ class PowerShellUpdateWaiter implements AppUpdateWaiter {
 }
 
 Future<AppUpdateWaiter> launchAppUpdateWaiter(
-  AppUpdateManager manager, {
+  AppUpdateManager manager,
+  String version, {
   MethodChannel channel = const MethodChannel('dev.modconductor/desktop'),
   int? parentProcessId,
 }) async {
+  if (!RegExp(r'^\d+\.\d+\.\d+$').hasMatch(version)) {
+    throw const FormatException('Invalid update version.');
+  }
   String quote(String path) => "'${path.replaceAll("'", "''")}'";
   final scoopRoot =
       Platform.environment['SCOOP'] ??
@@ -383,11 +464,12 @@ Future<AppUpdateWaiter> launchAppUpdateWaiter(
       Platform.environment['ChocolateyInstall'] ??
       '${Platform.environment['ProgramData'] ?? ''}\\chocolatey';
   final command = switch (manager) {
-    AppUpdateManager.winget => "& winget.exe upgrade --id alsi-lawr.ModConductor --exact --source winget",
+    AppUpdateManager.winget =>
+      '& winget.exe upgrade --id alsi-lawr.ModConductor --exact --source winget --version $version',
     AppUpdateManager.scoop =>
       '& ${quote('$scoopRoot\\shims\\scoop.ps1')} update modconductor',
     AppUpdateManager.chocolatey =>
-      '& ${quote('$chocoRoot\\bin\\choco.exe')} upgrade modconductor',
+      '& ${quote('$chocoRoot\\bin\\choco.exe')} upgrade modconductor --version=$version',
   };
   final target = parentProcessId ?? pid;
   final script =

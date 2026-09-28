@@ -386,7 +386,11 @@ class _UpdateSource implements AppUpdateSource {
   }
 
   @override
-  Future<AppUpdateManager?> installedManager(String _) async => manager;
+  Future<AppUpdateManager?> installedManager(String _, String target) async {
+    expect(target, latest?.version);
+    return manager;
+  }
+
   @override
   Future<void> openReleasePage(Uri page) async {
     opened = page;
@@ -550,7 +554,11 @@ void main() {
     tester,
   ) async {
     final source = _UpdateSource(const AppRelease('1.2.4', true), null);
-    final updates = AppUpdatesController(source, windows: false);
+    final updates = AppUpdatesController(
+      source,
+      windows: false,
+      nixManaged: true,
+    );
     addTearDown(updates.dispose);
     await mount(tester, updates: updates);
     await activate(tester, 'nav-preferences');
@@ -561,6 +569,24 @@ void main() {
     );
     expect(keyed('check-app-updates'), findsNothing);
     expect(keyed('app-update-action'), findsNothing);
+    expect(source.checks, 0);
+  });
+
+  testWidgets('non-Nix Linux copy gets package or release guidance', (
+    tester,
+  ) async {
+    final source = _UpdateSource(null, null);
+    final updates = AppUpdatesController(source, windows: false);
+    addTearDown(updates.dispose);
+    await mount(tester, updates: updates);
+    await activate(tester, 'nav-preferences');
+    expect(
+      find.text(
+        'Update Mod Conductor from your package source or the official release page.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Nix configuration'), findsNothing);
     expect(source.checks, 0);
   });
 

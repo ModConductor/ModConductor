@@ -9,6 +9,7 @@ class _Source implements AppUpdateSource {
   String version = '1.2.3';
   AppRelease? latest;
   AppUpdateManager? channel;
+  String? offeredVersion;
   bool failCheck = false;
   bool failOpen = false;
   int checks = 0;
@@ -26,10 +27,15 @@ class _Source implements AppUpdateSource {
   }
 
   @override
-  Future<AppUpdateManager?> installedManager(String installedVersion) async {
+  Future<AppUpdateManager?> installedManager(
+    String installedVersion,
+    String targetVersion,
+  ) async {
     expect(installedVersion, version);
     channelChecks++;
-    return channel;
+    return offeredVersion == null || offeredVersion == targetVersion
+        ? channel
+        : null;
   }
 
   @override
@@ -154,6 +160,34 @@ void main() {
     );
   });
 
+  test('Scoop and Chocolatey offers must match the shown release', () {
+    const scoop =
+        'Name    : modconductor\n'
+        'Version : 1.2.3 (Update to 1.2.4 available)\n';
+    expect(scoopOffersVersion(scoop, '1.2.4'), isTrue);
+    expect(scoopOffersVersion(scoop, '1.2.5'), isFalse);
+    expect(
+      scoopOffersVersion('Name : other\nVersion : 1.2.4\n', '1.2.4'),
+      isFalse,
+    );
+    expect(chocolateyOffersVersion('modconductor|1.2.4\n', '1.2.4'), isTrue);
+    expect(chocolateyOffersVersion('modconductor|1.2.3\n', '1.2.4'), isFalse);
+  });
+
+  test('Nix identity follows the executable store path, not the host OS', () {
+    expect(
+      isNixStoreExecutable(
+        '/nix/store/abc-modconductor/app/modconductor/mod_conductor',
+      ),
+      isTrue,
+    );
+    expect(isNixStoreExecutable('/usr/bin/mod_conductor'), isFalse);
+    expect(
+      isNixStoreExecutable('/tmp/.mount_modconductor/mod_conductor'),
+      isFalse,
+    );
+  });
+
   test(
     'network failure is actionable and unknown channel opens release page',
     () async {
@@ -191,6 +225,34 @@ void main() {
     },
   );
 
+  test('manager lag falls back to the release page', () async {
+    final source = _Source()
+      ..latest = const AppRelease('1.2.4', true)
+      ..channel = AppUpdateManager.winget
+      ..offeredVersion = '1.2.3';
+    final updates = AppUpdatesController(source, windows: true);
+    addTearDown(updates.dispose);
+    await updates.checkOnStartup(true);
+    expect(updates.updateAvailable, isTrue);
+    expect(updates.manager, isNull);
+    await updates.openReleasePage();
+    expect(source.opened, updates.release!.page);
+  });
+
+  test('handoff recheck rejects a manager that fell behind', () async {
+    final source = _Source()
+      ..latest = const AppRelease('1.2.4', true)
+      ..channel = AppUpdateManager.scoop
+      ..offeredVersion = '1.2.4';
+    final updates = AppUpdatesController(source, windows: true);
+    addTearDown(updates.dispose);
+    await updates.checkOnStartup(true);
+    expect(await updates.managerStillOffers(AppUpdateManager.scoop), isTrue);
+    source.offeredVersion = '1.2.3';
+    expect(await updates.managerStillOffers(AppUpdateManager.scoop), isFalse);
+    expect(source.channelChecks, 3);
+  });
+
   test('Nix does not check releases or enter Windows handoff', () async {
     final source = _Source()..latest = const AppRelease('2.0.0', true);
     final updates = AppUpdatesController(source, windows: false);
@@ -208,7 +270,8 @@ void main() {
     var quits = 0;
     final handoff = AppUpdateHandoff(
       checkSafety: () async => 'Close the managed game first.',
-      launchWaiter: (_) async {
+      launchWaiter: (_, version) async {
+        expect(version, '1.2.4');
         launches++;
         return _Waiter();
       },
@@ -217,7 +280,10 @@ void main() {
         return true;
       },
     );
-    expect(await handoff.start(AppUpdateManager.winget), contains('managed'));
+    expect(
+      await handoff.start(AppUpdateManager.winget, '1.2.4'),
+      contains('managed'),
+    );
     expect(launches, 0);
     expect(quits, 0);
   });
@@ -226,14 +292,15 @@ void main() {
     final waiter = _Waiter();
     final handoff = AppUpdateHandoff(
       checkSafety: () async => null,
-      launchWaiter: (manager) async {
+      launchWaiter: (manager, version) async {
         expect(manager, AppUpdateManager.scoop);
+        expect(version, '1.2.4');
         return waiter;
       },
       requestQuit: () async => false,
     );
     expect(
-      await handoff.start(AppUpdateManager.scoop),
+      await handoff.start(AppUpdateManager.scoop, '1.2.4'),
       contains('did not quit'),
     );
     expect(waiter.cancelled, isTrue);
@@ -244,19 +311,20 @@ void main() {
     var launches = 0;
     final handoff = AppUpdateHandoff(
       checkSafety: () async => null,
-      launchWaiter: (_) async {
+      launchWaiter: (_, version) async {
+        expect(version, '1.2.4');
         launches++;
         return waiter;
       },
       requestQuit: () async => false,
     );
     expect(
-      await handoff.start(AppUpdateManager.scoop),
+      await handoff.start(AppUpdateManager.scoop, '1.2.4'),
       contains('Close it before you quit'),
     );
     expect(waiter.cancelled, isTrue);
     expect(
-      await handoff.start(AppUpdateManager.winget),
+      await handoff.start(AppUpdateManager.winget, '1.2.4'),
       contains('existing update console'),
     );
     expect(launches, 1);
@@ -270,16 +338,17 @@ void main() {
       var launches = 0;
       final handoff = AppUpdateHandoff(
         checkSafety: () async => null,
-        launchWaiter: (_) async {
+        launchWaiter: (_, version) async {
+          expect(version, '1.2.4');
           launches++;
           return waiter;
         },
         requestQuit: () => quit.future,
       );
-      final pending = handoff.start(AppUpdateManager.chocolatey);
+      final pending = handoff.start(AppUpdateManager.chocolatey, '1.2.4');
       await Future<void>.delayed(Duration.zero);
       expect(
-        await handoff.start(AppUpdateManager.winget),
+        await handoff.start(AppUpdateManager.winget, '1.2.4'),
         contains('already open'),
       );
       quit.complete(true);
@@ -295,6 +364,7 @@ void main() {
       const channel = MethodChannel('test/update-console');
       final messenger =
           TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      var expectedManagerCommand = '';
       messenger.setMockMethodCallHandler(channel, (call) async {
         if (call.method == 'cancelUpdateWaiter') {
           expect(call.arguments, 9274);
@@ -309,21 +379,32 @@ void main() {
         ];
         final command = String.fromCharCodes(units);
         expect(command, contains('Wait-Process -Id 7312'));
-        expect(
-          command,
-          contains('winget.exe upgrade --id alsi-lawr.ModConductor'),
-        );
+        expect(command, contains(expectedManagerCommand));
         expect(command, contains('No update was started.'));
         return 9274;
       });
       addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
-      final waiter = await launchAppUpdateWaiter(
-        AppUpdateManager.winget,
-        channel: channel,
-        parentProcessId: 7312,
-      );
-      expect(waiter, isA<PowerShellUpdateWaiter>());
-      expect(await waiter.cancel(), isTrue);
+      for (final (manager, command) in [
+        (
+          AppUpdateManager.winget,
+          'winget.exe upgrade --id alsi-lawr.ModConductor --exact --source winget --version 1.2.4',
+        ),
+        (AppUpdateManager.scoop, 'scoop.ps1\' update modconductor'),
+        (
+          AppUpdateManager.chocolatey,
+          'choco.exe\' upgrade modconductor --version=1.2.4',
+        ),
+      ]) {
+        expectedManagerCommand = command;
+        final waiter = await launchAppUpdateWaiter(
+          manager,
+          '1.2.4',
+          channel: channel,
+          parentProcessId: 7312,
+        );
+        expect(waiter, isA<PowerShellUpdateWaiter>());
+        expect(await waiter.cancel(), isTrue);
+      }
     },
   );
 }
