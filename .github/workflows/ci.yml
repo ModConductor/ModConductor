@@ -25,20 +25,18 @@ jobs:
       PUB_CACHE: ${{ github.workspace }}/.tools/pub-cache
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Check preinstalled Linux desktop prerequisites
+      - name: Install Linux desktop prerequisites
         if: runner.os == 'Linux'
         shell: bash
         run: |
-          for tool in clang cmake ninja pkg-config; do
-            if ! command -v "$tool" >/dev/null 2>&1; then
-              echo "::error::Missing preinstalled Linux build tool: $tool. This job does not install OS prerequisites."
-              exit 1
-            fi
-          done
-          if ! pkg-config --print-errors --cflags --libs gtk+-3.0; then
-            echo "::error::GTK 3 development metadata or its dependency closure is unavailable. Use a runner with these prerequisites already available; this job will not install them."
-            exit 1
-          fi
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            clang cmake ninja-build pkg-config libgtk-3-dev libepoxy-dev \
+            libx11-dev libsecret-1-dev liblzma-dev zlib1g-dev libssl-dev \
+            libstdc++-12-dev libunwind-dev libicu-dev libegl1 libgles2 \
+            fontconfig fonts-dejavu-core libglib2.0-bin xdg-utils \
+            xvfb xauth xdotool dbus-x11
+          pkg-config --print-errors --cflags --libs gtk+-3.0
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           global-json-file: global.json
@@ -141,6 +139,9 @@ jobs:
         if: runner.os == 'Windows'
         working-directory: ui/apps/mod_conductor
         run: flutter build windows --release --no-pub
+      - name: Install pinned Linux LOOT helper toolchain
+        if: runner.os == 'Linux'
+        run: rustup toolchain install 1.89.0 --profile minimal
       - name: Assemble development bundle
         run: python tools/assemble-development.py
       - name: Install pinned Windows packaging tools
