@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   package:
-    uses: alsi-lawr/package-release-workflows/.github/workflows/package.yml@4b625d50834da7b0fb3aebd333eeecece82c83b9
+    uses: alsi-lawr/package-release-workflows/.github/workflows/package.yml@d4d773e5329a6dd93cbced51003e40466174a80e
     permissions:
       contents: read
       attestations: write
@@ -18,8 +18,9 @@ jobs:
     with:
       package_name: modconductor
       package_version: 0.1.0
-      shared_helpers_ref: 4b625d50834da7b0fb3aebd333eeecece82c83b9
+      shared_helpers_ref: d4d773e5329a6dd93cbced51003e40466174a80e
       source_archive_template: "{package_name}-v{version}-source.tar.gz"
+      source_cargo_toolchain: 1.89.0
       dotnet_version: 10.0.400
       dotnet_project_path: src/ModConductor.Engine/ModConductor.Engine.fsproj
       package_smoke_script: tools/smoke-desktop-package.py
