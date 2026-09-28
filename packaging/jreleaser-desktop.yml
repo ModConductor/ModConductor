@@ -3,7 +3,7 @@ project:
   description: Desktop mod organiser
   authors:
     - Mod Conductor contributors
-  license: NOASSERTION
+  license: GPL-3.0-or-later
   inceptionYear: "2026"
   stereotype: DESKTOP
   links:

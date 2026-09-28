@@ -103,7 +103,7 @@ def main() -> None:
         "# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.9.0.schema.json\n\n"
         f"PackageIdentifier: {PACKAGE_ID}\nPackageVersion: {args.version}\n"
         "PackageLocale: en-US\nPublisher: Mod Conductor contributors\n"
-        "PackageName: Mod Conductor\nLicense: Not yet licensed\n"
+        "PackageName: Mod Conductor\nLicense: GPL-3.0-or-later\n"
         "ShortDescription: Desktop mod organiser\n"
         "PackageUrl: https://github.com/alsi-lawr/ModConductor\n"
         "ManifestType: defaultLocale\nManifestVersion: 1.9.0\n"

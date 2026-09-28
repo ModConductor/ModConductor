@@ -140,7 +140,7 @@ does not silently omit a missing native asset. It creates an unsigned per-user
 NSIS installer and portable ZIP from one payload, with bundled third-party
 notices. Adjacent files record payload hashes, artifact checksums, locked
 dependency manifests, an SPDX file inventory, and local build provenance.
-They are evidence for review, not a signing attestation or a licence grant.
+They are evidence for review, not a signing attestation or publication approval.
 
 The installer writes under the current user's LocalAppData Programs directory,
 adds current-user Start Menu and desktop shortcuts, and supports upgrade and
@@ -151,7 +151,7 @@ remain in the chosen workspace, not the binary directory. Test both formats in
 an isolated Windows user profile before release. Do not use a physical game
 installation for package smoke tests. Other Windows architectures, MSIX,
 system-wide installation, file associations, signing, and publication are not
-selected. MC-064 retains real-game qualification; MC-067 retains licence review.
+selected. MC-064 retains real-game qualification; MC-067 retains compliance review.
 
 The desktop package workflow uses `tools/publish-desktop.py` for Linux and
 Windows x64. On Windows, `tools/publish-windows.py` builds the NativeAOT engine,
@@ -162,8 +162,8 @@ portable ZIP. The shared archive step makes the release ZIP from that same
 payload. `tools/finalize-desktop-release.py` adds the installer to release
 assets and writes Scoop, Chocolatey, and WinGet metadata from the archive and
 installer checksums. These are local, unsigned artifacts. The package workflow
-does not publish or submit them. WinGet's provisional `License` text is not a
-licence grant; public submission waits for MC-067.
+does not publish or submit them. WinGet metadata names the selected project
+licence; public submission still waits for MC-067 compliance review.
 
 ## Local Linux x64 desktop payload
 
@@ -262,7 +262,7 @@ Fedora 44 before release. If FUSE is unavailable in a test container, use
 
 The cask links this exact AppImage on Linux and checks its SHA-256. It does
 not target macOS. Do not publish the cask or enable a package repository until
-the licence, hosting, and signing decisions are complete. An AppImage NXM
+the licence-compliance, hosting, and signing decisions are complete. An AppImage NXM
 handler uses the stable AppImage path, not its temporary mount path.
 Check an installed cask AppImage on a private Xvfb display:
 
@@ -279,8 +279,8 @@ the cask. The shared publisher needs an explicit existing tap repository and
 
 Test installation, upgrade, and removal in an isolated Ubuntu 24.04 guest.
 The package workflow does not publish a release or install the product on the
-host. MC-064 retains real-game qualification; MC-067 retains the source
-licence decision.
+host. MC-064 retains real-game qualification; MC-067 retains the remaining
+compliance review.
 
 ## Local Arch package
 
@@ -303,7 +303,8 @@ python3 tools/generate-aur-package.py \
 The AUR recipe points at the matching release archive. Local verification can
 substitute a `file://` URL for that same archive. Build with `makepkg` as a
 non-root user, then install the resulting package in an isolated Arch system.
-This repository has not selected a product licence. Do not submit the recipe
+The original project material is GPL-3.0-or-later; mixed-payload package
+metadata and remaining compliance still need review. Do not submit the recipe
 to the public AUR or publish the package before MC-067 is complete.
 
 ## Nix local package
@@ -311,7 +312,7 @@ to the public AUR or publish the package before MC-067 is complete.
 On x86-64 Linux, `nix build .#modconductor` builds the Flutter application,
 engine, and pinned LOOT helper as one local package. `nix run .#modconductor`
 runs that package. Neither command needs a separate helper build. Do not
-publish the result before the MC-067 licence decision.
+publish the result before the remaining MC-067 compliance review.
 
 ## UI checks
 

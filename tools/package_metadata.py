@@ -16,7 +16,7 @@ def spdx_document(inventory, version, platform_name, platform_slug, manifest_has
             "downloadLocation": "NOASSERTION",
             "filesAnalyzed": True,
             "licenseConcluded": "NOASSERTION",
-            "licenseDeclared": "NOASSERTION",
+            "licenseDeclared": "GPL-3.0-or-later",
             "copyrightText": "NOASSERTION",
         }],
         "files": [

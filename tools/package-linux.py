@@ -109,6 +109,7 @@ def assemble(bundle: Path, engine: Path, helper: Path, output: Path, revision: s
         copy_required(ROOT / "packaging" / icon, output / "share" / icon)
 
     documents = output / "share/doc/modconductor"
+    copy_required(ROOT / "LICENSE", documents / "LICENSE")
     shutil.copytree(ROOT / "docs/third-party", documents / "third-party")
     copy_required(ROOT / "ui/packages/mc_ui_foundation/notices/Roboto-LICENSE.txt", documents / "third-party/Roboto-LICENSE.txt")
     copy_required(ROOT / "docs/third-party/libloot-LICENSE.txt", documents / "third-party/libloot-LICENSE.txt")

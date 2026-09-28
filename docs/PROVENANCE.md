@@ -1,15 +1,17 @@
 # Provenance
 
-Original engine libraries, schemas, typed clients, presentation, tools, tests, and
-authored documentation are Mod Conductor work. They remain unlicensed under the
-[development policy](DEVELOPMENT-POLICY.md). This inventory is not permission to publish.
+Original engine libraries, schemas, typed clients, presentation, tools, tests,
+artwork, and authored documentation are Mod Conductor work licensed
+GPL-3.0-or-later under the [development policy](DEVELOPMENT-POLICY.md) and
+[LICENSE](../LICENSE). Separately licensed third-party material retains its
+own terms. This inventory is not permission to publish.
 
 ## Adopted SDKs, scaffolds, and tooling
 
 | MC paths / dependency | Kind (copy, translation, asset, dependency) | Upstream origin and exact version / commit | Changes or adaptation | Licence and copyright notice evidence / retained location |
 | --- | --- | --- | --- | --- |
 | `ui/apps/mod_conductor/linux/`, `windows/`, `.metadata`, generated build/analyzer metadata | Copy / generated scaffold | [Flutter 3.47.2, revision d3b14c876900e553bc736ca19295fc09e3853e8e](https://github.com/flutter/flutter/tree/d3b14c876900e553bc736ca19295fc09e3853e8e/packages/flutter_tools/templates) | `flutter create --empty --platforms=linux,windows`; identifiers substituted by the generator; generic README/demo content removed | BSD-3-Clause; [Flutter notice](third-party/flutter-LICENSE.txt) |
-| `ui/packages/mc_ui_foundation/assets/brand/modconductor.svg`; derived Flutter and Linux PNGs and `ui/apps/mod_conductor/windows/runner/resources/app_icon.ico` | Approved artwork / generated assets | [Mod Conductor SVG](../ui/packages/mc_ui_foundation/assets/brand/modconductor.svg), approved 2026-09-23 | `tools/generate-app-icons.py` renders the PNGs and ICO from that SVG; the Windows installer uses the same ICO | No licence selected; [development policy](DEVELOPMENT-POLICY.md) applies. The [Flutter template image notice](third-party/flutter-template-images-LICENSE.txt) is retained for scaffold provenance, not for the current icon. |
+| `ui/packages/mc_ui_foundation/assets/brand/modconductor.svg`; derived Flutter and Linux PNGs and `ui/apps/mod_conductor/windows/runner/resources/app_icon.ico` | Approved artwork / generated assets | [Mod Conductor SVG](../ui/packages/mc_ui_foundation/assets/brand/modconductor.svg), approved 2026-09-23 | `tools/generate-app-icons.py` renders the PNGs and ICO from that SVG; the Windows installer uses the same ICO | Original artwork is GPL-3.0-or-later under the [development policy](DEVELOPMENT-POLICY.md). The [Flutter template image notice](third-party/flutter-template-images-LICENSE.txt) is retained for scaffold provenance, not for the current icon. |
 | Flutter framework / `sky_engine` | SDK dependency | Flutter 3.47.4 / Dart 3.13.3; engine revision `06a2e2a110089dff50fe635cffd2a61e1b24fbcd`; archive pins in [SDK configuration](../.config/flutter-sdk.json) | SDK consumed, not vendored; SDK packages show `0.0.0` in pub lock and resolve through this SDK pin | BSD-3-Clause plus component terms; [Flutter](third-party/flutter-LICENSE.txt), [Dart](third-party/dart-LICENSE.txt), [complete engine notices](third-party/flutter-engine-LICENSE.txt) |
 | `FSharp.Core` | Engine dependency | [10.1.400](https://www.nuget.org/packages/FSharp.Core/10.1.400), source `dotnet/dotnet` at `14fbf8d5271c98133561eb55185fdb05b286f578` | Unmodified package; explicit central pin; SDK-aligned pin | MIT; [notice](third-party/fsharp-core-LICENSE.txt) |
 | .NET SDK/runtime, ILCompiler and ILLink | Build/runtime dependencies | SDK 10.0.400; runtime and compiler/linker packages 10.0.11, source `dotnet/dotnet` at `e2f47b0110ed922f21a1522da67279133ce28f32` for runtime packages | Unmodified; native compiler host packages for linux-x64 and win-x64 appear in the lock; SDK reference/apphost/runtime packs also follow the runtime pin | MIT plus component terms; [runtime licence](third-party/dotnet-runtime-LICENSE.txt), [component notices](third-party/dotnet-NOTICES.txt) |
@@ -57,13 +59,14 @@ do not add supported Mod Conductor platforms.
   [`modorganizer2/modorganizer` at `efe2a02d5dc641946baaa8db1440800f38d07837`](https://github.com/modorganizer2/modorganizer/tree/efe2a02d5dc641946baaa8db1440800f38d07837).
   The inspected [`src/modinfo.cpp` notice](https://github.com/modorganizer2/modorganizer/blob/efe2a02d5dc641946baaa8db1440800f38d07837/src/modinfo.cpp#L1-L18)
   specifies GPL version 3 or later for that file. This is reference evidence, not
-  an exhaustive upstream licence inventory or an MC licence declaration.
+  an exhaustive upstream licence inventory or the basis for MC's own licence.
 - Viset was inspected during planning for NativeAOT precedent at commit
   `a5e5880a8f6d7277ca3d8eb1b65a37e9dbbb5fbd`; no Viset source is recorded as adopted.
 
 The source-informed investigation is not claimed to be clean-room work.
 Future reuse must be recorded as reuse rather than inferred to be original merely
-because it is rewritten in another language. This inventory is not a final GPL determination.
+because it is rewritten in another language. This inventory does not determine
+whether MO2's GPL applies to any MC implementation.
 
 ## Local Windows packaging tools and notices
 
@@ -71,13 +74,13 @@ The local Windows x64 installer is built with unmodified NSIS 3.12, using its
 built-in Modern UI 2 headers and LZMA module without optional plugins. Its
 [retained COPYING terms](third-party/nsis-LICENSE.txt) accompany both local
 Windows package formats. The official 3.12 archive and its SHA-256 pin are
-recorded in [the build procedure](BUILDING.md). This does not authorize signing
-or publication of the unlicensed Mod Conductor product.
+recorded in [the build procedure](BUILDING.md). The project licence does not
+authorize signing or publication of these local artifacts.
 
 The Windows package requires the existing Rust LOOT helper built from the
 committed Cargo.lock. The pinned libloot revision's
 [LICENSE](third-party/libloot-LICENSE.txt) accompanies the local artifacts.
-MC-067 still owns the final licence assessment before distribution.
+MC-067 still owns the remaining compliance assessment before distribution.
 
 ## Local AppImage packaging
 
@@ -92,8 +95,8 @@ AppImage. appimagetool and linuxdeploy are build tools only. The Ubuntu 24.04
 build records the copied system-library package names, versions, source paths,
 and available package copyright files inside the AppImage at
 `usr/lib/modconductor/share/doc/modconductor/third-party/ubuntu-24.04`.
-Those records support the later MC-067 review; they do not settle the product
-licence or authorize publication.
+Those records support the remaining MC-067 compliance review; they do not
+authorize publication.
 
 ## Local Arch package tooling
 
@@ -102,8 +105,10 @@ archive and the shared installed launcher. `makepkg --printsrcinfo` runs in
 the pinned Arch `base-devel` image at
 `sha256:8745817f349ed24373341ddb92776209eeec3f0364ea48f7f645ac5800d30a50`.
 `makepkg`, pacman, and namcap are verification tools, not bundled components.
-The recipe omits a licence declaration because the product licence remains
-unselected. Its local verification does not permit AUR publication.
+The AUR recipe omits an aggregate licence array and the Fedora RPM spec retains
+`NOASSERTION` pending mixed-payload package-format review. Neither changes the
+GPL-3.0-or-later grant for original project material or third-party terms.
+Local verification does not permit AUR publication.
 
 ## Local archive behavior reference
 

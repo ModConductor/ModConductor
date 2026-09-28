@@ -1,7 +1,9 @@
 # Dependencies
 
 The committed NuGet and pub locks pin resolved versions and integrity hashes.
-Original MC source remains unlicensed. These notices apply only to adopted third-party material.
+Original MC-authored code, documentation, and artwork are GPL-3.0-or-later under
+the [project licence](../LICENSE) and [development policy](DEVELOPMENT-POLICY.md).
+These notices apply only to adopted third-party material and do not relicense it.
 
 ## .NET and generators
 
@@ -17,7 +19,7 @@ Original MC source remains unlicensed. These notices apply only to adopted third
 
 Package metadata supplies the source commits above. ASP.NET notices come from the
 restored 10.0.11 runtime package. Existing .NET/FSharp.Core/ILCompiler notices still
-apply. No compiler/SDK licence grants a licence to original MC source.
+apply. The compiler/SDK licences do not determine the licence for original MC source.
 
 ## Dart
 
@@ -64,7 +66,7 @@ for archive SHA-256 hashes.
 | yaml | 3.1.4 | [pub.dev](https://pub.dev/packages/yaml/versions/3.1.4) | [notice](third-party/yaml-LICENSE.txt) |
 
 Notice line endings/trailing whitespace are normalized without changing terms.
-The final project-wide GPL assessment and publication decision remain separate.
+The GPL selection does not complete the remaining compliance review or publication decision.
 
 ### Flutter tests
 
@@ -105,8 +107,8 @@ The foundation retains the [Roboto notice](../ui/packages/mc_ui_foundation/notic
 
 The Linux x64 native asset SHA-256 is `eddcd4aa561d5b8f252db77e8272e7d1aed96bcab9fda3f177ca542f916290bf`.
 The Windows x64 native asset SHA-256 is `6ad8e149f8ce3ed3716402b4b3a2268ebbdc7b64391b5fafed747e03bb1b9418`.
-NuGet locks retain the complete closure. These notices do not license original
-Mod Conductor source.
+NuGet locks retain the complete closure. These notices do not change the
+original Mod Conductor grant.
 
 
 ## Native test runner

@@ -18,7 +18,7 @@ let
     "Directory.Build.props" "Directory.Build.targets" "Directory.Packages.props"
     "NuGet.config" "global.json"
   ];
-  uiSource = sourceFor [ "ui" "docs" "packaging" "third_party" ] [ ];
+  uiSource = sourceFor [ "ui" "docs" "packaging" "third_party" ] [ "LICENSE" ];
   helperSource = sourceFor [ "native" ] [ ];
   sourceRevision = if self ? rev then self.rev else if self ? dirtyRev then self.dirtyRev else "unknown";
   sourceDate = if self ? lastModified then self.lastModified else 0;
@@ -141,6 +141,7 @@ let
         "$out/app/modconductor/engine/"
       cp ${lootHelper}/bin/modconductor-loot-helper "$out/app/modconductor/engine/"
       cp ${engine}/lib/modconductor-engine/xdelta3 "$out/app/modconductor/engine/"
+      install -m644 ${uiSource}/LICENSE "$out/share/doc/modconductor/LICENSE"
       cp -r ${uiSource}/docs/third-party "$out/share/doc/modconductor/"
       chmod u+w "$out/share/doc/modconductor/third-party"
       install -m644 ${uiSource}/third_party/xdelta3/LICENSE "$out/share/doc/modconductor/third-party/xdelta3-LICENSE.txt"
@@ -190,6 +191,7 @@ let
     meta = {
       platforms = [ "x86_64-linux" ];
       mainProgram = "modconductor";
+      license = lib.licenses.gpl3Plus;
     };
   };
 in {
