@@ -54,6 +54,7 @@ def main() -> None:
         "pkgdesc='Desktop mod organiser'\n"
         "arch=('x86_64')\n"
         "url='https://github.com/alsi-lawr/ModConductor'\n"
+        "license=('GPL-3.0-or-later' 'GPL-3.0-only' 'MPL-2.0' 'Apache-2.0' 'BSD-3-Clause' 'BSD-2-Clause' 'MIT' '0BSD' 'CC0-1.0' 'CC-BY-4.0' 'Unicode-3.0' 'Unicode-DFS-2016' 'Zlib' 'BSL-1.0' 'FTL' 'IJG')\n"
         f"_release_base={shlex.quote(args.base_url.rstrip('/'))}\n"
         f"depends=({dependencies})\n"
         "provides=('modconductor')\n"
@@ -75,6 +76,8 @@ def main() -> None:
         '  install -Dm644 "${payload}/share/icons/hicolor/48x48/apps/dev.modconductor.mod_conductor.png" "${pkgdir}/usr/share/icons/hicolor/48x48/apps/dev.modconductor.mod_conductor.png"\n'
         '  install -Dm644 "${payload}/share/icons/hicolor/256x256/apps/dev.modconductor.mod_conductor.png" "${pkgdir}/usr/share/icons/hicolor/256x256/apps/dev.modconductor.mod_conductor.png"\n'
         '  ln -s ../../lib/modconductor/share/doc/modconductor "${pkgdir}/usr/share/doc/modconductor"\n'
+        '  install -d "${pkgdir}/usr/share/licenses"\n'
+        '  ln -s ../../lib/modconductor/share/doc/modconductor "${pkgdir}/usr/share/licenses/modconductor-bin"\n'
         "}\n"
     )
     recipe_path = output / "modconductor-bin.PKGBUILD"

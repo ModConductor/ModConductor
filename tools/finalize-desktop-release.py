@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def main() -> None:
-    for script in ("finalize-linux-release.py", "finalize-windows-release.py"):
+    for script in ("finalize-linux-release.py", "finalize-windows-release.py", "finalize-source-release.py"):
         subprocess.run([sys.executable, str(ROOT / "tools" / script), *sys.argv[1:]], check=True)
 
 

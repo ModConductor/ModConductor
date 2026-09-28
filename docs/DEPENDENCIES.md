@@ -68,6 +68,33 @@ for archive SHA-256 hashes.
 Notice line endings/trailing whitespace are normalized without changing terms.
 The GPL selection does not complete the remaining compliance review or publication decision.
 
+## Rust LOOT helper
+
+The helper links pinned libloot 0.29.6 and the transitive crates in
+`native/ModConductor.Loot.Helper/Cargo.lock`. The exact source is vendored in
+the [same-release source archive](SOURCE.md). The distributed packages retain
+[each resolved crate's licence files and manifest declaration](third-party/rust-crates-NOTICES.txt),
+not only libloot's top-level GPL text. In particular, esplugin 6.1.4 and
+libloadorder 18.8.2 declare `GPL-3.0` in their package manifests, and
+option-ext 0.2.0 declares `MPL-2.0`; that does not change the project grant
+for original MC-authored material.
+
+## Bundled xdelta3 CLI
+
+The pinned [xdelta3 3.2.0 binary and source](../third_party/xdelta3/README.md)
+use Apache-2.0 for xdelta3 itself. Its release workflow statically links
+[XZ Utils liblzma v5.8.3](third-party/xz-liblzma-0BSD.txt) under 0BSD and
+[BLAKE3 1.8.5](third-party/blake3-CC0.txt) under its CC0-1.0 alternative.
+Both Linux and Windows packages retain these texts alongside xdelta3's
+[Apache-2.0 licence](../third_party/xdelta3/LICENSE). The pinned upstream
+sources and build workflow are linked in the xdelta3 inventory; they are not
+MC-authored material.
+
+The bundled Flutter engine notice also includes FreeType under the FreeType
+Project License. This software is based in part on the work of the FreeType
+Team; the complete [upstream notice](third-party/flutter-engine-LICENSE.txt)
+is retained with the package.
+
 ### Flutter tests
 
 The production widget and interaction tests use SDK `flutter_test`. The table

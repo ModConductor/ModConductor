@@ -142,6 +142,7 @@ let
       cp ${lootHelper}/bin/modconductor-loot-helper "$out/app/modconductor/engine/"
       cp ${engine}/lib/modconductor-engine/xdelta3 "$out/app/modconductor/engine/"
       install -m644 ${uiSource}/LICENSE "$out/share/doc/modconductor/LICENSE"
+      install -m644 ${uiSource}/docs/SOURCE.md "$out/share/doc/modconductor/SOURCE.md"
       cp -r ${uiSource}/docs/third-party "$out/share/doc/modconductor/"
       chmod u+w "$out/share/doc/modconductor/third-party"
       install -m644 ${uiSource}/third_party/xdelta3/LICENSE "$out/share/doc/modconductor/third-party/xdelta3-LICENSE.txt"

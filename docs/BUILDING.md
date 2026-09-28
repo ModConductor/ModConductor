@@ -161,9 +161,13 @@ The output contains the complete `payload/`, the NSIS installer, and the local
 portable ZIP. The shared archive step makes the release ZIP from that same
 payload. `tools/finalize-desktop-release.py` adds the installer to release
 assets and writes Scoop, Chocolatey, and WinGet metadata from the archive and
-installer checksums. These are local, unsigned artifacts. The package workflow
-does not publish or submit them. WinGet metadata names the selected project
-licence; public submission still waits for MC-067 compliance review.
+installer checksums. It also checks both platform provenance revisions and
+adds `modconductor-v<VERSION>-source.tar.gz` from that exact Git commit and the
+vendored Cargo.lock source closure. The source archive checksum is appended to
+the same release checksum list; [source directions](SOURCE.md) are copied into
+the platform payloads. These are local, unsigned artifacts. The package
+workflow does not publish or submit them. WinGet metadata names the selected
+project licence; package/runtime qualification remains separate.
 
 ## Local Linux x64 desktop payload
 

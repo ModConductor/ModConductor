@@ -102,6 +102,7 @@ def main() -> None:
     copy_required(args.loot_helper.resolve(), payload / "engine/modconductor-loot-helper.exe")
     copy_required(ROOT / "third_party/xdelta3/xdelta3-win-x64.exe", payload / "engine/xdelta3.exe")
     copy_required(ROOT / "LICENSE", payload / "LICENSE")
+    copy_required(ROOT / "docs/SOURCE.md", payload / "notices/SOURCE.md")
     shutil.copytree(ROOT / "docs/third-party", payload / "notices")
     copy_required(ROOT / "ui/packages/mc_ui_foundation/notices/Roboto-LICENSE.txt", payload / "notices/Roboto-LICENSE.txt")
     copy_required(ROOT / "docs/third-party/libloot-LICENSE.txt", payload / "notices/libloot-LICENSE.txt")

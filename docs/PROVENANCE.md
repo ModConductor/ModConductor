@@ -80,7 +80,12 @@ authorize signing or publication of these local artifacts.
 The Windows package requires the existing Rust LOOT helper built from the
 committed Cargo.lock. The pinned libloot revision's
 [LICENSE](third-party/libloot-LICENSE.txt) accompanies the local artifacts.
-MC-067 still owns the remaining compliance assessment before distribution.
+The [locked Rust crate notices](third-party/rust-crates-NOTICES.txt) retain
+the transitive source-package licence files, including the GPL-3.0 declarations
+of esplugin and libloadorder and MPL-2.0 declaration of option-ext.
+The [same-release source directions](SOURCE.md) identify the matching source
+archive with vendored Rust dependencies; a default-branch checkout is not
+treated as the binary's corresponding source.
 
 ## Local AppImage packaging
 
@@ -92,11 +97,12 @@ URLs and SHA-256 values. The type-2 runtime and GTK plugin hook are bundled;
 their [runtime](third-party/appimage-runtime-LICENSE.txt) and
 [plugin](third-party/linuxdeploy-plugin-gtk-LICENSE.txt) notices accompany the
 AppImage. appimagetool and linuxdeploy are build tools only. The Ubuntu 24.04
-build records the copied system-library package names, versions, source paths,
+build records the copied system-library binary and source package names and
+versions, source paths,
 and available package copyright files inside the AppImage at
 `usr/lib/modconductor/share/doc/modconductor/third-party/ubuntu-24.04`.
-Those records support the remaining MC-067 compliance review; they do not
-authorize publication.
+The [source directions](SOURCE.md) explain how to retrieve matching Ubuntu
+source packages. Those records do not alone authorize publication.
 
 ## Local Arch package tooling
 
@@ -105,9 +111,12 @@ archive and the shared installed launcher. `makepkg --printsrcinfo` runs in
 the pinned Arch `base-devel` image at
 `sha256:8745817f349ed24373341ddb92776209eeec3f0364ea48f7f645ac5800d30a50`.
 `makepkg`, pacman, and namcap are verification tools, not bundled components.
-The AUR recipe omits an aggregate licence array and the Fedora RPM spec retains
-`NOASSERTION` pending mixed-payload package-format review. Neither changes the
-GPL-3.0-or-later grant for original project material or third-party terms.
+The local RPM and AUR recipes list the identified licences for the bundled
+MC, Flutter/.NET, helper, xdelta3, and asset material; they do not describe
+external system dependencies or establish acceptance into official Fedora or
+Arch repositories. The retained notices remain authoritative for each
+third-party component. Neither package field changes the GPL-3.0-or-later
+grant for original project material or third-party terms.
 Local verification does not permit AUR publication.
 
 ## Local archive behavior reference

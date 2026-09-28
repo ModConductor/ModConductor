@@ -42,12 +42,18 @@ for resource in ("gsettings-desktop-schemas", "libglib2.0-bin", "libgtk-3-0t64",
     packages.setdefault(resource, [])
 
 with (documentation / "bundled-ubuntu-packages.tsv").open("w") as listing:
-    listing.write("package\tversion\tappdir_path\tubuntu_source\n")
+    listing.write("package\tversion\tsource_package\tsource_version\tappdir_path\tubuntu_path\n")
     for package, files in sorted(packages.items()):
         version = subprocess.check_output(["dpkg-query", "-W", "-f=${Version}", package],
                                           text=True).strip()
+        source_package, source_version = subprocess.check_output(
+            ["dpkg-query", "-W", "-f=${source:Package}\t${source:Version}", package],
+            text=True).rstrip("\n").split("\t")
+        source_package = source_package or package.split(":", 1)[0]
+        source_version = source_version or version
         copyright_file = Path("/usr/share/doc") / package.split(":", 1)[0] / "copyright"
-        if copyright_file.is_file():
-            shutil.copy2(copyright_file, documentation / (package.replace(":", "-") + ".copyright"))
+        if not copyright_file.is_file():
+            raise SystemExit(f"Bundled Ubuntu package lacks copyright file: {package}")
+        shutil.copy2(copyright_file, documentation / (package.replace(":", "-") + ".copyright"))
         for deployed, source in files or [(Path("."), Path("resource"))]:
-            listing.write(f"{package}\t{version}\t{deployed}\t{source}\n")
+            listing.write(f"{package}\t{version}\t{source_package}\t{source_version}\t{deployed}\t{source}\n")
