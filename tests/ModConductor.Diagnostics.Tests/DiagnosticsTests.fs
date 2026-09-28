@@ -1393,7 +1393,7 @@ type SkyrimCheckTests() =
                   entry "Unknown.esp" 42us None ]
               Problems = [] }
 
-        let settings =
+        let settings: PluginSetting list =
             snapshot.Entries
             |> List.map (fun plugin ->
                 { Name = plugin.Name
