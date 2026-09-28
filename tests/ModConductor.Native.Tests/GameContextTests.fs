@@ -50,3 +50,7 @@ type GameContextTests() =
         flag "refreshRestoresCurrentEvidence" |> should equal true
         flag "restartRequiresRecheck" |> should equal true
         flag "changedExecutableGetsNewEvidence" |> should equal true
+
+    [<Test>]
+    member _.``concurrent context snapshots should wait instead of becoming unavailable``() =
+        flag "concurrentSnapshotsWaitForAdmission" |> should equal true

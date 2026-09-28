@@ -5,6 +5,7 @@ open System.IO
 open System.Buffers.Binary
 open System.Text
 open System.Text.Json
+open System.Threading
 open ModConductor.GameContexts
 open ModConductor.Persistence
 open ModConductor.Workspaces
@@ -446,6 +447,43 @@ module GameContextFixtures =
             )
 
             Directory.Move(missingData, Path.Combine(game, "Data"))
+
+        do
+            use database = new StateDatabase(statePath)
+            let roots = OwnedWorkspaceRootStore(database)
+            let contextStore = GameContextStore(database, roots)
+            let contexts = contextStore :> IGameContexts
+            use queued = new ManualResetEventSlim(false)
+            use release = new ManualResetEventSlim(false)
+
+            let blocker =
+                database.Enqueue(fun () ->
+                    queued.Set()
+                    release.Wait())
+
+            try
+                if not (queued.Wait 5000) then
+                    failwith "The context read fixture did not block the database queue."
+
+                let reads = Array.init 3 (fun _ -> contexts.Read(first, firstProfile))
+                let pending = reads |> Array.forall (fun read -> not read.IsCompleted)
+                release.Set()
+                blocker |> wait
+                let results = reads |> Array.map wait
+
+                writer.WriteBoolean(
+                    "concurrentSnapshotsWaitForAdmission",
+                    pending
+                    && (results
+                        |> Array.forall (function
+                            | Ok context -> context.Binding.IsSome
+                            | Error _ -> false))
+                )
+            finally
+                release.Set()
+
+            if not (contextStore.TryClose() && roots.TryClose()) then
+                failwith "The context read fixture still owns an operation."
 
         let noHostFolders =
             if OperatingSystem.IsLinux() then

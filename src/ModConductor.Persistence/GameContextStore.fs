@@ -74,16 +74,18 @@ module internal GameContextRows =
 type GameContextStore internal (database: StateDatabase, roots: OwnedWorkspaceRootStore) =
     let gate = obj ()
     let mutable active = 0
+    let mutable activeChanges = 0
     let mutable closed = false
 
-    let run action =
+    let run change action =
         task {
             let admitted =
                 lock gate (fun () ->
-                    if closed || active >= 2 then
+                    if closed || (change && activeChanges >= 2) then
                         false
                     else
                         active <- active + 1
+                        if change then activeChanges <- activeChanges + 1
                         true)
 
             if not admitted then
@@ -95,7 +97,9 @@ type GameContextStore internal (database: StateDatabase, roots: OwnedWorkspaceRo
                     with :? ModConductor.Operations.CapacityException ->
                         return Error ContextError.Busy
                 finally
-                    lock gate (fun () -> active <- active - 1)
+                    lock gate (fun () ->
+                        active <- active - 1
+                        if change then activeChanges <- activeChanges - 1)
         }
 
     let read workspace profile =
@@ -103,7 +107,7 @@ type GameContextStore internal (database: StateDatabase, roots: OwnedWorkspaceRo
             GameContextRows.read database.Connection null database.OwnerId workspace profile)
 
     let change workspace profile expected (candidate: ContextSelection option) =
-        run (fun () ->
+        run true (fun () ->
             task {
                 let! before = read workspace profile
 
@@ -257,7 +261,11 @@ type GameContextStore internal (database: StateDatabase, roots: OwnedWorkspaceRo
                 true)
 
     interface IGameContexts with
-        member _.Read(workspace, profile) = run (fun () -> read workspace profile)
+        member _.Read(workspace, profile) =
+            // A transient Busy snapshot would leave a setup watch waiting for an unrelated change.
+            run false (fun () ->
+                database.EnqueueInternal(fun () ->
+                    GameContextRows.read database.Connection null database.OwnerId workspace profile))
 
         member _.Save(workspace, profile, expected, selection) =
             change workspace profile expected (Some selection)
